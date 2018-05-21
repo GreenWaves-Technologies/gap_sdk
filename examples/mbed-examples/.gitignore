@@ -1,0 +1,9 @@
+BUILD/
+transcript
+report.log
+*.pyc
+*Kernels.c
+*Kernels.h
+*KernelsInit.c
+*KernelsInit.h
+Gen*

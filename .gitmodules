@@ -1,0 +1,9 @@
+[submodule "mbed-os"]
+	path = mbed-os
+	url = git@github.com:GreenWaves-Technologies/mbed-os.git
+[submodule "tools/pulp-debug-bridge"]
+	path = tools/pulp-debug-bridge
+	url = git@github.com:pulp-platform/pulp-debug-bridge.git
+[submodule "tf2gap8"]
+	path = tf2gap8
+	url = git@github.com:GreenWaves-Technologies/tf2gap8.git
