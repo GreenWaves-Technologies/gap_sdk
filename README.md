@@ -12,7 +12,7 @@ The GAP8 SDK allows you to compile and execute applications on the GAP8 IoT Appl
 We provide you with all the necessary tools and two different operating systems for GAP8:
 
 *   Tools
-    -   GAP8 RISCV GNU tool chain: a pre-compiled tool chain inherited from RISC V project with support for our extensions to the RISC-V Instruction Set Architecture.
+    -   GAP8 RISCV GNU toolchain: a pre-compiled toolchain inherited from RISC V project with support for our extensions to the RISC-V Instruction Set Architecture.
     -   PLPBRIDGE: a tool from the PULP project which allows communication between your PC and a GAP8 processor. Using this tool you can:
         * Program / control GAP8
         * Debug your application using GDB
@@ -64,14 +64,14 @@ Please also make sure that your Virtual Machine USB emulation matches your PC US
 
 The following instructions assume that you install the GAP SDK into your home directory. If you want to put it somewhere else then please modify them accordingly.
 
-Now clone the GAP8 SDK and the GAP8/RISC-V tool chain:
+Now clone the GAP8 SDK and the GAP8/RISC-V toolchain:
 
 ~~~~~shell
 git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
 git clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
 ~~~~~
 
-Install the tool chain:
+Install the toolchain:
 
 ~~~~~shell
 cd ~/gap_riscv_gcc
@@ -177,4 +177,4 @@ We have also created a Google group for you to ask questions and find out more a
 
 ## Trademarks
 
-Arm® Mbed™ OS are registered trademarks or trademarks of Arm Limited (or its subsidiaries) in the USand/or elsewhere.
+Arm® Mbed™ OS are registered trademarks or trademarks of Arm Limited (or its subsidiaries) in the US and/or elsewhere.
