@@ -1,5 +1,6 @@
-![GreenWaves Technologies][GWT-logo][GWT-link]
-[GWT-logo]: logo.png
+[![GreenWaves Technologies][GWT-logo]][GWT-link]
+
+[GWT-logo]: https://github.com/GreenWaves-Technologies/gap_sdk/blob/master/logo.png
 [GWT-link]: https://greenwaves-technologies.com/
 
 # Setting up the GAP8 SDK
