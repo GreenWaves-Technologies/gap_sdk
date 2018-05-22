@@ -6,7 +6,7 @@ OBJDUMP       = riscv32-unknown-elf-objdump
 
 # The linker options.
 LIBS          = -L$(TARGET_INSTALL_DIR)/libs \
-				-lrt
+				-lrt -lio -lrt -lgcc
 
 LIBSFLAGS     = -nostartfiles -nostdlib
 

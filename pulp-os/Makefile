@@ -13,37 +13,34 @@ CC            = riscv32-unknown-elf-gcc
 AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
-LIBSFLAGS     = -nostartfiles -nostdlib
 LDFLAGS       = -T$(GAP_SDK_HOME)/tools/ld/link.gap8.ld
-RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__
-WRAP_FLAGS    = -Wl,--gc-sections
-GAP_FLAGS	 += -D__pulp__
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-COMMON        = -Os -g -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS)
+COMMON        = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__ -Os -g -fno-jump-tables -Werror -fno-tree-loop-distribute-patterns  -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections
 
 ASMFLAGS      = $(COMMON) -DLANGUAGE_ASSEMBLY -MMD -MP -c
-
-BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS) -MMD -MP -c
 
 CFLAGS        = $(COMMON) -MMD -MP -c
 
 # Final binary
 #------------------------------------------
-LIB           = $(TARGET_INSTALL_DIR)/libs/librt.a
+RT_LIB        = $(TARGET_INSTALL_DIR)/libs/librt.a
+IO_LIB		  = $(TARGET_INSTALL_DIR)/libs/libio.a
+
 HEADER_DIR    = $(TARGET_INSTALL_DIR)/include/pulp-os
 BUILD_RT  	  ?= $(BUILD_DIR)/rt
+COMMON_SRC	  += $(RUNTIME_PATH)/pulp-rt/rt_conf.c $(RUNTIME_PATH)/pulp-rt/rt_pad_conf.c
 
 HEADERS       = $(wildcard $(shell find $(RUNTIME_PATH)/include -name "*.h"))
 
-S_OBJECTS     = $(patsubst %.S, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt -name "*.S" | sort)))
+RT_S_OBJECTS     = $(patsubst %.S, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt -name "*.S" | sort)))
 
-C_OBJECTS     = $(patsubst %.c, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt -name "*.c")))
+RT_C_OBJECTS     = $(patsubst %.c, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt/kernel -name "*.c") $(shell find $(RUNTIME_PATH)/pulp-rt/drivers -name "*.c") $(COMMON_SRC)))
 
-T_OBJECTS_C   = $(patsubst %.c, $(BUILD_RT)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_SRCS))
+RT_OBJECTS       = $(RT_S_OBJECTS) $(RT_C_OBJECTS)
 
-OBJECTS       = $(S_OBJECTS) $(C_OBJECTS)
+IO_C_OBJECTS     = $(patsubst %.c, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt/libs/io -name "*.c")))
 
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/pulp-os/gap_config.h
 
@@ -59,25 +56,29 @@ install_headers: $(HEADER_DIR)
 	$(CP) $(GAP_SDK_HOME)/pulp-os/include/* $(HEADER_DIR)
 	install -D $(GAP_SDK_HOME)/pulp-os/include/Gap8.h $(TARGET_INSTALL_DIR)/include
 
-# Rules for creating rt lib (.d).
+# Rules for creating the libs.
 #------------------------------------------
-$(C_OBJECTS) : $(BUILD_RT)/%.o : %.c
+$(RT_C_OBJECTS) : $(BUILD_RT)/%.o : %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
+	$(CC) $(CFLAGS) $< $(INC_PATH) -o $@
 
-$(S_OBJECTS) : $(BUILD_RT)/%.o : %.S
+$(RT_S_OBJECTS) : $(BUILD_RT)/%.o : %.S
 	@mkdir -p $(dir $@)
 	$(CC) $(ASMFLAGS) $< $(INC_PATH) -o $@
 
-$(T_OBJECTS_C) : $(BUILD_RT)/%.o : %.c
+$(RT_LIB): $(RT_OBJECTS)
 	@mkdir -p $(dir $@)
-	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
+	$(AR) -r $(RT_LIB) $(RT_OBJECTS)
 
-$(LIB): $(OBJECTS)
+$(IO_C_OBJECTS) : $(BUILD_RT)/%.o : %.c
 	@mkdir -p $(dir $@)
-	$(AR) -r $(LIB) $(OBJECTS)
+	$(CC) $(CFLAGS) $< $(INC_PATH) -o $@
 
-all: install_headers $(OBJECTS) $(LIB)
+$(IO_LIB): $(IO_C_OBJECTS)
+	@mkdir -p $(dir $@)
+	$(AR) -r $(IO_LIB) $(IO_C_OBJECTS)
+
+all: install_headers $(OBJECTS) $(RT_LIB) $(IO_LIB)
 
 
 
