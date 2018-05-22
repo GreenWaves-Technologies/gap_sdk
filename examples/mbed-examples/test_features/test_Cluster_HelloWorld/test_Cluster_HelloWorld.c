@@ -34,5 +34,9 @@ int main()
     if (error) printf("Test failed with %d errors\n", error);
     else printf("Test success\n");
 
+    #ifdef JENKINS_TEST_FLAG
+    exit(error);
+    #else
     return error;
+    #endif
 }

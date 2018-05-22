@@ -4,10 +4,6 @@
 #include "gap_cluster.h"
 #include "gap_dmamchan.h"
 
-#ifdef ICACHE_DEBUG
-#include "gap_icache_utils.h"
-#endif
-
 #include <stdlib.h>
 
 #define BUFFER_SIZE      2048
@@ -78,24 +74,8 @@ int main()
     // Allocate a buffer in the shared L1 memory
     char *L1_BUFFER = L1_Malloc(BUFFER_SIZE);
 
-    #ifdef ICACHE_DEBUG
-    for (int iter = 0; iter < 3; iter++) {
-        /* ICACHE Start counters*/
-        ICACHE_Start(iter);
-
-        /* FC send a task to Cluster */
-        CLUSTER_SendTask(0, Master_Entry, (void *)L1_BUFFER, 0);
-
-        /* ICACHE printf counters */
-        ICACHE_CNTS_Printf();
-
-        /* ICACHE Stop counters */
-        ICACHE_Stop(iter);
-    }
-    #else
     /* FC send a task to Cluster */
     CLUSTER_SendTask(0, Master_Entry, (void *)L1_BUFFER, 0);
-    #endif
 
     CLUSTER_Wait(0);
 
@@ -117,5 +97,9 @@ int main()
     if (error) printf("Test failed with %d errors\n", error);
     else printf("Test success\n");
 
+    #ifdef JENKINS_TEST_FLAG
+    exit(error);
+    #else
     return error;
+    #endif
 }
