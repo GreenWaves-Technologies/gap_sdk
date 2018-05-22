@@ -123,7 +123,7 @@ We provide you with all the necessary tools and two different operating systems 
 \newpage
 # Installing the GAP SDK
 
-These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info. 
+These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info.
 
 The following packages needed to be installed:
 
@@ -171,7 +171,7 @@ git clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
 Install the tool chain:
 
 ~~~~~shell
-cd ~/gap_riscv_gcc
+cd ~/gap_riscv_toolchain
 ./install.sh
 ~~~~~
 

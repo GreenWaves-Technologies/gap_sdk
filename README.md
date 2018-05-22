@@ -74,7 +74,7 @@ git clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
 Install the toolchain:
 
 ~~~~~shell
-cd ~/gap_riscv_gcc
+cd ~/gap_riscv_toolchain
 ./install.sh
 ~~~~~
 
@@ -159,7 +159,7 @@ Remote debugging using localhost:1234
 You can read the documentation by opening gap_doc.html in the docs folder in your browser:
 
 ~~~~~shell
-firefox docs/gap_doc.html 
+firefox docs/gap_doc.html
 ~~~~~
 
 If you would like PDF versions of the reference manuals you can do:
