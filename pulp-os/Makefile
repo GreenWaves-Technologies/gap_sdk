@@ -37,8 +37,6 @@ BUILD_RT  	  ?= $(BUILD_DIR)/rt
 
 HEADERS       = $(wildcard $(shell find $(RUNTIME_PATH)/include -name "*.h"))
 
-BOOT_OBJECTS  = $(patsubst %.c, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/boot_code -name "*.c")))
-
 S_OBJECTS     = $(patsubst %.S, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt -name "*.S" | sort)))
 
 C_OBJECTS     = $(patsubst %.c, $(BUILD_RT)/%.o, $(wildcard $(shell find $(RUNTIME_PATH)/pulp-rt -name "*.c")))
@@ -63,10 +61,6 @@ install_headers: $(HEADER_DIR)
 
 # Rules for creating rt lib (.d).
 #------------------------------------------
-$(BOOT_OBJECTS) : $(BUILD_RT)/%.o : %.c
-	@mkdir -p $(dir $@)
-	$(CC) $(BOOTFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
-
 $(C_OBJECTS) : $(BUILD_RT)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
