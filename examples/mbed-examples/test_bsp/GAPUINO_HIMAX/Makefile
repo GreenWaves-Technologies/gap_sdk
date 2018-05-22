@@ -16,6 +16,6 @@ INC            += ../../GAPUINO_BSP/Components/himax \
 # recordWlf=YES
 # vsimDo="-do ~/wave.do"
 
-PLPBRIDGE_FLAGS += -s camera@test.py
+PLPBRIDGE_FLAGS += -s camera@../../../test.py
 
 include $(GAP_SDK_HOME)/tools/rules/mbed_rules.mk
