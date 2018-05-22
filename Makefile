@@ -37,7 +37,7 @@ MAKE = make
 
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp-debug-bridge
 
-install: pulp-os tools docs
+install: pulp-os tools
 
 $(TARGET_INSTALL_DIR):
 	$(MKDIR) -p $@
