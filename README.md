@@ -156,6 +156,16 @@ Remote debugging using localhost:1234
 
 ## Documentation
 
+Build the documentation:
+
+~~~~~shell
+cd gap_sdk
+make docs
+~~~~~
+
+If you haven't download and install the autotiler, you will probably have some warnings when you build the docs.
+All the documentations are available on our website: https://greenwaves-technologies.com/en/sdk/
+
 You can read the documentation by opening gap_doc.html in the docs folder in your browser:
 
 ~~~~~shell
