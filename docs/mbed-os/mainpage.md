@@ -219,7 +219,30 @@ Detected end of application, exiting with status: 0
 ````
 
 ###Use [Mbed CLI](https://github.com/ARMmbed/mbed-cli)
-Now, we only support compilation.
+ 1 Download Arm® Mbed™ OS official examples.
+
+````shell
+git clone https://github.com/ARMmbed/mbed-os-example-blinky
+````
+ 2 Here to use our porting project, please change the mbed-os.lib
+
+````shell
+echo https://github.com/GreenWaves-Technologies/mbed-os > mbed-os.lib
+````
+ 3 Please following [Mbed CLI](https://github.com/ARMmbed/mbed-cli) instruction
+
+````shell
+mbed deploy
+````
+ 4 Compile your code, before compilation, please remember to export your compiler path, for example:
+
+````shell
+export PATH=/usr/lib/gap_riscv_toolchain/bin:$PATH
+````
+Then,
+````shell
+mbed compile -t GCC_RISCV -m GAP8
+````
 
 
 # Trademark
