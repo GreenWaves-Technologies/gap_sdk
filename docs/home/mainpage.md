@@ -132,6 +132,14 @@ sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3
 sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
 ~~~~~
 
+The precompiled toolchain should be clone by using git lfs, this should be installed by using the following command:
+
+~~~~~shell
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install git-lfs
+git lfs install
+~~~~~
+
 The debug bridge uses a python3 application. Python3 is already included in the Ubuntu image above however one extra package was required:
 
 ~~~~~shell
