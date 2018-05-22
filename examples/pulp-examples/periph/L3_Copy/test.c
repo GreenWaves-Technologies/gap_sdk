@@ -31,9 +31,6 @@ static signed int calculCheckSum (signed char *buffer, int size)
     signed int check = 0;
     for( int i=0; i<size; i++ ){
         check += buffer[i];
-//        printf("%2d ", buffer[i]);
-//        if (i != 0 && (i+1) % 30 == 0 )
-//            printf("\n");
     }
     return check;
 }
@@ -103,7 +100,7 @@ int main()
     if (fs == NULL) handle_error();
     printf("fs mounted\n");
 
-    file = rt_fs_open(fs, "C_layer12_weights_fp", 0, NULL);
+    file = rt_fs_open(fs, "Makefile", 0, NULL);
     if (file == NULL){
         printf("file open failed\n");
         return -1;

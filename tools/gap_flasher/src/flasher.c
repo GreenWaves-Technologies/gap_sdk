@@ -59,12 +59,8 @@ volatile RT_L2_DATA fileDescriptor flasherHeader;
 RT_L2_DATA unsigned char *L2_Buffer;
 
 static void debugInit(){
-    //flasherHeader.Image_Name = "../../../test_FlashImg/flashImg.raw";
-    //flasherHeader.Image_Size = 10122563;
-    flasherHeader.Image_Name = "../../../test_FlashImg/FlashImage.dat";
-    flasherHeader.Image_Size = 565696;
-    //flasherHeader.Image_Name = "../../../test_FlashImg/testFlashImg.raw";
-    //flasherHeader.Image_Size = 40886;
+    flasherHeader.Image_Name = "../../../test_FlashImg/testFlashImg.raw";
+    flasherHeader.Image_Size = 40886;
     flasherHeader.Image_Ready = 1;
     flasherHeader.Flash_Addr = 0;
 }
@@ -111,6 +107,7 @@ int main()
     if (imageSize < MAX_BUFF_SIZE){
         L2_Buffer = (unsigned char *) rt_alloc(RT_ALLOC_L2_CL_DATA, imageSize);
         lastSize = imageSize;
+        nIter = 1;
     }else{
         L2_Buffer = (unsigned char *) rt_alloc(RT_ALLOC_L2_CL_DATA, MAX_BUFF_SIZE);
         lastSize = imageSize % MAX_BUFF_SIZE;

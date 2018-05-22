@@ -173,7 +173,7 @@ Now clone the GAP8 SDK and the GAP8/RISC-V tool chain:
 
 ~~~~~shell
 git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
-git clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
+git lfs clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
 ~~~~~
 
 Install the tool chain:
