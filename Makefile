@@ -83,6 +83,5 @@ clean:
 	$(RM) $(BUILD_DIR)
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp-debug-bridge clean
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_flasher clean
-	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 
-.PHONY: all install clean docs install_others install_debug_bridge install_flasher tools pulp-os
+.PHONY: all install clean install_others install_debug_bridge install_flasher tools pulp-os

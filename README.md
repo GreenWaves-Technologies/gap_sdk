@@ -31,7 +31,7 @@ These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtu
 The following packages needed to be installed:
 
 ~~~~~shell
-sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev
+sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl
 sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
 ~~~~~
 
