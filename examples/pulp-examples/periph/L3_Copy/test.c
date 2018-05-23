@@ -38,10 +38,24 @@ static signed int calculCheckSum (signed char *buffer, int size)
 static void file_check(int total_size)
 {
     int offset = 0;
-    while (offset < total_size){
-        rt_hyperram_read(hyperram, buff_rx, hyperram_buff+offset, BUFF_SIZE, NULL);
-        offset += BUFF_SIZE;
-        checksum_rx += calculCheckSum(buff_rx, BUFF_SIZE);
+    int iter = 0;
+    int sizeLast = 0;
+    if (total_size%BUFF_SIZE){
+        iter = (total_size/BUFF_SIZE) + 1;
+        sizeLast = total_size%BUFF_SIZE;
+    }else{
+        iter = (total_size/BUFF_SIZE);
+    }
+    for(int i=0; i<iter; i++){
+        if (sizeLast && i == (iter-1)){
+            rt_hyperram_read(hyperram, buff_rx, hyperram_buff+offset, sizeLast, NULL);
+            offset += sizeLast;
+            checksum_rx += calculCheckSum(buff_rx, sizeLast);
+        }else{
+            rt_hyperram_read(hyperram, buff_rx, hyperram_buff+offset, BUFF_SIZE, NULL);
+            offset += BUFF_SIZE;
+            checksum_rx += calculCheckSum(buff_rx, BUFF_SIZE);
+        }
     }
     printf("checksum_rx: %X, offset: %d\n", checksum_rx, offset);
 }
@@ -52,6 +66,7 @@ static void copy_file()
     int size = 0;
     do {
         size = rt_fs_read(file, buff, BUFF_SIZE, NULL);
+        size = ((size + 3) & ~3);
         if(size) {
             rt_hyperram_write(hyperram, buff, hyperram_buff+size_total, size, NULL);
             checksum_tx += calculCheckSum(buff, size);
