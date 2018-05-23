@@ -18,19 +18,6 @@ SECTIONS
     __irq_vector_base = .;KEEP(*(.vectors))
   } > L2
 
-  .text :
-  {
-    . = ALIGN(4);
-    _stext = .;
-    *(.text._start)
-    *(.text)
-    *(.text.*)
-    _etext  =  .;
-    *(.lit)
-    *(.shdata)
-    _endtext = .;
-  } > L2
-
   .l1FcTiny : AT(ORIGIN(fc_tcdm))
   {
     . = ALIGN(4);
@@ -50,13 +37,19 @@ SECTIONS
     *(.data_tiny_fc.*)
   } > fc_tcdm_aliased
 
-  .cluster.text :
+  .text :
   {
     . = ALIGN(4);
-    __cluster_text_start = .;
-    *(.cluster.text)
+    _stext = .;
+    *(.text)
+    *(.text.*)
+    . = ALIGN(4);
+    __cluster_text_start = .;*(.cluster.text)
     *(.cluster.text.*)
-    __cluster_text_end = .;
+    __cluster_text_end = .;_etext  =  .;
+    *(.lit)
+    *(.shdata)
+    _endtext = .;
   } > L2
 
   __fc_code_end = ALIGN(8);
@@ -302,6 +295,8 @@ SECTIONS
   } > L2
 
   __l2_data_end = ALIGN(8);
+
+  __cluster_text_size = __cluster_text_end - __cluster_text_start;
 
   __l2_heap_start = ALIGN(4);
 
