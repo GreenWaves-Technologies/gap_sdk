@@ -9,7 +9,7 @@ if [ "$2" == "rtl" ]; then
 elif [ "$2" == "gvsoc" ]; then
     EXPIRE_LIMIT=60
 elif [ "$2" == "gapuino" ]; then
-    EXPIRE_LIMIT=60
+    EXPIRE_LIMIT=100
 else
     echo "Please provide platform!"
     exit 1
@@ -72,8 +72,6 @@ check_run() {
             EXPIRE_TIME=$((EXPIRE_TIME+$TIME_INTERVAL))
 
             if [ $EXPIRE_TIME -gt $EXPIRE_LIMIT ]; then
-                kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')
-
                 # Test failed
                 TEST_FAILED=$((TEST_FAILED+1))
                 # Record run failed path
@@ -85,6 +83,9 @@ check_run() {
             fi
         fi
     done
+
+    kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')
+    kill $(ps aux | grep -s 'plpbridge' | awk '{print $2}')
 }
 
 
@@ -195,7 +196,7 @@ do
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && make clean all && make run | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_compile $(dirname $t) & check_run $(dirname $t);
+                cd  $(dirname $t) && make clean all && (make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_compile $(dirname $t) & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
