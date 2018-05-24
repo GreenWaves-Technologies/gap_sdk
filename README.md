@@ -99,6 +99,17 @@ Build the GAP8 SDK:
 make all
 ~~~~~
 
+## Getting the Autotiler
+
+The autotiler code generation library needs to be downloaded from https://greenwaves-technologies.com/get-auto-tiler. Once you register for the autotiler you will receive an email with a link to the autotiler tarball. The autotiler is currently compiled for 64 bit Ubuntu 16.04 only. The tarball should be extracted in the gap_sdk/tools directory.
+
+~~~~~shell
+cd ~/gap_sdk/tools
+tar xvf received_file.tar.gz
+~~~~~
+
+# Compiling, running and debugging programs
+
 The following command configures the shell environment correctly for the GAP8 SDK. It must be done for each terminal session:
 
 ~~~~~shell
