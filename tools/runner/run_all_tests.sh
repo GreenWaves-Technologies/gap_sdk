@@ -5,11 +5,11 @@ TIME_INTERVAL=10
 
 
 if [ "$2" == "rtl" ]; then
-    EXPIRE_LIMIT=50
+    EXPIRE_LIMIT=500
 elif [ "$2" == "gvsoc" ]; then
-    EXPIRE_LIMIT=30
+    EXPIRE_LIMIT=60
 elif [ "$2" == "gapuino" ]; then
-    EXPIRE_LIMIT=30
+    EXPIRE_LIMIT=60
 else
     echo "Please provide platform!"
     exit 1
