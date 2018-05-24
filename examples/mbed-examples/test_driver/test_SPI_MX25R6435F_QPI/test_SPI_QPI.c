@@ -4,6 +4,7 @@
 // SPI CMSIS driver
 #include "spi_multi_api.h"
 
+#define ID  0xc21728c2
 
 int main()
 {
@@ -29,6 +30,13 @@ int main()
 
     uint32_t id = spi_master_read(&spim0, 0x9f);
     printf("ID = %x\n", id);
+
+    if(id != ID) {
+        printf("Test failed\n");
+        return -1;
+    } else {
+        printf("Test success\n");
+    }
 
     return 0;
 }
