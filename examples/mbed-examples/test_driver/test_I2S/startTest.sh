@@ -1,5 +1,7 @@
 #! /bin/bash
 
+make clean all
+
 path=$(pwd)
 cp i2s.py "$path/BUILD/GAP8/GCC_RISCV"
 
