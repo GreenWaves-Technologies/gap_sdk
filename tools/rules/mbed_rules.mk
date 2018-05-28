@@ -275,6 +275,6 @@ disdump: $(BUILDDIR)/test.s
 
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
-	@rm -rf ./BUILD transcript
+	@rm -rf ./BUILD transcript *.wav __pycache__
 
 .PHONY: gui debug disdump clean gdbserver run all dir

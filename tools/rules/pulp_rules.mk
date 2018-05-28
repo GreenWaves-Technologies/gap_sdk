@@ -108,6 +108,6 @@ disdump: $(BIN).s
 
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
-	@rm -rf ./BUILD transcript
+	@rm -rf ./BUILD transcript *.wav __pycache__
 
 .PHONY: all clean run debug disdump gdbserver dir

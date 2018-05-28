@@ -36,3 +36,5 @@ def i2s(bridge):
 
     recReady = int(("0x"+addrWavOutHead), 16) + 8
     bridge.write_32(recReady, 0)
+
+    os.system("if [ ! -f ../../../waveOut.wav ]; then ln -s BUILD/GAP8/GCC_RISCV/wavOut.wav ../../../wavOut.wav 1>/dev/null 2>/dev/null; fi")
