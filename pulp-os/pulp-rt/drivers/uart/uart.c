@@ -258,6 +258,7 @@ void rt_uart_cluster_write(rt_uart_t *handle, void *buffer, size_t size, rt_uart
   req->cid = rt_cluster_id();
   req->done = 0;
   __rt_init_event(&req->event, __rt_cluster_sched_get(), __rt_uart_cluster_req, (void *)req);
+  __rt_event_set_pending(&req->event);
   __rt_cluster_push_fc_event(&req->event);
 }
 

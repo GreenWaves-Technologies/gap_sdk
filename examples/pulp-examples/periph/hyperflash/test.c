@@ -22,7 +22,7 @@
 #define SA      0x0000
 
 static char buff[BUFF_SIZE];
-static int count = 0;
+static int done = 0;
 static rt_event_sched_t sched;
 static rt_flash_t *flash;
 
@@ -31,7 +31,7 @@ static rt_flash_t *flash;
 static void end_of_rx(void *arg)
 {
     printf("End of RX for id %d\n", (int)arg);
-    count++;
+    done++;
 }
 
 int main()
@@ -69,7 +69,8 @@ int main()
     /* A event scheduler will always wait and execute if any event being pushed to the queue */
     /* In this test, we have two RX transfers and in the end of the RX transfers, it will count two times. */
     /* So, when all transfers are finished, it will exit */
-    rt_event_execute(&sched, 1);
+    while(!done)
+        rt_event_execute(&sched, 1);
 
     /* All transfers are finished, close the device */
     rt_flash_close(flash, NULL);
@@ -77,6 +78,6 @@ int main()
     for (int i=0; i<BUFF_SIZE; i++){
         if (i != buff[i]) err++;
     }
-
+    if(!err) printf("test success\n");
     return err;
 }

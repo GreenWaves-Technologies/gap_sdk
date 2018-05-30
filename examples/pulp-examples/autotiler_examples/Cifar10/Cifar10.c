@@ -13,7 +13,7 @@
 #include "CifarCoeff.h"
 #include "CifarData.h"
 
-#define STACK_SIZE      2048
+#define STACK_SIZE      1024
 #define MOUNT           1
 #define UNMOUNT         0
 #define CID             0
@@ -97,7 +97,7 @@ static void RunCifar10()
 {
   unsigned int ElapsedTime[3];
   unsigned int instr[3];
-  int CheckResults = 0;
+  int CheckResults = 1;
   rt_perf_t *perf = cluster_perf;
   // initialize the performance clock
   rt_perf_init(perf);
@@ -107,9 +107,7 @@ static void RunCifar10()
 #if RT_HAS_HWCE
     /* Make HWCE event active */
     eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
-#endif
 
-#if RT_HAS_HWCE
     rt_perf_reset(perf);
     rt_perf_start(perf);
     Conv5x5MaxPool2x2_HWCE_0(ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);

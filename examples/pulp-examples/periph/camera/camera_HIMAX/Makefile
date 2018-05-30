@@ -8,6 +8,6 @@ PULP_APP = test
 PULP_APP_FC_SRCS = test.c
 PULP_CFLAGS = -O2 -g
 
-PLPBRIDGE_FLAGS += -s camera@../../../test.py
+PLPBRIDGE_FLAGS += -s camera@test.py
 
 include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk

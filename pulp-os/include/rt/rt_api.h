@@ -56,6 +56,7 @@
 #include "rt/rt_sync_mc.h"
 #include "rt/rt_perf.h"
 #include "rt/rt_time.h"
+#include "rt/rt_timer.h"
 #include "rt/rt_freq.h"
 #include "rt/rt_i2s.h"
 #include "rt/rt_fs.h"

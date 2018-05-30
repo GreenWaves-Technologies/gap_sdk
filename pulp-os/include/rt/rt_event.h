@@ -120,6 +120,24 @@ rt_event_t *rt_event_get(rt_event_sched_t *sched, void (*callback)(void *), void
 
 
 
+/** \brief Reserve an IRQ event and set its callback and argument.
+ *
+ * This gets an IRQ event from the free list and initializes it with the specified callback.
+ * Contrary to classic events, IRQ events are not meant to be pushed
+ * to a scheduler, they should instead be used in specific cases
+ * where an interrupt handler should execute directly the callback
+ * instead of enqueueing the event to a scheduler.
+ * These events should be used in very specific cases where it
+ * is explicitely mentionned they can be used.
+ *
+ * \param callback The function which will be called when the event is executed.
+ * \param arg      The argument of the function callback.
+ * \return         The assigned event if there was at least one available, or NULL if not.
+ */
+static inline rt_event_t *rt_event_irq_get(void (*callback)(void *), void *arg);
+
+
+
 /** \brief Reserve an event for blocking wait.
  *
  * This gets an event from the free list, which can then be used for a blocking wait using
@@ -159,12 +177,24 @@ int rt_event_push_callback(rt_event_sched_t *sched, void (*callback)(void *), vo
  *
  * This will invoke the specified scheduler and execute all its pending events. If no
  * event is ready when the scheduler is invoked and the wait argument is 1, the calling thread
- * is blocked until at least one event can be executed, otherwise the function just returns.
+ * is blocked until something happens, otherwise the function just returns.
  *
  * \param sched    The scheduler on which the events are executed.
- * \param wait     If 1, this will block the calling thread until at least one event is executed.
+ * \param wait     If 1, this will block the calling thread until something happens.
  */
 static inline void rt_event_execute(rt_event_sched_t *sched, int wait);
+
+
+
+/** \brief Execute pending events.
+ *
+ * This will invoke the specified scheduler and execute all its pending events. If no
+ * event is ready when the scheduler is invoked, the calling thread is blocked until
+ * something appens.
+ *
+ * \param sched    The scheduler on which the events are executed.
+ */
+static inline void rt_event_yield(rt_event_sched_t *sched);
 
 
 
@@ -232,6 +262,21 @@ void rt_event_push_delayed(rt_event_t *event, int time_us);
 extern RT_FC_TINY_DATA rt_event_t        *__rt_first_free;
 extern RT_FC_TINY_DATA rt_event_sched_t   __rt_sched;
 
+static inline void __rt_event_release(rt_event_t *event)
+{
+  event->next = __rt_first_free;
+  __rt_first_free = event;  
+}
+
+static inline rt_event_t *rt_event_irq_get(void (*callback)(void *), void *arg)
+{
+  return (rt_event_t *)((((unsigned int)rt_event_get(NULL, callback, arg)) | 1));
+}
+
+void __rt_event_free(rt_event_t *event);
+
+void __rt_sched_event_cancel(rt_event_t *event);
+
 static inline void __rt_event_min_init(rt_event_t *event)
 {
   event->thread = NULL;
@@ -247,11 +292,19 @@ static inline void __rt_event_set_pending(rt_event_t *event)
 
 void __rt_event_execute(rt_event_sched_t *sched, int wait);
 
+
+void __rt_event_yield(rt_event_sched_t *sched);
+
 static inline void rt_event_execute(rt_event_sched_t *sched, int wait)
 {
   rt_irq_disable();
   __rt_event_execute(sched, wait);
   rt_irq_enable();
+}
+
+static inline void rt_event_yield(rt_event_sched_t *sched)
+{
+  rt_event_execute(NULL, 1);
 }
 
 static inline rt_event_sched_t *rt_event_internal_sched()

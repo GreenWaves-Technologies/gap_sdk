@@ -96,7 +96,7 @@ void __rt_fc_lock(rt_fc_lock_t *lock)
   while(lock->locked)
   {
     lock->fc_wait = __rt_thread_current;
-    __rt_event_execute(__rt_thread_current->sched, 0);
+    __rt_event_execute(__rt_thread_current->sched, 1);
   }
   lock->locked = 1;
   rt_irq_restore(irq);

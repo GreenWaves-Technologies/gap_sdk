@@ -10,6 +10,8 @@ elif [ "$2" == "gvsoc" ]; then
     EXPIRE_LIMIT=60
 elif [ "$2" == "gapuino" ]; then
     EXPIRE_LIMIT=100
+elif [ "$1" == "clean" ]; then
+    echo "Clean the tests!"
 else
     echo "Please provide platform!"
     exit 1
@@ -91,7 +93,9 @@ check_run() {
 
 for t in $(find "$(pwd)" -name testset.ini);
 do
-    if [ $2 == "rtl" ]; then
+    if [ $1 == "clean" ]; then
+        cd  $(dirname $t) && make clean;
+    elif [ $2 == "rtl" ]; then
         if grep -cs "rtl" $t > /dev/null;
         then
             TATAL_TEST=$((TATAL_TEST+1))
@@ -128,10 +132,7 @@ do
                 echo "Nothing to do, see usage !!!"
             fi
         fi
-    fi
-
-
-    if [ $2 == "gvsoc" ]; then
+    elif [ $2 == "gvsoc" ]; then
         if grep -cs "gvsoc" $t > /dev/null;
         then
             TATAL_TEST=$((TATAL_TEST+1))
@@ -168,9 +169,7 @@ do
                 echo "Nothing to do, see usage !!!"
             fi
         fi
-    fi
-
-    if [ $2 == "gapuino" ]; then
+    elif [ $2 == "gapuino" ]; then
         if grep -cs "gapuino" $t > /dev/null;
         then
             TATAL_TEST=$((TATAL_TEST+1))

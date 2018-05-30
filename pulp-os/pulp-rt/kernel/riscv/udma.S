@@ -20,7 +20,11 @@
 
 #include "rt/rt_data.h"
 #include "archi/pulp.h"
+#if UDMA_VERSION == 2
 #include "archi/udma/udma_v2.h"
+#else
+#include "archi/udma/udma_v3.h"
+#endif
 
   .global udma_event_handler
 udma_event_handler:
@@ -66,7 +70,9 @@ __rt_udma_call_enqueue_callback_resume:
   sw  x9, UDMA_CHANNEL_SIZE_OFFSET(x12)
 
   lw  x9, RT_PERIPH_COPY_T_CTRL(x11)
-  beqz x9, transfer_resume
+  li  x10, RT_PERIPH_COPY_SPECIAL_ENQUEUE_THRESHOLD
+  blt x9, x10, transfer_resume
+
 
 #ifdef RV_ISA_RV32
   li          x10, RT_PERIPH_COPY_HYPER
@@ -266,7 +272,7 @@ spim_step1:
 
   // And rearm the transfer in the udma
   lw          x12, RT_PERIPH_CHANNEL_T_BASE(x9)
-  lw          x10, RT_PERIPH_COPY_T_ADDR(x8)
+  lw          x10, RT_PERIPH_COPY_T_RAW_VAL2(x8)
   sw          x10, UDMA_CHANNEL_SADDR_OFFSET(x12)
   lw          x10, RT_PERIPH_COPY_T_RAW_VAL0(x8)
   sw          x10, UDMA_CHANNEL_SIZE_OFFSET(x12)

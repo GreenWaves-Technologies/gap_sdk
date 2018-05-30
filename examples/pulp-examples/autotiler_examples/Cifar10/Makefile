@@ -33,10 +33,10 @@ GenTile:
 	gcc -o GenCifar10 $(USE_HARDWARE_CE) -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/CnnStdModel Cifar10Generator.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
 
 # Run the code generator
-Cifar10Kernels.c Cifar10KernelsInit.c: GenTile
+Cifar10Kernels.c: GenTile
 	./GenCifar10
 
-model: Cifar10Kernels.c Cifar10KernelsInit.c
+model: Cifar10Kernels.c
 
 clean::
 	$(RM) GenCifar10 Cifar10Kernels.* Cifar10KernelsInit.*

@@ -1,21 +1,5 @@
 /*
- * Copyright (C) 2018 ETH Zurich and University of Bologna
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2018 ETH Zurich, University of Bologna and GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +52,7 @@
  *
  * \return           The time in microseconds.
  */
-unsigned long long rt_time_get_us();
+unsigned int rt_time_get_us();
 
 
 
@@ -97,12 +81,6 @@ void rt_time_wait_us(int time_us);
 /// @cond IMPLEM
 
 extern rt_event_t *first_delayed;
-
-#if !defined(__LLVM__)
-void __attribute__((interrupt)) __rt_timer_handler();
-#else
-void __rt_timer_handler();
-#endif
 
 /// @endcond
 

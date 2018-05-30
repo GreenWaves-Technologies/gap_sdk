@@ -28,6 +28,13 @@ static inline unsigned int soc_eu_eventMask_get(unsigned int reg) {
   return pulp_read32(ARCHI_SOC_EU_ADDR + reg);
 }
 
+static inline void soc_eu_eventMask_reset(unsigned int first_reg) {
+  for (int i=0; i<SOC_NB_EVENT_REGS; i++)
+  {
+    soc_eu_eventMask_set(first_reg + i*4, 0xffffffff);
+  }
+}
+
 static inline void soc_eu_eventMask_setEvent(int evt, unsigned int lsbReg, unsigned int msbReg) {
   unsigned int reg;
   if (evt >= 32) {

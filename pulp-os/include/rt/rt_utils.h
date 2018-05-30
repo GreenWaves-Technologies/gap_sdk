@@ -567,8 +567,8 @@ static inline void rt_wait_for_interrupt()
   // we should never replay the clock-gated load. Just use a normal load
   // to go to sleep. However this does not work with a normal load, we should
   // investigate why.
-  //eu_evt_wait_noreplay();
-  eu_evt_wait();
+  eu_evt_wait_noreplay();
+  //eu_evt_wait();
 #else
   eu_evt_wait();
 #endif

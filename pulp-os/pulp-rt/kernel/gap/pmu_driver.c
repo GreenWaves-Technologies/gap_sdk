@@ -674,18 +674,15 @@ void InitOneFll(hal_fll_e WhichFll, unsigned int UseRetentiveState)
   {
     unsigned int SetFrequency, Mult, Div;
 
-    if (Config.ConfigReg1.Mode)
+    if (!Config.ConfigReg1.Mode)
     {
-      Config.ConfigReg1.OutputLockEnable = 0;
-      SetFllConfiguration(WhichFll, FLL_CONFIG1, Config.Raw);      
+      SetFllConfiguration(WhichFll, FLL_CONFIG2, FLL_CONFIG2_GAIN);
+
+      /* We are in open loop, prime the fll forcing dco input, approx 50 MHz */
+      Config.Raw = 0; // GetFllConfiguration(WhichFll, FLL_INTEGRATOR);
+      Config.Integrator.StateIntPart = 332;
+      SetFllConfiguration(WhichFll, FLL_INTEGRATOR, (unsigned int) Config.Raw);
     }
-
-    SetFllConfiguration(WhichFll, FLL_CONFIG2, FLL_CONFIG2_GAIN);
-
-    /* We are in open loop, prime the fll forcing dco input, approx 50 MHz */
-    Config.Raw = 0; // GetFllConfiguration(WhichFll, FLL_INTEGRATOR);
-    Config.Integrator.StateIntPart = 332;
-    SetFllConfiguration(WhichFll, FLL_INTEGRATOR, (unsigned int) Config.Raw);
 
     /* Lock Fll */
     // Config.Raw = FLL_CONFIG1_DEF_LOCK;
@@ -694,10 +691,12 @@ void InitOneFll(hal_fll_e WhichFll, unsigned int UseRetentiveState)
     Config.ConfigReg1.MultFactor = Mult;
     Config.ConfigReg1.ClockOutDivider = Div;
     SetFllConfiguration(WhichFll, FLL_CONFIG1, Config.Raw);
+
     if (Config.ConfigReg1.OutputLockEnable && (WhichFll == FLL_CLUSTER) && hal_is_fc()) {
       while (ClusterFllConverged() == 0) {};
     }
     Config.ConfigReg1.OutputLockEnable = 0;
+
     SetFllConfiguration(WhichFll, FLL_CONFIG1, Config.Raw);
 
     FllsFrequency[WhichFll] = SetFrequency;

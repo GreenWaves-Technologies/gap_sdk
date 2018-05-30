@@ -25,6 +25,7 @@
 L2_MEM unsigned char *ImageIn;
 L2_MEM int *Out;
 L2_MEM rt_perf_t *cluster_perf;
+L2_MEM unsigned char done = 0;
 
 void Process()
 
@@ -73,6 +74,7 @@ void Process()
 static void end_of_app(){
 
     printf("End of processing, exit!!\n");
+    done = 1;
 
 }
 
@@ -119,7 +121,8 @@ int main()
   // Execute the function "Process" on the cluster.
   rt_cluster_call(NULL, CID, (void *) Process, NULL, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), rt_event_get(NULL, end_of_app, 0));
 
-  rt_event_execute(NULL, 1);
+  while(!done)
+      rt_event_execute(NULL, 1);
 
   // Close the cluster
   rt_cluster_mount(UNMOUNT, CID, 0, NULL);

@@ -13,6 +13,8 @@
 #define UNMOUNT         0
 #define CID             0
 
+unsigned int done = 0;
+
 static void hello(void *arg)
 {
   printf("[clusterID: 0x%2x] Hello from core %d\n", rt_cluster_id(), rt_core_id());
@@ -29,6 +31,7 @@ static void cluster_entry(void *arg)
 static void end_of_call(void *arg)
 {
   printf("[clusterID: 0x%x] Hello from core %d\n", rt_cluster_id(), rt_core_id());
+  done = 1;
 }
 
 int main()
@@ -41,9 +44,10 @@ int main()
 
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
-  rt_cluster_call(NULL, CID, cluster_entry, NULL, NULL, (int) NULL, (int) NULL, rt_nb_pe(), p_event);
+  rt_cluster_call(NULL, CID, cluster_entry, NULL, NULL, 0, 0, rt_nb_pe(), p_event);
 
-  rt_event_execute(NULL, 1);
+  while(!done)
+      rt_event_execute(NULL, 1);
 
   rt_cluster_mount(UNMOUNT, CID, 0, NULL);
 

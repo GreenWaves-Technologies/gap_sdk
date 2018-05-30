@@ -262,7 +262,8 @@ void rt_rtc_control( rt_rtc_t *rtc, rt_rtc_cmd_e rtc_cmd, void *value, rt_event_
       rt_rtc_set_clk(rtc->conf.clkDivider);
       break;
     case RTC_ALARM_SET:
-      rt_rtc_set_alarm((rt_rtc_alarm_t *) value);
+      memcpy(&rtc->conf.alarm, value, sizeof(rt_rtc_alarm_t));
+      rt_rtc_set_alarm(&rtc->conf.alarm);
       break;
     case RTC_ALARM_START:
       if (rtc->conf.mode != MODE_CALENDAR)
@@ -274,7 +275,8 @@ void rt_rtc_control( rt_rtc_t *rtc, rt_rtc_cmd_e rtc_cmd, void *value, rt_event_
       rt_rtc_alarm_stop();
       break;
     case RTC_CALENDAR_SET:
-      rt_rtc_calendar((rt_rtc_calendar_t *) value);
+      memcpy(&rtc->conf.calendar, value, sizeof(rt_rtc_calendar_t));
+      rt_rtc_calendar(&rtc->conf.calendar);
       break;
     case RTC_CALENDAR_START:
       rt_rtc_calendar_start();
@@ -284,7 +286,8 @@ void rt_rtc_control( rt_rtc_t *rtc, rt_rtc_cmd_e rtc_cmd, void *value, rt_event_
       rt_rtc_calendar_stop();
       break;
     case RTC_CNTDOWN_SET:
-      rt_rtc_countDown((rt_rtc_cntDwn_t *) value);
+      memcpy(&rtc->conf.cntDwn, value, sizeof(rt_rtc_cntDwn_t));
+      rt_rtc_countDown(&rtc->conf.cntDwn);
       break;
     case RTC_CNTDOWN_START:
       rt_rtc_cntDwn_start(&rtc->conf.cntDwn);

@@ -3,12 +3,13 @@
 #define CKIN_DIV_VAL    0x8000
 #define DATE            0x00180423
 #define TIME            0x00000000
-#define ALARM_TIME      0x00000010
+#define ALARM_TIME      0x00000005
 #define byteExtract(off, value)     ((value >> off) & 0xFF)
 RT_FC_TINY_DATA rt_rtc_t *rtc;
 RT_FC_TINY_DATA rt_rtc_conf_t *rtc_conf;
 RT_FC_TINY_DATA unsigned int timeStart = 0;
 RT_FC_TINY_DATA unsigned int timeStop = 0;
+static int done = 0;
 
 
 void dumpTime(rt_rtc_calendar_t time){
@@ -29,7 +30,8 @@ void times_up(void *arg){
     rt_rtc_control(rtc, RTC_GET_TIME, &timeNow, NULL);
     printf ("TIMES UP!!! Now is:");
     dumpTime(timeNow);
-    printf("start: %d us, stop: %d us, diff: %d us\n", timeStart, timeStop, (timeStop-timeStart));
+    printf("start: %d us, stop: %d us, diff: %d us = %d s\n", timeStart, timeStop, (timeStop-timeStart),(timeStop-timeStart)/1000000 );
+    done = 1;
 }
 
 void rtc_conf_init(rt_rtc_conf_t *rtc_conf){
@@ -68,9 +70,14 @@ int main(){
     rt_rtc_control(rtc, RTC_ALARM_SET, &alarm, rt_event_get(NULL, times_up, rtc));
     rt_rtc_control(rtc, RTC_ALARM_START, NULL, NULL);
 
-    rt_event_execute(NULL, 1);
+    while(!done)
+        rt_event_execute(NULL, 1);
 
     rt_rtc_close(rtc, NULL);
-    printf ("end of rtc test\n");
+    int timediff_s = (timeStop-timeStart)/1000000;
+    if (timediff_s != (ALARM_TIME-TIME))
+        return -1;
+
+    printf ("Test success\n");
     return 0;
 }

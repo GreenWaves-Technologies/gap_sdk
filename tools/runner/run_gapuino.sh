@@ -20,7 +20,7 @@ cd $here/BUILD/GAP8/GCC_RISCV
 
 case ${1} in
     -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
-        cp $here$script_filename .
+        cp $here/$script_filename .
         plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start script --script=$2
         ;;
     -gdb)

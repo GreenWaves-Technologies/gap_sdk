@@ -1,21 +1,5 @@
 /*
- * Copyright (C) 2018 ETH Zurich and University of Bologna
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2018 ETH Zurich, University of Bologna and GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,20 +50,19 @@ __rt_fc_socevents_handler:
 
 
 
-#ifdef UDMA_VERSION
   // UDMA CHANNEL EVENTS
   li x9, ((ARCHI_SOC_EVENT_UDMA_FIRST_EVT + ARCHI_SOC_EVENT_UDMA_NB_EVT + 1) & 0xfffffffe) + ARCHI_SOC_EVENT_UDMA_NB_TGEN_EVT
   blt x10, x9, udma_event_handler
-#endif
 
-#ifdef ARCHI_SOC_EVENT_RTC_FIRST_EVT
+  // GPIO EVENT
+  li      x9, ARCHI_SOC_EVENT_GPIO
+  beq     x10, x9, __rt_gpio_handler
+
   // RTC EVENTS
-  li  x9, ARCHI_SOC_EVENT_RTC_FIRST_EVT
-  beq x9, x10, rtc_event_handler
-
-  li  x9, ARCHI_SOC_EVENT_RTC_IRQ
-  beq x9, x10, rtc_event_handler
-#endif
+  li      x9, ARCHI_SOC_EVENT_RTC_FIRST_EVT
+  beq     x9, x10, rtc_event_handler
+  li      x9, ARCHI_SOC_EVENT_RTC_IRQ
+  beq     x9, x10, rtc_event_handler
 
   // If the event is not handled, store it in the soc event status mask
   la      x9, __rt_socevents_status

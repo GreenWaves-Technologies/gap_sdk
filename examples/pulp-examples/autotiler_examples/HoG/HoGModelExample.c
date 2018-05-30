@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	}
 	// Setup AutTiler configuration. Used basic kernel libraries, C names to be used for code generation,
 	// compilation options, and amount of shared L1 memory that the AutoTiler can use, here 51200 bytes
-	HOGConfiguration(51200);
+	HOGConfiguration(40000);
 	// Load the HOG basic kernels template library
 	LoadHOGLibrary();
 	// Call HOG generator, here image is [644x482], the HOG parameters come from HOGParameters.h

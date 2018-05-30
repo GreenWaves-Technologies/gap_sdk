@@ -123,8 +123,6 @@ int main(int argc, char *argv[])
 	ClusterCall.H           = H;
 	ClusterCall.IntegralImg = IntegralImg;
 
-    printf("Starting to call cluster\n");
-
 	// Execute the function "cluster_main" on the Core 0 of cluster.
 	rt_cluster_call(NULL, CID, (void (*)(void *)) cluster_main, &ClusterCall, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), NULL);
 	// The FC arrives here when the Cluster finished its job.

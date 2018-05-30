@@ -44,13 +44,12 @@ static int __rt_time_poweron(void *arg)
   return 0;
 }
 
-unsigned long long rt_time_get_us()
+unsigned int rt_time_get_us()
 {
   // Get 64 bit timer counter value and convert it to microseconds
   // as the timer input is connected to the ref clock.
-  unsigned long long count = hal_timer_count_get(hal_timer_fc_addr(0, 1));
-  if ((count >> 32) == 0) return count * 1000000 / ARCHI_REF_CLOCK;
-  else return count / ARCHI_REF_CLOCK * 1000000;
+  unsigned int count = hal_timer_count_get(hal_timer_fc_addr(0, 1));
+  return ((unsigned long long)count) * 1000000 / ARCHI_REF_CLOCK;
 }
 
 void rt_event_push_delayed(rt_event_t *event, int us)
@@ -62,6 +61,9 @@ void rt_event_push_delayed(rt_event_t *event, int us)
   unsigned int ticks, ticks_from_now;
   uint32_t current_time = hal_timer_count_get(hal_timer_fc_addr(0, 1));
   
+  if (us < 0)
+    us = 0;
+
   // First compute the corresponding number of ticks.
   // The specified time is the minimum we must, so we have to round-up
   // the number of ticks.
@@ -140,6 +142,86 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
   err |= __rt_cbsys_add(RT_CBSYS_POWERON, __rt_time_poweron, NULL);
 
   if (err) rt_fatal("Unable to initialize time driver\n");
+}
+
+static void __rt_timer_handle(void *arg)
+{
+  rt_timer_t *timer = (rt_timer_t *)arg;
+  rt_event_t *event = timer->user_event;
+
+  void (*callback)(void *) = event->callback;
+  void *cb_arg = event->arg;
+
+  if (callback) {
+    callback(cb_arg);
+  }
+
+  __rt_event_unblock(event);
+
+  if (timer->flags == RT_TIMER_PERIODIC)
+  {
+    timer->current_time += timer->period;
+    __rt_event_set_pending(timer->event);
+    rt_event_push_delayed(timer->event, timer->current_time - rt_time_get_us());
+  }
+}
+
+int rt_timer_create(rt_timer_t *timer, rt_timer_flags_e flags, rt_event_t *event)
+{
+  if (rt_event_alloc(event->sched, 1))
+    return -1;
+
+  timer->event = rt_event_get(event->sched, __rt_timer_handle, (void *)timer);
+  timer->user_event = event;
+  timer->flags = flags;
+
+  return 0;
+}
+
+void rt_timer_start(rt_timer_t *timer, int us)
+{
+  timer->period = us;
+  timer->current_time = rt_time_get_us() + us;
+  __rt_event_set_pending(timer->event);
+  rt_event_push_delayed(timer->event, us);
+}
+
+void rt_timer_stop(rt_timer_t *timer)
+{
+  int irq = rt_irq_disable();
+
+  // When the time is stopped, we have to remove the event from any
+  // list to avoid spurious events
+
+  // First look inside the wait list
+  rt_event_t *event = timer->event;
+  rt_event_t *current = first_delayed, *prev=NULL;
+  while (current && current != event)
+  {
+    prev = current;
+    current = current->next;
+  }
+
+  if (current)
+  {
+    if (prev)
+      prev->next = current->next;
+    else
+      first_delayed = current->next;
+  }
+  else
+  {
+    // Otherwise look inside the scheduler event list
+    __rt_sched_event_cancel(event);
+  }
+
+  rt_irq_restore(irq);
+}
+
+void rt_timer_destroy(rt_timer_t *timer)
+{
+  __rt_event_release(timer->user_event);
+  __rt_event_free(timer->event);
 }
 
 #endif

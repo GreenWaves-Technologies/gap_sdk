@@ -199,11 +199,11 @@ void __rt_spim_send(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim
   *udma_cmd++ = SPI_CMD_TX_DATA(len, qspi, handle->byte_align);
 
   copy->cfg = UDMA_CHANNEL_CFG_EN;
-  copy->addr = (int)data;
+  copy->u.raw.val[2] = (int)data;
   copy->u.raw.val[0] = (len + 7) >> 3;
   copy->u.raw.val[1] = next_step;
 
-  rt_periph_copy(copy, handle->channel + 1, (unsigned int)cmd, 3*4, 0, call_event);
+  rt_periph_single_copy(copy, handle->channel + 1, (unsigned int)cmd, 3*4, 0, call_event);
 
   __rt_wait_event_check(event, call_event);
 

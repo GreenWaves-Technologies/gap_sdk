@@ -20,11 +20,11 @@
 
 #include "rt/rt_api.h"
 
+#if defined(ARCHI_HAS_FC)
+
 // TODO this code should be in time.c but due to a bug in the compiler which
 // generates wrong code in other functions if the attribute interrupt is 
 // present in the same file, this handler must be in a different file
-
-#if defined(ARCHI_HAS_FC)
 
 #if defined(__LLVM__)
 void __rt_timer_handler()
@@ -67,6 +67,21 @@ void __attribute__((interrupt)) __rt_timer_handler()
       PLP_TIMER_ONE_SHOT_DISABLED, PLP_TIMER_REFCLK_ENABLED,
       PLP_TIMER_PRESCALER_DISABLED, 0, PLP_TIMER_MODE_64_DISABLED
     );
+  }
+  else
+  {
+    // Set back default state where timer is only counting with
+    // no interrupt
+    hal_timer_conf(
+      hal_timer_fc_addr(0, 1), PLP_TIMER_ACTIVE, 0,
+      PLP_TIMER_IRQ_DISABLED, PLP_TIMER_IEM_DISABLED, PLP_TIMER_CMPCLR_DISABLED,
+      PLP_TIMER_ONE_SHOT_DISABLED, PLP_TIMER_REFCLK_ENABLED,
+      PLP_TIMER_PRESCALER_DISABLED, 0, PLP_TIMER_MODE_64_DISABLED
+    );
+
+    // Also clear timer interrupt as we might have a spurious one after
+    // we entered the handler
+    rt_irq_clr(1 << ARCHI_FC_EVT_TIMER1);
   }
 }
 

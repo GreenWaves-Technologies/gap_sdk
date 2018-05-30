@@ -50,7 +50,7 @@ RT_BOOT_CODE static void do_dtors(void)
 
 void __rt_putc_debug_bridge(char c);
 
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP == CHIP_GAP || PULP_CHIP == CHIP_VEGA
 void __rt_pmu_init();
 #endif
 
@@ -60,15 +60,14 @@ void __rt_init()
 
 #if defined(ARCHI_HAS_FC)
   // Deactivate all soc events as they are active by default
-  soc_eu_eventMask_set(SOC_FC_MASK_LSB, 0xFFFFFFFF);
-  soc_eu_eventMask_set(SOC_FC_MASK_MSB, 0xFFFFFFFF);
+  soc_eu_eventMask_reset(SOC_FC_FIRST_MASK);
 #endif
 
 
 #ifndef __ariane__
 
 #ifdef FLL_VERSION
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP == CHIP_GAP || PULP_CHIP == CHIP_VEGA
   __rt_pmu_init();
 #endif
 

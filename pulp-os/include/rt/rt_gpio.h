@@ -70,6 +70,20 @@ typedef enum {
 
 
 
+/** \enum rt_gpio_sensitivity_e
+ * \brief Sensitivity of a GPIO.
+ *
+ * This is used to tell which GPIO value modification will trigger a notification.
+ */
+typedef enum {
+  RT_GPIO_SENSITIVITY_EDGE = 3,    /*!< Notifications are sent when there is both a rising edge or a falling edge on the GPIO value. */
+  RT_GPIO_SENSITIVITY_RISE = 2,    /*!< Notifications are sent when there is a rising edge on the GPIO value. */
+  RT_GPIO_SENSITIVITY_FALL = 1,    /*!< Notifications are sent when there is a falling edge on the GPIO value. */
+  RT_GPIO_SENSITIVITY_NONE = 0     /*!< No notification is sent. */
+} rt_gpio_sensitivity_e;
+
+
+
 /** \brief Initialize a GPIO.
  *
  * This function will do all the required initializations before the GPIO can
@@ -164,6 +178,53 @@ static inline uint8_t rt_gpio_get_pin_value(uint8_t group, uint8_t gpio);
 static inline void rt_gpio_set_pin_value(uint8_t group, uint8_t gpio, uint8_t value);
 
 
+/** \brief Set the sensitivity of a single GPIO.
+ *
+ * This function can be used to configure how to be notified
+ * by GPIO value modifications.
+ *
+ * \param group  GPIO group. Must always be 0 for now.
+ * \param gpio   The GPIO number. Must be between 0 and 31.
+ * \param sensitivity  The new sensitivity. This will configure when an event must be triggered for this GPIO.
+ */
+void rt_gpio_set_sensitivity(uint8_t group, uint8_t gpio, rt_gpio_sensitivity_e sensitivity);
+
+
+
+/** \brief Associate an event to a GPIO.
+ *
+ * This can be used to trigger the execution of a callback when
+ * a GPIO value is changing.
+ *
+ * \param group  GPIO group. Must always be 0 for now.
+ * \param gpio   The GPIO number. Must be between 0 and 31.
+ * \param event  The event to be trigerred.
+ */
+void rt_gpio_set_event(uint8_t group, uint8_t gpio, rt_event_t *event);
+
+
+
+/** \brief Wait for a GPIO notification.
+ *
+ * This can be used to block the execution of the core until
+ * a notification is received for this GPIO.
+ *
+ * \param group  GPIO group. Must always be 0 for now.
+ * \param gpio   The GPIO number. Must be between 0 and 31.
+ */
+void rt_gpio_wait(uint8_t group, uint8_t gpio);
+
+
+
+/** \brief Clear pending GPIO notifications.
+ *
+ * This can be used to clear pending notifications for the 
+ * specified GPIO.
+ *
+ * \param group  GPIO group. Must always be 0 for now.
+ * \param gpio   The GPIO number. Must be between 0 and 31.
+ */
+void rt_gpio_clear(uint8_t group, uint8_t gpio);
 
 //!@}
 
@@ -181,8 +242,19 @@ static inline void rt_gpio_set_pin_value(uint8_t group, uint8_t gpio, uint8_t va
 
 static inline void rt_gpio_set_dir(uint8_t group, uint32_t mask, rt_gpio_dir_e is_out)
 {
+  int irq = rt_irq_disable();
   hal_gpio_set_dir(mask, is_out);
+
+#if GPIO_VERSION >= 2
+  if (is_out)
+    hal_gpio_en_set(hal_gpio_en_get() & ~mask);
+  else
+    hal_gpio_en_set(hal_gpio_en_get() | mask);
+#endif
+
+  rt_irq_restore(irq);
 }
+
 
 
 static inline void rt_gpio_set_value(uint8_t group, uint32_t mask, uint8_t value)
@@ -206,7 +278,9 @@ static inline uint8_t rt_gpio_get_pin_value(uint8_t group, uint8_t pin)
 
 static inline void rt_gpio_set_pin_value(uint8_t group, uint8_t pin, uint8_t value)
 {
+  int irq = rt_irq_disable();
   hal_gpio_set_pin_value(pin, value);
+  rt_irq_restore(irq);
 }
 
 /// @endcond

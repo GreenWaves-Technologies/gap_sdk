@@ -75,16 +75,21 @@ int rt_event_alloc(rt_event_sched_t *sched, int nb_events)
   return 0;
 }
 
+void __rt_event_free(rt_event_t *event)
+{
+#if PULP_CHIP == CHIP_GAP
+  rt_free(RT_ALLOC_PERIPH, (void *)event->copy.periph_data, RT_PERIPH_COPY_PERIPH_DATA_SIZE);
+#endif  
+  rt_free(RT_ALLOC_FC_DATA, (void *)event, sizeof(rt_event_t));
+}
+
 void rt_event_free(rt_event_sched_t *sched, int nb_events)
 {
   for (int i=0; i<nb_events; i++)
   {
     rt_event_t *event = __rt_first_free;
-#if PULP_CHIP == CHIP_GAP
-    rt_free(RT_ALLOC_PERIPH, (void *)event->copy.periph_data, RT_PERIPH_COPY_PERIPH_DATA_SIZE);
-#endif
-    __rt_first_free = event->next;   
-    rt_free(RT_ALLOC_FC_DATA, (void *)event, sizeof(rt_event_t));
+    __rt_first_free = event->next;
+    __rt_event_free(event);
   }
 }
 
@@ -148,6 +153,33 @@ void __rt_event_unblock(rt_event_t *event)
   }
 }
 
+void __rt_sched_event_cancel(rt_event_t *event)
+{
+  rt_event_sched_t *sched = event->sched;
+  rt_event_t *current = sched->first, *prev = NULL;
+  while (current && current != event)
+  {
+    prev = current;
+    current = current->next;
+  }
+
+  if (current)
+  {
+    if (prev)
+      prev->next = current->next;
+    else
+      sched->first = current->next;
+  }
+}
+
+void __rt_event_yield(rt_event_sched_t *sched)
+{
+  __rt_event_execute(sched, 0);
+  rt_wait_for_interrupt();
+  rt_irq_enable();
+  rt_irq_disable();
+}
+
 void __rt_event_execute(rt_event_sched_t *sched, int wait)
 {
   if (sched == NULL) sched = __rt_thread_current->sched;
@@ -161,19 +193,20 @@ void __rt_event_execute(rt_event_sched_t *sched, int wait)
 
       sched->waiting = __rt_thread_current;
 
-      do {
-        if (__rt_ready_queue.first) {
-          __rt_thread_sleep();
-        }
-        else {
-          rt_wait_for_interrupt();
-          rt_irq_enable();
-          rt_irq_disable();
-        }
-        event = *((rt_event_t * volatile *)&sched->first);
-      } while (!event);
+      if (__rt_ready_queue.first) {
+        __rt_thread_sleep();
+      }
+      else {
+        rt_wait_for_interrupt();
+        rt_irq_enable();
+        rt_irq_disable();
+      }
+      event = *((rt_event_t * volatile *)&sched->first);
+      if (event == NULL)
+      {
+        return;
+      }
     } else {
-      rt_irq_enable();
       return;
     }
   }
@@ -186,10 +219,12 @@ void __rt_event_execute(rt_event_sched_t *sched, int wait)
     void *arg = event->arg;
 
     // Free the event now so that it can be used directly from the callback
-    if (!event->pending) {
-      event->next = __rt_first_free;
-      __rt_first_free = event;
+    if (!event->pending)
+    {
+      __rt_event_release(event);
     }
+
+    __rt_event_unblock(event);
 
     // Finally execute the event with interrupts enabled
     if (callback) {
@@ -197,8 +232,6 @@ void __rt_event_execute(rt_event_sched_t *sched, int wait)
       callback(arg);
       rt_irq_disable();
     }
-
-    __rt_event_unblock(event);
 
     event = sched->first;
 

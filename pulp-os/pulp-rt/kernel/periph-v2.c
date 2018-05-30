@@ -91,6 +91,46 @@ void rt_periph_copy(rt_periph_copy_t *copy, int channel_id, unsigned int addr, i
   rt_irq_restore(irq);
 }
 
+
+
+void rt_periph_single_copy(rt_periph_copy_t *copy, int channel_id, unsigned int addr, int size,
+  unsigned int cfg, rt_event_t *event)
+{
+  rt_trace(RT_TRACE_UDMA_COPY, "[UDMA] Enqueueing UDMA copy (node: 0x%x, l2Addr: 0x%x, size: 0x%x, channelId: %d)\n", (int)copy, addr, size, channel_id);
+
+  int irq = rt_irq_disable();
+
+  rt_periph_channel_t *channel = __rt_periph_channel(channel_id);
+  unsigned int base = hal_udma_channel_base(channel_id);
+
+  rt_event_t *call_event = __rt_wait_event_prepare(event);
+  if (copy == NULL) {
+    copy = &call_event->copy;
+    rt_periph_copy_init(copy, 0);
+  }
+
+  cfg |= UDMA_CHANNEL_CFG_EN;
+  copy->size = size;
+  copy->event = call_event;
+
+  int is_first = channel->first == NULL;
+
+  __rt_channel_push(channel, copy);
+
+  if (is_first) {
+      plp_udma_enqueue(base, addr, size, cfg);
+  } else {
+      copy->enqueue_callback = 0;
+    __rt_channel_enqueue(channel, copy, addr, size, cfg);
+  }
+
+  __rt_wait_event_check(event, call_event);
+
+  rt_irq_restore(irq);
+}
+
+
+
 void rt_periph_dual_copy_safe(rt_periph_copy_t *copy, int rx_channel_id,
   unsigned int tx_addr, int tx_size, unsigned int rx_addr, int rx_size,
   unsigned int cfg)

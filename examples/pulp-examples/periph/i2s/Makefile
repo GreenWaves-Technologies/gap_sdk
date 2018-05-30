@@ -31,7 +31,10 @@ PULP_APP_SRCS = wav_synchro.c test.c
 
 PULP_CFLAGS  +=  -O3 -Wno-unused-but-set-variable  -Wno-overflow -Wno-sign-compare
 
-PLPBRIDGE_FLAGS += -s i2s@../../../i2s.py
+PLPBRIDGE_FLAGS += -s i2s@i2s.py
 
 include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk
+
+clean::
+	rm -rf __pycache__ wavOut.wav
 
