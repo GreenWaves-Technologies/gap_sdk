@@ -97,7 +97,7 @@ static void RunCifar10()
 {
   unsigned int ElapsedTime[3];
   unsigned int instr[3];
-  int CheckResults = 1;
+  int CheckResults = 0;
   rt_perf_t *perf = cluster_perf;
   // initialize the performance clock
   rt_perf_init(perf);

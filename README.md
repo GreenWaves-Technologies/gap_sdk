@@ -124,7 +124,7 @@ alias GAP_SDK='cd ~/gap_sdk && source sourceme.sh'
 
 Typing GAP_SDK will now change to the gap_sdk directory and execute the source command.
 
-Finally try a test project:
+Finally try a test project. First connect your GAPuino to your PCs USB port and then type:
 
 ~~~~~shell
 cd ~/gap_sdk/examples/pulp-examples/helloworld

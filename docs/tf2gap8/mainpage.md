@@ -277,7 +277,7 @@ make run
 
 ### Results
 
-For this inference run, we chose to test the recognition of the first image of the CIFAR10 dataset. Its feature type is 6 (a frog).
+For this inference run, we chose to test the recognition of the first image of the CIFAR10 dataset. Its feature type is 6 (a frog). It corresponds to the image stored in the cifr10/test_images/test_0_6.c file. By vizualizing the corresponding test_0_6.pgm file, you can see that it's a frog. 
 
 At the end of the inference run, you should see the following results. A score is displayed in front of each feature type of the CIFAR10 data set (car, truck, etc..). The feature type with the highest score determines the category of the test image. A frog (feature 6) has been successfully recognized. 
 
@@ -299,6 +299,8 @@ Detected end of application, exiting with status: 0
 ~~~~
 
 Note that it could happen that one image is not correctly recognized as the success rate obtained after the training phase is only 64%. 
+
+By copying other .c files from the test-images directory to the cifar10/l2_x_cifar10.c directory, you can test other images. The "y" variable of a test_x_y.c image file represents the class number of the image (cifar10 dataset has 10 classes). The corresponding .pgm file represents the image in PGM format. 
 
 ## MNIST
 

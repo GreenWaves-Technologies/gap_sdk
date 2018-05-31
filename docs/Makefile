@@ -65,6 +65,8 @@ APP_MANUAL_NAME= applications.pdf
 TF_MANUAL_NAME= tf2gap8.pdf
 MB_MANUAL_NAME= mbed-os.pdf
 
+HM_MANUAL_BITS= $(HM_BASE)/header.md $(HM_BASE)/readme_extract.md $(HM_BASE)/footer.md
+
 APP_MANUAL_BITS= $(wildcard $(APP_BASE)/doc_*.md)
 RT_MANUAL_BITS= $(addprefix $(RT_BASE)/, doc_sdk_manual.md doc_optimization.md doc_optimization_example.md)
 
@@ -163,6 +165,14 @@ $(eval $(call buildpdf,AUTOTILER_PDF,AUTOTILER,AT))
 $(eval $(call buildpdf,APPLICATIONS_PDF,APPLICATIONS,APP))
 $(eval $(call buildpdf,TF2GAP8_PDF,TF2GAP8,TF))
 
+# extra home build step
+$(HM_BASE)/readme_extract.md: $(GAP_SDK_HOME)/README.md $(HM_BASE)/readme_extract.sh
+	$(HM_BASE)/readme_extract.sh $@
+
+$(HM_BASE)/mainpage.md: $(HM_MANUAL_BITS)
+	$(RM) $@
+	$(CAT) $(HM_MANUAL_BITS) >> $@
+
 # extra applications build step
 $(APP_BASE)/mainpage.md: $(APP_MANUAL_BITS)
 	$(RM) $@
@@ -190,6 +200,8 @@ $(HOME_PAGE): $(COM_BASE)/index.html $(BUILD_DIR)
 clean:
 	$(RM) -r $(BUILD_DIR)
 	$(RM) -r $(DOC_DIR)/*.pdf $(HOME_PAGE)
+	$(RM) $(HM_BASE)/mainpage.md
+	$(RM) $(HM_BASE)/readme_extract.md
 	$(RM) $(APP_BASE)/mainpage.md
 	$(RM) $(RT_BASE)/mainpage.md
 
