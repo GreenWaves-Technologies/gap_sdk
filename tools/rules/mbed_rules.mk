@@ -109,6 +109,8 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
@@ -137,6 +139,8 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
@@ -172,6 +176,8 @@ CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBE
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
@@ -188,7 +194,8 @@ OBJECTS       = $(S_OBJECTS) $(T_OBJECTS_C) $(T_OBJECTS_CXX) $(C_OBJECTS) $(CXX_
 
 INC_DEFINE    = -include $(MBED_PATH)/mbed-os/targets/TARGET_GWT/mbed_config.h
 
-INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/mbed-os/hal/ $(MBED_PATH)/mbed-os/platform/ $(MBED_PATH)/mbed-os/cmsis/TARGET_RISCV_32 $(MBED_PATH)/mbed-os/rtos \
+INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/mbed-os/hal/ $(MBED_PATH)/mbed-os/platform/ $(MBED_PATH)/mbed-os/cmsis \
+		$(MBED_PATH)/mbed-os/cmsis/TARGET_RISCV_32 $(MBED_PATH)/mbed-os/rtos \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/ $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx4/ $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/ \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/Include  $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Config \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Include  $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Source \
