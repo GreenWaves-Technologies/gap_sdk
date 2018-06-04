@@ -28,7 +28,10 @@ int main()
     /* Set fequence to 10MHz */
     spi_frequency(&spim0, 10000000);
 
-    uint32_t id = spi_master_read(&spim0, 0x9f);
+    spi_master_cs(&spim0, 0);
+    spi_master_write(&spim0, 0x9f);
+    uint32_t id = spi_master_read(&spim0, 0x00);
+    spi_master_cs(&spim0, 1);
     printf("ID = %x\n", id);
 
     if(id != ID) {

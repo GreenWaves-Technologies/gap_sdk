@@ -228,27 +228,32 @@ dir:
 # Rules for creating dependency files (.d).
 #------------------------------------------
 $(S_OBJECTS) : $(BUILDDIR)/%.o : %.S
+	@echo "    SS  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	$(CC) $(ASMFLAGS) $(INC_PATH) -o $@ $<
+	@$(CC) $(ASMFLAGS) $(INC_PATH) -o $@ $<
 
 $(C_OBJECTS) : $(BUILDDIR)/%.o : %.c
+	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
+	@$(CC) $(CFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
 
 $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
+	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
+	@$(CC) $(CFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
 
 $(T_OBJECTS_CXX) : $(BUILDDIR)/%.o : %.cpp
+	@echo "    CXX $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
+	@$(CXX) $(CXXFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
 
 $(CXX_OBJECTS) : $(BUILDDIR)/%.o : %.cpp
+	@echo "    CXX $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
+	@$(CXX) $(CXXFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJECTS)
-	$(CC) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
+	@$(CC) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
 ifdef gvsoc
 run::
