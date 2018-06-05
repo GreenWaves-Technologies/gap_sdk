@@ -40,11 +40,11 @@ int hyper_init()
 
     rt_padframe_profile_t *profile_hyper = rt_pad_profile_get("hyper");
     if (profile_hyper == NULL) {
-        printf("GAP: pad config error\n");
+        printf("[Flasher]: pad config error\n");
         return 1;
     }
     rt_padframe_set(profile_hyper);
-    printf ("GAP: pad config done\n");
+    printf ("[Flasher]: pad config done\n");
 
     hal_hyper_start_ip();
 

@@ -27,14 +27,9 @@
 
 
 PULP_APP = test
-#PULP_APP_FC_SRCS = test.c spi.c
 PULP_APP_FC_SRCS = flasher.c hyper_flash.c hyper_flash_commands.c
 
-PULP_CFLAGS += -O3 -DDEBUG -Ddebug_test
+PULP_CFLAGS += -O3 #-DDEBUG -DfileIO
 
-#override CONFIG_OPT += spiflash
-#PLT_OPT=--vsimPadMuxMode=TB_PADMUX_ALT3_HYPERBUS
-
-#PLPBRIDGE_FLAGS = -f Makefile hyper_flash.c hyper_flash_commands.h
 
 include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk

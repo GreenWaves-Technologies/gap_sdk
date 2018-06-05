@@ -136,7 +136,7 @@ int wait_process_end(rt_flash_t *flash, unsigned int err_bit)
         if ( reg & (1 << err_bit))
         {
 #ifdef DEBUG
-            printf("GAP: ERR bit = 1, an error occurs in  operation\n");
+            printf("[Flasher]: ERR bit = 1, an error occurs in  operation\n");
 #endif
             return 1;
         }
@@ -148,18 +148,18 @@ int wait_process_end(rt_flash_t *flash, unsigned int err_bit)
 void hyperflash_init(rt_flash_t *flash)
 {
     // Enable uDMA HYPER
-    if( hyper_init() ) printf("GAP: init error.\n");
+    if( hyper_init() ) printf("[Flasher]: init error.\n");
 
     // Configuration
     conf_flash(flash);
-    printf("GAP: conf finished.\n");
+    printf("[Flasher]: conf finished.\n");
 
     // Erase chip
     erase_page_in_flash(flash);
     wait_process_end(flash,  ERASE_STATUS_OFFSET);
 
 #ifdef DEBUG
-    printf("GAP: Erase finished.\n");
+    printf("[Flasher]: Erase finished.\n");
 #endif
 }
 
@@ -171,7 +171,7 @@ unsigned int calculCheckSum(unsigned char *L2_Buffer, unsigned int sizeData)
         check += L2_Buffer[i];
     }
 #ifdef DEBUG
-    printf("GAP: checkSum: %X\n", check);
+    printf("[Flasher]: checkSum: %X\n", check);
 #endif
     return check;
 }
@@ -193,9 +193,9 @@ int write_bloc_to_hyperflash(rt_flash_t *flash, unsigned int flash_addr,  unsign
         nbrPage = (sizeData/256);
     }
 #ifdef DEBUG
-    printf("GAP : flash start address : %x \n", flash_addr) ;
-    printf("GAP : %x %x %x %x\n", L2_Buffer[0], L2_Buffer[1], L2_Buffer[2], L2_Buffer[3]) ;
-    printf("GAP: %d bytes of data, %d Page would be loaded, %d bytes in last page\n", sizeData, nbrPage, sizeLast);
+    printf("[Flasher] : flash start address : %x \n", flash_addr) ;
+    printf("[Flasher] : %x %x %x %x\n", L2_Buffer[0], L2_Buffer[1], L2_Buffer[2], L2_Buffer[3]) ;
+    printf("[Flasher] : %d bytes of data, %d Page would be loaded, %d bytes in last page\n", sizeData, nbrPage, sizeLast);
 #endif
     checkSum_tx = calculCheckSum(L2_Buffer, sizeData);
 
@@ -211,7 +211,7 @@ int write_bloc_to_hyperflash(rt_flash_t *flash, unsigned int flash_addr,  unsign
     }
 
 #ifdef DEBUG
-    printf("GAP: Write finished, %d pages should be writen, %x, with i = %d\n", nbrPage, tmp_flash_addr, i);
+    printf("[Flasher]: Write finished, %d pages should be writen, %x, with i = %d\n", nbrPage, tmp_flash_addr, i);
 #endif
 
     for (i=0; i<sizeData; i++)
@@ -232,7 +232,7 @@ int write_bloc_to_hyperflash(rt_flash_t *flash, unsigned int flash_addr,  unsign
         tmp_flash_addr += PAGE_SIZE ;
     }
 #ifdef DEBUG
-    printf("GAP : %x %x %x %x\n", L2_Buffer[0], L2_Buffer[1], L2_Buffer[2], L2_Buffer[3]) ;
+    printf("[Flasher] : %x %x %x %x\n", L2_Buffer[0], L2_Buffer[1], L2_Buffer[2], L2_Buffer[3]) ;
 #endif
 
     checkSum_rx = calculCheckSum(L2_Buffer, sizeData);
@@ -242,13 +242,13 @@ int write_bloc_to_hyperflash(rt_flash_t *flash, unsigned int flash_addr,  unsign
         error++;
 
 #ifdef DEBUG
-    printf("GAP: Checksum Compare finished\n");
+    printf("[Flasher]: Checksum Compare finished\n");
 #endif
 
 
 #ifdef DEBUG
-    if (error) printf("GAP: Test FAILED with %d errors: checkSum tx %X - checkSum rx %X\n", error, checkSum_tx, checkSum_rx);
-    else printf("GAP: Test SUCCESS: checkSum tx %X - checkSum rx %X \n", checkSum_tx, checkSum_rx);
+    if (error) printf("[Flasher]: Test FAILED with %d errors: checkSum tx %X - checkSum rx %X\n", error, checkSum_tx, checkSum_rx);
+    else printf("[Flasher]: Test SUCCESS: checkSum tx %X - checkSum rx %X \n", checkSum_tx, checkSum_rx);
 #endif
 
     //flashCopyHeader.eotFlash = 1;
