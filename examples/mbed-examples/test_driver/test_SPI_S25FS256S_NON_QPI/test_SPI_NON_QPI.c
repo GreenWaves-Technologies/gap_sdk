@@ -19,10 +19,14 @@ static void conf_flash(spi_t *spim)
     /* Set QPI mode - Quad */
     spi_master_qspi(spim, uSPI_Quad);
 
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
+
     // Disable Flash Quad Mode
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = (0x00800003);
     s_command.cmd_mode  = uSPI_Quad;
@@ -35,20 +39,26 @@ static void conf_flash(spi_t *spim)
     /* Set QPI mode - Single */
     spi_master_qspi(spim, uSPI_Single);
 
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      =  (0x80000380 | DUMMY);
     s_command.cmd_mode  =  uSPI_Single;
     s_command.addr_mode =  uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
     // Set page size to 512
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = 0x00800004;
     s_command.cmd_mode  = uSPI_Single;
@@ -61,10 +71,13 @@ static void conf_flash(spi_t *spim)
 
 static void erase_page_in_flash(spi_t *spim)
 {
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
 
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x20;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = 0;
     s_command.cmd_mode  = uSPI_Single;
@@ -74,11 +87,14 @@ static void erase_page_in_flash(spi_t *spim)
 
 static void write_page_in_flash(spi_t *spim)
 {
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
 
     //p4pp age program
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x02;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = 0;
     s_command.cmd_mode  = uSPI_Single;
@@ -94,6 +110,7 @@ static void read_page_from_flash(spi_t *spim, unsigned int flash_addr)
 {
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x0C;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = flash_addr;
     s_command.cmd_mode  = uSPI_Single;
@@ -115,7 +132,10 @@ static int wait_process_end(spi_t *spim, unsigned int err_bit)
     // bit 6 -> 1-error 0-OK
     uint16_t read_status;
     do {
-        read_status = spi_master_read(spim, 0x05);
+        spi_master_cs(spim, 0);
+        spi_master_write(spim, 0x05);
+        read_status = spi_master_read(spim, 0x00);
+        spi_master_cs(spim, 1);
         //printf("read_status = %x\n", read_status);
 
         if (read_status & (1 << err_bit))
@@ -159,7 +179,10 @@ int main()
     conf_flash(&spim0);
 
     /* Read ID in single mode */
-    uint32_t id = spi_master_read(&spim0, 0x9f);
+    spi_master_cs(&spim0, 0);
+    spi_master_write(&spim0, 0x9f);
+    uint32_t id = spi_master_read(&spim0, 0x00);
+    spi_master_cs(&spim0, 1);
     printf("ID = %x\n", id);
 
     // Erase page

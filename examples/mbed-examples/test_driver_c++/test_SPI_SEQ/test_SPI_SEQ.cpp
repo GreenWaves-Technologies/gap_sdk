@@ -1,6 +1,6 @@
 #include "mbed.h"
 
-SPI spi(SPI1_MOSI, SPI1_MISO, SPI1_SCLK, SPI1_CSN0_A9); // mosi, miso, sclk, ssel
+SPI spi(SPI0_MOSI, SPI0_MISO, SPI0_SCLK, SPI0_CSN0); // mosi, miso, sclk, ssel
 
 // Chip select is contolled by inner ip
 #define BUFFER_SIZE 512
@@ -15,20 +15,26 @@ spi_command_sequence_t sequence;
 
 static void conf_flash()
 {
+    spi.udma_cs(0);
     spi.write(0x06);
+    spi.udma_cs(1);
 
     // Set dummy cycles
     memset(&sequence, 0, sizeof(spi_command_sequence_t));
     sequence.cmd       = 0x71;
+    sequence.cmd_bits  = 8;
     sequence.addr_bits = 32;
     sequence.addr      = (0x80000380 | DUMMY);
     spi.transfer_command_sequence(&sequence);
 
+    spi.udma_cs(0);
     spi.write(0x06);
+    spi.udma_cs(1);
 
     // Set page size to 512
     memset(&sequence, 0, sizeof(spi_command_sequence_t));
     sequence.cmd       = 0x71;
+    sequence.cmd_bits  = 8;
     sequence.addr_bits = 32;
     sequence.addr      = 0x00800004;
     sequence.tx_bits   = 8;
@@ -38,10 +44,13 @@ static void conf_flash()
 
 static void erase_page_in_flash()
 {
+    spi.udma_cs(0);
     spi.write(0x06);
+    spi.udma_cs(1);
 
     memset(&sequence, 0, sizeof(spi_command_sequence_t));
     sequence.cmd       = 0x20;
+    sequence.cmd_bits  = 8;
     sequence.addr_bits = 32;
     sequence.addr      = 0;
     spi.transfer_command_sequence(&sequence);
@@ -49,11 +58,14 @@ static void erase_page_in_flash()
 
 static void write_page_in_flash()
 {
+    spi.udma_cs(0);
     spi.write(0x06);
+    spi.udma_cs(1);
 
     //p4pp age program
     memset(&sequence, 0, sizeof(spi_command_sequence_t));
     sequence.cmd       = 0x02;
+    sequence.cmd_bits  = 8;
     sequence.addr_bits = 32;
     sequence.addr      = 0;
     sequence.tx_bits   = BUFFER_SIZE*8;
@@ -66,6 +78,7 @@ static void read_page_from_flash(uint32_t flash_addr)
     memset(&sequence, 0, sizeof(spi_command_sequence_t));
 
     sequence.cmd       = 0x0C;
+    sequence.cmd_bits  = 8;
     sequence.addr_bits = 32;
     sequence.addr      = flash_addr;
     sequence.rx_bits   = BUFFER_SIZE*8;
@@ -84,7 +97,10 @@ static int wait_process_end(uint32_t err_bit)
     // bit 6 -> 1-error 0-OK
     uint16_t read_status;
     do {
-        read_status = spi.read(0x05);
+        spi.udma_cs(0);
+        spi.write(0x05);
+        read_status = spi.read();
+        spi.udma_cs(1);
         //printf("read_status = %x\n", read_status);
 
         if (read_status & (1 << err_bit))
