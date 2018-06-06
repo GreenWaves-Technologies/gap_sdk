@@ -721,9 +721,17 @@ static int Private_gap8_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
 #define gap8_cluster_wait(x)						plp_cluster_wait(x)
 
 /* DMA copies */
-#define gap8_dma_memcpy(ext, loc, size, ext2loc)			plp_dma_memcpy((ext), (loc), (size), (ext2loc))
-#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc)	plp_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc))
-#define gap8_dma_wait(counter)						plp_dma_wait((counter))
+#ifdef __MBED__
+#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			AUTOTILE_DMAMCHAN_Memcpy_1D((ext), (loc), (size), (ext2loc), (merge), (copy))
+#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	AUTOTILE_DMAMCHAN_Memcpy_2D((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
+#define gap8_dma_wait(copy)						DMAMCHAN_WaitRequestEnd(&(copy))
+#define gap8_dma_type                               dma_req_t
+#else
+#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			rt_dma_memcpy((ext), (loc), (size), (ext2loc), (merge), (copy))
+#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	rt_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
+#define gap8_dma_wait(copy)						rt_dma_wait(&(copy))
+#define gap8_dma_type                               rt_dma_copy_t
+#endif
 
 #endif
 

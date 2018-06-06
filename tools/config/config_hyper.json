@@ -1,0 +1,4534 @@
+{
+  "gvsoc": {
+    "cycles_to_seconds": "int(max(cycles * nb_cores / 5000000, 120))",
+    "trace-file": "stdout",
+    "trace": [],
+    "load-binary": [],
+    "pdb-no-break": "True",
+    "werror": "True",
+    "vcd": {
+      "help": {
+        "active": "Activate VCD tracing.",
+        "all": "Activate all VCD traces.",
+        "gtkw": "Generate script for Gtkwave."
+      },
+      "active": false,
+      "all": true,
+      "gtkw": false,
+      "files": []
+    }
+  },
+  "dpi_models": {
+    "uart_loopback": {
+      "module": "uart_tb.so",
+      "baudrate": 625000,
+      "loopback": true,
+      "stdout": true,
+      "tx_file": "tx_uart.log",
+      "ports": {
+        "in": {
+          "type": "uart",
+          "itf": 0
+        }
+      }
+    }
+  },
+  "platform": "board",
+  "pulp_compiler": {
+    "default": "gcc",
+    "gcc": {},
+    "llvm": {}
+  },
+  "pulp_rt_version": {
+    "default": "bench",
+    "release": {},
+    "bench": {},
+    "profile0": {},
+    "profile1": {},
+    "debug": {}
+  },
+  "pulp_omp_version": {
+    "default": "libgomp",
+    "libgomp": {},
+    "new": {}
+  },
+  "vsim": {
+    "help": {
+      "gui": "Open modelsim using the GUI.",
+      "simchecker": "Activate instruction checking through golden model.",
+      "script": "Specify the script used to launch the platform"
+    },
+    "script": null,
+    "gui": false,
+    "simchecker": false,
+    "args": []
+  },
+  "runner": {
+    "py-stack": false
+  },
+  "gdb": {
+    "active": false
+  },
+  "options": {
+    "rt": {
+      "version": "bench",
+      "type": "pulp-rt",
+      "stack_size": 2048,
+      "cl_master_stack_size": 1024,
+      "cl_slave_stack_size": 1024,
+      "io": true,
+      "warnings": true,
+      "werror": true,
+      "assert": false,
+      "trace": false,
+      "trace_level": 0,
+      "traces": "all",
+      "libc": false,
+      "no-rt": false,
+      "no-link-script": false,
+      "no-crt0": false,
+      "cluster-start": false,
+      "openmp": true,
+      "openmp-rt": "libgomp",
+      "iodev": "default",
+      "user-sections": [],
+      "iodevs": {
+        "default": {
+          "value": "0"
+        },
+        "uart": {
+          "value": "1",
+          "channel": "0",
+          "baudrate": "625000"
+        }
+      }
+    }
+  },
+  "loader": {
+    "bridge": "none",
+    "cable": "proxy",
+    "binaries": [],
+    "boot": {
+      "mode": "rom"
+    }
+  },
+  "system_tree": {
+    "system": "gap",
+    "debug-bridge": {
+      "cable": {
+        "type": "ftdi@digilent",
+        "tap": 0
+      },
+      "boot-mode": "jtag_hyper",
+      "commands": "load ioloop reqloop start wait"
+    },
+    "vp_class": "pulp/system",
+    "vp_comps": [
+      "board"
+    ],
+    "board": {
+      "vp_class": "pulp/board",
+      "vp_comps": [
+        "pulp_chip/gap"
+      ],
+      "pulp_chip": {
+        "gap": {
+          "name": "gap",
+          "pulp_chip_family": "gap",
+          "pulp_chip_version": 0,
+          "boot_from_rom": true,
+          "hal_files": [
+            "hal/chips/gap/pulp.h",
+            "hal/chips/gap/efuse.h"
+          ],
+          "archi_files": [
+            "archi/chips/gap/pulp.h",
+            "archi/chips/gap/memory_map.h",
+            "archi/chips/gap/properties.h",
+            "archi/chips/gap/apb_soc.h"
+          ],
+          "vp_class": "pulp/chip",
+          "vp_comps": [
+            "soc",
+            "soc_clock"
+          ],
+          "vp_bindings": [
+            [
+              "soc_clock->out",
+              "soc->clock"
+            ]
+          ],
+          "padframe": {
+            "nb_alternate": 4,
+            "version": 1,
+            "default_profile": "default",
+            "profiles": {
+              "default": {
+                "alternates": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              },
+              "hyper": {
+                "alternates": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  1,
+                  1,
+                  1,
+                  0,
+                  3,
+                  3,
+                  0,
+                  0,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  3,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0
+                ]
+              }
+            },
+            "groups": {
+              "rf": {},
+              "spim0": {},
+              "spim1": {},
+              "i2c0": {},
+              "i2c1": {},
+              "i2s0": {},
+              "i2s1": {},
+              "spis": {},
+              "cpi": {},
+              "reset": {},
+              "jtag": {},
+              "hyper": {},
+              "timer0": {},
+              "timer1": {},
+              "timer2": {},
+              "timer3": {},
+              "xtal": {}
+            },
+            "pads": {
+              "pad_rf_txd_p": {
+                "id": 0,
+                "position": "B20",
+                "alternates": [
+                  {
+                    "name": "rf_txd_p",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_txd_n": {
+                "id": 1,
+                "position": "A22",
+                "alternates": [
+                  {
+                    "name": "rf_txd_n",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_txclk_p": {
+                "id": 2,
+                "position": "B19",
+                "alternates": [
+                  {
+                    "name": "rf_txclk_p",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_txclk_n": {
+                "id": 3,
+                "position": "A21",
+                "alternates": [
+                  {
+                    "name": "rf_txclk_n",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_rxd_p": {
+                "id": 4,
+                "position": "A19",
+                "alternates": [
+                  {
+                    "name": "rf_rxd_p",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_rxd_n": {
+                "id": 5,
+                "position": "B18",
+                "alternates": [
+                  {
+                    "name": "rf_rxd_n",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_rxclk_p": {
+                "id": 6,
+                "position": "A18",
+                "alternates": [
+                  {
+                    "name": "rf_rxclk_p",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_rxclk_n": {
+                "id": 7,
+                "position": "B17",
+                "alternates": [
+                  {
+                    "name": "rf_rxclk_n",
+                    "groups": [
+                      "rf"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_miso": {
+                "id": 8,
+                "position": "A4",
+                "alternates": [
+                  {
+                    "name": "spim1_miso",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA0",
+                    "groups": [
+                      "gpio0"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_mosi": {
+                "id": 9,
+                "position": "B3",
+                "alternates": [
+                  {
+                    "name": "spim1_mosi",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA1",
+                    "groups": [
+                      "gpio1"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_csn": {
+                "id": 10,
+                "position": "A5",
+                "alternates": [
+                  {
+                    "name": "spim1_cs0",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA2",
+                    "groups": [
+                      "gpio2"
+                    ]
+                  },
+                  {
+                    "name": "i2c1_sda",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_rf_sck": {
+                "id": 11,
+                "position": "B4",
+                "alternates": [
+                  {
+                    "name": "spim1_sck",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA3",
+                    "groups": [
+                      "gpio3"
+                    ]
+                  },
+                  {
+                    "name": "i2c1_scl",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_rf_pactrl0": {
+                "id": 12,
+                "position": "A3",
+                "alternates": [
+                  {
+                    "name": "orca_txsync",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA0",
+                    "groups": [
+                      "gpio0"
+                    ]
+                  },
+                  {
+                    "name": "spim1_cs0",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_rf_pactrl1": {
+                "id": 13,
+                "position": "B2",
+                "alternates": [
+                  {
+                    "name": "orca_rxsync",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA1",
+                    "groups": [
+                      "gpio1"
+                    ]
+                  },
+                  {
+                    "name": "spim1_cs1",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_rf_pactrl2": {
+                "id": 14,
+                "position": "A2",
+                "alternates": [
+                  {
+                    "name": "orca_txi",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA2",
+                    "groups": [
+                      "gpio2"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_pactrl3": {
+                "id": 15,
+                "position": "B1",
+                "alternates": [
+                  {
+                    "name": "orca_txq",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA3",
+                    "groups": [
+                      "gpio3"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_rf_pactrl4": {
+                "id": 16,
+                "position": "A44",
+                "alternates": [
+                  {
+                    "name": "orca_rxi",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA4",
+                    "groups": [
+                      "gpio4"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio0",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio2",
+                    "groups": [
+                      "spis"
+                    ]
+                  }
+                ]
+              },
+              "pad_rf_pactrl5": {
+                "id": 17,
+                "position": "B40",
+                "alternates": [
+                  {
+                    "name": "orca_rxq",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {
+                    "name": "gpioA5",
+                    "groups": [
+                      "gpio5"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio1",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio3",
+                    "groups": [
+                      "spis"
+                    ]
+                  }
+                ]
+              },
+              "pad_cam_pclk": {
+                "id": 18,
+                "position": "A43",
+                "alternates": [
+                  {
+                    "name": "cam_pclk",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA4",
+                    "groups": [
+                      "gpio4"
+                    ]
+                  },
+                  {
+                    "name": "timer1_ch0",
+                    "groups": [
+                      "timer1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_hsync": {
+                "id": 19,
+                "position": "A37",
+                "alternates": [
+                  {
+                    "name": "cam_hsync",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA5",
+                    "groups": [
+                      "gpio5"
+                    ]
+                  },
+                  {
+                    "name": "timer1_ch1",
+                    "groups": [
+                      "timer1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data0": {
+                "id": 20,
+                "position": "B39",
+                "alternates": [
+                  {
+                    "name": "cam_data0",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA6",
+                    "groups": [
+                      "gpio6"
+                    ]
+                  },
+                  {
+                    "name": "timer1_ch2",
+                    "groups": [
+                      "timer1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data1": {
+                "id": 21,
+                "position": "A42",
+                "alternates": [
+                  {
+                    "name": "cam_data1",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA7",
+                    "groups": [
+                      "gpio7"
+                    ]
+                  },
+                  {
+                    "name": "timer1_ch3",
+                    "groups": [
+                      "timer1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data2": {
+                "id": 22,
+                "position": "B38",
+                "alternates": [
+                  {
+                    "name": "cam_data2",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA8",
+                    "groups": [
+                      "gpio8"
+                    ]
+                  },
+                  {
+                    "name": "timer2_ch0",
+                    "groups": [
+                      "timer2"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data3": {
+                "id": 23,
+                "position": "A41",
+                "alternates": [
+                  {
+                    "name": "cam_data3",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA9",
+                    "groups": [
+                      "gpio9"
+                    ]
+                  },
+                  {
+                    "name": "timer2_ch1",
+                    "groups": [
+                      "timer2"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data4": {
+                "id": 24,
+                "position": "B37",
+                "alternates": [
+                  {
+                    "name": "cam_data4",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA10",
+                    "groups": [
+                      "gpio10"
+                    ]
+                  },
+                  {
+                    "name": "timer2_ch2",
+                    "groups": [
+                      "timer2"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data5": {
+                "id": 25,
+                "position": "A40",
+                "alternates": [
+                  {
+                    "name": "cam_data5",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA11",
+                    "groups": [
+                      "gpio11"
+                    ]
+                  },
+                  {
+                    "name": "timer2_ch3",
+                    "groups": [
+                      "timer2"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data6": {
+                "id": 26,
+                "position": "B36",
+                "alternates": [
+                  {
+                    "name": "cam_data6",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA12",
+                    "groups": [
+                      "gpio12"
+                    ]
+                  },
+                  {
+                    "name": "timer3_ch0",
+                    "groups": [
+                      "timer3"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_data7": {
+                "id": 27,
+                "position": "A38",
+                "alternates": [
+                  {
+                    "name": "cam_data7",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA13",
+                    "groups": [
+                      "gpio13"
+                    ]
+                  },
+                  {
+                    "name": "timer3_ch1",
+                    "groups": [
+                      "timer3"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_vsync": {
+                "id": 28,
+                "position": "A36",
+                "alternates": [
+                  {
+                    "name": "cam_vsync",
+                    "groups": [
+                      "cpi"
+                    ]
+                  },
+                  {
+                    "name": "gpioA14",
+                    "groups": [
+                      "gpio14"
+                    ]
+                  },
+                  {
+                    "name": "timer3_ch2",
+                    "groups": [
+                      "timer3"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_sda": {
+                "id": 29,
+                "position": "B34",
+                "alternates": [
+                  {
+                    "name": "i2c1_sda",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA15",
+                    "groups": [
+                      "gpio15"
+                    ]
+                  },
+                  {
+                    "name": "timer3_ch3",
+                    "groups": [
+                      "timer3"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_cam_scl": {
+                "id": 30,
+                "position": "D1",
+                "alternates": [
+                  {
+                    "name": "i2c1_scl",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA16",
+                    "groups": [
+                      "gpio16"
+                    ]
+                  },
+                  {
+                    "name": "orca_clk",
+                    "groups": [
+                      "orca"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_timer0_ch0": {
+                "id": 31,
+                "position": "B11",
+                "alternates": [
+                  {
+                    "name": "timer0_ch0",
+                    "groups": [
+                      "timer0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA17",
+                    "groups": [
+                      "gpio17"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_timer0_ch1": {
+                "id": 32,
+                "position": "A13",
+                "alternates": [
+                  {
+                    "name": "timer0_ch1",
+                    "groups": [
+                      "timer0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA18",
+                    "groups": [
+                      "gpio18"
+                    ]
+                  },
+                  {
+                    "name": "timer1_ch0",
+                    "groups": [
+                      "timer1"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_timer0_ch2": {
+                "id": 33,
+                "position": "B12",
+                "alternates": [
+                  {
+                    "name": "timer0_ch2",
+                    "groups": [
+                      "timer0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA19",
+                    "groups": [
+                      "gpio19"
+                    ]
+                  },
+                  {
+                    "name": "timer2_ch0",
+                    "groups": [
+                      "timer2"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_timer0_ch3": {
+                "id": 34,
+                "position": "A14",
+                "alternates": [
+                  {
+                    "name": "timer0_ch3",
+                    "groups": [
+                      "timer0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA20",
+                    "groups": [
+                      "gpio20"
+                    ]
+                  },
+                  {
+                    "name": "timer3_ch0",
+                    "groups": [
+                      "timer3"
+                    ]
+                  },
+                  {}
+                ]
+              },
+              "pad_i2s1_sck": {
+                "id": 35,
+                "position": "B13",
+                "alternates": [
+                  {
+                    "name": "i2s1_sck",
+                    "groups": [
+                      "i2s1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA21",
+                    "groups": [
+                      "gpio21"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sck",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "i2s1_sdi",
+                    "groups": [
+                      "i2s1"
+                    ]
+                  }
+                ]
+              },
+              "pad_i2s1_ws": {
+                "id": 36,
+                "position": "A15",
+                "alternates": [
+                  {
+                    "name": "i2s1_ws",
+                    "groups": [
+                      "i2s1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA22",
+                    "groups": [
+                      "gpio22"
+                    ]
+                  },
+                  {
+                    "name": "spis0_cs",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "hyper_ckn",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_i2s1_sdi": {
+                "id": 37,
+                "position": "B14",
+                "alternates": [
+                  {
+                    "name": "i2s1_sdi",
+                    "groups": [
+                      "i2s1"
+                    ]
+                  },
+                  {
+                    "name": "gpioA23",
+                    "groups": [
+                      "gpio23"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio2",
+                    "groups": [
+                      "spis0"
+                    ]
+                  },
+                  {
+                    "name": "hyper_ck",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_uart_rx": {
+                "id": 38,
+                "position": "B6",
+                "alternates": [
+                  {
+                    "name": "uart_rx",
+                    "groups": [
+                      "uart"
+                    ]
+                  },
+                  {
+                    "name": "gpioA24",
+                    "groups": [
+                      "gpio24"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_uart_tx": {
+                "id": 39,
+                "position": "A7",
+                "alternates": [
+                  {
+                    "name": "uart_tx",
+                    "groups": [
+                      "uart"
+                    ]
+                  },
+                  {
+                    "name": "gpioA25",
+                    "groups": [
+                      "gpio25"
+                    ]
+                  },
+                  {},
+                  {}
+                ]
+              },
+              "pad_spim0_sdio0 (mosi)": {
+                "id": 40,
+                "position": "D2",
+                "alternates": [
+                  {
+                    "name": "spim0_sdio0",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {
+                    "name": "hyper_dq[0]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_sdio1 (miso)": {
+                "id": 41,
+                "position": "A11",
+                "alternates": [
+                  {
+                    "name": "spim0_sdio1",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {
+                    "name": "hyper_dq[1]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_sdio2": {
+                "id": 42,
+                "position": "B10",
+                "alternates": [
+                  {
+                    "name": "spim0_sdio2",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA26",
+                    "groups": [
+                      "gpio26"
+                    ]
+                  },
+                  {
+                    "name": "i2c1_sda",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {
+                    "name": "hyper_dq[2]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_sdio3": {
+                "id": 43,
+                "position": "A10",
+                "alternates": [
+                  {
+                    "name": "spim0_sdio3",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA27",
+                    "groups": [
+                      "gpio27"
+                    ]
+                  },
+                  {
+                    "name": "i2c1_scl",
+                    "groups": [
+                      "i2c1"
+                    ]
+                  },
+                  {
+                    "name": "hyper_dq[3]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_csn0": {
+                "id": 44,
+                "position": "B8",
+                "alternates": [
+                  {
+                    "name": "spim0_cs0",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {
+                    "name": "hyper_dq[4]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_csn1": {
+                "id": 45,
+                "position": "A8",
+                "alternates": [
+                  {
+                    "name": "spim0_cs1",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {
+                    "name": "gpioA28",
+                    "groups": [
+                      "gpio28"
+                    ]
+                  },
+                  {
+                    "name": "spis0_sdio3",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "hyper_dq[5]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spim0_sck": {
+                "id": 46,
+                "position": "B7",
+                "alternates": [
+                  {
+                    "name": "spim0_sck",
+                    "groups": [
+                      "spim0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {
+                    "name": "hyper_dq[6]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spis0_csn": {
+                "id": 47,
+                "position": "A9",
+                "alternates": [
+                  {
+                    "name": "spis0_cs",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "gpioA29",
+                    "groups": [
+                      "gpio29"
+                    ]
+                  },
+                  {
+                    "name": "spim1_cs0",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "hyper_dq[7]",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spis0_miso": {
+                "id": 48,
+                "position": "B15",
+                "alternates": [
+                  {
+                    "name": "spis0_sdio0",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "gpioA30",
+                    "groups": [
+                      "gpio30"
+                    ]
+                  },
+                  {
+                    "name": "spim1_cs1",
+                    "groups": [
+                      "spim1"
+                    ]
+                  },
+                  {
+                    "name": "hyper_csn0",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spis0_mosi": {
+                "id": 49,
+                "position": "A16",
+                "alternates": [
+                  {
+                    "name": "spis0_sdio1",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {
+                    "name": "gpioA31",
+                    "groups": [
+                      "gpio31"
+                    ]
+                  },
+                  {},
+                  {
+                    "name": "hyper_csn1",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_spis0_sck": {
+                "id": 50,
+                "position": "B9",
+                "alternates": [
+                  {
+                    "name": "spis0_sck",
+                    "groups": [
+                      "spis"
+                    ]
+                  },
+                  {},
+                  {},
+                  {
+                    "name": "hyper_rwds",
+                    "groups": [
+                      "hyper"
+                    ]
+                  }
+                ]
+              },
+              "pad_xtal_in": {
+                "id": 51,
+                "position": "A32",
+                "alternates": [
+                  {
+                    "groups": [
+                      "xtal"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_xtal_out": {
+                "id": 52,
+                "position": "B30",
+                "alternates": [
+                  {
+                    "groups": [
+                      "xtal"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_i2c0_sda": {
+                "id": 53,
+                "position": "B22",
+                "alternates": [
+                  {
+                    "name": "i2c0_sda",
+                    "groups": [
+                      "i2c0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_i2c0_scl": {
+                "id": 54,
+                "position": "A25",
+                "alternates": [
+                  {
+                    "name": "i2c0_scl",
+                    "groups": [
+                      "i2c0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_i2s0_sck": {
+                "id": 55,
+                "position": "A24",
+                "alternates": [
+                  {
+                    "name": "i2s0_sck",
+                    "groups": [
+                      "i2s0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_i2s0_ws": {
+                "id": 56,
+                "position": "A26",
+                "alternates": [
+                  {
+                    "name": "i2s0_ws",
+                    "groups": [
+                      "i2s0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_i2s0_sdi": {
+                "id": 57,
+                "position": "B23",
+                "alternates": [
+                  {
+                    "name": "i2s0_sdi",
+                    "groups": [
+                      "i2s0"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_reset_n": {
+                "id": 58,
+                "position": "A23",
+                "alternates": [
+                  {
+                    "name": "reset_n",
+                    "groups": [
+                      "reset"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_jtag_tck": {
+                "id": 59,
+                "position": "B25",
+                "alternates": [
+                  {
+                    "name": "jtag_tck",
+                    "groups": [
+                      "jtag"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_jtag_tdi": {
+                "id": 60,
+                "position": "A28",
+                "alternates": [
+                  {
+                    "name": "jtag_tdi",
+                    "groups": [
+                      "jtag"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_jtag_tdo": {
+                "id": 61,
+                "position": "B26",
+                "alternates": [
+                  {
+                    "name": "jtag_tdo",
+                    "groups": [
+                      "jtag"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_jtag_tms": {
+                "id": 62,
+                "position": "A29",
+                "alternates": [
+                  {
+                    "name": "jtag_tms",
+                    "groups": [
+                      "jtag"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "pad_jtag_trst": {
+                "id": 63,
+                "position": "B27",
+                "alternates": [
+                  {
+                    "name": "jtag_trst",
+                    "groups": [
+                      "jtag"
+                    ]
+                  },
+                  {},
+                  {},
+                  {}
+                ]
+              }
+            }
+          },
+          "pads": {
+            "rf0": {
+              "udma_channel": 0
+            },
+            "spim0": {
+              "udma_channel": 1
+            },
+            "spim1": {
+              "udma_channel": 2
+            },
+            "hyper0": {
+              "udma_channel": 3
+            },
+            "uart0": {
+              "udma_channel": 4
+            },
+            "i2c0": {
+              "udma_channel": 5
+            },
+            "i2c1": {
+              "udma_channel": 6
+            },
+            "tcdm0": {
+              "udma_channel": 7
+            },
+            "i2s0": {
+              "udma_channel": 8,
+              "udma_subchannel": 0
+            },
+            "i2s1": {
+              "udma_channel": 8,
+              "udma_subchannel": 1
+            },
+            "cpi0": {
+              "udma_channel": 9
+            }
+          },
+          "soc_clock": {
+            "vp_class": "vp/clock_domain",
+            "frequency": 100000000
+          },
+          "soc": {
+            "vp_class": "pulp/soc",
+            "vp_comps": [
+              "fc"
+            ],
+            "soc_ico": {
+              "gv_class": "pulp.Soc_Ico_v1.Soc_Ico",
+              "nb_l2_shared_banks": 4,
+              "apb": {
+                "base": "0x1A100000",
+                "size": "0x00100000"
+              },
+              "fc_periph": {
+                "base": "0x1B000000",
+                "alias_base": "0x00000000",
+                "size": "0x00400000"
+              },
+              "l2": {
+                "base": "0x1C000000",
+                "size": "0x00080000"
+              },
+              "rom": {
+                "base": "0x1A000000",
+                "size": "0x00010000"
+              },
+              "peripherals_base": "0x1A100000",
+              "peripherals": {
+                "stdout": {
+                  "offset": "0x00010000",
+                  "size": "0x00002000"
+                },
+                "gpio": {
+                  "offset": "0x00001000",
+                  "size": "0x00001000"
+                },
+                "apb_soc_ctrl": {
+                  "base": "0x1A104000",
+                  "offset": "0x00004000",
+                  "size": "0x00001000"
+                },
+                "pmu": {
+                  "offset": "0x00007000",
+                  "size": "0x00000800"
+                },
+                "udma": {
+                  "offset": "0x00002000",
+                  "size": "0x00002000"
+                },
+                "soc_eu": {
+                  "offset": "0x00006000",
+                  "size": "0x00001000"
+                },
+                "fll0": {
+                  "offset": "0x00000000",
+                  "size": "0x00000010"
+                },
+                "fll1": {
+                  "offset": "0x00000010",
+                  "size": "0x00000010"
+                },
+                "efuse": {
+                  "offset": "0x00009000",
+                  "size": "0x00001000"
+                }
+              },
+              "fc_peripherals_base": "0x1b000000",
+              "fc_peripherals": {
+                "fc_tcdm": {
+                  "offset": "0x00000000",
+                  "size": "0x00010000"
+                },
+                "fc_timer": {
+                  "offset": "0x00200400",
+                  "size": "0x00001000"
+                },
+                "fc_eu": {
+                  "offset": "0x00200800",
+                  "size": "0x00000800"
+                },
+                "fc_eu_demux": {
+                  "offset": "0x00204000",
+                  "size": "0x00000400"
+                },
+                "fc_icache": {
+                  "base": "0x1b201400",
+                  "offset": "0x00201400",
+                  "size": "0x00000400"
+                },
+                "fc_debug": {
+                  "offset": "0x00300000",
+                  "size": "0x00008000"
+                },
+                "fc_dbg_unit": {
+                  "base": "0x1b300000",
+                  "size": "0x00010000",
+                  "remove_offset": "0x1b300000"
+                }
+              }
+            },
+            "l2": {
+              "size": 524288,
+              "map_base": "0x1C000000",
+              "map_size": "0x00080000"
+            },
+            "l2_shared": {
+              "nb_banks": 4,
+              "size": 524288,
+              "map_base": "0x1C000000",
+              "map_size": "0x01000000"
+            },
+            "fc": {
+              "vp_class": "cpu/iss/iss",
+              "version": "ri5cyv2",
+              "archi": "riscv",
+              "implementation": "ri5cy",
+              "gv_isa": [
+                "--pulpv2",
+                "--pulp",
+                "--rv32m",
+                "--itc-external-req",
+                "--pulpv2",
+                "--pulp",
+                "--rv32m",
+                "--gap8",
+                "--itc-external-req"
+              ],
+              "isa": "RV32IMCXpulpv2",
+              "priv_version": 1.9,
+              "perf_counters": true,
+              "features": [
+                "misaligned",
+                "perf"
+              ],
+              "hal_files": [
+                "hal/riscv/riscv_v4.h",
+                "hal/riscv/builtins_v2.h",
+                "hal/riscv/builtins_v2_emu.h",
+                "hal/riscv/types.h"
+              ],
+              "archi_files": [
+                "archi/riscv/priv_1_9.h",
+                "archi/riscv/pcer_v1.h"
+              ],
+              "defines": [
+                "ARCHI_CORE_HAS_PULPV2",
+                "CORE_PULP_BUILTINS",
+                "ARCHI_CORE_HAS_PULPV2",
+                "ARCHI_CORE_HAS_CPLX",
+                "ARCHI_CORE_HAS_SECURITY"
+              ],
+              "fetch_enable": true,
+              "boot_addr": "0x1A000000",
+              "cluster_id": 32,
+              "core_id": 0
+            },
+            "rom": {
+              "version": 2,
+              "hal_files": [
+                "hal/rom/rom_v2.h"
+              ],
+              "size": 8192,
+              "map_base": "0x1A000000",
+              "map_size": "0x00010000"
+            },
+            "peripherals_base": "0x1A100000",
+            "stdout": {
+              "version": 3,
+              "vp_class": "pulp/stdout/stdout_v3",
+              "archi_files": [
+                "archi/stdout/stdout_v3.h"
+              ],
+              "max_cluster": 33,
+              "max_core_per_cluster": 16
+            },
+            "gpio": {
+              "version": 2,
+              "nb_gpio": 32,
+              "archi_files": [
+                "archi/gpio/gpio_v2.h"
+              ],
+              "hal_files": [
+                "hal/gpio/gpio_v2.h"
+              ]
+            },
+            "rtc": {
+              "version": 1,
+              "hal_files": [
+                "hal/vendors/dolphin/rtc.h"
+              ],
+              "archi_files": [
+                "archi/vendors/dolphin/rtc.h"
+              ]
+            },
+            "apb_soc_ctrl": {
+              "version": 2,
+              "hal_files": [
+                "hal/apb_soc/apb_soc_v2.h"
+              ],
+              "regmap": {
+                "power": {
+                  "bypass": {
+                    "offset": "0x70",
+                    "content": {
+                      "dbg1": {
+                        "bit": 14
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "pmu": {
+              "version": 1,
+              "nb_domains": 2,
+              "hal_files": [
+                "hal/maestro/pmu_v1.h"
+              ],
+              "archi_files": [
+                "archi/maestro/maestro_v1.h"
+              ],
+              "gv_class": "power.pmu.Pmu"
+            },
+            "udma": {
+              "version": 2,
+              "archi": 2,
+              "vp_class": "pulp/udma/udma_v2",
+              "hal_files": [
+                "hal/udma/udma_v2.h",
+                "hal/udma/udma_periph_v2.h",
+                "hal/udma/udma_periph_i2s_v1.h"
+              ],
+              "archi_files": [
+                "archi/udma/udma_v2.h",
+                "archi/udma/udma_periph_v2.h"
+              ],
+              "regmap": {
+                "channel": {
+                  "type": "template",
+                  "saddr": {
+                    "type": "register",
+                    "offset": "0x00",
+                    "width": 32,
+                    "desc": "uDMA start reg",
+                    "content": {
+                      "saddr": {
+                        "bit": 0,
+                        "width": 16,
+                        "access": "R/W",
+                        "reset": "0x0",
+                        "desc": "Configure pointer to memory buffer:\n  - Read: value of the pointer until transfer is over. Else returns 0\n  - Write: set Address Pointer to memory buffer start address"
+                      }
+                    }
+                  },
+                  "size": {
+                    "type": "register",
+                    "offset": "0x04",
+                    "width": 32,
+                    "desc": "uDMA size reg",
+                    "content": {
+                      "size": {
+                        "bit": 0,
+                        "width": 16,
+                        "access": "R/W",
+                        "reset": "0x0",
+                        "desc": "Buffer size in DATASIZE. (128kBytes maximum)\n  - Read: buffer size left\n  - Write: set buffer size"
+                      }
+                    }
+                  },
+                  "cfg": {
+                    "type": "register",
+                    "offset": "0x08",
+                    "width": 32,
+                    "desc": "uDMA config reg",
+                    "content": {
+                      "continuous": {
+                        "bit": 0,
+                        "width": 1,
+                        "reset": "0x0",
+                        "access": "R/W",
+                        "desc": "Channel continuous mode:\n  -1'b0: disable\n  -1'b1: enable\nAt the end of the buffer the uDMA reloads the address and size and starts a new transfer."
+                      },
+                      "datasize": {
+                        "bit": 1,
+                        "width": 2,
+                        "reset": "0x0",
+                        "access": "R/W",
+                        "desc": "Channel transfer size used to increment uDMA buffer address pointer:\n  - 2'b00: +1 (8 bits)\n  - 2'b01: +2 (16 bits)\n  - 2'b10: +4 (32 bits)\n  - 2'b11: +0"
+                      },
+                      "en": {
+                        "bit": 4,
+                        "width": 1,
+                        "reset": "0x0",
+                        "access": "R/W",
+                        "desc": "Channel enable and start transfer:\n  -1'b0: disable\n  -1'b1: enable\nThis signal is used also to queue a transfer if one is already ongoing."
+                      },
+                      "clr": {
+                        "bit": 5,
+                        "width": 1,
+                        "reset": "0x0",
+                        "access": "W",
+                        "desc": "Channel clear and stop transfer:\n  -1'b0: disable\n  -1'b1: enable"
+                      },
+                      "pending": {
+                        "bit": 6,
+                        "width": 1,
+                        "reset": "0x0",
+                        "access": "R",
+                        "desc": "Transfer pending in queue status flag:\n  -1'b0: free\n  -1'b1: pending"
+                      }
+                    }
+                  }
+                },
+                "SPIM": {
+                  "type": "template",
+                  "RX": {
+                    "type": "group",
+                    "template": "channel",
+                    "offset": "0x00",
+                    "cfg": {
+                      "content": {
+                        "datasize": {
+                          "access": "R",
+                          "reset": "0x2"
+                        }
+                      }
+                    }
+                  },
+                  "TX": {
+                    "type": "group",
+                    "template": "channel",
+                    "offset": "0x10"
+                  }
+                },
+                "SPIM0": {
+                  "type": "group",
+                  "template": "SPIM",
+                  "offset": "0x080"
+                },
+                "SPIM1": {
+                  "type": "group",
+                  "template": "SPIM",
+                  "offset": "0x100"
+                }
+              },
+              "commands": {
+                "SPI_CMD_CFG": {
+                  "desc": "Sets the configuration for the SPI Master IP",
+                  "content": {
+                    "CLKDIV": {
+                      "bit": 0,
+                      "width": 8,
+                      "desc": "Sets the clock divider value"
+                    },
+                    "CPHA": {
+                      "bit": 8,
+                      "width": 1,
+                      "desc": "Sets the clock phase:\n  - 1'b0: \n  - 1'b1:"
+                    },
+                    "CPOL": {
+                      "bit": 9,
+                      "width": 1,
+                      "desc": "Sets the clock polarity:\n  - 1'b0:\n  - 1'b1:"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here CFG"
+                    }
+                  }
+                },
+                "SPI_CMD_SOT": {
+                  "desc": "Start of stream",
+                  "content": {
+                    "CS": {
+                      "bit": 0,
+                      "width": 2,
+                      "desc": "Sets the Chip Select (CS):\n  - 2'b00: select csn0\n  - 2'b01: select csn1\n  - 2'b10: select csn2\n  - 2'b11: select csn3"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here SOT"
+                    }
+                  }
+                },
+                "SPI_CMD_SEND_CMD": {
+                  "desc": "Transmits a configurable size command",
+                  "content": {
+                    "CMD_VALUE": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Sets the command to send. MSB must always be at bit15 also if cmd size is lower than 16"
+                    },
+                    "CMD_SIZE": {
+                      "bit": 16,
+                      "width": 5,
+                      "desc": "Size in bits of the command to send. The value written here is num bits \u2013 1."
+                    },
+                    "QPI": {
+                      "bit": 27,
+                      "width": 1,
+                      "desc": "Sends the command using QuadSPI"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here SEND_CMD"
+                    }
+                  }
+                },
+                "SPI_CMD_SEND_ADDR": {
+                  "desc": "Transmits a configurable size address",
+                  "content": {
+                    "CMD_SIZE": {
+                      "bit": 16,
+                      "width": 5,
+                      "desc": "Size in bits of the address to send. The value written here is num bits \u2013 1."
+                    },
+                    "QPI": {
+                      "bit": 27,
+                      "width": 1,
+                      "desc": "Sends the command using QuadSPI"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here SEND_ADDR"
+                    }
+                  }
+                },
+                "SPI_CMD_DUMMY": {
+                  "desc": "Transmits a configurable size address",
+                  "content": {
+                    "DUMMY_CYCLE": {
+                      "bit": 16,
+                      "width": 5,
+                      "desc": "Number of dummy cycles to perform"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here DUMMY"
+                    }
+                  }
+                },
+                "SPI_CMD_WAIT": {
+                  "desc": "Waits an external event to move to the next instruction",
+                  "content": {
+                    "EVENT_ID": {
+                      "bit": 0,
+                      "width": 2,
+                      "desc": "External event id"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here WAIT"
+                    }
+                  }
+                },
+                "SPI_CMD_TX_DATA": {
+                  "desc": "Sends data (max 64Kbits)",
+                  "content": {
+                    "DATA_SIZE": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Number of bits to send (Max 64Kbits). The value written here is num bits \u2013 1."
+                    },
+                    "BYTE_ALIGN": {
+                      "bit": 26,
+                      "width": 1,
+                      "desc": "Disable byte alignment\n  - 1'b0: enable byte alignment\n  - 1'b1: disable byte alignment"
+                    },
+                    "QPI": {
+                      "bit": 27,
+                      "width": 1,
+                      "desc": "Sends the command using QuadSPI"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here TX_DATA"
+                    }
+                  }
+                },
+                "SPI_CMD_RX_DATA": {
+                  "desc": "Receives data (max 64Kbits)",
+                  "content": {
+                    "DATA_SIZE": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Number of bits to receive (Max 64Kbits). The value written here is num bits \u2013 1."
+                    },
+                    "BYTE_ALIGN": {
+                      "bit": 26,
+                      "width": 1,
+                      "desc": "Disable byte alignment\n  - 1'b0: enable byte alignment\n  - 1'b1: disable byte alignment"
+                    },
+                    "QPI": {
+                      "bit": 27,
+                      "width": 1,
+                      "desc": "Sends the command using QuadSPI"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here RX_DATA"
+                    }
+                  }
+                },
+                "SPI_CMD_RPT": {
+                  "desc": "Repeat the next transfer N times",
+                  "content": {
+                    "RPT_CNT": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Number of transfers to repeat (Max 64K)"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here RPT"
+                    }
+                  }
+                },
+                "SPI_CMD_EOT": {
+                  "desc": "End of stream",
+                  "content": {
+                    "EVENT_GEN": {
+                      "bit": 0,
+                      "width": 1,
+                      "desc": "Enable EOT event:\n  - 1'b0: disable\n  - 1'b1: enable"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here EOT"
+                    }
+                  }
+                },
+                "SPI_CMD_RPT_END": {
+                  "desc": "End of the repeat loop command",
+                  "content": {
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here RPT_END"
+                    }
+                  }
+                },
+                "SPI_CMD_RX_CHECK": {
+                  "desc": "Check up ot 16 bits of data against an expected value",
+                  "content": {
+                    "COMP_DATA": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Data to compare. Max 16bits"
+                    },
+                    "STATUS_SIZE": {
+                      "bit": 16,
+                      "width": 4,
+                      "desc": "Size in bits of the word to read. The value written here is num bits \u2013 1."
+                    },
+                    "CHECK_TYPE": {
+                      "bit": 24,
+                      "width": 2,
+                      "desc": "Select check to process:\n  - 2'b00: compare bit a bit\n  - 2'b01: compare only ones\n  - 2'b10: compare ony zeros"
+                    },
+                    "BYTE_ALIGN": {
+                      "bit": 26,
+                      "width": 1,
+                      "desc": "Disable byte alignment\n  - 1'b0: enable byte alignment\n  - 1'b1: disable byte alignment"
+                    },
+                    "QPI": {
+                      "bit": 27,
+                      "width": 1,
+                      "desc": "Sends the command using QuadSPI"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here RX_CHECK"
+                    }
+                  }
+                },
+                "SPI_CMD_FULL_DUPL": {
+                  "desc": "Activate full duplex mode",
+                  "content": {
+                    "DATA_SIZE": {
+                      "bit": 0,
+                      "width": 16,
+                      "desc": "Number of bits to send (Max 64Kbits). The value written here is num bits \u2013 1."
+                    },
+                    "BYTE_ALIGN": {
+                      "bit": 26,
+                      "width": 1,
+                      "desc": "Disable byte alignment\n  - 1'b0: enable byte alignment\n  - 1'b1: disable byte alignment"
+                    },
+                    "SPI_CMD": {
+                      "bit": 28,
+                      "width": 4,
+                      "desc": "Select the SPIM command to be processed. Here FULL_DUPLEX"
+                    }
+                  }
+                }
+              },
+              "nb_channels": 8,
+              "interfaces": [
+                "spim",
+                "i2c",
+                "i2s",
+                "uart",
+                "cam",
+                "hyper",
+                "lvds",
+                "tcdm"
+              ],
+              "lvds": {
+                "version": 1,
+                "nb_channels": 1,
+                "ids": [
+                  0
+                ],
+                "offsets": [
+                  "0x000"
+                ]
+              },
+              "spim": {
+                "version": 2,
+                "nb_channels": 2,
+                "ids": [
+                  1,
+                  2
+                ],
+                "offsets": [
+                  "0x080",
+                  "0x100"
+                ]
+              },
+              "hyper": {
+                "version": 1,
+                "nb_channels": 1,
+                "ids": [
+                  3
+                ],
+                "offsets": [
+                  "0x180"
+                ]
+              },
+              "uart": {
+                "version": 1,
+                "nb_channels": 1,
+                "ids": [
+                  4
+                ],
+                "offsets": [
+                  "0x200"
+                ]
+              },
+              "i2c": {
+                "version": 1,
+                "nb_channels": 2,
+                "ids": [
+                  5,
+                  6
+                ],
+                "offsets": [
+                  "0x280",
+                  "0x300"
+                ]
+              },
+              "tcdm": {
+                "version": 1,
+                "nb_channels": 1,
+                "ids": [
+                  7
+                ],
+                "offsets": [
+                  "0x380"
+                ]
+              },
+              "i2s": {
+                "version": 1,
+                "nb_channels": 2,
+                "ids": [
+                  8
+                ],
+                "offsets": [
+                  "0x400"
+                ]
+              },
+              "cam": {
+                "version": 1,
+                "nb_channels": 1,
+                "ids": [
+                  9
+                ],
+                "offsets": [
+                  "0x480"
+                ]
+              }
+            },
+            "timer": {
+              "version": 2
+            },
+            "soc_eu": {
+              "version": 1,
+              "hal_files": [
+                "hal/soc_eu/soc_eu_v1.h"
+              ],
+              "archi_files": [
+                "archi/soc_eu/soc_eu_v1.h"
+              ],
+              "vp_class": "pulp/soc_eu/soc_eu_v1",
+              "properties": {
+                "nb_fc_events": 8,
+                "first_fc_event": 48
+              }
+            },
+            "fll": {
+              "version": 1,
+              "vp_class": "pulp/fll/fll_v1",
+              "hal_files": [
+                "hal/fll/fll_v1.h"
+              ],
+              "archi_files": [
+                "archi/fll/fll_v1.h"
+              ]
+            },
+            "efuse": {
+              "version": 1,
+              "hal_files": [
+                "hal/efuse/efuse_v1.h"
+              ],
+              "archi_files": [
+                "archi/efuse/efuse_v1.h"
+              ],
+              "nb_regs": 128
+            },
+            "uart": {
+              "version": 1
+            },
+            "fc_tcdm": {
+              "version": 1,
+              "size": "0x00004000"
+            },
+            "fc_eu": {
+              "version": 1
+            },
+            "fc_icache": {
+              "version": 1
+            },
+            "fc_debug": {
+              "version": 1
+            },
+            "fc_events": {
+              "evt_sw_event0": 0,
+              "evt_sw_event2": 2,
+              "evt_sw_event1": 1,
+              "evt_sw_event3": 3,
+              "evt_sw_event4": 4,
+              "evt_sw_event5": 5,
+              "evt_sw_event6": 6,
+              "evt_sw_event7": 7,
+              "evt_timer0": 10,
+              "evt_timer1": 11,
+              "evt_clkref": 14,
+              "evt_gpio": 15,
+              "evt_rtc": 16,
+              "evt_adv_timer0": 17,
+              "evt_adv_timer1": 18,
+              "evt_adv_timer2": 19,
+              "evt_adv_timer3": 20,
+              "evt_cluster_not_busy": 21,
+              "evt_cluster_pok": 22,
+              "evt_cluster_cg_ok": 23,
+              "evt_picl_ok": 24,
+              "evt_scu_ok": 25,
+              "evt_soc_evt": 27,
+              "evt_queue_error": 29
+            },
+            "soc_events_ids": {
+              "soc_evt_lvds0_rx": 0,
+              "soc_evt_lvds0_tx": 1,
+              "soc_evt_spim0_rx": 2,
+              "soc_evt_spim0_tx": 3,
+              "soc_evt_spim1_rx": 4,
+              "soc_evt_spim1_tx": 5,
+              "soc_evt_hyper0_rx": 6,
+              "soc_evt_hyper0_tx": 7,
+              "soc_evt_uart0_rx": 8,
+              "soc_evt_uart0_tx": 9,
+              "soc_evt_i2c0_rx": 10,
+              "soc_evt_i2c0_tx": 11,
+              "soc_evt_i2c1_rx": 12,
+              "soc_evt_i2c1_tx": 13,
+              "soc_evt_tcdm0_rx": 14,
+              "soc_evt_tcdm0_tx": 15,
+              "soc_evt_i2s_ch0": 16,
+              "soc_evt_i2s_ch1": 17,
+              "soc_evt_cam0": 18,
+              "soc_evt_lvds0_hp0": 20,
+              "soc_evt_lvds0_hp1": 21,
+              "soc_evt_spim0_eot": 22,
+              "soc_evt_spim1_eot": 23,
+              "soc_evt_hyper0_eot": 24,
+              "soc_evt_uart_eot": 25,
+              "soc_evt_i2c0_extra": 26,
+              "soc_evt_i2c1_extra": 27,
+              "soc_evt_i2s_extra": 28,
+              "soc_evt_cam0_eot": 29,
+              "soc_evt_cluster_pok": 31,
+              "soc_evt_msp": 32,
+              "soc_evt_icu_mode_changed": 33,
+              "soc_evt_icu_ok": 34,
+              "soc_evt_icu_delayed": 35,
+              "soc_evt_picl_ok": 36,
+              "soc_evt_scu_ok": 37,
+              "soc_evt_adv_timer0": 38,
+              "soc_evt_adv_timer1": 39,
+              "soc_evt_adv_timer2": 40,
+              "soc_evt_adv_timer3": 41,
+              "soc_evt_gpio": 42,
+              "soc_evt_rtc_apb": 43,
+              "soc_evt_rtc": 44,
+              "soc_evt_ref_clock": 56,
+              "soc_evt_sw_first": 48,
+              "soc_evt_sw_nb": 8,
+              "soc_evt_pmu0": 31
+            },
+            "nb_cluster": 1,
+            "cluster": {
+              "version": 5,
+              "nb_pe": 8,
+              "vp_comps": [
+                "l1",
+                "cluster_ico",
+                "periph_ico",
+                "l1_ico",
+                "pe0",
+                "pe1",
+                "pe2",
+                "pe3",
+                "pe4",
+                "pe5",
+                "pe6",
+                "pe7",
+                "cluster_ctrl",
+                "icache_ctrl",
+                "event_unit",
+                "demux_periph_ico",
+                "timer",
+                "dma"
+              ],
+              "vp_bindings": [
+                [
+                  "cluster_ico->l1",
+                  "l1_ico/ext2loc->in"
+                ],
+                [
+                  "cluster_ico->periph_ico",
+                  "periph_ico->in"
+                ],
+                [
+                  "periph_ico->icache_ctrl",
+                  "icache_ctrl->in"
+                ],
+                [
+                  "periph_ico->event_unit",
+                  "event_unit->in"
+                ],
+                [
+                  "periph_ico->cluster_ctrl",
+                  "cluster_ctrl->in"
+                ],
+                [
+                  "periph_ico->timer",
+                  "timer->in"
+                ],
+                [
+                  "periph_ico->dma",
+                  "dma->in_8"
+                ],
+                [
+                  "periph_ico->dbg_unit_0",
+                  "pe0->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_1",
+                  "pe1->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_2",
+                  "pe2->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_3",
+                  "pe3->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_4",
+                  "pe4->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_5",
+                  "pe5->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_6",
+                  "pe6->dbg_unit"
+                ],
+                [
+                  "periph_ico->dbg_unit_7",
+                  "pe7->dbg_unit"
+                ],
+                [
+                  "periph_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_0",
+                  "pe0->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_1",
+                  "pe1->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_2",
+                  "pe2->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_3",
+                  "pe3->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_4",
+                  "pe4->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_5",
+                  "pe5->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_6",
+                  "pe6->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->bootaddr_7",
+                  "pe7->bootaddr"
+                ],
+                [
+                  "cluster_ctrl->fetchen_0",
+                  "pe0->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_1",
+                  "pe1->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_2",
+                  "pe2->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_3",
+                  "pe3->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_4",
+                  "pe4->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_5",
+                  "pe5->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_6",
+                  "pe6->fetchen"
+                ],
+                [
+                  "cluster_ctrl->fetchen_7",
+                  "pe7->fetchen"
+                ],
+                [
+                  "cluster_ctrl->halt_0",
+                  "pe0->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_1",
+                  "pe1->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_2",
+                  "pe2->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_3",
+                  "pe3->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_4",
+                  "pe4->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_5",
+                  "pe5->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_6",
+                  "pe6->halt"
+                ],
+                [
+                  "cluster_ctrl->halt_7",
+                  "pe7->halt"
+                ],
+                [
+                  "pe0->halt_status",
+                  "cluster_ctrl->core_halt_0"
+                ],
+                [
+                  "pe1->halt_status",
+                  "cluster_ctrl->core_halt_1"
+                ],
+                [
+                  "pe2->halt_status",
+                  "cluster_ctrl->core_halt_2"
+                ],
+                [
+                  "pe3->halt_status",
+                  "cluster_ctrl->core_halt_3"
+                ],
+                [
+                  "pe4->halt_status",
+                  "cluster_ctrl->core_halt_4"
+                ],
+                [
+                  "pe5->halt_status",
+                  "cluster_ctrl->core_halt_5"
+                ],
+                [
+                  "pe6->halt_status",
+                  "cluster_ctrl->core_halt_6"
+                ],
+                [
+                  "pe7->halt_status",
+                  "cluster_ctrl->core_halt_7"
+                ],
+                [
+                  "pe0->data",
+                  "l1_ico/pe0_ico->in"
+                ],
+                [
+                  "pe1->data",
+                  "l1_ico/pe1_ico->in"
+                ],
+                [
+                  "pe2->data",
+                  "l1_ico/pe2_ico->in"
+                ],
+                [
+                  "pe3->data",
+                  "l1_ico/pe3_ico->in"
+                ],
+                [
+                  "pe4->data",
+                  "l1_ico/pe4_ico->in"
+                ],
+                [
+                  "pe5->data",
+                  "l1_ico/pe5_ico->in"
+                ],
+                [
+                  "pe6->data",
+                  "l1_ico/pe6_ico->in"
+                ],
+                [
+                  "pe7->data",
+                  "l1_ico/pe7_ico->in"
+                ],
+                [
+                  "pe0->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe1->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe2->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe3->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe4->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe5->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe6->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "pe7->fetch",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_0",
+                  "l1/bank0->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_1",
+                  "l1/bank1->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_2",
+                  "l1/bank2->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_3",
+                  "l1/bank3->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_4",
+                  "l1/bank4->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_5",
+                  "l1/bank5->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_6",
+                  "l1/bank6->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_7",
+                  "l1/bank7->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_8",
+                  "l1/bank8->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_9",
+                  "l1/bank9->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_10",
+                  "l1/bank10->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_11",
+                  "l1/bank11->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_12",
+                  "l1/bank12->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_13",
+                  "l1/bank13->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_14",
+                  "l1/bank14->in"
+                ],
+                [
+                  "l1_ico/interleaver->out_15",
+                  "l1/bank15->in"
+                ],
+                [
+                  "l1_ico/pe0_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe1_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe2_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe3_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe4_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe5_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe6_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe7_ico->cluster_ico",
+                  "cluster_ico->in"
+                ],
+                [
+                  "l1_ico/pe0_ico->alias",
+                  "l1_ico/pe0_ico->in"
+                ],
+                [
+                  "l1_ico/pe1_ico->alias",
+                  "l1_ico/pe1_ico->in"
+                ],
+                [
+                  "l1_ico/pe2_ico->alias",
+                  "l1_ico/pe2_ico->in"
+                ],
+                [
+                  "l1_ico/pe3_ico->alias",
+                  "l1_ico/pe3_ico->in"
+                ],
+                [
+                  "l1_ico/pe4_ico->alias",
+                  "l1_ico/pe4_ico->in"
+                ],
+                [
+                  "l1_ico/pe5_ico->alias",
+                  "l1_ico/pe5_ico->in"
+                ],
+                [
+                  "l1_ico/pe6_ico->alias",
+                  "l1_ico/pe6_ico->in"
+                ],
+                [
+                  "l1_ico/pe7_ico->alias",
+                  "l1_ico/pe7_ico->in"
+                ],
+                [
+                  "l1_ico/pe0_ico->event_unit",
+                  "event_unit->demux_in_0"
+                ],
+                [
+                  "l1_ico/pe1_ico->event_unit",
+                  "event_unit->demux_in_1"
+                ],
+                [
+                  "l1_ico/pe2_ico->event_unit",
+                  "event_unit->demux_in_2"
+                ],
+                [
+                  "l1_ico/pe3_ico->event_unit",
+                  "event_unit->demux_in_3"
+                ],
+                [
+                  "l1_ico/pe4_ico->event_unit",
+                  "event_unit->demux_in_4"
+                ],
+                [
+                  "l1_ico/pe5_ico->event_unit",
+                  "event_unit->demux_in_5"
+                ],
+                [
+                  "l1_ico/pe6_ico->event_unit",
+                  "event_unit->demux_in_6"
+                ],
+                [
+                  "l1_ico/pe7_ico->event_unit",
+                  "event_unit->demux_in_7"
+                ],
+                [
+                  "l1_ico/pe0_ico->dma",
+                  "dma->in_0"
+                ],
+                [
+                  "l1_ico/pe1_ico->dma",
+                  "dma->in_1"
+                ],
+                [
+                  "l1_ico/pe2_ico->dma",
+                  "dma->in_2"
+                ],
+                [
+                  "l1_ico/pe3_ico->dma",
+                  "dma->in_3"
+                ],
+                [
+                  "l1_ico/pe4_ico->dma",
+                  "dma->in_4"
+                ],
+                [
+                  "l1_ico/pe5_ico->dma",
+                  "dma->in_5"
+                ],
+                [
+                  "l1_ico/pe6_ico->dma",
+                  "dma->in_6"
+                ],
+                [
+                  "l1_ico/pe7_ico->dma",
+                  "dma->in_7"
+                ],
+                [
+                  "dma->ext_itf",
+                  "cluster_ico->in"
+                ],
+                [
+                  "dma->loc_itf_0",
+                  "l1_ico/interleaver->in_8"
+                ],
+                [
+                  "dma->loc_itf_1",
+                  "l1_ico/interleaver->in_9"
+                ],
+                [
+                  "dma->loc_itf_2",
+                  "l1_ico/interleaver->in_10"
+                ],
+                [
+                  "dma->loc_itf_3",
+                  "l1_ico/interleaver->in_11"
+                ],
+                [
+                  "dma->event_itf_0",
+                  "event_unit->in_event_8_pe_0"
+                ],
+                [
+                  "dma->event_itf_1",
+                  "event_unit->in_event_8_pe_1"
+                ],
+                [
+                  "dma->event_itf_2",
+                  "event_unit->in_event_8_pe_2"
+                ],
+                [
+                  "dma->event_itf_3",
+                  "event_unit->in_event_8_pe_3"
+                ],
+                [
+                  "dma->event_itf_4",
+                  "event_unit->in_event_8_pe_4"
+                ],
+                [
+                  "dma->event_itf_5",
+                  "event_unit->in_event_8_pe_5"
+                ],
+                [
+                  "dma->event_itf_6",
+                  "event_unit->in_event_8_pe_6"
+                ],
+                [
+                  "dma->event_itf_7",
+                  "event_unit->in_event_8_pe_7"
+                ],
+                [
+                  "dma->irq_itf_0",
+                  "event_unit->in_event_9_pe_0"
+                ],
+                [
+                  "dma->irq_itf_1",
+                  "event_unit->in_event_9_pe_1"
+                ],
+                [
+                  "dma->irq_itf_2",
+                  "event_unit->in_event_9_pe_2"
+                ],
+                [
+                  "dma->irq_itf_3",
+                  "event_unit->in_event_9_pe_3"
+                ],
+                [
+                  "dma->irq_itf_4",
+                  "event_unit->in_event_9_pe_4"
+                ],
+                [
+                  "dma->irq_itf_5",
+                  "event_unit->in_event_9_pe_5"
+                ],
+                [
+                  "dma->irq_itf_6",
+                  "event_unit->in_event_9_pe_6"
+                ],
+                [
+                  "dma->irq_itf_7",
+                  "event_unit->in_event_9_pe_7"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_0"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_1"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_2"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_3"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_4"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_5"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_6"
+                ],
+                [
+                  "dma->ext_irq_itf",
+                  "event_unit->in_event_22_pe_7"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_0"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_1"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_2"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_3"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_4"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_5"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_6"
+                ],
+                [
+                  "timer->irq_itf_0",
+                  "event_unit->in_event_10_pe_7"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_0"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_1"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_2"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_3"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_4"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_5"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_6"
+                ],
+                [
+                  "timer->irq_itf_1",
+                  "event_unit->in_event_11_pe_7"
+                ],
+                [
+                  "event_unit->irq_req_0",
+                  "pe0->irq_req"
+                ],
+                [
+                  "pe0->irq_ack",
+                  "event_unit->irq_ack_0"
+                ],
+                [
+                  "event_unit->irq_req_1",
+                  "pe1->irq_req"
+                ],
+                [
+                  "pe1->irq_ack",
+                  "event_unit->irq_ack_1"
+                ],
+                [
+                  "event_unit->irq_req_2",
+                  "pe2->irq_req"
+                ],
+                [
+                  "pe2->irq_ack",
+                  "event_unit->irq_ack_2"
+                ],
+                [
+                  "event_unit->irq_req_3",
+                  "pe3->irq_req"
+                ],
+                [
+                  "pe3->irq_ack",
+                  "event_unit->irq_ack_3"
+                ],
+                [
+                  "event_unit->irq_req_4",
+                  "pe4->irq_req"
+                ],
+                [
+                  "pe4->irq_ack",
+                  "event_unit->irq_ack_4"
+                ],
+                [
+                  "event_unit->irq_req_5",
+                  "pe5->irq_req"
+                ],
+                [
+                  "pe5->irq_ack",
+                  "event_unit->irq_ack_5"
+                ],
+                [
+                  "event_unit->irq_req_6",
+                  "pe6->irq_req"
+                ],
+                [
+                  "pe6->irq_ack",
+                  "event_unit->irq_ack_6"
+                ],
+                [
+                  "event_unit->irq_req_7",
+                  "pe7->irq_req"
+                ],
+                [
+                  "pe7->irq_ack",
+                  "event_unit->irq_ack_7"
+                ]
+              ],
+              "vp_class": "pulp/cluster/cluster",
+              "cluster_ico": {
+                "vp_class": "interco/router",
+                "bandwidth": 4,
+                "mappings": {
+                  "l1": {
+                    "base": "0x10000000",
+                    "size": "0x00010000",
+                    "remove_offset": "0x10000000"
+                  },
+                  "periph_ico": {
+                    "base": "0x10200000",
+                    "size": "0x00200000"
+                  },
+                  "soc": {}
+                }
+              },
+              "demux_periph_ico": {
+                "vp_class": "interco/router",
+                "bandwidth": 4,
+                "mappings": {
+                  "demux_event_unit": {
+                    "base": "0x00000000",
+                    "size": "0x00000400"
+                  }
+                }
+              },
+              "periph_ico": {
+                "vp_class": "interco/router",
+                "bandwidth": 4,
+                "mappings": {
+                  "cluster_ctrl": {
+                    "base": "0x10200000",
+                    "size": "0x00000400",
+                    "remove_offset": "0x10200000"
+                  },
+                  "timer": {
+                    "base": "0x10200400",
+                    "size": "0x00000400",
+                    "remove_offset": "0x10200400"
+                  },
+                  "event_unit": {
+                    "base": "0x10200800",
+                    "size": "0x00000800",
+                    "remove_offset": "0x10200800"
+                  },
+                  "icache_ctrl": {
+                    "base": "0x10201400",
+                    "size": "0x00000400",
+                    "remove_offset": "0x10201400"
+                  },
+                  "dma": {
+                    "base": "0x10201800",
+                    "size": "0x00000400",
+                    "remove_offset": "0x10201800"
+                  },
+                  "dbg_unit_0": {
+                    "base": "0x10300000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10300000"
+                  },
+                  "dbg_unit_1": {
+                    "base": "0x10308000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10308000"
+                  },
+                  "dbg_unit_2": {
+                    "base": "0x10310000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10310000"
+                  },
+                  "dbg_unit_3": {
+                    "base": "0x10318000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10318000"
+                  },
+                  "dbg_unit_4": {
+                    "base": "0x10320000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10320000"
+                  },
+                  "dbg_unit_5": {
+                    "base": "0x10328000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10328000"
+                  },
+                  "dbg_unit_6": {
+                    "base": "0x10330000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10330000"
+                  },
+                  "dbg_unit_7": {
+                    "base": "0x10338000",
+                    "size": "0x00008000",
+                    "remove_offset": "0x10338000"
+                  },
+                  "cluster_ico": {}
+                }
+              },
+              "l1_ico": {
+                "vp_comps": [
+                  "pe0_ico",
+                  "pe1_ico",
+                  "pe2_ico",
+                  "pe3_ico",
+                  "pe4_ico",
+                  "pe5_ico",
+                  "pe6_ico",
+                  "pe7_ico",
+                  "interleaver",
+                  "ext2loc"
+                ],
+                "vp_bindings": [
+                  [
+                    "pe0_ico->l1",
+                    "interleaver->in_0"
+                  ],
+                  [
+                    "pe1_ico->l1",
+                    "interleaver->in_1"
+                  ],
+                  [
+                    "pe2_ico->l1",
+                    "interleaver->in_2"
+                  ],
+                  [
+                    "pe3_ico->l1",
+                    "interleaver->in_3"
+                  ],
+                  [
+                    "pe4_ico->l1",
+                    "interleaver->in_4"
+                  ],
+                  [
+                    "pe5_ico->l1",
+                    "interleaver->in_5"
+                  ],
+                  [
+                    "pe6_ico->l1",
+                    "interleaver->in_6"
+                  ],
+                  [
+                    "pe7_ico->l1",
+                    "interleaver->in_7"
+                  ],
+                  [
+                    "ext2loc->out",
+                    "interleaver->in_8"
+                  ]
+                ],
+                "vp_class": null,
+                "pe0_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe1_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe2_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe3_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe4_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe5_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe6_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "pe7_ico": {
+                  "vp_class": "interco/router",
+                  "bandwidth": 4,
+                  "mappings": {
+                    "l1": {
+                      "base": "0x10000000",
+                      "size": "0x00200000",
+                      "remove_offset": "0x10000000"
+                    },
+                    "event_unit": {
+                      "base": "0x10204000",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204000"
+                    },
+                    "dma": {
+                      "base": "0x10204400",
+                      "size": "0x00000400",
+                      "remove_offset": "0x10204400"
+                    },
+                    "alias": {
+                      "base": "0x00000000",
+                      "size": "0x10000000",
+                      "add_offset": "0x10000000"
+                    },
+                    "cluster_ico": {}
+                  }
+                },
+                "interleaver": {
+                  "vp_class": "pulp/cluster/l1_interleaver",
+                  "nb_slaves": 16,
+                  "nb_masters": 12,
+                  "stage_bits": 4,
+                  "interleaving_bits": 2
+                },
+                "ext2loc": {
+                  "vp_class": "interco/converter",
+                  "output_width": 4,
+                  "output_align": 4
+                }
+              },
+              "l1": {
+                "vp_comps": [
+                  "bank0",
+                  "bank1",
+                  "bank2",
+                  "bank3",
+                  "bank4",
+                  "bank5",
+                  "bank6",
+                  "bank7",
+                  "bank8",
+                  "bank9",
+                  "bank10",
+                  "bank11",
+                  "bank12",
+                  "bank13",
+                  "bank14",
+                  "bank15"
+                ],
+                "vp_class": null,
+                "size": 65536,
+                "alias": true,
+                "has_l1_alias": true,
+                "alias_base": "0x00000000",
+                "map_base": "0x10000000",
+                "nb_banks": 16,
+                "bank0": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank1": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank2": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank3": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank4": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank5": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank6": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank7": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank8": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank9": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank10": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank11": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank12": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank13": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank14": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                },
+                "bank15": {
+                  "size": 4096,
+                  "vp_class": "memory/memory"
+                }
+              },
+              "icache": {
+                "version": 1,
+                "size": 4096,
+                "line_size": 16,
+                "banking_factor": 4,
+                "ports": 8,
+                "ways": 1,
+                "enabled": true
+              },
+              "dma": {
+                "version": 6,
+                "hal_files": [
+                  "hal/dma/mchan_v6.h"
+                ],
+                "archi_files": [
+                  "archi/dma/mchan_v6.h"
+                ],
+                "vp_class": "pulp/mchan/mchan_v6",
+                "nb_channels": 9,
+                "core_queue_depth": 2,
+                "global_queue_depth": 8,
+                "is_64": false,
+                "max_nb_ext_read_req": 8,
+                "max_nb_ext_write_req": 8,
+                "max_burst_length": 256,
+                "nb_loc_ports": 4,
+                "tcdm_addr_width": 16
+              },
+              "cluster_ctrl": {
+                "version": 2,
+                "vp_class": "pulp/cluster/cluster_ctrl_v2",
+                "hal_files": [
+                  "hal/cluster_ctrl/cluster_ctrl_v2.h"
+                ],
+                "archi_files": [
+                  "archi/cluster_ctrl/cluster_ctrl_v2.h"
+                ],
+                "nb_core": 8
+              },
+              "event_unit": {
+                "version": 3,
+                "nb_core": 8,
+                "vp_class": "pulp/event_unit/eu_v3",
+                "hal_files": [
+                  "hal/eu/eu_v3.h"
+                ],
+                "archi_files": [
+                  "archi/eu/eu_v3.h"
+                ],
+                "regmap": {
+                  "areas": {
+                    "global": {
+                      "cores": {
+                        "offset": "0x0000",
+                        "size": "0x0400",
+                        "areas": {
+                          "core": {
+                            "offset": "0x0000",
+                            "size": "0x0040",
+                            "number": 16
+                          }
+                        }
+                      },
+                      "barriers": {
+                        "offset": "0x0400",
+                        "size": "0x0200",
+                        "areas": {
+                          "barrier": {
+                            "offset": "0x0000",
+                            "size": "0x0020",
+                            "number": 16
+                          }
+                        }
+                      },
+                      "sw_events": {
+                        "offset": "0x0600",
+                        "size": "0x0100"
+                      },
+                      "soc_events": {
+                        "offset": "0x0700",
+                        "size": "0x0080"
+                      },
+                      "ext_events": {
+                        "offset": "0x0780",
+                        "size": "0x0080"
+                      },
+                      "mutex": {
+                        "size": "0x0040"
+                      },
+                      "dispatch": {
+                        "size": "0x0040"
+                      }
+                    },
+                    "demux": {
+                      "core": {
+                        "offset": "0x0000",
+                        "size": "0x0040"
+                      },
+                      "dispatch": {
+                        "offset": "0x0080",
+                        "size": "0x0040"
+                      },
+                      "mutex": {
+                        "offset": "0x00C0",
+                        "size": "0x0040"
+                      },
+                      "sw_events": {
+                        "offset": "0x0100",
+                        "size": "0x0100"
+                      },
+                      "barriers": {
+                        "offset": "0x0200",
+                        "size": "0x0200"
+                      }
+                    }
+                  },
+                  "registers": {
+                    "mask": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x00",
+                      "width": 32
+                    },
+                    "mask_and": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x04",
+                      "width": 32
+                    },
+                    "mask_or": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x08",
+                      "width": 32
+                    },
+                    "mask_irq": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x0C",
+                      "width": 32
+                    },
+                    "mask_irq_and": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x10",
+                      "width": 32
+                    },
+                    "mask_irq_or": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x14",
+                      "width": 32
+                    },
+                    "status": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x18",
+                      "width": 32
+                    },
+                    "buffer": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x1C",
+                      "width": 32
+                    },
+                    "buffer_masked": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x20",
+                      "width": 32
+                    },
+                    "buffer_irq_masked": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x24",
+                      "width": 32
+                    },
+                    "buffer_clear": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x28",
+                      "width": 32
+                    },
+                    "sw_events_mask": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x2C",
+                      "width": 32
+                    },
+                    "sw_events_mask_and": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x30",
+                      "width": 32
+                    },
+                    "sw_events_mask_or": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x34",
+                      "width": 32
+                    },
+                    "event_wait": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x38",
+                      "width": 32
+                    },
+                    "event_wait_clear": {
+                      "areas": [
+                        "demux/core",
+                        "global/cores/core"
+                      ],
+                      "offset": "0x3C",
+                      "width": 32
+                    },
+                    "trigg_sw_event": {
+                      "areas": [
+                        "demux/sw_events",
+                        "global/sw_events"
+                      ],
+                      "offset": "0x00",
+                      "width": 32,
+                      "number": 16
+                    },
+                    "trigg_sw_event_wait": {
+                      "areas": [
+                        "demux/sw_events",
+                        "global/sw_events"
+                      ],
+                      "offset": "0x40",
+                      "width": 32,
+                      "number": 16
+                    },
+                    "trigg_sw_event_wait_clear": {
+                      "areas": [
+                        "demux/sw_events",
+                        "global/sw_events"
+                      ],
+                      "offset": "0x80",
+                      "width": 32,
+                      "number": 16
+                    },
+                    "soc_events_current_event": {
+                      "areas": [
+                        "global/soc_events"
+                      ],
+                      "offset": "0x00",
+                      "width": 32,
+                      "bitfield": {
+                        "event_id": {
+                          "bit": 0,
+                          "width": 9
+                        },
+                        "valid": {
+                          "bit": 31,
+                          "width": 1
+                        }
+                      }
+                    },
+                    "barr_trigger_mask": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x00",
+                      "width": 32
+                    },
+                    "barr_status": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x04",
+                      "width": 32
+                    },
+                    "barr_status_summary": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x08",
+                      "width": 32
+                    },
+                    "barr_target_mask": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x0C",
+                      "width": 32
+                    },
+                    "barr_trigger": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x10",
+                      "width": 32
+                    },
+                    "barr_trigger_self": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x14",
+                      "width": 32
+                    },
+                    "barr_trigger_wait": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x18",
+                      "width": 32
+                    },
+                    "barr_trigger_wait_clear": {
+                      "areas": [
+                        "demux/barriers",
+                        "global/barriers"
+                      ],
+                      "offset": "0x1C",
+                      "width": 32
+                    },
+                    "dispatch_fifo_access": {
+                      "areas": [
+                        "demux/dispatch",
+                        "global/dispatch"
+                      ],
+                      "offset": "0x00",
+                      "width": 32
+                    },
+                    "dispatch_team_config": {
+                      "areas": [
+                        "demux/dispatch",
+                        "global/dispatch"
+                      ],
+                      "offset": "0x04",
+                      "width": 32
+                    }
+                  }
+                },
+                "properties": {
+                  "dispatch": {
+                    "size": 8
+                  },
+                  "barriers": {
+                    "nb_barriers": 8
+                  },
+                  "events": {
+                    "barrier": 16,
+                    "dispatch": 18
+                  }
+                }
+              },
+              "timer": {
+                "version": 2,
+                "vp_class": "pulp/timer/timer_v2",
+                "hal_files": [
+                  "hal/timer/timer_v2.h"
+                ],
+                "archi_files": [
+                  "archi/timer/timer_v2.h"
+                ]
+              },
+              "icache_ctrl": {
+                "version": 2,
+                "vp_class": "pulp/icache_ctrl/icache_ctrl_v2",
+                "hal_files": [
+                  "hal/icache/icache_ctrl_v2.h"
+                ]
+              },
+              "pe": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req",
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req",
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--gap8",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf",
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h",
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h",
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS",
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS",
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "ARCHI_CORE_HAS_CPLX",
+                  "ARCHI_CORE_HAS_SECURITY"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000"
+              },
+              "pe0": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 0
+              },
+              "pe1": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 1
+              },
+              "pe2": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 2
+              },
+              "pe3": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 3
+              },
+              "pe4": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 4
+              },
+              "pe5": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 5
+              },
+              "pe6": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 6
+              },
+              "pe7": {
+                "version": "ri5cyv2",
+                "archi": "riscv",
+                "implementation": "ri5cy",
+                "gv_isa": [
+                  "--pulpv2",
+                  "--pulp",
+                  "--rv32m",
+                  "--itc-external-req"
+                ],
+                "isa": "RV32IMCXpulpv2",
+                "priv_version": 1.9,
+                "perf_counters": true,
+                "features": [
+                  "misaligned",
+                  "perf"
+                ],
+                "hal_files": [
+                  "hal/riscv/riscv_v4.h",
+                  "hal/riscv/builtins_v2.h",
+                  "hal/riscv/builtins_v2_emu.h",
+                  "hal/riscv/types.h"
+                ],
+                "archi_files": [
+                  "archi/riscv/priv_1_9.h",
+                  "archi/riscv/pcer_v1.h"
+                ],
+                "defines": [
+                  "ARCHI_CORE_HAS_PULPV2",
+                  "CORE_PULP_BUILTINS"
+                ],
+                "vp_class": "cpu/iss/iss",
+                "fetch_enable": false,
+                "boot_addr": "0x00000000",
+                "cluster_id": 0,
+                "core_id": 7
+              },
+              "hwce": {
+                "version": 4,
+                "hal_files": [
+                  "hal/hwce/hwce_v4.h"
+                ],
+                "archi_files": [
+                  "archi/hwce/hwce_v4.h"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "system": "gap",
+  "config_args": "options/rt/type=pulp-rt"
+}

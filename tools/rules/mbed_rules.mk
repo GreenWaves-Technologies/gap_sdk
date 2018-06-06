@@ -61,7 +61,7 @@ endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
+COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
 
 ASMFLAGS      = -x assembler-with-cpp $(COMMON)
 
@@ -212,7 +212,8 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/frameworks/utest $(MBED_PATH)/mbed-os/features/frameworks/utest/utest \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
-		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER
+		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
+		$(TARGET_INSTALL_DIR)/include
 
 
 INC_PATH      += $(foreach d, $(INC), -I$d)  $(INC_DEFINE)

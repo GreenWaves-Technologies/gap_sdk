@@ -12,10 +12,8 @@ ifdef RT_HAS_HWCE
 endif
 RM=rm -f
 
-MBED_FLAGS += -O3
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-MBED_FLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function
 INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/CnnStdModel
 
 # The double colon allows us to force this to occur before the imported all target

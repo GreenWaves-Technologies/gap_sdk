@@ -12,7 +12,6 @@ TEST_C = TestFFT2D.c $(TILER_GENERATOR_PATH)/FFT_Lib/FFT_Lib.c $(TILER_GENERATOR
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
 MBED_FLAGS += -DFFTR2_128 -DFFTR4_256
-MBED_FLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/FFT_Lib
 
 # The double colon allows us to force this to occur before the imported all target
