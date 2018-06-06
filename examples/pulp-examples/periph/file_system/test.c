@@ -84,7 +84,7 @@ int main()
   if (fs == NULL) handle_error();
   printf("fs mounted\n");
 
-  file = rt_fs_open(fs, "Makefile", 0, NULL);
+  file = rt_fs_open(fs, "hello.txt", 0, NULL);
   if (file == NULL){
       printf("file open failed\n");
       return -1;
