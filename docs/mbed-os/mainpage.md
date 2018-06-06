@@ -44,6 +44,56 @@ So how to use these memory resources in Arm® Mbed™ OS to create an efficient 
 | Timer_thread_stack | L2 RAM
 | APP_thread_stack | L2 RAM
 
+So as we can see, the main thread stack is in FC TCDM, so all local variables in main thread are in FC TCDM with starting address of 0x1B00xxxx. So these variables can not seen by UDMA if you want to transfer data. Here is the examples :
+```
+#include "mbed.h"
+// Read BMP280 ID
+I2C i2c(I2C0_SDA, I2C0_SCL);
+
+#define BMP_ADDR  0xEC;
+
+int main() {
+
+    i2c.frequency(200000);
+
+    char reg_addr;
+    char id;
+
+    reg_addr = 0xD0;
+
+    i2c.write(BMP_ADDR, &reg_addr, 1, 1);
+    i2c.read(BMP_ADDR, &id, 1);
+
+    printf("Read ID = %x\n", id);
+    return 0;
+}
+```
+This example can not pass because of `reg_addr` and `id` are local variables in main thread, so UDMA can not transfer buffer with starting address out of the range of L2 memory. So users need to put the local variables in L2 memory. By default, global variables are in L2. Here is the right way :
+```
+#include "mbed.h"
+// Read BMP280 ID
+I2C i2c(I2C0_SDA, I2C0_SCL);
+
+#define BMP_ADDR  0xEC;
+
+GAP_L2_DATA char reg_addr;
+GAP_L2_DATA char id;
+
+int main() {
+
+    i2c.frequency(200000);
+    reg_addr = 0xD0;
+
+    i2c.write(BMP_ADDR, &reg_addr, 1, 1);
+    i2c.read(BMP_ADDR, &id, 1);
+
+    printf("Read ID = %x\n", id);
+    return 0;
+}
+```
+In conclusion, if users want to use L2 memory for main thread stack, then, you will have not this problem, but the speed and power consumption of your program will deteriorate.
+
+
 # Drivers
 ## Drivers support situation for GAP8 (1st release)
 | Driver type | CMSIS_Driver | Mbed API (C) | Mbed API (C++) | Example
@@ -64,7 +114,7 @@ So how to use these memory resources in Arm® Mbed™ OS to create an efficient 
 ## Driver APIs' Differences
 In GAP8, all the external peripherals are controlled by a unit we call the micro-DMA (UDMA). This means that all transmissions are asynchronous and explicit. For example, the classic loop waiting for incoming characters from a UART cannot be used in an application running on GAP8. This causes some changes in the standard Mbed OS APIs which need to be noted.
 
-1. SPI C, C++ API
+ 1 SPI C, C++ API
 
 Arm® Mbed™ OS standard C API :
 
@@ -130,15 +180,77 @@ virtual int write(int value);
  *  Here we use explicit transfer, so just write something to SPI slave
  *  without return. But read means write a command to read a response.
  *
- *  @param value Data to be sent to the SPI slave
  *
  *  @returns
  *    Response from the SPI slave
  */
-virtual int read(int value);
+virtual int read();
 ```
 
-GAP8's SPI master 0 supports Quad-SPI mode, so we have added some extension APIs to support QSPI.
+In normal SPI transfer, users may want to control the chip select signal before and after the transfer, here is the common use in mbed:
+
+```
+// Select the device by seting chip select low
+cs = 0;
+
+// Send 0x8f, the command to read the WHOAMI register
+spi.write(0x8F);
+
+// Deselect the device
+cs = 1;
+```
+However, in GAP8 all transfer is controlled by UDMA through command sequences, here we provide users with special control function for chip select:
+```
+/** Control spi master chip select status
+ *
+ *  Here we use udma to transfer data, so chip select is controled by udma
+ *
+ *  @param status Chip select high or low
+ *
+ *  @returns
+ *    uDMA Status
+ */
+virtual int udma_cs(int status);
+```
+
+Here is the usage example :
+
+```
+// Select the device by seting chip select low
+spi.udma_cs(0);
+
+// Send 0x8f, the command to read the WHOAMI register
+spi.write(0x8F);
+
+// Deselect the device
+spi.udma_cs(1);
+```
+If users want to read from a register, the mbed common usage is :
+```
+// Select the device by seting chip select low
+cs = 0;
+
+// Send 0x8f, the command to read the WHOAMI register
+whoami = spi.write(0x8F);
+
+// Deselect the device
+cs = 1;
+```
+In GAP8, we use explicit transfer :
+```
+// Select the device by seting chip select low
+spi.udma_cs(0);
+
+// Send 0x8f, the command to read the WHOAMI register
+spi.write(0x9F);
+whoami = spi.read();
+
+// Deselect the device
+spi.udma_cs(1);
+```
+
+GAP8's SPI master 0 supports Quad-SPI mode, so we have added some extension APIs to support QSPI by using command sequence.
+In command sequence mode, user do not need to control chip select signal, it will control by UDMA automatically.
 
 For some devices where you need polling status, GAP8 SPI and QSPI interfaces also provide an auto polling mechanism.
 
@@ -169,14 +281,234 @@ int spi_master_auto_polling(spi_t *obj, spi_polling_config_t *conf);
  */
 int spi_master_transfer_command_sequence(spi_t *obj, spi_command_sequence_t* seq);
 ```
+## SPI Usage
+### Example 1
+![single write non qpi](images/single_write_non_qpi.png){ width=400px }
+```
+spi.udma_cs(0);
+spi.write(0x06);
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
 
-2. HYPERBUS C, C++ API
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.cmd       = 0x06;
+sequence.cmd_bits  = 8;
+sequence.cmd_mode  = uSPI_Single;
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 2
+![single write read non qpi](images/single_write_read_non_qpi.png){ width=500px }
+```
+char result;
+
+spi.udma_cs(0);
+spi.write(0x06);
+result = spi.read();
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+char result;
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.cmd       = 0x06;
+sequence.cmd_bits  = 8;
+sequence.cmd_mode  = uSPI_Single;
+sequence.rx_bits   = 8;
+sequence.rx_buffer = (uint8_t *)&result;
+sequence.data_mode = uSPI_Single;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 3
+![single write multiple read non qpi](images/single_write_multi_read_non_qpi.png){ width=500px }
+```
+char result[2];
+
+spi.udma_cs(0);
+spi.write(0x06);
+result[0] = spi.read();
+result[1] = spi.read();
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+char result[2];
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.cmd       = 0x06;
+sequence.cmd_bits  = 8;
+sequence.cmd_mode  = uSPI_Single;
+sequence.rx_bits   = 8 * 2;
+sequence.rx_buffer = (uint8_t *)&result;
+sequence.data_mode = uSPI_Single;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 4
+![single write qpi](images/single_write_qpi.png){ width=300px }
+
+```
+/** Control spi master QSPI
+ *
+ *  Here we use udma to transfer data, so we can set to use qspi or not.
+ *
+ *  @param status Use or not use QSPI
+ *
+ */
+virtual void udma_qspi(int status);
+```
+
+```
+spi.udma_qpsi(1);
+
+spi.udma_cs(0);
+spi.write(0x06);
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.cmd       = 0x06;
+sequence.cmd_bits  = 8;
+sequence.cmd_mode  = uSPI_Quad;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 5
+![single write 32 qpi](images/single_write_32_qpi.png){ width=400px }
+```
+char result[4];
+
+spi.udma_qpsi(1);
+
+spi.udma_cs(0);
+spi.write(result[0]);
+spi.write(result[1]);
+spi.write(result[2]);
+spi.write(result[3]);
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+char result[4];
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.tx_bits    = 32;
+sequence.tx_data    = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | (result[3]);
+sequence.data_mode = uSPI_Quad;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 6
+![single write read qpi](images/single_write_read_qpi.png){ width=400px }
+```
+char result;
+
+spi.udma_qpsi(1);
+
+spi.udma_cs(0);
+spi.write(0x06);
+result = spi.read();
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+char result;
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.cmd       = 0x06;
+sequence.cmd_bits  = 8;
+sequence.cmd_mode  = uSPI_Quad;
+sequence.rx_bits   = 8;
+sequence.rx_buffer = (uint8_t *)&result;
+sequence.data_mode = uSPI_Quad;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+### Example 7
+![single write complex read qpi](images/single_write_complex_read_qpi.png){ width=600px }
+```
+char addr[4];
+char result[4];
+
+spi.udma_qpsi(1);
+
+spi.udma_cs(0);
+spi.write(addr[3]);
+spi.write(addr[2]);
+spi.write(addr[1]);
+spi.write(addr[0]);
+
+// Mode
+spi.write(0x00);
+
+// Dummy 6 cycles
+spi.write(0x00);
+spi.write(0x00);
+spi.write(0x00);
+
+result[0] = spi.read();
+result[1] = spi.read();
+result[2] = spi.read();
+result[3] = spi.read();
+spi.udma_cs(1);
+```
+or
+```
+spi_command_sequence_t sequence;
+int addr;
+char result[4];
+
+// Initialize sequence structure to 0
+memset(&sequence, 0, sizeof(spi_command_sequence_t));
+sequence.addr_bits = 32;
+sequence.addr      = addr;
+sequence.addr_mode = uSPI_Quad;
+
+// Mode
+sequence.alter_data      = 0x00;
+sequence.alter_data_bits = 8;
+sequence.alter_data_mode = uSPI_Quad;
+
+// Dummy 6 cycles
+sequence.dummy     = 6;
+
+sequence.rx_bits   = BUFFER_SIZE*8;
+sequence.rx_buffer = (uint8_t *)result;
+sequence.data_mode = uSPI_Quad;
+
+spi.transfer_command_sequence(&sequence);
+```
+
+ 2 HYPERBUS C, C++ API
 
 Cypress HyperBus Memory is a portfolio of high-speed, low-pin-count memory products that uses our HyperBus interface technology.  The HyperBus interface draws upon the legacy features of both parallel and serial interface memories, while enhancing system performance, ease of design, and system cost reduction.  The 12-pin, HyperBus interface operates at Double Data Rate (DDR) and can scale up to 333 MB/s throughput making it an ideal solution for automotive, industrial and IoT applications that require “instant-on” capability.
 
 GAP8 uses HyperBus to support external flash and RAM memory. We have added new C and C++ APIs to allow use of HyperBus in Arm® Mbed™ OS in the /hal and /driver directories.
 
-3. For all other APIs and more informations about Arm® Mbed™ OS  - Please refer to the Mbed documentation at https://www.mbed.com
+ 3 For all other APIs and more informations about Arm® Mbed™ OS  - Please refer to the Mbed documentation at https://www.mbed.com
 
 # Running an Arm® Mbed™ OS application on GAP8
 
@@ -243,8 +575,11 @@ Then,
 ````shell
 mbed compile -t GCC_RISCV -m GAP8
 ````
-
-
+ 5 Run with your binary in GAPUINO
+````shell
+run_mbed ./BUILD/GAP8/GCC_RISCV/mbed-os-example-blinky.elf
+````
+ 6 For more informations, please see [mbed-gapuino-sensorboard](https://github.com/GreenWaves-Technologies/mbed-gapuino-sensorboard)
 # Trademark
 
 Arm® and Arm® Mbed™ OS are registered trademarks or trademarks of Arm Limited (or its subsidiaries) in the USand/or elsewhere.

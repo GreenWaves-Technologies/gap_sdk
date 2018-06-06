@@ -207,6 +207,7 @@ uint8_t MX25R_QSPI_Read(uint8_t* pData, uint32_t ReadAddr, uint32_t Size)
     /* Initialize the config command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = QUAD_INOUT_READ_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr      = ReadAddr;
@@ -256,6 +257,7 @@ uint8_t MX25R_QSPI_Write(uint8_t* pData, uint32_t WriteAddr, uint32_t Size)
     /* Initialize the write command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = QUAD_PAGE_PROG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr_mode = uSPI_Quad;
@@ -309,6 +311,7 @@ uint8_t MX25R_QSPI_Erase_Block(uint32_t BlockAddress)
     /* Initialize the erase block command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = BLOCK_ERASE_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr      = BlockAddress;
@@ -362,6 +365,7 @@ uint8_t MX25R_QSPI_Erase_Sector(uint32_t Sector)
     /* Initialize the erase sector command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = SECTOR_ERASE_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr      = (Sector * MX25R6435F_SECTOR_SIZE);
@@ -428,6 +432,7 @@ uint8_t MX25R_QSPI_GetStatus(void)
     /* Initialize the status command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = READ_SEC_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 0;
     s_command.addr      = 0;
@@ -689,6 +694,7 @@ static uint8_t MX25R_QSPI_QuadMode(uint8_t Operation)
     /* Initialize the status command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = READ_STATUS_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 0;
     s_command.addr      = 0;
@@ -760,6 +766,7 @@ static uint8_t MX25R_QSPI_HighPerfMode(uint8_t Operation)
     /* Initialize the status command */
     s_command.csn       = uSPI_csn1;
     s_command.cmd       = READ_STATUS_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 0;
     s_command.addr      = 0;

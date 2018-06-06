@@ -206,6 +206,7 @@ uint8_t S25FS_QSPI_Read(uint8_t* pData, uint32_t ReadAddr, uint32_t Size)
     /* Initialize the config command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = QUAD_IO_READ4_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 32;
     s_command.addr      = ReadAddr;
@@ -254,6 +255,7 @@ uint8_t S25FS_QSPI_Write(uint8_t* pData, uint32_t WriteAddr, uint32_t Size)
 
     /* Initialize the write command */
     s_command.csn       = uSPI_csn0;
+    s_command.cmd_bits  = 8;
     s_command.cmd       = PAGE_PROG4_CMD;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 32;
@@ -318,6 +320,7 @@ uint8_t S25FS_QSPI_Erase_Sector(uint32_t Sector)
     /* Initialize the erase sector command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = SECTOR_ERASE_64K_256K4_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 32;
     s_command.addr      = (Sector * S25FS256S_64K_SECTOR_SIZE);
@@ -384,6 +387,7 @@ uint8_t S25FS_QSPI_GetStatus()
     /* Initialize the status command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = READ_STATUS_REG1_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 0;
     s_command.addr      = 0;
@@ -422,6 +426,7 @@ uint8_t S25FS_QSPI_GetStatus2()
     /* Initialize the status command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = READ_STATUS_REG2_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 0;
     s_command.addr      = 0;
@@ -587,6 +592,7 @@ static uint8_t S25FS_QSPI_PageSize(uint32_t Size)
     /* Initialize the write command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = WRITE_ANY_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr      = CR3V << 8;
@@ -724,6 +730,7 @@ static uint8_t S25FS_QSPI_QuadMode(uint8_t Operation)
     /* Initialize the write command */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = WRITE_ANY_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_bits = 24;
     s_command.addr      = CR1V << 8;
@@ -769,6 +776,7 @@ static uint8_t S25FS_QSPI_QuadMode(uint8_t Operation)
     /* Check the configuration has been correctly done */
     s_command.csn       = uSPI_csn0;
     s_command.cmd       = READ_ANY_REG_CMD;
+    s_command.cmd_bits  = 8;
     s_command.cmd_mode  = uSPI_Quad;
     s_command.addr_bits = 24;
     s_command.addr      = CR2V << 8;

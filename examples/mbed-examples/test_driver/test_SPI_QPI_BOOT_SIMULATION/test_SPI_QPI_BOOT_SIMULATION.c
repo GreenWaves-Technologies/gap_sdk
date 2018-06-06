@@ -15,20 +15,26 @@ spi_command_sequence_t s_command;
 
 static void spi_conf_flash(spi_t *spim)
 {
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = (0x80000202);
     s_command.cmd_mode  = uSPI_Single;
     s_command.addr_mode = uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 
+    spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = (0x8000030f);
     s_command.cmd_mode  = uSPI_Single;
@@ -41,6 +47,7 @@ static void read_page_from_flash(spi_t *spim, unsigned int flash_addr)
 {
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0xEC;
+    s_command.cmd_bits  = 8;
     s_command.addr_bits = 32;
     s_command.addr      = flash_addr;
     s_command.cmd_mode  = uSPI_Single;
@@ -50,7 +57,7 @@ static void read_page_from_flash(spi_t *spim, unsigned int flash_addr)
     s_command.alter_data      = 0x00;
     s_command.alter_data_mode = uSPI_Quad;
     s_command.dummy     = 15;
-    s_command.rx_buffer = (uint32_t *)SPI_RX_BUFFER;
+    s_command.rx_buffer = (uint8_t *)SPI_RX_BUFFER;
     s_command.data_mode = uSPI_Quad;
 
     spi_master_transfer_command_sequence(spim, &s_command);
