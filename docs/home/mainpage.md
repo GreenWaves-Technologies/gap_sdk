@@ -100,9 +100,7 @@ Good management of memory is absolutely crucial to extracting the most energy ef
 The micro-DMA unit is used to transfer data to and from peripherals including level 3 memory. At the end of a transaction the FC can be woken up to queue a new task. To allow the micro-DMA to continue working at the end of a transaction up to 2 transfers can be queued for each peripheral. The micro-DMA schedules active transfers based on signals from the peripherals in a round-robin fashion. Generally the micro-DMA is not used directly by a programmer. It is used by the drivers for each of the peripherals.
 
 As the micro-DMA, the cluster-DMA is a smart, lightweight and completely autonomous unit. It is used to transfer data between the L2 and L1 memory areas. It supports both 1D and 2D transfers and can queue up to 16 requests. The commands for the cluster-DMA unit are extremely short which minimizes SW overhead and avoids instruction cache pollution.
-
 \newpage
-
 # Introduction to the GAP SDK
 
 The GAP8 SDK allows you to compile and execute applications on the GAP8 IoT Application Processor. This SDK is an extract of the necessary elements from the pulp-sdk (https://github.com/pulp-platform/pulp-sdk) produced by the PULP project, to provide a development environment for the GAP8 series processors.
@@ -110,11 +108,11 @@ The GAP8 SDK allows you to compile and execute applications on the GAP8 IoT Appl
 We provide you with all the necessary tools and two different operating systems for GAP8:
 
 *   Tools
-    -   GAP8 RISCV GNU tool chain: a pre-compiled tool chain inherited from RISC V project with support for our extensions to the RISC-V Instruction Set Architecture.
+    -   GAP8 RISCV GNU toolchain: a pre-compiled toolchain inherited from RISC V project with support for our extensions to the RISC-V Instruction Set Architecture.
     -   PLPBRIDGE: a tool from the PULP project which allows communication between your PC and a GAP8 processor. Using this tool you can:
-            - Program / control GAP8
-            - Debug your application using GDB
-            - Program the GAPuino flash memory with applications
+        * Program / control GAP8
+        * Debug your application using GDB
+        * Program the GAPuino flash memory with applications
 
 *   Operating Systems
     -   PULP OS - The open source embedded RTOS produced by the PULP project
@@ -123,12 +121,14 @@ We provide you with all the necessary tools and two different operating systems 
 \newpage
 # Installing the GAP SDK
 
-These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info.
+In the first release of the SDK we officially support Ubuntu 16.04 64 bit only.
+
+These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info
 
 The following packages needed to be installed:
 
 ~~~~~shell
-sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev
+sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl
 sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
 ~~~~~
 
@@ -169,14 +169,14 @@ Please also make sure that your Virtual Machine USB emulation matches your PC US
 
 The following instructions assume that you install the GAP SDK into your home directory. If you want to put it somewhere else then please modify them accordingly.
 
-Now clone the GAP8 SDK and the GAP8/RISC-V tool chain:
+Now clone the GAP8 SDK and the GAP8/RISC-V toolchain:
 
 ~~~~~shell
 git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
 git lfs clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
 ~~~~~
 
-Install the tool chain:
+Install the toolchain:
 
 ~~~~~shell
 cd ~/gap_riscv_toolchain
@@ -268,6 +268,65 @@ Once gdb has loaded connect to the gdbserver on the target:
 ~~~~~
 (gdb) target remote localhost:1234
 Remote debugging using localhost:1234
+~~~~~
+
+## Using the flasher (hyperflash)
+
+Add the following line into your application Makefile:
+
+~~~~~shell
+PLPBRIDGE_FLAGS += -f <file1> <file2> <file3> ......
+~~~~~
+
+In this case, your application would not be executed, except you added this:
+
+If you wan to boot your application from jtag:
+
+~~~~~shell
+PLPBRIDGE_FLAGS += -jtag
+~~~~~
+
+OR
+
+If you wan to boot your application from hyperflash:
+~~~~~shell
+PLPBRIDGE_FLAGS += -hyper
+~~~~~
+
+These flags could be used together and seperatedly.
+
+If you choose to boot your application from Hyperflash, and you want to have some print, you can use a terminator, like "cutecom", for this:
+
+~~~~~shell
+sudo apt-get install -y cutecom
+cutecom&
+~~~~~
+
+Then please configure your terminator to ttyUSB1 with 115200 baud rate.
+
+## Documentation
+
+Build the documentation:
+
+~~~~~shell
+cd gap_sdk
+make docs
+~~~~~
+
+If you haven't download and install the autotiler, you will probably have some warnings when you build the docs.
+All the documentations are available on our website: https://greenwaves-technologies.com/en/sdk/
+
+You can read the documentation by opening gap_doc.html in the docs folder in your browser:
+
+~~~~~shell
+firefox docs/gap_doc.html
+~~~~~
+
+If you would like PDF versions of the reference manuals you can do:
+
+~~~~~shell
+cd docs
+make pdf
 ~~~~~
 
 ## What is in the gap8_sdk folder?

@@ -65,16 +65,16 @@ then
     # Flash the flash image and boot from jtag
     if [ "$FLAG_BOOT" -eq "1" ]
     then
-        plpbridge --verbose=4 --cable=ftdi@digilent --boot-mode=jtag --chip=gap --fimage=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json load ioloop start flash wait
+        plpbridge --verbose=4 --cable=ftdi@digilent --chip=gap --flash-image=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json flash wait
         plpbridge --verbose=4 --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start wait
     # Flash the flash image and boot from hyper
     elif [ "$FLAG_BOOT" -eq "2" ]
     then
-        plpbridge --verbose=4 --cable=ftdi@digilent --boot-mode=jtag --chip=gap --fimage=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json load ioloop start flash wait
+        plpbridge --verbose=4 --cable=ftdi@digilent --chip=gap --flash-image=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json flash wait
         plpbridge --verbose=4 --cable=ftdi@digilent --boot-mode=jtag_hyper --chip=gap --config=$INSTALL_DIR/config/config_hyper.json load start wait
     # Flash the flash image only
     else
-        plpbridge --verbose=4 --cable=ftdi@digilent --boot-mode=jtag --chip=gap --fimage=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json load ioloop start flash wait
+        plpbridge --verbose=4 --cable=ftdi@digilent --chip=gap --flash-image=flashImg.raw --config=$INSTALL_DIR/config/config_jtag.json flash wait
     fi
 elif [ "$FLAG_BOOT" -eq "1" ]
 then

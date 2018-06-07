@@ -5,9 +5,9 @@ AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
 # The linker options.
-LIBS          = -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
+LIBS          += -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
 		-L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/newlib
-LIBSFLAGS     = -nostartfiles -lgcc -lc -lm
+LIBSFLAGS     += -nostartfiles -lgcc -lc -lm
 
 ifndef chip
 chip=GAP8

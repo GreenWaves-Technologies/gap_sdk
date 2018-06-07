@@ -8,5 +8,7 @@ PULP_APP = test
 PULP_APP_FC_SRCS = test.c
 PULP_CFLAGS = -O3 -g
 
+# Tell the flasher, add Makefile into the file system, flash the file system and boot the test from jtag.
 PLPBRIDGE_FLAGS += -f Makefile -jtag
+
 include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk

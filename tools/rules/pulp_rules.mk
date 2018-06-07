@@ -5,10 +5,10 @@ AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
 # The linker options.
-LIBS          = -L$(TARGET_INSTALL_DIR)/libs \
+LIBS          += -L$(TARGET_INSTALL_DIR)/libs \
 				-lrt -lio -lrt -lgcc
 
-LIBSFLAGS     = -nostartfiles -nostdlib
+LIBSFLAGS     += -nostartfiles -nostdlib
 
 # The options used in linking as well as in any direct use of ld.
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8.ld

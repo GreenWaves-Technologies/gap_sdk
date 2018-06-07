@@ -138,6 +138,10 @@ int main()
     printf("\n");
 
     rt_fs_unmount(fs, NULL);
+    if ( checksum_tx != checksum_rx )
+        return 1;
 
+    printf("Test success\n");
     return 0;
+
 }
