@@ -270,7 +270,7 @@ else
 run:: all
 	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
 
-gdbserver: PLPBRIDGE_FLAGS=-gdb
+gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 
 endif

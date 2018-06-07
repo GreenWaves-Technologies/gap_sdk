@@ -270,7 +270,7 @@ Once gdb has loaded connect to the gdbserver on the target:
 Remote debugging using localhost:1234
 ~~~~~
 
-## Using the flasher (hyperflash)
+## Using the flasher (Hyperflash)
 
 Add the following line into your application Makefile:
 
@@ -278,7 +278,9 @@ Add the following line into your application Makefile:
 PLPBRIDGE_FLAGS += -f <file1> <file2> <file3> ......
 ~~~~~
 
-In this case, your application would not be executed, except you added this:
+Without any further options the files are flashed but your application is not executed.
+
+If you want to execute your application after flashing use the following options:
 
 If you wan to boot your application from jtag:
 
@@ -286,23 +288,21 @@ If you wan to boot your application from jtag:
 PLPBRIDGE_FLAGS += -jtag
 ~~~~~
 
-OR
-
 If you wan to boot your application from hyperflash:
 ~~~~~shell
 PLPBRIDGE_FLAGS += -hyper
 ~~~~~
 
-These flags could be used together and seperatedly.
+These two flags cannot be used at the same time.
 
-If you choose to boot your application from Hyperflash, and you want to have some print, you can use a terminator, like "cutecom", for this:
+If you choose to boot your application from HyperFlash, and you want to view the output of printf's in your code then you can use a terminal program, like "cutecom":
 
 ~~~~~shell
 sudo apt-get install -y cutecom
 cutecom&
 ~~~~~
 
-Then please configure your terminator to ttyUSB1 with 115200 baud rate.
+Then please configure your terminal program to use /dev/ttyUSB1 with a 115200 baud rate, 8 data bits and 1 stop bit.
 
 ## Documentation
 

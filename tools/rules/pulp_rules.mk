@@ -90,7 +90,7 @@ else
 run:: all
 	$(INSTALL_DIR)/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
 
-gdbserver: PLPBRIDGE_FLAGS=-gdb
+gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 endif
 
