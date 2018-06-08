@@ -37,7 +37,7 @@ GAP_L2_DATA  uint16_t rxHyperbusSamples[BUFFER_SIZE];
 uint16_t read_status(hyperbus_t *obj)
 {
     /* Read status register */
-    hyperbus_write(obj, Reg_Seq.addr, Reg_Seq.data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+    hyperbus_write(obj, Reg_Seq.addr << 1, Reg_Seq.data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 
     uint16_t status_reg = hyperbus_read(obj, 0, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 
@@ -52,26 +52,29 @@ void conf_flash(hyperbus_t *obj)
 {
     /* Set VCR to 5 delay cycles */
     for (int i = 0; i < 4; i++)
-        hyperbus_write(obj, VCR_Seq[i].addr, VCR_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+        hyperbus_write(obj, VCR_Seq[i].addr << 1, VCR_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 }
 
-void erase_page_in_flash(hyperbus_t *obj)
+void erase_page_in_flash(hyperbus_t *obj, uint32_t flash_addr)
 {
     /* Erase sector 0x0E00 */
-    for ( int i = 0; i < 6; i++)
-        hyperbus_write(obj, Erase_Seq[i].addr, Erase_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+    for ( int i = 0; i < 5; i++) {
+        hyperbus_write(obj, Erase_Seq[i].addr << 1, Erase_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+    }
+
+    hyperbus_write(obj, flash_addr, Erase_Seq[5].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 }
 
-void write_page_in_flash(hyperbus_t *obj)
+void write_page_in_flash(hyperbus_t *obj, uint32_t flash_addr)
 {
     int i = 0;
 
     /* Write to Buffer command sequence */
     for (i = 0; i < 3; i++)
-        hyperbus_write(obj, WP_Seq[i].addr, WP_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+        hyperbus_write(obj, WP_Seq[i].addr << 1, WP_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 
     /* Word Program */
-    hyperbus_block_write(obj, SA, (uint32_t *) txHyperbusSamples, BUFFER_SIZE * sizeof(uint16_t), uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+    hyperbus_block_write(obj, flash_addr, (uint32_t *) txHyperbusSamples, BUFFER_SIZE * sizeof(uint16_t), uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
 }
 
 void read_page_from_flash(hyperbus_t *obj, uint32_t flash_addr)
@@ -126,12 +129,12 @@ int test_hyperbus()
     conf_flash(&hyperbus0);
 
     /* Erase chip */
-    erase_page_in_flash(&hyperbus0);
+    erase_page_in_flash(&hyperbus0, SA);
     wait_process_end(&hyperbus0,  ERASE_STATUS_OFFSET);
     printf("Erase finished.\n");
 
     /* Write buffer no burst */
-    write_page_in_flash(&hyperbus0);
+    write_page_in_flash(&hyperbus0, SA);
     wait_process_end(&hyperbus0,  PROGRAM_STATUS_OFFSET);
     printf("Write finished.\n");
 

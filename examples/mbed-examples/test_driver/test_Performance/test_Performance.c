@@ -1,4 +1,5 @@
-#include<string.h>
+#include <stdio.h>
+#include <string.h>
 #include "cmsis.h"
 #include "gap_performance.h"
 
@@ -12,7 +13,7 @@ int main()
 
     PERFORMANCE_Stop(&perf);
 
-    printf("Total CYCLE : %d\n" , PERFORMANCE_Get(&perf, PCER_CYCLE_Pos));
-    printf("Total INSTR : %d\n" , PERFORMANCE_Get(&perf, PCER_INSTR_Pos));
+    printf("Total CYCLE : %d\n" , (int)PERFORMANCE_Get(&perf, PCER_CYCLE_Pos));
+    printf("Total INSTR : %d\n" , (int)PERFORMANCE_Get(&perf, PCER_INSTR_Pos));
     return 0;
 }
