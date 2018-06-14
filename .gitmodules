@@ -7,3 +7,6 @@
 [submodule "tf2gap8"]
 	path = tf2gap8
 	url = https://github.com/GreenWaves-Technologies/tf2gap8.git
+[submodule "applications"]
+	path = applications
+	url = ./applications/
