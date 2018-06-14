@@ -125,6 +125,8 @@ static himax_reg_cfg_t himaxRegInit[] = {
     {0x3011, 0x70},
     {0x3059, 0x02},
     {0x3060, 0x01},
+    {0x3060, 0x25}, //Clock gating and clock divisors
+    {0x3068, 0x20}, //PCLK0 polarity
     {IMG_ORIENTATION, 0x01}, // change the orientation
     {0x0104, 0x01}
 };
@@ -171,8 +173,6 @@ static void _himaxBoot(rt_camera_t *cam){
         himaxRegWrite(cam, himaxRegInit[i].addr, himaxRegInit[i].data);
         rt_trace(RT_TRACE_CAM, "%x = %x \n", himaxRegInit[i].addr, himaxRegRead(cam, himaxRegInit[i].addr));
     }
-    //TODO: Add this one in the Reg Init list!
-    himaxRegWrite(cam, PCLK_POLARITY, (0x20|Pclk_falling_edge));
 }
 
 static void _himaxMode(rt_camera_t *cam, unsigned char mode){
