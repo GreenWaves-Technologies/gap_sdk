@@ -62,7 +62,7 @@ install_others: $(INSTALL_BIN)
 	$(CP) $(GAP_SDK_HOME)/tools/bin/* $(INSTALL_DIR)/bin
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/rules $(INSTALL_DIR)
-	$(CP) $(GAP_SDK_HOME)/tools/config $(INSTALL_DIR)
+	$(CP) $(GAP_SDK_HOME)/tools/configs $(INSTALL_DIR)
 
 install_debug_bridge: pulp-os install_others
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp-debug-bridge all
