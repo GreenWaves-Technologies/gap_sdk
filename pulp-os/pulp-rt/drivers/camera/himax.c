@@ -125,7 +125,7 @@ static himax_reg_cfg_t himaxRegInit[] = {
     {0x3011, 0x70},
     {0x3059, 0x02},
     {0x3060, 0x01},
-    {0x3060, 0x25}, //Clock gating and clock divisors
+//    {0x3060, 0x25}, //Clock gating and clock divisors
     {0x3068, 0x20}, //PCLK0 polarity
     {IMG_ORIENTATION, 0x01}, // change the orientation
     {0x0104, 0x01}
@@ -368,7 +368,7 @@ void __rt_himax_capture(rt_camera_t *dev_cam, void *buffer, size_t bufferlen, rt
 
     rt_periph_copy_init(&call_event->copy, 0);
 
-    rt_periph_copy(&call_event->copy, UDMA_CHANNEL_ID(dev_cam->channel) + 0, (unsigned int) buffer, bufferlen, dev_cam->conf.cpiCfg, call_event);
+    rt_periph_copy(&call_event->copy, UDMA_CHANNEL_ID(dev_cam->channel) + 0, (unsigned int) buffer+2, bufferlen, dev_cam->conf.cpiCfg, call_event);
 
     __rt_wait_event_check(event, call_event);
 

@@ -96,6 +96,7 @@ git submodule update --init --recursive
 Build the GAP8 SDK:
 
 ~~~~~shell
+source sourceme.sh
 make all
 ~~~~~
 
@@ -110,7 +111,7 @@ tar xvf received_file.tar.gz
 
 # Compiling, running and debugging programs
 
-The following command configures the shell environment correctly for the GAP8 SDK. It must be done for each terminal session:
+The following command configures the shell environment correctly for the GAP8 SDK. **It must be done for each terminal session**:
 
 ~~~~~shell
 source ~/gap_sdk/sourceme.sh
@@ -160,13 +161,13 @@ To enable gdbserver run mode execute the make target gdbserver:
 make clean all gdbserver
 ~~~~~
 
-The program will load and gdbserver will be started. Connect to the target with gdb from another shell:
+The program will load and gdbserver will be started. Connect to the target with gdb from another shell (remember to source the sourceme.sh file in the root of the SDK in your new shell). Change directory to the directory containing your test program and then:
 
 ~~~~~shell
 riscv32-unknown-elf-gdb BUILD/GAP8/GCC_RISCV/test
 ~~~~~
 
-Once gdb has loaded connect to the gdbserver on the target:
+Once gdb has loaded connect to the gdbserver on the target.
 
 ~~~~~
 (gdb) target remote localhost:1234
@@ -185,7 +186,7 @@ Without any further options the files are flashed but your application is not ex
 
 If you want to execute your application after flashing use the following options:
 
-If you wan to boot your application from jtag:
+If you want to boot your application from jtag:
 
 ~~~~~shell
 PLPBRIDGE_FLAGS += -jtag

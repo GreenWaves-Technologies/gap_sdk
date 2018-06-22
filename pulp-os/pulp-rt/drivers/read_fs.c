@@ -488,9 +488,6 @@ void __rt_fs_cluster_req(void *_req)
   } else {
     req->result = rt_fs_read(req->file, req->buffer, req->size, event);
   }
-  if (file->offset == file->size) {
-    rt_fs_seek(file, 0);
-  }
 }
 
 void __rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size, rt_fs_req_t *req, int direct)
@@ -504,6 +501,26 @@ void __rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size, rt_fs_req_
   __rt_init_event(&req->event, __rt_cluster_sched_get(), __rt_fs_cluster_req, (void *)req);
   // Mark it as pending event so that it is not added to the list of free events
   // as it stands inside the event request
+  __rt_event_set_pending(&req->event);
+  __rt_cluster_push_fc_event(&req->event);
+}
+
+void __rt_fs_cluster_seek_req(void *_req)
+{
+  rt_fs_req_t *req = (rt_fs_req_t *)_req;
+  req->result = rt_fs_seek(req->file, req->offset);
+  req->done = 1;
+  __rt_cluster_notif_req_done(req->cid);
+}
+
+void __rt_fs_cluster_seek(rt_file_t *file, unsigned int offset, rt_fs_req_t *req)
+{
+  req->file = file;
+  req->offset = offset;
+  req->cid = rt_cluster_id();
+  req->done = 0;
+
+  __rt_init_event(&req->event, __rt_cluster_sched_get(), __rt_fs_cluster_seek_req, (void *)req);
   __rt_event_set_pending(&req->event);
   __rt_cluster_push_fc_event(&req->event);
 }

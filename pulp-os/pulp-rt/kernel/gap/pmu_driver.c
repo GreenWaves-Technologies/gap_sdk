@@ -674,6 +674,9 @@ void InitOneFll(hal_fll_e WhichFll, unsigned int UseRetentiveState)
   {
     unsigned int SetFrequency, Mult, Div;
 
+    // Don't set the gain and integrator in case it has already been set by the boot code
+    // as it totally blocks the fll on the RTL platform.
+    // The boot code is anyway setting the same configuration.
     if (!Config.ConfigReg1.Mode)
     {
       SetFllConfiguration(WhichFll, FLL_CONFIG2, FLL_CONFIG2_GAIN);

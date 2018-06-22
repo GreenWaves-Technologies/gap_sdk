@@ -167,7 +167,7 @@ __rt_master_sleep:
     // Due to a HW bug, it can not work when the cluster is doing something
     li      a0, ARCHI_CLUSTER_PERIPHERALS_ADDR
     li      a1, 1
-    sw      a1, ARCHI_CLUSTER_CTRL_CLUSTER_CLK_GATE(a0)
+    //sw      a1, ARCHI_CLUSTER_CTRL_CLUSTER_CLK_GATE(a0)
 #endif
 
     sw      s4, EU_CORE_MASK_OR(s3)

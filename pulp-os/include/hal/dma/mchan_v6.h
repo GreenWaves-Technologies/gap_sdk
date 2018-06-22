@@ -20,7 +20,7 @@
 #include <archi/dma/mchan_v6.h>
 #include "hal/pulp.h"
 
-#if defined(PLP_HAS_MCHAN_64) && PLP_HAS_MCHAN_64 == 1
+#if defined(ARCHI_HAS_MCHAN_64) && ARCHI_HAS_MCHAN_64 == 1
 typedef unsigned long long mchan_ext_t;
 #else
 typedef unsigned int mchan_ext_t;
@@ -287,7 +287,7 @@ static inline unsigned int plp_dma_getStrides(unsigned short stride, unsigned sh
 static inline void plp_dma_cmd_push(unsigned int cmd, unsigned int locAddr, mchan_ext_t extAddr) {
   DMA_WRITE(cmd, PLP_DMA_QUEUE_OFFSET);
   DMA_WRITE(locAddr, PLP_DMA_QUEUE_OFFSET);
-#if defined(PLP_HAS_MCHAN_64) && PLP_HAS_MCHAN_64 == 1
+#if defined(ARCHI_HAS_MCHAN_64) && ARCHI_HAS_MCHAN_64 == 1
   DMA_WRITE((int)extAddr, PLP_DMA_QUEUE_OFFSET);
   DMA_WRITE((int)(extAddr>>32), PLP_DMA_QUEUE_OFFSET);
 #else

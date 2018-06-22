@@ -38,13 +38,13 @@
 
 
 
-/**  
-* @ingroup groupDrivers  
+/**
+* @ingroup groupDrivers
 */
 
 
 
-/**        
+/**
  * @defgroup FS File-System
  *
  * The file-system driver provides support for accessing files on a flash. The following file-systems are available:
@@ -52,9 +52,9 @@
  *
  */
 
-/**        
+/**
  * @addtogroup FS
- * @{        
+ * @{
  */
 
 /**@{*/
@@ -191,7 +191,7 @@ int rt_fs_read(rt_file_t *file, void *buffer, size_t size, rt_event_t *event);
  * bytes read by the call to this function.
  * This operation is asynchronous and its termination can be managed through an event.
  * This can only be called on the fabric-controller.
- * Compared to rt_fs_read, this function does direct read transfers from the flash. So the flash address and the size 
+ * Compared to rt_fs_read, this function does direct read transfers from the flash. So the flash address and the size
  * of the transfer can have some constraints depending on the flash.
  *
  * \param file      The handle of the file where to read data.
@@ -250,7 +250,7 @@ static inline void rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size
  * bytes read by the call to this function.
  * This operation is asynchronous and its termination can be managed through an event.
  * Can only be called from cluster side.
- * Compared to rt_fs_direct_read, this function does direct read transfers from the flash. So the flash address and the size 
+ * Compared to rt_fs_direct_read, this function does direct read transfers from the flash. So the flash address and the size
  * of the transfer can have some constraints depending on the flash.
  *
  * \param file      The handle of the file where to read data.
@@ -262,6 +262,18 @@ static inline void rt_fs_cluster_direct_read(rt_file_t *file, void *buffer, size
 
 
 
+/** \brief Reposition the current file position from cluster side.
+ *
+ * This function can be called from cluster side to change the current position of a file.
+ * Note that this does not affect pending copies, but only the ones which will be enqueued after this call.
+ *
+ * \param file      The handle of the file for which the current position is changed.
+ * \param offset    The offset where to set the current position. The offset can be between 0 for the beginning of the file and the file size.
+ * \param req       The request structure used for termination.
+ */
+static inline void rt_fs_cluster_seek(rt_file_t *file, unsigned int offset, rt_fs_req_t *req);
+
+
 /** \brief Wait until the specified fs request has finished.
  *
  * This blocks the calling core until the specified cluster remote copy is finished.
@@ -270,14 +282,15 @@ static inline void rt_fs_cluster_direct_read(rt_file_t *file, void *buffer, size
  *
  * \param req       The request structure used for termination.
  * \return          The number of bytes actually read from the file. This can be smaller than the requested size if the end of file is reached.
+ *                  Could be also RT_STATUS_OK if the rt_fs_cluster_seek was successful, RT_STATUS_ERR otherwise.
  */
 static inline int rt_fs_cluster_wait(rt_fs_req_t *req);
 
 
 //!@}
 
-/**        
- * @} end of FS     
+/**
+ * @} end of FS
  */
 
 
@@ -298,6 +311,7 @@ static inline __attribute__((always_inline)) int rt_fs_cluster_wait(rt_fs_req_t 
 }
 
 void __rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size, rt_fs_req_t *req, int direct);
+void __rt_fs_cluster_seek(rt_file_t *file, unsigned int offset, rt_fs_req_t *req);
 
 static inline void rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size, rt_fs_req_t *req)
 {
@@ -307,6 +321,11 @@ static inline void rt_fs_cluster_read(rt_file_t *file, void *buffer, size_t size
 static inline void rt_fs_cluster_direct_read(rt_file_t *file, void *buffer, size_t size, rt_fs_req_t *req)
 {
   __rt_fs_cluster_read(file, buffer, size, req, 1);
+}
+
+static inline void rt_fs_cluster_seek(rt_file_t *file, unsigned int offset, rt_fs_req_t *req)
+{
+  __rt_fs_cluster_seek(file, offset, req);
 }
 
 #endif
