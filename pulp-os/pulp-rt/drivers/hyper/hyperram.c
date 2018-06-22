@@ -123,6 +123,52 @@ void __rt_hyperram_cluster_copy(rt_hyperram_t *dev,
   __rt_cluster_push_fc_event(&req->event);
 }
 
+void __rt_hyperram_alloc_cluster_req(void *_req)
+{
+  rt_hyperram_alloc_req_t *req = (rt_hyperram_alloc_req_t *)_req;
+  req->result = rt_hyperram_alloc(req->dev, req->size);
+  req->done = 1;
+  __rt_cluster_notif_req_done(req->cid);
+}
+
+void __rt_hyperram_free_cluster_req(void *_req)
+{
+  rt_hyperram_free_req_t *req = (rt_hyperram_free_req_t *)_req;
+  rt_hyperram_free(req->dev, req->chunk, req->size);
+  req->done = 1;
+  __rt_cluster_notif_req_done(req->cid);
+}
+
+
+void rt_hyperram_alloc_cluster(rt_hyperram_t *dev, int size, rt_hyperram_alloc_req_t *req)
+{
+  req->dev = dev;
+  req->size = size;
+  req->cid = rt_cluster_id();
+  req->done = 0;
+  __rt_init_event(&req->event, __rt_cluster_sched_get(), __rt_hyperram_alloc_cluster_req, (void *)req);
+  // Mark it as pending event so that it is not added to the list of free events
+  // as it stands inside the event request
+  __rt_event_set_pending(&req->event);
+  __rt_cluster_push_fc_event(&req->event);
+}
+
+void rt_hyperram_free_cluster(rt_hyperram_t *dev, void *chunk, int size, rt_hyperram_free_req_t *req)
+{
+  req->dev = dev;
+  req->size = size;
+  req->chunk = chunk;
+  req->cid = rt_cluster_id();
+  req->done = 0;
+  __rt_init_event(&req->event, __rt_cluster_sched_get(), __rt_hyperram_free_cluster_req, (void *)req);
+  // Mark it as pending event so that it is not added to the list of free events
+  // as it stands inside the event request
+  __rt_event_set_pending(&req->event);
+  __rt_cluster_push_fc_event(&req->event);
+}
+
+
+
 #endif
 
 void __rt_hyper_copy(int channel,
@@ -147,6 +193,6 @@ void __rt_hyper_copy(int channel,
   rt_periph_copy(copy, channel, (unsigned int)addr, size, UDMA_CHANNEL_CFG_SIZE_16, call_event);
 
   __rt_wait_event_check(event, call_event);
-  
+
   rt_irq_restore(irq);
 }

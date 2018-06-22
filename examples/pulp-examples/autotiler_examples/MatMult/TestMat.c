@@ -23,32 +23,35 @@ L2_MEM short int *Out2;
 L2_MEM rt_perf_t *cluster_perf;
 int finished = 0;
 
+int num_op=0;
+
 static void cluster_main()
 {
   	printf ("cluster master start\n");
     unsigned int ElapsedTime[2];
+    unsigned int StartTime;
     rt_perf_t *perf = cluster_perf;
     // initialize the performance clock
     rt_perf_init(perf);
     // Configure performance counters for counting the cycles
     rt_perf_conf(perf, (1<<RT_PERF_CYCLES));
-
     rt_perf_reset(perf);
     rt_perf_start(perf);
+
+    StartTime = rt_perf_read(RT_PERF_CYCLES);
     ParMatMult(M1, M2, Out1, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[0] = rt_perf_get(perf, RT_PERF_CYCLES);
+    
+    ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 
-    rt_perf_reset(perf);
-    rt_perf_start(perf);
+    StartTime = rt_perf_read(RT_PERF_CYCLES);
     ParVectMatMult(M1, M2, Out2, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[1] = rt_perf_get(perf, RT_PERF_CYCLES) - ElapsedTime[0];
+    ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 
-    printf("ParMatMult: %d cycles %d ops/cycle\n", ElapsedTime[0], (4170000/ElapsedTime[0]));
-    printf("ParVectMatMult: %d cycles, %d ops/cycle\n", ElapsedTime[1], (4170000/ElapsedTime[1]));
+    printf("ParMatMult: %d cycles %d ops/cycle\n", ElapsedTime[0], (num_op/ElapsedTime[0]));
+    printf("ParVectMatMult: %d cycles, %d ops/cycle\n", ElapsedTime[1], (num_op/ElapsedTime[1]));
+
+    rt_perf_stop(perf);
+    rt_perf_reset(perf);
 }
 
 static void end_of_app(){
@@ -65,6 +68,13 @@ int main()
   int H_M2 = 70;
   int W_M2 = 150;
 
+  num_op = H_M1 * W_M2 * ( 70 + 70 -1);
+
+  printf("==================================\n");
+  printf("Matrix 1: %d x %d\n",W_M1,H_M1);
+  printf("Matrix 2: %d x %d\n",W_M2,H_M2);
+  printf("Matrix Multiplication number of operations: %d\n",num_op);
+  printf("==================================\n");
   int W_Out = H_M1;
   int H_Out = W_M2;
 

@@ -308,14 +308,9 @@ void __rt_freq_init()
   }
   __rt_freq_domains[RT_FREQ_DOMAIN_CL] = 0;
 
-#if PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_PULP
-  // On quentin FLL 1 is used for FC and 0 for periphs
-  __rt_freq_domains[RT_FREQ_DOMAIN_PERIPH] = __rt_fll_init(__RT_FLL_PERIPH);
-#else
+#if PULP_CHIP == CHIP_WOLFE
 
-#if PULP_CHIP != CHIP_GAP
-
-  // On other architectures, we have to configure how fll are connected and also
+  // On wolfe, there are 2 flls, we have to configure how they are connected and also
   // to specify dividers.
 
   // FLL 0 is still shared between periph and soc, and FLL 1 is used for cluster
@@ -328,7 +323,14 @@ void __rt_freq_init()
   apb_soc_fll_clkdiv_periph_set(1);
   apb_soc_fll_clkdiv_soc_set(1);
 
-#endif
+#elif PULP_CHIP == CHIP_GAP
+
+  // On GAP don't do anything as the periph fll is the FC one
+
+#else
+
+  // On other chips there is an fll dedicated to periphs
+  __rt_freq_domains[RT_FREQ_DOMAIN_PERIPH] = __rt_fll_init(__RT_FLL_PERIPH);
 
 #endif
 

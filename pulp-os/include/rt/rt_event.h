@@ -297,9 +297,9 @@ void __rt_event_yield(rt_event_sched_t *sched);
 
 static inline void rt_event_execute(rt_event_sched_t *sched, int wait)
 {
-  rt_irq_disable();
+  int irq = rt_irq_disable();
   __rt_event_execute(sched, wait);
-  rt_irq_enable();
+  rt_irq_restore(irq);
 }
 
 static inline void rt_event_yield(rt_event_sched_t *sched)
