@@ -39,4 +39,6 @@ int putchar(int c);
 
 int puts(const char *s);
 
+int sprintf(char *str, const char *fmt, ...) ;
+
 #endif
