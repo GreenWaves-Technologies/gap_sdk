@@ -61,7 +61,7 @@ endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
+COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os -g1 -D_RTE_ $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
 
 ASMFLAGS      = -x assembler-with-cpp $(COMMON)
 
@@ -265,7 +265,7 @@ run::
 else ifdef rtl
 run:: dir
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode)
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(PLPBRIDGE_FLAGS)
 else
 run:: all
 	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
@@ -276,7 +276,7 @@ gdbserver: run
 endif
 gui:: dir
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI"
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(PLPBRIDGE_FLAGS)
 
 debug:
 	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
