@@ -278,7 +278,10 @@ class FlashImage(object):
         
         # Now set the flash address for each component
         for comp in self.compList:
-            comp.flashAddr = (flashAddr + 3) & ~3
+            if comp.name == 'littlefs.image':
+                comp.flashAddr = 256*1024
+            else:
+                comp.flashAddr = (flashAddr + 3) & ~3
             if self. verbose:
                 print ('  Adding component (name: %s, flashOffset: 0x%x)' % (comp.name, comp.flashAddr))
             flashAddr = comp.flashAddr + comp.size

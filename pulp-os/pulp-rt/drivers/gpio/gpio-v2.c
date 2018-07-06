@@ -93,7 +93,9 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_gpio_init()
   rt_irq_set_handler(ARCHI_FC_EVT_GPIO, __rt_gpio_handler);
   rt_irq_mask_set(1<<ARCHI_FC_EVT_GPIO);
 #else
+#ifdef SOC_EU_VERSION
   soc_eu_fcEventMask_setEvent(ARCHI_SOC_EVENT_GPIO);
+#endif
 #endif
   for (int i=0; i<32; i++)
   {

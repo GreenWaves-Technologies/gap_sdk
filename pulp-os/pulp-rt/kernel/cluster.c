@@ -128,6 +128,9 @@ static inline __attribute__((always_inline)) void __rt_cluster_mount(int cid, in
 
 #if defined(APB_SOC_VERSION) && APB_SOC_VERSION >= 2
 
+    for (int i=1; i<rt_nb_active_pe(); i++) {
+      plp_ctrl_core_bootaddr_set(i, ((int)_start) & 0xffffff00);
+    }
     eoc_fetch_enable_remote(cid, -1);    
 
 #endif
@@ -238,7 +241,7 @@ int rt_cluster_call(rt_cluster_call_t *_call, int cid, void (*entry)(void *arg),
   // And trigger an event on cluster side in case it is sleeping
   eu_evt_trig(eu_evt_trig_cluster_addr(cid, RT_CLUSTER_CALL_EVT), 0);
 
-  if (rt_is_fc()) __rt_wait_event_check(event, call_event);
+  __rt_wait_event_check(event, call_event);
 
 end:
   rt_irq_restore(irq);

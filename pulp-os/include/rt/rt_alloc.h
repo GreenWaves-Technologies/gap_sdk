@@ -410,7 +410,11 @@ static inline void rt_free_cluster_wait(rt_free_req_t *req);
 
 #if defined(ARCHI_HAS_L2)
 #ifdef __RT_ALLOC_L2_MULTI
+#ifdef ARCHI_HAS_L2_SCM
+#define __RT_NB_ALLOC_L2 4
+#else
 #define __RT_NB_ALLOC_L2 3
+#endif
 #else
 #define __RT_NB_ALLOC_L2 1
 #endif

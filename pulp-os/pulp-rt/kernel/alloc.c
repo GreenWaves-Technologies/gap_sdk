@@ -312,12 +312,21 @@ void __rt_allocs_init()
 
 #if defined(ARCHI_HAS_L2)
 #if defined(__RT_ALLOC_L2_MULTI)
+
   rt_trace(RT_TRACE_INIT, "Initializing L2 private bank0 allocator (base: 0x%8x, size: 0x%8x)\n", (int)rt_l2_priv0_base(), rt_l2_priv0_size());
   rt_user_alloc_init(&__rt_alloc_l2[0], rt_l2_priv0_base(), rt_l2_priv0_size());
+
+#ifdef ARCHI_HAS_L2_SCM
+  rt_trace(RT_TRACE_INIT, "Initializing L2 scm allocator (base: 0x%8x, size: 0x%8x)\n", (int)rt_l2_scm_base(), rt_l2_scm_size());
+  rt_user_alloc_init(&__rt_alloc_l2[3], rt_l2_scm_base(), rt_l2_scm_size());
+#endif
+
   rt_trace(RT_TRACE_INIT, "Initializing L2 private bank1 allocator (base: 0x%8x, size: 0x%8x)\n", (int)rt_l2_priv1_base(), rt_l2_priv1_size());
   rt_user_alloc_init(&__rt_alloc_l2[1], rt_l2_priv1_base(), rt_l2_priv1_size());
+
   rt_trace(RT_TRACE_INIT, "Initializing L2 shared banks allocator (base: 0x%8x, size: 0x%8x)\n", (int)rt_l2_shared_base(), rt_l2_shared_size());
   rt_user_alloc_init(&__rt_alloc_l2[2], rt_l2_shared_base(), rt_l2_shared_size());
+
 #else
   rt_trace(RT_TRACE_INIT, "Initializing L2 allocator (base: 0x%8x, size: 0x%8x)\n", (int)rt_l2_base(), rt_l2_size());
   rt_user_alloc_init(&__rt_alloc_l2[0], rt_l2_base(), rt_l2_size());

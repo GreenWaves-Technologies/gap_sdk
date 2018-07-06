@@ -181,7 +181,6 @@ static void _himaxMode(rt_camera_t *cam, unsigned char mode){
 
 static void _himaxWakeUP (rt_camera_t *cam){
     if (!camera_isAwaked){
-        plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
         _himaxMode(cam, HIMAX_Streaming);
         camera_isAwaked = 1;
     }
@@ -219,19 +218,20 @@ static void _himaxParamInit(rt_camera_t *dev_cam, rt_cam_conf_t *cam_conf){
 }
 
 // TODO: For each case, should add the configuration of camera if necessary.
-static void _himaxConfigAndEnable(rt_cam_conf_t *cam){
+static void _himaxConfig(rt_cam_conf_t *cam){
+
+    plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
     plpUdmaCamCustom_u _cpi;
     _cpi.raw = 0;
     switch (cam->resolution){
-        case QVGA:
-            goto qvga;
         case QQVGA:
             break;
+        case QVGA:
         default:
-qvga:
             _cpi.cfg_size.row_length = ((QVGA_W+4)/2 - 1);
     }
     hal_cpi_size_set(0, _cpi.raw);
+    
     _cpi.raw = 0;
 
     switch (cam->format){
@@ -248,9 +248,10 @@ qvga:
     _cpi.cfg_glob.framedrop_value = cam->frameDrop_value & MASK_6BITS;
     _cpi.cfg_glob.frameslice_enable = cam->slice_en & MASK_1BIT;
     _cpi.cfg_glob.shift = cam->shift & MASK_4BITS;
-    _cpi.cfg_glob.enable = ENABLE;
+    _cpi.cfg_glob.enable = DISABLE;
 
     hal_cpi_glob_set(0, _cpi.raw);
+    plp_udma_cg_set(plp_udma_cg_get() & ~(1<<ARCHI_UDMA_CAM_ID(0)));
 }
 
 void __rt_himax_close(rt_camera_t *dev_cam, rt_event_t *event){
@@ -292,13 +293,15 @@ void __rt_himax_control(rt_camera_t *dev_cam, rt_cam_cmd_e cmd, void *_arg){
         case CMD_FRAMEDROP:
             _camera_drop_frame(&dev_cam->conf, arg);
             break;
-        case CMD_START:
+        case CMD_INIT:
             _himaxWakeUP(dev_cam);
-            _himaxConfigAndEnable(&dev_cam->conf);
+            _himaxConfig(&dev_cam->conf);
+            break;
+        case CMD_START:
+            _camera_start();
             break;
         case CMD_PAUSE:
             _camera_stop();
-            camera_isAwaked = 0;
             break;
         case CMD_STOP:
             _himaxStandby(dev_cam);

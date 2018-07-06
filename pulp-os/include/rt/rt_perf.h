@@ -214,7 +214,7 @@ static inline unsigned int rt_perf_read(int id);
 
 static inline void rt_perf_cl_reset(rt_perf_t *perf)
 {
-  hal_timer_reset(hal_timer_addr(0, 0));
+  hal_timer_reset(hal_timer_cl_addr(0, 0));
   cpu_perf_setall(0);
 }
 
@@ -236,7 +236,7 @@ static inline void rt_perf_reset(rt_perf_t *perf)
 
 static inline void rt_perf_cl_start(rt_perf_t *perf)
 {
-  hal_timer_start(hal_timer_addr(0, 0));
+  hal_timer_start(hal_timer_cl_addr(0, 0));
   cpu_perf_conf(PCMR_ACTIVE | PCMR_SATURATE);
 }
 
@@ -258,7 +258,7 @@ static inline void rt_perf_start(rt_perf_t *perf)
 
 static inline void rt_perf_cl_stop(rt_perf_t *perf)
 {
-  hal_timer_conf(hal_timer_addr(0, 0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  hal_timer_conf(hal_timer_cl_addr(0, 0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   cpu_perf_conf(0);
 }
 
@@ -287,7 +287,7 @@ static inline unsigned int rt_perf_cl_read(int event)
 {
   if (event == RT_PERF_CYCLES)
   {
-    return hal_timer_count_get(hal_timer_addr(0, 0));
+    return hal_timer_count_get(hal_timer_cl_addr(0, 0));
   }
   else
   {

@@ -99,10 +99,11 @@ typedef enum{
   CMD_SLICE,           /*!< Command for configuring the area of interest. */
   CMD_FILTER,          /*!< Command for configuring the HW Filter. */
   CMD_SHIFT,           /*!< Command for configuring the HW Shifter. */
-  CMD_FRAMEDROP,       /*!< Command for configuring drop the frames. */
-  CMD_START,           /*!< Command for enabling the image sensor. */
-  CMD_STOP,            /*!< Command for disabling the image sensor. */
-  CMD_PAUSE,           /*!< Command for stop the image transaction. */
+  CMD_FRAMEDROP,       /*!< Command for configuring frames drop. */
+  CMD_START,           /*!< Command for enabling the camera interface. */
+  CMD_STOP,            /*!< Command for disabling the camera interface and put camera on standby. */
+  CMD_PAUSE,           /*!< Command for stop the camera interface. */
+  CMD_INIT,            /*!< Command for init the camera interface and switch on camera. */
 }rt_cam_cmd_e;
 
 

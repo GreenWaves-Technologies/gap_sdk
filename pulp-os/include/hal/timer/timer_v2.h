@@ -25,7 +25,7 @@
 #endif
 
 
-static inline unsigned int hal_timer_conf_get(
+static inline unsigned int hal_timer_conf_prep(
   int enable, int reset, int irq_enable, int event_mask, int cmp_clr,
   int one_shot, int clk_source, int prescaler_enable, int prescaler, int mode_64)
 {
@@ -49,9 +49,26 @@ static inline unsigned int hal_timer_fc_addr(int id, int sub_id)
 }
 #endif
 
-static inline unsigned int hal_timer_addr(int id, int sub_id)
+static inline unsigned int hal_timer_cl_addr(int id, int sub_id)
 {
   return ARCHI_CLUSTER_PERIPHERALS_ADDR + ARCHI_TIMER_OFFSET + id * PLP_TIMER_AREA_SIZE + sub_id * 4;
+}
+
+#ifdef ARCHI_CL_CID
+static inline unsigned int hal_timer_cl_addr_glob(int id, int sub_id)
+{
+  return ARCHI_CLUSTER_PERIPHERALS_GLOBAL_ADDR(ARCHI_CL_CID) + ARCHI_TIMER_OFFSET + id * PLP_TIMER_AREA_SIZE + sub_id * 4;
+}
+#endif
+
+static inline unsigned int hal_timer_conf_get(unsigned int addr)
+{
+  return pulp_read32(addr + PLP_TIMER_CFG_REG_LO);
+}
+
+static inline void hal_timer_conf_set(unsigned int addr, unsigned int value)
+{
+  pulp_write32(addr + PLP_TIMER_CFG_REG_LO, value);
 }
 
 static inline void hal_timer_conf(
@@ -59,7 +76,7 @@ static inline void hal_timer_conf(
   int event_mask, int cmp_clr, int one_shot, int clk_source,
   int prescaler_enable, int prescaler, int mode_64)
 {
-  unsigned int conf = hal_timer_conf_get(
+  unsigned int conf = hal_timer_conf_prep(
     enable, reset, irq_enable, event_mask, cmp_clr, one_shot, clk_source,
     prescaler_enable, prescaler, mode_64
   );

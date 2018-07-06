@@ -257,6 +257,7 @@ void __rt_ov7670_control(rt_camera_t *dev_cam, rt_cam_cmd_e cmd, void *_arg){
             _camera_drop_frame(&dev_cam->conf, arg);
             break;
         case CMD_START:
+        case CMD_INIT:
             _ov7670ConfigAndEnable(dev_cam);
             break;
         case CMD_STOP:

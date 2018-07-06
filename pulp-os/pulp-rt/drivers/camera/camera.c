@@ -76,6 +76,16 @@ void _camera_stop(){
   plp_udma_cg_set(plp_udma_cg_get() & ~(1<<ARCHI_UDMA_CAM_ID(0)));
 }
 
+void _camera_start(){
+ plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
+  plpUdmaCamCustom_u _cpi;
+  _cpi.raw = hal_cpi_glob_read(0);
+  _cpi.cfg_glob.enable = ENABLE;
+  hal_cpi_glob_set(0, _cpi.raw);
+ 
+}
+
+
 rt_camera_t* rt_camera_open(char *dev_name, rt_cam_conf_t *conf, rt_event_t*event)
 {
   int irq = rt_irq_disable();

@@ -1,21 +1,5 @@
 /*
- * Copyright (C) 2018 ETH Zurich and University of Bologna
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2018 ETH Zurich, University of Bologna and GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,6 +94,19 @@ typedef enum {
 static inline int rt_freq_get(rt_freq_domain_e domain);
 
 
+
+/** \brief Set frequency of a domain.
+ *
+ * Set thefrequency of a specific frequency domain in Hz. 
+ * This can return an error if the frequency is invalid.
+ * 
+ * \param     domain The frequency domain.
+ * \param     freq   The desired frequency in Hz.
+ * \return           0 if successfull, -1 otherwise.
+ */
+static inline int rt_freq_set(rt_freq_domain_e domain, unsigned int freq);
+
+
 //!@}
 
 /**        
@@ -129,10 +126,15 @@ static inline int rt_freq_get(rt_freq_domain_e domain);
 #define __RT_FLL_CL     1
 #endif
 
-int rt_freq_set(rt_freq_domain_e domain, unsigned int freq, unsigned int *out_freq);
+int rt_freq_set_and_get(rt_freq_domain_e domain, unsigned int freq, unsigned int *out_freq);
 
 extern int __rt_freq_domains[];
 extern int __rt_freq_next_domains[];
+
+static inline int rt_freq_set(rt_freq_domain_e domain, unsigned int freq)
+{
+  return rt_freq_set_and_get(domain, freq, NULL);
+}
 
 #if defined(FLL_VERSION)
 
@@ -191,7 +193,11 @@ static inline unsigned int __rt_fll_freq_get(int fll)
 
 static inline unsigned int __rt_freq_periph_get()
 {
+#if PULP_CHIP == CHIP_VIVOSOC3
+  return 10000000;
+#else
   return rt_freq_get(RT_FREQ_DOMAIN_PERIPH);
+#endif
 }
 
 static inline unsigned int __rt_freq_periph_get_next()

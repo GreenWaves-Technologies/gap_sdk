@@ -25,25 +25,18 @@ TEST_FAILED=0
 
 EXPIRE_TIME=0
 
-# PATH
-TEST_COMPILE_FAILED_PATH=""
-TEST_RUN_FAILED_PATH=""
-
+# Report PATH
 REPORT_FILE_PATH="$(pwd)/report.log"
 
 check_compile() {
-    # If only test compile, no need to wait.
-    if [ -z "$1" ]; then
-        TEST_COMPILE=$((TEST_COMPILE+1));
-    else
-        # If use run command, then we need to wait the compilation.
-        # The sleep time should be > the max of compilaton time
-        sleep 30;
-        find_result=$(find $1 -name test);
 
-        if [ find_result != "" ]; then
-            TEST_COMPILE=$((TEST_COMPILE+1));
-        fi
+    if [ $1 -eq 0 ]; then
+        # Record compile success path
+        TEST_COMPILE=$((TEST_COMPILE+1));
+        echo "$(dirname $t) : COMPILE SUCCESS" >> $REPORT_FILE_PATH
+    else
+        # Record compile failed path
+        echo "$(dirname $t) : COMPILE FAILED" >> $REPORT_FILE_PATH
     fi
 }
 
@@ -57,6 +50,9 @@ check_run() {
         then
             # Test success
             TEST_SUCCESS=$((TEST_SUCCESS+1))
+            # Record run success path
+            echo "$1 : RUN SUCCESS" >> $REPORT_FILE_PATH
+
             echo "Test success..."
             break;
 
@@ -65,7 +61,8 @@ check_run() {
             # Test failed
             TEST_FAILED=$((TEST_FAILED+1))
             # Record run failed path
-            TEST_RUN_FAILED_PATH="$TEST_RUN_FAILED_PATH $1";
+            echo "$1 : RUN FAILED" >> $REPORT_FILE_PATH
+
             echo "$1 Test failed..."
             break;
 
@@ -77,7 +74,8 @@ check_run() {
                 # Test failed
                 TEST_FAILED=$((TEST_FAILED+1))
                 # Record run failed path
-                TEST_RUN_FAILED_PATH="$TEST_RUN_FAILED_PATH $1";
+                echo "$1 : RUN FAILED" >> $REPORT_FILE_PATH
+
                 echo "$1 Test failed..."
                 break;
             else
@@ -106,22 +104,24 @@ do
             # Compilation check or run check
             if [ $1 == "compile" ]; then
                 # Do compilation, then check the result of compilation
-                cd  $(dirname $t) && make clean all;
+                cd  $(dirname $t) && rtl=true make clean all;
 
                 # Test the return value - 0 is success, others are failed
-                if [ $? -eq 0 ]; then
-                    check_compile;
-                else
-                    TEST_COMPILE_FAILED_PATH="$TEST_COMPILE_FAILED_PATH $(dirname $t)";
-                fi
+                check_compile $? ;
 
             elif [ $1 == "run" ]; then
                 # Do run, then check the result of run
-                cd  $(dirname $t) && make run & check_run $(dirname $t);
+                cd  $(dirname $t) && rtl=true make run & check_run $(dirname $t);
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && make clean all run & check_compile $(dirname $t) & check_run $(dirname $t);
+                cd  $(dirname $t) && rtl=true make clean all;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
+                # Check the result of run
+                rtl=true make run & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -146,11 +146,7 @@ do
                 cd  $(dirname $t) && gvsoc=true make clean all;
 
                 # Test the return value - 0 is success, others are failed
-                if [ $? -eq 0 ]; then
-                    check_compile;
-                else
-                    TEST_COMPILE_FAILED_PATH="$TEST_COMPILE_FAILED_PATH $(dirname $t)";
-                fi
+                check_compile $?;
 
             elif [ $1 == "run" ]; then
                 # Do run, then check the result of run
@@ -158,7 +154,13 @@ do
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && gvsoc=true make clean all && gvsoc=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_compile $(dirname $t) & check_run $(dirname $t);
+                cd  $(dirname $t) && gvsoc=true make clean all;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
+                # Check the result of run
+                (gvsoc=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -183,19 +185,21 @@ do
                 cd  $(dirname $t) && gapuino=true make clean all;
 
                 # Test the return value - 0 is success, others are failed
-                if [ $? -eq 0 ]; then
-                    check_compile;
-                else
-                    TEST_COMPILE_FAILED_PATH="$TEST_COMPILE_FAILED_PATH $(dirname $t)";
-                fi
+                check_compile $?;
 
             elif [ $1 == "run" ]; then
                 # Do run, then check the result of run
-                cd  $(dirname $t) && make run  | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_run $(dirname $t);
+                cd  $(dirname $t) && gapuino=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_run $(dirname $t);
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && make clean all && (make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_compile $(dirname $t) & check_run $(dirname $t);
+                cd  $(dirname $t) && gapuino=true make clean all;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
+                # Check the result of run
+                (gapuino=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -216,5 +220,3 @@ echo "Test copmile success number : $TEST_COMPILE"          | tee -a $REPORT_FIL
 echo "Test success         number : $TEST_SUCCESS"          | tee -a $REPORT_FILE_PATH
 echo "Test failed          number : $TEST_FAILED"           | tee -a $REPORT_FILE_PATH
 echo "############################################"         | tee -a $REPORT_FILE_PATH
-echo "Test copmile failed path : $TEST_COMPILE_FAILED_PATH" | tee -a $REPORT_FILE_PATH
-echo "Test run failed path : $TEST_RUN_FAILED_PATH"         | tee -a $REPORT_FILE_PATH
