@@ -22,6 +22,7 @@
 #include "rt/rt_api.h"
 #include "archi/pulp.h"
 
+
 typedef void (*fptr)(void);
 
 static fptr ctor_list[1] __attribute__((section(".ctors.start"))) = { (fptr) -1 };
@@ -53,6 +54,18 @@ void __rt_putc_debug_bridge(char c);
 #if PULP_CHIP == CHIP_GAP || PULP_CHIP == CHIP_VEGA
 void __rt_pmu_init();
 #endif
+
+#ifdef __RT_MODE_BARE
+
+void __rt_init()
+{
+}
+
+void __rt_deinit()
+{
+}
+
+#else
 
 void __rt_init()
 {
@@ -149,6 +162,8 @@ void __rt_deinit()
   do_dtors();
 }
 
+#endif
+
 
 #if defined(ARCHI_HAS_CLUSTER)
 
@@ -186,7 +201,6 @@ static void cluster_start(void *arg)
   else
   {
     __rt_team_config(rt_nb_active_pe());
-    retval = main();
   }
 
 #endif
@@ -208,7 +222,6 @@ static int __rt_check_cluster_start(int cid, rt_event_t *event)
     if (stacks == NULL) return -1;
 
     if (rt_cluster_call(NULL, cid, cluster_start, NULL, stacks, rt_stack_size_get(), rt_stack_size_get(), rt_nb_active_pe(), event)) return -1;
-
   }
   else
   {
@@ -238,9 +251,8 @@ static int __rt_check_cluster_start(int cid, rt_event_t *event)
 
 static int __rt_check_clusters_start()
 {
-  if (__rt_config_cluster_start() || !rt_is_fc()) {
+  if (__rt_config_cluster_start()) {
     // All fetch mode, starts all cluster
-
     if (rt_event_alloc(NULL, rt_nb_cluster())) return -1;
 
     rt_event_t *events[rt_nb_cluster()];

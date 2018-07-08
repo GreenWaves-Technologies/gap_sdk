@@ -591,8 +591,18 @@ static unsigned int FLL_CONFIG1_DEF_OPEN_LOOP_LOCK   = FLL_CONFIG1_VAL(0, 0, 0, 
 #define FLL_CONFIG2_VAL(Gain, Deassert, Assert, LockTol, ClkSel, OpenLoop, Dither) ((Gain)|((Deassert)<<4)|((Assert)<<(4+6))|((LockTol)<<(4+6+6))|((ClkSel)<<(4+6+6+12))|((OpenLoop)<<(4+6+6+12+1+1))|((Dither)<<(4+6+6+12+1+1+1)))
 // static unsigned int FLL_CONFIG2_GAIN                 = FLL_CONFIG2_VAL(0x7, 0x10, 0x2, 0x100, 0x0, 0x0, 0x1);
 // static unsigned int FLL_CONFIG2_NOGAIN               = FLL_CONFIG2_VAL(0xF, 0x10, 0x2, 0x100, 0x0, 0x0, 0x1);
+#if 1
+static unsigned int FLL_CONFIG2_GAIN                 = FLL_CONFIG2_VAL(0x7, 0x10, 0x10, 0x100, 0x0, 0x0, 0x1);
+static unsigned int FLL_CONFIG2_NOGAIN               = FLL_CONFIG2_VAL(0xB, 0x10, 0x10, 0x100, 0x0, 0x0, 0x1);
+#else
+#if 0
 static unsigned int FLL_CONFIG2_GAIN                 = FLL_CONFIG2_VAL(0xB, 0x10, 0x10, 0x100, 0x0, 0x0, 0x1);
-static unsigned int FLL_CONFIG2_NOGAIN               = FLL_CONFIG2_VAL(0xB, 0x10, 0x10, 0x100, 0x0, 0x0, 0x1); 
+static unsigned int FLL_CONFIG2_NOGAIN               = FLL_CONFIG2_VAL(0xB, 0x10, 0x10, 0x100, 0x0, 0x0, 0x1);
+#else
+static unsigned int FLL_CONFIG2_GAIN                 = FLL_CONFIG2_VAL(0xA, 0x10, 0x2, 0x100, 0x0, 0x0, 0x0);
+static unsigned int FLL_CONFIG2_NOGAIN               = FLL_CONFIG2_VAL(0xB, 0x10, 0x2, 0x100, 0x0, 0x0, 0x1); 
+#endif
+#endif
 
 unsigned int SetFllFrequency(hal_fll_e Fll, unsigned int Frequency, int Check)
 

@@ -82,6 +82,24 @@ static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg);
  */
 static inline void rt_team_barrier();
 
+
+
+/** \brief Enter a critical section.
+ *
+ * This will block the execution of the calling core until it can execute the following section of code alone.
+ * This will also prevent all other cores of the team to execute the following code until 
+ * rt_team_critical_exit is called.
+ */
+static inline void rt_team_critical_enter();
+
+
+
+/** \brief Exit a critical section.
+ *
+ * This will exit the critical code and let other cores executing it..
+ */
+static inline void rt_team_critical_exit();
+
 //!@}
 
 /**        
@@ -139,6 +157,16 @@ static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg) 
 
 static inline void rt_team_barrier() {
   eu_bar_trig_wait_clr(eu_bar_addr(0));
+}
+
+static inline void rt_team_critical_enter()
+{
+  eu_mutex_lock(eu_mutex_addr(0));
+}
+
+static inline void rt_team_critical_exit()
+{
+  eu_mutex_unlock(eu_mutex_addr(0));
 }
 
 #else

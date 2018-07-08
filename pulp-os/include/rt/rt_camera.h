@@ -242,7 +242,7 @@ void _camera_drop_frame(rt_cam_conf_t *cam, unsigned int *arg);
 void _camera_normlize(rt_cam_conf_t *cam, unsigned int *arg);
 void _camera_filter(rt_cam_conf_t *cam, rt_img_filter_t *filter);
 void _camera_extract(rt_cam_conf_t *cam, rt_img_slice_t *slicer);
-void _camera_start(rt_cam_conf_t *cam);
+void _camera_start();
 void _camera_stop();
 
 #if defined(ARCHI_HAS_CLUSTER)

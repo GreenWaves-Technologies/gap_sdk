@@ -69,9 +69,9 @@ static inline int rt_debug_config_werror();
 
 #else
 
-#define rt_msg(x...)
-#define rt_warning(x...)
-#define rt_fatal(x...)
+#define rt_msg(x...) while(0)
+#define rt_warning(x...) while(0)
+#define rt_fatal(x...) while(0)
 
 #endif
 

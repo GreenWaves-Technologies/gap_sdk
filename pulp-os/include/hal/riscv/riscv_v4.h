@@ -142,11 +142,11 @@ static inline unsigned int hal_cluster_id() {
 extern unsigned char __FC;
 extern unsigned char __ZERO;
 // TODO replace by compiler builtin
-static inline unsigned int hal_has_fc() {
+static inline __attribute__((always_inline)) unsigned int hal_has_fc() {
   return (unsigned int)&__FC != (unsigned int)&__ZERO;
 }
 
-static inline unsigned int hal_is_fc() {
+static inline __attribute__((always_inline)) unsigned int hal_is_fc() {
 #ifndef ARCHI_HAS_FC
   return 0;
 #else
@@ -157,7 +157,7 @@ static inline unsigned int hal_is_fc() {
 
 #else
 
-static inline unsigned int hal_core_id() {
+static inline __attribute__((always_inline)) unsigned int hal_core_id() {
   int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
 #if PULP_CHIP == CHIP_GAP
@@ -172,7 +172,7 @@ static inline unsigned int hal_core_id() {
   return hart_id & 0x01f;
 }
 
-static inline unsigned int hal_cluster_id() {
+static inline __attribute__((always_inline)) unsigned int hal_cluster_id() {
   int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
 #if PULP_CHIP == CHIP_GAP
@@ -187,7 +187,7 @@ static inline unsigned int hal_cluster_id() {
   return (hart_id >> 5) & 0x3f;
 }
 
-static inline unsigned int hal_has_fc() {
+static inline __attribute__((always_inline)) unsigned int hal_has_fc() {
 #ifdef ARCHI_HAS_FC
   return 1;
 #else
@@ -195,7 +195,7 @@ static inline unsigned int hal_has_fc() {
 #endif
 }
 
-static inline unsigned int hal_is_fc() {
+static inline __attribute__((always_inline)) unsigned int hal_is_fc() {
 #ifndef ARCHI_HAS_FC
   return 0;
 #else

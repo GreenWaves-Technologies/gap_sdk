@@ -6,76 +6,46 @@ MEMORY
   L2                 : ORIGIN = 0x1c000000, LENGTH = 0x00080000
   fc_tcdm            : ORIGIN = 0x1b000000, LENGTH = 0x00004000
   fc_tcdm_aliased    : ORIGIN = 0x00000004, LENGTH = 0x00003ffc
-  L1                 : ORIGIN = 0x10000004, LENGTH = 0x00010000
+  L1                 : ORIGIN = 0x10000004, LENGTH = 0x0000fffc
   L1_aliased         : ORIGIN = 0x00000004, LENGTH = 0x0000fffc
 }
 
 SECTIONS
 {
-  .vectors :
-  {
-    . = ALIGN(4);
-    __irq_vector_base = .;KEEP(*(.vectors))
-  } > L2
-
-  .l1FcTiny : AT(ORIGIN(fc_tcdm))
-  {
-    . = ALIGN(4);
-    _l1FcShared_start = .;
-    *(.l1FcTiny)
-    *(.l1FcTiny.*)
-    *(.fcTcdmTiny)
-    *(.fcTcdmTiny.*)
-    . = ALIGN(4);
-    _l1FcShared_end = .;
-  } > fc_tcdm_aliased
-
-  .data_tiny_fc (ADDR(.l1FcTiny) + SIZEOF(.l1FcTiny)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny))
+  /* This section is for tiny FC data which benefits 
+   * from the alias at 0
+   */
+  .data_tiny_fc :
   {
     . = ALIGN(4);
     *(.data_tiny_fc)
     *(.data_tiny_fc.*)
-  } > fc_tcdm_aliased
+  } > fc_tcdm_aliased AT> fc_tcdm
 
-  .text :
-  {
-    . = ALIGN(4);
-    _stext = .;
-    *(.text)
-    *(.text.*)
-    . = ALIGN(4);
-    __cluster_text_start = .;*(.cluster.text)
-    *(.cluster.text.*)
-    __cluster_text_end = .;_etext  =  .;
-    *(.lit)
-    *(.shdata)
-    _endtext = .;
-  } > L2
 
-  __fc_code_end = ALIGN(8);
-
-  .init (ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc))
+  .init :
   {
     . = ALIGN(4);
     KEEP( *(.init) )
   } > fc_tcdm
 
-  .fini (ADDR(.init) + SIZEOF(.init)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init))
+
+  .fini :
   {
     . = ALIGN(4);
     KEEP( *(.fini) )
   } > fc_tcdm
 
-  .preinit_array (ADDR(.fini) + SIZEOF(.fini)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini))
-  {
+
+  .preinit_array : {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array))
     PROVIDE_HIDDEN (__preinit_array_end = .);
   } > fc_tcdm
 
-  .init_array (ADDR(.preinit_array) + SIZEOF(.preinit_array)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array))
-  {
+
+  .init_array : {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__init_array_start = .);
     __CTOR_LIST__ = .;
@@ -89,8 +59,8 @@ SECTIONS
     PROVIDE_HIDDEN (__init_array_end = .);
   } > fc_tcdm
 
-  .fini_array (ADDR(.init_array) + SIZEOF(.init_array)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array))
-  {
+
+  .fini_array : {
     . = ALIGN(4);
     PROVIDE_HIDDEN (__fini_array_start = .);
     __DTOR_LIST__ = .;
@@ -104,15 +74,85 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } > fc_tcdm
 
-  .boot (ADDR(.fini_array) + SIZEOF(.fini_array)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array))
-  {
+
+  .boot : {
     . = ALIGN(4);
     *(.boot)
     *(.boot.data)
   } > fc_tcdm
 
-  .rodata :
+
+
+  .got : {
+    . = ALIGN(4);
+    *(.got.plt) * (.igot.plt) *(.got) *(.igot)
+  } > fc_tcdm
+
+
+  .shbss : {
+    . = ALIGN(4);
+    *(.shbss)
+  } > fc_tcdm
+
+
+  .talias : {
+  } > fc_tcdm
+
+
+  .gnu.offload_funcs : {
+    . = ALIGN(4);
+    KEEP(*(.gnu.offload_funcs))
+  } > fc_tcdm
+
+
+  .gnu.offload_vars : {
+    . = ALIGN(4);
+    KEEP(*(.gnu.offload_vars))
+  } > fc_tcdm
+
+
+  .stack : {
+    . = ALIGN(4);
+    . = ALIGN(16);
+    . = . + 0x800;
+    stack = .;
+  } > fc_tcdm
+
+  __fc_tcdm_end = ALIGN(4);
+
+
+
+  .vectors :
   {
+    __irq_vector_base = .;
+    KEEP(*(.vectors))
+  } > L2
+
+  .text :
+  {
+    . = ALIGN(4);
+    _stext = .;
+    *(.text)
+    *(.text.*)
+    . = ALIGN(4);
+    __cluster_text_start = .;
+    *(.cluster.text)
+    *(.cluster.text.*)
+    __cluster_text_end = .;
+    . = ALIGN(4);
+    _etext  =  .;
+    *(.lit)
+    *(.shdata)
+    _endtext = .;
+    . = ALIGN(4);
+  } > L2
+
+
+  /* The following data are kept in L2 because of a HW bug which makes
+   * byte acceses failing from cluster to FC TCDM
+   */
+
+  .rodata : {
     . = ALIGN(4);
     *(.rodata);
     *(.rodata.*)
@@ -121,160 +161,28 @@ SECTIONS
     *(.eh_frame*)
   } > L2
 
-  .got (ADDR(.boot) + SIZEOF(.boot)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot))
-  {
-    . = ALIGN(4);
-    *(.got.plt) * (.igot.plt) *(.got) *(.igot)
-  } > fc_tcdm
-
-  .shbss (ADDR(.got) + SIZEOF(.got)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got))
-  {
-    . = ALIGN(4);
-    *(.shbss)
-  } > fc_tcdm
-
-  .talias (ADDR(.shbss) + SIZEOF(.shbss)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss))
-  {
-  } > fc_tcdm
-
-  .gnu.offload_funcs (ADDR(.talias) + SIZEOF(.talias)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss) + SIZEOF(.talias))
-  {
-    . = ALIGN(4);
-    KEEP(*(.gnu.offload_funcs))
-  } > fc_tcdm
-
-  .gnu.offload_vars (ADDR(.gnu.offload_funcs) + SIZEOF(.gnu.offload_funcs)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss) + SIZEOF(.talias) + SIZEOF(.gnu.offload_funcs))
-  {
-    . = ALIGN(4);
-    KEEP(*(.gnu.offload_vars))
-  } > fc_tcdm
-
-  .stack (ADDR(.gnu.offload_vars) + SIZEOF(.gnu.offload_vars)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss) + SIZEOF(.talias) + SIZEOF(.gnu.offload_funcs) + SIZEOF(.gnu.offload_vars))
-  {
-    . = ALIGN(4);
-    . = ALIGN(16);
-    . = . + 0x800;
-    stack = .;
-  } > fc_tcdm
-
-  .data_fc (ADDR(.stack) + SIZEOF(.stack)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss) + SIZEOF(.talias) + SIZEOF(.gnu.offload_funcs) + SIZEOF(.gnu.offload_vars) + SIZEOF(.stack))
-  {
-    . = ALIGN(4);
-    *(.data_fc)
-    *(.data_fc.*)
-  } > fc_tcdm
-
-  .data_fc_shared (ADDR(.data_fc) + SIZEOF(.data_fc)): AT(ORIGIN(fc_tcdm) + SIZEOF(.l1FcTiny) + SIZEOF(.data_tiny_fc) + SIZEOF(.init) + SIZEOF(.fini) + SIZEOF(.preinit_array) + SIZEOF(.init_array) + SIZEOF(.fini_array) + SIZEOF(.boot) + SIZEOF(.got) + SIZEOF(.shbss) + SIZEOF(.talias) + SIZEOF(.gnu.offload_funcs) + SIZEOF(.gnu.offload_vars) + SIZEOF(.stack) + SIZEOF(.data_fc))
-  {
-    . = ALIGN(4);
-    *(.data_fc_shared)
-    *(.data_fc_shared.*)
-    __fc_tcdm_end = ABSOLUTE(.);
-  } > fc_tcdm
-
-  .data_tiny_l1 : AT(_l1_preload_start_inL2)
-  {
-    . = ALIGN(4);
-    _l1_preload_start = .;
-    *(.data_tiny_l1)
-    *(.data_tiny_l1.*)
-    *(.data_alias_l1)
-    *(.data_alias_l1.*)
-  } > L1_aliased
-
-  .tls (ADDR(.data_tiny_l1) + SIZEOF(.data_tiny_l1)): AT(_l1_preload_start_inL2 + SIZEOF(.data_tiny_l1))
-  {
-    . = ALIGN(4);
-    _tls_start = .;
-    *(.tls)
-    *(.tls.*)
-    . = ALIGN(4);
-    _tls_end = .;
-  } > L1_aliased
-
-  .heapsram (ADDR(.tls) + SIZEOF(.tls) * __NB_ACTIVE_PE): AT(_l1_preload_start_inL2 + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE)
-  {
-    . = ALIGN(4);
-    *(.heapsram)
-    *(.heapsram.*)
-  } > L1_aliased
-
-  .l1cluster_g (ORIGIN(L1) + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE + SIZEOF(.heapsram)): AT(_l1_preload_start_inL2 + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE + SIZEOF(.heapsram))
-  {
-    . = ALIGN(4);
-    *(.l1cluster_g)
-    *(.l1cluster_g.*)
-    *(.data_l1)
-    *(.data_l1.*)
-    . = ALIGN(4);
-    _libgomp_start = .;
-    *(.libgomp)
-    *(.libgomp.*)
-    . = ALIGN(4);
-    _heapsram_start = .;
-  } > L1
-
-  __l1_heap_start = ALIGN(4);
-
-  __l1_heap_size = LENGTH(L1) - __l1_heap_start + ORIGIN(L1);
-
-  _heapsram_size = LENGTH(L1) - _heapsram_start + ORIGIN(L1);
-
-  _l1_preload_size = SIZEOF(.data_tiny_l1) + SIZEOF(.tls) + SIZEOF(.heapsram) + SIZEOF(.l1cluster_g);
-
-  .bss_l1 (ADDR(.l1cluster_g) + SIZEOF(.l1cluster_g)): AT(ORIGIN(L1) + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE + SIZEOF(.heapsram) + SIZEOF(.l1cluster_g))
-  {
-    . = ALIGN(4);
-    *(.bss_l1)
-    *(.bss_l1.*)
-    _heapsram_start = .;
-    __L1_end = ABSOLUTE(.);
-  } > L1
-
-  .data_tiny_l1_s (ADDR(.rodata) + SIZEOF(.rodata)):
-  {
-    . = ALIGN(4);
-    _l1_preload_start_inL2 = .;
-  } > L2
-
-  .tls_s (ADDR(.rodata) + SIZEOF(.rodata) + SIZEOF(.data_tiny_l1)):
-  {
-  } > L2
-
-  .heapsram_s (ADDR(.rodata) + SIZEOF(.rodata) + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE):
-  {
-  } > L2
-
-  .l1cluster_g_s (ADDR(.rodata) + SIZEOF(.rodata) + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE + SIZEOF(.heapsram)):
-  {
-  } > L2
-
-  .data (ADDR(.rodata) + SIZEOF(.rodata) + SIZEOF(.data_tiny_l1) + SIZEOF(.tls) * __NB_ACTIVE_PE + SIZEOF(.heapsram) + SIZEOF(.l1cluster_g)):
-  {
+  .data : {
     . = ALIGN(4);
     sdata  =  .;
     _sdata  =  .;
+    *(.data_fc)
+    *(.data_fc.*)
     *(.data);
     *(.data.*)
     *(.sdata);
     *(.sdata.*)
-    . = ALIGN(4);
-    edata  =  .;
-    _edata  =  .;
-  } > L2
-
-  .heapl2ram (ADDR(.data) + SIZEOF(.data)):
-  {
-    . = ALIGN(4);
     *(.heapl2ram)
     *(.fcTcdm)
     *(.fcTcdm.*)
     *(.fcTcdm_g)
     *(.fcTcdm_g.*)
+    . = ALIGN(4);
+    edata  =  .;
+    _edata  =  .;
   } > L2
 
-  .bss (ADDR(.heapl2ram) + SIZEOF(.heapl2ram)):
-  {
+
+  .bss : {
     . = ALIGN(8);
     _bss_start = .;
     *(.bss)
@@ -286,24 +194,55 @@ SECTIONS
     _bss_end = .;
   } > L2
 
-  .shared (ADDR(.bss) + SIZEOF(.bss)):
+
+  /* Following sections are keeping the cluster data
+   * in L2 until the cluster is powered up */
+
+  _l1_preload_start_inL2 = ALIGN(4);
+
+  .data_tiny_l1 :
   {
     . = ALIGN(4);
-    *(.l2_shared_data)
-    *(.l2_shared_data.*)
-    __L2_end = ABSOLUTE(.);
-  } > L2
+    _l1_preload_start = .;
+    *(.data_tiny_l1)
+    *(.data_tiny_l1.*)
+    *(.data_alias_l1)
+    *(.data_alias_l1.*)
+  } > L1_aliased AT> L2
 
-  __l2_data_end = ALIGN(8);
+  .l1cluster_g (ORIGIN(L1) + SIZEOF(.data_tiny_l1)): {
+    . = ALIGN(4);
+    *(.heapsram)
+    *(.heapsram.*)
+    *(.l1cluster_g)
+    *(.l1cluster_g.*)
+    *(.data_l1)
+    *(.data_l1.*)
+    . = ALIGN(4);
+    _libgomp_start = .;
+    *(.libgomp)
+    *(.libgomp.*)
+    . = ALIGN(4);
+  } > L1 AT> L2
+
+  .bss_l1 : {
+    . = ALIGN(4);
+    *(.bss_l1)
+    *(.bss_l1.*)
+    . = ALIGN(4);
+  } > L1 AT> L2
+
+  __l1_end = ALIGN(4);
+
+  __l2_end = LOADADDR(.bss_l1) + SIZEOF(.bss_l1);
+
+
+
+
+  _l1_preload_size = SIZEOF(.data_tiny_l1) + SIZEOF(.l1cluster_g);
 
   __cluster_text_size = __cluster_text_end - __cluster_text_start;
 
-  __l2_heap_start = ALIGN(4);
-
-  __l2_heap_size = LENGTH(L2) - __l2_heap_start + ORIGIN(L2);
-
-  __fc_tcdm_heap_start = __fc_tcdm_end;
-
-  __fc_tcdm_heap_size = LENGTH(fc_tcdm) - __fc_tcdm_heap_start + ORIGIN(fc_tcdm);
-
+  __l1_heap_start = ALIGN(4);
+  __l1_heap_size = LENGTH(L1) - __l1_heap_start + ORIGIN(L1);
 }

@@ -75,6 +75,10 @@ __rt_pe_start:
     li      s9, ARCHI_FC_GLOBAL_ADDR + ARCHI_FC_PERIPHERALS_OFFSET + ARCHI_FC_EU_OFFSET + EU_SW_EVENTS_AREA_BASE + EU_CORE_TRIGG_SW_EVENT + (RT_FC_ENQUEUE_EVENT << 2)
     li      s8, 1
 #endif
+#else
+    // In case there is no FC, the event must be sent to cluster 0 event unit
+    li      s9, ARCHI_CLUSTER_PERIPHERALS_GLOBAL_ADDR(0) + ARCHI_EU_OFFSET + EU_SW_EVENTS_AREA_BASE + EU_CORE_TRIGG_SW_EVENT + (RT_FC_ENQUEUE_EVENT << 2)
+    li      s8, 1    
 #endif
     la      s10, __rt_set_slave_stack
     ori     s10, s10, 1

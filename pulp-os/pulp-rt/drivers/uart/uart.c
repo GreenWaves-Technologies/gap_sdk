@@ -55,7 +55,7 @@ void rt_uart_conf_init(rt_uart_conf_t *conf)
 static void __rt_uart_wait_tx_done(rt_uart_t *uart)
 {
   // Wait for all pending transfers to finish
-  while (plp_udma_busy(UDMA_UART_TX_ADDR(uart->channel)))
+  while (plp_udma_busy(UDMA_UART_TX_ADDR(uart->channel - ARCHI_UDMA_UART_ID(0))))
   {
     rt_wait_for_interrupt();
   }
@@ -66,7 +66,7 @@ static void __rt_uart_wait_tx_done(rt_uart_t *uart)
   // still busy. Instead, wait for a few clock refs
 #else
   // And flush the uart to make sure no bit is transfered anymore
-  while(plp_uart_tx_busy(uart->channel));
+  while(plp_uart_tx_busy(uart->channel - ARCHI_UDMA_UART_ID(0)));
 #endif
 }
 
@@ -75,7 +75,7 @@ static void __rt_uart_wait_tx_done(rt_uart_t *uart)
 static void __rt_uart_setup(rt_uart_t *uart)
 {
   int div =  __rt_freq_periph_get() / uart->baudrate;
-  plp_uart_setup(uart->channel, 0, div);
+  plp_uart_setup(uart->channel - ARCHI_UDMA_UART_ID(0), 0, div);
 }
 
 
@@ -104,7 +104,7 @@ static int __rt_uart_setfreq_before(void *arg)
       __rt_uart_wait_tx_done(uart);
 
       // Then deactivate the uart
-      plp_uart_disable(uart->channel);
+      plp_uart_disable(uart->channel - ARCHI_UDMA_UART_ID(0));
     }
   }
 
