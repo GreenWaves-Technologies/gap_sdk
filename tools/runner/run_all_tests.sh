@@ -32,8 +32,14 @@ check_previous_test() {
     # Pass previous jenkins test
 
     if [ -f  $REPORT_FILE_PATH ]; then
-        PREVIOUS_TEST=$(grep -c RUN $REPORT_FILE_PATH)
-    else
+            if [ "$1" == "run" ]; then
+                PREVIOUS_TEST=$(grep -c RUN $REPORT_FILE_PATH)
+            elif [ "$1" == "compile" ]; then
+                PREVIOUS_TEST=$(grep -c COMPILE $REPORT_FILE_PATH)
+            elif [ "$1" == "compile_and_run" ]; then
+                PREVIOUS_TEST=$(grep -c RUN $REPORT_FILE_PATH)
+            fi
+            else
         PREVIOUS_TEST=""
     fi
 
