@@ -8,3 +8,7 @@ report.log
 *KernelsInit.h
 Gen*
 *.wav
+CnnKernelsInit_hwce.c
+CnnKernelsInit_hwce.h
+CnnKernels_hwce.c
+CnnKernels_hwce.h

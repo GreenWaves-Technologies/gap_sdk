@@ -212,7 +212,7 @@ uint8_t HIMAX_Open(void)
     I2C_GetDefaultConfig(&config);
     /* Nominal Max Freq 400kHz - Tested Max Freq 200kHz*/
     config.baudRate_Bps = 200000;
-    I2C_Init(I2C1, &config, I2C_CLK_FRE_DEFAUT);
+    I2C_Init(I2C1, &config, FLL_GetFrequency(uFLL_SOC));
 
     HIMAX_Reset();
     HIMAX_Boot();
