@@ -36,3 +36,4 @@ gapuino_compile_and_run_test:
 
 clean:
 	$(GAP_SDK_HOME)/tools/runner/run_all_tests.sh clean
+	rm -rf report.log

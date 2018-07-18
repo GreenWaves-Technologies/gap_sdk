@@ -99,6 +99,7 @@ static void cam_param_conf(rt_cam_conf_t *conf){
 
 void testHimax_Full(){
 
+  //Enable Camera Interface
   rt_cam_control(camera1, CMD_START, 0);
 
   // Get an event from the free list, which can then be used for a blocking wait using rt_event_wait.
@@ -127,6 +128,9 @@ int main()
   if (camera1 == NULL) return -1;
   // free the memory of camera configuration structure
   rt_free(RT_ALLOC_FC_DATA, cam1_conf, sizeof(rt_cam_conf_t));
+
+  rt_cam_control(camera1, CMD_INIT, 0);
+  rt_time_wait_us(1000000); //Wait camera calibration
 
   printf("ready to take a photo\n");
   while (((volatile ImgDescriptor *) &ImageOutHeader)->camReady == 0) {};
