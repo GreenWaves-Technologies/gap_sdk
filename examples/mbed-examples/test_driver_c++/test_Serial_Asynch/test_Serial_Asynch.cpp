@@ -22,14 +22,21 @@
 
 Serial serial(USBTX, USBRX); // tx, rx
 
-const uint8_t buffer[] = "How do you do today\r\n";
+const uint8_t buffer_tx[] = "How do you do today\r\n";
+
+// Read buffer's size should larger than write buffer size for test only
+uint8_t buffer_rx[25];
 
 static void serial_write_callback(int events)
 {
     if(events == SERIAL_EVENT_TX_COMPLETE)
         printf("TX Callback, event = %d!\n", events);
     else if(events == SERIAL_EVENT_RX_COMPLETE)
+    {
         printf("RX Callback, event = %d!\n", events);
+        // Read finished, print read buffer
+        printf("%s", buffer_rx);
+    }
     else
     {
         printf("Test failed!\n");
@@ -44,9 +51,9 @@ int main() {
 
     event = serial_write_callback;
 
-    serial.write((uint8_t *)buffer, sizeof(buffer), event, SERIAL_EVENT_TX_ALL);
+    serial.read((uint8_t *)buffer_rx, sizeof(buffer_tx), event, SERIAL_EVENT_RX_ALL, 0);
 
-    serial.read((uint8_t *)buffer, sizeof(buffer), event, SERIAL_EVENT_RX_ALL, 0);
+    serial.write((uint8_t *)buffer_tx, sizeof(buffer_tx), event, SERIAL_EVENT_TX_ALL);
 
     wait(1);
 }

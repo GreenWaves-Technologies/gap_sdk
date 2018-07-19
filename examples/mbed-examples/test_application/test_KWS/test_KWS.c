@@ -1,6 +1,6 @@
-// test I2S interface
-// 2 channels using the traffic generator in test bench configured by I2C
-// PDM mode chan1 and chan0, using vip i2s
+ /* test I2S interface */
+ /* 2 channels using the traffic generator in test bench configured by I2C */
+ /* PDM mode chan1 and chan0, using vip i2s */
 
 
 #include <stdio.h>
@@ -11,10 +11,10 @@
 #include "./AUDIO/AUDIO.h"
 #include "./MFCC/MFCC_Processing.h"
 
-// Kernel function
+/* Kernel function */
 #include "KernelLibStdTypes.h"
 
-// produced by read_data_test.c
+/* produced by read_data_test.c */
 #ifdef DOMFCC
 #include "DataTest.h"
 #else
@@ -108,7 +108,7 @@ void CNN_Process() {
     #endif
     #endif
 
-    /* in,filter,normfilter,bias,normbias,out,outsize */
+    // in,filter,normfilter,bias,normbias,out,outsize
     #ifdef W_HALFCHAR
     Dense_halfchar(l2_big1,L2_W_2,10,L2_B_2,0,l2_big0,12,AllKernels + 2);
     #endif
@@ -138,7 +138,7 @@ int main() {
     /* Cluster Start - Power on */
     CLUSTER_Start(0, CORE_NUMBER);
 
-    /* Allocate a buffer in the shared L1 memory */
+    // Allocate a buffer in the shared L1 memory
     L1_Memory = L1_Malloc(L1_Memory_SIZE);
 
     if(L1_Memory == NULL) {
@@ -171,7 +171,7 @@ int main() {
         pfeat_list = (short int*) DataIn;
         #endif
 
-        /* Allocate data buffers */
+        // allocate data buffers
         l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
         l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
 
@@ -182,7 +182,7 @@ int main() {
         CLUSTER_Wait(0);
 
         {
-            /********************************* Softmax on FC *****************************/
+            //  ******************************** Softmax on FC ****************************
             int i, j, sum=0;
             char *s;
             uint8_t idx_max=0;
@@ -219,5 +219,4 @@ int main() {
     CLUSTER_Stop(0);
 
     return error;
-    /* #undef Max */
 }

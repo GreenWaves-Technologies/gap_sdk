@@ -14,8 +14,6 @@ RM=rm -f
 
 TEST_C = main.c $(MODEL_GEN_C) FirBasicKernels.c
 
-MBED_FLAGS += -O3
-MBED_FLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 INC_PATH += -I$(TILER_PATH)/StdTypes/
 
 # The double colon allows us to force this to occur before the imported all target

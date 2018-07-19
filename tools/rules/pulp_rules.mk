@@ -63,9 +63,6 @@ all::    dir $(OBJECTS) $(BIN) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
-	ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 
 # Rules for creating dependency files (.d).
 #------------------------------------------
@@ -83,7 +80,10 @@ else ifdef fpga
 run::
 	$(INSTALL_DIR)/runner/run_fpga.sh
 else ifdef rtl
-run::
+run:: dir
+	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
+	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
+	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
 else
@@ -92,9 +92,12 @@ run:: all
 
 gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
-endif
 
-gui:
+endif
+gui:: dir
+	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
+	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
+	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"
 

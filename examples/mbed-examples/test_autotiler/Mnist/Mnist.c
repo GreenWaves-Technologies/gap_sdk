@@ -24,8 +24,6 @@ L2_MEM short int *Out_Layer0;
 L2_MEM short int *Out_Layer1;
 L2_MEM short int *Out_Layer2;
 
-performance_t *perf;
-
 int ConvAt(short *In, short int *Filter, unsigned int X, unsigned int Y, unsigned int W, unsigned int H, unsigned int Norm)
 
 {
@@ -95,54 +93,47 @@ void Check(char *Mess, short int *Planes, int NPlane, int W, int H)
 }
 
 
-static void RunMnist(int HWCE)
+static void RunMnist(void)
 
 {
     unsigned int ElapsedTime[3];
-    int CheckResults = 0;
-    // initialize the performance clock
-    //Allocate performance space
-    perf = (performance_t *) malloc(sizeof(performance_t));
-    // Configure performance counters for counting the cycles
+    int CheckResults = 1;
+    performance_t perf;
 
-    if (HWCE) {
-#ifdef RT_HAS_HWCE
-        /* Make HWCE event active */
-        eu_evt_maskSet(1<<PLP_EVT_ACC0);
+#if RT_HAS_HWCE
+    /* Make HWCE event active */
+    EU_EVT_MaskSet(1 << EU_HWCE_EVENT);
+
+    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
+    PERFORMANCE_Stop(&perf);
+    ElapsedTime[0] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    if (CheckResults) Check("HWCE Layer0", Out_Layer0, 8, 14, 14);
+
+    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    Conv5x5ReLUMaxPool2x2_HWCE_1(Out_Layer0, Filter_Layer1_HWCE, Out_Layer1, 14, Bias_Layer1, 0);
+    PERFORMANCE_Stop(&perf);
+    ElapsedTime[1] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    if (CheckResults) Check("HWCE Layer1", Out_Layer1, 12, 5, 5);
+#else
+
+    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    Conv5x5ReLUMaxPool2x2_0((short int*) ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
+    PERFORMANCE_Stop(&perf);
+    ElapsedTime[0] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
+
+    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
+    PERFORMANCE_Stop(&perf);
+    ElapsedTime[1] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
 #endif
-    }
 
-    if (HWCE) {
-#ifdef RT_HAS_HWCE
-        PERFORMANCE_Start(perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
-        Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
-        PERFORMANCE_Stop(perf);
-        ElapsedTime[0] = PERFORMANCE_Get(perf, PCER_INSTR_Pos);
-
-        if (CheckResults) Check("HWCE Layer0", Out_Layer0, 8, 14, 14);
-        PERFORMANCE_Start(perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
-        Conv5x5ReLUMaxPool2x2_HWCE_1(Out_Layer0, Filter_Layer1_HWCE, Out_Layer1, 14, Bias_Layer1, 0);
-        PERFORMANCE_Stop(perf);
-        ElapsedTime[1] = PERFORMANCE_Get(perf, PCER_INSTR_Pos);
-        if (CheckResults) Check("HWCE Layer1", Out_Layer1, 12, 5, 5);
-#endif
-    } else {
-        PERFORMANCE_Start(perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
-        Conv5x5ReLUMaxPool2x2_0((short int*) ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
-        PERFORMANCE_Stop(perf);
-        ElapsedTime[0] = PERFORMANCE_Get(perf, PCER_INSTR_Pos);
-        if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
-
-        PERFORMANCE_Start(perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
-        Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
-        PERFORMANCE_Stop(perf);
-        ElapsedTime[1] = PERFORMANCE_Get(perf, PCER_INSTR_Pos);
-        if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
-    }
-    PERFORMANCE_Start(perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
+    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
     LinearLayerReLU_2(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 10, Out_Layer2, 10, 0);
-    PERFORMANCE_Stop(perf);
-    ElapsedTime[2] = PERFORMANCE_Get(perf, PCER_INSTR_Pos);
+    PERFORMANCE_Stop(&perf);
+    ElapsedTime[2] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
     if (CheckResults) Check("SW   Layer2", Out_Layer1, 10, 1, 1);
 
 

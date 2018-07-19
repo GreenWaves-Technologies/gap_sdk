@@ -9,8 +9,6 @@ TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
 TEST_C = TestMat.c MatMultBasicKernels.c ModelKernelsInit.c ModelKernels.c
 RM=rm -f
 
-MBED_FLAGS+= -O3
-PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/MatMult
 
 # The double colon allows us to force this to occur before the imported all target

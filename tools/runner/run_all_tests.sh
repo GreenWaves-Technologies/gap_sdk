@@ -7,9 +7,9 @@ TIME_INTERVAL=10
 if [ "$2" == "rtl" ]; then
     EXPIRE_LIMIT=500
 elif [ "$2" == "gvsoc" ]; then
-    EXPIRE_LIMIT=60
+    EXPIRE_LIMIT=50
 elif [ "$2" == "gapuino" ]; then
-    EXPIRE_LIMIT=100
+    EXPIRE_LIMIT=50
 elif [ "$1" == "clean" ]; then
     echo "Clean the tests!"
 else
@@ -112,8 +112,8 @@ check_run() {
         fi
     done
 
-    kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')
-    kill $(ps aux | grep -s 'plpbridge' | awk '{print $2}')
+    kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')     2>/dev/null
+    kill $(ps aux | grep -s 'plpbridge' | awk '{print $2}') 2>/dev/null
 }
 
 

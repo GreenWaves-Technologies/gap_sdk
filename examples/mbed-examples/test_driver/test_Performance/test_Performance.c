@@ -1,5 +1,3 @@
-#include <string.h>
-#include <stdio.h>
 #include "cmsis.h"
 #include "gap_performance.h"
 performance_t perf;
