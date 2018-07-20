@@ -40,8 +40,8 @@ So how to use these memory resources in Arm® Mbed™ OS to create an efficient 
 | L1_each_core_stack | L1 TCDM
 | OS_stack | FC TCDM
 | Main_thread_stack | FC TCDM
-| Idle_thread_stack | L2 RAM
-| Timer_thread_stack | L2 RAM
+| Idle_thread_stack | FC TCDM
+| Timer_thread_stack | FC TCDM
 | APP_thread_stack | L2 RAM
 
 So as we can see, the main thread stack is in FC TCDM, so all local variables in main thread are in FC TCDM with starting address of 0x1B00xxxx. So these variables can not seen by UDMA if you want to transfer data. Here is the examples :
@@ -92,6 +92,10 @@ int main() {
 }
 ```
 In conclusion, if users want to use L2 memory for main thread stack, then, you will have not this problem, but the speed and power consumption of your program will deteriorate.
+
+
+# PINOUT
+![GPUINO PINOUT](images/GAPUINO_PINOUT.png){ width=1000px }
 
 
 # Drivers
