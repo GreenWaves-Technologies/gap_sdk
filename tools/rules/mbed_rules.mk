@@ -18,7 +18,8 @@ LDFLAGS       = -T$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtbegin.o \
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crti.o \
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtn.o \
-		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o
+		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o \
+		-lstdc++
 
 ifeq ($(chip), GAP8)
 RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__
