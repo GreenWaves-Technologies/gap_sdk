@@ -1,0 +1,70 @@
+Compiling My Model:
+-------------------
+
+See in ../GenTiling/HowToBuild.txt how to build LibTile.a
+
+gcc -o GenMnist -I../GenTiling -I../StdTypes/ -I../CnnStdModel MnistGenerator.c ../CnnStdModel/CNN_Generator.c ../GenTiling/LibTile.a
+
+
+
+Libraries:
+----------
+
+In ../StdTypes:
+        StdTypes.h              Standard data types used in kernels
+        KernelLibStdTypes.h     Kernels argument descriptor data type.
+
+In ../CnnStdModel:
+
+        CNN_BasicKernels.h	Header files. Basic CNN kernels working on shared cluster L1 (not tiled).
+        CNN_BasicKernels.c	Basic CNN kernels working on shared cluster L1 (not tiled).
+
+Generating the C files from MyModel.c:
+--------------------------------------
+
+./GenMnist -o <OutputDirName> -K
+
+-o <OutputDirName>: Optional, when specified use OutputDirName instead of current directory to store the 4 produced files
+
+Generated files (depends on settings):
+        MnistKernels.h
+        MnistKernels.c
+        MnistKernelsInit.h
+        MnistKernelsInit.c
+
+
+Compiling the generated C files:
+--------------------------------
+
+-I../CnnStdModel/ -I../StdTypes/ ../CnnStdModel/CNN_BasicKernels.c MnistKernels.c
+
+In case HWCE is used (Gap8 only):
+-I../CnnStdModel/ -I../StdTypes/ ../CnnStdModel/CNN_BasicKernels.c ./CnnStdModel/CNN_HwCE.c MnistKernels.c
+
+
+Compiling the test case:
+-----------------------
+
+source platform setup according to the target: virtual platform or RTL. RTL is mandatory for HWCE
+
+make clean all run
+
+SW running on Virtual Platform:
+	Layer0:   59075 Cycles
+	Layer1:  156035 Cycles
+	Layer2:    5685 Cycles
+
+SW running on RTL:
+	Layer0:   52710 Cycles
+	Layer1:  121608 Cycles
+	Layer2:    4140 Cycles
+
+With HWCE:
+	Layer0:   17826 Cycles
+	Layer1:   43088 Cycles
+	Layer2:    4119 Cycles
+
+Size infos:
+-----------
+
+	riscv32-unknown-elf-nm -S -n --radix=d
