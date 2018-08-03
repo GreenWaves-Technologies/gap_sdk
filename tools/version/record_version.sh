@@ -33,5 +33,8 @@ record_version $GAP_SDK_HOME/mbed-os;
 # TF to GAP8 version
 record_version $GAP_SDK_HOME/tf2gap8;
 
-# TF to GAP8 version
+# Application version
 record_version $GAP_SDK_HOME/applications;
+
+# Debug bridge version
+record_version $GAP_SDK_HOME/tools/pulp-debug-bridge/
