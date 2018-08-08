@@ -67,24 +67,49 @@ int hyper_init()
   return 0;
 }
 
+static void __rt_hyperflash_copy(int channel, void *addr, void *hyper_addr, int size, rt_event_t *event, int mbr)
+{
+    int irq = rt_irq_disable();
+
+    rt_event_t *call_event = __rt_wait_event_prepare(event);
+    rt_periph_copy_t *copy = &call_event->copy;
+
+    copy->ctrl = RT_PERIPH_COPY_HYPER << RT_PERIPH_COPY_CTRL_TYPE_BIT;
+    copy->u.hyper.hyper_addr = mbr | (unsigned int)hyper_addr;
+    // In case the size is bigger than the maximum burst size
+    // split the transfer into smaller transfers using the repeat count
+    if (size > 512) {
+        copy->addr = (unsigned int)addr;
+        copy->repeat = 512;
+        copy->repeat_size = size;
+        size = 512;
+
+    } else {
+        copy->repeat = 0;
+
+    }
+
+    rt_periph_copy(copy, channel, (unsigned int)addr, size, UDMA_CHANNEL_CFG_SIZE_16, call_event);
+
+    __rt_wait_event_check(event, call_event);
+
+    rt_irq_restore(irq);
+}
+
+
 /***********************
  * API for HyperFlash  *
  ***********************/
 void hyper_flash_write(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyperFlashAddr, rt_event_t *event)
 {
   rt_hyperflash_t *dev = (rt_hyperflash_t *)flash;
-  rt_event_t *call_event = __rt_wait_event_prepare(event);
-  rt_hyperflash_copy(dev, CHANNEL_TX, (void*)l2Addr, (void *)hyperFlashAddr, 2, call_event);
-  __rt_wait_event_check(event, call_event);
+  __rt_hyperflash_copy(UDMA_CHANNEL_ID(dev->channel) + CHANNEL_TX, (void*) l2Addr, (void *) hyperFlashAddr, 2, event, REG_MBR1);
 }
 
 void hyper_flash_burst_write(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyperFlashAddr, unsigned int size, rt_event_t *event)
 {
   rt_hyperflash_t *dev = (rt_hyperflash_t *)flash;
-  rt_event_t *call_event = __rt_wait_event_prepare(event);
-  rt_hyperflash_copy(dev, CHANNEL_TX, (void *)l2Addr, (void *)hyperFlashAddr, size, call_event);
-  __rt_wait_event_check(event, call_event);
-
+  __rt_hyperflash_copy(UDMA_CHANNEL_ID(dev->channel) + CHANNEL_TX, (void*) l2Addr, (void *) hyperFlashAddr, size, event, REG_MBR1);
 }
 
 void hyper_flash_read(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyperFlashAddr, unsigned int size, rt_event_t *event)
@@ -104,7 +129,7 @@ void hyper_flash_read(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyper
 
     rt_event_t *call_event = __rt_wait_event_prepare(event);
 
-    rt_hyperflash_copy(dev, CHANNEL_RX, &padding, (void *)(hyperFlashAddr+offset), rest_size, call_event);
+    __rt_hyperflash_copy(UDMA_CHANNEL_ID(dev->channel) + CHANNEL_RX, &padding, (void *)(hyperFlashAddr+offset), rest_size, call_event, REG_MBR1);
 
     __rt_wait_event_check(event, call_event);
 
@@ -126,7 +151,7 @@ void hyper_flash_read(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyper
     {
       // Read
       call_event = __rt_wait_event_prepare(event);
-      rt_hyperflash_copy(dev, CHANNEL_RX, (void *)l2Addr, (void *)hyperFlashAddr, offset, call_event);
+      __rt_hyperflash_copy(UDMA_CHANNEL_ID(dev->channel) + CHANNEL_RX, (void *) l2Addr, (void *) hyperFlashAddr, offset, call_event, REG_MBR1);
       __rt_wait_event_check(event, call_event);
     }
   }
@@ -134,7 +159,7 @@ void hyper_flash_read(rt_flash_t *flash, unsigned int l2Addr, unsigned int hyper
   {
     // Read
     rt_event_t *call_event = __rt_wait_event_prepare(event);
-    rt_hyperflash_copy(dev, CHANNEL_RX, (void *)l2Addr, (void *)hyperFlashAddr, size, call_event);
+    __rt_hyperflash_copy(UDMA_CHANNEL_ID(dev->channel) + CHANNEL_RX, (void *) l2Addr, (void *) hyperFlashAddr, size, call_event, REG_MBR1);
     __rt_wait_event_check(event, call_event);
   }
 }

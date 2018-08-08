@@ -8,7 +8,7 @@ cd ..
 export VSIM_DESIGN_MODEL=sverilog
 export SPI_FLASH_LOAD_MEM=YES
 
-export VSIM_RUNNER_FLAGS="+preload_file=efuse_preload.data -gLOAD_L2=STANDALONE -warning 3197,3748"
+export VSIM_RUNNER_FLAGS="-permit_unmatched_virtual_intf +preload_file=efuse_preload.data -gLOAD_L2=STANDALONE -warning 3197,3748"
 # Boot from SPI by default
 cp $GAP_SDK_HOME/tools/efuse/efuse_spi_preload.data ./efuse_preload.data
 

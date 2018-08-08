@@ -21,7 +21,7 @@
 
 #include "rt/rt_api.h"
 
-RT_FC_TINY_DATA unsigned int rtcEventsStatus = 0;
+RT_FC_TINY_DATA unsigned int rtcEventsStatus;
 RT_FC_TINY_DATA rt_rtc_t dev_rtc;
 RT_FC_TINY_DATA rt_event_t *__rtc_handler;
 
@@ -153,6 +153,11 @@ static void  rt_rtc_cntDwn_start(rt_rtc_cntDwn_t *cntDwn){
   RtcT rtc;
   rt_rtc_calendar_stop();
   rt_rtc_alarm_stop();
+  // Clear the RTC countdown interrupt in case it has been used previously
+  // without any interrupt handler. This can hapen for example when using RTC
+  // to wakeup from deep sleep mode where the runtime, which is booting from
+  // scratch will not handle the interrupt.
+  rt_rtc_reg_config(RTC_IRQ_Flag_Addr, RTC_Irq_Timer1_Flag);
   rtc.Raw = rt_rtc_reg_read(RTC_CntDown_Ctrl_Addr);
   if (cntDwn->repeat_en) rtc.cntDwnCtrl.cntDwn1_mode = RTC_CountDown1_Rpt_Mode; // Set to repeat mode, if repeat = 1
   rtc.cntDwnCtrl.cntDwn1_En = RTC_CountDown1_Active;                 // Start the CountDown timer
@@ -307,3 +312,8 @@ void rt_rtc_control( rt_rtc_t *rtc, rt_rtc_cmd_e rtc_cmd, void *value, rt_event_
   }
 }
 
+
+RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_rtc_init()
+{
+  rtcEventsStatus = 0;
+}

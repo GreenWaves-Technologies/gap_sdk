@@ -8,7 +8,7 @@ pulpChip = GAP
 PULP_APP = Mnist
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
 TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-PULP_APP_SRCS = Mnist.c MnistKernels.c MnistKernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c
+PULP_APP_SRCS = Mnist.c MnistKernels.c MnistKernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c ImgIO.c
 PULP_APP_SRCS += $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
 
 pulpFc=1
@@ -16,7 +16,7 @@ RM=rm -f
 
 
 #To activeate Hardware CE SET -DRT_HAS_HWCE=1
-USE_HARDWARE_CE = -DRT_HAS_HWCE=0
+USE_HARDWARE_CE = -DRT_HAS_HWCE=1
 
 PULP_CFLAGS += -O3 $(USE_HARDWARE_CE)
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns  -fdata-sections -ffunction-sections

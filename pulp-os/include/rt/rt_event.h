@@ -340,6 +340,20 @@ static inline rt_event_t *__rt_wait_event_prepare(rt_event_t *event)
   return __rt_wait_event_prepare_blocking();
 }
 
+static inline void __rt_event_save(rt_event_t *event)
+{
+  event->saved_pending = event->pending;
+  event->saved_callback = event->callback;
+  event->saved_arg = event->arg;
+}
+
+static inline void __rt_event_restore(rt_event_t *event)
+{
+  event->pending = event->saved_pending;
+  event->callback = event->saved_callback;
+  event->arg = event->saved_arg;
+}
+
 static inline rt_event_t *__rt_init_event(rt_event_t *event, rt_event_sched_t *sched, void (*callback)(void *), void *arg)
 {
   __rt_event_min_init(event);

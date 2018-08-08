@@ -135,20 +135,20 @@ void MnistConfiguration(unsigned int L1Memory)
 void MnistGenerator()
 
 {
-        #if RT_HAS_HWCE
+    #if RT_HAS_HWCE
                 // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. HWCE based.
                 // 1 input plane [28x28], 32 output planes [12x12]
-		CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1);
+		CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1,0,0);
                 // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. HWCE based.
                 // 32 input planes [12x12], 64 output planes [4x4]
-		CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_1", 5, 32, 64, 12, 12, 1);
+		CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_1", 5, 32, 64, 12, 12, 1,0,0);
 	#else
                 // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. Pure SW.
                 // 1 input plane [28x28], 32 output planes [12x12]
-		CNN_TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_0",      5,  1, 32, 28, 28, 1);
+		CNN_TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_0",      5,  1, 32, 28, 28, 1, 0, 0);
                 // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. Pure SW.
                 // 32 input planes [12x12], 64 output planes [4x4]
-		CNN_TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_1",      5, 32, 64, 12, 12, 1);
+		CNN_TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_1",      5, 32, 64, 12, 12, 1, 0, 0);
 	#endif
         // Linear Layer, Input, Output and Coeffs on 16bits.
         // Input 64 x [4x4], Output 10

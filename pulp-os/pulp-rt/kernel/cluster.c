@@ -75,7 +75,21 @@ static inline __attribute__((always_inline)) void __rt_cluster_mount(int cid, in
     if (rt_platform() != ARCHI_PLATFORM_FPGA)
     {
       // Setup FLL
-      __rt_fll_init(__RT_FLL_CL);
+      int init_freq = __rt_fll_init(__RT_FLL_CL);
+
+      // Check if we have to restore the cluster frequency
+      // otherwise just set it to the one returned by the fll
+      int freq = rt_freq_get(RT_FREQ_DOMAIN_CL);
+
+      if (freq)
+      {
+        rt_freq_set(RT_FREQ_DOMAIN_CL, freq);
+      }
+      else
+      {
+        __rt_freq_set_value(RT_FREQ_DOMAIN_CL, init_freq);
+      }
+
     }
 #endif
 

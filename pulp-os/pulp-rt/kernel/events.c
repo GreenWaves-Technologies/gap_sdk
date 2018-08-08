@@ -22,7 +22,7 @@
 #include "stdio.h"
 
 RT_FC_TINY_DATA rt_event_sched_t   __rt_sched;
-RT_FC_TINY_DATA rt_event_t        *__rt_first_free = NULL;
+RT_FC_TINY_DATA rt_event_t        *__rt_first_free;
 
 void rt_event_sched_init(rt_event_sched_t *sched)
 {
@@ -262,6 +262,7 @@ __rt_wait_event(event);
 
 RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_event_sched_init()
 {
+  __rt_first_free = NULL;
   rt_event_sched_init(&__rt_sched);
   // Push one event ot the runtime scheduler as some runtime services need
   // one event.

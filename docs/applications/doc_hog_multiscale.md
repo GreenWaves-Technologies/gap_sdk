@@ -41,11 +41,12 @@ To run the example type:
 make clean all run
 ~~~~~
 
+### Change Input-Output Configuration
 
 The example can run with two input-output configurations:
 
-1.  Input and Output from file on host PC (default configuration)
-2.  Input from Camera and output to LCD screen
+1.  **Input and Output from file on host PC (default configuration)**
+2.  **Input from Camera and output to LCD screen**
 
 There are no additional requirements for mode 1, while for mode two the Himax camera must be connected to cpi camera interface and an additional LCD screen must be mounted on the arduino connector. The driver included in this example supports [2.8 TFT LCD Shield based on ili9341 controller](https://www.adafruit.com/products/1947).
 
@@ -61,7 +62,7 @@ and to select configuration 2
 #define FROM_FILE 0
 ~~~~~
 
-When changing configuration the project must be rebuilt and run:
+After changing configuration the project must be rebuilt and run:
 
 ~~~~~sh
 make clean all run
@@ -74,15 +75,10 @@ To change the input image the following two steps are required.
 In the main.c file change the name of the input file:
 
 ~~~~c
-char *ImageName = "MyNewImage.ppm";
+char *Imagefile = "MyNewImage.ppm";
 ~~~~
 
-In the Makefile change the following line:
-
-~~~~Makefile
-override CONFIG_OPT += hyperflash hyperflash/fs/files=$(CURDIR)/MyNewImage.ppm
-
-~~~~
+So far only images of 324x244 size are supported.
 
 ## Citations
 

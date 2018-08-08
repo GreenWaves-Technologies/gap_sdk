@@ -32,7 +32,7 @@
 
 
 
-#if defined(CORE_PULP_BUILTINS) && !defined(__LLVM__)
+#if defined(__OPTIMIZE__) && defined(CORE_PULP_BUILTINS) && !defined(__LLVM__)
 
 static inline unsigned int hal_spr_read_then_clr(unsigned int reg, unsigned int val)
 {
@@ -54,25 +54,25 @@ static inline unsigned int hal_spr_read(unsigned int reg)
 #if defined(__LLVM__)
 
 #else
+ 
+#define hal_spr_read_then_clr(reg,val) \
+  ({ \
+    int state; \
+    asm volatile ("csrrc %0, %1, %2" :  "=r" (state) : "I" (reg), "I" (val) ); \
+    state; \
+  })
 
-static inline unsigned int hal_spr_read_then_clr(unsigned int reg, unsigned int val)
-{
-  int state;
-  asm volatile ("csrrc %0, %1, %2" :  "=r" (state) : "I" (reg), "I" (val) );
-  return state;
-}
+#define hal_spr_write(reg,val) \
+do { \
+  asm volatile ("csrw %0, %1" :  : "I" (reg), "r" (val) ); \
+} while(0)
 
-static inline void hal_spr_write(unsigned int reg, unsigned int val)
-{
-  asm volatile ("csrw %0, %1" :  : "I" (reg), "r" (val) );
-}
-
-static inline unsigned int hal_spr_read(unsigned int reg)
-{
-  int result;
-  asm volatile ("csrr %0, %1" : "=r" (result) : "I" (reg) );
-  return result;
-}
+#define hal_spr_read(reg) \
+({ \
+  int result; \
+  asm volatile ("csrr %0, %1" : "=r" (result) : "I" (reg) ); \
+  result; \
+})
 
 #endif
 

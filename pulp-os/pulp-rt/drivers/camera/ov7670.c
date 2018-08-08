@@ -92,7 +92,7 @@ typedef struct {
 static RT_L2_DATA i2c_req_t i2c_req;
 RT_L2_DATA unsigned char valRegOV7670;
 RT_L2_DATA unsigned int regAddrOV7670;
-RT_L2_DATA unsigned char __ov7670Inited = 0;
+RT_L2_DATA unsigned char __ov7670Inited;
 
 
 void ov7670RegWrite(rt_camera_t *cam, unsigned char addr, unsigned char value, rt_event_t *event){
@@ -323,3 +323,8 @@ rt_cam_dev_t ov7670_desc = {
     .control   = &__rt_ov7670_control,
     .capture   = &__rt_ov7670_capture
 };
+
+RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_ov7670_init()
+{
+  __ov7670Inited = 0;
+}
