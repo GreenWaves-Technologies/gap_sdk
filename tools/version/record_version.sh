@@ -54,5 +54,8 @@ record_version $GAP_SDK_HOME/tf2gap8;
 # Flasher version
 record_version $GAP_SDK_HOME/tools/gap_flasher
 
+# Application version
+record_version $GAP_SDK_HOME/applications;
+
 # Debug bridge version
 record_version $GAP_SDK_HOME/tools/pulp-debug-bridge/
