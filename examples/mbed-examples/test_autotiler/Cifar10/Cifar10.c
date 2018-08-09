@@ -105,36 +105,36 @@ static void RunCifar10(void)
     /* Make HWCE event active */
     EU_EVT_MaskSet(1 << EU_HWCE_EVENT);
 
-    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     Conv5x5MaxPool2x2_HWCE_0(ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
     PERFORMANCE_Stop(&perf);
-    ElapsedTime[0] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    ElapsedTime[0] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("HWCE Layer0", Out_Layer0, 8, 14, 14);
 
-    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     Conv5x5MaxPool2x2_HWCE_1(Out_Layer0, Filter_Layer1_HWCE, Out_Layer1, 14, Bias_Layer1, 0);
     PERFORMANCE_Stop(&perf);
-    ElapsedTime[1] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    ElapsedTime[1] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("HWCE Layer1", Out_Layer1, 12, 5, 5);
 #else
 
-    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     Conv5x5MaxPool2x2_SW_0(ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
     PERFORMANCE_Stop(&perf);
-    ElapsedTime[0] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    ElapsedTime[0] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
 
-    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     Conv5x5MaxPool2x2_SW_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
     PERFORMANCE_Stop(&perf);
-    ElapsedTime[1] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    ElapsedTime[1] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
 #endif
 
-    PERFORMANCE_Start(&perf, PCER_CYCLE_Msk);
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     LinearLayerReLU_1(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 10, Out_Layer2, 0, 0);
     PERFORMANCE_Stop(&perf);
-    ElapsedTime[2] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
+    ElapsedTime[2] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer2", Out_Layer1, 10, 1, 1);
 
     printf("Layer0: %7d Cycles\n", ElapsedTime[0]);
