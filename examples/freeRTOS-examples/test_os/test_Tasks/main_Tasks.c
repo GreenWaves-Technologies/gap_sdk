@@ -19,7 +19,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -27,10 +27,6 @@ StackType_t xStack[ configMINIMAL_STACK_SIZE ];
 /* Variables used. */
 uint8_t taskStatic = 0, taskDynamic = 0, taskDynamic2 = 0, resumeStatic = 0;
 
-/*
- * configUSE_PREEMPTION may not be set, to use cooperative mode.
- * if configUSE_PREEMPTION is set, configUSE_TIME_SLICING must also be set.
- */
 /****************************************************************************/
 
 /* Program Entry. */
@@ -44,7 +40,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTaskTestStatic,
         "Thread0",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -69,7 +65,7 @@ int main( void )
     xTask = xTaskCreate(
         vTaskTestDynamic,
         "Thread1",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -83,7 +79,7 @@ int main( void )
     xTask2 = xTaskCreate(
         vTaskTestDynamic2,
         "Thread2",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic2
@@ -97,7 +93,7 @@ int main( void )
     xTaskCleaner = xTaskCreate(
         vTaskTestCleaner,
         "ThreadCleaner",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleCleaner

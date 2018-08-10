@@ -40,7 +40,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestDriverRTC,
         "TestDriverRTC",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -102,7 +102,7 @@ void vTestDriverRTC( void *parameters )
 
     vTaskDelay( pdMS_TO_TICKS( 10000 ) );
 
-    if ( !flag && (countdown_now != ( COUNT_SECONDS - 2 ) ) )
+    if ( !flag || (countdown_now != ( COUNT_SECONDS - 2 ) ) )
         printf("Test failed\n");
     else
         printf("Test success\n");

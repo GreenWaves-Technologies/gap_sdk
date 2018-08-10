@@ -42,7 +42,7 @@ int main( void )
     xTask = xTaskCreate(
         vTest_FSRO,
         "Test_FSRO",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -87,10 +87,12 @@ void vTest_FSRO( void *parameters )
     fs_config_t conf;
     fs_config_default( &conf );
 
-    fs_handle_t *fs = fs_mount( fs_HYPER, &conf );
-    if( fs == NULL )
+    fs_handle_t *fs = ( fs_handle_t * ) pvPortMalloc( sizeof( fs_handle_t ) );
+    uint32_t err = fs_mount( fs, fs_HYPER, &conf );
+    if( err )
     {
         printf("Error FS mounting !\n");
+        vPortFree( fs );
         exit(-1);
     }
     printf("FS mounted.\n");
@@ -109,6 +111,7 @@ void vTest_FSRO( void *parameters )
     printf("File %s closed.\n", file->name);
 
     fs_unmount( fs );
+    vPortFree( fs );
     printf("FS unmounted.\n");
 
     exit(0);

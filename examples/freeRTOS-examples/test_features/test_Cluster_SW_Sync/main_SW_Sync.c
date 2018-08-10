@@ -9,7 +9,7 @@
 /****************************************************************************/
 
 /* Test task to test FreeRTOS port. */
-void vTestClusterSynchroSW( void *parameters );
+void vTestClusterSWSync( void *parameters );
 
 /* Utilities to control tasks. */
 TaskHandle_t tasks[NBTASKS];
@@ -27,7 +27,7 @@ SemaphoreHandle_t xSemaphoreDynamic = NULL;
 /* Program Entry. */
 int main( void )
 {
-    printf("\n\n\t *** Cluster Synchronisation SW Test ***\n\n");
+    printf("\n\n\t *** Cluster SW Synchronisation Test ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
 
@@ -38,9 +38,9 @@ int main( void )
     TaskHandle_t xHandleDynamic = NULL;
 
     xTask = xTaskCreate(
-        vTestClusterSynchroSW,
-        "TestClusterSynchroSW",
-        configMINIMAL_STACK_SIZE,
+        vTestClusterSWSync,
+        "TestClusterSWSync",
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -63,7 +63,7 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-void Synchronisation_SW( void *arg )
+void SW_Synchronisation( void *arg )
 {
     uint32_t coreid = __core_ID();
     /* Cores should break in order from the first loop. */
@@ -88,11 +88,11 @@ void Synchronisation_SW( void *arg )
 
 void Master_Entry( void *arg )
 {
-    CLUSTER_CoresFork(Synchronisation_SW, arg);
+    CLUSTER_CoresFork( SW_Synchronisation, arg );
 }
 /*-----------------------------------------------------------*/
 
-void vTestClusterSynchroSW( void *parameters )
+void vTestClusterSWSync( void *parameters )
 {
     ( void ) parameters;
     char *taskname = pcTaskGetName( NULL );
@@ -103,7 +103,7 @@ void vTestClusterSynchroSW( void *parameters )
         vTaskSuspend( NULL );
     xSemaphoreGive( xSemaphoreDynamic );
 
-    printf("%s executing ClusterDMA function on Computing Cluster :\n\n", taskname);
+    printf("%s executing Semaphore Sync function on Computing Cluster :\n\n", taskname);
 
     /* Power On Computing Cluster. */
     CLUSTER_Start( 0, NBCORES );

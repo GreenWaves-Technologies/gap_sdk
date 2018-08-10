@@ -101,7 +101,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestDriverI2S,
         "TestDriverI2S",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic

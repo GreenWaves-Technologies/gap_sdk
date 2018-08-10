@@ -44,7 +44,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestGPIO_IRQ,
         "TestGPIO_IRQ",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic

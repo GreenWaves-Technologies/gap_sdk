@@ -17,7 +17,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -40,7 +40,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTestTimer0,
         "Timer0",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) 20,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -65,7 +65,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestTimer0,
         "Timer1",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) 30,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -79,7 +79,7 @@ int main( void )
     xTask2 = xTaskCreate(
         vTestTimer1,
         "TimerCreator",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic2

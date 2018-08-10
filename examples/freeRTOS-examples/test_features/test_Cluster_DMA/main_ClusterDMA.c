@@ -43,7 +43,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestClusterDMA,
         "TestClusterDMA",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic

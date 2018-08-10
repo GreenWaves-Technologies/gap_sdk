@@ -18,7 +18,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -38,7 +38,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTestNotif0,
         "TestNotif0",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -63,7 +63,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestNotif1,
         "TestNotif1",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic

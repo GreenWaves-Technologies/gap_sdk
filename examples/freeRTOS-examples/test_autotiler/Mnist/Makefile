@@ -10,7 +10,7 @@ APP_SRC += Mnist.c
 DEMO_SRC += MnistKernels.c MnistKernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
 
 #To activeate Hardware CE SET -DRT_HAS_HWCE=1
-USE_HARDWARE_CE = -DRT_HAS_HWCE=0
+USE_HARDWARE_CE = -DRT_HAS_HWCE=1
 
 FREERTOS_FLAGS += -O3 -D__MBED__ $(USE_HARDWARE_CE)
 
@@ -18,7 +18,7 @@ RM=rm -f
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/CnnStdModel
+INC_PATH += $(TILER_PATH)/StdTypes $(TILER_GENERATOR_PATH)/CnnStdModel
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step

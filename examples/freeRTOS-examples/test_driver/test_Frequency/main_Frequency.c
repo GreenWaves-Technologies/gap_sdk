@@ -43,7 +43,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestFreq,
         "TestFreq",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -70,7 +70,7 @@ void vTestFreq( void *parameters )
 {
     ( void ) parameters;
     char *taskname = pcTaskGetName( NULL );
-    uint32_t frequency = 1000000, voltage = 1000;
+    uint32_t frequency = 1000000, voltage = 1000, get_frequency;
 
     printf("%s executing Frequency test on Fabric Controller :\n\n", taskname);
 
@@ -113,7 +113,16 @@ void vTestFreq( void *parameters )
                 printf("Test failed\n");
                 exit( -1 );
             }
-            printf("Frequency = %d , Voltage = %d mv\n", FLL_GetFrequency( uFLL_SOC ), voltage);
+            get_frequency = FLL_GetFrequency( uFLL_SOC );
+            printf("Set Freq = %d , Get freq = %d , Voltage = %d mv  ", frequency, get_frequency, voltage);
+            if((int)frequency-(int)get_frequency > 0){
+                int error = ((frequency-get_frequency)*1000)/frequency;
+                printf("Error (per-mille): %d\n", error);
+            }
+            else{
+                int error = ((get_frequency-frequency)*1000)/frequency;
+                printf("Error (per-mille): %d\n", error);
+            }
 
             for( volatile uint32_t i = 0; i < 10000; i++ );
         }

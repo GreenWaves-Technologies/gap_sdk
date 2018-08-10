@@ -1,6 +1,6 @@
 # User Test
 #------------------------------------
-APP_SRC 	= ./main_Synchronisation_SW.c
+APP_SRC 	= ./main_SW_Sync.c
 DEMO_SRC	+=
 INC_PATH	+=
 

@@ -38,7 +38,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestDriverRTC,
         "TestDriverRTC",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -73,8 +73,11 @@ void vTestDriverRTC( void *parameters )
     printf("Fabric controller code execution for RTC driver test\n");
 
     rtc_config_t config;
-    uint32_t repeat_mode = 0, alarmSec = 0;
-    rtc_datetime_t setTime, setAlarm, now;
+    RTC_GetDefaultConfig(&config);
+
+    RTC_Init(RTC_APB, &config);
+
+    rtc_datetime_t setTime, now;
 
     /* Year between 2001 - 2099 */
     setTime.year   = 2001;
@@ -85,65 +88,91 @@ void vTestDriverRTC( void *parameters )
     setTime.second = 59;
 
     printf ("Calendar Time now %d/%d/%d %d:%d:%d\n",
-            setTime.year, setTime.month, setTime.day,
-            setTime.hour, setTime.minute, setTime.second
-        );
+            setTime.year,
+            setTime.month,
+            setTime.day,
+            setTime.hour,
+            setTime.minute,
+            setTime.second);
 
-    /* Configure and init RTC with default values. */
-    RTC_GetDefaultConfig( &config );
-    RTC_Init( RTC_APB, &config );
-
-    if( RTC_SetCalendar( RTC_APB, &setTime ) != uStatus_Success )
-    {
-        printf("Set calendar failed! Test failed !\n");
+    /* Set calendar */
+    if (RTC_SetCalendar(RTC_APB, &setTime) != uStatus_Success) {
+        printf("Set calendar failed!\n");
         vTaskSuspend( NULL );
     }
 
-    RTC_StartCalendar( RTC_APB );
+    /* Start calendar */
+    RTC_StartCalendar(RTC_APB);
 
-    setAlarm.year   = 2001;
-    setAlarm.month  = 3;
-    setAlarm.day    = 1;
-    setAlarm.hour   = 0;
-    setAlarm.minute = 0;
-    setAlarm.second = 5;
+    for(int i = 0; i < 10; i++) {
+        /* Wait 1 second */
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
 
-    if( RTC_SetAlarm( RTC_APB, &setAlarm ) != uStatus_Success )
-    {
-        printf("Set alarm failed! Test failed !\n");
+        /* Read calendar */
+        RTC_GetCalendar(RTC_APB, &now);
+
+        printf ("Calendar Time now %d/%d/%d %d:%d:%d\n",
+                now.year,
+                now.month,
+                now.day,
+                now.hour,
+                now.minute,
+                now.second);
+    }
+
+    int repeat_mode = 0;
+    setTime.year   = 2001;
+    setTime.month  = 3;
+    setTime.day    = 1;
+    setTime.hour   = 0;
+    setTime.minute = 0;
+    setTime.second = 15;
+
+    /* Set Alarm 2001/03/01/00:00:15 */
+    if (RTC_SetAlarm(RTC_APB, &setTime) != uStatus_Success) {
+        printf("Set alarm failed!\n");
         vTaskSuspend( NULL );
     }
 
-    RTC_StartAlarm( RTC_APB, repeat_mode );
+    /* Start Alarm */
+    RTC_StartAlarm(RTC_APB, repeat_mode);
 
-    RTC_IRQHandlerBind( ( uint32_t ) alarm_irq_handler );
+    /* Binding RTC IRQ */
+    RTC_IRQHandlerBind((uint32_t)alarm_irq_handler);
 
-    RTC_GetAlarm( RTC_APB, &now );
+    /* Read RTC Alarm */
+    RTC_GetAlarm(RTC_APB, &now);
     printf ("Alarm    Time set %d/%d/%d %d:%d:%d\n",
-            now.year, now.month, now.day,
-            now.hour, now.minute, now.second
-        );
+            now.year,
+            now.month,
+            now.day,
+            now.hour,
+            now.minute,
+            now.second);
 
-    alarmSec = RTC_ConvertDatetimeToSeconds( &setAlarm ) - RTC_ConvertDatetimeToSeconds( &setTime );
-    printf("Alarm in %d seconds.\n", alarmSec);
+    for(int i = 0; i < 10; i++) {
+        /* Wait 1 second */
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
 
-    while( !flag )
-    {
-        if( ( xTaskGetTickCount()/1000 ) > alarmSec )
-        {
-            printf("Test failed !\n");
-            vTaskSuspend( NULL );
-        }
-        EU_EVT_MaskWaitAndClr( 1 << FC_SW_NOTIF_EVENT );
+        /* Read calendar */
+        RTC_GetCalendar(RTC_APB, &now);
+
+        printf ("Calendar Time now %d/%d/%d %d:%d:%d\n",
+                now.year,
+                now.month,
+                now.day,
+                now.hour,
+                now.minute,
+                now.second);
     }
 
-    /* Read calendar */
-    RTC_GetCalendar( RTC_APB, &now );
-    printf ("Calendar Time now %d/%d/%d %d:%d:%d\n",
-            now.year, now.month, now.day,
-            now.hour, now.minute, now.second);
-
-    printf("Test success !\n");
+    int error = 0;
+    if (!flag) {
+        printf("Test failed\n");
+        error = 1;
+    } else {
+        printf("Test success\n");
+    }
 
     /* Suicide. */
     vTaskSuspend( NULL );

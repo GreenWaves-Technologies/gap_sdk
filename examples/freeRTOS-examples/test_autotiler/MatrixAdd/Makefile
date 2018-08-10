@@ -13,7 +13,7 @@ RM=rm -f
 FREERTOS_FLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -D__MBED__
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/FFT_Lib
+INC_PATH += $(TILER_PATH)/StdTypes $(TILER_GENERATOR_PATH)/FFT_Lib
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step

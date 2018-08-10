@@ -19,7 +19,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer, xTaskBuffer2;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ], xStack2[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ], xStack2[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -50,7 +50,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTestEventGroup0,
         "TestEventGroup0",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) TASK0,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -65,7 +65,7 @@ int main( void )
     xHandleStatic2 = xTaskCreateStatic(
         vTestEventGroup1,
         "TestEventGroup1",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) TASK1,
         tskIDLE_PRIORITY + 1,
         xStack2,
@@ -90,7 +90,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestEventGroup0,
         "TestEventGroup2",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) TASK2,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -104,7 +104,7 @@ int main( void )
     xTask2 = xTaskCreate(
         vTestEventGroup1,
         "TestEventGroup3",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) TASK3,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic2
@@ -118,7 +118,7 @@ int main( void )
     xTask3 = xTaskCreate(
         vTestEventGroup2,
         "TestEventGroup4",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) !(SYNC_TASKS),
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic3

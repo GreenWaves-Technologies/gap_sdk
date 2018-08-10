@@ -18,7 +18,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -45,7 +45,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTestMutex0,
         "TestMutex0",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) 2000,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -70,7 +70,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestMutex1,
         "TestMutex1",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         ( void * ) 1000,
         tskIDLE_PRIORITY + 2,
         &xHandleDynamic
@@ -84,7 +84,7 @@ int main( void )
     xTask2 = xTaskCreate(
         vTestMutex2,
         "MutexCreator",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic2

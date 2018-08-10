@@ -6,7 +6,7 @@ APP_SRC          = ./MFCC/MFCC_Processing.c ./MFCC/MFCC.c ./AUDIO/AUDIO.c ./test
 		./CNN_KERNELS/CnnKernels.c  ./CNN_KERNELS/CnnKernels_tileddense.c \
 		./CNN_KERNELS/CNN_BasicKernels.c ./CNN_KERNELS/CNN_HwCE.c \
 
-INC_PATH        += -I./MFCC -I./AUDIO -I./WEIGHTS_BIAS -I./CNN_KERNELS -I./include
+INC_PATH        += ./MFCC ./AUDIO ./WEIGHTS_BIAS ./CNN_KERNELS ./include
 
 # If not use HWCE
 # TEST_C         +=./CNN_KERNELS/CnnKernelsInit.c

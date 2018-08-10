@@ -1,7 +1,7 @@
 # User Test
 #------------------------------------
-APP_SRC 	= ./main_SPI_S25FS256S_NON_QPI.c
+APP_SRC 	= ./main_PWM.c
 DEMO_SRC	+=
-INC_PATH	+=
+INCLUDES	+=
 
 include $(GAP_SDK_HOME)/tools/rules/freeRTOS_rules.mk

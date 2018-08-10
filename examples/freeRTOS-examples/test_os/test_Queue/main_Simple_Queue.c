@@ -21,7 +21,7 @@ uint8_t taskSuspended;
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
 StaticTask_t xTaskBuffer;
-StackType_t xStack[ configMINIMAL_STACK_SIZE ];
+StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 #endif //configSUPPORT_STATIC_ALLOCATION
 
 /****************************************************************************/
@@ -40,7 +40,7 @@ struct _message
 typedef struct _message message;
 #define QUEUE_LENGTH ( 5 )
 #define ITEM_SIZE ( sizeof( message ) )
-#define TABSIZE ( 3 * QUEUE_LENGTH )
+#define TABSIZE ( 2 * QUEUE_LENGTH )
 
 #define STATIC ( 1 )
 
@@ -65,7 +65,7 @@ int main( void )
     xHandleStatic = xTaskCreateStatic(
         vTestQueue0,
         "TaskReceiver",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         xStack,
@@ -90,7 +90,7 @@ int main( void )
     xTask = xTaskCreate(
         vTestQueue1,
         "TaskSender",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
@@ -104,7 +104,7 @@ int main( void )
     xTask2 = xTaskCreate(
         vTestQueue2,
         "TaskCreator",
-        configMINIMAL_STACK_SIZE,
+        configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic2

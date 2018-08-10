@@ -1,6 +1,6 @@
 # User Test
 #------------------------------------
-APP_SRC 	= ./main_SPI_S25FS256S_NON_QPI.c
+APP_SRC 	= ./main_HW_Sync.c
 DEMO_SRC	+=
 INC_PATH	+=
 

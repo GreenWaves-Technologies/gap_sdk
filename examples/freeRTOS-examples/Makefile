@@ -36,5 +36,6 @@ gapuino_compile_and_run_test:
 
 clean:
 	@find . -name BUILD -exec rm -rf {} +
-	@find . -name transcript -exec rm -rf {} +
-	@find . -name "report.log" -exec rm -rf {} +
+	@find . -name transcript -exec rm  {} +
+	@find . -name version.log -exec rm {} +
+	@rm -rf report.log
