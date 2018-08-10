@@ -139,7 +139,7 @@ OBJS            = $(ASM_OBJS) $(C_OBJS)
 
 BIN             = $(BUILDDIR)/test
 
-all::   dir $(OBJS) $(BIN) disdump
+all::   dir $(OBJS) $(BIN) version disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -195,10 +195,14 @@ debug:
 	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
 
 $(BIN).s: $(BIN)
-	$(OBJDUMP) -xD $< > $@
+	$(OBJDUMP) -D $< > $@
 
 disdump: $(BIN).s
+
+version:
+	@$(MBED_PATH)/tools/version/record_version.sh
 
 clean::
 	@rm -rf $(OBJS) $(DUMP) $(TEST_OBJ)
 	@rm -rf *~ ./BUILD transcript *.wav __pycache__
+	@rm -rf version.log
