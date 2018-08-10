@@ -7,9 +7,9 @@ TIME_INTERVAL=10
 if [ "$2" == "rtl" ]; then
     EXPIRE_LIMIT=500
 elif [ "$2" == "gvsoc" ]; then
-    EXPIRE_LIMIT=60
+    EXPIRE_LIMIT=50
 elif [ "$2" == "gapuino" ]; then
-    EXPIRE_LIMIT=100
+    EXPIRE_LIMIT=50
 elif [ "$1" == "clean" ]; then
     echo "Clean the tests!"
 else
@@ -18,7 +18,7 @@ else
 fi
 
 # VARIABLEs
-TATAL_TEST=0
+TOTAL_TEST=0
 TEST_COMPILE=0
 TEST_SUCCESS=0
 TEST_FAILED=0
@@ -28,12 +28,40 @@ EXPIRE_TIME=0
 # Report PATH
 REPORT_FILE_PATH="$(pwd)/report.log"
 
+check_previous_test() {
+    # Pass previous jenkins test
+
+    if [ -f  $REPORT_FILE_PATH ]; then
+            if [ "$1" == "run" ]; then
+                PREVIOUS_TEST=$(grep -c RUN $REPORT_FILE_PATH)
+            elif [ "$1" == "compile" ]; then
+                PREVIOUS_TEST=$(grep -c COMPILE $REPORT_FILE_PATH)
+            elif [ "$1" == "compile_and_run" ]; then
+                PREVIOUS_TEST=$(grep -c RUN $REPORT_FILE_PATH)
+            fi
+            else
+        PREVIOUS_TEST=""
+    fi
+
+    TOTAL_TEST=$((TOTAL_TEST+1))
+
+    if [ "$PREVIOUS_TEST" != "" ]; then
+        if [ $TOTAL_TEST -le $PREVIOUS_TEST ]; then
+            if [ "$1" == "list" ]; then
+                echo "$(dirname $t) : PASS";
+            fi
+            continue;
+        fi
+    fi
+}
+
 check_compile() {
 
     if [ $1 -eq 0 ]; then
+        echo "$(dirname $t) : COMPILE SUCCESS" >> $REPORT_FILE_PATH
+
         # Record compile success path
         TEST_COMPILE=$((TEST_COMPILE+1));
-        echo "$(dirname $t) : COMPILE SUCCESS" >> $REPORT_FILE_PATH
     else
         # Record compile failed path
         echo "$(dirname $t) : COMPILE FAILED" >> $REPORT_FILE_PATH
@@ -84,8 +112,8 @@ check_run() {
         fi
     done
 
-    kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')
-    kill $(ps aux | grep -s 'plpbridge' | awk '{print $2}')
+    kill $(ps aux | grep -s 'vsimk' | awk '{print $2}')     2>/dev/null
+    kill $(ps aux | grep -s 'plpbridge' | awk '{print $2}') 2>/dev/null
 }
 
 
@@ -96,7 +124,8 @@ do
     elif [ $2 == "rtl" ]; then
         if grep -cs "rtl" $t > /dev/null;
         then
-            TATAL_TEST=$((TATAL_TEST+1))
+            # Check previous unfinished jenkins test
+            check_previous_test $1;
 
             # Reset expire time for each test
             EXPIRE_TIME=0
@@ -135,7 +164,8 @@ do
     elif [ $2 == "gvsoc" ]; then
         if grep -cs "gvsoc" $t > /dev/null;
         then
-            TATAL_TEST=$((TATAL_TEST+1))
+            # Check previous unfinished jenkins test
+            check_previous_test $1;
 
             # Reset expire time for each test
             EXPIRE_TIME=0
@@ -174,7 +204,8 @@ do
     elif [ $2 == "gapuino" ]; then
         if grep -cs "gapuino" $t > /dev/null;
         then
-            TATAL_TEST=$((TATAL_TEST+1))
+            # Check previous unfinished jenkins test
+            check_previous_test $1;
 
             # Reset expire time for each test
             EXPIRE_TIME=0
@@ -214,8 +245,14 @@ do
 
 done
 
+if [ -f  $REPORT_FILE_PATH ]; then
+    TEST_COMPILE=$(grep -c "COMPILE SUCCESS" $REPORT_FILE_PATH)
+    TEST_SUCCESS=$(grep -c "RUN SUCCESS" $REPORT_FILE_PATH)
+    TEST_FAILED=$(grep -c "RUN FAILED" $REPORT_FILE_PATH)
+fi
+
 echo "############################################"         | tee -a $REPORT_FILE_PATH
-echo "Test total           number : $TATAL_TEST"            | tee -a $REPORT_FILE_PATH
+echo "Test total           number : $TOTAL_TEST"            | tee -a $REPORT_FILE_PATH
 echo "Test copmile success number : $TEST_COMPILE"          | tee -a $REPORT_FILE_PATH
 echo "Test success         number : $TEST_SUCCESS"          | tee -a $REPORT_FILE_PATH
 echo "Test failed          number : $TEST_FAILED"           | tee -a $REPORT_FILE_PATH

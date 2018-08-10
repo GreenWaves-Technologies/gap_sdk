@@ -147,7 +147,7 @@ static RT_L2_DATA i2c_req_t i2c_req;
 RT_L2_DATA unsigned char valRegHimax;
 
 // TODO: write a status var for cam
-RT_FC_DATA unsigned char camera_isAwaked = 0;
+RT_FC_DATA unsigned char camera_isAwaked;
 
 
 void himaxRegWrite(rt_camera_t *cam, unsigned int addr, unsigned char value){
@@ -228,10 +228,10 @@ static void _himaxConfig(rt_cam_conf_t *cam){
             break;
         case QVGA:
         default:
-            _cpi.cfg_size.row_length = ((QVGA_W+4)/2 - 1);
+            _cpi.cfg_size.row_length = ((QVGA_W+4)/2-1);
     }
     hal_cpi_size_set(0, _cpi.raw);
-    
+
     _cpi.raw = 0;
 
     switch (cam->format){
@@ -282,8 +282,6 @@ void __rt_himax_control(rt_camera_t *dev_cam, rt_cam_cmd_e cmd, void *_arg){
         case CMD_SLICE:
             {
                 rt_img_slice_t *slicer = (rt_img_slice_t *) arg;
-                slicer->slice_ll.x = (slicer->slice_ll.x >> 1);
-                slicer->slice_ur.x = (slicer->slice_ur.x >> 1);
                 _camera_extract(&dev_cam->conf, slicer);
             }
             break;
@@ -371,7 +369,7 @@ void __rt_himax_capture(rt_camera_t *dev_cam, void *buffer, size_t bufferlen, rt
 
     rt_periph_copy_init(&call_event->copy, 0);
 
-    rt_periph_copy(&call_event->copy, UDMA_CHANNEL_ID(dev_cam->channel) + 0, (unsigned int) buffer+2, bufferlen, dev_cam->conf.cpiCfg, call_event);
+    rt_periph_copy(&call_event->copy, UDMA_CHANNEL_ID(dev_cam->channel) + 0, (unsigned int) buffer, bufferlen, dev_cam->conf.cpiCfg, call_event);
 
     __rt_wait_event_check(event, call_event);
 
@@ -384,3 +382,8 @@ rt_cam_dev_t himax_desc = {
     .control   = &__rt_himax_control,
     .capture   = &__rt_himax_capture
 };
+
+RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_himax_init()
+{
+  camera_isAwaked = 0;
+}

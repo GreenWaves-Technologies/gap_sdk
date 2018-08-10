@@ -158,7 +158,7 @@ uint8_t S25FS_QSPI_Init(void)
     master_config.cpol = (mode & 0x2) ? uSPI_ClockPolarityActiveLow : uSPI_ClockPolarityActiveHigh;
     master_config.cpha = (mode & 0x1) ? uSPI_ClockPhaseSecondEdge : uSPI_ClockPhaseFirstEdge;
 
-    SPI_MasterInit(SPIM0, &master_config, SPI_CLK_FRE_DEFAUT);
+    SPI_MasterInit(SPIM0, &master_config, FLL_GetFrequency(uFLL_SOC));
 
     /* QSPI memory reset */
     if (S25FS_QSPI_ResetMemory() != QSPI_OK)

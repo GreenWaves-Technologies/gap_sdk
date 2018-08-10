@@ -193,6 +193,9 @@ static inline void rt_spim_control(rt_spim_t *handle, rt_spim_control_e cmd, uin
  * The copy will make an asynchronous transfer between the SPI and one of the chip memory.
  * An event can be specified in order to be notified when the transfer is finished.
  * This is using classic SPI transfer with MOSI and MISO lines.
+ * Note that the event attached to this call is triggered when the chip is ready to send another spi stream 
+ * not when the spi stream has been fully sent. There can be some buffering effects which
+ * make the chip send a few bits after the event is triggered.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param data     The address in the chip where the data to be sent must be read.

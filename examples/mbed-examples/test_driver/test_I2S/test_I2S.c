@@ -87,7 +87,7 @@ int main() {
     if(EN_CHAN1)
     {
         /* I2S Init */
-        SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S1_SCK_B13);
+        SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S1_SCK);
 
         /* I2S Filter Configuration  */
         SAI_FilterConfig(i2s_address[0], uSAI_Channel1, DECIMATION_CHAN1 - 1, SHIFT_CHAN1);
@@ -116,9 +116,7 @@ int main() {
         SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, EN_CHAN0, 0x1f);
     }
 
-    printf("I2S audio rec start on I2S%d, mode %s\n", ((EN_CHAN0) ? 0 : 1),
-	   ( (i2s_config >= 2) ? "Stereo" : "Mono") );
-
+    printf("I2S audio rec start on I2S%d, mode %s\n", ((EN_CHAN0) ? 0 : 1),  ((i2s_config >= 2) ? "Stereo" : "Mono") );
 
     for(;;) {
         printf("Ready to record audio from microphones\n");
@@ -138,7 +136,7 @@ int main() {
 
         (&I2sOutHeader)->micReady = 0;
 
-	CreateWAVHeader(I2S_BUFFER_CH0, &I2sOutHeader);
+        CreateWAVHeader(I2S_BUFFER_CH0, &I2sOutHeader);
 
         while (((volatile I2sDescriptor *) &I2sOutHeader)->recReady == 1) {};
 
@@ -218,19 +216,19 @@ static void CreateWAVHeader(uint8_t *I2sOut, I2sDescriptor *I2sOutHeader) {
     // 16*2/8=4 - 16b stereo
     if(i2s_config >= 2)
     {
-    header_buffer[idx++] = 0x88;
-    header_buffer[idx++] = 0x58;
-    header_buffer[idx++] = 0x01;
-    header_buffer[idx++] = 0x00;
-    header_buffer[idx++] = 0x04;
-    header_buffer[idx++] = 0x00;
+        header_buffer[idx++] = 0x88;
+        header_buffer[idx++] = 0x58;
+        header_buffer[idx++] = 0x01;
+        header_buffer[idx++] = 0x00;
+        header_buffer[idx++] = 0x04;
+        header_buffer[idx++] = 0x00;
     } else {
-	header_buffer[idx++] = 0x44;
-	header_buffer[idx++] = 0xac;
-	header_buffer[idx++] = 0x00;
-	header_buffer[idx++] = 0x00;
-	header_buffer[idx++] = 0x02;
-	header_buffer[idx++] = 0x00;
+        header_buffer[idx++] = 0x44;
+        header_buffer[idx++] = 0xac;
+        header_buffer[idx++] = 0x00;
+        header_buffer[idx++] = 0x00;
+        header_buffer[idx++] = 0x02;
+        header_buffer[idx++] = 0x00;
     }
 
     // 2 bytes (BitsPerSample * Channels) / 8:

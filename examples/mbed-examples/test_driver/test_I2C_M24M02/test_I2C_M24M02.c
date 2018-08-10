@@ -28,7 +28,7 @@ int main()
     printf("I2C0_SCL  = %d \n", I2C0_SCL);
 
     /* Set fequence to 100kHz */
-    uint32_t freq = 200000;
+    uint32_t freq = 100000;
     i2c_frequency(&i2c0, freq);
     printf("Frequncy set done, %d Hz\n", freq);
 

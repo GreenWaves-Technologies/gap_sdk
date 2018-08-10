@@ -45,19 +45,6 @@
 // Write and read address
 #define SA                      0x0000
 
-//static rt_event_sched_t sched;
-//static rt_flash_t *flash;
-
-/*
-typedef struct {
-	unsigned int	L2_Addr;
-	unsigned int 	Size;
-	unsigned int	Ready;
-    unsigned int    Exit;
-    unsigned int    eotFlash;
-} fileDescriptor;
-*/
-
 typedef struct {
     unsigned short data;
     unsigned short addr;
@@ -251,7 +238,6 @@ int write_bloc_to_hyperflash(rt_flash_t *flash, unsigned int flash_addr,  unsign
     else printf("[Flasher]: Test SUCCESS: checkSum tx %X - checkSum rx %X \n", checkSum_tx, checkSum_rx);
 #endif
 
-    //flashCopyHeader.eotFlash = 1;
 
     return error;
 }

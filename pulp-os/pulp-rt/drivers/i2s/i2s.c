@@ -36,6 +36,7 @@
 
 #include "rt/rt_api.h"
 
+rt_i2s_dev_t i2s_desc;
 static rt_i2s_t *__rt_i2s_first[ARCHI_UDMA_NB_I2S];
 
 static inline int __rt_i2s_id(rt_i2s_t *i2s)
@@ -52,32 +53,6 @@ void rt_i2s_conf_init(rt_i2s_conf_t *conf)
   conf->width = 16;
 }
 
-rt_i2s_t* rt_i2s_open(char *dev_name, rt_i2s_conf_t *conf, rt_event_t*event)
-{
-  int irq = rt_irq_disable();
-
-  rt_trace(RT_TRACE_DEV_CTRL, "[I2S] Opening i2s device (name: %s)\n", dev_name);
-
-  rt_dev_t *dev = rt_dev_get(dev_name);
-  if (dev == NULL) goto error;
-
-  rt_i2s_dev_t *desc = (rt_i2s_dev_t *)dev->desc;
-  if (desc == NULL) goto error;
-
-  rt_i2s_t *i2s = desc->open(dev, conf, event);
-  if (i2s == NULL) goto error;
-
-  memcpy((void *)&i2s->desc, (void *)desc, sizeof(rt_i2s_dev_t));
-
-  rt_irq_restore(irq);
-
-  return i2s;
-
-error:
-  rt_warning("[I2S] Failed to open i2s device\n");
-  return NULL;
-}
-
 static void __rt_i2s_free(rt_i2s_t *i2s)
 {
   if (i2s != NULL) {
@@ -88,6 +63,18 @@ static void __rt_i2s_free(rt_i2s_t *i2s)
 static rt_i2s_t *__rt_i2s_open(rt_dev_t *dev, rt_i2s_conf_t *conf, rt_event_t*event)
 {
   rt_i2s_t *i2s = NULL;
+  int periph_id, sub_periph_id;
+
+  if (dev)
+  {
+    periph_id = (dev->channel & 0xf);
+    sub_periph_id = (dev->channel >> 4) & 0xf;
+  }
+  else
+  {
+    periph_id = conf->id >> 1;
+    sub_periph_id = conf->id & 1;
+  }
 
   // Check parameters
   if (conf->width != 16) return NULL;
@@ -115,10 +102,10 @@ static rt_i2s_t *__rt_i2s_open(rt_dev_t *dev, rt_i2s_conf_t *conf, rt_event_t*ev
   i2s->pdm = conf->pdm;
   i2s->decimation_log2 = conf->decimation_log2;
 
-  i2s->periph_id = (dev->channel & 0xf);
+  i2s->periph_id = periph_id;
   i2s->udma_channel = i2s->periph_id*2;
   i2s->i2s_id = i2s->periph_id - ARCHI_UDMA_I2S_ID(0);
-  i2s->clk = (dev->channel >> 4) & 0xf;
+  i2s->clk = sub_periph_id;
   i2s->dual = conf->dual;
   i2s->width = conf->width;
   i2s->running = 0;
@@ -293,6 +280,42 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_i2s_init()
   }
 
   if (err) rt_fatal("Unable to initialize i2s driver\n");
+}
+
+rt_i2s_t* rt_i2s_open(char *dev_name, rt_i2s_conf_t *conf, rt_event_t*event)
+{
+  int irq = rt_irq_disable();
+
+  rt_trace(RT_TRACE_DEV_CTRL, "[I2S] Opening i2s device (name: %s)\n", dev_name);
+
+  rt_i2s_dev_t *desc;
+  rt_dev_t *dev = NULL;
+
+  if (conf->id != -1)
+  {
+    desc = &i2s_desc;
+  }
+  else
+  {
+    dev = rt_dev_get(dev_name);
+    if (dev == NULL) goto error;
+
+    desc = (rt_i2s_dev_t *)dev->desc;
+    if (desc == NULL) goto error;
+  }
+
+  rt_i2s_t *i2s = desc->open(dev, conf, event);
+  if (i2s == NULL) goto error;
+
+  memcpy((void *)&i2s->desc, (void *)desc, sizeof(rt_i2s_dev_t));
+
+  rt_irq_restore(irq);
+
+  return i2s;
+
+error:
+  rt_warning("[I2S] Failed to open i2s device\n");
+  return NULL;
 }
 
 rt_i2s_dev_t i2s_desc = {

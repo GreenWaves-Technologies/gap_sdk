@@ -94,6 +94,10 @@ int main() {
 In conclusion, if users want to use L2 memory for main thread stack, then, you will have not this problem, but the speed and power consumption of your program will deteriorate.
 
 
+# PINOUT
+![GPUINO PINOUT](images/GAPUINO_PINOUT.png){ width=1000px }
+
+
 # Drivers
 ## Drivers support situation for GAP8 (1st release)
 | Driver type | CMSIS_Driver | Mbed API (C) | Mbed API (C++) | Example

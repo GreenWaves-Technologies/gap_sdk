@@ -18,7 +18,8 @@ LDFLAGS       = -T$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtbegin.o \
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crti.o \
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtn.o \
-		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o
+		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o \
+		-lstdc++
 
 ifeq ($(chip), GAP8)
 RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__
@@ -32,7 +33,8 @@ DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
 		-DDEVICE_STDIO_MESSAGES=1 -DDEVICE_SLEEP=1 \
 		-DDEVICE_PORTIN=1 -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 \
 		-DDEVICE_I2C=1 -DDEVICE_I2C_ASYNCH=1 -DDEVICE_I2S=1 -DDEVICE_RTC=1 \
-		-DDEVICE_INTERRUPTIN=1
+		-DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1
+
 
 
 WRAP_FLAGS    = -Wl,--gc-sections -Wl,--wrap,main -Wl,--wrap,_malloc_r -Wl,--wrap,_free_r -Wl,--wrap,_realloc_r \
@@ -61,7 +63,7 @@ endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
+COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os -g1 -D_RTE_ $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
 
 ASMFLAGS      = -x assembler-with-cpp $(COMMON)
 
@@ -77,79 +79,25 @@ BUILDDIR      = $(shell pwd)/BUILD/$(chip)/GCC_RISCV
 
 ifeq ($(chip), GAP8)
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/cmsis/*" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/*")))
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*")))
 else
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/cmsis/*" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/*")))
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*")))
 endif
 
 ifeq ($(chip), GAP8)
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
-		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" -not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
-		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*")))
 else
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
-		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" -not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
-		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*")))
 endif
 
@@ -158,35 +106,9 @@ T_OBJECTS_C   += $(patsubst %.c, $(BUILDDIR)/%.o, $(TEST_C))
 T_OBJECTS_CXX += $(patsubst %.cpp, $(BUILDDIR)/%.o, $(TEST_CXX))
 
 CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.cpp" \
-		-not -path "$(MBED_PATH)/mbed-os/tools/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/tools/*" -not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/TESTS_COMMON/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/utest/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
-		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/features/spif-driver/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/i2cee-driver/TESTS/*")))
 
@@ -194,8 +116,7 @@ OBJECTS       = $(S_OBJECTS) $(T_OBJECTS_C) $(T_OBJECTS_CXX) $(C_OBJECTS) $(CXX_
 
 INC_DEFINE    = -include $(MBED_PATH)/mbed-os/targets/TARGET_GWT/mbed_config.h
 
-INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/mbed-os/hal/ $(MBED_PATH)/mbed-os/platform/ $(MBED_PATH)/mbed-os/cmsis \
-		$(MBED_PATH)/mbed-os/cmsis/TARGET_RISCV_32 $(MBED_PATH)/mbed-os/rtos \
+INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/mbed-os/hal/ $(MBED_PATH)/mbed-os/platform/ $(MBED_PATH)/mbed-os/cmsis/TARGET_RISCV_32 $(MBED_PATH)/mbed-os/rtos \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/ $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx4/ $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/ \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/Include  $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Config \
 		$(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Include  $(MBED_PATH)/mbed-os/rtos/TARGET_RISCV/rtx5/RTX/Source \
@@ -212,19 +133,17 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/frameworks/utest $(MBED_PATH)/mbed-os/features/frameworks/utest/utest \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
+		$(MBED_PATH)/mbed-os/features/hyperbus-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
 		$(TARGET_INSTALL_DIR)/include
 
 
 INC_PATH      += $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
-all:: $(OBJECTS) $(BIN) disdump
+all:: $(OBJECTS) $(BIN) version disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
-	ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 
 # Rules for creating dependency files (.d).
 #------------------------------------------
@@ -264,8 +183,11 @@ run::
 	$(MBED_PATH)/tools/runner/run_fpga.sh
 else ifdef rtl
 run:: dir
+	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
+	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
+	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode)
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(PLPBRIDGE_FLAGS)
 else
 run:: all
 	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
@@ -275,8 +197,11 @@ gdbserver: run
 
 endif
 gui:: dir
+	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
+	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
+	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI"
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(PLPBRIDGE_FLAGS)
 
 debug:
 	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
@@ -286,8 +211,12 @@ $(BUILDDIR)/test.s: $(BUILDDIR)/test
 
 disdump: $(BUILDDIR)/test.s
 
+version:
+	@$(MBED_PATH)/tools/version/record_version.sh
+
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD transcript *.wav __pycache__
+	@rm -rf version.log
 
 .PHONY: gui debug disdump clean gdbserver run all dir

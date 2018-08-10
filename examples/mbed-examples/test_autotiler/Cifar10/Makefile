@@ -6,10 +6,13 @@
 
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
 TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-TEST_C = Cifar10.c Cifar10Kernels.c Cifar10KernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c
-ifdef RT_HAS_HWCE
-	PULP_APP_SRCS += $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
-endif
+TEST_C = Cifar10.c Cifar10Kernels.c Cifar10KernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
+
+#To activeate Hardware CE SET -DRT_HAS_HWCE=1
+USE_HARDWARE_CE = -DRT_HAS_HWCE=0
+
+MBED_FLAGS += -O3 $(USE_HARDWARE_CE)
+
 RM=rm -f
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
@@ -22,7 +25,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenCifar10 -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/CnnStdModel Cifar10Generator.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenCifar10 $(USE_HARDWARE_CE) -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/CnnStdModel Cifar10Generator.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
 
 # Run the code generator
 Cifar10Kernels.c Cifar10KernelsInit.c: GenTile

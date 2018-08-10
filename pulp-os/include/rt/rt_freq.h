@@ -136,6 +136,11 @@ static inline int rt_freq_set(rt_freq_domain_e domain, unsigned int freq)
   return rt_freq_set_and_get(domain, freq, NULL);
 }
 
+static inline void __rt_freq_set_value(rt_freq_domain_e domain, unsigned int freq)
+{
+  __rt_freq_domains[domain] = freq;
+}
+
 #if defined(FLL_VERSION)
 
 static inline int rt_freq_get(rt_freq_domain_e domain)

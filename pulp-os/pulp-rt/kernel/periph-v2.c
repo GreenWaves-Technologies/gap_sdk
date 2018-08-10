@@ -71,7 +71,7 @@ void rt_periph_copy(rt_periph_copy_t *copy, int channel_id, unsigned int addr, i
 
   __rt_channel_push(channel, copy);
 
-  if (copy->ctrl < RT_PERIPH_COPY_SPECIAL_ENQUEUE_THRESHOLD) {
+  if (ARCHI_REG_FIELD_GET(copy->ctrl, RT_PERIPH_COPY_CTRL_TYPE_BIT, RT_PERIPH_COPY_CTRL_TYPE_WIDTH) < RT_PERIPH_COPY_SPECIAL_ENQUEUE_THRESHOLD) {
     // If less than 2 transfers are enqueued in the channel, we can directly enqueue it
     // Otherwise enqueue it in the SW queue, it will be handled later on by the interrupt handler
     // We have to check if there is no transfer already waiting as since we masked interrupts, the

@@ -6,16 +6,17 @@
 
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
 TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-TEST_C = Mnist.c MnistKernels.c MnistKernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c
-ifdef RT_HAS_HWCE
-	PULP_APP_SRCS += $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
-endif
+TEST_C = Mnist.c MnistKernels.c MnistKernelsInit.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_BasicKernels.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_HwCE.c
+
+#To activeate Hardware CE SET -DRT_HAS_HWCE=1
+USE_HARDWARE_CE = -DRT_HAS_HWCE=0
+
+MBED_FLAGS += -O3 $(USE_HARDWARE_CE)
+
 RM=rm -f
 
-MBED_FLAGS += -O3
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-MBED_FLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable
 INC_PATH += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/CnnStdModel
 
 # The double colon allows us to force this to occur before the imported all target
@@ -24,7 +25,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenMnist -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/CnnStdModel MnistGenerator.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenMnist $(USE_HARDWARE_CE) -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/CnnStdModel MnistGenerator.c $(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
 
 # Run the code generator
 MnistKernels.c MnistKernelsInit.c: GenTile

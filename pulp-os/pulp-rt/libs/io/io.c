@@ -32,9 +32,9 @@
 static RT_FC_DATA rt_fc_lock_t __rt_io_fc_lock;
 
 #if defined(__RT_USE_UART)
-static rt_uart_t *_rt_io_uart = NULL;
+static rt_uart_t *_rt_io_uart;
 static rt_event_t __rt_io_event;
-static rt_event_t *__rt_io_event_current = NULL;
+static rt_event_t *__rt_io_event_current;
 #endif
 
 hal_debug_struct_t HAL_DEBUG_STRUCT_NAME = HAL_DEBUG_STRUCT_INIT;
@@ -69,7 +69,7 @@ int strncmp(const char *s1, const char *s2, size_t n)
 }
 
 size_t strlen(const char *str)
-{
+{ 
   const char *start = str;
 
   while (*str)
@@ -214,7 +214,7 @@ void __rt_putc_uart(char c)
   {
     __rt_io_uart_flush(debug_struct);
   }
-}
+} 
 #endif
 
 static void tfp_putc(void *data, char c) {
@@ -231,7 +231,7 @@ static void tfp_putc(void *data, char c) {
       __rt_putc_stdout(c);
     }
   }
-  else
+  else 
   {
     __rt_putc_debug_bridge(c);
   }
@@ -356,7 +356,9 @@ static void __rt_exit_debug_bridge(int status)
 
 void exit(int status)
 {
-  hal_cluster_ctrl_eoc_set(1);
+  __rt_exit_debug_bridge(status);
+  apb_soc_status_set(status);
+  //hal_cluster_ctrl_eoc_set(1);
   __wait_forever();
 }
 
@@ -392,7 +394,7 @@ void exit(int status)
 #endif
 #if defined(ARCHI_CLUSTER_CTRL_ADDR)
   *(volatile int*)(ARCHI_CLUSTER_CTRL_ADDR) = 1;
-#endif
+#endif  
   __rt_exit_debug_bridge(status);
   __wait_forever();
 }
@@ -433,7 +435,7 @@ static int __rt_io_stop(void *arg)
   rt_trace(RT_TRACE_INIT, "[IO] Closing UART device for IO stream\n");
 
   // When shutting down the runtime, make sure we wait until all pending
-  // IO transfers are done.
+  // IO transfers are done. 
   __rt_io_uart_wait_pending();
 
   // Also close the uart driver to properly flush the uart
@@ -449,6 +451,9 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_io_init()
   __rt_fc_lock_init(&__rt_io_fc_lock);
 
 #if defined(__RT_USE_UART)
+  _rt_io_uart = NULL;
+  __rt_io_event_current = NULL;
+  
   if (rt_iodev() == RT_IODEV_UART)
   {
     __rt_cbsys_add(RT_CBSYS_START, __rt_io_start, NULL);

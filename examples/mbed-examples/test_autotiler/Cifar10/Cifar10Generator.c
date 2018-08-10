@@ -133,24 +133,24 @@ void Cifar10Configuration(unsigned int L1Memory)
 	SetL1MemorySize(L1Memory);
 }
 
-void Cifar10Generator(int UseHWCE)
+void Cifar10Generator(void)
 
 {
-	if (UseHWCE) {
+#if RT_HAS_HWCE
 		// 5x5 Convolution followed by 2x2 Max pooling. HWCE based.
 		// 1 input plane [32x32], 8 output planes [14x14]
 		CNN_TiledConvNxNReLUPool2x2_HWCE_fp("Conv5x5MaxPool2x2_HWCE_0", 5, 1,  8, 32, 32, 3);
 		// 5x5 Convolution followed by 2x2 Max pooling. HWCE based.
 		// 8 input planes [14x14], 12 output planes [5x5]
 		CNN_TiledConvNxNReLUPool2x2_HWCE_fp("Conv5x5MaxPool2x2_HWCE_1", 5, 8, 12, 14, 14, 3);
-	} else {
+#else
 		// 5x5 Convolution followed by 2x2 Max pooling. Pure SW.
 		// 1 input plane [32x32], 8 output planes [14x14]
 		CNN_TiledConvNxNReLUPool2x2_SW_fp  ("Conv5x5MaxPool2x2_SW_0",   5, 1,  8, 32, 32, 3);
 		// 5x5 Convolution followed by 2x2 Max pooling. Pure SW.
 		// 8 input planes [14x14], 12 output planes [5x5]
 		CNN_TiledConvNxNReLUPool2x2_SW_fp  ("Conv5x5MaxPool2x2_SW_1",   5, 8, 12, 14, 14, 3);
-	}
+#endif
 	// Linear Layer
 	// Input 12 x [5x5], Output 10
 	CNN_TiledLinearLayer("LinearLayerReLU_1", 12, 5, 5, 10, 1, 0, 0);
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	// Load HWCE enabled CNN basic kernels
 	CNN_LoadHWCEKernelLibrary();
 	// Generate Cifar10, here without using HWCE
-	Cifar10Generator(0);
+	Cifar10Generator();
 	// Generate code
 	GenerateTilingCode();
 	return 0;

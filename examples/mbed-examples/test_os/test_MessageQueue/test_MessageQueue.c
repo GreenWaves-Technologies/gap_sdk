@@ -16,8 +16,8 @@ osThreadId_t tid_Thread_MsgQueue2;                                 // thread id 
 // Thread allocation
 #define TASK_SIZE 1024
 
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK1_STK[TASK_SIZE];
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK2_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK1_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK2_STK[TASK_SIZE];
 
 // TASK1
 os_thread_t    task1_obj;
@@ -54,10 +54,10 @@ osMessageQueueId_t mid_MsgQueue;                                   // message qu
 
 // Message Queue allocation
 #define MSGQ_SIZE 64
-GAP_FC_DATA unsigned int MSGQ_STK[MSGQ_SIZE];
+GAP_FC_DATA unsigned char MSGQ_STK[MSGQ_SIZE];
 
 #define MSGQ_DATA_SIZE 1024
-GAP_FC_DATA unsigned int MSGQ_DATA_STK[MSGQ_DATA_SIZE];
+GAP_FC_DATA unsigned char MSGQ_DATA_STK[MSGQ_DATA_SIZE];
 
 const osMessageQueueAttr_t msgq_attr = {
     "msgq",

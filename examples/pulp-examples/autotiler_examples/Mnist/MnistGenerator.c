@@ -135,7 +135,7 @@ void MnistConfiguration(unsigned int L1Memory)
 void MnistGenerator()
 
 {
-        #if RT_HAS_HWCE
+    #if RT_HAS_HWCE
                 // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. HWCE based.
                 // 1 input plane [28x28], 32 output planes [12x12]
 		CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1);

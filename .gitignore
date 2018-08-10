@@ -1,6 +1,9 @@
-build/
-install/
+*~
+__pycache__*
+*.pyc
 *.swp
+*log*
+install
+build
 BUILD
-__pycache__
 *.wav
