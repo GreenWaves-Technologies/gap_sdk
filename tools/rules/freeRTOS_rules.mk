@@ -9,18 +9,19 @@ chip=GAP8
 endif
 
 # Directories
-GWT_DEMO            = $(FREERTOS_PATH)/demos/gwt/gap8/common/application_code
-GWT_CMSIS           = $(GWT_DEMO)/gwt_code/cmsis/TARGET_RISCV_32
-GWT_TGT             = $(GWT_DEMO)/gwt_code/target
-GWT_DEVICE          = $(GWT_TGT)/TARGET_$(chip)/device
-GWT_DRVR            = $(GWT_TGT)/TARGET_$(chip)/driver
-GWT_PINS            = $(GWT_TGT)/TARGET_$(chip)/pins
-GWT_FEAT            = $(GWT_TGT)/../features
+FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/gap8/common/config_files
 FREERTOS_SOURCE_DIR = $(FREERTOS_PATH)/lib/FreeRTOS
 PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/GAP8
+GWT_PACK_DIR        = $(FREERTOS_PATH)/lib/third_party/mcu_vendor/gwt
+GWT_CMSIS           = $(GWT_PACK_DIR)/cmsis/TARGET_RISCV_32
+GWT_FEAT            = $(GWT_PACK_DIR)/features
+GWT_TARGET          = $(GWT_PACK_DIR)/TARGET_GWT
+GWT_DEVICE          = $(GWT_TARGET)/TARGET_$(chip)/device
+GWT_DRIVER          = $(GWT_TARGET)/TARGET_$(chip)/driver
+GWT_PINS            = $(GWT_TARGET)/TARGET_$(chip)/pins
 
 # The linker options.
-LIBS            = -L$(GWT_TGT)/libs -L$(GWT_TGT)/libs/newlib
+LIBS            = -L$(GWT_TARGET)/libs -L$(GWT_TARGET)/libs/newlib
 
 LIBSFLAGS       = -lc -lm -lgcc -nostartfiles
 
@@ -88,31 +89,30 @@ RTOS_SRC        = $(FREERTOS_SOURCE_DIR)/list.c \
                   $(FREERTOS_SOURCE_DIR)/stream_buffer.c
 
 PORT_SRC        = $(shell find $(PORT_DIR) -iname "*.c")
-DRIVER_SRC      = $(shell find $(GWT_DRVR) -iname "*.c")
-PINS_SRC        = $(shell find $(GWT_PINS) -iname "*.c")
 FEAT_SRC        = $(shell find $(GWT_FEAT) -iname "*.c")
 DEVICE_SRC      = $(shell find $(GWT_DEVICE) -iname "*.c")
+DRIVER_SRC      = $(shell find $(GWT_DRIVER) -iname "*.c")
+PINS_SRC        = $(shell find $(GWT_PINS) -iname "*.c")
 
 FEAT_INCLUDES   = $(foreach f, $(shell find $(GWT_FEAT) -iname "*.h" -exec dirname {} \;), -I$f)
 
 INC_PATH       += . \
-                  $(PORT_DIR) \
-                  $(GWT_DEVICE) \
-                  $(GWT_DRVR) \
-                  $(GWT_PINS) \
-                  $(GWT_CMSIS) \
-                  $(GWT_DEMO) \
-                  $(GWT_DEMO)/../config_files \
                   $(FREERTOS_SOURCE_DIR)/../include \
                   $(FREERTOS_SOURCE_DIR)/../include/private \
-                  $(GWT_TGT)/libs/newlib/extra/stdio/tinyprintf \
+                  $(FREERTOS_CONFIG_DIR) \
+                  $(PORT_DIR) \
+                  $(GWT_CMSIS) \
+                  $(GWT_TARGET)/libs/newlib/extra/stdio/tinyprintf \
+                  $(GWT_DEVICE) \
+                  $(GWT_DRIVER) \
+                  $(GWT_PINS) \
                   $(TARGET_INSTALL_DIR)/include
 
 INCLUDES        = $(foreach f, $(INC_PATH), -I$f)
 INCLUDES       += $(FEAT_INCLUDES)
 
 # App sources
-DEMO_SRC       += $(GWT_DEMO)/FreeRTOS_util.c
+DEMO_SRC       += $(FREERTOS_CONFIG_DIR)/FreeRTOS_util.c
 APP_SRC        +=
 
 # Directory containing built objects
