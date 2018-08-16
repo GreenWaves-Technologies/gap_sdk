@@ -4,3 +4,4 @@ install/
 BUILD
 __pycache__
 *.wav
+*.log
