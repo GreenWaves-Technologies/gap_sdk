@@ -10,3 +10,6 @@
 [submodule "applications"]
 	path = applications
 	url = https://github.com/GreenWaves-Technologies/gap_applications.git
+[submodule "freeRTOS"]
+	path = freeRTOS
+	url = git@github.com:GreenWaves-Technologies/freeRTOS.git
