@@ -33,7 +33,8 @@ DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
 		-DDEVICE_STDIO_MESSAGES=1 -DDEVICE_SLEEP=1 \
 		-DDEVICE_PORTIN=1 -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 \
 		-DDEVICE_I2C=1 -DDEVICE_I2C_ASYNCH=1 -DDEVICE_I2S=1 -DDEVICE_RTC=1 \
-		-DDEVICE_INTERRUPTIN=1
+		-DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1
+
 
 
 WRAP_FLAGS    = -Wl,--gc-sections -Wl,--wrap,main -Wl,--wrap,_malloc_r -Wl,--wrap,_free_r -Wl,--wrap,_realloc_r \
@@ -219,7 +220,7 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 
 INC_PATH      += $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
-all:: $(OBJECTS) $(BIN) disdump
+all:: $(OBJECTS) $(BIN) version disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -290,8 +291,12 @@ $(BUILDDIR)/test.s: $(BUILDDIR)/test
 
 disdump: $(BUILDDIR)/test.s
 
+version:
+	@$(MBED_PATH)/tools/version/record_version.sh
+
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD transcript *.wav __pycache__
+	@rm -rf version.log
 
 .PHONY: gui debug disdump clean gdbserver run all dir
