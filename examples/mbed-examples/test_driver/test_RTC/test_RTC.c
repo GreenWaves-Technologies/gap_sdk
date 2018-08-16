@@ -43,7 +43,7 @@ int main()
     wait(10);
 
     int error = 0;
-    if (!flag) {
+    if (!flag || (countdown_now != (COUNT_SECONDS - 2))) {
         printf("Test failed\n");
         error = 1;
     } else {

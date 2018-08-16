@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include "gap_cluster.h"
 #include "gap_dmamchan.h"
+#include "gap_performance.h"
 
 #include "./AUDIO/AUDIO.h"
 #include "./MFCC/MFCC_Processing.h"
@@ -49,6 +50,7 @@
 #endif
 #endif
 
+unsigned char Debug=0;
 /*******************************************************************************
  * ClUSTER Definitions
  ******************************************************************************/
@@ -57,7 +59,7 @@
 
 short int *l2_big0;
 short int *l2_big1;
-uint32_t cluster_perf;
+performance_t cluster_perf;
 
 /*******************************************************************************
  * Frame Variables
@@ -121,15 +123,20 @@ void CNN_Process() {
 }
 
 void Master_Entry(void *arg) {
+    performance_t perf;
     #ifdef RT_HAS_HWCE
     /* Make HWCE event active */
-    printf("CNN launched on the HWCE\n");
+    if (Debug) printf("CNN launched on the HWCE\n");
     EU_EVT_MaskSet(1 << EU_HWCE_EVENT);
     #else
-    printf("CNN launches on cluster with (%d cores)\n", CORE_NUMBER);
+    if (Debug) printf("CNN launches on cluster with (%d cores)\n", CORE_NUMBER);
     #endif
 
+    PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
     CNN_Process();
+    PERFORMANCE_Stop(&perf);
+
+    printf("Total CYCLE (include core sleep cycles): %d\n" , (int)PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT));
 }
 
 int main() {
@@ -142,7 +149,7 @@ int main() {
     L1_Memory = L1_Malloc(L1_Memory_SIZE);
 
     if(L1_Memory == NULL) {
-        printf("L1 Memory allocation error\n");
+        if (Debug) printf("L1 Memory allocation error\n");
         return -1;
     }
 
@@ -191,9 +198,9 @@ int main() {
             int max=0x80000000;
 
             for(i=0; i < CLast_NFEAT; i++) {
-                printf("\t%x  \n",  l2_big0[i]);
+                /* printf("\t%x  \n",  l2_big0[i]); */
                 l2_big0[i] = l2_big0[i] ;
-                printf(" feat %d: %d  \n", i, l2_big0[i]);
+                /* printf(" feat %d: %d  \n", i, l2_big0[i]); */
                 sum += l2_big0[i];
 
                 #ifndef TESTNONE

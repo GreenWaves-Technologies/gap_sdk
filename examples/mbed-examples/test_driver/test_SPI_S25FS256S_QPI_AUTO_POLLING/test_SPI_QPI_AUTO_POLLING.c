@@ -132,7 +132,6 @@ static void wait_process_end(spi_t *spim, unsigned int err_bit)
     spi_polling_config_t conf;
     conf.csn         = 0;
     conf.cmd         = 0x05;
-    s_command.cmd_bits  = 8;
     conf.cmd_mode    = uSPI_Quad;
     conf.match_type  = uSPI_Match_Bits_Zero;
     conf.match_bits  = 8;
@@ -140,7 +139,8 @@ static void wait_process_end(spi_t *spim, unsigned int err_bit)
     conf.data_mode   = uSPI_Quad;
     conf.time_out    = 0xF000;
 
-    spi_master_auto_polling(spim, &conf);
+    if (spi_master_auto_polling(spim, &conf) == uStatus_Fail)
+        printf ("Polling Failed...\n");
 }
 
 int main()
