@@ -7,18 +7,18 @@ record_version() {
     cd    $1;
 
     # Record project path
-    echo  "[$1]"                >> $VERSION_FILE_PATH
+    echo "./gap_sdk${1#$GAP_SDK_HOME}"       >> $VERSION_FILE_PATH
 
     # Record current commit number
-    echo  "[commit]"                >> $VERSION_FILE_PATH
-    git rev-parse --verify HEAD >> $VERSION_FILE_PATH
+    echo  "[commit]"                         >> $VERSION_FILE_PATH
+    git rev-parse --verify HEAD 2> /dev/null >> $VERSION_FILE_PATH
 
-    echo ""                     >> $VERSION_FILE_PATH
+    echo ""                                  >> $VERSION_FILE_PATH
 
     # Record status
-    git status                  >> $VERSION_FILE_PATH
-    echo ""                     >> $VERSION_FILE_PATH
-    echo ""                     >> $VERSION_FILE_PATH
+    git status                  2> /dev/null >> $VERSION_FILE_PATH
+    echo ""                                  >> $VERSION_FILE_PATH
+    echo ""                                  >> $VERSION_FILE_PATH
 }
 
 # Initialize the version file
