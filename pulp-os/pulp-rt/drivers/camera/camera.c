@@ -37,8 +37,15 @@
 #include "rt/rt_api.h"
 
 void _camera_drop_frame(rt_cam_conf_t *cam, unsigned int *arg){
-  cam->frameDrop_en = ENABLE;
-  cam->frameDrop_value = *arg;
+  plpUdmaCamCustom_u _cpi;
+  plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
+  _cpi.raw = hal_cpi_glob_read(0);
+  _cpi.cfg_glob.framedrop_enable = ENABLE & MASK_1BIT;
+  _cpi.cfg_glob.framedrop_value =  *arg & MASK_6BITS;
+
+  hal_cpi_glob_set(0, _cpi.raw);
+  plp_udma_cg_set(plp_udma_cg_get() & ~(1<<ARCHI_UDMA_CAM_ID(0)));
+
 }
 
 void _camera_normlize(rt_cam_conf_t *cam, unsigned int *arg){
@@ -55,17 +62,25 @@ void _camera_filter(rt_cam_conf_t *cam, rt_img_filter_t *filter){
 
 void _camera_extract(rt_cam_conf_t *cam, rt_img_slice_t *slicer){
   plpUdmaCamCustom_u _cpi;
+  plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
   // Write the coordinate of lower left corner
-  _cpi.cfg_ll.frameslice_llx = slicer->slice_ll.x & MASK_16BITS;
+  _cpi.cfg_ll.frameslice_llx = (slicer->slice_ll.x/2) & MASK_16BITS;
   _cpi.cfg_ll.frameslice_lly = slicer->slice_ll.y & MASK_16BITS;
   hal_cpi_ll_set(0, _cpi.raw);
 
   _cpi.raw = 0;
   // Write the coordinate of upper right corner
-  _cpi.cfg_ur.frameslice_urx = (slicer->slice_ur.x-1) & MASK_16BITS;
+  _cpi.cfg_ur.frameslice_urx = (slicer->slice_ur.x/2-1) & MASK_16BITS;
   _cpi.cfg_ur.frameslice_ury = (slicer->slice_ur.y-1) & MASK_16BITS;
   hal_cpi_ur_set(0, _cpi.raw);
-  cam->slice_en = ENABLE;
+
+  _cpi.raw = 0;
+  _cpi.raw = hal_cpi_glob_read(0);
+  _cpi.cfg_glob.frameslice_enable = ENABLE;
+  hal_cpi_glob_set(0, _cpi.raw);
+
+  plp_udma_cg_set(plp_udma_cg_get() & ~(1<<ARCHI_UDMA_CAM_ID(0)));
+
 }
 
 void _camera_stop(){
@@ -77,14 +92,12 @@ void _camera_stop(){
 }
 
 void _camera_start(){
- plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
+  plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
   plpUdmaCamCustom_u _cpi;
   _cpi.raw = hal_cpi_glob_read(0);
   _cpi.cfg_glob.enable = ENABLE;
   hal_cpi_glob_set(0, _cpi.raw);
- 
 }
-
 
 rt_camera_t* rt_camera_open(char *dev_name, rt_cam_conf_t *conf, rt_event_t*event)
 {
@@ -143,6 +156,7 @@ void __rt_camera_cluster_req(void *_req)
   {
     rt_event_t *event = &req->event;
     __rt_init_event(event, event->sched, __rt_camera_cluster_req_done, (void *)req);
+    __rt_event_set_pending(event);
     rt_camera_capture (req->handle, req->buffer, req->size, event);
   }
   else

@@ -15,7 +15,7 @@
 #include "StdTypes.h"
 #include "StdModel.h"
 
-void CnnModel(unsigned int L1Memory)
+void CnnModel(unsigned int L1Memory, int UseHWCE)
 
 {
 
@@ -30,13 +30,13 @@ void CnnModel(unsigned int L1Memory)
 	LoadSoftwareKernelLibrary();
 	LoadHWCEKernelLibrary();
 
-    #if RT_HAS_HWCE
+	if (UseHWCE) {
 		TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1);
 		TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_1", 5, 32, 64, 12, 12, 1);
-	#else 
+	} else {
 		TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_0",      5,  1, 32, 28, 28, 1);
 		TiledConvNxNReLUPool2x2_SW_fp	("Conv5x5ReLUMaxPool2x2_1",      5, 32, 64, 12, 12, 1);
-	#endif
+	}
 	TiledLinearLayer     			("LinearLayerReLU_2", 		64,  4,  4, 10,  1, 0, 0);
 }
 
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	if (GlobalInit()==0) {
 		printf("Failed to initialize or incorrect output directory.\n"); return 0;
 	}
-	CnnModel(51200);
+	CnnModel(51200, 1);
 	GenerateTilingCode();
 	return 0;
 }

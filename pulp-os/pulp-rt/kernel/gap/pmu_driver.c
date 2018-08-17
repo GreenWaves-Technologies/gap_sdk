@@ -409,11 +409,15 @@ void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
   PMURetentionState.Fields.WakeupState = REGULATOR_STATE(WakeUpState);
   PMURetentionState.Fields.ClusterWakeUpState = CLUSTER_STATE(WakeUpState);
 
+  PMURetentionState.Fields.L2Retention = 0xF;
+
   PMUState.State = PMUState.State & 0x6; // Clear cluster on in case since at wake up it will not be on
   SetRetentiveState(PMURetentionState.Raw);
 
   PMU_Control_Maestro(PMUState.State, Retentive?RETENTIVE:DEEP_SLEEP);
 }
+
+
 
 void InitFlls();
 
@@ -461,6 +465,10 @@ void __rt_pmu_init()
   PMU_Write(DLC_IFR, (MAESTRO_EVENT_PICL_OK|MAESTRO_EVENT_SCU_OK));
 }
 
+
+
+// Note this is not called for now, as the user is supposed toc lose the cluster
+// before asking for deep or retentive sleep
 void FinalizeInitPMUDriver()
 {
   PMURetentionState.Raw = GetRetentiveState();

@@ -105,7 +105,7 @@ static inline __attribute__((always_inline)) void __rt_channel_enqueue(rt_periph
 static inline void rt_periph_copy_init(rt_periph_copy_t *copy, int flags)
 {
   copy->ctrl = 0;
-  copy->u.hyper.repeat = 0;
+  copy->repeat = 0;
 
 #if defined(UDMA_VERSION) && UDMA_VERSION == 1
   copy->end_callback = 0;
@@ -115,14 +115,14 @@ static inline void rt_periph_copy_init(rt_periph_copy_t *copy, int flags)
 static inline void rt_periph_copy_init_callback(rt_periph_copy_t *copy, unsigned int callback)
 {
   copy->ctrl = 0;
-  copy->u.hyper.repeat = 0;
+  copy->repeat = 0;
   copy->enqueue_callback = callback;
 }
 
 static inline void rt_periph_copy_init_ctrl(rt_periph_copy_t *copy, int ctrl)
 {
   copy->ctrl = ctrl;
-  copy->u.hyper.repeat = 0;
+  copy->repeat = 0;
 }
 
 extern rt_periph_channel_t periph_channels[];

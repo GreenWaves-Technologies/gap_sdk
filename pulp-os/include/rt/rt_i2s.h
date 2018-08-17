@@ -70,6 +70,7 @@ typedef struct rt_i2s_conf_s {
   unsigned char  pdm;               /*!< Activate pulse-density demodulation. */
   unsigned char  dual;              /*!< Activate dual mode (left and right channels). */
   unsigned char  width;             /*!< Width of the samples (8 or 16 bits). */
+  signed char id;                   /*!< If it is different from -1, this specifies on which I2S interface the device is connected. */
 } rt_i2s_conf_t;
 
 

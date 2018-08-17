@@ -21,7 +21,7 @@
 
 #include "rt/rt_api.h"
 
-static char __rt_padframe_is_init = 0;
+static char __rt_padframe_is_init;
 extern int __rt_nb_profile;
 
 void __rt_padframe_init()
@@ -64,7 +64,12 @@ void rt_padframe_set(rt_padframe_profile_t *profile) {
       rt_trace(RT_TRACE_INIT, "Initializing pads function (id: %d, config: 0x%x)\n", i, config[i]);
       hal_apb_soc_padfun_set(i, config[i]);
     }
+    
+    __rt_padframe_is_init = 1;
 
 }
 
-
+RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_padframe_constructor()
+{
+  __rt_padframe_is_init = 0;
+}

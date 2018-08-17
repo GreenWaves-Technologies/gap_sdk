@@ -23,7 +23,7 @@
 #if defined(ARCHI_HAS_FC)
 
 static uint32_t timer_count;
-rt_event_t *first_delayed = NULL;
+rt_event_t *first_delayed;
 
 
 
@@ -125,6 +125,8 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
 {
   int err = 0;
 
+  first_delayed = NULL;
+ 
   // Configure the FC timer in 64 bits mode as it will be used as a common
   // timer for all virtual timers.
   // We also use the ref clock to make the frequency stable.

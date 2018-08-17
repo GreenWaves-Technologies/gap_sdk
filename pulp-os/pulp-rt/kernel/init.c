@@ -22,7 +22,6 @@
 #include "rt/rt_api.h"
 #include "archi/pulp.h"
 
-
 typedef void (*fptr)(void);
 
 static fptr ctor_list[1] __attribute__((section(".ctors.start"))) = { (fptr) -1 };

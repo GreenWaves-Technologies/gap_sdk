@@ -78,6 +78,7 @@ void __rt_flash_cluster_req(void *_req)
   rt_flash_req_t *req = (rt_flash_req_t *)_req;
   rt_event_t *event = &req->event;
   __rt_init_event(event, event->sched, __rt_flash_cluster_req_done, (void *)req);
+  __rt_event_set_pending(event);
   rt_flash_read(req->dev, req->addr, req->flash_addr, req->size, event);
 }
 

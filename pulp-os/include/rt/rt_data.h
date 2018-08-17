@@ -120,7 +120,9 @@ typedef void (*rt_error_callback_t)(void *arg, rt_event_t *event, int error, voi
 
 #define RT_FC_SHARED_DATA __attribute__((section(".data_fc_shared")))
 
-#define RT_L2_DATA __attribute__((section(".l2_shared_data")))
+#define RT_L2_DATA __attribute__((section(".l2_data")))
+
+#define RT_L2_RET_DATA __attribute__((section(".l2_data")))
 
 #define RT_FC_DATA RT_FC_GLOBAL_DATA
 
@@ -209,6 +211,8 @@ typedef struct rt_periph_copy_s {
 #endif
   struct rt_periph_copy_s *next;
   struct rt_event_s *event;
+  unsigned int repeat;
+  unsigned int repeat_size;
   union {
     struct {
       unsigned int rx_addr;
@@ -216,14 +220,19 @@ typedef struct rt_periph_copy_s {
     } dual;
     struct {
       unsigned int hyper_addr;
-      unsigned int repeat_size;
-      // TODO this checked by some code whatever the channel type
-      // and thus conflicts with other features
-      unsigned int dummy;
-      short repeat;
+      unsigned int pending_hyper_addr;
+      unsigned int pending_addr;
+      unsigned int pending_size;
+      char mbr;
+      char channel;
+      char async;
+      char memcpy;
+      short stride;
+      short length;
+      int size_2d;
     } hyper;
     struct {
-      unsigned int val[4];
+      unsigned int val[8];
     } raw;
 #if defined(UDMA_VERSION) && UDMA_VERSION == 1
     struct {
@@ -250,6 +259,10 @@ typedef struct rt_event_s {
   struct rt_event_sched_s *sched;
   struct rt_thread_s *thread;
   int pending;
+  void (*saved_callback)(void *);
+  void *saved_arg;
+  int saved_pending;
+
   union {
     rt_periph_copy_t copy;
     struct {
@@ -655,15 +668,19 @@ extern rt_padframe_profile_t __rt_padframe_profiles[];
 #define RT_PERIPH_COPY_T_ENQUEUE_CALLBACK  16
 #define RT_PERIPH_COPY_T_NEXT              20
 #define RT_PERIPH_COPY_T_EVENT             24
-#define RT_PERIPH_COPY_T_HYPER_ADDR        28
-#define RT_PERIPH_COPY_T_HYPER_REPEAT_SIZE 32
-#define RT_PERIPH_COPY_T_REPEAT            40
-#define RT_PERIPH_COPY_T_SPIM_USER_SIZE    28
-#define RT_PERIPH_COPY_T_RAW_VAL0          28
-#define RT_PERIPH_COPY_T_RAW_VAL1          32
-#define RT_PERIPH_COPY_T_RAW_VAL2          36
-#define RT_PERIPH_COPY_T_RAW_VAL3          40
-#define RT_PERIPH_COPY_T_PERIPH_DATA       44
+#define RT_PERIPH_COPY_T_REPEAT            28
+#define RT_PERIPH_COPY_T_REPEAT_SIZE       32
+#define RT_PERIPH_COPY_T_HYPER_ADDR        36
+#define RT_PERIPH_COPY_T_SPIM_USER_SIZE    36
+#define RT_PERIPH_COPY_T_RAW_VAL0          36
+#define RT_PERIPH_COPY_T_RAW_VAL1          40
+#define RT_PERIPH_COPY_T_RAW_VAL2          44
+#define RT_PERIPH_COPY_T_RAW_VAL3          48
+#define RT_PERIPH_COPY_T_RAW_VAL4          52
+#define RT_PERIPH_COPY_T_RAW_VAL5          56
+#define RT_PERIPH_COPY_T_RAW_VAL6          60
+#define RT_PERIPH_COPY_T_RAW_VAL7          64
+#define RT_PERIPH_COPY_T_PERIPH_DATA       68
 
 
 #define RT_PERIPH_CHANNEL_T_SIZEOF           (6*4)

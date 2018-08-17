@@ -13,8 +13,6 @@
 #define UNMOUNT         0
 #define CID             0
 
-#define ALLOC_SIZE 
-
 static int alloc_size = 256;
 
 static void hello(void *arg)

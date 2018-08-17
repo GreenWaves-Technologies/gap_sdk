@@ -35,6 +35,7 @@
   \param offset The offset in the event unit where to load from. Depending on this offset, this will trigger different behaviors (barrier, wait, wait&clear, etc).
   \return       The loaded value, after the core has been waken-up. This value depends on the feature which is accessed.
   */
+#if defined(__OPTIMIZE__)
 static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
 {
   unsigned int value;
@@ -47,6 +48,12 @@ static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
   #endif
   return value;
 }
+#else
+#define evt_read32(base,offset) \
+  ({ \
+    __builtin_pulp_event_unit_read((int *)base, offset); \
+  })
+#endif
 
 /** Get event status. 
   Return the value of the event status register. This register contains one bit per event, 1 means the event is set. Note that this register is actually used

@@ -58,6 +58,7 @@
 #include "rt/rt_time.h"
 #include "rt/rt_timer.h"
 #include "rt/rt_freq.h"
+#include "rt/rt_pm.h"
 #include "rt/rt_i2s.h"
 #include "rt/rt_fs.h"
 #include "rt/rt_error.h"
