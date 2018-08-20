@@ -57,8 +57,6 @@ unsigned char Debug=0;
 #define CORE_NUMBER      8
 #define L1_Memory_SIZE 50000
 
-short int *l2_big0;
-short int *l2_big1;
 performance_t cluster_perf;
 
 /*******************************************************************************
@@ -80,6 +78,9 @@ short int *pfeat_list;
 #define BUF0_SIZE  20000
 #define BUF1_SIZE  13000
 
+
+short int l2_big0[BUF0_SIZE];
+short int l2_big1[BUF1_SIZE];
 
 /*******************************************************************************
  * CNN Variables
@@ -178,10 +179,6 @@ int main() {
         pfeat_list = (short int*) DataIn;
         #endif
 
-        // allocate data buffers
-        l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
-        l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
-
         /* FC send a task to Cluster */
         CLUSTER_SendTask(0, Master_Entry, 0, 0);
 
@@ -215,10 +212,6 @@ int main() {
         #ifdef USE_AUDIO
         Audio_SynchroPython();
         #endif
-
-        /* Free buffer */
-        free(l2_big0);
-        free(l2_big1);
     }
 
     /* Cluster Stop - Power down */
