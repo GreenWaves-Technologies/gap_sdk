@@ -198,9 +198,7 @@ int main() {
             int max=0x80000000;
 
             for(i=0; i < CLast_NFEAT; i++) {
-                /* printf("\t%x  \n",  l2_big0[i]); */
-                l2_big0[i] = l2_big0[i] ;
-                /* printf(" feat %d: %d  \n", i, l2_big0[i]); */
+                printf(" feat %d: %d  \n", i, l2_big0[i]);
                 sum += l2_big0[i];
 
                 #ifndef TESTNONE
@@ -210,7 +208,7 @@ int main() {
                 #endif
             }
 
-            printf("found max %d\n", idx_max+1);
+            printf("found max %d\n", idx_max);
             printf("found word %s\n", word_list[idx_max]);
         }
 
