@@ -3,12 +3,12 @@
 #include "gap_common.h"
 #include "mbed_wait_api.h"
 
-#define COUNT_SECONDS 10
+#define TIMER_SECONDS 10
 
 int flag = 0;
 
 void timer_irq_handler() {
-    printf("Count down arrive .....\n");
+    printf("Timer arrive .....\n");
     flag = 1;
 }
 
@@ -23,27 +23,27 @@ int main()
     RTC_Init(RTC_APB, &config);
 
     /* Set Timer */
-    RTC_SetCountDown(RTC_APB, COUNT_SECONDS);
+    RTC_SetTimer(RTC_APB, TIMER_SECONDS);
 
     /* Binding RTC IRQ */
     RTC_IRQHandlerBind((uint32_t)timer_irq_handler);
 
-    printf("Start CountDown value now = %d\n", COUNT_SECONDS);
+    printf("Start Timer value now = %d\n", TIMER_SECONDS);
 
     /* Start Timer */
-    RTC_StartCountDown(RTC_APB, repeat_en);
+    RTC_StartTimer(RTC_APB, repeat_en);
 
     /* Wait several seconds */
     wait(2);
 
     /* Read Timer */
-    int countdown_now = RTC_GetCountDown(RTC_APB);
-    printf("After 2 seconds, CountDown value now = %d\n", countdown_now);
+    int timer_now = RTC_GetTimer(RTC_APB);
+    printf("After 2 seconds, Timer value now = %d\n", timer_now);
 
     wait(10);
 
     int error = 0;
-    if (!flag) {
+    if (!flag || (timer_now != (TIMER_SECONDS - 2))) {
         printf("Test failed\n");
         error = 1;
     } else {
