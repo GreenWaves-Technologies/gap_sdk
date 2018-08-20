@@ -36,9 +36,12 @@ struct complex_f {
 
 //#define QN 24
 //#define log2  ((int) floor(log(2)*(float)(1<<QN)+0.5))
-#define c1_3   ((int) floor((1.0/3.0) * (float)(1<<QN) +0.5))
+//#define c1_3   ((int) floor((1.0/3.0) * (float)(1<<QN) +0.5))
+#define c1_3 (0xd6)
 // normalisation factor in (32-QN).QN
-#define LOG_NORM  ((int) floor(log((float)N_FFT)*(float)(1<<QN)+0.5))
+
+//#define LOG_NORM  ((int) floor(log((float)N_FFT)*(float)(1<<QN)+0.5))
+#define LOG_NORM    (0x400) 
 
 int MFCC_Logfp(unsigned int a)
 {
