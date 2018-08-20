@@ -212,14 +212,15 @@ int main() {
 
             printf("found max %d\n", idx_max+1);
             printf("found word %s\n", word_list[idx_max]);
-
-            free(l2_big0);
-            free(l2_big1);
         }
 
         #ifdef USE_AUDIO
         Audio_SynchroPython();
         #endif
+
+        /* Free buffer */
+        free(l2_big0);
+        free(l2_big1);
     }
 
     /* Cluster Stop - Power down */
