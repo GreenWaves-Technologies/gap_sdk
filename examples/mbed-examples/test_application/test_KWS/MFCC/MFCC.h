@@ -31,8 +31,10 @@
 // fractional definition for log
 #define QN               24
 
-#define NORMDCT                                ((short int) floor(1.0/sqrt(2)*(1<<15)))
-#define GAPLOG2                                ((int) floor(log(2)*(float)(1<<QN)+0.5))
+//#define NORMDCT                              ((short int) floor(1.0/sqrt(2)*(1<<15)))
+#define NORMDCT                                (0x5a82)
+//#define GAPLOG2                              ((int) floor(log(2)*(float)(1<<QN)+0.5))
+#define GAPLOG2                                (0xb17218)
 #define FIX2FP(Val, Precision)                 ((float) (Val) / (float) (1<<(Precision)))
 #define FP2FIXR(Val, Precision)                ((int)((Val)*((1 << (Precision))-1) + 0.5))
 #define FP2FIX(Val, Precision)                 ((int)((Val)*((1 << (Precision))-1)))

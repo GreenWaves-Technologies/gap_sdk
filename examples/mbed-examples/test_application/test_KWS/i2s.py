@@ -9,7 +9,7 @@ def i2s(bridge):
     addrWavOutHead = (addrWavOutHead.split())[0]
 
     while (1) :
-        time.sleep(3)
+        time.sleep(1)
         input("Press return to start sound acquisition:")
         recReady = int(("0x"+addrWavOutHead), 16) + 8
         bridge.write_32(recReady, 0)
