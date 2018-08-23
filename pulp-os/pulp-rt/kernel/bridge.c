@@ -117,7 +117,7 @@ void rt_bridge_connect(rt_event_t *event)
   bridge->first_bridge_req = 0;
 
 #ifdef ITC_VERSION
-  bridge->notif_req_addr = ARCHI_FC_ITC_ADDR + ARCHI_ITC_STATUS_SET;
+  bridge->notif_req_addr = ARCHI_FC_ITC_ADDR + ARCHI_ITC_STATUS_SET_OFFSET;
   bridge->notif_req_value = 1<<RT_BRIDGE_ENQUEUE_EVENT;
 #else
 #if defined(EU_VERSION) && EU_VERSION >= 3

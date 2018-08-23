@@ -1,9 +1,6 @@
 [submodule "mbed-os"]
 	path = mbed-os
 	url = https://github.com/GreenWaves-Technologies/mbed-os.git
-[submodule "tools/pulp-debug-bridge"]
-	path = tools/pulp-debug-bridge
-	url = https://github.com/pulp-platform/pulp-debug-bridge.git
 [submodule "tf2gap8"]
 	path = tf2gap8
 	url = https://github.com/GreenWaves-Technologies/tf2gap8.git
@@ -13,3 +10,6 @@
 [submodule "freeRTOS"]
 	path = freeRTOS
 	url = https://github.com/GreenWaves-Technologies/freeRTOS.git
+[submodule "tools/pulp_tools"]
+	path = tools/pulp_tools
+	url = https://github.com/GreenWaves-Technologies/pulp_tools.git

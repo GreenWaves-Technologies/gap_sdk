@@ -55,7 +55,7 @@ INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/pulp-os/gap_config.h
 
 INC           = $(TARGET_INSTALL_DIR)/include/pulp-os \
 				$(TARGET_INSTALL_DIR)/include/pulp-os/io \
-				$(GAP_SDK_HOME)/tools/pulp-debug-bridge/include
+				$(INSTALL_DIR)/include
 
 INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 

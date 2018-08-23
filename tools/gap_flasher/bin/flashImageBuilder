@@ -401,16 +401,13 @@ parser.add_argument("--aes-iv", dest="aesIv", default=None, help="AES init vecto
 
 args = parser.parse_args()
 
-
-
-def getFilesFromDir(path, rec=False, incDirInName=True):
-	files = []
-	for file in listdir(path):
-		fullPath = os.path.join(path, file)
-		if isfile(fullPath): files.append(Comp(path, file))
-		elif rec and isdir(fullPath): files += getFilesFromDir(fullPath, True)
-	return files
-
+def filesFromDirGen(path, rec=False, incDirInName=True):
+    for file in listdir(path):
+        fullPath = os.path.join(path, file)
+        if isfile(fullPath):
+            yield path, file
+        elif rec and isdir(fullPath):
+            filesFromDirGen(fullPath, True)
 
 flashImage = FlashImage(raw=args.raw, stimuli=args.stimuli, verbose=args.verbose, archi=args.archi, encrypt=args.encrypt, aesKey=args.aesKey, aesIv=args.aesIv, flashType=args.flashType, qpi=args.qpi)
 
@@ -435,13 +432,12 @@ for comp in args.comp:
 	flashImage.appendComponent(os.path.dirname(comp), os.path.basename(comp))
 
 for compDir in args.compDir:
-	for dirname, name in getFilesFromDir(compDir, incDirInName=False):
+	for dirname, name in filesFromDirGen(compDir, incDirInName=False):
 		flashImage.appendComponent(dirname, name)
 
 for compDir in args.compDirRec:
-	for dirname, name in getFilesFromDir(compDir, True, incDirInName=False):
+	for dirname, name in filesFromDirGen(compDir, True, incDirInName=False):
 		flashImage.appendComponent(dirname, name)
-
 
 
 #
@@ -449,7 +445,4 @@ for compDir in args.compDirRec:
 #
 
 flashImage.generate()
-
-
-
 

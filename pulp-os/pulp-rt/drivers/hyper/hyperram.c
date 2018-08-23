@@ -34,17 +34,16 @@ static int __rt_hyper_pending_misaligned;
 // First misaligned pending copy waiting until __rt_hyper_temp_buffer is
 // available
 static rt_event_t *__rt_hyper_first_waiting_misaligned;
-static rt_event_t *__rt_hyper_last_waiting_misaligned;
 
 
 
-int __rt_hyperram_init(rt_hyperram_t *hyper)
+int __rt_hyperram_init(rt_hyperram_t *hyper, int ramsize)
 {
   rt_extern_alloc_t *alloc = (rt_extern_alloc_t *)rt_alloc(RT_ALLOC_FC_DATA, sizeof(rt_extern_alloc_t));
   if (alloc == NULL) return -1;
 
   hyper->alloc = alloc;
-  if (rt_extern_alloc_init(alloc, 0, hyper->dev->u.hyperram.size)) return -1;
+  if (rt_extern_alloc_init(alloc, 0, ramsize)) return -1;
 
   return 0;
 }
@@ -53,7 +52,8 @@ int __rt_hyperram_init(rt_hyperram_t *hyper)
 
 void rt_hyperram_conf_init(rt_hyperram_conf_t *conf)
 {
-
+  conf->id = -1;
+  conf->ram_size = 0;
 }
 
 
@@ -71,9 +71,22 @@ static void __rt_hyperram_free(rt_hyperram_t *hyper)
 rt_hyperram_t *rt_hyperram_open(char *dev_name, rt_hyperram_conf_t *conf, rt_event_t *event)
 {
   rt_hyperram_t *hyper = NULL;
+  int channel;
+  int ramsize;
 
-  rt_dev_t *dev = rt_dev_get(dev_name);
-  if (dev == NULL) goto error;
+  if (dev_name)
+  {
+    rt_dev_t *dev = rt_dev_get(dev_name);
+    if (dev == NULL) goto error;
+    channel = dev->channel;
+    ramsize = dev->u.hyperram.size;
+  }
+  else
+  {
+    channel = ARCHI_UDMA_HYPER_ID(conf->id);
+    ramsize = conf->ram_size;
+  }
+
 
   if (__rt_hyper_temp_buffer == NULL)
   {
@@ -84,11 +97,10 @@ rt_hyperram_t *rt_hyperram_open(char *dev_name, rt_hyperram_conf_t *conf, rt_eve
   hyper = rt_alloc(RT_ALLOC_FC_DATA, sizeof(rt_hyperram_t));
   if (hyper == NULL) goto error;
 
-  hyper->dev = dev;
   hyper->alloc = NULL;
-  hyper->channel = dev->channel;
+  hyper->channel = channel;
 
-  if (__rt_hyperram_init(hyper)) goto error;
+  if (__rt_hyperram_init(hyper, ramsize)) goto error;
 
   return hyper;
 
@@ -229,7 +241,7 @@ void __attribute__((noinline)) __rt_hyper_copy_aligned(int channel,
 
 // Performs a misaligned 2d read without any constraint.
 // This function can be either called directly or as an event callback
-// This function is like a state machine,
+// This function is like a state machine, 
 // it checks the state of the pending copy and does one more step
 // so that the whole transfer can be done asynchronously without blocking
 // the core.
@@ -347,7 +359,7 @@ start:
         }
 
         memcpy((void *)addr, &__rt_hyper_temp_buffer[1], size_aligned);
-
+    
         copy->u.hyper.pending_hyper_addr += size_aligned;
         copy->u.hyper.pending_addr += size_aligned;
         copy->u.hyper.pending_size -= size_aligned;
@@ -410,7 +422,7 @@ end:
 
 // Performs a misaligned 2d write without any constraint.
 // This function can be either called directly or as an event callback
-// This function is like a state machine,
+// This function is like a state machine, 
 // it checks the state of the pending copy and does one more step
 // so that the whole transfer can be done asynchronously without blocking
 // the core.
@@ -534,7 +546,7 @@ start:
         }
 
         memcpy(&__rt_hyper_temp_buffer[1], (void *)addr, size_aligned);
-
+    
         __rt_hyper_copy_aligned(channel, (void *)__rt_hyper_temp_buffer, (void *)(hyper_addr & ~1), size_aligned+2, event, mbr);
 
         copy->u.hyper.pending_hyper_addr += size_aligned;
@@ -633,13 +645,8 @@ static void __attribute__((noinline)) __rt_hyper_copy_misaligned(int channel,
     }
     else
     {
-      if(__rt_hyper_first_waiting_misaligned){
-          __rt_hyper_last_waiting_misaligned->next = event;
-      }else{
-          //event->next = __rt_hyper_first_waiting_misaligned;
-          __rt_hyper_first_waiting_misaligned = event;
-      }
-      __rt_hyper_last_waiting_misaligned = event;
+      event->next = __rt_hyper_first_waiting_misaligned;
+      __rt_hyper_first_waiting_misaligned = event;
       if (channel & 1)
         __rt_init_event(event, event->sched, __rt_hyper_resume_misaligned_write, event);
       else
@@ -718,5 +725,4 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_hyper_init()
   __rt_hyper_temp_buffer = NULL;
   __rt_hyper_pending_misaligned = 0;
   __rt_hyper_first_waiting_misaligned = NULL;
-  __rt_hyper_last_waiting_misaligned = NULL;
 }

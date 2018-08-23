@@ -102,15 +102,22 @@ void rt_extern_alloc_dump(rt_extern_alloc_t *a)
 
 int rt_extern_alloc_init(rt_extern_alloc_t *a, void *addr, int size)
 {
-  unsigned int start_addr = ALIGN_UP((int)addr, MIN_CHUNK_SIZE);
-  rt_alloc_chunk_extern_t *chunk = __rt_alloc_chunk();
-  if (chunk == NULL) return -1;
-  size = size - (start_addr - (unsigned int)addr);
-  if (size > 0) {
-    a->first_free = chunk;
-    chunk->size = ALIGN_DOWN(size, MIN_CHUNK_SIZE);
-    chunk->next = NULL;
-    chunk->addr = start_addr;
+  if (size)
+  {
+    unsigned int start_addr = ALIGN_UP((int)addr, MIN_CHUNK_SIZE);
+    rt_alloc_chunk_extern_t *chunk = __rt_alloc_chunk();
+    if (chunk == NULL) return -1;
+    size = size - (start_addr - (unsigned int)addr);
+    if (size > 0) {
+      a->first_free = chunk;
+      chunk->size = ALIGN_DOWN(size, MIN_CHUNK_SIZE);
+      chunk->next = NULL;
+      chunk->addr = start_addr;
+    }
+  }
+  else
+  {
+    a->first_free = NULL;
   }
   return 0;
 }

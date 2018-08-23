@@ -51,6 +51,7 @@ void rt_i2s_conf_init(rt_i2s_conf_t *conf)
   conf->pdm = 1;
   conf->dual = 0;
   conf->width = 16;
+  conf->id = -1;
 }
 
 static void __rt_i2s_free(rt_i2s_t *i2s)
@@ -72,7 +73,7 @@ static rt_i2s_t *__rt_i2s_open(rt_dev_t *dev, rt_i2s_conf_t *conf, rt_event_t*ev
   }
   else
   {
-    periph_id = conf->id >> 1;
+    periph_id = (conf->id >> 1) + ARCHI_UDMA_I2S_ID(0);
     sub_periph_id = conf->id & 1;
   }
 
@@ -94,8 +95,6 @@ static rt_i2s_t *__rt_i2s_open(rt_dev_t *dev, rt_i2s_conf_t *conf, rt_event_t*ev
 
   i2s = rt_alloc(RT_ALLOC_FC_DATA, sizeof(rt_i2s_t));
   if (i2s == NULL) goto error;
-
-  if (__rt_freq_set_constraint_multiple(i2s_freq)) goto error;
 
   // Remember the desired frequency to update the I2S divider in case the soc frequency is updated
   i2s->i2s_freq = i2s_freq;

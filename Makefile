@@ -35,7 +35,7 @@ RM = rm -rf
 MKDIR = mkdir -p
 MAKE = make
 
-PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp-debug-bridge
+PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 install: pulp-os tools
 
@@ -63,15 +63,15 @@ install_others: $(INSTALL_BIN)
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/rules $(INSTALL_DIR)
 
-install_debug_bridge: pulp-os install_others
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp-debug-bridge all
+install_pulp_tools: install_others
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools all
 
 install_flasher: $(INSTALL_DIR) install_others
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_flasher all
 
-tools: install_others install_debug_bridge install_flasher
+tools: install_others install_pulp_tools install_flasher
 
-pulp-os: $(TARGET_INSTALL_DIR)
+pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os all
 
 all:: install
@@ -80,7 +80,7 @@ clean:
 	$(RM) $(TARGET_INSTALL_DIR)
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp-debug-bridge clean
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_flasher clean
 
-.PHONY: all install clean install_others install_debug_bridge install_flasher tools pulp-os
+.PHONY: all install clean install_others install_pulp_tools install_flasher tools pulp-os
