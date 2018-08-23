@@ -57,5 +57,15 @@ record_version $GAP_SDK_HOME/tools/gap_flasher
 # Application version
 record_version $GAP_SDK_HOME/applications;
 
+# Debug tools version
+record_version $GAP_SDK_HOME/tools/pulp_tools
+
+# Debug json tools version
+record_version $GAP_SDK_HOME/tools/pulp_tools/json-tools
+
+# Debug pulp config version
+record_version $GAP_SDK_HOME/tools/pulp_tools/pulp-configs
+
 # Debug bridge version
-record_version $GAP_SDK_HOME/tools/pulp-debug-bridge/
+record_version $GAP_SDK_HOME/tools/pulp_tools/pulp-debug-bridge
+
