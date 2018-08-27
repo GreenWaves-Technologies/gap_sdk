@@ -11,6 +11,7 @@
 #include "Gap8.h"
 #include "MnistKernels.h"
 #include "MnistCoeffs.def"
+#include "MnistCoeffs_HWCE.def"
 #include "ImgIO.h"
 
 #define STACK_SIZE      2048
@@ -98,63 +99,50 @@ static void RunMnist()
 
 {
   unsigned int ElapsedTime[3];
+  unsigned int start;
   int CheckResults = 0;
-  rt_perf_t *perf = cluster_perf;
-  // initialize the performance clock
+  
+  rt_perf_t *perf= cluster_perf;
+    // initialize the performance clock
   rt_perf_init(perf);
   // Configure performance counters for counting the cycles
   rt_perf_conf(perf, (1<<RT_PERF_CYCLES));
 
+  rt_perf_reset(perf);
+  rt_perf_start(perf);
 
 #ifdef RT_HAS_HWCE
     /* Make HWCE event active */
     eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
 #endif
 
-  gap8_resethwtimer();
-
 #if RT_HAS_HWCE
-    rt_perf_reset(perf);
-    rt_perf_start(perf);
-    Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[0] = rt_perf_get(perf, RT_PERF_CYCLES);
+    start = rt_perf_read(RT_PERF_CYCLES);
+    Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
+    ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("HWCE Layer0", Out_Layer0, 8, 14, 14);
 
-    rt_perf_reset(perf);
-    rt_perf_start(perf);
-    Conv5x5ReLUMaxPool2x2_HWCE_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[1] = rt_perf_get(perf, RT_PERF_CYCLES)-ElapsedTime[0];
+    start = rt_perf_read(RT_PERF_CYCLES);
+    Conv5x5ReLUMaxPool2x2_HWCE_1(Out_Layer0, Filter_Layer1_HWCE, Out_Layer1, 14, Bias_Layer1, 0);
+    ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("HWCE Layer1", Out_Layer1, 12, 5, 5);
 
   #else
-    rt_perf_reset(perf);
-    rt_perf_start(perf);
+    start = rt_perf_read(RT_PERF_CYCLES);
     Conv5x5ReLUMaxPool2x2_0((short int*)ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[0] = rt_perf_get(perf, RT_PERF_CYCLES);
+    ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
 
-    rt_perf_reset(perf);
-    rt_perf_start(perf);
+    start = rt_perf_read(RT_PERF_CYCLES);
     Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
-    rt_perf_stop(perf);
-    rt_perf_save(perf);
-    ElapsedTime[1] = rt_perf_get(perf, RT_PERF_CYCLES)-ElapsedTime[0];
+    ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
   #endif
 
-  rt_perf_reset(perf);
-  rt_perf_start(perf);
-  LinearLayerReLU_2(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 13, Out_Layer2, 10, 0);
-  rt_perf_stop(perf);
-  rt_perf_save(perf);
-  ElapsedTime[2] = rt_perf_get(perf, RT_PERF_CYCLES)-ElapsedTime[0]-ElapsedTime[1];
-  if (CheckResults) Check("SW   Layer2", Out_Layer2, 10, 1, 1);
+    start = rt_perf_read(RT_PERF_CYCLES);
+    LinearLayerReLU_2(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 13, Out_Layer2, 10, 0);
+    ElapsedTime[2] = rt_perf_read(RT_PERF_CYCLES)-start;
+    if (CheckResults) Check("SW   Layer2", Out_Layer2, 10, 1, 1);
 
   
   //Chenking Results
@@ -172,6 +160,12 @@ static void RunMnist()
   printf("Layer0: %7d Cycles\n", ElapsedTime[0]);
   printf("Layer1: %7d Cycles\n", ElapsedTime[1]);
   printf("Layer2: %7d Cycles\n", ElapsedTime[2]);
+  printf("Total: %7d Cycles\n", ElapsedTime[2]+ElapsedTime[1]+ElapsedTime[0]);
+
+  rt_perf_reset(perf);
+  rt_perf_start(perf);
+
+
 }
 
 int main()
@@ -185,6 +179,10 @@ int main()
   unsigned int W = 28, H = 28;
 
   printf("Entering main controller\n");
+
+  //DumpPaddedCoeff("Filter_Layer0_HWCE",Filter_Layer0,25,((sizeof(Filter_Layer0)/2)/25));
+  //DumpPaddedCoeff("Filter_Layer1_HWCE",Filter_Layer1,25,((sizeof(Filter_Layer1)/2)/25));
+
 
   if (rt_event_alloc(NULL, 8)) return -1;
 
@@ -223,12 +221,6 @@ int main()
     return 0;
   }
   
-  
-#ifdef DMP_PAD_COEFF
-  DumpPaddedCoeff("Filter_Layer0_HWCE", Filter_Layer0, 25, 1*32);
-  DumpPaddedCoeff("Filter_Layer1_HWCE", Filter_Layer1, 25, 32*64);
-#endif
-
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
   // Allocate the memory of L2 for the performance structure
