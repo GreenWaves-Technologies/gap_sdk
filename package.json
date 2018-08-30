@@ -1,0 +1,6 @@
+{
+  "name": "framework-gap_sdk",
+  "description": "The GAP8 SDK allows you to compile and execute applications on the GAP8 IoT Application Processor.",
+  "url": "https://github.com/GreenWaves-Technologies/gap_sdk",
+  "version": "1.2.0"
+}
