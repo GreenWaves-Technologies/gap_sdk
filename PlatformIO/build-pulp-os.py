@@ -24,10 +24,13 @@ from os.path import isdir, join
 
 Import("env")
 
-SDK_DIR = env.PioPlatform().get_package_dir("framework-gap_sdk")
+platform = env.PioPlatform()
+SDK_DIR = platform.get_package_dir("framework-gap_sdk")
+PULP_TOOLS_DIR = platform.get_package_dir("tool-pulp_tools")
 FRAMEWORK_DIR = join(SDK_DIR, "pulp-os")
 assert SDK_DIR and isdir(SDK_DIR)
 assert FRAMEWORK_DIR and isdir(FRAMEWORK_DIR)
+assert PULP_TOOLS_DIR and isdir(PULP_TOOLS_DIR)
 
 board_config = env.BoardConfig()
 
@@ -61,7 +64,8 @@ env.Append(
     CPPPATH=[
         join(FRAMEWORK_DIR, "include"),
         join(FRAMEWORK_DIR, "include", "io"),
-        join(SDK_DIR, "tools", "pulp-debug-bridge", "include")
+        join(SDK_DIR, "tools", "pulp-debug-bridge", "include"),
+        join(PULP_TOOLS_DIR, "include")
     ],
 
     LINKFLAGS=[
