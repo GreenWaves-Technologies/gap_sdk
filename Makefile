@@ -66,10 +66,7 @@ install_others: $(INSTALL_BIN)
 install_pulp_tools: install_others
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools all
 
-install_flasher: $(INSTALL_DIR) install_others
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_flasher all
-
-tools: install_others install_pulp_tools install_flasher
+tools: install_others install_pulp_tools
 
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os all
@@ -81,6 +78,5 @@ clean:
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_flasher clean
 
-.PHONY: all install clean install_others install_pulp_tools install_flasher tools pulp-os
+.PHONY: all install clean install_others install_pulp_tools tools pulp-os
