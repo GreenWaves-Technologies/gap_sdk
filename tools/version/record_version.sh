@@ -52,7 +52,7 @@ record_version $GAP_SDK_HOME/examples/pulp-examples;
 record_version $GAP_SDK_HOME/tf2gap8;
 
 # Flasher version
-record_version $GAP_SDK_HOME/tools/gap_flasher
+record_version $GAP_SDK_HOME/tools/pulp_tools/gap_flasher
 
 # Application version
 record_version $GAP_SDK_HOME/applications;
