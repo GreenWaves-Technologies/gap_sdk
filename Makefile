@@ -71,12 +71,16 @@ tools: install_others install_pulp_tools
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os all
 
-all:: install
+version:
+	@$(MBED_PATH)/tools/version/record_version.sh
+
+all:: install version
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
+	$(RM) version.log
 
-.PHONY: all install clean install_others install_pulp_tools tools pulp-os
+.PHONY: all install clean version install_others install_pulp_tools tools pulp-os

@@ -139,7 +139,7 @@ OBJS            = $(ASM_OBJS) $(C_OBJS)
 
 BIN             = $(BUILDDIR)/test
 
-all::   dir $(OBJS) $(BIN) version disdump
+all::   dir $(OBJS) $(BIN) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -199,10 +199,7 @@ $(BIN).s: $(BIN)
 
 disdump: $(BIN).s
 
-version:
-	@$(MBED_PATH)/tools/version/record_version.sh
 
 clean::
 	@rm -rf $(OBJS) $(DUMP) $(TEST_OBJ)
 	@rm -rf *~ ./BUILD transcript *.wav __pycache__
-	@rm -rf version.log

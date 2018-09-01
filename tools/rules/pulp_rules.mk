@@ -59,7 +59,7 @@ INC           = $(TARGET_INSTALL_DIR)/include/pulp-os \
 
 INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
-all::    dir $(OBJECTS) $(BIN) version disdump
+all::    dir $(OBJECTS) $(BIN) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -109,12 +109,8 @@ $(BIN).s: $(BIN)
 
 disdump: $(BIN).s
 
-version:
-	@$(MBED_PATH)/tools/version/record_version.sh
-
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD transcript *.wav __pycache__
-	@rm -rf version.log
 
 .PHONY: all clean run debug disdump gdbserver dir
