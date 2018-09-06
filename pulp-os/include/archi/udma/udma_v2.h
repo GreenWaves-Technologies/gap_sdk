@@ -139,6 +139,10 @@
 // Return the id of a channel from the peripheral id
 #define UDMA_CHANNEL_ID(id)                 ((id)*2)
 
+// Return the event id of a channel from the peripheral id
+#define UDMA_EVENT_ID(id)                 ((id)*2)
+
+
 
 // Define UDMA peripherals offset in case of multiple same periph
 #ifdef ARCHI_UDMA_HAS_SPIM

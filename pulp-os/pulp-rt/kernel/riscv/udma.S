@@ -31,6 +31,14 @@ udma_event_handler:
 
   // We have the channel ID in x10, get pointer to the corresponding channel
   li     x9, RT_PERIPH_CHANNEL_T_SIZEOF
+
+#if defined(ARCHI_SOC_EVENT_UDMA_NB_CHANNEL_EVT) && ARCHI_SOC_EVENT_UDMA_NB_CHANNEL_EVT > 2
+  andi   x8, x10, 1
+  srli   x10, x10, 1
+  or     x10, x10, x8
+#endif
+
+
 #ifndef CORE_NO_MUL
   p.mul  x9, x9, x10
 #endif

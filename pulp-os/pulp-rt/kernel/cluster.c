@@ -114,13 +114,17 @@ static inline __attribute__((always_inline)) void __rt_cluster_mount(int cid, in
     // Activate icache
     hal_icache_cluster_enable(cid);
 
+
+
 #if defined(APB_SOC_VERSION) && APB_SOC_VERSION >= 2
 
     // Fetch all cores, they will directly jump to the PE loop waiting from orders through the dispatcher
     for (int i=0; i<rt_nb_active_pe(); i++) {
       plp_ctrl_core_bootaddr_set_remote(cid, i, ((int)_start) & 0xffffff00);
     }
+#ifndef ARCHI_HAS_NO_DISPATCH
     eoc_fetch_enable_remote(cid, -1);
+#endif
 
     // For now the whole sequence is blocking so we just handle the event here.
     // The power-up sequence could be done asynchronously and would then use the event
@@ -191,6 +195,93 @@ void rt_cluster_mount(int mount, int cid, int flags, rt_event_t *event)
 
 
 
+#ifdef ARCHI_HAS_NO_DISPATCH
+
+unsigned int __rt_stack_master_base;
+unsigned int __rt_stacks_slave_base;
+unsigned int __rt_stack_master_size;
+unsigned int __rt_stack_slave_size;
+
+typedef struct {
+  volatile void *entry;
+  void *arg0;
+  void *arg1;
+  void *arg2;
+  int barrier;
+} rt_slave_call_t;
+
+static RT_L1_TINY_DATA rt_slave_call_t __rt_cluster_slave_calls[ARCHI_CLUSTER_NB_PE-1][2];
+static RT_L1_TINY_DATA int __rt_cluster_slave_index[ARCHI_CLUSTER_NB_PE-1];
+static RT_L1_TINY_DATA int __rt_last_fork_nb_cores = ARCHI_CLUSTER_NB_PE;
+
+void __rt_pe_entry()
+{
+  int core_id = rt_core_id();
+  int index = 0;
+  rt_slave_call_t *call = __rt_cluster_slave_calls[core_id-1];
+  while(1)
+  {
+    volatile void *entry;
+
+    while((entry = call[index].entry) == NULL)
+    {
+      eu_evt_maskWaitAndClr(1<<RT_CL_SYNC_EVENT);
+    }
+
+    call[index].entry = NULL;
+    int barrier = call[index].barrier;
+    index ^= 1;
+    __asm__ __volatile__ ("" : : : "memory");
+    ((void (*)(void *, void *, void *))entry)(call->arg0, call->arg1, call->arg2);
+
+    if (barrier)
+      rt_team_barrier();
+  }
+}
+
+void __rt_cluster_pe_init(void *master_stack, void *slave_stacks, int master_stack_size, int slave_stack_size)
+{
+  __rt_stack_master_base = (unsigned int)master_stack;
+  __rt_stacks_slave_base = (unsigned int)slave_stacks;
+  __rt_stack_master_size = master_stack_size;
+  __rt_stack_slave_size = slave_stack_size;
+  for (int i=0; i<ARCHI_CLUSTER_NB_PE-1; i++)
+  {
+    __rt_cluster_slave_index[i] = 0;
+    __rt_cluster_slave_calls[i][0].entry = NULL;
+    __rt_cluster_slave_calls[i][1].entry = NULL;
+  }
+}
+
+void __rt_team_fork(int nb_cores, void (*entry)(void *), void *arg)
+{
+  if (nb_cores) __rt_team_config(nb_cores);
+
+  if (nb_cores == 0)
+    nb_cores = __rt_last_fork_nb_cores;
+
+  if (nb_cores) __rt_team_config(nb_cores);
+  __rt_last_fork_nb_cores = nb_cores;
+  for (int i=0; i<nb_cores-1; i++)
+  {
+    int index = __rt_cluster_slave_index[i];
+    __rt_cluster_slave_index[i] = index ^ 1;
+    __rt_cluster_slave_calls[i][index].arg0 = arg;
+    __rt_cluster_slave_calls[i][index].barrier = 1;
+    __asm__ __volatile__ ("" : : : "memory");
+    __rt_cluster_slave_calls[i][index].entry = entry;
+  }
+  eu_evt_trig(eu_evt_trig_addr(RT_CL_SYNC_EVENT), -1);
+
+  entry(arg);
+
+  rt_team_barrier();
+}
+
+#endif
+
+
+
 int rt_cluster_call(rt_cluster_call_t *_call, int cid, void (*entry)(void *arg), void *arg, void *stacks, int master_stack_size, int slave_stack_size, int nb_pe, rt_event_t *event)
 {
   int retval = 0;
@@ -247,6 +338,13 @@ int rt_cluster_call(rt_cluster_call_t *_call, int cid, void (*entry)(void *arg),
   call->slave_stack_size = slave_stack_size;
   call->event = call_event;
   call->sched = call_event->sched;
+
+
+#ifdef ARCHI_HAS_NO_DISPATCH
+  __rt_cluster_pe_init(stacks, (void *)((int)stacks + master_stack_size), master_stack_size, slave_stack_size);
+    eoc_fetch_enable_remote(cid, -1);
+#endif
+
 
   // nb_pe must be last written as this is the one triggering the execution on cluster side
   rt_compiler_barrier();
@@ -366,6 +464,36 @@ void __rt_bridge_enqueue_event()
 
 
 #if defined(ARCHI_HAS_CLUSTER)
+
+#ifdef ARCHI_HAS_NO_BARRIER
+
+static RT_L1_TINY_DATA unsigned int __rt_barrier_status = 0;
+RT_L1_TINY_DATA unsigned int __rt_barrier_wait_mask;
+
+void __rt_team_barrier()
+{
+  int core_id = rt_core_id();
+  unsigned int status;
+  while ((status = rt_tas_lock_32((unsigned int)&__rt_barrier_status)) == -1UL)
+  {
+    eu_evt_maskWaitAndClr(1<<RT_CL_SYNC_EVENT);
+  }
+  status |= 1<<core_id;
+  if (status == __rt_barrier_wait_mask)
+  {
+    status = 0;
+  }
+  rt_tas_unlock_32((unsigned int)&__rt_barrier_status, status);
+  eu_evt_trig(eu_evt_trig_addr(RT_CL_SYNC_EVENT), 0);
+
+  while ((__rt_barrier_status >> core_id) & 1)
+  {
+    eu_evt_maskWaitAndClr(1<<RT_CL_SYNC_EVENT);
+  }
+}
+
+#endif
+
 
 extern int main();
 

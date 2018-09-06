@@ -89,6 +89,7 @@ typedef enum {
  */
 typedef struct {
   rt_fs_type_e type;     /*!< File-system type. */
+  rt_flash_conf_t flash_conf;        /*!< Flash configuration. */
 } rt_fs_conf_t;
 
 

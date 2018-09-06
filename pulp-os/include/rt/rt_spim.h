@@ -224,8 +224,6 @@ static inline void rt_spim_receive(rt_spim_t *handle, void *data, size_t len, rt
 
 
 
-#if 0
-
 /** \brief Enqueue a read and write copy to the SPI (using full duplex mode).
  *
  * This function can be used to send and receive data with the SPI device using full duplex mode.
@@ -242,7 +240,6 @@ static inline void rt_spim_receive(rt_spim_t *handle, void *data, size_t len, rt
  */
 void rt_spim_transfer(rt_spim_t *handle, void *tx_data, void *rx_data, size_t len, rt_spim_cs_e cs_mode, rt_event_t *event);
 
-#endif
 
 
 /** \brief Enqueue a write copy to the SPI using quad spi (from Chip to SPI device).
@@ -276,6 +273,20 @@ static inline void rt_spim_send_qspi(rt_spim_t *handle, void *data, size_t len, 
  * \param event       The event used to notify the end of transfer. See the documentation of rt_event_t for more details.
  */
 static inline void rt_spim_receive_qspi(rt_spim_t *handle, void *data, size_t len, rt_spim_cs_e cs_mode, rt_event_t *event);
+
+
+#if 0
+
+/** \brief Flush all pending SPI transfers 
+ *
+ * This blocks the calling core until all transfers enqueued for sending
+ * (e.g. with rt_spim_send or rt_spim_transfer) are finished and fully
+ * sent to the device.
+ * The core is clock-gated until this happens.
+ */
+static inline void rt_spim_flush(rt_spim_t *handle);
+
+#endif
 
 
 //!@}
@@ -350,6 +361,13 @@ static inline void rt_spim_control(rt_spim_t *handle, rt_spim_control_e cmd, uin
   __rt_spim_control(handle, cmd, arg);
 }
 
+static inline void rt_spim_flush(rt_spim_t *handle)
+{
+  while (plp_udma_busy(handle->channel + 1))
+  {
+    rt_wait_for_interrupt();
+  }
+}
 
 #endif
 

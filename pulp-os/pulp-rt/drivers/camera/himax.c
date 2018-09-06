@@ -351,7 +351,7 @@ rt_camera_t* __rt_himax_open(rt_dev_t *dev, rt_cam_conf_t* cam, rt_event_t*event
 
    }
 
-    soc_eu_fcEventMask_setEvent(ARCHI_UDMA_CAM_ID(0)*2);
+    soc_eu_fcEventMask_setEvent(UDMA_EVENT_ID(ARCHI_UDMA_CAM_ID(0)));
     _himaxReset(camera);
     _himaxBoot(camera);
 

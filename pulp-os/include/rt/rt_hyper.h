@@ -416,18 +416,21 @@ static inline __attribute__((always_inline)) void rt_hyperram_cluster_wait(rt_hy
 }
 
 void __rt_hyperram_cluster_copy(rt_hyperram_t *dev,
-  void *addr, void *hyper_addr, int size, rt_hyperram_req_t *req, int is_write);
+  void *hyper_addr, void *addr, int size, rt_hyperram_req_t *req, int ext2loc);
+
+void __rt_hyperram_cluster_copy_2d(rt_hyperram_t *dev,
+  void *hyper_addr, void *addr, int size, int stride, int length, rt_hyperram_req_t *req, int ext2loc);
 
 static inline void rt_hyperram_cluster_read(rt_hyperram_t *dev,
   void *addr, void *hyper_addr, int size, rt_hyperram_req_t *req)
 {
-  __rt_hyperram_cluster_copy(dev, addr, hyper_addr, size, req, 0);
+  __rt_hyperram_cluster_copy(dev, hyper_addr, addr, size, req, 1);
 }
 
 static inline void rt_hyperram_cluster_write(rt_hyperram_t *dev,
   void *addr, void *hyper_addr, int size, rt_hyperram_req_t *req)
 {
-  __rt_hyperram_cluster_copy(dev, addr, hyper_addr, size, req, 1);
+  __rt_hyperram_cluster_copy(dev, hyper_addr, addr, size, req, 0);
 }
 
 #endif

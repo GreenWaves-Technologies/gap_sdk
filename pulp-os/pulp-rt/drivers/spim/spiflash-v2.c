@@ -76,10 +76,19 @@ static rt_flash_t *__rt_spiflash_open(rt_dev_t *dev, rt_flash_conf_t *conf, rt_e
   flash = rt_alloc(RT_ALLOC_FC_DATA, sizeof(rt_spiflash_t));
   if (flash == NULL) goto error;
 
-  int periph_id = dev->channel;
+  int periph_id;
+
+  if (dev)
+  {
+    periph_id = dev->channel;
+  }
+  else
+  {
+    periph_id = ARCHI_UDMA_SPIM_ID(conf->id);
+  }
+  
   int channel_id = periph_id*2;
 
-  flash->header.dev = dev;
   flash->channel = channel_id;
 
   plp_udma_cg_set(plp_udma_cg_get() | (1<<(periph_id>>1)));
