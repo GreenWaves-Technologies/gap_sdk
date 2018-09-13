@@ -66,6 +66,7 @@ v2s  W_Frame[N_FFT+4];
 short int Frame[FRAME];
 short int FEAT_LIST[N_FRAME * NUMCEP];
 short int *pfeat_list;
+uint8_t* i2s_buffer;
 
 /*******************************************************************************
  * IMAGE Variables
@@ -154,30 +155,31 @@ int main() {
         return -1;
     }
 
+    i2s_buffer = malloc((BUFFER_SIZE * sizeof(short)) + WAV_HEADER_SIZE);
 
     #ifdef USE_AUDIO
     Audio_Init();
     #endif
 
     while(1) {
-        #ifdef USE_AUDIO
+#ifdef USE_AUDIO
         Audio_Enable();
         Audio_Capture();
         Audio_Disable();
-        #endif
+#endif
 
-        #ifdef DOMFCC
-        #ifdef USE_AUDIO
+#ifdef DOMFCC
+#ifdef USE_AUDIO
         short int *InSignal = (short int *) (i2s_buffer + WAV_HEADER_SIZE);
-        #else
+#else
         short int *InSignal = DataIn;
-        #endif
+#endif
 
         MFCC_Processing(InSignal, W_Frame, Frame, FEAT_LIST);
         pfeat_list = (short int*) FEAT_LIST;
-        #else
+#else
         pfeat_list = (short int*) DataIn;
-        #endif
+#endif
 
         /* FC send a task to Cluster */
         CLUSTER_SendTask(0, Master_Entry, 0, 0);
@@ -185,33 +187,31 @@ int main() {
         /* Wait cluster finish task */
         CLUSTER_Wait(0);
 
-        {
-            //  ******************************** Softmax on FC ****************************
-            int i, j, sum=0;
-            char *s;
-            uint8_t idx_max=0;
+        //  ******************************** Softmax on FC ****************************
+        int i, j, sum=0;
+        char *s;
+        uint8_t idx_max=0;
 
-            printf("\n");
-            int max=0x80000000;
+        printf("\n");
+        int max=0x80000000;
 
-            for(i=0; i < CLast_NFEAT; i++) {
-                printf(" feat %d: %d  \n", i, l2_big0[i]);
-                sum += l2_big0[i];
+        for(i=0; i < CLast_NFEAT; i++) {
+            printf(" feat %d: %d  \n", i, l2_big0[i]);
+            sum += l2_big0[i];
 
-                #ifndef TESTNONE
-                if (l2_big0[i]>max && i!=1) {max=l2_big0[i];idx_max=i;}
-                #else
-                if (l2_big0[i]>max) {max=l2_big0[i];idx_max=i;}
-                #endif
-            }
-
-            printf("found max %d\n", idx_max);
-            printf("found word %s\n", word_list[idx_max]);
+#ifndef TESTNONE
+            if (l2_big0[i]>max && i!=1) {max=l2_big0[i];idx_max=i;}
+#else
+            if (l2_big0[i]>max) {max=l2_big0[i];idx_max=i;}
+#endif
         }
 
-        #ifdef USE_AUDIO
+        printf("found max %d\n", idx_max);
+        printf("found word %s\n", word_list[idx_max]);
+
+#ifdef USE_AUDIO
         Audio_SynchroPython();
-        #endif
+#endif
     }
 
     /* Cluster Stop - Power down */

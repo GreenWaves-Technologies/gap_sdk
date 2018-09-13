@@ -16,7 +16,7 @@ USE_HARDWARE_CE = -DRT_HAS_HWCE=1
 TEST_C         +=./CnnKernels_hwce.c ./CnnKernelsInit_hwce.c
 
 USE_MFCC        = -DDOMFCC=1
-# USE_AUDIO       = -DUSE_AUDIO=1
+USE_AUDIO       = -DUSE_AUDIO=1
 
 MBED_FLAGS     += -DW_HALFCHAR -DTILED -DHWCE_ACTIVE $(USE_HARDWARE_CE) $(USE_MFCC) $(USE_AUDIO) -lm
 
@@ -42,6 +42,6 @@ clean::
 .PHONY: model
 
 # If use AUDIO, uncomment it.
-# PLPBRIDGE_FLAGS += -s i2s@../../../i2s.py
+PLPBRIDGE_FLAGS += -s i2s@../../../i2s.py
 
 include $(GAP_SDK_HOME)/tools/rules/mbed_rules.mk

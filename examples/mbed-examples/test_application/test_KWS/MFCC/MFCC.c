@@ -45,7 +45,9 @@ struct complex_f {
 
 int MFCC_Logfp(unsigned int a)
 {
+#ifdef PRINTDEB_FLOAT 
     float aa = (float)a/(float)(1<<QN);
+#endif
     // comput log in base 2
     //if (a==0) a=0x1;
     int iLog2N  = __FL1(a);
@@ -53,7 +55,6 @@ int MFCC_Logfp(unsigned int a)
 
     int valint = iLog2N - QN;
 
-    //printf("a=%x int part %d\n",a,valint);
 
     if (valint>=0) {
         if (a<(unsigned int)(1<<iLog2N)) valint++;
@@ -80,11 +81,10 @@ int MFCC_Logfp(unsigned int a)
 }
 
 
-void MFCC_ComputeLog(unsigned int *MFCC) {
+void MFCC_ComputeLog(unsigned int *__restrict__ MFCC) {
     int i;
     // log is natural log in C
     int TMP;
-    //short int log_norm = (short int) floor(log(norm)*(1<<QN)+0.5);
 
 #ifdef PRINTDEB_FLOAT
     printf("log norm ((%f) = %x\n",LOG_NORM/(float)(1<<QN),LOG_NORM);

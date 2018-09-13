@@ -23,19 +23,17 @@ def i2s(bridge):
             time.sleep(1)
             recReady = int(("0x"+addrWavOutHead), 16) + 8
             WavOutFlag = bridge.read_32(recReady)
-            print ("py: waiting recReady")
 
         l2Addr = int(("0x"+addrWavOutHead), 16)
         addrWav = bridge.read_32(l2Addr)
         size = int(("0x"+addrWavOutHead), 16) + 4
         WavSize = bridge.read_32(size)
 
-        with open("wavOut.wav", 'wb') as waveOut:
-            print ("py: now download", WavSize, "bytes")
-            for byte in bridge.read(addrWav, WavSize):
-                waveOut.write(byte)
-
-        waveOut.closed
+#        with open("wavOut.wav", 'wb') as waveOut:
+#            print ("py: now download", WavSize, "bytes")
+#            for byte in bridge.read(addrWav, WavSize):
+#                waveOut.write(byte)
+#        waveOut.closed
 
         os.system("if [ ! -f ../../../waveOut.wav ]; then ln -s BUILD/GAP8/GCC_RISCV/wavOut.wav ../../../wavOut.wav 1>/dev/null 2>/dev/null; fi")
         time.sleep(1)

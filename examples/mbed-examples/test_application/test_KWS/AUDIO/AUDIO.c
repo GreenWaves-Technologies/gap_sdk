@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "AUDIO.h"
 
-#define SAMPLE_FREQ 22050
+#define SAMPLE_FREQ 16000
 #define SOC_FREQ_COEFF 25 // at soc_freq=50MHz, I2S_CLK=2MHz
 
 /* I2S0 */
@@ -16,8 +16,8 @@
 #define PDM_DDR_CHAN0                  0
 
 /* Filter register */
-#define DECIMATION_CHAN0               99 // 250 - 8kHZ; 99 - 22.05kHz with i2s_clk=2MHz
-#define SHIFT_CHAN0                    4
+#define DECIMATION_CHAN0               0x40 // 250 - 8kHZ; 99 - 22.05kHz with i2s_clk=2MHz
+#define SHIFT_CHAN0                    5
 
 
 typedef struct i2s_descriptor_ {
@@ -30,14 +30,13 @@ typedef struct i2s_descriptor_ {
 
 i2s_descriptor_t i2s_out_header;
 
-uint8_t i2s_buffer[(BUFFER_SIZE * sizeof(short)) + WAV_HEADER_SIZE];
-
 static I2S_Type *const i2s_address[] = I2S_BASE_PTRS;
 
 static void WAV_HeaderCreate(uint8_t *i2s_out, i2s_descriptor_t *i2s_out_header)
 {
     uint8_t header_buffer[WAV_HEADER_SIZE];
     uint32_t idx = 0;
+    unsigned int sz = WAV_HEADER_SIZE + BUFFER_SIZE * sizeof(signed short);
 
     // 4 bytes "RIFF"
     header_buffer[idx++] = 'R';
@@ -46,10 +45,10 @@ static void WAV_HeaderCreate(uint8_t *i2s_out, i2s_descriptor_t *i2s_out_header)
     header_buffer[idx++] = 'F';
 
     // 4 bytes File size - 8bytes 32kS 0x10024 - 65408S 0x1ff24
-    header_buffer[idx++] = 0x24;
-    header_buffer[idx++] = 0xff;
-    header_buffer[idx++] = 0x01;
-    header_buffer[idx++] = 0x00;
+    header_buffer[idx++] = (unsigned char) (sz & 0x000000ff);
+    header_buffer[idx++] = (unsigned char)((sz & 0x0000ff00) >> 8);
+    header_buffer[idx++] = (unsigned char)((sz & 0x00ff0000) >> 16);
+    header_buffer[idx++] = (unsigned char)((sz & 0xff000000) >> 24);
 
     // 4 bytes file type: "WAVE"
     header_buffer[idx++] = 'W';
@@ -149,13 +148,13 @@ void Audio_Init()
 void Audio_Enable()
 {
     /* I2S Clock Enable */
-    SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, EN_CHAN0, 0x10);
+    SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, EN_CHAN0, 0x17);
 }
 
 void Audio_Disable()
 {
     /* I2S Clock disable */
-    SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 0, 0x10);
+    SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 0, 0x17);
 }
 
 void Audio_DeInit()
