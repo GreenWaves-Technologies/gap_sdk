@@ -28,7 +28,11 @@ volatile unsigned int __rt_socevents_status[2];
 static inline __attribute__((always_inline)) void handle_hyper_copy(rt_periph_channel_t *channel, unsigned int base, rt_periph_copy_t *copy, unsigned int addr,
   unsigned int size, unsigned int cfg)
 {
-  if (!channel->firstToEnqueue && plp_udma_canEnqueue(base)) {
+  int is_first = channel->first == NULL;
+
+  __rt_channel_push(channel, copy);
+
+  if (is_first) {
       hal_hyper_enqueue(base, addr, copy->u.hyper.hyper_addr, size, cfg);
   } else {
     copy->addr = addr;
@@ -69,13 +73,13 @@ void rt_periph_copy(rt_periph_copy_t *copy, int channel_id, unsigned int addr, i
   copy->size = size;
   copy->event = call_event;
 
-  __rt_channel_push(channel, copy);
-
   if (ARCHI_REG_FIELD_GET(copy->ctrl, RT_PERIPH_COPY_CTRL_TYPE_BIT, RT_PERIPH_COPY_CTRL_TYPE_WIDTH) < RT_PERIPH_COPY_SPECIAL_ENQUEUE_THRESHOLD) {
     // If less than 2 transfers are enqueued in the channel, we can directly enqueue it
     // Otherwise enqueue it in the SW queue, it will be handled later on by the interrupt handler
     // We have to check if there is no transfer already waiting as since we masked interrupts, the
     // UDMA could have finished one transfer and we want to keep the transfers in-order
+    __rt_channel_push(channel, copy);
+
     if (!channel->firstToEnqueue && plp_udma_canEnqueue(base)) {
       plp_udma_enqueue(base, addr, size, cfg);
     } else {

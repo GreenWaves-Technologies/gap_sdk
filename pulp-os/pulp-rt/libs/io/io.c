@@ -41,6 +41,22 @@ hal_debug_struct_t HAL_DEBUG_STRUCT_NAME = HAL_DEBUG_STRUCT_INIT;
 
 int __errno;
 
+void *malloc(size_t size)
+{
+  void * ptr = rt_alloc(RT_ALLOC_CL_DATA, size + 0x4U);
+  if ((uint32_t) ptr == 0x0)
+    return (void *) 0x0;
+  *(uint32_t *)(ptr) = size + 0x4U;
+  return (void *) ((uint32_t *)ptr++);
+}
+
+void free(void *ptr)
+{
+  uint32_t size = *((uint32_t *)ptr--);
+  rt_free(RT_ALLOC_CL_DATA, (void *)((uint32_t *)ptr--), size);
+}
+
+
 int strcmp(const char *s1, const char *s2)
 {
   while (*s1 != '\0' && *s1 == *s2)

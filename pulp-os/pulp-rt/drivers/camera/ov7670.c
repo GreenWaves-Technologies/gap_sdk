@@ -15,23 +15,34 @@
  */
 
 /*
- * Authors: Yao ZHANG, GreenWaves Technologies (yao.zhang@greenwaves-technologies.com)
+ * Authors: Yao ZHANG,      GreenWaves Technologies (yao.zhang@greenwaves-technologies.com)
+ *          Francesco PACI, GreenWaves Technologies (francesco.paci@greenwaves-technologies.com)
  */
 
 #include "rt/rt_api.h"
 
-static RT_L2_DATA ov7670_reg_cfg_t _qvga_conf[] = {
-    {REG_COM14, 0x19},
+ RT_L2_DATA ov7670_reg_cfg_t _qvga_conf[] = {
+    //{REG_COM14, 0x19},
+    {REG_COM14, 0x0},
     {0x70, 0x4A},
     {0x71, 0x35},
     {0x72, 0x11},
     {0x73, 0xf1},
-    {REG_HSTART,0x16},
+    /*{REG_HSTART,0x16},
     {REG_HSTOP,0x04},
     {REG_HREF,0x24},
     {REG_VSTART,0x02},
     {REG_VSTOP,0x7a},
     {REG_VREF,0x0a},
+*/
+    {REG_HSTART,0x15},
+    {REG_HSTOP,0x3D},
+    {REG_HREF,0x00},
+    {REG_VSTART,0x0F},
+    {REG_VSTOP,0x2D},
+    {REG_VREF,0x06},
+    //{REG_COM10,0x40},
+    
 
     //	{0xff, 0xff},	/* END MARKER */
 };
@@ -57,19 +68,19 @@ static RT_L2_DATA ov7670_reg_cfg_t _rgb565_conf[] = {
 };
 
 static RT_L2_DATA ov7670_reg_cfg_t _yuv422_conf[] = {
-    {REG_COM7, 0x0},	/* Selects YUV mode */
-    {REG_RGB444, 0},	/* No RGB444 please */
+    //{REG_COM7, COM7_FMT_QVGA},	/* Selects YUV mode */
+    {REG_RGB444, 0x0},	/* No RGB444 please */
     {REG_COM1, 0},
     {REG_COM15, COM15_R00FF},
-    {REG_COM9, 0x6A},	/* 128x gain ceiling; 0x8 is reserved bit */
+    //{REG_COM9, 0x6A},	/* 128x gain ceiling; 0x8 is reserved bit */
     {0x4f, 0x80},		/* "matrix coefficient 1" */
     {0x50, 0x80},		/* "matrix coefficient 2" */
     {0x51, 0},		    /* vb */
     {0x52, 0x22},		/* "matrix coefficient 4" */
     {0x53, 0x5e},		/* "matrix coefficient 5" */
     {0x54, 0x80},		/* "matrix coefficient 6" */
-    {REG_COM13,/*COM13_GAMMA|*/COM13_UVSAT},
-
+    //{REG_COM13,/*COM13_GAMMA|*/COM13_UVSAT},
+    {REG_COM8, 0x01}, //AEC
     {0x55, 0x80},
     {0x56, 0x80},
     //    {0x11, 0x12},
@@ -107,13 +118,13 @@ unsigned int ov7670RegRead(rt_camera_t *cam, unsigned char addr, rt_event_t *eve
     if (rt_platform() == ARCHI_PLATFORM_FPGA || rt_platform() == ARCHI_PLATFORM_BOARD){
         i2c_req.rd.addr = addr;
         rt_i2c_write(cam->i2c, (unsigned char *)&i2c_req, sizeof(i2c_req.rd), 1, NULL);
-        rt_i2c_read(cam->i2c, &valRegOV7670, 1, 0, NULL);
+        rt_i2c_read(cam->i2c, &valRegOV7670, sizeof(i2c_req.rd) , 0, NULL);
     }
     return valRegOV7670;
 }
 
 
-static void regDump(rt_camera_t *cam){
+void regDump(rt_camera_t *cam){
     for (unsigned int i=0; i<=0xC9; i++)
         printf("addr: %X, value: %X\n", i, ov7670RegRead(cam, i, NULL));
 }
@@ -156,50 +167,85 @@ static void _ov7670ParamInit(rt_camera_t *dev_cam, rt_cam_conf_t *cam_conf){
 }
 
 // TODO: For each case, should add the configuration of camera if necessary.
-static void _ov7670ConfigAndEnable(rt_camera_t *cam){
-    plpUdmaCamCustom_u _cpi;
-    _cpi.raw = 0;
+
+
+static void _ov7670ConfigCamera(rt_camera_t *cam){
+
+    //TODO add camera CPI VGA Resolution
+
     switch (cam->conf.resolution){
         case QVGA:
             goto qvga;
         case QQVGA:
+            //TODO ADD this Config
             break;
-
         default:
-qvga:
+        qvga:
             if (!__ov7670Inited){
                 ov7670RegWrite(cam, REG_COM3, 0x4, NULL);
                 for(unsigned int i=0; i<(sizeof(_qvga_conf)/sizeof(ov7670_reg_cfg_t)); i++)
                     ov7670RegWrite(cam, _qvga_conf[i].addr, _qvga_conf[i].data, NULL);
             }
-            _cpi.cfg_size.row_length = (QVGA_W-1) & MASK_16BITS;
-
     }
-    hal_cpi_size_set(0, _cpi.raw);
-    _cpi.raw = 0;
 
     switch (cam->conf.format){
         case OV7670_RGB565:
             if (!__ov7670Inited)
                 _ov7670_rgb565(cam);
-            _cpi.cfg_glob.format = RGB565;
             break;
         case OV7670_RGB555:
             //TODO: configure ov7670 as rgb555
-            _cpi.cfg_glob.format = RGB555;
             break;
         case OV7670_RGB444:
             //TODO: configure ov7670 as rgb444
-            _cpi.cfg_glob.format = RGB444;
             break;
         case OV7670_YUV422:
             if (!__ov7670Inited)
                 _ov7670_yuv(cam);
-            _cpi.cfg_glob.format = BYPASS_LITEND;
             break;
         case OV7670_MONO_COLOR:
             if (!__ov7670Inited)
                 _ov7670_yuv(cam);
+            break;
+    }
+
+    __ov7670Inited = 1;
+}
+
+static void _ov7670ConfigInterface(rt_camera_t *cam){
+    plp_udma_cg_set(plp_udma_cg_get() | (1<<ARCHI_UDMA_CAM_ID(0)));   // Activate CAM channel
+    plpUdmaCamCustom_u _cpi;
+    _cpi.raw = 0;
+
+    switch (cam->conf.resolution){
+        case QVGA:
+            goto qvga;
+        case QQVGA:
+            //TODO ADD this Config
+            break;
+        default:
+        qvga:
+        _cpi.cfg_size.row_length = (QVGA_W-1) & MASK_16BITS;
+    }
+   
+    hal_cpi_size_set(0, _cpi.raw);
+    _cpi.raw = 0;
+
+    switch (cam->conf.format){
+        case OV7670_RGB565:
+            _cpi.cfg_glob.format = RGB565;
+            break;
+        case OV7670_RGB555:
+            _cpi.cfg_glob.format = RGB555;
+            break;
+        case OV7670_RGB444:
+            _cpi.cfg_glob.format = RGB444;
+            break;
+        case OV7670_YUV422:
+ 
+            _cpi.cfg_glob.format = BYPASS_LITEND;
+            break;
+        case OV7670_MONO_COLOR:
             _cpi.cfg_glob.format = BYPASS_LITEND;
             cam->conf.cpiCfg = UDMA_CHANNEL_CFG_SIZE_8;
             break;
@@ -208,10 +254,11 @@ qvga:
     _cpi.cfg_glob.framedrop_value = cam->conf.frameDrop_value & MASK_6BITS;
     _cpi.cfg_glob.frameslice_enable = cam->conf.slice_en & MASK_1BIT;
     _cpi.cfg_glob.shift = cam->conf.shift & MASK_4BITS;
-    _cpi.cfg_glob.enable = ENABLE;
+    _cpi.cfg_glob.enable = DISABLE;
 
     hal_cpi_glob_set(0, _cpi.raw);
-    __ov7670Inited = 1;
+    plp_udma_cg_set(plp_udma_cg_get() & ~(1<<ARCHI_UDMA_CAM_ID(0))); //Deactivate cam channel
+    
 }
 
 void __rt_ov7670_close(rt_camera_t *dev_cam, rt_event_t *event){
@@ -257,8 +304,11 @@ void __rt_ov7670_control(rt_camera_t *dev_cam, rt_cam_cmd_e cmd, void *_arg){
             _camera_drop_frame(&dev_cam->conf, arg);
             break;
         case CMD_START:
+            _camera_start();
+            break;
         case CMD_INIT:
-            _ov7670ConfigAndEnable(dev_cam);
+            _ov7670ConfigInterface(dev_cam);
+            _ov7670ConfigCamera(dev_cam);
             break;
         case CMD_STOP:
         case CMD_PAUSE:

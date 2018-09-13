@@ -64,6 +64,12 @@
 #define ARCHI_HAS_CLUSTER_CLK_GATE 1
 #define ARCHI_CLUSTER_NB_PE        8
 
+/*
+ * CLUSTER EVENT UNIT
+ */
+
+//#define ARCHI_HAS_NO_BARRIER    1
+//#define ARCHI_HAS_NO_DISPATCH   1
 
 
 

@@ -140,11 +140,35 @@ static inline void rt_team_offload_wait() {
 
 #endif
 
+#ifdef ARCHI_HAS_NO_BARRIER
+extern RT_L1_TINY_DATA unsigned int __rt_barrier_wait_mask;
+#endif
+
+static inline void __rt_team_barrier_config(unsigned int core_mask)
+{
+#ifdef ARCHI_HAS_NO_BARRIER
+  __rt_barrier_wait_mask = core_mask;
+#else
+  eu_bar_setup(eu_bar_addr(0), core_mask);
+#endif
+}
+
 static inline void __rt_team_config(int nb_cores) {
   unsigned int core_mask = (1<<nb_cores) - 1;
   eu_dispatch_team_config(core_mask);
-  eu_bar_setup(eu_bar_addr(0), core_mask);
+  __rt_team_barrier_config(core_mask);
 }
+
+#ifdef ARCHI_HAS_NO_DISPATCH
+
+void __rt_team_fork(int nb_cores, void (*entry)(void *), void *arg);
+
+static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg)
+{
+  __rt_team_fork(nb_cores, entry, arg);
+}
+
+#else
 
 static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg) {
   if (nb_cores) __rt_team_config(nb_cores);
@@ -155,9 +179,23 @@ static inline void rt_team_fork(int nb_cores, void (*entry)(void *), void *arg) 
   rt_team_barrier();
 }
 
+#endif
+
+#ifdef ARCHI_HAS_NO_BARRIER
+
+void __rt_team_barrier();
+
+static inline void rt_team_barrier() {
+  __rt_team_barrier();
+}
+
+#else
+
 static inline void rt_team_barrier() {
   eu_bar_trig_wait_clr(eu_bar_addr(0));
 }
+
+#endif
 
 static inline void rt_team_critical_enter()
 {

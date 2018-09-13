@@ -28,7 +28,6 @@
 
     .section .cluster.text
 
-
 #ifdef RV_ISA_RV32
   .global __rt_pe_start
 __rt_pe_start:
@@ -41,6 +40,8 @@ __rt_set_slave_stack:
 
   .global __rt_pe_start
 __rt_pe_start:
+
+#endif
 
     // Activate a few events
     li      t0, (1<<PULP_DISPATCH_EVENT) | (1<<PULP_HW_BAR_EVENT) | (1<<PULP_MUTEX_EVENT)
@@ -80,8 +81,10 @@ __rt_pe_start:
     li      s9, ARCHI_CLUSTER_PERIPHERALS_GLOBAL_ADDR(0) + ARCHI_EU_OFFSET + EU_SW_EVENTS_AREA_BASE + EU_CORE_TRIGG_SW_EVENT + (RT_FC_ENQUEUE_EVENT << 2)
     li      s8, 1    
 #endif
+#ifndef ARCHI_HAS_NO_DISPATCH
     la      s10, __rt_set_slave_stack
     ori     s10, s10, 1
+#endif
     j       __rt_master_loop
 
 __rt_master_event:
@@ -137,6 +140,7 @@ __rt_master_loop:
 #endif
     sll     t3, t4, t3
     addi    t3, t3, -1
+#ifndef ARCHI_HAS_NO_BARRIER
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_MASK(s3)
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TARGET_MASK(s3)
     sw      t3, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_TEAM_CONFIG(s3)
@@ -145,13 +149,18 @@ __rt_master_loop:
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_MASK + EU_BARRIER_SIZE(s3)
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TARGET_MASK + EU_BARRIER_SIZE(s3)
 #endif
+#else
+    sw      t3, %tiny(__rt_barrier_wait_mask)(x0)
+#endif
 
+#ifndef ARCHI_HAS_NO_DISPATCH
     // Set stack on slaves
     // For that we push first the function for setting stack, then the stack size and the base
     p.beqimm t3, 1, __rt_master_loop_no_slave
     sw      s10, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_FIFO_ACCESS(s3)
     sw      t2, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_FIFO_ACCESS(s3)
     sw      sp, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_FIFO_ACCESS(s3)
+#endif
 
 __rt_master_loop_no_slave:
 
@@ -195,6 +204,9 @@ __rt_push_event_to_fc_wait:
 
 
 __rt_slave_start:
+
+
+#ifndef ARCHI_HAS_NO_DISPATCH
 
     li      s2, ARCHI_EU_DEMUX_ADDR
     csrr    s3, 0xF14
@@ -253,4 +265,32 @@ __rt_set_slave_stack:
     add     sp, a0, t0
     ret
 
+#else
+
+  li      s3, ARCHI_EU_DEMUX_ADDR
+  li      s4, 1<<RT_CLUSTER_CALL_EVT
+  la      s1, __rt_stacks_slave_base
+  la      s2, __rt_stack_slave_size
+  csrr    s5, CSR_MHARTID
+  andi    s5, s5, 0x1f
+
+
+__rt_slave_loop:
+  lw      sp, 0(s1)
+  lw      t2, 0(s2)
+
+  beqz    t2, __rt_slave_wait_call
+
+  mul     t2, t2, s5
+  add     sp, sp, t2
+
+  j       __rt_pe_entry
+
+__rt_slave_wait_call:
+    sw      s4, EU_CORE_MASK_OR(s3)
+    p.elw   x0, EU_CORE_EVENT_WAIT_CLEAR(s3)
+    sw      s4, EU_CORE_MASK_AND(s3)
+    j       __rt_slave_loop
+
 #endif
+

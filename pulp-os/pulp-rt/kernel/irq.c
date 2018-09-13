@@ -194,9 +194,7 @@ void __rt_irq_init()
   // if we force the boot to jump to the runtime through jtag.
   rt_irq_mask_clr(-1);
 
-#if defined(ARCHI_HAS_FC)
   // As the FC code may not be at the beginning of the L2, set the
   // vector base to get proper interrupt handlers
   __rt_set_fc_vector_base((int)rt_irq_vector_base());
-#endif
 }

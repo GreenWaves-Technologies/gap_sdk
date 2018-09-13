@@ -39,15 +39,35 @@
 
 void rt_flash_conf_init(rt_flash_conf_t *conf)
 {
-
+  conf->id = -1;
+  conf->type = RT_FLASH_TYPE_SPI;
 }
 
 rt_flash_t *rt_flash_open(char *dev_name, rt_flash_conf_t *conf, rt_event_t *event)
 {
-  rt_dev_t *dev = rt_dev_get(dev_name);
-  if (dev == NULL) return NULL;
+  rt_flash_dev_t *desc;
+  rt_dev_t *dev = NULL;
 
-  rt_flash_dev_t *desc = (rt_flash_dev_t *)dev->desc;
+  if (dev_name)
+  {
+    dev = rt_dev_get(dev_name);
+    if (dev == NULL) return NULL;
+
+    desc = (rt_flash_dev_t *)dev->desc;
+  }
+  else
+  {
+    if (conf->type == RT_FLASH_TYPE_SPI)
+    {
+      desc = &spiflash_desc;
+    }
+    else if (conf->type == RT_FLASH_TYPE_HYPER)
+    {
+      desc = &hyperflash_desc;
+    }
+    else
+      return NULL;
+  }
 
   rt_flash_t *flash = desc->open(dev, conf, event);
   if (flash == NULL) return NULL;
@@ -60,8 +80,7 @@ rt_flash_t *rt_flash_open(char *dev_name, rt_flash_conf_t *conf, rt_event_t *eve
 
 void rt_flash_close(rt_flash_t *handle, rt_event_t *event)
 {
-  rt_flash_dev_t *flash = (rt_flash_dev_t *)(handle->dev->desc);
-  flash->close(handle, event);
+  handle->desc.close(handle, event);
 }
 
 #if defined(ARCHI_HAS_CLUSTER)

@@ -80,6 +80,7 @@ static inline void __rt_fs_error(int error)
 void rt_fs_conf_init(rt_fs_conf_t *conf)
 {
   conf->type = RT_FS_READ_ONLY;
+  rt_flash_conf_init(&conf->flash_conf);
 }
 
 
@@ -116,7 +117,7 @@ static int __rt_fs_mount_step(void *arg)
     {
       case 0:
         // Open the flash
-        fs->flash = rt_flash_open((char *)fs->dev_name, NULL, fs->step_event);
+        fs->flash = rt_flash_open((char *)fs->dev_name, &fs->flash_conf, fs->step_event);
         if (fs->flash == NULL) {
           __rt_fs_abort(
             fs->pending_event, RT_FS_MOUNT_FLASH_ERROR, (void *)fs
@@ -198,6 +199,11 @@ rt_fs_t *rt_fs_mount(const char *dev_name, rt_fs_conf_t *conf, rt_event_t *event
   fs->cache = NULL;
   fs->flash = NULL;
   fs->fs_info = NULL;
+
+  if (conf)
+    memcpy((void *)&fs->flash_conf, (void *)&conf->flash_conf, sizeof(conf->flash_conf));
+  else
+    rt_flash_conf_init(&fs->flash_conf);
 
   fs->fs_l2 = rt_alloc(RT_ALLOC_PERIPH, sizeof(rt_fs_l2_t));
   if (fs->fs_l2 == NULL) goto error;
@@ -404,6 +410,7 @@ static void __rt_fs_try_read(void *arg)
   // In case there was a user event specified, enqueue it now that all
   // steps are done to notify the user
   if (file->step_event) {
+    __rt_event_restore(file->step_event);
     rt_event_enqueue(file->pending_event);
     __rt_mutex_unlock(&file->fs->mutex);
   }
@@ -429,7 +436,9 @@ int rt_fs_read(rt_file_t *file, void *buffer, size_t size, rt_event_t *event)
   // asynchronously with another event, otherwise just do everything
   // synchronously with no event
   if (event) {
-    file->step_event = __rt_init_event(&file->fs->event, event->sched, __rt_fs_try_read, (void *)file);
+    __rt_event_save(event);
+    file->step_event = __rt_init_event(event, event->sched, __rt_fs_try_read, (void *)file);
+    __rt_event_set_pending(event);
   } else {
     file->step_event = NULL;
   }

@@ -58,6 +58,30 @@
 /**@{*/
 
 
+/** \enum rt_flash_type_e
+ * \brief Flash identifier.
+ *
+ * This can be used to describe the type of flash connected to the chip.
+ */
+typedef enum {
+  RT_FLASH_TYPE_SPI,     /*!< SPI flash. */
+  RT_FLASH_TYPE_HYPER    /*!< Hyperflash. */
+} rt_flash_type_e;
+
+
+
+/** \struct rt_flash_conf_t
+ * \brief Flash configuration structure.
+ *
+ * This structure is used to pass the desired flash configuration to the runtime when opening the device.
+ */
+typedef struct rt_flash_conf_s {
+  signed char id;         /*!< If it is different from -1, this specifies on which chip interface the device is connected. */
+  rt_flash_type_e type;   /*!< Flash type. */
+} rt_flash_conf_t;
+
+
+
 
 /** \brief Initialize a flash configuration with default values.
  *
@@ -150,6 +174,35 @@ static inline void rt_flash_cluster_wait(rt_flash_req_t *req);
 
 
 /// @cond IMPLEM
+
+typedef struct rt_fs_s {
+  rt_event_t *step_event;
+  rt_event_t *pending_event;
+  int mount_step;
+  const char *dev_name;
+  rt_flash_t *flash;
+  int fs_size;
+  rt_fs_l2_t *fs_l2;
+  unsigned int *fs_info;
+  int nb_comps;
+  unsigned char *cache;
+  unsigned int  cache_addr;
+  rt_mutex_t mutex;
+  rt_event_t event;
+  rt_flash_conf_t flash_conf;
+} rt_fs_t;
+
+typedef struct rt_file_s {
+  unsigned int offset;
+  unsigned int size;
+  unsigned int addr;
+  unsigned int pending_addr;
+  rt_fs_t *fs;
+  rt_event_t *pending_event;
+  rt_event_t *step_event;
+  unsigned int pending_buffer;
+  unsigned int pending_size;
+} rt_file_t;
 
 extern rt_flash_dev_t hyperflash_desc;
 extern rt_flash_dev_t spiflash_desc;
