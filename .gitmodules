@@ -13,3 +13,6 @@
 [submodule "tools/pulp_tools"]
 	path = tools/pulp_tools
 	url = https://github.com/GreenWaves-Technologies/pulp_tools.git
+[submodule "docs"]
+	path = docs
+	url = https://github.com/GreenWaves-Technologies/gap8_docs.git
