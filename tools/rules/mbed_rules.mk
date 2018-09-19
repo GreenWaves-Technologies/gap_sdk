@@ -215,12 +215,13 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
+		$(MBED_PATH)/mbed-os/features/filesystem/rofs \
 		$(TARGET_INSTALL_DIR)/include
 
 
 INC_PATH      += $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
-all:: $(OBJECTS) $(BIN) version disdump
+all:: $(OBJECTS) $(BIN) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -291,12 +292,9 @@ $(BUILDDIR)/test.s: $(BUILDDIR)/test
 
 disdump: $(BUILDDIR)/test.s
 
-version:
-	@$(MBED_PATH)/tools/version/record_version.sh
 
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD transcript *.wav __pycache__
-	@rm -rf version.log
 
 .PHONY: gui debug disdump clean gdbserver run all dir
