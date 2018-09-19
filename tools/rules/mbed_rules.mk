@@ -215,6 +215,7 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
+		$(MBED_PATH)/mbed-os/features/filesystem/rofs \
 		$(TARGET_INSTALL_DIR)/include
 
 
