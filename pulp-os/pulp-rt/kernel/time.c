@@ -137,8 +137,8 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
     PLP_TIMER_PRESCALER_DISABLED, 0, PLP_TIMER_MODE_64_DISABLED
   );
 
-  rt_irq_set_handler(ARCHI_FC_EVT_TIMER1, __rt_timer_handler);
-  rt_irq_mask_set(1<<ARCHI_FC_EVT_TIMER1);
+  rt_irq_set_handler(ARCHI_FC_EVT_TIMER0_HI, __rt_timer_handler);
+  rt_irq_mask_set(1<<ARCHI_FC_EVT_TIMER0_HI);
 
   err |= __rt_cbsys_add(RT_CBSYS_POWEROFF, __rt_time_poweroff, NULL);
   err |= __rt_cbsys_add(RT_CBSYS_POWERON, __rt_time_poweron, NULL);

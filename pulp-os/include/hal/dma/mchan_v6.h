@@ -407,14 +407,14 @@ static inline int plp_dma_extToL1_2d_irq(unsigned int loc, mchan_ext_t ext, unsi
 
 static inline void plp_dma_barrier() {
   while(DMA_READ(PLP_DMA_STATUS_OFFSET) & 0xFFFF) {
-    eu_evt_maskWaitAndClr(1<<ARCHI_EVT_DMA0);
+    eu_evt_maskWaitAndClr(1<<ARCHI_CL_EVT_DMA0);
   }
   DMA_WRITE(-1, PLP_DMA_STATUS_OFFSET);
 }
 
 static inline void plp_dma_wait(unsigned int counter) {
   while(DMA_READ(PLP_DMA_STATUS_OFFSET) & (1 << counter)) {
-    eu_evt_maskWaitAndClr(1<<ARCHI_EVT_DMA0);
+    eu_evt_maskWaitAndClr(1<<ARCHI_CL_EVT_DMA0);
   }
   plp_dma_counter_free(counter);
 }

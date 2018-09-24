@@ -113,21 +113,6 @@ void rt_bridge_connect(rt_event_t *event)
 
   rt_event_t *call_event = __rt_wait_event_prepare(event);
 
-  bridge->first_req = 0;
-  bridge->first_bridge_req = 0;
-
-#ifdef ITC_VERSION
-  bridge->notif_req_addr = ARCHI_FC_ITC_ADDR + ARCHI_ITC_STATUS_SET_OFFSET;
-  bridge->notif_req_value = 1<<RT_BRIDGE_ENQUEUE_EVENT;
-#else
-#if defined(EU_VERSION) && EU_VERSION >= 3
-#if defined(ARCHI_HAS_FC)
-  bridge->notif_req_addr = ARCHI_FC_GLOBAL_ADDR + ARCHI_FC_PERIPHERALS_OFFSET + ARCHI_FC_EU_OFFSET + EU_SW_EVENTS_AREA_BASE + EU_CORE_TRIGG_SW_EVENT + (RT_BRIDGE_ENQUEUE_EVENT << 2);
-  bridge->notif_req_value = 1;
-#endif
-#endif
-#endif
-
   rt_bridge_req_t *req = &call_event->bridge_req;
   hal_bridge_connect(&req->header);
   __rt_bridge_post_req(req, call_event);
@@ -393,6 +378,27 @@ int rt_bridge_write_wait(rt_event_t *event)
 
 
 
+void __rt_bridge_target_status_sync(rt_event_t *event)
+{
+  int irq = rt_irq_disable();
+
+  hal_bridge_t *bridge = hal_bridge_get();
+  if (bridge->bridge.connected)
+  {
+    rt_event_t *call_event = __rt_wait_event_prepare(event);
+
+    rt_bridge_req_t *req = &call_event->bridge_req;
+    hal_bridge_target_status_sync(&req->header);
+    __rt_bridge_post_req(req, call_event);
+
+    __rt_wait_event_check(event, call_event);
+  }
+
+  rt_irq_restore(irq);
+}
+
+
+
 // This is called everytime the bridge sends a notification so that we update
 // the state of the request queue
 void __rt_bridge_handle_notif()
@@ -414,4 +420,24 @@ void __rt_bridge_handle_notif()
 
   // Then check if we must update the bridge queue
   __rt_bridge_check_bridge_req();
+}
+
+RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_bridge_init()
+{
+  hal_bridge_t *bridge = hal_bridge_get();
+  
+  bridge->first_req = 0;
+  bridge->first_bridge_req = 0;
+
+#ifdef ITC_VERSION
+  bridge->notif_req_addr = ARCHI_FC_ITC_ADDR + ARCHI_ITC_STATUS_SET_OFFSET;
+  bridge->notif_req_value = 1<<RT_BRIDGE_ENQUEUE_EVENT;
+#else
+#if defined(EU_VERSION) && EU_VERSION >= 3
+#if defined(ARCHI_HAS_FC)
+  bridge->notif_req_addr = ARCHI_FC_GLOBAL_ADDR + ARCHI_FC_PERIPHERALS_OFFSET + ARCHI_FC_EU_OFFSET + EU_SW_EVENTS_AREA_BASE + EU_CORE_TRIGG_SW_EVENT + (RT_BRIDGE_ENQUEUE_EVENT << 2);
+  bridge->notif_req_value = 1;
+#endif
+#endif
+#endif
 }

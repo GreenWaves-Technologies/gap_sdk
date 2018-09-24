@@ -81,7 +81,7 @@ void __attribute__((interrupt)) __rt_timer_handler()
 
     // Also clear timer interrupt as we might have a spurious one after
     // we entered the handler
-    rt_irq_clr(1 << ARCHI_FC_EVT_TIMER1);
+    rt_irq_clr(1 << ARCHI_FC_EVT_TIMER0_HI);
   }
 }
 

@@ -143,7 +143,6 @@ __rt_master_loop:
 #ifndef ARCHI_HAS_NO_BARRIER
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_MASK(s3)
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TARGET_MASK(s3)
-    sw      t3, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_TEAM_CONFIG(s3)
 #ifdef ARCHI_HAS_CC
     ori     t3, t3, 1<<ARCHI_CC_CORE_ID
     sw      t3, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_MASK + EU_BARRIER_SIZE(s3)
@@ -151,6 +150,9 @@ __rt_master_loop:
 #endif
 #else
     sw      t3, %tiny(__rt_barrier_wait_mask)(x0)
+#endif
+#ifndef ARCHI_HAS_NO_DISPATCH
+    sw      t3, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_TEAM_CONFIG(s3)
 #endif
 
 #ifndef ARCHI_HAS_NO_DISPATCH
@@ -223,7 +225,11 @@ __rt_fork_return:
     // and barrier 1 is used for end of offload
     p.elw   t0, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_WAIT_CLEAR + EU_BARRIER_SIZE(s2)
 #else
+#ifndef ARCHI_HAS_NO_BARRIER
     p.elw   t0, EU_BARRIER_DEMUX_OFFSET + EU_HW_BARR_TRIGGER_WAIT_CLEAR(s2)
+#else
+    jal     ra, __rt_team_barrier
+#endif
 #endif
     
 

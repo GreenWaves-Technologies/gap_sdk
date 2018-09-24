@@ -69,10 +69,10 @@ static inline void rt_irq_mask_set(unsigned int mask)
   hal_itc_enable_set(mask);
 #elif defined(EU_VERSION)
   eu_irq_maskSet(mask);
-  // TODO this is normally not needed as the rt_wait_for_interrupt is called 
-  // with interrupts disabled and so the irq mask is normally enough
-  // to prevent the clock-gating. Howver this behavior is not modeled in the vp
-  // keep that until the model is fixed.
+  // This is needed on architectures where the FC is using an event unit as we
+  // use an elw instead of a wfi with interrupts disabled. The fact that the event
+  // is active will make the core goes out of elw and the interrupt handler
+  // will be called as soon as interrupts are enabled.
   eu_evt_maskSet(mask);
 #endif
 }

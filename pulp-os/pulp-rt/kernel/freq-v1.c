@@ -103,7 +103,10 @@ static int __rt_freq_set_periph_freq(unsigned int freq, int fll, int domain, uns
   }
 
   if (domain != -1) {
-    __rt_freq_domains[domain] = freq / div;
+    int fc_freq = freq;
+    if (div)
+      fc_freq = freq / div;
+    __rt_freq_domains[domain] = fc_freq;
   }
 
   __rt_cbsys_exec(RT_CBSYS_PERIPH_SETFREQ_AFTER);

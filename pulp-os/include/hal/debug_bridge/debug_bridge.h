@@ -39,11 +39,11 @@ static inline hal_bridge_t *hal_bridge_get()
 }
 
 
-#define HAL_DEBUG_STRUCT_INIT {0, 1, 0 ,0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0}
+#define HAL_DEBUG_STRUCT_INIT { {0}, {0}, 0, 1, 0 ,0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, 0, 0, 0}
 
 
 static inline int hal_bridge_is_connected(hal_bridge_t *bridge) {
-  return *(volatile uint32_t *)&bridge->bridge_connected;
+  return *(volatile uint32_t *)&bridge->bridge.connected;
 }
 
 static inline void hal_bridge_connect(hal_bridge_req_t *req)
@@ -106,6 +106,11 @@ static inline void hal_bridge_fb_update(hal_bridge_req_t *req, uint64_t fb, unsi
   req->fb_update.posy = posy;
   req->fb_update.width = width;
   req->fb_update.height = height;
+}
+
+static inline void hal_bridge_target_status_sync(hal_bridge_req_t *req)
+{
+  req->type = HAL_BRIDGE_REQ_TARGET_STATUS_SYNC;
 }
 
 

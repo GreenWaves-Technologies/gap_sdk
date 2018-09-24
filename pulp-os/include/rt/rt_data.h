@@ -311,8 +311,18 @@ typedef struct rt_periph_channel_s {
   rt_periph_copy_t *last;
   rt_periph_copy_t *firstToEnqueue;
   unsigned int base;
-  unsigned int data[2];
+  unsigned int data[3];
+  void *callback;
 } rt_periph_channel_t;
+
+
+#if defined(UDMA_VERSION) && UDMA_VERSION >= 3
+typedef struct {
+  rt_periph_copy_t *pendings[2];
+  rt_periph_copy_t *first_waiting;
+  rt_periph_copy_t *last_waiting;
+} rt_periph_spim_t;
+#endif
 
 
 
@@ -656,13 +666,23 @@ extern rt_padframe_profile_t __rt_padframe_profiles[];
 #define RT_PERIPH_COPY_T_PERIPH_DATA       68
 
 
-#define RT_PERIPH_CHANNEL_T_SIZEOF           (6*4)
+#define RT_PERIPH_CHANNEL_T_SIZEOF_LOG2      (5)
+#define RT_PERIPH_CHANNEL_T_SIZEOF           (8*4)
 #define RT_PERIPH_CHANNEL_T_FIRST             0
 #define RT_PERIPH_CHANNEL_T_LAST              4
 #define RT_PERIPH_CHANNEL_T_FIRST_TO_ENQUEUE  8
 #define RT_PERIPH_CHANNEL_T_BASE              12
 #define RT_PERIPH_CHANNEL_T_DATA0             16
 #define RT_PERIPH_CHANNEL_T_DATA1             20
+#define RT_PERIPH_CHANNEL_T_DATA2             24
+#define RT_PERIPH_CHANNEL_T_CALLBACK          28
+
+#if defined(UDMA_VERSION) && UDMA_VERSION >= 3
+#define RT_PERIPH_SPIM_T_PENDING0      0
+#define RT_PERIPH_SPIM_T_PENDING1      4
+#define RT_PERIPH_SPIM_T_FIRST_WAITING 8
+#define RT_PERIPH_SPIM_T_LAST_WAITING  12
+#endif
 
 
 #define RT_CLUSTER_CALL_T_SIZEOF       (8*4)

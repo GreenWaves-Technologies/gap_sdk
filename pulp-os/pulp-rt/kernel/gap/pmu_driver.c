@@ -397,8 +397,18 @@ unsigned int PMU_set_voltage(unsigned int Voltage, unsigned int CheckFrequencies
 }
 
 void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
-
 {
+  // Notify the bridge that the chip is going to be inaccessible.
+  // We don't do anything until we know that the bridge received the
+  // notification to avoid any race condition.
+  hal_bridge_t *bridge = hal_bridge_get();
+  bridge->target.available = 0;  
+  if (bridge->bridge.connected)
+  {
+    apb_soc_jtag_reg_write(apb_soc_jtag_reg_loc(apb_soc_jtag_reg_read()) & ~2);
+    __rt_bridge_target_status_sync(NULL);
+  }
+
   if (Retentive) {
     PMURetentionState.Fields.BootMode = BOOT_FROM_L2;
     PMURetentionState.Fields.BootType = RETENTIVE_BOOT;

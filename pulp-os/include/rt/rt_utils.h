@@ -704,15 +704,7 @@ static inline int rt_fc_tcdm_size()
 static inline void rt_wait_for_interrupt()
 {
 #if !defined(ARCHI_HAS_FC) || defined(ARCHI_HAS_FC_EU)
-#if EU_VERSION == 3
-  // TODO On FC side, the event unit is used as an interrupt controller and thus
-  // we should never replay the clock-gated load. Just use a normal load
-  // to go to sleep. However this does not work with a normal load, we should
-  // investigate why.
-  eu_evt_wait_noreplay();
-#else
   eu_evt_wait();
-#endif
 #else
   hal_itc_wait_for_interrupt();
 #endif
