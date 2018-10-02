@@ -63,7 +63,7 @@ endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Os -g1 -D_RTE_ $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
+COMMON        = -c -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -fmessage-length=0 -fno-exceptions -fno-builtin -ffunction-sections -fdata-sections -funsigned-char -MMD -fno-delete-null-pointer-checks -fomit-frame-pointer -Wno-deprecated-declarations -Os -g1 $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(MBED_FLAGS)
 
 ASMFLAGS      = -x assembler-with-cpp $(COMMON)
 
@@ -95,63 +95,66 @@ endif
 
 ifeq ($(chip), GAP8)
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
+		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
 		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/FEATURE_STORAGE/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/nvstore/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/system_storage/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
 		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*")))
 else
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
+		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
 		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/FEATURE_STORAGE/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/nvstore/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/system_storage/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
 		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*")))
 endif
 
@@ -161,34 +164,34 @@ T_OBJECTS_CXX += $(patsubst %.cpp, $(BUILDDIR)/%.o, $(TEST_CXX))
 
 CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.cpp" \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/TESTS_COMMON/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/test/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs/emubd/*" \
+		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_LWIP/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_UVISOR/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/utest/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/FEATURE_STORAGE/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/nvstore/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/system_storage/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/TESTS/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/TESTS_COMMON/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
 		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/features/spif-driver/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/i2cee-driver/TESTS/*")))
 
@@ -207,15 +210,14 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/newlib/extra/stdio/tinyprintf/ \
 		$(MBED_PATH)/mbed-os/events/ $(MBED_PATH)/mbed-os/events/equeue/ \
 		$(MBED_PATH)/mbed-os/drivers $(MBED_PATH)/mbed-os/features \
-		$(MBED_PATH)/mbed-os/features/filesystem $(MBED_PATH)/mbed-os/features/filesystem/bd $(MBED_PATH)/mbed-os/features/filesystem/fat \
-		$(MBED_PATH)/mbed-os/features/filesystem/fat/ChaN $(MBED_PATH)/mbed-os/features/filesystem/littlefs $(MBED_PATH)/mbed-os/features/filesystem/littlefs/littlefs \
-		$(MBED_PATH)/mbed-os/features/frameworks/greentea-client $(MBED_PATH)/mbed-os/features/frameworks/greentea-client/greentea-client \
-		$(MBED_PATH)/mbed-os/features/frameworks/unity $(MBED_PATH)/mbed-os/features/frameworks/unity/unity \
-		$(MBED_PATH)/mbed-os/features/frameworks/utest $(MBED_PATH)/mbed-os/features/frameworks/utest/utest \
+		$(MBED_PATH)/mbed-os/features/storage $(MBED_PATH)/mbed-os/features/storage/blockdevice \
+		$(MBED_PATH)/mbed-os/features/storage/filesystem $(MBED_PATH)/mbed-os/features/storage/filesystem/bd \
+		$(MBED_PATH)/mbed-os/features/storage/filesystem/fat $(MBED_PATH)/mbed-os/features/storage/filesystem/fat/ChaN \
+		$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs $(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
-		$(MBED_PATH)/mbed-os/features/filesystem/rofs \
+		$(MBED_PATH)/mbed-os/features/storage/filesystem/rofs \
 		$(TARGET_INSTALL_DIR)/include
 
 

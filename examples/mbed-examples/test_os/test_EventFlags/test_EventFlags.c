@@ -18,8 +18,8 @@ osEventFlagsId_t evt_id;                                      // message queue i
 
 // Thread allocation
 #define TASK_SIZE 1024
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK1_STK[TASK_SIZE];
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK2_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) char TASK1_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) char TASK2_STK[TASK_SIZE];
 
 // TASK1
 os_thread_t    task1_obj;
