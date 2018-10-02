@@ -37,11 +37,11 @@ float read_adc(uint8_t adc_ch, float vref) {
     msg = (msg << 1 | adc_ch) << 5;
 
     spi.udma_cs(0);
-    spi.write(msg);
-    spi.write(0x00);
 
-    reply[0] = spi.read();
-    reply[1] = spi.read();
+    // SPI duplex
+    reply[0] = spi.write(msg);
+    reply[1] = spi.write(0x00);
+
     spi.udma_cs(1);
 
     printf("replt 0: %x \n", reply[0]);
