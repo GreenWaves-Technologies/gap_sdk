@@ -13,11 +13,19 @@ GAP_L2_DATA char SPI_RX_BUFFER[BUFFER_SIZE] ;  // 2560 bits
 
 spi_command_sequence_t s_command;
 
+static void write_enable(spi_t *spim, uint8_t qpi)
+{
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x06;
+    s_command.cmd_bits  = 8;
+    s_command.cmd_mode  = qpi;
+    spi_master_transfer_command_sequence(spim, &s_command);
+}
+
 static void spi_conf_flash(spi_t *spim)
 {
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Single);
+
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
@@ -28,9 +36,8 @@ static void spi_conf_flash(spi_t *spim)
     s_command.addr_mode = uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Single);
+
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
