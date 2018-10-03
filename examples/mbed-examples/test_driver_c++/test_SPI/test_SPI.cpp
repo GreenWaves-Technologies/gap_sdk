@@ -23,38 +23,25 @@
 SPI spi(SPI0_MOSI, SPI0_MISO, SPI0_SCLK, SPI0_CSN0); // mosi, miso, sclk, ssel
 
 // Chip select is contolled by inner ip
-// DigitalOut cs(SPI1_CSN1_B2);
 
 int main() {
     // Setup the spi for 8 bit data, high steady state clock,
     // second edge capture, with a 1MHz clock rate
     spi.format(8,3);
     spi.frequency(1000000);
-    int whoami = 0;
+
+    // Select the device by seting chip select low
+    spi.udma_cs(0);
 
     // Send 0x8f, the command to read the WHOAMI register
-    spi.udma_cs(0);
     spi.write(0x9F);
-    spi.udma_cs(1);
 
     // Send a dummy byte to receive the contents of the WHOAMI register
-    // Here we use explicite transfer, so always return 0.
-    // If user wants to read something, please use spi_master_read
-    spi.udma_cs(0);
-    whoami = spi.write(0x00);
-    spi.udma_cs(1);
+    int whoami = spi.write(0x00);
     printf("WHOAMI register = 0x%X\n", whoami);
 
-
-
-
-    // In fact, the two write can be replaced by read.
-    // It will send command 0x8F followed by a dummy cycle and read the response.
-    spi.udma_cs(0);
-    spi.write(0x9F);
-    whoami = spi.read();
+    // Deselect the device
     spi.udma_cs(1);
-    printf("WHOAMI register = 0x%X\n", whoami);
 
     return 0;
 }

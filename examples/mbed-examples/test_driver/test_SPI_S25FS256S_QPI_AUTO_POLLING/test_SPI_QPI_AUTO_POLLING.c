@@ -178,7 +178,7 @@ int main()
     /* Read ID in QPI mode */
     spi_master_cs(&spim0, 0);
     spi_master_write(&spim0, 0x9f);
-    uint32_t id = spi_master_read(&spim0, 0x00);
+    uint32_t id = spi_master_write(&spim0, 0x00);
     spi_master_cs(&spim0, 1);
     printf("ID = %x\n", id);
 
