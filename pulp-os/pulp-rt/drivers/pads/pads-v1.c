@@ -24,6 +24,11 @@
 static char __rt_padframe_is_init;
 extern int __rt_nb_profile;
 
+__attribute__((weak)) rt_padframe_profile_t __rt_padframe_profiles[0] = {
+};
+
+__attribute__((weak)) int __rt_nb_profile = 0;
+
 void __rt_padframe_init()
 {
   if (!__rt_padframe_is_init)

@@ -51,9 +51,40 @@ __rt_fc_socevents_handler:
 
 
   // UDMA CHANNEL EVENTS
-  li x9, ((ARCHI_SOC_EVENT_UDMA_FIRST_EVT + ARCHI_SOC_EVENT_UDMA_NB_EVT + 1) & 0xfffffffe) + ARCHI_SOC_EVENT_UDMA_NB_TGEN_EVT
-  blt x10, x9, udma_event_handler
+  li x9, ARCHI_SOC_EVENT_UDMA_NB_EVT
+  bge x10, x9, __rt_soc_evt_no_udma_channel
 
+  // We have the channel ID in x10, get pointer to the corresponding channel
+
+#if defined(ARCHI_SOC_EVENT_UDMA_NB_CHANNEL_EVT) && ARCHI_SOC_EVENT_UDMA_NB_CHANNEL_EVT > 2
+  andi   x8, x10, 1
+  srli   x10, x10, 1
+  or     x10, x10, x8
+#endif
+
+  la     x8, periph_channels
+  slli   x9, x10, RT_PERIPH_CHANNEL_T_SIZEOF_LOG2
+  add    x9, x9, x8
+
+  lw   x11, RT_PERIPH_CHANNEL_T_CALLBACK(x9)
+  lw   x8, RT_PERIPH_CHANNEL_T_FIRST(x9)
+
+  jr   x11
+
+
+__rt_soc_evt_no_udma_channel:
+
+  li x9, ARCHI_SOC_EVENT_UDMA_FIRST_EXTRA_EVT + ARCHI_SOC_EVENT_UDMA_NB_EXTRA_EVT
+  bge x10, x9, __rt_soc_evt_no_udma
+
+  addi x11, x10, -ARCHI_SOC_EVENT_UDMA_FIRST_EXTRA_EVT
+  slli x11, x11, 2
+  lw   x11, %tiny(__rt_udma_extra_callback)(x11)
+
+  jr   x11
+
+  .global __rt_soc_evt_no_udma
+__rt_soc_evt_no_udma:
   // GPIO EVENT
   li      x9, ARCHI_SOC_EVENT_GPIO
   beq     x10, x9, __rt_gpio_handler

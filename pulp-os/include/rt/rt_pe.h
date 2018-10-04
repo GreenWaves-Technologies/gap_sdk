@@ -197,6 +197,26 @@ static inline void rt_team_barrier() {
 
 #endif
 
+#ifdef ARCHI_HAS_NO_MUTEX
+
+extern unsigned int __rt_team_critical_lock;
+
+static inline void rt_team_critical_enter()
+{
+  while (rt_tas_lock_32((unsigned int)&__rt_team_critical_lock) == -1L)
+  {
+    eu_evt_maskWaitAndClr(1<<RT_CL_SYNC_EVENT);
+  }
+}
+
+static inline void rt_team_critical_exit()
+{
+  rt_tas_unlock_32((unsigned int)&__rt_team_critical_lock, 0);
+  eu_evt_trig(eu_evt_trig_addr(RT_CL_SYNC_EVENT), 0);
+}
+
+#else
+
 static inline void rt_team_critical_enter()
 {
   eu_mutex_lock(eu_mutex_addr(0));
@@ -206,6 +226,8 @@ static inline void rt_team_critical_exit()
 {
   eu_mutex_unlock(eu_mutex_addr(0));
 }
+
+#endif
 
 #else
 

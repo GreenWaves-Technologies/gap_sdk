@@ -68,6 +68,14 @@ void __rt_deinit()
 
 void __rt_init()
 {
+#if defined(APB_SOC_VERSION) && APB_SOC_VERSION >= 2
+  // Notify the debug bridge that the chip is ready to be used
+  hal_bridge_t *bridge = hal_bridge_get();
+  bridge->target.available = 1;
+  apb_soc_jtag_reg_write(apb_soc_jtag_reg_loc(apb_soc_jtag_reg_read()) | 2);
+#endif
+  
+
   rt_trace(RT_TRACE_INIT, "Starting runtime initialization\n");
 
 #if defined(ARCHI_HAS_FC)
@@ -221,6 +229,7 @@ static int __rt_check_cluster_start(int cid, rt_event_t *event)
     void *stacks = rt_alloc(RT_ALLOC_CL_DATA+cid, rt_stack_size_get()*(rt_nb_active_pe()-1));
 
     if (stacks == NULL) return -1;
+
 #if defined(EU_VERSION) && EU_VERSION >= 3
 #ifndef ARCHI_HAS_NO_DISPATCH
     eu_dispatch_team_config((1<<rt_nb_active_pe())-1);

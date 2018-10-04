@@ -39,7 +39,8 @@ static rt_event_t *__rt_io_event_current;
 
 hal_debug_struct_t HAL_DEBUG_STRUCT_NAME = HAL_DEBUG_STRUCT_INIT;
 
-int __errno;
+static int errno;
+int *__errno() { return &errno; } 
 
 void *malloc(size_t size)
 {
@@ -56,6 +57,15 @@ void free(void *ptr)
   rt_free(RT_ALLOC_CL_DATA, (void *)((uint32_t *)ptr--), size);
 }
 
+void *l1malloc(size_t size)
+{
+  return malloc(size);
+}
+
+void l1free(void *ptr)
+{
+  free(ptr);
+}
 
 int strcmp(const char *s1, const char *s2)
 {

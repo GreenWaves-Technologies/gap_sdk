@@ -23,7 +23,6 @@
   .section .text
 
 _entry:
-
   # Cluster PEs will also starts here to avoid aligning another entry point
   # Just re-route them to the right entry
 #if defined(ARCHI_HAS_CLUSTER)

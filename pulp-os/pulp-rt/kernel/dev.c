@@ -21,8 +21,12 @@
 #include "rt/rt_api.h"
 #include <string.h>
 
-extern rt_dev_t __rt_devices[];
-extern int __rt_nb_devices;
+__attribute__((weak)) rt_dev_t __rt_devices[0] = {
+};
+
+__attribute__((weak)) int __rt_nb_devices = 0;
+
+
 
 static inline int __rt_dev_nb_devices()
 {

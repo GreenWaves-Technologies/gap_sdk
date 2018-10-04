@@ -205,4 +205,18 @@ static inline void plp_power_stop() {
 #endif
 }
 
+#define RT_BENCH_ADDR (0x10000000)
+#define RT_BENCH_START_VAL 0xABBAABBA
+#define RT_BENCH_STOP_VAL 0xDEADCACA
+
+static inline void rt_bench_power_start()
+{
+  pulp_write32(RT_BENCH_ADDR, RT_BENCH_START_VAL);
+}
+
+static inline void rt_bench_power_stop()
+{
+  pulp_write32(RT_BENCH_ADDR, RT_BENCH_STOP_VAL);
+}
+
 #endif

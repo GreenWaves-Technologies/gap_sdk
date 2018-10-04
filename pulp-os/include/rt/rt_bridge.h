@@ -262,4 +262,14 @@ void rt_bridge_fb_update(uint64_t fb, unsigned int addr, int posx, int posy, int
  * @} end of bridge group        
  */
 
+
+
+
+/// @cond IMPLEM
+
+void __rt_bridge_target_status_sync(rt_event_t *event);
+
+/// @endcond
+
+
 #endif

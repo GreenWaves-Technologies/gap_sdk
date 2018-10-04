@@ -194,6 +194,10 @@ void rt_cluster_mount(int mount, int cid, int flags, rt_event_t *event)
 }
 
 
+#ifdef ARCHI_HAS_NO_MUTEX
+RT_L1_DATA unsigned int __rt_team_critical_lock = 0;
+#endif
+
 
 #ifdef ARCHI_HAS_NO_DISPATCH
 
@@ -467,7 +471,7 @@ void __rt_bridge_enqueue_event()
 
 #ifdef ARCHI_HAS_NO_BARRIER
 
-static RT_L1_TINY_DATA unsigned int __rt_barrier_status = 0;
+static RT_L1_TINY_DATA volatile unsigned int __rt_barrier_status = 0;
 RT_L1_TINY_DATA unsigned int __rt_barrier_wait_mask;
 
 void __rt_team_barrier()
