@@ -37,7 +37,7 @@ MAKE = make
 
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
-install: pulp-os tools
+install: pulp-os tools flasher
 
 $(TARGET_INSTALL_DIR):
 	$(MKDIR) -p $@
@@ -71,6 +71,9 @@ tools: install_others install_pulp_tools
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os all
 
+flasher: pulp-os
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher all
+
 version:
 	@$(MBED_PATH)/tools/version/record_version.sh
 
@@ -83,4 +86,4 @@ clean:
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
 	$(RM) version.log
 
-.PHONY: all install clean version install_others install_pulp_tools tools pulp-os
+.PHONY: all install clean version install_others install_pulp_tools tools pulp-os flasher
