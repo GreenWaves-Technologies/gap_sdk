@@ -6,9 +6,10 @@ export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/gap
 export BUILD_DIR=$GAP_SDK_HOME/build
 export INSTALL_DIR=$GAP_SDK_HOME/install/workstation
 export DEP_DIRS=$INSTALL_DIR
-export LIB_DIR=$TARGET_INSTALL_DIR/libs
 
 # For pulp os
+export PULP_LIB_DIR=$TARGET_INSTALL_DIR/libs
+export PULP_INC_DIR=$TARGET_INSTALL_DIR/include
 export RUNTIME_PATH=$GAP_SDK_HOME/pulp-os
 # For mbed os
 export MBED_PATH=$GAP_SDK_HOME
