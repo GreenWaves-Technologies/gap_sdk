@@ -20,10 +20,10 @@ void pmu_wakeup_by_rtc() {
     RTC_Init(RTC_APB, &config);
 
     /* Set Timer */
-    RTC_SetCountDown(RTC_APB, COUNT_SECONDS);
+    RTC_SetTimer(RTC_APB, COUNT_SECONDS);
 
     /* Start Timer */
-    RTC_StartCountDown(RTC_APB, repeat_en);
+    RTC_StartTimer(RTC_APB, repeat_en);
 }
 
 #else
