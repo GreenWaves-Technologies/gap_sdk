@@ -21,31 +21,50 @@ cd $here/BUILD/GAP8/GCC_RISCV
 FLAG_FLASH=0
 # A flag for choosing the boot mode: 0-Noboot, 1-jtag, 2-hyper
 FLAG_BOOT=0
+
+#Parameters of bridge
+verbose=0
+cable=ftdi@digilent
+boot_mode=jtag
+gdb=""
+ioloop=ioloop
+reqloop=reqloop
+binary="--binary=test"
+
 buildFlashImage=""
 
 if [ "$#" -eq 0 ]
 then
-    plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start wait
+    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start wait
 else
     while [ "$#" -gt 0 ]
     do
         case ${1} in
+            #Mode using the script
             -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
                 cp $here/$script_filename .
-                plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start script --script=$2
+                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=gap load $ioloop $reqloop start script --script=$2
                 ;;
+            #Mode using gdb
             -gdb)
-                plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop start gdb wait
+                gdb=gdb
                 ;;
+            #Mode using flasher
             -f)
                 FLAG_FLASH=1
                 buildFlashImage="flashImageBuilder --verbose --flash-boot-binary=test --raw=flashImg.raw"
                 ;;
+            -ftdi)
+                cable=ftdi
+                ;;
             -jtag)
-                FLAG_BOOT=1
+                boot_mode=jtag
                 ;;
             -hyper)
-                FLAG_BOOT=2
+                ioloop=""
+                reqloop=""
+                binary=""
+                boot_mode=jtag_hyper
                 ;;
             *)
                 if [ "$FLAG_FLASH" -eq "1" ]
@@ -56,31 +75,14 @@ else
         esac
         shift
     done
-fi
 
-# Now we can produce the flash image, flash the file and reboot if necessary
-if [ "$FLAG_FLASH" -eq "1" ]
-then
-    eval $buildFlashImage
-    # Flash the flash image and boot from jtag
-    if [ "$FLAG_BOOT" -eq "1" ]
+    # Now we can produce the flash image, flash the file and reboot if necessary
+    if [ "$FLAG_FLASH" -eq "1" ]
     then
-        plpbridge --cable=ftdi@digilent --boot-mode=jtag --flash-image=flashImg.raw --chip=gap flash wait
-        plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start wait
-    # Flash the flash image and boot from hyper
-    elif [ "$FLAG_BOOT" -eq "2" ]
-    then
-        plpbridge --cable=ftdi@digilent --boot-mode=jtag --flash-image=flashImg.raw --chip=gap flash wait
-        plpbridge --cable=ftdi@digilent --boot-mode=jtag_hyper --chip=gap load start wait
-    # Flash the flash image only
-    else
-        plpbridge --cable=ftdi@digilent --boot-mode=jtag --flash-image=flashImg.raw --chip=gap flash wait
+        eval $buildFlashImage
+        plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=gap flash wait
     fi
-elif [ "$FLAG_BOOT" -eq "1" ]
-then
-    plpbridge --cable=ftdi@digilent --boot-mode=jtag --binary=test --chip=gap load ioloop reqloop start wait
-elif [ "$FLAG_BOOT" -eq "2" ]
-then
-    plpbridge --cable=ftdi@digilent --boot-mode=jtag_hyper --chip=gap load start wait
+    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start $gdb wait
+
 fi
 
