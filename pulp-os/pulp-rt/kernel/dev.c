@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
  */
 
 #include "rt/rt_api.h"
 #include <string.h>
 
-__attribute__((weak)) rt_dev_t __rt_devices[0] = {
+__attribute__((weak)) rt_dev_t __rt_devices[] = {
+  {"camera", 0x509, -1, (void *)&himax_desc, {{}}},
+  {"microphone", 0x8, -1, (void *)&i2s_desc, {{}}},
+  {"microphone0", 0x8, -1, (void *)&i2s_desc, {{}}},
+  {"microphone1", 0x18, -1, (void *)&i2s_desc, {{}}},
+  {"hyperflash", 0x3, -1, (void *)&hyperflash_desc, {{8388608}}},
+  {"hyperram", 0x3, -1, (void *)NULL, {{8388608}}},
 };
 
-__attribute__((weak)) int __rt_nb_devices = 0;
+__attribute__((weak)) int __rt_nb_devices = 6;
 
 
 
