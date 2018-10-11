@@ -99,7 +99,7 @@ static int wait_process_end(uint32_t err_bit)
     do {
         spi.udma_cs(0);
         spi.write(0x05);
-        read_status = spi.read();
+        read_status = spi.write(0x00);
         spi.udma_cs(1);
         //printf("read_status = %x\n", read_status);
 

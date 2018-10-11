@@ -17,11 +17,36 @@ GAP_L2_DATA uint8_t SPI_TX_BUFFER[BUFFER_SIZE];
 
 spi_command_sequence_t s_command;
 
+uint32_t reg;
+
+static uint32_t read_register(spi_t *spim, uint8_t cmd, int size)
+{
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = cmd;
+    s_command.cmd_bits  = 8;
+    s_command.cmd_mode  = uSPI_Quad;
+    s_command.rx_bits   = (size << 3);
+    s_command.rx_buffer = (uint8_t *)&reg;
+    s_command.data_mode = uSPI_Quad;
+
+    spi_master_transfer_command_sequence(spim, &s_command);
+
+    return reg;
+}
+
+static void write_enable(spi_t *spim, uint8_t qpi)
+{
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x06;
+    s_command.cmd_bits  = 8;
+    s_command.cmd_mode  = qpi;
+    spi_master_transfer_command_sequence(spim, &s_command);
+}
+
 static void conf_flash(spi_t *spim)
 {
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Single);
+
     // Set dummy cycles
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
@@ -32,9 +57,8 @@ static void conf_flash(spi_t *spim)
     s_command.addr_mode = uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Single);
+
     // Set page size to 512
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
@@ -48,9 +72,8 @@ static void conf_flash(spi_t *spim)
     s_command.data_mode = uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Single);
+
     // QPI enable:  CR2V[6] = 1
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
@@ -67,9 +90,7 @@ static void conf_flash(spi_t *spim)
 
 static void erase_page_in_flash(spi_t *spim)
 {
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Quad);
 
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x20;
@@ -83,9 +104,7 @@ static void erase_page_in_flash(spi_t *spim)
 
 static void write_page_in_flash(spi_t *spim)
 {
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Quad);
 
     //p4pp age program
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
@@ -162,9 +181,8 @@ int main()
     printf("SPI0_CSN0  = %d \n", SPI0_CSN0);
     printf("SPI0_SCLK  = %d \n", SPI0_SCLK);
 
-
     /* SPI bits, cpha, cpol configuration */
-    spi_format(&spim0, 32, 0, 0);
+    spi_format(&spim0, 8, 0, 0);
 
     /* Set fequence to 10MHz */
     spi_frequency(&spim0, 10000000);
@@ -172,14 +190,11 @@ int main()
     // Flash Configuration
     conf_flash(&spim0);
 
-    /* Set QPI mode */
+    /* Use Quad SPI */
     spi_master_qspi(&spim0, uSPI_Quad);
 
-    /* Read ID in QPI mode */
-    spi_master_cs(&spim0, 0);
-    spi_master_write(&spim0, 0x9f);
-    uint32_t id = spi_master_read(&spim0, 0x00);
-    spi_master_cs(&spim0, 1);
+    // Read ID in QPI mode
+    int id = read_register(&spim0, 0x9f, 4);
     printf("ID = %x\n", id);
 
     // Erase page

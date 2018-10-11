@@ -134,7 +134,7 @@ static int wait_process_end(spi_t *spim, unsigned int err_bit)
     do {
         spi_master_cs(spim, 0);
         spi_master_write(spim, 0x05);
-        read_status = spi_master_read(spim, 0x00);
+        read_status = spi_master_write(spim, 0x00);
         spi_master_cs(spim, 1);
         //printf("read_status = %x\n", read_status);
 
@@ -170,7 +170,7 @@ int main()
 
 
     /* SPI bits, cpha, cpol configuration */
-    spi_format(&spim0, 32, 0, 0);
+    spi_format(&spim0, 8, 0, 0);
 
     /* Set fequence to 10MHz */
     spi_frequency(&spim0, 10000000);
@@ -179,11 +179,19 @@ int main()
     conf_flash(&spim0);
 
     /* Read ID in single mode */
+    uint8_t id[4];
     spi_master_cs(&spim0, 0);
+
     spi_master_write(&spim0, 0x9f);
-    uint32_t id = spi_master_read(&spim0, 0x00);
+    id[0] = spi_master_write(&spim0, 0x00);
+    id[1] = spi_master_write(&spim0, 0x00);
+    id[2] = spi_master_write(&spim0, 0x00);
+    id[3] = spi_master_write(&spim0, 0x00);
+
     spi_master_cs(&spim0, 1);
-    printf("ID = %x\n", id);
+
+    uint32_t *id32 = (uint32_t *)id;
+    printf("ID = %x\n", (*id32));
 
     // Erase page
     erase_page_in_flash(&spim0);

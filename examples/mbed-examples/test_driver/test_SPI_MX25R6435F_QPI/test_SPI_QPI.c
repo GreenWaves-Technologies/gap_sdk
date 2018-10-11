@@ -23,18 +23,26 @@ int main()
 
 
     /* SPI bits, cpha, cpol configuration */
-    spi_format(&spim0, 32, 0, 0);
+    spi_format(&spim0, 8, 0, 0);
 
     /* Set fequence to 10MHz */
     spi_frequency(&spim0, 10000000);
 
+    uint8_t id[4];
     spi_master_cs(&spim0, 0);
-    spi_master_write(&spim0, 0x9f);
-    uint32_t id = spi_master_read(&spim0, 0x00);
-    spi_master_cs(&spim0, 1);
-    printf("ID = %x\n", id);
 
-    if(id != ID) {
+    spi_master_write(&spim0, 0x9f);
+    id[0] = spi_master_write(&spim0, 0x00);
+    id[1] = spi_master_write(&spim0, 0x00);
+    id[2] = spi_master_write(&spim0, 0x00);
+    id[3] = spi_master_write(&spim0, 0x00);
+
+    spi_master_cs(&spim0, 1);
+
+    uint32_t *id32 = (uint32_t *)id;
+    printf("ID = %x\n", (*id32));
+
+    if((*id32) != ID) {
         printf("Test failed\n");
         return -1;
     } else {
