@@ -34,5 +34,6 @@
 #include "hal/hwce/hwce_v4.h"
 #include "hal/vendors/dolphin/rtc.h"
 #include "hal/gpio/gpio_v2.h"
+#include "hal/pwm/pwm.h"
 
 #endif
