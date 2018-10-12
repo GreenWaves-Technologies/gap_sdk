@@ -123,7 +123,7 @@ static inline __attribute__((always_inline)) void __rt_cluster_mount(int cid, in
       plp_ctrl_core_bootaddr_set_remote(cid, i, ((int)_start) & 0xffffff00);
     }
 #ifndef ARCHI_HAS_NO_DISPATCH
-    eoc_fetch_enable_remote(cid, -1);
+    eoc_fetch_enable_remote(cid, (1<<rt_nb_active_pe()) - 1);
 #endif
 
     // For now the whole sequence is blocking so we just handle the event here.
@@ -346,7 +346,7 @@ int rt_cluster_call(rt_cluster_call_t *_call, int cid, void (*entry)(void *arg),
 
 #ifdef ARCHI_HAS_NO_DISPATCH
   __rt_cluster_pe_init(stacks, (void *)((int)stacks + master_stack_size), master_stack_size, slave_stack_size);
-    eoc_fetch_enable_remote(cid, -1);
+    eoc_fetch_enable_remote(cid, (1<<rt_nb_active_pe()) - 1);
 #endif
 
 

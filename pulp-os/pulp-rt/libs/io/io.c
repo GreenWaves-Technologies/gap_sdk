@@ -205,24 +205,24 @@ static void __rt_io_uart_wait_pending()
 
 static void __attribute__((noinline)) __rt_io_uart_flush(hal_debug_struct_t *debug_struct)
 {
-  if (debug_struct->putc_current)
+  if (rt_is_fc() || !rt_has_fc())
   {
-    if (rt_is_fc() || !rt_has_fc())
-    {
-      rt_uart_write(_rt_io_uart, debug_struct->putc_buffer,
-        debug_struct->putc_current, NULL);
-    }
-    else {
-  #if defined(ARCHI_HAS_CLUSTER) && defined(ARCHI_HAS_FC)
-      rt_uart_req_t req;
-      rt_uart_cluster_write(_rt_io_uart, debug_struct->putc_buffer,
-        debug_struct->putc_current, &req);
-      rt_uart_cluster_wait(&req);
-  #endif
-    }
+    __rt_event_set_pending(&__rt_io_event);
+    __rt_io_event_current = &__rt_io_event;
 
-    debug_struct->putc_current = 0;
+    rt_uart_write(_rt_io_uart, debug_struct->putc_buffer,
+      debug_struct->putc_current, &__rt_io_event);
   }
+  else {
+#if defined(ARCHI_HAS_CLUSTER) && defined(ARCHI_HAS_FC)
+    rt_uart_req_t req;
+    rt_uart_cluster_write(_rt_io_uart, debug_struct->putc_buffer,
+      debug_struct->putc_current, &req);
+    rt_uart_cluster_wait(&req);
+#endif
+  }
+
+  debug_struct->putc_current = 0;
 }
 
 void __rt_putc_uart(char c)
@@ -359,12 +359,17 @@ __rt_io_unlock();
 
 static void __attribute__((noreturn)) __wait_forever()
 {
+  // TODO find a better solution. On some architectures or platforms
+  // the execution starts immediately and is stuck here as it is 
+  // impossible to force the core to leave clock-gating
+#if 0
 #if defined(ITC_VERSION)
   hal_itc_enable_clr(0xffffffff);
   while(1) hal_itc_wait_for_interrupt();
 #elif defined(EU_VERSION) && EU_VERSION >=3
   eu_evt_maskClr(0xffffffff);
   eu_evt_wait();
+#endif
 #endif
   while(1);
 }

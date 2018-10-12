@@ -391,7 +391,7 @@ unsigned int PMU_set_voltage(unsigned int Voltage, unsigned int CheckFrequencies
  PMUState.State  = NewState;
  PMUState.DCDC_Settings[REGULATOR_STATE(NewState)] = NewDCDCVal;
 
- rt_irq_disable(irq);
+ rt_irq_restore(irq);
 
  return 0;
 }
@@ -408,6 +408,13 @@ void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
     apb_soc_jtag_reg_write(apb_soc_jtag_reg_loc(apb_soc_jtag_reg_read()) & ~2);
     __rt_bridge_target_status_sync(NULL);
   }
+
+#if 0
+  PMURetentionState.Fields.ExternalWakeUpSource = 0;
+  PMURetentionState.Fields.ExternalWakeUpMode   = 0x00;
+  PMURetentionState.Fields.ExternalWakeupEnable = 1;
+  PMURetentionState.Fields.WakeupCause          = 1;
+  #endif
 
   if (Retentive) {
     PMURetentionState.Fields.BootMode = BOOT_FROM_L2;

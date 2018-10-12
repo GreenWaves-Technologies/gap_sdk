@@ -101,7 +101,7 @@ static void RunMnist()
   unsigned int ElapsedTime[3];
   unsigned int start;
   int CheckResults = 0;
-  
+
   rt_perf_t *perf= cluster_perf;
     // initialize the performance clock
   rt_perf_init(perf);
@@ -113,7 +113,7 @@ static void RunMnist()
 
 #ifdef RT_HAS_HWCE
     /* Make HWCE event active */
-    eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
+    eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
 #endif
 
 #if RT_HAS_HWCE
@@ -144,7 +144,7 @@ static void RunMnist()
     ElapsedTime[2] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer2", Out_Layer2, 10, 1, 1);
 
-  
+
   //Chenking Results
   int rec_digit=0;
   int highest=Out_Layer2[0];
@@ -192,7 +192,7 @@ int main()
   //Allocating input and output image buffers in L2 memory
   ImageIn_real  = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned char));
   ImageIn       = (unsigned short *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned short ));
-  
+
   if (ImageIn==0) {
     printf("Failed to allocate Memory for Image (%d bytes)\n", W*H*sizeof(unsigned short));
     return 1;
@@ -220,7 +220,7 @@ int main()
     printf("Failed to allocated memory, giving up.\n");
     return 0;
   }
-  
+
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
   // Allocate the memory of L2 for the performance structure

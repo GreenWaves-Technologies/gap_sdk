@@ -244,7 +244,7 @@ typedef struct rt_periph_copy_s {
     } i2c;
 #endif
   } u;
-#if PULP_CHIP == CHIP_GAP || !defined(ARCHI_HAS_FC)
+#if PULP_CHIP_FAMILY == CHIP_GAP || !defined(ARCHI_HAS_FC)
   char *periph_data;
 #else
   char periph_data[RT_PERIPH_COPY_PERIPH_DATA_SIZE];

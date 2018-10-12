@@ -53,6 +53,7 @@
 #define RISCV_VERSION       4
 #define HWCE_VERSION        4
 #define MCHAN_VERSION       6
+#define EFUSE_VERSION       1
 
 
 /*

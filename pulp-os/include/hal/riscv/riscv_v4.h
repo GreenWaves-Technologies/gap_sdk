@@ -95,13 +95,13 @@ do { \
 #define hal_mepc_read() csr_read(0x341)
 
 #else
-#define hal_mepc_read() hal_spr_read(CSR_MEPC)
+#define hal_mepc_read() hal_spr_read(RV_CSR_MEPC)
 #endif
 
 static inline unsigned int core_id() {
   int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
   asm("csrr %0, 0x014" : "=r" (hart_id) : );
 #else
   asm("csrr %0, 0xF14" : "=r" (hart_id) : );
@@ -115,7 +115,7 @@ static inline unsigned int core_id() {
 
 static inline unsigned int cluster_id() {  int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
   asm("csrr %0, 0x014" : "=r" (hart_id) : );
 #else
   asm("csrr %0, 0xF14" : "=r" (hart_id) : );
@@ -160,7 +160,7 @@ static inline __attribute__((always_inline)) unsigned int hal_is_fc() {
 static inline __attribute__((always_inline)) unsigned int hal_core_id() {
   int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
   asm("csrr %0, 0x014" : "=r" (hart_id) : );
 #else
   asm("csrr %0, 0xF14" : "=r" (hart_id) : );
@@ -175,7 +175,7 @@ static inline __attribute__((always_inline)) unsigned int hal_core_id() {
 static inline __attribute__((always_inline)) unsigned int hal_cluster_id() {
   int hart_id;
 #if RISCV_VERSION >= 4 && !defined(RISCV_1_7)
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
   asm("csrr %0, 0x014" : "=r" (hart_id) : );
 #else
   asm("csrr %0, 0xF14" : "=r" (hart_id) : );

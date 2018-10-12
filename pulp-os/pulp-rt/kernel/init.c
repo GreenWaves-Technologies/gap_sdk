@@ -50,7 +50,7 @@ RT_BOOT_CODE static void do_dtors(void)
 
 void __rt_putc_debug_bridge(char c);
 
-#if PULP_CHIP == CHIP_GAP || PULP_CHIP == CHIP_VEGA
+#if PULP_CHIP_FAMILY == CHIP_GAP || PULP_CHIP == CHIP_VEGA
 void __rt_pmu_init();
 #endif
 
@@ -87,7 +87,7 @@ void __rt_init()
 #ifndef __ariane__
 
 #ifdef FLL_VERSION
-#if PULP_CHIP == CHIP_GAP || PULP_CHIP == CHIP_VEGA
+#if PULP_CHIP_FAMILY == CHIP_GAP || PULP_CHIP == CHIP_VEGA
   __rt_pmu_init();
 #endif
 

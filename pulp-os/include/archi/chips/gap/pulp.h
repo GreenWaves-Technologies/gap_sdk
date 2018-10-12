@@ -25,6 +25,7 @@
 
 #include "archi/chips/gap/memory_map.h"
 #include "archi/chips/gap/apb_soc.h"
+#include "archi/chips/gap/padframe.h"
 #include "archi/stdout/stdout_v3.h"
 
 #endif

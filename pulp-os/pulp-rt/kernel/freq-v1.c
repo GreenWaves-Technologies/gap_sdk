@@ -70,7 +70,7 @@ static int lcm(int a, int b)
   return a / gcd(a, b) * b;
 }
 
-#if PULP_CHIP != CHIP_GAP
+#if PULP_CHIP_FAMILY != CHIP_GAP
 static int __rt_freq_set_periph_freq(unsigned int freq, int fll, int domain, unsigned int *out_freq)
 {
   unsigned int fll_freq = lcm(freq, __rt_periph_lcm);
@@ -134,7 +134,7 @@ int rt_freq_set_and_get(rt_freq_domain_e domain, unsigned int freq, unsigned int
     // On FC side, be careful to respect the constraints coming from the drivers as the FLL
     // is shared between periphs and FC
 
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
 
     unsigned int lcm_val;
     if (__rt_periph_lcm == 0)
@@ -225,7 +225,7 @@ int __rt_freq_set_constraint_multiple(unsigned int freq)
     unsigned int div = periph_freq / __rt_periph_gcd;
     periph_freq = __rt_periph_gcd * div;
 
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
     rt_freq_set(RT_FREQ_DOMAIN_PERIPH, periph_freq);
 #else
 
@@ -310,7 +310,7 @@ void __rt_freq_init()
   apb_soc_fll_clkdiv_periph_set(1);
   apb_soc_fll_clkdiv_soc_set(1);
 
-#elif PULP_CHIP == CHIP_GAP
+#elif PULP_CHIP_FAMILY == CHIP_GAP
 
   // On GAP don't do anything as the periph fll is the FC one
 

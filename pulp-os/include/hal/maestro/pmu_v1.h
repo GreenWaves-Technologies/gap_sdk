@@ -178,7 +178,7 @@ typedef enum {
 
 typedef union {
   struct {
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
     unsigned int L2Retention:L2_RETENTIVE_REGION;   /* 1 enable bit per area */
     unsigned int FllSoCRetention:1;       /* 1: Soc Fll is state retentive */
     unsigned int FllClusterRetention:1;     /* 1: Cluster Fll is state retentive */
@@ -209,7 +209,7 @@ typedef union {
   unsigned int Raw;
 } PMU_ForcedRetentionStateT;
 
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
 /* PMU bypass control for fast Cluster ON/OFF sequences */
 typedef union {
   struct {

@@ -17,19 +17,19 @@
 #ifndef _ARCHI_RISCV_PRIV_1_9_H
 #define _ARCHI_RISCV_PRIV_1_9_H
 
-#define CSR_MSTATUS  0x300
-#define CSR_MEPC     0x341
-#define CSR_MCAUSE   0x342
-#define CSR_MTVAL    0x343
-#define CSR_MESTATUS 0x7C0
+#define RV_CSR_MSTATUS  0x300
+#define RV_CSR_MEPC     0x341
+#define RV_CSR_MCAUSE   0x342
+#define RV_CSR_MTVAL    0x343
+#define RV_CSR_MESTATUS 0x7C0
 #ifdef RISCV_1_7
-#define CSR_MCPUID   0xF00
-#define CSR_MIMPID   0xF01
-#define CSR_MHARTID  0xF10
+#define RV_CSR_MCPUID   0xF00
+#define RV_CSR_MIMPID   0xF01
+#define RV_CSR_MHARTID  0xF10
 #else
-#define CSR_MISA     0xF10
-#define CSR_MIMPID   0xF13
-#define CSR_MHARTID  0xF14
+#define RV_CSR_MISA     0xF10
+#define RV_CSR_MIMPID   0xF13
+#define RV_CSR_MHARTID  0xF14
 #endif
 
 #define CSR_PCCR(N)	(0x780 + (N))

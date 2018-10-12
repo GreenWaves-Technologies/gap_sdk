@@ -106,7 +106,7 @@ static void RunCifar10()
 
 #if RT_HAS_HWCE
     /* Make HWCE event active */
-    eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
+    eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
 
     rt_perf_reset(perf);
     rt_perf_start(perf);

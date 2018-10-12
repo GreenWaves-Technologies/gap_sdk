@@ -157,10 +157,14 @@ static inline int rt_freq_get_next(rt_freq_domain_e domain)
 
 static inline int rt_freq_get(rt_freq_domain_e domain)
 {
+#if PULP_CHIP_FAMILY == CHIP_USOC_V1
+  return 60000000;
+#else
 #if PULP_CHIP_FAMILY == CHIP_VIVOSOC2
   return 100000000;
 #else
   return 50000000;
+#endif
 #endif
 }
 
@@ -198,10 +202,14 @@ static inline unsigned int __rt_fll_freq_get(int fll)
 
 static inline unsigned int __rt_freq_periph_get()
 {
+#if PULP_CHIP_FAMILY == CHIP_USOC_V1
+  return 50000000;
+#else
 #if PULP_CHIP == CHIP_VIVOSOC3
   return 10000000;
 #else
   return rt_freq_get(RT_FREQ_DOMAIN_PERIPH);
+#endif
 #endif
 }
 
