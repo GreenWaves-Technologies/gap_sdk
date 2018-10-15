@@ -26,7 +26,7 @@ int main()
     RTC_SetTimer(RTC_APB, TIMER_SECONDS);
 
     /* Binding RTC IRQ */
-    RTC_IRQHandlerBind((uint32_t)timer_irq_handler);
+    RTC_CreateHandler((rtc_callback_t)timer_irq_handler, NULL);
 
     printf("Start Timer value now = %d\n", TIMER_SECONDS);
 
