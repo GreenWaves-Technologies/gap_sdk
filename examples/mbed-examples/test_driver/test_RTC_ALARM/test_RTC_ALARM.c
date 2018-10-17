@@ -72,16 +72,16 @@ int main()
     setTime.second = 15;
 
     /* Set Alarm 2001/03/01/00:00:15 */
-    if (RTC_SetAlarm(RTC_APB, &setTime) != uStatus_Success) {
+    if (RTC_SetAlarm(RTC_APB, &setTime, repeat_mode) != uStatus_Success) {
         printf("Set alarm failed!\n");
         return -1;
     }
 
     /* Start Alarm */
-    RTC_StartAlarm(RTC_APB, repeat_mode);
+    RTC_StartAlarm(RTC_APB);
 
     /* Binding RTC IRQ */
-    RTC_IRQHandlerBind((uint32_t)alarm_irq_handler);
+    RTC_CreateHandler((rtc_callback_t)alarm_irq_handler, NULL);
 
     /* Read RTC Alarm */
     RTC_GetAlarm(RTC_APB, &now);
