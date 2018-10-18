@@ -56,6 +56,7 @@ $(HEADER_DIR):
 install_headers: $(HEADER_DIR)
 	$(CP) $(GAP_SDK_HOME)/pulp-os/include/* $(HEADER_DIR)
 	install -D $(GAP_SDK_HOME)/pulp-os/include/Gap8.h $(TARGET_INSTALL_DIR)/include
+	install -D $(GAP_SDK_HOME)/pulp-os/include/gap8_emul.h $(TARGET_INSTALL_DIR)/include
 
 # Rules for creating the libs.
 #------------------------------------------
