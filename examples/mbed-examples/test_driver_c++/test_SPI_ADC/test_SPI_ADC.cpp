@@ -22,7 +22,8 @@
 #include "FP_Lib.h"
 
 // GAPUINO PIN 10, 11, 12, 13
-SPI spi(SPI1_MOSI, SPI1_MISO, SPI1_SCLK, SPI1_CSN0_A5); // mosi, miso, sclk, ssel
+SPI spi(SPI1_MOSI, SPI1_MISO, SPI1_SCLK); // mosi, miso, sclk
+DigitalOut cs(SPI1_CSN0_A5);
 
 float read_adc(uint8_t adc_ch, float vref) {
     char reply[2];
@@ -36,13 +37,13 @@ float read_adc(uint8_t adc_ch, float vref) {
     uint8_t msg = 0x3;
     msg = (msg << 1 | adc_ch) << 5;
 
-    spi.udma_cs(0);
+    cs = 0;
 
     // SPI duplex
     reply[0] = spi.write(msg);
     reply[1] = spi.write(0x00);
 
-    spi.udma_cs(1);
+    cs = 1;
 
     printf("replt 0: %x \n", reply[0]);
     printf("replt 1: %x \n", reply[1]);
@@ -60,6 +61,8 @@ float read_adc(uint8_t adc_ch, float vref) {
 }
 
 int main() {
+    cs = 1;
+
     // Setup the spi for 8 bit data, high steady state clock,
     // second edge capture, with a 1MHz clock rate
     spi.format(8,3);
