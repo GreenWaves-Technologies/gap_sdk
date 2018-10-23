@@ -10,14 +10,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// AutoTiler Libraries
 #include "AutoTilerLib.h"
-// AutoTiler Standard types plus a set of pre defined types for basic kernels
-#include "StdTypes.h"
-// Resize generator
-#include "ResizeGenerator.h"
+#include "IntegralImgGenerator.h"
 
 int main(int argc, char **argv)
+
 {
 	// This will parse AutoTiler options and perform various initializations
 	if (TilerParseOptions(argc, argv)) {
@@ -25,12 +22,12 @@ int main(int argc, char **argv)
 	}
 	// Setup AutTiler configuration. Used basic kernel libraries, C names to be used for code generation,
 	// compilation options, and amount of shared L1 memory that the AutoTiler can use, here 51200 bytes
-	ResizeConfiguration(40000);
-	// Load the Resize basic kernels template library
-	LoadResizeLibrary();
-	// Call Resize generator, here image is [322x242]
+	IntegralImageConfiguration(40000);
+	// Load basic kernels template library
+	LoadIntegralImageLibrary();
+	// Call generator, with the size of the input image
 	unsigned int W = 322, H = 242;
-	GenerateResize("ResizeImage", W, H, W/2, H/2);
+	GenerateIntegralImage("IntegralImage", W, H);
 	// Now that we are done with model parsing we generate the code
 	GenerateTilingCode();
 	return 0;

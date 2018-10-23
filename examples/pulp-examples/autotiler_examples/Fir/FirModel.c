@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2017 GreenWaves Technologies
  * All rights reserved.
  *
@@ -76,42 +76,40 @@ int main(int argc, char **argv)
 
 @{ */
 
+
 int main(int argc, char **argv)
-
 {
-	// Parse AutoTiler options
-        if (TilerParseOptions(argc, argv)) {
-                printf("Failed to initialize or incorrect output arguments directory.\n"); return 1;
-        }
-	// Set Auto Tiler configuration, given shared L1 memory is 51200
-	FIRConfiguration(51200);
-	// Load FIR basic kernels
-	LoadFIRLibrary();
+    if (TilerParseOptions(argc, argv)) GenTilingError("Failed to initialize or incorrect output arguments directory.\n");
 
-	// Number of Samples
-	unsigned int Samples = 49149;
-	// 40 Taps, Generic and scalar basic kernel
-	GeneratorFIR("TiledFir40GenericScalar", Samples, 40, 1, 1);
-	// 40 Taps, Specialized and vectorial basic kernel
-	GeneratorFIR("TiledFir40Generic", Samples, 40, 0, 0);
+    // Set Auto Tiler configuration, given shared L1 memory is 51200
+    FIRConfiguration(51200);
+    // Load FIR basic kernels
+    LoadFIRLibrary();
 
-	// 10 Taps, Generic and scalar basic kernel
-	GeneratorFIR("TiledFir10GenericScalar", Samples, 10, 1, 1);
-	// 10 Taps, Generic and vectorial basic kernel
-	GeneratorFIR("TiledFir10Generic", Samples, 10, 1, 0);
-	// 10 Taps, Specialized and vectorial basic kernel
-	GeneratorFIR("TiledFir10Opt", Samples, 10, 0, 0);
+    // Number of Samples
+    unsigned int Samples = 49149;
+    // 40 Taps, Generic and scalar basic kernel
+    GeneratorFIR("TiledFir40GenericScalar", Samples, 40, 1, 1);
+    // 40 Taps, Specialized and vectorial basic kernel
+    GeneratorFIR("TiledFir40Generic", Samples, 40, 0, 0);
 
-	// 20 Taps, Generic and scalar basic kernel
-	GeneratorFIR("TiledFir20GenericScalar", Samples, 20, 1, 1);
-	// 20 Taps, Generic and vectorial basic kernel
-	GeneratorFIR("TiledFir20Generic", Samples, 20, 1, 0);
-	// 20 Taps, Specialized and vectorial basic kernel
-	GeneratorFIR("TiledFir20Opt", Samples, 20, 0, 0);
+    // 10 Taps, Generic and scalar basic kernel
+    GeneratorFIR("TiledFir10GenericScalar", Samples, 10, 1, 1);
+    // 10 Taps, Generic and vectorial basic kernel
+    GeneratorFIR("TiledFir10Generic", Samples, 10, 1, 0);
+    // 10 Taps, Specialized and vectorial basic kernel
+    GeneratorFIR("TiledFir10Opt", Samples, 10, 0, 0);
 
-	// Generate code
-        GenerateTilingCode();
-        return 0;
+    // 20 Taps, Generic and scalar basic kernel
+    GeneratorFIR("TiledFir20GenericScalar", Samples, 20, 1, 1);
+    // 20 Taps, Generic and vectorial basic kernel
+    GeneratorFIR("TiledFir20Generic", Samples, 20, 1, 0);
+    // 20 Taps, Specialized and vectorial basic kernel
+    GeneratorFIR("TiledFir20Opt", Samples, 20, 0, 0);
+
+    // Generate code
+    GenerateTilingCode();
 }
+
 /** @} */ // End of FIRExample
 /** @} */

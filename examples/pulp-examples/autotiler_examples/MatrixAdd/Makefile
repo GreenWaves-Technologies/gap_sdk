@@ -7,7 +7,13 @@
 pulpChip = GAP
 PULP_APP = MatrixAdd
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-PULP_APP_SRCS = main.c ModelKernels.c ModelKernelsInit.c BasicKernel.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+MATADD_GEN_PATH = $(TILER_GENERATOR_PATH)/MatAdd/generator
+MATADD_KER_PATH = $(TILER_GENERATOR_PATH)/MatAdd/kernels
+
+PULP_APP_SRCS = main.c MatAddKernels.c MatAddKernelsInit.c $(MATADD_KER_PATH)/src/MatAddBasicKernels.c
 MODEL_SRC = MatAddModel.c
 pulpFc=1
 RM=rm -f
@@ -17,7 +23,7 @@ PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
 PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/CnnStdModel
+PULP_CFLAGS += -I$(TILER_INC) -I$(MATADD_KER_PATH)/include
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
@@ -25,16 +31,16 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(MATADD_GEN_PATH)/include $(MODEL_SRC) $(MATADD_GEN_PATH)/src/MatAddGenerator.c $(TILER_LIB)
 
 # Run the code generator
-ModelKernels.c ModelKernelsInit.c: GenTile
+MatAddKernels.c MatAddKernelsInit.c: GenTile
 	./GenTile
 
-model: ModelKernels.c ModelKernelsInit.c
+model: MatAddKernels.c MatAddKernelsInit.c
 
 clean::
-	$(RM) GenTile ModelKernels.* ModelKernelsInit.*
+	$(RM) GenTile MatAddKernels.* MatAddKernelsInit.*
 
 .PHONY: model clean
 

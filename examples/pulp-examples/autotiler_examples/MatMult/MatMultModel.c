@@ -8,16 +8,15 @@
  */
 
 #include "AutoTilerLib.h"
-#include "MatAddGenerator.h"
-
-#define L1_MEMORY_SIZE 45000
+#include "MatMultGenerator.h"
 
 int main(int argc, char **argv)
 {
     if (TilerParseOptions(argc, argv)) GenTilingError("Failed to initialize or incorrect output arguments directory.\n");
-    MatAddConfiguration(L1_MEMORY_SIZE);
-    LoadMatAddLibrary();
-    GenerateMatAddPar("MatADD", MAT_W, MAT_H);
+    MatMultConfiguration(45000);
+    LoadMatMultLibrary();
+    GenerateMatMultPar    ("ParMatMult",     200, 70, 70, 150);
+    GenerateMatMultParVect("ParVectMatMult", 200, 70, 70, 150);
     GenerateTilingCode();
     return 0;
 }

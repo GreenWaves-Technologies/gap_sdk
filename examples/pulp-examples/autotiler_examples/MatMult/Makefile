@@ -7,15 +7,20 @@
 pulpChip = GAP
 PULP_APP = MatMult
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-PULP_APP_SRCS = TestMat.c MatMultBasicKernels.c ModelKernelsInit.c ModelKernels.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+MATMULT_GEN_PATH = $(TILER_GENERATOR_PATH)/MatMult/generator
+MATMULT_KER_PATH = $(TILER_GENERATOR_PATH)/MatMult/kernels
+
+PULP_APP_SRCS = TestMat.c MatMultKernelsInit.c MatMultKernels.c $(MATMULT_KER_PATH)/src/MatMultBasicKernels.c
 RM=rm -f
 
 PULP_CFLAGS += -O3
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes -I$(TILER_GENERATOR_PATH)/MatMult
+PULP_CFLAGS += -I$(TILER_INC) -I$(MATMULT_KER_PATH)/include
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
@@ -23,16 +28,16 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ MatMultGenerator.c $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(MATMULT_GEN_PATH)/include MatMultModel.c $(MATMULT_GEN_PATH)/src/MatMultGenerator.c $(TILER_LIB)
 
 # Run the code generator
-ModelKernels.c ModelKernelsInit.c: GenTile
+MatMultKernels.c MatMultKernelsInit.c: GenTile
 	./GenTile
 
-model: ModelKernels.c ModelKernelsInit.c
+model: MatMultKernels.c MatMultKernelsInit.c
 
 clean::
-	$(RM) GenTile ModelKernels.* ModelKernelsInit.*
+	$(RM) GenTile MatMultKernels.* MatMultKernelsInit.*
 
 .PHONY: model clean
 

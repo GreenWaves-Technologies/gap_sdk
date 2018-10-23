@@ -11,9 +11,9 @@
 #include "Gap8.h"
 #include "FirKernels.h"
 
-Word16 * __restrict__ Samples;
-RT_CL_DATA Word16 * __restrict__ Coeffs;
-Word16 * __restrict__ Out;
+short int * __restrict__ Samples;
+RT_CL_DATA short int * __restrict__ Coeffs;
+short int * __restrict__ Out;
 
 int finished = 0;
 
@@ -80,10 +80,10 @@ int main()
 	printf ("Allocate memory\n");
 	// Allocate the necessary memory areas in shared L1
 	FIR_L1_Memory = rt_alloc(RT_ALLOC_CL_DATA, _FIR_L1_Memory_SIZE);
-	Coeffs        = (Word16 *) rt_alloc(RT_ALLOC_CL_DATA, NCOEFFS*sizeof(Word16));
+	Coeffs        = (short int *) rt_alloc(RT_ALLOC_CL_DATA, NCOEFFS*sizeof(short int));
 	// Allocate areas in L2 for input and output
-	Samples       = (Word16 *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(Word16));
-	Out           = (Word16 *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(Word16));
+	Samples       = (short int *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(short int));
+	Out           = (short int *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(short int));
 
 	if (!(Samples && Out && FIR_L1_Memory && Coeffs)) {
 		printf("Memory allocation failed, L1 Tiler %p, Samples: %p, Coeffs: %p, Out: %p\n", FIR_L1_Memory, Samples, Coeffs, Out);

@@ -9,10 +9,13 @@
 
 /* Matrix add example main file. This code actually runs on GAP8 */
 
+#include <stdio.h>
 #include "Gap8.h"
-#include "ModelKernels.h"
-#include "ModelKernelsInit.h"
-#include "model-size.h"
+#include "MatAddKernels.h"
+#include "MatAddKernelsInit.h"
+
+#define MAT_W 100
+#define MAT_H 100
 
 #define STACK_SIZE      2048
 #define MOUNT           1
@@ -23,9 +26,9 @@ extern char *L1_Memory;
 
 #define MAT_SIZE (MAT_W*MAT_H)
 
-RT_L2_DATA int Mat1[MAT_SIZE];
-RT_L2_DATA int Mat2[MAT_SIZE];
-RT_L2_DATA int MatOut[MAT_SIZE];
+L2_MEM int Mat1[MAT_SIZE];
+L2_MEM int Mat2[MAT_SIZE];
+L2_MEM int MatOut[MAT_SIZE];
 
 int finished = 0;
 
@@ -66,7 +69,7 @@ int main(int argc, char *argv[])
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
   // Allocate the predetermined memory size in the shared L1 memory that the cluster can act on
-  L1_Memory = rt_alloc(RT_ALLOC_CL_DATA, L1_MEMORY_SIZE);
+  L1_Memory = rt_alloc(RT_ALLOC_CL_DATA, _L1_Memory_SIZE);
 
   if(L1_Memory == 0 ){
     printf("Memory Allocation Error! Quit...");
@@ -75,8 +78,10 @@ int main(int argc, char *argv[])
 
   rt_cluster_call(NULL, CID, cluster_main, NULL, NULL, STACK_SIZE, STACK_SIZE, rt_nb_pe(), rt_event_get(&sched, end_of_app, 0));
 
+#ifndef __EMUL__
   while(!finished)
     rt_event_execute(&sched, 1);
+#endif
 
   rt_cluster_mount(UNMOUNT, CID, 0, NULL);
 

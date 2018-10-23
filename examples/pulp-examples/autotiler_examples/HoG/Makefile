@@ -7,19 +7,24 @@
 pulpChip = GAP
 PULP_APP = HoG
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-MODEL_SRC = $(TILER_GENERATOR_PATH)/HoG/HoGGenerator.c HoGModelExample.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+GEN_PATH = $(TILER_GENERATOR_PATH)/HoG/generator
+KER_PATH = $(TILER_GENERATOR_PATH)/HoG/kernels
+
+MODEL_SRC = $(GEN_PATH)/src/HoGGenerator.c HoGModel.c
 MODEL_GEN = HoGKernels HoGKernelsInit
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
 MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .c, $(MODEL_GEN)) $(addsuffix .h, $(MODEL_GEN))
 pulpFc=1
 RM=rm -f
 
-PULP_APP_SRCS = HoG.c ImgIO.c $(MODEL_GEN_C) $(TILER_GENERATOR_PATH)/HoG/HoGBasicKernels.c 
+PULP_APP_SRCS = HoG.c ImgIO.c $(MODEL_GEN_C) $(KER_PATH)/src/HoGBasicKernels.c
 
 PULP_CFLAGS += -O2 -g3
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes/ -I$(TILER_GENERATOR_PATH)/HoG
+PULP_CFLAGS += -I$(TILER_INC) -I$(KER_PATH)/include -I$(TILER_GENERATOR_PATH)/HoG
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
@@ -32,7 +37,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_GENERATOR_PATH)/HoG -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(KER_PATH)/include -I$(GEN_PATH)/include  $(MODEL_SRC) $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

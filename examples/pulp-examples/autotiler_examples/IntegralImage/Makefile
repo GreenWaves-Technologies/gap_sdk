@@ -7,19 +7,24 @@
 pulpChip = GAP
 PULP_APP = IntegralImage
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-MODEL_SRC = IIGenerator.c IIModelExample.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+II_GEN_PATH = $(TILER_GENERATOR_PATH)/IntegralImg/generator
+II_KER_PATH = $(TILER_GENERATOR_PATH)/IntegralImg/kernels
 
-MODEL_GEN = IIKernels IIKernelsInit
+MODEL_SRC = IntegralImgModel.c
+MODEL_GEN = IntegralImgKernels IntegralImgKernelsInit
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
 MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
 pulpFc=1
 RM=rm -f
 
-PULP_APP_SRCS = main.c ImgIO.c $(MODEL_GEN_C) IIBasicKernels.c 
+PULP_APP_SRCS = main.c ImgIO.c $(MODEL_GEN_C) $(II_KER_PATH)/src/IntegralImgBasicKernels.c
 
-PULP_CFLAGS += -O2 -g3
+PULP_CFLAGS += -O3
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes/
+PULP_CFLAGS += -I$(TILER_INC) -I$(II_KER_PATH)/include
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
@@ -32,7 +37,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(II_GEN_PATH)/include $(MODEL_SRC) $(II_GEN_PATH)/src/IntegralImgGenerator.c $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

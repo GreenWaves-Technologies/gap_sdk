@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "Gap8.h"
-#include "ModelKernels.h"
+#include "MatMultKernels.h"
 
 #define MOUNT           1
 #define UNMOUNT         0
@@ -20,14 +20,17 @@ L2_MEM short int *M1;
 L2_MEM short int *M2;
 L2_MEM short int *Out1;
 L2_MEM short int *Out2;
+#ifndef __EMUL__
 L2_MEM rt_perf_t *cluster_perf;
+#endif
 int finished = 0;
 
 int num_op=0;
 
 static void cluster_main()
 {
-  	printf ("cluster master start\n");
+    printf ("cluster master start\n");
+#ifndef __EMUL__
     unsigned int ElapsedTime[2];
     unsigned int StartTime;
     rt_perf_t *perf = cluster_perf;
@@ -39,12 +42,15 @@ static void cluster_main()
     rt_perf_start(perf);
 
     StartTime = rt_perf_read(RT_PERF_CYCLES);
+#endif
     ParMatMult(M1, M2, Out1, 0);
-    
+#ifndef __EMUL__
     ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 
     StartTime = rt_perf_read(RT_PERF_CYCLES);
+#endif
     ParVectMatMult(M1, M2, Out2, 0);
+#ifndef __EMUL__
     ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 
     printf("ParMatMult: %d cycles %d ops/cycle\n", ElapsedTime[0], (num_op/ElapsedTime[0]));
@@ -52,6 +58,7 @@ static void cluster_main()
 
     rt_perf_stop(perf);
     rt_perf_reset(perf);
+#endif
 }
 
 static void end_of_app(){
@@ -86,8 +93,8 @@ int main()
     printf("Failed to allocate mem.\n"); return 0;
   }
 
-  for(int i=0;i< W_M1*H_M1;i++) M1[i]=2;
-  for(int i=0;i< W_M2*H_M2;i++) M2[i]=3;
+  for(int i=0;i< W_M1*H_M1;i++) M1[i]=i;
+  for(int i=0;i< W_M2*H_M2;i++) M2[i]=i+1;
 
   // Allocate some events
   if (rt_event_alloc(NULL, 8)){printf("Error in events allocation...\n"); return -1;}
@@ -95,8 +102,10 @@ int main()
   // Switch on the cluster
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
+#ifndef __EMUL__
   cluster_perf = rt_alloc(RT_ALLOC_L2_CL_DATA, sizeof(rt_perf_t));
   if (cluster_perf == NULL) return -1;
+#endif
 
   // Allocate some stacks for cluster in L1, rt_nb_pe returns how many cores exist.
   void *stacks = rt_alloc(RT_ALLOC_CL_DATA, STACK_SIZE*rt_nb_pe());
@@ -110,16 +119,20 @@ int main()
     return 1;
   }
 
-  printf("Calling cluster....\n");
-  rt_cluster_call(NULL, CID, cluster_main, NULL, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), NULL);
+  rt_cluster_call(NULL, CID, cluster_main, NULL, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), rt_event_get(NULL, end_of_app, 0));
+
+#ifndef __EMUL__
+  while(!finished)
+    rt_event_execute(NULL, 1);
+#endif
 
   rt_cluster_mount(UNMOUNT, CID, 0, NULL);
 
   for(int i=0;i<H_Out;i++){
     for(int j=0;j<W_Out;j++){
       if(Out1[i*W_Out+j] != Out2[i*W_Out+j]){
-      printf("Error, result of different methods does not correspond!\n");
-      return -1;
+        printf("Error, result of different methods does not correspond!\n");
+        return -1;
       }
     }
   }

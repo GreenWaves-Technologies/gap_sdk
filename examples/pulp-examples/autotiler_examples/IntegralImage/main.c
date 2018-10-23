@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include "IIKernels.h"
+#include "IntegralImgKernels.h"
 #include "ImgIO.h"
 #include "Gap8.h"
 
