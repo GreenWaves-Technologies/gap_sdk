@@ -6,7 +6,7 @@
 #include <rt/rt_api.h>
 #include <stdint.h>
 
-#define GPIO 18
+#define GPIO 17
 
 int main()
 {
@@ -28,11 +28,11 @@ int main()
     // Now set several values
     rt_gpio_set_pin_value(0, GPIO, 1);
 
-    rt_time_wait_us(200);
+    rt_time_wait_us(500000);
 
     rt_gpio_set_pin_value(0, GPIO, 0);
 
-    rt_time_wait_us(200);
+    rt_time_wait_us(500000);
 
     rt_gpio_set_pin_value(0, GPIO, 1);
 
