@@ -9,9 +9,9 @@
 #include "gap_common.h"
 
 #define TASK_SIZE 1024
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK1_STK[TASK_SIZE];
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK2_STK[TASK_SIZE];
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK3_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK1_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK2_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK3_STK[TASK_SIZE];
 
 #define SEMAPHORE_SIZE 16
 GAP_FC_DATA unsigned int SEMAPHORE_STK[SEMAPHORE_SIZE];
