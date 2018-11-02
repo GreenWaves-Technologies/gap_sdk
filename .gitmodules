@@ -16,3 +16,6 @@
 [submodule "docs"]
 	path = docs
 	url = https://github.com/GreenWaves-Technologies/gap8_docs.git
+[submodule "tools/autotiler"]
+	path = tools/autotiler
+	url = https://github.com/GreenWaves-Technologies/autotiler.git
