@@ -398,13 +398,18 @@ unsigned int PMU_set_voltage(unsigned int Voltage, unsigned int CheckFrequencies
 
 void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
 {
+  int irq = rt_irq_disable();
+
   // Notify the bridge that the chip is going to be inaccessible.
   // We don't do anything until we know that the bridge received the
   // notification to avoid any race condition.
   hal_bridge_t *bridge = hal_bridge_get();
-  bridge->target.available = 0;  
+  bridge->target.available = 0;
   if (bridge->bridge.connected)
   {
+    // Before cutting the connection with the bridge, flush the printf otherwise
+    // it may look weird to the user.
+    hal_debug_flush_printf(hal_debug_struct_get());
     apb_soc_jtag_reg_write(apb_soc_jtag_reg_loc(apb_soc_jtag_reg_read()) & ~2);
     __rt_bridge_target_status_sync(NULL);
   }
@@ -432,6 +437,8 @@ void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
   SetRetentiveState(PMURetentionState.Raw);
 
   PMU_Control_Maestro(PMUState.State, Retentive?RETENTIVE:DEEP_SLEEP);
+
+  rt_irq_restore(irq);
 }
 
 

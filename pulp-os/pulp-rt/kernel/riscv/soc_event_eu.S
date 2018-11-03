@@ -85,25 +85,15 @@ __rt_soc_evt_no_udma_channel:
 
   .global __rt_soc_evt_no_udma
 __rt_soc_evt_no_udma:
+#ifdef RT_CONFIG_GPIO_ENABLED
   // GPIO EVENT
   li      x9, ARCHI_SOC_EVENT_GPIO
   beq     x10, x9, __rt_gpio_handler
+#endif
 
-  // RTC EVENTS
-  li      x9, ARCHI_SOC_EVENT_RTC_FIRST_EVT
-  beq     x9, x10, rtc_event_handler
   li      x9, ARCHI_SOC_EVENT_RTC_IRQ
   beq     x9, x10, rtc_event_handler
 
-  // PWM EVENTS
-  li      x9, ARCHI_SOC_EVENT_ADV_TIMER0
-  beq     x9, x10, pwm_event_handler
-  li      x9, ARCHI_SOC_EVENT_ADV_TIMER1
-  beq     x9, x10, pwm_event_handler
-  li      x9, ARCHI_SOC_EVENT_ADV_TIMER2
-  beq     x9, x10, pwm_event_handler
-  li      x9, ARCHI_SOC_EVENT_ADV_TIMER3
-  beq     x9, x10, pwm_event_handler
 
   // If the event is not handled, store it in the soc event status mask
   la      x9, __rt_socevents_status
@@ -129,5 +119,7 @@ udma_event_handler_end:
   mret
 
 
-
-
+rtc_event_handler:
+  lw    x11, __rtc_handler
+  la    x9, udma_event_handler_end
+  j   __rt_event_enqueue

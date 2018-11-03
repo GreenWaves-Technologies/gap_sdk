@@ -37,4 +37,40 @@
 #define ARCHI_REG_FIELD_GET(fullValue,offset,size) (((fullValue) & ARCHI_REG_MASK(offset, size)) >> (offset))
 
 
+#ifndef LANGUAGE_ASSEMBLY
+
+#define archi_write8(add, val_)  (*(volatile unsigned char *)(long)(add) = val_)
+#define archi_write16(add, val_) (*(volatile unsigned short *)(long)(add) = val_)
+#define archi_write32(add, val_) (*(volatile unsigned int *)(long)(add) = val_)
+#define archi_write(add, val_)   (*(volatile unsigned int *)(long)(add) = val_)
+
+#define archi_read8(add)         (*(volatile unsigned char *)(long)(add))
+#define archi_read16(add)        (*(volatile unsigned short *)(long)(add))
+#define archi_read32(add)        (*(volatile unsigned int *)(long)(add))
+#define archi_read(add)          (*(volatile unsigned int *)(long)(add))
+
+
+#if defined(__riscv__) && !defined(__LLVM__) && !defined(RV_ISA_RV32)
+#define ARCHI_WRITE_VOL(base, offset, value) __builtin_pulp_write_base_off_v((value), (base), (offset))
+#define ARCHI_WRITE(base, offset, value)     __builtin_pulp_OffsetedWrite((value), (int *)(base), (offset))
+#define ARCHI_READ(base, offset)             __builtin_pulp_OffsetedRead((int *)(base), (offset))
+#else
+#define ARCHI_WRITE_VOL(base, offset, value) archi_write32((base) + (offset), (value))
+#define ARCHI_WRITE(base, offset, value)     archi_write32((base) + (offset), (value))
+#define ARCHI_READ(base, offset)             archi_read32((base) + (offset))
+#endif
+
+
+#if defined(__riscv__) && !defined(__LLVM__) && !defined(RV_ISA_RV32)
+#include "archi/riscv/builtins_v2.h"
+#else
+#include "archi/riscv/builtins_v2_emu.h"
+#endif
+
+#define ARCHI_BINSERT(dst,src,size,off)  __BITINSERT(dst,src,size,off)
+#define ARCHI_BEXTRACTU(src,size,off)    __BITEXTRACTU(src,size,off)
+#define ARCHI_BEXTRACT(src,size,off)     __BITEXTRACT(src,size,off)
+
+#endif
+
 #endif

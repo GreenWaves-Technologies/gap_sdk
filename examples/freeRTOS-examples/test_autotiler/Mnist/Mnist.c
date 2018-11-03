@@ -17,6 +17,10 @@
 #include "gap_autotiler.h"
 
 #include "MnistKernels.h"
+
+#if RT_HAS_HWCE
+#include "MnistCoeffs_HWCE.def"
+#endif
 #include "MnistCoeffs.def"
 #include "MnistData.def"
 
@@ -137,20 +141,21 @@ static void RunMnist( void )
 #else
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    Conv5x5ReLUMaxPool2x2_0((short int*) ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
+    Conv5x5ReLUMaxPool2x2_0((short int*) ImageIn, Filter_Layer0, Bias_Layer0, Out_Layer0, 14, 0);
     PERFORMANCE_Stop(&perf);
     ElapsedTime[0] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
+    Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Bias_Layer1, Out_Layer1, 14, 0);
     PERFORMANCE_Stop(&perf);
     ElapsedTime[1] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
 #endif
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    LinearLayerReLU_2(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 10, Out_Layer2, 10, 0);
+    LinearLayerReLU_1(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 13, 0);
+
     PERFORMANCE_Stop(&perf);
     ElapsedTime[2] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer2", Out_Layer1, 10, 1, 1);

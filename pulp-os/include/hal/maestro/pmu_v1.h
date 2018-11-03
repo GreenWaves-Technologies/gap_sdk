@@ -299,6 +299,14 @@ static inline void SetDCDCSetting(unsigned int Value) {
 }
 
 
+static inline void hal_pmu_bypass_set(unsigned int Value) {
+  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_BYPASS_OFFSET, Value);
+}
+
+static inline unsigned int hal_pmu_bypass_get() {
+  return IP_READ(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_BYPASS_OFFSET);
+}
+
 static inline PMU_WakeupStateT SoC_WakeupState()
 
 {

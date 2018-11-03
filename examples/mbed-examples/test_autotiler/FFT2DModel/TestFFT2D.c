@@ -14,7 +14,7 @@
 #include "gap_autotiler.h"
 #include <stdlib.h>
 
-#include "FFT2D.h"
+#include "FFT2DKernels.h"
 #include "SwapTablesDef.h"
 #include "TwiddlesDef.h"
 
@@ -23,7 +23,7 @@
 #define L1_BUFFER_SIZE     _L1_Memory_SIZE  // 40K
 
 GAP_L2_DATA uint8_t *ImageIn;
-GAP_L2_DATA int *Out;
+GAP_L2_DATA int32_t *Out;
 GAP_L2_DATA performance_t cluster_perf;
 
 void Process()
@@ -89,5 +89,5 @@ int main()
     if (error) printf("Test failed with %d errors\n", error);
     else printf("Test success\n");
 
-    return error;
+    exit(error);
 }

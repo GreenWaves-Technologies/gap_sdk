@@ -115,10 +115,8 @@ static void RunMnist()
 
 #if RT_HAS_HWCE
     /* Make HWCE event active */
-    eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
-#endif
+    eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
 
-#if RT_HAS_HWCE
     start = rt_perf_read(RT_PERF_CYCLES);
     Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
     ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-start;
@@ -142,7 +140,7 @@ static void RunMnist()
 #endif
 
     start = rt_perf_read(RT_PERF_CYCLES);
-    LinearLayerReLU_2(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 13, 0);
+    LinearLayerReLU_1(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 13, 0);
     ElapsedTime[2] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer2", Out_Layer2, 10, 1, 1);
 
@@ -174,7 +172,8 @@ int main()
 
 {
 
-  char *ImageName = "../../../136.pgm";
+  //char *ImageName = "../../../136.pgm";
+  char *ImageName = "../../../test_img/4/1301.pgm";
   unsigned int Wi, Hi;
 
   //Input image size

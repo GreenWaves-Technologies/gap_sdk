@@ -20,8 +20,8 @@
 #include "archi/pulp.h"
 
 #include "hal/riscv/types.h"
-#include "hal/riscv/builtins_v2.h"
-#include "hal/riscv/builtins_v2_emu.h"
+#include "archi/riscv/builtins_v2.h"
+#include "archi/riscv/builtins_v2_emu.h"
 
 #define CSR_PCMR_ACTIVE 0x1
 

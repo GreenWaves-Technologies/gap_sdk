@@ -17,7 +17,7 @@
 #ifndef __HAL_UDMA_UDMA_V2_H__
 #define __HAL_UDMA_UDMA_V2_H__
 
-#include "hal/pulp.h"
+#include "hal/pulp_io.h"
 #include <stdint.h>
 #include "archi/udma/udma_v2.h"
 
@@ -155,8 +155,6 @@ static inline uint32_t plpUdmaTxChCfgGet (plpUdmaRxTxChHandle_t * const handle);
 
 
 
-
-#include "hal/udma/udma_periph_v2.h"
 
 
 

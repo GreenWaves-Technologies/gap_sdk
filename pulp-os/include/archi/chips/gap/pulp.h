@@ -28,4 +28,12 @@
 #include "archi/chips/gap/padframe.h"
 #include "archi/stdout/stdout_v3.h"
 
+#include "archi/udma/cpi/udma_cpi_v1.h"
+#include "archi/udma/hyper/udma_hyper_v1.h"
+#include "archi/udma/i2c/udma_i2c_v2.h"
+#include "archi/udma/i2s/udma_i2s_v1.h"
+#include "archi/udma/spim/udma_spim_v2.h"
+#include "archi/udma/tcdm/udma_tcdm_v1.h"
+#include "archi/udma/uart/udma_uart_v1.h"
+
 #endif

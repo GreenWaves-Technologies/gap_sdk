@@ -67,7 +67,11 @@ void rt_event_push_delayed(rt_event_t *event, int us)
   // First compute the corresponding number of ticks.
   // The specified time is the minimum we must, so we have to round-up
   // the number of ticks.
+#if PULP_CHIP_FAMILY == CHIP_USOC_V1
+  ticks = us * ARCHI_REF_CLOCK / 1000000 + 1;
+#else
   ticks = us / ( 1000000 / ARCHI_REF_CLOCK) + 1;
+#endif
 
   // In order to simplify time comparison, we sacrify the MSB to avoid overflow
   // as the given amount of time must be short

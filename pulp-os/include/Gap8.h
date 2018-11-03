@@ -617,6 +617,17 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe(unsign
 #endif
 
 /* SYSTEM SECTION FOR GAP8 TARGET */
+#ifdef __MBED__
+
+#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			AUTOTILE_DMAMCHAN_Memcpy_1D((ext), (loc), (size), (ext2loc), (merge), (copy))
+#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	AUTOTILE_DMAMCHAN_Memcpy_2D((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
+#define gap8_dma_wait(copy)						DMAMCHAN_WaitRequestEnd(&(copy))
+#define gap8_dma_type                               dma_req_t
+/* HW barriers */
+#define gap8_waitbarrier(BarN)						rt_team_barrier()
+
+#else
+
 #ifdef __pulp__
 
 /* Task dispatch */
@@ -647,12 +658,6 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe(unsign
 #define gap8_cluster_wait(x)						plp_cluster_wait(x)
 
 /* DMA copies */
-#ifdef __MBED__
-#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			AUTOTILE_DMAMCHAN_Memcpy_1D((ext), (loc), (size), (ext2loc), (merge), (copy))
-#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	AUTOTILE_DMAMCHAN_Memcpy_2D((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
-#define gap8_dma_wait(copy)						DMAMCHAN_WaitRequestEnd(&(copy))
-#define gap8_dma_type                               dma_req_t
-#else
 #define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			rt_dma_memcpy(((unsigned int) ext), ((unsigned int) loc), (size), (ext2loc), (merge), (copy))
 #define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	rt_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
 #define gap8_dma_wait(copy)						rt_dma_wait(&(copy))

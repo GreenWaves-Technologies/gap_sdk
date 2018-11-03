@@ -159,6 +159,7 @@ __rt_remote_enqueue_event_loop_next_cluster:
 
 #endif
 
+  .global __rt_call_external_c_function
 __rt_call_external_c_function:
 
     add  sp, sp, -128

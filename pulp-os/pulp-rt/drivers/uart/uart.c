@@ -137,7 +137,9 @@ rt_uart_t* __rt_uart_open(int channel, rt_uart_conf_t *conf, rt_event_t *event, 
 {
   int irq = rt_irq_disable();
 
+#ifdef PADS_VERSION
   __rt_padframe_init();
+#endif
   
   int baudrate = __RT_UART_BAUDRATE;
   if (conf) baudrate = conf->baudrate;

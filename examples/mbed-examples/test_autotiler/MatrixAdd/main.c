@@ -7,20 +7,24 @@
  *
  */
 
+#define CORE_NUMBER     8
 /* Matrix add example main file. This code actually runs on GAP */
-
+#include <stdlib.h>
 #include "gap_common.h"
 // FEATURE_CLUSTER
 #include "gap_cluster.h"
 #include "gap_dmamchan.h"
 #include "gap_autotiler.h"
-#include <stdlib.h>
 
-#include "ModelKernels.h"
-#include "ModelKernelsInit.h"
+//include "Gap8.h"
+//include "ModelKernels.h"
+//include "ModelKernelsInit.h"
+#include "MatAddKernels.h"
+#include "MatAddKernelsInit.h"
+
+
 #include "model-size.h"
 
-#define CORE_NUMBER     8
 
 #define MAT_SIZE (MAT_W*MAT_H)
 
@@ -85,5 +89,5 @@ int main(int argc, char *argv[])
         }
     }
     printf("Test completed successfully\n");
-    return 0;
+    exit(0);
 }

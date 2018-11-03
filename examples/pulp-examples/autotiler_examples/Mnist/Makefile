@@ -14,7 +14,7 @@ MNIST_GEN_PATH = $(TILER_GENERATOR_PATH)/CNN/generator
 MNIST_KER_PATH = $(TILER_GENERATOR_PATH)/CNN/kernels
 
 PULP_APP_SRCS = Mnist.c MnistKernels.c MnistKernelsInit.c $(MNIST_KER_PATH)/src/CNN_BiasReLULinear_BasicKernels.c $(MNIST_KER_PATH)/src/CNN_Conv_BasicKernels.c $(MNIST_KER_PATH)/src/CNN_Pooling_BasicKernels.c ImgIO.c
-
+PULP_APP_SRCS += $(MNIST_KER_PATH)/src/CNN_HwCE.c
 pulpFc=1
 RM=rm -f
 
@@ -35,7 +35,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenMnist -I$(TILER_INC) -I$(MNIST_GEN_PATH)/include MnistModel.c $(MNIST_GEN_PATH)/src/CNN_Generators.c $(TILER_LIB)
+	gcc -o GenMnist $(USE_HARDWARE_CE) -I$(TILER_INC) -I$(MNIST_GEN_PATH)/include MnistModel.c $(MNIST_GEN_PATH)/src/CNN_Generators.c $(TILER_LIB)
 
 # Run the code generator
 MnistKernels.c MnistKernelsInit.c: GenTile

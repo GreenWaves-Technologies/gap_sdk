@@ -30,7 +30,7 @@
 
 #else
 
-#if PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_KERBIN || PULP_CHIP == CHIP_PULP
+#if PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_KERBIN || PULP_CHIP == CHIP_PULP || PULP_CHIP == CHIP_ARNOLD
 
 #define __RT_FREQ_DOMAIN_FC 0
 #define __RT_FREQ_DOMAIN_CL 2
@@ -116,7 +116,7 @@ static inline int rt_freq_set(rt_freq_domain_e domain, unsigned int freq);
 
 /// @cond IMPLEM
 
-#if PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_KERBIN || PULP_CHIP == CHIP_PULP
+#if PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_KERBIN || PULP_CHIP == CHIP_PULP || PULP_CHIP == CHIP_ARNOLD
 #define __RT_FLL_CL 2
 #define __RT_FLL_PERIPH 1
 #define __RT_FLL_FC 0

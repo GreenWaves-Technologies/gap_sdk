@@ -14,7 +14,7 @@
 #include "gap_autotiler.h"
 #include <stdlib.h>
 
-#include "ModelKernels.h"
+#include "MatMultKernels.h"
 
 #define CORE_NUMBER         8
 
@@ -79,6 +79,6 @@ int main()
 
     CLUSTER_Stop(0);
 
-    return 0;
+    exit(0);
 }
 
