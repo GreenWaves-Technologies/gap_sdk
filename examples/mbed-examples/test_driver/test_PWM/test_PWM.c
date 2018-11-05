@@ -29,13 +29,13 @@ int main()
         PWM_Init(s_pwm_Base[i], &config[i]);
 
         // default to 20ms: standard for servos, and fine for e.g. brightness control
-        PWM_SetupPwm(s_pwm_Base[i], &param, 1, 50, uPWM_REF_32K);
+        PWM_SetupPwm(s_pwm_Base[i], &param, 1, 1, uPWM_REF_32K);
 
         /* Set an output event and enable it. */
         PWM_SetOutputEvent(s_pwm_Base[i], param.chnum, config[i].evtSel);
 
         /* Bind PWM IRQ handler. */
-        PWM_IRQHandlerBind(s_pwm_Base[i], ( uint32_t ) pwm_handler, ( void * ) s_pwm_Base[i]);
+        PWM_CreateHandler(s_pwm_Base[i], ( pwm_callback_t ) pwm_handler, ( void * ) s_pwm_Base[i]);
     }
 
     /* Start each timer. */
