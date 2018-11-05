@@ -8,11 +8,16 @@
 /* Wake up in several second*/
 #define COUNT_SECONDS         5
 
-static int my_var = 0;
+#define    VALUE_INIT         1
+#define    VALUE_SET          2
+
+static int my_var = VALUE_INIT;
 
 #if (PMU_WAKUP_BY_RTC == 1)
 
 void pmu_wakeup_by_rtc() {
+    printf("Wake up by RTC Timer in %d second !\n", COUNT_SECONDS);
+
     int repeat_en = 0;
     rtc_config_t config;
     RTC_GetDefaultConfig(&config);
@@ -33,6 +38,7 @@ static GPIO_Type *const gpio_addrs[] = GPIO_BASE_PTRS;
 static PORT_Type *const port_addrs[] = PORT_BASE_PTRS;
 
 void pmu_wakeup_by_gpio() {
+    printf("Wake up by GPIO button !\n");
 
     /* BUTTON config. */
     PinName button = GPIO_A2_A2;
@@ -73,11 +79,15 @@ void pmu_wakeup_by_gpio() {
 
 int main()
 {
+    printf("BOOT mode = %d\n", PMU_WakeupState());
+
     if (PMU_WakeupState() == uPMU_COLD_BOOT)
     {
         printf("Entering test from cold boot my_var = %d\n", my_var);
 
-        my_var = 1;
+        my_var = VALUE_SET;
+
+        printf("Set my_var = %d\n", my_var);
 
         #if (PMU_WAKUP_BY_RTC == 1)
         pmu_wakeup_by_rtc();
@@ -85,14 +95,25 @@ int main()
         pmu_wakeup_by_gpio();
         #endif
 
-        /* For changing to deep sleep state, just change < uPMU_SWITCH_SLEEP > to < uPMU_SWITCH_DEEP_SLEEP > */
-        PMU_StateSwitch(uPMU_SWITCH_DEEP_SLEEP, uPMU_SWITCH_FAST);
-    } else {
+        /* For changing to deep sleep state, just change < uPMU_SWITCH_RETENTIVE_SLEEP > to < uPMU_SWITCH_DEEP_SLEEP > */
+        PMU_StateSwitch(uPMU_SWITCH_RETENTIVE_SLEEP, uPMU_SWITCH_FAST);
+    }
+    else if (PMU_WakeupState() == uPMU_RETENTIVE_SLEEP_BOOT)
+    {
+        PMU_DisableGPIOWakeUp();
+        printf("Wakeup from retentive sleep my_var=%d\n", my_var);
 
+        if (my_var == VALUE_SET) {
+            printf("Test success\n");
+            return 0;
+        }
+    }
+    else if (PMU_WakeupState() == uPMU_DEEP_SLEEP_BOOT)
+    {
         PMU_DisableGPIOWakeUp();
         printf("Wakeup from deep sleep my_var=%d\n", my_var);
 
-        if (my_var == 1) {
+        if (my_var == VALUE_INIT) {
             printf("Test success\n");
             return 0;
         }
