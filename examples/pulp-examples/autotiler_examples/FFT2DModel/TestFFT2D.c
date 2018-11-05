@@ -9,7 +9,8 @@
 
 #include <stdio.h>
 #include "Gap8.h"
-#include "FFT2D.h"
+#include "FFT2DKernels.h"
+#include "FFTBasicKernels.h"
 #include "TwiddlesDef.h"
 #include "SwapTablesDef.h"
 
@@ -41,7 +42,7 @@ void Process()
   rt_perf_start(perf);
 
   FFT2D_128(ImageIn,
-      Out,
+      (int32_t *) Out,
       R2_Twiddles_128,
       R2_SwapTable_128,
       0);
@@ -57,7 +58,7 @@ void Process()
   rt_perf_start(perf);
 
   FFT2D_256(ImageIn,
-      Out,
+      (int32_t *) Out,
       R4_Twiddles_256,
       R4_SwapTable_256,
       0);

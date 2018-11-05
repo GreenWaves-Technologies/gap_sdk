@@ -7,19 +7,24 @@
 pulpChip = GAP
 PULP_APP = TestFIR
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-MODEL_SRC = $(TILER_GENERATOR_PATH)/Fir/FirGenerator.c FirModelExample.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+FIR_GEN_PATH = $(TILER_GENERATOR_PATH)/Fir/generator
+FIR_KER_PATH = $(TILER_GENERATOR_PATH)/Fir/kernels
+
+MODEL_SRC = FirModel.c
 MODEL_GEN = FirKernels FirKernelsInit
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
-MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .c, $(MODEL_GEN))
-pulpFc=1
+MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
 RM=rm -f
 
-PULP_APP_SRCS = main.c $(MODEL_GEN_C) FirBasicKernels.c
+PULP_APP_SRCS = main.c $(MODEL_GEN_C) $(FIR_KER_PATH)/src/FirBasicKernels.c
 
-PULP_CFLAGS += -O2 -g3
-PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes/
+PULP_CFLAGS += -O3
+PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns
+#PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
+PULP_CFLAGS += -I$(TILER_INC) -I$(FIR_KER_PATH)/include
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
@@ -32,7 +37,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_GENERATOR_PATH)/Fir -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(FIR_GEN_PATH)/include $(MODEL_SRC) $(FIR_GEN_PATH)/src/FirGenerator.c $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

@@ -16,9 +16,9 @@
 
 #include "FirKernels.h"
 
-Word16 * __restrict__ Samples;
-GAP_L1_GLOBAL_DATA Word16 * __restrict__ Coeffs;
-Word16 * __restrict__ Out;
+short int * __restrict__ Samples;
+GAP_L1_GLOBAL_DATA short int * __restrict__ Coeffs;
+short int * __restrict__ Out;
 
 int finished = 0;
 
@@ -50,10 +50,10 @@ int main()
 
     // Allocate the necessary memory areas in shared L1
     FIR_L1_Memory = L1_Malloc(_FIR_L1_Memory_SIZE);
-    Coeffs        = (Word16 *) L1_Malloc(NCOEFFS*sizeof(Word16));
+    Coeffs        = (short int *) L1_Malloc(NCOEFFS*sizeof(short int));
     // Allocate areas in L2 for input and output
-    Samples       = (Word16 *) malloc(NSAMPLES*sizeof(Word16));
-    Out           = (Word16 *) malloc(NSAMPLES*sizeof(Word16));
+    Samples       = (short int *) malloc(NSAMPLES*sizeof(short int));
+    Out           = (short int *) malloc(NSAMPLES*sizeof(short int));
 
     if (!(Samples && Out && FIR_L1_Memory && Coeffs)) {
         printf("Memory allocation failed, L1 Tiler %p, Samples: %p, Coeffs: %p, Out: %p\n", FIR_L1_Memory, Samples, Coeffs, Out);
@@ -66,5 +66,5 @@ int main()
     CLUSTER_Stop(0);
     printf("Example completed successfully\n");
 
-    return 0;
+    exit(0);
 }

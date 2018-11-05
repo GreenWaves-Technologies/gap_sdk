@@ -33,7 +33,7 @@ void rt_event_sched_init(rt_event_sched_t *sched)
 void __rt_event_init(rt_event_t *event, rt_event_sched_t *sched)
 {
   __rt_event_min_init(event);
-#if PULP_CHIP == CHIP_GAP || !defined(ARCHI_HAS_FC)
+#if PULP_CHIP_FAMILY == CHIP_GAP || !defined(ARCHI_HAS_FC)
   event->copy.periph_data = (char *)rt_alloc(RT_ALLOC_PERIPH, RT_PERIPH_COPY_PERIPH_DATA_SIZE);
 #endif
   event->sched = sched;
@@ -77,7 +77,7 @@ int rt_event_alloc(rt_event_sched_t *sched, int nb_events)
 
 void __rt_event_free(rt_event_t *event)
 {
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
   rt_free(RT_ALLOC_PERIPH, (void *)event->copy.periph_data, RT_PERIPH_COPY_PERIPH_DATA_SIZE);
 #endif  
   rt_free(RT_ALLOC_FC_DATA, (void *)event, sizeof(rt_event_t));

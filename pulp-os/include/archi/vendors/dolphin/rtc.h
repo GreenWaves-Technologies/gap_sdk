@@ -113,4 +113,185 @@
 #define RTC_Irq_Alarm1_Flag                 0x01
 #define RTC_Irq_Timer1_Flag                 0x10
 #define RTC_Irq_Calibration_Flag            0x1000
+
+#ifndef LANGUAGE_ASSEMBLY
+
+/*  Structure for APB RTC registers  */
+typedef union {
+  struct {
+    unsigned int apb_addr:6;           // Indirect access address, address range [0:3F]
+    unsigned int pad:10;
+    unsigned int apb_load:1;           /* Indirect access load bit:
+                                            0: APB read operation
+                                            1: APB write operation
+                                       */
+    unsigned int pad1:15;
+  };
+  unsigned int raw;
+}Apb_rtc_ctrlT;
+
+typedef union {
+  struct {
+    unsigned int irq_form:2;
+    unsigned int pad:30;
+  };
+  unsigned int raw;
+}Apb_irq_ctrlT;
+
+typedef union {
+  struct {
+    unsigned int readMask:1;
+    unsigned int writeMask:1;
+    unsigned int pad:30;
+  };
+  unsigned int raw;
+}Apb_irq_maskT;
+
+typedef union{
+    Apb_rtc_ctrlT       rtcCtrl;
+    Apb_irq_ctrlT       irqCtrl;
+    Apb_irq_maskT       irqMask;
+    unsigned int        Raw;
+}Apb_rtcT;
+
+//=============================================================
+/*  Structure for indirect access registers  */
+
+typedef union {
+  struct{
+    unsigned int rtc_sb:1;
+    unsigned int pad:3;
+    unsigned int cal_En:1;
+    unsigned int pad1:3;
+    unsigned int soft_rst:1;
+    unsigned int pad2:23;
+  };
+  unsigned int raw;
+}Rtc_ctrlT;
+
+typedef union{
+  struct{
+    unsigned int clkOut_sb:1;
+    unsigned int pad:11;
+    unsigned int div1_autoCal:1;
+    unsigned int pad1:3;
+    unsigned int div1_comp:5;
+    unsigned int pad2:11;
+  };
+  unsigned int raw;
+}Rtc_clk_ctrlT;
+
+typedef union{
+  struct{
+    unsigned int irq_form:2;
+    unsigned int pad:30;
+  };
+  unsigned int raw;
+}Rtc_irq_ctrlT;
+
+typedef union{
+  struct{
+    unsigned int alarm1_masked:1;
+    unsigned int pad:3;
+    unsigned int timer1_masked:1;
+    unsigned int pad1:7;
+    unsigned int cal_masked:1;
+    unsigned int pad2:19;
+  };
+  unsigned int raw;
+}Rtc_irq_maskT;
+
+typedef union{
+  struct{
+    unsigned int calend_En:1;
+    unsigned int pad:31;
+  };
+  unsigned int raw;
+}Rtc_calend_ctrlT;
+
+typedef union{
+  struct{
+    unsigned int second_0:4;
+    unsigned int second_1:4;
+    unsigned int minute_0:4;
+    unsigned int minute_1:4;
+    unsigned int hour_0:4;
+    unsigned int hour_1:4;
+  };
+  unsigned int raw;
+}Rtc_calend_timeT;
+
+typedef union{
+  struct{
+    unsigned int day_0:4;
+    unsigned int day_1:4;
+    unsigned int month_0:4;
+    unsigned int month_1:4;
+    unsigned int year_0:4;
+    unsigned int year_1:4;
+  };
+  unsigned int raw;
+}Rtc_calend_dateT;
+
+typedef union{
+  struct{
+    unsigned int alarm1_En:1;
+    unsigned int pad:3;
+    unsigned int alarm1_mode:1;
+    unsigned int pad1:11;
+    unsigned int alarm1_conf:4;
+    unsigned int pad2:12;
+  };
+  unsigned int raw;
+}Rtc_alarm_ctrlT;
+
+typedef union{
+  struct{
+    unsigned int cntDwn1_En:1;
+    unsigned int pad:3;
+    unsigned int cntDwn1_mode:1;
+    unsigned int pad1:27;
+  };
+  unsigned int raw;
+}Rtc_cntDwn_ctrlT;
+
+typedef union {
+  struct{
+    unsigned int divVal:16;
+    unsigned int pad:16;
+  };
+  unsigned int raw;
+}Rtc_CKIN_divT;
+
+typedef union{
+  struct{
+    unsigned int refClkVal:22;
+    unsigned int pad:10;
+  };
+  unsigned int raw;
+}Rtc_ref_clkT;
+
+typedef union{
+//    unsigned int        status;
+    Rtc_ctrlT           conf;
+    Rtc_clk_ctrlT       clkConf;
+    Rtc_irq_ctrlT       irqConf;
+    Rtc_irq_maskT       irqMask;
+//    unsigned int        irqFlag;
+    Rtc_calend_ctrlT    calendConf;
+//    unsigned int        calendTime;
+//    unsigned int        calendDate;
+    Rtc_alarm_ctrlT     alarmCtrl;
+//    unsigned int        alarmTime;
+//    unsigned int        alarmDate;
+    Rtc_cntDwn_ctrlT    cntDwnCtrl;
+//    unsigned int        cntDwn1InitVal;
+//    unsigned int        cntDwn1Val;
+    Rtc_CKIN_divT       ckinDiv;
+    Rtc_ref_clkT        refClk;
+    unsigned int        Raw;
+}RtcT;
+
+#endif
+
 #endif

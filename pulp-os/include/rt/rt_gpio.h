@@ -239,7 +239,7 @@ void rt_gpio_clear(uint8_t group, uint8_t gpio);
 
 
 
-
+#if PULP_CHIP_FAMILY != CHIP_USOC_V1
 static inline void rt_gpio_set_dir(uint8_t group, uint32_t mask, rt_gpio_dir_e is_out)
 {
   int irq = rt_irq_disable();
@@ -254,6 +254,14 @@ static inline void rt_gpio_set_dir(uint8_t group, uint32_t mask, rt_gpio_dir_e i
 
   rt_irq_restore(irq);
 }
+#else
+void __rt_gpio_set_dir(uint8_t group, uint32_t mask, rt_gpio_dir_e is_out);
+
+static inline void rt_gpio_set_dir(uint8_t group, uint32_t mask, rt_gpio_dir_e is_out)
+{
+  __rt_gpio_set_dir(group, mask, is_out);
+}
+#endif
 
 
 

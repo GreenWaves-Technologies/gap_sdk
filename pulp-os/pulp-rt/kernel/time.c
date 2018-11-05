@@ -67,7 +67,11 @@ void rt_event_push_delayed(rt_event_t *event, int us)
   // First compute the corresponding number of ticks.
   // The specified time is the minimum we must, so we have to round-up
   // the number of ticks.
+#if PULP_CHIP_FAMILY == CHIP_USOC_V1
+  ticks = us * ARCHI_REF_CLOCK / 1000000 + 1;
+#else
   ticks = us / ( 1000000 / ARCHI_REF_CLOCK) + 1;
+#endif
 
   // In order to simplify time comparison, we sacrify the MSB to avoid overflow
   // as the given amount of time must be short
@@ -137,8 +141,8 @@ RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_time_init()
     PLP_TIMER_PRESCALER_DISABLED, 0, PLP_TIMER_MODE_64_DISABLED
   );
 
-  rt_irq_set_handler(ARCHI_FC_EVT_TIMER1, __rt_timer_handler);
-  rt_irq_mask_set(1<<ARCHI_FC_EVT_TIMER1);
+  rt_irq_set_handler(ARCHI_FC_EVT_TIMER0_HI, __rt_timer_handler);
+  rt_irq_mask_set(1<<ARCHI_FC_EVT_TIMER0_HI);
 
   err |= __rt_cbsys_add(RT_CBSYS_POWEROFF, __rt_time_poweroff, NULL);
   err |= __rt_cbsys_add(RT_CBSYS_POWERON, __rt_time_poweron, NULL);

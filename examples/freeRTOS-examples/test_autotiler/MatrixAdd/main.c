@@ -18,8 +18,8 @@
 #include "gap_dmamchan.h"
 #include "gap_autotiler.h"
 
-#include "ModelKernels.h"
-#include "ModelKernelsInit.h"
+#include "MatAddKernels.h"
+#include "MatAddKernelsInit.h"
 #include "model-size.h"
 
 /****************************************************************************/

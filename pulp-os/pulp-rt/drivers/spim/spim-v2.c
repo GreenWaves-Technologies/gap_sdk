@@ -120,8 +120,12 @@ rt_spim_t *rt_spim_open(char *dev_name, rt_spim_conf_t *conf, rt_event_t *event)
   {
     plp_udma_cg_set(plp_udma_cg_get() | (1<<channel));
 
-    soc_eu_fcEventMask_setEvent(channel*2);
-    soc_eu_fcEventMask_setEvent(channel*2 + 1);
+    __rt_udma_extra_callback[ARCHI_SOC_EVENT_SPIM0_EOT - ARCHI_SOC_EVENT_UDMA_FIRST_EXTRA_EVT + id] = __rt_spim_handle_eot;
+    __rt_periph_channel(spim->channel+1)->callback = __rt_spim_handle_tx_end;
+    __rt_periph_channel(spim->channel)->callback = __rt_spim_handle_rx_end;
+
+
+    soc_eu_fcEventMask_setEvent(ARCHI_SOC_EVENT_SPIM0_EOT + id);
   }
 
   rt_irq_restore(irq);
@@ -172,10 +176,11 @@ void rt_spim_close(rt_spim_t *handle, rt_event_t *event)
 
   if (__rt_spim_open_count[id] == 0)
   {
+    __rt_udma_extra_callback[ARCHI_SOC_EVENT_SPIM0_EOT - ARCHI_SOC_EVENT_UDMA_FIRST_EXTRA_EVT + id] = __rt_soc_evt_no_udma;
+    __rt_periph_channel(handle->channel+1)->callback = udma_event_handler;
+    __rt_periph_channel(handle->channel)->callback = udma_event_handler;
+    soc_eu_fcEventMask_clearEvent(ARCHI_SOC_EVENT_SPIM0_EOT + id);
     plp_udma_cg_set(plp_udma_cg_get() & ~(1<<(handle->channel>>1)));
-
-    soc_eu_fcEventMask_clearEvent(handle->channel);
-    soc_eu_fcEventMask_clearEvent(handle->channel + 1);
   }
 
   rt_free(RT_ALLOC_FC_DATA, handle, sizeof(handle));
@@ -183,98 +188,245 @@ void rt_spim_close(rt_spim_t *handle, rt_event_t *event)
   rt_irq_restore(irq);
 }
 
-void __rt_spim_send(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim_cs_e cs_mode, rt_event_t *event)
+static inline int __rt_spim_enqueue_to_channel(rt_periph_channel_t *channel, rt_periph_copy_t *copy)
+{
+  if (!channel->first)
+  {
+    channel->first = copy;
+    return 1;
+  }
+  else
+  {
+    if (channel->firstToEnqueue)
+      channel->last->next = copy;
+    else
+      channel->firstToEnqueue = copy;
+    copy->next = NULL;
+    channel->last = copy;
+    return 0;
+  }
+}
+
+void __rt_spim_send_async(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim_cs_e cs_mode, rt_event_t *event)
 {
   rt_trace(RT_TRACE_SPIM, "[SPIM] Send bitstream (handle: %p, buffer: %p, len: 0x%x, qspi: %d, keep_cs: %d, event: %p)\n", handle, data, len, qspi, cs_mode, event);
 
   int irq = rt_irq_disable();
 
-  rt_event_t *call_event = __rt_wait_event_prepare(event);
-  rt_periph_copy_t *copy = &call_event->copy;
+  rt_periph_copy_t *copy = &event->copy;
 
   // First enqueue the header with SPI config, cs, and send command.
   // The rest will be sent by the assembly code.
   // First the user data and finally an epilogue with the EOT command.
-  int next_step;
-  if (cs_mode == RT_SPIM_CS_AUTO) next_step = RT_PERIPH_COPY_SPIM_STEP2;
-  else                            next_step = 0;
-  rt_periph_copy_init_ctrl(copy, RT_PERIPH_COPY_SPIM_STEP1 << RT_PERIPH_COPY_CTRL_TYPE_BIT);
-
   rt_spim_cmd_t *cmd = (rt_spim_cmd_t *)copy->periph_data;
-  unsigned int *udma_cmd = (unsigned int *)cmd->cmd;
-  *udma_cmd++ = handle->cfg;
-  *udma_cmd++ = SPI_CMD_SOT(handle->cs);
-  *udma_cmd++ = SPI_CMD_TX_DATA(len, qspi, handle->byte_align);
 
-  copy->cfg = UDMA_CHANNEL_CFG_EN;
-  copy->u.raw.val[2] = (int)data;
-  copy->u.raw.val[0] = (len + 7) >> 3;
-  copy->u.raw.val[1] = next_step;
+  cmd->cmd[0] = handle->cfg;
+  cmd->cmd[1] = SPI_CMD_SOT(handle->cs);
+  cmd->cmd[2] = SPI_CMD_TX_DATA(len, qspi, handle->byte_align);
 
-  rt_periph_single_copy(copy, handle->channel + 1, (unsigned int)cmd, 3*4, 0, call_event);
+  copy->event = event;
+
+  int channel_id = handle->channel;
+
+  rt_periph_channel_t *channel = __rt_periph_channel(channel_id);
+  int size = (len + 7) >> 3;
+  unsigned int base = hal_udma_channel_base(channel_id+1);
+
+  if (__rt_spim_enqueue_to_channel(channel, copy))
+  {
+    if (cs_mode == RT_SPIM_CS_AUTO)
+    {
+      // CS auto mode. We handle the termination with an EOT so we have to enqueue
+      // 3 transfers.
+      // Enqueue fist SOT and user buffer.
+      plp_udma_enqueue(base, (unsigned int)cmd, 3*4, UDMA_CHANNEL_CFG_EN);
+      plp_udma_enqueue(base, (unsigned int)data, size, UDMA_CHANNEL_CFG_EN);
+
+      // Then wait until first one is finished
+      while(!plp_udma_canEnqueue(base));
+
+      // And finally enqueue the EOT.
+      // The user notification will be sent as soon as the last transfer
+      // is done and next pending transfer will be enqueued
+      cmd->cmd[0] = SPI_CMD_EOT(1);
+      plp_udma_enqueue(base, (unsigned int)cmd, 1*4, UDMA_CHANNEL_CFG_EN);
+    }
+    else
+    {
+      // CS keep mode.
+      // We cannot use EOT due to HW limitations, so we have to use TX event instead.
+      // TX event is current inactive, enqueue first transfer first EOT.
+      plp_udma_enqueue(base, (unsigned int)cmd, 3*4, UDMA_CHANNEL_CFG_EN);
+      // Then wait until it is finished (should be very quick).
+      while(plp_udma_busy(base));
+      // Then activateTX event and enqueue user buffer.
+      // User notification and next pending transfer will be handled in the handler.
+      soc_eu_fcEventMask_setEvent(channel_id+1);
+      plp_udma_enqueue(base, (unsigned int)data, size, UDMA_CHANNEL_CFG_EN);
+    }
+  }
+  else
+  {
+    copy->u.raw.val[0] = base;
+    copy->u.raw.val[1] = (int)cmd;
+    copy->u.raw.val[2] = 3*4;
+    copy->u.raw.val[3] = (int)data;
+    copy->u.raw.val[4] = size;
+    copy->u.raw.val[5] = channel_id + 1;
+    copy->u.raw.val[6] = (int)(cs_mode == RT_SPIM_CS_AUTO ? __rt_spim_single_eot : __rt_spim_single_no_eot);
+  }
+
+  rt_irq_restore(irq);
+}
+
+void __rt_spim_send(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim_cs_e cs_mode, rt_event_t *event)
+{
+  int irq = rt_irq_disable();
+
+  rt_event_t *call_event = __rt_wait_event_prepare(event);
+
+  __rt_spim_send_async(handle, data, len, qspi, cs_mode, call_event);
 
   __rt_wait_event_check(event, call_event);
+
+  rt_irq_restore(irq);
+}
+
+void __rt_spim_receive_async(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim_cs_e cs_mode, rt_event_t *event)
+{
+  rt_trace(RT_TRACE_SPIM, "[SPIM] Receive bitstream (handle: %p, buffer: %p, len: 0x%x, qspi: %d, keep_cs: %d, event: %p)\n", handle, data, len, qspi, cs_mode, event);
+
+  int irq = rt_irq_disable();
+
+  rt_periph_copy_t *copy = &event->copy;
+
+  copy->event = event;
+
+  rt_spim_cmd_t *cmd = (rt_spim_cmd_t *)copy->periph_data;
+
+  int channel_id = handle->channel;
+
+  int cmd_size = 3*4;
+  cmd->cmd[0] = handle->cfg;
+  cmd->cmd[1] = SPI_CMD_SOT(handle->cs);
+  cmd->cmd[2] = SPI_CMD_RX_DATA(len, qspi, handle->byte_align);
+  if (cs_mode == RT_SPIM_CS_AUTO)
+  {
+    cmd->cmd[3] = SPI_CMD_EOT(1);
+    cmd_size += 4;
+  }
+
+  rt_periph_channel_t *channel = __rt_periph_channel(channel_id);
+  int size = (len + 7) >> 3;
+  unsigned int rx_base = hal_udma_channel_base(channel_id);
+
+  if (__rt_spim_enqueue_to_channel(channel, copy))
+  {
+    if (cs_mode != RT_SPIM_CS_AUTO)
+    {
+      soc_eu_fcEventMask_setEvent(channel_id);
+    }
+
+    unsigned int tx_base = hal_udma_channel_base(channel_id + 1);
+    plp_udma_enqueue(rx_base, (unsigned int)data, size, UDMA_CHANNEL_CFG_EN | (2<<1));
+    plp_udma_enqueue(tx_base, (unsigned int)cmd, cmd_size, UDMA_CHANNEL_CFG_EN);
+  }
+  else
+  {
+    copy->u.raw.val[0] = rx_base;
+    copy->u.raw.val[1] = (int)cmd;
+    copy->u.raw.val[2] = cmd_size;
+    copy->u.raw.val[3] = (int)data;
+    copy->u.raw.val[4] = size;
+    copy->u.raw.val[5] = channel_id;
+    copy->u.raw.val[6] = (int)(cs_mode == RT_SPIM_CS_AUTO ? __rt_spim_single_rx_eot : __rt_spim_single_rx_no_eot);
+  }
 
   rt_irq_restore(irq);
 }
 
 void __rt_spim_receive(rt_spim_t *handle, void *data, size_t len, int qspi, rt_spim_cs_e cs_mode, rt_event_t *event)
 {
-  rt_trace(RT_TRACE_SPIM, "[SPIM] Receive bitstream (handle: %p, buffer: %p, len: 0x%x, qspi: %d, keep_cs: %d, event: %p)\n", handle, data, len, qspi, cs_mode, event);
-
   int irq = rt_irq_disable();
 
   rt_event_t *call_event = __rt_wait_event_prepare(event);
-  rt_periph_copy_t *copy = &call_event->copy;
 
-  rt_periph_copy_init(copy, 0);
-  
-  rt_spim_cmd_t *cmd = (rt_spim_cmd_t *)copy->periph_data;
-  unsigned int *udma_cmd = (unsigned int *)cmd->cmd;
-  *udma_cmd++ = handle->cfg;
-  *udma_cmd++ = SPI_CMD_SOT(handle->cs);
-  *udma_cmd++ = SPI_CMD_RX_DATA(len, qspi, handle->byte_align);
-  if (cs_mode == RT_SPIM_CS_AUTO)
-  {
-    *udma_cmd++ = SPI_CMD_EOT(0);
-  }
-
-  rt_periph_dual_copy(copy, handle->channel, (unsigned int)cmd, cs_mode == RT_SPIM_CS_AUTO ? 4*4 : 3*4, (int)data, (len+7)>>3, 2<<1, call_event);
+  __rt_spim_receive_async(handle, data, len, qspi, cs_mode, call_event);
 
   __rt_wait_event_check(event, call_event);
 
   rt_irq_restore(irq);
 }
 
-void rt_spim_transfer(rt_spim_t *handle, void *tx_data, void *rx_data, size_t len, rt_spim_cs_e cs_mode, rt_event_t *event)
+void rt_spim_transfer_async(rt_spim_t *handle, void *tx_data, void *rx_data, size_t len, rt_spim_cs_e cs_mode, rt_event_t *event)
 {
-  rt_trace(RT_TRACE_SPIM, "[SPIM] Transfering bitstream (handle: %p, tx_buffer: %p, rx_buffer: %p, len: 0x%x, keep_cs: %d, event: %p)\n", handle, tx_data, rx_data, len, mode, event);
+  rt_trace(RT_TRACE_SPIM, "[SPIM] Transfering bitstream (handle: %p, tx_buffer: %p, rx_buffer: %p, len: 0x%x, keep_cs: %d, event: %p)\n", handle, tx_data, rx_data, len, cs_mode, event);
 
   int irq = rt_irq_disable();
 
-  rt_event_t *call_event = __rt_wait_event_prepare(event);
-  rt_periph_copy_t *copy = &call_event->copy;
+  rt_periph_copy_t *copy = &event->copy;
 
   // First enqueue the header with SPI config, cs, and send command.
   // The rest will be sent by the assembly code.
   // First the user data and finally an epilogue with the EOT command.
-  int next_step;
-  if (cs_mode == RT_SPIM_CS_AUTO) next_step = RT_PERIPH_COPY_SPIM_STEP2;
-  else                            next_step = 0;
-  rt_periph_copy_init_ctrl(copy, RT_PERIPH_COPY_SPIM_STEP1 << RT_PERIPH_COPY_CTRL_TYPE_BIT);
-
   rt_spim_cmd_t *cmd = (rt_spim_cmd_t *)copy->periph_data;
-  unsigned int *udma_cmd = (unsigned int *)cmd->cmd;
-  *udma_cmd++ = handle->cfg;
-  *udma_cmd++ = SPI_CMD_SOT(handle->cs);
-  *udma_cmd++ = SPI_CMD_FUL(len, handle->byte_align);
 
-  copy->cfg = UDMA_CHANNEL_CFG_EN;
-  copy->u.raw.val[2] = (int)tx_data;
-  copy->u.raw.val[0] = (len + 7) >> 3;
-  copy->u.raw.val[1] = next_step;
+  cmd->cmd[0] = handle->cfg;
+  cmd->cmd[1] = SPI_CMD_SOT(handle->cs);
+  cmd->cmd[2] = SPI_CMD_FUL(len, handle->byte_align);
 
-  rt_periph_dual_copy(copy, handle->channel+1, (unsigned int)cmd, 3*4, (int)rx_data, (len+7)>>3, 2<<1, call_event);
+  copy->event = event;
+
+  int channel_id = handle->channel;
+
+  rt_periph_channel_t *channel = __rt_periph_channel(channel_id);
+  int size = (len + 7) >> 3;
+  unsigned int rx_base = hal_udma_channel_base(channel_id);
+  unsigned int tx_base = hal_udma_channel_base(channel_id+1);
+
+  if (__rt_spim_enqueue_to_channel(channel, copy))
+  {
+    if (cs_mode == RT_SPIM_CS_AUTO)
+    {
+      plp_udma_enqueue(tx_base, (unsigned int)cmd, 3*4, UDMA_CHANNEL_CFG_EN);
+      plp_udma_enqueue(rx_base, (unsigned int)rx_data, size, UDMA_CHANNEL_CFG_EN | (2<<1));
+      plp_udma_enqueue(tx_base, (unsigned int)tx_data, size, UDMA_CHANNEL_CFG_EN);
+
+      while(!plp_udma_canEnqueue(tx_base));
+
+      cmd->cmd[0] = SPI_CMD_EOT(1);
+      plp_udma_enqueue(tx_base, (unsigned int)cmd, 1*4, UDMA_CHANNEL_CFG_EN);
+    }
+    else
+    {
+      plp_udma_enqueue(tx_base, (unsigned int)cmd, 3*4, UDMA_CHANNEL_CFG_EN);
+      soc_eu_fcEventMask_setEvent(channel_id);
+      plp_udma_enqueue(rx_base, (unsigned int)rx_data, size, UDMA_CHANNEL_CFG_EN | (2<<1));
+      plp_udma_enqueue(tx_base, (unsigned int)tx_data, size, UDMA_CHANNEL_CFG_EN);
+    }
+  }
+  else
+  {
+    copy->u.raw.val[0] = rx_base;
+    copy->u.raw.val[1] = (int)cmd;
+    copy->u.raw.val[2] = 3*4;
+    copy->u.raw.val[3] = (int)rx_data;
+    copy->u.raw.val[4] = size;
+    copy->u.raw.val[5] = (int)tx_data;
+    copy->u.raw.val[6] = (int)(cs_mode == RT_SPIM_CS_AUTO ? __rt_spim_dup_eot : __rt_spim_dup_no_eot);
+    copy->u.raw.val[7] = channel_id;
+  }
+
+  rt_irq_restore(irq);
+}
+
+void rt_spim_transfer(rt_spim_t *handle, void *tx_data, void *rx_data, size_t len, rt_spim_cs_e cs_mode, rt_event_t *event)
+{
+  int irq = rt_irq_disable();
+
+  rt_event_t *call_event = __rt_wait_event_prepare(event);
+
+  rt_spim_transfer_async(handle, tx_data, rx_data, len, cs_mode, call_event);
 
   __rt_wait_event_check(event, call_event);
 

@@ -7,25 +7,23 @@
 pulpChip = GAP
 PULP_APP = bilinearResize
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-#TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-#MODEL_SRC = $(TILER_GENERATOR_PATH)/HoG/HoGGenerator.c HoGModelExample.c
-MODEL_SRC = ResizeGenerator.c ResizeModelExample.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+RESIZE_GEN_PATH = $(TILER_GENERATOR_PATH)/Resize/generator
+RESIZE_KER_PATH = $(TILER_GENERATOR_PATH)/Resize/kernels
 
+MODEL_SRC = ResizeModel.c
 MODEL_GEN = ResizeKernels ResizeKernelsInit
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
 MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
-pulpFc=1
 RM=rm -f
 
-#PULP_APP_SRCS = main.c ImgIO.c $(MODEL_GEN_C) $(TILER_GENERATOR_PATH)/HoG/IIBasicKernels.c HyperFlashFS.c
-PULP_APP_SRCS = main.c ImgIO.c $(MODEL_GEN_C) ResizeBasicKernels.c
+PULP_APP_SRCS = main.c ImgIO.c $(MODEL_GEN_C) $(RESIZE_KER_PATH)/src/ResizeBasicKernels.c
 
-override CONFIG_OPT += hyperflash hyperflash/fs/files=$(CURDIR)/Pedestrian.ppm
-
-PULP_CFLAGS += -O2 -g3
+PULP_CFLAGS += -O3
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_CFLAGS += -I$(TILER_PATH)/StdTypes/
-#-I$(TILER_GENERATOR_PATH)/HoG
+PULP_CFLAGS += -I$(TILER_INC) -I$(RESIZE_KER_PATH)/include
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
@@ -38,8 +36,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
-	#gcc -o GenTile -I$(TILER_GENERATOR_PATH)/II -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(RESIZE_GEN_PATH)/include $(MODEL_SRC) $(RESIZE_GEN_PATH)/src/ResizeGenerator.c $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

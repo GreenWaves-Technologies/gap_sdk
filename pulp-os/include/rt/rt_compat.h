@@ -54,7 +54,7 @@
 static inline void synch_barrier() {
 #if defined(ARCHI_HAS_CLUSTER)
 #if defined(EU_VERSION) && EU_VERSION >= 3
-  if (!rt_is_fc()) eu_bar_trig_wait_clr(eu_bar_addr(0));
+  if (!rt_is_fc()) rt_team_barrier();
 #endif
 #endif
 }

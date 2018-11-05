@@ -158,11 +158,23 @@ int main(int argc, char *argv[])
 	rt_cluster_call(NULL, CID, (void (*)(void *)) cluster_main, &ClusterCall, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), NULL);
 	// The FC arrives here when the Cluster finished its job.
 
+	
+	int hash=0;
+	for(unsigned int i=0;i<BlockW*BlockH*BlockSize;i++){
+		hash = (hash + (324723947 + ClusterCall.HoGFeatures[i])) ^93485734985;
+	}
+	//printf("Resulting hash: %d \n", hash);
+
 	// Close the cluster
 	rt_cluster_mount(UNMOUNT, CID, 0, NULL);
 
 	rt_bridge_disconnect(NULL);
-    printf("Test success\n");
+	
+	if(hash == -933402687)
+    	printf("Test success\n");
+    else
+		printf("Test failed\n");
+	
 
 	return 0;
 }

@@ -108,6 +108,7 @@ void rt_time_wait_cycles(const unsigned cycles)
      * is less than four, because this will cause an underflow on the first
      * subtraction.
      */
+    register unsigned i = cycles >> 2;
     register unsigned threshold;
     asm volatile("li %[threshold], 4" : [threshold] "=r" (threshold));
     asm volatile goto("ble %[cycles], %[threshold], %l2"
@@ -115,7 +116,6 @@ void rt_time_wait_cycles(const unsigned cycles)
             : [cycles] "r" (cycles), [threshold] "r" (threshold)
             : /* no clobbers */
             : __wait_cycles_end);
-    register unsigned i = cycles >> 2;
 __wait_cycles_start:
     // Decrement `i` and loop if it is not yet zero.
     asm volatile("addi %0, %0, -1" : "+r" (i));

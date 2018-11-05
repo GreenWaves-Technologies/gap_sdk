@@ -196,6 +196,7 @@ static inline void rt_spim_control(rt_spim_t *handle, rt_spim_control_e cmd, uin
  * Note that the event attached to this call is triggered when the chip is ready to send another spi stream 
  * not when the spi stream has been fully sent. There can be some buffering effects which
  * make the chip send a few bits after the event is triggered.
+ * Due to hardware constraints, the address of the buffer must be aligned on 4 bytes and the size must be a multiple of 4.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param data     The address in the chip where the data to be sent must be read.
@@ -213,6 +214,7 @@ static inline void rt_spim_send(rt_spim_t *handle, void *data, size_t len, rt_sp
  * The copy will make an asynchronous transfer between the SPI and one of the chip memory.
  * An event can be specified in order to be notified when the transfer is finished.
  * This is using classic SPI transfer with MOSI and MISO lines.
+ * Due to hardware constraints, the address of the buffer must be aligned on 4 bytes and the size must be a multiple of 4.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param data        The address in the chip where the received data must be written.
@@ -230,6 +232,7 @@ static inline void rt_spim_receive(rt_spim_t *handle, void *data, size_t len, rt
  * The copy will make an asynchronous transfer between the SPI and one of the chip memory.
  * An event can be specified in order to be notified when the transfer is finished.
  * This is using classic SPI transfer with MOSI and MISO lines.
+ * Due to hardware constraints, the address of the buffer must be aligned on 4 bytes and the size must be a multiple of 4.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param tx_data     The address in the chip where the data to be sent must be read.
@@ -248,6 +251,7 @@ void rt_spim_transfer(rt_spim_t *handle, void *tx_data, void *rx_data, size_t le
  * The copy will make an asynchronous transfer between the SPI and one of the chip memory.
  * An event can be specified in order to be notified when the transfer is finished.
  * This is using quad SPI transfer with 4 data lines.
+ * Due to hardware constraints, the address of the buffer must be aligned on 4 bytes and the size must be a multiple of 4.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param data        The address in the chip where the data to be sent must be read.
@@ -265,6 +269,7 @@ static inline void rt_spim_send_qspi(rt_spim_t *handle, void *data, size_t len, 
  * The copy will make an asynchronous transfer between the SPI and one of the chip memory.
  * An event can be specified in order to be notified when the transfer is finished.
  * This is using quad SPI transfer with 4 data lines.
+ * Due to hardware constraints, the address of the buffer must be aligned on 4 bytes and the size must be a multiple of 4.
  *
  * \param handle      The handle of the SPI device which was returned when the device was opened.
  * \param data        The address in the chip where the received data must be written.

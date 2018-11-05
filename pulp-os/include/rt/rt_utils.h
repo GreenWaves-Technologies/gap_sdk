@@ -354,26 +354,13 @@ extern unsigned char __l2_scm_end;
 
 #endif
 
-#if PULP_CHIP == CHIP_VIVOSOC3 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_QUENTIN || PULP_CHIP == CHIP_WOLFE
-
 extern unsigned char __l2_priv0_end;
 extern unsigned char __l2_priv1_end;
 extern unsigned char __l2_shared_end;
 
 #else
 
-extern unsigned char __l2_priv0_heap_start;
-extern unsigned char __l2_priv0_heap_size;
-extern unsigned char __l2_priv1_heap_start;
-extern unsigned char __l2_priv1_heap_size;
-extern unsigned char __l2_shared_heap_start;
-extern unsigned char __l2_shared_heap_size;
-
-#endif
-
-#else
-
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
 
 extern unsigned char __l2_end;
 extern unsigned char __fc_tcdm_end;
@@ -556,7 +543,7 @@ static inline int rt_l2_shared_size() {
   return ARCHI_L2_SHARED_ADDR + ARCHI_L2_SHARED_SIZE - (int)&__l2_shared_end;
 }
 
-#elif PULP_CHIP == CHIP_VIVOSOC3 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_WOLFE
+#else
 
 static inline void *rt_l2_priv0_base() {
   if ((int)&__l2_priv0_end >= ARCHI_L2_PRIV1_ADDR)
@@ -594,20 +581,6 @@ static inline int rt_l2_shared_size() {
   return ARCHI_L2_SHARED_ADDR + ARCHI_L2_SHARED_SIZE - (int)&__l2_shared_end;
 }
 
-#else
-
-static inline void *rt_l2_priv0_base(){ return (void *)&__l2_priv0_heap_start; }
-
-static inline int rt_l2_priv0_size() { return (int)&__l2_priv0_heap_size; }
-
-static inline void *rt_l2_priv1_base() { return (void *)&__l2_priv1_heap_start; }
-
-static inline int rt_l2_priv1_size() { return (int)&__l2_priv1_heap_size; }
-
-static inline void *rt_l2_shared_base() { return (void *)&__l2_shared_heap_start; }
-
-static inline int rt_l2_shared_size() { return (int)&__l2_shared_heap_size; }
-
 #endif
 
 static inline void *rt_l2_base() { return rt_l2_shared_base(); }
@@ -638,7 +611,7 @@ static inline int rt_l2_size() { return 0; }
 
 #if defined(ARCHI_HAS_L2)
 
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
 
 static inline void *rt_l2_base() { return (void *)&__l2_end; }
 
@@ -704,15 +677,7 @@ static inline int rt_fc_tcdm_size()
 static inline void rt_wait_for_interrupt()
 {
 #if !defined(ARCHI_HAS_FC) || defined(ARCHI_HAS_FC_EU)
-#if EU_VERSION == 3
-  // TODO On FC side, the event unit is used as an interrupt controller and thus
-  // we should never replay the clock-gated load. Just use a normal load
-  // to go to sleep. However this does not work with a normal load, we should
-  // investigate why.
-  eu_evt_wait_noreplay();
-#else
   eu_evt_wait();
-#endif
 #else
   hal_itc_wait_for_interrupt();
 #endif

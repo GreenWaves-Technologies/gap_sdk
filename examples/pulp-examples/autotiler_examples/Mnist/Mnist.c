@@ -11,7 +11,9 @@
 #include "Gap8.h"
 #include "MnistKernels.h"
 #include "MnistCoeffs.def"
+#if RT_HAS_HWCE
 #include "MnistCoeffs_HWCE.def"
+#endif
 #include "ImgIO.h"
 
 #define STACK_SIZE      2048
@@ -101,7 +103,7 @@ static void RunMnist()
   unsigned int ElapsedTime[3];
   unsigned int start;
   int CheckResults = 0;
-  
+
   rt_perf_t *perf= cluster_perf;
     // initialize the performance clock
   rt_perf_init(perf);
@@ -111,12 +113,10 @@ static void RunMnist()
   rt_perf_reset(perf);
   rt_perf_start(perf);
 
-#ifdef RT_HAS_HWCE
-    /* Make HWCE event active */
-    eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
-#endif
-
 #if RT_HAS_HWCE
+    /* Make HWCE event active */
+    eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
+
     start = rt_perf_read(RT_PERF_CYCLES);
     Conv5x5ReLUMaxPool2x2_HWCE_0((short int*) ImageIn, Filter_Layer0_HWCE, Out_Layer0, 14, Bias_Layer0, 0);
     ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-start;
@@ -127,24 +127,24 @@ static void RunMnist()
     ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("HWCE Layer1", Out_Layer1, 12, 5, 5);
 
-  #else
+#else
     start = rt_perf_read(RT_PERF_CYCLES);
-    Conv5x5ReLUMaxPool2x2_0((short int*)ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
+    Conv5x5ReLUMaxPool2x2_0((short int*)ImageIn, Filter_Layer0, Bias_Layer0, Out_Layer0, 14, 0);
     ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
 
     start = rt_perf_read(RT_PERF_CYCLES);
-    Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
+    Conv5x5ReLUMaxPool2x2_1(Out_Layer0, Filter_Layer1, Bias_Layer1, Out_Layer1, 14, 0);
     ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
-  #endif
+#endif
 
     start = rt_perf_read(RT_PERF_CYCLES);
-    LinearLayerReLU_2(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 13, Out_Layer2, 10, 0);
+    LinearLayerReLU_1(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 13, 0);
     ElapsedTime[2] = rt_perf_read(RT_PERF_CYCLES)-start;
     if (CheckResults) Check("SW   Layer2", Out_Layer2, 10, 1, 1);
 
-  
+
   //Chenking Results
   int rec_digit=0;
   int highest=Out_Layer2[0];
@@ -172,7 +172,8 @@ int main()
 
 {
 
-  char *ImageName = "../../../136.pgm";
+  //char *ImageName = "../../../136.pgm";
+  char *ImageName = "../../../test_img/4/1301.pgm";
   unsigned int Wi, Hi;
 
   //Input image size
@@ -192,7 +193,7 @@ int main()
   //Allocating input and output image buffers in L2 memory
   ImageIn_real  = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned char));
   ImageIn       = (unsigned short *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned short ));
-  
+
   if (ImageIn==0) {
     printf("Failed to allocate Memory for Image (%d bytes)\n", W*H*sizeof(unsigned short));
     return 1;
@@ -206,7 +207,7 @@ int main()
 
 
   //Convert in Mnist dataset format
-  for(int i=0;i<W*H;i++) ImageIn[i] = ImageIn_real[i]*16;
+  for(unsigned int i=0;i<W*H;i++) ImageIn[i] = ImageIn_real[i]*16;
 
   //TODO Move this to Cluster
   Out_Layer0 = (short int *) rt_alloc(RT_ALLOC_L2_CL_DATA, 24*24*sizeof(short int)*32);
@@ -220,7 +221,7 @@ int main()
     printf("Failed to allocated memory, giving up.\n");
     return 0;
   }
-  
+
   rt_cluster_mount(MOUNT, CID, 0, NULL);
 
   // Allocate the memory of L2 for the performance structure

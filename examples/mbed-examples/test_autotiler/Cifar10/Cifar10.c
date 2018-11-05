@@ -119,20 +119,20 @@ static void RunCifar10(void)
 #else
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    Conv5x5MaxPool2x2_SW_0(ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
+    Conv5x5MaxPool2x2_SW_0(ImageIn, Filter_Layer0, Bias_Layer0, Out_Layer0, 14, 0);
     PERFORMANCE_Stop(&perf);
     ElapsedTime[0] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer0", Out_Layer0, 8, 14, 14);
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    Conv5x5MaxPool2x2_SW_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
+    Conv5x5MaxPool2x2_SW_1(Out_Layer0, Filter_Layer1, Bias_Layer1, Out_Layer1, 14, 0);
     PERFORMANCE_Stop(&perf);
     ElapsedTime[1] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer1", Out_Layer1, 12, 5, 5);
 #endif
 
     PERFORMANCE_Start(&perf, PERFORMANCE_USING_TIMER_MASK);
-    LinearLayerReLU_1(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 10, Out_Layer2, 0, 0);
+    LinearLayerReLU_1(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 10, 0);
     PERFORMANCE_Stop(&perf);
     ElapsedTime[2] = PERFORMANCE_Get(&perf, PERFORMANCE_USING_TIMER_SHIFT);
     if (CheckResults) Check("SW   Layer2", Out_Layer1, 10, 1, 1);
@@ -176,6 +176,6 @@ int main()
     // Close the cluster
     CLUSTER_Stop(0);
     printf ("Test END\n");
-    return 0;
+    exit(0);
 }
 

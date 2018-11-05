@@ -5,16 +5,20 @@
 # of the BSD license.  See the LICENSE file for details.
 
 TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler
-TILER_GENERATOR_PATH=$(TILER_PATH)/autotiler_generator
-MODEL_SRC = $(TILER_GENERATOR_PATH)/Fir/FirGenerator.c FirModelExample.c
+TILER_LIB = $(TILER_PATH)/lib/libtile.a
+TILER_INC = $(TILER_PATH)/include
+TILER_GENERATOR_PATH = $(TILER_PATH)/generators
+FIR_GEN_PATH = $(TILER_GENERATOR_PATH)/Fir/generator
+FIR_KER_PATH = $(TILER_GENERATOR_PATH)/Fir/kernels
+
+MODEL_SRC = FirModel.c
 MODEL_GEN = FirKernels FirKernelsInit
 MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
-MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .c, $(MODEL_GEN))
+MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
 RM=rm -f
 
-TEST_C = main.c $(MODEL_GEN_C) FirBasicKernels.c
-
-INC_PATH += -I$(TILER_PATH)/StdTypes/
+TEST_C = main.c $(MODEL_GEN_C) $(FIR_KER_PATH)/src/FirBasicKernels.c
+INC_PATH += -I$(TILER_INC) -I$(FIR_KER_PATH)/include
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
@@ -22,7 +26,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_GENERATOR_PATH)/Fir -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes/ $(MODEL_SRC) $(TILER_PATH)/GenTiling/LibTile.a
+	gcc -o GenTile -I$(TILER_INC) -I$(FIR_GEN_PATH)/include $(MODEL_SRC) $(FIR_GEN_PATH)/src/FirGenerator.c $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

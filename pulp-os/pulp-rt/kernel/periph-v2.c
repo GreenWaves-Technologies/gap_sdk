@@ -21,6 +21,7 @@
 #include "rt/rt_api.h"
 #include "string.h"
 
+RT_FC_TINY_DATA void *__rt_udma_extra_callback[ARCHI_SOC_EVENT_UDMA_NB_EXTRA_EVT];
 RT_FC_TINY_DATA rt_periph_channel_t periph_channels[ARCHI_NB_PERIPH*2];
 volatile unsigned int __rt_socevents_status[2];
 
@@ -278,7 +279,14 @@ RT_BOOT_CODE void __attribute__((constructor)) __rt_periph_init()
     channel->first = NULL;
     channel->firstToEnqueue = NULL;
     channel->base = hal_udma_channel_base(i);
+    channel->callback = udma_event_handler;
   }
+  
+  for (int i=0; i<ARCHI_SOC_EVENT_UDMA_NB_EXTRA_EVT; i++)
+  {
+    __rt_udma_extra_callback[i] = __rt_soc_evt_no_udma;
+  }
+
   __rt_socevents_status[0] = 0;
   __rt_socevents_status[1] = 0;
 }

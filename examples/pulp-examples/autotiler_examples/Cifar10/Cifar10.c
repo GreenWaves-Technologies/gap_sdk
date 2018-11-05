@@ -106,7 +106,7 @@ static void RunCifar10()
 
 #if RT_HAS_HWCE
     /* Make HWCE event active */
-    eu_evt_maskSet(1<<ARCHI_EVT_ACC0);
+    eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
 
     rt_perf_reset(perf);
     rt_perf_start(perf);
@@ -128,7 +128,7 @@ static void RunCifar10()
 #else
     rt_perf_reset(perf);
     rt_perf_start(perf);
-    Conv5x5MaxPool2x2_SW_0(ImageIn, Filter_Layer0, Out_Layer0, 14, Bias_Layer0, 0);
+    Conv5x5MaxPool2x2_SW_0(ImageIn, Filter_Layer0, Bias_Layer0, Out_Layer0, 14, 0);
     rt_perf_stop(perf);
     rt_perf_save(perf);
     instr[0] = rt_perf_get(perf, RT_PERF_INSTR);
@@ -137,7 +137,7 @@ static void RunCifar10()
 
     rt_perf_reset(perf);
     rt_perf_start(perf);
-    Conv5x5MaxPool2x2_SW_1(Out_Layer0, Filter_Layer1, Out_Layer1, 14, Bias_Layer1, 0);
+    Conv5x5MaxPool2x2_SW_1(Out_Layer0, Filter_Layer1, Bias_Layer1, Out_Layer1, 14, 0);
     rt_perf_stop(perf);
     rt_perf_save(perf);
     instr[1] = rt_perf_get(perf, RT_PERF_INSTR) - instr[0];
@@ -146,7 +146,7 @@ static void RunCifar10()
 #endif
   rt_perf_reset(perf);
   rt_perf_start(perf);
-  LinearLayerReLU_1(Out_Layer1, Filter_Layer2, 16, Bias_Layer2, 10, Out_Layer2, 0, 0);
+  LinearLayerReLU_1(Out_Layer1, Filter_Layer2, Bias_Layer2, Out_Layer2, 16, 10, 0);
   rt_perf_stop(perf);
   rt_perf_save(perf);
   instr[2] = rt_perf_get(perf, RT_PERF_INSTR) - instr[0] - instr[1];

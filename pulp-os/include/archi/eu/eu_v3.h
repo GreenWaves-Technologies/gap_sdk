@@ -186,7 +186,7 @@
 #define PULP_MUTEX_EVENT                  17
 #define PULP_DISPATCH_EVENT               18
 #define PULP_LOOP_EVENT                   19
-#if PULP_CHIP == CHIP_GAP
+#if PULP_CHIP_FAMILY == CHIP_GAP
 #define PULP_FC_SOC_EVENTS_EVENT          27
 #else
 #define PULP_FC_SOC_EVENTS_EVENT          26

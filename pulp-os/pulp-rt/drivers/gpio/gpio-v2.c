@@ -26,7 +26,9 @@ extern void __rt_gpio_handler();
 void rt_gpio_init(uint8_t group, int gpio)
 {  
   int irq = rt_irq_disable();
+#ifdef PADS_VERSION
   __rt_padframe_init();
+#endif
   rt_irq_restore(irq);
 }
 

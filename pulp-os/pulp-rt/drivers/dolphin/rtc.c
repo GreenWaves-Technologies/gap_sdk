@@ -21,7 +21,6 @@
 
 #include "rt/rt_api.h"
 
-RT_FC_TINY_DATA unsigned int rtcEventsStatus;
 RT_FC_TINY_DATA rt_rtc_t dev_rtc;
 RT_FC_TINY_DATA rt_event_t *__rtc_handler;
 
@@ -29,11 +28,7 @@ static void  rt_rtc_alarm_stop();
 static void  rt_rtc_cntDwn_stop();
 
 static void  rt_apb_wait_int_apb(){
-  volatile unsigned int * Evt = &rtcEventsStatus;
-
-  // Wait till INT_APB = 1, will take approx 10 to 12 32KHz periods
-  while ((*Evt&0x1) ==  0) eu_evt_maskWaitAndClr(1<<PLP_RT_NOTIF_EVENT);
-  rtcEventsStatus = __BITINSERT(rtcEventsStatus, 0, 1, 0);
+  __rt_periph_wait_event(ARCHI_SOC_EVENT_RTC_APB_IRQ, 1);
 }
 
 static void  rt_apb_int_apb_clear(unsigned char write){
@@ -68,8 +63,10 @@ static void  rt_rtc_reg_config(unsigned char iAddr, unsigned int conf){
   rt_apb_int_apb_clear(APB_RTC_WRITE);
 }
 
-void __rt_int_rtc_handler(void *arg){
+void __rt_int_rtc_handler(void *arg)
+{
   rt_rtc_t *rtc = (rt_rtc_t *) arg;
+  __rtc_handler = NULL;
   rt_rtc_reg_read(RTC_IRQ_Flag_Addr);
   switch (rtc->conf.mode){
     case MODE_CALIBR:
@@ -315,5 +312,5 @@ void rt_rtc_control( rt_rtc_t *rtc, rt_rtc_cmd_e rtc_cmd, void *value, rt_event_
 
 RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_rtc_init()
 {
-  rtcEventsStatus = 0;
+  __rtc_handler = NULL;
 }

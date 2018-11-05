@@ -1,13 +1,15 @@
 #ifndef __GAP8_H__
 #define __GAP8_H__
 
-#ifndef __EMUL__
+#ifdef __EMUL__
+#include "gap8_emul.h"
+#else
+
 #if defined(__MBED__)
 #include "gap_autotiler.h"
 #else
 #include "pulp.h"
 #include "rt/rt_api.h"
-#endif
 #endif
 
 /* START_NEW_RUNTIME
@@ -24,11 +26,7 @@ typedef unsigned short v2u __attribute__((vector_size (4)));
 typedef   signed char  v4s __attribute__((vector_size (4)));
 typedef unsigned char  v4u __attribute__((vector_size (4)));
 
-#ifdef __EMUL__
-typedef void * rt_pointerT;
-#else
 typedef unsigned int rt_pointerT;
-#endif
 /* STOP_NEW_RUNTIME */
 
 
@@ -610,87 +608,26 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe(unsign
 #define gap8_write_base_off_half_vol(x, base, off)  	__builtin_pulp_OffsetedWriteHalf((x), (base), (off)) /*void,int,short int *,int*/
 #define gap8_write_base_off_byte_vol(x, base, off)  	__builtin_pulp_OffsetedWriteByte((x), (base), (off)) /*void,int,signed char *,int*/
 /* STOP_DEF_BTIN */
-#else
-#ifdef __EMUL__
-/* For non Gap targets, compiled with -D__EMUL__ */
-/* START_EMUL_BTIN */
-#define gap8_coreid()					0
-#define gap8_clusterid()				0
-#define gap8_ncore()					1
-
-#define gap8_sprwrite(x, y)
-#define gap8_sprread(x)					((int) 0)
-#define gap8_sprread_vol(x)				((int) 0)
-
-#define gap8_read_base_off(base, off)  	         	((int) 0)
-#define gap8_write_base_off(base, off, val)
-
-#define gap8_read_base_off_vol(base, off)       	((int) 0)
-#define gap8_read_base_off_half_vol(base, off)  	((int) 0)
-#define gap8_read_base_off_byte_vol(base, off) 	 	((int) 0)
-
-#define gap8_write_base_off_vol(x, base, off)
-#define gap8_write_base_off_half_vol(x, base, off)
-#define gap8_write_base_off_byte_vol(x, base, off)
-/* STOP_EMUL_BTIN */
-#endif
 #endif
 
 /* SYSTEM SECTION */
-#ifdef __EMUL__
-/* Emulation mode for PC execution or single core simulation run.
-   Here we overload the runtime primitives in order to end up with something
-   that can compile on a workstation
-*/
-#define plp_irq_enable()
-#define plp_irq_disable()
-
-#define eu_bar_addr(x)
-#define eu_bar_setup(x, m)
-#define eu_bar_trig_wait_clr(x)
-#define eoc_fetch_enable(x)
-#define plp_cluster_wait(x)
-#define plp_dma_wait(x)
-
-#define plp_timer_conf_low(a, b, c, d, e, f, g, h, i)
-#define plp_timer_get_count_low() 			((int) 0)
-
-#define plp_fc_timer_conf_low(a, b, c, d, e, f, g, h, i)
-#define plp_fc_timer_get_count_low() 			((int) 0)
-
-#define plp_setSlaveEntry(coreMask, handler, arg)
-
-/* Emulation of DMA copies */
-static int Private_gap8_dma_memcpy(unsigned int ext, unsigned int loc, unsigned short size, int ext2loc)
-{
-        int i;
-        char *To   = (ext2loc==DMA_COPY_IN)?((char *) loc):((char *) ext), *From = (ext2loc==DMA_COPY_IN)?((char *) ext):((char *) loc);
-        for (i=0; i<size; i++) To[i] = From[i]; return 1;
-}
-static int Private_gap8_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned short size, unsigned short stride, unsigned short length, int ext2loc)
-{
-        int CopyIn = (ext2loc==DMA_COPY_IN);
-        char *To   = CopyIn?((char *) loc):((char *) ext), *From = CopyIn?((char *) ext):((char *) loc);
-        int i, j, Chunk;
-	for (Chunk=0; Chunk<size; Chunk+=length)  {
-                for (i=0; i<length; i++) To[i] = From[i]; if (CopyIn) { From += stride; To += length; } else { To += stride; From += length; }
-        }
-        return 1;
-}
-#define plp_dma_memcpy(ext, loc, size, ext2loc)				Private_gap8_dma_memcpy((ext), (loc), (size), (ext2loc))
-#define plp_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc)	Private_gap8_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc))
-
 #ifdef __pulp__
 #define START_TIMER() __asm__("scallimm 1")
 #define STOP_TIMER() __asm__("scallimm 3")
-#else
-#define START_TIMER()
-#define STOP_TIMER()
-#endif
-
 #endif
 
 /* SYSTEM SECTION FOR GAP8 TARGET */
+#ifdef __MBED__
+
+#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			AUTOTILE_DMAMCHAN_Memcpy_1D((ext), (loc), (size), (ext2loc), (merge), (copy))
+#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	AUTOTILE_DMAMCHAN_Memcpy_2D((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
+#define gap8_dma_wait(copy)						DMAMCHAN_WaitRequestEnd(&(copy))
+#define gap8_dma_type                               dma_req_t
+/* HW barriers */
+#define gap8_waitbarrier(BarN)						rt_team_barrier()
+
+#else
+
 #ifdef __pulp__
 
 /* Task dispatch */
@@ -721,13 +658,7 @@ static int Private_gap8_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
 #define gap8_cluster_wait(x)						plp_cluster_wait(x)
 
 /* DMA copies */
-#ifdef __MBED__
-#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			AUTOTILE_DMAMCHAN_Memcpy_1D((ext), (loc), (size), (ext2loc), (merge), (copy))
-#define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	AUTOTILE_DMAMCHAN_Memcpy_2D((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
-#define gap8_dma_wait(copy)						DMAMCHAN_WaitRequestEnd(&(copy))
-#define gap8_dma_type                               dma_req_t
-#else
-#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			rt_dma_memcpy((ext), (loc), (size), (ext2loc), (merge), (copy))
+#define gap8_dma_memcpy(ext, loc, size, ext2loc, merge, copy)			rt_dma_memcpy(((unsigned int) ext), ((unsigned int) loc), (size), (ext2loc), (merge), (copy))
 #define gap8_dma_memcpy_2d(ext, loc, size, stride, length, ext2loc, merge, copy)	rt_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc), (merge), (copy))
 #define gap8_dma_wait(copy)						rt_dma_wait(&(copy))
 #define gap8_dma_type                               rt_dma_copy_t
@@ -747,4 +678,5 @@ static int Private_gap8_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
 #endif
 #endif
 STOP_NEW_RUNTIME */
+#endif
 #endif
