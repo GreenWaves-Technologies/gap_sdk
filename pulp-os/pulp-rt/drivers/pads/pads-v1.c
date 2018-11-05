@@ -22,18 +22,20 @@
 #include "rt/rt_api.h"
 
 static char __rt_padframe_is_init;
-extern int __rt_nb_profile;
 
 __attribute__((weak)) unsigned int __rt_padframe_default[] = { 0x00055500, 0x00000000, 0x00054000, 0x00000000,};
 
 __attribute__((weak)) unsigned int __rt_padframe_hyper[] = { 0x00055500, 0x0f000000, 0x003fffff, 0x00000000,};
 
+__attribute__((weak)) unsigned int __rt_padframe_hyper_gpio[] = { 0x00055500, 0x0f154000, 0x003fffff, 0x00000000,};
+
 __attribute__((weak)) rt_padframe_profile_t __rt_padframe_profiles[] = {
   { .name="default", .config=__rt_padframe_default },
   { .name="hyper", .config=__rt_padframe_hyper },
+  { .name="hyper_gpio", .config=__rt_padframe_hyper_gpio },
 };
 
-__attribute__((weak)) int __rt_nb_profile = 2;
+__attribute__((weak)) int __rt_nb_profile = 3;
 
 void __rt_padframe_init()
 {

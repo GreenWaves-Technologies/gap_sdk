@@ -11,18 +11,26 @@
 
 int main()
 {
-  // GPIO initialization
-  rt_gpio_init(0, GPIO);
+    rt_padframe_profile_t *profile_gpio = rt_pad_profile_get("hyper_gpio");
 
-  // Configure GPIO as an inpout
-  rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
+    if (profile_gpio == NULL) {
+        printf("pad config error\n");
+        return 1;
+    }
+    rt_padframe_set(profile_gpio);
 
-  // Now get input values
-  for (int i=0; i<10; i++)
-  {
-    printf("Got GPIO value: %d\n", 0, rt_gpio_get_pin_value(0, GPIO));
-    rt_time_wait_us(500000);
-  }
+    // GPIO initialization
+    rt_gpio_init(0, GPIO);
 
-  return 0;
+    // Configure GPIO as an inpout
+    rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
+
+    // Now get input values
+    for (int i=0; i<10; i++)
+    {
+        printf("Got GPIO value: %d\n", 0, rt_gpio_get_pin_value(0, GPIO));
+        rt_time_wait_us(500000);
+    }
+
+    return 0;
 }

@@ -24,33 +24,41 @@ static void gpio_handler(void *arg)
 
 int main()
 {
-  if (rt_event_alloc(NULL, 1)) return -1;
+    if (rt_event_alloc(NULL, 1)) return -1;
 
-  // GPIO initialization
-  rt_gpio_init(0, GPIO);
+    rt_padframe_profile_t *profile_gpio = rt_pad_profile_get("hyper_gpio");
 
-  // Configure GPIO as an inpout
-  rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
+    if (profile_gpio == NULL) {
+        printf("pad config error\n");
+        return 1;
+    }
+    rt_padframe_set(profile_gpio);
 
-  // Trigger notifications on both rising and falling edges
-  rt_gpio_set_sensitivity(0, GPIO, RT_GPIO_SENSITIVITY_EDGE);
+    // GPIO initialization
+    rt_gpio_init(0, GPIO);
 
-  // Set the event for the GPIO.
-  // Note that we use an IRQ event instead of a normal one so that
-  // the callback is called directly from the IRQ handler.
-  rt_gpio_set_event(0, GPIO, rt_event_irq_get(gpio_handler, (void *)GPIO));
+    // Configure GPIO as an inpout
+    rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
 
-  // Now wait for a few edges and see how long it takes
-  unsigned long long start = rt_time_get_us();
+    // Trigger notifications on both rising and falling edges
+    rt_gpio_set_sensitivity(0, GPIO, RT_GPIO_SENSITIVITY_EDGE);
 
-  while(edges < NB_EDGE)
-  {
-    rt_event_yield(NULL);
-  }
+    // Set the event for the GPIO.
+    // Note that we use an IRQ event instead of a normal one so that
+    // the callback is called directly from the IRQ handler.
+    rt_gpio_set_event(0, GPIO, rt_event_irq_get(gpio_handler, (void *)GPIO));
 
-  unsigned long long end = rt_time_get_us();
+    // Now wait for a few edges and see how long it takes
+    unsigned long long start = rt_time_get_us();
 
-  printf("Got %d edges in %d us\n", NB_EDGE, end - start);
+    while(edges < NB_EDGE)
+    {
+        rt_event_yield(NULL);
+    }
 
-  return 0;
+    unsigned long long end = rt_time_get_us();
+
+    printf("Got %d edges in %d us\n", NB_EDGE, end - start);
+
+    return 0;
 }

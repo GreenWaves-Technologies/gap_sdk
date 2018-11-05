@@ -17,26 +17,34 @@
 
 int main()
 {
-  // GPIO initialization
-  rt_gpio_init(0, GPIO);
+    rt_padframe_profile_t *profile_gpio = rt_pad_profile_get("hyper_gpio");
 
-  // Configure GPIO as an inpout
-  rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
+    if (profile_gpio == NULL) {
+        printf("pad config error\n");
+        return 1;
+    }
+    rt_padframe_set(profile_gpio);
 
-  // Trigger notifications on both rising and falling edges
-  rt_gpio_set_sensitivity(0, GPIO, RT_GPIO_SENSITIVITY_EDGE);
+    // GPIO initialization
+    rt_gpio_init(0, GPIO);
 
-  // Now wait for a few edges and see how long it takes
-  unsigned long long start = rt_time_get_us();
+    // Configure GPIO as an inpout
+    rt_gpio_set_dir(0, 1<<GPIO, RT_GPIO_IS_IN);
 
-  for (int i=0; i<NB_EDGE; i++)
-  {
-    rt_gpio_wait(0, GPIO);
-  }
+    // Trigger notifications on both rising and falling edges
+    rt_gpio_set_sensitivity(0, GPIO, RT_GPIO_SENSITIVITY_EDGE);
 
-  unsigned long long end = rt_time_get_us();
+    // Now wait for a few edges and see how long it takes
+    unsigned long long start = rt_time_get_us();
 
-  printf("Got %d edges in %d us\n", NB_EDGE, end - start);
+    for (int i=0; i<NB_EDGE; i++)
+    {
+        rt_gpio_wait(0, GPIO);
+    }
 
-  return 0;
+    unsigned long long end = rt_time_get_us();
+
+    printf("Got %d edges in %d us\n", NB_EDGE, end - start);
+
+    return 0;
 }
