@@ -102,12 +102,18 @@ make all
 
 ## Getting the Autotiler
 
-The autotiler code generation library needs to be downloaded from https://greenwaves-technologies.com/get-auto-tiler. Once you register for the autotiler you will receive an email with a link to the autotiler tarball. The autotiler is currently compiled for 64 bit Ubuntu 16.04 only. The tarball should be extracted in the gap_sdk/tools directory.
+The autotiler code generation library needs to be downloaded by this following commands:
 
 ~~~~~shell
-cd ~/gap_sdk/tools
-tar xvf received_file.tar.gz
+cd ~/gap_sdk/
+make autotiler
 ~~~~~
+
+During the download, you will be asked several simple questions and then you will receive an email with an URL.
+Please copy the url in the mail to the last question, then the download and installation would be started automatically.
+If you have already answered these questions, this enquiry will be skipped.
+
+For offering you the best support, please answer the
 
 # Compiling, running and debugging programs
 

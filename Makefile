@@ -74,6 +74,9 @@ pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
 
+autotiler:
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler all
+
 version:
 	@$(MBED_PATH)/tools/version/record_version.sh
 
@@ -87,4 +90,4 @@ clean:
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 	$(RM) version.log
 
-.PHONY: all install clean docs version install_others install_pulp_tools tools pulp-os flasher
+.PHONY: all install clean docs version install_others install_pulp_tools tools pulp-os flasher autotiler
