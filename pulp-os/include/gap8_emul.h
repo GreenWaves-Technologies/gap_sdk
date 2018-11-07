@@ -323,7 +323,7 @@ typedef struct{
     void * cb_arg;
 } __event_cb;
 
-static int event_get(void (*callback)(void *), void *arg){
+static __event_cb* event_get(void (*callback)(void *), void *arg){
     __event_cb * event = (__event_cb*) malloc (sizeof(__event_cb));
     event->cb = callback;
     event->cb_arg = arg;
