@@ -55,6 +55,7 @@ env.Append(
         "-Wno-unused-parameter",
         "-Wno-unused-function",
         "-Wno-unused-variable",
+        "-Wno-deprecated-declarations",
         "-ffunction-sections",
         "-fdata-sections",
         "-mPE=8",
@@ -105,8 +106,7 @@ env.Append(
         # MBED_FLAGS
         ("__MBED__", 1),
         "TOOLCHAIN_GCC_RISCV",
-        "TOOLCHAIN_GCC",
-        "_RTE_"
+        "TOOLCHAIN_GCC"
     ],
 
     CPPPATH=[
@@ -123,20 +123,20 @@ env.Append(
         join(FRAMEWORK_DIR, "cmsis"),
         join(FRAMEWORK_DIR, "cmsis", "TARGET_RISCV_32"),
         join(FRAMEWORK_DIR, "features"),
-        join(FRAMEWORK_DIR, "features", "filesystem"),
-        join(FRAMEWORK_DIR, "features", "filesystem", "bd"),
-        join(FRAMEWORK_DIR, "features", "filesystem", "fat"),
-        join(FRAMEWORK_DIR, "features", "filesystem", "fat", "ChaN"),
-        join(FRAMEWORK_DIR, "features", "filesystem", "littlefs"),
-        join(FRAMEWORK_DIR, "features", "filesystem", "littlefs", "littlefs"),
+        join(FRAMEWORK_DIR, "features", "storage"),
+        join(FRAMEWORK_DIR, "features", "storage", "blockdevice"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "rofs"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "bd"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "fat"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "fat",
+             "ChaN"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "littlefs"),
+        join(FRAMEWORK_DIR, "features", "storage", "filesystem", "littlefs",
+             "littlefs"),
+        join(FRAMEWORK_DIR, "features", "spif-driver"),
+        join(FRAMEWORK_DIR, "features", "i2cee-driver"),
         join(FRAMEWORK_DIR, "features", "FEATURE_CLUSTER"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client",
-             "greentea-client"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "unity"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "unity", "unity"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "utest"),
-        join(FRAMEWORK_DIR, "features", "frameworks", "utest", "utest"),
         join(FRAMEWORK_DIR, "rtos"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV", "rtx4"),
@@ -145,6 +145,11 @@ env.Append(
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV", "rtx5", "RTX", "Include"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV", "rtx5", "RTX", "Source"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV", "rtx5", "RTX", "Config"),
+        join(FRAMEWORK_DIR, "targets", "TARGET_GWT", "api"),
+        join(FRAMEWORK_DIR, "targets", "TARGET_GWT", "TARGET_GAP8"),
+        join(FRAMEWORK_DIR, "targets", "TARGET_GWT", "TARGET_GAP8", "device"),
+        join(FRAMEWORK_DIR, "targets", "TARGET_GWT", "TARGET_GAP8", "driver"),
+        join(FRAMEWORK_DIR, "targets", "TARGET_GWT", "TARGET_GAP8", "pins"),
         join(target_path, "libs", "newlib", "extra", "stdio", "tinyprintf"),
         join(target_path, "api")
     ],
@@ -197,6 +202,11 @@ env.BuildSources(
 )
 
 env.BuildSources(
+    join("$BUILD_DIR", "TargetAPI"),
+    join(target_path, "api")
+)
+
+env.BuildSources(
     join("$BUILD_DIR", "TargetDriver"),
     join(variant_path, "driver")
 )
@@ -217,31 +227,11 @@ env.BuildSources(
 )
 
 env.BuildSources(
-    join("$BUILD_DIR", "FeaturesFrameworksGreenTeaClient"),
-    join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client")
-)
-
-env.BuildSources(
-    join("$BUILD_DIR", "FeaturesFrameworksUnity"),
-    join(FRAMEWORK_DIR, "features", "frameworks", "unity")
-)
-
-env.BuildSources(
-    join("$BUILD_DIR", "FeaturesFrameworksUtest"),
-    join(FRAMEWORK_DIR, "features", "frameworks", "utest"),
-    src_filter="+<*> -<TESTS>"
-)
-
-env.BuildSources(
     join("$BUILD_DIR", "Rtos"),
     join(FRAMEWORK_DIR, "rtos"),
     src_filter="+<*> -<TARGET_CORTEX>"
 )
 
-env.BuildSources(
-    join("$BUILD_DIR", "TargetAPI"),
-    join(target_path, "api")
-)
 
 env.BuildSources(
     join("$BUILD_DIR", "MbedDrivers"),
@@ -266,7 +256,16 @@ env.BuildSources(
 )
 
 env.BuildSources(
-    join("$BUILD_DIR", "MbedFilesystem"),
-    join(FRAMEWORK_DIR, "features", "filesystem"),
-    src_filter="+<*> -<littlefs/TEST*> -<littlefs/littlefs/emubd>"
+    join("$BUILD_DIR", "MbedStorage"),
+    join(FRAMEWORK_DIR, "features", "storage"),
+    src_filter=[
+        "+<*>",
+        "-<FEATURE_STORAGE>",
+        "-<nvstore>",
+        "-<system_storage>",
+        "-<TESTS>",
+        "-<filesystem/littlefs/TESTS>",
+        "-<filesystem/littlefs/littlefs/test>",
+        "-<filesystem/littlefs/littlefs/emubd>"
+    ]
 )
