@@ -15,5 +15,7 @@ int main() {
     __FP(F2Q(-0.001, Prec), Prec, Out); printf("%s\n", Out);
     __FP(F2Q(-0.5, Prec), Prec, Out);   printf("%s\n", Out);
 
+    printf("Test success\n");
+
     return 0;
 }
