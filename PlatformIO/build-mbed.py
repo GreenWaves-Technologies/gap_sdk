@@ -137,6 +137,13 @@ env.Append(
         join(FRAMEWORK_DIR, "features", "spif-driver"),
         join(FRAMEWORK_DIR, "features", "i2cee-driver"),
         join(FRAMEWORK_DIR, "features", "FEATURE_CLUSTER"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client",
+             "greentea-client"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "unity"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "unity", "unity"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "utest"),
+        join(FRAMEWORK_DIR, "features", "frameworks", "utest", "utest"),
         join(FRAMEWORK_DIR, "rtos"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV"),
         join(FRAMEWORK_DIR, "rtos", "TARGET_RISCV", "rtx4"),
@@ -224,6 +231,23 @@ env.BuildSources(
 env.BuildSources(
     join("$BUILD_DIR", "FeaturesCluster"),
     join(FRAMEWORK_DIR, "features", "FEATURE_CLUSTER")
+)
+
+
+env.BuildSources(
+    join("$BUILD_DIR", "FeaturesFrameworksGreenTeaClient"),
+    join(FRAMEWORK_DIR, "features", "frameworks", "greentea-client")
+)
+
+env.BuildSources(
+    join("$BUILD_DIR", "FeaturesFrameworksUnity"),
+    join(FRAMEWORK_DIR, "features", "frameworks", "unity")
+)
+
+env.BuildSources(
+    join("$BUILD_DIR", "FeaturesFrameworksUtest"),
+    join(FRAMEWORK_DIR, "features", "frameworks", "utest"),
+    src_filter="+<*> -<TESTS>"
 )
 
 env.BuildSources(
