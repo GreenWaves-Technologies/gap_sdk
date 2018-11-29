@@ -100,7 +100,11 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
@@ -131,7 +135,11 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
 		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
@@ -166,7 +174,11 @@ CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBE
 		-not -path "$(MBED_PATH)/mbed-os/tools/*" \
 		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
@@ -192,6 +204,7 @@ CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBE
 		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/utest/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/spif-driver/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/i2cee-driver/TESTS/*")))
 
@@ -214,6 +227,9 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/storage/filesystem $(MBED_PATH)/mbed-os/features/storage/filesystem/bd \
 		$(MBED_PATH)/mbed-os/features/storage/filesystem/fat $(MBED_PATH)/mbed-os/features/storage/filesystem/fat/ChaN \
 		$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs $(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs \
+		$(MBED_PATH)/mbed-os/features/frameworks/greentea-client $(MBED_PATH)/mbed-os/features/frameworks/greentea-client/greentea-client \
+		$(MBED_PATH)/mbed-os/features/frameworks/unity $(MBED_PATH)/mbed-os/features/frameworks/unity/unity \
+		$(MBED_PATH)/mbed-os/features/frameworks/utest $(MBED_PATH)/mbed-os/features/frameworks/utest/utest \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
