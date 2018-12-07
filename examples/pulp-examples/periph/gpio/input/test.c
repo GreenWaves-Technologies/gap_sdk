@@ -28,7 +28,7 @@ int main()
     // Now get input values
     for (int i=0; i<10; i++)
     {
-        printf("Got GPIO value: %d\n", 0, rt_gpio_get_pin_value(0, GPIO));
+        printf("Got GPIO value: %d\n", rt_gpio_get_pin_value(0, GPIO));
         rt_time_wait_us(500000);
     }
 
