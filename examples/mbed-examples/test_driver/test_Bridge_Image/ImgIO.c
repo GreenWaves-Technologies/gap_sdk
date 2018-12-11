@@ -102,7 +102,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 
 {
 	static int Debug=0;
-	int File = BRIDGE_EventOpen(Name,0,0,NULL);
+	int File = BRIDGE_Open(Name,0,0,NULL);
 
 	unsigned int Err = 0;
 
@@ -112,7 +112,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 	if (File) {
 		unsigned char *Header = (unsigned char *) malloc( 256);
 		Err |= (Header == 0);
-		if (BRIDGE_EventRead(File,Header, 256, NULL) == 256) {
+		if (BRIDGE_Read(File,Header, 256, NULL) == 256) {
 			unsigned int i;
 			*HeaderSize = ReadPPMHeader(Header, W, H, IsRGB);
 			if (Debug) {
@@ -122,7 +122,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 			}
 		} else Err = 1;
 		free( Header);
-		BRIDGE_EventClose(File,NULL);
+		BRIDGE_Close(File,NULL);
 	}
 	return Err;
 }
@@ -141,7 +141,7 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (IsRGB) {
 		printf("Only Gray levels supported, found RGB\n"); goto Fail;
 	}
-	File = BRIDGE_EventOpen(ImageName, 0, 0, NULL);
+	File = BRIDGE_Open(ImageName, 0, 0, NULL);
 	if (File == 0) {
 		printf("Failed to open file, %s\n", ImageName); goto Fail;
 	}
@@ -157,14 +157,14 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (ImagePtr == 0) {
 		printf("Failed to allocate %d bytes for input image\n", AlignedSize); goto Fail;
 	}
-	BRIDGE_EventRead(File, NULL,HeaderSize,NULL);
+	BRIDGE_Read(File, NULL,HeaderSize,NULL);
 	{
 		unsigned char *TargetImg = ImagePtr;
 		unsigned int RemainSize = AlignedSize;
 
 		while (RemainSize > 0) {
 			unsigned int Chunk = Min(4096, RemainSize);
-			unsigned R = BRIDGE_EventRead(File,TargetImg, Chunk,NULL);
+			unsigned R = BRIDGE_Read(File,TargetImg, Chunk,NULL);
 			ReadSize+=R;
 			if (R!=Chunk) break;
 			TargetImg += Chunk; RemainSize -= Chunk;
@@ -173,13 +173,13 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (AlignedSize!=ReadSize) {
 		printf("Error, expects %d bytes but got %d\n", AlignedSize, ReadSize); goto Fail;
 	}
-	BRIDGE_EventClose(File,NULL);
+	BRIDGE_Close(File,NULL);
 	printf("Image %s, [W: %d, H: %d], Gray, Size: %d bytes, Loaded sucessfully\n", ImageName, *W, *H, AlignedSize);
 
 	return (ImagePtr);
 Fail:
 	if (ImagePtr && Allocated) free(ImagePtr);
-	BRIDGE_EventClose(File,NULL);
+	BRIDGE_Close(File,NULL);
 	printf("Failed to load image %s from flash\n", ImageName);
 	return 0;
 }
@@ -214,7 +214,7 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
   	Buffer[Ind++] = 0x32; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0xA;
 
   	for (unsigned int a=0; a<Ind; a++){
-  		BRIDGE_EventWrite(FD,&(Buffer[a]), sizeof(unsigned char),NULL);
+  		BRIDGE_Write(FD,&(Buffer[a]), sizeof(unsigned char),NULL);
 	}
 
 	free( Buffer);
@@ -223,7 +223,7 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *OutBuffer)
 {
 	#define CHUNK_NUM 10
-	int File = BRIDGE_EventOpen(ImageName, O_RDWR | O_CREAT, S_IRWXU, NULL);
+	int File = BRIDGE_Open(ImageName, O_RDWR | O_CREAT, S_IRWXU, NULL);
 	int ret = 0;
 	WritePPMHeader(File,W,H);
 
@@ -231,12 +231,12 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
 
 	for(int i=0;i<steps;i++){
 		progress_bar("Writing image ",i,steps);
-		ret+=BRIDGE_EventWrite(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE,NULL);
+		ret+=BRIDGE_Write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE,NULL);
 	}
 	if(((W*H) % CHUNK_SIZE) != 0)
-		ret+=BRIDGE_EventWrite(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H) % CHUNK_SIZE)*sizeof(unsigned char),NULL);
+		ret+=BRIDGE_Write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H) % CHUNK_SIZE)*sizeof(unsigned char),NULL);
 
-	BRIDGE_EventClose(File,NULL);
+	BRIDGE_Close(File,NULL);
 
 	return ret;
 }
