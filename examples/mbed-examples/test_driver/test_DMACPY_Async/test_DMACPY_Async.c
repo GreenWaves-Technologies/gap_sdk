@@ -4,7 +4,7 @@
 #define BUF_SIZE 256
 GAP_L2_DATA uint32_t src_L2[BUF_SIZE], dst_L2[BUF_SIZE];
 
-static MEMCPY_Type *udmaCopy = MEMCPY_BASE_PTRS;
+static DMACPY_Type *udmaCopy = DMACPY_BASE_PTRS;
 
 static void printData( uint32_t *buf, uint32_t size )
 {
@@ -35,27 +35,27 @@ void callback( void *arg )
 /* Program Entry. */
 int main( void )
 {
-    printf("\n\n\t *** Non Blocking MEMCPY Test ***\n\n");
+    printf("\n\n\t *** Non Blocking DMACPY Test ***\n\n");
 
     uint32_t errors = 1, fc_src[BUF_SIZE], fc_dst[BUF_SIZE];
-    memcpy_handle_t handle;
+    dmacpy_handle_t handle;
 
     for( uint32_t i = 0; i < BUF_SIZE; i++ )
         fc_src[i] = i;
 
-    printf("UDMA Memcpy test FC( fc_src %x ) -> L2( src_L2 %x ) -> L2( dst_L2 %x) -> FC( fc_dst %x ).\n\n",
+    printf("UDMA Dmacpy test FC( fc_src %x ) -> L2( src_L2 %x ) -> L2( dst_L2 %x) -> FC( fc_dst %x ).\n\n",
            &fc_src, &src_L2, &dst_L2, &fc_dst);
 
-    MEMCPY_Init( udmaCopy );
+    DMACPY_Init( udmaCopy );
 
-    MEMCPY_TransferCreateHandle( &handle, callback, NULL );
-    MEMCPY_NonBlockingTransfer( udmaCopy, fc_src, src_L2, sizeof( fc_src ), uMEMCPY_FC2L2, &handle );
+    DMACPY_TransferCreateHandle( &handle, callback, NULL );
+    DMACPY_NonBlockingTransfer( udmaCopy, fc_src, src_L2, sizeof( fc_src ), uDMACPY_FC2L2, &handle );
 
-    MEMCPY_TransferCreateHandle( &handle, callback, NULL );
-    MEMCPY_NonBlockingTransfer( udmaCopy, src_L2, dst_L2, sizeof( fc_src ), uMEMCPY_L22L2, &handle );
+    DMACPY_TransferCreateHandle( &handle, callback, NULL );
+    DMACPY_NonBlockingTransfer( udmaCopy, src_L2, dst_L2, sizeof( fc_src ), uDMACPY_L22L2, &handle );
 
-    MEMCPY_TransferCreateHandle( &handle, callback, NULL );
-    MEMCPY_NonBlockingTransfer( udmaCopy, dst_L2, fc_dst, sizeof( fc_src ), uMEMCPY_L22FC, &handle );
+    DMACPY_TransferCreateHandle( &handle, callback, NULL );
+    DMACPY_NonBlockingTransfer( udmaCopy, dst_L2, fc_dst, sizeof( fc_src ), uDMACPY_L22FC, &handle );
 
     if( errors )
     {
@@ -74,7 +74,7 @@ int main( void )
     checkData( fc_src, dst_L2, BUF_SIZE, &errors );
     checkData( fc_src, fc_dst, BUF_SIZE, &errors );
 
-    MEMCPY_Deinit( udmaCopy );
+    DMACPY_Deinit( udmaCopy );
 
     printf("Test %s with %d errors.\n", ( errors ? "failed": "success" ), errors);
 }
