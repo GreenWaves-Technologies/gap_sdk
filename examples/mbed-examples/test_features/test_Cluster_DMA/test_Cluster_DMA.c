@@ -80,7 +80,7 @@ int main()
     CLUSTER_Wait(0);
 
     /* Free before cluster is power off */
-    L1_MallocFree(L1_BUFFER, BUFFER_SIZE);
+    L1_Free(L1_BUFFER, BUFFER_SIZE);
 
     /* Cluster Stop - Power down */
     CLUSTER_Stop(0);
