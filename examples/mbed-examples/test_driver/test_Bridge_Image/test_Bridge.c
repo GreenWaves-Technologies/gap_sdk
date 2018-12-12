@@ -14,11 +14,11 @@ int main() {
 
     printf("FC mbed_os Bridge test\n");
 
-    BRIDGE_EventInit();
+    BRIDGE_Init();
 
     printf("Connecting to bridge\n");
 
-    BRIDGE_EventConnect(0, NULL);
+    BRIDGE_Connect(0, NULL);
 
     printf("Connection done\n");
 
@@ -27,7 +27,7 @@ int main() {
     ReadImageFromFile("../../../Pedestrian.ppm",&width,&height,InBuffer,width*height*sizeof(unsigned char));
     WriteImageToFile("../../../Pedestrian_OUT.ppm",width,height,InBuffer);
 
-    BRIDGE_EventDisconnect(NULL);
+    BRIDGE_Disconnect(NULL);
     printf("Test success\n");
 
     return 0;
