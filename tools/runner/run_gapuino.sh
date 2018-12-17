@@ -43,7 +43,8 @@ else
             #Mode using the script
             -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
                 cp $here/$script_filename .
-                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=gap load $ioloop $reqloop start script --script=$2
+                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=gap --script=$2 load $ioloop $reqloop start script wait
+                exit
                 ;;
             #Mode using gdb
             -gdb)
