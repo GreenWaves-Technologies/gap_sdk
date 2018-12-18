@@ -239,6 +239,23 @@ cd docs
 make pdf
 ~~~~~
 
+## Upgrading/Downgrading the SDK
+
+If you want to upgrade/downgrade your SDK to a new/old version:
+
+~~~~~shell
+cd gap_sdk
+git checkout master && git pull
+git checkout <release tag name>
+git submodule update --init --recursive
+make clean all
+~~~~~
+
+Please check our release tags here to ensure the version:
+https://github.com/GreenWaves-Technologies/gap_sdk/releases
+
+
+
 ## Getting help
 
 Please log any issues you have with the SDK in the github project.
