@@ -17,7 +17,7 @@ PULP_APP_SRCS = Cifar10.c Cifar10Kernels.c Cifar10KernelsInit.c $(CIFAR_KER_PATH
 PULP_APP_SRCS += $(CIFAR_KER_PATH)/src/CNN_HwCE.c
 RM=rm -f
 
-#There is no HWCE in the new autotiler lib for now
+#To activeate Hardware CE SET -DRT_HAS_HWCE=1
 USE_HARDWARE_CE = -DRT_HAS_HWCE=1
 
 PULP_CFLAGS += -O3 $(USE_HARDWARE_CE)
