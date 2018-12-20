@@ -34,7 +34,7 @@ uint8_t taskSuspended;
  *
  */
 
-static uint8_t i2s_config = 0;
+static uint8_t i2s_config = 1;
 
 /* I2S0 */
 /* Clock register */
@@ -126,7 +126,7 @@ void vTestDriverI2S( void *parameters )
     if(EN_CHAN1)
     {
         /* I2S Init */
-        SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S1_SCK);
+        SAI_Init(i2s_address[0], I2S1_SDI_B13, I2S1_WS, I2S1_SCK);
 
         /* I2S Filter Configuration  */
         SAI_FilterConfig(i2s_address[0], uSAI_Channel1, DECIMATION_CHAN1 - 1, SHIFT_CHAN1);
