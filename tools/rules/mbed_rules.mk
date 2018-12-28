@@ -77,23 +77,15 @@ BIN           = $(BUILDDIR)/test
 
 BUILDDIR      = $(shell pwd)/BUILD/$(chip)/GCC_RISCV
 
-ifeq ($(chip), GAP8)
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
 		-not -path "$(MBED_PATH)/mbed-os/cmsis/*" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/*")))
-else
-S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/cmsis/*" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/*")))
-endif
+		-not -path "$(MBED_PATH)/mbed-os/features/*" \
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_*")))
 
-ifeq ($(chip), GAP8)
+S_OBJECTS     += $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip) -name "*.S")))
+
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
 		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
@@ -120,41 +112,8 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/TESTS/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
-		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/tools/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_VEGA/*")))
-else
-C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
-		-not -path "$(MBED_PATH)/mbed-os/components/*" \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
-		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-trace/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nanostack/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/netsocket/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/nfc/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cellular/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/cryptocell/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/device_key/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/FEATURE_STORAGE/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/kvstore/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/nvstore/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/system_storage/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/TESTS/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
-		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
 		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
@@ -163,8 +122,9 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/TEST_APPS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/TESTS/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/UNITTESTS/*"  \
-		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/*")))
-endif
+		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_*")))
+
+C_OBJECTS     += $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip) -name "*.c")))
 
 T_OBJECTS_C   += $(patsubst %.c, $(BUILDDIR)/%.o, $(TEST_C))
 
@@ -196,6 +156,8 @@ CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBE
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/TESTS_COMMON/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/test/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/storage/filesystem/littlefs/littlefs/emubd/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/kvstore/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/storage/nvstore/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/unsupported/*" \
 		-not -path "$(MBED_PATH)/mbed-os/hal/TARGET_FLASH_CMSIS_ALGO/*"  \
 		-not -path "$(MBED_PATH)/mbed-os/hal/storage_abstraction/*"  \
