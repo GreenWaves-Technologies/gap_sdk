@@ -192,6 +192,8 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/frameworks/greentea-client $(MBED_PATH)/mbed-os/features/frameworks/greentea-client/greentea-client \
 		$(MBED_PATH)/mbed-os/features/frameworks/unity $(MBED_PATH)/mbed-os/features/frameworks/unity/unity \
 		$(MBED_PATH)/mbed-os/features/frameworks/utest $(MBED_PATH)/mbed-os/features/frameworks/utest/utest \
+		$(MBED_PATH)/mbed-os/features/mbedtls \
+		$(MBED_PATH)/mbed-os/features/mbedtls/inc \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
