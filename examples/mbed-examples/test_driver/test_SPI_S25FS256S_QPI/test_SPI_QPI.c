@@ -7,7 +7,7 @@
 #define BUFFER_SIZE 512
 #define P_ERR 6
 #define E_ERR 5
-#define DUMMY 15
+#define DUMMY 8
 
 GAP_L2_DATA uint8_t SPI_RX_BUFFER[BUFFER_SIZE];
 GAP_L2_DATA uint8_t SPI_TX_BUFFER[BUFFER_SIZE];
@@ -44,7 +44,7 @@ static void conf_flash(spi_t *spim)
 {
     write_enable(spim, uSPI_Single);
 
-    // Set dummy cycles
+    // CR2V = 0x88, Set dummy cycles 8, using 4 byte address
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
     s_command.cmd_bits  = 8;
@@ -56,7 +56,7 @@ static void conf_flash(spi_t *spim)
 
     write_enable(spim, uSPI_Single);
 
-    // Set page size to 512
+    // CR3V[4] = 1, Set page size to 512
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
     s_command.cmd_bits  = 8;
@@ -82,6 +82,42 @@ static void conf_flash(spi_t *spim)
     s_command.tx_bits   = 8;
     s_command.tx_data   = (0xC0 | DUMMY);
     s_command.data_mode = uSPI_Single;
+    spi_master_transfer_command_sequence(spim, &s_command);
+}
+
+static void conf_flash_end(spi_t *spim)
+{
+    write_enable(spim, uSPI_Quad);
+
+    // CR2V[6] = 0, QPI = 0, instruction always serial on SI
+    // Disable Flash Quad Mode
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
+    s_command.addr_bits = 32;
+    s_command.addr      = (0x00800003);
+    s_command.cmd_mode  = uSPI_Quad;
+    s_command.addr_mode = uSPI_Quad;
+    s_command.tx_bits   = 8;
+    s_command.tx_data   = 0x08;
+    s_command.data_mode = uSPI_Quad;
+    spi_master_transfer_command_sequence(spim, &s_command);
+
+    /* Set QPI mode - Single */
+    spi_master_qspi(spim, uSPI_Single);
+
+    spi_master_cs(spim, 0);
+    spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
+
+    // Set CR1V[2] = 0, QUAD IO mode disable
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
+    s_command.addr_bits = 32;
+    s_command.addr      =  (0x80000200);
+    s_command.cmd_mode  =  uSPI_Single;
+    s_command.addr_mode =  uSPI_Single;
     spi_master_transfer_command_sequence(spim, &s_command);
 }
 
@@ -207,6 +243,9 @@ int main()
     // Read back buffer
     printf("Reading Flash ... \n");
     read_page_from_flash(&spim0, 0);
+
+    // Disable QPI mode
+    conf_flash_end(&spim0);
 
     /* SPI free */
     spi_free(&spim0);
