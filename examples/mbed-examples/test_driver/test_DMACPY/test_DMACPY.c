@@ -5,6 +5,8 @@
 #define BUF_SIZE 256
 GAP_L2_DATA uint32_t src_L2[BUF_SIZE], dst_L2[BUF_SIZE];
 
+GAP_FC_DATA uint32_t src[BUF_SIZE], dst[BUF_SIZE];
+
 static DMACPY_Type *udmaCopy = DMACPY_BASE_PTRS;
 
 static void printData( uint32_t *buf, uint32_t size )
@@ -27,10 +29,10 @@ int main( void )
 {
     printf("\n\n\t *** DMACPY Test ***\n\n");
 
-    uint32_t errors = 1, src[BUF_SIZE], dst[BUF_SIZE];
-
     for( uint32_t i = 0; i < BUF_SIZE; i++ )
         src[i] = i;
+
+    uint32_t errors = 1;
 
     printf("UDMA Dmacpy test FC( src %x ) -> L2( src_L2 %x ) -> L2( dst_L2 %x) -> FC( dst %x ).\n\n",
            &src, &src_L2, &dst_L2, &dst);
