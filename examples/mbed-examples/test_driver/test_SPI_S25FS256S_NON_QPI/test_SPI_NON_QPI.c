@@ -7,22 +7,30 @@
 #define BUFFER_SIZE 512
 #define P_ERR 6
 #define E_ERR 5
-#define DUMMY 15
+#define DUMMY 8
 
 GAP_L2_DATA uint8_t SPI_RX_BUFFER[BUFFER_SIZE];
 GAP_L2_DATA uint8_t SPI_TX_BUFFER[BUFFER_SIZE];
 
 spi_command_sequence_t s_command;
 
+static void write_enable(spi_t *spim, uint8_t qpi)
+{
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x06;
+    s_command.cmd_bits  = 8;
+    s_command.cmd_mode  = qpi;
+    spi_master_transfer_command_sequence(spim, &s_command);
+}
+
 static void conf_flash(spi_t *spim)
 {
     /* Set QPI mode - Quad */
     spi_master_qspi(spim, uSPI_Quad);
 
-    spi_master_cs(spim, 0);
-    spi_master_write(spim, 0x06);
-    spi_master_cs(spim, 1);
+    write_enable(spim, uSPI_Quad);
 
+    // CR2V[6] = 0, QPI = 0, instruction always serial on SI
     // Disable Flash Quad Mode
     memset(&s_command, 0, sizeof(spi_command_sequence_t));
     s_command.cmd       = 0x71;
@@ -38,6 +46,21 @@ static void conf_flash(spi_t *spim)
 
     /* Set QPI mode - Single */
     spi_master_qspi(spim, uSPI_Single);
+
+    spi_master_cs(spim, 0);
+    spi_master_write(spim, 0x06);
+    spi_master_cs(spim, 1);
+
+    // Set CR1V[2] = 0, QUAD IO mode disable
+    memset(&s_command, 0, sizeof(spi_command_sequence_t));
+    s_command.cmd       = 0x71;
+    s_command.cmd_bits  = 8;
+    s_command.addr_bits = 32;
+    s_command.addr      =  (0x80000200);
+    s_command.cmd_mode  =  uSPI_Single;
+    s_command.addr_mode =  uSPI_Single;
+    spi_master_transfer_command_sequence(spim, &s_command);
+
 
     spi_master_cs(spim, 0);
     spi_master_write(spim, 0x06);
