@@ -18,15 +18,15 @@ uint8_t taskSuspended;
 
 /****************************************************************************/
 /*
- * Freq = Clk_src / ( TH[31-16] - TH[15-0] )
+ * Duty cycle = CH_TH / TH[31-16] (if TH[15-00] = 0x0000).
  * Rcyc = ( ( CH_TH - TH[15-0] ) / ( TH[31-16] - CH_TH ) ) ? 1 : 0
  */
 
 /* Variables used. */
-#define TH0     0x88881111
-#define TH1     0x66662222
-#define TH2     0x55553333
-#define TH3     0x77774444
+#define TH0     0xFFFF0001
+#define TH1     0x88880001
+#define TH2     0x44440001
+#define TH3     0x22220001
 
 /* Array of PORT and GPIO peripheral base address. */
 static GPIO_Type *const xGpio_addrs[] = GPIO_BASE_PTRS;
@@ -42,10 +42,6 @@ int main( void )
     printf("\n\n\t *** GPIO Test ***\n\n");
 
 #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask;
     TaskHandle_t xHandleDynamic = NULL;
 
@@ -86,7 +82,10 @@ static void prvPWM_handler( void *arg )
 {
     flag++;
     if( arg != NULL )
-        printf("PWM%d IRQ : %x\n", PWM_GetInstance( ( PWM_Type * ) arg ), ( ( PWM_Type * ) arg )->COUNTER);
+    {
+        printf("PWM%d IRQ : %x\t TH %x TH0 %x\n", PWM_GetInstance( ( PWM_Type * ) arg ), ( ( PWM_Type * ) arg )->COUNTER,
+               ( ( PWM_Type * ) arg )->TH, ( ( PWM_Type * ) arg )->CH_TH[0]);
+    }
     else
         printf("Simple PWM IRQ! %d\n", flag);
 }
@@ -126,25 +125,30 @@ void vTestPWM( void *parameters )
     pwm_signal_param_t param = { .chnum = ( pwm_channel_t ) 0,
                                  .dutyCyclePercent = 50 };
     uint32_t th[4] = {TH0, TH1, TH2, TH3 };
+    pwm_channel_mode_t mode = uPWM_TOGGLE_CLEAR;
 
     for( uint32_t i = 0; i < 4; i++ )
     {
         /* PWM Configuration. */
         PWM_GetDefaultConfig( &config[i] );
         config[i].evtSel = ( uPWM_EVENT_SEL0 + i );
-        param.chnum = ( uPWM_TH_CHANNEL0 + i );
+        param.chnum = ( uPWM_TH_CHANNEL0 + 0 );
 
         /* PWM Init. */
         PWM_Init( xPwm_addrs[i], &config[i] );
 
-        /* Default to 20ms: standard for servos, and fine for e.g. brightness control */
-        PWM_SetupPwm( xPwm_addrs[i], &param, 1, 10, uPWM_REF_32K );
+        /*
+         * With this configuration : for 1 PWM0 IRQ : ~(8 PWM3, 4 PWM2, 2 PWM1).
+         * Duty cycle = 50%.
+         */
+        PWM_SetThreshold( xPwm_addrs[i], th[i] );
+        PWM_ChannelConfig( xPwm_addrs[i], param.chnum, (th[i]>>16) >> 1, mode );
 
         /* Set an output event and enable it. */
         PWM_SetOutputEvent( xPwm_addrs[i], param.chnum, config[i].evtSel );
 
         /* Bind PWM IRQ handler. */
-        PWM_IRQHandlerBind( xPwm_addrs[i], ( uint32_t ) prvPWM_handler,( void * ) xPwm_addrs[i] );
+        PWM_CreateHandler( xPwm_addrs[i], prvPWM_handler, ( void * ) xPwm_addrs[i] );
     }
 
     /* Start each timer. */
@@ -152,8 +156,8 @@ void vTestPWM( void *parameters )
         PWM_StartTimer( xPwm_addrs[i] );
 
     printf("Press on the button to exit programm.\n");
-    printf("\tSleeping for 1s.\n");
-    vTaskDelay( 1000 / portTICK_PERIOD_MS );
+    printf("\tSleeping for 5s.\n");
+    vTaskDelay( 5000 / portTICK_PERIOD_MS );
     printf("\tComing back.\n");
     if( flag )
     {

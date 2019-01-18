@@ -27,10 +27,6 @@ int main( void )
     printf("\n\n\t *** Cluster Hello World Test ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask;
     TaskHandle_t xHandleDynamic = NULL;
 
