@@ -5,11 +5,12 @@
 /* Demo utlities includes. */
 #include "gap_common.h"
 #include "gap_sai.h"
+#include "sleep.h"
 
 /****************************************************************************/
 
 /* Test task to test FreeRTOS port. */
-void vTestI2S( void *parameters );
+void vTestI2SAsync( void *parameters );
 
 /* Utilities to control tasks. */
 TaskHandle_t tasks[NBTASKS];
@@ -34,7 +35,7 @@ uint8_t taskSuspended;
  *
  */
 
-static uint8_t i2s_config = 3;
+static uint8_t i2s_config = 0;
 
 /* I2S0 */
 /* Clock register */
@@ -95,16 +96,15 @@ int main( void )
     TaskHandle_t xHandleDynamic = NULL;
 
     xTask = xTaskCreate(
-        vTestI2S,
-        "TestI2S",
+        vTestI2SAsync,
+        "TestI2SAsync",
         configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
         &xHandleDynamic
         );
-    if(xTask != pdPASS)
-    {
-        printf("TestI2S is NULL !\n");
+    if(xTask != pdPASS) {
+        printf("TestI2SAsync is NULL !\n");
         vTaskDelete( xHandleDynamic );
     }
     #endif //configSUPPORT_DYNAMIC_ALLOCATION
@@ -118,12 +118,18 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-void vTestI2S( void *parameters )
+void callback( void *arg )
+{
+    printf("SAI callback : transfer done !\n");
+}
+/*-----------------------------------------------------------*/
+
+void vTestI2SAsync( void *parameters )
 {
     if(EN_CHAN1)
     {
         /* I2S Init */
-        SAI_Init(i2s_address[0], I2S1_SDI_B13, I2S1_WS, I2S1_SCK);
+        SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S1_SCK);
 
         /* I2S Filter Configuration  */
         SAI_FilterConfig(i2s_address[0], uSAI_Channel1, DECIMATION_CHAN1 - 1, SHIFT_CHAN1);
@@ -163,18 +169,24 @@ void vTestI2S( void *parameters )
         printf("Start recording audio\n");
         printf("*********************\n");
 
+        sai_handle_t handle;
+        SAI_CreateHandler(i2s_address[0], &handle, callback, NULL);
+
         sai_transfer_t xfer;
         xfer.rxData        = (uint8_t*) (I2S_BUFFER_CH0 + WAV_HEADER_SIZE);
         xfer.rxDataSize    = BUFFER_SIZE * sizeof(short);
-        xfer.configFlags   = uSAI_Word_16;
+        xfer.configFlags   = uSAI_Word_32;
         xfer.channel       = ( (EN_CHAN0) ? uSAI_Channel0 : uSAI_Channel1);
 
         /* Start tranfering RX */
-        SAI_TransferReceiveBlocking(i2s_address[0], &xfer);
+        SAI_TransferReceiveNonBlocking(i2s_address[0], &xfer, &handle);
+
+        while( handle.state == uSAI_Busy ) sleep( FC_SOC_EVENT_IRQn );
 
         (&I2sOutHeader)->micReady = 0;
 
         CreateWAVHeader(I2S_BUFFER_CH0, &I2sOutHeader);
+
 
         while (((volatile I2sDescriptor *) &I2sOutHeader)->recReady == 1) {};
 

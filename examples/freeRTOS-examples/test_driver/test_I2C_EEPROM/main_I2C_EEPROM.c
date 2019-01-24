@@ -20,15 +20,13 @@ uint8_t taskSuspended;
 /****************************************************************************/
 
 /* Variables used. */
-#define BMP280_Device_Address    0xEC
+#define EEPROM_Device_Address    0xA0
 
-#define BMP280_ID_REG            0xD0
-#define BMP280_ID_VALUE          0x58
+#define EEPROM_Memory_Address    0x0070
+#define BUF_SIZE                 16
 
-#define BMP280_RESET_REG         0xE0
-
-GAP_L2_DATA uint8_t id_read = 0;
-GAP_L2_DATA uint8_t cmd[] = {BMP280_ID_REG};
+GAP_L2_DATA uint8_t write_buff[BUF_SIZE+2] = {0}, read_buff[BUF_SIZE] = {0},
+    addr_buff[2] = {0};
 
 /* Array of I2C and PORT peripheral base address. */
 static PORT_Type *const xPort_addrs[] = PORT_BASE_PTRS;
@@ -40,7 +38,7 @@ static I2C_Type *const i2c_address[] = I2C_BASE_PTRS;
 /* Program Entry. */
 int main( void )
 {
-    printf("\n\n\t *** Driver Test : I2C - BMP280 ***\n\n");
+    printf("\n\n\t *** Driver Test : I2C - EEPROM ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
     BaseType_t xTask;
@@ -88,24 +86,42 @@ void vTestDriverI2C( void *parameters )
     PORT_SetPinConfig( xPort_addrs[ulPort_nb2], ulPin_nb2, &xPort_config);
 
     i2c_config_t config;
-
     I2C_GetDefaultConfig( &config );
 
     /* Init I2C device : Default frequence is 100kHz. */
     I2C_Init( i2c_address[0], &config, SystemCoreClock );
 
-    printf("I2C0_SDA  = %d \n", I2C0_SDA);
-    printf("I2C0_SCL  = %d \n", I2C0_SCL);
+    addr_buff[0] = ( ( uint32_t ) EEPROM_Memory_Address ) >> 8;
+    addr_buff[1] = ( ( uint32_t ) EEPROM_Memory_Address ) & 0xff;
+    write_buff[0] = ( ( uint32_t ) EEPROM_Memory_Address ) >> 8;
+    write_buff[1] = ( ( uint32_t ) EEPROM_Memory_Address ) & 0xff;
 
-    /* Read ID value of BMP280. */
-    I2C_Write( i2c_address[0], BMP280_Device_Address, ( const char * ) &cmd, 1, 0 );
-    I2C_Read( i2c_address[0], BMP280_Device_Address, ( char * ) &id_read, 1, 1 );
-    printf("BMP280_ID_VALUE : 0x%x\n", id_read);
+    for( uint32_t i = 0; i < BUF_SIZE; i++ )
+    {
+        write_buff[i+2] = i + 0x45;
+    }
 
-    if( id_read == BMP280_ID_VALUE )
-        printf("Test success !\n");
-    else
-        printf("Test failed !\n");
+    /* Write into EEPROM. */
+    I2C_Write( i2c_address[0], EEPROM_Device_Address,
+               ( const char * ) write_buff, BUF_SIZE+2, 1 );
+    vTaskDelay( 10 );
+    /* Read from EEPROM. */
+    I2C_Write( i2c_address[0], EEPROM_Device_Address,
+               ( const char * ) addr_buff, 2, 0 );
+    I2C_Read( i2c_address[0], EEPROM_Device_Address,
+              ( char * ) read_buff, BUF_SIZE, 1 );
+
+    uint32_t errors = 0;
+    for( uint32_t i = 0; i < BUF_SIZE; i++ )
+    {
+        if( write_buff[i+2] != read_buff[i] )
+        {
+            errors++;
+        }
+        printf("Write : %x Read : %x\n", write_buff[i+2], read_buff[i]);
+    }
+
+    printf("Test %s with %d errors !\n", (errors ? "failed" : "success"), errors);
 
     /* Suicide. */
     vTaskSuspend( NULL );

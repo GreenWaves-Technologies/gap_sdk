@@ -209,10 +209,6 @@ int main()
     printf("\n\n\t *** Mnist Test ***\n\n");
 
 #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask;
     TaskHandle_t xHandleDynamic = NULL;
 
