@@ -34,14 +34,14 @@ PULP_CFLAGS += -I$(TILER_INC) -I$(MNIST_KER_PATH)/include
 all:: model
 
 # Build the code generator
-GenTile:
+GenTileBuild:
 	gcc -o GenMnist $(USE_HARDWARE_CE) -I$(TILER_INC) -I$(MNIST_GEN_PATH)/include MnistModel.c $(MNIST_GEN_PATH)/src/CNN_Generators.c $(TILER_LIB)
 
 # Run the code generator
-MnistKernels.c MnistKernelsInit.c: GenTile
+GenTile: GenTileBuild
 	./GenMnist
 
-model: MnistKernels.c MnistKernelsInit.c
+model: GenTile
 
 clean::
 	$(RM) GenMnist MnistKernels.* MnistKernelsInit.*
