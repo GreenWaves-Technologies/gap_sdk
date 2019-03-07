@@ -8,7 +8,7 @@
 /****************************************************************************/
 
 /* Test task to test FreeRTOS port. */
-void vTestDriverRTC( void *parameters );
+void vTestRTCCount( void *parameters );
 
 /* Utilities to control tasks. */
 TaskHandle_t tasks[NBTASKS];
@@ -17,7 +17,7 @@ uint8_t taskSuspended;
 /****************************************************************************/
 
 /* Variables used. */
-#define COUNT_SECONDS 10
+#define TIMER_SECONDS 5
 
 uint32_t flag = 0;
 
@@ -27,19 +27,15 @@ uint32_t flag = 0;
 /* Program Entry. */
 int main( void )
 {
-    printf("\n\n\t *** Driver Test : RTC ***\n\n");
+    printf("\n\n\t *** Driver Test : RTC Count down ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask;
     TaskHandle_t xHandleDynamic = NULL;
 
     xTask = xTaskCreate(
-        vTestDriverRTC,
-        "TestDriverRTC",
+        vTestRTCCount,
+        "TestRTCCount",
         configMINIMAL_STACK_SIZE * 2,
         NULL,
         tskIDLE_PRIORITY + 1,
@@ -47,7 +43,7 @@ int main( void )
         );
     if( xTask != pdPASS )
     {
-        printf("Task Dynamic is NULL !\n");
+        printf("TestRTCCount is NULL !\n");
         vTaskDelete( xHandleDynamic );
     }
     #endif //configSUPPORT_DYNAMIC_ALLOCATION
@@ -63,46 +59,60 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-void timer_irq_handler( void )
+void timer_irq_handler( void *arg )
 {
-    printf("Count down arrive .....\n");
+    printf("Count down arrive ..... %x\n",*( ( uint32_t *) arg ));
     flag = 1;
 }
 /*-----------------------------------------------------------*/
 
-void vTestDriverRTC( void *parameters )
+void vTestRTCCount( void *parameters )
 {
-    printf("Fabric controller code execution for RTC driver test\n");
+    ( void ) parameters;
+    char *taskname = pcTaskGetName( NULL );
+
+    printf("%s executing RTC Count test.\n", taskname);
 
     rtc_config_t config;
-    uint32_t repeat_en = 0;
+    uint32_t repeat_nb = 3;
+    uint32_t repeat_en = ( repeat_nb != 0 );
 
     /* Configure and init RTC with default values. */
     RTC_GetDefaultConfig( &config );
 
     RTC_Init( RTC_APB, &config );
 
-    /* Set Timer */
-    RTC_SetCountDown( RTC_APB, COUNT_SECONDS );
+    /* Set Timer. */
+    RTC_SetTimer( RTC_APB, TIMER_SECONDS );
 
-    /* Binding RTC IRQ */
-    RTC_IRQHandlerBind( ( uint32_t ) timer_irq_handler );
+    /* Binding RTC IRQ. */
+    uint32_t arg = 0xabbadead;
+    RTC_CreateHandler( timer_irq_handler, &arg );
 
-    printf("Start CountDown value now = %d\n", COUNT_SECONDS);
+    printf("Start Timer value now = %d, repeat %d time(s).\n", TIMER_SECONDS, repeat_nb);
 
     /* Start Timer */
-    RTC_StartCountDown( RTC_APB, repeat_en );
+    RTC_StartTimer( RTC_APB, repeat_en );
 
-    /* Wait several seconds */
-    vTaskDelay( pdMS_TO_TICKS( 2000 ) );
+    uint32_t timer_now = 0;
+    uint8_t timer = 0;
+    do
+    {
+        timer_now = RTC_GetTimer( RTC_APB );
+        printf("Timer value now = %d\n", timer_now);
 
-    /* Read Timer */
-    uint32_t countdown_now = RTC_GetCountDown( RTC_APB );
-    printf("After 2 seconds, CountDown value now = %d\n", countdown_now);
+        /* Wait for a peripheral IRQ(RTC). */
+        EU_EVT_WaitAndClr();
 
-    vTaskDelay( pdMS_TO_TICKS( 10000 ) );
+        if( flag )
+        {
+            timer++;
+            flag = 0;
+            RTC_ClearIRQFlags(RTC_APB, uRTC_TimerFlag);
+        }
+    } while( timer < repeat_nb );
 
-    if ( !flag || (countdown_now != ( COUNT_SECONDS - 2 ) ) )
+    if( !timer )
         printf("Test failed\n");
     else
         printf("Test success\n");

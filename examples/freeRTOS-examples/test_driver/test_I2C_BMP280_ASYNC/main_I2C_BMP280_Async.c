@@ -40,7 +40,7 @@ static I2C_Type *const i2c_address[] = I2C_BASE_PTRS;
 /* Program Entry. */
 int main( void )
 {
-    printf("\n\n\t *** Driver Test : I2C - BMP280 ***\n\n");
+    printf("\n\n\t *** Driver Test : I2C - BMP280 Async ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
     BaseType_t xTask;
@@ -71,6 +71,17 @@ int main( void )
     return 0;
 }
 /*-----------------------------------------------------------*/
+void callback1( void *arg )
+{
+    printf("I2C callback : Write done !\n");
+}
+/*-----------------------------------------------------------*/
+
+void callback2( void *arg )
+{
+    printf("I2C callback : Read done !\n");
+}
+/*-----------------------------------------------------------*/
 
 void vTestDriverI2C( void *parameters )
 {
@@ -97,9 +108,28 @@ void vTestDriverI2C( void *parameters )
     printf("I2C0_SDA  = %d \n", I2C0_SDA);
     printf("I2C0_SCL  = %d \n", I2C0_SCL);
 
+    /* Handler. */
+    i2c_handle_t handle;
+    I2C_CreateHandler( i2c_address[0], &handle, callback1, NULL );
+
     /* Read ID value of BMP280. */
-    I2C_Write( i2c_address[0], BMP280_Device_Address, ( const char * ) &cmd, 1, 0 );
-    I2C_Read( i2c_address[0], BMP280_Device_Address, ( char * ) &id_read, 1, 1 );
+    if( I2C_Write_Async( i2c_address[0], BMP280_Device_Address,
+                         ( const char * ) &cmd, 1, &handle ) != uStatus_Success )
+    {
+        printf("Test failed : Write !\n");
+        exit( -1 );
+    }
+    while( (volatile)handle.state != uI2C_Idle ) __WFI();
+
+    handle.callback = callback2;
+    if( I2C_Read_Async( i2c_address[0], BMP280_Device_Address,
+                        ( char * ) &id_read, 1, &handle ) != uStatus_Success )
+    {
+        printf("Test failed : Read !\n");
+        exit( -1 );
+    }
+    while( (volatile)handle.state != uI2C_Idle ) __WFI();
+
     printf("BMP280_ID_VALUE : 0x%x\n", id_read);
 
     if( id_read == BMP280_ID_VALUE )

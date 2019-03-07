@@ -32,10 +32,6 @@ int main( void )
     printf("\n\n\t *** HyperFlash Test ***\n\n");
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask;
     TaskHandle_t xHandleDynamic = NULL;
 

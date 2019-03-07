@@ -55,10 +55,6 @@ int main( void )
 
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-
-    /* Init memory regions to alloc memory. */
-    vPortDefineHeapRegions( xHeapRegions );
-
     BaseType_t xTask, xTask2, xTaskCleaner;
     TaskHandle_t xHandleDynamic = NULL, xHandleDynamic2 = NULL, xHandleCleaner = NULL;
 

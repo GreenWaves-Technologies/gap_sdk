@@ -85,7 +85,6 @@ RTOS_SRC        = $(FREERTOS_SOURCE_DIR)/list.c \
                   $(FREERTOS_SOURCE_DIR)/tasks.c \
                   $(FREERTOS_SOURCE_DIR)/timers.c \
                   $(FREERTOS_SOURCE_DIR)/event_groups.c \
-                  $(FREERTOS_SOURCE_DIR)/portable/MemMang/heap_5.c \
                   $(FREERTOS_SOURCE_DIR)/stream_buffer.c
 
 PORT_SRC        = $(shell find $(PORT_DIR) -iname "*.c")

@@ -1,9 +1,7 @@
 # User Test
 #------------------------------------
-APP_SRC 	= ./main_SAI.c
+APP_SRC 	= ./main_RTC_COUNT.c
 DEMO_SRC	+=
-INCLUDES	+=
-
-PLPBRIDGE_FLAGS += -s i2s@i2s.py
+INC_PATH	+=
 
 include $(GAP_SDK_HOME)/tools/rules/freeRTOS_rules.mk

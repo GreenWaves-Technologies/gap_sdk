@@ -1,6 +1,6 @@
 # User Test
 #------------------------------------
-APP_SRC 	= ./main_RTC.c
+APP_SRC 	= ./main_Memcpy.c
 DEMO_SRC	+=
 INC_PATH	+=
 
