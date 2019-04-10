@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	if (rt_event_alloc(NULL, 8)) return -1;
 
 	//To use file IO system
-	rt_bridge_connect(NULL);
+	rt_bridge_connect(1, NULL);
 
 	printf ("Start Resize example application\n");
 

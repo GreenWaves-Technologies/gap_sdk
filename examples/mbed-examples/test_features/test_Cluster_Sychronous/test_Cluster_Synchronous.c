@@ -53,7 +53,7 @@ int main()
     printf("Fabric controller code execution for mbed_os Cluster Synchronous test\n");
 
     /* Cluster Start - Power on */
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     /* FC send a task to Cluster */
     CLUSTER_SendTask(0, Master_Entry, 0, 0);

@@ -162,7 +162,7 @@ int main()
     DumpPaddedCoeff("Filter_Layer1_HWCE", Filter_Layer1, 25, 8*12);
 #endif
 
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     Cifar10_L1_Memory = L1_Malloc(_Cifar10_L1_Memory_SIZE);
     if(Cifar10_L1_Memory == NULL) {

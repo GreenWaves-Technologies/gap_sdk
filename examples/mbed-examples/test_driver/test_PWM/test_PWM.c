@@ -29,7 +29,7 @@ int main()
         PWM_Init(s_pwm_Base[i], &config[i]);
 
         // default to 20ms: standard for servos, and fine for e.g. brightness control
-        PWM_SetupPwm(s_pwm_Base[i], &param, 1, 1, uPWM_REF_32K);
+        PWM_SetupPwm(s_pwm_Base[i], &param, 1, 50, uPWM_REF_32K);
 
         /* Set an output event and enable it. */
         PWM_SetOutputEvent(s_pwm_Base[i], param.chnum, config[i].evtSel);
@@ -43,7 +43,7 @@ int main()
         PWM_StartTimer(s_pwm_Base[i]);
     }
 
-    wait(5);
+    wait(1);
 
     for( uint32_t i = 0; i < 4; i++ ) {
 

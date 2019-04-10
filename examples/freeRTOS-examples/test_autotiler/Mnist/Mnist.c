@@ -187,7 +187,7 @@ void vTaskMnist( void *parameters )
     DumpPaddedCoeff("Filter_Layer1_HWCE", Filter_Layer1, 25, 32*64);
 #endif
 
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     Mnist_L1_Memory = L1_Malloc(_Mnist_L1_Memory_SIZE);
     if(Mnist_L1_Memory == NULL) {

@@ -36,6 +36,10 @@
 #define CSR_PCER	0x7A0
 #define CSR_PCMR	0x7A1
 
+#define CSR_STACK_CONF   0x7D0
+#define CSR_STACK_START  0x7D1
+#define CSR_STACK_END    0x7D2
+
 #define CSR_MESTATUS_INTEN_BIT 0
 #define CSR_MESTATUS_PRV_BIT   1
 

@@ -18,7 +18,7 @@ PULP_APP_SRCS += $(CIFAR_KER_PATH)/src/CNN_HwCE.c
 RM=rm -f
 
 #To activeate Hardware CE SET -DRT_HAS_HWCE=1
-USE_HARDWARE_CE = -DRT_HAS_HWCE=1
+USE_HARDWARE_CE = -DRT_HAS_HWCE=0
 
 PULP_CFLAGS += -O3 $(USE_HARDWARE_CE)
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns  -fdata-sections -ffunction-sections

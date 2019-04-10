@@ -128,7 +128,7 @@ void vTestClusterHWSync( void *parameters )
         printf("Core %d : %d\n", i, ref[i]);
     }
     /* Power On Computing Cluster. */
-    CLUSTER_Start( 0, NBCORES );
+    CLUSTER_Start( 0, NBCORES, 0 );
 
     printf("\nWithout HW Barrier.\n");
     arg_t arg = { .func = ( void * ) No_HW_Synchronisation, .arg = ( void * ) cmp };

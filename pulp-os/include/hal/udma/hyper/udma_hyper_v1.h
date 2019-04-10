@@ -94,7 +94,7 @@ static inline unsigned int hal_hyper_udma_mem_cfg2_get()
 /*
  * set Hyper IP configuration mem_cfg3 with value
  */
-static inline void hal_hyper_udma_mem_cfg3_set(unsigned char value)
+static inline void hal_hyper_udma_mem_cfg3_set(unsigned short value)
 {
     pulp_write32(HYPER_MEM_CFG3, value & HYPER_MEM_CFG3_MASK);
 }
@@ -102,9 +102,9 @@ static inline void hal_hyper_udma_mem_cfg3_set(unsigned char value)
 /*
  * get Hyper IP configuration mem_cfg3 value
  */
-static inline unsigned char hal_hyper_udma_mem_cfg3_get()
+static inline unsigned short hal_hyper_udma_mem_cfg3_get()
 {
-    return (unsigned char) (pulp_read32(HYPER_MEM_CFG3) & HYPER_MEM_CFG3_MASK);
+    return (unsigned short) (pulp_read32(HYPER_MEM_CFG3) & HYPER_MEM_CFG3_MASK);
 }
 
 /*

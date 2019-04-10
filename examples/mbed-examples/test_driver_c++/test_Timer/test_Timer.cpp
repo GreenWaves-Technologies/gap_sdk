@@ -27,4 +27,8 @@ int main() {
     printf("Hello World!\n");
     t.stop();
     printf("The time taken was %u us\n", t.read_us());
+
+    if (t.read_us()) {
+        printf("Test success\n");
+    }
 }

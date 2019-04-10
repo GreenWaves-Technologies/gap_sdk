@@ -4,7 +4,7 @@ ENTRY( _start )
 MEMORY
 {
   L2                 : ORIGIN = 0x1c000000, LENGTH = 0x00080000
-  fc_tcdm            : ORIGIN = 0x1b000000, LENGTH = 0x00004000
+  fc_tcdm            : ORIGIN = 0x1b000004, LENGTH = 0x00003ffc
   fc_tcdm_aliased    : ORIGIN = 0x00000004, LENGTH = 0x00003ffc
   L1                 : ORIGIN = 0x10000004, LENGTH = 0x0000fffc
   L1_aliased         : ORIGIN = 0x00000004, LENGTH = 0x0000fffc
@@ -23,97 +23,10 @@ SECTIONS
   } > fc_tcdm_aliased AT> fc_tcdm
 
 
-  .init :
-  {
-    . = ALIGN(4);
-    KEEP( *(.init) )
-  } > fc_tcdm
-
-
-  .fini :
-  {
-    . = ALIGN(4);
-    KEEP( *(.fini) )
-  } > fc_tcdm
-
-
-  .preinit_array : {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  } > fc_tcdm
-
-
-  .init_array : {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__init_array_start = .);
-    __CTOR_LIST__ = .;
-    LONG((__CTOR_END__ - __CTOR_LIST__) / 4 - 2)
-    KEEP(*(.ctors.start))
-    KEEP(*(.ctors))
-    KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array ))
-    LONG(0)
-    __CTOR_END__ = .;
-    PROVIDE_HIDDEN (__init_array_end = .);
-  } > fc_tcdm
-
-
-  .fini_array : {
-    . = ALIGN(4);
-    PROVIDE_HIDDEN (__fini_array_start = .);
-    __DTOR_LIST__ = .;
-    LONG((__DTOR_END__ - __DTOR_LIST__) / 4 - 2)
-    KEEP(*(.dtors.start))
-    KEEP(*(.dtors))
-    LONG(0)
-    __DTOR_END__ = .;
-    KEEP (*(SORT(.fini_array.*)))
-    KEEP (*(.fini_array ))
-    PROVIDE_HIDDEN (__fini_array_end = .);
-  } > fc_tcdm
-
-
-  .boot : {
-    . = ALIGN(4);
-    *(.boot)
-    *(.boot.data)
-  } > fc_tcdm
-
-
-
-  .got : {
-    . = ALIGN(4);
-    *(.got.plt) * (.igot.plt) *(.got) *(.igot)
-  } > fc_tcdm
-
-
-  .shbss : {
-    . = ALIGN(4);
-    *(.shbss)
-  } > fc_tcdm
-
-
-  .talias : {
-  } > fc_tcdm
-
-
-  .gnu.offload_funcs : {
-    . = ALIGN(4);
-    KEEP(*(.gnu.offload_funcs))
-  } > fc_tcdm
-
-
-  .gnu.offload_vars : {
-    . = ALIGN(4);
-    KEEP(*(.gnu.offload_vars))
-  } > fc_tcdm
-
-
   .stack : {
     . = ALIGN(4);
     . = ALIGN(16);
+    stack_start = .;
     . = . + 0x800;
     stack = .;
   } > fc_tcdm
@@ -151,6 +64,94 @@ SECTIONS
   /* The following data are kept in L2 because of a HW bug which makes
    * byte acceses failing from cluster to FC TCDM
    */
+
+  .init_array : {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN (__init_array_start = .);
+    __CTOR_LIST__ = .;
+    LONG((__CTOR_END__ - __CTOR_LIST__) / 4 - 2)
+    KEEP(*(.ctors.start))
+    KEEP(*(.ctors))
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array ))
+    LONG(0)
+    __CTOR_END__ = .;
+    PROVIDE_HIDDEN (__init_array_end = .);
+  } > L2
+
+
+  .fini_array : {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN (__fini_array_start = .);
+    __DTOR_LIST__ = .;
+    LONG((__DTOR_END__ - __DTOR_LIST__) / 4 - 2)
+    KEEP(*(.dtors.start))
+    KEEP(*(.dtors))
+    LONG(0)
+    __DTOR_END__ = .;
+    KEEP (*(SORT(.fini_array.*)))
+    KEEP (*(.fini_array ))
+    PROVIDE_HIDDEN (__fini_array_end = .);
+  } > L2
+
+  .init :
+  {
+    . = ALIGN(4);
+    KEEP( *(.init) )
+  } > L2
+
+
+  .fini :
+  {
+    . = ALIGN(4);
+    KEEP( *(.fini) )
+  } > L2
+
+
+  .preinit_array : {
+    . = ALIGN(4);
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  } > L2
+
+
+
+  .boot : {
+    . = ALIGN(4);
+    *(.boot)
+    *(.boot.data)
+  } > L2
+
+
+
+  .got : {
+    . = ALIGN(4);
+    *(.got.plt) * (.igot.plt) *(.got) *(.igot)
+  } > L2
+
+
+  .shbss : {
+    . = ALIGN(4);
+    *(.shbss)
+  } > L2
+
+
+  .talias : {
+  } > L2
+
+
+  .gnu.offload_funcs : {
+    . = ALIGN(4);
+    KEEP(*(.gnu.offload_funcs))
+  } > L2
+
+
+  .gnu.offload_vars : {
+    . = ALIGN(4);
+    KEEP(*(.gnu.offload_vars))
+  } > L2
+
 
   .rodata : {
     . = ALIGN(4);
@@ -225,7 +226,7 @@ SECTIONS
     . = ALIGN(4);
   } > L1 AT> L2
 
-  .bss_l1 : {
+  .bss_l1 (ORIGIN(L1) + SIZEOF(.data_tiny_l1) + SIZEOF(.l1cluster_g)) : {
     . = ALIGN(4);
     *(.bss_l1)
     *(.bss_l1.*)

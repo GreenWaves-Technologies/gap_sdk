@@ -35,7 +35,7 @@ static void serial_write_callback(int events)
     {
         printf("RX Callback, event = %d!\n", events);
         // Read finished, print read buffer
-        printf("%s", buffer_rx);
+        printf("%s\n", buffer_rx);
     }
     else
     {
@@ -47,6 +47,8 @@ static void serial_write_callback(int events)
 }
 
 int main() {
+    serial.baud(115200);
+
     event_callback_t event;
 
     event = serial_write_callback;
@@ -55,5 +57,5 @@ int main() {
 
     serial.write((uint8_t *)buffer_tx, sizeof(buffer_tx), event, SERIAL_EVENT_TX_ALL);
 
-    wait(1);
+    wait(50);
 }

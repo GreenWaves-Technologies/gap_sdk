@@ -1,6 +1,6 @@
 [![GreenWaves Technologies][GWT-logo]][GWT-link]
 
-[GWT-logo]: https://github.com/GreenWaves-Technologies/gap_sdk/blob/master/logo.png
+[GWT-logo]: logo.png
 [GWT-link]: https://greenwaves-technologies.com/
 
 # Setting up the GAP8 SDK
@@ -20,18 +20,17 @@ We provide you with all the necessary tools and two different operating systems 
 
 *   Operating Systems
     -   PULP OS - The open source embedded RTOS produced by the PULP project
-    -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8.
+    -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8 and VEGA.
+    -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
 
-##  Getting started with the GAP8 SDK
-
-In the first release of the SDK we officially support Ubuntu 16.04 64 bit only.
+##  Getting started with the GAP SDK
 
 These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info
 
 The following packages needed to be installed:
 
 ~~~~~shell
-sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev
+sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev
 sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
 ~~~~~
 
@@ -48,6 +47,8 @@ The debug bridge uses a python3 application. Python3 is already included in the 
 ~~~~~shell
 pip3 install pyelftools
 ~~~~~
+
+## Configure USB Port for GAPuino Evaluation Board
 
 For the USB serial connection GAPuino uses an FDDI 2 port serial to USB controller. This needs to be set up (the driver is installed in the apt-get install step above).
 
@@ -72,6 +73,8 @@ Please also make sure that your Virtual Machine USB emulation matches your PC US
 
 The following instructions assume that you install the GAP SDK into your home directory. If you want to put it somewhere else then please modify them accordingly.
 
+## Download and install the toolchain:
+
 Now clone the GAP8 SDK and the GAP8/RISC-V toolchain:
 
 ~~~~~shell
@@ -93,12 +96,16 @@ cd ~/gap_sdk
 git submodule update --init --recursive
 ~~~~~
 
-Build the GAP8 SDK:
+## Build the SDK:
+
+Firstly, please configure the environment for GAP8 or VEGA by using the sourceme.sh script:
 
 ~~~~~shell
 source sourceme.sh
 make all
 ~~~~~
+
+GVSOC virtual platform will be installed during the previous build.
 
 ## Getting the Autotiler
 
@@ -113,7 +120,7 @@ During the download, you will be asked several simple questions and then you wil
 Please copy the url in the mail to the last question, then the download and installation would be started automatically.
 If you have already answered these questions, this enquiry will be skipped.
 
-For offering you the best support, please answer the
+For offering you the best support, please answer the questions.
 
 # Compiling, running and debugging programs
 
@@ -213,6 +220,33 @@ cutecom&
 ~~~~~
 
 Then please configure your terminal program to use /dev/ttyUSB1 with a 115200 baud rate, 8 data bits and 1 stop bit.
+
+## Using the file IO
+
+Through our new bridge tool (pulp-rt-bridge), you could load/store from/to in your PC.
+For example, if you want to use an image locally, but run the algorithm with this image on GAP8. You could use this functionality to do it.
+
+To trigger this function in bridge, you need to add this flag in your Makefile:
+
+~~~~~shell
+PLPBRIDGE_FLAGS += -fileIO <option>
+~~~~~
+
+The option should be a number, which would be used for let the bridge wait for \<option\> seconds. Because of the synchronization between this bridge and our debug bridge, we need to wait until the program has been load and executed on GAP8. If you don't put a number, the default value is 2 (seconds).
+
+Otherwise, you could run this service manually:
+
+In another terminal:
+
+Configure the environment, and then:
+
+~~~~~shell
+plpbridge-rt --binary=<path of your binary file> --chip=gap
+~~~~~
+
+Please read the example for more information: examples/pulp-examples/kernel/bridge
+
+For your information, this new bridge is quite slow, please be patient when you are using it. We will resolve this problem as soon as possible.
 
 ## Documentation
 

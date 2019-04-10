@@ -82,7 +82,7 @@ int main()
 
   rt_fs_t *fs = rt_fs_mount("hyperflash", &conf, NULL);
   if (fs == NULL) handle_error();
-  printf("fs mounted\n");
+  printf("Hyperflash fs mounted\n");
 
   file = rt_fs_open(fs, "hello.txt", 0, NULL);
   if (file == NULL){
@@ -101,6 +101,8 @@ int main()
   printf("\n");
 
   rt_fs_unmount(fs, NULL);
+  printf("fs unmounted\n");
+  printf ("Test success\n");
 
   return 0;
 }

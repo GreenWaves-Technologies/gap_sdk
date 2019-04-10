@@ -31,16 +31,10 @@ int main( void )
 
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
     BaseType_t xTask;
-    TaskHandle_t xHandleDynamic = NULL;
+    TaskHandle_t xHandler0 = NULL;
 
-    xTask = xTaskCreate(
-        vTestClusterSWSync,
-        "TestClusterSWSync",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        &xHandleDynamic
-        );
+    xTask = xTaskCreate( vTestClusterSWSync, "TestClusterSWSync", configMINIMAL_STACK_SIZE * 2,
+                         NULL, tskIDLE_PRIORITY + 1, &xHandler0 );
     if( xTask != pdPASS )
     {
         printf("Task Dynamic is NULL !\n");
@@ -48,7 +42,7 @@ int main( void )
     }
     #endif //configSUPPORT_DYNAMIC_ALLOCATION
 
-    tasks[0] = xHandleDynamic;
+    tasks[0] = xHandler0;
 
     /* Start the kernel.  From here on, only tasks and interrupts will run. */
     printf("\nScheduler starts !\n");
@@ -102,7 +96,7 @@ void vTestClusterSWSync( void *parameters )
     printf("%s executing Semaphore Sync function on Computing Cluster :\n\n", taskname);
 
     /* Power On Computing Cluster. */
-    CLUSTER_Start( 0, NBCORES );
+    CLUSTER_Start( 0, NBCORES, 0 );
 
     /* Sending tasks to Computing Cluster. */
     CLUSTER_SendTask( 0, Master_Entry, 0 , 0 );

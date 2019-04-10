@@ -146,8 +146,8 @@ void vTestDriverRTC( void *parameters )
     uint8_t alarm = 0;
     do
     {
-        /* Wait for a peripheral IRQ(RTC). */
-        EU_EVT_WaitAndClr();
+        /* Wait 1 second. */
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
 
         /* Read calendar. */
         RTC_GetCalendar( RTC_APB, &now );

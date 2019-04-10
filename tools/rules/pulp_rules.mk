@@ -4,20 +4,28 @@ CC            = riscv32-unknown-elf-gcc
 AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
+platform     ?= gapuino
+vcd          ?= ""
+_vcd         ?=
+trace	     ?= ""
+_trace       ?=
+config       ?= ""
+_config      ?=
+
 # The linker options.
-LIBS          += -L$(TARGET_INSTALL_DIR)/libs \
-				-lrt -lio -lrt -lgcc
+LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \
+				-lrt -lrtio -lrt -lgcc
 
 LIBSFLAGS     += -nostartfiles -nostdlib
 
 # The options used in linking as well as in any direct use of ld.
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8.ld
 
-ifdef gvsoc
+ifeq ($(platform), gvsoc)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gvsoc.conf.ld
-else ifdef fpga
+else ifeq ($(platform), fpga)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/fpga.conf.ld
-else ifdef rtl
+else ifeq ($(platform), rtl)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/rtl.conf.ld
 else
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gapuino.conf.ld
@@ -27,7 +35,7 @@ RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__
 
 WRAP_FLAGS    = -Wl,--gc-sections
 
-GAP_FLAGS	 += -D__pulp__
+GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
@@ -43,7 +51,7 @@ TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wal
 
 # Final binary
 #------------------------------------------
-BUILDDIR      = $(shell pwd)/BUILD/GAP8/GCC_RISCV
+BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 
 BIN           = $(BUILDDIR)/test
 
@@ -51,10 +59,10 @@ T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_
 
 OBJECTS       = $(T_OBJECTS_C)
 
-INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/pulp-os/gap_config.h
+INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/$(TARGET_NAME)_config.h
 
-INC           = $(TARGET_INSTALL_DIR)/include/pulp-os \
-				$(TARGET_INSTALL_DIR)/include/pulp-os/io \
+INC           = $(TARGET_INSTALL_DIR)/include \
+				$(TARGET_INSTALL_DIR)/include/io \
 				$(INSTALL_DIR)/include
 
 INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
@@ -73,13 +81,27 @@ $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
 $(BIN): $(OBJECTS)
 	$(CC) -MMD -MP $(WRAP_FLAGS) $(PULP_CFLAGS) -o $(BIN) $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
-ifdef gvsoc
+ifeq ($(platform), gvsoc)
+
+ifneq ($(vcd), "")
+_vcd=-vcd
+endif
+
+ifneq ($(trace), "")
+_trace=-trace $(trace)
+endif
+
+ifneq ($(config), "")
+_config=-config ${CURDIR}/$(config)
+endif
+
 run::
-	$(INSTALL_DIR)/runner/run_gvsoc.sh
-else ifdef fpga
+	$(INSTALL_DIR)/runner/run_gvsoc.sh $(_config) $(_vcd) $(_trace)
+
+else ifeq ($(platform), fpga)
 run::
 	$(INSTALL_DIR)/runner/run_fpga.sh
-else ifdef rtl
+else ifeq ($(platform), rtl)
 run:: dir
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
@@ -94,6 +116,7 @@ gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 
 endif
+
 gui:: dir
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini

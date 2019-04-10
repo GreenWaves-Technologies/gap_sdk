@@ -61,11 +61,8 @@
 #endif
 
 
-#if defined(__riscv__) && !defined(__LLVM__) && !defined(RV_ISA_RV32)
 #include "archi/riscv/builtins_v2.h"
-#else
 #include "archi/riscv/builtins_v2_emu.h"
-#endif
 
 #define ARCHI_BINSERT(dst,src,size,off)  __BITINSERT(dst,src,size,off)
 #define ARCHI_BEXTRACTU(src,size,off)    __BITEXTRACTU(src,size,off)

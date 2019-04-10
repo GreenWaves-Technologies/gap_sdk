@@ -78,6 +78,6 @@ int main()
     for (int i=0; i<BUFF_SIZE; i++){
         if (i != buff[i]) err++;
     }
-    if(!err) printf("test success\n");
+    if(!err) printf("Test success\n");
     return err;
 }

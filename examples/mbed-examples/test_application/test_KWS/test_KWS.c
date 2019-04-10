@@ -145,7 +145,7 @@ int main() {
     int error = 0;
 
     /* Cluster Start - Power on */
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     // Allocate a buffer in the shared L1 memory
     L1_Memory = L1_Malloc(L1_Memory_SIZE);
@@ -217,5 +217,5 @@ int main() {
     /* Cluster Stop - Power down */
     CLUSTER_Stop(0);
 
-    return error;
+    exit(error);
 }

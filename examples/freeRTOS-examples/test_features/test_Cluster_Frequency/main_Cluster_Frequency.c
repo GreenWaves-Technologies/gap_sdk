@@ -77,7 +77,7 @@ void vTestClusterFreq( void *parameters )
     printf("%s executing Cluster Frequency test on Computing Cluster :\n\n", taskname);
 
     /* Cluster Start - Power on */
-    CLUSTER_Start( 0, NBCORES );
+    CLUSTER_Start( 0, NBCORES, 0 );
 
     for( uint32_t voltage = DCDC_DEFAULT_NV; voltage >= DCDC_DEFAULT_LV; voltage -= 100 )
     {

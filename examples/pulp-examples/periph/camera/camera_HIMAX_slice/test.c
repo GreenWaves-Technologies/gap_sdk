@@ -97,7 +97,8 @@ static void cam_param_conf(rt_cam_conf_t *conf){
     conf->shift = 0;
     conf->frameDrop_en = DISABLE;
     conf->frameDrop_value = 0;
-    conf->cpiCfg = UDMA_CHANNEL_CFG_SIZE_8;
+    conf->cpiCfg = UDMA_CHANNEL_CFG_SIZE_16;
+    conf->control_id = 1;
 }
 
 void testHimax_Full(){
@@ -143,7 +144,7 @@ int main()
     // free the memory of camera configuration structure
     rt_free(RT_ALLOC_FC_DATA, cam1_conf, sizeof(rt_cam_conf_t));
 
-    rt_bridge_connect(NULL);
+    rt_bridge_connect(1, NULL);
 
     //Init Camera Interface
     rt_cam_control(camera1, CMD_INIT, 0);

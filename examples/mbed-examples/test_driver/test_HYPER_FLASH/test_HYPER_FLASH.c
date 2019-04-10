@@ -29,10 +29,14 @@ GAP_L2_DATA  cmdSeq Reg_Seq     = {0x70, 0x555};
 GAP_L2_DATA  cmdSeq WB_Seq[4]   = {{0xAA, 0x555}, {0x55, 0x2AA}, {0x25, SA}, {BUFFER_SIZE - 1, SA}};
 GAP_L2_DATA  cmdSeq WP_Seq[3]   = {{0xAA, 0x555}, {0x55, 0x2AA}, {0xA0, 0x555}};
 GAP_L2_DATA  cmdSeq BPC_Seq     = {0x29, SA};
+GAP_L2_DATA  cmdSeq ID_Seq[3]   = {{0xAA, 0x555}, {0x55, 0x2AA}, {0x90, 0x555}};
+GAP_L2_DATA  cmdSeq ASO_Exit_Seq= {0xF0, 0};
 
 /* The high 16 bits for txHyperbusSamples is useless */
 GAP_L2_DATA  uint16_t txHyperbusSamples[BUFFER_SIZE];
 GAP_L2_DATA  uint16_t rxHyperbusSamples[BUFFER_SIZE];
+
+GAP_L2_DATA  uint32_t id_reg;
 
 uint16_t read_status(hyperbus_t *obj)
 {
@@ -46,6 +50,28 @@ uint16_t read_status(hyperbus_t *obj)
     #endif
 
     return status_reg;
+}
+
+uint32_t read_ID(hyperbus_t *obj)
+{
+    /* Read status register */
+    for (int i = 0; i < 3; i++)
+        hyperbus_write(obj, ID_Seq[i].addr << 1, ID_Seq[i].data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+
+    /*
+     * manufacturer ID = 0x0001
+     * Device       ID = 0x007e
+     */
+    hyperbus_block_read(obj, 0, &id_reg, 2 * sizeof(uint16_t), uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+
+    #ifdef HYPERBUS_DEBUG
+    printf("ID = 0x%x\n", id_reg);
+    #endif
+
+    /* Reset / ASO exit */
+    hyperbus_write(obj, ASO_Exit_Seq.addr << 1, ASO_Exit_Seq.data, uHYPERBUS_Mem_Access, uHYPERBUS_Flash);
+
+    return id_reg;
 }
 
 void conf_flash(hyperbus_t *obj)
@@ -127,6 +153,9 @@ int test_hyperbus()
 
     /* Configuration */
     conf_flash(&hyperbus0);
+
+    /* Read ID */
+    read_ID(&hyperbus0);
 
     /* Erase chip */
     erase_page_in_flash(&hyperbus0, SA);

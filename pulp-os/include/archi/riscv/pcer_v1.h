@@ -44,7 +44,7 @@
 #define CSR_PCER_APU_WB      20
 
 
-#define CSR_PCER_NB_EVENTS      17
+#define CSR_PCER_NB_EVENTS      16
 #define CSR_PCER_NB_INTERNAL_EVENTS    11
 #define CSR_NB_PCCR             31
 

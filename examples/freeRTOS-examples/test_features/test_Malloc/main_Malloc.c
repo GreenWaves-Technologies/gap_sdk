@@ -115,7 +115,7 @@ void vTestMalloc( void *parameters )
         FC_MallocFree( p, 2048 );
 
     /* Power On Computing Cluster. */
-    CLUSTER_Start( 0, 1 );
+    CLUSTER_Start( 0, 1, 0 );
 
     /* Sending tasks to Computing Cluster. */
     CLUSTER_SendTask( 0, Master_Entry, 0, 0 );

@@ -1,20 +1,13 @@
 #!/bin/bash
 
 # PARAMETERS TIME
+# TIME check interval
 TIME_INTERVAL=10
+# Expiration TIME variable
+EXPIRE_TIME=0
 
-
-if [ "$2" == "rtl" ]; then
-    EXPIRE_LIMIT=500
-elif [ "$2" == "gvsoc" ]; then
-    EXPIRE_LIMIT=50
-elif [ "$2" == "gapuino" ]; then
-    EXPIRE_LIMIT=50
-elif [ "$1" == "clean" ]; then
-    echo "Clean the tests!"
-else
-    echo "Please provide platform!"
-    exit 1
+if [ -z "$TARGET_CHIP"  ]; then
+    TARGET_CHIP=GAP8
 fi
 
 # VARIABLEs
@@ -22,8 +15,6 @@ TOTAL_TEST=0
 TEST_COMPILE=0
 TEST_SUCCESS=0
 TEST_FAILED=0
-
-EXPIRE_TIME=0
 
 # Report PATH
 REPORT_FILE_PATH="$(pwd)/report.log"
@@ -74,7 +65,7 @@ check_run() {
         sleep $TIME_INTERVAL;
 
         # grep -s --no-messages
-        if grep -cs "Test success"  $1/BUILD/GAP8/GCC_RISCV/transcript > /dev/null;
+        if grep -cs "Test success"  $1/BUILD/$TARGET_CHIP/GCC_RISCV/transcript > /dev/null;
         then
             # Test success
             TEST_SUCCESS=$((TEST_SUCCESS+1))
@@ -84,7 +75,7 @@ check_run() {
             echo "Test success..."
             break;
 
-        elif grep -cs "Test failed"  $1/BUILD/GAP8/GCC_RISCV/transcript  > /dev/null;
+        elif grep -cs "Test failed"  $1/BUILD/$TARGET_CHIP/GCC_RISCV/transcript  > /dev/null;
         then
             # Test failed
             TEST_FAILED=$((TEST_FAILED+1))
@@ -98,7 +89,7 @@ check_run() {
             # Accumulate expire time, add TIME_INTERVAL seconds every time
             EXPIRE_TIME=$((EXPIRE_TIME+$TIME_INTERVAL))
 
-            if [ $EXPIRE_TIME -gt $EXPIRE_LIMIT ]; then
+            if [ $EXPIRE_TIME -gt $TIMEOUT ]; then
                 # Test failed
                 TEST_FAILED=$((TEST_FAILED+1))
                 # Record run failed path
@@ -117,7 +108,7 @@ check_run() {
 }
 
 
-for t in $(find "$(pwd)" -name testset.ini);
+for t in $(find -L "$PWD" -type d -name "BUILD" -prune -o -type f -name testset.ini -print);
 do
     if [ $1 == "clean" ]; then
         cd  $(dirname $t) && make clean;
@@ -130,27 +121,38 @@ do
             # Reset expire time for each test
             EXPIRE_TIME=0
 
+            cd  $(dirname $t)
+
+            # Get timeout for each test
+            TIMEOUT=$(grep -r timeout | grep -o -E '[0-9]+')
+
             # Compilation check or run check
             if [ $1 == "compile" ]; then
                 # Do compilation, then check the result of compilation
-                cd  $(dirname $t) && rtl=true make clean all;
+                make clean all platform=rtl;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $? ;
 
             elif [ $1 == "run" ]; then
+                # Do compilation, then check the result of compilation
+                make all platform=rtl;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
                 # Do run, then check the result of run
-                cd  $(dirname $t) && rtl=true make run & check_run $(dirname $t);
+                make run platform=rtl& check_run $(dirname $t);
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && rtl=true make clean all;
+                make clean all platform=rtl;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $?;
 
                 # Check the result of run
-                rtl=true make run & check_run $(dirname $t);
+                make run platform=rtl& check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -170,27 +172,38 @@ do
             # Reset expire time for each test
             EXPIRE_TIME=0
 
+            cd  $(dirname $t)
+
+            # Get timeout for each test
+            TIMEOUT=60
+
             # Compilation check or run check
             if [ $1 == "compile" ]; then
                 # Do compilation, then check the result of compilation
-                cd  $(dirname $t) && gvsoc=true make clean all;
+                make clean all platform=gvsoc;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $?;
 
             elif [ $1 == "run" ]; then
+                # Do compilation, then check the result of compilation
+                make all platform=gvsoc;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
                 # Do run, then check the result of run
-                cd  $(dirname $t) && gvsoc=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_run $(dirname $t);
+                make run platform=gvsoc| tee ./BUILD/$TARGET_CHIP/GCC_RISCV/transcript & check_run $(dirname $t);
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && gvsoc=true make clean all;
+                make clean all platform=gvsoc;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $?;
 
                 # Check the result of run
-                (gvsoc=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_run $(dirname $t);
+                (make run platform=gvsoc| tee ./BUILD/$TARGET_CHIP/GCC_RISCV/transcript) & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -210,27 +223,38 @@ do
             # Reset expire time for each test
             EXPIRE_TIME=0
 
+            cd  $(dirname $t)
+
+            # Get timeout for each test
+            TIMEOUT=60
+
             # Compilation check or run check
             if [ $1 == "compile" ]; then
                 # Do compilation, then check the result of compilation
-                cd  $(dirname $t) && gapuino=true make clean all;
+                gapuino=true make clean all;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $?;
 
             elif [ $1 == "run" ]; then
+                # Do compilation, then check the result of compilation
+                gapuino=true make all;
+
+                # Test the return value - 0 is success, others are failed
+                check_compile $?;
+
                 # Do run, then check the result of run
-                cd  $(dirname $t) && gapuino=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript & check_run $(dirname $t);
+                gapuino=true make run | tee ./BUILD/$TARGET_CHIP/GCC_RISCV/transcript & check_run $(dirname $t);
 
             elif [ $1 == "compile_and_run" ]; then
                 # Do compilation and run, then check the result of compilation and check the result of run
-                cd  $(dirname $t) && gapuino=true make clean all;
+                gapuino=true make clean all;
 
                 # Test the return value - 0 is success, others are failed
                 check_compile $?;
 
                 # Check the result of run
-                (gapuino=true make run | tee ./BUILD/GAP8/GCC_RISCV/transcript) & check_run $(dirname $t);
+                (gapuino=true make run | tee ./BUILD/$TARGET_CHIP/GCC_RISCV/transcript) & check_run $(dirname $t);
 
             elif [ $1 == "list" ]; then
                 # List all the test, according the testset.ini
@@ -253,7 +277,7 @@ fi
 
 echo "############################################"         | tee -a $REPORT_FILE_PATH
 echo "Test total           number : $TOTAL_TEST"            | tee -a $REPORT_FILE_PATH
-echo "Test copmile success number : $TEST_COMPILE"          | tee -a $REPORT_FILE_PATH
+echo "Test compile success number : $TEST_COMPILE"          | tee -a $REPORT_FILE_PATH
 echo "Test success         number : $TEST_SUCCESS"          | tee -a $REPORT_FILE_PATH
 echo "Test failed          number : $TEST_FAILED"           | tee -a $REPORT_FILE_PATH
 echo "############################################"         | tee -a $REPORT_FILE_PATH

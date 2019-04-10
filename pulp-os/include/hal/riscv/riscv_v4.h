@@ -139,11 +139,13 @@ static inline unsigned int hal_cluster_id() {
   //return __builtin_pulp_ClusterId();
 }
 
-extern unsigned char __FC;
-extern unsigned char __ZERO;
 // TODO replace by compiler builtin
 static inline __attribute__((always_inline)) unsigned int hal_has_fc() {
-  return (unsigned int)&__FC != (unsigned int)&__ZERO;
+#ifdef ARCHI_HAS_FC
+  return 1;
+#else
+  return 0;
+#endif
 }
 
 static inline __attribute__((always_inline)) unsigned int hal_is_fc() {
@@ -378,6 +380,27 @@ static inline const char *cpu_perf_name(int event) {
     }
   return (char *)0;
 }
+
+
+
+/*
+ * Stack checking
+ */
+
+static inline void cpu_stack_check_enable(unsigned int base, unsigned int end)
+{
+  asm volatile ("csrwi 0x7B0, 0" :: );
+  asm volatile ("csrw 0x7B1, %0" :: "r" (base));
+  asm volatile ("csrw 0x7B2, %0" :: "r" (end));
+  asm volatile ("csrwi 0x7B0, 1" :: );
+}
+
+static inline void cpu_stack_check_disable()
+{
+  asm volatile ("csrwi 0x7A00, 0" :: );
+}
+
+
 
 #if !defined(RV_ISA_RV32)
 

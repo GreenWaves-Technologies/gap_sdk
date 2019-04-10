@@ -26,6 +26,7 @@
 
 #define ARCHI_CLUSTER_CTRL_EOC                      0x0
 #define ARCHI_CLUSTER_CTRL_FETCH_EN                 0x8
+#define ARCHI_CLUSTER_CTRL_EVENT                    0x10
 #define ARCHI_CLUSTER_CTRL_CLUSTER_CFG              0x18
 #define ARCHI_CLUSTER_CTRL_CLUSTER_CLK_GATE         0x20
 #define ARCHI_CLUSTER_CTRL_DBG_STATUS               0x28

@@ -23,7 +23,8 @@ FLAG_FLASH=0
 FLAG_BOOT=0
 
 #Parameters of bridge
-verbose=0
+verbose=1
+fileio=0
 cable=ftdi@digilent
 boot_mode=jtag
 gdb=""
@@ -35,7 +36,8 @@ buildFlashImage=""
 
 if [ "$#" -eq 0 ]
 then
-    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start wait
+    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start wait &
+    pid_bridge=$!
 else
     while [ "$#" -gt 0 ]
     do
@@ -43,8 +45,7 @@ else
             #Mode using the script
             -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
                 cp $here/$script_filename .
-                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=gap --script=$2 load $ioloop $reqloop start script wait
-                exit
+                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=gap load $ioloop $reqloop start script --script=$2
                 ;;
             #Mode using gdb
             -gdb)
@@ -67,6 +68,16 @@ else
                 binary=""
                 boot_mode=jtag_hyper
                 ;;
+            -fileIO)
+                if [ "$#" -gt 1 ]
+                then
+                    shift
+                    fileio=$1
+                else
+                    fileio=2
+                fi
+
+                ;;
             *)
                 if [ "$FLAG_FLASH" -eq "1" ]
                 then
@@ -83,7 +94,13 @@ else
         eval $buildFlashImage
         plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=gap flash wait
     fi
-    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start $gdb wait
+    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=gap load $ioloop $reqloop start $gdb wait &
+    pid_bridge=$!
 
 fi
-
+if [ "$fileio" -gt 0 ]
+then
+    sleep $fileio
+    plpbridge-rt --verbose=$verbose $binary --chip=gap&
+fi
+wait $pid_bridge

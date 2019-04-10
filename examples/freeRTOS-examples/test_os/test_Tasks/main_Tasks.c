@@ -7,10 +7,8 @@
 /****************************************************************************/
 
 /* Test task to test FreeRTOS port. */
-void vTaskTestStatic( void *parameters );
-void vTaskTestDynamic( void *parameters );
-void vTaskTestDynamic2( void *parameters );
-void vTaskTestCleaner( void *parameters );
+void vTaskTest0( void *parameters );
+void vTaskTest1( void *parameters );
 
 /* Utilities to control tasks. */
 TaskHandle_t tasks[NBTASKS+3];
@@ -25,7 +23,7 @@ StackType_t xStack[ configMINIMAL_STACK_SIZE * 2 ];
 /****************************************************************************/
 
 /* Variables used. */
-uint8_t taskStatic = 0, taskDynamic = 0, taskDynamic2 = 0, resumeStatic = 0;
+volatile uint8_t task0 = 0, task1 = 0, task2 = 0, resumeTask0 = 1;
 
 /****************************************************************************/
 
@@ -35,77 +33,49 @@ int main( void )
     printf("\n\n\t *** Tasks Test ***\n\n");
 
     #if configSUPPORT_STATIC_ALLOCATION == 1
-    TaskHandle_t xHandleStatic = NULL;
-
-    xHandleStatic = xTaskCreateStatic(
-        vTaskTestStatic,
-        "Thread0",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        xStack,
-        &xTaskBuffer
-        );
-    if( xHandleStatic == NULL )
+    TaskHandle_t xHandler0 = NULL;
+    xHandler0 = xTaskCreateStatic( vTaskTest0, "Thread0", configMINIMAL_STACK_SIZE * 2,
+                                   ( void * ) 10, tskIDLE_PRIORITY + 1, xStack, &xTaskBuffer );
+    if( xHandler0 == NULL )
     {
         printf("Thread0 is NULL !\n");
-        exit(0);
+        return 0;
     }
     #endif //configSUPPORT_STATIC_ALLOCATION
 
-
     #if configSUPPORT_DYNAMIC_ALLOCATION == 1
-    BaseType_t xTask, xTask2, xTaskCleaner;
-    TaskHandle_t xHandleDynamic = NULL, xHandleDynamic2 = NULL, xHandleCleaner = NULL;
+    BaseType_t xTask;
+    TaskHandle_t xHandler1 = NULL, xHandler2 = NULL, xHandler3 = NULL;
 
-    xTask = xTaskCreate(
-        vTaskTestDynamic,
-        "Thread1",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        &xHandleDynamic
-        );
+    xTask = xTaskCreate( vTaskTest0, "Thread1", configMINIMAL_STACK_SIZE * 2,
+                         ( void * ) 20, tskIDLE_PRIORITY + 1, &xHandler1 );
     if( xTask != pdPASS )
     {
         printf("Thread1 is NULL !\n");
-        exit(0);
+        return 0;
     }
 
-    xTask2 = xTaskCreate(
-        vTaskTestDynamic2,
-        "Thread2",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        &xHandleDynamic2
-        );
-    if( xTask2 != pdPASS )
+    xTask = xTaskCreate( vTaskTest0, "Thread2", configMINIMAL_STACK_SIZE * 2,
+                         ( void * ) 30, tskIDLE_PRIORITY + 1, &xHandler2 );
+    if( xTask != pdPASS )
     {
         printf("Thread2 is NULL !\n");
-        exit(0);
+        return 0;
     }
 
-    xTaskCleaner = xTaskCreate(
-        vTaskTestCleaner,
-        "ThreadCleaner",
-        configMINIMAL_STACK_SIZE * 2,
-        NULL,
-        tskIDLE_PRIORITY + 1,
-        &xHandleCleaner
-        );
-    if( xTaskCleaner != pdPASS )
+    xTask = xTaskCreate( vTaskTest1, "Thread3", configMINIMAL_STACK_SIZE * 2,
+                         NULL, tskIDLE_PRIORITY + 1, &xHandler3 );
+    if( xTask != pdPASS )
     {
-        printf("Thread Cleaner is NULL !\n");
-        exit(0);
+        printf("Thread3 is NULL !\n");
+        return 0;
     }
-
     #endif //configSUPPORT_DYNAMIC_ALLOCATION
 
-    tasks[0] = xHandleStatic;
-    tasks[1] = xHandleDynamic;
-    tasks[2] = xHandleDynamic2;
-    tasks[3] = xHandleCleaner;
+    tasks[0] = xHandler0;
+    tasks[1] = xHandler1;
+    tasks[2] = xHandler2;
+    tasks[3] = xHandler3;
 
     /* Start the kernel.  From here on, only tasks and interrupts will run. */
     printf("\nScheduler starts !\n");
@@ -116,104 +86,76 @@ int main( void )
 }
 /*-----------------------------------------------------------*/
 
-void vTaskTestStatic( void *parameters )
+void vTaskTest0( void *parameters )
 {
-    ( void ) parameters;
     char *taskname = pcTaskGetName( NULL );
-    uint32_t pid = 0, cid = 0;
-    int32_t loop = 0;
-    for(;;)
+    uint32_t pid = 0, cid = 0, mepc = 0;
+    uint32_t loop = ( uint32_t ) parameters;
+    for( uint32_t i = 0; i < loop; i += 2 )
     {
-        loop -= 1;
+
+        asm volatile("csrr %0, mepc":"=r"(mepc));
+        //printf("MEPC %x\n", mepc);
+        printf("%s : %d\t TICK = %d\t ProcID = %d\t ClusterID = %d\n",
+        taskname, i, xTaskGetTickCount(), pid, cid);
+        #if configUSE_PREEMPTION == 0
+        taskYIELD();
+        #endif
+    }
+    #if 0
+    for( uint32_t i = 0; i < loop; i += 2 )
+    {
         pid = procid();
         cid = clusterid();
         printf("%s : %d\t TICK = %d\t ProcID = %d\t ClusterID = %d\n",
-               taskname, loop, xTaskGetTickCount(), pid, cid);
-        taskStatic = 1;
+        taskname, i, xTaskGetTickCount(), pid, cid);
         #if configUSE_PREEMPTION == 0
         taskYIELD();
         #endif
     }
-}
-/*-----------------------------------------------------------*/
-
-void vTaskTestDynamic( void *parameters )
-{
-    ( void ) parameters;
-    char *taskname = pcTaskGetName( NULL );
-    uint32_t loop = 0;
-    for(;;)
+    printf("%s suspending.\n", taskname);
+    vTaskSuspend( NULL );
+    printf("%s resumed.\n", taskname);
+    for( uint32_t i = 0; i < loop; i++ )
     {
-        loop += 1;
-        printf("%s : %d\t TICK = %d\n", taskname, loop, xTaskGetTickCount());
-        if( loop >= 15 )
-        {
-            printf("|->%s resuming %s and suicide.\n",
-                   taskname, pcTaskGetName( tasks[0] ));
-            vTaskResume( tasks[0] );
-            taskDynamic = 1;
-            vTaskSuspend( NULL );
-        }
+        pid = procid();
+        cid = clusterid();
+        printf("%s : %d\t TICK = %d\t ProcID = %d\t ClusterID = %d\n",
+        taskname, i, xTaskGetTickCount(), pid, cid);
         #if configUSE_PREEMPTION == 0
         taskYIELD();
         #endif
     }
+    #endif
+    printf("%s suspending again.\n", taskname);
+    vTaskSuspend( NULL );
 }
 /*-----------------------------------------------------------*/
 
-void vTaskTestDynamic2( void *parameters )
-{
-    ( void ) parameters;
-    char *taskname = pcTaskGetName( NULL );
-    uint32_t loop = 0, delay = 10;
-    for(;;)
-    {
-        loop += 5;
-        printf("%s : %d\t TICK = %d\n", taskname, loop, xTaskGetTickCount());
-        if( loop == 15 )
-        {
-            printf("%s delaying at Tick = %d for %d ms !\n\n",
-                   taskname, xTaskGetTickCount(), delay);
-            vTaskDelay( pdMS_TO_TICKS( delay ) );
-            printf("%s is coming back at Tick = %d!\n",
-                   taskname, xTaskGetTickCount());
-        }
-        if( loop >= 100 )
-        {
-            printf("|->%s suspending.\n", taskname);
-            taskDynamic2 = 1;
-            vTaskSuspend( NULL );
-        }
-        #if configUSE_PREEMPTION == 0
-        taskYIELD();
-        #endif
-    }
-}
-/*-----------------------------------------------------------*/
-
-void vTaskTestCleaner( void *parameters )
+void vTaskTest1( void *parameters )
 {
     ( void ) parameters;
     char *taskname = pcTaskGetName( NULL );
     for(;;)
     {
         printf("%s \t TICK = %d\n", taskname, xTaskGetTickCount());
-
-        if( taskStatic )
+        #if 1
+        if( ( eTaskGetState( tasks[0] ) == eSuspended ) && resumeTask0 )
         {
-            printf("Suspending %s\n\n", pcTaskGetName( tasks[0] ));
-            vTaskSuspend( tasks[0] );
-            taskStatic = 0;
+            printf("%s resuming %s\n", taskname, pcTaskGetName( tasks[0] ));
+            resumeTask0 = 0;
+            vTaskResume( tasks[0] );
         }
 
-        if( taskDynamic && taskDynamic2 )
+        if( ( ( eTaskGetState( tasks[0] ) == eSuspended ) || ( eTaskGetState( tasks[0] ) == eDeleted ) ) &&
+        ( ( eTaskGetState( tasks[1] ) == eSuspended ) || ( eTaskGetState( tasks[1] ) == eDeleted ) ) &&
+        ( ( eTaskGetState( tasks[2] ) == eSuspended ) || ( eTaskGetState( tasks[2] ) == eDeleted ) ) )
         {
-            printf("|->%s self deleting and deleting task %s\n",
-                   taskname, pcTaskGetName( tasks[0] ));
-            vTaskSuspend( tasks[0] );
+            printf("%s all tasks suspended, exiting...\n", taskname);
             printf("Test success\n");
-            vTaskDelete( NULL );
+            vTaskSuspend( NULL );
         }
+        #endif
         #if configUSE_PREEMPTION == 0
         taskYIELD();
         #endif

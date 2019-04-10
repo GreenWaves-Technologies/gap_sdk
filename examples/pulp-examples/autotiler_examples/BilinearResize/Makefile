@@ -30,6 +30,8 @@ PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 # in a clean way.
 PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 
+PLPBRIDGE_FLAGS += -fileIO 5
+
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
 all:: model

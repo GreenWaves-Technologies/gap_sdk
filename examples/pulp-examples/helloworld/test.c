@@ -14,6 +14,9 @@
 #define CID             0
 
 unsigned int done = 0;
+#ifdef PRINTF_UART
+unsigned int __rt_iodev=RT_IODEV_UART;
+#endif
 
 static void hello(void *arg)
 {

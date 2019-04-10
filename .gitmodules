@@ -19,3 +19,18 @@
 [submodule "tools/autotiler"]
 	path = tools/autotiler
 	url = https://github.com/GreenWaves-Technologies/autotiler.git
+[submodule "gvsoc/dpi-models"]
+	path = gvsoc/dpi-models
+	url = https://github.com/pulp-platform/dpi-models.git
+[submodule "gvsoc/runner"]
+	path = gvsoc/runner
+	url = https://github.com/pulp-platform/runner.git
+[submodule "gvsoc/gvsoc"]
+	path = gvsoc/gvsoc
+	url = https://github.com/pulp-platform/gvsoc.git
+[submodule "benchmarks"]
+	path = benchmarks
+	url = https://github.com/GreenWaves-Technologies/benchmarks.git
+[submodule "pulp-os/pulp-rt"]
+	path = pulp-os/pulp-rt
+	url = https://github.com/pulp-platform/pulp-rt.git

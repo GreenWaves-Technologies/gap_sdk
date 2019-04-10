@@ -173,7 +173,7 @@ int main()
 {
 
   //char *ImageName = "../../../136.pgm";
-  char *ImageName = "../../../test_img/4/1301.pgm";
+  char *ImageName = "../../../test_img/4/1230.pgm";
   unsigned int Wi, Hi;
 
   //Input image size
@@ -188,7 +188,8 @@ int main()
   if (rt_event_alloc(NULL, 8)) return -1;
 
   //To use file IO system
-  rt_bridge_connect(NULL);
+  rt_bridge_connect(1, NULL);
+  printf ("Bridge connected\n");
 
   //Allocating input and output image buffers in L2 memory
   ImageIn_real  = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned char));

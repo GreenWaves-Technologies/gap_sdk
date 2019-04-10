@@ -46,7 +46,7 @@ int main()
     printf("Fabric controller code execution for mbed_os Fir test\n");
 
     // Switch on the cluster
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     // Allocate the necessary memory areas in shared L1
     FIR_L1_Memory = L1_Malloc(_FIR_L1_Memory_SIZE);

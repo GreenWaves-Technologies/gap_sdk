@@ -25,7 +25,7 @@
 #include "hal/udma/udma_v2.h"
 #include "hal/cluster_ctrl/cluster_ctrl_v2.h"
 #include "hal/icache/icache_ctrl_v2.h"
-#include "hal/apb_soc/apb_soc_v2.h"
+#include "hal/chips/gap/apb_soc.h"
 #include "hal/maestro/pmu_v1.h"
 #include "hal/rom/rom_v2.h"
 #include "hal/fll/fll_v1.h"
@@ -33,8 +33,8 @@
 #include "hal/chips/gap/efuse.h"
 #include "hal/hwce/hwce_v4.h"
 #include "hal/vendors/dolphin/rtc.h"
+#include "hal/pwm/pwm_v1.h"
 #include "hal/gpio/gpio_v2.h"
-#include "hal/pwm/pwm.h"
 
 #include "hal/udma/cpi/udma_cpi_v1.h"
 #include "hal/udma/hyper/udma_hyper_v1.h"

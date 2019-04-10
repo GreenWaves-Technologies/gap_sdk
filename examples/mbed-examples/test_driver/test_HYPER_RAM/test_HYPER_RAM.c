@@ -10,9 +10,6 @@
 GAP_L2_DATA  uint8_t txHyperbusSamples[BUFFER_SIZE];
 GAP_L2_DATA  uint8_t rxHyperbusSamples[BUFFER_SIZE];
 
-#define   ID0  0x0
-#define   ID1  0x1
-
 /*
  * CA bits     47    46    45    44-40  |  39-32  |  31-24  |  23-16  |  15-8  |  7-0
  *
@@ -27,15 +24,18 @@ GAP_L2_DATA  uint8_t rxHyperbusSamples[BUFFER_SIZE];
  * CA[2-0]    => ADDR[2-0]
  */
 
+/* Identification Register 0 */
+#define   ID0    0x0000
+/* Identification Register 1 */
+#define   ID1    0x0002
+
 /* Configuration Register 0 */
 #define   CR0    0x1000
 /* Configuration Register 1 */
-#define   CR1    0x1001
+#define   CR1    0x1002
 
-int main()
+int test_hyper(int frequency)
 {
-    printf("Fabric controller code execution for mbed_os HYPERBUS RAM driver test\n");
-
     int error = 0;
     /* Default is 6 Clock Lateny */
     /*
@@ -67,6 +67,8 @@ int main()
     for (int i = 0; i< BUFFER_SIZE; i++)
         txHyperbusSamples[i] = i;
 
+    hyperbus_frequency(&hyperbus0, frequency);
+
     /* Write RAM */
     hyperbus_block_write(&hyperbus0, RXTX_ADDR, (uint32_t *) txHyperbusSamples, BUFFER_SIZE, uHYPERBUS_Mem_Access, uHYPERBUS_Ram);
 
@@ -76,15 +78,15 @@ int main()
     for (int k = 0; k < BUFFER_SIZE; k++)
     {
         if((rxHyperbusSamples[k] % 256) != (unsigned char)(k)) error++;
-        #ifdef HYPERBUS_DEBUG
-        printf("RX_ DATA[%d] = 0x%02x\n", k, rxHyperbusSamples[k]);
-        #endif
+#ifdef HYPERBUS_DEBUG
+        printf("RX_DATA[%d] = 0x%02x\n", k, rxHyperbusSamples[k]);
+#endif
     }
 
     /* Read RAM register */
     uint16_t config_reg = hyperbus_read(&hyperbus0, CR0, uHYPERBUS_Reg_Access, uHYPERBUS_Ram);
 
-    if(config_reg != (CONF_REG_DEFAULT & (0xFF0F | (latency << 4)))) error++;
+    if(config_reg != CONF_REG_DEFAULT) error++;
     printf("Read CR0 6 clock lateny = 0x%02x\n", config_reg);
 
     /* Write RAM register to change latenny to 5 clock */
@@ -93,6 +95,8 @@ int main()
 
     /* Read RAM register */
     config_reg = hyperbus_read(&hyperbus0, CR0, uHYPERBUS_Reg_Access, uHYPERBUS_Ram);
+    if(config_reg != (CONF_REG_DEFAULT & 0xFF0F)) error++;
+
     printf("Read CR0 5 clock lateny = 0x%02x\n", config_reg);
 
     /* Write RAM register to change latenny back to 6 clock */
@@ -103,27 +107,27 @@ int main()
     /* Release hyperbus driver */
     hyperbus_free(&hyperbus0);
 
+    return error;
+}
 
-    printf("clk  = %d \n", HYPERBUS_CLK);
-    printf("clkn = %d \n", HYPERBUS_CLKN);
-    printf("rwds = %d \n", HYPERBUS_RWDS);
-    printf("dq0  = %d \n", HYPERBUS_DQ0);
-    printf("dq1  = %d \n", HYPERBUS_DQ1);
-    printf("dq2  = %d \n", HYPERBUS_DQ2);
-    printf("dq3  = %d \n", HYPERBUS_DQ3);
-    printf("dq4  = %d \n", HYPERBUS_DQ4);
-    printf("dq5  = %d \n", HYPERBUS_DQ5);
-    printf("dq6  = %d \n", HYPERBUS_DQ6);
-    printf("dq7  = %d \n", HYPERBUS_DQ7);
 
-    if (error)
+int main()
+{
+    printf("Fabric controller code execution for mbed_os HYPERBUS RAM driver test\n");
+
+    int error = 0;
+
+    for (int i = 0; i < 3; i++)
     {
-        printf("Test failed\n");
-        return -1;
+        error = test_hyper((i + 1) * 15000000);
+
+        if (error) {
+            printf("Test failed with %d errors\n", error);
+            return error;
+        }
     }
-    else
-    {
-        printf("Test success\n");
-        return 0;
-    }
+
+    printf("Test success\n");
+
+    return 0;
 }

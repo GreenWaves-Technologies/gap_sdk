@@ -19,6 +19,36 @@
 
 #include "archi/gpio/gpio_v2.h"
 
+
+static inline uint32_t gpio_padcfg_get(int group)
+{
+  return IP_READ(ARCHI_SOC_PERIPHERALS_ADDR + ARCHI_GPIO_OFFSET, ARCHI_GPIO_PADCFG(group));
+}
+
+static inline void gpio_padcfg_set(int group, uint32_t value)
+{
+  IP_WRITE(ARCHI_SOC_PERIPHERALS_ADDR + ARCHI_GPIO_OFFSET, ARCHI_GPIO_PADCFG(group), value);
+}
+
+static inline void gpio_padcfg_strength_pin_set(int gpio, unsigned int val)
+{
+  int reg_id = ARCHI_GPIO_PADCFG_REG(gpio);
+  int group = ARCHI_GPIO_PADCFG_GROUP(gpio);
+  gpio_reg_padcfg_t reg = { .raw=gpio_padcfg_get(reg_id) };
+  reg.pin[group].strength = val;
+  gpio_padcfg_set(reg_id, reg.raw);
+}
+
+static inline void gpio_padcfg_pull_pin_set(int gpio, unsigned int val)
+{
+  int reg_id = ARCHI_GPIO_PADCFG_REG(gpio);
+  int group = ARCHI_GPIO_PADCFG_GROUP(gpio);
+  gpio_reg_padcfg_t reg = { .raw=gpio_padcfg_get(reg_id) };
+  reg.pin[group].pull = val;
+  gpio_padcfg_set(reg_id, reg.raw);
+}
+
+
 static inline void hal_gpio_paddir_set(unsigned int value)
 {
   pulp_write32(ARCHI_GPIO_ADDR + ARCHI_GPIO_PADDIR, value);

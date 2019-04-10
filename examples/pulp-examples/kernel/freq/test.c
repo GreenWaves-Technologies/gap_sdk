@@ -15,7 +15,7 @@ static int do_dummy_loop(int iter)
   for (i=0; i<iter; i++);
 
   rt_perf_stop(&perf);
-  
+
   return rt_perf_read(RT_PERF_ACTIVE_CYCLES);
 }
 
@@ -23,7 +23,7 @@ static int do_dummy_loop(int iter)
 
 static void cluster_entry(void *arg)
 {
-  *(int *)arg = do_dummy_loop(DUMMY_LOOP_COUNT * *(unsigned int *)arg);  
+  *(int *)arg = do_dummy_loop(DUMMY_LOOP_COUNT * *(unsigned int *)arg);
 }
 
 
@@ -88,7 +88,7 @@ int main()
 
   rt_cluster_mount(1, 0, 0, NULL);
 
-  int cl_freqs[] = {1000000, 2000000, 5000000, 10000000, 20000000, 50000000, 100000000, 150000000, 200000000, 250000000, 300000000};
+  int cl_freqs[] = {10000000, 20000000, 50000000, 100000000, 150000000, 200000000, 250000000, 300000000};
 
   for (int i=0; i<sizeof(cl_freqs)/sizeof(int); i++)
   {
@@ -101,7 +101,7 @@ int main()
   printf("\n");
   printf("FC frequency test\n");
 
-  int fc_freqs[] = {1000000, 2000000, 5000000, 10000000, 20000000, 50000000, 100000000, 150000000, 200000000, 250000000, 300000000};
+  int fc_freqs[] = {10000000, 20000000, 50000000, 100000000, 150000000, 200000000, 250000000, 300000000};
 
   for (int i=0; i<sizeof(fc_freqs)/sizeof(int); i++)
   {
@@ -109,5 +109,6 @@ int main()
       return -1;
   }
 
+  printf("Test success\n");
   return 0;
 }

@@ -17,6 +17,8 @@
 #ifndef __ARCHI_GPIO_GPIO_V2_H__
 #define __ARCHI_GPIO_GPIO_V2_H__
 
+#include "archi/gpio/gpio_v2_new.h"
+
 #define ARCHI_GPIO_PADDIR    0x0    // Direction		i:0..31, GPIOi => Bit[i] = 1 Output, Bit[i] = 0 Input (Default)
 #define ARCHI_GPIO_PADIN     0x4    // i:0..31, Bit[i] Received bit from GPIOi
 #define ARCHI_GPIO_PADOUT    0x8    // i:0..31, Bit[i] Bit to transmit through GPIOi
@@ -29,6 +31,15 @@
                                   // = 11 Raising the falling edge	on GPIOi+16
 #define ARCHI_GPIO_INTSTATUS 0x18   // Interrupt Status	i:0..31, Bit[i]=1 Event received for GPIOi, bit is cleared when readen
 #define ARCHI_GPIO_EN        0x1C
+
+#define ARCHI_GPIO_PADCFG0   0x20
+#define ARCHI_GPIO_PADCFG1   0x24
+#define ARCHI_GPIO_PADCFG2   0x28
+#define ARCHI_GPIO_PADCFG3   0x2C
+#define ARCHI_GPIO_PADCFG4   0x30
+#define ARCHI_GPIO_PADCFG5   0x34
+#define ARCHI_GPIO_PADCFG6   0x38
+#define ARCHI_GPIO_PADCFG7   0x3C
 
 
 #define ARCHI_GPIO_PADDIR_IN  0
@@ -45,5 +56,32 @@
 #define ARCHI_GPIO_INTTYPE_BIT(pad)      (((pad) & 0xF) << 1)
 #define ARCHI_GPIO_INTTYPE_GET(gpio,value) (((value) >> ARCHI_GPIO_INTTYPE_BIT(gpio)) & ((1<<ARCHI_GPIO_INTTYPE_SIZE) - 1))
 
+#define ARCHI_GPIO_PADCFG_PIN_WIDTH  8
+
+#define ARCHI_GPIO_PADCFG_PULL_BIT   0
+#define ARCHI_GPIO_PADCFG_PULL_WIDTH 1
+
+#define ARCHI_GPIO_PADCFG_STRENGTH_BIT   1
+#define ARCHI_GPIO_PADCFG_STRENGTH_WIDTH 1
+
+#define ARCHI_GPIO_PADCFG(id)           (ARCHI_GPIO_PADCFG0 + (id)*4)
+#define ARCHI_GPIO_PADCFG_REG(gpio)      ((gpio) >> 2)
+#define ARCHI_GPIO_PADCFG_GROUP(gpio)    ((gpio) & ((1<<2)-1))
+
+
+#ifndef LANGUAGE_ASSEMBLY
+
+typedef struct {
+  int pull:1;
+  int strength:1;
+  int reserved:6;
+} __attribute__((packed)) gpio_padcfg_group_t;
+
+typedef union {
+  gpio_padcfg_group_t  pin[4];
+  uint32_t raw;
+} __attribute__((packed)) gpio_reg_padcfg_t;
+
+#endif
 
 #endif

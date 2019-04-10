@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     printf ("Start of application\n");
 
     // Switch on the cluster
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     // Allocate the predetermined memory size in the shared L1 memory that the cluster can act on
     L1_Memory = L1_Malloc(L1_MEMORY_SIZE);

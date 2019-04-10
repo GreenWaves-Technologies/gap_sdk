@@ -53,8 +53,8 @@
 #define PMU_DCDC_CONFIG_REG     (ARCHI_APB_SOC_CTRL_ADDR + PMU_DCDC_CONFIG_OFFSET)
 
 /* PMU bypass for cluster ON/OFF control */
-#define PMU_BYPASS_OFFSET     0x70
-#define PMU_BYPASS_REG        (ARCHI_APB_SOC_CTRL_ADDR + PMU_BYPASS_OFFSET)
+#define APB_SOC_CL_BYPASS_OFFSET     0x70
+#define PMU_BYPASS_REG        (ARCHI_APB_SOC_CTRL_ADDR + APB_SOC_CL_BYPASS_OFFSET)
 
 /* Retention control, 0x1A103104. Aliased at 0x1A10007C */
 #define PMU_RETENTION_CONFIG_OFFSET   0x104
@@ -254,11 +254,11 @@ typedef union {
 extern PMU_RetentionStateT PMURetentionState;
 
 static inline void PMU_ResetCluster(unsigned int Value) {
-  unsigned int Val = IP_READ(ARCHI_APB_SOC_CTRL_ADDR, PMU_BYPASS_OFFSET);
+  unsigned int Val = IP_READ(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET);
   PMU_BypassT ByPass;
   ByPass.Raw = Val;
   ByPass.Fields.ClusterReset = Value;
-  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, PMU_BYPASS_OFFSET, ByPass.Raw);
+  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET, ByPass.Raw);
   // __builtin_pulp_OffsetedWrite(Value, (int *) APB_SOC_CTRL_ADDR, PMU_CLUSTER_RESET_OFFSET);
 }
 
@@ -267,11 +267,11 @@ static inline void PMU_IsolateCluster(unsigned int Value) {
 }
 
 static inline unsigned int GetPMUBypass() {
-  return IP_READ(ARCHI_APB_SOC_CTRL_ADDR, PMU_BYPASS_OFFSET);
+  return IP_READ(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET);
 }
 
 static inline void SetPMUBypass(unsigned int Value) {
-  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, PMU_BYPASS_OFFSET, Value);
+  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET, Value);
 }
 
 static inline unsigned int GetRetentiveState() {
@@ -300,11 +300,11 @@ static inline void SetDCDCSetting(unsigned int Value) {
 
 
 static inline void hal_pmu_bypass_set(unsigned int Value) {
-  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_BYPASS_OFFSET, Value);
+  IP_WRITE(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET, Value);
 }
 
 static inline unsigned int hal_pmu_bypass_get() {
-  return IP_READ(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_BYPASS_OFFSET);
+  return IP_READ(ARCHI_APB_SOC_CTRL_ADDR, APB_SOC_CL_BYPASS_OFFSET);
 }
 
 static inline PMU_WakeupStateT SoC_WakeupState()

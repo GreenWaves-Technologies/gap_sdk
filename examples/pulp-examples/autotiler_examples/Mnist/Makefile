@@ -29,6 +29,8 @@ PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 PULP_CFLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 PULP_CFLAGS += -I$(TILER_INC) -I$(MNIST_KER_PATH)/include
 
+PLPBRIDGE_FLAGS += -fileIO 5
+
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
 all:: model

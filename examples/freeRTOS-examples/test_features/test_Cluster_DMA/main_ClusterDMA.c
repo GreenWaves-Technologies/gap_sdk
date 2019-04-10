@@ -117,7 +117,7 @@ void vTestClusterDMA( void *parameters )
         L2_IN[i] = i;
 
     /* Power On Computing Cluster. */
-    CLUSTER_Start( 0, NBCORES );
+    CLUSTER_Start( 0, NBCORES, 0 );
 
     /* Allocating array in Cluster L1. */
     char *L1_BUFFER = L1_Malloc( BUFFER_SIZE );

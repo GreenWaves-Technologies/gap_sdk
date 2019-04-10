@@ -19,7 +19,7 @@
 
 #include "hal/pulp.h"
 #include "archi/fll/fll_v1.h"
-
+#include "hal/pulp_io.h"
 
 
 typedef enum {

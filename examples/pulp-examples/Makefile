@@ -34,6 +34,9 @@ gapuino_compile_test:
 gapuino_compile_and_run_test:
 	$(GAP_SDK_HOME)/tools/runner/run_all_tests.sh compile_and_run gapuino
 
-clean:
+clean::
 	$(GAP_SDK_HOME)/tools/runner/run_all_tests.sh clean
-	rm -rf report.log
+	@find . -name BUILD -exec rm -rf {} +
+	@find . -name transcript -exec rm  {} +
+	@find . -name version.log -exec rm {} +
+	@rm -rf report.log

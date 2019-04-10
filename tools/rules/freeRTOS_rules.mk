@@ -4,6 +4,14 @@ CC          = riscv32-unknown-elf-gcc
 AR          = riscv32-unknown-elf-ar
 OBJDUMP     = riscv32-unknown-elf-objdump
 
+platform     ?= gapuino
+vcd          ?= ""
+_vcd         ?=
+trace	     ?= ""
+_trace       ?=
+config       ?= ""
+_config      ?=
+
 ifndef chip
 chip=GAP8
 endif
@@ -34,9 +42,9 @@ LDFLAGS     = -T$(GWT_DEVICE)/ld/$(chip).ld \
 
 
 ifeq ($(chip), GAP8)
-RISCV_FLAGS     = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__
+RISCV_FLAGS     = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
 else
-RISCV_FLAGS     = -march=rv32imcxpulpv2 -mPE=8 -mFC=1 -D__$(chip)__
+RISCV_FLAGS     = -march=rv32imcxpulpv2 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
 endif
 
 DEVICE_FLAGS    = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
@@ -45,21 +53,59 @@ DEVICE_FLAGS    = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
                   -DDEVICE_STDIO_MESSAGES=1 -DDEVICE_SLEEP=1 \
                   -DDEVICE_PORTIN=1 -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 \
                   -DDEVICE_I2C=1 -DDEVICE_I2C_ASYNCH=1 -DDEVICE_I2S=1 -DDEVICE_RTC=1 \
-                  -DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1
+                  -DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1 -DDEVICE_QSPI=1
 
-# User can choose use cluster
+# Simulation related options
+export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
+
+# Option to use cluster features
 FEATURE_FLAGS   = -DFEATURE_CLUSTER=1
 
-FREERTOS_FLAGS  += -D__FREERTOS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
-
+# Option to use preemptive mode
 ifeq ($(NO_PREEMPTION), true)
 FREERTOS_FLAGS  +=
 else
 FREERTOS_FLAGS  += -DPREEMPTION
 endif
 
+# Option to disable printf
+ifeq ($(NO_PRINTF), true)
+FREERTOS_FLAGS  += -D__DISABLE_PRINTF__
+else
+FREERTOS_FLAGS  += -DPRINTF_RTL
+endif
+
+# Simulation platform
+# Default is gapuino
+# GVSOC
+ifeq ($(platform), gvsoc)
+FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
+
+ifneq ($(vcd), "")
+_vcd=-vcd
+endif
+
+ifneq ($(trace), "")
+_trace=-trace $(trace)
+endif
+
+ifneq ($(config), "")
+_config=-config ${CURDIR}/$(config)
+endif
+
+# FPGA
+else ifeq ($(platform), fpga)
+FREERTOS_FLAGS  += -D__PLATFORM_FPGA__
+
+# RTL
+else ifeq ($(platform), rtl)
+FREERTOS_FLAGS  += -D__PLATFORM_RTL__
+endif
+
+
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
+FREERTOS_FLAGS  += -D__FREERTOS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
 
 COMMON      = -c -fmessage-length=0 -fno-exceptions -fno-builtin \
               -ffunction-sections -fdata-sections -funsigned-char \
@@ -74,7 +120,9 @@ ASMFLAGS    = -x assembler-with-cpp $(COMMON) $(WARNINGS)
 
 CFLAGS      = -std=gnu99 $(COMMON) $(WARNINGS)
 
-STRIP       = -Wl,--gc-sections -Wl,-Map=$@.map -Wl,-static #-Wl,-s
+STRIP       = -Wl,--gc-sections,-Map=$@.map,-static #,-s
+
+OBJDUMP_OPT = -S -D -l -f
 
 # Sources and Includes.
 CRT0_SRC        = $(shell find $(GWT_DEVICE) -iname "*.S")
@@ -135,52 +183,64 @@ C_OBJS          = $(APP_OBJ) $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
 
 OBJS            = $(ASM_OBJS) $(C_OBJS)
 
-
 BIN             = $(BUILDDIR)/test
 
-all::   dir $(OBJS) $(BIN) version disdump
+OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
+
+
+# Makefile targets :
+# Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
+#------------------------------------------
+
+all::   dir $(OBJS) $(BIN) $(OBJS_DUMP) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
 
-# Rules for creating dependency files (.d).
-#------------------------------------------
-
 $(ASM_OBJS): $(BUILDDIR)/%.o: %.S
 	@echo "    SS  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(ASMFLAGS) -o $@ $<
-
+	@$(CC) $(ASMFLAGS)  -MD -MF $(basename $@).d -o $@ $<
 
 $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(INCLUDES) -o $@ $<
-	@$(OBJDUMP) -S -d $@ > $(patsubst %.o, %.dump, $@)
+	@$(CC) $(CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
 	@$(CC) -MMD -MP -o $@ $(LDFLAGS) $(OBJS) $(LIBS) $(LIBSFLAGS) $(STRIP)
 
-ifdef gvsoc
+$(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
+	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
+
+$(BIN).dump: $(BIN)
+	@echo "    OBJDUMP  $(shell basename $<) > $(shell basename $@)"
+	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
+
+# GVSOC
+ifeq ($(platform), gvsoc)
 run::
-	$(GAP_SDK_HOME)/tools/runner/run_gvsoc.sh
-else ifdef fpga
+	$(INSTALL_DIR)/runner/run_gvsoc.sh $(_config) $(_vcd) $(_trace)
+# FPGA
+else ifeq ($(platform), fpga)
 run::
 	$(GAP_SDK_HOME)/tools/runner/run_fpga.sh
-else ifdef rtl
+# RTL
+else ifeq ($(platform), rtl)
 run:: dir
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode)
+	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
+	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
+# Default : GAPUINO
 else
 run:: all
 	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
 
 gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
-
 endif
 
 gui:: dir
@@ -188,20 +248,16 @@ gui:: dir
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(PLPBRIDGE_FLAGS)
+	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
+	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
 debug:
-	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
+	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
 
-$(BIN).s: $(BIN)
-	$(OBJDUMP) -D $< > $@
-
-disdump: $(BIN).s
-
-version:
-	@$(GAP_SDK_HOME)/tools/version/record_version.sh
+disdump: $(BIN).dump
 
 clean::
 	@rm -rf $(OBJS) $(DUMP) $(TEST_OBJ)
 	@rm -rf *~ ./BUILD transcript *.wav __pycache__
-	@rm -rf version.log
+
+.PHONY: clean dir all run gui debug disdump gdbserver

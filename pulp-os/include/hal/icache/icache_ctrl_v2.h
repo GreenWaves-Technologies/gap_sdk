@@ -36,6 +36,11 @@ static inline void hal_icache_cluster_enable(int cid)
   pulp_write32(ARCHI_CLUSTER_PERIPHERALS_GLOBAL_ADDR(cid) + ARCHI_ICACHE_CTRL_OFFSET, 0xFFFFFFFF);
 }
 
+static inline void icache_enable(unsigned int base)
+{
+  pulp_write32(base, 0xFFFFFFFF);
+}
+
 // Disable all icache banks routine
 static inline void disable_all_icache_banks ( )
 {

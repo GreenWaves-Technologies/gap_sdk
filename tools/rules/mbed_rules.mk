@@ -4,6 +4,14 @@ CC            = riscv32-unknown-elf-gcc
 AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
+platform     ?= gapuino
+vcd          ?= ""
+_vcd         ?=
+trace	     ?= ""
+_trace       ?=
+config       ?= ""
+_config      ?=
+
 # The linker options.
 LIBS          += -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
 		-L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/newlib
@@ -33,7 +41,7 @@ DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
 		-DDEVICE_STDIO_MESSAGES=1 -DDEVICE_SLEEP=1 \
 		-DDEVICE_PORTIN=1 -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 \
 		-DDEVICE_I2C=1 -DDEVICE_I2C_ASYNCH=1 -DDEVICE_I2S=1 -DDEVICE_RTC=1 \
-		-DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1
+		-DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1 -DDEVICE_QSPI=1
 
 
 
@@ -47,18 +55,27 @@ FEATURE_FLAGS = -DFEATURE_CLUSTER=1
 MBED_FLAGS    += -D__MBED__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
 
 # For GVSOC platform simulation
-ifdef gvsoc
+ifeq ($(platform), gvsoc)
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 MBED_FLAGS     += -D__PLATFORM_GVSOC__
 endif
 
-ifdef fpga
+ifeq ($(platform), fpga)
 MBED_FLAGS     += -D__PLATFORM_FPGA__
 endif
 
-ifdef gapuino
+ifeq ($(platform), rtl)
+MBED_FLAGS     += -D__PLATFORM_RTL__
+endif
+
+ifdef no_printf
+MBED_FLAGS     += -D__DISABLE_PRINTF__
+else
+MBED_FLAGS     += -DPRINTF_RTL
+endif
+
+ifeq ($(platform), gapuino)
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
-# MBED_FLAGS     += -DUSE_UART
 endif
 
 # The pre-processor and compiler options.
@@ -75,7 +92,7 @@ CXXFLAGS      = -std=gnu++98 -fno-rtti -Wvla $(COMMON)
 #------------------------------------------
 BIN           = $(BUILDDIR)/test
 
-BUILDDIR      = $(shell pwd)/BUILD/$(chip)/GCC_RISCV
+BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
@@ -196,6 +213,7 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/features/mbedtls/inc \
 		$(MBED_PATH)/mbed-os/features/spif-driver \
 		$(MBED_PATH)/mbed-os/features/i2cee-driver \
+		$(MBED_PATH)/mbed-os/features/hyperbus-driver \
 		$(MBED_PATH)/mbed-os/features/FEATURE_CLUSTER\
 		$(MBED_PATH)/mbed-os/features/storage/filesystem/rofs \
 		$(TARGET_INSTALL_DIR)/include
@@ -236,21 +254,33 @@ $(CXX_OBJECTS) : $(BUILDDIR)/%.o : %.cpp
 	@$(CXX) $(CXXFLAGS) $(INC_PATH) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJECTS)
-	@$(CC) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
+	@$(CC) $(RISCV_FLAGS) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
-ifdef gvsoc
+ifeq ($(platform), gvsoc)
 run::
-	$(MBED_PATH)/tools/runner/run_gvsoc.sh
-else ifdef fpga
+ifneq ($(vcd), "")
+_vcd=-vcd
+endif
+
+ifneq ($(trace), "")
+_trace=-trace $(trace)
+endif
+
+ifneq ($(config), "")
+_config=-config ${CURDIR}/$(config)
+endif
+
 run::
-	$(MBED_PATH)/tools/runner/run_fpga.sh
-else ifdef rtl
+	$(INSTALL_DIR)/runner/run_gvsoc.sh $(_config) $(_vcd) $(_trace)
+
+else ifeq ($(platform), rtl)
 run:: dir
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(PLPBRIDGE_FLAGS)
+	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 else
 run:: all
 	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
@@ -264,10 +294,11 @@ gui:: dir
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
 	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(PLPBRIDGE_FLAGS)
+	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
+	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
 debug:
-	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
+	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
 
 $(BUILDDIR)/test.s: $(BUILDDIR)/test
 	$(OBJDUMP) -D $< > $@

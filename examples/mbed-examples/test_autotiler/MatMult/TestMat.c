@@ -66,7 +66,7 @@ int main()
     memset (M2, 0x2, W_M2*H_M2*sizeof(short int));
 
     // Switch on the cluster
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     // Allocate the predetermined memory size in the shared L1 memory that the cluster can act on
     L1_Memory = L1_Malloc(_L1_Memory_SIZE);

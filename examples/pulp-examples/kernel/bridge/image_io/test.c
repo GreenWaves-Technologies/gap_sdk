@@ -31,7 +31,7 @@ int main()
 
   printf("Connecting to bridge...\n");
   //Open Debug bridge connection for FILE IO
-  rt_bridge_connect(NULL);
+  rt_bridge_connect(1, NULL);
   printf("Connection done.\n");
 
   unsigned char *InBuffer = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, width*height*sizeof(unsigned char));

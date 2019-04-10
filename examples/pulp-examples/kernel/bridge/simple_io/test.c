@@ -28,7 +28,7 @@ int main()
   if (rt_event_alloc(NULL, 8)) return -1;
 
   printf("Connecting to bridge\n");
-  rt_bridge_connect(NULL);
+  rt_bridge_connect(1, NULL);
   printf("Connection done\n");
   int file = rt_bridge_open("../../../test.c", 0, 0, NULL);
   int file2 = rt_bridge_open("../../../out_test.c", O_RDWR | O_CREAT, S_IRWXU, NULL);

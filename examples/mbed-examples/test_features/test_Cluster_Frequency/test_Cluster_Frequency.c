@@ -87,7 +87,7 @@ int main()
     printf("Default FC Frequency      = %d Hz\n", FLL_GetFrequency(uFLL_SOC));
 
     /* Cluster Start - Power on */
-    CLUSTER_Start(0, CORE_NUMBER);
+    CLUSTER_Start(0, CORE_NUMBER, 0);
 
     printf("Default Cluster Frequency = %d Hz\n", FLL_GetFrequency(uFLL_CLUSTER));
 

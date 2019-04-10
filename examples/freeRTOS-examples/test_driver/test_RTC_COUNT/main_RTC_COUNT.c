@@ -101,8 +101,8 @@ void vTestRTCCount( void *parameters )
         timer_now = RTC_GetTimer( RTC_APB );
         printf("Timer value now = %d\n", timer_now);
 
-        /* Wait for a peripheral IRQ(RTC). */
-        EU_EVT_WaitAndClr();
+        /* Wait 1 second. */
+        vTaskDelay( pdMS_TO_TICKS( 1000 ) );
 
         if( flag )
         {

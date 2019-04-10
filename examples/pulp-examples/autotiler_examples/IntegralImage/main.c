@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 	if (rt_event_alloc(NULL, 8)) return -1;
 
 	//To use file IO system
-	rt_bridge_connect(NULL);
+	rt_bridge_connect(1, NULL);
 
 
 	//Allocating input and output image buffers in L2 memory

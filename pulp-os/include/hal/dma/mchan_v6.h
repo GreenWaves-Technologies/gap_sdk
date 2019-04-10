@@ -236,7 +236,7 @@ static inline void plp_dma_cmd_push(unsigned int cmd, unsigned int locAddr, mcha
   \param      cmd        The command that specifies the type of the transfer. This can be generated using plp_dma_getStrides.
   \param      strides    The command that specifies the 2D transfer (stride and len). This can be generated using plp_dma_getStrides.
   */
-static inline void plp_dma_cmd_push_2d(unsigned int cmd, unsigned int locAddr, mchan_ext_t extAddr, unsigned strides);
+static inline void plp_dma_cmd_push_2d(unsigned int cmd, unsigned int locAddr, mchan_ext_t extAddr, unsigned stride, unsigned int length);
 
 /** Return the counter status.
  * 
@@ -295,9 +295,9 @@ static inline void plp_dma_cmd_push(unsigned int cmd, unsigned int locAddr, mcha
 #endif
 }
 
-static inline void plp_dma_cmd_push_2d(unsigned int cmd, unsigned int locAddr, mchan_ext_t extAddr, unsigned strides) {
+static inline void plp_dma_cmd_push_2d(unsigned int cmd, unsigned int locAddr, mchan_ext_t extAddr, unsigned int stride, unsigned int length) {
   plp_dma_cmd_push(cmd, locAddr, extAddr);
-  DMA_WRITE(strides, PLP_DMA_QUEUE_OFFSET);
+  DMA_WRITE(plp_dma_getStrides(stride, length), PLP_DMA_QUEUE_OFFSET);
 }
 
 static inline int plp_dma_memcpy(mchan_ext_t ext, unsigned int loc, unsigned short size, int ext2loc) {
@@ -355,7 +355,7 @@ static inline int plp_dma_extToL1_irq(unsigned int loc, mchan_ext_t ext, unsigne
 static inline void plp_dma_memcpy_2d_keepCounter(mchan_ext_t ext, unsigned int loc, unsigned short size, unsigned short stride, unsigned short length, int ext2loc) {
   unsigned int cmd = plp_dma_getCmd(ext2loc, size, PLP_DMA_2D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
 }
 
 static inline int plp_dma_memcpy_2d(mchan_ext_t ext, unsigned int loc, unsigned short size, unsigned short stride, unsigned short length, int ext2loc) {
@@ -369,7 +369,7 @@ static inline int plp_dma_l1ToExt_2d(mchan_ext_t ext, unsigned int loc, unsigned
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(PLP_DMA_LOC2EXT, size, PLP_DMA_2D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
   return counter;
 }
 
@@ -377,7 +377,7 @@ static inline int plp_dma_extToL1_2d(unsigned int loc, mchan_ext_t ext, unsigned
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(PLP_DMA_EXT2LOC, size, PLP_DMA_2D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
   return counter;
 }
 
@@ -385,7 +385,7 @@ static inline int plp_dma_memcpy_2d_irq(mchan_ext_t ext, unsigned int loc, unsig
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(ext2loc, size, PLP_DMA_2D, PLP_DMA_NO_TRIG_EVT, PLP_DMA_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
   return counter;
 }
 
@@ -393,7 +393,7 @@ static inline int plp_dma_l1ToExt_2d_irq(mchan_ext_t ext, unsigned int loc, unsi
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(PLP_DMA_LOC2EXT, size, PLP_DMA_2D, PLP_DMA_NO_TRIG_EVT, PLP_DMA_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
   return counter;
 }
 
@@ -401,7 +401,7 @@ static inline int plp_dma_extToL1_2d_irq(unsigned int loc, mchan_ext_t ext, unsi
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(PLP_DMA_EXT2LOC, size, PLP_DMA_2D, PLP_DMA_NO_TRIG_EVT, PLP_DMA_TRIG_IRQ, PLP_DMA_SHARED);
   __asm__ __volatile__ ("" : : : "memory");
-  plp_dma_cmd_push_2d(cmd, loc, ext, plp_dma_getStrides(stride, length));
+  plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
   return counter;
 }
 

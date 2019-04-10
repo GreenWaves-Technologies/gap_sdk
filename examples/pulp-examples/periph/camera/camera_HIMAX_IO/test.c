@@ -98,12 +98,13 @@ static void cam_param_conf(rt_cam_conf_t *conf){
   conf->frameDrop_en = DISABLE;
   conf->frameDrop_value = 0;
   conf->cpiCfg = UDMA_CHANNEL_CFG_SIZE_16;
+  conf->control_id = 1;
 }
 
 void testHimax_Full(){
 
   //Enable Camera Interface
-  rt_cam_control(camera1, CMD_START, 0); 
+  rt_cam_control(camera1, CMD_START, 0);
   // Get an event from the free list, which can then be used for a blocking wait using rt_event_wait.
   rt_event_t *event = rt_event_get_blocking(NULL);
   // Programme the camera capture job to udma
@@ -132,14 +133,14 @@ int main()
   // free the memory of camera configuration structure
   rt_free(RT_ALLOC_FC_DATA, cam1_conf, sizeof(rt_cam_conf_t));
 
-  rt_bridge_connect(NULL);
+  rt_bridge_connect(1, NULL);
 
   //Init Camera Interface
   rt_cam_control(camera1, CMD_INIT, 0);
   rt_time_wait_us(1000000); //Wait camera calibration
 
   printf("ready to take a photo\n");
-  for (int i=0; i<10; i++){
+  for (int i=0; i<3; i++){
       printf("taking picture\n");
 
       // Take a full image and check it

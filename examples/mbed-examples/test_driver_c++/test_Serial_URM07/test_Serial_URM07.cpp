@@ -30,20 +30,20 @@
 #define CMD_SET_BAUD_RATE       0x8
 #define LEN_TX_FRAME            0x7
 /*
-  enum {
-  1200bps = 0x00,
-  2400bps,
-  4800bps,
-  9600bps,
-  14400bps,
-  19200bps,
-  28800bps,
-  38400bps,
-  57600bps,
-  115200bps,
-  128000bps,
-  256000bps
-  }
+enum {
+    1200bps = 0x00,
+    2400bps,
+    4800bps,
+    9600bps,
+    14400bps,
+    19200bps,
+    28800bps,
+    38400bps,
+    57600bps,
+    115200bps,
+    128000bps,
+    256000bps
+}
 */
 
 Serial serial(USBTX, USBRX); // tx, rx

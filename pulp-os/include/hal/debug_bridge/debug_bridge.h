@@ -39,7 +39,7 @@ static inline hal_bridge_t *hal_bridge_get()
 }
 
 
-#define HAL_DEBUG_STRUCT_INIT { {0}, {0}, 0, 1, 0 ,0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, 0, 0, 0}
+#define HAL_DEBUG_STRUCT_INIT { PROTOCOL_VERSION_4, {0}, {0}, 0, 1, 0 ,0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 
 static inline int hal_bridge_is_connected(hal_bridge_t *bridge) {
@@ -49,6 +49,11 @@ static inline int hal_bridge_is_connected(hal_bridge_t *bridge) {
 static inline void hal_bridge_connect(hal_bridge_req_t *req)
 {
   req->type = HAL_BRIDGE_REQ_CONNECT;
+}
+
+static inline void hal_bridge_reply(hal_bridge_req_t *req)
+{
+  req->type = HAL_BRIDGE_REQ_REPLY;
 }
 
 static inline void hal_bridge_disconnect(hal_bridge_req_t *req)
@@ -122,6 +127,16 @@ static inline void hal_debug_exit(hal_debug_struct_t *debug_struct, int status) 
   *(volatile uint32_t *)&debug_struct->exit_status = 0x80000000 | status;
 }
 
+static inline int hal_debug_is_empty(hal_debug_struct_t *debug_struct)
+{
+  return *(volatile uint32_t *)&debug_struct->putc_current == 0;
+}
+
+static inline int hal_debug_is_busy(hal_debug_struct_t *debug_struct)
+{
+  return *(volatile uint32_t *)&debug_struct->pending_putchar;
+}
+
 static inline void hal_debug_send_printf(hal_debug_struct_t *debug_struct) {
   if (debug_struct->putc_current)
   {
@@ -136,6 +151,16 @@ static inline void hal_debug_putchar(hal_debug_struct_t *debug_struct, char c) {
   if (*(volatile uint32_t *)&debug_struct->putc_current == HAL_PRINTF_BUF_SIZE || c == '\n') {
     hal_debug_send_printf(debug_struct);
   }
+}
+
+static inline int hal_debug_putchar_nopoll(hal_debug_struct_t *debug_struct, char c) {
+  if (*(volatile uint32_t *)&debug_struct->pending_putchar)
+    return -1;
+  *(volatile uint8_t *)&(debug_struct->putc_buffer[debug_struct->putc_current++]) = c;
+  if (*(volatile uint32_t *)&debug_struct->putc_current == HAL_PRINTF_BUF_SIZE || c == '\n') {
+    hal_debug_send_printf(debug_struct);
+  }
+  return 0;
 }
 
 static inline void hal_debug_step(hal_debug_struct_t *debug_struct, unsigned int value) {

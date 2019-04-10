@@ -1,0 +1,13 @@
+{
+  "devices": {
+    "spim": {
+      "type": "spim_verif",
+      "interface": "spim0",
+      "cs": 1,
+      "gpio": [ "gpio0" ],
+      "config": {
+        "gpio": [ "gpio0" ]
+      }
+    }
+  }
+}

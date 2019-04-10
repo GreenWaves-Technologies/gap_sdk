@@ -18,7 +18,7 @@
 #define __HAL_UDMA_UDMA_PERIPH_I2S_V1_H__
 
 #include "archi/udma/i2s/udma_i2s_v1.h"
-#include "hal/riscv/riscv_v4.h"
+#include "archi/utils.h"
 
 static inline void hal_i2s_ext_clk_set(int i2s, unsigned int value);
 
@@ -85,7 +85,7 @@ static inline unsigned int hal_i2s_filt_ch_get(int i2s, int ch)
 
 static inline unsigned int hal_i2s_clkgen_en_update(unsigned int reg_value, unsigned int field_value)
 {
-  return __builtin_bitinsert(reg_value, field_value, I2S_CFG_CLKGEN_CLK_EN_WIDTH, I2S_CFG_CLKGEN_CLK_EN_OFFSET);
+  return ARCHI_BINSERT(reg_value, field_value, I2S_CFG_CLKGEN_CLK_EN_WIDTH, I2S_CFG_CLKGEN_CLK_EN_OFFSET);
 }
 
 

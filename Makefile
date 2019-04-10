@@ -37,8 +37,6 @@ MAKE = make
 
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
-install: pulp-os tools docs
-
 $(TARGET_INSTALL_DIR):
 	$(MKDIR) -p $@
 
@@ -54,10 +52,10 @@ docs:
 #------------------------------------------
 INSTALL_BIN = $(INSTALL_DIR)/bin
 
-$(INSTALL_BIN):
-	$(MKDIR) $@
+install_bin:
+	$(MKDIR) $(INSTALL_BIN)
 
-install_others: $(INSTALL_BIN)
+install_others: install_bin
 	$(CP) $(GAP_SDK_HOME)/tools/runner $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/bin/* $(INSTALL_DIR)/bin
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
@@ -69,10 +67,13 @@ install_pulp_tools: install_others
 tools: install_others install_pulp_tools
 
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
-	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os all
+	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os $(TARGET_CHIP)
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
+
+gvsoc: pulp-os
+	./gvsoc/build-gvsoc
 
 autotiler:
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler all
@@ -80,7 +81,7 @@ autotiler:
 version:
 	@$(MBED_PATH)/tools/version/record_version.sh
 
-all:: install flasher version
+all:: pulp-os tools flasher gvsoc docs version
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -90,4 +91,4 @@ clean:
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 	$(RM) version.log
 
-.PHONY: all install clean docs version install_others install_pulp_tools tools pulp-os flasher autotiler
+.PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

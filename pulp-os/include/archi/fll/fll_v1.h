@@ -95,7 +95,7 @@
 
 
 
-#ifndef LANGUAGE_ASSEMBLY
+#if !defined(LANGUAGE_ASSEMBLY) && !defined(_ASMLANGUAGE)
 
 typedef union {
   struct {

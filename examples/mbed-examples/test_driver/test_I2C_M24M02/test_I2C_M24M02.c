@@ -4,15 +4,16 @@
 #include "i2c_api.h"
 #include "mbed_wait_api.h"
 
+#ifdef __PLATFORM_RTL__
+#define M24M02_Device_Address    0xA8
+#else
 #define M24M02_Device_Address    0xA0
+#endif
 
-GAP_L2_DATA uint8_t CMD0[] = {0x00, 0x00, 0xA5};
-GAP_L2_DATA uint8_t CMD1[] = {0x00, 0x01, 0x5A};
-GAP_L2_DATA uint8_t CMD2[] = {0x00, 0x50};
 
-GAP_L2_DATA uint8_t tx_buffer[]   = {0x00, 0x50, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 GAP_L2_DATA uint8_t init_buffer[] = {0x00, 0x50, 0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A,0x5A};
-
+GAP_L2_DATA uint8_t tx_buffer[]   = {0x00, 0x50, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+GAP_L2_DATA uint8_t rx_addr[]     = {0x00, 0x50};
 GAP_L2_DATA uint8_t rx_buffer[16];
 
 int main()
@@ -32,11 +33,6 @@ int main()
     i2c_frequency(&i2c0, freq);
     printf("Frequncy set done, %d Hz\n", freq);
 
-    i2c_write(&i2c0, M24M02_Device_Address, (const char*)CMD0, 3, 1);
-    wait(0.01);
-    i2c_write(&i2c0, M24M02_Device_Address, (const char*)CMD1, 3, 1);
-    wait(0.01);
-
     /* Init the zone where we do the test */
     i2c_write(&i2c0, M24M02_Device_Address, (const char*)init_buffer, sizeof(init_buffer), 1);
     wait(0.01);
@@ -46,7 +42,7 @@ int main()
     wait(0.01);
 
     /* Read from EEPROM */
-    i2c_write(&i2c0, M24M02_Device_Address, (const char*)CMD2, 2, 0);
+    i2c_write(&i2c0, M24M02_Device_Address, (const char*)rx_addr, 2, 0);
     i2c_read(&i2c0, M24M02_Device_Address, (char*)rx_buffer, 16, 1);
 
     int error = 0;
