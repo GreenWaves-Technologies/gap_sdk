@@ -89,7 +89,7 @@ static void CreatePPMHeader(unsigned char *ImgOut, ImgDescriptor *ImgOutHeader, 
   ImgOutHeader->imgReady = 1;
 }
 
-static void cam_param_conf(rt_cam_conf_t *conf){
+static void cam_param_conf_perso(rt_cam_conf_t *conf){
   conf->resolution = QVGA;
   conf->format = HIMAX_MONO_COLOR;
   conf->fps = fps30;
@@ -126,7 +126,8 @@ int main()
 
   // Initialize the parameter of camera.
   cam1_conf = rt_alloc(RT_ALLOC_FC_DATA, sizeof(rt_cam_conf_t));
-  cam_param_conf(cam1_conf);
+  rt_camera_conf_init(cam1_conf);   // Init the camera
+  cam_param_conf_perso(cam1_conf);
   // open the camera, the conf structure will be stored in camera object
   camera1 = rt_camera_open("camera", cam1_conf, 0);
   if (camera1 == NULL) return -1;
