@@ -8,6 +8,7 @@ typedef   signed char  v4s __attribute__((vector_size (4)));
 typedef unsigned char  v4u __attribute__((vector_size (4)));
 
 typedef void * rt_pointerT;
+typedef int rt_perf_t;
 
 #define DMA_COPY_IN 1
 #define DMA_COPY_OUT 0
@@ -28,6 +29,12 @@ typedef void * rt_pointerT;
 #define RT_L2_RET_DATA
 
 #define RT_FC_DATA RT_FC_GLOBAL_DATA
+
+#define RT_FREQ_DOMAIN_FC 0
+#define RT_FREQ_DOMAIN_CL 0
+#define RT_PERF_CYCLES 0
+
+# define PPM_HEADER 40
 
 /* Packing of scalars into vectors */
 #define gap8_pack2(x, y)		((v2s) {(signed short)   (x), (signed short)   (y)})
@@ -316,7 +323,18 @@ static int Private_gap8_dma_memcpy_2d(rt_pointerT ext, rt_pointerT loc, unsigned
 #define gap8_cluster_udma_memcpy_2d(chan, ext, loc, size, stride, length, ext2loc)	Private_gap8_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc), 1)
 #define gap8_cluster_udma_wait(chan)	((int) 0)
 
+typedef enum {
+  RT_ALLOC_FC_CODE,     /*!< Memory for fabric controller code. */
+  RT_ALLOC_FC_DATA,     /*!< Memory for fabric controller data. */
+  RT_ALLOC_FC_RET_DATA, /*!< Memory for fabric controller retentive data. */
+  RT_ALLOC_CL_CODE,     /*!< Memory for cluster code. */
+  RT_ALLOC_CL_DATA,  /*!< Memory for cluster data. */
+  RT_ALLOC_L2_CL_DATA,  /*!< Memory for L2 cluster data. */
+  RT_ALLOC_PERIPH,      /*!< Memory for peripherals data. */
+} rt_alloc_e;
+
 #define rt_alloc(__where, __size) malloc(__size)
+#define rt_free(__flags, __chunk, __size) free(__chunk)
 
 typedef struct{
     void (*cb)(void *);
