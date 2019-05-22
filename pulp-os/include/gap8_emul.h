@@ -221,6 +221,12 @@ typedef int rt_perf_t;
 */
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+
 
 #define plp_irq_enable()
 #define plp_irq_disable()
@@ -360,7 +366,6 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define rt_event_get(a,b,c) event_get(b,c)
 #define rt_event_t __event_cb
 
-
 #define START_TIMER()
 #define STOP_TIMER()
 
@@ -392,6 +397,11 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define FP2FIXR(Val, Precision)		((int)((Val)*((1 << (Precision))-1) + 0.5))
 #define FP2FIX(Val, Precision)		((int)((Val)*((1 << (Precision))-1)))
 
+static void rt_bridge_connect(int wait_bridge, rt_event_t *event) {}
 
+#define rt_bridge_open(__name, __flags, __mode, __event) open(name, flags, __mode)
+#define rt_bridge_read(__file, __ptr, __len, __event) read(__file, __ptr, __len)
+#define rt_bridge_write(__file, __ptr, __len, __event) write(__file, __ptr, __len)
+#define rt_bridge_close(__file, __event) close(__file)
 
 #endif
