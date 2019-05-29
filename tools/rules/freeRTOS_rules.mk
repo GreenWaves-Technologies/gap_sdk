@@ -7,9 +7,9 @@ OBJDUMP     = riscv32-unknown-elf-objdump
 platform     ?= gapuino
 vcd          ?= ""
 _vcd         ?=
-trace	     ?= ""
 _trace       ?=
 config       ?= ""
+trace	     ?= ""
 _config      ?=
 
 ifndef chip
@@ -27,6 +27,8 @@ GWT_TARGET          = $(GWT_PACK_DIR)/TARGET_GWT
 GWT_DEVICE          = $(GWT_TARGET)/TARGET_$(chip)/device
 GWT_DRIVER          = $(GWT_TARGET)/TARGET_$(chip)/driver
 GWT_PINS            = $(GWT_TARGET)/TARGET_$(chip)/pins
+GWT_API             = $(GWT_TARGET)/api
+GWT_HAL             = $(GWT_TARGET)/hal
 
 # The linker options.
 LIBS            = -L$(GWT_TARGET)/libs -L$(GWT_TARGET)/libs/newlib
@@ -140,8 +142,12 @@ FEAT_SRC        = $(shell find $(GWT_FEAT) -iname "*.c")
 DEVICE_SRC      = $(shell find $(GWT_DEVICE) -iname "*.c")
 DRIVER_SRC      = $(shell find $(GWT_DRIVER) -iname "*.c")
 PINS_SRC        = $(shell find $(GWT_PINS) -iname "*.c")
+API_SRC         = $(shell find $(GWT_API) -iname "*.c")
+HAL_SRC         = $(shell find $(GWT_HAL) -iname "*.c")
 
 FEAT_INCLUDES   = $(foreach f, $(shell find $(GWT_FEAT) -iname "*.h" -exec dirname {} \;), -I$f)
+API_INCLUDES	= $(foreach f, $(shell find $(GWT_API) -iname "*.h" -exec dirname {} \;), -I$f)
+HAL_INCLUDES	= $(foreach f, $(shell find $(GWT_HAL) -iname "*.h" -exec dirname {} \;), -I$f)
 
 INC_PATH       += . \
                   $(FREERTOS_SOURCE_DIR)/../include \
@@ -157,13 +163,14 @@ INC_PATH       += . \
 
 INCLUDES        = $(foreach f, $(INC_PATH), -I$f)
 INCLUDES       += $(FEAT_INCLUDES)
+INCLUDES       += $(API_INCLUDES) $(HAL_INCLUDES)
 
 # App sources
 DEMO_SRC       += $(FREERTOS_CONFIG_DIR)/FreeRTOS_util.c
 APP_SRC        +=
 
 # Directory containing built objects
-BUILDDIR        = $(shell pwd)/BUILD/$(chip)/GCC_RISCV
+BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 
 # Objects
 PORT_ASM_OBJ    = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
@@ -174,12 +181,14 @@ DRIVER_OBJ      = $(patsubst %.c, $(BUILDDIR)/%.o, $(DRIVER_SRC))
 PINS_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(PINS_SRC))
 FEAT_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(FEAT_SRC))
 DEVICE_OBJ      = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
+API_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(API_SRC))
+HAL_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(HAL_SRC))
 DEMO_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEMO_SRC))
 APP_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
 
 ASM_OBJS        = $(PORT_ASM_OBJ) $(CRT0_OBJ)
 C_OBJS          = $(APP_OBJ) $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
-                  $(FEAT_OBJ) $(PINS_OBJ) $(DEVICE_OBJ)
+                  $(FEAT_OBJ) $(PINS_OBJ) $(DEVICE_OBJ) $(API_OBJ) $(HAL_OBJ)
 
 OBJS            = $(ASM_OBJS) $(C_OBJS)
 
@@ -192,7 +201,7 @@ OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
 #------------------------------------------
 
-all::   dir $(OBJS) $(BIN) $(OBJS_DUMP) disdump
+all::   dir $(OBJS) $(BIN) version $(OBJS_DUMP) disdump
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -256,8 +265,12 @@ debug:
 
 disdump: $(BIN).dump
 
+version:
+	@$(GAP_SDK_HOME)/tools/version/record_version.sh
+
 clean::
 	@rm -rf $(OBJS) $(DUMP) $(TEST_OBJ)
 	@rm -rf *~ ./BUILD transcript *.wav __pycache__
+	@rm -rf version.log
 
-.PHONY: clean dir all run gui debug disdump gdbserver
+.PHONY: clean dir all run gui debug version disdump gdbserver
