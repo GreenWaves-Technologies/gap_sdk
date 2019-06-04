@@ -8,6 +8,7 @@ typedef   signed char  v4s __attribute__((vector_size (4)));
 typedef unsigned char  v4u __attribute__((vector_size (4)));
 
 typedef void * rt_pointerT;
+typedef int rt_perf_t;
 
 #define DMA_COPY_IN 1
 #define DMA_COPY_OUT 0
@@ -28,6 +29,12 @@ typedef void * rt_pointerT;
 #define RT_L2_RET_DATA
 
 #define RT_FC_DATA RT_FC_GLOBAL_DATA
+
+#define RT_FREQ_DOMAIN_FC 0
+#define RT_FREQ_DOMAIN_CL 0
+#define RT_PERF_CYCLES 0
+
+# define PPM_HEADER 40
 
 /* Packing of scalars into vectors */
 #define gap8_pack2(x, y)		((v2s) {(signed short)   (x), (signed short)   (y)})
@@ -214,6 +221,12 @@ typedef void * rt_pointerT;
 */
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+
 
 #define plp_irq_enable()
 #define plp_irq_disable()
@@ -316,7 +329,18 @@ static int Private_gap8_dma_memcpy_2d(rt_pointerT ext, rt_pointerT loc, unsigned
 #define gap8_cluster_udma_memcpy_2d(chan, ext, loc, size, stride, length, ext2loc)	Private_gap8_dma_memcpy_2d((ext), (loc), (size), (stride), (length), (ext2loc), 1)
 #define gap8_cluster_udma_wait(chan)	((int) 0)
 
+typedef enum {
+  RT_ALLOC_FC_CODE,     /*!< Memory for fabric controller code. */
+  RT_ALLOC_FC_DATA,     /*!< Memory for fabric controller data. */
+  RT_ALLOC_FC_RET_DATA, /*!< Memory for fabric controller retentive data. */
+  RT_ALLOC_CL_CODE,     /*!< Memory for cluster code. */
+  RT_ALLOC_CL_DATA,  /*!< Memory for cluster data. */
+  RT_ALLOC_L2_CL_DATA,  /*!< Memory for L2 cluster data. */
+  RT_ALLOC_PERIPH,      /*!< Memory for peripherals data. */
+} rt_alloc_e;
+
 #define rt_alloc(__where, __size) malloc(__size)
+#define rt_free(__flags, __chunk, __size) free(__chunk)
 
 typedef struct{
     void (*cb)(void *);
@@ -341,7 +365,6 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define rt_cluster_call(a,b,__fn,__arg,c,d,e,f,g) Private_call(__fn, __arg, g)
 #define rt_event_get(a,b,c) event_get(b,c)
 #define rt_event_t __event_cb
-
 
 #define START_TIMER()
 #define STOP_TIMER()
@@ -374,6 +397,11 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 #define FP2FIXR(Val, Precision)		((int)((Val)*((1 << (Precision))-1) + 0.5))
 #define FP2FIX(Val, Precision)		((int)((Val)*((1 << (Precision))-1)))
 
+static void rt_bridge_connect(int wait_bridge, rt_event_t *event) {}
 
+#define rt_bridge_open(__name, __flags, __mode, __event) open(name, flags, __mode)
+#define rt_bridge_read(__file, __ptr, __len, __event) read(__file, __ptr, __len)
+#define rt_bridge_write(__file, __ptr, __len, __event) write(__file, __ptr, __len)
+#define rt_bridge_close(__file, __event) close(__file)
 
 #endif
