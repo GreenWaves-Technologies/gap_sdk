@@ -389,15 +389,15 @@ static inline const char *cpu_perf_name(int event) {
 
 static inline void cpu_stack_check_enable(unsigned int base, unsigned int end)
 {
-  asm volatile ("csrwi 0x7B0, 0" :: );
-  asm volatile ("csrw 0x7B1, %0" :: "r" (base));
-  asm volatile ("csrw 0x7B2, %0" :: "r" (end));
-  asm volatile ("csrwi 0x7B0, 1" :: );
+  asm volatile ("csrwi 0x7D0, 0" :: );
+  asm volatile ("csrw  0x7D1, %0" :: "r" (base));
+  asm volatile ("csrw  0x7D2, %0" :: "r" (end));
+  asm volatile ("csrwi 0x7D0, 1" :: );
 }
 
 static inline void cpu_stack_check_disable()
 {
-  asm volatile ("csrwi 0x7A00, 0" :: );
+  asm volatile ("csrwi 0x7D0, 0" :: );
 }
 
 

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef __ARCHI_HWCE_HWCE_V5_H__
-#define __ARCHI_HWCE_HWCE_V5_H__
+#ifndef __ARCHI_HWCE_HWCE_V4_H__
+#define __ARCHI_HWCE_HWCE_V4_H__
+
+#define HWCE_ADDR_BASE ARCHI_HWCE_ADDR
 
 #define HWCE_TRIGGER         0x00
 #define HWCE_ACQUIRE         0x04
@@ -23,12 +25,8 @@
 #define HWCE_STATUS          0x0C
 #define HWCE_RUNNING_JOB     0x10
 #define HWCE_SOFT_CLEAR      0x14
-#define HWCE_OFFLOADER_ID    0x18
-#define HWCE_SW_EVT          0x1C
-
 #define HWCE_GEN_CONFIG0     0x20
 #define HWCE_GEN_CONFIG1     0x24
-#define HWCE_GEN_CONFIG2     0x28
 
 #define HWCE_Y_TRANS_SIZE          0x40
 #define HWCE_Y_LINE_STRIDE_LENGTH  0x44
@@ -48,11 +46,8 @@
 #define HWCE_W_BASE_ADDR           0x7C
 #define HWCE_JOB_CONFIG0           0x80
 #define HWCE_JOB_CONFIG1           0x84
-#define HWCE_JOB_CONFIG2           0x88
-#define HWCE_TH_BASE_ADDR          0x8C
-#define HWCE_LBUFXTRANSSIZE_ADDR   0x90
 
-#define HWCE_NB_IO_REGS    19
+#define HWCE_NB_IO_REGS    18
 
 #define HWCE_ACQUIRE_CONTEXT_COPY -3
 #define HWCE_ACQUIRE_LOCKED       -2
@@ -97,15 +92,14 @@
 #define HWCE_LBSIZE 32
 
 // loop order modes
-#define HWCE_LOOP_ORDER_OF_IF 0
-#define HWCE_LOOP_ORDER_IF_OF 1
+#define HWCE_LOOP_ORDER_OLD   0
+#define HWCE_LOOP_ORDER_OF_IF 2
+#define HWCE_LOOP_ORDER_IF_OF 3
 
-// quantization modes
-#define HWCE_QMODE_16BIT 0
-#define HWCE_QMODE_8BIT  4
-#define HWCE_QMODE_4BIT  3
-#define HWCE_QMODE_2BIT  2
-#define HWCE_QMODE_1BIT  1
+// 8-bit and 4-bit pixel modes
+#define HWCE_PIXMODE_16BIT 0
+#define HWCE_PIXMODE_8BIT  1
+#define HWCE_PIXMODE_4BIT  2
 
 // y_in modes
 #define HWCE_Y_IN_MODE_ON  1

@@ -65,6 +65,7 @@
 #include "archi/riscv/builtins_v2_emu.h"
 
 #define ARCHI_BINSERT(dst,src,size,off)  __BITINSERT(dst,src,size,off)
+#define ARCHI_BINSERT_R(dst,src,size,off)  __BITINSERT_R(dst,src,size,off)
 #define ARCHI_BEXTRACTU(src,size,off)    __BITEXTRACTU(src,size,off)
 #define ARCHI_BEXTRACT(src,size,off)     __BITEXTRACT(src,size,off)
 

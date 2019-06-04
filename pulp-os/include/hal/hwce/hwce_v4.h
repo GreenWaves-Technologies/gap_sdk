@@ -18,7 +18,7 @@
 #define __HAL_HWCE_HWCE_V4_H__
 
 #include "hal/pulp.h"
-#include "archi/hwce/hwce_v4.h"
+#include "archi/hwce/hwce_v4_old.h"
 
 #if HWCE_VERSION != 4
 #error This file must be included only with HWCE version 4
@@ -73,7 +73,7 @@
  *        |  15: 0  |  0x0000ffff  ||  x feat_length
  *    14  |  31: 0  |  0xffffffff  ||  x_in base_addr
  *    15  |  31: 0  |  0xffffffff  ||  weight base_addr
- *    16  |  31:16  |  0xffff0000  ||  constant to sum in no y_in mode   
+ *    16  |  31:16  |  0xffff0000  ||  constant to sum in no y_in mode
  *        |  15:10  |  0x0000fa00  ||  Reserved
  *        |   9: 0  |  0x0000ffff  ||  linebuffer virtual length
  *    17  |  31:25  |  0xfe000000  ||  Reserved
@@ -224,11 +224,11 @@ static inline void hwce_w_base_addr_set(unsigned int value) {
 static inline void hwce_gen_config0_set(unsigned int value) {
   HWCE_WRITE(value, HWCE_GEN_CONFIG0);
 }
- 
+
 static inline void hwce_gen_config1_set(unsigned int value) {
   HWCE_WRITE(value, HWCE_GEN_CONFIG1);
 }
- 
+
 static inline void hwce_job_config0_set(unsigned int value) {
   HWCE_WRITE(value, HWCE_JOB_CONFIG0);
 }
@@ -261,7 +261,7 @@ static inline unsigned int hwce_gen_config0_value(unsigned int wstride, unsigned
 #endif
   return res;
 }
- 
+
 static inline unsigned int hwce_gen_config1_value(unsigned int pixshiftr, unsigned int pixmode, unsigned int pixshiftl) {
   unsigned int res;
 #if defined(__riscv__) && !defined(RV_ISA_RV32)
@@ -271,7 +271,7 @@ static inline unsigned int hwce_gen_config1_value(unsigned int pixshiftr, unsign
 #endif
   return res;
 }
- 
+
 static inline unsigned int hwce_job_config0_value(unsigned int noyconst, unsigned int lbuflen) {
   unsigned int res = 0;
 #if defined(__riscv__) && !defined(RV_ISA_RV32)
@@ -280,7 +280,7 @@ static inline unsigned int hwce_job_config0_value(unsigned int noyconst, unsigne
 #endif
   return res;
 }
- 
+
 static inline unsigned int hwce_job_config1_value(unsigned int lo, unsigned int wif, unsigned int wof, unsigned int vect_disable_mask) {
   unsigned int res;
 #if defined(__riscv__) && !defined(RV_ISA_RV32)

@@ -230,30 +230,33 @@ typedef unsigned int rt_pointerT;
 /* Number of sign bits */
 #define __CLB(x)			__builtin_pulp_clb((x))
 
+static inline unsigned int __attribute__ ((always_inline)) __ExtInsMaskFast(unsigned int Size, unsigned int Offset) { return ((((Size-1))<<5)|(Offset)); }
+static inline unsigned int __attribute__ ((always_inline)) __ExtInsMaskSafe(unsigned int Size, unsigned int Offset) { return ((((Size-1)&0x1F)<<5)|(Offset&0x1F)); }
+
 /* Bit set */
 #define __BITSET(x, size, off)               __builtin_pulp_bset((x), (((1<<(size))-1)<<(off)))
-#define __BITSET_R(x, size, off)             __builtin_pulp_bset_r((x), ExtInsMaskFast((size), (off)))
-#define __BITSET_R_SAFE(x, size, off)        __builtin_pulp_bset_r((x), ExtInsMaskSafe((size), (off)))
+#define __BITSET_R(x, size, off)             __builtin_pulp_bset_r((x), __ExtInsMaskFast((size), (off)))
+#define __BITSET_R_SAFE(x, size, off)        __builtin_pulp_bset_r((x), __ExtInsMaskSafe((size), (off)))
 
 /* Bit clr */
 #define __BITCLR(x, size, off)               __builtin_pulp_bclr((x), ~(((1<<(size))-1)<<(off)))
-#define __BITCLR_R(x, size, off)             __builtin_pulp_bclr_r((x), ExtInsMaskFast((size), (off)))
-#define __BITCLR_R_SAFE(x, size, off)        __builtin_pulp_bclr_r((x), ExtInsMaskSafe((size), (off)))
+#define __BITCLR_R(x, size, off)             __builtin_pulp_bclr_r((x), __ExtInsMaskFast((size), (off)))
+#define __BITCLR_R_SAFE(x, size, off)        __builtin_pulp_bclr_r((x), __ExtInsMaskSafe((size), (off)))
 
 /* Bit Extraction */
 #define __BITEXTRACT(x, size, off)		__builtin_pulp_bextract((x), (size), (off))
 #define __BITEXTRACTU(x, size, off)		__builtin_pulp_bextractu((x), (size), (off))
 
-#define __BITEXTRACT_R(x, size, off)		__builtin_pulp_bextract_r((x), ExtInsMaskFast((size), (off)))
-#define __BITEXTRACTU_R(x, size, off)	__builtin_pulp_bextractu_r((x), ExtInsMaskFast((size), (off)))
+#define __BITEXTRACT_R(x, size, off)		__builtin_pulp_bextract_r((x), __ExtInsMaskFast((size), (off)))
+#define __BITEXTRACTU_R(x, size, off)	__builtin_pulp_bextractu_r((x), __ExtInsMaskFast((size), (off)))
 
-#define __BITEXTRACT_R_SAFE(x, size, off)	__builtin_pulp_bextract_r((x), ExtInsMaskSafe((size), (off)))
-#define __BITEXTRACTU_R_SAFE(x, size, off)	__builtin_pulp_bextractu_r((x), ExtInsMaskSafe((size), (off)))
+#define __BITEXTRACT_R_SAFE(x, size, off)	__builtin_pulp_bextract_r((x), __ExtInsMaskSafe((size), (off)))
+#define __BITEXTRACTU_R_SAFE(x, size, off)	__builtin_pulp_bextractu_r((x), __ExtInsMaskSafe((size), (off)))
 
 /* Bit insertion */
 #define __BITINSERT(dst, src, size, off) 	__builtin_pulp_binsert((dst), ~(((1<<(size))-1)<<(off)), (src), (((1<<(size))-1)<<(off)), (off))
-#define __BITINSERT_R(dst, src, size, off) 	__builtin_pulp_binsert_r((dst), (src), ExtInsMaskFast((size), (off)))
-#define __BITINSERT_R_SAFE(dst, src, size, off) 	__builtin_pulp_binsert_r((dst), (src), ExtInsMaskSafe((size), (off)))
+#define __BITINSERT_R(dst, src, size, off) 	__builtin_pulp_binsert_r((dst), (src), __ExtInsMaskFast((size), (off)))
+#define __BITINSERT_R_SAFE(dst, src, size, off) 	__builtin_pulp_binsert_r((dst), (src), __ExtInsMaskSafe((size), (off)))
 
 /* 1 bit rotation to the right, 32 bits input */
 #define __ROTR(x)			__builtin_pulp_rotr((x))

@@ -34,6 +34,20 @@ typedef struct {
 } flash_v2_header_t;
 
 typedef struct {
+  uint32_t chipID;
+  uint32_t nbBinaries;
+  uint32_t ptrBinaries[6];
+} flash_v3_header_t;
+
+typedef struct {
+  uint32_t checksum;
+  uint32_t nbAreas;
+  uint32_t entry;
+  uint32_t bootaddr;
+  flash_v2_mem_area_t memArea[16];
+} binary_v3_desc_t;
+
+typedef struct {
   flash_v2_header_t header;
   flash_v2_mem_area_t area;
 } flash_v2_header_single_t;

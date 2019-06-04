@@ -1,3 +1,4 @@
+#include "rt/rt_api.h"
 #include "Gap8.h"
 
 #define TH      0xFFFF0000

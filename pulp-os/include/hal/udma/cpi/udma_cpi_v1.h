@@ -17,7 +17,7 @@
 #ifndef __HAL_UDMA_UDMA_CPI_V1_H__
 #define __HAL_UDMA_UDMA_CPI_V1_H__
 
-#include "archi/udma/cpi/udma_cpi_v1.h"
+#include "archi/udma/cpi/udma_cpi_v1_old.h"
 
 #define UDMA_CAM_OFFSET(id)           UDMA_PERIPH_OFFSET(ARCHI_UDMA_CAM_ID(id))
 

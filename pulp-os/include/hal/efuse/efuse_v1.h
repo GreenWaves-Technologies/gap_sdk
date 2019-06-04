@@ -36,6 +36,10 @@ static inline char plp_efuse_readByte(unsigned int regId) {
   return pulp_read8(ARCHI_EFUSE_ADDR + EFUSE_REGS_OFFSET + regId*4);
 }
 
+static inline int plp_efuse_readWord(unsigned int regId) {
+  return pulp_read32(ARCHI_EFUSE_ADDR + EFUSE_REGS_OFFSET + regId*4);
+}
+
 static inline void plp_efuse_writeByte(unsigned int regId, unsigned char value) {
 	for (unsigned int i=0;i<8;i++) {
 		if ((value & 0x1) == 0x1) pulp_write8(ARCHI_EFUSE_ADDR + EFUSE_REGS_OFFSET + regId*4, i);

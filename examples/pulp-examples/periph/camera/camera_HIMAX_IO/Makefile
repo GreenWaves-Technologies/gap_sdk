@@ -8,7 +8,7 @@ PULP_APP = test
 PULP_APP_FC_SRCS = test.c ImgIO.c
 PULP_CFLAGS = -O3
 
-PLPBRIDGE_FLAGS += -fileIO
+PLPBRIDGE_FLAGS += -fileIO 5
 #PLPBRIDGE_FLAGS += -s camera@test.py
 
 imgOut:

@@ -141,8 +141,15 @@
 // Return the id of a channel from the peripheral id
 #define UDMA_CHANNEL_ID(id)                 ((id)*2)
 
+// Return the number of events per peripheral
+#define UDMA_NB_PERIPH_EVENTS_LOG2         1
+#define UDMA_NB_PERIPH_EVENTS              (1<<UDMA_NB_PERIPH_EVENTS_LOG2)
+
+// Return the periph id from the channel 
+#define UDMA_PERIPH_ID(id)                 ((id)/2)
+
 // Return the event id of a channel from the peripheral id
-#define UDMA_EVENT_ID(id)                 ((id)*2)
+#define UDMA_EVENT_ID(id)                 ((id)*UDMA_NB_PERIPH_EVENTS)
 
 
 

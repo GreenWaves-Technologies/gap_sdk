@@ -41,6 +41,11 @@ static inline void icache_enable(unsigned int base)
   pulp_write32(base, 0xFFFFFFFF);
 }
 
+static inline void icache_disable(unsigned int base)
+{
+  pulp_write32(base, 0);
+}
+
 // Disable all icache banks routine
 static inline void disable_all_icache_banks ( )
 {

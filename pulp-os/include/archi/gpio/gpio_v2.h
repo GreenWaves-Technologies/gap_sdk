@@ -30,6 +30,7 @@
                                   // = 01 Raising edge		on GPIOi+16
                                   // = 11 Raising the falling edge	on GPIOi+16
 #define ARCHI_GPIO_INTSTATUS 0x18   // Interrupt Status	i:0..31, Bit[i]=1 Event received for GPIOi, bit is cleared when readen
+#define GPIO_INTSTATUS_OFFSET ARCHI_GPIO_INTSTATUS
 #define ARCHI_GPIO_EN        0x1C
 
 #define ARCHI_GPIO_PADCFG0   0x20

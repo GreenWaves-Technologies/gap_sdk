@@ -27,7 +27,11 @@
 #include "archi/chips/gap/apb_soc.h"
 #include "archi/chips/gap/padframe.h"
 #include "archi/stdout/stdout_v3.h"
+#include "archi/gpio/gpio_v2.h"
+#include "archi/soc_eu/soc_eu_v1.h"
+#include "archi/hwce/hwce_v4_old.h"
 
+#include "archi/udma/cpi/udma_cpi_v1_old.h"
 #include "archi/udma/cpi/udma_cpi_v1.h"
 #include "archi/udma/hyper/udma_hyper_v1.h"
 #include "archi/udma/i2c/udma_i2c_v2.h"
