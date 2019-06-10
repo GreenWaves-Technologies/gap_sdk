@@ -63,33 +63,40 @@ void vTestUART( void *parameters )
 {
     ( void ) parameters;
     serial_t pc;
-    uint32_t baudrate = 115200;
     uint8_t get = 0, expect = 'c';
 
-    /* Serial pins init */
-    serial_init(&pc, USBTX, USBRX);
+    #ifndef PRINTF_UART
+    uint32_t baudrate = 115200;
 
-    printf("USBTX  = %d \n", USBTX);
-    printf("USBRX  = %d \n", USBRX);
+    /* Serial pins init. */
+    serial_init(&pc, USBTX, USBRX);
 
     /* Serial format 8N1 configuration : 8 bits, parity disabled, 2 stop bits. */
     serial_format(&pc, 8, 0, 1);
 
-    /* Serial baudrate 115200 configuration */
+    /* Serial baudrate configuration. */
     serial_baud(&pc, baudrate);
+    #endif  /* PRINTF_UART */
+
+    printf("USBTX  = %d \n", USBTX);
+    printf("USBRX  = %d \n", USBRX);
 
     char string[] = "Please press 'c' to continue...\n";
     uint32_t length = strlen( string );
     sprintf( (char *) tx_buffer, string );
 
     /* Write on UART. */
+    #ifndef PRINTF_UART
     UART_TransferSendBlocking( uart_addrs[0], tx_buffer, length );
-    //serial_putc(&pc, expect);
+    #endif
+    printf("%s", string);
     /* Read a char. */
     get = serial_getc(&pc);
 
+    #ifndef PRINTF_UART
     /* Free serial. */
     serial_free(&pc);
+    #endif  /* PRINTF_UART */
 
     printf("Get char ascii = %d <-> expect char ascii = %d \n", get, expect);
 

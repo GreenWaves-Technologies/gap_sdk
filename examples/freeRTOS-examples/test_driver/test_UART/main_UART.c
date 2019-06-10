@@ -118,20 +118,23 @@ static void serial_break_clear()
 void vTestUART( void *parameters )
 {
     ( void ) parameters;
-    uint32_t baudrate = 115200;
     uint8_t get = 0, expect = 'c';
+
+    #ifndef PRINTF_UART
+    uint32_t baudrate = 115200;
 
     /* Serial pins init */
     serial_init( USBTX, USBRX );
-
-    printf("USBTX  = %d \n", USBTX);
-    printf("USBRX  = %d \n", USBRX);
 
     /* Serial format 8N1 configuration : 8 bits, parity disabled, 2 stop bits. */
     serial_format( uUART_8bits, uUART_ParityDisabled, uUART_TwoStopBit );
 
     /* Serial baudrate 115200 configuration */
     UART_SetBaudRate( uart_addrs[0], baudrate, SystemCoreClock );
+    #endif  /* PRINTF_UART */
+
+    printf("USBTX  = %d \n", USBTX);
+    printf("USBRX  = %d \n", USBRX);
 
     char string[] = "Please press 'c' to continue...\n";
     uint32_t length = strlen( string );
@@ -142,8 +145,10 @@ void vTestUART( void *parameters )
     /* Read a char. */
     get = UART_ReadByte( uart_addrs[0] );
 
+    #ifndef PRINTF_UART
     /* Free serial. */
     UART_Deinit( uart_addrs[0] );
+    #endif  /* PRINTF_UART */
 
     printf("Get char ascii = %d <-> expect char ascii = %d \n", get, expect);
 
