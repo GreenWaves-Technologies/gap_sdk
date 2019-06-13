@@ -34,6 +34,3 @@
 [submodule "pulp-os/pulp-rt"]
 	path = pulp-os/pulp-rt
 	url = https://github.com/pulp-platform/pulp-rt.git
-[submodule "mbed-gapoc"]
-	path = mbed-gapoc
-	url = https://github.com/GreenWaves-Technologies/GAPoc_BSP.git
