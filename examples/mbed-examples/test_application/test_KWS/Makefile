@@ -28,7 +28,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc $(USE_HARDWARE_CE)  -o GenTile -I$(TILER_PATH)/GenTiling -I$(TILER_PATH)/StdTypes -I./include $(MODEL_SRC) ./CNN_KERNELS/CNN_Generator.c $(TILER_PATH)/GenTiling/LibTile.a
+	gcc $(USE_HARDWARE_CE)  -o GenTile -I$(TILER_PATH)/include -I./include $(MODEL_SRC) ./CNN_KERNELS/CNN_Generator.c $(TILER_PATH)/lib/libtile.a
 
 #$(TILER_GENERATOR_PATH)/CnnStdModel/CNN_Generator.c
 
