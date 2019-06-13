@@ -11,6 +11,7 @@
 #define _KERNEL_STD_ARG_TYPE_H_
 #include "Gap8.h"
 #include "StdTypes.h"
+
 typedef struct {
         int DimRatio;
         unsigned int L2Offset;
@@ -24,6 +25,29 @@ typedef struct {
         unsigned short int BufferSize;
         unsigned short int BuffCount;
 } Kernel_Arg_T;
+
+typedef struct {
+        int DimRatio;
+        unsigned int L2Offset;
+        unsigned short int L1Offset;
+        unsigned short int FixDim[2];
+        unsigned short int VarDim[2];
+        unsigned short int MoveSize[2];
+        unsigned short int MoveStride;
+        unsigned short int Length2D[2];
+        unsigned short int Stride2D;
+        unsigned short int BufferSize;
+        unsigned short int BuffCount;
+} Kernel_Arg_Exec_T;
+
+typedef struct {
+        unsigned char Iteration[4];
+        unsigned char ArgCount;
+        unsigned char NinPlanes;
+        unsigned char NoutPlanes;
+        Kernel_Arg_Exec_T *Arg;
+} Kernel_Exec_T;
+
 typedef struct {
         unsigned char Iteration[3];
         unsigned char ArgCount;
@@ -31,4 +55,5 @@ typedef struct {
         unsigned char NoutPlanes;
         Kernel_Arg_T *Arg;
 } Kernel_T;
+
 #endif
