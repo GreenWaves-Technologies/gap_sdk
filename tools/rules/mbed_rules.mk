@@ -68,9 +68,19 @@ ifeq ($(platform), rtl)
 MBED_FLAGS     += -D__PLATFORM_RTL__
 endif
 
-ifdef no_printf
+ifeq ($(io), disable)
 MBED_FLAGS     += -D__DISABLE_PRINTF__
-else
+endif
+
+ifeq ($(io), uart)
+MBED_FLAGS     += -DPRINTF_UART
+endif
+
+ifeq ($(io), )
+MBED_FLAGS     += -DPRINTF_RTL
+endif
+
+ifeq ($(io), rtl)
 MBED_FLAGS     += -DPRINTF_RTL
 endif
 
