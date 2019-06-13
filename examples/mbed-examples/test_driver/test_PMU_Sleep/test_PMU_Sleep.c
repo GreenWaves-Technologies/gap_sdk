@@ -105,8 +105,16 @@ int main()
 
         if (my_var == VALUE_SET) {
             printf("Test success\n");
-            return 0;
         }
+
+        #if (PMU_WAKUP_BY_RTC == 1)
+        pmu_wakeup_by_rtc();
+        #else
+        pmu_wakeup_by_gpio();
+        #endif
+
+        /* For changing to deep sleep state, just change < uPMU_SWITCH_RETENTIVE_SLEEP > to < uPMU_SWITCH_DEEP_SLEEP > */
+        PMU_StateSwitch(uPMU_SWITCH_RETENTIVE_SLEEP, uPMU_SWITCH_FAST);
     }
     else if (PMU_WakeupState() == uPMU_DEEP_SLEEP_BOOT)
     {
@@ -115,8 +123,16 @@ int main()
 
         if (my_var == VALUE_INIT) {
             printf("Test success\n");
-            return 0;
         }
+
+        #if (PMU_WAKUP_BY_RTC == 1)
+        pmu_wakeup_by_rtc();
+        #else
+        pmu_wakeup_by_gpio();
+        #endif
+
+        /* For changing to deep sleep state, just change < uPMU_SWITCH_RETENTIVE_SLEEP > to < uPMU_SWITCH_DEEP_SLEEP > */
+        PMU_StateSwitch(uPMU_SWITCH_DEEP_SLEEP, uPMU_SWITCH_FAST);
     }
 
     printf("Test failed\n");
