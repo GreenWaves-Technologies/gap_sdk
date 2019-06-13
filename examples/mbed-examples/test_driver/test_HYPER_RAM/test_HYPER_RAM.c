@@ -3,7 +3,7 @@
 // HYPERBUS CMSIS driver
 #include "hyperbus_api.h"
 
-#define BUFFER_SIZE       1024
+#define BUFFER_SIZE       512
 #define CONF_REG_DEFAULT  0x8F1F
 #define RXTX_ADDR         0x800
 
