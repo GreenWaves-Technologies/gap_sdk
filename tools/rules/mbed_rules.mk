@@ -107,13 +107,15 @@ BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
-		-not -path "$(MBED_PATH)/mbed-os/cmsis/*" \
+		-not -path "$(MBED_PATH)/mbed-os/cmsis/TARGET_CORTEX*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_*")))
 
 S_OBJECTS     += $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip) -name "*.S")))
 
 C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.c" \
+		-not -path "$(MBED_PATH)/mbed-os/usb/*" \
+		-not -path "$(MBED_PATH)/mbed-os/cmsis/TARGET_CORTEX*" \
 		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/*" \
 		-not -path "$(MBED_PATH)/mbed-os/events/equeue/tests/*" \
@@ -124,6 +126,7 @@ C_OBJECTS     = $(patsubst %.c, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/TARGET_PSA/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
@@ -158,7 +161,9 @@ T_OBJECTS_C   += $(patsubst %.c, $(BUILDDIR)/%.o, $(TEST_C))
 T_OBJECTS_CXX += $(patsubst %.cpp, $(BUILDDIR)/%.o, $(TEST_CXX))
 
 CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.cpp" \
+		-not -path "$(MBED_PATH)/mbed-os/cmsis/TARGET_CORTEX*" \
 		-not -path "$(MBED_PATH)/mbed-os/tools/*" \
+		-not -path "$(MBED_PATH)/mbed-os/usb/*" \
 		-not -path "$(MBED_PATH)/mbed-os/components/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/FEATURE_BLE/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-randlib/*" \
@@ -166,6 +171,7 @@ CXX_OBJECTS   = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBE
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-client-cli/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/nanostack-libservice/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/mbed-coap/*" \
+		-not -path "$(MBED_PATH)/mbed-os/features/frameworks/TARGET_PSA/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lorawan/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/mbedtls/*" \
 		-not -path "$(MBED_PATH)/mbed-os/features/lwipstack/*" \
