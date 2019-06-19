@@ -105,6 +105,7 @@ BIN           = $(BUILDDIR)/test
 BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 
 S_OBJECTS     = $(patsubst %.S, $(BUILDDIR)/%.o, $(wildcard $(shell find $(MBED_PATH)/mbed-os -name "*.S" \
+		-not -path "$(MBED_PATH)/mbed-os/*/test/*" \
 		-not -path "$(MBED_PATH)/mbed-os/targets/TARGET_CORTEX/*" \
 		-not -path "$(MBED_PATH)/mbed-os/rtos/TARGET_CORTEX/*" \
 		-not -path "$(MBED_PATH)/mbed-os/cmsis/TARGET_CORTEX*" \
