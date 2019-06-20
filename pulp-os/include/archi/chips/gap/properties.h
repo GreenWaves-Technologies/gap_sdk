@@ -148,6 +148,14 @@
 
 
 /*
+ * GPIO
+*/
+
+#define ARCHI_NB_GPIO 32
+
+
+
+/*
  * SOC EVENTS
  */
 

@@ -72,7 +72,7 @@ pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
 
-gvsoc: pulp-os
+gvsoc: all
 	./gvsoc/build-gvsoc
 
 autotiler:
@@ -81,7 +81,7 @@ autotiler:
 version:
 	@$(MBED_PATH)/tools/version/record_version.sh
 
-all:: pulp-os tools flasher gvsoc docs version
+all:: pulp-os tools flasher docs version
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)

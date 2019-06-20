@@ -59,7 +59,7 @@ T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_
 
 OBJECTS       = $(T_OBJECTS_C)
 
-INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/$(TARGET_NAME)_config.h
+INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/$(TARGET_NAME)/config.h
 
 INC           = $(TARGET_INSTALL_DIR)/include \
 				$(TARGET_INSTALL_DIR)/include/io \

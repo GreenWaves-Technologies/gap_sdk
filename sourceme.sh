@@ -2,8 +2,8 @@ export GAP_SDK_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export PULP_SDK_HOME=$GAP_SDK_HOME
 export GAP_RISCV_GCC_TOOLCHAIN=/usr/lib/gap_riscv_toolchain
 export TARGET_CHIP="GAP8"
-export TARGET_NAME="gap_rev1"
-export PULP_CURRENT_CONFIG=gap_rev1@config_file=chips/gap_rev1/gap_rev1.json
+export TARGET_NAME="gap"
+export PULP_CURRENT_CONFIG=gap@config_file=chips/gap/gap.json
 
 export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/$TARGET_CHIP
 export BUILD_DIR=$GAP_SDK_HOME/build

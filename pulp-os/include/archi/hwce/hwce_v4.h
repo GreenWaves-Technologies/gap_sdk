@@ -308,7 +308,7 @@
 #define HWCE_GEN_CONFIG1_PIXSHIFTL_WIDTH                             5
 #define HWCE_GEN_CONFIG1_PIXSHIFTL_MASK                              0x1f
 
-// Input pixel size - 2'b00 – 16bit - 2'b01 - 8bit - 2'b10 - 4bit - 2'b11 – 16bit bis (access: R/W)
+// Input pixel size - 2'b00  16bit - 2'b01 - 8bit - 2'b10 - 4bit - 2'b11  16bit bis (access: R/W)
 #define HWCE_GEN_CONFIG1_PIXMODE_BIT                                 8
 #define HWCE_GEN_CONFIG1_PIXMODE_WIDTH                               2
 #define HWCE_GEN_CONFIG1_PIXMODE_MASK                                0x300
@@ -523,7 +523,7 @@ typedef union {
   struct {
     unsigned int pixshiftl       :5 ; // Shift input pixels to the left by this number of positions when PIXMODE is not 16bit.
     unsigned int padding0:3 ;
-    unsigned int pixmode         :2 ; // Input pixel size - 2'b00 – 16bit - 2'b01 - 8bit - 2'b10 - 4bit - 2'b11 – 16bit bis
+    unsigned int pixmode         :2 ; // Input pixel size - 2'b00  16bit - 2'b01 - 8bit - 2'b10 - 4bit - 2'b11  16bit bis
     unsigned int padding1:6 ;
     unsigned int pixshiftr       :5 ; // Shift output pixels to the right by this number of positions when PIXMODE is not 16bit.
   };

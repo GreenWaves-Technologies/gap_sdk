@@ -308,6 +308,16 @@ static inline int plp_dma_memcpy(mchan_ext_t ext, unsigned int loc, unsigned sho
   return counter;
 }
 
+static inline int plp_dma_memcpy_merge(mchan_ext_t ext, unsigned int loc, unsigned short size, int ext2loc, int merge) {
+  unsigned int counter = -1;
+  if (!merge)
+    counter = plp_dma_counter_alloc();
+  unsigned int cmd = plp_dma_getCmd(ext2loc, size, PLP_DMA_1D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
+  __asm__ __volatile__ ("" : : : "memory");
+  plp_dma_cmd_push(cmd, loc, ext);
+  return counter;
+}
+
 static inline int plp_dma_memcpy_priv(mchan_ext_t ext, unsigned int loc, unsigned short size, int ext2loc) {
   unsigned int counter = plp_dma_counter_alloc();
   unsigned int cmd = plp_dma_getCmd(ext2loc, size, PLP_DMA_1D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_PRIV);

@@ -115,4 +115,9 @@
 
 //!@}
 
+
+static inline void hal_compiler_barrier() {
+  __asm__ __volatile__ ("" : : : "memory");
+}
+
 #endif
