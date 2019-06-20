@@ -222,7 +222,7 @@ $(BIN): $(OBJS)
 $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
 
-$(BIN).dump: $(BIN)
+$(BIN).s: $(BIN)
 	@echo "    OBJDUMP  $(shell basename $<) > $(shell basename $@)"
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
 
@@ -263,7 +263,7 @@ gui:: dir
 debug:
 	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
 
-disdump: $(BIN).dump
+disdump: $(BIN).s
 
 version:
 	@$(GAP_SDK_HOME)/tools/version/record_version.sh
