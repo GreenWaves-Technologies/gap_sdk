@@ -1,3 +1,5 @@
+export chip=GAP8
+
 rtl_list_tests:
 	$(GAP_SDK_HOME)/tools/runner/run_all_tests.sh list rtl
 

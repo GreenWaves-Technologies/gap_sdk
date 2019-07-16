@@ -5,8 +5,6 @@
 #include "gap_dmamchan.h"
 #include <stdlib.h>
 
-#define CORE_NUMBER      8
-
 void Hello(void *arg) {
     printf("Hello World from cluster core %d!\n", __core_ID());
 }
@@ -19,8 +17,8 @@ int main()
 {
     printf("Fabric controller code execution for mbed_os Cluster Power On test\n");
 
-    /* Cluster Start - Power on */
-    CLUSTER_Start(0, CORE_NUMBER, 0);
+    /* Cluster Start - Power on, 9th core seperation disable */
+    CLUSTER_Start(0, CLUSTER_CORES_NUM, 0);
 
     /* FC send a task to Cluster */
     CLUSTER_SendTask(0, Master_Entry, 0, 0);

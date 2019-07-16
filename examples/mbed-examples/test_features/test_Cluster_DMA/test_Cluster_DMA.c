@@ -86,8 +86,7 @@ int main()
         /* FC send a task to Cluster */
         CLUSTER_SendTask(0, Master_Entry, (void *)L1_BUFFER, 0);
 
-        /* ICACHE printf counters */
-        ICACHE_CNTS_Printf();
+        CLUSTER_Wait(0);
 
         /* ICACHE Stop counters */
         ICACHE_Stop(iter);
@@ -100,7 +99,7 @@ int main()
     CLUSTER_Wait(0);
 
     /* Free before cluster is power off */
-    L1_MallocFree(L1_BUFFER, BUFFER_SIZE);
+    L1_MallocFree(L1_BUFFER);
 
     /* Cluster Stop - Power down */
     CLUSTER_Stop(0);
