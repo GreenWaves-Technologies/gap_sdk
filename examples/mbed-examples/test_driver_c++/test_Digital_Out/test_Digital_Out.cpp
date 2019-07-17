@@ -20,7 +20,7 @@
  */
 #include "mbed.h"
 
-DigitalOut myled(GPIO_A31);
+DigitalOut myled(LED1);
 
 int main()
 {

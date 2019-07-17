@@ -59,9 +59,9 @@ void ICACHE_Start(int iter) {
     // 0x10201404, Icache Flush
 //    SCBC->ICACHE_FLUSH       = 0xC1A0FFFFU;
     // 0x10201410, Clear counter
-    SCBC->ICACHE_CNTS_CLEAR  = 0xC1A0FFFFU;
+    CLUSTER_SCBC->ICACHE_CNTS_CLEAR  = 0xC1A0FFFFU;
     // 0x10201414, Enable counter Start
-    SCBC->ICACHE_CNTS_ENABLE = 0xCA550FFFU;
+    CLUSTER_SCBC->ICACHE_CNTS_ENABLE = 0xCA550FFFU;
 
     if(iter == 1) {
         PowerBenchActive  = 0XABBAABBA;
@@ -70,10 +70,13 @@ void ICACHE_Start(int iter) {
 
 void ICACHE_Stop(int iter) {
     // 0x10201414, Enable counter Stop
-    SCBC->ICACHE_CNTS_ENABLE = 0xF16A0000U;
+    CLUSTER_SCBC->ICACHE_CNTS_ENABLE = 0xF16A0000U;
     if(iter == 1) {
         PowerBenchActive = 0xABBACACA;
     }
+
+    /* ICACHE printf counters */
+    ICACHE_CNTS_Printf();
 }
 
 #endif

@@ -13,3 +13,5 @@ CnnKernelsInit_hwce.h
 CnnKernels_hwce.c
 CnnKernels_hwce.h
 *.log
+*#
+*~

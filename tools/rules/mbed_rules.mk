@@ -7,15 +7,16 @@ OBJDUMP       = riscv32-unknown-elf-objdump
 platform     ?= gapuino
 vcd          ?= ""
 _vcd         ?=
-trace	     ?= ""
+trace        ?= ""
 _trace       ?=
 config       ?= ""
 _config      ?=
 
 # The linker options.
 LIBS          += -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
+		-L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/libgomp  \
 		-L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/newlib
-LIBSFLAGS     += -nostartfiles -lgcc -lc -lm
+LIBSFLAGS     += -nostartfiles -lgcc -lc -lm -lgomp
 
 ifndef chip
 chip=GAP8
@@ -29,11 +30,7 @@ LDFLAGS       = -T$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o \
 		-lstdc++
 
-ifeq ($(chip), GAP8)
 RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__  -D__RISCV_ARCH_GAP__=1
-else
-RISCV_FLAGS   = -march=rv32imcxpulpv2 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
-endif
 
 DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
 		-DDEVICE_SERIAL=1 -DDEVICE_SERIAL_ASYNCH=1 \
@@ -68,6 +65,10 @@ ifeq ($(platform), rtl)
 MBED_FLAGS     += -D__PLATFORM_RTL__
 endif
 
+ifeq ($(platform), gapuino)
+export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
+endif
+
 ifeq ($(io), disable)
 MBED_FLAGS     += -D__DISABLE_PRINTF__
 endif
@@ -82,10 +83,6 @@ endif
 
 ifeq ($(io), rtl)
 MBED_FLAGS     += -DPRINTF_RTL
-endif
-
-ifeq ($(platform), gapuino)
-export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 endif
 
 # The pre-processor and compiler options.
@@ -217,6 +214,8 @@ INC           += $(GAP_SDK_HOME)/tools/libs $(MBED_PATH)/mbed-os/ $(MBED_PATH)/m
 		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/ \
 		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/driver/ $(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/pins/ \
 		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/newlib/extra/stdio/tinyprintf/ \
+		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/libgomp/src/ \
+		$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs/libgomp/src/config/pulp/ \
 		$(MBED_PATH)/mbed-os/events/ $(MBED_PATH)/mbed-os/events/equeue/ \
 		$(MBED_PATH)/mbed-os/drivers $(MBED_PATH)/mbed-os/features \
 		$(MBED_PATH)/mbed-os/features/storage $(MBED_PATH)/mbed-os/features/storage/blockdevice \

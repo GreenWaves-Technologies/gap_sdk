@@ -7,8 +7,8 @@
 GAP_L2_DATA  uint8_t txHyperbusSamples[BUFFER_SIZE];
 GAP_L2_DATA  uint8_t rxHyperbusSamples[BUFFER_SIZE];
 
-#define   ID0  0x0
-#define   ID1  0x1
+#define   ID0  0x0000
+#define   ID1  0x0002
 
 /*
  * CA bits     47    46    45    44-40  |  39-32  |  31-24  |  23-16  |  15-8  |  7-0
@@ -27,7 +27,7 @@ GAP_L2_DATA  uint8_t rxHyperbusSamples[BUFFER_SIZE];
 /* Configuration Register 0 */
 #define   CR0    0x1000
 /* Configuration Register 1 */
-#define   CR1    0x1001
+#define   CR1    0x1002
 
 HYPERBUS hyperbus(HYPERBUS_DQ0, HYPERBUS_DQ1, HYPERBUS_DQ2, HYPERBUS_DQ3,
                   HYPERBUS_DQ4, HYPERBUS_DQ5, HYPERBUS_DQ6, HYPERBUS_DQ7,
@@ -105,7 +105,7 @@ int main()
     /* Read RAM register */
     uint16_t config_reg = hyperbus.read(CR0, uHYPERBUS_Reg_Access);
 
-    if(config_reg != (CONF_REG_DEFAULT & (0xFF0F | (latency << 4)))) error_count++;
+    if(config_reg != CONF_REG_DEFAULT) error_count++;
     printf("Read CR0 6 clock lateny = 0x%02x\n", config_reg);
 
     /* Write RAM register to change latenny to 5 clock */
