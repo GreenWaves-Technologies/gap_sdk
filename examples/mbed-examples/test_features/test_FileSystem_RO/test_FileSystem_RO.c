@@ -29,10 +29,9 @@ int main( )
     fs_config_t conf;
     fs_config_default( &conf );
 
-    fs_handle_t *fs = ( fs_handle_t * ) malloc( sizeof( fs_handle_t ) );
-    uint32_t err = fs_mount( fs, fs_HYPER, &conf );
+    fs_handle_t *fs = fs_mount( FS_HYPER, &conf );
 
-    if( err ) {
+    if( fs == NULL ) {
         printf("Error FS mounting !\n");
         free( fs );
         exit(-1);
