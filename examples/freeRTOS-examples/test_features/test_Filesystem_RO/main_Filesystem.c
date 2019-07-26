@@ -83,9 +83,8 @@ void vTest_FSRO( void *parameters )
     fs_config_t conf;
     fs_config_default( &conf );
 
-    fs_handle_t *fs = ( fs_handle_t * ) pvPortMalloc( sizeof( fs_handle_t ) );
-    uint32_t err = fs_mount( fs, fs_HYPER, &conf );
-    if( err )
+    fs_handle_t *fs = fs_mount( FS_HYPER, &conf );
+    if( fs == NULL )
     {
         printf("Error FS mounting !\n");
         vPortFree( fs );
