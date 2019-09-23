@@ -294,7 +294,7 @@ https://github.com/GreenWaves-Technologies/gap_sdk/releases
 
 Please log any issues you have with the SDK in the github project.
 
-We have also created a Google group for you to ask questions and find out more about the GAP8 SDK. You can join this group at https://bit.ly/2L36qLJ
+We have also created a GAP8 developers’ forum for you to ask questions and find out more about the GAP8 SDK. You can join this group at https://greenwaves-technologies.com/gap8_developers_forum/
 
 ## Trademarks
 
