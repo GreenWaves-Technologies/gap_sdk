@@ -1,0 +1,1 @@
+include $(RULES_DIR)/pulpos/targets/$(PULPOS_TARGET).mk

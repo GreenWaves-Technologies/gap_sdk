@@ -1,0 +1,9 @@
+{
+  "version": 1,
+
+
+  "vp_class": "pulp/lnt/csi2_v1",
+  "hal_files" : [ "hal/vendors/lnt/csi2_v1.h" ],
+  "archi_files" : [ "archi/vendors/lnt/csi2_v1.h" ]
+
+}

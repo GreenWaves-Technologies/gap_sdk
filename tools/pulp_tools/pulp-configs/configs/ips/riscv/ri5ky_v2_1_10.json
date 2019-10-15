@@ -1,0 +1,5 @@
+{
+  "includes" : ["ips/riscv/ri5ky_v2.json"],
+  "bootaddr_offset": "0x00",
+  "defines"  : [ "ARCHI_CORE_HAS_PULPV2", "CORE_PULP_BUILTINS", "ARCHI_CORE_HAS_SECURITY", "ARCHI_CORE_HAS_1_10" ]
+}

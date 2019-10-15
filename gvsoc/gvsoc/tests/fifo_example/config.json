@@ -1,0 +1,28 @@
+{
+  "vp_class": "top",
+
+  "clock_domain": {
+    "frequency": 5000000
+  },
+
+  "master": {
+    "delay": 0,
+    "size":  4,
+    "max_pending_reqs": 4,
+    "nb_requests": 16
+  },
+
+  "slave": {
+    "nb_ports"   : 1,
+    "bandwidth"  : 4,
+    "mode"       : 1,
+    "switch_mode": false,
+    "resp_latency":     1,
+    "latency":     20
+  },
+
+  "gvsoc": {
+    "trace": [ ".*" ]
+  }
+
+}

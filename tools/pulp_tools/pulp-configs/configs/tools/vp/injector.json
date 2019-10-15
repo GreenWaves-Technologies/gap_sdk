@@ -1,0 +1,6 @@
+{
+  "vp_class": "utils/injector",
+
+  "rcv_fd": -1,
+  "snd_fd": -1
+}

@@ -1,0 +1,17 @@
+{
+  "name": "SPI_verif",
+  "doc_rst": "devices/spim_verif.rst",
+  "description": "SPI verification testbench",
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "generator": "generators/v1/devices/spim_verif_gen",
+  "interface": "spim0",
+  "cs": 0,
+
+  "config": {
+    "type": "dpi",
+    "module": "spim_tb.so",
+    "mem_size": 1048576,
+    "verbose": false
+  }
+}

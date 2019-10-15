@@ -1,0 +1,19 @@
+{
+  "version": 6,
+
+  "hal_files" : [ "hal/dma/mchan_v6.h" ],
+  "archi_files" : [ "archi/dma/mchan_v6.h" ],
+
+  "vp_class": "pulp/mchan/mchan_v6",
+
+  "nb_channels": 0,
+  "core_queue_depth": 2,
+  "global_queue_depth": 8,
+  "is_64": false,
+  "max_nb_ext_read_req" : 8,
+  "max_nb_ext_write_req": 8,
+  "max_burst_length": 256,
+  "nb_loc_ports": 4,
+  "tcdm_addr_width": 20
+
+}

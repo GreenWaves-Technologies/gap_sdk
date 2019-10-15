@@ -1,0 +1,26 @@
+{
+  "version"       : "ri5cyv2",
+  "archi"         : "riscv",
+  "implementation": "ri5cy",
+  "gv_isa"        : ["--pulp", "--rv32m", "--pulp-perf-counters", "--pulp-hw-loop", "--itc-external-req" ],
+  "isa"           : "rv32imc",
+  "march"         : "imc",
+  "bootaddr_offset": "0x00",
+  "priv_version"  : 1.9,
+  "perf_counters" : true,
+  "first_ext_counter": 12,
+  "features"      : [ "misaligned", "perf"],
+  "hal_files"     : [ "hal/riscv/riscv_v5.h", "hal/riscv/types.h" ],
+  "archi_files"   : [ "archi/riscv/priv_1_10.h", "archi/riscv/builtins_v2.h", "archi/riscv/builtins_v2_emu.h", "archi/riscv/pcer_v2.h" ],
+  "defines"  : [ "ARCHI_CORE_HAS_CPLX", "ARCHI_CORE_HAS_1_10", "RV_ISA_RV32", "PLP_NO_PERF_COUNTERS", "ARCHI_CORE_RISCV_ITC" ],
+  "debug_binaries": [],
+  "vp_class": "cpu/iss/iss",
+  "first_external_pcer": 12,
+  "bootaddr_offset": "0x00",
+  "iss_class": "iss_riscy_v2_5",
+  "power_models": {
+    "includes": [
+      "power_models/core/riscy.json"
+    ]
+  }
+}

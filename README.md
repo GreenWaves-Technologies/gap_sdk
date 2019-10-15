@@ -22,6 +22,7 @@ We provide you with all the necessary tools and two different operating systems 
     -   PULP OS - The open source embedded RTOS produced by the PULP project
     -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8 and VEGA.
     -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
+    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it fro PULP OS and FreeRTOS, and it is used by our applications to be portable.
 
 ##  Getting started with the GAP SDK
 
@@ -42,15 +43,24 @@ sudo apt-get install git-lfs
 git lfs install
 ~~~~~
 
-The debug bridge uses a python3 application. Python3 is already included in the Ubuntu image above however one extra package was required:
+Our modules requires a few additional Python packages that you can install with this command:
 
 ~~~~~shell
-pip3 install pyelftools
+pip3 install -r requirements.txt
 ~~~~~
 
-## Configure USB Port for GAPuino Evaluation Board
+In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution. You can find more information here: https://www.anaconda.com/.
 
-For the USB serial connection GAPuino uses an FDDI 2 port serial to USB controller. This needs to be set up (the driver is installed in the apt-get install step above).
+Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
+
+~~~~~shell
+pip install -r tools/nntool/requirements.txt
+pip install -r requirements.txt
+~~~~~
+
+## Configure USB Port for GAPuino Evaluation Board and Gapoc board
+
+For the USB serial connection our GAPuino and Gapoc boards use an FDDI 2 port serial to USB controller. This needs to be set up (the driver is installed in the apt-get install step above).
 
 Add your username to the dialout group:
 
@@ -63,6 +73,7 @@ Logout from your session and login again. Now create a udev rule for gapuino ftd
 ~~~~~shell
 touch 90-ftdi_gapuino.rules
 echo 'ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="0666", GROUP="dialout"'> 90-ftdi_gapuino.rules
+echo 'ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="002b", MODE="0666", GROUP="dialout"'>> 90-ftdi_gapuino.rules
 sudo mv 90-ftdi_gapuino.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ~~~~~
@@ -96,12 +107,29 @@ cd ~/gap_sdk
 git submodule update --init --recursive
 ~~~~~
 
+## Configure the SDK:
+
+You need to source the appropriate config file for the board that you have. The SDK supports 2 boards (gapuino and gapoc) and each of them can use version 1 or version 2 of the GAP8 chip. Boards bought before 10/2019 contains GAP8 version 1 and use a USB B plug for JTAG while the ones bought after contains version 2 and use a USB micro B for JTAG.
+
+Hereafter you can find a summary of the available boards and their configuration file.
+
+Board     | Chip       | Config file
+|:-------:|:----------:|:----------------------:|
+Gapuino   | GAP8 v1    | configs/gapuino.sh
+Gapuino   | GAP8 v2    | configs/gapuino_v2.sh
+Gapoc     | GAP8 v1    | configs/gapoc_a.sh
+Gapoc     | GAP8 v2    | configs/gapoc_a_v2.sh
+
+Once the proper config file is sourced, you can proceed with the SDK build.
+
+Note that after the SDK has been built, you can source another config file to change the configuration. In this case the SDK will have to be built again. As soon as the SDK has been built once for a configuration, it does not need to be built again for this configuration, unless the SDK is cleaned.
+
+
 ## Build the SDK:
 
-Firstly, please configure the environment for GAP8 or VEGA by using the sourceme.sh script:
+You can build the SDK with this command:
 
 ~~~~~shell
-source sourceme.sh
 make all
 ~~~~~
 
@@ -122,13 +150,26 @@ If you have already answered these questions, this enquiry will be skipped.
 
 For offering you the best support, please answer the questions.
 
+## Getting nntool
+
+You first need to install Anaconda and Python dependencies (see above).
+
+Then execute:
+
+~~~~~shell
+cd ~/gap_sdk/
+make nntool
+~~~~~
+
 # Compiling, running and debugging programs
 
 The following command configures the shell environment correctly for the GAP8 SDK. **It must be done for each terminal session**:
 
 ~~~~~shell
-source ~/gap_sdk/sourceme.sh
+source ~/gap_sdk/configs/gapuino.sh
 ~~~~~
+
+The configuration file you should sourced may be different, depending on the board you are using (see above).
 
 Tip: You can add an "alias" command as following in your .bashrc file:
 

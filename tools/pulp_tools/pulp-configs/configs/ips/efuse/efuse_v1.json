@@ -1,0 +1,19 @@
+{
+  "version": 1,
+
+  "vp_class": "pulp/efuse/efuse_v1",
+
+  "hal_files" : [ "hal/efuse/efuse_v1.h" ],
+  "archi_files" : [ "archi/efuse/efuse_v1.h" ],
+
+  "nb_regs"   : 128,
+
+  "encrypted": false,
+  "aes_key": "12345678275689075642768987654345",
+  "aes_iv": "0987654323456789",
+  "xtal_check": false,
+  "xtalCheck_delta": "0.1",
+  "xtalCheck_min": "3",
+  "xtalCheck_max": "10",
+  "values": []
+}

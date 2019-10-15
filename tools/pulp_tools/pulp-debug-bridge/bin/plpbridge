@@ -1,0 +1,580 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2018 ETH Zurich and University of Bologna
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+
+
+import bridge.debug_bridge as db
+import argparse
+import code
+import imp
+import os.path
+import sys
+from time import sleep
+import pulp_config as plpconf
+
+from bridge.misc.portable import to_bytes
+
+try:
+  import plptree
+except:
+  pass
+
+import json_tools as js
+
+try:
+  from IPython import embed
+except:
+  pass
+
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def fatal_error(error):
+    print (bcolors.FAIL + 'FATAL ERROR: ' + error + bcolors.ENDC)
+
+def add_command(bridge, cb):
+    def execute_cb(state):
+        try:
+            return cb(state)
+        except Exception as ex:
+            fatal_error(str(ex))
+            bridge.close()
+            if args.debug:
+                raise
+            return False
+
+    bridge.add_execute(execute_cb)
+
+
+def read(bridge):
+    if args.addr == None:
+        raise Exception('Access address must be given through option --addr when using command "read"')
+
+    def read_cb(state):
+        size = int(args.size, 0)
+        width = args.width
+        if args.verbose >= 4:
+            print ('Read access command (addr: 0x%x, size: 0x%x)' % (args.addr, size))
+
+        addr = bridge.decode_addr(args.addr)
+        data = bridge.read(addr=addr, size=size)
+        while size > 0:
+            line = [ '{:08x}'.format(addr) ]
+
+            for _ in range(0, 16, width):
+                line.append(' '+''.join('{:02x}'.format(ord(c)) for c in reversed(data[0:width])))
+                size -= width
+                addr += width
+                data = data[width:]
+                if size <= 0:
+                    break
+            print (''.join(line))
+        return True
+
+    add_command(bridge, read_cb)
+
+def write(bridge):
+    if args.addr == None:
+        raise Exception('Access address must be given through option --addr when using command "write"')
+
+    if args.value == None:
+        raise Exception('Access value must be given through option --value when using command "write"')
+
+    addr = int(args.addr, 0)
+    size = int(args.size, 0)
+    value = int(args.value, 0)
+
+    def write_cb(state):
+        if args.verbose >= 4:
+            print ('Write access command (addr: 0x%x, size: 0x%x, value: 0x%x)' % (addr, size, value))
+
+        return bridge.write(addr=addr, size=size, buffer=to_bytes(value, size, byteorder='little'))
+
+    add_command(bridge, write_cb)
+
+def load(bridge, binaries=None, mode=None):
+    if binaries is None:
+        binaries = []
+        binaries_conf = bridge.config.get('**/loader/binaries')
+        if binaries_conf is not None:
+            binaries = binaries_conf.get_dict()
+
+    if mode is None:
+        mode = bridge.config.get_child_str('**/debug_bridge/boot-mode')
+    if mode is None:
+        mode = "jtag"
+
+    def load_cb(state):
+        if args.verbose >= 4:
+            print ('Loading ELF binaries (path: %s)' % ' '.join(binaries))
+
+        bridge.binaries = binaries
+        return bridge.load(mode=mode)
+
+    add_command(bridge, load_cb)
+
+def ioloop(bridge):
+    def ioloop_cb(state):
+        if args.verbose >= 4:
+            print ('Lauching IO loop')
+
+        return bridge.ioloop()
+
+    add_command(bridge, ioloop_cb)
+
+def reqloop(bridge):
+    def reqloop_cb(state):
+        if args.verbose >= 4:
+            print ('Lauching req loop')
+
+        return bridge.reqloop()
+
+    add_command(bridge, reqloop_cb)
+
+
+def gdb(bridge):
+    def gdb_cb(state):
+        if args.verbose >= 4:
+            print ('Lauching GDB server')
+
+        return bridge.gdb(int(args.rsp_port))
+
+    add_command(bridge, gdb_cb)
+
+
+def start(bridge):
+    def start_cb(state):
+        if args.verbose >= 4:
+            print ('Starting execution')
+
+        return bridge.start()
+
+    add_command(bridge, start_cb)
+
+
+def stop(bridge):
+    def stop_cb(state):
+        if args.verbose >= 4:
+            print ('Stopping execution')
+
+        return bridge.stop()
+
+    add_command(bridge, stop_cb)
+
+
+def wait(bridge):
+    if args.verbose >= 4:
+        print ('Waiting termination')
+
+    return bridge.add_wait_exit()
+
+
+def fuse(bridge, do_write):
+    if args.fuser is not None:
+        fuser = args.fuser
+    else:
+        fuser = os.environ["INSTALL_DIR"] + "/bin/fuser"
+
+    bridge.fuse_validate(args, do_write)
+
+    def fuse_cb(state):
+        if args.verbose >=4:
+            print("Executing fuse operation")
+
+        if do_write:
+            return bridge.fuse(args.fuse_offset, args.fuse_value["bit_len"], buffer = args.fuse_value["buffer"])
+        else:
+            return bridge.fuse(args.fuse_offset, args.fuse_read_len, fmt = args.fuse_format)
+
+    bridge.add_repeat_start(0, 1)
+    load(bridge, binaries=[ fuser ], mode='jtag')
+    ioloop(bridge)
+    start(bridge)
+    add_command(bridge, fuse_cb)
+    bridge.add_wait_exit()
+    stop(bridge)
+    bridge.add_repeat_end()
+
+def fuse_read(bridge):
+    fuse(bridge, False)
+
+def fuse_write(bridge):
+    fuse(bridge, True)
+
+def flash(bridge):
+    # When using the flasher, the binaries should be the flasher
+    if args.flasher is not None:
+        flasher = args.flasher
+    else:
+        flasher = os.environ["INSTALL_DIR"] + "/bin/flasher"
+
+    def flash_cb(state):
+        if args.verbose >=4:
+            print("Flashing the flash image")
+        return bridge.flash(args.flash_image)
+
+    bridge.add_repeat_start(0, 1)
+    load(bridge, binaries=[ flasher ], mode='jtag')
+    ioloop(bridge)
+    # reqloop(bridge)
+    start(bridge)
+    add_command(bridge, flash_cb)
+    bridge.add_wait_exit()
+    stop(bridge)
+    bridge.add_repeat_end()
+
+def reset(bridge):
+    def reset_cb(state):
+        if args.verbose >= 4:
+            print ('Chip reset')
+
+        return bridge.reset()
+
+    add_command(bridge, reset_cb)
+
+
+def script_function(bridge, script):
+    def script_cb(state):
+        if args.verbose >= 4:
+            print ('Executing script: ' + script)
+
+        if script.find('@') == -1:
+            script_name = script
+            script_entry = "debug_bridge_entry"
+        else:
+            script_entry, script_name = script.split('@')
+
+        module = imp.load_source("user_script", script_name)
+
+        entry = getattr(module, script_entry)
+        result = entry(bridge)
+        if result is None:
+            return True
+        else:
+            return result
+    return script_cb
+
+def script(bridge):
+    for script in args.scripts:
+        add_command(bridge, script_function(bridge, script))
+
+
+commands = {
+  'read'    : ['Read data from the target',         read],
+  'write'   : ['Write data to the target',          write],
+  'load'    : ['Load a binary into the target',     load],
+  'ioloop'  : ['Activate IO loop',                  ioloop],
+  'reqloop' : ['Activate request loop',             reqloop],
+  'gdb'     : ['Open RSP server for GDB connection',gdb],
+  'start'   : ['Start execution',                   start],
+  'stop'    : ['Stop execution',                    stop],
+  'flash'   : ['Flash the flash image',             flash],
+  'wait'    : ['Wait termination',                  wait],
+  'reset'   : ['Chip reset',                        reset],
+  'script'  : ['Execute user scripts',              script],
+  'fuse_read' : ['Read contents of efuse',         fuse_read],
+  'fuse_write'  : ['Write contents of efuse',      fuse_write],
+  'loop'    : ['loop a sequence of commands. loop=times,delay times default is -1 - loop forever. delay is in ms.'],
+  'endloop'    : ['end previous loop'],
+}
+
+def get_config_and_commands(args):
+    config_path = args.config
+
+
+    if args.chip is not None:
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(sys.argv[0])),
+            'configs', 'chips', args.chip, '%s.json' % args.chip
+        )
+
+        if not os.path.exists(config_path):
+            print ("ERROR, didn't find any configuration for specified chip (chip: %s, config: %s)" % (args.chip, config_path))
+            exit(-1)
+
+    elif config_path is None:
+        raise Exception('A chip or a config file must be specified')
+
+    config = plpconf.get_config(config_path, config_opts=args.configOpt, interpret=True)
+
+
+    if len(args.command) == 0:
+        json_commands = config.get('**/debug_bridge/commands')
+        if json_commands is not None:
+            args.command = json_commands.get().split()
+
+    return config
+
+
+
+command_help = """Available commands:
+"""
+
+for name, cmd in commands.items():
+  command_help += '  %-10s %s\n' % (name, cmd[0])
+
+def auto_int(x):
+    return int(x, 0)
+
+def fuse_value(val):
+    value = { "buffer": [], "bit_len": 0 }
+    if val.startswith('0x'):
+        for x in range(2, len(val), 2):
+            value["buffer"].append(int(val[x:x+2], 16))
+            value["bit_len"] += 8
+        return value
+
+    if val.startswith('0b'):
+        start_idx = 2
+    else:
+        start_idx = 0
+
+    byte_val = 0
+    for x in range(start_idx, len(val), 1):
+        byte_val <<= 1
+        if val[x] == "1":
+            byte_val = byte_val + 1
+
+        value["bit_len"] = value["bit_len"] + 1
+
+        if value["bit_len"] != 0 and value["bit_len"] % 8 == 0:
+            value["buffer"].append(byte_val)
+            byte_val = 0
+
+    if value["bit_len"] % 8 != 0:
+        value["buffer"].append(byte_val << (8 - (value["bit_len"] % 8)))
+
+    return value
+
+parser = argparse.ArgumentParser(description='Control a pulp target',
+  epilog=command_help, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False
+)
+
+parser.add_argument('command', metavar='CMD', type=str, nargs='*',
+                   help='a command to be executed (see the command help afterwards)')
+
+parser.add_argument("--script", dest="scripts", default=[], action="append", help="Specify a script to be executed with the script command")
+parser.add_argument("--config", dest="config", default=None, help="Specify the system configuration")
+parser.add_argument("--ipython", dest="ipython", action="store_true", help="Enter ipython shell")
+parser.add_argument("--shell", dest="shell", action="store_true", help="Enter python shell")
+parser.add_argument("--port", dest="port", type=int, default=None, help="Specify port for proxy mode")
+parser.add_argument("--host", dest="host", default=None, help="Specify host for proxy mode")
+parser.add_argument("--debug", dest="debug", action='store_true', default=False, help="Activate debug mode for this script")
+parser.add_argument("--verbose", dest="verbose", type=int, default=3, help="Verbose mode")
+parser.add_argument("--help", dest="help", action='store_true', default=False, help="Dump help")
+parser.add_argument("--cable", dest="cable", default=None, help="Specify cable")
+parser.add_argument("--chip", dest="chip", default=None, help="Specify target chip")
+parser.add_argument("--binary", dest="binaries", default=[], action="append", help="Specify a binary to be loaded by the load command")
+parser.add_argument("--boot-mode", dest="boot_mode", default=None, help="Specify the boot mode")
+parser.add_argument("--config-opt", dest="configOpt", default=[], action="append", help='specify configuration option')
+
+[args, otherArgs] = parser.parse_known_args()
+
+config = get_config_and_commands(args)
+
+
+
+if 'read' in args.command or 'write' in args.command:
+  parser.add_argument("--addr", dest="addr", default=None, help="Specify the address of the access for read and write commands")
+  parser.add_argument("--size", dest="size", default="4", help="Specify the size of the access for read and write commands")
+
+if 'read' in args.command:
+  parser.add_argument("--width", dest="width", default=1, type=int, help="Specify the word size in bytes used to display numbers for read commands")
+
+if 'write' in args.command:
+  parser.add_argument("--value", dest="value", default=None, help="Specify the value to be written for write command")
+
+if 'gdb' in args.command:
+  parser.add_argument("--rsp-port", dest="rsp_port", default=1234, help="Specify the port number that the RSP will use to open a socket for GDB connection")
+
+if 'fuse_read' in args.command:
+    parser.add_argument("--fuse-name", dest="fuse_name", default=None, help="Specify the fuse name")
+    parser.add_argument("--fuse-offset", dest="fuse_offset", type=auto_int, default=None, help="Specify the fuse bit offset to start read")
+    parser.add_argument("--fuse-read-len", dest="fuse_read_len", type=auto_int, default=None, help="Specify the amount of bits to read")
+    parser.add_argument("--fuser", dest="fuser", default=None, help="Specify absolute path of on chip fuse program")
+    parser.add_argument("--fuse-format", dest="fuse_format", default=None, help="Specify the format to print the fuse contents: hex or binary")
+
+if 'fuse_write' in args.command:
+    parser.add_argument("--fuse-name", dest="fuse_name", default=None, help="Specify the fuse name")
+    parser.add_argument("--fuse-offset", dest="fuse_offset", type=auto_int, default=None, help="Specify the fuse bit offset to start write")
+    parser.add_argument("--fuse-value", dest="fuse_value", type=fuse_value, default=None, help="Specify the fuse value 0b0101 or 0xff or 101")
+    parser.add_argument("--fuser", dest="fuser", default=None, help="Specify absolute path of on chip fuse program")
+    parser.add_argument("--danger", dest="danger", action="store_true", help="Must be added for fuse operations that could render chip unbootable")
+
+if 'flash' in args.command:
+    parser.add_argument("--flash-image", dest="flash_image", default=None, help="Specify a flash image to be flashed")
+    parser.add_argument("--flasher", dest="flasher", default=None, help="Specify absolute path of on chip flash program")
+
+if 'reqloop' in args.command:
+  parser.add_argument("--req-port", dest="req_port", default=9999, help="Specify the port number that the req server will listen to requests on")
+  parser.add_argument("--req-max", dest="req_max", default=128, help="Specify the maximum memory access size in bytes")
+
+args = parser.parse_args()
+
+config = get_config_and_commands(args)
+
+if args.help:
+    parser.print_help()
+    exit(0)
+
+
+
+
+# And overloads it with the specified options
+if args.boot_mode is not None:
+    if config.get('**/debug_bridge') is None:
+        config.set('debug_bridge', {})
+
+    config.get('**/debug_bridge').set('boot-mode', args.boot_mode)
+
+if args.cable is not None:
+    if config.get('**/debug_bridge') is None:
+        config.set('debug_bridge', {})
+
+    config.get('**/debug_bridge').set('cable/type', args.cable)
+
+if args.port is not None:
+    if config.get('**/debug_bridge') is None:
+        config.set('debug_bridge', {})
+
+    if config.get('**/debug_bridge/cable') is None:
+        config.get('**/debug_bridge').set('cable', {})
+
+    if config.get('**/debug_bridge/cable/jtag-proxy') is None:
+        config.get('**/debug_bridge/cable').set('jtag-proxy', {})
+
+    config.get('**/debug_bridge/cable/jtag-proxy').set('port', args.port)
+
+if args.host is not None:
+    config.get('**/debug_bridge/cable/jtag-proxy').set('host', args.host)
+
+if 'reqloop' in args.command:
+    if args.req_port is not None:
+        if config.get('**/debug_bridge') is None:
+            config.set('debug_bridge', {})
+
+        if config.get('**/debug_bridge/reqserver') is None:
+            config.get('**/debug_bridge').set('reqserver', {})
+
+        if config.get('**/debug_bridge/reqserver/port') is None:
+            config.get('**/debug_bridge/reqserver').set('port', args.req_port)
+
+        if config.get('**/debug_bridge/reqserver/max') is None:
+            config.get('**/debug_bridge/reqserver').set('max', args.req_max)
+
+for binary in args.binaries:
+    if config.get('**/loader') is None:
+        config.set('loader', {})
+
+    if config.get('**/loader/binaries') is None:
+        config.get('**/loader').set('binaries', [])
+
+    config.get('**/loader').set('binaries', binary)
+
+
+binaries = []
+binaries_conf = config.get('**/loader/binaries')
+if binaries_conf is not None:
+    binaries = binaries_conf.get_dict()
+
+bridge = db.get_bridge(config=config, verbose=args.verbose, binaries=binaries)
+
+if args.ipython:
+  embed()
+
+if args.shell:
+  code.interact(local=locals())
+
+#bridge.exec_config()
+
+
+def split_first_equals(str):
+    index = str.find('=')
+    if index == -1:
+        return None
+    else:
+        return [ str[0:index], str[index+1:len(str)] ]
+
+def handle_commands(bridge):
+    if len(args.command) == 0:
+        parser.print_help()
+        exit(0)
+
+    else:
+        cmd_idx = 0
+        while cmd_idx < len(args.command):
+            cmd = args.command[cmd_idx]
+            cmd_args = split_first_equals(cmd)
+            if cmd_args is not None:
+                cmd = cmd_args[0]
+                del cmd_args[0]
+
+            if cmd == "loop":
+                if cmd_args is None:
+                    repeat = -1
+                    delay = 1000
+                else:
+                    loop_args = cmd_args[0].split(',')
+                    if len(loop_args) > 1:
+                        delay = int(loop_args[1])
+                    if len(loop_args) > 0:
+                        repeat = int(loop_args[0])
+
+                bridge.add_repeat_start(delay, repeat)
+            elif cmd == "endloop":
+                bridge.add_repeat_end()
+            elif cmd == 'delay':
+                if cmd_args == None:
+                    delay = 1000
+                else:
+                    delay = int(cmd_args[0])
+                bridge.add_delay(delay * 1000)
+            else:
+                if commands.get(cmd) is None:
+                    fatal_error('Unknown command: ' + cmd)
+                    exit(1)
+
+                if cmd_args is not None:
+                    commands.get(cmd)[1](bridge, arguments=cmd_args)
+                else:
+                    commands.get(cmd)[1](bridge)
+
+            cmd_idx = cmd_idx + 1
+
+try:
+    handle_commands(bridge)
+except Exception as ex:
+    fatal_error(str(ex))
+    bridge.close()
+    if args.debug:
+        raise
+    sys.exit(1)
+
+bridge.run_loop()
+print("commands completed")

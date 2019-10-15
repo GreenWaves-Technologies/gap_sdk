@@ -1,0 +1,161 @@
+{
+  "version": 1,
+
+  "vp_class": "pulp/fll/fll_v1",
+
+  "hal_files" : [ "hal/fll/fll_v1.h" ],
+  "archi_files" : [ "archi/fll/fll_v1.h" ],
+
+  "regmap": {
+    "status": {
+      "desc": "Return the current status of the FLL",
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "actual_mult": {
+          "bit": 0,
+          "width": 16,
+          "access": "R/W",
+          "name": "Actual multiplication factor.",
+          "desc": "Returns the current multiplication factor (i.e., current frequency), which is measured out of the DCO at each clock ref cycle."
+        }
+      }
+    },
+
+    "conf1": {
+      "desc": "Configuration register I",
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "reset": "0x454C05F5",
+      "content": {
+        "mult_factor": {
+          "bit": 0,
+          "width": 16,
+          "access": "R/W",
+          "name": "Target clock multiplication factor for normal mode.",
+          "desc": "When using normal mode, this sets the target multiplication factor, i.e. the one that the feedback will try to reach by tuning the DCO input code."
+        },
+        "dco_input": {
+          "bit": 16,
+          "width": 10,
+          "access": "R/W",
+          "name": "DCO input code for stand-alone mode.",
+          "desc": "When using the stand-alone mode, this sets the DCO input code, i.e. this sets the output frequency of the DCO. See the transfer function to get more details about the relationship between output frequency and DCO input code."
+        },
+        "div": {
+          "bit": 26,
+          "width": 4,
+          "access": "R/W",
+          "name": "FLL output clock divider setting.",
+          "desc": "This sets the divider between the FLL output frequency and the DCO output frequency. 0 means no division."
+        },
+        "lock_en": {
+          "bit": 30,
+          "width": 1,
+          "access": "R/W",
+          "name": "FLL output gated by LOCK signal (active high)",
+          "desc": "When active, the FLL is producing the output clock signal only if the produced frequency is within the lock tolerance."
+        },
+        "mode": {
+          "bit": 31,
+          "width": 1,
+          "access": "R/W",
+          "name": "Operation mode select (0=stand-alone, 1=normal).",
+          "desc": "The normal mode is using a feedback loop to reach the requested frequency while the stand-alone mode is directly using the output of the DCO to get a frequency proportional to the given DCO input code."
+        }
+      }
+    },
+
+    "conf2": {
+      "desc": "Configuration register II",
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "reset": "0x02004109",
+      "content": {
+        "gain": {
+          "bit": 0,
+          "width": 4,
+          "access": "R/W",
+          "name": "FLL loop gain setting (default: 2^-8 = 1/256).",
+          "desc": "When using normal mode, this defines the gain applied to the difference between the specified multiplication factor and the actual one, before it is provided to the loop filter."
+        },
+        "deassert_cycles": {
+          "bit": 4,
+          "width": 6,
+          "access": "R/W",
+          "name": "De-assert cycles",
+          "desc": "In normal mode, this gives the number of unstable ref-clock cycles (i.e. out of the tolerance) until the lock is de-asserted. In stand-alone mode, this gives the lower 6-bit of the LOCK assert counter target, after which the FLL starts producing a clock."
+        },
+        "assert_cycles": {
+          "bit": 10,
+          "width": 6,
+          "access": "R/W",
+          "name": "Assert cycles",
+          "desc": "In normal mode, this gives the number of stable ref-clock cycles (i.e. within the tolerance) after which the lock is asserted. In stand-alone mode, this gives the upper 6-bit of LOCK assert counter target, after which the FLL starts producing a clock."
+        },
+        "tolerance": {
+          "bit": 16,
+          "width": 12,
+          "access": "R/W",
+          "name": "Lock tolerance",
+          "desc": "this gives the margin around the target multiplication factor within which the output clock is considered stable."
+        },
+        "reserved0": {
+          "bit": 28,
+          "width": 1,
+          "access": "R/W"
+        },
+        "sta_clock": {
+          "bit": 29,
+          "width": 1,
+          "access": "R/W",
+          "name": "Config clock select in STA mode (0=DCOCLK, 1=REFCLK).",
+          "desc": "In stand-alone mode, this specifies the clock driving the configuration registers (either ref-clock or DCO clock)."
+        },
+        "open_lock": {
+          "bit": 30,
+          "width": 1,
+          "access": "R/W",
+          "name": "Open-loop-when-locked (active high).",
+          "desc": "This switched to open loop mode when the output frequency is within the tolerance."
+        },
+        "dithering": {
+          "bit": 31,
+          "width": 1,
+          "access": "R/W",
+          "name": "Dithering enable (active high).",
+          "desc": "Applies dither filter to the DCO input code to get one moe bit and improve the precision using noise generation."
+        }
+      }
+    },
+
+    "integrator": {
+      "name": "Integrator register",
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "state_fract": {
+          "bit": 6,
+          "width": 10,
+          "access": "R/W",
+          "name": "Integrator state: fractional part (dither unit input)",
+          "desc": "This gives the fractional part of the integrator unit output used to compute the DCO input code. This corresponds to the input given to the dither unit."
+        },
+        "state_int": {
+          "bit": 16,
+          "width": 10,
+          "access": "R/W",
+          "name": "Integrator state: integer part (DCO input bits)",
+          "desc": "This gives the integer part of the integrator unit output used to compute the DCO input code. This corresponds to the DCO input code before it is rounded with the dither unit output."
+        }
+      }
+    }
+  }
+
+}

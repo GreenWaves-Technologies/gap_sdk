@@ -1,0 +1,13 @@
+PROJECT_LOGO           = $(COM_BASE)/gap-logo-55.png
+
+HTML_HEADER            = $(COM_BASE)/pulp_header.html
+
+HTML_FOOTER            = $(COM_BASE)/pulp_footer.html
+HTML_EXTRA_STYLESHEET  = $(DOXTEMPLATE)/Doxygen_Templates/pulp.css
+HTML_EXTRA_FILES       = $(DOXTEMPLATE)/Doxygen_Templates/tabs.css \
+						 $(COM_BASE)/gap.css \
+                         $(DOXTEMPLATE)/Doxygen_Templates/tab_topnav.png \
+                         $(TABSCRIPT_DST) \
+                         $(COM_BASE)/greenwaves-logo-55.png                 
+
+LAYOUT_FILE            = $(DOXTEMPLATE)/Doxygen_Templates/DoxygenLayout_forUser.xml

@@ -1,0 +1,87 @@
+{
+  "includes": [ "ips/udma/udma_v2.json"],
+
+  "vp_impl": "pulp.udma.udma_v2_pulp_v1_impl",
+
+  "nb_periphs": 7,
+
+  "interfaces" : ["memcpy", "spim", "i2c", "i2s", "uart", "cpi"],
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "archi_files": [
+    "archi/udma/cpi/udma_cpi_v1.h",
+    "archi/udma/i2c/udma_i2c_v2.h",
+    "archi/udma/i2s/udma_i2s_v1.h",
+    "archi/udma/spim/udma_spim_v2.h",
+    "archi/udma/uart/udma_uart_v1.h"
+  ],
+
+  "hal_files": [
+    "hal/udma/cpi/udma_cpi_v1.h",
+    "hal/udma/i2c/udma_i2c_v2.h",
+    "hal/udma/i2s/udma_i2s_v1.h",
+    "hal/udma/spim/udma_spim_v2.h",
+    "hal/udma/uart/udma_uart_v1.h"
+  ],
+
+  "uart": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [0],
+    "offsets"      : ["0x00"],
+    "is_master"    : true
+  },
+
+  "spim": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [1],
+    "offsets"      : ["0x080"],
+    "is_master"    : true,
+    "eot_events"   : [ 23 ]
+  },
+
+  "memcpy": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [2],
+    "offsets"      : ["0x100"]
+  },
+
+  "i2c": {
+    "version"      : 2,
+    "nb_channels"  : 2,
+    "ids"          : [3, 4],
+    "offsets"      : ["0x180", "0x200"],
+    "is_master"    : true
+  },
+
+  "i2s": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [5],
+    "offsets"      : ["0x280"],
+    "is_slave"     : true,
+    "is_dual"      : true
+  },
+
+  "cpi": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [6],
+    "offsets"      : ["0x300"],
+    "is_slave"     : true
+  },
+
+  "regmap": {
+    "SPIM0": {
+      "type": "group",
+      "template": "SPIM",
+      "offset": "0x100"
+    }
+  }
+
+}

@@ -1,0 +1,7 @@
+{
+  "vp_class": "top",
+
+  "clock_domain": {
+    "frequency": 5000000
+  }
+}

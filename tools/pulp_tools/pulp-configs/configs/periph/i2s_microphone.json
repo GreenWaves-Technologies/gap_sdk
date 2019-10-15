@@ -1,0 +1,12 @@
+{
+  "type": "dpi",
+  "module": "i2s_microphone.so",
+  "verbose": false,
+  "width": 16,
+  "ddr": false,
+  "pdm": true,
+  "toggle_channel": false,
+  "stim_left": null,
+  "stim_right": null,
+  "frequency": 0
+}

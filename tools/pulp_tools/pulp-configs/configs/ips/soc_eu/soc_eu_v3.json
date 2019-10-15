@@ -1,0 +1,13 @@
+{
+  "version": 3,
+
+  "hal_files" : [ "hal/soc_eu/soc_eu_v3.h" ],
+  "archi_files" : [ "archi/soc_eu/soc_eu_v3.h" ],
+
+  "vp_class": "pulp/soc_eu/soc_eu_v2",
+
+  "properties": {
+    "nb_fc_events": 8,
+    "first_fc_event": 48
+  }
+}

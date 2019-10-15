@@ -1,0 +1,11 @@
+{
+  "vp_class": "cpu/iss/iss",
+  "bootaddr_offset": "0x80",
+  "includes" : ["ips/riscv/ri5ky_v2.json"],
+  "defines"  : [ "ARCHI_CORE_HAS_PULPV2", "ARCHI_CORE_HAS_CPLX", "ARCHI_CORE_HAS_SECURITY" ],
+  "gv_isa"   : ["--pulpv2", "--pulp", "--rv32m", "--gap8", "--itc-external-req"],
+  "isa"           : "rv32imcXgap8",
+  "debug_binaries": [],
+  "march"         : "imcXgap8",
+  "iss_class": "iss_riscy"
+}

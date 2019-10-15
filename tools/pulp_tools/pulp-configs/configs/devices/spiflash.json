@@ -1,0 +1,22 @@
+{
+  "name": "SPI_flash",
+  "doc_rst": "devices/spiflash.rst",
+  "description": "SPI flash model",
+  "platforms": [ "gvsoc" ],
+
+  "generator": "generators/v1/devices/spiflash_gen",
+  "interface": "spim0",
+  "cs": 0,
+
+  "config": {
+    "vp_class": "devices/spiflash/spiflash",
+    "type": "spiflash",
+    "size": "0x00800000",
+    "fs": {
+      "files": [],
+      "encrypt": false,
+      "aes_key": 0,
+      "aes_iv": 0
+    }
+  }
+}

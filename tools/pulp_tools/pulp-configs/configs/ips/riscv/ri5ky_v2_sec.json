@@ -1,0 +1,4 @@
+{
+  "includes" : ["ips/riscv/ri5ky_v2.json"],
+  "defines"  : [ "ARCHI_CORE_HAS_PULPV2", "ARCHI_CORE_HAS_CPLX", "ARCHI_CORE_HAS_SECURITY" ]
+}

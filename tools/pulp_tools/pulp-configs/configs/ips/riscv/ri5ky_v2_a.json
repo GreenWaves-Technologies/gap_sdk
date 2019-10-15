@@ -1,0 +1,20 @@
+{
+  "version"       : "ri5cyv2",
+  "archi"         : "riscv",
+  "implementation": "ri5cy",
+  "gv_isa"        : ["--pulpv2", "--pulp", "--rv32m", "--rv32a", "--itc-external-req"],
+  "isa"           : "rv32imacXpulpv2",
+  "march"         : "imacXpulpv2",
+  "priv_version"  : 1.9,
+  "perf_counters" : true,
+  "features"      : [ "misaligned", "perf" ],
+  "hal_files"     : [ "hal/riscv/riscv_v4.h", "hal/riscv/types.h" ],
+  "archi_files"   : [ "archi/riscv/priv_1_9.h", "archi/riscv/builtins_v2.h", "archi/riscv/builtins_v2_emu.h", "archi/riscv/pcer_v1.h" ],
+  "defines"       : [ "ARCHI_CORE_HAS_PULPV2",  "CORE_PULP_BUILTINS" ],
+  "vp_class": "cpu/iss/iss",
+  "bootaddr_offset": "0x80",
+  "debug_binaries": [],
+  "fetch_enable"     : false,
+  "boot_addr" : "0x00000000",
+  "iss_class": "iss_riscy"
+}

@@ -1,0 +1,163 @@
+{
+  "config_type": "generator",
+  "generator": "generators/v1/config_gen",
+
+  "board": {
+    "devices": {
+      "jtag_proxy": {
+        "includes": ["devices/jtag_proxy.json"]
+      }
+    }
+  },
+
+  "chip": "bigpulp-standalone",
+  "chip_family": "bigpulp",
+    
+  "padframe": {
+    "content": "chips/bigpulp-standalone/padframe.json"
+  },
+
+  "cluster0": {
+    "pe0": {
+      "boot_addr": "0x1c008000"
+    }
+  },
+  
+  "cluster": {
+    "base": "0x10000000",
+    "alias": "0x1B000000",
+    "size": "0x00400000",
+    "core": "ri5ky_v2",
+    "version": 5,
+    "nb_cluster": 1,
+    "nb_pe": 8,
+
+    "pe": {
+      "irq": [
+        null       , null       , null         , null,
+        null       , null       , null         , null,
+        "dma_0"    , "dma_1"    , "timer_0"    , "timer_1",
+        "acc_0"    , "acc_1"    , "acc_2"      , "acc_3",
+        "eu_bar"   , "eu_mutex" , "eu_dispatch", null,
+        null       , null       , "dma_ext"    , null,
+        null       , null       , null         , null,
+        "mpu_error", null       , "soc_event"  , "soc_fifo"
+      ]
+    },
+
+    "l1": {
+      "base": "0x10000000",
+      "size": "0x00040000",
+      "banking_factor": 2
+    },
+
+    "peripherals": {
+
+      "base": "0x10200000",
+      "size": "0x00200000",
+
+      "alias": {
+        "base": "0x1B200000",
+        "size": "0x00200000"
+      },
+
+      "cluster_ctrl": {
+        "base": "0x10200000",
+        "size": "0x00000400"
+      },
+
+      "timer": {
+        "base": "0x10200400",
+        "size": "0x00000400"
+      },
+
+      "event_unit": {
+        "base": "0x10200800",
+        "size": "0x00000800"
+      },
+
+      "icache_ctrl": {
+        "base": "0x10201400",
+        "size": "0x00000400"
+      },
+
+      "dma": {
+        "version": 6,
+        "base": "0x10201800",
+        "size": "0x00000400"
+      },
+
+      "dbg_unit": {
+        "base": "0x10300000",
+        "size"  : "0x00008000"
+      },
+
+      "cluster_ico": {}
+    },
+
+    "demux_peripherals":
+    {
+      "base": "0x10204000",
+
+      "event_unit": {
+        "base": "0x10204000",
+        "size": "0x00000400"
+      },
+      "dma": {
+        "base": "0x10204400",
+        "size": "0x00000400"
+      }
+    }
+  },
+
+  "soc": {
+
+    "base": "0x1A000000",
+    "size": "0x06000000",
+
+    "l2": {
+      "base": "0x1C000000",
+      "size": "0x00080000",
+      "is_partitioned": false,
+
+      "shared": {
+        "nb_banks"          : 4,
+        "interleaving_bits" : 2,
+        "base"              : "0x1C000000",
+        "size"              : "0x00080000"
+      }
+    },
+
+    "pulp_tap": {
+      "config": {
+        "includes": [ "ips/debug/pulp_tap.json" ]
+      }
+    },
+
+    "taps": [ "pulp_tap" ],
+
+    "peripherals": {
+
+      "base": "0x1A100000",
+      "size": "0x00100000",
+
+      "uart": {
+        "version"      : 0,
+        "base"         : "0x1A102000",
+        "size"         : "0x00001000"
+      },
+
+      "apb_soc_ctrl": {
+        "base"         : "0x1A103000",
+        "size"         : "0x00001000"
+      },
+
+      "stdout": {
+        "version"      : 3,
+        "base"         : "0x1A10F000",
+        "size"         : "0x00001000"
+      }
+
+    }
+  }
+}

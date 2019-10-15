@@ -1,0 +1,14 @@
+{
+  "includes": [ "chips/pulpissimo/pulpissimo_ibex.json" ],
+
+  "board": {
+    "name": "pulpissimo_ibex_genesys2"
+  },
+
+  "config": {
+    "rt": {
+      "iodev": "uart"
+    }
+  }
+
+}

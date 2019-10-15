@@ -1,0 +1,17 @@
+{
+  "vp_class": "devices/hyperchip/hyperchip",
+
+  "ram": {
+    "size": "0x00800000"
+  },
+
+  "flash": {
+    "size": "0x00800000",
+    "fs": {
+      "files": [],
+      "encrypt": false,
+      "aes_key": 0,
+      "aes_iv": 0
+    }
+  }
+}

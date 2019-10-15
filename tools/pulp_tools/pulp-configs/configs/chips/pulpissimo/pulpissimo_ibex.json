@@ -1,0 +1,16 @@
+{
+  "includes": [ "chips/pulpissimo/pulpissimo.json" ],
+
+  "soc": {
+    "fc": {
+      "core"        : "ibex"
+    }
+  },
+
+  "config": {
+    "vsim": {
+      "platform_path_eval": "os.environ.get('PULP_RTL_PULPISSIMO_IBEX')",
+      "tcl_args": ["-gCORE_TYPE=1"]
+    }
+  }
+}

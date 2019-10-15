@@ -1,0 +1,9 @@
+{
+  "version": 2,
+
+
+  "vp_class": "pulp/timer/timer_v2",
+  "hal_files" : [ "hal/timer/timer_v2.h" ],
+  "archi_files" : [ "archi/timer/timer_v2.h" ]
+
+}

@@ -1,0 +1,8 @@
+Follow instructions here for installing dependencies:
+https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html
+
+The env var IDF_PATH must be define and the esp toolchain must be in the path.
+
+Press at the same tim boot and reset button, then release reset, then release boot.
+
+make all flash monitor

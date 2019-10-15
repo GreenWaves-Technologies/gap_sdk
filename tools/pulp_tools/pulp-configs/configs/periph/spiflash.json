@@ -1,0 +1,12 @@
+{
+  "vp_class": "devices/spiflash/spiflash",
+
+  "type": "spiflash",
+  "size": "0x00800000",
+  "fs": {
+    "files": [],
+    "encrypt": false,
+    "aes_key": 0,
+    "aes_iv": 0
+  }
+}

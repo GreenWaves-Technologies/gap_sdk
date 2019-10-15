@@ -1,0 +1,13 @@
+ifeq '$(pulp_chip)' 'wolfe'
+
+VP_INSTALL_TARGETS += $(INSTALL_DIR)/python/pulp/chips/wolfe/rom.bin
+
+$(INSTALL_DIR)/python/pulp/chips/wolfe/rom.bin: $(CURDIR)/pulp/chips/wolfe/rom.bin
+	install -D $^ $@
+
+
+IMPLEMENTATIONS += pulp/chips/wolfe/apb_soc_impl
+COMPONENTS += pulp/chips/wolfe/apb_soc
+pulp/chips/wolfe/apb_soc_impl_SRCS = pulp/chips/wolfe/apb_soc_impl.cpp
+
+endif

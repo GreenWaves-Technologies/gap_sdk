@@ -1,0 +1,21 @@
+
+BUILD_DIR=$(CURDIR)/build
+INSTALL_DIR=$(CURDIR)/install
+
+ISS_CFLAGS = -DRISCV=1 -DRISCY
+
+SA_ISS_SRCS += src/iss.cpp src/insn_cache.cpp src/csr.cpp src/decoder.cpp src/trace.cpp flexfloat/flexfloat.c
+SA_ISS_SRCS += $(BUILD_DIR)/riscy_decoder_gen.cpp
+SA_ISS_SRCS += sa/src/main.cpp sa/src/syscalls.cpp sa/src/loader.cpp
+SA_ISS_CFLAGS = -DRISCV=1 -DRISCY -I$(CURDIR)/sa_include -I$(CURDIR)/include -I$(CURDIR)/flexfloat -I$(CURDIR)/sa/ext/bfd -I$(CURDIR)/sa/ext -Isa/include -DINLINE= -O2 -g -Wfatal-errors
+SA_ISS_LDFLAGS += -L$(CURDIR)/sa/ext -lbfd -liberty -ldl -lz
+
+$(BUILD_DIR)/riscy_decoder_gen.cpp: isa_gen/isa_riscv_gen.py isa_gen/isa_gen.py
+	isa_gen/isa_riscv_gen.py --source-file=$(BUILD_DIR)/riscy_decoder_gen.cpp --header-file=$(BUILD_DIR)/riscy_decoder_gen.hpp
+
+$(BUILD_DIR)/pulp_iss: $(SA_ISS_SRCS)
+	g++ -o $@ $^ $(SA_ISS_CFLAGS) $(SA_ISS_LDFLAGS)
+
+$(INSTALL_DIR)/bin/pulp_iss: $(BUILD_DIR)/pulp_iss
+
+build: $(INSTALL_DIR)/bin/pulp_iss

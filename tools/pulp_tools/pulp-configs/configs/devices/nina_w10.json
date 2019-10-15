@@ -1,0 +1,17 @@
+{
+  "name": "nina_w10",
+  "doc_rst": "devices/nina_w10.rst",
+  "description": "Nina W10 model",
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "generator": "generators/v1/devices/nina_w10_gen",
+  "interface": "spim0",
+  "cs": 0,
+
+  "config": {
+    "type": "dpi",
+    "module": "nina_w10.so",
+    "port":   "37201",
+    "addr": "localhost"
+  }
+}

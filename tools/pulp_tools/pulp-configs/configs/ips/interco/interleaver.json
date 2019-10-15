@@ -1,0 +1,8 @@
+{
+  "vp_class": "interco/interleaver",
+  "nb_slaves": 0,
+  "nb_masters": 0,
+  "interleaving_bits": 2,
+  "stage_bits": 0,
+  "remove_offset": "0x0"
+}

@@ -1,0 +1,51 @@
+{
+  "includes": [ "chips/gap/gap.json" ],
+
+  "board": {
+    "name": "gapuino",
+    "devices": {
+      "hyper": {
+        "include" : "devices/hyper.json",
+        "cs": 0
+      },
+      "camera": {
+        "include": "devices/camera.json",
+        "interface": "cpi0",
+        "ctrl_interface": "i2c1"
+      },
+      "display": {
+        "include": "devices/lcd_ili9341.json",
+        "interface": "spim1",
+        "ctrl_interface": "gpio19",
+        "enabled": false,
+        "cs": 0
+      }
+    }
+  },
+
+  "runner": {
+    "config": {
+      "boot-mode": "rom_hyper",
+      "flash_type": "hyper",
+      "default_profile": "hyper"
+    }
+  },
+
+  "rt": {
+    "config": {
+      "bsp": true
+    }
+  },
+
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "type": "ftdi@digilent",
+        "system_reset_gpio": 4,
+        "jtag_reset_gpio": 6,
+        "reverse_reset": true
+      }
+    }
+  }
+
+}

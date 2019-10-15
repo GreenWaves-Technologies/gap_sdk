@@ -1,0 +1,5 @@
+adjust
+fusions
+aquant -f 8 images/* -D 255 -O0
+qtune 2 dp
+save_state

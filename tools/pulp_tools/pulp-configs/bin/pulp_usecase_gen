@@ -1,0 +1,106 @@
+#!/usr/bin/env python3.6
+
+# Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+
+ 
+import json
+import argparse
+from comp_gen import *
+
+
+parser = argparse.ArgumentParser(
+  description='Generate usecase for Pulp system',
+  formatter_class=argparse.RawDescriptionHelpFormatter
+)
+
+parser.add_argument("--configs", dest="configs", default=[], action="append", help="Specify path to configurations")
+parser.add_argument("--output", dest="output", default=None, help="Specify path to output configuration")
+parser.add_argument("--cam", dest="cam", default=False, action="store_true", help="Activate camera")
+parser.add_argument("--uart", dest="uart", default=False, action="store_true", help="Activate uart")
+parser.add_argument("--spiflash", dest="spiflash", default=False, action="store_true", help="Activate spi flash")
+
+args = parser.parse_args()
+
+
+os.environ['PULP_CONFIGS_PATH'] = ':'.join(args.configs + os.environ.get('PULP_CONFIGS_PATH').split(':'))
+
+
+
+
+system = Component(
+)
+
+system.system_tree = Component(
+)
+
+system.system_tree.board = Empty_Component(
+)
+
+system.system_tree.board.chip = Empty_Component(
+)
+
+system.system_tree.board.dpi = Empty_Component(
+)
+
+system.system_tree.board.chip.padframe = Empty_Component(
+)
+
+system.system_tree.board.jtag_proxy = Tb_Component(properties=OrderedDict(
+    includes=[
+        "periph/jtag_proxy.json"
+    ]
+))
+
+if args.uart:
+  system.system_tree.board.uart = Tb_Component(properties=OrderedDict(
+      includes=[
+          "periph/uart_tb.json"
+      ]
+  ))
+
+system.system_tree.board.camera = Tb_Component(properties=OrderedDict(
+    includes=[
+        "periph/camera.json"
+    ]
+))
+
+system.system_tree.board.spiflash = Component(properties=OrderedDict(
+    includes=[
+        "periph/spiflash.json"
+    ]
+))
+
+if args.uart:
+  system.system_tree.board.chip.uart0 = system.system_tree.board.uart.uart
+system.system_tree.board.chip.jtag0 = system.system_tree.board.jtag_proxy.jtag
+system.system_tree.board.chip.ctrl = system.system_tree.board.jtag_proxy.ctrl
+
+system.system_tree.board.dpi.jtag0 = system.system_tree.board.chip.jtag0_pad
+system.system_tree.board.chip.jtag0_pad = system.system_tree.board.chip.padframe.jtag0_pad
+
+if args.uart:
+  system.system_tree.board.chip.padframe.uart0_pad = system.system_tree.board.chip.uart0
+  system.system_tree.board.chip.uart0 = system.system_tree.board.dpi.uart0
+
+if args.cam:
+  system.system_tree.board.camera.cpi = system.system_tree.board.chip.cpi0
+  system.system_tree.board.dpi.cpi0 = system.system_tree.board.chip.cpi0_pad
+  system.system_tree.board.chip.cpi0_pad = system.system_tree.board.chip.padframe.cpi0_pad
+  system.system_tree.board.chip.i2c1 = system.system_tree.board.camera.i2c
+  system.system_tree.board.chip.i2c1 = system.system_tree.board.dpi.i2c1
+
+if args.spiflash:
+  system.system_tree.board.spiflash_clock = Component(properties=OrderedDict(
+      vp_class= "vp/clock_domain",
+      frequency= 50000000
+  ))
+  system.system_tree.board.chip.spim0_cs0 = system.system_tree.board.spiflash.cs
+  system.system_tree.board.chip.spim0_cs0_data = system.system_tree.board.spiflash.input
+  system.system_tree.board.spiflash_clock.out = system.system_tree.board.spiflash.clock
+
+config = system.get_json_config(expand=True)
+
+if args.output is not None:
+  with open(args.output, 'w') as file:
+    file.write(config)
+    file.write('\n')

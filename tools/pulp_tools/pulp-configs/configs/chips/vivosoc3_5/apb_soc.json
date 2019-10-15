@@ -1,0 +1,7 @@
+{
+  "version": 3,
+
+  "vp_class":  "pulp/chips/vivosoc3_5/apb_soc",
+  
+  "hal_files" : [ "hal/apb_soc/apb_soc_v3.h" ]
+}

@@ -1,0 +1,27 @@
+{
+
+  "system_tree": {
+    "includes": [ "pulp_system_common.json" ],
+
+    "vp_class" : "pulp/system",
+
+    "vp_comps": [ "board" ],
+
+    "board": {
+
+      "vp_class": "pulp/board",
+
+      "vp_comps": [ "pulp_chip/neuraghe" ],
+
+      "chip": {
+        "includes": ["neuraghe.json"]
+      },
+      "pulp_chip": {
+        "neuraghe" : {
+        }
+      }
+    }
+  }
+
+}
+

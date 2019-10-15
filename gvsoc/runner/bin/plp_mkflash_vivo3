@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+from os import listdir
+from os.path import isfile, join, isdir
+import struct
+import runner.plp_flash_stimuli_vivo3 as plp_flash_stimuli
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+parser = argparse.ArgumentParser(description='Build flash image for Pulp')
+
+parser.add_argument("--flash-boot-binary", dest="flashBootBinary", default=None, help="Boot from flash")
+parser.add_argument("--elf-loader", dest="elfLoader", default=None, help="Boot using the specified ELF loader")
+parser.add_argument("--binary", dest="binary", default=None, help="Resident binary")
+parser.add_argument("--flash-type", dest="flashType", default='spi', help="Flash type")
+parser.add_argument("--comp-dir", dest="compDir", default=[], action="append", help="Component directory")
+parser.add_argument("--comp-dir-rec", dest="compDirRec", default=[], action="append", help="Recursive component directory")
+parser.add_argument("--comp", dest="comp", default=[], action="append", help="Component")
+parser.add_argument("--stimuli", dest="stimuli", default=None, help="Generate stimuli")
+parser.add_argument("--raw", dest="raw", default=None, help="Generate raw image")
+parser.add_argument("--sysDescr", dest="sysDescr", default=None, help="VivoSoC specific: Generate system descriptor")
+parser.add_argument("--binDescr", dest="binDescr", default=None, help="VivoSoC specific: Generate binary descriptor")
+parser.add_argument("--archi", dest="archi", default=None, help="Architecture")
+parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode")
+parser.add_argument("--encrypt", dest="encrypt", action="store_true", help="Encrypt binary")
+parser.add_argument("--qpi", dest="qpi", action="store_true", help="Use QPI")
+parser.add_argument("--aes-key", dest="aesKey", default=None, help="AES key for encryption")
+parser.add_argument("--aes-iv", dest="aesIv", default=None, help="AES init vector for encryption")
+
+args = parser.parse_args()
+
+
+
+def getFilesFromDir(path, rec=False, incDirInName=True):
+	files = []
+	for file in listdir(path):
+		fullPath = os.path.join(path, file)
+		if isfile(fullPath): files.append(Comp(path, file))
+		elif rec and isdir(fullPath): files += getFilesFromDir(fullPath, True)
+	return files
+
+
+flashImage = plp_flash_stimuli.FlashImage(raw=args.raw, sysDescr=args.sysDescr, binDescr=args.binDescr, stimuli=args.stimuli, verbose=args.verbose, archi=args.archi, encrypt=args.encrypt, aesKey=args.aesKey, aesIv=args.aesIv, flashType=args.flashType, qpi=args.qpi)
+
+
+#
+# Boot binary
+#
+
+# In case the chip is booting from ROM, the flash contains first the binary to be loaded into the chip by the ROM
+
+bootBinary = args.flashBootBinary
+if bootBinary != None:
+
+	flashImage.appendBootBinary(elf=bootBinary)
+
+
+#
+#  Collect files from options
+#
+
+for comp in args.comp:
+	flashImage.appendComponent(os.path.dirname(comp), os.path.basename(comp))
+
+for compDir in args.compDir:
+	for dirname, name in getFilesFromDir(compDir, incDirInName=False):
+		flashImage.appendComponent(dirname, name)
+
+for compDir in args.compDirRec:
+	for dirname, name in getFilesFromDir(compDir, True, incDirInName=False):
+		flashImage.appendComponent(dirname, name)
+
+
+
+#
+#  Finally generate the image
+#
+
+flashImage.generate()

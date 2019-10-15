@@ -1,0 +1,6 @@
+{
+  "type": "dpi",
+  "module": "spim_tb.so",
+  "mem_size": 1048576,
+  "verbose": false
+}

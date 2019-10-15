@@ -1,0 +1,153 @@
+{
+  "version": 3,
+
+  "hal_files" : [ "hal/apb_soc_v3.h" ],
+
+  "regmap": {
+    "info": {
+      "offset": "0x000",
+      "help"  : "CONTAINS NUMBER OF CORES [31:16] AND CLUSTERS [15:0]"
+    },
+    "fcboot": {
+      "offset": "0x004",
+      "help"  : "UNUSED"
+    },
+    "fcfetch": {
+      "offset": "0x008",
+      "help"  : "UNUSED"
+    },
+    "clusiso": {
+      "offset": "0x000C",
+      "help"  : "ISOLATION REGISTER FOR THE CLUSTER"
+    },
+    "padfun0": {
+      "offset": "0x010",
+      "help"  : "sets the mux for pins  0 (bits [1:0]) to 15 (bits [31:30]"
+    },
+    "padfun1": {
+      "offset": "0x014",
+      "help"  : "sets the mux for pins  16 (bits [1:0]) to 31 (bits [31:30]"
+    },
+    "padfun2": {
+      "offset": "0x018",
+      "help"  : "sets the mux for pins  32 (bits [1:0]) to 47 (bits [31:30]"
+    },
+    "padfun3": {
+      "offset": "0x01C",
+      "help"  : "sets the mux for pins  48 (bits [1:0]) to 63 (bits [31:30]"
+    },
+    "padcfg0": {
+      "offset": "0x020",
+      "help"  : "sets config for pin  0(bits [7:0]) to pin  3(bits [31:24])"
+    },
+    "padcfg1": {
+      "offset": "0x024",
+      "help"  : "sets config for pin  4(bits [7:0]) to pin  7(bits [31:24])"
+    },
+    "padcfg2": {
+      "offset": "0x028",
+      "help"  : "sets config for pin  8(bits [7:0]) to pin  11(bits [31:24])"
+    },
+    "padcfg3": {
+      "offset": "0x02C",
+      "help"  : "sets config for pin  12(bits [7:0]) to pin  15(bits [31:24])"
+    },
+    "padcfg4": {
+      "offset": "0x030",
+      "help"  : "sets config for pin  16(bits [7:0]) to pin  19(bits [31:24])"
+    },
+    "padcfg5": {
+      "offset": "0x034",
+      "help"  : "sets config for pin  20(bits [7:0]) to pin  23(bits [31:24])"
+    },
+    "padcfg6": {
+      "offset": "0x038",
+      "help"  : "sets config for pin  24(bits [7:0]) to pin  27(bits [31:24])"
+    },
+    "padcfg7": {
+      "offset": "0x03C",
+      "help"  : "sets config for pin  28(bits [7:0]) to pin  31(bits [31:24])"
+    },
+    "padcfg8": {
+      "offset": "0x040",
+      "help"  : "sets config for pin  32(bits [7:0]) to pin  35(bits [31:24])"
+    },
+    "padcfg9": {
+      "offset": "0x044",
+      "help"  : "sets config for pin  36(bits [7:0]) to pin  39(bits [31:24])"
+    },
+    "padcfg10": {
+      "offset": "0x048",
+      "help"  : "sets config for pin  40(bits [7:0]) to pin  43(bits [31:24])"
+    },
+    "padcfg11": {
+      "offset": "0x04C",
+      "help"  : "sets config for pin  44(bits [7:0]) to pin  47(bits [31:24])"
+    },
+    "padcfg12": {
+      "offset": "0x050",
+      "help"  : "sets config for pin  48(bits [7:0]) to pin  51(bits [31:24])"
+    },
+    "padcfg13": {
+      "offset": "0x054",
+      "help"  : "sets config for pin  52(bits [7:0]) to pin  55(bits [31:24])"
+    },
+    "padcfg14": {
+      "offset": "0x058",
+      "help"  : "sets config for pin  56(bits [7:0]) to pin  59(bits [31:24])"
+    },
+    "padcfg15": {
+      "offset": "0x05C",
+      "help"  : "sets config for pin  60(bits [7:0]) to pin  63(bits [31:24])"
+    },
+    "clusbusy": {
+      "offset": "0x6C",
+      "help"  : "CLUSTER BUSY SIGNAL (read only)"
+    },
+    "cluster_byp": {
+      "offset": "0x70",
+      "help"  : "CLUSTER PMU BYPASS"
+    },
+    "jtagreg": {
+      "offset": "0x74",
+      "help"  : "JTAG REG"
+    },
+    "l2_sleep": {
+      "offset": "0x78",
+      "help"  : "L2 MEMORY SLEEP"
+    },
+    "sleep_ctrl": {
+      "offset": "0x7C",
+      "help"  : "RO register with configuration of sleep/wake"
+    },
+    "corestatus": {
+      "offset": "0xA0",
+      "help"  : "32bit GP register to be used during testing to return EOC(bit[31]) and status(bit[30:0])"
+    },
+    "cs_ro": {
+      "offset": "0xC0",
+      "help"  : "32bit GP register to be used during testing to return EOC(bit[31]) and status(bit[30:0]) Read Only mirror"
+    },
+    "bootsel": {
+      "offset": "0xC4",
+      "help"  : "bootsel"
+    },
+    "clk_sel": {
+      "offset": "0xD0",
+      "help"  : ""
+    },
+    "clk_div_soc": {
+      "offset": "0xD4",
+      "help"  : ""
+    },
+    "clk_div_clu": {
+      "offset": "0xD8",
+      "help"  : ""
+    },
+    "clk_div_per": {
+      "offset": "0xDC",
+      "help"  : ""
+    }
+
+  }
+}

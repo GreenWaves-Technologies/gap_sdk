@@ -1,3 +1,0 @@
-[submodule "pulp-rt"]
-	path = pulp-rt
-	url = https://github.com/pulp-platform/pulp-rt.git

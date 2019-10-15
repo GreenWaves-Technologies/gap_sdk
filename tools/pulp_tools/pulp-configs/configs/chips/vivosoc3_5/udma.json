@@ -1,0 +1,64 @@
+{
+  "includes": [ "ips/udma/udma_v2.json"],
+
+  "vp_impl": "pulp.udma.udma_v2_vivosoc3_5_impl",
+
+  "nb_periphs": 9,
+
+  "interfaces" : ["spim", "i2c", "uart"],
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "archi_files": [
+    "archi/udma/i2c/udma_i2c_v2.h",
+    "archi/udma/spim/udma_spim_v2.h",
+    "archi/udma/uart/udma_uart_v1.h"
+  ],
+
+  "hal_files": [
+    "hal/udma/i2c/udma_i2c_v2.h",
+    "hal/udma/spim/udma_spim_v2.h",
+    "hal/udma/uart/udma_uart_v1.h"
+  ],
+
+  "spim": {
+    "version"      : 2,
+    "nb_channels"  : 2,
+    "ids"          : [0, 1],
+    "offsets"      : ["0x000", "0x080"],
+    "is_master"    : true
+  },
+
+  "uart": {
+    "version"      : 1,
+    "nb_channels"  : 2,
+    "ids"          : [2, 3],
+    "offsets"      : ["0x100", "0x180"],
+    "is_master"    : true
+  },
+
+  "i2c": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [5],
+    "offsets"      : ["0x280"]
+  },
+
+  "adc": {
+    "version"      : 1,
+    "nb_channels"  : 3,
+    "ids"          : [6, 7, 8],
+    "offsets"      : ["0x300", "0x380", "0x400"]
+  },
+
+  "regmap": {
+    "SPIM0": {
+      "type": "group",
+      "template": "SPIM",
+      "offset": "0x100"
+    }
+  }
+
+}

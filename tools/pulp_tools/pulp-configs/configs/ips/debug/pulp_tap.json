@@ -1,0 +1,5 @@
+{
+  "vp_class": "pulp/adv_dbg_unit/adv_dbg_unit",
+  "has_io_port": true,
+  "has_confreg": true
+}

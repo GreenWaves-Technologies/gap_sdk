@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import pulp_config as plpconf
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+parser = argparse.ArgumentParser(description='Run a testset')
+
+parser.add_argument('command', metavar='CMD', type=str, nargs='*',
+                   help='a command to be executed')
+
+parser.add_argument("--config-def", dest="configDef", action="append", default=None, help="Specifies json files containing configurations definition")
+parser.add_argument("--config", dest="configs", action="append", default=[], help="Specifies configuration")
+parser.add_argument("--config-options", dest="configOptions", action="append", default=[], help="Specifies configuration options")
+
+[args, otherArgs] = parser.parse_known_args() 
+
+if 'get' in args.command or 'mkgen' in args.command:
+  parser.add_argument("--property", dest="properties", action="append", default=[], help="Specifies a property")
+  parser.add_argument("--silent", dest="silent", action="store_true", default=False, help="Returns the result silently")
+
+if 'mkgen' in args.command:
+  parser.add_argument("--makefile", dest="makefile", default='rules.mk', help="Specifies output makefile")
+
+if 'tree' in args.command or 'help' in args.command or 'memmap' in args.command:
+  parser.add_argument("--root", dest="root", default=None, help="Specify root path when dumping tree")
+
+if 'memmap' in args.command:
+  parser.add_argument("--header", dest="header", default=None, help="Dump to header")
+  parser.add_argument("--regs", dest="regs", action="store_true", help="Also dump register map")
+  parser.add_argument("--fields", dest="fields", action="store_true", help="Also dump register fields")
+
+args = parser.parse_args()
+
+
+def get_full_prop(prop):
+
+  if prop == 'pulp_chip':
+    prop = 'chip/name'
+
+  full_prop = prop
+  if prop[0] != '*' and prop[0] != '/':
+        full_prop = '**/' + full_prop
+  return full_prop
+
+
+
+def tree(configs):
+  for config in configs:
+    for option in args.configOptions:
+      key, value = option.split('=')
+      config.user_set(key, value)
+
+    if args.root is not None:
+      config = config.get(get_full_prop(args.root))
+
+    print (config.dump_to_string())
+  return 0
+
+def get(configs):
+  if len(args.properties) == 0: raise Exception('A property name must be specified with option --property')
+  for prop in args.properties:
+    full_prop = get_full_prop(prop)
+    if not args.silent: print ('Property: %s' % prop)
+    for config in configs:
+      value = config.get(full_prop)
+      if value == None:
+        value = ''
+      else:
+        value = value.get_dict()
+      if args.silent:
+        print (value)
+      else:
+        print ('  Config: %s: %s' % (config.get_name(), value))
+  return 0
+
+def mkgen(configs):
+  if len(args.properties) == 0: raise Exception('A property name must be specified with option --property')
+  try:
+      os.makedirs(os.path.dirname(args.makefile))
+  except:
+      pass
+  with open(args.makefile, 'w') as file:
+    for prop in args.properties:
+      full_prop = get_full_prop(prop)
+      for config in configs:
+        value = config.get(full_prop)
+        if value != None: 
+          file.write('%s=%s\n' % (prop, value.get_dict()))
+  return 0
+
+def help(configs):
+  for config in configs:
+    config.dump_help(root=args.root)
+  return 0
+
+
+
+commands = {
+  'tree'    : ['Show configuration tree', tree],
+  'get'     : ['Get property', get],
+  'mkgen'   : ['Generate makefile with properties', mkgen],
+  'help'    : ['Dump configuration help', help],
+}
+
+pendingCommands = []
+
+
+def handleCommands(configSet, log=None):
+
+  global pendingCommands
+
+  if len(args.command) == 0:
+      parser.print_help()
+      print ()
+      print ('Available commands:')
+      for name, cmd in commands.items():
+        print ('  %-10s %s' % (name, cmd[0]))
+      exit(0)
+  
+  else:
+    pendingCommands = args.command.copy()
+    for cmd in pendingCommands:
+
+      if commands.get(cmd)[1](configSet) != 0:
+        print ()
+        print (bcolors.FAIL + 'FATAL ERROR: the command \'%s\' has failed' % (cmd) + bcolors.ENDC)
+        exit(1)
+
+configs = plpconf.get_configs_from_env()
+
+if configs != None:
+  handleCommands(configs)

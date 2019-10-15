@@ -1,0 +1,9 @@
+{
+  "version": 4,
+
+  "hal_files" : [ "hal/hwce/hwce_v4.h" ],
+  "archi_files" : [ "archi/hwce/hwce_v4.h" ],
+
+  "vp_class": "pulp/hwce/hwce_v4"
+
+}

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/eu/eu_v1.h", "hal/eu/eu_v1_ids.h" ],
+  "archi_files" : [ "archi/eu/eu_v1.h" ]
+
+}

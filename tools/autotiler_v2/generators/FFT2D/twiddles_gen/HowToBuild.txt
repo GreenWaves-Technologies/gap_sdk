@@ -1,0 +1,31 @@
+Compiling My Model:
+-------------------
+
+gcc -o GenFFT2D -I../GenTiling -I../../FFT_Lib -I../StdTypes FFT2DGenerator.c ../GenTiling/LibTile.a
+
+
+Libraries:
+----------
+
+In ../StdTypes:
+        StdTypes.h              Standard data types used in kernels
+        KernelLibStdTypes.h     Kernels argument descriptor data type.
+
+Generating the C files:
+-----------------------
+
+./GenFFT2D
+
+Generated files (depends on settings):
+	FFT2DModel.c
+	FFT2DModel.h
+	FFT2D_Init.c
+	FFT2D_Init.h
+
+
+Compiling the generated C files:
+--------------------------------
+
+gcc -c -D__EMUL__ -I../StdTypes -I$PULP_PIPELINE_HOME/runtime/pulp-rt/include/ -I../FFT_Lib/ ../FFT_Lib/FFT_Lib.c FFT2D.c -m32
+
+riscv32-unknown-elf-gcc -D__EMUL__ -I../StdTypes -I$PULP_PIPELINE_HOME/runtime/pulp-rt/include/ -I../FFT_Lib/ ../FFT_Lib/FFT_Lib.c FFT2D.c

@@ -1,0 +1,357 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import csv
+from prettytable import PrettyTable
+import json_tools as js
+
+
+parser = argparse.ArgumentParser(description='Extract information from power report')
+
+parser.add_argument("--report", dest="report", default=None, help="Specifies path to power report")
+
+parser.add_argument("--dump", dest="dump", action="store_true", help="Dump results")
+
+parser.add_argument("--get", dest="get", action="append", default=[], help="Get result")
+
+parser.add_argument("--dyn", dest="dyn", action="store_true", help="Get dynamic power")
+
+parser.add_argument("--leakage", dest="leakage", action="store_true", help="Get leakage power")
+
+parser.add_argument("--total", dest="total", action="store_true", help="Get total power")
+
+parser.add_argument("--config", dest="config", default=None, help="Specify the configuration")
+
+parser.add_argument("--output", dest="output", default=None, help="Specify the output file")
+
+parser.add_argument("--percentage", dest="percentage", action="store_true", help="Get percentage power")
+
+
+args = parser.parse_args() 
+
+platform = 'rtl'
+
+if args.config is not None:
+
+  config = js.import_config_from_file(args.config)
+
+  platform = config.get_child_str("**/platform")
+
+
+if platform == 'rtl':
+  vcd_groups = {
+    "cluster": [
+      'cluster_i'
+    ],
+    "dma"    : [
+      'cluster_i/dmac_wrap_i',
+      'cluster_i/ep_dma_pe_evt_i'
+    ],
+    "core_0" : [
+      'cluster_i/CORE[0]_core_region_i'
+    ],
+    "core_1" : [
+      'cluster_i/CORE[1]_core_region_i'
+    ],
+    "core_2" : [
+      'cluster_i/CORE[2]_core_region_i'
+    ],
+    "core_3" : [
+      'cluster_i/CORE[3]_core_region_i'
+    ],
+    "core_4" : [
+      'cluster_i/CORE[4]_core_region_i'
+    ],
+    "core_5" : [
+      'cluster_i/CORE[5]_core_region_i'
+    ],
+    "core_6" : [
+      'cluster_i/CORE[6]_core_region_i'
+    ],
+    "core_7" : [
+      'cluster_i/CORE[7]_core_region_i'
+    ],
+    "cluster_peripherals" : [
+      'cluster_i/cluster_peripherals_i'
+    ],
+    "cluster_icache" : [
+      'cluster_i/icache_top_i'
+    ],
+    "l1" : [
+      'cluster_i/tcdm_sram_island'
+    ],
+    "decompressor" : [
+      'cluster_i/decompressor_PLUGIN_wrap'
+    ],
+    "cluster_bus" : [
+      'cluster_i/axi_size_UPSIZE_32_64_wrap_i',
+      'cluster_i/axi2per_wrap_i',
+      'cluster_i/cluster_bus_wrap_i',
+      'cluster_i/per2axi_wrap_i',
+      'cluster_i/axi2mem_wrap_i',
+    ],
+    "cluster_interconnect" : [
+      'cluster_i/cluster_interconnect_wrap_i',
+      'cluster_i/TCDM_BUS_2x1_ARB_i',
+      'cluster_i/per_demux_wrap_i',
+      'cluster_i/debug_interconect_i',
+    ],
+    "hwce" : [
+      'cluster_i/hwce_wrap_i'
+    ],
+    "event_unit" : [
+      'cluster_i/u_event_dc'
+    ]
+  }
+
+else:
+  vcd_groups = {
+    "soc": [
+      '/sys/board/chip/soc/l2/power_trace',
+      '/sys/board/chip/soc/rom/power_trace',
+      '/sys/board/chip/soc/fc_tcdm/power_trace',
+      '/sys/board/chip/soc/fc/power_trace'
+    ],
+    "cluster": [
+      '/sys/board/chip/soc/cluster/power_trace'
+    ],
+    "dma"    : [
+    ],
+    "core_0" : [
+      '/sys/board/chip/soc/cluster/pe0/power_trace'
+    ],
+    "core_1" : [
+      '/sys/board/chip/soc/cluster/pe1/power_trace'
+    ],
+    "core_2" : [
+      '/sys/board/chip/soc/cluster/pe2/power_trace'
+    ],
+    "core_3" : [
+      '/sys/board/chip/soc/cluster/pe3/power_trace'
+    ],
+    "core_4" : [
+      '/sys/board/chip/soc/cluster/pe4/power_trace'
+    ],
+    "core_5" : [
+      '/sys/board/chip/soc/cluster/pe5/power_trace'
+    ],
+    "core_6" : [
+      '/sys/board/chip/soc/cluster/pe6/power_trace'
+    ],
+    "core_7" : [
+      '/sys/board/chip/soc/cluster/pe7/power_trace'
+    ],
+    "cluster_peripherals" : [
+    ],
+    "cluster_icache" : [
+    ],
+    "l1" : [
+      '/sys/board/chip/soc/cluster/l1/bank0/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank1/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank2/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank3/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank4/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank5/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank6/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank7/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank8/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank9/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank10/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank11/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank12/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank13/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank14/power_trace',
+      '/sys/board/chip/soc/cluster/l1/bank15/power_trace',
+    ],
+    "decompressor" : [
+    ],
+    "cluster_interconnects" : [ 
+    ],
+    "hwce" : [
+    ],
+    "event_unit" : [
+    ],
+    "clustercg" : [
+    ]
+  }
+
+
+
+
+group_vcd_names = {}
+groups = []
+groups_dict = {}
+
+class Group_info(object):
+
+  def __init__(self, name, vcd_names):
+    global group_vcd_names
+    global groups
+
+    groups.append(self)
+    self.name = name
+
+    for vcd_name in vcd_names:
+      group_vcd_names[vcd_name] = self
+
+    groups_dict[name] = self
+
+
+    self.dyn = 0.0
+    self.leakage = 0.0
+    self.total = 0.0
+    self.percentage = 0.0
+
+  def register(self, dyn, leakage, total, percentage):
+    self.dyn += dyn*1000
+    self.leakage += leakage*1000
+    self.total += total*1000
+    if percentage is not None:
+      self.percentage += percentage
+    else:
+      self.percentage = None
+
+  def dump(self, table):
+    table.add_row([self.name, self.dyn, self.leakage, self.total, self.percentage])
+
+
+
+for key, value in vcd_groups.items():
+  Group_info(key, value)
+
+Group_info('others', [])
+
+
+if args.report is not None:
+  with open(args.report) as csvfile:
+    csvreader = csv.reader(csvfile, delimiter=';')
+    for row in csvreader:
+
+      if platform == 'rtl':
+        if len(row) == 0 or row[0] == 'CELL':
+          continue
+        name, internal, sw, leakage, total, percentage = row
+
+        if percentage != '':
+          percentage = float(percentage)
+        else:
+          percentage = None
+
+        if internal != '' and internal != ' ':
+          internal = float(internal)
+        else:
+          internal = 0
+
+        if sw != '' and sw != ' ':
+          sw = float(sw)
+        else:
+          sw = 0
+
+        if leakage != '' and leakage != ' ':
+          leakage = float(leakage)
+        else:
+          leakage = 0
+
+        if total != '' and total != ' ':
+          total = float(total)
+        else:
+          total = 0
+
+        dynamic = internal + sw
+
+      else:
+        if len(row) == 0 or row[0] == 'Trace path':
+          continue
+
+        name, dynamic, leakage, total, percentage = row
+
+        percentage = float(percentage)
+        dynamic = float(dynamic)
+        leakage = float(leakage)
+        total = float(total)
+
+
+
+
+
+      group = group_vcd_names.get(name)
+
+      if group is None:
+        group = groups_dict['others']
+      
+      group.register(dynamic, leakage, total, percentage)
+
+
+top_group = None
+sorted_groups = []
+for group in groups:
+  if group.name in ['soc']:
+    continue
+  if group.name == 'cluster':
+    top_group = group
+  else:
+    for i in range(0, len(sorted_groups)):
+      if group.percentage > sorted_groups[i].percentage:
+        sorted_groups.insert(i, group)
+        break
+    if not group in sorted_groups:
+      sorted_groups.append(group)
+
+
+if args.dump:
+  file = None
+  if args.output is not None:
+    file = open(args.output, 'w')
+
+  x = PrettyTable(['Name', 'Dynamic (mW)', 'Leakage (mW)', 'Total (mW)', 'Percentage'])
+  x.align = 'l'
+  x.float_format = '.8'
+
+  top_group.dump(x)
+
+  if file is not None:
+    file.write(str(x) + '\n')
+  else:
+    print (x)
+
+
+  x = PrettyTable(['Name', 'Dynamic (mW)', 'Leakage (mW)', 'Total (mW)', 'Percentage'])
+  x.align = 'l'
+  x.float_format = '.8'
+
+  for group in sorted_groups:
+    group.dump(x)
+
+  if file is not None:
+    file.write(str(x) + '\n')
+  else:
+    print (x)
+
+if args.get is not None:
+
+  dyn = 0.0
+  leakage = 0.0
+  total = 0.0
+  percentage = 0.0
+
+  for name in args.get:
+    group = groups_dict.get(name)
+
+    dyn += group.dyn
+    leakage += group.leakage
+    total += group.total
+    if group.percentage is not None:
+      percentage += group.percentage
+
+  if args.dyn:
+    print (dyn)
+
+  if args.leakage:
+    print (leakage)
+
+  if args.total:
+    print (total)
+
+  if args.percentage:
+    print (percentage)

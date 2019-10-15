@@ -1,0 +1,20 @@
+diff --git a/src/sysc/packages/boost/get_pointer.hpp b/src/sysc/packages/boost/get_pointer.hpp
+index d1db0a4..aaca8d7 100644
+--- a/src/sysc/packages/boost/get_pointer.hpp
++++ b/src/sysc/packages/boost/get_pointer.hpp
+@@ -4,6 +4,9 @@
+ // http://www.boost.org/LICENSE_1_0.txt)
+ #ifndef SC_GET_POINTER_DWA20021219_HPP
+ # define SC_GET_POINTER_DWA20021219_HPP
++// Suppress deprecated warning for this file.
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+ 
+ # include <memory>
+ 
+@@ -26,4 +29,5 @@ template<class T> T * get_pointer(std::auto_ptr<T> const& p)
+ 
+ } // namespace sc_boost
+ 
++#pragma GCC diagnostic pop
+ #endif // SC_GET_POINTER_DWA20021219_HPP

@@ -1,0 +1,487 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "includes": [ "ips/padframe/padframe_v1.json"],
+
+  "profiles": {
+    "default": {
+      "alternates": [ 0, 0, 0, 0, 0, 0, 0 ]
+    }
+  },
+
+  "groups": {
+    "spim0": {
+      "type": "qspim",
+      "nb_cs": 2,
+      "is_master": true
+    },
+    "uart0": {
+      "type": "uart",
+      "is_master": true
+    },
+    "jtag0": {
+      "type": "jtag",
+      "is_slave": true
+    },
+    "cpi0": {
+      "type": "cpi",
+      "is_slave": true
+    },
+    "i2c0": {
+      "type": "i2c",
+      "is_master": true
+    },
+    "i2c1": {
+      "type": "i2c",
+      "is_master": true
+    }
+  },
+
+
+  "pads": {
+
+    "pad_sdio_clk": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_sdio_cmd": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_sdio_data0": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_sdio_data1": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_sdio_data2": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_sdio_data3": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_sdio0": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_sdio1": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_sdio2": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_sdio3": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_csn0": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_csn1": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_spim_sck": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2s0_sck": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2s0_ws": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2s0_sdi": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2s1_sdi": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_pclk": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_hsync": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data0": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data1": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data2": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data3": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data4": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data5": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data6": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_data7": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_cam_vsync": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2c0_sda": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_i2c0_scl": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_uart_rx": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_uart_tx": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_reset_n": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_bootsel": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_jtag_tck": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_jtag_tdi": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_jtag_tdo": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_jtag_tms": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_jtag_trst": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_xtal_in": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    }
+  }
+}

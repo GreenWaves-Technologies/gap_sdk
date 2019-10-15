@@ -1,0 +1,29 @@
+{
+  "runner": {
+    "boot_from_flash": true,
+    "boot-mode": "rom"
+  },
+  
+  "loader": {
+    "boot": {
+      "mode": "rom"
+    }
+  },
+
+  "vsim": {
+    "boot-mode": "jtag",
+    "vsim_runner_class": "runner/rtl/pulpissimo/vsim_runner",
+    "xcelium_runner_class": "runner/rtl/pulpissimo/xcelium_runner"
+  },
+  
+  "system_tree": {
+    "debug_bridge": {
+      "boot-mode": "jtag",
+      "cable": {
+        "tap": 0
+      }
+    }
+  }
+
+}
+

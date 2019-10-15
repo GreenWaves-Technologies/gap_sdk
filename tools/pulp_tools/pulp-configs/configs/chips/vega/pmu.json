@@ -1,0 +1,222 @@
+{
+  "includes": [
+    "ips/pmu/pmu_v3.json"
+  ],
+
+  "nb_interrupts": 16,
+
+  "nb_icu": 12,
+
+  "icu_states": [
+    [3, 0, 4],
+    [3, 0, 2],
+    [0, 0, 1],
+    [1, 0, 1],
+    [3, 0, 4],
+    [3, 0, 2]
+  ],
+
+  "icrs": [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+  ],
+
+  "regmap": {
+
+    "sequences": {
+      "type": "custom",
+      "boot": {
+        "type": "constant",
+        "value": "0x01",
+        "id": -1,
+        "commands": [
+          [ "7", "0", "0x00", "SOC     EXT NV"],
+          [ "8", "0", "0x09", "CLUSTER EXT OFF"]
+        ]
+      },
+      "soc_active_nv": {
+        "type": "constant",
+        "value": "0x01",
+        "id": 0,
+        "commands": [
+          [ "8", "0", "0x06", "CLUSTER EXT NV"],
+          [ "7", "0", "0x00", "SOC     EXT NV"]
+        ]
+      },
+      "soc_active_lv": {
+        "type": "constant",
+        "value": "0x02",
+        "id": 1,
+        "commands": [
+          [ "4", "0", "0x07", "CLUSTER EXT LV"],
+          [ "2", "0", "0x00", "SAFE    ON  NV"],
+          [ "5", "0", "0x00", "IO0     ON  N/A"],
+          [ "3", "0", "0x01", "SOC     ON  LV"],
+          [ "1", "0", "0xc0", "Unmask IRQ 0-5"]
+        ]
+      },
+      "soc_cluster_active_nv": {
+        "type": "constant",
+        "value": "0x04",
+        "id": 2,
+        "commands": [
+          [ "8", "0", "0x00", "CLUSTER ON  NV"]
+        ]
+      },
+      "soc_cluster_active_lv": {
+        "type": "constant",
+        "value": "0x08",
+        "id": 3,
+        "commands": [
+          [ "4", "0", "0x01", "CLUSTER ON  LV"],
+          [ "2", "0", "0x00", "SAFE    ON  NV"],
+          [ "5", "0", "0x00", "IO0     ON  N/A"],
+          [ "3", "0", "0x01", "SOC     ON  LV"],
+          [ "1", "0", "0xc0", "Unmask IRQ 0-5"]
+        ]
+      },
+      "deep_sleep_all_off": {
+        "type": "constant",
+        "value": "0x10",
+        "id": 4,
+        "commands": [
+          [ "8", "0", "0x09", "CLUSTER EXT OFF"],
+          [ "7", "0", "0x09", "SOC     EXT OFF"]
+        ]
+      },
+      "deep_sleep_retentive": {
+        "type": "constant",
+        "value": "0x20",
+        "id": 5,
+        "commands": [
+          [ "8", "0", "0x09", "CLUSTER EXT OFF"],
+          [ "7", "0", "0x09", "SOC     EXT OFF"]
+        ]
+      },
+      "deep_sleep_smart_wakeup": {
+        "type": "constant",
+        "value": "0x10",
+        "id": 6,
+        "commands": [
+          [ "8", "0", "0x09", "CLUSTER EXT OFF"],
+          [ "7", "0", "0x09", "SOC     EXT OFF"]
+        ]
+      },
+      "deep_sleep_retentive_smart_wakeup": {
+        "type": "constant",
+        "value": "0x20",
+        "id": 7,
+        "commands": [
+          [ "8", "0", "0x09", "CLUSTER EXT OFF"],
+          [ "7", "0", "0x09", "SOC     EXT OFF"]
+        ]
+      },
+      "mram_off": {
+        "type": "constant",
+        "value": "0x1000",
+        "id": 8,
+        "commands": [
+          [ "4", "0", "0x06", "MRAM OFF  NV"]
+        ]
+      },
+      "mram_on": {
+        "type": "constant",
+        "value": "0x1000",
+        "id": 9,
+        "commands": [
+          [ "4", "0", "0x00", "MRAM ON  NV"]
+        ]
+      },
+      "csi_off": {
+        "type": "constant",
+        "value": "0x1000",
+        "id": 10,
+        "commands": [
+        ]
+      },
+      "csi_on": {
+        "type": "constant",
+        "value": "0x1000",
+        "id": 11,
+        "commands": [
+        ]
+      },
+      "cluster_off": {
+        "type": "constant",
+        "value": "0x1000",
+        "id": 12,
+        "commands": [
+          [ "8", "0", "0x06", "CLUSTER OFF  NV"]
+        ]
+      },
+      "cluster_on": {
+        "type": "constant",
+        "value": "0x2000",
+        "id": 13,
+        "commands": [
+          [ "8", "0", "0x00", "CLUSTER ON  NV"]
+        ]
+      }
+    },
+
+    "icu0": {
+      "type": "group",
+      "offset": "0x02"
+    },
+
+    "icu1": {
+      "type": "group",
+      "offset": "0x03"
+    },
+
+    "dmu0": {
+      "type": "group",
+      "offset": "0x04"
+    },
+
+    "icu_soc": {
+      "type": "group",
+
+      "states": {
+        "type": "custom",
+
+        "soc_on_nv":    { "type": "constant", "value": "0x00" },
+        "soc_on_lv":    { "type": "constant", "value": "0x01" },
+        "soc_ret_off":  { "type": "constant", "value": "0x02" },
+        "soc_ret_nv":   { "type": "constant", "value": "0x03" },
+        "soc_ret_lv":   { "type": "constant", "value": "0x04" },
+        "soc_ret_rv":   { "type": "constant", "value": "0x05" },
+        "soc_ext_off":  { "type": "constant", "value": "0x06" },
+        "soc_ext_nv":   { "type": "constant", "value": "0x07" },
+        "soc_ext_lv":   { "type": "constant", "value": "0x08" },
+        "soc_ext_rv":   { "type": "constant", "value": "0x09" },
+        "soc_ckoff_nv": { "type": "constant", "value": "0x11" },
+        "soc_ckoff_lv": { "type": "constant", "value": "0x12" },
+        "soc_ckoff_rv": { "type": "constant", "value": "0x13" }
+      }
+    },
+
+    "icu_cluster": {
+      "type": "group",
+
+      "states": {
+        "type": "custom",
+
+        "cluster_on_nv":    { "type": "constant", "value": "0x00" },
+        "cluster_on_lv":    { "type": "constant", "value": "0x01" },
+        "cluster_ret_off":  { "type": "constant", "value": "0x02" },
+        "cluster_ret_nv":   { "type": "constant", "value": "0x03" },
+        "cluster_ret_lv":   { "type": "constant", "value": "0x04" },
+        "cluster_ret_rv":   { "type": "constant", "value": "0x05" },
+        "cluster_ext_off":  { "type": "constant", "value": "0x06" },
+        "cluster_ext_nv":   { "type": "constant", "value": "0x07" },
+        "cluster_ext_lv":   { "type": "constant", "value": "0x08" },
+        "cluster_ext_rv":   { "type": "constant", "value": "0x09" },
+        "cluster_ckoff_nv": { "type": "constant", "value": "0x11" },
+        "cluster_ckoff_lv": { "type": "constant", "value": "0x12" },
+        "cluster_ckoff_rv": { "type": "constant", "value": "0x13" }
+      }
+
+    }
+
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "version": 3,
+
+  "nb_core": 0,
+
+  "vp_class": "pulp/event_unit/eu_v3",
+
+  "hal_files" : [ "hal/eu/eu_v3.h" ],
+  "archi_files" : [ "archi/eu/eu_v3.h" ],
+
+  "regmap": {
+    "areas": {
+      "global": {
+        "cores": {
+          "offset": "0x0000",
+          "size"  : "0x0400",
+          "areas": {
+            "core": {
+              "offset": "0x0000",
+              "size"  : "0x0040",
+              "number": 16
+            }
+          }
+        },
+        "barriers": {
+          "offset": "0x0400",
+          "size": "0x0200",
+          "areas": {
+            "barrier": {
+              "offset": "0x0000",
+              "size"  : "0x0020",
+              "number": 16
+            }
+          }
+        },
+        "sw_events": {
+          "offset": "0x0600",
+          "size": "0x0100"
+        },
+        "soc_events": {
+          "offset": "0x0700",
+          "size": "0x0080"
+        },
+        "ext_events": {
+          "offset": "0x0780",
+          "size": "0x0080"
+        },
+        "mutex": {
+          "size": "0x0040"
+        },
+        "dispatch": {
+          "size": "0x0040"
+        }
+      },
+      "demux": {
+        "core": {
+          "offset": "0x0000",
+          "size"  : "0x0040"
+        },
+        "dispatch": {
+          "offset": "0x0080",
+          "size"  : "0x0040"
+        },
+        "mutex": {
+          "offset": "0x00C0",
+          "size"  : "0x0040"
+        },
+        "sw_events": {
+          "offset": "0x0100",
+          "size"  : "0x0100"
+        },
+        "barriers": {
+          "offset": "0x0200",
+          "size"  : "0x0200"
+        }
+      }
+    },
+    "registers": {
+      "mask": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x00",
+        "width" : 32
+      },
+      "mask_and": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x04",
+        "width" : 32
+      },
+      "mask_or": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x08",
+        "width" : 32
+      },
+      "mask_irq": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x0C",
+        "width" : 32
+      },
+      "mask_irq_and": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x10",
+        "width" : 32
+      },
+      "mask_irq_or": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x14",
+        "width" : 32
+      },
+      "status": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x18",
+        "width" : 32
+      },
+      "buffer": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x1C",
+        "width" : 32
+      },
+      "buffer_masked": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x20",
+        "width" : 32
+      },
+      "buffer_irq_masked": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x24",
+        "width" : 32
+      },
+      "buffer_clear": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x28",
+        "width" : 32
+      },
+      "sw_events_mask": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x2C",
+        "width" : 32
+      },
+      "sw_events_mask_and": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x30",
+        "width" : 32
+      },
+      "sw_events_mask_or": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x34",
+        "width" : 32
+      },
+      "event_wait": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x38",
+        "width" : 32
+      },
+      "event_wait_clear": {
+        "areas" : [ "demux/core", "global/cores/core" ],
+        "offset": "0x3C",
+        "width" : 32
+      },
+
+      "trigg_sw_event": {
+        "areas"  : [ "demux/sw_events", "global/sw_events" ],
+        "offset" : "0x00",
+        "width"  : 32,
+        "number" : 16
+      },
+      "trigg_sw_event_wait": {
+        "areas"  : [ "demux/sw_events", "global/sw_events" ],
+        "offset" : "0x40",
+        "width"  : 32,
+        "number" : 16
+      },
+      "trigg_sw_event_wait_clear": {
+        "areas"  : [ "demux/sw_events", "global/sw_events" ],
+        "offset" : "0x80",
+        "width"  : 32,
+        "number" : 16
+      },
+
+      "soc_events_current_event": {
+        "areas"  : [ "global/soc_events" ],
+        "offset" : "0x00",
+        "width"  : 32,
+        "bitfield": {
+          "event_id": {
+            "bit"  : 0,
+            "width": 9
+          },
+          "valid": {
+            "bit"  : 31,
+            "width": 1
+          }
+        }
+      },
+
+      "barr_trigger_mask": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x00",
+        "width"  : 32
+      },
+      "barr_status": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x04",
+        "width"  : 32
+      },
+      "barr_status_summary": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x08",
+        "width"  : 32
+      },
+      "barr_target_mask": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x0C",
+        "width"  : 32
+      },
+      "barr_trigger": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x10",
+        "width"  : 32
+      },
+      "barr_trigger_self": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x14",
+        "width"  : 32
+      },
+      "barr_trigger_wait": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x18",
+        "width"  : 32
+      },
+      "barr_trigger_wait_clear": {
+        "areas"  : [ "demux/barriers", "global/barriers" ],
+        "offset" : "0x1C",
+        "width"  : 32
+      },
+
+      "dispatch_fifo_access": {
+        "areas"  : [ "demux/dispatch", "global/dispatch" ],
+        "offset" : "0x00",
+        "width"  : 32
+      },
+      "dispatch_team_config": {
+        "areas"  : [ "demux/dispatch", "global/dispatch" ],
+        "offset" : "0x04",
+        "width"  : 32
+      }
+    }
+  },
+  "properties": {
+    "dispatch": {
+      "size": 8
+    },
+    "mutex": {
+      "nb_mutexes": 1
+    },
+    "barriers": {
+      "nb_barriers": 8
+    },
+    "soc_event": {
+      "nb_fifo_events": 8,
+      "fifo_event": 27
+    },
+    "events": {
+      "barrier" : 16,
+      "mutex"   : 17,
+      "dispatch": 18
+    }
+  }
+}
