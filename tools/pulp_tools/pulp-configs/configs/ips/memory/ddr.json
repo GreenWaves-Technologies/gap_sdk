@@ -1,0 +1,9 @@
+{
+  "size"  : "0x10000000",
+  "vp_class": "memory/ddr",
+  "frequency": 100000000,
+  "tlm": {
+    "dramsys-config": "ddr3-example.xml",
+    "gem5-config": "config.ini"
+  }
+}

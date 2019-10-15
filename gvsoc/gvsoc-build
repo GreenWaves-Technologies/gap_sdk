@@ -1,0 +1,34 @@
+#!/bin/bash -ex
+
+install_dir=$GAP_SDK_HOME/install
+doc_install_dir=$PWD/install/doc
+ws_install_dir=$INSTALL_DIR
+build_dir=$BUILD_DIR
+
+export PATH=$ws_install_dir/bin:$PATH
+export PYTHONPATH=$ws_install_dir/python:$PYTHONPATH
+export PULP_CONFIGS_PATH=$ws_install_dir/configs
+
+JSON_TOOLS_PATH=$GAP_SDK_HOME/tools/pulp_tools/json-tools
+PULP_CONFIG_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-configs
+DEBUG_BRIDGE_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-debug-bridge
+GVSOC_GLOBAL_PATH=$GAP_SDK_HOME/gvsoc
+GVSOC_PATH=$GVSOC_GLOBAL_PATH/gvsoc
+DPI_MODELS_PATH=$GVSOC_GLOBAL_PATH/dpi-models
+RUNNER_PATH=$GVSOC_GLOBAL_PATH/runner
+ARCHI_PATH=$GAP_SDK_HOME/rtos/pulp/archi_gap
+
+#git submodule update --init json-tools pulp-configs archi pulp-debug-bridge dpi-models gvsoc runner pulp-sdk-doc
+if [ ! -d "gvsoc" ]; then
+    git submodule update --init --recursive
+fi
+
+make -C $JSON_TOOLS_PATH all install BUILD_DIR=$build_dir/json-tools INSTALL_DIR=$ws_install_dir
+
+make -C $PULP_CONFIG_PATH all_scons BUILD_DIR=$build_dir/pulp-configs INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+
+make -C $DPI_MODELS_PATH build install BUILD_DIR=$build_dir/archi INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+
+make -C $GVSOC_PATH build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+
+make -C $RUNNER_PATH sdk.build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir

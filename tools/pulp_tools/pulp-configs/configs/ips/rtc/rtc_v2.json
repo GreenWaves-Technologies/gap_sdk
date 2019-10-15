@@ -1,0 +1,5 @@
+{
+  "version"   : 2,
+  "vp_class": "pulp/rtc/rtc_v2",
+  "soc_event"    : -1
+}

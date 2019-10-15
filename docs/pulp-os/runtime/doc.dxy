@@ -1,0 +1,41 @@
+# Doxyfile 1.8.6
+
+# This file describes the settings to be used by the documentation system
+# doxygen (www.doxygen.org) for a project.
+#
+# All text after a double hash (##) is considered a comment and is placed in
+# front of the TAG it is preceding.
+#
+# All text after a single hash (#) is considered a comment and will be ignored.
+# The format is:
+# TAG = value [value, ...]
+# For lists, items can also be appended using:
+# TAG += value [value, ...]
+# Values that contain spaces should be placed between quotes (\" \").
+
+#---------------------------------------------------------------------------
+# Project related configuration options
+#---------------------------------------------------------------------------
+
+# This tag specifies the encoding used for all characters in the config file
+# that follow. The default is UTF-8 which is also the encoding used for all text
+# before the first occurrence of this tag. Doxygen uses libiconv (or the iconv
+# built into libc) for the transcoding. See http://www.gnu.org/software/libiconv
+# for the list of possible encodings.
+# The default value is: UTF-8.
+
+@INCLUDE = $(DOXTEMPLATE)/pulp-rt/pulp-rt.dxy
+
+# The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) path
+# into which the generated documentation will be written. If a relative path is
+# entered, it will be relative to the location where doxygen was started. If
+# left blank the current directory will be used.
+
+OUTPUT_DIRECTORY       = BUILD/PULP-OS
+
+INPUT                  = $(TARGET_INSTALL_DIR)/include/rt $(RT_BASE)/groups.h \
+                         $(RT_BASE)/builtins.h $(GAP8_BUILTINS) $(BUILD_DIR)/PULP-OS/mainpage.md
+
+@INCLUDE = $(COM_BASE)/common.dxy
+
+HTML_EXTRA_FILES       += $(BUILD_DIR)/PULP-OS/images.css

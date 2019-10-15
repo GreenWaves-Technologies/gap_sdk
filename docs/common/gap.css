@@ -1,0 +1,25 @@
+#titlerow {
+	height: 68px;
+	padding: 2px 0px;
+}
+
+#projectlogo {
+	width: 200px;
+}
+
+#projectbox {
+	padding-left: 1em;
+	width: 80%;
+	vertical-align: middle;
+}
+
+#extralogo {
+	width: 10%;
+	padding-right: 1em;
+	vertical-align: middle;
+}
+
+#extralogo img {
+	display: block;
+	float: left;
+}

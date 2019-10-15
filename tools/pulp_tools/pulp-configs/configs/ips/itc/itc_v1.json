@@ -1,0 +1,72 @@
+{
+  "version": 1,
+
+  "vp_class": "pulp/itc/itc_v1",
+
+  "nb_fifo_events": 8,
+
+  "fifo_irq": 26,
+
+  "regmap": {
+    "mask": {
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "desc" : ""
+    },
+    "mask_set": {
+      "type": "register",
+      "offset": "0x04",
+      "width" : 32,
+      "desc" : ""
+    },
+    "mask_clr": {
+      "type": "register",
+      "offset": "0x08",
+      "width" : 32,
+      "desc" : ""
+    },
+    "status": {
+      "type": "register",
+      "offset": "0x0C",
+      "width" : 32,
+      "desc" : ""
+    },
+    "status_set": {
+      "type": "register",
+      "offset": "0x10",
+      "width" : 32,
+      "desc" : ""
+    },
+    "status_clr": {
+      "type": "register",
+      "offset": "0x14",
+      "width" : 32,
+      "desc" : ""
+    },
+    "ack": {
+      "type": "register",
+      "offset": "0x18",
+      "width" : 32,
+      "desc" : ""
+    },
+    "ack_set": {
+      "type": "register",
+      "offset": "0x1C",
+      "width" : 32,
+      "desc" : ""
+    },
+    "ack_clr": {
+      "type": "register",
+      "offset": "0x20",
+      "width" : 32,
+      "desc" : ""
+    },
+    "fifo": {
+      "type": "register",
+      "offset": "0x24",
+      "width" : 32,
+      "desc" : ""
+    }
+  }
+}

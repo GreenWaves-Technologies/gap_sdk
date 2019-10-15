@@ -1,0 +1,30 @@
+{
+  "includes": [ "chips/gap/gap.json" ],
+
+  "board": {
+    "name": "ai_deck",
+    "devices": {
+      "hyper": {
+        "include" : "devices/hyper.json",
+        "cs": 0
+      },
+      "camera": {
+        "include": "devices/camera.json",
+        "interface": "cpi0",
+        "ctrl_interface": "i2c0"
+      }
+    }
+  },
+
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "type": "ftdi",
+        "system_reset_gpio": 9,
+        "jtag_reset_gpio": 8,
+        "reverse_reset": false
+      }
+    }
+  }
+
+}

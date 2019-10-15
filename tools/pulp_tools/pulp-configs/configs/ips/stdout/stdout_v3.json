@@ -1,0 +1,12 @@
+{
+  "version": 3,
+
+  "vp_class": "pulp/stdout/stdout_v3",
+
+  "archi_files" : [ "archi/stdout/stdout_v3.h" ],
+
+  "max_cluster": 33,
+
+  "max_core_per_cluster": 16
+
+}

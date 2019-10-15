@@ -1,0 +1,80 @@
+{
+  "soc_ico": {
+
+    "gv_class": "pulp.Soc_Ico_v1.Soc_Ico",
+
+    "nb_l2_shared_banks": 4,
+
+    "apb": {
+      "base"  : "0x1A100000",
+      "size"  : "0x00100000"
+    },
+
+    "l2": {
+      "base"  : "0x1C000000",
+      "size"  : "0x00080000"
+    },
+
+    "pulp_ddr": {
+      "base"  : "0x800000000000",
+      "size"  : "0x100000000000"
+    },
+
+    "external_binding": {
+      "rcv_fd" : -1,
+      "snd_fd" : -1
+    },
+
+    "peripherals_base"  : "0x1A100000",
+
+    "peripherals": {
+
+      "stdout": {
+        "offset": "0x0000f000",
+        "size"  : "0x00001000"
+      },
+
+      "apb_soc_ctrl": {
+        "offset": "0x00004000",
+        "size"  : "0x00001000"
+      },
+      
+      "job_fifo": {
+        "offset": "0x00020000",
+        "size"  : "0x00001000"
+      }
+
+    }
+  },
+
+  "l2": {
+    "size": 524288,
+    "map_base": "0x1C000000",
+    "map_size": "0x00080000"
+  },
+
+  "pulp_ddr": {
+    "size": "0x10000000",
+    "use_wrapper": false
+  },
+
+  "l2_shared": {
+    "nb_banks": 4,
+    "size": 524288,
+    "map_base": "0x1C000000",
+    "map_size": "0x01000000"
+  },
+  
+  "peripherals_base": "0x1A100000",
+
+  "stdout": {
+    "version"   : 3,
+    "map_offset": "0x0000f000",
+    "map_size"  : "0x00001000"
+  },
+
+  "apb_soc_ctrl": {
+    "includes"  : ["apb_soc_v3.json"]
+  }
+
+}

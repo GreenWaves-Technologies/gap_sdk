@@ -1,0 +1,1 @@
+This is a simple read only file system, it uses the file name link table to find the file in flash. 

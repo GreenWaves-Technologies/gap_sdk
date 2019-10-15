@@ -1,0 +1,24 @@
+{
+  "name": "i2s_mic",
+  "doc_rst": "devices/i2s_microphone.rst",
+  "description": "I2S microphones",
+
+  "generator": "generators/v1/devices/i2s_microphone_gen",
+  "interface": "i2s0",
+
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "config": {
+    "type": "dpi",
+    "module": "i2s_microphone.so",
+    "verbose": false,
+    "width": 16,
+    "ddr": false,
+    "pdm": true,
+    "toggle_channel": false,
+    "stim_left": null,
+    "stim_right": null,
+    "frequency": 0,
+    "chain_size": 1
+  }
+}

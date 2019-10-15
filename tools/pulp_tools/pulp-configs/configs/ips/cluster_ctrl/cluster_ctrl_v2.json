@@ -1,0 +1,11 @@
+{
+  "version": 2,
+
+  "vp_class": "pulp/cluster/cluster_ctrl_v2",
+
+  "hal_files" : [ "hal/cluster_ctrl/cluster_ctrl_v2.h" ],
+  "archi_files" : [ "archi/cluster_ctrl/cluster_ctrl_v2.h" ],
+
+  "nb_core": 0
+
+}

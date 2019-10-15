@@ -1,0 +1,60 @@
+{
+  "includes": [ "../../ips/udma/udma_v3.json"],
+
+  "nb_periphs": 7,
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "interfaces" : ["spim", "i2c", "i2s", "uart", "cam", "hyper"],
+
+  "spim": {
+    "version"      : 3,
+    "nb_channels"  : 4,
+    "ids"          : [0, 1, 2, 3],
+    "offsets"      : ["0x000", "0x080", "0x100, 0x180"]
+  },
+
+  "uart": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [4],
+    "offsets"      : ["0x200"]
+  },
+
+  "i2c": {
+    "version"      : 3,
+    "nb_channels"  : 3,
+    "ids"          : [5, 6, 7],
+    "offsets"      : ["0x280", "0x300", "0x380"]
+  },
+
+  "hyper": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [8],
+    "offsets"      : ["0x400"]
+  },
+
+  "sdio": {
+    "version"      : 0,
+    "nb_channels"  : 1,
+    "ids"          : [9],
+    "offsets"      : ["0x480"]
+  },
+
+  "i2s": {
+    "includes": [ "../../ips/udma/i2s/udma_i2s_v2.json" ],
+    "nb_channels"  : 1,
+    "ids"          : [10],
+    "offsets"      : ["0x500"]
+  },
+
+  "cam": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [11],
+    "offsets"      : ["0x580"]
+  }
+}

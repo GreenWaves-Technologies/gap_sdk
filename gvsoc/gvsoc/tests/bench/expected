@@ -1,0 +1,8 @@
+Benchmarking event enqueue with 1 cycle constant
+102.578095
+Benchmarking event enqueue with 10 cycle constant
+20.524925
+Benchmarking event enqueue with 1 cycle variable
+101.689986
+Benchmarking interface calls with no argument
+576.698608

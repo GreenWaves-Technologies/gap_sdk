@@ -1,0 +1,922 @@
+{
+  "version": 5,
+  "nb_pe": 8,
+
+  "vp_comps": [
+    "l1", "cluster_ico", "periph_ico", "l1_ico",
+    "pe0", "pe1", "pe2", "pe3", "pe4", "pe5", "pe6", "pe7",
+    "cluster_ctrl", "icache_ctrl", "event_unit",
+    "demux_periph_ico", "timer", "dma"
+  ],
+
+  "vp_ports": [
+    "input", "soc", "dma_irq"
+  ],
+
+  "vp_bindings": [
+    [ "dma->ext_irq_itf", "self->dma_irq"],
+    [ "cluster_ico->soc", "self->soc"],
+    [ "self->input", "cluster_ico->input" ],
+    [ "cluster_ico->l1", "l1_ico/ext2loc->input" ],
+    [ "cluster_ico->periph_ico", "periph_ico->input" ],
+    [ "cluster_ico->periph_ico_alias", "periph_ico->input" ],
+    [ "periph_ico->icache_ctrl", "icache_ctrl->input" ],
+    [ "periph_ico->event_unit", "event_unit->input" ],
+    [ "periph_ico->cluster_ctrl", "cluster_ctrl->input" ],
+    [ "periph_ico->timer", "timer->input" ],
+    [ "periph_ico->dma", "dma->in_8" ],
+    [ "periph_ico->dbg_unit_0", "pe0->dbg_unit" ],
+    [ "periph_ico->dbg_unit_1", "pe1->dbg_unit" ],
+    [ "periph_ico->dbg_unit_2", "pe2->dbg_unit" ],
+    [ "periph_ico->dbg_unit_3", "pe3->dbg_unit" ],
+    [ "periph_ico->dbg_unit_4", "pe4->dbg_unit" ],
+    [ "periph_ico->dbg_unit_5", "pe5->dbg_unit" ],
+    [ "periph_ico->dbg_unit_6", "pe6->dbg_unit" ],
+    [ "periph_ico->dbg_unit_7", "pe7->dbg_unit" ],
+    [ "periph_ico->cluster_ico", "cluster_ico->input" ],
+    [ "cluster_ctrl->bootaddr_0", "pe0->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_1", "pe1->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_2", "pe2->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_3", "pe3->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_4", "pe4->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_5", "pe5->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_6", "pe6->bootaddr" ],
+    [ "cluster_ctrl->bootaddr_7", "pe7->bootaddr" ],
+    [ "cluster_ctrl->fetchen_0", "pe0->fetchen" ],
+    [ "cluster_ctrl->fetchen_1", "pe1->fetchen" ],
+    [ "cluster_ctrl->fetchen_2", "pe2->fetchen" ],
+    [ "cluster_ctrl->fetchen_3", "pe3->fetchen" ],
+    [ "cluster_ctrl->fetchen_4", "pe4->fetchen" ],
+    [ "cluster_ctrl->fetchen_5", "pe5->fetchen" ],
+    [ "cluster_ctrl->fetchen_6", "pe6->fetchen" ],
+    [ "cluster_ctrl->fetchen_7", "pe7->fetchen" ],
+    [ "cluster_ctrl->halt_0", "pe0->halt" ],
+    [ "cluster_ctrl->halt_1", "pe1->halt" ],
+    [ "cluster_ctrl->halt_2", "pe2->halt" ],
+    [ "cluster_ctrl->halt_3", "pe3->halt" ],
+    [ "cluster_ctrl->halt_4", "pe4->halt" ],
+    [ "cluster_ctrl->halt_5", "pe5->halt" ],
+    [ "cluster_ctrl->halt_6", "pe6->halt" ],
+    [ "cluster_ctrl->halt_7", "pe7->halt" ],
+    [ "pe0->halt_status", "cluster_ctrl->core_halt_0" ],
+    [ "pe1->halt_status", "cluster_ctrl->core_halt_1" ],
+    [ "pe2->halt_status", "cluster_ctrl->core_halt_2" ],
+    [ "pe3->halt_status", "cluster_ctrl->core_halt_3" ],
+    [ "pe4->halt_status", "cluster_ctrl->core_halt_4" ],
+    [ "pe5->halt_status", "cluster_ctrl->core_halt_5" ],
+    [ "pe6->halt_status", "cluster_ctrl->core_halt_6" ],
+    [ "pe7->halt_status", "cluster_ctrl->core_halt_7" ],
+    [ "pe0->ext_counter[11]", "l1_ico/pe0_ico->nb_read[1]" ],
+    [ "pe1->ext_counter[11]", "l1_ico/pe1_ico->nb_read[1]" ],
+    [ "pe2->ext_counter[11]", "l1_ico/pe2_ico->nb_read[1]" ],
+    [ "pe3->ext_counter[11]", "l1_ico/pe3_ico->nb_read[1]" ],
+    [ "pe4->ext_counter[11]", "l1_ico/pe4_ico->nb_read[1]" ],
+    [ "pe5->ext_counter[11]", "l1_ico/pe5_ico->nb_read[1]" ],
+    [ "pe6->ext_counter[11]", "l1_ico/pe6_ico->nb_read[1]" ],
+    [ "pe7->ext_counter[11]", "l1_ico/pe7_ico->nb_read[1]" ],
+    [ "pe0->ext_counter[12]", "l1_ico/pe0_ico->nb_write[1]" ],
+    [ "pe1->ext_counter[12]", "l1_ico/pe1_ico->nb_write[1]" ],
+    [ "pe2->ext_counter[12]", "l1_ico/pe2_ico->nb_write[1]" ],
+    [ "pe3->ext_counter[12]", "l1_ico/pe3_ico->nb_write[1]" ],
+    [ "pe4->ext_counter[12]", "l1_ico/pe4_ico->nb_write[1]" ],
+    [ "pe5->ext_counter[12]", "l1_ico/pe5_ico->nb_write[1]" ],
+    [ "pe6->ext_counter[12]", "l1_ico/pe6_ico->nb_write[1]" ],
+    [ "pe7->ext_counter[12]", "l1_ico/pe7_ico->nb_write[1]" ],
+    [ "pe0->ext_counter[13]", "l1_ico/pe0_ico->read_stalls[1]" ],
+    [ "pe1->ext_counter[13]", "l1_ico/pe1_ico->read_stalls[1]" ],
+    [ "pe2->ext_counter[13]", "l1_ico/pe2_ico->read_stalls[1]" ],
+    [ "pe3->ext_counter[13]", "l1_ico/pe3_ico->read_stalls[1]" ],
+    [ "pe4->ext_counter[13]", "l1_ico/pe4_ico->read_stalls[1]" ],
+    [ "pe5->ext_counter[13]", "l1_ico/pe5_ico->read_stalls[1]" ],
+    [ "pe6->ext_counter[13]", "l1_ico/pe6_ico->read_stalls[1]" ],
+    [ "pe7->ext_counter[13]", "l1_ico/pe7_ico->read_stalls[1]" ],
+    [ "pe0->ext_counter[14]", "l1_ico/pe0_ico->write_stalls[1]" ],
+    [ "pe1->ext_counter[14]", "l1_ico/pe1_ico->write_stalls[1]" ],
+    [ "pe2->ext_counter[14]", "l1_ico/pe2_ico->write_stalls[1]" ],
+    [ "pe3->ext_counter[14]", "l1_ico/pe3_ico->write_stalls[1]" ],
+    [ "pe4->ext_counter[14]", "l1_ico/pe4_ico->write_stalls[1]" ],
+    [ "pe5->ext_counter[14]", "l1_ico/pe5_ico->write_stalls[1]" ],
+    [ "pe6->ext_counter[14]", "l1_ico/pe6_ico->write_stalls[1]" ],
+    [ "pe7->ext_counter[14]", "l1_ico/pe7_ico->write_stalls[1]" ],
+    [ "pe0->ext_counter[15]", "l1_ico/pe0_ico->stalls[0]" ],
+    [ "pe1->ext_counter[15]", "l1_ico/pe1_ico->stalls[0]" ],
+    [ "pe2->ext_counter[15]", "l1_ico/pe2_ico->stalls[0]" ],
+    [ "pe3->ext_counter[15]", "l1_ico/pe3_ico->stalls[0]" ],
+    [ "pe4->ext_counter[15]", "l1_ico/pe4_ico->stalls[0]" ],
+    [ "pe5->ext_counter[15]", "l1_ico/pe5_ico->stalls[0]" ],
+    [ "pe6->ext_counter[15]", "l1_ico/pe6_ico->stalls[0]" ],
+    [ "pe7->ext_counter[15]", "l1_ico/pe7_ico->stalls[0]" ],
+    [ "pe0->data", "l1_ico/pe0_ico->input" ],
+    [ "pe1->data", "l1_ico/pe1_ico->input" ],
+    [ "pe2->data", "l1_ico/pe2_ico->input" ],
+    [ "pe3->data", "l1_ico/pe3_ico->input" ],
+    [ "pe4->data", "l1_ico/pe4_ico->input" ],
+    [ "pe5->data", "l1_ico/pe5_ico->input" ],
+    [ "pe6->data", "l1_ico/pe6_ico->input" ],
+    [ "pe7->data", "l1_ico/pe7_ico->input" ],
+    [ "pe0->fetch", "cluster_ico->input" ],
+    [ "pe1->fetch", "cluster_ico->input" ],
+    [ "pe2->fetch", "cluster_ico->input" ],
+    [ "pe3->fetch", "cluster_ico->input" ],
+    [ "pe4->fetch", "cluster_ico->input" ],
+    [ "pe5->fetch", "cluster_ico->input" ],
+    [ "pe6->fetch", "cluster_ico->input" ],
+    [ "pe7->fetch", "cluster_ico->input" ],
+    [ "l1_ico/interleaver->out_0", "l1/bank0->input" ],
+    [ "l1_ico/interleaver->out_1", "l1/bank1->input" ],
+    [ "l1_ico/interleaver->out_2", "l1/bank2->input" ],
+    [ "l1_ico/interleaver->out_3", "l1/bank3->input" ],
+    [ "l1_ico/interleaver->out_4", "l1/bank4->input" ],
+    [ "l1_ico/interleaver->out_5", "l1/bank5->input" ],
+    [ "l1_ico/interleaver->out_6", "l1/bank6->input" ],
+    [ "l1_ico/interleaver->out_7", "l1/bank7->input" ],
+    [ "l1_ico/interleaver->out_8", "l1/bank8->input" ],
+    [ "l1_ico/interleaver->out_9", "l1/bank9->input" ],
+    [ "l1_ico/interleaver->out_10", "l1/bank10->input" ],
+    [ "l1_ico/interleaver->out_11", "l1/bank11->input" ],
+    [ "l1_ico/interleaver->out_12", "l1/bank12->input" ],
+    [ "l1_ico/interleaver->out_13", "l1/bank13->input" ],
+    [ "l1_ico/interleaver->out_14", "l1/bank14->input" ],
+    [ "l1_ico/interleaver->out_15", "l1/bank15->input" ],
+    [ "l1_ico/pe0_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe1_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe2_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe3_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe4_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe5_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe6_ico->cluster_ico", "cluster_ico->input" ],
+    [ "l1_ico/pe7_ico->cluster_ico", "cluster_ico->input" ],
+
+    [ "l1_ico/pe0_ico->event_unit", "event_unit->demux_in_0" ],
+    [ "l1_ico/pe1_ico->event_unit", "event_unit->demux_in_1" ],
+    [ "l1_ico/pe2_ico->event_unit", "event_unit->demux_in_2" ],
+    [ "l1_ico/pe3_ico->event_unit", "event_unit->demux_in_3" ],
+    [ "l1_ico/pe4_ico->event_unit", "event_unit->demux_in_4" ],
+    [ "l1_ico/pe5_ico->event_unit", "event_unit->demux_in_5" ],
+    [ "l1_ico/pe6_ico->event_unit", "event_unit->demux_in_6" ],
+    [ "l1_ico/pe7_ico->event_unit", "event_unit->demux_in_7" ],
+    [ "l1_ico/pe0_ico->event_unit_alias", "event_unit->demux_in_0" ],
+    [ "l1_ico/pe1_ico->event_unit_alias", "event_unit->demux_in_1" ],
+    [ "l1_ico/pe2_ico->event_unit_alias", "event_unit->demux_in_2" ],
+    [ "l1_ico/pe3_ico->event_unit_alias", "event_unit->demux_in_3" ],
+    [ "l1_ico/pe4_ico->event_unit_alias", "event_unit->demux_in_4" ],
+    [ "l1_ico/pe5_ico->event_unit_alias", "event_unit->demux_in_5" ],
+    [ "l1_ico/pe6_ico->event_unit_alias", "event_unit->demux_in_6" ],
+    [ "l1_ico/pe7_ico->event_unit_alias", "event_unit->demux_in_7" ],
+
+    [ "l1_ico/pe0_ico->dma", "dma->in_0" ],
+    [ "l1_ico/pe1_ico->dma", "dma->in_1" ],
+    [ "l1_ico/pe2_ico->dma", "dma->in_2" ],
+    [ "l1_ico/pe3_ico->dma", "dma->in_3" ],
+    [ "l1_ico/pe4_ico->dma", "dma->in_4" ],
+    [ "l1_ico/pe5_ico->dma", "dma->in_5" ],
+    [ "l1_ico/pe6_ico->dma", "dma->in_6" ],
+    [ "l1_ico/pe7_ico->dma", "dma->in_7" ],
+    [ "l1_ico/pe0_ico->dma_alias", "dma->in_0" ],
+    [ "l1_ico/pe1_ico->dma_alias", "dma->in_1" ],
+    [ "l1_ico/pe2_ico->dma_alias", "dma->in_2" ],
+    [ "l1_ico/pe3_ico->dma_alias", "dma->in_3" ],
+    [ "l1_ico/pe4_ico->dma_alias", "dma->in_4" ],
+    [ "l1_ico/pe5_ico->dma_alias", "dma->in_5" ],
+    [ "l1_ico/pe6_ico->dma_alias", "dma->in_6" ],
+    [ "l1_ico/pe7_ico->dma_alias", "dma->in_7" ],
+
+    [ "dma->ext_itf", "cluster_ico->input" ],
+    [ "dma->loc_itf_0", "l1_ico/interleaver->in_8" ],
+    [ "dma->loc_itf_1", "l1_ico/interleaver->in_9" ],
+    [ "dma->loc_itf_2", "l1_ico/interleaver->in_10" ],
+    [ "dma->loc_itf_3", "l1_ico/interleaver->in_11" ],
+
+    [ "dma->event_itf_0", "event_unit->in_event_8_pe_0" ],
+    [ "dma->event_itf_1", "event_unit->in_event_8_pe_1" ],
+    [ "dma->event_itf_2", "event_unit->in_event_8_pe_2" ],
+    [ "dma->event_itf_3", "event_unit->in_event_8_pe_3" ],
+    [ "dma->event_itf_4", "event_unit->in_event_8_pe_4" ],
+    [ "dma->event_itf_5", "event_unit->in_event_8_pe_5" ],
+    [ "dma->event_itf_6", "event_unit->in_event_8_pe_6" ],
+    [ "dma->event_itf_7", "event_unit->in_event_8_pe_7" ],
+    [ "dma->irq_itf_0"  , "event_unit->in_event_9_pe_0" ],
+    [ "dma->irq_itf_1"  , "event_unit->in_event_9_pe_1" ],
+    [ "dma->irq_itf_2"  , "event_unit->in_event_9_pe_2" ],
+    [ "dma->irq_itf_3"  , "event_unit->in_event_9_pe_3" ],
+    [ "dma->irq_itf_4"  , "event_unit->in_event_9_pe_4" ],
+    [ "dma->irq_itf_5"  , "event_unit->in_event_9_pe_5" ],
+    [ "dma->irq_itf_6"  , "event_unit->in_event_9_pe_6" ],
+    [ "dma->irq_itf_7"  , "event_unit->in_event_9_pe_7" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_0" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_1" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_2" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_3" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_4" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_5" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_6" ],
+    [ "dma->ext_irq_itf"  , "event_unit->in_event_22_pe_7" ],
+
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_0" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_1" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_2" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_3" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_4" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_5" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_6" ],
+    [ "timer->irq_itf_0"  , "event_unit->in_event_10_pe_7" ],
+
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_0" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_1" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_2" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_3" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_4" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_5" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_6" ],
+    [ "timer->irq_itf_1"  , "event_unit->in_event_11_pe_7" ],
+
+    [ "event_unit->irq_req_0", "pe0->irq_req"],
+    [ "pe0->irq_ack"         , "event_unit->irq_ack_0"],
+    [ "event_unit->irq_req_1", "pe1->irq_req"],
+    [ "pe1->irq_ack"         , "event_unit->irq_ack_1"],
+    [ "event_unit->irq_req_2", "pe2->irq_req"],
+    [ "pe2->irq_ack"         , "event_unit->irq_ack_2"],
+    [ "event_unit->irq_req_3", "pe3->irq_req"],
+    [ "pe3->irq_ack"         , "event_unit->irq_ack_3"],
+    [ "event_unit->irq_req_4", "pe4->irq_req"],
+    [ "pe4->irq_ack"         , "event_unit->irq_ack_4"],
+    [ "event_unit->irq_req_5", "pe5->irq_req"],
+    [ "pe5->irq_ack"         , "event_unit->irq_ack_5"],
+    [ "event_unit->irq_req_6", "pe6->irq_req"],
+    [ "pe6->irq_ack"         , "event_unit->irq_ack_6"],
+    [ "event_unit->irq_req_7", "pe7->irq_req"],
+    [ "pe7->irq_ack"         , "event_unit->irq_ack_7"]
+  ],
+
+  "vp_class": "pulp/cluster/cluster",
+
+  "cluster_ico": {
+    "includes": [ "interco/router.json" ],
+
+    "latency": 2,
+
+    "mappings": {
+      "l1": {
+        "base"  : "0x10000000",
+        "size"  : "0x00010000",
+        "remove_offset": "0x10000000"
+      },
+      "periph_ico": {
+        "base": "0x10200000",
+        "size"  : "0x00200000"
+      },
+      "periph_ico_alias": {
+        "base": "0x00200000",
+        "size"  : "0x00200000",
+        "add_offset": "0x10000000"
+      },
+      "soc": {}
+    }
+  },
+
+  "demux_periph_ico": {
+    "includes": [ "interco/router.json" ],
+    "mappings": {
+      "demux_event_unit": {
+        "base": "0x00000000",
+        "size"  : "0x00000400"
+      }
+    }
+  },
+
+  "periph_ico": {
+    "includes": [ "interco/router.json" ],
+
+    "mappings": {
+      "cluster_ctrl": {
+        "base": "0x10200000",
+        "size"  : "0x00000400",
+        "remove_offset": "0x10200000"
+      },
+      "timer": {
+        "base": "0x10200400",
+        "size"  : "0x00000400",
+        "remove_offset": "0x10200400"
+      },
+      "event_unit": {
+        "base": "0x10200800",
+        "size"  : "0x00000800",
+        "remove_offset": "0x10200800"
+      },
+      "icache_ctrl": {
+        "base": "0x10201400",
+        "size"  : "0x00000400",
+        "remove_offset": "0x10201400"
+      },
+      "dma": {
+        "base": "0x10201800",
+        "size"  : "0x00000400",
+        "remove_offset": "0x10201800"
+      },
+      "dbg_unit_0": {
+        "base": "0x10300000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10300000"
+      },
+      "dbg_unit_1": {
+        "base": "0x10308000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10308000"
+      },
+      "dbg_unit_2": {
+        "base": "0x10310000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10310000"
+      },
+      "dbg_unit_3": {
+        "base": "0x10318000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10318000"
+      },
+      "dbg_unit_4": {
+        "base": "0x10320000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10320000"
+      },
+      "dbg_unit_5": {
+        "base": "0x10328000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10328000"
+      },
+      "dbg_unit_6": {
+        "base": "0x10330000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10330000"
+      },
+      "dbg_unit_7": {
+        "base": "0x10338000",
+        "size"  : "0x00008000",
+        "remove_offset": "0x10338000"
+      },
+      "cluster_ico": {}
+    }
+  },
+
+  "l1_ico": {
+    "vp_comps": [
+      "pe0_ico", "pe1_ico", "pe2_ico", "pe3_ico",
+      "pe4_ico", "pe5_ico", "pe6_ico", "pe7_ico",
+      "interleaver", "ext2loc"
+    ],
+
+    "vp_bindings": [
+      [ "pe0_ico->l1", "interleaver->in_0" ],
+      [ "pe1_ico->l1", "interleaver->in_1" ],
+      [ "pe2_ico->l1", "interleaver->in_2" ],
+      [ "pe3_ico->l1", "interleaver->in_3" ],
+      [ "pe4_ico->l1", "interleaver->in_4" ],
+      [ "pe5_ico->l1", "interleaver->in_5" ],
+      [ "pe6_ico->l1", "interleaver->in_6" ],
+      [ "pe7_ico->l1", "interleaver->in_7" ],
+      [ "pe0_ico->l1_alias", "interleaver->in_0" ],
+      [ "pe1_ico->l1_alias", "interleaver->in_1" ],
+      [ "pe2_ico->l1_alias", "interleaver->in_2" ],
+      [ "pe3_ico->l1_alias", "interleaver->in_3" ],
+      [ "pe4_ico->l1_alias", "interleaver->in_4" ],
+      [ "pe5_ico->l1_alias", "interleaver->in_5" ],
+      [ "pe6_ico->l1_alias", "interleaver->in_6" ],
+      [ "pe7_ico->l1_alias", "interleaver->in_7" ],
+      [ "ext2loc->out", "interleaver->in_8" ]
+    ],
+
+    "vp_class": null,
+
+    "pe0_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe1_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe2_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe3_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe4_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe5_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe6_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+    "pe7_ico": {
+      "includes": [ "interco/router.json" ],
+      "mappings": {
+        "l1": {
+          "base": "0x10000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x10000000",
+          "id" : 0
+        },
+        "event_unit": {
+          "base": "0x10204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204000",
+          "id" : 1
+        },
+        "dma": {
+          "base": "0x10204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x10204400",
+          "id" : 1
+        },
+        "l1_alias": {
+          "base": "0x00000000",
+          "size"  : "0x00200000",
+          "remove_offset": "0x00000000",
+          "id" : 0
+        },
+        "event_unit_alias": {
+          "base": "0x00204000",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204000",
+          "id" : 1
+        },
+        "dma_alias": {
+          "base": "0x00204400",
+          "size"  : "0x00000400",
+          "remove_offset": "0x00204400",
+          "id" : 1
+        },
+        "cluster_ico": {
+          "id" : 1
+        }
+      }
+    },
+
+    "interleaver": {
+      "includes": [ "interco/l1_interleaver.json" ],
+      "nb_slaves": 16,
+      "nb_masters": 12,
+      "interleaving_bits": 2
+    },
+
+    "ext2loc": {
+      "includes": [ "interco/converter.json" ],
+      "output_width": 4,
+      "output_align": 4
+    }
+
+  },
+
+  "l1": {
+    "vp_comps": [
+      "bank0",  "bank1",  "bank2",  "bank3",
+      "bank4",  "bank5",  "bank6",  "bank7",
+      "bank8",  "bank9",  "bank10", "bank11",
+      "bank12", "bank13", "bank14", "bank15"
+    ],
+    "vp_class": null,
+
+    "size" : 65536,
+    "alias": true,
+    "has_l1_alias": true,
+    "alias_base": "0x00000000",
+    "map_base" : "0x10000000",
+    "nb_banks": 16,
+    "bank0": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank1": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank2": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank3": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank4": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank5": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank6": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank7": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank8": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank9": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank10": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank11": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank12": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank13": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank14": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    },
+    "bank15": {
+      "size": 4096,
+      "vp_class": "memory/memory"
+    }
+  },
+  
+  "icache": {
+    "version"       : 1,
+    "size"          : 4096,
+    "line_size"     : 16,
+    "banking_factor": 4,
+    "ports"         : 8,
+    "ways"          : 1,
+    "enabled"       : true
+  },
+
+  "dma": {
+    "includes": [ "mchan_v7.json" ],
+    "nb_channels": 9
+  },
+
+  "cluster_ctrl": {
+    "includes": [ "cluster_ctrl_v2.json" ],
+    "nb_core" : 8
+  },
+
+  "event_unit": {
+    "includes": [ "eu_v3.json" ],
+    "nb_core": 8
+  },
+
+  "timer": {
+    "includes": [ "timer_v2.json" ]
+  },
+
+  "icache_ctrl": {
+    "includes": [ "icache_ctrl_v2.json" ]
+  },
+
+  "pe": {
+  },
+
+  "pe0": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 0,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe1": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 1,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe2": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 2,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe3": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 3,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe4": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 4,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe5": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 5,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe6": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 6,
+    "boot_addr" : "0x1C000000"
+  },
+  "pe7": {
+    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "cluster_id": 0,
+    "core_id"   : 7,
+    "boot_addr" : "0x1C000000"
+  }
+}

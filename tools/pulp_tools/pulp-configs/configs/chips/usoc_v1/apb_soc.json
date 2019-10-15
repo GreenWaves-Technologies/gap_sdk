@@ -1,0 +1,116 @@
+{
+  "version": 3,
+
+  "vp_class":  "pulp/chips/usoc_v1/apb_soc",
+  
+  "hal_files" : [ "hal/apb_soc/apb_soc_v3.h" ],
+
+  "regmap": {
+    "info": {
+      "offset": "0x000"
+    },
+    "fcboot": {
+      "offset": "0x004"
+    },
+    "fcfetch": {
+      "offset": "0x008"
+    },
+    "clusiso": {
+      "offset": "0x000C"
+    },
+    "padfun0": {
+      "offset": "0x010"
+    },
+    "padfun1": {
+      "offset": "0x014"
+    },
+    "padfun2": {
+      "offset": "0x018"
+    },
+    "padfun3": {
+      "offset": "0x01C"
+    },
+    "padcfg0": {
+      "offset": "0x020"
+    },
+    "padcfg1": {
+      "offset": "0x024"
+    },
+    "padcfg2": {
+      "offset": "0x028"
+    },
+    "padcfg3": {
+      "offset": "0x02C"
+    },
+    "padcfg4": {
+      "offset": "0x030"
+    },
+    "padcfg5": {
+      "offset": "0x034"
+    },
+    "padcfg6": {
+      "offset": "0x038"
+    },
+    "padcfg7": {
+      "offset": "0x03C"
+    },
+    "padcfg8": {
+      "offset": "0x040"
+    },
+    "padcfg9": {
+      "offset": "0x044"
+    },
+    "padcfg10": {
+      "offset": "0x048"
+    },
+    "padcfg11": {
+      "offset": "0x04C"
+    },
+    "padcfg12": {
+      "offset": "0x050"
+    },
+    "padcfg13": {
+      "offset": "0x054"
+    },
+    "padcfg14": {
+      "offset": "0x058"
+    },
+    "padcfg15": {
+      "offset": "0x05C"
+    },
+    "clusbusy": {
+      "offset": "0x6C"
+    },
+    "jtagreg": {
+      "offset": "0x74"
+    },
+    "l2_sleep": {
+      "offset": "0x78"
+    },
+    "sleep_ctrl": {
+      "offset": "0x7C"
+    },
+    "corestatus": {
+      "offset": "0xA0"
+    },
+    "cs_ro": {
+      "offset": "0xC0"
+    },
+    "bootsel": {
+      "offset": "0xC4"
+    },
+    "clk_sel": {
+      "offset": "0xD0"
+    },
+    "clk_div_soc": {
+      "offset": "0xD4"
+    },
+    "clk_div_clu": {
+      "offset": "0xD8"
+    },
+    "clk_div_per": {
+      "offset": "0xDC"
+    }
+
+  }
+}

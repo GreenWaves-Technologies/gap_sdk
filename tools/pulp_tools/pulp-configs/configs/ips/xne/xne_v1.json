@@ -1,0 +1,8 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/xne/xne_v1.h" ],
+  "archi_files" : [ "archi/xne/xne_v1.h" ],
+
+  "vp_class": "pulp/hwpe/xne/xne_v1"
+}

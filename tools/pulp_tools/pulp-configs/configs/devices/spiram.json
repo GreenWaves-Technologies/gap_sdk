@@ -1,0 +1,16 @@
+{
+  "name": "SPI_ram",
+  "doc_rst": "devices/spiram.rst",
+  "description": "SPI ram model",
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "generator": "generators/v1/devices/spiram_gen",
+  "interface": "spim0",
+  "cs": 1,
+
+  "config": {
+    "type": "dpi",
+    "module": "spiram.so",
+    "mem_size": "0x00800000"
+  }
+}

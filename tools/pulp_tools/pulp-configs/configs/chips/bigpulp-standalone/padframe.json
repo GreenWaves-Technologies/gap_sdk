@@ -1,0 +1,22 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "includes": [ "ips/padframe/padframe_v1.json"],
+
+  "profiles": {
+    "default": {
+    }
+  },
+
+  "groups": {
+    "jtag0": {
+      "type": "jtag",
+      "is_slave": true,
+      "is_dual": true
+    }
+  }
+}

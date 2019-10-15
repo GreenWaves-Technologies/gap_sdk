@@ -5,21 +5,31 @@ AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
 platform     ?= gapuino
-vcd          ?= ""
-_vcd         ?=
-trace	     ?= ""
-_trace       ?=
-config       ?= ""
-_config      ?=
 
 # The linker options.
+LIBS += -L$(TARGET_INSTALL_DIR)/lib/gap/$(BOARD_NAME) -lpibsp
+
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \
 				-lrt -lrtio -lrt -lgcc
+else
+LIBS          += -L$(TARGET_INSTALL_DIR)/lib/vega \
+				-lrt -lrtio -lrt -lgcc
+endif
+
+
 
 LIBSFLAGS     += -nostartfiles -nostdlib
 
 # The options used in linking as well as in any direct use of ld.
+ifeq ($(TARGET_CHIP), GAP8)
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8.ld
+else ifeq ($(TARGET_CHIP), GAP8_V2)
+LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8_rev1.ld
+else
+LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap9.ld
+endif
+
 
 ifeq ($(platform), gvsoc)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gvsoc.conf.ld
@@ -31,11 +41,23 @@ else
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gapuino.conf.ld
 endif
 
-RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+RISCV_FLAGS   = -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__
+GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP -D__PULP_OS__
+else
+RISCV_FLAGS   = -mchip=gap9 -mPE=8 -mFC=1 -D__riscv__
+GAP_FLAGS	 += -D__pulp__ -DCONFIG_VEGA -D__PULP_OS__
+endif
+
 
 WRAP_FLAGS    = -Wl,--gc-sections
 
-GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP
+# Choose Simulator
+SIMULATOR      = vsim
+
+ifeq ($(sim), xcelium)
+SIMULATOR      = xcelium
+endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
@@ -51,7 +73,7 @@ TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wal
 
 # Final binary
 #------------------------------------------
-BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
+BUILDDIR      = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
 
 BIN           = $(BUILDDIR)/test
 
@@ -59,13 +81,20 @@ T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_
 
 OBJECTS       = $(T_OBJECTS_C)
 
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap/config.h
+else
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/$(TARGET_NAME)/config.h
+endif
+
 
 INC           = $(TARGET_INSTALL_DIR)/include \
 				$(TARGET_INSTALL_DIR)/include/io \
 				$(INSTALL_DIR)/include
+INC          +=	$(PULP_APP_INC_PATH)
 
-INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
+INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE) 
+
 
 all::    dir $(OBJECTS) $(BIN) disdump
 
@@ -79,35 +108,35 @@ $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
 	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 
 $(BIN): $(OBJECTS)
-	$(CC) -MMD -MP $(WRAP_FLAGS) $(PULP_CFLAGS) -o $(BIN) $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
+	$(CC) -MMD -MP $(WRAP_FLAGS) $(PULP_CFLAGS) $(INC_PATH) -o $(BIN) $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
-ifeq ($(platform), gvsoc)
-
-ifneq ($(vcd), "")
-_vcd=-vcd
+ifdef PLPTEST_PLATFORM
+platform=$(PLPTEST_PLATFORM)
+ifneq ($(platform), gvsoc)
+use_pulprun=1
+endif
 endif
 
-ifneq ($(trace), "")
-_trace=-trace $(trace)
-endif
+ifeq ($(use_pulprun), 1)
 
-ifneq ($(config), "")
-_config=-config ${CURDIR}/$(config)
-endif
+run:
+	pulp-run --platform $(platform) --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
+
+else ifeq ($(platform), gvsoc)
 
 run::
-	$(INSTALL_DIR)/runner/run_gvsoc.sh $(_config) $(_vcd) $(_trace)
+	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 
 else ifeq ($(platform), fpga)
 run::
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
 	$(INSTALL_DIR)/runner/run_fpga.sh
+else
+	$(MBED_PATH)/tools/runner/run_gap9.sh
+endif
 else ifeq ($(platform), rtl)
 run:: dir
-	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
-	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
+	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
 else
 run:: all
 	$(INSTALL_DIR)/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
@@ -118,22 +147,27 @@ gdbserver: run
 endif
 
 gui:: dir
-	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
-	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"
+	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"
 
+# Foramt "vsim -do xxx.do xxx.wlf"
 debug:
-	@vsim -view $(BUILDDIR)/gap.wlf "$(vsimDo)"
+	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
+
+# Foramt "simvision -input xxx.svcf xxx.trn"
+debug_xcelium:
+	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
 
 $(BIN).s: $(BIN)
 	$(OBJDUMP) -D $< > $@
 
 disdump: $(BIN).s
 
+version:
+	@$(GAP_SDK_HOME)/tools/version/record_version.sh
+
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
-	@rm -rf ./BUILD transcript *.wav __pycache__
+	@rm -rf ./BUILD$(build_dir_ext) transcript *.wav __pycache__
+	@rm -rf version.log
 
 .PHONY: all clean run debug disdump gdbserver dir

@@ -1,0 +1,32 @@
+{
+  "runner": {
+    "boot_from_flash": true,
+    "vsim_chip": "gap_rev1"
+  },
+  
+  "loader": {
+    "boot": {
+      "mode": "rom"
+    }
+  },
+
+  "system_tree": {
+    "board": {
+      "chip": {
+        "archi_files": [ "archi/chips/gap/padframe.h" ],
+        "hal_files": [ "hal/chips/gap/pulp.h", "hal/chips/gap/efuse.h" ],
+        "soc": {
+          "rtc": {
+            "includes": [ "ips/rtc/rtc.json" ]
+          }
+        }
+      }
+    },
+    "debug_bridge": {
+      "target_jtag_sync": true,
+      "boot-mode": "jtag"
+    }
+  }
+
+}
+

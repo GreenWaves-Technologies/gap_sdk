@@ -1,0 +1,26 @@
+test_LCD:
+=========
+
+This test assumes an LCD Display is attached to GAPOC.
+The supported LCD is Adafruit's 2.8" TFT Touch Shield v2.x
+Connections to GAPOC_B are as follows (  **** BEWARE ****   they're slighlty different from GAPOC_A as CSN0 is already taken up on GAPOC_B)
+
+Shield Digital.13 = SCLK     = GAPOC Connector 3 Position 5 = GAP8 Pin B4 (SPI1M_SCK)
+Shield Digital.12 = MISO     = GAPOC Connector 3 Position 4 = GAP8 Pin A4 (SPI1M_MISO)
+Shield Digital.11 = MOSI     = GAPOC Connector 3 Position 3 = GAP8 Pin B3 (SPI1M_MOSI) 
+Shield Digital.10 = TFT_CS   = GAPOC Connector 3 Position 6 = GAP8 Pin B2 (SPIM1_CS1)   // On GAPOC_A, was: Pin A5 (SPI1M_CS0)   
+Shield Digital.9  = TFT_D/C  = GAPOC Connector 3 Position 2 = GAP8 Pin B12 (GPIO_A19)   // On GAPOC_A, was:   Pin A3  (GPIOA0) 
+[It may be a good idea to connect the above pins through a series resistor (e.g. a few 100ohm) for dampening and protection]
+
+Shield GND = e.g. Connector 3 Position 7
+Shield "5V" = GAPOC Connector 4 Position 4 = VROOT/3.6V
+The "5V" input to the LCD actually receives 3.6V. This is OK; I/Os of the shield are down-converted to 3V anwyay; only the LCD backlight getting 3.6V instead of 5V is a bit weaker (darker).
+
+
+- Configure SPI and LCD
+- Loop on :
+  . erase screen
+  . display some colored text
+  . display a greyscale test pattern
+  [Do this using different API funtions of the LCD library]
+

@@ -1,0 +1,6 @@
+{
+  "version": 5,
+
+  "hal_files" : [ "hal/hwce/hwce_v5.h" ],
+  "archi_files" : [ "archi/hwce/hwce_v5.h" ]
+}

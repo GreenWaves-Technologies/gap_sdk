@@ -1,0 +1,40 @@
+{
+  "runner": {
+    "boot_from_flash": true,
+    "boot-mode": "jtag"
+  },
+  
+  "loader": {
+    "boot": {
+      "mode": "jtag"
+    },
+    "set_pc_addr": "0x10200040",
+    "set_pc_offset": "-128",
+    "start_addr": "0x10200008",
+    "start_value": "0x1"
+  },
+
+  "system_tree": {
+    "board": {
+      "chip": {
+        "soc": {
+          "mailbox": {
+            "includes": [ "ips/mailbox/mailbox_v0.json"]
+          },
+          "rab": {
+            "includes": [ "ips/rab/rab_v1.json"]
+          },
+          "archi_host": {
+            "includes": [ "ips/archi_host/archi_host_v1.json"]
+          },
+          "archi_host_src_files": [ "src/arm/phys_addr.c" ],
+          "cluster": {
+            "tryx": {
+              "includes": [ "ips/tryx/tryx_v1.json"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "includes": [ "chips/gap/gap.json" ],
+
+  "board": {
+    "name": "gapuino",
+    "devices": {
+      "spiflash": {
+        "include" : "devices/spiflash.json",
+        "interface": "spim0",
+        "cs": 0
+      },
+      "spiram": {
+        "include" : "devices/spiram.json",
+        "interface": "spim0",
+        "cs": 1
+      },
+      "camera": {
+        "include": "devices/camera.json",
+        "interface": "cpi0",
+        "ctrl_interface": "i2c1"
+      },
+      "display": {
+        "include": "devices/lcd_ili9341.json",
+        "interface": "spim1",
+        "ctrl_interface": "gpio19",
+        "enabled": false,
+        "cs": 0
+      }
+    }
+  },
+
+  "rt": {
+    "config": {
+      "bsp": true
+    }
+  },
+
+  "runner": {
+    "config": {
+      "boot-mode": "rom_spim",
+      "flash_type": "spi"
+    }
+  },
+
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "type": "ftdi@digilent",
+        "system_reset_gpio": 4,
+        "jtag_reset_gpio": 6,
+        "reverse_reset": true
+      }
+    }
+  }
+
+}

@@ -1,0 +1,2 @@
+pyelftools==0.24
+prettytable==0.7.2

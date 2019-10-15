@@ -1,0 +1,170 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "includes": [ "ips/padframe/padframe_v1.json"],
+
+  "profiles": {
+    "default": {
+      "alternates": [ 0, 0, 0, 0, 0, 0, 0 ]
+    },
+    "hyper": {
+    }
+  },
+
+  "groups": {
+    "spim0": {
+      "type": "qspim",
+      "nb_cs": 2,
+      "is_master": true
+    },
+    "uart0": {
+      "type": "uart",
+      "is_master": true
+    },
+    "cpi0": {
+      "type": "cpi",
+      "is_slave": true
+    },
+    "jtag0": {
+      "type": "jtag",
+      "is_slave": true,
+      "is_dual": true
+    },
+    "hyper0": {
+      "type": "hyper",
+      "nb_cs": 2,
+      "is_master": true
+    },
+    "gpio0": { "type": "gpio", "is_master": true },
+    "gpio1": { "type": "gpio", "is_master": true },
+    "gpio2": { "type": "gpio", "is_master": true },
+    "gpio3": { "type": "gpio", "is_master": true },
+    "gpio4": { "type": "gpio", "is_master": true },
+    "gpio5": { "type": "gpio", "is_master": true },
+    "gpio6": { "type": "gpio", "is_master": true },
+    "gpio7": { "type": "gpio", "is_master": true },
+    "gpio8": { "type": "gpio", "is_master": true },
+    "gpio9": { "type": "gpio", "is_master": true },
+    "gpio10": { "type": "gpio", "is_master": true },
+    "gpio11": { "type": "gpio", "is_master": true },
+    "gpio12": { "type": "gpio", "is_master": true },
+    "gpio13": { "type": "gpio", "is_master": true },
+    "gpio14": { "type": "gpio", "is_master": true },
+    "gpio15": { "type": "gpio", "is_master": true },
+    "gpio16": { "type": "gpio", "is_master": true },
+    "gpio17": { "type": "gpio", "is_master": true },
+    "gpio18": { "type": "gpio", "is_master": true },
+    "gpio19": { "type": "gpio", "is_master": true },
+    "gpio20": { "type": "gpio", "is_master": true },
+    "gpio21": { "type": "gpio", "is_master": true },
+    "gpio22": { "type": "gpio", "is_master": true },
+    "gpio23": { "type": "gpio", "is_master": true },
+    "gpio24": { "type": "gpio", "is_master": true },
+    "gpio25": { "type": "gpio", "is_master": true },
+    "gpio26": { "type": "gpio", "is_master": true },
+    "gpio27": { "type": "gpio", "is_master": true },
+    "gpio28": { "type": "gpio", "is_master": true },
+    "gpio29": { "type": "gpio", "is_master": true },
+    "gpio30": { "type": "gpio", "is_master": true },
+    "gpio31": { "type": "gpio", "is_master": true }
+  },
+
+
+  "pads": {
+
+    "pad_spim0_sdio0 (mosi)": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio1 (miso)": {
+      "id": 1,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio1" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio2": {
+      "id": 2,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio2" , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio3": {
+      "id": 3,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio3" , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_csn0": {
+      "id": 4,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_cs0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_csn1": {
+      "id": 5,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_cs1"   , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sck": {
+      "id": 6,
+      "position": null,
+      "alternates": [
+        { "name": "spim0_sck"   , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_uart_tx": {
+      "id": 7,
+      "position": null,
+      "alternates": [ 
+        { "name": "uart_tx" , "groups": [ "uart0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_uart_rx": {
+      "id": 8,
+      "position": null,
+      "alternates": [ 
+        { "name": "uart_rx" , "groups": [ "uart0" ] },
+        {},
+        {},
+        {}
+      ]
+    }
+  }
+}

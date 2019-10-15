@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+from subprocess import Popen, PIPE
+
+
+parser = argparse.ArgumentParser(description='Generate PC debug info')
+
+parser.add_argument("--file", dest="file", default=None, help="Specify binary input file")
+parser.add_argument("--all-file", dest="allFile", default=None, help="Specify all-debug info output file")
+parser.add_argument("--pc-file", dest="pcFile", default=None, help="Specify PC output file")
+parser.add_argument("--debug-file", dest="debugFile", default=None, help="Specify debug output file")
+parser.add_argument("--inline-file", dest="inlineFile", default=None, help="Specify inline output file")
+
+args = parser.parse_args()
+
+if args.file == None: raise Exception('Binary input file must be specified through option --file')
+
+
+
+class FunctionPc(object):
+
+	def __init__(self, addr, name, info):
+		self.addr = addr
+		self.name = name
+		self.file, self.line = info.split(':')
+
+
+class Function(object):
+
+	def __init__(self, name, base, size):
+		self.name = name
+		self.base = base
+		self.size = size
+		self.pcs = {}
+
+	def addInfo(self, info):
+		infoList = info.split()
+		self.pcs[infoList[0]] = FunctionPc(int(infoList[0].replace(':', ''), 16), infoList[1], infoList[3])
+
+	def dumpPcs(self, file):
+		for pc in self.pcs.values():
+			file.write('%x %s\n' % (pc.addr, self.name))
+
+	def dumpDebug(self, file):
+		for pc in self.pcs.values():
+			file.write('%x %s:%s\n' % (pc.addr, pc.file, pc.line))
+
+	def dumpAll(self, file):
+		for pc in self.pcs.values():
+			file.write('%x %s %s %s %s\n' % (pc.addr, self.name, pc.name, pc.file, pc.line))
+
+	def dumpInline(self, file):
+		for pc in self.pcs.values():
+			file.write('%x %s\n' % (pc.addr, pc.name))
+
+functions = []
+
+# First use readelf to find out each function, its base and size
+toolchain = os.environ.get('PULP_RISCV_GCC_TOOLCHAIN_CI')
+if toolchain is None:
+	toolchain = os.environ.get('PULP_RISCV_GCC_TOOLCHAIN')
+
+if toolchain is not None:
+	readelf = toolchain + '/bin/riscv32-unknown-elf-readelf'
+	addr2line = toolchain + '/bin/riscv32-unknown-elf-addr2line'
+else:
+	readelf = 'riscv32-unknown-elf-readelf'
+	addr2line = 'riscv32-unknown-elf-addr2line'
+
+process = Popen((readelf + ' -s %s' % args.file).split(), stdin=PIPE, stdout=PIPE)
+
+for line in process.communicate()[0].decode('utf-8').split('\n'):
+
+	try:
+		num, addr, size, typeName, bind, vis, ndx, name = line.split()
+	except:
+		continue
+	if typeName != 'FUNC': continue
+
+	functions.append(Function(name, int(addr,16), int(size, 0)))
+
+
+# Now build the request we'll send to addr2line
+# We need one line per PC, go through all functions to cover all PCs
+req = ''
+
+for f in functions:
+	addr = f.base
+	size = f.size
+
+	# Workaround due to strange bug in objdump
+	if size > 0x10000000:
+		size = 4
+		f.size = size
+
+	while size > 0:
+		req += '0x%x\n' % addr
+		addr += 2
+		size -= 2 
+
+# Get result debug info
+process = Popen((addr2line + ' -a -f -i -p -e %s' % args.file).split(), stdin=PIPE, stdout=PIPE)
+reply = (process.communicate(bytes(req, 'UTF-8'))[0])
+
+funcInfos = []
+# Drop the additional info for inlinining
+for info in reply.decode('utf-8').split('\n'):
+	if info != '' and info[0] != ' ': funcInfos.append(info)
+
+
+# Now assign each PC info in the reply to its funstion
+index = 0
+for f in functions:
+	addr = f.base
+	size = f.size
+
+	while size > 0:
+		f.addInfo(funcInfos[index])
+		index += 1
+		addr += 2
+		size -= 2 
+
+
+# And finally generate the output files
+
+# PC oriented file
+if args.allFile != None:
+	with open(args.allFile, 'w') as file:
+		for f in functions:
+			f.dumpAll(file)
+
+# PC oriented file
+if args.pcFile != None:
+	with open(args.pcFile, 'w') as file:
+		for f in functions:
+			f.dumpPcs(file)
+
+# Debug info oriented file
+if args.debugFile != None:
+	with open(args.debugFile, 'w') as file:
+		for f in functions:
+			f.dumpDebug(file)
+
+# Inlined function oriented file
+if args.inlineFile != None:
+	with open(args.inlineFile, 'w') as file:
+		for f in functions:
+			f.dumpInline(file)

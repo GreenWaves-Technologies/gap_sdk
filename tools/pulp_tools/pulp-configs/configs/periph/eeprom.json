@@ -1,0 +1,6 @@
+{
+  "type": "dpi",
+  "module": "eeprom.so",
+  "mem_size": 65536,
+  "verbose": false
+}

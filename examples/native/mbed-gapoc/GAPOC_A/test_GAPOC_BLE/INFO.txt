@@ -1,0 +1,22 @@
+test_GAPOC_BLE:
+==============
+
+This example does the following :
+
+- Configure Nina BLE module using AT command and switch to data mode
+   (Nina is running its pre-flashed uCS f/w -- AT command support + Serial Service in data mode)
+
+- Depending on the value of #define'd symbol: either send a fixed numer of vayring bytes, or receive and display a fixed number of bytes.
+  For experiments, BLE interaction can conveniently occur using a smartphone using Nordic's "nRF Connect" Android application (also on iOS although in a less convenient implementation).
+  
+- This is repeated a number of times with the on-board green "heartbeat" LED flashing (if DIP switch position 6 is closed, to enable heartbeat LED)
+
+- <TODO>
+   Then GAP8 puts Nina in deep sleep using pin DSR and stops 
+    <*** wasn't able yet to get Nina to enter Deep Sleep using pin DSR ***>
+
+----  
+NOTICE:
+    With current silicon there may be problems to use UART Rx (GAP8 receiving) while HyperBus interface is
+    enabled. To use UART Rx, remove HyperBus initialization done in GAPOC_BSP_Board_Init().
+    See also source code test_Nina.c

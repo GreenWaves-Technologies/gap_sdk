@@ -1,0 +1,19 @@
+{
+  "name": "UART_tb",
+  "doc_rst": "devices/uart_tb.rst",
+  "description": "UART model, can be used to dump uart TX to file or terminal",
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "generator": "generators/v1/devices/uart_tb_gen",
+  "interface": "uart0",
+
+  "config": {
+    "type": "dpi",
+    "module": "uart.so",
+    "verbose": false,
+    "baudrate": 115200,
+    "loopback": false,
+    "stdout": true,
+    "tx_file": "tx_uart.log"
+  }
+}

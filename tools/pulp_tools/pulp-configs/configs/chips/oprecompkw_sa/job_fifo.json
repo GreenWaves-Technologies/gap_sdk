@@ -1,0 +1,10 @@
+
+{
+  "width"   : 64,
+  "size"    : 16,
+  "vp_class": "pulp/chips/oprecompkw/job_fifo",
+  "external_binding": {
+    "rcv_fd" : -1,
+    "snd_fd" : -1
+  }
+}

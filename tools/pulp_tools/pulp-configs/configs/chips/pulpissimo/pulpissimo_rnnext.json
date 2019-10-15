@@ -1,0 +1,9 @@
+{
+  "includes": [ "chips/pulpissimo/pulpissimo.json" ],
+
+  "soc": {
+    "fc": {
+      "core"        : "ri5ky_v2_fpu_1_10_rnnext"
+    }
+  }
+}

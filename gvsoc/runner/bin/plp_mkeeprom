@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+from os import listdir
+from os.path import isfile, join, isdir
+import struct
+import runner.plp_eeprom_stimuli as plp_eeprom_stimuli
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+parser = argparse.ArgumentParser(description='Build eeprom image for Pulp')
+
+parser.add_argument("--boot-callback", dest="boot_callbacks", default=[], action="append", help="Callback for the boot rom")
+parser.add_argument("--raw", dest="raw", default=None, help="Generate raw image")
+parser.add_argument("--verbose", dest="verbose", action="store_true", help="Verbose mode")
+parser.add_argument("--encrypt", dest="encrypt", action="store_true", help="Encrypt binary")
+parser.add_argument("--aes-key", dest="aesKey", default=None, help="AES key for encryption")
+parser.add_argument("--aes-iv", dest="aesIv", default=None, help="AES init vector for encryption")
+
+args = parser.parse_args()
+
+
+
+image = plp_eeprom_stimuli.Image(raw=args.raw, verbose=args.verbose, encrypt=args.encrypt, aesKey=args.aesKey, aesIv=args.aesIv)
+
+for callback in args.boot_callbacks:
+  image.add_boot_callback(callback)
+
+image.generate()

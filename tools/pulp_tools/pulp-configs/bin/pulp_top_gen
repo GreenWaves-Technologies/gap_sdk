@@ -1,0 +1,68 @@
+#!/usr/bin/env python3.6
+
+# Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+
+ 
+import json
+import argparse
+from comp_gen import *
+
+
+parser = argparse.ArgumentParser(
+  description='Generate configuration for Pulp system',
+  formatter_class=argparse.RawDescriptionHelpFormatter
+)
+
+parser.add_argument("--system", dest="system", default="pulp", help="Specify the chip")
+parser.add_argument("--system-dir", dest="system_dir", default=None, help="Specify the system directory")
+parser.add_argument("--system-file", dest="system_file", default=None, help="Specify the system JSON file")
+parser.add_argument("--configs", dest="configs", default=[], action="append", help="Specify path to configurations")
+parser.add_argument("--usecase", dest="usecases", action="append", default=[], help="Specify the JSON usecase file")
+parser.add_argument("--output", dest="output", default=None, help="Specify path to output configuration")
+parser.add_argument("--graph", dest="graph", default=None, help="Specify path to output graph")
+parser.add_argument("--template", dest="template", default=None, help="Specify the soc template")
+
+args = parser.parse_args()
+
+
+os.environ['PULP_CONFIGS_PATH'] = ':'.join(args.configs + os.environ.get('PULP_CONFIGS_PATH').split(':'))
+
+if args.template is not None:
+  tp = js.import_config_from_file(args.template, find=True)
+else:
+  tp = None
+
+
+if True:
+
+  includes = [
+    "defaults.json",
+    "%s" % (args.system_file),
+    "chips/%s/defaults.json" % (args.system)
+  ]
+
+else:
+
+  includes=[
+    "defaults.json",
+    "%s_system.json" % args.system
+  ]
+
+
+includes += args.usecases
+
+system = Component(
+    includes=includes
+)
+
+config = system.get_json_config(expand=True)
+
+if args.output is not None:
+  with open(args.output, 'w') as file:
+    file.write(config)
+    file.write('\n')
+
+if args.graph is not None:
+  with open(args.graph, 'w') as file:
+    file.write(system.get_graph())
+    file.write('\n')

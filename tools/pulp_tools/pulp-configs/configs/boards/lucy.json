@@ -1,0 +1,17 @@
+{
+  "includes": [ "chips/vivosoc3/vivosoc3.json" ],
+
+  "board": {
+    "name": "lucy"
+  },
+
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "system_reset_gpio": 4,
+        "jtag_reset_gpio": -1,
+        "user_gpios": [ 5 ]
+      }
+    }
+  }
+}

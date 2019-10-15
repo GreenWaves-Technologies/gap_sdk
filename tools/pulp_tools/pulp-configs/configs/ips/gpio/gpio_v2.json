@@ -1,0 +1,9 @@
+{
+  "version"   : 2,
+  "nb_gpio"   : 32,
+
+  "vp_class": "pulp/gpio/gpio_v2",
+
+  "archi_files": [ "archi/gpio/gpio_v2.h" ],
+  "hal_files": [ "hal/gpio/gpio_v2.h" ]
+}

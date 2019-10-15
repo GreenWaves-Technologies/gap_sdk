@@ -1,0 +1,14 @@
+{
+  "name": "neuraghe",
+
+  "pulp_chip_family" : "neuraghe",
+  "pulp_chip_version": 0,
+  "boot_from_rom": false,
+
+  "hal_files": [ "hal/chips/neuraghe/pulp.h" ],
+  "archi_files": [ "archi/chips/neuraghe/pulp.h", "archi/chips/neuraghe/memory_map.h", "archi/chips/neuraghe/properties.h" ],
+
+  "soc": {
+    "includes" : ["chips/neuraghe/soc.json"]
+  }
+}

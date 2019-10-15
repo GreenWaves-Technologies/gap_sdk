@@ -1,0 +1,34 @@
+{
+  "version": 4,
+  "nb_pe": 4,
+
+  "l1": {
+    "size" : 65536,
+    "map_base" : "0x10000000"
+  },
+
+  "dma": {
+    "includes": [ "mchan_v5.json" ]
+  },
+
+  "event_unit": {
+    "includes": [ "eu_v1.json" ]
+  },
+
+  "timer": {
+    "includes": [ "timer_v1.json" ]
+  },
+
+  "pe": {
+    "includes" : ["or10n_v2.json"]
+  },
+
+  "cluster_ctrl": {
+    "includes": [ "cluster_ctrl_v2.json" ],
+    "nb_core" : 4
+  },
+
+  "icache_ctrl": {
+    "includes": [ "icache_ctrl_v1.json" ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "runner": {
+    "boot_from_flash": true
+  },
+  
+  "loader": {
+    "boot": {
+      "mode": "rom"
+    }
+  },
+
+  "vsim": {
+    "vsim_runner_class": "runner/rtl/vega/vsim_runner",
+    "xcelium_runner_class": "runner/rtl/vega/xcelium_runner"
+  },
+
+  "system_tree": {
+    "debug_bridge": {
+      "boot-mode": "jtag",
+      "cable": {
+        "tap": 1
+      }
+    },
+    "board": {
+      "chip": {
+        "soc": {
+          "rtc": {
+            "includes": [ "ips/rtc/rtc.json" ]
+          },
+          "quiddikey": {
+            "includes": [ "ips/vendors/iid/quiddikey_v1.json"]
+          },
+          "csi2": {
+            "includes": [ "ips/vendors/lnt/csi2_v1.json"]
+          }
+        }
+      }
+    }
+  }
+}
+

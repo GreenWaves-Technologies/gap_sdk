@@ -37,6 +37,26 @@ MAKE = make
 
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
+ifeq ($(TARGET_CHIP), GAP8)
+sdk:: all autotiler nntool
+all:: pulp-os tools gvsoc flasher docs
+clean:
+	$(RM) $(TARGET_INSTALL_DIR)
+	$(RM) $(INSTALL_DIR)
+	$(RM) $(BUILD_DIR)
+	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v2/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v2 clean; fi
+	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 clean; fi
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
+	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
+
+else
+sdk:: all
+all:: pulp-os gvsoc
+clean:
+	$(RM) $(TARGET_INSTALL_DIR)
+	$(RM) $(BUILD_DIR)
+endif
+
 $(TARGET_INSTALL_DIR):
 	$(MKDIR) -p $@
 
@@ -66,29 +86,22 @@ install_pulp_tools: install_others
 
 tools: install_others install_pulp_tools
 
+nntool:
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool all
+
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
-	$(MAKE) -C $(GAP_SDK_HOME)/pulp-os $(TARGET_CHIP)
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp/pulp-os -f gap_sdk.mk $(TARGET_NAME)
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
 
-gvsoc: all
-	./gvsoc/build-gvsoc
+gvsoc: pulp-os tools
+	./gvsoc/gvsoc-build
 
 autotiler:
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler all
-
-version:
-	@$(MBED_PATH)/tools/version/record_version.sh
-
-all:: pulp-os tools flasher docs version
-
-clean:
-	$(RM) $(TARGET_INSTALL_DIR)
-	$(RM) $(INSTALL_DIR)
-	$(RM) $(BUILD_DIR)
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
-	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
-	$(RM) version.log
+	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v2/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v2 all; fi
+	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 all; fi
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

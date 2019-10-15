@@ -1,0 +1,116 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "includes": [ "../../ips/padframe/padframe_v1.json"],
+
+  "profiles": {
+    "default": {
+      "alternates": [ 0, 0, 0, 0, 0, 0, 0 ]
+    }
+  },
+
+  "groups": {
+    "spim0": { "type": "qspim" },
+    "uart0": { "type": "uart" },
+    "jtag0": { "type": "jtag" }
+  },
+
+
+  "pads": {
+
+    "pad_spim0_sdio0 (mosi)": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio1 (miso)": {
+      "id": 1,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio1" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio2": {
+      "id": 2,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio2" , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio3": {
+      "id": 3,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_sdio3" , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_csn0": {
+      "id": 4,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_cs0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_csn1": {
+      "id": 5,
+      "position": null,
+      "alternates": [ 
+        { "name": "spim0_cs1"   , "groups": [ "spim0"  ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sck": {
+      "id": 6,
+      "position": null,
+      "alternates": [
+        { "name": "spim0_sck"   , "groups": [ "spim0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_uart_tx": {
+      "id": 7,
+      "position": null,
+      "alternates": [ 
+        { "name": "uart_tx" , "groups": [ "uart0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_uart_rx": {
+      "id": 8,
+      "position": null,
+      "alternates": [ 
+        { "name": "uart_rx" , "groups": [ "uart0" ] },
+        {},
+        {},
+        {}
+      ]
+    }
+  }
+}

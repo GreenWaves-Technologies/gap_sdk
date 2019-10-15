@@ -1,0 +1,26 @@
+{
+  "idle": {
+    "includes": [ "power_models/l1/values/idle.json" ]
+  },
+  "leakage": {
+    "includes": [ "power_models/l1/values/leakage.json" ]
+  },
+  "read_8": {
+    "includes": [ "power_models/l1/values/read_8.json" ]
+  },
+  "read_16": {
+    "includes": [ "power_models/l1/values/read_16.json" ]
+  },
+  "read_32": {
+    "includes": [ "power_models/l1/values/read_32.json" ]
+  },
+  "write_8": {
+    "includes": [ "power_models/l1/values/write_8.json" ]
+  },
+  "write_16": {
+    "includes": [ "power_models/l1/values/write_16.json" ]
+  },
+  "write_32": {
+    "includes": [ "power_models/l1/values/write_32.json" ]
+  }
+}

@@ -1,0 +1,7 @@
+open tests/graph/mnist.tflite 
+adjust 
+fusions 
+asdfasdf
+aquant -f 8 examples/all/136.pgm 
+gen
+quit

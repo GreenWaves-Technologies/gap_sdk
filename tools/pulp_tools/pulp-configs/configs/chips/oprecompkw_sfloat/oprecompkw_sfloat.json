@@ -1,0 +1,150 @@
+{
+  "config_type": "generator",
+  "generator": "generators/v1/config_gen",
+
+  "chip": "oprecompkw_sfloat",
+  "chip_family": "oprecompkw",
+    
+  "ddr": {
+    "size"  : "0x10000000"
+  },
+
+  "cluster": {
+    "base": "0x10000000",
+    "alias": "0x00000000",
+    "size": "0x00400000",
+    "core": "ri5ky_v2_sfloat",
+    "version": 5,
+    "json_file": "cluster_v5_fpu",
+    "nb_cluster": 1,
+    "nb_pe": 8,
+    "pe": {
+      "irq": [
+        null       , null       , null         , null,
+        null       , null       , null         , null,
+        "dma_0"    , "dma_1"    , "timer_0"    , "timer_1",
+        "acc_0"    , "acc_1"    , "acc_2"      , "acc_3",
+        "eu_bar"   , "eu_mutex" , "eu_dispatch", null,
+        null       , null       , "dma_ext"    , null,
+        "job_fifo" , null       , null         , null,
+        "mpu_error", null       , "soc_event"  , "soc_fifo"
+      ]
+    },
+
+    "l1": {
+      "base": "0x10000000",
+      "size": "0x00010000",
+      "banking_factor": 2
+    },
+
+    "peripherals": {
+
+      "base": "0x10200000",
+      "size": "0x00200000",
+
+      "alias": {
+        "base": "0x00200000",
+        "size": "0x00200000"
+      },
+
+      "cluster_ctrl": {
+        "base": "0x10200000",
+        "size": "0x00000400"
+      },
+
+      "timer": {
+        "base": "0x10200400",
+        "size": "0x00000400"
+      },
+
+      "event_unit": {
+        "base": "0x10200800",
+        "size": "0x00000800"
+      },
+
+      "icache_ctrl": {
+        "base": "0x10201400",
+        "size": "0x00000400"
+      },
+
+      "dma": {
+        "version": 6,
+        "base": "0x10201800",
+        "size": "0x00000400",
+        "is_64": true
+      },
+
+      "dbg_unit": {
+        "base": "0x10300000",
+        "size"  : "0x00008000"
+      },
+
+      "cluster_ico": {}
+    },
+
+    "demux_peripherals":
+    {
+      "base": "0x10204000",
+
+      "event_unit": {
+        "base": "0x10204000",
+        "size": "0x00000400"
+      },
+      "dma": {
+        "base": "0x10204400",
+        "size": "0x00000400"
+      }
+    }
+  },
+
+  "soc": {
+
+    "job_fifo": {
+
+    },
+
+    "base": "0x1A000000",
+    "size": "0x06000000",
+
+    "ddr": {
+      "base"  : "0x800000000000",
+      "size"  : "0x100000000000"
+    },
+
+    "rom": {
+      "version": 2,
+      "base": "0x1A000000",
+      "size": "0x00002000"
+    },
+
+    "l2": {
+      "base": "0x1C000000",
+      "size": "0x00080000",
+
+      "shared": {
+        "nb_banks"     : 4,
+        "interleaving_bits" : 2,
+        "base"         : "0x1C000000",
+        "size"         : "0x00080000"
+      }
+    },
+
+    "peripherals": {
+
+      "base": "0x1A100000",
+      "size": "0x00100000",
+
+      "apb_soc_ctrl": {
+        "base"         : "0x1A104000",
+        "size"         : "0x00001000"
+      },
+
+      "stdout": {
+        "version"      : 3,
+        "base"         : "0x1A10F000",
+        "size"         : "0x00001000"
+      }
+
+    }
+  }
+}

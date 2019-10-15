@@ -1,0 +1,24 @@
+{
+  "cable": {
+    "type": "jtag-proxy",
+    "tap": 0,
+    "includes": [
+      "tools/debug-bridge/cable_jtag-proxy.json",
+      "tools/debug-bridge/cable_ftdi.json"
+    ],
+    "active": false,
+    "autorun": false,
+    "access_timeout_us": 1000000,
+    "system_reset_gpio": 9,
+    "jtag_reset_gpio": 8,
+    "reverse_reset": false
+  },
+
+  "adv_dbg_unit": {
+    "debug_ir": "0x4"
+  },
+
+  "boot-mode" : "default",
+  "commands": "reset stop load ioloop reqloop start wait",
+  "gdb_commands": "reset stop load ioloop reqloop start gdb wait"
+} 

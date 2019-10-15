@@ -1,0 +1,71 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "profiles": {
+    "default": {
+      "alternates": [ ]
+    }
+  },
+
+  "groups": {
+    "spim0": {
+      "type": "qspim",
+      "nb_cs": 1,
+      "is_master": true
+    },
+    "spim1": {
+      "type": "qspim",
+      "nb_cs": 1,
+      "is_master": true
+    },
+    "spim2": {
+      "type": "qspim",
+      "nb_cs": 1,
+      "is_master": true
+    },
+    "spim3": {
+      "type": "qspim",
+      "nb_cs": 1,
+      "is_master": true
+    },
+    "uart0": {
+      "type": "uart",
+      "is_master": true
+    },
+    "uart1": {
+      "type": "uart",
+      "is_master": true
+    },
+    "i2c0": {
+      "type": "i2c",
+      "is_master": true
+    },
+    "i2s0": {},
+    "i2s1": {},
+    "spis": {},
+    "cpi0": {
+      "type": "cpi",
+      "is_slave": true
+    },
+    "reset": {},
+    "jtag0": {
+      "type": "jtag",
+      "is_slave": true
+    },
+    "hyper0": {
+      "type": "hyper",
+      "nb_cs": 2,
+      "is_master": true
+    },
+    "timer0": {},
+    "timer1": {},
+    "timer2": {},
+    "timer3": {},
+    "xtal": {}
+  }
+
+}

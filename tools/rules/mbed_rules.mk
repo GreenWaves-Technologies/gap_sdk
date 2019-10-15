@@ -5,12 +5,6 @@ AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
 
 platform     ?= gapuino
-vcd          ?= ""
-_vcd         ?=
-trace        ?= ""
-_trace       ?=
-config       ?= ""
-_config      ?=
 
 # The linker options.
 LIBS          += -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
@@ -19,7 +13,11 @@ LIBS          += -L$(MBED_PATH)/mbed-os/targets/TARGET_GWT/libs  \
 LIBSFLAGS     += -nostartfiles -lgcc -lc -lm -lgomp
 
 ifndef chip
+ifeq ($(TARGET_CHIP), GAP9)
+chip=GAP9
+else
 chip=GAP8
+endif
 endif
 
 # The options used in linking as well as in any direct use of ld.
@@ -30,7 +28,11 @@ LDFLAGS       = -T$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/
 		$(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o \
 		-lstdc++
 
+ifeq ($(chip), GAP8)
 RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__  -D__RISCV_ARCH_GAP__=1
+else
+RISCV_FLAGS   = -march=rv32imcxgap9 -mPE=8 -mFC=1 -mfdiv -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
+endif
 
 DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
 		-DDEVICE_SERIAL=1 -DDEVICE_SERIAL_ASYNCH=1 \
@@ -57,7 +59,7 @@ export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 MBED_FLAGS     += -D__PLATFORM_GVSOC__
 endif
 
-ifeq ($(platform), fpga)
+ifeq ($(platform), $(filter $(platform), fpga fpga_rtl))
 MBED_FLAGS     += -D__PLATFORM_FPGA__
 endif
 
@@ -83,6 +85,13 @@ endif
 
 ifeq ($(io), rtl)
 MBED_FLAGS     += -DPRINTF_RTL
+endif
+
+# Choose Simulator
+SIMULATOR      = vsim
+
+ifeq ($(sim), xcelium)
+SIMULATOR      = xcelium
 endif
 
 # The pre-processor and compiler options.
@@ -273,57 +282,47 @@ $(BIN): $(OBJECTS)
 	@$(CC) $(RISCV_FLAGS) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
 ifeq ($(platform), gvsoc)
-run::
-ifneq ($(vcd), "")
-_vcd=-vcd
-endif
-
-ifneq ($(trace), "")
-_trace=-trace $(trace)
-endif
-
-ifneq ($(config), "")
-_config=-config ${CURDIR}/$(config)
-endif
 
 run::
-	$(INSTALL_DIR)/runner/run_gvsoc.sh $(_config) $(_vcd) $(_trace)
+	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 
-else ifeq ($(platform), rtl)
+else ifeq ($(platform), $(filter $(platform), rtl fpga_rtl))
 run:: dir
-	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
-	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
+	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 else
 run:: all
-	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
+ifeq ($(chip), GAP8)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
+else ifeq ($(chip), GAP9)
+	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi
+endif
 
 gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
-
 endif
-gui:: dir
-	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
-	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
-	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
-	@ln -sf $(VSIM_PATH)/boot $(BUILDDIR)/boot
-	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
-	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
+gui:: dir
+	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) -a $(chip) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimsdf) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS)
+
+# Foramt "vsim -do xxx.do xxx.wlf"
 debug:
 	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
+
+# Foramt "simvision -input xxx.svcf xxx.trn"
+debug_xcelium:
+	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
 
 $(BUILDDIR)/test.s: $(BUILDDIR)/test
 	$(OBJDUMP) -D $< > $@
 
 disdump: $(BUILDDIR)/test.s
 
+version:
+	@$(GAP_SDK_HOME)/tools/version/record_version.sh
 
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD transcript *.wav __pycache__
+	@rm -rf version.log
 
 .PHONY: gui debug disdump clean gdbserver run all dir

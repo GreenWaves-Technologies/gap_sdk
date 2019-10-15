@@ -1,0 +1,5 @@
+se expandtab
+se tabstop=4
+se shiftwidth=4
+se smartindent
+se number

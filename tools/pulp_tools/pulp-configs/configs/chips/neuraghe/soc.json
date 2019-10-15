@@ -1,0 +1,46 @@
+{
+
+  "nb_cluster"       : 1,
+  "cluster": {
+    "nb_pe": 1,
+
+    "l1": {
+      "size" : "0x400",
+      "map_base" : "0x10000000"
+    },
+
+    "pe": {
+      "includes" : ["../../ips/zeroriscy.json"]
+    },
+
+    "event_unit": {
+      "includes": [ "../../ips/eu_v3.json" ],
+      "nb_core": 1
+    },
+
+    "cluster_ctrl": {
+      "includes": [ "../../ips/cluster_ctrl_v2.json" ],
+      "nb_core" : 1
+    },
+
+    "timer": {
+      "includes": [ "../../ips/timer_v2.json" ]
+    },
+
+    "icache_ctrl": {
+      "includes": [ "../../ips/icache_ctrl_v2.json" ]
+    }
+
+  },
+
+  "l2": {
+    "is_partitioned": false,
+    "map_base": "0x1C000000",
+    "size": "0x00200000"
+  },
+
+  "stdout": {
+    "includes"  : ["../../ips/stdout_v3.json"]
+  }
+
+}

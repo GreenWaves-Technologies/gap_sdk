@@ -1,0 +1,6 @@
+{
+    "name": "cluster",
+    "config": {
+        "present": 1
+    }
+}

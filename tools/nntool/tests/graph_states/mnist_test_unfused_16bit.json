@@ -1,0 +1,268 @@
+{
+  "identity": {
+    "filename": "examples/mnist.tflite",
+    "fusions": []
+  },
+  "info": {
+    "quantization": {
+      "NodeId_input_1###": {
+        "in_qs": [],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 15,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_DEPTHWISE_CONV_2D_0_0###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 15,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "calc_q": {
+          "__type": "QType",
+          "bits": 32,
+          "q": 29,
+          "signed": true
+        },
+        "acc_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 13,
+          "signed": true
+        },
+        "biases_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 13,
+          "signed": true
+        },
+        "weights_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 14,
+          "signed": true
+        },
+        "__type": "QuantizationRecord.FilterQuantizationRecord"
+      },
+      "NodeId_DEPTHWISE_CONV_2D_0_0_activation###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_MAX_POOL_2D_0_1###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_CONV_2D_0_2###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 13,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "calc_q": {
+          "__type": "QType",
+          "bits": 32,
+          "q": 27,
+          "signed": true
+        },
+        "acc_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 11,
+          "signed": true
+        },
+        "biases_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 11,
+          "signed": true
+        },
+        "weights_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 14,
+          "signed": true
+        },
+        "__type": "QuantizationRecord.FilterQuantizationRecord"
+      },
+      "NodeId_CONV_2D_0_2_activation###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_MAX_POOL_2D_0_3###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_FULLY_CONNECTED_0_4###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 11,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 9,
+            "signed": true
+          }
+        ],
+        "calc_q": {
+          "__type": "QType",
+          "bits": 32,
+          "q": 25,
+          "signed": true
+        },
+        "acc_q": {
+          "__type": "QType",
+          "bits": 32,
+          "q": 25,
+          "signed": true
+        },
+        "biases_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 9,
+          "signed": true
+        },
+        "weights_q": {
+          "__type": "QType",
+          "bits": 16,
+          "q": 14,
+          "signed": true
+        },
+        "__type": "QuantizationRecord.FilterQuantizationRecord"
+      },
+      "NodeId_SOFTMAX_0_5###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 9,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 15,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      },
+      "NodeId_output_1###": {
+        "in_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 15,
+            "signed": true
+          }
+        ],
+        "out_qs": [
+          {
+            "__type": "QType",
+            "bits": 16,
+            "q": 15,
+            "signed": true
+          }
+        ],
+        "__type": "QuantizationRecord.QuantizationRecord"
+      }
+    }
+  },
+  "load_parameters": true,
+  "name": "mnist",
+  "extra": null
+}

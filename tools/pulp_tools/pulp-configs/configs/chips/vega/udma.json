@@ -1,0 +1,96 @@
+{
+  "includes": [ "ips/udma/udma_v3.json"],
+
+  "vp_impl": "pulp.udma.udma_v3_vega_impl",
+
+  "nb_periphs": 15,
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "interfaces" : ["spim", "i2c", "i2s", "uart", "cpi", "hyper", "mram"],
+
+  "archi_files": [
+    "archi/udma/cpi/udma_cpi_v1.h",
+    "archi/udma/csi2/udma_csi2_v1.h",
+    "archi/udma/hyper/udma_hyper_v1.h",
+    "archi/udma/i2c/udma_i2c_v2.h",
+    "archi/udma/spim/udma_spim_v3.h",
+    "archi/udma/uart/udma_uart_v1.h"
+  ],
+
+  "hal_files": [
+    "hal/udma/cpi/udma_cpi_v1.h",
+    "hal/udma/csi2/udma_csi2_v1.h",
+    "hal/udma/hyper/udma_hyper_v1.h",
+    "hal/udma/i2c/udma_i2c_v2.h",
+    "hal/udma/spim/udma_spim_v3.h",
+    "hal/udma/uart/udma_uart_v1.h"
+  ],
+
+  "spim": {
+    "version"      : 3,
+    "nb_channels"  : 4,
+    "ids"          : [0, 1, 2, 3],
+    "offsets"      : ["0x000", "0x080", "0x100", "0x180"],
+    "is_master"    : true,
+    "eot_events"   : [ 3, 7, 11, 15 ]
+  },
+
+  "uart": {
+    "version"      : 1,
+    "nb_channels"  : 3,
+    "ids"          : [4, 5, 6],
+    "offsets"      : ["0x200", "0x280", "0x300"],
+    "is_master"    : true
+  },
+
+  "i2c": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [7],
+    "offsets"      : ["0x380"],
+    "is_master"    : true
+  },
+
+  "hyper": {
+    "version"      : 2,
+    "nb_channels"  : 1,
+    "ids"          : [8],
+    "offsets"      : ["0x400"],
+    "is_master"    : true,
+    "eot_events"   : [ 35 ]
+  },
+
+  "sdio": {
+    "version"      : 0,
+    "nb_channels"  : 1,
+    "ids"          : [10],
+    "offsets"      : ["0x500"]
+  },
+
+  "i2s": {
+    "includes"     : [ "ips/udma/i2s/udma_i2s_v2.json" ],
+    "nb_channels"  : 1,
+    "ids"          : [11],
+    "offsets"      : ["0x580"],
+    "is_slave"     : true,
+    "is_dual"      : true
+  },
+
+  "cpi": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [12],
+    "offsets"      : ["0x600"],
+    "is_slave"     : true
+  },
+
+  "mram": {
+    "version"      : 1,
+    "nb_channels"  : 1,
+    "ids"          : [14],
+    "offsets"      : ["0x700"]
+  }
+}

@@ -1,0 +1,1 @@
+CONFIG_CRT0=1

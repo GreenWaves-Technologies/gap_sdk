@@ -1,0 +1,726 @@
+{
+  "version": 1,
+  "nb_domains": 2,
+
+  "vp_class": "pulp/pmu/pmu_v1",
+
+  "hal_files" : [ "hal/maestro/pmu_v1.h" ],
+  "archi_files" : [ "archi/maestro/maestro_v1.h" ],
+
+
+  "regmap": {
+
+    "icu_state": {
+      "type": "custom",
+
+      "icu_supply_ext": {
+        "type": "constant",
+        "value": "0x0"
+      },
+      "icu_supply_ret": {
+        "type": "constant",
+        "value": "0x1"
+      },
+      "icu_supply_ckoff": {
+        "type": "constant",
+        "value": "0x2"
+      },
+      "icu_supply_on": {
+        "type": "constant",
+        "value": "0x3"
+      },
+
+      "icu_regu_none": {
+        "type": "constant",
+        "value": "0x7"
+      },
+      "icu_regu_off": {
+        "type": "constant",
+        "value": "0x0"
+      },
+      "icu_regu_rv": {
+        "type": "constant",
+        "value": "0x1"
+      },
+      "icu_regu_lv": {
+        "type": "constant",
+        "value": "0x2"
+      },
+      "icu_regu_mv": {
+        "type": "constant",
+        "value": "0x3"
+      },
+      "icu_regu_nv": {
+        "type": "constant",
+        "value": "0x4"
+      },
+
+      "icu_clk_fnone": {
+        "type": "constant",
+        "value": "0x7"
+      },
+      "icu_clk_foff": {
+        "type": "constant",
+        "value": "0x0"
+      },
+      "icu_clk_lf": {
+        "type": "constant",
+        "value": "0x1"
+      },
+      "icu_clk_mf": {
+        "type": "constant",
+        "value": "0x2"
+      },
+      "icu_clk_nf": {
+        "type": "constant",
+        "value": "0x3"
+      }
+    },
+
+    "dlc_pctrl": {
+      "desc": "PICL control register",
+      "help": "The DLC_PCTRL register is the control register to issue transaction on PICL bus",
+      "type": "register",
+      "offset": "0x00",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "start": {
+          "bit": 0,
+          "width": 1,
+          "access": "R/W",
+          "name": "PICL access start.",
+          "desc": "Start of PICL access sequence. A rising edge of the start bit starts a PICL picl transfer. Start bit remains high until the end of the sequence, which means that no new access can be performed if an access is on going."
+        },
+        "paddr": {
+          "bit": 1,
+          "width": 14,
+          "access": "R/W",
+          "name": "PICL access address.",
+          "desc": "Address of the transfer on the PICL bus."
+        },
+        "dir": {
+          "bit": 15,
+          "width": 1,
+          "access": "R/W",
+          "name": "PICL access direction.",
+          "desc": "Direction of the transfer on the PICL bus. dir = 1 means read operation, dir = 0 means write operation."
+        },
+        "pwdata": {
+          "bit": 16,
+          "width": 16,
+          "access": "R/W",
+          "name": "PICL write access data.",
+          "desc": "Data to write on the PICL bus."
+        }
+      }
+    },
+    "prdata": {
+      "desc": "PICL data read register",
+      "help": "The DLC_PRDATA register contains the read data on PICL bus at the end of the PICL transaction.",
+      "type": "register",
+      "offset": "0x04",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "prdata": {
+          "bit": 0,
+          "width": 8,
+          "access": "R",
+          "name": "PICL read access data.",
+          "desc": "Data read on the PICL bus. This data is valid after a PICL read operation, when the picl_busy bit of the DLC_SR register becomes low."
+        }
+      }
+    },
+    "dlc_sr": {
+      "desc": "Status register",
+      "help": "The DLC_SR registers returns the status of PICL and SCU operations.",
+      "type": "register",
+      "offset": "0x08",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "picl_busy": {
+          "bit": 0,
+          "width": 1,
+          "access": "R",
+          "name": "SCU busy.",
+          "desc": "This bit is set to 1 if when a SCU sequence is on going. This bit is cleared at the end of the sequence."
+        },
+        "scu_busy": {
+          "bit": 1,
+          "width": 1,
+          "access": "R",
+          "name": "SCU busy.",
+          "desc": "This bit is set to 1 if when a SCU sequence is on going. This bit is cleared at the end of the sequence."
+        }
+      }
+    },
+    "dlc_imr": {
+      "desc": "Interrupt Mask register",
+      "help": "The DLC_IMR register contains the mask of the MSP interrupt signals. The interrupt mask register disable or enable the interruption but does not disable the registration of the event in the IFR register. When mask is set the irq is disable. When mask is clear irq is enable.",
+      "type": "register",
+      "offset": "0x0C",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "icu_ok_mask": {
+          "bit": 0,
+          "width": 1,
+          "access": "R/W",
+          "name": "Mask of icu_ok interrupt",
+          "desc": "A read return the current value of the mask. Writing 1 set the mask, writing 0 clears the mask."
+        },
+        "icu_delayed_mask": {
+          "bit": 1,
+          "width": 1,
+          "access": "R/W",
+          "name": "Mask of icu_delayed interrupt.",
+          "desc": "A read return the current value of the mask. Writing 1 set the mask, writing 0 clears the mask."
+        },
+        "icu_mode_changed_mask": {
+          "bit": 2,
+          "width": 1,
+          "access": "R/W",
+          "name": "Mask of icu_mode_changed interrupt.",
+          "desc": "A read return the current value of the mask. Writing 1 set the mask, writing 0 clears the mask."
+        },
+        "picl_ok_mask": {
+          "bit": 3,
+          "width": 1,
+          "access": "R/W",
+          "name": "Mask of picl_ok interrupt.",
+          "desc": "A read return the current value of the mask. Writing 1 set the mask, writing 0 clears the mask."
+        },
+        "scu_ok_mask": {
+          "bit": 4,
+          "width": 1,
+          "access": "R/W",
+          "name": "Mask of scu_ok interrupt.",
+          "desc": "A read return the current value of the mask. Writing 1 set the mask, writing 0 clears the mask."
+        }
+      }
+    },
+    "dlc_ifr": {
+      "desc": "Interrupt flag register",
+      "help": "The DLC_IFR register contains the flags of the MSP interrupts.",
+      "type": "register",
+      "offset": "0x10",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "icu_ok_flag": {
+          "bit": 0,
+          "width": 1,
+          "access": "R",
+          "name": "Flag of scu_ok interrupt.",
+          "desc": "Set to 1 when at least one of the bit of the DLC_IOIFR register is set. Cleared when reading DCL_IOIFR register."
+        },
+        "icu_delayed_flag": {
+          "bit": 1,
+          "width": 1,
+          "access": "R",
+          "name": "Flag of picl_ok interrupt.",
+          "desc": "Set to 1 when at least one of the bit of the DLC_IDIFR register is set. Cleared when reading DCL_IDIFR register."
+        },
+        "icu_mode_changed_flag": {
+          "bit": 2,
+          "width": 1,
+          "access": "R",
+          "name": "Flag of icu_mode_changed interrupt.",
+          "desc": "Set to 1 when at least one of the bit of the DLC_IMCIFR register is set. Cleared when reading DCL_IMCIFR register."
+        },
+        "picl_ok_flag": {
+          "bit": 3,
+          "width": 1,
+          "access": "R",
+          "name": "Flag of icu_delayed interrupt.",
+          "desc": "Set to 1 when PICL transfer is finish. Cleared writting 1 to the bit 3 of the DLC_IFR register."
+        },
+        "scu_ok_flag": {
+          "bit": 4,
+          "width": 1,
+          "access": "R",
+          "name": "Flag of scu_ok interrupt.",
+          "desc": "Set to 1 when SCU sequence is finished. Cleared when writting 1 to the bit 4 of the DLC_IFR register."
+        }
+      }
+    },
+    "dlc_ioifr": {
+      "desc": "icu_ok interrupt flag register",
+      "help": "The DLC_IOIFR register contains the flags of the icu_ok interrupt of the MSP.",
+      "type": "register",
+      "offset": "0x14",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "icu_ok_flags": {
+          "bit": 1,
+          "width": 31,
+          "access": "R",
+          "name": "Flags of the icu_ok interrupts.",
+          "desc": "Bit <x> set to 1 when a rising edge of the signal i_icu_ok_irq[ <x> ] occurs and MSP is requester of the change mode order of the ICU <x>. A read this register clears the register and the bit icu_ok_flag of the DLC_IFR register."
+        }
+      }
+    },
+    "dlc_idifr": {
+      "desc": "icu_delayed interrupt flag register",
+      "type": "register",
+      "offset": "0x18",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "icu_delayed_flags": {
+          "bit": 1,
+          "width": 31,
+          "access": "R",
+          "name": "Flags of the icu_delayed interrupts.",
+          "desc": "Bit <x> set to 1 when a rising edge of the signal i_icu_delayed_irq[ <x> ] occurs and MSP is requester of the change mode order of the ICU <x>. A read this register clears the register and the bit icu_delayed_flag of the DLC_IFR register."
+        }
+      }
+    },
+    "dlc_imcifr": {
+      "desc": "icu_mode_changed interrupt flags register",
+      "type": "register",
+      "offset": "0x1C",
+      "width" : 32,
+      "reset": "0x00000000",
+      "content": {
+        "icu_mode_changed_flags": {
+          "bit": 1,
+          "width": 31,
+          "access": "R",
+          "name": "Flags of the icu_mode_changed interrupts.",
+          "desc": "Bit <x> set to 1 when a rising edge of the signal i_icu_mode_changed_irq[ <x> ] occurs. A read this register clears the register and the bit icu_mode_changed_flag of the DLC_IFR register."
+        }
+      }
+    },
+
+    "wiu": {
+      "type": "group",
+      "offset": "0x00",
+
+      "content": {
+        "wiu_ispmr_0": {
+          "desc": "Interrupt Sequence Processing Mask registers",
+          "help": "The WIU_ISPMR registers are the flag registers of the i_irq interrupts. There are <n> WIU_ISPMR registers, one per 8 interrupts. For WIU with 8 or less interrupt <n> take the value 0. For WIU with 8 to 16 interrupts, <n> will take values from 0 to 1. The bit <x> of the WIU_ISPMR is associated to the interrupt signal i_irq [ 8 * <n> + <x>]",
+          "type": "register",
+          "offset": "0x00",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "mask_modechg_en_irq": {
+              "bit": 0,
+              "width": 8,
+              "access": "R/W",
+              "name": "Mask value.",
+              "desc": "A read of this register return the value of the mask. Writing 1 to the bit <x>, set the mask of the interrupt i_irq[ <x> ]"
+            }
+          }
+        },
+        "wiu_ispmr_1": {
+          "desc": "Interrupt Sequence Processing Mask registers",
+          "help": "The WIU_ISPMR registers are the flag registers of the i_irq interrupts. There are <n> WIU_ISPMR registers, one per 8 interrupts. For WIU with 8 or less interrupt <n> take the value 0. For WIU with 8 to 16 interrupts, <n> will take values from 0 to 1. The bit <x> of the WIU_ISPMR is associated to the interrupt signal i_irq [ 8 * <n> + <x>]",
+          "type": "register",
+          "offset": "0x01",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "mask_modechg_en_irq": {
+              "bit": 0,
+              "width": 8,
+              "access": "R/W",
+              "name": "Mask value.",
+              "desc": "A read of this register return the value of the mask. Writing 1 to the bit <x>, set the mask of the interrupt i_irq[ <x> ]"
+            }
+          }
+        },
+        "wiu_ifr_0": {
+          "desc": "Interrupt Flag register",
+          "help": "The WIU_IFR registers give the status of all the pending interrupts and enables to force interrupts as pending by setting the corresponding bits. There are <n> WIU_IFR registers, one per 8 interrupts. For WIU with 8 or less interrupt <n> take the value 0. For WIU with 8 to 16 interrupts, <n> will take values from 0 to 1. The bit <x> of the WIU_IFR is associated to the interrupt signal i_irq [ 8 * <n> + x] When a rising edge of an interrupt signal is detected the corresponding bit of the Interrupt Flag Register (WIU_IFR) is set to 1. The bit is cleared when the associated SCU sequence is finished (i_scu_busy signal becomes low) and when the associated interrupt is unmasked by writing the ISPM register.",
+          "type": "register",
+          "offset": "0x02",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "flag_irq": {
+              "bit": 0,
+              "width": 8,
+              "access": "R/W",
+              "name": "Interrupt flag.",
+              "desc": "Bit <x> is set when a rising egde of the signal i_irq [ 8 * <n> + <x> ] occurs or when writing the bit <x> to 1. Bit <x> is cleared when the associated SCU sequence is finished or when writing 0 to the bit <x> of the WIU_ISPMR_m register or when writing the bit <x> to 0."
+            }
+          }
+        },
+        "wiu_ifr_1": {
+          "desc": "Interrupt Flag register",
+          "help": "The WIU_IFR registers give the status of all the pending interrupts and enables to force interrupts as pending by setting the corresponding bits. There are <n> WIU_IFR registers, one per 8 interrupts. For WIU with 8 or less interrupt <n> take the value 0. For WIU with 8 to 16 interrupts, <n> will take values from 0 to 1. The bit <x> of the WIU_IFR is associated to the interrupt signal i_irq [ 8 * <n> + x] When a rising edge of an interrupt signal is detected the corresponding bit of the Interrupt Flag Register (WIU_IFR) is set to 1. The bit is cleared when the associated SCU sequence is finished (i_scu_busy signal becomes low) and when the associated interrupt is unmasked by writing the ISPM register.",
+          "type": "register",
+          "offset": "0x03",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "flag_irq": {
+              "bit": 0,
+              "width": 8,
+              "access": "R/W",
+              "name": "Interrupt flag.",
+              "desc": "Bit <x> is set when a rising egde of the signal i_irq [ 8 * <n> + <x> ] occurs or when writing the bit <x> to 1. Bit <x> is cleared when the associated SCU sequence is finished or when writing 0 to the bit <x> of the WIU_ISPMR_m register or when writing the bit <x> to 0."
+            }
+          }
+        },
+        "wiu_icr_0": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x04",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_0": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_1": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x05",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_1": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_2": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x06",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_2": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_3": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x07",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_3": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_4": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x08",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_4": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_5": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x09",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_5": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_6": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0A",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_6": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_7": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0B",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_7": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_8": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0C",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_8": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_9": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0D",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_9": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_10": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0E",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_10": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_11": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x0F",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_11": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_12": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x10",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_12": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_13": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x11",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_13": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_14": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x12",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_14": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        },
+        "wiu_icr_15": {
+          "desc": "Interrupt Control registers",
+          "help": "The WIU_ICR registers enable to specify the sequence which will be executed when the interrupt i_irq[ n ] become active. There are <n> WIU_ICR registers, one per interrrupt source. <n> will take values from 0 to NB_IRQ.",
+          "type": "register",
+          "offset": "0x13",
+          "width" : 8,
+          "reset": "0x00",
+          "content": {
+            "seq_sel_irq_15": {
+              "bit": 0,
+              "width": 5,
+              "access": "R/W",
+              "name": "Interrupt sequence.",
+              "desc": "Defines the sequence which has to be executed when the interrupt i_irq[ <p> ] becomes active"
+            }
+          }
+        }
+      }
+    },
+
+    "icu": {
+      "type": "template",
+      "icu_ctrl": {
+        "desc": "ICU control register",
+        "help": "ICU_CR is used to send a change-mode request to the ICU.",
+        "type": "register",
+        "offset": "0x00",
+        "width" : 8,
+        "reset": "0x00",
+        "content": {
+          "icu_ctrl": {
+            "bit": 0,
+            "width": 4,
+            "access": "R/W",
+            "name": "ICU change mode request",
+            "desc": "When a new mode corresponding to one of sixteen mode of the island mode table of the ICU is written as mode transition sequence is started to reach the written mode."
+          }
+        }
+      },
+      "icu_mode": {
+        "desc": "ICU mode register",
+        "help": "ICU_MR indicates if the current mode of the ICU is a defined mode of the table 2.5 on page 22. If yes, it returns the value of the mode.",
+        "type": "register",
+        "offset": "0x01",
+        "width" : 8,
+        "reset": "0x1f",
+        "content": {
+          "icu_mode": {
+            "bit": 0,
+            "width": 4,
+            "access": "R",
+            "name": "ICU mode",
+            "desc": "Returns the current mode of the ICU when icu_mode_defined is low."
+          },
+          "icu_mode_defined": {
+            "bit": 4,
+            "width": 1,
+            "access": "R",
+            "name": "ICU mode defined",
+            "desc": "When high, indicates that the current mode of the ICU is not defined in the mode table of the ICU When low, the value of the current mode is given by the icu_mode bits"
+          }
+        }
+      },
+      "island_mode": {
+        "desc": "Island mode register",
+        "help": "ICU_ISMR returns the current mode of the Island.",
+        "type": "register",
+        "offset": "0x02",
+        "width" : 8,
+        "reset": "0x00",
+        "content": {
+          "isl_mode": {
+            "bit": 0,
+            "width": 2,
+            "access": "R",
+            "name": "Island mode",
+            "desc": "Mode of the island."
+          }
+        }
+      },
+      "dmu_mode": {
+        "desc": "DMU mode register 0",
+        "help": "ICU_DMR returns the current mode of the DMU.",
+        "type": "register",
+        "offset": "0x03",
+        "width" : 8,
+        "reset": "0x00",
+        "content": {
+          "isl_mode": {
+            "bit": 0,
+            "width": 2,
+            "access": "R",
+            "name": "DMU mode",
+            "desc": "Mode of the DMU 0."
+          }
+        }
+      }
+    }
+  }
+}

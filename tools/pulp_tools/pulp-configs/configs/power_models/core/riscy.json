@@ -1,0 +1,11 @@
+{
+  "clock_gated": {
+    "includes": [ "power_models/core/values/clock_gated.json" ]
+  },
+  "insn": {
+    "includes": [ "power_models/core/values/insn.json" ]
+  },
+  "leakage": {
+    "includes": [ "power_models/core/values/leakage.json" ]
+  }
+}

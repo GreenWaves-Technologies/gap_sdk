@@ -1,0 +1,77 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: start nntool",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with sample",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "BUILD_MODEL_EMUL8BIT/Mnist.json"
+            ],
+            "cwd": "${workspaceFolder}/../nntool_examples/mnist",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with script",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "-s",
+                "model/nntool_script",
+                "BUILD_MODEL/mnist.tflite"
+            ],
+            "cwd": "${workspaceFolder}/../nntool_examples/mnist",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start run.py dump_layers",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/sample_project/model/run.py",
+            "args": [
+                "sample_project/BUILD_TRAIN/mnist_model.h5",
+                "-i",
+                "examples/0/136.pgm",
+                "-D",
+                "tests/h5_pickles",
+                "-d"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start run.py dump_weights",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/sample_project/model/run.py",
+            "args": [
+                "sample_project/BUILD_TRAIN/mnist_model.h5",
+                "-D",
+                "tests/h5_pickles",
+                "-w",
+                "weights.pickle"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Current File (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

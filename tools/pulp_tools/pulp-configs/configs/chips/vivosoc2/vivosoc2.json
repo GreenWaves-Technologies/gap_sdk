@@ -1,0 +1,47 @@
+{
+  "name": "vivosoc2",
+
+  "pulp_chip_family" : "vivosoc2",
+  "pulp_chip_version": 0,
+
+  "hal_files": [ "hal/chips/vivosoc2/pulp.h" ],
+  "hal_analog_files": [
+    "hal/analog/control_v1.h", "hal/analog/exg_v1.h",
+    "hal/analog/ppg_v1.h", "hal/analog/stim_v1.h",
+    "hal/analog/temp_v1.h", "hal/analog/bioz_v1.h",
+    "hal/analog/vivosoc2.h", "hal/analog/vivosoc.h"
+  ],
+  "archi_files": [ "archi/chips/vivosoc2/pulp.h", "archi/chips/vivosoc2/memory_map.h", "archi/chips/vivosoc2/properties.h" ],
+  "archi_analog_files": [
+    "archi/analog/control_v1.h", "archi/analog/exg_v1.h",
+    "archi/analog/ppg_v1.h", "archi/analog/stim_v1.h",
+    "archi/analog/temp_v1.h", "archi/analog/bioz_v1.h",
+    "archi/analog/vivosoc2.h"
+  ],
+
+  "soc": {
+    "nb_cluster"       : 1,
+    "cluster": {
+      "includes": ["ips/cluster_v4.json"],
+
+      "l1": {
+        "size" : 32768
+      }
+    },
+
+    "l2": {
+      "size": 131072,
+      "map_base": "0x1C000000",
+      "map_size": "0x00080000"
+    },
+
+    "stdout": {
+      "includes"  : ["ips/stdout_v2.json"]
+    },
+
+    "udma": {
+      "includes"  : ["ips/udma/udma_v1.json"]
+    }
+  }
+  
+}

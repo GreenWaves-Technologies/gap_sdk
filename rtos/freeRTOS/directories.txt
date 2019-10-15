@@ -1,0 +1,12 @@
+This file describes the directories found at the root of the Amazon FreeRTOS
+distribution.
+
+demos:
+Contains a set of pre-configured demo projects for various target platforms.
+The projects in the demos directory build the libraries from the lib directory.
+
+freertos_kernel:
+Contains FreeRTOS kernel distribution.
+
+vendors:
+Contains platform-specific ports, SDKs, and tools.

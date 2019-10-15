@@ -1,0 +1,33 @@
+{
+  "version": 3.1,
+
+  "includes": "eu_v3.json",
+
+  "regmap": {
+    "areas": {
+      "demux": {
+        "sec": {
+          "offset": "0x0040",
+          "size"  : "0x0040"
+        }
+      }
+    },
+    "registers": {
+      "sec_mask": {
+        "areas" : [ "demux/sec" ],
+        "offset": "0x00",
+        "width" : 32
+      },
+      "sec_mask_and": {
+        "areas" : [ "demux/sec" ],
+        "offset": "0x04",
+        "width" : 32
+      },
+      "sec_mask_or": {
+        "areas" : [ "demux/sec" ],
+        "offset": "0x08",
+        "width" : 32
+      }
+    }
+  }
+}

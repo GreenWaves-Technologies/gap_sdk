@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+import argparse
+import json_tools as js
+import pulp_config as plpconf
+import os
+import os.path
+
+
+parser = argparse.ArgumentParser(description='Generate a user configuration')
+
+parser.add_argument(
+    "--output", dest="output", default=None,
+    help="Specify output configuration"
+)
+
+parser.add_argument(
+    "--input", dest="input", default=None,
+    help="Specify input configuration"
+)
+
+parser.add_argument(
+    "--input-file", dest="input_files", default=[], action="append",
+    help="Specify input configuration"
+)
+
+parser.add_argument(
+    "--input-file-noargs", dest="input_files_noargs", default=[], action="append",
+    help="Specify input configuration"
+)
+
+parser.add_argument("--usecase", dest="usecases", action="append", default=[], help="Specify the JSON usecase file")
+
+parser.add_argument(
+    "--config", dest="configs", action="append", default=[],
+    help="Specify additional configuration item"
+)
+
+parser.add_argument(
+    "--config-user", dest="configs_user", action="append", default=[],
+    help="Specify additional user configuration"
+)
+
+args = parser.parse_args()
+
+config = plpconf.get_config(args.input, ini_configs=args.configs_user, interpret=True)
+
+with open(args.output, 'w') as file:
+    file.write(config.dump_to_string())
