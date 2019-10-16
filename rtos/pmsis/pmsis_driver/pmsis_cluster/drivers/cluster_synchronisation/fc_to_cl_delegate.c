@@ -101,11 +101,10 @@ void cl_cluster_exec_loop(void)
     SCBC->ICACHE_ENABLE = 0xFFFFFFFF;
 
     /* Initialization for the task dispatch loop */
-    hal_eu_evt_mask_set((1 << EU_DISPATCH_EVENT)
-            | (1 << EU_MUTEX_EVENT)
-            | (1 << EU_HW_BARRIER_EVENT)
-            | (1 << EU_LOOP_EVENT));
-
+    hal_eu_evt_mask_set((1 << EU_DISPATCH_EVENT) |
+                        (1 << EU_MUTEX_EVENT) |
+                        (1 << EU_HW_BARRIER_EVENT) |
+                        (1 << EU_LOOP_EVENT));
 
     asm volatile ("add    s1,  x0,  %0" :: "r" (CORE_EU_DISPATCH_DEMUX_BASE));
     asm volatile ("add    s2,  x0,  %0" :: "r" (CORE_EU_BARRIER_DEMUX_BASE));
@@ -133,8 +132,8 @@ void cl_cluster_exec_loop(void)
         /*
          * Core 0 will wait for tasks from FC side
          */
-        NVIC_EnableIRQ(CL_EVENT_DMA1);
-        hal_eu_evt_mask_set(1 << CL_EVENT_DMA1);
+        /* Enable IRQ for DMA on Core 0. */
+        hal_eu_irq_mask_set(1 << CL_EVENT_DMA1);
         __enable_irq();
 
         asm volatile("add   s4,  x0,  %0\n\t"

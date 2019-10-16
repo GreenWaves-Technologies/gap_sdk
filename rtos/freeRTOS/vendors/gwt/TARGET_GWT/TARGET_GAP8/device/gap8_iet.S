@@ -507,17 +507,59 @@ _no_switch_pendsv:
         .extern pi_cl_dma_2d_handler
         DECLARE cluster_dma_2d_handler
         /* Save current context. */
-        SAVE_CONTEXT_YIELD
-        lw tp, pxCurrentTCB
-        sw sp, 0*0(tp)
-        /* ISR Stack. */
-        la sp, xISRStack
-        lw sp, 0*0(sp)
+        addi sp, sp, (-18*4)
+        sw ra, 0*4(sp)
+        sw a0, 1*4(sp)
+        sw a1, 2*4(sp)
+        sw a2, 3*4(sp)
+        sw a3, 4*4(sp)
+        sw a4, 5*4(sp)
+        sw a5, 6*4(sp)
+	sw a6, 7*4(sp)
+	sw a7, 8*4(sp)
+        sw t0, 9*4(sp)
+	sw t1, 10*4(sp)
+	sw t2, 11*4(sp)
+	sw t3, 12*4(sp)
+	sw t4, 13*4(sp)
+	sw t5, 14*4(sp)
+	sw t6, 15*4(sp)
+
+        /* MSTATUS */
+        csrr t0, mstatus
+        sw t0, 16*4(sp)
+
+        /* MEPC */
+        csrr t0, mepc
+        sw t0, 17*4(sp)
+
         jal ra, pi_cl_dma_2d_handler
-        lw tp, pxCurrentTCB
-        lw sp, 0*0(tp)
         /* Restore current context. */
-        RESTORE_CONTEXT_YIELD
+        /* MEPC */
+	lw t0, 17*4(sp)
+	csrw mepc, t0
+
+        /* MSTATUS */
+	lw t0, 16*4(sp)
+	csrw mstatus, t0
+
+        lw t6, 15*4(sp)
+	lw t5, 14*4(sp)
+	lw t4, 13*4(sp)
+	lw t3, 12*4(sp)
+	lw t2, 11*4(sp)
+	lw t1, 10*4(sp)
+	lw t0, 9*4(sp)
+	lw a7, 8*4(sp)
+	lw a6, 7*4(sp)
+	lw a5, 6*4(sp)
+	lw a4, 5*4(sp)
+	lw a3, 4*4(sp)
+	lw a2, 3*4(sp)
+	lw a1, 2*4(sp)
+	lw a0, 1*4(sp)
+	lw ra, 0*4(sp)
+        addi sp, sp, (+18*4)
         mret
         .endfunc
 
