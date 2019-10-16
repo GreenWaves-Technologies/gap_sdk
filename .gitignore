@@ -1,10 +1,9 @@
 *~
-__pycache__*
+__pycache__/
 *.pyc
 *.swp
-*log*
-install
-build
-BUILD
-*.wav
+/install/
+/build/
+/BUILD/
+
 
