@@ -84,17 +84,17 @@
 
 #ifndef GAP_SOURCE_SCK0
 /* Filter register */
-#define DECIMATION_CHAN1               0x80 //2048k => 16kHz
+#define DECIMATION_CHAN1               0x40 //0x80 =>2048k => 16kHz
 #define SHIFT_CHAN1                    4
-#define DECIMATION_CHAN0               0x80 //2048Khz => 16kHz (64)
+#define DECIMATION_CHAN0               0x40 //0x80 => 2048Khz => 16kHz (64)
 // SHIFT is 51 - 16 - 5*SHIFT_CHAN
 #define SHIFT_CHAN0                    4
 
 #else
 /* Filter register */
-#define DECIMATION_CHAN1               0x40 //1024k => 16kHz
+#define DECIMATION_CHAN1               0x40 //0x40 => 1024k => 16kHz
 #define SHIFT_CHAN1                    5
-#define DECIMATION_CHAN0               0x40 //1024Khz => 16kHz (64)
+#define DECIMATION_CHAN0               0x40 //0x40 => 1024Khz => 16kHz (64)
 // SHIFT is 51 - 16 - 5*SHIFT_CHAN
 #define SHIFT_CHAN0                    5
 #endif
@@ -124,8 +124,7 @@ typedef struct {
 // buffer for IP output
 typedef struct {
   uint8_t header[WAV_HEADER_SIZE];
-  //  signed short buff[OUTPUT_BUF_SIZE];
-  signed short *buff;
+  signed short buff[OUTPUT_BUF_SIZE];
 } outputBuf_t;
 
 // buffer for direct microphone output
@@ -149,7 +148,7 @@ GAP_L2_DATA outputBuf_t micOutput1;
 #endif
 #endif
 
-GAP_L2_DATA signed short* audioBuff;
+signed short* audioBuff;
 
 GAP_L2_DATA I2sDescriptor I2sOutHeader = { .l2Addr = 0, .size = 0, .recReady = 0,
   .micReady = 0, .cStarted = 0, .l2Addr1 = 0, .size1 = 0, .l2AddrMic1 = 0,.l2AddrMic2 = 0, .sizeVoc2 = 0 };
@@ -186,11 +185,19 @@ int res = 0, last_res=0;
 int store = 0;
 int maxval=0;
 
+//
+unsigned char toggle=0, stat_log;
+unsigned char okgo=0;
+int irq;
+
 signed short logscore[12];
 
 GAP_L2_DATA static unsigned char resTab[NB_CHUNK] = {[0 ... NB_CHUNK-1] = 0x0};
 
 extern void exit(int code);
+
+
+
 
 static void CreateWAVHeader(uint8_t *I2sOut, I2sDescriptor *I2sOutHeader, uint32_t channel, uint32_t);
 
@@ -267,6 +274,78 @@ void prepI2sRx()
   SAI_TransferRxCreateHandle(i2s_address[0], &handle0I2S1, callback0I2S1, &param01);
   SAI_TransferRxCreateHandle(i2s_address[0], &handle1I2S1, callback1I2S1, &param11);
 }
+
+void init_I2S() {
+
+      for(uint32_t i=0; i<NB_SUBUF_SAMPLES;i++)
+	{
+	  audioBuf[0][i] = 0;
+	  audioBuf[1][i] = 0;
+	  audioBuf1[0][i] = 0;
+	  audioBuf1[1][i] = 0;
+	}
+      
+      /* I2S1 Init */
+      SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S0_SCK); //gapuino I2S0_SCK used for both I2S
+      
+      /* I2S1 Filter Configuration  */
+      SAI_FilterConfig(i2s_address[0], uSAI_Channel1, DECIMATION_CHAN1 - 1, SHIFT_CHAN1);
+      
+      /* I2S Mode Configuration  */
+#ifdef GAP_SOURCE_SCK0
+      SAI_ModeConfig(i2s_address[0], uSAI_Channel1, LSB_FIRST_CHAN1, PDM_FILT_EN_CHAN1, PDM_EN_CHAN1, PDM_DDR_CHAN1, uSAI_CLK0_INT_WS); //gapuino I2S0_SCK used for both I2S
+#else
+      SAI_ModeConfig(i2s_address[0], uSAI_Channel1, LSB_FIRST_CHAN1, PDM_FILT_EN_CHAN1, PDM_EN_CHAN1, PDM_DDR_CHAN1, 2); //gapuino I2S0_SCK used for both I2S
+#endif
+      /* I2S0 Init */
+      SAI_Init(i2s_address[0], I2S0_SDI, I2S0_WS, I2S0_SCK);
+      
+      /* I2S0 Filter Configuration  */
+      SAI_FilterConfig(i2s_address[0], uSAI_Channel0, DECIMATION_CHAN0 - 1, SHIFT_CHAN0);
+ 
+      /* I2S Mode Configuration  */
+#ifdef GAP_SOURCE_SCK0
+      SAI_ModeConfig(i2s_address[0], uSAI_Channel0, LSB_FIRST_CHAN0, PDM_FILT_EN_CHAN0, PDM_EN_CHAN0, PDM_DDR_CHAN0, uSAI_CLK0_INT_WS);
+#else
+      SAI_ModeConfig(i2s_address[0], uSAI_Channel0, LSB_FIRST_CHAN0, PDM_FILT_EN_CHAN0, PDM_EN_CHAN0, PDM_DDR_CHAN0, 2);
+#endif
+
+      
+      /* I2S Clock Configuration  void SAI_ClockConfig(I2S_Type *base, char ch_id, uint8_t bits, uint8_t en, uint16_t div) : I2S0 is master */
+#ifdef GAP_SOURCE_SCK0 
+      SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 1, CK_DIV_FAC);
+#else
+      SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 0, CK_DIV_FAC);
+#endif
+
+      //synchronyze with python
+#ifdef PYTHON_SYNC  
+      printf("c: Ready to record audio from microphones (synced wih python)\n");
+      I2sOutHeader.cStarted = 1;
+      
+      while(((volatile I2sDescriptor *) &I2sOutHeader)->micReady == 0) {};
+#endif
+      
+      
+      // set to highet threshold: always active
+      init_dsp_process(3000);
+      
+      prepI2sRx();
+    
+
+      // ===> commented out : this screws up the wake up on interrupt process <== WHY?
+      SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S0, &xfer0I2S0);
+      SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S1, &xfer0I2S1);
+      SAI_TransferReceiveNonBlocking(i2s_address[0], &handle1I2S0, &xfer1I2S0);
+      SAI_TransferReceiveNonBlocking(i2s_address[0], &handle1I2S1, &xfer1I2S1);
+            
+
+      
+      for (int i=0;i<NB_SUBUF_SAMPLES;i++) {audioBuf[0][i]=0;audioBuf[1][i]=0;audioBuf1[0][i]=0;audioBuf1[1][i]=0;}
+
+
+}
+
 
 void createWavVocIP()
 {
@@ -685,17 +764,21 @@ char *word_list[CLast_NFEAT] = {"silence", "none", "alexa"};
 
 void CNN_Process() {
 
-    #ifdef RT_HAS_HWCE
-    Conv8x20MaxPool2x2_HWCE_0(pfeat_list,L2_W_0,l2_big0,8,L2_B_0,AllKernels + 0);
-    #else
-    ConvLayer1(pfeat_list, L2_W_0,l2_big0,8,L2_B_0,8,20,AllKernels + 0);
-    #endif
+    // allocate data buffers
+    l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
+    //printf("@l2_big1: %p\n", l2_big1);
+    if(l2_big1 == NULL)
+        printf("error of malloc l2_big1\n");
+    l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
+    if(l2_big0 == NULL)
+        printf("error of malloc l2_big0\n");
 
     #ifdef RT_HAS_HWCE
+    Conv8x20MaxPool2x2_HWCE_0(pfeat_list,L2_W_0,l2_big0,8,L2_B_0,AllKernels + 0);
     Conv6x10_HWCE_1(l2_big0,L2_W_1,l2_big1,8,L2_B_1,AllKernels + 1);
-    printf("bbb\n");
+
     #else
-    printf("xxx\n");
+    ConvLayer1(pfeat_list, L2_W_0,l2_big0,8,L2_B_0,8,20,AllKernels + 0);
 
     #ifdef W_HALFCHAR
     ConvLayer3(l2_big0,L2_W_1,l2_big1,8,L2_B_1,4,10,AllKernels + 1);
@@ -707,6 +790,8 @@ void CNN_Process() {
     ConvLayer3(l2_big0,L2_W_1,l2_big1,8,L2_B_1,4,10,AllKernels + 1);
     #endif
     #endif
+    free(l2_big0);
+    l2_big0 = malloc(CLast_NFEAT*sizeof(short int));
 
     // in,filter,normfilter,bias,normbias,out,outsize
     #ifdef W_HALFCHAR
@@ -718,7 +803,6 @@ void CNN_Process() {
     #ifdef W_CHAR
     Dense2(l2_big1,L2_W_2,10,L2_B_2,0,l2_big0,CLast_NFEAT,AllKernels + 2);
     #endif
-    printf("ccc\n");
 }
 
 void Master_Entry(void *arg) {
@@ -726,8 +810,6 @@ void Master_Entry(void *arg) {
     /* Make HWCE event active */
     //printf("CNN launched on the HWCE\n");
     EU_EVT_MaskSet(1 << EU_HWCE_EVENT);
-    #else
-    //printf("CNN launches on cluster with (%d cores)\n", CORE_NUMBER);
     #endif
 
     CNN_Process();
@@ -735,12 +817,12 @@ void Master_Entry(void *arg) {
 
 void runkws(char trial) {
 
-        #ifdef DOMFCC
-        #ifdef USE_AUDIO
+#ifdef DOMFCC
+#ifdef USE_AUDIO
         short int *InSignal = (short int *) (audioBuff + start_frame*CHUNK_SIZE);
-        #else
+#else
         short int *InSignal = DataIn;
-        #endif
+#endif
 
 
 #ifdef PERF
@@ -751,14 +833,13 @@ void runkws(char trial) {
 
 	Frame = FC_Malloc(FRAME*sizeof(short int));
 	W_Frame = FC_Malloc((N_FFT+4)*sizeof(v2s));
-	if ((Frame==NULL) || (W_Frame==NULL)) printf("cannot allocate Frame W_Frame\n");
 
 	//printf("start %d\n",start_frame);
         MFCC_Processing(InSignal, W_Frame, Frame, FEAT_LIST);
         pfeat_list = (short int*) FEAT_LIST;
-        #else
+#else
         pfeat_list = (short int*) DataIn;
-        #endif
+#endif
 
 #ifdef PERF
 	PERFORMANCE_Stop(&perf);
@@ -767,13 +848,11 @@ void runkws(char trial) {
 	printf("MFCC cycles==>%d\n",PERFORMANCE_Get(&perf, PCER_CYCLE_Pos));
 #endif
 
+	//	FC_MallocFree(W_Frame,(N_FFT+4)*sizeof(v2s));
+	//        FC_MallocFree(Frame,FRAME*sizeof(short int));
 	FC_MallocFree(W_Frame);
-    FC_MallocFree(Frame);
+	FC_MallocFree(Frame);
 
-	if (trial==0) {printf("free vocalbuff\n");free(vocalOutput.buff);}
-#ifdef KWS
-	if (trial==1) {printf("free micoutput1\n"); free(micOutput1.buff);}
-#endif
 	/* #ifdef PRINTFEAT */
         /* printf("dump features %d\n", NUMCEP * N_FRAME); */
         /* for (j=0; j<NUMCEP*N_FRAME; j++) { */
@@ -783,22 +862,11 @@ void runkws(char trial) {
         /* } */
         /* #endif */
 
-        // allocate data buffers
-        l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
-        l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
-
-	if ((l2_big0 == NULL ) || (l2_big1 == NULL)) {
-	  printf("cannot allocate for l2_big0 l2_big1\n");
-	  return;
-	}
-
-	/* FC send a task to Cluster */
+        /* FC send a task to Cluster */
         CLUSTER_SendTask(0, Master_Entry, 0, 0);
 
         /* Wait cluster finish task */
         CLUSTER_Wait(0);
-        printf("cluster done\n");
-
         {
             //  ******************************** Softmax on FC ****************************
             int i, j, sum=0;
@@ -828,10 +896,11 @@ void runkws(char trial) {
 #ifdef DUMP_SCORE
             printf("found word %s\n", word_list[idx_max]);
 #endif
-            free(l2_big1);
-            free(l2_big0);
-
         }
+    free(l2_big0);
+    free(l2_big1);
+
+
 
 }
 
@@ -966,13 +1035,100 @@ int processI2sRx(int sel)
     return 0;
 }
 
+void capture_and_process() {
+
+
+  while(1) {
+    
+
+    if ((buf00 && buf01) || (buf10 && buf11))
+    {
+      //printf("!\n");
+
+      irq = __disable_irq();
+      if (buf00) buf00 = buf01 = 0;
+      if (buf10) buf10 = buf11 = 0;
+
+      stat_log=processI2sRx(toggle);
+
+      __restore_irq(irq);
+
+      if (toggle==0) toggle=1; else toggle=0;
+
+      //printf("stat_log %d\n",stat_log);
+
+      if (stat_log==1) {
+	if (1) {
+
+	  irq = __disable_irq();
+	  
+	  // first run with the IP output
+	  audioBuff = vocalOutput.buff;
+	  
+#ifdef FORCE_INPUT
+	  audioBuff = DataIn;
+#endif
+	  //printf("run kws\n");
+	  runkws(0);
+
+#ifdef KWS
+	  // second run with direct mic output
+	  audioBuff = micOutput1.buff;
+	  runkws(1);
+#endif
+	  
+	  
+#ifdef FORCE_INPUT
+	  return 0;
+#endif
+	
+	  
+	  int max=0;
+	  for (int i=0;i<CLast_NFEAT;i++) {
+
+
+#ifndef TESTNONE
+	    if (logscore[i]>max && i!=1) {max=logscore[i];idxmax=i;}
+#else
+	    if (logscore[i]>max) {max=logscore[i];idxmax=i;}
+#endif
+	    logscore[i]=0;
+	  }
+
+#ifdef KWS
+	  if (1) {
+	  //if (word1==11) idxmax=11;
+	  if (word2==3) idxmax = 3;
+	  if (word2==4) idxmax=4;
+	  //if (word1==6) idxmax=6;
+	  if (word1==5) idxmax=5;
+	  }
+#endif
+       	  printf("found word %s\n", word_list[idxmax]);
+	  
+	}
+	
+	last_res=0;
+	res=0;
+	store=0;
+	found_voice=0;
+	cntBuf=0;
+	idxmin=-1;
+	idxbuf=-1;
+	cntRes=0;
+	maxval=0;
+	toggle=0;
+	__restore_irq(irq);
+      	printf(">>>\n");
+      }
+    }
+  }
+}
 
 int main()
 {
-  unsigned char toggle=0, stat_log;
-
   /* Cluster Start - Power on */
-  CLUSTER_Start(0, CORE_NUMBER, 0);
+  CLUSTER_Start(0, CORE_NUMBER,0);
 
   // Allocate a buffer in the shared L1 memory
   L1_Memory = L1_Malloc(L1_Memory_SIZE);
@@ -982,11 +1138,20 @@ int main()
     return -1;
   }
 
+  //Frame = FC_Malloc(FRAME*sizeof(short int));
+  //W_Frame = FC_Malloc((N_FFT+4)*sizeof(v2s));
 
 #if L2STACK_DBG
   printf("stack initial addr 0x%x last current stack pointer: 0x%x\n", (unsigned int *) &__l2Stack, (unsigned int)rd_stack_pt());
   check_stack_overflow(__FUNCTION__, __LINE__);
 #endif
+
+
+  printf("init_I2S\n");
+  init_I2S();
+  printf(">>>\n");
+  
+  if (0) {
 
   for(uint32_t i=0; i<NB_SUBUF_SAMPLES;i++)
   {
@@ -1052,6 +1217,7 @@ int main()
 
 #endif
 
+  // the threshold for vocal VAD is 0 (always on)
   init_dsp_process(3000);
 
   prepI2sRx();
@@ -1059,7 +1225,7 @@ int main()
 #ifndef PYTHON_SYNC
     printf("c: Ready to record audio from microphones\n");
 #endif
-  //printf(">>>\n");
+    printf(">>>\n");
 
   SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S0, &xfer0I2S0);
   SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S1, &xfer0I2S1);
@@ -1087,136 +1253,16 @@ int main()
       return -1;
     }
 
-  printf("0= allocate vocalbuf\n");
-
-#ifdef KWS
-  printf("0= allocate micoutput\n");
-  micOutput1.buff =(short int*)  malloc(OUTPUT_BUF_SIZE * sizeof(short int));
-  if (micOutput1.buff==NULL) printf("0= cannot allocate micOutput1\n");
-#endif
-  vocalOutput.buff = (short int*)malloc(OUTPUT_BUF_SIZE * sizeof(short int));
 
   // performs kws on file in L2
 
   for (int i=0;i<NB_SUBUF_SAMPLES;i++) {audioBuf[0][i]=0;audioBuf[1][i]=0;audioBuf1[0][i]=0;audioBuf1[1][i]=0;}
-  unsigned char okgo=0;
 
-  while(1)
-  {
-    if ((buf00 && buf01) || (buf10 && buf11))
-    {
-#ifdef PERF
-      PERFORMANCE_Start(&perf, PCER_CYCLE_Msk | PCER_INSTR_Msk);
-#endif
-      int irq = __disable_irq();
-      if (buf00) buf00 = buf01 = 0;
-      if (buf10) buf10 = buf11 = 0;
-      //if (buf10) buf10 = buf11 = 0;
-#ifndef VOCAL
-      stat_log=loginput(toggle);
-#else
-      stat_log=processI2sRx(toggle);
-#endif
-      __restore_irq(irq);
-      if (toggle==0) toggle=1; else toggle=0;
-      if (stat_log==2 ) {
-	printf("can start now audio acquisition\n");
-	printf(">>>\n");
-      }
-
-      if (stat_log==1) {
-	okgo++;
-	if (okgo>=2) {
-	  //printf("start_frame %d\n",start_frame);
-	  irq = __disable_irq();
-
-	  printf("aaa\n");
-	  // first run with the IP output
-	  audioBuff = vocalOutput.buff;
-
-#ifdef FORCE_INPUT
-	  audioBuff = DataIn;
-#endif
-	  runkws(0);
-
-      printf("kws done\n");
-#ifdef KWS
-	  // second run with direct mic output
-	  audioBuff = micOutput1.buff;
-	  runkws(1);
-
-	  printf("allocate micoutput %d\n",OUTPUT_BUF_SIZE);
-	  micOutput1.buff =  (short int*) malloc(OUTPUT_BUF_SIZE * sizeof(short int));
-	  if (micOutput1.buff==NULL) printf("cannot allocate  micOutput1.buff\n");
-#endif
-	  printf("allocate vocalbuff  %d\n",OUTPUT_BUF_SIZE);
-	  vocalOutput.buff = (short int*) malloc(OUTPUT_BUF_SIZE * sizeof(short int));
-	  if (vocalOutput.buff==NULL) printf("cannot allocate vocaloutput.buff\n");
-
-#ifdef FORCE_INPUT
-	  return 0;
-#endif
-
-#ifdef PERF
-	  PERFORMANCE_Stop(&perf);
-	  perfTab[0][perfCnt] = PERFORMANCE_Get(&perf, PCER_CYCLE_Pos);
-	  perfTab[1][perfCnt] = PERFORMANCE_Get(&perf, PCER_INSTR_Pos);
-	  perfCnt++;
-#endif
-
-	  int max=0;
-	  for (int i=0;i<CLast_NFEAT;i++) {
-#ifdef DUMP_SCORE
-	    printf("%d %d\n",i,logscore[i]);
-#endif
-
-#ifndef TESTNONE
-	    if (logscore[i]>max && i!=1) {max=logscore[i];idxmax=i;}
-#else
-	    if (logscore[i]>max) {max=logscore[i];idxmax=i;}
-#endif
-	    logscore[i]=0;
-	  }
-
-#ifdef KWS
-	  if (1) {
-	  //if (word1==11) idxmax=11;
-	  if (word2==3) idxmax = 3;
-	  if (word2==4) idxmax=4;
-	  //if (word1==6) idxmax=6;
-	  if (word1==5) idxmax=5;
-	  }
-#endif
-	  printf("found word %s\n", word_list[idxmax]);
-
-#ifdef CHECK_WAV
-#ifdef DUMP_SCORE
-	  res_vocIP_print();
-	  if (!found_voice) printf("no voice detected\n");
-	  createWavVocIP();
-#endif
-
-#ifdef RECORD_MIC
-	  createsWavFromBuffer();
-#endif
-
-#endif
-	}
-	last_res=0;
-	res=0;
-	store=0;
-	found_voice=0;
-	cntBuf=0;
-	idxmin=-1;
-	idxbuf=-1;
-	cntRes=0;
-	maxval=0;
-      	printf(">>>\n");
-	toggle=0;
-	__restore_irq(irq);
-      }
-    }
   }
+
+
+  capture_and_process();
+  
   return 0;
 }
 
