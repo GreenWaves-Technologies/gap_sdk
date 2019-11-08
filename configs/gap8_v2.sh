@@ -2,6 +2,7 @@
 
 export GAP_SDK_HOME="$(dirname $(dirname "$(readlink -f "${BASH_SOURCE[0]}")"))"
 
+export TARGET_CHIP_FAMILY="GAP8"
 export TARGET_CHIP="GAP8_V2"
 export TARGET_NAME="gap_rev1"
 export PULP_CURRENT_CONFIG=gap_rev1@config_file=chips/gap_rev1/gap_rev1.json
