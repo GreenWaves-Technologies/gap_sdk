@@ -90,6 +90,8 @@
 
 #define    UDMA_EVENT_SDIO_RX             ((PER_ID_SDIO << 2))
 #define    UDMA_EVENT_SDIO_TX             ((PER_ID_SDIO << 2) + 1)
+#define    UDMA_EVENT_SDIO_EOT            ((PER_ID_SDIO << 2) + 2)
+#define    UDMA_EVENT_SDIO_ERROR          ((PER_ID_SDIO << 2) + 3)
 
 #define    UDMA_EVENT_I2S_RX              ((PER_ID_I2S << 2))
 #define    UDMA_EVENT_I2S_TX              ((PER_ID_I2S << 2) + 1)

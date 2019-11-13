@@ -19,9 +19,6 @@ void cl_notify_task_done(uint8_t *done, uint8_t cluster_id);
 #include "pmsis/cluster/cluster_team/cl_team.h"
 /* DMA. */
 #include "pmsis/cluster/dma/cl_dma.h"
-#if defined(__GAP9__)
-#include "pmsis/cluster/dma/cl_dma_decompressor.h"
-#endif  /* __GAP9__ */
 
 /* PMSIS cluster drivers includes. */
 #include "pmsis_cluster/drivers/delegate/hyperbus/hyperbus_cl_internal.h"

@@ -9,7 +9,6 @@ fi
 export PATH="$GAP_RISCV_GCC_TOOLCHAIN/bin":"$GAP_SDK_HOME/tools/bin":$PATH
 
 export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/$TARGET_CHIP
-export BUILD_DIR=$GAP_SDK_HOME/build
 export INSTALL_DIR=$GAP_SDK_HOME/install/workstation
 export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/tools/rules

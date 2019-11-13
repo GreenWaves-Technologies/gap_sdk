@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup Display Ili9341
+ * @defgroup Ili9341 Ili9341
  *
  * Display Ili9341.
  * This module is interfaced through SPIM1.

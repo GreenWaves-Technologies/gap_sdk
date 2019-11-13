@@ -88,23 +88,23 @@ int main(int argc, char **argv)
 
     // Number of Samples
     unsigned int Samples = 32768;
-    // 40 Taps, Generic and scalar basic kernel
+   // 40 Taps, Generic and scalar basic kernel 
     GeneratorFIR("TiledFir40GenericScalar", Samples, 40, 1, 1);
-    // 40 Taps, Specialized and vectorial basic kernel
+    // 40 Taps, Specialized and vectorial basic kernel => 2x16b vectorized version
     GeneratorFIR("TiledFir40Generic", Samples, 40, 0, 0);
 
-    // 10 Taps, Generic and scalar basic kernel
+    // 10 Taps, Generic and scalar basic kernel 
     GeneratorFIR("TiledFir10GenericScalar", Samples, 10, 1, 1);
-    // 10 Taps, Generic and vectorial basic kernel
+    // 10 Taps, Generic and vectorial basic kernel => 2x16b vectorized version
     GeneratorFIR("TiledFir10Generic", Samples, 10, 1, 0);
-    // 10 Taps, Specialized and vectorial basic kernel
+    // 10 Taps, Specialized and vectorial basic kernel => 2x16b vectorized version, and using  GAP8 buitins for multiply accumulate, and dot product
     GeneratorFIR("TiledFir10Opt", Samples, 10, 0, 0);
 
     // 20 Taps, Generic and scalar basic kernel
     GeneratorFIR("TiledFir20GenericScalar", Samples, 20, 1, 1);
-    // 20 Taps, Generic and vectorial basic kernel
+    // 20 Taps, Generic and vectorial basic kernel=> 2x16b vectorized version
     GeneratorFIR("TiledFir20Generic", Samples, 20, 1, 0);
-    // 20 Taps, Specialized and vectorial basic kernel
+    // 20 Taps, Specialized and vectorial basic kernel 10 Taps, Specialized and vectorial basic kernel => 2x16b vectorized version, and using GAP8 buitins for multiply accumulate, and dot product
     GeneratorFIR("TiledFir20Opt", Samples, 20, 0, 0);
 
     // Generate code

@@ -197,6 +197,9 @@ typedef struct {
 	short int * __restrict__ Out;		/**< Output in single precision QNorm */
 	unsigned short int Norm;		/**< Precision */
 	unsigned short int InFeatures;		/**< Number of channels, used only for channel parallel kernels */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
+	short int * __restrict__ MulBias;	/**< Output Multiplicative bias */
 } KerDP_fp_T;
 
 typedef struct {
@@ -206,6 +209,9 @@ typedef struct {
 	signed char * __restrict__ Out;		/**< Output in single precision QNorm */
 	unsigned short int Norm;		/**< Precision */
 	unsigned short int InFeatures;		/**< Number of channels, used only for channel parallel kernels */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
+	signed char * __restrict__ MulBias;	/**< Output Multiplicative bias */
 } KerDP_fps_T;
 
 
@@ -230,6 +236,8 @@ typedef struct {
 	unsigned char My;		/**< Filter My, used only if Mx!=My */
 	unsigned char Sy;		/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;		/**< Dilation Dy, used only if Dx!=Dy */
+	int LB;				/**< Lower bound for the output */
+	int UB;				/**< Upper bound for the output */
 } KerReLUPool_fp_T;
 
 typedef struct {
@@ -249,6 +257,8 @@ typedef struct {
 	unsigned char My;		/**< Filter My, used only if Mx!=My */
 	unsigned char Sy;		/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;		/**< Dilation Dy, used only if Dx!=Dy */
+	int LB;				/**< Lower bound for the output */
+	int UB;				/**< Upper bound for the output */
 } KerReLUPool_fps_T;
 
 
@@ -265,7 +275,8 @@ typedef struct {
 	short int * __restrict__ Bias;		/**< Pointer to bias tile, size is OutSize */
 	short int * __restrict__ Out;		/**< Pointer to output tile, size if OutSize */
 	unsigned char Norm;			/**< Normalization factor */
-	unsigned char DoReLU;			/**< If 0: No linear rectification, if 1: Linear rectification after an output has been fully evaluated */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_T;
 
 typedef struct {
@@ -277,7 +288,8 @@ typedef struct {
 	signed char * __restrict__ Bias;	/**< Pointer to bias tile, size is OutSize */
 	signed char * __restrict__ Out;		/**< Pointer to output tile, size if OutSize */
 	unsigned char Norm;			/**< Normalization factor */
-	unsigned char DoReLU;			/**< If 0: No linear rectification, if 1: Linear rectification after an output has been fully evaluated */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fps_T;
 
 typedef struct {
@@ -290,7 +302,8 @@ typedef struct {
 	short int * __restrict__ Out;		/**< Pointer to output tile, size if OutSize */
 	unsigned char Norm;			/**< Normalization factor */
 	unsigned char NormBias;			/**< Normalization factor for the bias */
-	unsigned char DoReLU;			/**< If 0: No linear rectification, if 1: Linear rectification after an output has been fully evaluated */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_fps_fp_T;
 
 typedef struct {
@@ -303,7 +316,8 @@ typedef struct {
 	int * __restrict__ Out;			/**< Pointer to output tile, size if OutSize */
 	unsigned char Norm;			/**< Normalization factor */
 	unsigned char NormBias;			/**< Normalization factor for the bias */
-	unsigned char DoReLU;			/**< If 0: No linear rectification, if 1: Linear rectification after an output has been fully evaluated */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_fp_fpd_T;
 
 
@@ -318,6 +332,11 @@ typedef struct {
 	unsigned short int W;			/**< Input Width */
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of (input, input, output) */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
+	unsigned char In1_Q;			/**< In1 quantization */
+	unsigned char In2_Q;			/**< In2 quantization */
+	unsigned char Out_Q;			/**< Out quantization */
 } KerMat3_fp_T;
 
 typedef struct {
@@ -327,6 +346,11 @@ typedef struct {
 	unsigned short int W;			/**< Input Width */
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of (input, input, output) */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
+	unsigned char In1_Q;			/**< In1 quantization */
+	unsigned char In2_Q;			/**< In2 quantization */
+	unsigned char Out_Q;			/**< Out quantization */
 } KerMat3_fps_T;
 
 typedef struct {
@@ -340,9 +364,10 @@ typedef struct {
 	unsigned short int W_Out;		/**< Output matrix full width */
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	short int * __restrict__ BufferColIn2;	/**< In case vectorization is used will be used to copy a column of In2 into a line */
-	int OutLowBound;			/**< If Out<OutLowBound the Out=OutLowBound */
-	int OutUpBound;				/**< If Out>OutLowBound the Out=UpLowBound */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
+	unsigned char ColFirst;			/**< 1 if product is formed with a vertical tile from In1 and a horizontal from In2, 0 if Hor tile In1 Ver tile In2 */
 	unsigned char Sx;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sx applies to W and Sy to H */
 	unsigned char Sy;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sy applies to W and Sy to H */
 	unsigned short int W;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], W */
@@ -360,9 +385,10 @@ typedef struct {
 	unsigned short int W_Out;		/**< Output matrix full width */
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	short int * __restrict__ BufferColIn2;	/**< In case vectorization is used will be used to copy a column of In2 into a line */
-	int OutLowBound;			/**< If Out<OutLowBound the Out=OutLowBound */
-	int OutUpBound;				/**< If Out>OutLowBound the Out=UpLowBound */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
+	unsigned char ColFirst;			/**< 1 if product is formed with a vertical tile from In1 and a horizontal from In2, 0 if Hor tile In1 Ver tile In2 */
 	unsigned char Sx;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sx applies to W and Sy to H */
 	unsigned char Sy;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sy applies to W and Sy to H */
 	unsigned short int W;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], W */
@@ -380,9 +406,10 @@ typedef struct {
 	unsigned short int W_Out;		/**< Output matrix full width */
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	signed char * __restrict__ BufferColIn2;/**< In case vectorization is used will be used to copy a column of In2 into a line */
-	int OutLowBound;			/**< If Out<OutLowBound the Out=OutLowBound */
-	int OutUpBound;				/**< If Out>OutLowBound the Out=UpLowBound */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
+	unsigned char ColFirst;			/**< 1 if product is formed with a vertical tile from In1 and a horizontal from In2, 0 if Hor tile In1 Ver tile In2 */
 	unsigned char Sx;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sx applies to W and Sy to H */
 	unsigned char Sy;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sy applies to W and Sy to H */
 	unsigned short int W;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], W */
@@ -400,9 +427,10 @@ typedef struct {
 	unsigned short int W_Out;		/**< Output matrix full width */
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	signed char * __restrict__ BufferColIn2;/**< In case vectorization is used will be used to copy a column of In2 into a line */
-	int OutLowBound;			/**< If Out<OutLowBound the Out=OutLowBound */
-	int OutUpBound;				/**< If Out>OutLowBound the Out=UpLowBound */
+	int LB;					/**< If Out<LB then Out=LB */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
+	unsigned char ColFirst;			/**< 1 if product is formed with a vertical tile from In1 and a horizontal from In2, 0 if Hor tile In1 Ver tile In2 */
 	unsigned char Sx;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sx applies to W and Sy to H */
 	unsigned char Sy;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], Sy applies to W and Sy to H */
 	unsigned short int W;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], W */
@@ -503,6 +531,84 @@ extern void KerParConvDWNxMStrideSxSy_fp(KerConv_fp_T *Arg);
 
 extern void KerParConvDWNxMDxDyStrideSxSy_fp(KerConv_fp_T *Arg);
 
+/* Single precision Depth Wise with double precision bias */
+extern void KerParConvDW1x1Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x1Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x1StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDW3x1Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW3x1Stride2x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x3Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x3Stride1x2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW3x3Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW3x3Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW3x3StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDW5x1Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW5x1Stride2x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x5Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW1x5Stride1x2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW5x5Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW5x5Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDW5x5StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWNxNStrideS_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWNxMStrideSxSy_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWNxMDxDyStrideSxSy_fpd_fp(KerConv_fp_T *Arg);
+
+/* Double precision Depth Wise*/
+extern void KerParConvDWDP1x1Stride1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x1Stride2_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x1StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDP3x1Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x1Stride2x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x3Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x3Stride1x2_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3Stride1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3Stride2_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDP5x1Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x1Stride2x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x5Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x5Stride1x2_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5Stride1_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5Stride2_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDPNxNStrideS_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDPNxMStrideSxSy_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDPNxMDxDyStrideSxSy_fp(KerConv_fp_T *Arg);
+
+/* Double precision Depth Wise with double precision bias */
+extern void KerParConvDWDP1x1Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x1Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x1StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDP3x1Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x1Stride2x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x3Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x3Stride1x2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP3x3StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDP5x1Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x1Stride2x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x5Stride1x1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP1x5Stride1x2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5Stride1_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5Stride2_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDP5x5StrideS_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDPNxNStrideS_fpd_fp(KerConv_fp_T *Arg);
+extern void KerParConvDWDPNxMStrideSxSy_fpd_fp(KerConv_fp_T *Arg);
+
+extern void KerParConvDWDPNxMDxDyStrideSxSy_fpd_fp(KerConv_fp_T *Arg);
+
 /* Double precision */
 extern void KerParConv1x1Stride1_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerParConv1x1Stride2_DP_fp(KerConv_DP_fp_T *Arg);
@@ -585,6 +691,84 @@ extern void KerParConvDWNxNStrideS_fps(KerConv_fps_T *Arg);
 extern void KerParConvDWNxMStrideSxSy_fps(KerConv_fps_T *Arg);
 
 extern void KerParConvDWNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg);
+
+/* Single precision, Depth Wise, double precision bias */
+extern void KerParConvDW1x1Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x1Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x1StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDW3x1Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW3x1Stride2x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x3Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x3Stride1x2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW3x3Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW3x3Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW3x3StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDW5x1Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW5x1Stride2x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x5Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW1x5Stride1x2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW5x5Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW5x5Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDW5x5StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWNxNStrideS_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWNxMStrideSxSy_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWNxMDxDyStrideSxSy_fp_fps(KerConv_fps_T *Arg);
+
+/* Double precision, Depth Wise */
+extern void KerParConvDWDP1x1Stride1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x1Stride2_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x1StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDP3x1Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x1Stride2x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x3Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x3Stride1x2_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3Stride1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3Stride2_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDP5x1Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x1Stride2x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x5Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x5Stride1x2_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5Stride1_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5Stride2_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDPNxNStrideS_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDPNxMStrideSxSy_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDPNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg);
+
+/* Double precision, Depth Wise, double precision bias */
+extern void KerParConvDWDP1x1Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x1Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x1StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDP3x1Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x1Stride2x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x3Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x3Stride1x2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP3x3StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDP5x1Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x1Stride2x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x5Stride1x1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP1x5Stride1x2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5Stride1_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5Stride2_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDP5x5StrideS_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDPNxNStrideS_fp_fps(KerConv_fps_T *Arg);
+extern void KerParConvDWDPNxMStrideSxSy_fp_fps(KerConv_fps_T *Arg);
+
+extern void KerParConvDWDPNxMDxDyStrideSxSy_fp_fps(KerConv_fps_T *Arg);
 
 /* Double precision */
 extern void KerParConv1x1Stride1_DP_fps(KerConv_DP_fps_T *Arg);
@@ -669,6 +853,32 @@ extern void KerConvDWNxMStrideSxSy_fp(KerConv_fp_T *Arg);
 
 extern void KerConvDWNxMDxDyStrideSxSy_fp(KerConv_fp_T *Arg);
 
+/* Double precision, Depth Wise */
+extern void KerConvDWDP1x1Stride1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x1Stride2_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x1StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerConvDWDP3x1Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP3x1Stride2x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x3Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x3Stride1x2_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP3x3Stride1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP3x3Stride2_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP3x3StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerConvDWDP5x1Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP5x1Stride2x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x5Stride1x1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP1x5Stride1x2_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP5x5Stride1_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP5x5Stride2_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDP5x5StrideS_fp(KerConv_fp_T *Arg);
+
+extern void KerConvDWDPNxNStrideS_fp(KerConv_fp_T *Arg);
+extern void KerConvDWDPNxMStrideSxSy_fp(KerConv_fp_T *Arg);
+
+extern void KerConvDWDPNxMDxDyStrideSxSy_fp(KerConv_fp_T *Arg);
+
 /* Double precision */
 extern void KerConv1x1Stride1_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerConv1x1Stride2_DP_fp(KerConv_DP_fp_T *Arg);
@@ -752,6 +962,32 @@ extern void KerConvDWNxMStrideSxSy_fps(KerConv_fps_T *Arg);
 
 extern void KerConvDWNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg);
 
+/* Double precision, Depth Wise */
+extern void KerConvDWDP1x1Stride1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x1Stride2_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x1StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerConvDWDP3x1Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP3x1Stride2x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x3Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x3Stride1x2_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP3x3Stride1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP3x3Stride2_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP3x3StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerConvDWDP5x1Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP5x1Stride2x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x5Stride1x1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP1x5Stride1x2_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP5x5Stride1_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP5x5Stride2_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDP5x5StrideS_fps(KerConv_fps_T *Arg);
+
+extern void KerConvDWDPNxNStrideS_fps(KerConv_fps_T *Arg);
+extern void KerConvDWDPNxMStrideSxSy_fps(KerConv_fps_T *Arg);
+
+extern void KerConvDWDPNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg);
+
 /* Double precision */
 extern void KerConv1x1Stride1_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerConv1x1Stride2_DP_fps(KerConv_DP_fps_T *Arg);
@@ -803,13 +1039,35 @@ extern void KerReLU_fps(KerReLUPool_fps_T *Arg);
 extern void KerDP_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location */
 extern void KerDP_IO_fp(KerDP_fp_T *Arg);
-
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints,
+   same MulBias applied to all out channels */
+extern void KerDPMulBiasScalar_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location,
+   same MulBias applied to all out channels */
+extern void KerDPMulBiasScalar_IO_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints,
+   each out channel has its own MulBias */
+extern void KerDPMulBias_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location,
+   each out channel has its own MulBias */
+extern void KerDPMulBias_IO_fp(KerDP_fp_T *Arg);
 
 /* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints */
 extern void KerDP_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location */
 extern void KerDP_IO_fps(KerDP_fps_T *Arg);
-
+/* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints,
+   same MulBias applied to all out channels */
+extern void KerDPMulBiasScalar_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location,
+   same MulBias applied to all out channels */
+extern void KerDPMulBiasScalar_IO_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints,
+   each out channel has its own MulBias */
+extern void KerDPMulBias_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location,
+   each out channel has its own MulBias */
+extern void KerDPMulBias_IO_fps(KerDP_fps_T *Arg);
 
 /******************************************************************************************************************************/
 /**************** MAX/AVG POOLING WITH OPTIONAL ReLU **************************************************************************/
@@ -881,7 +1139,11 @@ extern void KerParLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
 /******************************************************************************************************************************/
 
 extern void KerParMatAdd_fp(KerMat3_fp_T *Arg);
+extern void KerParMatAddDynAdjust_fp(KerMat3_fp_T *Arg);
+
 extern void KerParMatAdd_fps(KerMat3_fps_T *Arg);
+extern void KerParMatAddDynAdjust_fps(KerMat3_fps_T *Arg);
+
 extern void KerParMatAddReLU_fp(KerMat3_fp_T *Arg);
 extern void KerParMatAddReLU_fps(KerMat3_fps_T *Arg);
 

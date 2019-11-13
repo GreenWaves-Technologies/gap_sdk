@@ -1,6 +1,23 @@
 /* PMSIS includes */
 #include "pmsis.h"
-#include "pmsis_driver/pmu/pmu_gap8.h"
+
+#if defined(__PULP_OS__)
+#include "pulp.h"
+
+#define FLL_SOC_MIN_FREQUENCY         ( 150000000 )
+#define FLL_SOC_MAX_FREQUENCY         ( 250000000 )
+#define FLL_CLUSTER_MIN_FREQUENCY     ( 87000000 )
+#define FLL_CLUSTER_MAX_FREQUENCY     ( 175000000 )
+#define FLL_SOC_FV_SLOPE              ( (FLL_SOC_MAX_FREQUENCY-FLL_SOC_MIN_FREQUENCY)/(DCDC_DEFAULT_NV-DCDC_DEFAULT_LV) )
+#define FLL_CLUSTER_FV_SLOPE          ( (FLL_CLUSTER_MAX_FREQUENCY-FLL_CLUSTER_MIN_FREQUENCY)/(DCDC_DEFAULT_NV-DCDC_DEFAULT_LV) )
+
+#define pi_fll_get_frequency(x)       ( rt_freq_get(x) )
+#define pi_fll_set_frequency(x, y, z) ( rt_freq_set(x, y) )
+#define pi_pmu_set_voltage(x, y)      ( rt_voltage_force(RT_VOLTAGE_DOMAIN_MAIN, x, NULL) )
+#endif  /* __PULP_OS__ */
+
+#define SOC_MAX_FREQ_AT_V(x)          ( FLL_SOC_MIN_FREQUENCY + (x - DCDC_DEFAULT_LV) * FLL_SOC_FV_SLOPE )
+#define CL_MAX_FREQ_AT_V(x)           ( FLL_CLUSTER_MIN_FREQUENCY + (x - DCDC_DEFAULT_LV) * FLL_CLUSTER_FV_SLOPE )
 
 /* Variables used. */
 #define FREQUENCY_DELTA  10000000
@@ -30,7 +47,7 @@ void master_entry(void *arg)
 {
     CL_PRINTF("Cluster master core entry\n");
     /* Task dispatch to cluster cores. */
-    pi_cl_team_fork(pi_nb_cluster_cores(), cluster_hello, arg);
+    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_hello, arg);
     CL_PRINTF("Cluster master core exit\n");
 }
 
@@ -55,7 +72,7 @@ void test_cluster_frequency(void)
     int32_t cur_fc_freq = pi_fll_get_frequency(FLL_SOC);
     int32_t cur_cl_freq = pi_fll_get_frequency(FLL_CLUSTER);
 
-    printf("FC frequency : %d\nCL frequency : %d\n", cur_fc_freq, cur_cl_freq);
+    printf("FC frequency : %ld\nCL frequency : %ld\n", cur_fc_freq, cur_cl_freq);
 
     /* Prepare cluster task. */
     struct pi_cluster_task task = {0};
@@ -72,9 +89,9 @@ void test_cluster_frequency(void)
         }
 
         /* Change frequency value for given voltage. */
-        for (int32_t fc_freq = pi_fll_soc_max_freq_at_V(voltage);
-            fc_freq >= FREQUENCY_DELTA;
-            fc_freq -= FREQUENCY_DELTA)
+        for (int32_t fc_freq = SOC_MAX_FREQ_AT_V(voltage);
+             fc_freq >= FREQUENCY_DELTA;
+             fc_freq -= FREQUENCY_DELTA)
         {
             cur_fc_freq = pi_fll_set_frequency(FLL_SOC, fc_freq, 1);
             if (cur_fc_freq == -1)
@@ -82,13 +99,16 @@ void test_cluster_frequency(void)
                 printf("Error changing frequency !\nTest failed...\n");
                 pmsis_exit(-3);
             }
-            printf("SoC Frequency : %d Hz, Voltage : %d mv\t freq : %d\n",
+            #if defined(__PULP_OS__)
+            cur_fc_freq = pi_fll_get_frequency(FLL_SOC);
+            #endif  /* __PULP_OS__ */
+            printf("SoC Frequency : %ld Hz, Voltage : %ld mv\t freq : %ld\n",
                    cur_fc_freq, voltage, fc_freq);
 
             /* Wait some time. */
             for (volatile uint32_t i = 0; i < 10000; i++);
 
-            for (int32_t cl_freq = pi_fll_cluster_max_freq_at_V(voltage);
+            for (int32_t cl_freq = CL_MAX_FREQ_AT_V(voltage);
                  cl_freq >= FREQUENCY_DELTA;
                  cl_freq -= FREQUENCY_DELTA)
             {
@@ -98,7 +118,10 @@ void test_cluster_frequency(void)
                     printf("Error changing frequency !\nTest failed...\n");
                     pmsis_exit(-4);
                 }
-                printf("Cluster Frequency : %d Hz, freq : %d\n", cur_cl_freq, cl_freq);
+                #if defined(__PULP_OS__)
+                cur_cl_freq = pi_fll_get_frequency(FLL_CLUSTER);
+                #endif  /* __PULP_OS__ */
+                printf("Cluster Frequency : %ld Hz, freq : %ld\n", cur_cl_freq, cl_freq);
 
                 #if defined(ASYNC)
                 pi_task_t wait_task = {0};
@@ -115,8 +138,8 @@ void test_cluster_frequency(void)
     printf("Close cluster after end of computation.\n");
     pi_cluster_close(&cluster_dev);
 
-    printf("\nCluster frequency done with %d error(s) !\n", errors);
-    printf("Test %s with %d error(s) !\n", (errors) ? "failed" : "success", errors);
+    printf("\nCluster frequency done with %ld error(s) !\n", errors);
+    printf("Test %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);
 
     pmsis_exit(errors);
 }

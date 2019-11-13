@@ -72,7 +72,6 @@ typedef uint32_t TickType_t;
 /*-----------------------------------------------------------*/
 
 /* Scheduler utilities. */
-extern void vPortYield( void );
 extern void vSetPendSV();
 
 #define portYIELD()                                      ( vSetPendSV() )

@@ -211,7 +211,7 @@ static inline void pi_ram_copy(struct pi_device *device, uint32_t pi_ram_addr,
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  */
 static inline void pi_ram_read_2d(struct pi_device *device, uint32_t pi_ram_addr,
@@ -233,7 +233,7 @@ static inline void pi_ram_read_2d(struct pi_device *device, uint32_t pi_ram_addr
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  */
 static inline void pi_ram_write_2d(struct pi_device *device, uint32_t pi_ram_addr,
@@ -254,7 +254,7 @@ static inline void pi_ram_write_2d(struct pi_device *device, uint32_t pi_ram_add
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc     1 if the copy is from RAM to the chip or 0 for the
  *   contrary.
@@ -343,7 +343,7 @@ static inline void pi_ram_copy_async(struct pi_device *device, uint32_t pi_ram_a
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param task        The task used to notify the end of transfer. See the
  * documentation of pi_task_t for more details.
@@ -369,7 +369,7 @@ static inline void pi_ram_read_2d_async(struct pi_device *device,
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param task        The task used to notify the end of transfer. See the
  *   documentation of pi_task_t for more details.
@@ -394,7 +394,7 @@ static inline void pi_ram_write_2d_async(struct pi_device *device,
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc     1 if the copy is from RAM to the chip or 0 for the
  *   contrary.
@@ -551,7 +551,7 @@ void pi_cl_ram_copy(struct pi_device *device,
  * \param size        The size in bytes of the copy.
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param req         A pointer to the RAM request structure. It must be
  *   allocated by the caller and kept alive until the copy is finished.
@@ -579,7 +579,7 @@ static inline void pi_cl_ram_read_2d(struct pi_device *device,
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param req         A pointer to the RAM request structure. It must be
  *   allocated by the caller and kept alive until the copy is finished.
@@ -607,7 +607,7 @@ static inline void pi_cl_ram_write_2d(struct pi_device *device,
  * \param size        The size in bytes of the copy
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc     1 if the copy is from RAM to the chip or 0 for the
  *   contrary.

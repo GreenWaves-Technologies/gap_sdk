@@ -85,7 +85,6 @@ EXTRA_PROPERTIES = {
     'image_mode' : 'input image mode (one of {})'.format(", ".join(MODES.keys())),
     'input_divisor': "divide input tensor values by this value",
     'input_offset': "add this value to input tensor values",
-    'input_norm_func': "lambda function in the form x: fn(x) where x is any input",
     'graph_name': 'name of the graph used for code generation',
     'template_file': 'template file used for code generation'
 }
@@ -120,7 +119,6 @@ class NNToolShell(Cmd):
             'image_height': -1,
             'image_mode': "",
             'image_transpose': False,
-            'input_norm_func': "",
             'input_divisor': 128,
             'input_offset': -1,
             'input_shift': 0,
@@ -342,14 +340,11 @@ class NNToolShell(Cmd):
                 if args.offset is None else args.offset
             res['transpose'] = self.settings['image_transpose'] if args.transpose is None\
                 else args.transpose
-            res['norm_func'] = self.settings['input_norm_func'] if args.norm_func is None\
-                else args.norm_func
         else:
 #            res['shift'] = self.settings['input_shift']
             res['divisor'] = self.settings['input_divisor']
             res['offset'] = self.settings['input_offset']
             res['transpose'] = self.settings['image_transpose']
-            res['norm_func'] = self.settings['input_norm_func']
 
         return res
 
@@ -592,16 +587,6 @@ in the ~/.nntool directory"""
     @input_divisor.setter
     def input_divisor(self, val):
         self.settings['input_divisor'] = int(val)
-
-    # INPUT_NORM_FUNC PROPERTY
-
-    @property
-    def input_norm_func(self):
-        return self.settings['input_norm_func']
-
-    @input_norm_func.setter
-    def input_norm_func(self, val):
-        self.settings['input_norm_func'] = str(val)
 
     # INPUT_OFFSET PROPERTY
 

@@ -29,6 +29,9 @@ ifndef GAP_SDK_HOME
     $(error Please run 'source sourceme.sh' in gap_sdk first)
 endif
 
+BUILD_DIR ?= $(CURDIR)/build
+export BUILD_DIR
+
 CD = cd
 CP = cp -rf
 RM = rm -rf
@@ -91,7 +94,7 @@ nntool:
 
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp/pulp-os -f gap_sdk.mk $(TARGET_NAME)
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
 
 flasher: pulp-os

@@ -29,27 +29,20 @@
  */
 
 #include "pmsis.h"
-#include "stddef.h"
-#include "pmsis/task.h"
-#include "pmsis/rtos/event_kernel/event_kernel.h"
-#include "pmsis/drivers/gpio.h"
-#include "pmsis_driver/pmsis_fc_event.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
-#include "pmsis_hal/gpio/gpio.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-/*******************************************************************************
- * Driver data
- *****************************************************************************/
 
 typedef struct
 {
     uint8_t port;
     pi_task_t *cb;
 } pi_gpio_t;
+
+/*******************************************************************************
+ * Driver data
+ *****************************************************************************/
 
 static pi_gpio_t __global_gpio[ARCHI_NB_GPIO];
 
@@ -161,14 +154,20 @@ int pi_gpio_open(struct pi_device *device)
 }
 
 /* TODO : Add flags to set irq type, irq enable, drive strength, pull enable. */
-int pi_gpio_pin_configure(struct pi_device *device, int pin, pi_gpio_flags_e flags)
+int pi_gpio_pin_configure(struct pi_device *device, pi_gpio_e gpio, pi_gpio_flags_e flags)
 {
-    uint8_t dir = (flags & PI_GPIO_OUTPUT) >> 1;
-    uint8_t pe = (flags & PI_GPIO_PULL_ENABLE) >> 0;
-    uint8_t ds = (flags & PI_GPIO_DRIVE_STRENGTH_HIGH) >> 2;
+    pi_pad_e pad = (gpio >> PI_GPIO_NUM_SHIFT);
+    uint32_t pin = (gpio & PI_GPIO_NUM_MASK);
+
+    /* Setup first pad for GPIO. */
+    pi_pad_set_function(pad, PI_PAD_FUNC1);
+
+    uint8_t pe = (flags & PI_GPIO_PULL_ENABLE) >> PI_GPIO_PULL_OFFSET;
+    uint8_t ds = (flags & PI_GPIO_DRIVE_STRENGTH_HIGH) >> PI_GPIO_DRIVE_OFFSET;
+    uint8_t dir = (flags & PI_GPIO_OUTPUT) >> PI_GPIO_MODE_OFFSET;
 
     hal_gpio_pin_set_direction(pin, dir);
-    //hal_gpio_pin_configuration(pin, pe, ds);
+    hal_gpio_pin_configuration(pin, pe, ds);
     hal_gpio_pin_enable(pin, !dir);
     #ifdef DEBUG
     pi_gpio_print();
@@ -176,8 +175,9 @@ int pi_gpio_pin_configure(struct pi_device *device, int pin, pi_gpio_flags_e fla
     return 0;
 }
 
-int pi_gpio_pin_write(struct pi_device *device, int pin, uint32_t value)
+int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
 {
+    pin = (pin & PI_GPIO_NUM_MASK);
     #ifdef DEBUG
     DEBUG_PRINTF("Pin: %d val: %d\n", pin, value);
     #endif
@@ -185,36 +185,49 @@ int pi_gpio_pin_write(struct pi_device *device, int pin, uint32_t value)
     return 0;
 }
 
-int pi_gpio_pin_read(struct pi_device *device, int pin, uint32_t *value)
+int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value)
 {
+    pin = (pin & PI_GPIO_NUM_MASK);
     *value = hal_gpio_get_input_value(pin);
     return *value;
 }
 
-int pi_gpio_pin_task_add(struct pi_device *device, int pin,
-                             pi_task_t *task, pi_gpio_notif_e irq_type)
+void pi_gpio_pin_notif_configure(struct pi_device *device, uint32_t pin, pi_gpio_notif_e irq_type)
 {
-    __global_gpio_task[pin] = task;
-    hal_gpio_pin_set_irq_type(pin, irq_type);
-    return 0;
+    pin = (pin & PI_GPIO_NUM_MASK);
+    if (irq_type == PI_GPIO_NOTIF_NONE)
+    {
+        hal_gpio_pin_set_irq(pin, 0);
+    }
+    else
+    {
+        hal_gpio_pin_set_irq(pin, 1);
+        hal_gpio_pin_set_irq_type(pin, irq_type);
+    }
 }
 
-int pi_gpio_pin_task_remove(struct pi_device *device, int pin)
+void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin)
 {
-    __global_gpio_task[pin] = NULL;
-    hal_gpio_pin_set_irq_type(pin, PI_GPIO_NOTIF_NONE);
-    return 0;
+    pin = (pin & PI_GPIO_NUM_MASK);
+    __gpio_irq_status &= ~(0x1 << pin);
+}
+
+int pi_gpio_pin_notif_get(struct pi_device *device, uint32_t pin)
+{
+    pin = (pin & PI_GPIO_NUM_MASK);
+    __gpio_irq_status = hal_gpio_get_irq_status();
+    return ((__gpio_irq_status >> pin) & 0x1);
 }
 
 /* TODO : Add flags to set irq type, irq enable, drive strength, pull enable. */
 int pi_gpio_mask_configure(struct pi_device *device, uint32_t mask, pi_gpio_flags_e flags)
 {
-    uint8_t dir = (flags & PI_GPIO_OUTPUT) >> 1;
-    uint8_t pe = (flags & PI_GPIO_PULL_ENABLE) >> 0;
-    uint8_t ds = (flags & PI_GPIO_DRIVE_STRENGTH_HIGH) >> 2;
+    uint8_t pe = (flags & PI_GPIO_PULL_ENABLE) >> PI_GPIO_PULL_OFFSET;
+    uint8_t ds = (flags & PI_GPIO_DRIVE_STRENGTH_HIGH) >> PI_GPIO_DRIVE_OFFSET;
+    uint8_t dir = (flags & PI_GPIO_OUTPUT) >> PI_GPIO_MODE_OFFSET;
 
     hal_gpio_set_direction(mask, dir);
-    //hal_gpio_configuration(mask, pe, ds);
+    hal_gpio_configuration(mask, pe, ds);
     hal_gpio_enable(mask, !dir);
     return 0;
 }
@@ -261,26 +274,20 @@ int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask)
     return 0;
 }
 
-void pi_gpio_pin_notif_configure(struct pi_device *device, int pin, pi_gpio_notif_e irq_type)
+int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin,
+                             pi_task_t *task, pi_gpio_notif_e irq_type)
 {
-    if (irq_type == PI_GPIO_NOTIF_NONE)
-    {
-        hal_gpio_pin_set_irq(pin, 0);
-    }
-    else
-    {
-        hal_gpio_pin_set_irq(pin, 1);
-        hal_gpio_pin_set_irq_type(pin, irq_type);
-    }
+    pin = (pin & PI_GPIO_NUM_MASK);
+    __global_gpio_task[pin] = task;
+    hal_gpio_pin_set_irq_type(pin, irq_type);
+    return 0;
 }
 
-void pi_gpio_pin_notif_clear(struct pi_device *device, int pin)
+int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin)
 {
-    __gpio_irq_status &= ~(0x1 << pin);
+    pin = (pin & PI_GPIO_NUM_MASK);
+    __global_gpio_task[pin] = NULL;
+    hal_gpio_pin_set_irq_type(pin, PI_GPIO_NOTIF_NONE);
+    return 0;
 }
 
-int pi_gpio_pin_notif_get(struct pi_device *device, int pin)
-{
-    __gpio_irq_status = hal_gpio_get_irq_status();
-    return ((__gpio_irq_status >> pin) & 0x1);
-}

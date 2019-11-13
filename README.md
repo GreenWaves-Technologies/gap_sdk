@@ -22,7 +22,7 @@ We provide you with all the necessary tools and two different operating systems 
     -   PULP OS - The open source embedded RTOS produced by the PULP project
     -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8 and VEGA.
     -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
-    -   PMSIS - PMSIS (PULP Microcontroller Software Interface Standard) is an open-source system layer. Any operating system can implement it to provide a common API to applications. We currently provide it with PULP OS and FreeRTOS, and it is used by our applications to be easily portable.
+    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it fro PULP OS and FreeRTOS, and it is used by our applications to be portable.
 
 ##  Getting started with the GAP SDK
 

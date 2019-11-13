@@ -20,7 +20,7 @@
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 
 // Only a fix for gap8, remove for chips with l2 t&s or atomic instructions
-spinlock_t cluster_printf_spinlock;
+extern spinlock_t cluster_printf_spinlock;
 #endif
 
 extern uint32_t SystemCoreClock;

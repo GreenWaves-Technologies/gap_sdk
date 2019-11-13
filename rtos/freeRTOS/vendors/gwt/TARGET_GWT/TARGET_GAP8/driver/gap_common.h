@@ -35,7 +35,6 @@
 #include "gap_efuse.h"
 #include "gap_io.h"
 #include "gap_rtc.h"
-#include "gap_pwm.h"
 #include "gap_dmacpy.h"
 
 #include "gap_debug.h"

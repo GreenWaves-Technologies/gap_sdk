@@ -70,24 +70,6 @@ void vPortClear_Interrupt_Mask_From_ISR( uint32_t irqSet );
 /* Variables. */
 volatile uint32_t ulCriticalNesting = 0ul;
 
-/*
- * ulCriticalNesting : not necessary.
- * void vPortEnter_Critical( void ), void vPortExit_Critical( void )
- * Both functions are not needed. Functions defined in tasks.c,
- * portCRITICAL_NESTING_IN_TCB must be set to 1 in order to track nesting
- * in Task Control Block.
- * Refer to l. 269, 4068, 4098 in tasks.c.
- *
- * If portCRITICAL_NESTING_IN_TCB 1 defined, no need of ulCriticalNesting,
- * neither void vPortEnter_Critical( void ), void vPortExit_Critical( void ) to
- * be defined.
- */
-
-/* ISR Stack of 1kB. */
-extern uint8_t __irq_stack_start__;
-StackType_t *xISRStack = ( StackType_t * ) &__irq_stack_start__;
-
-
 /*-----------------------------------------------------------*/
 /* See header file for description. */
 StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack,

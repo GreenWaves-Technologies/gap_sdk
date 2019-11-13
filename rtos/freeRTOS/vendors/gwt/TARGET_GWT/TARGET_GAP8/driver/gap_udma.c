@@ -74,7 +74,7 @@ static void UDMA_SetChannelBase() {
   udma_channels[1].base = NULL;//(UDMA_Type *) SPIM0;
   udma_channels[2].base = NULL;//(UDMA_Type *) SPIM1;
   udma_channels[3].base = NULL;//(UDMA_Type *) HYPERBUS0;
-  udma_channels[4].base = (UDMA_Type *) UART;
+  udma_channels[4].base = NULL;//(UDMA_Type *) UART;
   udma_channels[5].base = NULL;//(UDMA_Type *) I2C0;
   udma_channels[6].base = NULL;//(UDMA_Type *) I2C1;
   udma_channels[7].base = (UDMA_Type *) DMACPY;

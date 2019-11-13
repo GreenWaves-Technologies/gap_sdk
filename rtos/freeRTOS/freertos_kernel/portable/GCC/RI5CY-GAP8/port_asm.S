@@ -35,8 +35,6 @@
         This file contains some macro definitions and functions defined in ASM.
         Functions :
         *xPortStartScheduler
-        *vPortYield
-        *vPortCtxSwitch
 ********************************************************************************/
 
 /*******************************************************************************

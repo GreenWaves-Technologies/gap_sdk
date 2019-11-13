@@ -8,7 +8,7 @@
  */
 
 #include <stdio.h>
-#include "Gap8.h"
+#include "Gap.h"
 #include "FirKernels.h"
 
 
@@ -92,7 +92,7 @@ static inline __attribute__((always_inline)) void DumpPerf(rt_perf_t * p_perf, i
 {
 	rt_perf_stop(p_perf);
 	rt_perf_save(p_perf);
-	printf("Core %1d %d Taps %5d Samples %s Cycles %8d PerOut %2d\n", gap8_ncore(), taps,
+	printf("Core %1d %d Taps %5d Samples %s Cycles %8d PerOut %2d\n", gap_ncore(), taps,
 		NSAMPLES, typ, rt_perf_read(RT_PERF_CYCLES), rt_perf_read(RT_PERF_CYCLES)/NSAMPLES);
 	check_output(taps);
 	rt_perf_init(p_perf);
@@ -124,28 +124,28 @@ static void cluster_main()
 	rt_perf_conf(&perf, RT_PERF_CYCLES);
 	rt_perf_start(&perf);
 	
-	TiledFir10GenericScalar(Samples, L1_Coeffs10, Out, 16, 0);
+	TiledFir10GenericScalar(Samples, L1_Coeffs10, Out, 16);
 	DumpPerf(&perf, 10, "GenericScalar");
 
-	TiledFir10Generic(Samples, L1_Coeffs10, Out, 16, 0);
+	TiledFir10Generic(Samples, L1_Coeffs10, Out, 16);
 	DumpPerf(&perf, 10, "GenericVect  ");
 
-	TiledFir10Opt(Samples, L1_Coeffs10, Out, 16, 0);
+	TiledFir10Opt(Samples, L1_Coeffs10, Out, 16);
 	DumpPerf(&perf, 10, "OptVect      ");
 
-	TiledFir20GenericScalar(Samples, L1_Coeffs20, Out, 16, 0);
+	TiledFir20GenericScalar(Samples, L1_Coeffs20, Out, 16);
 	DumpPerf(&perf, 20, "GenericScalar");
 
-	TiledFir20Generic(Samples, L1_Coeffs20, Out, 16, 0);
+	TiledFir20Generic(Samples, L1_Coeffs20, Out, 16);
 	DumpPerf(&perf, 20, "GenericVect  ");
 
-	TiledFir20Opt(Samples, (short int*)L1_Coeffs20, Out, 16, 0);
+	TiledFir20Opt(Samples, (short int*)L1_Coeffs20, Out, 16);
 	DumpPerf(&perf, 20, "OptVect      ");	
 
-	TiledFir40GenericScalar(Samples,  (short int*)L1_Coeffs40, Out, 16, 0);
+	TiledFir40GenericScalar(Samples,  (short int*)L1_Coeffs40, Out, 16);
 	DumpPerf(&perf, 40, "GenericScalar");
 
-	TiledFir40Generic(Samples,  (short int*)L1_Coeffs40, Out, 16, 0);
+	TiledFir40Generic(Samples,  (short int*)L1_Coeffs40, Out, 16);
 	DumpPerf(&perf, 40, "GenericVect  ");
 	rt_perf_stop(&perf);
 }

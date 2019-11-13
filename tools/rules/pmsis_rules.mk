@@ -4,6 +4,9 @@ PMSIS_OS ?= pulpos
 ifeq ($(BOARD_NAME), gapoc_a)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_A
 PLPBRIDGE_FLAGS        += -ftdi
+else ifeq ($(BOARD_NAME), gapoc_b)
+COMMON_CFLAGS          += -DCONFIG_GAPOC_B
+PLPBRIDGE_FLAGS        += -ftdi
 else ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO
 endif
@@ -30,6 +33,10 @@ PMSIS_BSP_DIR           += $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 ifeq ($(BOARD_NAME), gapoc_a)
 APP_SRC                 += $(PMSIS_BSP_DIR)/bsp/gapoc_a.c
 NOT_IN                  += -not -path "$(PMSIS_BSP_DIR)/camera/himax/*"
+else ifeq ($(BOARD_NAME), gapoc_b)
+APP_SRC                 += $(PMSIS_BSP_DIR)/bsp/gapoc_b.c
+NOT_IN                  += -not -path "$(PMSIS_BSP_DIR)/camera/himax/*"
+NOT_IN                  += -not -path "$(PMSIS_BSP_DIR)/camera/mt9v034/*"
 else ifeq ($(BOARD_NAME), gapuino)
 APP_SRC                 += $(PMSIS_BSP_DIR)/bsp/gapuino.c
 NOT_IN                  += -not -path "$(PMSIS_BSP_DIR)/camera/mt9v034/*"

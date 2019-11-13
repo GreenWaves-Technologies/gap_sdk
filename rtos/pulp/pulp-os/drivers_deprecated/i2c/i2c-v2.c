@@ -202,8 +202,8 @@ rt_i2c_t *rt_i2c_open(char *dev_name, rt_i2c_conf_t *i2c_conf, rt_event_t *event
   i2c->div = __rt_i2c_get_div(i2c->max_baudrate);
 
   plp_udma_cg_set(plp_udma_cg_get() | (1<<channel));
-  soc_eu_fcEventMask_setEvent(channel*2);
-  soc_eu_fcEventMask_setEvent(channel*2 + 1);
+  soc_eu_fcEventMask_setEvent(UDMA_EVENT_ID(channel));
+  soc_eu_fcEventMask_setEvent(UDMA_EVENT_ID(channel) + 1);
 
   rt_irq_restore(irq);
 

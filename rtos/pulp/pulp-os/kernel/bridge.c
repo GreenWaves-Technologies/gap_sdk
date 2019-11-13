@@ -114,7 +114,7 @@ static void __rt_bridge_post_reply(rt_bridge_req_t *req, rt_event_t *event)
 
 static void __rt_bridge_efuse_access(int is_write, int index, unsigned int value, unsigned int mask)
 {
-  printf("Writing efuse (index: %d, value: 0x%x, mask: 0x%x)\n", index, value, mask);
+  //printf("Writing efuse (index: %d, value: 0x%x, mask: 0x%x)\n", index, value, mask);
 #ifdef EFUSE_VERSION
   plp_efuse_configTimings (250 << 20 | 50 << 10 | 5);
   plp_efuse_startProgram ();
@@ -126,7 +126,7 @@ static void __rt_bridge_efuse_access(int is_write, int index, unsigned int value
 static int __rt_bridge_eeprom_access(unsigned int itf, unsigned int cs, int is_write, unsigned int addr, unsigned int buffer, int size)
 {
 #ifdef ARCHI_UDMA_HAS_I2C
-  printf("Eeprom access (is_write: %d, addr: 0x%x, buffer: 0x%x, size: 0x%x)\n", is_write, addr, buffer, size);
+  //printf("Eeprom access (is_write: %d, addr: 0x%x, buffer: 0x%x, size: 0x%x)\n", is_write, addr, buffer, size);
 
   if (__rt_bridge_eeprom_handle == NULL)
   {
@@ -188,7 +188,7 @@ static int __rt_bridge_check_flash_open(int type, unsigned int itf, unsigned int
 
 static int __rt_bridge_flash_access(int type, unsigned int itf, unsigned int cs, int is_write, unsigned int addr, unsigned int buffer, int size)
 {
-  printf("Flash access (type: %d, itf: %d, cs: %d, is_write: %d, addr: 0x%x, buffer: 0x%x, size: 0x%x)\n", type, itf, cs, is_write, addr, buffer, size);
+  //printf("Flash access (type: %d, itf: %d, cs: %d, is_write: %d, addr: 0x%x, buffer: 0x%x, size: 0x%x)\n", type, itf, cs, is_write, addr, buffer, size);
 
   if (__rt_bridge_check_flash_open(type, itf, cs))
     return -1;
@@ -207,7 +207,7 @@ static int __rt_bridge_flash_access(int type, unsigned int itf, unsigned int cs,
 
 static int __rt_bridge_flash_erase(int type, unsigned int itf, unsigned int cs, void *data, int size)
 {
-  printf("Flash erase (type: %d, itf: %d, cs: %d, addr: %p, size: 0x%x)\n", type, itf, cs, data, size);
+  //printf("Flash erase (type: %d, itf: %d, cs: %d, addr: %p, size: 0x%x)\n", type, itf, cs, data, size);
 
   if (__rt_bridge_check_flash_open(type, itf, cs))
     return -1;
@@ -221,7 +221,7 @@ static int __rt_bridge_flash_erase(int type, unsigned int itf, unsigned int cs, 
 
 static int __rt_bridge_flash_erase_chip(int type, unsigned int itf, unsigned int cs)
 {
-  printf("Flash erase chip (type: %d, itf: %d, cs: %d)\n", type, itf, cs);
+  //printf("Flash erase chip (type: %d, itf: %d, cs: %d)\n", type, itf, cs);
 
   if (__rt_bridge_check_flash_open(type, itf, cs))
     return -1;
@@ -235,7 +235,7 @@ static int __rt_bridge_flash_erase_chip(int type, unsigned int itf, unsigned int
 
 static int __rt_bridge_flash_erase_sector(int type, unsigned int itf, unsigned int cs, void *data)
 {
-  printf("Flash erase sector (type: %d, itf: %d, cs: %d, addr: %p)\n", type, itf, cs, data);
+  //printf("Flash erase sector (type: %d, itf: %d, cs: %d, addr: %p)\n", type, itf, cs, data);
 
   if (__rt_bridge_check_flash_open(type, itf, cs))
     return -1;

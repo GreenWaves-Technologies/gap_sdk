@@ -31,10 +31,6 @@
 #ifndef _PMSIS_SOC_EVENT_UNIT_H_
 #define _PMSIS_SOC_EVENT_UNIT_H_
 
-#ifdef __GAP8__
 #include "pmsis_soc_eu_gap8.h"
-#elif defined(__GAP9__)
-#include "pmsis_soc_eu_gap9.h"
-#endif
 
 #endif /*_GAP_SOC_EVENT_UNIT_H_*/

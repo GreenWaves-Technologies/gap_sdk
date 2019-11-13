@@ -18,4 +18,4 @@ Chip-specific information
 GAP8
 ----
 
-All functions transfering data between an external device and a chip memory must use the L2 memory for the chip memory.
+All functions transferring data between an external device and a chip memory must use the L2 memory for the chip memory.

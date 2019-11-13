@@ -439,6 +439,13 @@ void PMU_ShutDown(int Retentive, PMU_SystemStateT WakeUpState)
       PMURetentionState.Fields.BootType = FAST_DEEP_SLEEP_BOOT;
     else
       PMURetentionState.Fields.BootType = DEEP_SLEEP_BOOT;
+
+    // TODO there could be an issue with hyper rwds signal latch after wakeup
+    // set padfun to 0 to be safe, to be checked on silicon
+    hal_apb_soc_padfun_set(2, 0);
+
+
+
   }
   PMURetentionState.Fields.WakeupState = REGULATOR_STATE(WakeUpState);
   PMURetentionState.Fields.ClusterWakeUpState = CLUSTER_STATE(WakeUpState);

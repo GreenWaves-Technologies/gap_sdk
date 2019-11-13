@@ -79,3 +79,8 @@ void pi_pad_init(uint32_t pad_values[])
     pi_pad_print();
     #endif
 }
+
+void pi_pad_set_configuration(pi_pad_e pad, pi_pad_flags_e cfg)
+{
+    hal_padcfg_set_configuration(pad, (cfg >> PI_PAD_PULL_OFFSET), (cfg >> PI_PAD_DRIVE_OFFSET));
+}

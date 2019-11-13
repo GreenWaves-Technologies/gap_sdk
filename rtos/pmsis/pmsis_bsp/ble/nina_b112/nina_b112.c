@@ -187,7 +187,7 @@ uint32_t pi_nina_b112_AT_send(pi_nina_ble_t *ble, const char* cmd)
     }
     else
     {
-        DEBUG_PRINTF("Unsollicited/unrecognised response received : %s !\n",
+        DEBUG_PRINTF("Unsolicited/unrecognised response received : %s !\n",
                   ble->rx_buffer);
         write_result = WR_RES_UNSOL;
     }
@@ -226,7 +226,7 @@ void pi_nina_b112_wait_for_event(pi_nina_ble_t *ble, char* resp)
         pi_yield();
     }
     strcpy((char *) resp, (char *) ble->rx_buffer);
-    DEBUG_PRINTF("Got unsollicited resp : %s\n", resp);
+    DEBUG_PRINTF("Got unsolicited resp : %s\n", resp);
 }
 
 void pi_nina_b112_get_data_blocking(pi_nina_ble_t *ble, uint8_t* buffer, uint32_t size)

@@ -75,7 +75,7 @@ int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster
   rt_cluster_call_pool_t *cl_data = data->pool;
 
   if (task->nb_cores == 0)
-    task->nb_cores = pi_nb_cluster_cores();
+    task->nb_cores = pi_cl_cluster_nb_cores();
 
   if (task->stacks == NULL)
   {

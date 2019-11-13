@@ -50,6 +50,7 @@ AI_DECK_SRC = \
   camera/himax/himax.c \
   flash/flash.c \
   flash/hyperflash/hyperflash.c \
+  fs/read_fs/read_fs.c \
   transport/transport.c \
   transport/nina_w10/nina_w10.c \
   ram/hyperram/hyperram.c \
@@ -63,7 +64,6 @@ GAPOC_A_SRC = \
   flash/flash.c \
   fs/read_fs/read_fs.c \
   flash/hyperflash/hyperflash.c \
-  fs/read_fs/read_fs.c \
   transport/transport.c \
   display/display.c \
   display/ili9341/ili9341.c \

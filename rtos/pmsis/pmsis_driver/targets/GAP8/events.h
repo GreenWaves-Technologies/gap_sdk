@@ -79,7 +79,7 @@
 #define SOC_EVENT_PMU_CLUSTER_CG        (35)
 #define SOC_EVENT_PMU_DLC_BRIDGE_PICL   (36)
 #define SOC_EVENT_PMU_DLC_BRIDGE_SCU    (37)
-#define SOC_EVENT_PWM(id)               ((SOC_EVENT_PMU_DLC_BRIDGE_SCU + 1) + id)
+#define SOC_EVENT_PWM(id)               (38 + id)
 #define SOC_EVENT_GPIO                  (42)
 #define SOC_EVENT_RTC_APB               (43)
 #define SOC_EVENT_RTC                   (44)

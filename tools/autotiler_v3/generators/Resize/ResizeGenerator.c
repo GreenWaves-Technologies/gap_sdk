@@ -31,7 +31,7 @@ void LoadResizeLibrary()
 void GenerateResize(char *Name, int Wi, int Hi, int Wo, int Ho)
 
 {
-UserKernel(Name,
+	UserKernel(Name,
 		KernelIterSpace(1, IterTiledSpace(KER_ITER_TILE0)),
 		TILE_HOR,
 		CArgs(2, TCArg("unsigned char *", "In"), TCArg("unsigned char *", "Out")),
@@ -56,13 +56,13 @@ UserKernel(Name,
 void ResizeConfiguration(unsigned int L1Memory)
 
 {
-    SetInlineMode(ALWAYS_INLINE); // SetInlineMode(NEVER_INLINE);
+	SetInlineMode(ALWAYS_INLINE); // SetInlineMode(NEVER_INLINE);
 	SetSymbolNames("Resize_L1_Memory", "Resize_L2_Memory");
-    SetSymbolDynamics();
+	SetSymbolDynamics();
 	SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
 
-    SetUsedFilesNames(0, 1, "ResizeBasicKernels.h");
-    SetGeneratedFilesNames("ResizeKernels.c", "ResizeKernels.h");
+	SetUsedFilesNames(0, 1, "ResizeBasicKernels.h");
+	SetGeneratedFilesNames("ResizeKernels.c", "ResizeKernels.h");
 
-    SetL1MemorySize(L1Memory);
+	SetL1MemorySize(L1Memory);
 }

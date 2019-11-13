@@ -224,7 +224,7 @@ int32_t pi_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer,
  * \param size      The size in bytes to transfer.
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc   1 if the copy is from file to the chip or 0 for the
  *   contrary.
@@ -319,7 +319,7 @@ int32_t pi_fs_copy_async(pi_fs_file_t *file, uint32_t index, void *buffer,
  * \param size      The size in bytes to transfer.
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc   1 if the copy is from file to the chip or 0 for the
  *   contrary.
@@ -437,7 +437,7 @@ void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer,
  * \param size      The size in bytes to transfer.
  * \param stride      2D stride, which is the number of bytes which are added
  *   to the beginning of the current line to switch to the next one.
- * \param length      2D length, which is the number of transfered bytes after
+ * \param length      2D length, which is the number of transferred bytes after
  *   which the driver will switch to the next line.
  * \param ext2loc   1 if the copy is from file to the chip or 0 for the
  *   contrary.

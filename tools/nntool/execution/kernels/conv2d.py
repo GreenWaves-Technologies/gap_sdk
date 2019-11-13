@@ -25,7 +25,7 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
         details['max_acc'] = float("-Infinity")
 
     in_tensor = in_tensor.transpose(in_dims.transpose_to_order(['h', 'w', 'c']))
-    if params.padding.h + params.padding.w > 0:
+    if params.padding.size() > 0:
         in_tensor = np.pad(in_tensor,
                            ([params.padding.t,
                              params.padding.b],
@@ -101,7 +101,7 @@ def faster_conv_quantized(params,
         details['overflow_acc'] = 0
 
     in_tensor = in_tensor.transpose(in_dims.transpose_to_order(['h', 'w', 'c']))
-    if params.padding.h + params.padding.w > 0:
+    if params.padding.size() > 0:
         in_tensor = np.pad(in_tensor,
                            ([params.padding.t,
                              params.padding.b],
@@ -249,7 +249,7 @@ def conv2d(params,
     filter_sz1 = params.filter.h * params.filter.w
     # dilated filter size
     filter_sz = params.filter + (params.filter - 1) * (params.dilation - 1)
-    if params.padding.h + params.padding.w > 0:
+    if params.padding.size() > 0:
         in_tensor = pad(in_tensor, in_dims, params.padding, params.pad_type)
     if qrec:
         # force the bit dimension of the input tensor to the bit width of the calc

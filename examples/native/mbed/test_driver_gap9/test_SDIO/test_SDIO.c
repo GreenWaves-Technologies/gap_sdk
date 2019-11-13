@@ -3,11 +3,20 @@
 #include "gap_common.h"
 // SPI CMSIS driver
 #include "spi_multi_api.h"
+#include "stdlib.h"
 
-#define BUFFER_SIZE 512
+#define SDIO_4BITS 1
 
-uint8_t RX_BUFFER[BUFFER_SIZE];
-uint8_t TX_BUFFER[BUFFER_SIZE];
+#define BLOCK_SIZE 512
+
+/* REAL_ADDR = BLOCK_COUNT * BLOCK_SIZE */
+#define BLOCK_COUNT ( 0 )
+
+#define SDIO_READ 1
+#define SDIO_WRITE 0
+
+uint8_t RX_BUFFER[BLOCK_SIZE * 2];
+uint8_t TX_BUFFER[BLOCK_SIZE * 2];
 
 // 128 bits response
 volatile uint32_t resp[4] = {0};
@@ -26,11 +35,16 @@ volatile uint32_t resp[4] = {0};
 #define CMD55  0x3700
 #define ACMD41 0x2900 // ACMD, need to be used after APP_SPEC_CMD
 #define CMD8   0x800
+#define CMD9   0x900
+#define CMD10  0x0A00
+#define CMD11  0x0B00
 #define CMD12  0x0C00
+#define CMD13  0x0D00
 #define CMD16  0x1000
 #define CMD17  0x1100 // READ_SINGLE_BLOCK
 #define CMD18  0x1200
-#define CMD24  0x1800 // WRITE_BLOCK
+#define CMD24  0x1800 // WRITE_SINGLE_BLOCK
+#define CMD25  0x1900 // WRITE_MULTIPLE_BLOCK
 
 /* Response type */
 #define RSP_48_CRC     0x1
@@ -70,10 +84,10 @@ static void sdio_read_response(void)
     resp[2] = SDIO->RSP2;
     resp[3] = SDIO->RSP3;
 
-    // printf("RES: 0x%08x:%08x:%08x:%08x\n", resp[0], resp[1], resp[2], resp[3]);
+    /* printf("RES: 0x%08x:%08x:%08x:%08x\n", resp[3], resp[2], resp[1], resp[0]); */
 }
 
-static void sdio_send_cmd(uint32_t cmd_op, uint32_t cmd_arg)
+static int sdio_send_cmd(uint32_t cmd_op, uint32_t cmd_arg)
 {
     SDIO->CMD_OP  = cmd_op;
     SDIO->CMD_ARG = cmd_arg;
@@ -81,10 +95,13 @@ static void sdio_send_cmd(uint32_t cmd_op, uint32_t cmd_arg)
 
     if ( SDIO_Wait() ) {
         printf("STATUS : %x\n", (SDIO->STATUS >> 16));
-        return;
+        return -1;
     }
 
-    sdio_read_response();
+    if(cmd_op != CMD0)
+        sdio_read_response();
+
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -98,6 +115,8 @@ static void sdio_send_cmd(uint32_t cmd_op, uint32_t cmd_arg)
 //  ACMD44. Get Voltage windows                               //
 //  CMD2. CID reg                                             //
 //  CMD3. Get RCA.                                            //
+//  CMD9. Get CSD.                                            //
+//  CMD13. Get Status.                                        //
 //                                                            //
 ////////////////////////////////////////////////////////////////
 uint16_t test_init_sequence()
@@ -107,7 +126,7 @@ uint16_t test_init_sequence()
         sdio_send_cmd(CMD0, 0);
 
     // CMD 8. Get voltage (Only 2.0 Card response to this)
-    sdio_send_cmd(CMD8 | RSP_48_CRC, 0);
+    sdio_send_cmd(CMD8 | RSP_48_CRC, 0x1AA);
 
     // Wait until busy is clear in the card
     do {
@@ -115,8 +134,8 @@ uint16_t test_init_sequence()
         sdio_send_cmd(CMD55 | RSP_48_CRC, 0);
 
         // Send ACMD 41
-        sdio_send_cmd(ACMD41 | RSP_48_CRC, 0);
-    } while (resp[0] >> 31 );
+        sdio_send_cmd(ACMD41 | RSP_48_CRC, 0xC0100000);
+    } while ((resp[0] >> 31) == 0);
 
     // Send CMD 2
     sdio_send_cmd(CMD2 | RSP_136, 0);
@@ -127,21 +146,29 @@ uint16_t test_init_sequence()
     uint16_t rca = (resp[0] >> 16) & 0xFFFF;
     printf("rca: %x\n", rca);
 
+    // Send CMD 9
+    sdio_send_cmd(CMD9 | RSP_136, (rca << 16));
+
+    /* Get the Card Class */
+    printf ("Card Class = %x\n", resp[2] >> 20);
+
+    sdio_send_cmd(CMD13 | RSP_48_CRC, (rca << 16));
+
     return rca;
 }
-
 
 ////////////////////////////////////////////////////////////////
 //                                                            //
 //  TEST 2: Send data                                         //
 //  init card                                                 //
 //  CMD 7. Put Card in transfer state                         //
+//  CMD 16. Set block size                                    //
 //  CMD 55.                                                   //
 //  ACMD 6. Set bus width                                     //
-//  CMD 17. Read data                                         //
+//  CMD 17. Read single block                                 //
 //                                                            //
 ////////////////////////////////////////////////////////////////
-uint16_t test_rec_data()
+void test_single_block_read()
 {
     // Init_card
     uint16_t rca = test_init_sequence();
@@ -151,32 +178,33 @@ uint16_t test_rec_data()
     // select the card with previously obtained rca
     sdio_send_cmd(CMD7 | RSP_48_CRC, rca << 16);
 
+    // Set Block Size 512
+    // Send CMD 16
+    sdio_send_cmd(CMD16 | RSP_48_CRC, BLOCK_SIZE);
+    printf("Card status after Block Size set = %x\n", resp[0]);
+
     // Set bus width
     // Send CMD 55
-    sdio_send_cmd(CMD55 | RSP_48_CRC, 0);
+    sdio_send_cmd(CMD55 | RSP_48_CRC, rca << 16);
 
     // Send ACMD 6
-    sdio_send_cmd(ACMD6 | RSP_48_CRC, 2);
-
-    printf("Card status after Bus width set = %x\n", resp[0]);
+    sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Read */
     SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BUFFER_SIZE;
+    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE;
     SDIO->UDMA_SDIO.RX_CFG   = 0x10;
     SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(1)       |
-        SDIO_DATA_SETUP_QUAD(1)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(512 - 1);
+        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
 
-    /* Stop transfer automatically */
-    sdio_send_cmd(CMD17 | RSP_48_CRC, 0);
+    // Send CMD 17
+    sdio_send_cmd(CMD17 | RSP_48_CRC, BLOCK_COUNT);
 
     /* Clear Setup */
     SDIO->DATA_SETUP = 0;
-
-    return rca;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -184,13 +212,16 @@ uint16_t test_rec_data()
 //  TEST 3: Send and receive data                              //
 //  init card                                                  //
 //  setup card for transfer                                    //
+//  CMD 7. Put Card in transfer state                          //
+//  CMD 16. Set block size                                     //
+//  CMD 55.                                                    //
+//  ACMD 6. Set bus width                                      //
 //  CMD 24. Write data                                         //
 //  CMD 17. Read data                                          //
-//  CMD 12. Stop transfer                                      //
 //                                                             //
 /////////////////////////////////////////////////////////////////
 
-void test_send_rec_data()
+void test_single_block_write()
 {
     // Init_card
     uint16_t rca = test_init_sequence();
@@ -200,45 +231,172 @@ void test_send_rec_data()
     // Select the card with previously obtained rca
     sdio_send_cmd(CMD7 | RSP_48_CRC, rca << 16);
 
+    // Set Block Size 512
+    // Send CMD 16
+    sdio_send_cmd(CMD16 | RSP_48_CRC, BLOCK_SIZE);
+    printf("Card status after Block Size set = %x\n", resp[0]);
+
     // Set bus width
     // Send CMD 55
-    sdio_send_cmd(CMD55 | RSP_48_CRC, 0);
+    sdio_send_cmd(CMD55 | RSP_48_CRC, rca << 16);
 
     // Send ACMD 6
-    sdio_send_cmd(ACMD6 | RSP_48_CRC, 2);
-
-    printf("Card status after Bus width set = %x\n", resp[0]);
+    sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Write */
     SDIO->UDMA_SDIO.TX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.TX_SIZE  = BUFFER_SIZE;
+    SDIO->UDMA_SDIO.TX_SIZE  = BLOCK_SIZE;
     SDIO->UDMA_SDIO.TX_CFG   = 0x10;
     SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(0)       |
-        SDIO_DATA_SETUP_QUAD(1)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(512 - 1);
-    sdio_send_cmd(CMD24 | RSP_48_CRC, 0);
+        SDIO_DATA_SETUP_RWN(SDIO_WRITE)       |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+
+    // Send CMD 24
+    sdio_send_cmd(CMD24 | RSP_48_CRC, BLOCK_COUNT);
 
     /* Clear Setup */
     SDIO->DATA_SETUP = 0;
 
     /* Read */
     SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)RX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BUFFER_SIZE;
+    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE;
     SDIO->UDMA_SDIO.RX_CFG   = 0x10;
     SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(1)       |
-        SDIO_DATA_SETUP_QUAD(1)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(512 - 1);
-    sdio_send_cmd(CMD17 | RSP_48_CRC, 0);
+        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+
+    // Send CMD 17
+    sdio_send_cmd(CMD17 | RSP_48_CRC, BLOCK_COUNT);
+
+    /* Clear Setup */
+    SDIO->DATA_SETUP = 0;
+}
+
+/////////////////////////////////////////////////////////////////
+//                                                             //
+//  TEST 4: Send and receive data                              //
+//  init card                                                  //
+//  setup card for transfer                                    //
+//  CMD 7. Put Card in transfer state                          //
+//  CMD 16. Set block size                                     //
+//  CMD 55.                                                    //
+//  ACMD 6. Set bus width                                      //
+//  CMD 18. Read multiple block                                //
+//                                                             //
+/////////////////////////////////////////////////////////////////
+
+void test_multiple_block_read(int block_count)
+{
+    assert(block_count >= 2);
+
+    // Init_card
+    uint16_t rca = test_init_sequence();
+
+    // setup_card_to_transfer
+    // Send CMD 7
+    // select the card with previously obtained rca
+    sdio_send_cmd(CMD7 | RSP_48_CRC, rca << 16);
+
+    // Set Block Size 512
+    // Send CMD 16
+    sdio_send_cmd(CMD16 | RSP_48_CRC, BLOCK_SIZE);
+    printf("Card status after Block Size set = %x\n", resp[0]);
+
+    // Set bus width
+    // Send CMD 55
+    sdio_send_cmd(CMD55 | RSP_48_CRC, rca << 16);
+
+    // Send ACMD 6
+    sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
+
+    /* Read */
+    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)TX_BUFFER;
+    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE * block_count;
+    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
+    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
+        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+
+    /* Stop transfer automatically */
+    sdio_send_cmd(CMD18 | RSP_48_CRC, BLOCK_COUNT);
+
+    /* Clear Setup */
+    SDIO->DATA_SETUP = 0;
+}
+
+/////////////////////////////////////////////////////////////////
+//                                                             //
+//  TEST 5: Send and receive data                              //
+//  init card                                                  //
+//  setup card for transfer                                    //
+//  CMD 7. Put Card in transfer state                          //
+//  CMD 16. Set block size                                     //
+//  CMD 55.                                                    //
+//  ACMD 6. Set bus width                                      //
+//  CMD 25. Write multiple block                               //
+//  CMD 18. Read multiple block                                //
+//                                                             //
+/////////////////////////////////////////////////////////////////
+
+void test_multiple_block_write(int block_count)
+{
+    assert(block_count >= 2);
+
+    // Init_card
+    uint16_t rca = test_init_sequence();
+
+    // Setup_card_to_transfer
+    // Send CMD 7
+    // Select the card with previously obtained rca
+    sdio_send_cmd(CMD7 | RSP_48_CRC, rca << 16);
+
+    // Set Block Size 512
+    // Send CMD 16
+    sdio_send_cmd(CMD16 | RSP_48_CRC, BLOCK_SIZE);
+    printf("Card status after Block Size set = %x\n", resp[0]);
+
+    // Set bus width
+    // Send CMD 55
+    sdio_send_cmd(CMD55 | RSP_48_CRC, rca << 16);
+
+    // Send ACMD 6
+    sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
+
+    /* Write */
+    SDIO->UDMA_SDIO.TX_SADDR = (uint32_t)TX_BUFFER;
+    SDIO->UDMA_SDIO.TX_SIZE  = BLOCK_SIZE * block_count;
+    SDIO->UDMA_SDIO.TX_CFG   = 0x10;
+    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
+        SDIO_DATA_SETUP_RWN(SDIO_WRITE)       |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+
+    sdio_send_cmd(CMD25 | RSP_48_CRC, BLOCK_COUNT);
 
     /* Clear Setup */
     SDIO->DATA_SETUP = 0;
 
-    /* Stop transfer */
-    sdio_send_cmd(CMD12 | RSP_48_CRC, 0);
+    /* Read */
+    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)RX_BUFFER;
+    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE * block_count;
+    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
+    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
+        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
+        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
+        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
+        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+
+    sdio_send_cmd(CMD18 | RSP_48_CRC, BLOCK_COUNT);
+
+    /* Clear Setup */
+    SDIO->DATA_SETUP = 0;
 }
 
 void udma_sdio_init(void)
@@ -258,7 +416,7 @@ void udma_sdio_init(void)
     SOC_EU_SetFCMask((PER_ID_SDIO << 2) + 2);
     SOC_EU_SetFCMask((PER_ID_SDIO << 2) + 3);
 
-    SDIO->CLK_DIV = SDIO_CLK_DIV_VALID(1) | SDIO_CLK_DIV(5);
+    SDIO->CLK_DIV = SDIO_CLK_DIV_VALID(1) | SDIO_CLK_DIV(10);
 }
 
 int main()
@@ -270,14 +428,16 @@ int main()
 
     test_init_sequence();
 
-    test_rec_data();
+    test_single_block_read();
+    test_single_block_write();
 
-    test_send_rec_data();
+    test_multiple_block_read(2);
+    test_multiple_block_write(2);
 
     /* CHECK */
     int error = 0;
 
-    for(int i = 0; i < BUFFER_SIZE; i++) {
+    for(int i = 0; i < BLOCK_COUNT * 2; i++) {
 
         if(RX_BUFFER[i] != TX_BUFFER[i])
             error++;

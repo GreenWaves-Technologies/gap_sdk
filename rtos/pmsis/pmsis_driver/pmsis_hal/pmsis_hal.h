@@ -43,16 +43,9 @@
 /* GPIO. */
 #include "gpio/gpio.h"
 
-/* ITC. */
-#include "itc/pmsis_itc.h"
-
-/* Perf counters. */
-//#include "perf/pmsis_perf.h"
-
-/* PMU. */
-#if defined(__GAP9__)
-#include "pmu_v3.h"
-#endif
+/* PWM */
+#include "pwm/pwm.h"
+#include "pwm/pwm_ctrl.h"
 
 /* Soc_ctrl. */
 #include "soc_ctrl/soc_ctrl_pad.h"
@@ -66,7 +59,6 @@
 #include "udma/udma_ctrl.h"
 #include "udma/udma_hyper.h"
 #include "udma/udma_i2c.h"
-#include "udma/udma_sdio.h"
 #include "udma/udma_spim/udma_spim.h"
 #include "udma/udma_uart.h"
 

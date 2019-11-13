@@ -73,6 +73,7 @@ extern unsigned char stack_start;
 
 void __rt_init()
 {
+
 #if PULP_CHIP_FAMILY == CHIP_GAP
   // Always allow JTAG accesses for now as security is not implemented
   hal_pmu_bypass_set (ARCHI_REG_FIELD_SET (hal_pmu_bypass_get (), 1, 11, 1) );

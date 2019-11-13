@@ -50,7 +50,7 @@
 
  * \return Number of cores.
  */
-int pi_cl_cluster_nb_cores();
+static inline int pi_cl_cluster_nb_cores();
 
 /** \brief Fork the execution of the calling core.
  *

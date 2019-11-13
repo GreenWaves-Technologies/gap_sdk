@@ -409,6 +409,14 @@ static void __pi_fs_try_read(void *arg)
   }
 }
 
+int32_t pi_fs_read(pi_fs_file_t *file, void *buffer, uint32_t size)
+{
+  pi_task_t task;
+  pi_fs_read_async(file, buffer, size, pi_task_block(&task));
+  pi_task_wait_on(&task);
+  return size;
+}
+
 int32_t pi_fs_read_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *event)
 {
   // Lock the file-system instead of masking interrupts as we can return
@@ -605,6 +613,7 @@ void __pi_cl_fs_copy_req(void *_req)
     __pi_cl_fs_copy_req_done(_req);
 }
 
+
 void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, int32_t ext2loc, pi_cl_fs_req_t *req)
 {
   req->file = file;
@@ -613,6 +622,7 @@ void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t si
   req->size = size;
   req->ext2loc = ext2loc;
   req->length = 0;
+  req->cid = pi_cluster_id();
   #if defined(__PULP_OS__)
   __rt_task_init_from_cluster(&req->task);
   #endif  /* __PULP_OS__ */
@@ -633,6 +643,7 @@ void pi_cl_fs_copy_2d(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t
   req->stride = stride;
   req->length = length;
   req->ext2loc = ext2loc;
+  req->cid = pi_cluster_id();
   #if defined(__PULP_OS__)
   __rt_task_init_from_cluster(&req->task);
   #endif  /* __PULP_OS__ */

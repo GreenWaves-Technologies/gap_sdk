@@ -4,8 +4,6 @@
 # This software may be modified and distributed under the terms
 # of the BSD license.  See the LICENSE file for details.
 
-import math
-
 from collections import OrderedDict
 
 from graph.nngraph import NNGraph
@@ -53,12 +51,7 @@ class SimpleQuantizer(Quantizer):
         c_q = QType(bits=calc_width, q=calc_q, signed=True)
 
         if 'biases' in fstats:
-            if force_width:
-                # if we are forcing width then match the output size which might
-                # have been promoted if the activation didn't fit
-                b_q = self.get_quantization(fstats['biases'], min_qsnr, o_q.bits)
-            else:
-                b_q = self.get_quantization(fstats['biases'], min_qsnr, force_width)
+            b_q = self.get_quantization(fstats['biases'], min_qsnr, force_width)
             if bias_as_out:
                 o_q.q = min(b_q.q, o_q.q)
                 b_q.q = o_q.q
@@ -82,9 +75,8 @@ class SimpleQuantizer(Quantizer):
     def get_quantization(stats, min_qsnr, force_width):
         qstats = stats['qstats']
         if force_width is not None:
-            act_bits = max(closest_greater(stats['ibits']), force_width)
-            return QType(bits=act_bits,
-                         q=qstats[act_bits]['q'],
+            return QType(bits=force_width,
+                         q=qstats[force_width]['q'],
                          signed=True)
         for width in STATS_BITS:
             if qstats[width]['qsnr'] > min_qsnr:
