@@ -65,6 +65,9 @@ def input_options(parser):
     parser.add_argument('-M', '--mode',
                         choices=MODES.keys(), default=None,
                         help="mode to import image in")
+    parser.add_argument('-N', '--norm_func',
+                        choices=MODES.keys(), default=None,
+                        help="lambda function to apply on input in the form x: fn(x)")
 
 def output_table(table, args):
     fmt = ('tab' if args.output is None else args.output['fmt'])

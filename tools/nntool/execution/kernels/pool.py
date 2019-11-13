@@ -71,7 +71,7 @@ def max_pool(params, in_dims, out_dims, in_tensor, qrec=None):
     dtype = qrec.out_qs[0].dtype if qrec else None
     out_tensor = np.zeros(out_dims.shape, dtype=dtype)
 
-    if params.padding.size() > 0:
+    if params.padding.h + params.padding.w > 0:
         in_tensor = pad(in_tensor, in_dims, params.padding, params.pad_type)
 
     for in_c in range(out_dims.c):

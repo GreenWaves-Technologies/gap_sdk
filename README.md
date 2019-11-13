@@ -22,7 +22,7 @@ We provide you with all the necessary tools and two different operating systems 
     -   PULP OS - The open source embedded RTOS produced by the PULP project
     -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8 and VEGA.
     -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
-    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it fro PULP OS and FreeRTOS, and it is used by our applications to be portable.
+    -   PMSIS - PMSIS (PULP Microcontroller Software Interface Standard) is an open-source system layer. Any operating system can implement it to provide a common API to applications. We currently provide it with PULP OS and FreeRTOS, and it is used by our applications to be easily portable.
 
 ##  Getting started with the GAP SDK
 
@@ -49,7 +49,7 @@ Our modules requires a few additional Python packages that you can install with 
 pip3 install -r requirements.txt
 ~~~~~
 
-In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution. You can find more information here: https://www.anaconda.com/.
+In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution ( Python3 ). You can find more information here: https://www.anaconda.com/.
 
 Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
 
@@ -182,27 +182,30 @@ Typing GAP_SDK will now change to the gap_sdk directory and execute the source c
 Finally try a test project. First connect your GAPuino to your PCs USB port and then type:
 
 ~~~~~shell
-cd ~/gap_sdk/examples/pulp-examples/helloworld
+cd ~/gap_sdk/examples/pmsis/helloworld
 make clean all run
 ~~~~~
 
 After the build you should see:
 ~~~~~
-Entering main controller
-Entering cluster on core 0
-There are 8 cores available here.
-[clusterID: 0x 0] Hello from core 0
-[clusterID: 0x 0] Hello from core 1
-[clusterID: 0x 0] Hello from core 2
-[clusterID: 0x 0] Hello from core 3
-[clusterID: 0x 0] Hello from core 4
-[clusterID: 0x 0] Hello from core 5
-[clusterID: 0x 0] Hello from core 6
-[clusterID: 0x 0] Hello from core 7
-Leaving cluster on core 0
-[clusterID: 0x20] Hello from core 0
-Test success: Leaving main controller
-Detected end of application, exiting with status: 0
+     *** PMSIS HelloWorld ***
+
+     Entering main controller
+     [32 0] Hello World!
+     Cluster master core entry
+     [0 7] Hello World!
+     [0 0] Hello World!
+     [0 4] Hello World!
+     [0 5] Hello World!
+     [0 3] Hello World!
+     [0 1] Hello World!
+     [0 2] Hello World!
+     [0 6] Hello World!
+     Cluster master core exit
+     Test success !
+     Detected end of application, exiting with status: 0
+     Loop exited
+     commands completed
 ~~~~~
 
 ## Debugging Programs
