@@ -100,4 +100,5 @@ class BuiltinOptions(object):
     DepthToSpaceOptions = 94
     NonMaxSuppressionV4Options = 95
     NonMaxSuppressionV5Options = 96
+    ScatterNdOptions = 97
 
