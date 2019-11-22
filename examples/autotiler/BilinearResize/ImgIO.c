@@ -298,7 +298,6 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
 
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *OutBuffer)
 {
-#define CHUNK_NUM 10
     int File = BRIDGE_Open(ImageName, O_RDWR | O_CREAT, S_IRWXU, NULL);
     int ret = 0;
     WritePPMHeader(File,W,H);
