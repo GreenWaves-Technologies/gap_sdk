@@ -166,26 +166,26 @@ static int32_t open_camera_himax(struct pi_device *device)
 
 static int32_t open_camera_mt9v034(struct pi_device *device)
 {
-    struct mt9v034_conf cam_conf;
+    struct pi_mt9v034_conf cam_conf;
 
-    mt9v034_conf_init(&cam_conf);
-    cam_conf.format = CAMERA_QVGA;
+    pi_mt9v034_conf_init(&cam_conf);
+    cam_conf.format = PI_CAMERA_QVGA;
     pi_open_from_conf(device, &cam_conf);
-    if (camera_open(device))
+    if (pi_camera_open(device))
     {
         return -1;
     }
     uint16_t val = MT9V034_BLACK_LEVEL_AUTO;
-    camera_reg_set(device, MT9V034_BLACK_LEVEL_CTRL, &val);
+    pi_camera_reg_set(device, MT9V034_BLACK_LEVEL_CTRL, &val);
     val = MT9V034_AEC_ENABLE_A|MT9V034_AGC_ENABLE_A;
-    camera_reg_set(device, MT9V034_AEC_AGC_ENABLE, &val);
+    pi_camera_reg_set(device, MT9V034_AEC_AGC_ENABLE, &val);
 
     //max exposure def:0x01E0
     val = 0x0FE0;
-    camera_reg_set(device, 0xAD, &val);
+    pi_camera_reg_set(device, 0xAD, &val);
     //Max Analog Gain def: 0x0040
     val = 0x0F40;
-    camera_reg_set(device, 0xAB, &val);
+    pi_camera_reg_set(device, 0xAB, &val);
 
     return 0;
 }

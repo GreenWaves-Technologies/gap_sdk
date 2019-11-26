@@ -31,7 +31,7 @@
 #ifndef __PMSIS_FLL_GAP8_H__
 #define __PMSIS_FLL_GAP8_H__
 
-#include "pmsis.h"
+#include "targets/pmsis_targets.h"
 
 /*!
  * @addtogroup fll

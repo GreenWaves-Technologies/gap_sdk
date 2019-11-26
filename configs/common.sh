@@ -43,7 +43,7 @@ export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
 
 
-if [ "$TARGET_CHIP" == "GAP8" ]
+if [ "$TARGET_CHIP" = "GAP8" ]
 then
     PROJECT_PATH=$(dirname $GAP_SDK_HOME)
     export VSIM_PATH=$PROJECT_PATH/fe/sim

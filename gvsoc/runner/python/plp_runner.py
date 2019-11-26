@@ -114,20 +114,17 @@ class Runner(object):
     def __init__(self):
         parser = argparse.ArgumentParser(description='Launch a test on the specified architecture.', add_help=False)
         self.config = Config(parser)
-        self.platforms = {}
+        self.platforms = ['gvsoc', 'board', 'rtl', 'fpga', 'netlist', 'pgpin' ]
         self.modules = []
         self.parser = parser
 
     def addModule(self, module):
         self.modules.append(module)
 
-    def addPlatform(self, name, platform):
-        self.platforms[name] = platform
-
     def run(self):
         self.config.addOption("--help", dest="showHelp", action="store_true", help="show this help message and exit")
 
-        self.config.addOption("--platform", dest="platform", default=None, choices=list(self.platforms.keys()), help="specify the platform. Default: %(default)s.")
+        self.config.addOption("--platform", dest="platform", default=None, choices=list(self.platforms), help="specify the platform. Default: %(default)s.")
     
         self.config.addOption("--binary", dest="binary", default=[], action="append",
                             help='specify the binary to be loaded')
@@ -192,26 +189,37 @@ class Runner(object):
             )
 
 
-        config = plpconf.get_config(config_path, ini_configs=self.config.getOption('config_user'), ini_configs_dict={'srcdir': self.config.getOption('src_dir')}, config_opts=self.config.getOption('configOpt'), properties=self.config.getOption('properties'), interpret=True)
+
+        platform = self.config.getOption('platform')
+        if platform is None:
+            config = plpconf.get_config(config_path, ini_configs=self.config.getOption('config_user'), ini_configs_dict={'srcdir': self.config.getOption('src_dir')}, config_opts=self.config.getOption('configOpt'), properties=self.config.getOption('properties'), interpret=True)
+
+            platform = config.get_child_str('**/platform')
+
+        platform_config_path = os.path.join(
+            os.path.dirname(os.path.dirname(sys.argv[0])),
+            'configs', 'platforms', '%s.json' % platform
+        )
+
+        platform_config = plpconf.get_config(platform_config_path, interpret=True)
+
+
+
+        config = plpconf.get_config(config_path, ini_configs=self.config.getOption('config_user'), ini_configs_dict={'srcdir': self.config.getOption('src_dir')}, config_opts=self.config.getOption('configOpt'), properties=self.config.getOption('properties'), interpret=True, merge_to=[platform_config])
 
         self.pyStack = config.get_child_bool('**/runner/py-stack')
 
-
-        platform = self.config.getOption('platform')
-        if platform is not None:
-            config.set('platform', platform)
 
         if self.config.getOption('binary') is not None:
             for binary in self.config.getOption('binary'):
                 config.get('**/runner').set('binaries', binary)
 
-
-        platform_name = config.get('**/platform').get()
-
         try:
 
+            runner_class = config.get_child_str('runner/platform_class')
 
-            file, path, descr = imp.find_module(self.platforms[platform_name], None)
+
+            file, path, descr = imp.find_module(runner_class, None)
             module = imp.load_module('module', file, path, descr)
 
             

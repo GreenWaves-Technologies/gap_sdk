@@ -41,7 +41,7 @@ MAKE = make
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 ifeq ($(TARGET_CHIP), GAP8)
-sdk:: all autotiler nntool
+sdk:: all autotiler nntool openocd
 all:: pulp-os tools gvsoc flasher docs
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -106,5 +106,12 @@ gvsoc: pulp-os tools
 autotiler:
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v2/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v2 all; fi
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 all; fi
+
+openocd:
+	cd tools/gap8-openocd && ./bootstrap
+	cd tools/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)
+	cd tools/gap8-openocd && make install
+	mkdir -p $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

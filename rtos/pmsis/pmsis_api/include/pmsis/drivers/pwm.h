@@ -84,13 +84,13 @@ typedef enum
  */
 typedef enum
 {
-    PI_PWM_SET          = 0x00, /*!< Set. IRQ when threshold is matched and only once. */
-    PI_PWM_TOGGLE_CLEAR = 0x01, /*!< Toggle, next threshold action match is Clear. IRQ when threshold is matched, and counter is reset. */
-    PI_PWM_SET_CLEAR    = 0x02, /*!< Set, next threshold action match is Clear. IRQ when threshold is matched, and counter is reset. */
-    PI_PWM_TOGGLE       = 0x03, /*!< Toggle. IRQ when threshold is matched, and counter continues. */
-    PI_PWM_CLEAR        = 0x04, /*!< Clear. No IRQ. */
-    PI_PWM_TOGGLE_SET   = 0x05, /*!< Toggle, next threshold action match is Set. IRQ when threshold is matched, next times IRQ when counter resets. */
-    PI_PWM_CLEAR_SET    = 0x06  /*!< Clear, next threshold action match is Set. IRQ when counter is reset. */
+    PI_PWM_SET          = 0x00, /*!< Set. Output is high. */
+    PI_PWM_TOGGLE_CLEAR = 0x01, /*!< Toggle, next threshold action match is Clear. Output is toggled then next match low. */
+    PI_PWM_SET_CLEAR    = 0x02, /*!< Set, next threshold action match is Clear. Output is high then next match low. */
+    PI_PWM_TOGGLE       = 0x03, /*!< Toggle. Output is toggled at each match. */
+    PI_PWM_CLEAR        = 0x04, /*!< Clear. Output is low. */
+    PI_PWM_TOGGLE_SET   = 0x05, /*!< Toggle, next threshold action match is Set. Output is toggled then next match high. */
+    PI_PWM_CLEAR_SET    = 0x06  /*!< Clear, next threshold action match is Set. Output is low then next match high. */
 } pi_pwm_ch_config_e;
 
 /**
@@ -159,6 +159,7 @@ struct pi_pwm_conf
 {
     pi_device_e device;             /*!< Device type. */
     uint8_t pwm_id;                 /*!< PWM ID. */
+    pi_pwm_channel_e ch_id;         /*!< PWM channel ID. */
     uint8_t input_src;              /*!< Timer input source. */
     pi_pwm_timer_conf_e timer_conf; /*!< Event trigger, clock source, counting config. */
     uint8_t prescaler;              /*!< Prescaler value. */
@@ -243,6 +244,7 @@ int32_t pi_pwm_open(struct pi_device *device);
 void pi_pwm_close(struct pi_device *device);
 
 /**
+ * @deprecated
  * \brief PWM ioctl command.
  *
  * This function allows to send different commands to PWM device.
@@ -296,6 +298,24 @@ static inline void pi_pwm_timer_start(struct pi_device *device);
  * \param device         Device structure.
  */
 static inline void pi_pwm_timer_stop(struct pi_device *device);
+
+/**
+ * \brief Set PWM frequency and duty_cycle.
+ *
+ * This function sets PWM frequency and duty cycle(also referred to pulse width
+ * measured in seconds).
+ *
+ * \param device         Device structure.
+ * \param frequency      Frequency of PWM.
+ * \param duty_cycle     Output high ratio.
+ *
+ * \retval 0             If operation is successful.
+ * \retval ERRNO         Otherwise error code.
+ *
+ * \note Frequency is given in Hz, duty cycle in percentage * 100.
+ */
+int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
+                              uint32_t frequency, uint8_t duty_cycle);
 
 /**
  * @} end of PWM

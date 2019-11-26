@@ -189,7 +189,8 @@ typedef enum
 {
   CORE_STATE_NONE,
   CORE_STATE_WAITING_EVENT,
-  CORE_STATE_WAITING_BARRIER
+  CORE_STATE_WAITING_BARRIER,
+  CORE_STATE_SKIP_ELW
 } Event_unit_core_state_e;
 
 class Event_unit : public vp::component
@@ -253,6 +254,7 @@ public:
   vp::io_req_status_e wait_event(vp::io_req *req, Event_unit_core_state_e wait_state=CORE_STATE_WAITING_EVENT);
   vp::io_req_status_e put_to_sleep(vp::io_req *req, Event_unit_core_state_e wait_state=CORE_STATE_WAITING_EVENT);
   Event_unit_core_state_e get_state() { return state; }
+  void set_state(Event_unit_core_state_e state) { this->state = state; }
   void irq_ack_sync(int irq, int core);
   static void wakeup_handler(void *__this, vp::clock_event *event);
   static void irq_wakeup_handler(void *__this, vp::clock_event *event);
@@ -265,6 +267,7 @@ public:
   uint32_t clear_evt_mask;
 
   int sync_irq;
+  int pending_elw;
 
 private:
   Event_unit *top;
@@ -417,7 +420,7 @@ void Event_unit::trigger_event(int event_mask, uint32_t core_mask)
       send_event(i, event_mask);
     }
   }
-  }
+}
 
 void Event_unit::send_event(int core, uint32_t mask)
 {
@@ -580,6 +583,16 @@ vp::io_req_status_e Event_unit::demux_req(void *__this, vp::io_req *req, int cor
   bool is_write = req->get_is_write();
 
   _this->trace.msg("Demux event_unit access (core: %d, offset: 0x%x, size: 0x%x, is_write: %d)\n", core, offset, size, is_write);
+
+  Core_event_unit *core_eu = &_this->core_eu[core];
+
+  core_eu->pending_elw = false;
+
+  if (core_eu->get_state() == CORE_STATE_SKIP_ELW)
+  {
+    core_eu->set_state(CORE_STATE_NONE);
+    return vp::IO_REQ_OK;
+  }
 
   if (size != 4)
   {
@@ -893,6 +906,7 @@ void Core_event_unit::reset()
   irq_mask = 0;
   clear_evt_mask = 0;
   sync_irq = -1;
+  pending_elw = false;
   state = CORE_STATE_NONE;
   this->clock_itf.sync(1);
 }
@@ -944,6 +958,8 @@ void Core_event_unit::check_state()
       // replay the access, so we must keep the state as it is to resume
       // the on-going synchronization.
       top->trace.msg("Activating clock for IRQ handling(core: %d)\n", core_id);
+
+      this->pending_elw = true;
 
       if (!irq_wakeup_event->is_enqueued())
       {
@@ -1303,6 +1319,17 @@ void Barrier_unit::check_barrier(int barrier_id)
   {
     trace.msg("Barrier reached, triggering event (barrier: %d, coreMask: 0x%x, targetMask: 0x%x)\n", barrier_id, barrier->core_mask, barrier->target_mask);
     barrier->status = 0;
+
+    for (int i=0; i<this->top->nb_core; i++)
+    {
+      if ((barrier->target_mask >> i) & 1)
+      {
+        Core_event_unit *core_eu = &this->top->core_eu[i];
+        if (core_eu->pending_elw)
+          core_eu->set_state(CORE_STATE_SKIP_ELW);
+      }
+    }
+
     top->trigger_event(1<<barrier_event, barrier->target_mask);
   }
 }

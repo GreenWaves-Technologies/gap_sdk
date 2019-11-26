@@ -51,7 +51,8 @@ int32_t pi_pwm_open(struct pi_device *device)
 {
     struct pi_pwm_conf *conf = (struct pi_pwm_conf *) device->config;
     /* Data will contain PWM ID, no special actions. */
-    device->data = (void *) ((uint32_t) conf->pwm_id);
+    uint32_t pwm_ch = ((((uint8_t) conf->ch_id) << 16) | ((uint8_t) conf->pwm_id));
+    device->data = (void *) ((uint32_t) pwm_ch);
 
     return __pi_pwm_open(conf->pwm_id, conf);
 }
@@ -74,3 +75,28 @@ uint32_t pi_pwm_counter_get(struct pi_device *device)
     return __pi_pwm_counter_get(pwm_id);
 }
 
+
+int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
+                              uint32_t frequency, uint8_t duty_cycle)
+{
+    uint8_t pwm_id = ((uint32_t) device->data) & 0xFFFF;
+    pi_pwm_channel_e ch_id = (((uint32_t) device->data) >> 16) & 0xFFFF;
+    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency;
+    uint16_t th_lo = 1;
+    /* threshold holds frequency value. */
+    uint32_t threshold = (th_hi << 16) | th_lo;
+    /* th_channel holds duty cycle. */
+    uint16_t th_channel = (th_hi * duty_cycle) / 100;
+
+    /* Set counter start, end. */
+    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_THRESH, (void *) threshold);
+
+    /* Set channel threshold, mode. */
+    /* Channel config mode: toggle -> regular periods. Easier to setup duty cycle/pulse width. */
+    struct pi_pwm_ioctl_ch_config ch_conf = {0};
+    ch_conf.ch_threshold = th_channel;
+    ch_conf.config = PI_PWM_TOGGLE;
+    ch_conf.channel = ch_id;
+    __pi_pwm_ioctl(pwm_id, PI_PWM_CH_CONFIG, (void *) &ch_conf);
+    return 0;
+}

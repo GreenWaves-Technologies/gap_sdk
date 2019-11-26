@@ -2,7 +2,7 @@ BUILD_DIR ?= $(CURDIR)/build
 
 ROOT_DPI_BUILD_DIR ?= $(BUILD_DIR)
 
-DPI_DIRS=test/spim_verif jtag/proxy uart/uart camera microphone eeprom lcd wifi
+DPI_DIRS=test/spim_verif jtag/proxy uart/uart camera microphone eeprom lcd wifi ram/spiram
 
 
 -include $(INSTALL_DIR)/rules/dpi_rules.mk

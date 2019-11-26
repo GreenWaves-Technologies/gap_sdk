@@ -30,6 +30,7 @@
 
 #include "gap8_it.h"
 #include "gap_eu.h"
+#include "printf.h"
 
 /* Ecall Table. */
 const void *_ecall_vector[NB_ECALL] = {

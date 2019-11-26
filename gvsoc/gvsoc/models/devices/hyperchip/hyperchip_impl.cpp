@@ -36,6 +36,7 @@
 #define FLASH_STATE_CMD_1 5
 #define FLASH_STATE_LOAD_VCR 6
 
+#define FLASH_SECTOR_SIZE (1<<18)
 
 class hyperchip;
 
@@ -62,6 +63,8 @@ public:
 
   void handle_access(int reg_access, int address, int read, uint8_t data);
   int preload_file(char *path);
+  void erase_sector(unsigned int addr);
+  void erase_chip();
 
 protected:
   hyperchip *top;
@@ -147,7 +150,7 @@ private:
 Hyperram::Hyperram(hyperchip *top, int size) : top(top), size(size)
 {
   this->data = new uint8_t[this->size];
-  memset(this->data, 0x57, this->size);
+  memset(this->data, 0xff, this->size);
 
   this->reg_data = new uint8_t[REGS_AREA_SIZE];
   memset(this->reg_data, 0x57, REGS_AREA_SIZE);
@@ -166,13 +169,13 @@ void Hyperram::handle_access(int reg_access, int address, int read, uint8_t data
     if (read)
     {
       uint8_t data = this->data[address];
-      this->top->trace.msg("Sending data byte (value: 0x%x)\n", data);
+      this->top->trace.msg(vp::trace::LEVEL_TRACE, "Sending data byte (value: 0x%x)\n", data);
       this->top->in_itf.sync_cycle(data);
 
     }
     else
     {
-      this->top->trace.msg("Received data byte (value: 0x%x)\n", data);
+      this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received data byte (value: 0x%x)\n", data);
       this->data[address] = data;
     }
   }
@@ -192,6 +195,38 @@ Hyperflash::Hyperflash(hyperchip *top, int size) : top(top), size(size)
   this->state = HYPERFLASH_STATE_WAIT_CMD0;
   this->pending_bytes = 0;
   this->pending_cmd = 0;
+}
+
+
+
+void Hyperflash::erase_sector(unsigned int addr)
+{
+  addr &= ~(FLASH_SECTOR_SIZE - 1);
+
+  this->top->trace.msg(vp::trace::LEVEL_INFO, "Erasing sector (address: 0x%x)\n", addr);
+
+  if (addr >= this->size)
+  {
+    this->top->warning.force_warning("Received out-of-bound erase request (addr: 0x%x, ram_size: 0x%x)\n", addr, this->size);
+    return;
+  }
+
+
+  for (unsigned int current; current < addr + FLASH_SECTOR_SIZE; current++)
+  {
+    this->data[current] = 0xff;
+  }
+}
+
+
+
+void Hyperflash::erase_chip()
+{
+  this->top->trace.msg(vp::trace::LEVEL_INFO, "Erasing chip\n");
+  for (unsigned int addr=0; addr<addr + this->size; addr+= FLASH_SECTOR_SIZE)
+  {
+    this->erase_sector(addr);
+  }
 }
 
 
@@ -219,19 +254,25 @@ void Hyperflash::handle_access(int reg_access, int address, int read, uint8_t da
       {
         data = this->data[address];
       }
-      this->top->trace.msg("Sending data byte (value: 0x%x)\n", data);
+      this->top->trace.msg(vp::trace::LEVEL_TRACE, "Sending data byte (value: 0x%x)\n", data);
       this->top->in_itf.sync_cycle(data);
     }
     else
     {
       if (this->state == HYPERFLASH_STATE_PROGRAM)
       {
-        this->top->trace.msg("Writing to flash (address: 0x%x, value: 0x%x)\n", address, data);
+        this->top->trace.msg(vp::trace::LEVEL_TRACE, "Writing to flash (address: 0x%x, value: 0x%x)\n", address, data);
+
+        if (this->data[address] != 0xff)
+        {
+          this->top->warning.force_warning("Trying to program flash without erasing sector (addr: 0x%x)\n", address);
+        }
+
         this->data[address] = data;
       }
       else
       {
-        this->top->trace.msg("Received data byte (address: 0x%x, value: 0x%x)\n", address, data);
+        this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received data byte (address: 0x%x, value: 0x%x)\n", address, data);
 
         if (this->pending_bytes == 0)
         {
@@ -299,12 +340,12 @@ void Hyperflash::handle_access(int reg_access, int address, int read, uint8_t da
             case HYPERFLASH_STATE_WAIT_CMD5:
               if ((address >> 1) == 0x555 && cmd == 0x10)
               {
-                this->top->trace.msg("Erasing chip\n");
+                this->erase_chip();
                 this->state = HYPERFLASH_STATE_WAIT_CMD0;
               }
               else if (cmd == 0x30)
               {
-                this->top->trace.msg("Erasing sector (address: 0x%x)\n", address);
+                this->erase_sector(address);
                 this->state = HYPERFLASH_STATE_WAIT_CMD0;
               }
             break;
@@ -317,7 +358,7 @@ void Hyperflash::handle_access(int reg_access, int address, int read, uint8_t da
 
 int Hyperflash::preload_file(char *path)
 {
-  this->top->get_trace()->msg("Preloading memory with stimuli file (path: %s)\n", path);
+  this->top->get_trace()->msg(vp::trace::LEVEL_INFO, "Preloading memory with stimuli file (path: %s)\n", path);
   FILE *file = fopen(path, "r");
   if (file == NULL) {
     printf("Unable to open stimulus file (path: %s, error: %s)\n", path, strerror(errno));
@@ -341,7 +382,7 @@ void hyperchip::sync_cycle(void *__this, int data)
 
   if (_this->state == HYPERCHIP_STATE_CA)
   {
-    _this->trace.msg("Received command byte (value: 0x%x)\n", data);
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "Received command byte (value: 0x%x)\n", data);
 
     _this->ca_count--;
     _this->ca.raw[_this->ca_count] = data;
@@ -358,7 +399,11 @@ void hyperchip::sync_cycle(void *__this, int data)
       _this->current_address = ARCHI_REG_FIELD_GET(_this->current_address, 0, REG_MBR_WIDTH);
       _this->reg_access = _this->ca.address_space == 1;
 
-      _this->trace.msg("Received command header (flash_access: %d, reg_access: %d, addr: 0x%x, read: %d)\n", _this->flash_access, _this->ca.address_space, _this->current_address, _this->ca.read);
+      _this->trace.msg(vp::trace::LEVEL_TRACE, "Received command header (flash_access: %d, reg_access: %d, addr: 0x%x, read: %d)\n", _this->flash_access, _this->ca.address_space, _this->current_address, _this->ca.read);
+
+      if (_this->flash->state == HYPERFLASH_STATE_PROGRAM)
+        _this->trace.msg(vp::trace::LEVEL_DEBUG, "Received program command header (addr: 0x%x)\n", _this->current_address);
+
     }
   }
   else if (_this->state == HYPERCHIP_STATE_DATA)
@@ -378,7 +423,7 @@ void hyperchip::sync_cycle(void *__this, int data)
 void hyperchip::cs_sync(void *__this, bool value)
 {
   hyperchip *_this = (hyperchip *)__this;
-  _this->trace.msg("Received CS sync (value: %d)\n", value);
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Received CS sync (value: %d)\n", value);
 
   _this->state = HYPERCHIP_STATE_CA;
   _this->ca_count = 6;
@@ -391,6 +436,7 @@ void hyperchip::cs_sync(void *__this, bool value)
     }
     else if (_this->flash->state == HYPERFLASH_STATE_PROGRAM)
     {
+      _this->trace.msg(vp::trace::LEVEL_DEBUG, "End of program command (addr: 0x%x)\n", _this->current_address);
       _this->flash->state = HYPERFLASH_STATE_WAIT_CMD0;
     }
   }

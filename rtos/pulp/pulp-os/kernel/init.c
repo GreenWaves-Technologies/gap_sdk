@@ -326,3 +326,24 @@ void pi_open_from_conf(struct pi_device *device, void *conf)
 {
   device->config = conf;
 }
+
+void pi_pulpos_conf_init(struct pi_pulpos_conf *conf)
+{
+  conf->io_dev = PI_PULPOS_IO_DEV_BRIDGE;
+}
+
+int pi_os_open(struct pi_device *device)
+{
+  struct pi_pulpos_conf *conf = (struct pi_pulpos_conf *)device->config;
+
+  if (conf->io_dev != PI_PULPOS_IO_DEV_BRIDGE)
+  {
+    __rt_iodev = conf->io_dev;
+
+    if (__rt_iodev == PI_PULPOS_IO_DEV_UART)
+      __rt_iodev_uart_baudrate = conf->uart.baudrate;
+
+    __rt_io_set();
+  }
+  return 0;
+}

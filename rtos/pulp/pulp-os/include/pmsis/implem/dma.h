@@ -72,6 +72,8 @@ static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned 
 }
 
 
+#if MCHAN_VERSION >= 7
+
 static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned int size, unsigned int stride, unsigned short length, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
 {
 #ifdef __RT_USE_PROFILE
@@ -79,18 +81,11 @@ static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
   gv_vcd_dump_trace(trace, 4);
 #endif
 
-#if MCHAN_VERSION >= 7
   eu_mutex_lock_from_id(0);
-#else
-  int irq = rt_irq_disable();
-#endif
   
   int id = -1;
   if (!merge) id = plp_dma_counter_alloc();
 
-#if MCHAN_VERSION <= 6
-  if (stride < (1<<15))
-#endif
   {
     unsigned int cmd = plp_dma_getCmd(dir, size, PLP_DMA_2D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
     // Prevent the compiler from pushing the transfer before all previous
@@ -100,16 +95,45 @@ static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
     if (!merge) copy->id = id;
     copy->length = 0;
   }
-#if MCHAN_VERSION <= 6
+
+  eu_mutex_unlock_from_id(0);
+  
+
+#ifdef __RT_USE_PROFILE
+  gv_vcd_dump_trace(trace, 1);
+#endif
+}
+
+#else
+
+static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned int size, unsigned int stride, unsigned short length, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
+{
+#ifdef __RT_USE_PROFILE
+  int trace = __rt_pe_trace[rt_core_id()];
+  gv_vcd_dump_trace(trace, 4);
+#endif
+
+  int irq = rt_irq_disable();
+  
+  int id = -1;
+
+  if (stride < (1<<15))
+  {
+    if (!merge) id = plp_dma_counter_alloc();
+    unsigned int cmd = plp_dma_getCmd(dir, size, PLP_DMA_2D, PLP_DMA_TRIG_EVT, PLP_DMA_NO_TRIG_IRQ, PLP_DMA_SHARED);
+    // Prevent the compiler from pushing the transfer before all previous
+    // stores are done
+    __asm__ __volatile__ ("" : : : "memory");
+    plp_dma_cmd_push_2d(cmd, loc, ext, stride, length);
+    if (!merge) copy->id = id;
+    copy->length = 0;
+  }
   else
   {
     uint32_t iter_length = size < length ? size : length;
     unsigned int cmd = plp_dma_getCmd(dir, iter_length, PLP_DMA_1D, PLP_DMA_NO_TRIG_EVT, PLP_DMA_TRIG_IRQ, PLP_DMA_SHARED);
     // Prevent the compiler from pushing the transfer before all previous
     // stores are done
-    copy->loc_addr = loc + iter_length;
-    copy->ext_addr = ext + stride;
-    copy->size = size - iter_length;
     copy->stride = stride;
     copy->length = length;
     copy->cmd = plp_dma_getCmd(dir, 0, PLP_DMA_1D, PLP_DMA_NO_TRIG_EVT, PLP_DMA_TRIG_IRQ, PLP_DMA_SHARED);
@@ -117,29 +141,34 @@ static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsign
     copy->next = NULL;
 
     if (__rt_dma_first_pending)
+    {
+      copy->loc_addr = loc;
+      copy->ext_addr = ext;
+      copy->size = size;
       __rt_dma_last_pending->next = copy;
+    }
     else
     {
+      copy->loc_addr = loc + iter_length;
+      copy->ext_addr = ext + stride;
+      copy->size = size - iter_length;
       __asm__ __volatile__ ("" : : : "memory");
+      copy->id = plp_dma_counter_alloc();
       plp_dma_cmd_push(cmd, loc, ext);
       __rt_dma_first_pending =copy;
     }
 
     __rt_dma_last_pending = copy;
   }
-#endif
 
-#if MCHAN_VERSION >= 7
-  eu_mutex_unlock_from_id(0);
-#else
-  rt_irq_restore(irq);
-#endif
-  
+  rt_irq_restore(irq);  
 
 #ifdef __RT_USE_PROFILE
   gv_vcd_dump_trace(trace, 1);
 #endif
 }
+
+#endif
 
 static inline void __cl_dma_flush()
 {
@@ -205,12 +234,8 @@ static inline void __cl_dma_wait(pi_cl_dma_cmd_t *copy)
   }
   else
   {
-    while(*(volatile uint32_t *)&copy->size > 0)
+    while(*(volatile uint32_t *)&copy->ext_addr != 0)
       eu_evt_maskWaitAndClr(1<<RT_DMA_EVENT);
-
-    int irq = rt_irq_disable();
-    plp_dma_counter_free(copy->id);
-    rt_irq_restore(irq);
   }
   
 #ifdef __RT_USE_PROFILE

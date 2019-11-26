@@ -40,7 +40,6 @@
 void rt_flash_conf_init(rt_flash_conf_t *conf)
 {
   conf->id = -1;
-  conf->type = RT_FLASH_TYPE_SPI;
 }
 
 rt_flash_t *rt_flash_open(char *dev_name, rt_flash_conf_t *conf, rt_event_t *event)

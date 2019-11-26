@@ -589,6 +589,9 @@ void pi_l1_free(struct pi_device *device, void *_chunk, int size)
   return rt_free(RT_ALLOC_CL_DATA, _chunk, size);
 }
 
+
+#endif
+
 void *pi_l2_malloc(int size)
 {
   return rt_alloc(RT_ALLOC_PERIPH, size);
@@ -599,5 +602,14 @@ void pi_l2_free(void *_chunk, int size)
   return rt_free(RT_ALLOC_PERIPH, _chunk, size);
 }
 
+#if defined(ARCHI_HAS_FC_TCDM)
+void *pi_fc_tcdm_malloc(int size)
+{
+  return rt_alloc(RT_ALLOC_FC_DATA, size);
+}
 
+void pi_fc_tcdm_free(void *_chunk, int size)
+{
+  return rt_free(RT_ALLOC_FC_DATA, _chunk, size);
+}
 #endif

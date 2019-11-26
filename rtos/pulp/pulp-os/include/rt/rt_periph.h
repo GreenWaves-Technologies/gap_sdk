@@ -149,6 +149,7 @@ static inline void __rt_udma_register_channel_callback(unsigned int channel, voi
 {
 #if UDMA_VERSION == 2
   __rt_periph_channel(channel)->callback = callback;
+  __rt_periph_channel(channel)->first = arg;
 #else
   __rt_udma_callback[channel>>UDMA_NB_PERIPH_EVENTS_LOG2] = callback;
 #endif

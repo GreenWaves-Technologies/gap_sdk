@@ -70,12 +70,12 @@ typedef struct {
 
 /**
   \ingroup  CMSIS_core_register
-  \defgroup CMSIS_TCDM_COMPRESS_ENGINE   Cluster TCDM L2 compress engine
+  \defgroup CMSIS_CLUSTER_DMAMCHAN_COMPRESSOR   Cluster TCDM L2 compress engine
   \brief    Type definitions for the event unit core Registers
   @{
  */
 /**
-  \brief  Structure type to access the TCDM_COMPRESS_ENGINE.
+  \brief  Structure type to access the DMAMCHAN_COMPRESSOR.
  */
 
 typedef struct {
@@ -96,9 +96,9 @@ typedef struct {
   __IOM  uint32_t TCDM_COUNT;        /*!< Offset: 0x038 (R/W)  CLUSTER_COMPRESS_ENGINE tcdm 2D count */
   __IOM  uint32_t TCDM_STRIDE;       /*!< Offset: 0x03C (R/W)  CLUSTER_COMPRESS_ENGINE tcdm 2D stride */
 
-} TCDM_COMPRESS_ENGINE_Type;
+} CLUSTER_DMAMCHAN_COMPRESSOR_Type;
 
-/*@} end of group CMSIS_TCDM_COMPRESS_ENGINE */
+/*@} end of group CMSIS_DMAMCHAN_COMPRESSOR */
 
 #define CLUSTER_DISPATCH_IS_ENTRY_MASK               (0x1U)
 #define CLUSTER_DISPATCH_IS_ENTRY_SHIFT              (0U)
@@ -139,7 +139,7 @@ typedef struct {
 #define CLUSTER_EU_MUTEX_DEMUX_BASE     (CLUSTER_BASE + CORE_EU_MUTEX_DEMUX_BASE)       /*!< CLUSTER Event Unit Mutex Demux Base Address */
 #define CLUSTER_EU_SW_EVENTS_DEMUX_BASE (CLUSTER_BASE + CORE_EU_SW_EVENTS_DEMUX_BASE)   /*!< CLUSTER Event Unit SW Events Demux Base Address */
 #define CLUSTER_EU_BARRIER_DEMUX_BASE   (CLUSTER_BASE + CORE_EU_BARRIER_DEMUX_BASE)     /*!< CLUSTER Event Unit Barrier Demux Base Address */
-#define CLUSTER_TCDM_COMPRESS_ENGINE_BASE (CLUSTER_BASE + 0x00200000UL)                   /*!< CLUSTER TCDM compress engine Base Address */
+#define CLUSTER_DMAMCHAN_COMPRESSOR_BASE CORE_MCHAN_COMPRESSOR_BASE                     /*!< CLUSTER TCDM compress engine Base Address */
 
 
 /* Cluster Core Structrue definitions */
@@ -151,7 +151,7 @@ typedef struct {
 #define CLUSTER_SysTick             ((SysTick_Type   *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
 #define CLUSTER_TIMERL              ((TimerL_Type    *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
 #define CLUSTER_TIMERH              ((TimerH_Type    *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
-#define CLUSTER_TCDM_COMPRESS_ENGINE ((TCDM_COMPRESS_ENGINE_Type  *)   CLUSTER_TCDM_COMPRESS_ENGINE_BASE )  /*!< TCDM/L2 to L2/TCDM compress engine struct */
+#define CLUSTER_DMAMCHAN_COMPRESSOR ((CLUSTER_DMAMCHAN_COMPRESSOR_Type  *)   CLUSTER_DMAMCHAN_COMPRESSOR_BASE )  /*!< TCDM/L2 to L2/TCDM compress engine struct */
 
 
 #ifdef __cplusplus

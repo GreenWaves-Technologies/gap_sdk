@@ -10,7 +10,6 @@
 #include <stdarg.h>
 #include "gap_bridge.h"
 #include "gap_common.h"
-#include "tinyprintf.h"
 
 #include "pmsis/rtos/malloc/pmsis_l2_malloc.h"
 #include "pmsis/drivers/uart.h"
@@ -98,25 +97,6 @@ static void _io_unlock(int irq)
     #endif
 }
 
-int putchar(int c);
-/*
-__attribute__((always_inline))
-static inline char __svcPutChar (char c) {
-  SVC_ArgR(0,c);
-  SVC_ArgF(putchar);
-  SVC_Call0(SVC_In1, SVC_Out1, SVC_CL1);
-  return (char) __a0;
-}
-
-char osPutChar(char c) {
-  if (IsIrqMode() || IsIrqMasked()) {
-     return -1 ;
-  }
-  return __svcPutChar(c);
-}
-*/
-
-
 uint8_t temp_byte;
 void uart_putc(char c)
 {
@@ -184,39 +164,7 @@ static void tfp_putc(void *data, char c) {
     }
 }
 
-int printf(const char *fmt, ...)
+void _putchar(char character)
 {
-    #ifndef __DISABLE_PRINTF__
-    va_list va;
-    va_start(va, fmt);
-    /* Only lock the printf if the cluster is up to avoid mixing FC and cluster output */
-    int irq = _io_lock();
-    tfp_format(NULL, tfp_putc, fmt, va);
-    _io_unlock(irq);
-    va_end(va);
-    #endif
-
-    return 0;
-}
-
-int puts(const char *s)
-{
-    char c;
-    int irq = _io_lock();
-    do {
-        c = *s;
-        if (c == 0) {
-            tfp_putc(NULL, '\n');
-            break;
-        }
-        tfp_putc(NULL, c);
-        s++;
-    } while(1);
-    _io_unlock(irq);
-    return 0;
-}
-
-int putchar(int c) {
-    tfp_putc(NULL, c);
-    return c;
+    tfp_putc(NULL, character);
 }

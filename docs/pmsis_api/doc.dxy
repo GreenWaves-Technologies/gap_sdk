@@ -64,6 +64,7 @@ INPUT                  = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/chip
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/hyperbus.h  \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/cpi.h       \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/pwm.h      \
+                         $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/i2s.h      \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_l2_malloc.h \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_fc_tcdm_malloc.h \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_l1_malloc.h \

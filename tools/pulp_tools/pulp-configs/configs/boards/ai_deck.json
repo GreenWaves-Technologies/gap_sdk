@@ -1,5 +1,5 @@
 {
-  "includes": [ "chips/gap/gap.json" ],
+  "includes": [ "chips/gap_rev1/gap_rev1.json" ],
 
   "board": {
     "name": "ai_deck",
@@ -12,7 +12,21 @@
         "include": "devices/camera.json",
         "interface": "cpi0",
         "ctrl_interface": "i2c0"
+      },
+      "wifi": {
+        "include": "devices/nina_w10.json",
+        "interface": "spim1",
+        "cs": 0,
+        "gpio_ready": "gpio0"
       }
+    }
+  },
+
+  "runner": {
+    "config": {
+      "boot-mode": "rom_hyper",
+      "flash_type": "hyper",
+      "default_profile": "hyper"
     }
   },
 

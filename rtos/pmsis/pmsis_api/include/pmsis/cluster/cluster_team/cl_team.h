@@ -43,10 +43,9 @@
 
 /**@{*/
 
-/** \brief Return the number of cores involved in the current cluster task.
+/** \brief Return the number of cores of the cluster.
  *
- * This will return the number of cores activated by the cluster task pushed to
- * cluster side and currently being executed.
+ * This will return the number of cores present in the cluster.
 
  * \return Number of cores.
  */

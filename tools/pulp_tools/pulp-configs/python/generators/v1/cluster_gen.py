@@ -232,7 +232,7 @@ def get_config(tp, cluster_id):
 
   cluster.icache = Empty_Component(properties=OrderedDict([
     ('version', 1),
-    ('size', 4096),
+    ('size', 4096*16),
     ('line_size', 16),
     ('banking_factor', 4),
     ('ports', 8),

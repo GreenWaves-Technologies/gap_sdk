@@ -238,8 +238,7 @@ vp::io_req_status_e Udma_channel::cfg_req(vp::io_req *req)
 
     if (channel_clear)
     {
-      trace.msg("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
-      return vp::IO_REQ_INVALID;
+      this->reset(true);
     }
 
     if (channel_enabled)
@@ -278,7 +277,7 @@ vp::io_req_status_e Udma_channel::req(vp::io_req *req, uint64_t offset)
 
 
 
-Udma_channel::Udma_channel(udma *top, int id, string name) : top(top), id(id), name(name)
+Udma_channel::Udma_channel(udma *top, int id, string name) : top(top), id(id), name(name), current_cmd(NULL)
 {
   top->traces.new_trace(name + "/trace", &trace, vp::DEBUG);
 
@@ -309,10 +308,20 @@ void Udma_channel::reset(bool active)
 {
   if (active)
   {
-    current_cmd = NULL;
-    continuous_mode = 0;
-    transfer_size = 0;
+    if (current_cmd)
+    {
+      this->free_reqs->push(this->current_cmd);
+      this->current_cmd = NULL;
+    }
+    this->continuous_mode = 0;
+    this->transfer_size = 0;
     this->state_event.event(NULL);
+
+    while(!this->pending_reqs->is_empty())
+    {
+      this->free_reqs->push(this->pending_reqs->pop());
+    }
+
   }
 }
 
@@ -636,6 +645,7 @@ int udma::build()
   in.set_req_meth(&udma::req);
   new_slave_port("input", &in);
 
+  this->periph_clock = NULL;
   this->periph_clock_itf.set_reg_meth(&udma::clk_reg);
   new_slave_port("periph_clock", &this->periph_clock_itf);
 
@@ -815,6 +825,10 @@ int udma::build()
 
 void udma::start()
 {
+  if (this->periph_clock == NULL)
+  {
+    this->periph_clock = this->get_clock();
+  }
 }
 
 void udma::reset(bool active)

@@ -35,6 +35,11 @@ static inline void iss_handle_ebreak(iss_t *iss, iss_insn_t *insn)
   iss->handle_ebreak();
 }
 
+static inline void iss_handle_riscv_ebreak(iss_t *iss, iss_insn_t *insn)
+{
+  iss->handle_riscv_ebreak();
+}
+
 static inline void iss_pccr_incr(iss_t *iss, unsigned int event, int incr)
 {
   static uint64_t zero = 0;

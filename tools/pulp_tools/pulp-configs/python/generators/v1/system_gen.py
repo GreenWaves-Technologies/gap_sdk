@@ -80,6 +80,21 @@ def get_config(tp):
 
 
 
+  openocd_dict = OrderedDict([
+      ('includes', ["tools/openocd/openocd.json"])
+  ])
+
+  openocd_config = tp.get('**/openocd/config')
+
+  if openocd_config is not None:
+    openocd_dict.update(openocd_config.get_dict())
+
+  system.system_tree.openocd = Component(
+    properties=openocd_dict
+  )
+
+
+
   runner_dict = OrderedDict([
       ('includes', ["tools/runner/runner.json"])
   ])

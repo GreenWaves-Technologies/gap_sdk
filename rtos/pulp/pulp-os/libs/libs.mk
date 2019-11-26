@@ -7,7 +7,7 @@ endif
 endif
 
 ifeq '$(CONFIG_LIB_IO_ENABLED)' '1'
-PULP_LIB_FC_SRCS_rtio   += libs/io/io.c libs/io/fprintf.c libs/io/prf.c libs/io/sprintf.c
+PULP_LIB_FC_SRCS_rtio   += libs/io/io.c libs/io/semihost.c libs/io/fprintf.c libs/io/prf.c libs/io/sprintf.c
 PULP_LIBS += rtio
 endif
 

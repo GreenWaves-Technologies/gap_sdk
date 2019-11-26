@@ -79,7 +79,7 @@ static void UDMA_SetChannelBase() {
   udma_channels[6].base = NULL;//(UDMA_Type *) I2C1;
   udma_channels[7].base = (UDMA_Type *) DMACPY;
   /* Special channel I2S1 use TX for RX */
-  udma_channels[8].base = (UDMA_Type *) I2S;
+  udma_channels[8].base = NULL;//(UDMA_Type *) I2S;
   udma_channels[9].base = NULL;//(UDMA_Type *) CPI;
 }
 
@@ -419,18 +419,6 @@ void UDMA_EventHandler(uint32_t index, int abort)
         //if (first->info.ctrl != UDMA_CTRL_DUAL_RX) {
             if (first->info.task)
             {
-                if(index == UDMA_EVENT_UART_TX || index == UDMA_EVENT_UART_RX)
-                    //asm volatile ("jal UART_DriverIRQHandler");
-                if(index == UDMA_EVENT_SPIM0_TX || index == UDMA_EVENT_SPIM0_RX)
-                    asm volatile ("jal SPI0_DriverIRQHandler");
-                if(index == UDMA_EVENT_SPIM1_TX || index == UDMA_EVENT_SPIM1_RX)
-                    asm volatile ("jal SPI1_DriverIRQHandler");
-                if(index == UDMA_EVENT_CPI_RX)
-                    asm volatile ("jal CPI_DriverIRQHandler");
-                if(index == UDMA_EVENT_SAI_CH0 || index == UDMA_EVENT_SAI_CH1)
-                    SAI_IRQHandler((void *)first->info.task);
-                if(UDMA_EVENT_I2C0_RX <= index && index <= UDMA_EVENT_I2C1_TX)
-                    I2C_IRQHandler((void *)first->info.task);
                 if(index == UDMA_EVENT_DMACPY_RX || index == UDMA_EVENT_DMACPY_TX)
                     DMACPY_IRQHandler((void *)first->info.task);
             }

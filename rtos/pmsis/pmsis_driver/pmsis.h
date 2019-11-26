@@ -26,6 +26,7 @@
 /* PMSIS includes. */
 #include "pmsis_driver/pmsis_driver_data.h"
 #include "pmsis_driver/pmsis_drivers.h"
+#include "pmsis_rtos/os/pmsis_freq.h"
 #if defined(FEATURE_CLUSTER)
 #include "pmsis_cluster/pmsis_cluster.h"
 #endif  /* FEATURE_CLUSTER */

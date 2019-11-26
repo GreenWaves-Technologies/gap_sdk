@@ -163,7 +163,7 @@ static char __pi_hyper_temp_buffer[__PI_HYPER_TEMP_BUFFER_SIZE];
 void pi_hyper_conf_init(struct pi_hyper_conf *conf)
 {
   conf->id = -1;
-  conf->baudrate = 25000000;
+  conf->baudrate = 0;
   conf->type = PI_HYPER_TYPE_RAM;
   conf->cs = 0;
 }
@@ -225,7 +225,7 @@ static int __rt_get_div(int freq)
 {
   int periph_freq = __rt_freq_periph_get();
 
-  if (freq >= periph_freq)
+  if (freq == 0 || freq >= periph_freq)
   {
     return 0;
   }

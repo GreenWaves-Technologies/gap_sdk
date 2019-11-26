@@ -20,6 +20,7 @@
 // Register map
 
 #define MCHAN_CMD_OFFSET                         0x0
+#define MCHAN_STATUS_OFFSET                      0x4
 
 #define PLP_DMA_QUEUE_OFFSET   0x0
 #define PLP_DMA_STATUS_OFFSET  0x4

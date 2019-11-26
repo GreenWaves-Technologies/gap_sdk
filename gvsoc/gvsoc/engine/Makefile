@@ -21,7 +21,7 @@ endif
 
 CFLAGS_DBG += -DVP_TRACE_ACTIVE=1
 
-VP_SRCS = src/vp.cpp src/trace/trace.cpp src/clock/clock.cpp src/trace/event.cpp src/trace/vcd.cpp src/trace/lxt2.cpp src/power/power.cpp src/trace/lxt2_write.c src/trace/fst/fastlz.c  src/trace/fst/lz4.c src/trace/fst/fstapi.c src/trace/fst.cpp
+VP_SRCS = src/vp.cpp src/trace/trace.cpp src/clock/clock.cpp src/trace/event.cpp src/trace/vcd.cpp src/trace/lxt2.cpp src/power/power.cpp src/trace/lxt2_write.c src/trace/fst/fastlz.c  src/trace/fst/lz4.c src/trace/fst/fstapi.c src/trace/fst.cpp src/trace/raw.cpp src/trace/raw/trace_dumper.cpp
 VP_OBJS = $(patsubst src/%.cpp,$(ENGINE_BUILD_DIR)/%.o,$(patsubst src/%.c,$(ENGINE_BUILD_DIR)/%.o,$(VP_SRCS)))
 VP_DBG_OBJS = $(patsubst src/%.cpp,$(ENGINE_BUILD_DIR)/dbg/%.o,$(patsubst src/%.c,$(ENGINE_BUILD_DIR)/dbg/%.o,$(VP_SRCS)))
 
@@ -42,6 +42,7 @@ INSTALL_FILES += $(INSTALL_DIR)/$(1)
 endef
 
 -include $(VP_OBJS:.o=.d)
+-include $(VP_DBG_OBJS:.o=.d)
 
 $(ENGINE_BUILD_DIR)/%.o: src/%.c
 	@mkdir -p $(basename $@)

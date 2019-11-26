@@ -35,9 +35,6 @@
 #define LCD_WIDTH    320
 #define LCD_HEIGHT   240
 
-//#define DEBUG_PRINTF(...)
-#define DEBUG_PRINTF printf
-
 static unsigned char *imgBuff0;
 static struct pi_device ili;
 static pi_buffer_t buffer;
@@ -99,7 +96,7 @@ static int open_camera_mt9v034(struct pi_device *device)
   struct pi_mt9v034_conf cam_conf;
 
   pi_mt9v034_conf_init(&cam_conf);
-  cam_conf.format = CAMERA_QVGA;
+  cam_conf.format = PI_CAMERA_QVGA;
 
   pi_open_from_conf(device, &cam_conf);
   if (pi_camera_open(device))

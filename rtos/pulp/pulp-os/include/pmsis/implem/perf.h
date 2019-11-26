@@ -19,7 +19,6 @@
 
 #include "archi/pulp.h"
 #include "hal/pulp.h"
-#include "pmsis/chips/gap8/perf.h"
 
 /// @cond IMPLEM
 

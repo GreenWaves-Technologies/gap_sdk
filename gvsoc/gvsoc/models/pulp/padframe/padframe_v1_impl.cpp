@@ -423,7 +423,9 @@ void padframe::i2s_external_edge(void *__this, int sck, int ws, int sd, int id)
   padframe *_this = (padframe *)__this;
   I2s_group *group = static_cast<I2s_group *>(_this->groups[id]);
 
-  //group->rx_trace.event((uint8_t *)&data);
+  group->sck_trace.event((uint8_t *)&sck);
+  group->ws_trace.event((uint8_t *)&ws);
+  group->sd_trace.event((uint8_t *)&sd);
 
   group->master.sync(sck, ws, sd);
 }

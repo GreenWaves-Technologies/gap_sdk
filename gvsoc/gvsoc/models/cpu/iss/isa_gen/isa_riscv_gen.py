@@ -1838,7 +1838,7 @@ with open(args.header_file, 'w') as isaFileHeader:
                 elif "mulh" in insn.tags:
                     insn.get_out_reg(0).set_latency(3)
                 elif "div" in insn.tags:
-                    insn.get_out_reg(0).set_latency(8)
+                    insn.get_out_reg(0).set_latency(31)
 
 
             elif args.implem == 'zeroriscy':

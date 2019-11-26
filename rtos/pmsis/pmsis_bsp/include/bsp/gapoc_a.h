@@ -58,6 +58,7 @@
 #define CONFIG_HYPERRAM_DATA6_PAD_FUNC      3
 
 #define GPIOA0_LED                PI_GPIO_A0_PAD_12_A3
+#define GPIO_USER_LED             PI_GPIO_A0_PAD_12_A3
 #define GPIOA1                    1
 #define GPIOA2_NINA_RST           PI_GPIO_A2_PAD_14_A2
 #define GPIOA3_CIS_EXP            PI_GPIO_A3_PAD_15_B1

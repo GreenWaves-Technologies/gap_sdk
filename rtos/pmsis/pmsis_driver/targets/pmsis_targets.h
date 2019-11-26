@@ -132,6 +132,11 @@ static inline uint32_t pi_nb_cluster_cores()
     return (uint32_t) ARCHI_CLUSTER_NB_PE;
 }
 
+static inline int pi_cl_cluster_nb_cores()
+{
+    return (int) ARCHI_CLUSTER_NB_PE;
+}
+
 /*******************************************************************************
  * Definitions
  ******************************************************************************/

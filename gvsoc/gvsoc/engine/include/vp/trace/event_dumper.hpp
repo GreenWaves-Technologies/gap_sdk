@@ -22,6 +22,7 @@
 #define __VP_TRACE_EVENT_DUMPER_HPP__
 
 #include <stdio.h>
+#include <unordered_map>
 
 namespace vp {
 
@@ -118,6 +119,20 @@ namespace vp {
 
     void *writer;
     std::vector<uint32_t> vars;
+  };
+
+
+  class Raw_file : public Event_file
+  {
+  public:
+    Raw_file(Event_dumper *dumper, string path);
+    void close();
+    void add_trace(string name, int id, int width, bool is_real, bool is_string);
+    void dump(int64_t timestamp, int id, uint8_t *event, int width, bool is_real, bool is_string, uint8_t flags, uint8_t *flag_mask);
+
+  private:
+    void *dumper;
+    std::unordered_map<int, void *> traces;
   };
 
 };

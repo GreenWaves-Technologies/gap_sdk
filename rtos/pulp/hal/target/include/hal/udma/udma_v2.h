@@ -180,6 +180,11 @@ static inline void plp_udma_enqueue(unsigned channelBase, unsigned int l2Addr, u
   ARCHI_WRITE(channelBase, UDMA_CHANNEL_CFG_OFFSET, cfg | UDMA_CHANNEL_CFG_EN);
 }
 
+static inline void plp_udma_clr(unsigned channelBase)
+{
+  ARCHI_WRITE(channelBase, UDMA_CHANNEL_CFG_OFFSET, UDMA_CHANNEL_CFG_CLEAR);
+}
+
 static inline int plp_udma_busy(unsigned channelOffset)
 {
   return (pulp_read32(channelOffset + UDMA_CHANNEL_CFG_OFFSET) & UDMA_CHANNEL_CFG_EN);

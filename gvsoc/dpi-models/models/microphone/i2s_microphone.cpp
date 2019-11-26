@@ -73,8 +73,16 @@ private:
   I2s_mic_channel *channels[2];
   bool pdm;
   bool ddr;
+  bool dual;
   int freq;
   int flush_data;
+  int chain_size;
+  std::vector<I2s_mic_channel *> channel_chain;
+
+  void *trace;
+
+  int current_bit;
+  int current_channel;
 };
 
 
@@ -113,7 +121,7 @@ private:
 class I2s_mic_channel {
 
 public:
-  I2s_mic_channel(Microphone *top, void *handle, int width, std::string stimFile, bool pdm, int freq);
+  I2s_mic_channel(int id, Microphone *top, void *handle, int width, std::string stimFile, bool pdm, int freq);
   int popData(int64_t timestamp);
   void clrData(int64_t timestamp);
 
@@ -126,6 +134,7 @@ private:
   Stim *stim;
   unsigned long long currentValue;
   long long pdmError;
+  int id;
 };
 
 
@@ -137,7 +146,8 @@ Stim_txt::Stim_txt(Microphone *top, void *handle, std::string file, int width, i
 
 #ifdef USE_SNDFILE
 
-    sndfile = SndfileHandle (file, SFM_READ, SF_FORMAT_WAV | SF_FORMAT_PCM_16) ;
+    unsigned int pcm_width = width == 16 ? SF_FORMAT_PCM_16 : SF_FORMAT_PCM_32;
+    sndfile = SndfileHandle (file, SFM_READ, SF_FORMAT_WAV | pcm_width) ;
     freq = sndfile.samplerate ();
 
 #else
@@ -150,11 +160,12 @@ Stim_txt::Stim_txt(Microphone *top, void *handle, std::string file, int width, i
   } else {
     stimFile = fopen(file.c_str(), "r");
     if (stimFile == NULL) {
-      top->print("\033[1m\033[31mFailed to open stimuli file\033[0m: %s: %s", file.c_str(), strerror(errno));
+      this->top->fatal("\033[1m\033[31mFailed to open stimuli file\033[0m: %s: %s", file.c_str(), strerror(errno));
     }
   }
   if (freq) period = 1000000000000UL / freq;
   else period = 0;
+
   lastDataTime = -1;
   nextDataTime = -1;
 }
@@ -169,8 +180,21 @@ long long Stim_txt::getDataFromFile()
   if (useLibsnd) {
 
 #ifdef USE_SNDFILE
-    int16_t result;
-    sndfile.read ((short int *)&result, 1);
+
+    int32_t result;
+    if (this->width <= 16)
+    {
+      int16_t sample;
+      sndfile.read (&sample, 1);
+      result = (int32_t)sample;
+    }
+    else if (this->width <= 32)
+    {
+      int32_t sample;
+      sndfile.read (&sample, 1);
+      result = (int32_t)sample;
+    }
+
     return result;
 #else
     return 0;
@@ -186,7 +210,7 @@ long long Stim_txt::getDataFromFile()
 
     long long result = getSignedValue(data, width);
 
-    top->print("Got new sample1 (value: 0x%x)", result);
+    this->top->trace_msg(this->top->trace, 4, "Got new sample1 (value: 0x%x)", result);
     return result;
   } else {
     char *line = NULL;
@@ -199,7 +223,7 @@ long long Stim_txt::getDataFromFile()
     unsigned long long data = strtol(line, NULL, 16);
     long long result = getSignedValue(data, width);
 
-    top->print("Got new sample2 (value: 0x%x)", result);
+    this->top->trace_msg(this->top->trace, 4, "Got new sample2 (value: 0x%x)", result);
   
     return result;
   }
@@ -232,7 +256,7 @@ long long Stim_txt::getData(int64_t timestamp)
   float value = (float)lastData + (float)(nextData - lastData) * coeff;
 
 
-  top->print("Interpolated new sample (value: %d, timestamp: %ld, prev_timestamp: %ld, next_timestamp: %ld, prev_value: %d, next_value: %d)", value, timestamp, lastDataTime, nextDataTime, lastData, nextData);
+  top->trace_msg(this->top->trace, 4, "Interpolated new sample (value: %d, timestamp: %ld, prev_timestamp: %ld, next_timestamp: %ld, prev_value: %d, next_value: %d)", value, timestamp, lastDataTime, nextDataTime, lastData, nextData);
   
 
   //printf("%f %f %d %d %ld %ld %ld\n", coeff, value, lastData, nextData, lastDataTime, timestamp, nextDataTime);
@@ -241,10 +265,11 @@ long long Stim_txt::getData(int64_t timestamp)
 }
 
 
-I2s_mic_channel::I2s_mic_channel(Microphone *top, void *handle, int width, std::string stimFile, bool pdm, int freq)
- : width(width), pendingBits(0), stim(NULL), pdm(pdm), pdmError(0)
+I2s_mic_channel::I2s_mic_channel(int id, Microphone *top, void *handle, int width, std::string stimFile, bool pdm, int freq)
+ : width(width), pendingBits(0), stim(NULL), pdm(pdm), pdmError(0), id(id)
 {
   if (stimFile != "") {
+
     char *ext = rindex((char *)stimFile.c_str(), '.');
 
     if (ext == NULL) {
@@ -306,7 +331,7 @@ int I2s_mic_channel::popData(int64_t timestamp)
       }
       else currentValue = 0;
     }
-  
+
     // Shift bits from MSB
     int bit = (currentValue >> (pendingBits - 1)) & 1;
     pendingBits--;
@@ -319,13 +344,28 @@ int I2s_mic_channel::popData(int64_t timestamp)
 
 void Microphone::setData(int64_t timestamp, int channel, int sck, int ws)
 {
-  int val = channels[channel]->popData(timestamp);
-  itf->rx_edge(sck, ws, val);
+  if (this->chain_size > 1)
+  {
+    int val = this->channel_chain[channel]->popData(timestamp);
+    itf->rx_edge(sck, ws, val);
+  }
+  else
+  {
+    int val = channels[channel]->popData(timestamp);
+    itf->rx_edge(sck, ws, val);
+  }
 }
 
 void Microphone::clrData(int64_t timestamp, int channel)
 {
-  channels[channel]->clrData(timestamp);
+  if (this->chain_size > 1)
+  {
+    this->channel_chain[channel]->clrData(timestamp);
+  }
+  else
+  {
+    channels[channel]->clrData(timestamp);
+  }
 }
 
 void Microphone::setData(int64_t timestamp, int sck, int ws)
@@ -336,13 +376,15 @@ void Microphone::setData(int64_t timestamp, int sck, int ws)
 
 void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
 {
+  this->trace_msg(this->trace, 4, "Edge (sck: %d, ws: %d)", sck, ws);
+
   if (ddr) {
 
     // DOUBLE DATA RATE
     // We ignore WS and send a data at each edge
     if (prevSck == 0 && sck == 1) {
       // Rising edge, prepare data from second microphone so that it is sampled during th next falling edge
-      setData(timestamp, 1, sck, ws);
+      setData(timestamp, 1, sck, 0);
     } else {
       if (flush_data >= 0)
       {
@@ -355,36 +397,77 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
       }
 
       // Falling edge, prepare data from first microphone so that it is sampled during th next raising edge
-      setData(timestamp, 0, sck, ws);
-    }
-
-    if (prevWs != ws)
-    {
-      flush_data = 0;
-      prevWs = ws;
+      setData(timestamp, 0, sck, 0);
     }
 
   } else {
 
-    // SINGLE DATA RATE
-    if (prevSck == 1 && sck == 0) {
-      if (flush_data >= 0)
-      {
-        flush_data--;
-        if (flush_data == -1)
-        {
-          clrData(timestamp, 0);
-        }
-      }
+    if (this->chain_size > 1)
+    {
+      // SINGLE DATA RATE
+      if (prevSck == 1 && sck == 0) {
 
-      // Falling edge, update data
-      setData(timestamp, sck, ws);
-    } else if (prevSck == 0 && sck == 1) {
-    
-      if (prevWs != ws) {
-        flush_data = 0;
-        currentChannel = 0;
+        // Falling edge, update data
+        setData(timestamp, sck, ws);
+
+        if (flush_data >= 0)
+        {
+          flush_data--;
+          if (flush_data == 0)
+          {
+            flush_data = this->width;
+            currentChannel++;
+            if (currentChannel == this->chain_size)
+              currentChannel = 0;
+
+            clrData(timestamp, 0);
+          }
+        }
+        
+      } else if (prevSck == 0 && sck == 1) {
+        if (ws && prevWs != ws)
+        {
+          currentChannel = 0;
+          flush_data = this->width;
+            clrData(timestamp, 0);
+        }
         prevWs = ws;
+
+      }
+    }
+    else
+    {
+      // SINGLE DATA RATE
+      if (prevSck == 1 && sck == 0) {
+        if (flush_data >= 0)
+        {
+          flush_data--;
+          if (flush_data == -1)
+          {
+            clrData(timestamp, 0);
+          }
+        }
+
+        // Falling edge, update data
+        setData(timestamp, sck, ws);
+      } else if (prevSck == 0 && sck == 1) {
+      
+        if (prevWs != ws) {
+          if (this->dual)
+          {
+            clrData(timestamp, currentChannel);
+            flush_data = 0;
+            currentChannel = ws;
+            prevWs = ws;
+          }
+          else
+          {
+            clrData(timestamp, currentChannel);
+            flush_data = 0;
+            currentChannel = 0;
+            prevWs = ws;
+          }
+        }
       }
     }
   }
@@ -407,14 +490,38 @@ flush_data(-1)
   this->width = config->get_child_int("width");
   this->pdm = config->get_child_bool("pdm");
   this->ddr = config->get_child_bool("ddr");
-  this->stimLeftPath = config->get_child_str("stim_left");
-  this->stimRightPath = config->get_child_str("stim_right");
+  this->dual = config->get_child_bool("dual");
   this->freq = config->get_child_int("frequency");
+  this->chain_size = config->get_child_int("chain_size");
 
-  this->print("Instantiated I2S microphone model (i2s_microphone) (width: %d, stimLeft: %s, stimRight: %s)", this->width, this->stimLeftPath.c_str(), this->stimRightPath.c_str());
+  this->trace = this->trace_new(config->get_child_str("name").c_str());
 
-  this->channels[0] = new I2s_mic_channel(this, handle, width, stimLeftPath, pdm, freq);
-  if (ddr) channels[1] = new I2s_mic_channel(this, handle, width, stimRightPath, pdm, freq);
+  if (this->chain_size <= 1)
+  {
+    this->stimLeftPath = config->get_child_str("stim_left");
+    this->stimRightPath = config->get_child_str("stim_right");
+
+    this->print("Instantiated I2S microphone model (i2s_microphone) (width: %d, stimLeft: %s, stimRight: %s)", this->width, this->stimLeftPath.c_str(), this->stimRightPath.c_str());
+
+    this->channels[0] = new I2s_mic_channel(0, this, handle, width, stimLeftPath, pdm, freq);
+    if (this->ddr || this->dual) this->channels[1] = new I2s_mic_channel(1, this, handle, width, stimRightPath, pdm, freq);
+  }
+  else
+  {
+    this->print("Instantiated I2S microphone chain model (i2s_microphone) (chain size: %d, width: %d)", this->chain_size, this->width);
+
+    this->channel_chain.reserve(this->chain_size);
+
+    for (int i=0; i<this->chain_size; i++)
+    {
+      std::string stim_path = config->get_child_str("stim_" + std::to_string(i));
+      this->print("Instantiated I2S microphone model (i2s_microphone) (width: %d, stim: %s)", this->width, stim_path.c_str());
+      this->channel_chain[i] = new I2s_mic_channel(i, this, handle, width, stim_path, false, freq);
+    }
+  }
+
+  this->current_bit = 0;
+  this->current_channel = 0;
 }
 
 

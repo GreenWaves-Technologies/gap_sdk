@@ -49,6 +49,21 @@ static inline void udma_enqueue_channel(udma_core_t *udma_struct, uint32_t addr,
     }
 }
 
+static inline void udma_channel_clear(udma_core_t *udma, udma_channel_e channel)
+{
+    switch (channel)
+    {
+    case RX_CHANNEL :
+        hal_write32(&(udma->rx_cfg), UDMA_CORE_RX_CFG_CLR(1));
+        break;
+    case TX_CHANNEL :
+        hal_write32(&(udma->tx_cfg), UDMA_CORE_TX_CFG_CLR(1));
+        break;
+    default :
+        break;
+    }
+}
+
 static inline void udma_deinit_device(uint32_t device_id)
 {
     // enable clock gating for device with device_id

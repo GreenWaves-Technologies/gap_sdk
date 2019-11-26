@@ -79,6 +79,11 @@ static void __pi_pwm_user_cb_attach(uint8_t pwm_id, pi_task_t *cb)
     __cb_task_array[pwm_id] = cb;
 }
 
+static void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd)
+{
+    hal_pwm_cmd_set(pwm_id, cmd);
+}
+
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
@@ -98,6 +103,7 @@ void __pi_pwm_conf_init(struct pi_pwm_conf *conf)
 {
     conf->device = PI_DEVICE_PWM_TYPE;
     conf->pwm_id = 0;
+    conf->ch_id = PI_PWM_CHANNEL0;
     conf->input_src = 0;
     conf->timer_conf = PI_PWM_EVT_EACH_CLK_CYCLE |
                        PI_PWM_CLKSEL_REFCLK_32K |
@@ -176,11 +182,6 @@ int32_t __pi_pwm_ioctl(uint8_t pwm_id, pi_pwm_ioctl_cmd_e cmd, void *arg)
     default :
         return -1;
     }
-}
-
-void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd)
-{
-    hal_pwm_cmd_set(pwm_id, cmd);
 }
 
 uint32_t __pi_pwm_counter_get(uint8_t pwm_id)

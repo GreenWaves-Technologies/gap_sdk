@@ -1,5 +1,5 @@
 IMPLEMENTATIONS += utils/loader_impl
-COMPONENTS += utils/loader utils/composite
+COMPONENTS += utils/loader
 utils/loader_impl_SRCS = utils/loader_impl.cpp
 
 IMPLEMENTATIONS += utils/dpi_wrapper_impl

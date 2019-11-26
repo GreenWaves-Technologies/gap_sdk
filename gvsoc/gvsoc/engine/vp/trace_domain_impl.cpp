@@ -192,6 +192,7 @@ void trace_domain::start()
 void trace_domain::add_path(int events, const char *path)
 {
   regex_t *regex = new regex_t();
+
   if (events)
   {
     const char *file_path = "all.vcd";

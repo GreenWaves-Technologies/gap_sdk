@@ -188,7 +188,9 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
     }
     else
     {
-      _this->next_bit_cycle = _this->top->get_periph_clock()->get_cycles() + _this->r_clk_div.data_get() + 1;
+      int div = _this->r_clk_div.data_get()*2;
+
+      _this->next_bit_cycle = _this->top->get_periph_clock()->get_cycles() + div;
       if (send_byte)
       {
         _this->top->get_trace()->msg("Sending byte (value: 0x%x)\n", byte);

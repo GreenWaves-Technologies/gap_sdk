@@ -94,5 +94,7 @@ $(eval $(call declare_iss_check_class,$(fc/iss_class)))
 endif
 
 ifneq '$(pe/iss_class)' ''
+ifneq '$(pe/iss_class)' '$(fc/iss_class)'
 $(eval $(call declare_iss_check_class,$(pe/iss_class)))
+endif
 endif

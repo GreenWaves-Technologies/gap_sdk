@@ -78,7 +78,7 @@ static int32_t open_display(struct pi_device *device)
         printf("Failed to open display\n");
         return -1;
     }
-    //display_ioctl(device, ILI_IOCTL_ORIENTATION, (void *) ILI_ORIENTATION_270);
+    //pi_display_ioctl(device, PI_ILI_IOCTL_ORIENTATION, (void *) PI_ILI_ORIENTATION_270);
     return 0;
 }
 #endif  /* HAVE_DISPLAY */
@@ -109,12 +109,12 @@ static int32_t open_camera_himax(struct pi_device *device)
 
 static int32_t open_camera_mt9v034(struct pi_device *device)
 {
-    struct mt9v034_conf cam_conf;
+    struct pi_mt9v034_conf cam_conf;
     pi_mt9v034_conf_init(&cam_conf);
     #if defined(QVGA)
-    cam_conf.format = CAMERA_QVGA;
+    cam_conf.format = PI_CAMERA_QVGA;
     #else
-    cam_conf.format = CAMERA_QQVGA;
+    cam_conf.format = PI_CAMERA_QQVGA;
     #endif  /* QVGA */
     pi_open_from_conf(device, &cam_conf);
     if (pi_camera_open(device))
@@ -143,9 +143,7 @@ void test_camera_with_lcd(void)
 {
     printf("Entering main controller...\n");
 
-    #if defined(__PULP_OS__)
-    rt_freq_set(__RT_FREQ_DOMAIN_FC, 250000000);
-    #endif  /* __PULP_OS__ */
+    //pi_freq_set(PI_FREQ_DOMAIN_FC, 250000000);
 
     imgBuff0 = (uint8_t *) pmsis_l2_malloc((CAMERA_WIDTH * CAMERA_HEIGHT) * sizeof(uint8_t));
     if (imgBuff0 == NULL)
@@ -167,6 +165,19 @@ void test_camera_with_lcd(void)
         pmsis_exit(-3);
     }
     pi_display_ioctl(&lcd, PI_ILI_IOCTL_ORIENTATION, (void *) PI_ILI_ORIENTATION_270);
+
+    #if defined(HIMAX)
+    buffer.data = imgBuff0 + CAMERA_WIDTH * 2 + 2;
+    buffer.stride = 4;
+
+    // With Himax, propertly configure the buffer to skip boarder pixels
+    pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0 + CAMERA_WIDTH * 2 + 2);
+    pi_buffer_set_stride(&buffer, 4);
+    #else
+    buffer.data = imgBuff0;
+    pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0);
+    #endif  /* HIMAX */
+    pi_buffer_set_format(&buffer, CAMERA_WIDTH, CAMERA_HEIGHT, 1, PI_BUFFER_FORMAT_GRAY);
     #endif  /* HAVE_DISPLAY */
 
     #if defined(USE_BRIDGE)
@@ -177,29 +188,16 @@ void test_camera_with_lcd(void)
     }
     #endif  /* USE_BRIDGE */
 
-    #if defined(HIMAX)
-    buffer.data = imgBuff0 + CAMERA_WIDTH * 2 + 2;
-    buffer.stride = 4;
-
-    // WIth Himax, propertly configure the buffer to skip boarder pixels
-    pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0 + CAMERA_WIDTH * 2 + 2);
-    pi_buffer_set_stride(&buffer, 4);
-    #else
-    buffer.data = imgBuff0;
-    pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0);
-    #endif  /* HIMAX */
-    pi_buffer_set_format(&buffer, CAMERA_WIDTH, CAMERA_HEIGHT, 1, PI_BUFFER_FORMAT_GRAY);
-
     printf("Main loop start\n");
     while (1)
     {
         #if defined(ASYNC)
-        pi_camera_control(&cam, CAMERA_CMD_STOP, 0);
+        pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
         PRINTF("Camera stop.\n");
         pi_task_callback(&task, cam_handler, NULL);
         pi_camera_capture_async(&cam, imgBuff0, CAMERA_WIDTH * CAMERA_HEIGHT, &task);
         PRINTF("Image capture.\n");
-        pi_camera_control(&cam, CAMERA_CMD_START, 0);
+        pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);
         PRINTF("Camera start.\n");
         pi_task_wait_on(&task);
         #else

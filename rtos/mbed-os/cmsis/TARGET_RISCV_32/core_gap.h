@@ -597,6 +597,7 @@ typedef struct
   __IOM uint32_t ICACHE_CNTS_ENABLE;       /*!< Offset: 0x14 (R/W)  Cluster Icache status counter enable */
   __IOM uint32_t ICACHE_SEPERATION;        /*!< Offset: 0x18 (R/W)  Cluster Icache 9th core use private icache (=1) or shared with other cores(=0). */
   __IOM uint32_t ICACHE_ENABLE_PREFETCH;   /*!< Offset: 0x1C (R/W)  Cluster Icache enable L1 to L1.5 prefetch feature. 9 bits for 9 cores */
+  __IOM uint32_t ICACHE_BYPASS_L1;         /*!< Offset: 0x20 (R/W)  Cluster Icache Bypass L1 to use L1.5 directly in low frequency situation */
 } SCBC_Type;
 
 /* SCBC Registers Definitions */

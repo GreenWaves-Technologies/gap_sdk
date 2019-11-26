@@ -53,8 +53,6 @@ void __pi_pwm_close(uint8_t pwm_id);
 
 int32_t __pi_pwm_ioctl(uint8_t pwm_id, pi_pwm_ioctl_cmd_e cmd, void *arg);
 
-void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd);
-
 uint32_t __pi_pwm_counter_get(uint8_t pwm_id);
 
 
@@ -65,13 +63,13 @@ uint32_t __pi_pwm_counter_get(uint8_t pwm_id);
 static inline void pi_pwm_timer_start(struct pi_device *device)
 {
     uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_command_set(pwm_id, PI_PWM_CMD_START);
+    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
 }
 
 static inline void pi_pwm_timer_stop(struct pi_device *device)
 {
     uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_command_set(pwm_id, PI_PWM_CMD_STOP);
+    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
 }
 
 #endif  /* __PWM_INTERNAL_H__ */

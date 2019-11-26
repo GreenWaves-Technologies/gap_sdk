@@ -46,11 +46,13 @@ LIB_VEGA = $(LIB_DIR)/vega/libpibsp.a
 LIB_GAPUINO = $(LIB_DIR)/gapuino/libpibsp.a
 LIB_AI_DECK = $(LIB_DIR)/ai_deck/libpibsp.a
 LIB_GAPOC_A = $(LIB_DIR)/gapoc_a/libpibsp.a
+LIB_GAPOC_B = $(LIB_DIR)/gapoc_b/libpibsp.a
 
 VEGA_BUILD_DIR = $(BUILD_DIR)/bsp/vega
 GAPUINO_BUILD_DIR = $(BUILD_DIR)/bsp/gapuino
 AI_DECK_BUILD_DIR = $(BUILD_DIR)/bsp/ai_deck
 GAPOC_A_BUILD_DIR = $(BUILD_DIR)/bsp/gapoc_a
+GAPOC_B_BUILD_DIR = $(BUILD_DIR)/bsp/gapoc_b
 
 $(info #### Building in $(BUILD_DIR))
 $(info #### Installing to $(TARGET_INSTALL_DIR))
@@ -92,7 +94,7 @@ CFLAGS += -MMD -MP -c
 ifeq '$(TARGET_CHIP)' 'GAP9'
 all: dir header vega_bsp
 else
-all: dir header gapuino_bsp ai_deck_bsp gapoc_a_bsp
+all: dir header gapuino_bsp ai_deck_bsp gapoc_a_bsp gapoc_b_bsp
 endif
 
 dir:
@@ -131,6 +133,10 @@ ai_deck_bsp: $(OBJECTS_AI_DECK)
 gapoc_a_bsp: $(OBJECTS_GAPOC_A)
 	mkdir -p $(LIB_DIR)/gapoc_a
 	$(AR) -r $(LIB_GAPOC_A) $^
+
+gapoc_b_bsp: $(OBJECTS_GAPOC_B)
+	mkdir -p $(LIB_DIR)/gapoc_b
+	$(AR) -r $(LIB_GAPOC_B) $^
 
 install: all
 

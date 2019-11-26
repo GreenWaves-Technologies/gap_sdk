@@ -26,6 +26,17 @@
 
   "chip": "arnold",
 
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "type": "ftdi",
+        "system_reset_gpio": 9,
+        "jtag_reset_gpio": 8,
+        "reverse_reset": false
+      }
+    }
+  },
+  
   "padframe": {
     "content": "chips/arnold/padframe.json"
   },

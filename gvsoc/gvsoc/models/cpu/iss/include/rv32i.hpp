@@ -612,6 +612,17 @@ static inline iss_insn_t *fence_i_exec(iss_t *iss, iss_insn_t *insn)
 
 static inline iss_insn_t *ebreak_exec(iss_t *iss, iss_insn_t *insn)
 {
+  iss_insn_t *next = insn->next;
+  if (next)
+  {
+    next = iss_decode_pc_noexec(iss, next);
+    if (insn->next->opcode == 0x40705013)
+    {
+      iss_handle_riscv_ebreak(iss, insn);
+      return insn->next;
+    }
+  }
+
   if (iss->cpu.state.debug_mode)
   {
     return iss->cpu.irq.debug_handler;

@@ -43,6 +43,10 @@
  *
  * Up to 8 cluster DMA counters can be allocated at the same time. Trying to
  * allocate one more will stall the core.
+ *
+ * With the I2S driver, When using 2 RX channels on the same interface (left and
+ * right), the buffer contains the samples for both channels interleaved one by
+ * one.
  */
 
 /**
