@@ -25,8 +25,6 @@
 #endif
 
 # include "pmsis.h"
-# include "pmsis_types.h"
-
 
 
 #define Max(a, b)               (((a)>(b))?(a):(b))
