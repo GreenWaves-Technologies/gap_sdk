@@ -4,7 +4,7 @@
 #include "pmsis.h"
 #include DEFAULT_MALLOC_INC
 #include "stdlib.h"
-#include "pmsis_hal/udma/udma_spim/udma_spim.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 #define SPIM_CS_DATA_GET_DRV_DATA(cs_data) (cs_data->drv_data)
 

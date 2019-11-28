@@ -60,6 +60,12 @@ INCLUDES                += $(foreach f, $(shell find $(PMSIS_BSP_DIR) -iname "*.
 PMSIS_SRC               += $(shell find $(PMSIS_BSP_DIR) -iname "*.c" $(NOT_IN))
 endif
 
+# Special flag for FreeRTOS to use semihosting.
+ifeq ('$(FS_TYPE)', 'host')
+io = host
+endif
+
+
 include $(GAP_SDK_HOME)/tools/rules/freeRTOS_rules.mk
 
 else

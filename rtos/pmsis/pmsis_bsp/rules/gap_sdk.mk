@@ -81,6 +81,7 @@ OBJECTS_VEGA = $(patsubst %.c, $(VEGA_BUILD_DIR)/%.o, $(wildcard $(VEGA_SRC)))
 OBJECTS_GAPUINO = $(patsubst %.c, $(GAPUINO_BUILD_DIR)/%.o, $(wildcard $(GAPUINO_SRC)))
 OBJECTS_AI_DECK = $(patsubst %.c, $(AI_DECK_BUILD_DIR)/%.o, $(wildcard $(AI_DECK_SRC)))
 OBJECTS_GAPOC_A = $(patsubst %.c, $(GAPOC_A_BUILD_DIR)/%.o, $(wildcard $(GAPOC_A_SRC)))
+OBJECTS_GAPOC_B = $(patsubst %.c, $(GAPOC_B_BUILD_DIR)/%.o, $(wildcard $(GAPOC_B_SRC)))
 
 ifeq '$(TARGET_CHIP)' 'GAP9'
 CFLAGS += -march=rv32imcxgap9
@@ -117,6 +118,10 @@ $(OBJECTS_AI_DECK) : $(AI_DECK_BUILD_DIR)/%.o : %.c
 $(OBJECTS_GAPOC_A) : $(GAPOC_A_BUILD_DIR)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -DCONFIG_GAPOC_A $< $(INC_PATH) -o $@
+
+$(OBJECTS_GAPOC_B) : $(GAPOC_B_BUILD_DIR)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -DCONFIG_GAPOC_B $< $(INC_PATH) -o $@
 
 vega_bsp: $(OBJECTS_VEGA)
 	mkdir -p $(LIB_DIR)/vega

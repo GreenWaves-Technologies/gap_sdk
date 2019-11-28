@@ -16,5 +16,7 @@ export TARGET_NAME="gap"
 export BOARD_NAME=gapoc_a
 export PULP_CURRENT_CONFIG=$BOARD_NAME@config_file=config/$BOARD_NAME.json
 export GVSOC_CONFIG=$BOARD_NAME
+export OPENOCD_CHIP_TARGET=target/gap8.tcl
+export OPENOCD_CABLE=interface/ftdi/olimex-arm-usb-ocd.cfg
 
 source $GAP_SDK_HOME/configs/common.sh

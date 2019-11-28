@@ -10,7 +10,7 @@ int __os_native_kickoff(void *arg)
     BaseType_t xTask;
     TaskHandle_t xHandler0 = NULL;
 
-    xTask = xTaskCreate(arg, "main", configMINIMAL_STACK_SIZE * 4,
+    xTask = xTaskCreate(arg, "main", 1024,
                         NULL, tskIDLE_PRIORITY + 1, &xHandler0);
     if (xTask != pdPASS)
     {
@@ -25,13 +25,17 @@ int __os_native_kickoff(void *arg)
 
     pmsis_event_set_default_scheduler(wrap);
 
-#ifdef PRINTF_UART
-    printf_uart_init();
-#endif
     hal_compiler_barrier();
 
+    /*
+     * This should be used in case of printf via uart before scheduler has started.
+     * Output will be on terminal instead of uart. After scheduler has started, output
+     * will be via uart.
+     */
+    extern uint8_t g_freertos_scheduler_started;
+    g_freertos_scheduler_started = 1;
+
     /* Start the kernel.  From here on, only tasks and interrupts will run. */
-    //printf("\nScheduler starts !\n");
     vTaskStartScheduler();
 
     hal_compiler_barrier();

@@ -11,8 +11,8 @@
 #include "pmsis/cluster/cluster_sync/cl_to_fc_delegate.h"
 #include "pmsis/cluster/cluster_sync/cl_synchronisation.h"
 #include "pmsis/cluster/cluster_team/cl_team.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
+//#include "pmsis_hal/gap_eu/pmsis_eu.h"
 #include "cores/TARGET_RISCV_32/core_utils.h"
 #include "cores/TARGET_RISCV_32/core_gap.h"
 

@@ -92,6 +92,7 @@ protected:
   void cs_edge(int64_t timestamp, int cs);
 
   void gpio_edge(int64_t timestamp, int data);
+  void check_open();
 
 
 private:
@@ -134,6 +135,7 @@ private:
 
   madctl_t madctl;
   void *trace;
+  bool is_opened;
 };
 
 
@@ -165,36 +167,17 @@ void ili9341::fb_routine()
 #endif
 }
 
-ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
+void ili9341::check_open()
 {
-  verbose = true; //config->get("verbose")->get_bool();
-  print("Creating LCD ILI9341 model");
-  qspi0 = new ili9341_qspi_itf(this);
-  gpio = new ili9341_gpio_itf(this);
-  create_itf("input", static_cast<Dpi_itf *>(qspi0));
-  create_itf("gpio", static_cast<Dpi_itf *>(gpio));
-
-  this->init();
-
-  this->pending_bits = 0;
-  this->waiting_bits = 8;
-  this->is_command = true;
-  this->state = STATE_NONE;
-
-  this->madctl.raw = 0;
-
-  this->width = 240;
-  this->height = 320;
-
-  this->trace = this->trace_new(config->get_child_str("name").c_str());
-
 #if defined(__USE_SDL__)
 
-  this->pixels = new uint32_t[this->width*this->height];
-  memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
-
-  if (config->get_child_bool("enabled"))
+  if (!this->is_opened)
   {
+    this->is_opened = true;
+
+    this->pixels = new uint32_t[this->width*this->height];
+    memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
+
     SDL_Init(SDL_INIT_VIDEO);
 
     this->window = SDL_CreateWindow("lcd_ili9341",
@@ -213,12 +196,32 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
 
     this->thread = new std::thread(&ili9341::fb_routine, this);
   }
-  else
-  {
-    this->window = NULL;
-  }
 #endif
+}
 
+ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
+{
+  verbose = true; //config->get("verbose")->get_bool();
+  print("Creating LCD ILI9341 model");
+  qspi0 = new ili9341_qspi_itf(this);
+  gpio = new ili9341_gpio_itf(this);
+  create_itf("input", static_cast<Dpi_itf *>(qspi0));
+  create_itf("gpio", static_cast<Dpi_itf *>(gpio));
+
+  this->init();
+
+  this->is_opened = false;
+  this->pending_bits = 0;
+  this->waiting_bits = 8;
+  this->is_command = true;
+  this->state = STATE_NONE;
+
+  this->madctl.raw = 0;
+
+  this->width = 240;
+  this->height = 320;
+
+  this->trace = this->trace_new(config->get_child_str("name").c_str());
 }
 
 void ili9341_gpio_itf::edge(int64_t timestamp, int data)
@@ -247,6 +250,8 @@ void ili9341::init()
 
 void ili9341::gpio_edge(int64_t timestamp, int data)
 {
+  this->check_open();
+
   this->is_command = !data;
 
   this->trace_msg(this->trace, 3, "CMD GPIO edge (is_command: %d)", this->is_command);
@@ -254,6 +259,8 @@ void ili9341::gpio_edge(int64_t timestamp, int data)
 
 void ili9341::cs_edge(int64_t timestamp, int cs)
 {
+  this->check_open();
+
   this->active = !cs;
 
   this->trace_msg(this->trace, 3, "CS edge (active: %d)", this->active);
@@ -268,6 +275,8 @@ void ili9341::cs_edge(int64_t timestamp, int cs)
 
 void ili9341::update(uint16_t pixel)
 {
+  this->check_open();
+
 #if defined(__USE_SDL__)
 
   int r = ((pixel >> 11) & 0x1f) << 3;
@@ -306,7 +315,7 @@ void ili9341::update(uint16_t pixel)
 
 
 
-  int pos = posy*this->width + posx;
+  unsigned int pos = posy*this->width + posx;
 
   //printf("WRITE PIXEL AT %d posx %d posy %d mv %d mx %d my %d\n", pos, this->current_posx, this->current_posy, this->madctl.mv, this->madctl.mx, this->madctl.my);
 
@@ -403,6 +412,8 @@ void ili9341::update(uint16_t pixel)
 void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
   this->trace_msg(this->trace, 4, "Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+
+  this->check_open();
 
   if (this->active)
   {
@@ -593,6 +604,8 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
 
 void ili9341::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
+  this->check_open();
+
   if (verbose) print("SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
 
 }

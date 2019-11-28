@@ -52,21 +52,37 @@ else
 FREERTOS_FLAGS  += -DPREEMPTION
 endif
 
+# Deafult is debug bridge
+io ?=
+
+# No printf
 ifeq ($(io), disable)
 FREERTOS_FLAGS  += -D__DISABLE_PRINTF__
 endif
 
+# Printf using uart
 ifeq ($(io), uart)
 FREERTOS_FLAGS  += -DPRINTF_UART
 endif
 
-ifeq ($(io), )
-FREERTOS_FLAGS  += -DPRINTF_RTL
-endif
-
+# Printf using stdout
 ifeq ($(io), rtl)
 FREERTOS_FLAGS  += -DPRINTF_RTL
 endif
+
+# Printf using semihosting
+ifeq ($(io), host)
+export GAP_USE_OPENOCD=1
+FREERTOS_FLAGS += -D__SEMIHOSTING__
+FREERTOS_FLAGS += -DPRINTF_SEMIHOST
+endif
+
+# Enabled for gvsoc
+ifeq ($(io), )
+FREERTOS_FLAGS  += -DPRINTF_RTL
+endif
+FREERTOS_FLAGS  += -DGAP_USE_DEBUG_STRUCT
+
 
 # Simulation platform
 # Default is gapuino

@@ -26,7 +26,7 @@ FLAG_BOOT=0
 #Parameters of bridge
 verbose=2
 fileio=0
-if [ "$BOARD_NAME" = "gapoc_a" ]
+if [ "$BOARD_NAME" = "gapoc_a" ];
 then
     cable=ftdi
 else
@@ -43,7 +43,7 @@ buildFlashImage=""
 if [ "$#" -eq 0 ]
 then
     if [ -n "$GAP_USE_OPENOCD" ]; then
-        openocd -f interface/ftdi/gapuino_ftdi.cfg -f target/gap8revb.tcl -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
+        openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
     else
         plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start wait &
     fi

@@ -28,39 +28,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file shall be used for verification purpose only. */
+#ifndef __PI_HAL_H__
+#define __PI_HAL_H__
 
-#ifndef __PMSIS_HAL_H__
-#define __PMSIS_HAL_H__
+#if defined(__GAP8__)
+#define TARGET_CHIP     GAP8
+#endif
 
-/* Hal includes. */
-/* FLL. */
-#include "fll/pmsis_fll.h"
+#define  __HAL_INC(x)  #x
+#define  _HAL_INC(x, y)   __HAL_INC(pmsis_hal/x/y)
+#define  HAL_INC(x, y)    _HAL_INC(x, y)
 
-/* Event unit. */
-#include "gap_eu/pmsis_eu.h"
+#include HAL_INC(TARGET_CHIP, pmsis_hal.h)
 
-/* GPIO. */
-#include "gpio/gpio.h"
-
-/* PWM */
-#include "pwm/pwm.h"
-#include "pwm/pwm_ctrl.h"
-
-/* Soc_ctrl. */
-#include "soc_ctrl/soc_ctrl_pad.h"
-
-/* Soc events generator. */
-#include "soc_eu/pmsis_soc_eu.h"
-
-/* UDMA. */
-#include "udma/udma_core.h"
-#include "udma/udma_cpi.h"
-#include "udma/udma_ctrl.h"
-#include "udma/udma_hyper.h"
-#include "udma/udma_i2c.h"
-#include "udma/udma_i2s.h"
-#include "udma/udma_spim/udma_spim.h"
-#include "udma/udma_uart.h"
-
-#endif  /* __PMSIS_HAL_H__ */
+#endif  /* __PI_HAL_H__ */

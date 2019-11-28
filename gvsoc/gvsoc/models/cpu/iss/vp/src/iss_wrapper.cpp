@@ -569,6 +569,10 @@ void iss_wrapper::handle_riscv_ebreak()
 
     this->cpu.regfile.regs[10] = open(path.c_str(), mode, 0644);
 
+    if (this->cpu.regfile.regs[10] == -1)
+      this->warning.force_warning("Caught error during semi-hosted call (name: open, path: %s, mode: 0x%x, error: %s)\n", path.c_str(), mode, strerror(errno));
+
+
   }
   else if (id == 0x2)
   {

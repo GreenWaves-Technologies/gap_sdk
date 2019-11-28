@@ -30,7 +30,7 @@
 
 #include "pmsis/drivers/pad.h"
 #include "pmsis.h"
-#include "pmsis_hal/soc_ctrl/soc_ctrl_pad.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

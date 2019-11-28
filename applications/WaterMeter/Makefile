@@ -1,8 +1,16 @@
-# Copyright (C) 2017 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 pulpChip = GAP
 PULP_APP = meterOCR
@@ -17,7 +25,11 @@ PULP_APP_SRCS = Mnist.c MnistKernels.c MnistKernelsInit.c $(MNIST_KER_PATH)/src/
 PULP_APP_SRCS += $(MNIST_KER_PATH)/src/CNN_HwCE.c
 pulpFc=1
 RM=rm -f
+NB_FRAMES ?= -1
 
+# Should be removed once openocd is the default bridge
+export GAP_USE_OPENOCD=1
+io=host
 
 #To activeate Hardware CE SET -DRT_HAS_HWCE=1
 #USE_HARDWARE_CE = -DRT_HAS_HWCE=1
@@ -28,9 +40,8 @@ PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
 PULP_CFLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable
-PULP_CFLAGS += -I$(TILER_INC) -I$(MNIST_KER_PATH)/include
+PULP_CFLAGS += -I$(TILER_INC) -I$(MNIST_KER_PATH)/include -DNB_FRAMES=$(NB_FRAMES)
 
-PLPBRIDGE_FLAGS += -fileIO 5
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
 all:: model

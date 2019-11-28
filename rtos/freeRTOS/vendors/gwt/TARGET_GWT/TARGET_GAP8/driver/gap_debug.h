@@ -37,10 +37,8 @@
 #define HAL_DEBUG_STRUCT_NAME Debug_Struct
 #define HAL_DEBUG_STRUCT_NAME_STR "Debug_Struct"
 
-#define GAP_USE_DEBUG_STRUCT 1
 #define PRINTF_BUF_SIZE 128
 
-#ifdef GAP_USE_DEBUG_STRUCT
 
 typedef struct {
   volatile int32_t connected;
@@ -82,7 +80,6 @@ typedef struct _debug_struct {
     uint32_t notifyReqValue;
 
 } __attribute__((packed)) debug_struct_t;
-#endif
 
 extern debug_struct_t HAL_DEBUG_STRUCT_NAME;
 
@@ -153,4 +150,4 @@ static inline void DEBUG_Reset(debug_struct_t *debugStruct) {
   *(volatile uint32_t *)&debugStruct->exitStatus = 0x80000000 | 0x40000000;
 }
 
-#endif
+#endif  /* _GAP_DEBUG_H_ */

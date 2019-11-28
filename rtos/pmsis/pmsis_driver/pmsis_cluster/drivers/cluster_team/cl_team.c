@@ -17,7 +17,7 @@
 #include "pmsis.h"
 #include "pmsis/cluster/cluster_team/cl_team.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 /**
  * @ingroup groupCluster
  */

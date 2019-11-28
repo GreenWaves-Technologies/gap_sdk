@@ -11,7 +11,7 @@
 #include "pmsis/cluster/cluster_sync/cl_synchronisation.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 #include "cores/TARGET_RISCV_32/core_utils.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 //#define DEBUG
 #ifndef DEBUG

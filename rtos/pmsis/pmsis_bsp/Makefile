@@ -101,11 +101,11 @@ GAPOC_B_SRC = \
   transport/transport.c \
   display/display.c \
   display/ili9341/ili9341.c \
-  transport/nina_w10/nina_w10.c \
   ram/hyperram/hyperram.c \
   ram/ram.c \
   ram/alloc_extern.c \
   ble/nina_b112/nina_b112.c
+#transport/nina_w10/nina_w10.c \
 
 ifdef GAP_SDK_HOME
 include $(CURDIR)/rules/gap_sdk.mk

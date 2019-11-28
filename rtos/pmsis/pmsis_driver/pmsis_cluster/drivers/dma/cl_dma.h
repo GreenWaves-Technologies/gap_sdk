@@ -34,8 +34,7 @@
 #define __PI_DRIVER_CL_DMA_H__
 
 #include "pmsis.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
-#include "pmsis_hal/dma/dma.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions
