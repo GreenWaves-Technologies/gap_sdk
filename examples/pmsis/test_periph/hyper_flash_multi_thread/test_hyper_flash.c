@@ -113,7 +113,7 @@ void test_hyper_flash(void)
     pi_flash_close(&flash);
 
     printf("\nHyperflash transfer done with %ld error(s) !\n", errors);
-    printf("\nTest %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);
+    printf("Test %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);
 
     pmsis_exit(errors);
 }

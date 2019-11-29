@@ -31,7 +31,7 @@
 #ifndef _GAP_UTIL_H_
 #define _GAP_UTIL_H_
 
-#include "gap_eu.h"
+//#include "gap_eu.h"
 
 /*!
  * @addtogroup util

@@ -1,3 +1,4 @@
+#if 0
 /*
  * Copyright (c) 2018, GreenWaves Technologies, Inc.
  * All rights reserved.
@@ -31,7 +32,7 @@
 #ifndef _GAP_RTC_H_
 #define _GAP_RTC_H_
 
-#include "gap_udma.h"
+#include "gap_common.h"
 
 /*!
  * @addtogroup RTC
@@ -477,3 +478,4 @@ void RTC_APB_IRQHandler(void);
 /* @} */
 
 #endif /*_GAP_RTC_H_*/
+#endif
