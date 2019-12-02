@@ -37,6 +37,8 @@ void pi_i2s_conf_init(struct pi_i2s_conf *conf)
     conf->options = 0;
     conf->word_size = 16;
     conf->channels = 1;
+    conf->pingpong_buffers[0] = NULL;
+    conf->pingpong_buffers[1] = NULL;
 }
 
 
@@ -72,6 +74,9 @@ int pi_i2s_open(struct pi_device *device)
     int itf_id = conf->itf;
     pos_i2s_t *i2s = &__pos_i2s[itf_id];
     int periph_id = ARCHI_UDMA_I2S_ID(itf_id >> 1);
+
+    if (conf->pingpong_buffers[0] == NULL || conf->pingpong_buffers[1] == NULL)
+        return -1;
 
     device->data = (void *)i2s;
 

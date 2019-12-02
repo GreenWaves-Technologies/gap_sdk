@@ -20,6 +20,7 @@
 #ifdef UDMA_VERSION
 #include "pmsis/implem/udma.h"
 #endif
+#include "pmsis/implem/pwm.h"
 #include "pmsis/implem/perf.h"
 #include "pmsis/implem/cpi.h"
 #include "pmsis/implem/uart.h"

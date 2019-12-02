@@ -8,7 +8,6 @@ __FETCH_ALL = 0x0;
 __ACTIVE_FC = 0x1;
 __rt_stack_size = 0x800;
 __NB_ACTIVE_PE = 8;
-__rt_platform = 3;
 __rt_nb_cluster = 1;
 __rt_nb_pe = 8;
 __rt_cl_master_stack_size = 0x400;

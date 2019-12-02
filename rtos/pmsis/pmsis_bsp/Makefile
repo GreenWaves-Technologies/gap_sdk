@@ -92,7 +92,8 @@ GAPOC_A_SRC = \
   ble/nina_b112/nina_b112.c
 
 GAPOC_B_SRC = \
-  bsp/gapoc_a.c \
+  bsp/gapoc_b.c \
+  camera/camera.c \
   flash/flash.c \
   fs/read_fs/read_fs.c \
   fs/host_fs/host_fs.c \
@@ -104,7 +105,8 @@ GAPOC_B_SRC = \
   ram/hyperram/hyperram.c \
   ram/ram.c \
   ram/alloc_extern.c \
-  ble/nina_b112/nina_b112.c
+  ble/nina_b112/nina_b112.c \
+  camera/thermeye/thermeye.c
 #transport/nina_w10/nina_w10.c \
 
 ifdef GAP_SDK_HOME

@@ -218,6 +218,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
         return -3;
     }
 
+
     printf("PWM: %d kHz I2C: %d kHz\n", PWM_FQCY_KHz, I2C0_FQCY_KHZ);
 
     /* CPI open. */

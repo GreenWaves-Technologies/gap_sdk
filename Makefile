@@ -96,6 +96,7 @@ pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all 
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install

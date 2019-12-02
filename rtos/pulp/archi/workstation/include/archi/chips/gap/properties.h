@@ -55,6 +55,16 @@
 #define MCHAN_VERSION       6
 #define EFUSE_VERSION       1
 #define PADS_VERSION        2
+#define PWM_VERSION         1
+
+
+/*
+ * SOC
+ */
+
+#define ARCHI_PWM_NB          1
+#define ARCHI_PWM_NB_TIMERS 4
+
 
 /*
  * CLUSTER
