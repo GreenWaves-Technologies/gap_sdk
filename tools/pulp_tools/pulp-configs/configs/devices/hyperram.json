@@ -1,0 +1,15 @@
+{
+  "name": "Hyperram",
+  "doc_rst": "devices/hyperram.rst",
+  "description": "Hyperram model",
+  "platforms": [ "gvsoc" ],
+
+  "generator": "generators/v1/devices/hyper_gen",
+  "interface": "hyper0",
+
+  "config": {
+    "vp_class": "devices/hyperbus/hyperram",
+
+    "size": "0x00800000"
+  }
+}

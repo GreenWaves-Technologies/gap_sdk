@@ -42,6 +42,8 @@ export TILER_INC=$TILER_PATH/include
 export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
 
+# OpenOCD
+export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
 
 if [ "$TARGET_CHIP" = "GAP8" ]
 then

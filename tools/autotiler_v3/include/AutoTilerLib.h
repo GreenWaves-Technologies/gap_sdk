@@ -250,6 +250,7 @@ KernelLib_T *KerLibMatch(
         int I1_Type,			/**< Input1 data size in bytes or 0 if to be ignored */
 	int I2_Type,			/**< Input2 data size in bytes or 0 if to be ignored */
 	int I3_Type,			/**< Input3 data size in bytes or 0 if to be ignored */
+	int I4_Type,			/**< Input4 data size in bytes or 0 if to be ignored */
 	int O_Type,			/**< Output data size in bytes or 0 if to be ignored */
         int Fx,				/**< Filter X dimension */
 	int Fy,				/**< Filter Y dimension */
@@ -679,6 +680,15 @@ ArgBindingDescr_T *KerDim(
 	KernelDimT Dim			/**< User kernel dimension: K_INP, K_OUTP, K_W, K_H */
 	);
 
+/**
+@brief Binds argument to one of the user kernel iterator actual value
+
+Binds argument to one of the user kernel iterator actual value
+*/
+ArgBindingDescr_T *Ker_IteratorIndex(
+	KernelIteratorT Sel		/**< Selected iteration space */
+	);
+
 
 /**
 @brief Binds argument to a user kernel argument (a tiled argument).
@@ -789,6 +799,7 @@ KernelArgDimDescrT *KerArgSpace(
 	...				/**< List of KernelIteratorT */
 	);
 
+#ifdef LEGACY
 Object_T *_KerArgP(
 	char *KerArgName,			/**< Kernel argument name */
 	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
@@ -802,6 +813,7 @@ Object_T *_KerArgP(
 	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,		/**< Kernel argument prefered tile size, expressed on tile size - overlap, tile size must be a multiple of PreferedTileSize */
 	char *CArgName);			/**< To which user kernel C argument this kernel argument is related to */
+#endif
 
 /**
 @brief Creates one user kernel argument. Kernel argument Space is explicitely described
@@ -838,26 +850,6 @@ Object_T *KerArgP(
 	char *CArgName);
 
 
-#ifdef LEGACY
-/**
-@brief Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-
-Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-*/
-Object_T *KerArg2D(
-	char 	     *KerArgName,	/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,			/**< Kernel argument Data plane width */
-	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
-	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
-	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
-	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
-	);
-
 /**
 @brief Creates one user kernel argument with fixed padding before and after the tile generated for this argument. Kernel argument Space is explicitely described
 
@@ -880,22 +872,19 @@ Object_T *KerArgPad(
 	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+#ifdef LEGACY
 /**
-@brief Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel argument Space is explicitely described
+@brief Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
 
-Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel argument Space is explicitely described
-
+Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
 */
-Object_T *KerArgP(
+Object_T *KerArg2D(
 	char 	     *KerArgName,	/**< Kernel argument name */
 	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
 	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
 	unsigned int W,			/**< Kernel argument Data plane width */
 	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int PadL,		/**< Amount of padding to be added on the left of a line, unit is Item */
-	unsigned int PadR,		/**< Amount of padding to be added on the the right of a line, unit is Item */
-	unsigned int PadT,		/**< Amount of padding to be added on the top of a column, unit is Item */
-	unsigned int PadB,		/**< Amount of padding to be added on the bottom of a column, unit is Item */
+	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
 	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
 	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
 	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
@@ -1055,11 +1044,23 @@ CKernelCall_T *UserKernelCall(
 
 Object_T *KerGroupArg(
 	char *KerArgName,		/**< User kernel group argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< User kernel group argument iteration space, should be one dim */
 	Object_Type_T ObjType,		/**< Argument type, O_IN and/or O_OUT can be used only */
 	int ArgSize,			/**< Number of elements of this argument */
 	int ItemSize,			/**< Size in byte of the elementary data type of this argument */
 	char *CArgName			/**< Corresponding name in the User Kernel Group definition */
+	);
+
+/**
+@brief Binds argument to a user kernel group argument and combine it with Value using Oper
+
+Binds argument to a user kernel group argument and combine it with Value using Oper
+
+See K_Arg() for ArgName and ArgSelect. Supported operation are defined in ArgBindingOper. Value is a signed immediate constant.
+*/
+ArgBindingDescr_T *KG_ArgOper(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
+	int Value			/**< A signed immediate value */
 	);
 
 /* A user kernel group */
@@ -1076,7 +1077,7 @@ void UserKernelGroup(
 
 KernelGroup_T *UserKernelGroupK(
 	char *GroupName,		/**< Group's name as in OpenKernelGroup() */
-	KernelIterationSpaceT *KerIter,	/**< Group Iteration space, should be single dimension fixed iteration space */
+	unsigned int IterCount,		/**< Number of time this group should be iterated, usually 1 but used for grouped convolution */
        	CKernel_Arg_T **CArg,		/**< See Carg() and TCArg() */
        	CKernelCall_T **CCalls,		/**< See Calls() and UserKernelCall() */
         Object_T **KerArg		/**< Kernel Group arguments. Restricted to KerGroupArg() as argument of KerArgs() */
@@ -1163,14 +1164,37 @@ void AddCallToNode(
 	ArgBindingDescr_T **FunArgs	/**< Function Argument list, use GArg */
 	);
 /**
-@brief Binds a given Graph node arg
+@brief Binds a given Graph node arg to a user kernel kernel argument 
 
-Binds a given Graph node arg
+Binds a given Graph node arg to a user kernel kernel argument 
 */
 ArgBindingDescr_T *GNodeArg(
-	GraghNodeArgT Type,		/**<  Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
-	char *ArgName,			/**<  Argument name, should be in internal or external graph variables */
-	char *AliasedArgName		/**<  In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	GraghNodeArgT Type,		/**< Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
+	char *ArgName,			/**< Argument name, should be in internal or external graph variables and a user kernel kernel argument */
+	char *AliasedArgName		/**< In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	);
+
+/**
+@brief Binds a given Graph node arg to a user kernel kernel C argument 
+
+Binds a given Graph node arg to a user kernel kernel C argument 
+*/
+ArgBindingDescr_T *GNodeCArg(
+	char *ArgName			/**< Argument name, should be an external graph variable and a user kernel C argument */
+	);
+
+
+/**
+@brief Binds a given Graph node arg applying an immediate operation to it
+
+Binds a given Graph node arg applying an immediate operation to it
+*/
+ArgBindingDescr_T *GNodeArgImmOper(
+	GraghNodeArgT Type,		/**< Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
+	char *ArgName,			/**< Argument name, should be in internal or external graph variables */
+	char *AliasedArgName,		/**< In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	char Oper,			/**< Offset operation to be applied */
+	int Value			/**< Offset value */
 	);
 
 /**
@@ -1257,6 +1281,7 @@ int *CNN_Type(
 	int I1,			/**< First operand type size in byte, 0 to ignore */
 	int I2,			/**< Second operand type size in byte, 0 to ignore */
 	int I3,			/**< Third operand type size in byte, 0 to ignore */
+	int I4,			/**< Fourth operand type size in byte, 0 to ignore */
 	int O);			/**< Output operand type size in byte, 0 to ignore */
 
 
@@ -1305,6 +1330,7 @@ char *CNN_FindMatchingKernel(
         int I1Size,		/**< Size in byte of the first input operand, 0 if not relevant. Order assumption: In,Filter,Bias,Out */
         int I2Size,		/**< Size in byte of the second input operand, 0 if not relevant */
         int I3Size,		/**< Size in byte of the third input operand, 0 if not relevant */
+        int I4Size,		/**< Size in byte of the fourth input operand, 0 if not relevant */
         int OSize,		/**< Size in byte of the output input operand, 0 if not relevant */
 
         int FX,			/**< If this operation is a filter, Filter X dimension, 0: not relevant, -1: All value are matching, >0 a specific dimension */

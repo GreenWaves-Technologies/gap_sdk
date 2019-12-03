@@ -11,7 +11,7 @@
   "config": {
     "type": "dpi",
     "module": "nina_w10.so",
-    "port":   "37201",
+    "port":   "3333",
     "addr": "localhost"
   }
 }

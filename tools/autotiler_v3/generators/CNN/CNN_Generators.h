@@ -459,6 +459,53 @@ extern int CNN_PoolReLU(
 	KernelOper_T ReLUOper
 	);
 
+/** \brief CNN_GlobalPoolReLU
+ *  Generator for Global Pooling (Max or Average) followed by an optional linear rectification (ReLU, ReLUN)
+ * 
+ 
+    \param    Name:           Name of the generated user kernel
+
+    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+    \param    In_DataSize:    1: byte, 2: half word, 4: word
+    \param    Out_DataSize:   1: byte, 2: half word, 4: word
+
+    \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
+    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+    \param    InFeat:         Number of input feature's maps
+    \param    OutFeat:        Number of output feature's maps (InFeat has to be equal to OutFeat for these generators
+    \param    Width:          Number of columns of a given feature map
+    \param    Height:         Number of lines of a given feature map
+
+    \param    PoolOper:       KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL
+
+    \param    ReLUOper        optional rectification to be applied after pooling, KOP_RELU, KOP_RELUN or KOP_NONE
+
+  Currently only homegeneous data size are supported (bytes and hald words)
+*/
+
+extern int CNN_GlobalPoolReLU(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In_DataSize,
+	int Out_DataSize,
+
+	int In_InL3,            // 1 if In comes from L3, 0 if it comes from L2
+	int Out_InL3,
+
+	int InFeat,
+	int OutFeat,
+	int Width,
+	int Height,
+
+	KernelOper_T PoolOper,
+	KernelOper_T ReLUOper
+	);
+
+
 /** \brief CNN_LinearReLU
  *
  *  Generator for Linear layers followed by an optional linear rectification (ReLU)
@@ -646,6 +693,55 @@ extern int CNN_MatAddDynAdjust(
         KernelOper_T AddMatOper
 	);
 
+/** \brief CNN_MatScale
+
+    Generator for Matrix Scaling layers, Scaling is in In2 either as a vector[OutFeat] or as a scalar for all channels
+
+    \param    Name:           Name of the generated user kernel
+
+    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+    \param    In1_DataSize:   1: byte, 2: half word,
+    \param    In2_DataSize:   1: byte, 2: half word,
+    \param    Out_DataSize:   1: byte, 2: half word
+
+    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+    \param    InFeat:         Number of input features
+    \param    OutFeat:        Number of input features, should always be equal to InFeat
+    \param    Width:          Width of a given feature
+    \param    Height:         Height of a given feature
+
+    \param    KernelOper_T    ScaleOper    Should always be KOP_MATSCALE or KOP_MATSCALE_SCALAR
+    \param    KernelOper_T    ReLUOper     Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN
+
+*/
+
+extern int CNN_MatScale(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In1_DataSize,
+        int In2_DataSize,
+        int Out_DataSize,
+
+        int In1_InL3,
+        int In2_InL3,
+        int Out_InL3,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ScaleOper,
+        KernelOper_T ReLUOper
+);
+
+
 /** \brief CNN_MatMul
 
     Generator for Matrix Multiplication layers. Can be used for 2D 1x1 conv, in this case In1 contains the weights, In2 InputFeatures [Inf x W x H], Strides apply to In2
@@ -713,6 +809,85 @@ extern int CNN_MatMul(
         KernelOper_T MatMulOper,
         KernelOper_T ReLUOper
 	);
+
+/** \brief CNN_MatMulScale
+ 
+    Generator for Matrix Multiplication layers with output scaling.
+
+    Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+    When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+    Bias [OutFeat x 1] is added to each individual features
+    Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+
+    Template:
+    \param    Name:           Name of the generated user kernel
+
+    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+    \param    In1_DataSize:   1: byte, 2: half word,
+    \param    In2_DataSize:   1: byte, 2: half word,
+    \param    Bias_DataSize:  1: byte, 2: half word,
+    \param    MulBias_DataSize:1: byte, 2: half word, 4: word
+    \param    Out_DataSize:   1: byte, 2: half word
+
+    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    Bias_InL3:      0: In is in L2, 1: In is in L3 memory
+    \param    MulBias_InL3:   0: MulBias is in L2, 1: Bias is in L3 memory
+    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+    \param    ColM1:          Number of colums for matrix In1, for 1x1 convolution this is InFeat
+    \param    LineM1:         Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+    \param    ColM2:          Number of colums for matrix In2, for 1x1 convolution this is W*H
+    \param    LineM2:         Number of lines for matrix In2, for 1x1 convolution this is InFeat
+
+    \param    Width           For 1x1 convolution, width of an input feature map
+    \param    Height          For 1x1 convolution, height of an input feature map
+    \param    Scx:            stride x dimension for In2
+    \param    Scy:            stride y dimension for In2
+
+    \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+    \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+
+    \param    KernelOper_T    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
+    \param    KernelOper_T    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+*/
+
+extern int CNN_MatMulScale(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In1_DataSize,
+        int In2_DataSize,
+        int Bias_DataSize,
+        int MulBias_DataSize,
+        int Out_DataSize,
+
+        int In1_InL3,
+        int In2_InL3,
+        int Bias_InL3,
+        int MulBias_InL3,
+        int Out_InL3,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        int Width,
+        int Height,
+        int Scx,
+        int Scy,
+
+        int ReLU_LowerBound,
+        int ReLU_UpperBound,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ReLUOper
+	);
+
 
 /** @} */
 #endif

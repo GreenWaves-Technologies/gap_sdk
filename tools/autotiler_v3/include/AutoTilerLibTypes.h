@@ -45,12 +45,25 @@ typedef enum {
 	KOP_DP_REDUCT_IO_MULBIAS_SCALAR,
         KOP_MAXPOOL,
         KOP_AVGPOOL,
+        KOP_GLOBAL_POOL_INIT,
+        KOP_GLOBAL_MAXPOOL,
+        KOP_GLOBAL_AVGPOOL,
+        KOP_GLOBAL_POOL_FINAL,
         KOP_RELU,
 	KOP_RELUN,
+	KOP_HSIGMOID,
+	KOP_HSWISH,
+	KOP_LEAKYRELU,
         KOP_LINEAR,
+        KOP_LINEAR_DP,
+	KOP_DP_REDUCT_LINEAR,
         KOP_MATADD,
         KOP_MATADD_DYNADJUST,
         KOP_MATMUL,
+        KOP_MATMUL_SCALE,
+        KOP_MATMUL_SCALE_SCALAR,
+	KOP_MATSCALE,
+	KOP_MATSCALE_SCALAR,
         KOP_SOFTMAX,
 
 	/* Grouped operations */
@@ -104,6 +117,15 @@ typedef enum {
 	KOP_LAST
 
 } KernelOper_T;
+
+typedef enum {
+        KACT_NONE = 0,
+        KACT_RELU,
+        KACT_RELUN,
+        KACT_HSIGMOID,
+        KACT_HSWISH,
+        KACT_LEAKY,
+} CNN_ActivationOper_T;
 
 typedef enum {
 	PAD_LEFT, 		/* All padding elements are inserted on the left/top */
@@ -175,6 +197,7 @@ It can also be called on all the available cores in the clusters, this is a para
 typedef enum {
 	CALL_SEQUENTIAL=0,	/**< Call the related basic kernel only on master core */
 	CALL_PARALLEL=1,	/**< Call the related basic kernel on all available cores */
+	CALL_SEQUENTIAL_STRUCT=2,/**< Call the related basic kernel only on master core but pass all arguments through one structure */
 } KernelCallTypeT;
 
 /**
@@ -317,14 +340,15 @@ typedef enum {
 	KER_ARG_PARTILE_DIM = 20,	/**< Actual dimension of a parametric space */
 	KER_ARG_PARTILE_SIZE = 21,	/**< Size of a tile from a parametric space */
 	KER_ARG_LOADEDPARTILE_SIZE = 22,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
+	KER_IT_INDEX = 23,		/**< Actual value of a given kernel iterator */
 
-	TC_ARG = 23,			/**< A C argument */
-	TC_IMM = 24,			/**< An immediate int value */
-	TC_USYMB = 25,			/**< A user defined symbol */
-	TC_KDIM = 26,			/**< One of the user Kernel Dimensions */
-	TC_ARG_IND = 27,		/**< An indirection on a C argument */
-	TC_ARG_IND_IT_INDEX = 28, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
-	TC_ARG_PLUS_IT_INDEX = 29, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
+	TC_ARG = 24,			/**< A C argument */
+	TC_IMM = 25,			/**< An immediate int value */
+	TC_USYMB = 26,			/**< A user defined symbol */
+	TC_KDIM = 27,			/**< One of the user Kernel Dimensions */
+	TC_ARG_IND = 28,		/**< An indirection on a C argument */
+	TC_ARG_IND_IT_INDEX = 29, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
+	TC_ARG_PLUS_IT_INDEX = 30, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
 
 
 	/* Deprecated */
@@ -743,7 +767,7 @@ typedef struct A_Kernel_Arg_T {
 	int ItemSize;
 	unsigned int MoveSize[4];	/* [D1][D0] or [D0][T] or [T] D1,D0 parameteric spaces, T tileable space. D1/D0/T=0 Std tile, D1/D0/T=1 Last Tile */
 	unsigned int MoveStride;
-	unsigned int MoveStride1D;
+	unsigned int MoveStride1D[2];
 	unsigned int Length2D[2];	/* 0: Standard tile, 1: last tile */
 	unsigned int Stride2D;
 	unsigned int ArgStride;
@@ -856,7 +880,7 @@ typedef struct {
 	int N_Oper2;		/* Number of Secondary Kernel operations supported by this user kernel */
 	KernelOper_T *KerOper2;	/* List of Matching secondary operation, N_Oper1 */
 	int ParallelFeatures;	/* if Non 0 this kernel evaluates features in parallel, if not one feature is evaluated on multiple cores, -1 don't care */
-	int OpType[4];		/* 0: In1, 1: In2, 2: In3, 3: Out , For each of them size in bytes or 0 if to be ignored */
+	int OpType[5];		/* 0: In1, 1: In2, 2: In3, 3: Out , For each of them size in bytes or 0 if to be ignored */
 	int Fx;			/* Filter x dimension, 0 don't care, -1 any value, >0 a given value */
 	int Fy;		 	/* Filter y dimension, 0 don't care, -1 any value, -2 any value but equal to Fy, >0 a given value */
 	int Dx;			/* In case of convolution x dilation, 0 don't care, -1 any value, >0 a given value */
@@ -932,6 +956,8 @@ typedef struct AGraphNodeList_T {
 	Kernel_Arg_T *KerArg;			/* Corresponding Kernel Argument in related binding */
 	ArgBindingDescr_T *Binding;		/* The bindings from which this edge is originating */
 	GraphEdgeWeb_T *Web;			/* Which symbol */
+	unsigned int Size;			/* Size of this symbol as seen in the related kernel argument */
+	int Offset;				/* Offset applied to the  base of this symbol in case binding Oper is + or - */
 	int Channel;				/* To which channel this symbol belongs to */
 	int ChannelDepth;			/* Channel depth */
 	GraphNodeList_T *Next;			/* Next edge */
@@ -969,6 +995,7 @@ typedef struct {
 typedef struct AGraphEdgeWeb_T {
 	CKernel_Arg_T *Edge;		/* The symbol, CArgs or Locals in the current graph */
 	unsigned int Index;		/* Index of this Symbol */
+	unsigned int Size;		/* Size of this symbol */
 	int LiveFirst;			/* Graph node index of start life for this symbol */
 	int LiveLast;			/* Graph node index of start stop for this symbol */
 	Kernel_Arg_T *KerArg;		/* This symbol is bounded to this Kernel argument */

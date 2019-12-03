@@ -9,6 +9,7 @@ def test_fusions1(mnist_graph):
     matcher.match(G)
     G.add_dimensions()
 
+
 def test_fusions2(ir_graph):
     G = create_graph(ir_graph, {})
     G.add_dimensions()

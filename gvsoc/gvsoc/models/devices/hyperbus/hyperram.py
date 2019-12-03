@@ -20,4 +20,4 @@ import vp_core as vp
 
 class component(vp.component):
 
-    implementation = 'devices.hyperchip.hyperchip_impl'
+    implementation = 'devices.hyperbus.hyperram_impl'

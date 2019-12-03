@@ -470,7 +470,7 @@ void jpeg_encoder_close(jpeg_encoder_t *enc)
 
 void jpeg_encoder_conf_init(struct jpeg_encoder_conf *conf)
 {
-    conf->flags = 0;
+    conf->flags = JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD;
     conf->width = 0;
     conf->height = 0;
 }

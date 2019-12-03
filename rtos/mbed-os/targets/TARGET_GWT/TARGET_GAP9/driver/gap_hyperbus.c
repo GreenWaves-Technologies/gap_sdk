@@ -167,9 +167,9 @@ static int HYPERBUS_TransferTX(HYPERBUS_Type *base, int addr, const uint16_t *tx
 
     /* Hyperbus */
     if(device == uHYPERBUS_Ram) {
-        TX->info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address | addr);
+        TX->info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address + addr);
     } else {
-        TX->info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address | addr);
+        TX->info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address + addr);
     }
 
     TX->info.u.hyperbus.ext_addr |= (reg_access << 31);
@@ -201,9 +201,9 @@ static int HYPERBUS_TransferRX(HYPERBUS_Type *base, int addr, uint16_t *rx, size
 
     /* Hyperbus */
     if(device == uHYPERBUS_Ram) {
-        RX->info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address | addr);
+        RX->info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address + addr);
     } else {
-        RX->info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address | addr);
+        RX->info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address + addr);
     }
 
     RX->info.u.hyperbus.ext_addr |= (reg_access << 31);
@@ -245,9 +245,9 @@ status_t HYPERBUS_TransferBlocking(HYPERBUS_Type *base, hyperbus_transfer_t *tra
         info.configFlags = UDMA_CFG_DATA_SIZE(16 >> 4) | UDMA_CFG_EN(1);
 
         if(transfer->device == uHYPERBUS_Ram) {
-            info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address | addr);
+            info.u.hyperbus.ext_addr = (uHYPERBUS_Ram_Address + addr);
         } else {
-            info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address | addr);
+            info.u.hyperbus.ext_addr = (uHYPERBUS_Flash_Address + addr);
         }
 
         info.u.hyperbus.ext_addr |= (transfer->reg_access << 31);

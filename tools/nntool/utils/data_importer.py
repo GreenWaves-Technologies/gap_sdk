@@ -55,7 +55,7 @@ def import_image_data(filename, **kwargs):
         if channels == 1:
             img_in = img_in.transpose((1, 0)).reshape((channels, height, width))
         else:
-            img_in = img_in.transpose((2, 1, 0))
+            img_in = img_in.transpose((2, 0, 1)).copy()
     elif channels == 1:
         img_in = img_in.reshape((channels, width, height))
 
@@ -68,8 +68,20 @@ def import_image_data(filename, **kwargs):
             img_in = img_in >> int(-shift)
         else:
             img_in = img_in << int(shift)
-    img_in = np.array(img_in, dtype=np.float)
-    img_in = (img_in / divisor) + offset
+
+    img_in = np.array(img_in)
+
+    norm_func = kwargs.get('norm_func')
+    if norm_func:
+        g_env = {}.update(np.__dict__)
+# pylint: disable=eval-used
+        compiled_norm_func = eval('lambda ' + norm_func, g_env)
+        img_in = compiled_norm_func(img_in)
+        img_in = np.array(img_in, dtype=np.float)
+    else:
+        img_in = (img_in.astype(np.float) / divisor) + offset
+
+
     return img_in
 
 def import_sound_data(filename, **kwargs):

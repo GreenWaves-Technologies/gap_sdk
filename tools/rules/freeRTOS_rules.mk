@@ -246,7 +246,7 @@ else
 
 # GVSOC
 ifeq ($(platform), gvsoc)
-run::
+run:: all
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 # RTL
 else ifeq ($(platform), rtl)

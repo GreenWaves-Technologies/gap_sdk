@@ -1052,6 +1052,39 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fp(
 	}
 }
 
+static void __attribute__ ((noinline)) KerGlobalMaxPool_fp(
+	short int * __restrict__ In,
+	short int * __restrict__ Out,
+	int W,
+	int H)
+
+{
+	int m = *Out;
+	v2s M = (v2s) {m,m};
+	v2s *Vi = (v2s *) In;
+
+	for (int i=0; i<((W*H)/2); i++) M = gap_max2(Vi[i], M);
+	m = Max(M[0], M[1]);
+	if ((W*H)&0x1) m = Max(In[W*H-1], m);
+	*Out = m;
+}
+
+static void __attribute__ ((noinline)) KerGlobalAvgPool_fp(
+	short int * __restrict__ In,
+	short int * __restrict__ Out,
+	int W,
+	int H)
+
+{
+	v2s M = (v2s) {1,1};
+	v2s *Vi = (v2s *) In;
+	int Sum = *Out;
+
+	for (int i=0; i<((W*H)/2); i++) Sum = gap_sumdotp2(Vi[i], M, Sum);
+	if ((W*H)&0x1) Sum += In[W*H-1];
+	*Out = Sum;
+}
+
 static void KerMaxPool2x2Stride2_fps(
 	signed char * __restrict__ In,
 	int W,
@@ -2067,6 +2100,39 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 	}
 }
 
+static void __attribute__ ((noinline)) KerGlobalMaxPool_fps(
+	signed char * __restrict__ In,
+	signed char * __restrict__ Out,
+	int W,
+	int H)
+
+{
+	int m = *Out;
+	v4s M = (v4s) {m,m,m,m};
+	v4s *Vi = (v4s *) In;
+
+	for (int i=0; i<((W*H)/4); i++) M = gap_max4(Vi[i], M);
+	m = Max(Max(M[0], M[1]), Max(M[2], M[3]));
+	for (int i=((W*H)/4); i<(W*H); i++) m = Max(In[i], m);
+	*Out = m;
+}
+
+static void __attribute__ ((noinline)) KerGlobalAvgPool_fps(
+	signed char * __restrict__ In,
+	signed char * __restrict__ Out,
+	int W,
+	int H)
+
+{
+	v4s M = (v4s) {1,1,1,1};
+	v4s *Vi = (v4s *) In;
+	int Sum = *Out;
+
+	for (int i=0; i<((W*H)/4); i++) Sum = gap_sumdotp4(Vi[i], M, Sum);
+	for (int i=((W*H)/4); i<(W*H); i++) Sum += In[i];
+	*Out = Sum;
+}
+
 /* Pooling group.
 	Performs Max or Average pooling followed by an optional linear rectification (ReLU). Several output feature maps are evaluated in parallel, one output map per core
 
@@ -2091,6 +2157,9 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 			|------	KerMaxPoolNxMStrideSxSy_Border_fps
 			|------	KerAvgPoolNxMStrideSxSy_Body_fps
 			|------	KerAvgPoolNxMStrideSxSy_Border_fps
+		KerParGlobalPoolInit_fps
+		KerParGlobalPool_fps
+		KerParGlobalPoolFinal_fps
 		
 
 	Input and output feature maps are short words:
@@ -2107,6 +2176,9 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 			|------	KerMaxPoolNxMStrideSxSy_Border_fp
 			|------	KerAvgPoolNxMStrideSxSy_Body_fp
 			|------	KerAvgPoolNxMStrideSxSy_Border_fp
+		KerParGlobalPoolInit_fp
+		KerParGlobalPool_fp
+		KerParGlobalPoolFinal_fp
 	
 */
 
@@ -2213,6 +2285,74 @@ void KerParPoolNxMStrideSxSy_fps(KerReLUPool_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void KerParGlobalPoolInit_fps(KerReLUPool_fps_T *Arg)
+
+{
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+	int V = PoolMax?-128:0;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+	for (unsigned int of=First; of<Last; of++) Out[of] = V;
+
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalPool_fps(KerReLUPool_fps_T *Arg)
+
+{
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+	int ReLU = ((int)Arg->Oper&0x1);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	int ReVal = ((int)ReLU)?0:0x80000000;
+
+
+	if (PoolMax) {
+		for (unsigned int of=First; of<Last; of++) KerGlobalMaxPool_fps(In+of*W*H, Out+of, W, H);
+	} else {
+		for (unsigned int of=First; of<Last; of++) KerGlobalAvgPool_fps(In+of*W*H, Out+of, W, H);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalPoolFinal_fps(KerReLUPool_fps_T *Arg)
+
+{
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	if (!PoolMax) {
+		for (unsigned int of=First; of<Last; of++) {
+			int X = Out[of];
+			int N = 31-gap_clb(X);
+			int InvWH = (1<<N)/(W*H);
+			Out[of] = (X*InvWH)>>N;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
 void KerParPool2x2Stride2_fp(KerReLUPool_fp_T *Arg)
 
 {
@@ -2313,6 +2453,74 @@ void KerParPoolNxMStrideSxSy_fp(KerReLUPool_fp_T *Arg)
 		for (unsigned int of=First; of<Last; of++) {
 			KerAvgPoolNxMStrideSxSy_Body_fp(In+of*Wref*Href, Out+of*Wo*Ho, FSx, FSy, PadIn[0], PadIn[2], W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, ReVal);
 			if ((int) PadIn) KerAvgPoolNxMStrideSxSy_Border_fp(In+of*Wref*Href, Out+of*Wo*Ho, FSx, FSy, PadIn, PadIn, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, ReVal);
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalPoolInit_fp(KerReLUPool_fp_T *Arg)
+
+{
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+	int V = PoolMax?-32768:0;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+	for (unsigned int of=First; of<Last; of++) Out[of] = V;
+
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalPool_fp(KerReLUPool_fp_T *Arg)
+
+{
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+	int ReLU = ((int)Arg->Oper&0x1);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	int ReVal = ((int)ReLU)?0:0x80000000;
+
+
+	if (PoolMax) {
+		for (unsigned int of=First; of<Last; of++) KerGlobalMaxPool_fp(In+of*W*H, Out+of, W, H);
+	} else {
+		for (unsigned int of=First; of<Last; of++) KerGlobalAvgPool_fp(In+of*W*H, Out+of, W, H);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalPoolFinal_fp(KerReLUPool_fp_T *Arg)
+
+{
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Out = Arg->Out;
+	int PoolMax = (((int)Arg->Oper&0x2)==0);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	if (!PoolMax) {
+		for (unsigned int of=First; of<Last; of++) {
+			int X = Out[of];
+			int N = 31-gap_clb(X);
+			int InvWH = (1<<N)/(W*H);
+			Out[of] = (X*InvWH)>>N;
 		}
 	}
 	gap_waitbarrier(0);

@@ -10,7 +10,9 @@
 
 from collections.abc import Iterable
 from functools import reduce
-from math import ceil
+from math import ceil, floor
+
+import numpy as np
 
 
 class DimError(Exception):
@@ -466,6 +468,56 @@ class PadDim(Dim):
     def height_width(self) -> Dim:
         '''return a dim representing the width and height'''
         return Dim.named_ordered(h=self.h, w=self.w)
+
+    @classmethod
+    def compute_pad_compatibility(cls, l, r):
+        # left, right, balanced_left, balanced_right
+        if l > 0:
+            if r == 0:
+                # all left
+                if l > 1:
+                    return [True, False, False, False]
+                # balanced left is ok
+                return [True, False, True, False]
+            total = r + l
+            half_pad = floor(total/2)
+            if r > l:
+                # should match balanced right
+                if l != half_pad or r != total - half_pad:
+                    raise ValueError("padding incompatible with autotiler - not balanced r>l")
+                return [False, False, False, True]
+            # should match balanced left
+            if r != half_pad or l != total - half_pad:
+                raise ValueError("padding incompatible with autotiler - not balanced l>r")
+            if r == l:
+                return [False, False, True, True]
+            return [False, False, True, False]
+        if r > 0:
+            if r == 1:
+                # balanced right is ok
+                return [False, True, False, True]
+            # all right
+            return [False, True, False, False]
+        # no pad. compatible with anything
+        return [True, True, True, True]
+
+    @classmethod
+    def pad_compatibility_reduce(cls, *pad_compatibilities, err_msg=None):
+        reduction = [all(compat) for compat in zip(*pad_compatibilities)]
+        if not any(reduction):
+            if err_msg:
+                raise ValueError("padding is incompatible with autotiler - " + err_msg)
+            return None
+        return reduction
+
+
+    @property
+    def pad_compatibility(self):
+        return self.pad_compatibility_reduce(
+            self.compute_pad_compatibility(self.l, self.r),
+            self.compute_pad_compatibility(self.t, self.b),
+            err_msg="lr & tb need different settings"
+        )
 
     @property
     def w(self) -> int:

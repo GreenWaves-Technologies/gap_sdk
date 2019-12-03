@@ -98,6 +98,7 @@ GAPOC_B_SRC = \
   fs/read_fs/read_fs.c \
   fs/host_fs/host_fs.c \
   fs/host_fs/semihost.c \
+  fs/fs.c \
   flash/hyperflash/hyperflash.c \
   transport/transport.c \
   display/display.c \

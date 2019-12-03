@@ -4,8 +4,12 @@
   "board": {
     "name": "gapuino",
     "devices": {
-      "hyper": {
-        "include" : "devices/hyper.json",
+      "flash": {
+        "include" : "devices/hyperflash.json",
+        "cs": 1
+      },
+      "ram": {
+        "include" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {

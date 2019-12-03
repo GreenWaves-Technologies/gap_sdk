@@ -38,10 +38,17 @@ typedef unsigned int rt_pointerT;
 #define gap_freeL1(x, y) free((x))
 #define gap_freeL2(x, y) free((x))
 #else
+#if defined(__PULP_OS__)
 #define gap_allocL1(x)     rt_alloc( RT_ALLOC_CL_DATA, (x) )
 #define gap_allocL2(x)     rt_alloc( RT_ALLOC_L2_CL_DATA, (x) )
 #define gap_freeL1(x, y)   rt_free(RT_ALLOC_CL_DATA, (x), (y))
 #define gap_freeL2(x, y)   rt_free(RT_ALLOC_L2_CL_DATA, (x), (y))
+#else
+#define gap_allocL1(x)     pi_l1_malloc( NULL, (x) )
+#define gap_allocL2(x)     pi_l2_malloc( (x) )
+#define gap_freeL1(x, y)   pi_l1_free(NULL, (x), (y))
+#define gap_freeL2(x, y)   pi_l2_free((x), (y))
+#endif  /* __PULP_OS__ */
 #endif
 
 /* Cluster id, Core Id */
@@ -117,6 +124,19 @@ static inline void rt_hyperram_close(rt_hyperram_t *handle, rt_event_t *event)
 {
 }
 
+/* Definitions for PMSIS API when emulating. */
+struct pi_cluster_task
+{
+    void *entry;
+    void *arg;
+    unsigned int stack_size;
+};
+#define pi_open_from_conf(a,b)
+#define pi_cluster_open(a)               (0) /* This function returns a value. */
+#define pi_cluster_send_task_to_cl(a, b) Private_call(((struct pi_cluster_task *) b)->entry, ((struct pi_cluster_task *) b)->arg, NULL)
+#define pi_cluster_close(a)
+#define pi_l2_malloc(x)                  malloc((void *) (x))
+#define pi_l2_free(x, y)                 free((void *) (x))
 #else
 
 //All this stuff should not stay here!!!!!!!!!!!!!!!

@@ -13,6 +13,8 @@ class ConcatMatcher(MatchNode):
         return isinstance(node, ConcatParameters) and G.num_in_edges(node.name) == 1
 
 class RemoveUnusedConcats(DefaultMatcher):
+    NAME = "unused_concats"
+    DESCRIPTION = "Remove concats that only have one input"
     def match_function(self, G: GraphView):
         sub = GraphView()
         sub.add_node(ConcatMatcher('0'))

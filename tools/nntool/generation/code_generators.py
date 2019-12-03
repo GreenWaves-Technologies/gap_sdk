@@ -5,12 +5,14 @@
 # of the BSD license.  See the LICENSE file for details.
 
 # pylint: disable=line-too-long
+from graph.dim import PadDim
 from .code_block import CodeBlock
 from .kernel_parameters import ConvATParam, PoolATParam, ActivationATParam,\
-                               LinearATParam, SoftMaxATParam,\
-                               NO_ACTIVATION, NO_CONV, NO_POOL
+                               LinearATParam, SoftMaxATParam, get_default_gen_ctrl,\
+                               GroupedConvATParam, NO_ACTIVATION, NO_CONV, NO_POOL
 
 GEN_CONV_POOL_RELU = "CNN_ConvolutionPoolReLU"
+GEN_GROUPED_CONV_POOL_RELU = "CNN_GroupedConvolutionPoolReLU"
 GEN_POOL_RELU = "CNN_PoolReLU"
 GEN_LINEAR_RELU = "CNN_LinearReLU"
 GEN_SOFTMAX = "CNN_SoftMax"
@@ -69,6 +71,9 @@ def gen_gnode_arg(direction, name):
 def gen_g_arg(name):
     return 'GArg("{}")'.format(name)
 
+def gen_g_node_c_arg(name):
+    return 'GNodeCArg("{}")'.format(name)
+
 def gen_imm_arg(symbol):
     return "Imm({})".format(symbol)
 
@@ -81,14 +86,29 @@ def gen_at_func_bindings(name, func_name, where, binding_list, code_block):
     code_block.write('AddCallToNode("{0}", {1}, "{2}", Bindings({3}, {4}));'\
         .format(name, where, func_name, len(binding_list), ", ".join(binding_list)))
 
-def gen_conv_at_params(params, conv_q, do_dp=False):
+def gen_conv_at_params(params, conv_q, pad_compatibilities, do_dp=False):
     if params.is_depthwise_conv():
         assert params.multiplier == 1, "Multiplier not supported"
         assert not do_dp, "No DP output for DW convolution"
         cop = "KOP_CONV_DW"
     elif params.is_grouped_conv():
-        # TODO - Implement depthwise convolutions
-        raise NotImplementedError()
+        if conv_q.calc_q == conv_q.acc_q and\
+           conv_q.acc_q.bits // 2 == conv_q.out_qs[0].bits:
+            cop = "KOP_CONV_DP"
+        else:
+            cop = "KOP_CONV"
+        return GroupedConvATParam(
+            ConvOper=cop,
+            GroupIn = params.groups,
+            GroupOut = params.multiplier,
+            Fcx=params.filter.w,
+            Fcy=params.filter.h,
+            Dcx=params.dilation.w,
+            Dcy=params.dilation.h,
+            Scx=params.stride.w,
+            Scy=params.stride.h,
+            ConvPad=params.has_at_zero_pad() and 1 or 0
+        )
     else:
         # Generate DP operator
         if conv_q.calc_q == conv_q.acc_q and\
@@ -97,6 +117,7 @@ def gen_conv_at_params(params, conv_q, do_dp=False):
         else:
             cop = "KOP_CONV"
 
+    pad_compatibilities.append(params.padding.pad_compatibility)
     return ConvATParam(
         ConvOper=cop,
         Fcx=params.filter.w,
@@ -108,7 +129,7 @@ def gen_conv_at_params(params, conv_q, do_dp=False):
         ConvPad=params.has_at_zero_pad() and 1 or 0
     )
 
-def gen_pool_at_params(params):
+def gen_pool_at_params(params, pad_compatibilities):
     if params.pool_type == "average":
         pop = "KOP_AVGPOOL"
     elif params.pool_type == "max":
@@ -116,6 +137,7 @@ def gen_pool_at_params(params):
     else:
         raise NotImplementedError()
 
+    pad_compatibilities.append(params.padding.pad_compatibility)
     return PoolATParam(
         PoolOper=pop,
         Fpx=params.filter.w,
@@ -190,8 +212,8 @@ def gen_at_pool_relu(code_block, name, in_size, out_size, in_dim,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
-
+        gen_ctrl = "&{}".format(gen_ctrl)
+ 
     code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {},',
                      GEN_POOL_RELU, name, gen_ctrl, in_size, out_size,
                      in_dim.c, out_dim.c, in_dim.w, in_dim.h)
@@ -250,10 +272,79 @@ def gen_at_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
-
+        gen_ctrl = "&{}".format(gen_ctrl)
+ 
     code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
                      GEN_CONV_POOL_RELU, name, gen_ctrl,
+                     in_size, filt_size, bias_size, out_size,
+                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    code_block.indent()
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
+                     at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
+                     at_conv.Dcx, at_conv.Dcy, at_conv.Scx, at_conv.Scy,
+                     at_conv.ConvPad)
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});',
+                     at_pool.PoolOper, at_pool.Fpx, at_pool.Fpy,
+                     at_pool.Dpx, at_pool.Dpy, at_pool.Spx, at_pool.Spy,
+                     at_pool.PoolPad, at_active.ReLUOper)
+    code_block.deindent()
+
+# extern void CNN_ConvolutionPoolReLU(
+# 	char         *Name,
+
+# 	CNN_GenControl_T *Ctrl,
+
+#   GroupIn:        Size of the group for input features
+#   GroupOut:       Size of the group for output features
+
+# 	int In_DataSize,
+# 	int Filter_DataSize,
+# 	int Bias_DataSize,
+# 	int Out_DataSize,
+
+# 	int In_InL3,           // 1 if In comes from L3, 0 if it comes from L2
+# 	int Filter_InL3,
+# 	int Bias_InL3,
+# 	int Out_InL3,
+
+# 	int InFeat,
+# 	int OutFeat,
+# 	int Width,
+# 	int Height,
+
+# 	KernelOper_T ConvOper,
+# 	int Fcx,
+# 	int Fcy,
+# 	int Dcx,
+# 	int Dcy,
+# 	int Scx,
+# 	int Scy,
+# 	int          ConvPad,
+
+# 	KernelOper_T PoolOper,
+# 	int Fpx,
+# 	int Fpy,
+# 	int Dpx,
+# 	int Dpy,
+# 	int Spx,
+# 	int Spy,
+# 	int          PoolPad,
+
+#        	KernelOper_T ReLUOper
+# 	);
+
+# pylint: disable=too-many-arguments
+def gen_at_grouped_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size,
+                          filt_size, bias_size, in_dim, out_dim,
+                          at_conv, at_pool, at_active, gen_ctrl=None):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        gen_ctrl = "&{}".format(gen_ctrl)
+ 
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
+                     GEN_GROUPED_CONV_POOL_RELU, name, gen_ctrl,
+                     at_conv.GroupIn, at_conv.GroupOut,
                      in_size, filt_size, bias_size, out_size,
                      in_dim.c, out_dim.c, in_dim.w, in_dim.h)
     code_block.indent()
@@ -339,9 +430,9 @@ def gen_at_softmax(code_block: CodeBlock, name, in_size, out_size,
 def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_params, act_q, code_block=None):
     in_q = filter_q = out_q = bias_q = None
     in_dim = out_dim = None
-
+    pad_compatibilities = []
     if conv_params is not None:
-        at_conv_params = gen_conv_at_params(conv_params, conv_q)
+        at_conv_params = gen_conv_at_params(conv_params, conv_q, pad_compatibilities)
         in_dim = conv_params.in_dims[0]
         out_dim = conv_params.out_dims[0]
         filter_q = conv_q.weights_q
@@ -352,7 +443,7 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
         at_conv_params = NO_CONV
 
     if pool_params is not None:
-        at_pool_params = gen_pool_at_params(pool_params)
+        at_pool_params = gen_pool_at_params(pool_params, pad_compatibilities)
         if in_dim is None:
             in_dim = pool_params.in_dims[0]
         out_dim = pool_params.out_dims[0]
@@ -377,15 +468,40 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
     if code_block is None:
         code_block = CodeBlock()
 
+    if not pad_compatibilities:
+        at_pad_ctrl = -1
+    else:
+        reduction = PadDim.pad_compatibility_reduce(*pad_compatibilities,\
+            "convolution padding is not compatible with pool padding")
+        if reduction[2]: # default is balanced pad left
+            at_pad_ctrl = -1
+        else:
+            at_pad_ctrl = next(i for i, v in enumerate(reduction) if v)
+
+    gen_ctrl = None
+    if at_pad_ctrl != -1:
+        gen_ctrl = 'gen_ctrl_' + name
+        code_block.write('CNN_GenControl_T {} = {{-1, -1, -1, -1, {}, -1, -1, -1}};', gen_ctrl, at_pad_ctrl)
+
     if conv_params is None:
         if in_q.bits != out_q.bits:
             raise NotImplementedError("only homogenious operations are supported at present")
         gen_at_pool_relu(code_block, name, at_bits(in_q), at_bits(out_q),
-                         in_dim, out_dim, at_pool_params, at_act_params)
+                         in_dim, out_dim, at_pool_params, at_act_params, gen_ctrl=gen_ctrl)
     else:
-        gen_at_conv_pool_relu(code_block, name, at_bits(in_q), at_bits(out_q),
-                              at_bits(filter_q), at_bits(bias_q),
-                              in_dim, out_dim, at_conv_params, at_pool_params, at_act_params)
+        if isinstance(at_conv_params, ConvATParam):
+            gen_at_conv_pool_relu(code_block, name, at_bits(in_q), at_bits(out_q),
+                                  at_bits(filter_q), at_bits(bias_q),
+                                  in_dim, out_dim, at_conv_params, at_pool_params,
+                                  at_act_params, gen_ctrl=gen_ctrl)
+        elif isinstance(at_conv_params, GroupedConvATParam):
+            gen_at_grouped_conv_pool_relu(code_block, name, at_bits(in_q), at_bits(out_q),
+                                          at_bits(filter_q), at_bits(bias_q),
+                                          in_dim, out_dim, at_conv_params, at_pool_params,
+                                          at_act_params, gen_ctrl=gen_ctrl)
+        else:
+            raise ValueError('Internal error')
+
     return code_block
 
 # convolution followed by a pool and optional relu

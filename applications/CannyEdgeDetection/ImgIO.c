@@ -30,9 +30,6 @@
 
 #define CHUNK_SIZE 8192
 
-// TODO temporary workaround on pulpos to get printf through openocd. Remove it once openocd is the default bridge
-unsigned int __rt_iodev = 2;
-
 static void progress_bar(char * OutString, int n, int tot){
 	int tot_chars = 30;
 	printf("%s",OutString);

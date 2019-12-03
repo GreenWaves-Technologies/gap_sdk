@@ -114,5 +114,6 @@ openocd:
 	cd tools/gap8-openocd && make install
 	mkdir -p $(INSTALL_DIR)/share/openocd/scripts/tcl
 	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher
