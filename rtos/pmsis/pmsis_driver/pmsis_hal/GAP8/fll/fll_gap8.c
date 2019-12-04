@@ -86,15 +86,25 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
 
     int irq =  __disable_irq();
 
-    if (check) {
+    if (check)
+    {
         uint32_t curr_voltage = DCDC_TO_mV(pmu_state.DCDC_Settings[READ_PMU_REGULATOR_STATE(pmu_state.State)]);
 
-        if (which_fll == FLL_SOC) {
+        if (which_fll == FLL_SOC)
+        {
             if (pi_fll_soc_max_freq_at_V(curr_voltage) < (int)frequency)
+            {
+                __restore_irq(irq);
                 return -1;
-        } else {
+            }
+        }
+        else
+        {
             if (pi_fll_cluster_max_freq_at_V(curr_voltage) < (int)frequency)
+            {
+                __restore_irq(irq);
                 return -1;
+            }
         }
     }
 

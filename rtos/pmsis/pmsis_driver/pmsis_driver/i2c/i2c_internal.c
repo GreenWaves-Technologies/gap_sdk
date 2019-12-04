@@ -357,6 +357,7 @@ static void __pi_i2c_copy_exec_read(struct i2c_driver_fifo_s *fifo,
         buffer = (uint32_t) fifo->pending->pending_buffer;
         size = (uint32_t) fifo->pending->pending_size;
     }
+
     /* Open RX channel to receive data. */
     hal_i2c_enqueue(device_id, RX_CHANNEL, buffer, size, UDMA_CORE_RX_CFG_EN(1));
     /* Transfer command. */
@@ -396,9 +397,12 @@ static void __pi_i2c_read(struct i2c_driver_fifo_s *fifo,
             fifo->i2c_stop_send = (transfer->flags & PI_I2C_XFER_NO_STOP) ? 0 : 1;
         }
         /* Data. */
-        fifo->i2c_cmd_seq[index++] = I2C_CMD_RPT;
-        fifo->i2c_cmd_seq[index++] = transfer->size - 1;
-        fifo->i2c_cmd_seq[index++] = I2C_CMD_RD_ACK;
+        if (transfer->size > 1)
+        {
+            fifo->i2c_cmd_seq[index++] = I2C_CMD_RPT;
+            fifo->i2c_cmd_seq[index++] = transfer->size - 1;
+            fifo->i2c_cmd_seq[index++] = I2C_CMD_RD_ACK;
+        }
         fifo->i2c_cmd_seq[index++] = I2C_CMD_RD_NACK;
 
         fifo->i2c_cmd_index = index;

@@ -338,6 +338,7 @@ int32_t __pi_i2s_read_async(uint8_t i2s_id, pi_task_t *task)
     if (fifo->nb_ready_buffer)
     {
         fifo->nb_ready_buffer--;
+        __pi_i2s_handle_end_of_task(task);
     }
     else
     {

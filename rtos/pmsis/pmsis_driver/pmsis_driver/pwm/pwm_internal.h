@@ -69,7 +69,7 @@ static inline void pi_pwm_timer_start(struct pi_device *device)
 static inline void pi_pwm_timer_stop(struct pi_device *device)
 {
     uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
+    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_STOP);
 }
 
 #endif  /* __PWM_INTERNAL_H__ */
