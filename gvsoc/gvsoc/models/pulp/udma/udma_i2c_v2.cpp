@@ -273,7 +273,10 @@ void I2c_tx_channel::handle_pending_word(void *__this, vp::clock_event *event)
 
       _this->pending_bits -= 8;
       _this->pending_word >>= 8;
-      _this->periph->state = I2C_PERIPH_STATE_WAIT_RPT_CMD;
+      if (pending_byte)
+        _this->periph->state = I2C_PERIPH_STATE_WAIT_RPT_CMD;
+      else
+        _this->periph->state = I2C_PERIPH_STATE_WAIT_CMD;
     }
     else if (_this->periph->state == I2C_PERIPH_STATE_STOP0)
     {

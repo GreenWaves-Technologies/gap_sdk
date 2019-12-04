@@ -37,6 +37,9 @@
 #endif  /* __PULP_OS__ */
 #endif  /* USE_BRIDGE */
 
+#define IMG_WIDTH  ( 320 )
+#define IMG_HEIGHT ( 240 )
+
 #if defined(CAMERA)
 #if defined(HIMAX)
 #define CAMERA_WIDTH  ( 324 )

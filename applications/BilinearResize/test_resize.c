@@ -341,7 +341,7 @@ void test_cam(void)
         #endif  /* HAVE_CAMERA */
 
         #if defined(HAVE_DISPLAY)
-        pi_display_write(&display, &ImageInBuffer, 0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+        pi_display_write(&display, &ImageInBuffer, 0, 0, IMG_WIDTH, IMG_HEIGHT);
         #endif  /* HAVE_DISPLAY */
 
         #if defined(USE_AUTOTILER)
