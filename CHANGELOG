@@ -1,0 +1,21 @@
+3.1
+
+Highlights of this release:
+
+- OpenOCD:
+	- Added OpenOCD porting for GAP8.
+	- Applications can be loaded and started or uploaded to flash through JTAG.
+	- Printf and file IOs with the workstation are available with semi-hosting.
+- PMSIS
+	- Added I2S driver.
+	- Added PWM driver.
+- BSP:
+	- Read FS can now be mapped to the workstation using semi-hosting.
+	- Added driver for Lynred Thermeye thermal detector.
+- GVSOC:
+	- Added support for OpenOCD semi-hosting, to support printf and file IOs from workstation.
+- Applications
+	- Added JPEG encoder example.
+- Toolchain
+	- Now available precompiled for Ubuntu18
+

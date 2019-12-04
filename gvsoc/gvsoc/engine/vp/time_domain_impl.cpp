@@ -92,7 +92,8 @@ static void *signal_routine(void *arg) {
 #ifdef __VP_USE_SYSTEMC
 static void *engine_routine_sc_stub(void *arg) {
   vp::time_engine *engine = (vp::time_engine *)arg;
-  my_module module("Hello", engine);  engine->elab();
+  my_module module("Hello", engine);
+  engine->elab();
   while(1){
     sc_start();
     engine->wait_ready();

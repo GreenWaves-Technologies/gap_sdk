@@ -53,7 +53,7 @@ clean:
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 
 else
-sdk:: all
+sdk:: all autotiler
 all:: pulp-os gvsoc
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)

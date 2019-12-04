@@ -33,8 +33,6 @@
 
 #if defined(__GAP8__)
 #define TARGET_CHIP     GAP8
-#elif defined(__GAP9__)
-#define TARGET_CHIP     GAP9
 #endif
 
 #define  __HAL_INC(x)  #x

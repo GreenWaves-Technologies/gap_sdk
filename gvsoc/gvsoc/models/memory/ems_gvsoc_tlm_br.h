@@ -194,8 +194,8 @@ void gvsoc_tlm_br::run()
 
     curr_req = req;
     // A request corresponds to one or more transactions
-    uint32_t n_trans = req->get_size() / bytes_per_access;
-    assert(n_trans);
+    uint32_t nt = req->get_size() / bytes_per_access;
+    uint32_t n_trans = nt > 0 ? nt : 1;
 
     for (auto t = 0; t < n_trans; t++) {
       // Get a generic payload from memory manager

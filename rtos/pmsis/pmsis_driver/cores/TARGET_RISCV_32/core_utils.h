@@ -3,11 +3,7 @@
 
 
 /** FC_CLUSTER_ID Definitions */
-#if defined(__GAP8__)
 #define FC_CLUSTER_ID                 32                /**< FC CLuster ID */
-#elif defined(__GAP9__)
-#define FC_CLUSTER_ID                 31                /**< FC CLuster ID */
-#endif
 
 /**
   \ingroup  CMSIS_Core_IDFunctionInterface
