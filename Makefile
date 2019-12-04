@@ -29,6 +29,9 @@ ifndef GAP_SDK_HOME
     $(error Please run 'source sourceme.sh' in gap_sdk first)
 endif
 
+BUILD_DIR ?= $(CURDIR)/build
+export BUILD_DIR
+
 CD = cd
 CP = cp -rf
 RM = rm -rf
@@ -38,7 +41,7 @@ MAKE = make
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 ifeq ($(TARGET_CHIP), GAP8)
-sdk:: all autotiler nntool
+sdk:: all autotiler nntool openocd
 all:: pulp-os tools gvsoc flasher docs
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -50,7 +53,7 @@ clean:
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 
 else
-sdk:: all
+sdk:: all autotiler
 all:: pulp-os gvsoc
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -91,8 +94,9 @@ nntool:
 
 pulp-os: $(TARGET_INSTALL_DIR) install_pulp_tools
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
-	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp/pulp-os -f gap_sdk.mk $(TARGET_NAME)
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all 
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
@@ -103,5 +107,13 @@ gvsoc: pulp-os tools
 autotiler:
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v2/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v2 all; fi
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 all; fi
+
+openocd:
+	cd tools/gap8-openocd && ./bootstrap
+	cd tools/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)
+	cd tools/gap8-openocd && make install
+	mkdir -p $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

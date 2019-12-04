@@ -61,8 +61,11 @@ void pi_task_wait_on(pi_task_t *task)
     while (!task->done)
     {
         // if the underlying scheduler support it, deschedule the task
-        pi_sem_take(&task->wait_on);
-        DEBUG_PRINTF("[%s] waited on sem\n",__func__);
+        if (task->wait_on.sem_object != NULL)
+        {
+            pi_sem_take(&task->wait_on);
+        }
+        DEBUG_PRINTF("[%s] waited on sem\n", __func__);
     }
     hal_compiler_barrier();
     __pi_task_destroy(task);

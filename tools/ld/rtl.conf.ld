@@ -8,7 +8,6 @@ __FETCH_ALL = 0x0;
 __ACTIVE_FC = 0x1;
 __rt_stack_size = 0x800;
 __NB_ACTIVE_PE = 8;
-__rt_platform = 2;
 __rt_iodev = 0;
 __rt_iodev_default_value = 0;
 __rt_iodev_uart_value = 1;

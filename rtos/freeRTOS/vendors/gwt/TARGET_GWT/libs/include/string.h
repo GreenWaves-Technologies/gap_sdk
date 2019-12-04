@@ -48,4 +48,10 @@ char *strcat(char *str1, const char *str2);
 
 char *strcpy(char *str1, const char *str2);
 
+size_t strspn(const char *s, const char *accept);
+
+size_t strcspn(const char *s, const char *reject);
+
+char *strchr(const char *s, int c);
+
 #endif  /* __STRING_H__ */

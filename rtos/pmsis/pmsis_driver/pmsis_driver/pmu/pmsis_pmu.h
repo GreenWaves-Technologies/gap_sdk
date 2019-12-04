@@ -23,15 +23,6 @@ typedef enum _pmu_fll_cluster_down {
 
 
 
-#ifdef __GAP9__
-typedef struct _pmu_state {
-  uint8_t   State;
-  uint8_t   FllClusterDown;
-  uint8_t   DCDC_Settings[4];
-  uint32_t  frequency[3];
-} pmu_state_t;
-#include "pmu_gap9.h"
-#elif defined(__GAP8__)
 typedef struct _pmu_state {
   uint8_t   State;
   uint8_t   FllClusterDown;
@@ -40,6 +31,5 @@ typedef struct _pmu_state {
 } pmu_state_t;
 #include "pmu_gap8.h"
 // TODO:port gap8 pmu and put include here
-#endif
 
 #endif

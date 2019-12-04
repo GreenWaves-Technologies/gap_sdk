@@ -17,29 +17,48 @@
 #ifndef __PMSIS__H__
 #define __PMSIS__H__
 
-#include "pmsis/data/data.h"
+#include <stdint.h>
+#include <stddef.h>
+
+#include "pmsis/rtos/pulpos.h"
+
+#include "rt/rt_data.h"
 
 #include "pmsis/device.h"
 #include "pmsis/task.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 #include "pmsis/cluster/cl_malloc.h"
+#if PULP_CHIP_FAMILY == CHIP_GAP
+#include "pmsis/chips/gap8/perf.h"
+#elif PULP_CHIP_FAMILY == CHIP_VEGA
+#include "pmsis/chips/vega/perf.h"
+#elif PULP_CHIP_FAMILY == CHIP_GAP9
+#include "pmsis/chips/gap9/perf.h"
+#else
+#include "pmsis/chips/gap8/perf.h"
+#endif
 #include "pmsis/rtos/os_frontend_api/pmsis_time.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_freq.h"
 #include "pmsis/rtos/malloc/pmsis_malloc.h"
 #include "pmsis/rtos/malloc/pmsis_l1_malloc.h"
 #include "pmsis/rtos/malloc/pmsis_l2_malloc.h"
 #include "pmsis/drivers/perf.h"
-#include "pmsis/chips/gap8/perf.h"
 #include "pmsis/drivers/hyperbus.h"
 #include "pmsis/drivers/cpi.h"
 #include "pmsis/drivers/i2c.h"
+#include "pmsis/drivers/i2s.h"
 #include "pmsis/drivers/spi.h"
 #include "pmsis/drivers/gpio.h"
 #include "pmsis/drivers/uart.h"
+#include "pmsis/drivers/pwm.h"
 #include "pmsis/drivers/pad.h"
 #include "pmsis/cluster/dma/cl_dma.h"
 
+#include "pmsis/data/data.h"
+
 #include "pmsis/implem/implem.h"
+
+#include "pmsis/rtos/pmsis_os.h"
 
 #include "hal/utils.h"
 #include "pmsis/cluster/cluster_sync/cl_synchronisation.h"

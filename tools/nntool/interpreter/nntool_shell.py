@@ -250,10 +250,14 @@ class NNToolShell(Cmd):
 
     @property
     def graph_name(self):
+        if self._graph_idx is None:
+            return ""
         return self._graphs[self._graph_idx]['G'].name
 
     @graph_name.setter
     def graph_name(self, val):
+        if self._graph_idx is None:
+            return
         self._graphs[self._graph_idx]['G'].name = val
 
     @property

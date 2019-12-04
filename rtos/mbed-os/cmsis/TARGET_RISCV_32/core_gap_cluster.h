@@ -66,6 +66,40 @@ typedef struct {
 
 /*@} end of group CMSIS_CLUSTER_EU_CORE */
 
+
+
+/**
+  \ingroup  CMSIS_core_register
+  \defgroup CMSIS_CLUSTER_DMAMCHAN_COMPRESSOR   Cluster TCDM L2 compress engine
+  \brief    Type definitions for the event unit core Registers
+  @{
+ */
+/**
+  \brief  Structure type to access the DMAMCHAN_COMPRESSOR.
+ */
+
+typedef struct {
+  __IOM  uint32_t TCDM_ADDR;         /*!< Offset: 0x000 (R/W)  CLUSTER_COMPRESS_ENGINE tcdm address */
+  __IOM  uint32_t L2_ADDR;           /*!< Offset: 0x004 (R/W)  CLUSTER_COMPRESS_ENGINE l2 address */
+  __IOM  uint32_t CONFIG;            /*!< Offset: 0x008 (R/W)  CLUSTER_COMPRESS_ENGINE configuration */
+  __IOM  uint32_t STATUS;            /*!< Offset: 0x00C (R/W)  CLUSTER_COMPRESS_ENGINE status */
+  __IOM  uint32_t LUT;               /*!< Offset: 0x010 (R/W)  CLUSTER_COMPRESS_ENGINE look up table */
+  __IOM  uint32_t SYMBOL;            /*!< Offset: 0x014 (R/W)  CLUSTER_COMPRESS_ENGINE symbol */
+  __IOM  uint32_t BIT_READ;          /*!< Offset: 0x018 (R/W)  CLUSTER_COMPRESS_ENGINE bit read */
+  __IOM  uint32_t MODE;              /*!< Offset: 0x01C (R/W)  CLUSTER_COMPRESS_ENGINE mode */
+  __IOM  uint32_t SW_RST;            /*!< Offset: 0x020 (R/W)  CLUSTER_COMPRESS_ENGINE software reset */
+  __IOM  uint32_t CLKEN;             /*!< Offset: 0x024 (R/W)  CLUSTER_COMPRESS_ENGINE clock enable */
+  __IOM  uint32_t TRIGGER;           /*!< Offset: 0x028 (R/W)  CLUSTER_COMPRESS_ENGINE trigger */
+  __IOM  uint32_t _reserved0;        /*!< Offset: 0x02C (R/W)  reserved Register */
+  __IOM  uint32_t L2_COUNT;          /*!< Offset: 0x030 (R/W)  CLUSTER_COMPRESS_ENGINE l2 2D count */
+  __IOM  uint32_t L2_STRIDE;         /*!< Offset: 0x034 (R/W)  CLUSTER_COMPRESS_ENGINE l2 2D stride */
+  __IOM  uint32_t TCDM_COUNT;        /*!< Offset: 0x038 (R/W)  CLUSTER_COMPRESS_ENGINE tcdm 2D count */
+  __IOM  uint32_t TCDM_STRIDE;       /*!< Offset: 0x03C (R/W)  CLUSTER_COMPRESS_ENGINE tcdm 2D stride */
+
+} CLUSTER_DMAMCHAN_COMPRESSOR_Type;
+
+/*@} end of group CMSIS_DMAMCHAN_COMPRESSOR */
+
 #define CLUSTER_DISPATCH_IS_ENTRY_MASK               (0x1U)
 #define CLUSTER_DISPATCH_IS_ENTRY_SHIFT              (0U)
 #define CLUSTER_DISPATCH_IS_ENTRY(x)                 (((uint32_t)(((uint32_t)(x)) /* << CLUSTER_DISPATCH_IS_ENTRY_SHIFT */)) & CLUSTER_DISPATCH_IS_ENTRY_MASK)
@@ -105,6 +139,7 @@ typedef struct {
 #define CLUSTER_EU_MUTEX_DEMUX_BASE     (CLUSTER_BASE + CORE_EU_MUTEX_DEMUX_BASE)       /*!< CLUSTER Event Unit Mutex Demux Base Address */
 #define CLUSTER_EU_SW_EVENTS_DEMUX_BASE (CLUSTER_BASE + CORE_EU_SW_EVENTS_DEMUX_BASE)   /*!< CLUSTER Event Unit SW Events Demux Base Address */
 #define CLUSTER_EU_BARRIER_DEMUX_BASE   (CLUSTER_BASE + CORE_EU_BARRIER_DEMUX_BASE)     /*!< CLUSTER Event Unit Barrier Demux Base Address */
+#define CLUSTER_DMAMCHAN_COMPRESSOR_BASE CORE_MCHAN_COMPRESSOR_BASE                     /*!< CLUSTER TCDM compress engine Base Address */
 
 
 /* Cluster Core Structrue definitions */
@@ -116,7 +151,7 @@ typedef struct {
 #define CLUSTER_SysTick             ((SysTick_Type   *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
 #define CLUSTER_TIMERL              ((TimerL_Type    *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
 #define CLUSTER_TIMERH              ((TimerH_Type    *)     CLUSTER_SysTick_BASE  )   /*!< SysTick configuration struct */
-
+#define CLUSTER_DMAMCHAN_COMPRESSOR ((CLUSTER_DMAMCHAN_COMPRESSOR_Type  *)   CLUSTER_DMAMCHAN_COMPRESSOR_BASE )  /*!< TCDM/L2 to L2/TCDM compress engine struct */
 
 
 #ifdef __cplusplus

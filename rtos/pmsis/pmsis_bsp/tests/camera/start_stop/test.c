@@ -55,18 +55,18 @@ static int test_entry()
 
 #if defined(CONFIG_MT9V034)
   printf("Opening mt9v034 camera\n");
-  struct pi_mt9v034_conf cam_conf;
-  pi_mt9v034_conf_init(&cam_conf);
+  struct mt9v034_conf cam_conf;
+  mt9v034_conf_init(&cam_conf);
 #else
   printf("Opening Himax camera\n");
   struct himax_conf cam_conf;
   himax_conf_init(&cam_conf);
 #endif
 
-  cam_conf.format = PI_CAMERA_QVGA;
+  cam_conf.format = CAMERA_QVGA;
 
   pi_open_from_conf(&device, &cam_conf);
-  if (pi_camera_open(&device))
+  if (camera_open(&device))
     return -1;
 
   for (int i=0; i<get_nb_buffers(); i++)
@@ -82,11 +82,11 @@ static int test_entry()
   {
     pi_task_t task;
 
-    pi_camera_capture_async(&device, buff[i], WIDTH*HEIGHT, pi_task_block(&task));
-    pi_camera_control(&device, PI_CAMERA_CMD_START, 0);
+    camera_capture_async(&device, buff[i], WIDTH*HEIGHT, pi_task_block(&task));
+    camera_control(&device, CAMERA_CMD_START, 0);
 
     pi_task_wait_on(&task);
-    pi_camera_control(&device, PI_CAMERA_CMD_STOP, 0);
+    camera_control(&device, CAMERA_CMD_STOP, 0);
 
     // Now wait some time to start capturing in the middle of the next frame
     pi_time_wait_us((i + 1) * 5000);
@@ -107,7 +107,7 @@ static int test_entry()
     }
   }
 
-  pi_camera_close(&device);
+  camera_close(&device);
   printf("Test success\n");
 
 

@@ -36,7 +36,7 @@ class Function(object):
 		self.pcs = {}
 
 	def addInfo(self, info):
-		infoList = info.split()
+		infoList = info.replace(', ', ',').split()
 		self.pcs[infoList[0]] = FunctionPc(int(infoList[0].replace(':', ''), 16), infoList[1], infoList[3])
 
 	def dumpPcs(self, file):

@@ -76,7 +76,8 @@ void test_hyper_flash(void)
 
     /* Retrieve info on flash. */
     pi_flash_ioctl(&flash, PI_FLASH_IOCTL_INFO, (void *) &flash_info);
-    hyper_buff = ((flash_info.flash_start + flash_info.sector_size - 1) & ~(flash_info.sector_size - 1)) + 128;
+    hyper_buff = ((flash_info.flash_start + flash_info.sector_size - 1) &
+                  ~(flash_info.sector_size - 1)) + 128;
     /* Erase a sector in flash, write a buffer then read back from flash. */
     #ifdef ASYNC
     pi_task_t cb_erase, cb_tx, cb_rx;
@@ -112,7 +113,7 @@ void test_hyper_flash(void)
     pi_flash_close(&flash);
 
     printf("\nHyperflash transfer done with %ld error(s) !\n", errors);
-    printf("Test %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);
+    printf("\nTest %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);
 
     pmsis_exit(errors);
 }

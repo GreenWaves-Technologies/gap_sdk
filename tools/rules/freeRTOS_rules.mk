@@ -39,16 +39,6 @@ else
 RISCV_FLAGS     = -march=rv32imcxpulpv2 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
 endif
 
-ifneq ($(USE_PMSIS_DRIVERS), true)
-DEVICE_FLAGS    = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
-                  -DDEVICE_SERIAL=1 -DDEVICE_SERIAL_ASYNCH=1 \
-                  -DDEVICE_HYPERBUS_ASYNCH=1 -DDEVICE_HYPERBUS=1 \
-                  -DDEVICE_STDIO_MESSAGES=1 -DDEVICE_SLEEP=1 \
-                  -DDEVICE_PORTIN=1 -DDEVICE_PORTOUT=1 -DDEVICE_PORTINOUT=1 \
-                  -DDEVICE_I2C=1 -DDEVICE_I2C_ASYNCH=1 -DDEVICE_I2S=1 -DDEVICE_RTC=1 \
-                  -DDEVICE_INTERRUPTIN=1 -DDEVICE_PWMOUT=1 -DDEVICE_QSPI=1
-endif
-
 # Simulation related options
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
@@ -62,21 +52,37 @@ else
 FREERTOS_FLAGS  += -DPREEMPTION
 endif
 
+# Deafult is debug bridge
+io ?=
+
+# No printf
 ifeq ($(io), disable)
 FREERTOS_FLAGS  += -D__DISABLE_PRINTF__
 endif
 
+# Printf using uart
 ifeq ($(io), uart)
 FREERTOS_FLAGS  += -DPRINTF_UART
 endif
 
-ifeq ($(io), )
-FREERTOS_FLAGS  += -DPRINTF_RTL
-endif
-
+# Printf using stdout
 ifeq ($(io), rtl)
 FREERTOS_FLAGS  += -DPRINTF_RTL
 endif
+
+# Printf using semihosting
+ifeq ($(io), host)
+export GAP_USE_OPENOCD=1
+FREERTOS_FLAGS += -D__SEMIHOSTING__
+FREERTOS_FLAGS += -DPRINTF_SEMIHOST
+endif
+
+# Enabled for gvsoc
+ifeq ($(io), )
+FREERTOS_FLAGS  += -DPRINTF_RTL
+endif
+FREERTOS_FLAGS  += -DGAP_USE_DEBUG_STRUCT
+
 
 # Simulation platform
 # Default is gapuino
@@ -103,24 +109,26 @@ endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-FREERTOS_FLAGS  += -D__FREERTOS__=1 -D__PMSIS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
+FREERTOS_FLAGS += -D__FREERTOS__=1 -D__PMSIS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
 
-COMMON      = -c -fmessage-length=0 -fno-exceptions -fno-builtin \
-              -ffunction-sections -fdata-sections -funsigned-char \
-              -fno-delete-null-pointer-checks -fomit-frame-pointer -O3\
-              $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(FREERTOS_FLAGS)
+COMMON          = -c -fmessage-length=0 -fno-exceptions -fno-builtin \
+                  -ffunction-sections -fdata-sections -funsigned-char \
+                  -fno-delete-null-pointer-checks -fomit-frame-pointer -O3\
+                  $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(FREERTOS_FLAGS)
 
-WARNINGS    = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
-              -Wno-unused-variable -Wno-unused-but-set-variable \
-              -Wno-missing-field-initializers -Wno-format -Wimplicit-fallthrough=0
+PRINTF_FLAGS    = -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #-DPRINTF_DISABLE_SUPPORT_FLOAT
 
-ASMFLAGS    = -x assembler-with-cpp $(COMMON) $(WARNINGS) -DASSEMBLY_LANGUAGE
+WARNINGS        = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
+                  -Wno-unused-variable -Wno-unused-but-set-variable \
+                  -Wno-missing-field-initializers -Wno-format -Wimplicit-fallthrough=0
 
-CFLAGS      = -std=gnu99 $(COMMON) $(WARNINGS) -I$(GWT_TARGET)
+ASMFLAGS        = -x assembler-with-cpp $(COMMON) $(WARNINGS) -DASSEMBLY_LANGUAGE
 
-STRIP       = -Wl,--gc-sections,-Map=$@.map,-static #,-s
+CFLAGS          = -std=gnu99 $(COMMON) $(WARNINGS) $(PRINTF_FLAGS)
 
-OBJDUMP_OPT = -S -D -l -f
+STRIP           = -Wl,--gc-sections,-Map=$@.map,-static #,-s
+
+OBJDUMP_OPT     = -S -D -l -f
 
 # Sources and Includes.
 CRT0_SRC        = $(shell find $(GWT_DEVICE) -iname "*.S")
@@ -137,7 +145,7 @@ PORT_SRC          = $(shell find $(PORT_DIR) -iname "*.c")
 DEVICE_SRC        = $(shell find $(GWT_DEVICE) -iname "*.c")
 DRIVER_SRC        = $(shell find $(GWT_DRIVER) -iname "*.c")
 LIBS_SRC          = $(shell find $(GWT_LIBS)/src -iname "*.c")
-PRINTF_SRC        = $(GWT_LIBS)/tinyprintf/tinyprintf.c
+PRINTF_SRC        = $(GWT_LIBS)/printf/printf.c
 
 INC_PATH       += . \
                   $(FREERTOS_CONFIG_DIR) \
@@ -148,16 +156,14 @@ INC_PATH       += . \
                   $(PMSIS_BACKEND)
 
 INC_PATH       += $(FREERTOS_SOURCE_DIR)/include
-
-INC_PATH       += $(GWT_LIBS)/include \
-                  $(GWT_LIBS)/tinyprintf
-
+INC_PATH       += $(GWT_LIBS)/include
+INC_PATH       += $(GWT_LIBS)/printf
 
 INCLUDES       += $(foreach f, $(INC_PATH), -I$f)
 INCLUDES       += $(FEAT_INCLUDES)
 
 #--- PMSIS drivers ---
-PMSIS_SRC          = $(shell find $(GWT_PMSIS) -iname "*.c")
+PMSIS_SRC         += $(shell find $(GWT_PMSIS) -iname "*.c" ! -path "*gap9*")
 PMSIS_BACKEND_SRC  = $(shell find $(PMSIS_BACKEND) -iname "*.c")
 PMSIS_INC_PATH    += $(GWT_PMSIS_API)/include/
 PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS) -iname "*.h" -not -path "$(GWT_PMSIS)/targets/*" -exec dirname {} \; | uniq)
@@ -171,6 +177,8 @@ DEMO_SRC       += $(FREERTOS_CONFIG_DIR)/FreeRTOS_util.c
 APP_SRC        +=
 # App includes
 INCLUDES       += $(foreach f, $(APP_INC_PATH), -I$f)
+# App libs
+APP_LIBSFLAGS  +=
 
 # Directory containing built objects
 BUILDDIR      = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
@@ -204,7 +212,7 @@ OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
 #------------------------------------------
 
-all::   dir $(OBJS) $(BIN) $(OBJS_DUMP) disdump
+all:: dir $(OBJS) $(BIN)
 
 dir:
 	mkdir -p $(BUILDDIR)
@@ -220,7 +228,7 @@ $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@$(CC) $(CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
-	@$(CC) -MMD -MP -o $@ $(LDFLAGS) $(OBJS) $(LIBS) $(LIBSFLAGS) $(STRIP)
+	@$(CC) -MMD -MP -o $@ $(LDFLAGS) $(OBJS) $(LIBS) $(LIBSFLAGS) $(APP_LIBSFLAGS) $(STRIP)
 
 $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
@@ -238,7 +246,7 @@ else
 
 # GVSOC
 ifeq ($(platform), gvsoc)
-run::
+run:: all
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 # RTL
 else ifeq ($(platform), rtl)
@@ -269,15 +277,18 @@ debug:
 debug_xcelium:
 	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
 
-disdump: $(BIN).s
+disdump: $(OBJS_DUMP) $(BIN).s
 
 version:
 	@$(GAP_SDK_HOME)/tools/version/record_version.sh
 
 clean::
-	@rm -rf $(OBJS) $(DUMP) $(TEST_OBJ)
+	@rm -rf $(OBJS) $(DUMP)
 	@rm -rf *~ ./BUILD$(build_dir_ext) transcript *.wav __pycache__
 	@rm -rf $(GVSOC_FILES_CLEAN)
 	@rm -rf version.log
 
-.PHONY: clean dir all run gui debug version disdump gdbserver
+clean_app::
+	@rm -rf $(APP_OBJ) $(BIN) $(OBJS_DUMP)
+
+.PHONY: clean dir all run gui debug version disdump gdbserver clean_app

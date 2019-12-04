@@ -45,17 +45,17 @@ OUTPUT_DIRECTORY       = $(BUILD_DIR)/AUTOTILER
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT        = $(AUTOTILER_SRC)/include/AutoTilerLib.h $(AUTOTILER_SRC)/include/AutoTilerLibTypes.h
+INPUT        = $(TILER_INC)/AutoTilerLib.h $(TILER_INC)/AutoTilerLibTypes.h
 
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/FFT2D/kernels/include/FFTBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/FFT2D/generator/include/FFT2DGenerator.h $(AUTOTILER_EXAMPLES_SRC)/FFT2DModel/FFT2DModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/IntegralImg/kernels/include/IntegralImgBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/IntegralImg/generator/include/IntegralImgGenerator.h $(AUTOTILER_EXAMPLES_SRC)/IntegralImage/IntegralImgModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/MatAdd/kernels/include/MatAddBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/MatAdd/generator/include/MatAddGenerator.h $(AUTOTILER_EXAMPLES_SRC)/MatrixAdd/MatAddModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/MatMult/kernels/include/MatMultBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/MatMult/generator/include/MatMultGenerator.h $(AUTOTILER_EXAMPLES_SRC)/MatMult/MatMultModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/Resize/kernels/include/ResizeBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/Resize/generator/include/ResizeGenerator.h $(AUTOTILER_EXAMPLES_SRC)/BilinearResize/ResizeModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/HoG/kernels/include/HoGBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/HoG/generator/include/HoGGenerator.h $(AUTOTILER_EXAMPLES_SRC)/HoG/HoGModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/Fir/kernels/include/FirBasicKernels.h $(AUTOTILER_GENERATOR_SRC)/Fir/generator/include/FirGenerator.h $(AUTOTILER_EXAMPLES_SRC)/Fir/FirModel.c
-INPUT		 += $(AUTOTILER_GENERATOR_SRC)/CNN/kernels/include/CNN_BasicKernels.h $(AUTOTILER_GENERATOR_SRC)/CNN/kernels/include/CNN_HwCE.h $(AUTOTILER_GENERATOR_SRC)/CNN/generator/include/CNN_Generators.h
+INPUT		 += $(TILER_GENERATOR_PATH)/CNN/CNN_Generators.h $(TILER_GENERATOR_PATH)/CNN/CNN_BasicKernels.h
 
+INPUT		 += $(TILER_GENERATOR_PATH)/FFT2D/FFTBasicKernels.h $(TILER_GENERATOR_PATH)/FFT2D/FFT2DGenerator.h
+
+INPUT		 += $(TILER_GENERATOR_PATH)/IntegralImg/IntegralImgBasicKernels.h $(TILER_GENERATOR_PATH)/IntegralImg/IntegralImgGenerator.h
+
+INPUT		 += $(TILER_GENERATOR_PATH)/MatAdd/MatAddBasicKernels.h $(TILER_GENERATOR_PATH)/MatAdd/MatAddGenerator.h
+
+INPUT		 += $(TILER_GENERATOR_PATH)/Resize/ResizeBasicKernels.h $(TILER_GENERATOR_PATH)/Resize/ResizeGenerator.h
 
 INPUT        += $(AT_BASE)/groups.h $(BUILD_DIR)/AUTOTILER/mainpage.md
 

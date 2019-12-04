@@ -232,7 +232,7 @@ def get_config(tp, cluster_id):
 
   cluster.icache = Empty_Component(properties=OrderedDict([
     ('version', 1),
-    ('size', 4096),
+    ('size', 4096*16),
     ('line_size', 16),
     ('banking_factor', 4),
     ('ports', 8),
@@ -268,10 +268,18 @@ def get_config(tp, cluster_id):
   cluster.icache_ctrl = Component(properties=OrderedDict([
     ('includes', ["ips/icache_ctrl/icache_ctrl_v2.json"])
   ]))
-  cluster.icache = Component(properties=OrderedDict([
-      ('includes', ["ips/cache/cache.json"]),
-      ('nb_ports', nb_pe)
-  ]))
+
+  icache_config_dict = OrderedDict([
+    ('includes', ["ips/cache/cache.json"])
+  ])
+
+  icache_config = tp.get('cluster/icache/config')
+  if icache_config is not None:
+    icache_config_dict.update(icache_config.get_dict())
+
+  icache_config_dict['nb_ports'] = nb_pe
+
+  cluster.icache = Component(properties=icache_config_dict)
 
   cluster.icache_ctrl.enable = cluster.icache.enable
   cluster.icache_ctrl.flush = cluster.icache.flush

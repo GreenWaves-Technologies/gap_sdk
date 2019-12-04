@@ -34,7 +34,7 @@
 
 /* FreeRTOS functions includes. */
 #include "FreeRTOS_util.h"
-#include "pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /****************************************************************************/
 

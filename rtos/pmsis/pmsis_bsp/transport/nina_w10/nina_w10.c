@@ -85,6 +85,7 @@ static int __nina_w10_send_command(nina_t *nina, uint8_t *command, int size, pi_
 
 
 
+
 static int __nina_w10_get_response(nina_t *nina, uint8_t *response, int size, pi_task_t *task)
 {
   if (nina->access_done)
@@ -364,8 +365,9 @@ static pi_transport_api_t nina_w10_api =
 };
 
 
-void nina_w10_conf_init(struct pi_nina_w10_conf *conf)
+void pi_nina_w10_conf_init(struct pi_nina_w10_conf *conf)
 {
   conf->transport.api = &nina_w10_api;
   bsp_nina_w10_conf_init(conf);
 }
+

@@ -11,7 +11,7 @@ from utils.node_id import NodeId
 
 from graph.types import (ActivationParameters, Conv2DParameters, FcParameters,
                          FilterParameters, FusionParameters, InputParameters,
-                         PoolingParameters, SoftMaxParameters)
+                         PoolingParameters, SoftMaxParameters, OutputParameters)
 from .bindings import (TT_TENSOR_TYPES, CommentBindingList,
                        FunctionBindingList, GArgEdge, GArgNode, GNodeArgEdge,
                        GNodeArgNode, Imm, NodeBindingList)
@@ -263,9 +263,9 @@ class CodeGenerator():
                 elif node.fusion_type == "conv_pool":
                     gen_conv_pool_relu(cname, cnodes[0], quants[0], cnodes[1], quants[1], None,
                                        None, code_block=code_block)
-            elif not isinstance(node, InputParameters):
-                LOG.warning("No kernel generated for parameter type %s", node.__class__.__name__)
-                continue
+            elif not isinstance(node, (InputParameters, OutputParameters)):
+                LOG.error("Don't know how to generate kernel for parameter type %s. Perhaps you need to run some fusions.", node.__class__.__name__)
+                return ""
             else:
                 last_node_was_input = True
                 continue

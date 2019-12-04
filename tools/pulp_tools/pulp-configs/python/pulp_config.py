@@ -88,7 +88,7 @@ def create_config(name, config, config_name=None, interpret=False, **kwargs):
 
             raise Exception('Unknown config type: ' + type_config)
 
-def get_config(file, name="", config_name=None, ini_configs=[], ini_configs_dict={}, config_opts=[], properties=[], interpret=False, **kwargs):
+def get_config(file, name="", config_name=None, ini_configs=[], ini_configs_dict={}, config_opts=[], properties=[], interpret=False, merge_to=[], **kwargs):
 
     template_properties = []
     config_properties = config_opts
@@ -111,8 +111,8 @@ def get_config(file, name="", config_name=None, ini_configs=[], ini_configs_dict
       opts = file.split(':')[1:]
       file = file.split(':')[0]
 
-
     config = js.import_config_from_file(file, find=True, interpret=interpret)
+
 
     for ini_config in ini_configs:
       parser = configparser.SafeConfigParser(ini_configs_dict, dict_type=collections.OrderedDict)
@@ -135,6 +135,13 @@ def get_config(file, name="", config_name=None, ini_configs=[], ini_configs_dict
 
     result = create_config(name, config, interpret=interpret, config_name=config_name, **kwargs)
 
+    if len(merge_to) != 0:
+      merged_config = merge_to[0]
+      for merge in merge_to[1:] + [result]:
+        merged_config = merged_config.merge(merge)
+
+      result = merged_config
+      
     for config_opt in config_opts + opts:
         key, value = config_opt.split('=', 1)
         result.user_set(key, value)

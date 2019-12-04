@@ -28,46 +28,17 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file shall be used for verification purpose only. */
+#ifndef __PI_HAL_H__
+#define __PI_HAL_H__
 
-#ifndef __PMSIS_HAL_H__
-#define __PMSIS_HAL_H__
-
-/* Hal includes. */
-/* FLL. */
-#include "fll/pmsis_fll.h"
-
-/* Event unit. */
-#include "gap_eu/pmsis_eu.h"
-
-/* GPIO. */
-#include "gpio/gpio.h"
-
-/* ITC. */
-#include "itc/pmsis_itc.h"
-
-/* Perf counters. */
-//#include "perf/pmsis_perf.h"
-
-/* PMU. */
-#if defined(__GAP9__)
-#include "pmu_v3.h"
+#if defined(__GAP8__)
+#define TARGET_CHIP     GAP8
 #endif
 
-/* Soc_ctrl. */
-#include "soc_ctrl/soc_ctrl_pad.h"
+#define  __HAL_INC(x)  #x
+#define  _HAL_INC(x, y)   __HAL_INC(pmsis_hal/x/y)
+#define  HAL_INC(x, y)    _HAL_INC(x, y)
 
-/* Soc events generator. */
-#include "soc_eu/pmsis_soc_eu.h"
+#include HAL_INC(TARGET_CHIP, pmsis_hal.h)
 
-/* UDMA. */
-#include "udma/udma_core.h"
-#include "udma/udma_cpi.h"
-#include "udma/udma_ctrl.h"
-#include "udma/udma_hyper.h"
-#include "udma/udma_i2c.h"
-#include "udma/udma_sdio.h"
-#include "udma/udma_spim/udma_spim.h"
-#include "udma/udma_uart.h"
-
-#endif  /* __PMSIS_HAL_H__ */
+#endif  /* __PI_HAL_H__ */

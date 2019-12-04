@@ -1,0 +1,10 @@
+# Copyright Greenwaves Technologies 2019
+# Licence: Apache
+# Script to wrap openocd flash
+
+FLASH_IMG=$1
+IMG_SIZE=$(stat -c %s "$FLASH_IMG")
+
+echo "$IMG_SIZE"
+
+openocd -c "script $OPENOCD_CABLE; script $OPENOCD_CHIP_TARGET; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; gap_flash_raw $FLASH_IMG $IMG_SIZE $GAP_OPENOCD_TOOLS; exit;"

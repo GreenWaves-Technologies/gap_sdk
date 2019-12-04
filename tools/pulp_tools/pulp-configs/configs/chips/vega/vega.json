@@ -9,8 +9,12 @@
         "interface": "spim0",
         "cs": 0
       },
-      "hyper": {
-        "includes": ["devices/hyper.json"],
+      "flash": {
+        "include" : "devices/hyperflash.json",
+        "cs": 1
+      },
+      "ram": {
+        "include" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
@@ -77,6 +81,14 @@
       "base": "0x10000000",
       "size": "0x00020000",
       "banking_factor": 2
+    },
+
+    "icache": {
+      "config": {
+        "nb_sets_bits": 6,
+        "nb_ways_bits": 2,
+        "line_size_bits": 4
+      }
     },
 
     "peripherals": {

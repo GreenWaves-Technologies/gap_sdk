@@ -145,6 +145,20 @@ def test_paddim():
     dim1.calculate_same(in_dim, filt_dim, stride_dim)
     assert dim1.shape == [2, 2, 2, 2]
 
+def test_paddim_compat():
+    red1 = PadDim.pad_compatibility_reduce([True, True, False, True], [True, True, False, True])
+    assert red1 == [True, True, False, True]
+    red1 = PadDim.pad_compatibility_reduce([True, True, False, True], [True, True, False, False])
+    assert red1 == [True, True, False, False]
+    dim1 = PadDim(1)
+    dim2 = PadDim(1, 2, 1, 2)
+    compat1 = dim1.pad_compatibility
+    assert compat1 == [False, False, True, True]    
+    compat2 = dim2.pad_compatibility
+    assert compat2 == [False, False, False, True]    
+    red2 = PadDim.pad_compatibility_reduce(compat1, compat2)
+    assert red2 == [False, False, False, True]    
+
 def test_combine2():
     dim1 = Dim.unnamed((1, 12800, 2))
     dim2 = Dim.unnamed((1, 3200, 2))

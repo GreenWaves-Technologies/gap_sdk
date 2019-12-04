@@ -84,6 +84,10 @@ vp::Event_trace *vp::Event_dumper::get_trace(string trace_name, string file_name
       {
         event_file = new Fst_file(this, file_name);
       }
+      else if (format == "raw")
+      {
+        event_file = new Raw_file(this, file_name);
+      }
       else
       {
         this->comp->get_trace()->fatal("Unknown trace format (name: %s)\n", format.c_str());

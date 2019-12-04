@@ -15,6 +15,7 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_packu4(x, y, z, t)		__builtin_pulp_pack4((unsigned char) (x), (unsigned char) (y), (unsigned char) (z), (unsigned char) (t))
 
 /* Max */
+#define gap_max(x, y)			__builtin_pulp_maxsi((x), (y))
 #define gap_max2(x, y) 			__builtin_pulp_max2((x), (y))
 #define gap_max4(x, y) 			__builtin_pulp_max4((x), (y))
 
@@ -22,11 +23,20 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_maxu4(x, y) 		__builtin_pulp_maxu4((x), (y))
 
 /* Min */
+#define gap_min(x, y)			__builtin_pulp_minsi((x), (y))
 #define gap_min2(x, y) 			__builtin_pulp_min2((x), (y))
 #define gap_min4(x, y) 			__builtin_pulp_min4((x), (y))
 
 #define gap_minu2(x, y) 		__builtin_pulp_minu2((x), (y))
 #define gap_minu4(x, y) 		__builtin_pulp_minu4((x), (y))
+
+/* Add */
+#define gap_add2(x, y) 			__builtin_pulp_add2((x), (y))
+#define gap_add4(x, y) 			__builtin_pulp_add4((x), (y))
+
+/* Sub */
+#define gap_sub2(x, y) 			__builtin_pulp_sub2((x), (y))
+#define gap_sub4(x, y) 			__builtin_pulp_sub4((x), (y))
 
 /* Clip */
 #define gap_clip(x, precision) 		__builtin_pulp_clip((x), -(1<<(precision)), (1<<precision)-1)
@@ -188,6 +198,7 @@ static int _VitT0_Flag, _VitT1_Flag;
 #define gap_packu4(x, y, z, t)		((v4u) {(unsigned char) (x), (unsigned char) (y), (unsigned char) (z), (unsigned char) (t)})
 
 /* Max */
+#define gap_max(x, y)			(((x)>(y))?(x):(y))
 #define gap_max2(x, y) 			((v2s) {((signed short)(x)[0]>(signed short)(y)[0])?((signed short)(x)[0]):((signed short)(y)[0]), \
 						((signed short)(x)[1]>(signed short)(y)[1])?((signed short)(x)[1]):((signed short)(y)[1])})
 #define gap_max4(x, y) 			((v4s) {((signed char)(x)[0]>(signed char)(y)[0])?(signed char)(x)[0]:(signed char)(y)[0], \
@@ -203,6 +214,7 @@ static int _VitT0_Flag, _VitT1_Flag;
 						((unsigned char)(x)[3]>(unsigned char)(y)[3])?(unsigned char)(x)[3]:(unsigned char)(y)[3]})
 
 /* Min */
+#define gap_min(x, y)			(((x)<(y))?(x):(y))
 #define gap_min2(x, y) 			((v2s) {((signed short)(x)[0]<(signed short)(y)[0])?((signed short)(x)[0]):((signed short)(y)[0]), \
 						((signed short)(x)[1]<(signed short)(y)[1])?((signed short)(x)[1]):((signed short)(y)[1])})
 #define gap_min4(x, y) 			((v4s) {((signed char)(x)[0]<(signed char)(y)[0])?(signed char)(x)[0]:(signed char)(y)[0], \
@@ -216,6 +228,16 @@ static int _VitT0_Flag, _VitT1_Flag;
 						((unsigned char)(x)[1]<(unsigned char)(y)[1])?(unsigned char)(x)[1]:(unsigned char)(y)[1], \
 						((unsigned char)(x)[2]<(unsigned char)(y)[2])?(unsigned char)(x)[2]:(unsigned char)(y)[2], \
 						((unsigned char)(x)[3]<(unsigned char)(y)[3])?(unsigned char)(x)[3]:(unsigned char)(y)[3]})
+
+/* Add */
+#define gap_add2(x, y) 			((v2s) {(short int)(x)[0]+(short int)(y)[0], (short int)(x)[1]+(short int)(y)[1]})
+#define gap_add4(x, y) 			((v4s) {(signed char)(x)[0]+(signed char)(y)[0], (signed char)(x)[1]+(signed char)(y)[1], \
+		 			        (signed char)(x)[2]+(signed char)(y)[2], (signed char)(x)[3]+(signed char)(y)[3]})
+
+/* Sub */
+#define gap_sub2(x, y) 			((v2s) {(short int)(x)[0]-(short int)(y)[0], (short int)(x)[1]-(short int)(y)[1]})
+#define gap_sub4(x, y) 			((v4s) {(signed char)(x)[0]-(signed char)(y)[0], (signed char)(x)[1]-(signed char)(y)[1], \
+		 			        (signed char)(x)[2]-(signed char)(y)[2], (signed char)(x)[3]-(signed char)(y)[3]})
 
 /* Clip */
 #define gap_clip(x, precision)		((x)<(-(1<<(precision)))?(-(1<<(precision))):(((x)>((1<<(precision))-1))?((1<<(precision))-1):(x)))
@@ -341,15 +363,15 @@ static int _VitT0_Flag, _VitT1_Flag;
 
 /* Add with normalization and rounding */
 #define gap_addroundnormu(x, y, scale)		((unsigned int)((x) + (y) + (1<<((scale)-1)))>>(scale))
-#define gap_addroundnormu_reg(x, y, scale)	((unsigned int)((x) + (y) + (1<<((scale)-1)))>>(scale))
+#define gap_addroundnormu_reg(x, y, scale)	((unsigned int)((x) + (y) + (scale?(1<<((scale)-1)):0))>>(scale))
 #define gap_addroundnorm(x, y, scale)		((int)((x) + (y) + (1<<((scale)-1)))>>(scale))
-#define gap_addroundnorm_reg(x, y, scale)	((int)((x) + (y) + (1<<((scale)-1)))>>(scale))
+#define gap_addroundnorm_reg(x, y, scale)	((int)((x) + (y) + (scale?(1<<((scale)-1)):0))>>(scale))
 
 /* Normalization and rounding */
 #define gap_roundnormu(x, scale)		((unsigned int)((x) + (1<<((scale)-1)))>>(scale))
-#define gap_roundnormu_reg(x, scale)		((unsigned int)((x) + (1<<((scale)-1)))>>(scale))
+#define gap_roundnormu_reg(x, scale)		((unsigned int)((x) + (scale?(1<<((scale)-1)):0))>>(scale))
 #define gap_roundnorm(x, scale)			((int)((x) + (1<<((scale)-1)))>>(scale))
-#define gap_roundnorm_reg(x, scale)		((int)((x) + (1<<((scale)-1)))>>(scale))
+#define gap_roundnorm_reg(x, scale)		((int)((x) + (scale?(1<<((scale)-1)):0))>>(scale))
 
 #endif
 

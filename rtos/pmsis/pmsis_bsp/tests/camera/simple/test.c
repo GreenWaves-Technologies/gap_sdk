@@ -41,14 +41,14 @@ static int open_camera(struct pi_device *device)
   himax_conf_init(&cam_conf);
 #elif defined(CONFIG_MT9V034)
   printf("Opening mt9v034 camera\n");
-  struct pi_mt9v034_conf cam_conf;
-  pi_mt9v034_conf_init(&cam_conf);
+  struct mt9v034_conf cam_conf;
+  mt9v034_conf_init(&cam_conf);
 #endif
 
-  cam_conf.format = PI_CAMERA_QVGA;
+  cam_conf.format = CAMERA_QVGA;
 
   pi_open_from_conf(device, &cam_conf);
-  if (pi_camera_open(device))
+  if (camera_open(device))
     return -1;
 
   return 0;
@@ -73,13 +73,13 @@ static int test_entry()
   buff[1] = pmsis_l2_malloc(WIDTH*HEIGHT);
   if (buff[1] == NULL) goto error;
 
-  pi_camera_capture_async(&camera, buff[0], WIDTH*HEIGHT, pi_task_block(&task));
+  camera_capture_async(&camera, buff[0], WIDTH*HEIGHT, pi_task_block(&task));
 
-  pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
+  camera_control(&camera, CAMERA_CMD_START, 0);
 
   pi_task_wait_on(&task);
 
-  pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+  camera_control(&camera, CAMERA_CMD_STOP, 0);
 
   for (int j=0; j<1; j++)
   {
@@ -98,7 +98,7 @@ static int test_entry()
     }
   }
 
-  pi_camera_close(&camera);
+  camera_close(&camera);
   printf("Test success\n");
 
   return 0;

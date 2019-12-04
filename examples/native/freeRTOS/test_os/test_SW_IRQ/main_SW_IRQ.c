@@ -33,7 +33,7 @@ void vTestSwIrq0( void *parameters )
         printf("%s : %d\n", taskname, loop);
         if( loop == 15 )
         {
-            EU_FC_EVT_DemuxTrigSet(IRQ_NUM, 1);
+            hal_eu_fc_evt_demux_trig_set(IRQ_NUM, 1);
         }
     }
 }

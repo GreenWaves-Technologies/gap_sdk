@@ -34,7 +34,7 @@
 #include "pmsis.h"
 #include "pmsis/task.h"
 #include "pmsis/drivers/i2c.h"
-#include "pmsis_hal/udma/udma_i2c.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

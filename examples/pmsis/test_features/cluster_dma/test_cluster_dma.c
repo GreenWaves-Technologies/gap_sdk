@@ -29,8 +29,8 @@ void cluster_dma(void *arg)
         printf("Core %d : Transfer done.\n", coreid);
     }
 
-    start = (coreid * ((uint32_t) BUFFER_SIZE / pi_nb_cluster_cores()));
-    end = (start - 1 + ((uint32_t) BUFFER_SIZE / pi_nb_cluster_cores()));
+    start = (coreid * ((uint32_t) BUFFER_SIZE / pi_cl_cluster_nb_cores()));
+    end = (start - 1 + ((uint32_t) BUFFER_SIZE / pi_cl_cluster_nb_cores()));
 
     /* Barrier synchronisation before starting to compute. */
     pi_cl_team_barrier(0);
@@ -66,7 +66,7 @@ void master_entry(void *arg)
 {
     printf("Cluster master core entry\n");
     /* Task dispatch to cluster cores. */
-    pi_cl_team_fork(pi_nb_cluster_cores(), cluster_dma, arg);
+    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_dma, arg);
     printf("Cluster master core exit\n");
 }
 

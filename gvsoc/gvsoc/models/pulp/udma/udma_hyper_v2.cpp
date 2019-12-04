@@ -106,11 +106,20 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
 {
   Hyper_periph_v2 *_this = (Hyper_periph_v2 *)__this;
   uint8_t byte;
-  int cs;
   int cs_value;
   bool send_byte = false;
   bool send_cs = false;
   bool end = false;
+  uint32_t mba0 = _this->regs[(HYPER_MBA0_OFFSET - 0x20)/4];
+  uint32_t mba1 = _this->regs[(HYPER_MBA1_OFFSET - 0x20)/4];
+  uint32_t addr = _this->regs[(HYPER_EXT_ADDR_OFFSET - 0x20)/4];
+  int cs;
+
+  if (mba1 >= mba0)
+    cs = addr >= mba1 ? 1 : 0;
+  else
+    cs = addr >= mba0 ? 0 : 0;
+
 
   if (_this->state == HYPER_STATE_IDLE)
   {
@@ -119,10 +128,10 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
       _this->state = HYPER_STATE_DELAY;
       _this->delay = 72;
       _this->ca_count = 6;
-      _this->ca.low_addr = ARCHI_REG_FIELD_GET(_this->regs[HYPER_EXT_ADDR_CHANNEL_OFFSET], 0, 3);
-      _this->ca.high_addr = ARCHI_REG_FIELD_GET(_this->regs[HYPER_EXT_ADDR_CHANNEL_OFFSET], 3, 29);
+      _this->ca.low_addr = ARCHI_REG_FIELD_GET(_this->regs[HYPER_EXT_ADDR_CHANNEL_OFFSET/4], 0, 3);
+      _this->ca.high_addr = ARCHI_REG_FIELD_GET(_this->regs[HYPER_EXT_ADDR_CHANNEL_OFFSET/4], 3, 29);
       _this->ca.burst_type = 0;
-      _this->ca.address_space = ARCHI_REG_FIELD_GET(_this->regs[HYPER_MEM_CFG3_CHANNEL_OFFSET], HYPER_MEM_CFG3_CRT0_OFFSET, 1);
+      _this->ca.address_space = ARCHI_REG_FIELD_GET(_this->regs[HYPER_MEM_CFG3_CHANNEL_OFFSET/4], HYPER_MEM_CFG3_CRT0_OFFSET, 1);
       _this->ca.read = _this->pending_rx ? 1 : 0;
 
       if (_this->ca.read)
@@ -141,7 +150,6 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
   {
     _this->state = HYPER_STATE_CA;
     send_cs = true;
-    cs = 0;
     cs_value = 1;
   }
   else if (_this->state == HYPER_STATE_CA)
@@ -176,7 +184,6 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
   {
     _this->state = HYPER_STATE_IDLE;
     send_cs = true;
-    cs = 0;
     cs_value = 0;
   }
 
@@ -188,7 +195,9 @@ void Hyper_periph_v2::handle_pending_word(void *__this, vp::clock_event *event)
     }
     else
     {
-      _this->next_bit_cycle = _this->top->get_periph_clock()->get_cycles() + _this->r_clk_div.data_get() + 1;
+      int div = _this->r_clk_div.data_get()*2;
+
+      _this->next_bit_cycle = _this->top->get_periph_clock()->get_cycles() + div;
       if (send_byte)
       {
         _this->top->get_trace()->msg("Sending byte (value: 0x%x)\n", byte);

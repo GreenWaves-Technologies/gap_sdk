@@ -6,6 +6,55 @@
 
 from collections import namedtuple
 
+# int TileOrientation;	/* Set Tiling orientation TILE_HOR TILE_VER */
+# int ParallelFeatures;	/* Parallelize along channels */
+# int ForceDPconv;	/* Forces double precision convolution*/
+# int UseHwCE;		/* Enable HW CE */
+# AT_PadType PadType;	/* Control padding strategy */
+# int EnableIm2Col;	/* Enable mat mul based convolution when feasible */
+# int ReluN;		/* if != -1 Overides 6 as a default value for ReLUN */
+# int MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
+
+GenCtrl = namedtuple('GenCtrl', [
+    "TileOrientation",
+    "ParallelFeatures",
+    "ForceDPConv",
+    "UseHwCE",
+    "PadType",
+    "EnableIm2Col",
+    "ReluN",
+    "MulBiasScalar"
+])
+
+def get_default_gen_ctrl():
+    return GenCtrl(0, 0, 0, 0, 0, 0, -1, -1)
+
+# ConvOper:       Type of convolution, Regular convolution: KOP_CONV,
+#                 Regular convolution with double precision output: KOP_CONV_DP,
+#                 Depth wise convolution: KOP_CONV_DW
+# GroupIn:        Size of the group for input features
+# GroupOut:       Size of the group for output features
+# Fcx:            Convolution filter x dimension
+# Fcy:            Convolution filter y dimension
+# Dcx:            Convolution filter dilation factor, x dimension
+# Dcy:            Convolution filter dilation factor, y dimension
+# Scx:            Convolution filter stride x dimension
+# Scy:            Convolution filter stride y dimension
+# ConvPad:        0: No padding, 1: Zero padding
+
+GroupedConvATParam = namedtuple('GroupedConvATParam', [
+    "ConvOper",
+    "GroupIn",
+    "GroupOut",
+    "Fcx",
+    "Fcy",
+    "Dcx",
+    "Dcy",
+    "Scx",
+    "Scy",
+    "ConvPad"
+])
+
 # ConvOper:       Type of convolution, Regular convolution: KOP_CONV,
 #                 Regular convolution with double precision output: KOP_CONV_DP,
 #                 Depth wise convolution: KOP_CONV_DW

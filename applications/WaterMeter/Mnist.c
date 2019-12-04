@@ -1,10 +1,17 @@
 /*
- * Copyright (C) 2017 GreenWaves Technologies
- * All rights reserved.
+ * Copyright 2019 GreenWaves Technologies, SAS
  *
- * This software may be modified and distributed under the terms
- * of the BSD license.  See the LICENSE file for details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <stdio.h>
@@ -274,10 +281,6 @@ int main()
 
     if (rt_event_alloc(NULL, 8)) return -1;
 
-    //To use file IO system
-    rt_bridge_connect(1, NULL);
-    printf("Bridge connected, waiting for load images\n");
-
     //Allocating input and output image buffers in L2 memory
     ImageIn_real  = (unsigned char *)  rt_alloc( RT_ALLOC_L2_CL_DATA, Win*Hin*sizeof(unsigned char));
     ImageIn_16    = (short *)          rt_alloc( RT_ALLOC_L2_CL_DATA, Win*Win*sizeof(unsigned short ));
@@ -326,7 +329,7 @@ int main()
     int correct=0;
     int wrong=0;
     int skipped=0;
-    for (unsigned int k=0; k<(sizeof(ImageList)/sizeof(char *)); k++){
+    for (unsigned int k=0; k<(sizeof(ImageList)/sizeof(char *)) && (k == -1 || k < NB_FRAMES); k++){
         ImageName = ImageList[k];
 
         //Reading Image from Hyperflash
@@ -383,8 +386,6 @@ int main()
       }
 
       WriteImageToFile("../../../output.pgm",W,H,ImageOut);*/
-
-    rt_bridge_disconnect(NULL);
 
     //Add Buffer Free
     printf("Test success\n");

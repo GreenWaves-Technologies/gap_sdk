@@ -205,9 +205,18 @@ static inline uint32_t pi_cluster_id()
   return rt_cluster_id();
 }
 
-static inline uint32_t pi_nb_cluster_cores()
+static inline int pi_cl_cluster_nb_cores()
 {
   return rt_nb_pe();
+}
+
+static inline uint32_t pi_cl_cluster_nb_pe_cores()
+{
+#ifdef ARCHI_HAS_CC
+  return rt_nb_pe() - 1;
+#else
+  return rt_nb_pe();
+#endif
 }
 
 static inline uint32_t pi_is_fc()

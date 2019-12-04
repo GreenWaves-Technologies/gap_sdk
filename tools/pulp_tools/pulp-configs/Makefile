@@ -60,6 +60,7 @@ sdk_install: install
 	touch $(TARGET_INSTALL_DIR)/rules/tools.mk
 
 clean:
+	rm -f .sconsign.dblite
 	rm -rf $(BUILD_DIR)
 
 gen.all:

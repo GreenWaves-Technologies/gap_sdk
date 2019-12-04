@@ -23,6 +23,10 @@
 #include "archi/gvsoc/gvsoc.h"
 #include "iss.hpp"
 #include <algorithm>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define HALT_CAUSE_EBREAK    0
 #define HALT_CAUSE_ECALL     1
@@ -483,11 +487,33 @@ void iss_wrapper::debug_req()
   this->check_state();
 }
 
-std::string iss_wrapper::read_user_string(iss_addr_t addr)
+bool iss_wrapper::user_access(iss_addr_t addr, uint8_t *buffer, iss_addr_t size, bool is_write)
+{
+  vp::io_req *req = &io_req;
+  req->init();
+  req->set_debug(true);
+  req->set_addr(addr);
+  req->set_size(size);
+  req->set_is_write(is_write);
+  req->set_data(buffer);
+  int err = data.req(req);
+  if (err != vp::IO_REQ_OK) 
+  {
+    if (err == vp::IO_REQ_INVALID)
+      this->warning.fatal("Invalid IO response during debug request");
+    else
+      this->warning.fatal("Pending IO response during debug request");
+
+    return true;
+  }
+  return false;
+}
+
+std::string iss_wrapper::read_user_string(iss_addr_t addr, int size)
 {
   vp::io_req *req = &io_req;
   std::string str = "";
-  while(1)
+  while(size != 0)
   {
     uint8_t buffer;
     req->init();
@@ -510,13 +536,150 @@ std::string iss_wrapper::read_user_string(iss_addr_t addr)
 
     str += buffer;
     addr++;
+
+    if (size > 0)
+      size--;
+  }
+
+  return str;
+}
+
+
+void iss_wrapper::handle_riscv_ebreak()
+{
+  int id = this->cpu.regfile.regs[10];
+
+  if (id == 0x4)
+  {
+    std::string path = this->read_user_string(this->cpu.regfile.regs[11]);
+    printf("%s", path.c_str());
+  }
+  else if (id == 0x1)
+  {
+    iss_reg_t args[3];
+    if (this->user_access(this->cpu.regfile.regs[11], (uint8_t *)args, sizeof(args), false))
+    {
+      this->cpu.regfile.regs[10] = -1;
+      return;
+    }
+    std::string path = this->read_user_string(args[0], args[2]);
+
+
+    unsigned int mode = args[1];
+
+    this->cpu.regfile.regs[10] = open(path.c_str(), mode, 0644);
+
+    if (this->cpu.regfile.regs[10] == -1)
+      this->warning.force_warning("Caught error during semi-hosted call (name: open, path: %s, mode: 0x%x, error: %s)\n", path.c_str(), mode, strerror(errno));
+
+
+  }
+  else if (id == 0x2)
+  {
+    this->cpu.regfile.regs[10] = close(this->cpu.regfile.regs[11]);
+  }
+  else if (id == 0x5)
+  {
+    iss_reg_t args[3];
+    if (this->user_access(this->cpu.regfile.regs[11], (uint8_t *)args, sizeof(args), false))
+    {
+      this->cpu.regfile.regs[10] = -1;
+      return;
+    }
+
+    uint8_t buffer[1024];
+    int size = args[2];
+    iss_reg_t addr = args[1];
+    while(size)
+    {
+      int iter_size = 1024;
+      if (size < 1024)
+        iter_size = size;
+
+      if (this->user_access(addr, buffer, iter_size, false))
+      {
+        this->cpu.regfile.regs[10] = -1;
+        return;
+      }
+
+      if (write(args[0], (void *)(long)buffer, iter_size) != iter_size)
+        break;
+
+      size -= iter_size;
+      addr += iter_size;
+    }
+
+    this->cpu.regfile.regs[10] = size;
+  }
+  else if (id == 0x6)
+  {
+    iss_reg_t args[3];
+    if (this->user_access(this->cpu.regfile.regs[11], (uint8_t *)args, sizeof(args), false))
+    {
+      this->cpu.regfile.regs[10] = -1;
+      return;
+    }
+
+    uint8_t buffer[1024];
+    int size = args[2];
+    iss_reg_t addr = args[1];
+    while(size)
+    {
+      int iter_size = 1024;
+      if (size < 1024)
+        iter_size = size;
+
+      if (read(args[0], (void *)(long)buffer, iter_size) != iter_size)
+        break;
+
+      if (this->user_access(addr, buffer, iter_size, true))
+      {
+        this->cpu.regfile.regs[10] = -1;
+        return;
+      }
+
+      size -= iter_size;
+      addr += iter_size;
+    }
+    this->cpu.regfile.regs[10] = size;
+  }
+  else if (id == 0xA)
+  {
+    iss_reg_t args[2];
+    if (this->user_access(this->cpu.regfile.regs[11], (uint8_t *)args, sizeof(args), false))
+    {
+      this->cpu.regfile.regs[10] = -1;
+      return;
+    }
+
+    int pos = lseek(args[0], args[1], SEEK_SET);
+    this->cpu.regfile.regs[10] = pos != args[1];
+  }
+  else if (id == 0x18)
+  {
+    if (this->cpu.regfile.regs[11] == 0x20026)
+      exit(0);
+    else
+      exit(1);
+  }
+  else if (id == 0x0C)
+  {
+    struct stat buf;
+    fstat(this->cpu.regfile.regs[11], &buf);
+    this->cpu.regfile.regs[10] = buf.st_size;
+  }
+  else
+  {
+    this->warning.force_warning("Unknown ebreak call (id: %d)\n", id);
   }
 }
+
 
 
 void iss_wrapper::handle_ebreak()
 {
   int id = this->cpu.regfile.regs[10];
+
   switch (id)
   {
     case GV_SEMIHOSTING_VCD_CONFIGURE:
@@ -740,7 +903,7 @@ int iss_wrapper::build()
 {
   traces.new_trace("trace", &trace, vp::DEBUG);
   traces.new_trace("decode_trace", &decode_trace, vp::DEBUG);
-  traces.new_trace("insn", &insn_trace, vp::TRACE);
+  traces.new_trace("insn", &insn_trace, vp::DEBUG);
   traces.new_trace("csr", &csr_trace, vp::TRACE);
   traces.new_trace("perf", &perf_counter_trace, vp::TRACE);
 

@@ -22,7 +22,7 @@ char string_buffer[127];
 char current_name[16];
 short current_descriptor[512];
 
-pi_nina_ble_t ble;
+nina_ble_t ble;
 pi_task_t name_task;
 pi_task_t teskriptor_task;
 
@@ -96,7 +96,7 @@ void body(void* parameters)
     GAPOC_AnyPin_Config( B7, NOPULL, uPORT_MuxAlt0 );  // pin GAP_B7 keeps default function = SPIM0_SCK (output)
 #endif
 
-    pi_nina_b112_open(&ble);
+    nina_b112_open(&ble);
     printf("BLE UART init done\n");
 
 
@@ -123,21 +123,21 @@ void body(void* parameters)
     // Initiliaze NINA as BLE Peripheral
 
     printf("Sending cmd using pmsis bsp\n");
-    pi_nina_b112_AT_send(&ble, "E0");
+    nina_b112_AT_send(&ble, "E0");
     printf("Echo disabled\n");
-    pi_nina_b112_AT_send(&ble, "+UFACTORY");
+    nina_b112_AT_send(&ble, "+UFACTORY");
     printf("Factory configuration restored\n");
-    pi_nina_b112_AT_send(&ble, "+UBTUB=FFFFFFFFFFFF");
+    nina_b112_AT_send(&ble, "+UBTUB=FFFFFFFFFFFF");
     printf("Set UBTUB\n");
-    pi_nina_b112_AT_send(&ble, "+UBTLE=2");
+    nina_b112_AT_send(&ble, "+UBTLE=2");
     printf("Set UBTLE\n");
-    pi_nina_b112_AT_send(&ble, "+UBTLN=GreenWaves-GAPOC");
+    nina_b112_AT_send(&ble, "+UBTLN=GreenWaves-GAPOC");
     printf("Set UBTLN\n");
-    pi_nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
+    nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
     printf("BLE configuration : %s\n", rx_buffer);
-    pi_nina_b112_AT_query(&ble, "+UBTLN?", (char *) rx_buffer);
+    nina_b112_AT_query(&ble, "+UBTLN?", (char *) rx_buffer);
     printf("BLE name : %s\n", rx_buffer);
-    //pi_nina_b112_close(&ble);
+    //nina_b112_close(&ble);
 
     printf("AT Config Done\n");
 
@@ -146,11 +146,11 @@ void body(void* parameters)
     // (...but sometimes just provides empty event instead !?)
 
     // Just make sure NINA sends something as AT unsolicited response, therefore is ready :
-    pi_nina_b112_wait_for_event(&ble, Resp_String);
+    nina_b112_wait_for_event(&ble, Resp_String);
     printf("Received Event after reboot: %s\n", Resp_String);
 
     // Enter Data Mode
-    pi_nina_b112_AT_send(&ble, "O");
+    nina_b112_AT_send(&ble, "O");
     printf("Data Mode Entered!\n");
 
     #ifdef __FREERTOS__
@@ -167,7 +167,7 @@ void body(void* parameters)
 
     while(!ble_exit)
     {
-        pi_nina_b112_get_data_blocking(&ble, &action, 1);
+        nina_b112_get_data_blocking(&ble, &action, 1);
 
         switch(action)
         {
@@ -178,26 +178,26 @@ void body(void* parameters)
                 {
                     // there is something in queue
                     read_mode = 1;
-                    pi_nina_b112_send_data_blocking(&ble, &ack, 1);
+                    nina_b112_send_data_blocking(&ble, &ack, 1);
                     printf("BLE_ACK responded\n");
                 }
                 else
                 {
                     printf("Nothing to read\n");
-                    pi_nina_b112_send_data_blocking(&ble, (uint8_t *) &empty_response, 1);
+                    nina_b112_send_data_blocking(&ble, (uint8_t *) &empty_response, 1);
                 }
                 break;
             case BLE_GET_NAME:
                 printf("BLE_GET_NAME request got\n");
                 if(read_mode && (queue_head != queue_tail)) // we are reading and have something in queue
                 {
-                    pi_nina_b112_send_data_blocking(&ble, (uint8_t *) name[queue_head], strlen(name[queue_head]));
+                    nina_b112_send_data_blocking(&ble, (uint8_t *) name[queue_head], strlen(name[queue_head]));
                     printf("Name %s responded\n", name[queue_head]);
                 }
                 else
                 {
                     printf("ERROR: Empty respond sent\n");
-                    pi_nina_b112_send_data_blocking(&ble, (uint8_t *) &empty_response, 1);
+                    nina_b112_send_data_blocking(&ble, (uint8_t *) &empty_response, 1);
                 }
                 break;
             case BLE_GET_PHOTO:
@@ -207,7 +207,7 @@ void body(void* parameters)
 
                     ptr = (char *) (face_image_buffer[queue_head] + face_chank_idx * DATA_CHANK_SIZE);
                     int size = MIN(DATA_CHANK_SIZE, 128*128-face_chank_idx * DATA_CHANK_SIZE);
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) ptr, size);
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) ptr, size);
                     face_chank_idx++;
                     int iters = (128*128 + DATA_CHANK_SIZE-1) / DATA_CHANK_SIZE;
                     if(face_chank_idx >= iters)
@@ -220,20 +220,20 @@ void body(void* parameters)
                 else
                 {
                     printf("ERROR: Empty respond sent\n");
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
                 }
                 break;
             case BLE_GET_DESCRIPTOR:
                 printf("BLE_GET_DESCRIPTOR request got\n");
                 if(read_mode && (queue_head != queue_tail)) // we are reading and have something in queue
                 {
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) face_descriptor[queue_head], 512*sizeof(short));
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) face_descriptor[queue_head], 512*sizeof(short));
                     printf("Face descriptor sent\n");
                 }
                 else
                 {
                     printf("ERROR: Empty respond sent\n");
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
                 }
                 break;
             case BLE_REMOVE:
@@ -247,12 +247,12 @@ void body(void* parameters)
                         queue_head = 0;
                     }
                     printf("Queue head: %d, Queue tail: %d\n", queue_head, queue_tail);
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) &ack, 1);
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) &ack, 1);
                     printf("BLE_ACK responded\n");
                 }
                 else
                 {
-                    pi_nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
+                    nina_b112_send_data_blocking(&ble,(uint8_t *) &empty_response, 1);
                     printf("ERROR: Empty respond sent\n");
                 }
                 break;
@@ -260,15 +260,15 @@ void body(void* parameters)
             case BLE_WRITE:
                 printf("BLE_WRITE request got\n");
                 write_mode = 1;
-                pi_nina_b112_send_data_blocking(&ble,(uint8_t *) &ack, 1);
+                nina_b112_send_data_blocking(&ble,(uint8_t *) &ack, 1);
                 printf("BLE_ACK responded\n");
                 break;
             case BLE_SET_NAME:
-                pi_nina_b112_get_data_blocking(&ble, (uint8_t *) current_name, 16);
+                nina_b112_get_data_blocking(&ble, (uint8_t *) current_name, 16);
                 current_name[15] = '\0';
                 printf("Name %s got\n", current_name);
 
-                pi_nina_b112_send_data_blocking(&ble,(uint8_t *)  &ack, 1);
+                nina_b112_send_data_blocking(&ble,(uint8_t *)  &ack, 1);
                 printf("BLE_ACK responded\n");
                 if (write_mode && (queue_head != queue_tail))
                 {
@@ -282,9 +282,9 @@ void body(void* parameters)
                 for (int i = 0; i < packages; i++)
                 {
                     int start = i*chunk_size;
-                    pi_nina_b112_get_data_blocking(&ble, (uint8_t *) current_descriptor+start, chunk_size*sizeof(short));
+                    nina_b112_get_data_blocking(&ble, (uint8_t *) current_descriptor+start, chunk_size*sizeof(short));
                 }
-                pi_nina_b112_get_data_blocking(&ble,(uint8_t *) current_descriptor+packages*chunk_size, (512-packages*chunk_size)*sizeof(short));
+                nina_b112_get_data_blocking(&ble,(uint8_t *) current_descriptor+packages*chunk_size, (512-packages*chunk_size)*sizeof(short));
                 printf("BLE_SET_DESCRIPTOR request got\n");
                 printf("Got face descriptor\n");
 
@@ -310,7 +310,7 @@ void body(void* parameters)
                 printf("Writing descriptor file..done\n");
 
 
-                pi_nina_b112_send_data_blocking(&ble,(uint8_t *)  &ack, 1);
+                nina_b112_send_data_blocking(&ble,(uint8_t *)  &ack, 1);
                 printf("BLE_ACK responded\n");
                 // Add to Known People DB here
             } break;
@@ -318,7 +318,7 @@ void body(void* parameters)
             case BLE_EXIT:
                 printf("BLE_EXIT request got\n");
                 printf("Closing BLE connection\n");
-                pi_nina_b112_close(&ble);
+                nina_b112_close(&ble);
                 ble_exit = 1;
                 break;
             default:

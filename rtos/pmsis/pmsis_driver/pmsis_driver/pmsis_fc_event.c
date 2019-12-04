@@ -29,7 +29,7 @@
  */
 
 #include "pmsis_driver/pmsis_fc_event.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 #include "pmsis_it.h"
 
 /*******************************************************************************

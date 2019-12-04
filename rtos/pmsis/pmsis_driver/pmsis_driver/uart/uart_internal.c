@@ -33,7 +33,7 @@
 #include "pmsis/rtos/event_kernel/event_kernel.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_task.h"
 #include "pmsis_driver/pmsis_fc_event.h"
-#include "pmsis_hal/udma/udma_uart.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 #define PRINTF(...)
 

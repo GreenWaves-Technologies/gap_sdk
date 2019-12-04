@@ -80,6 +80,14 @@
       "banking_factor": 2
     },
 
+    "icache": {
+      "config": {
+        "nb_sets_bits": 6,
+        "nb_ways_bits": 2,
+        "line_size_bits": 4
+      }
+    },
+
     "peripherals": {
 
       "base": "0x10200000",

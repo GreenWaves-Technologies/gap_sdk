@@ -44,11 +44,15 @@ BUILD_DIR   ?= $(CURDIR)/build
 
 LIB_VEGA = $(LIB_DIR)/vega/libpibsp.a
 LIB_GAPUINO = $(LIB_DIR)/gapuino/libpibsp.a
+LIB_AI_DECK = $(LIB_DIR)/ai_deck/libpibsp.a
 LIB_GAPOC_A = $(LIB_DIR)/gapoc_a/libpibsp.a
+LIB_GAPOC_B = $(LIB_DIR)/gapoc_b/libpibsp.a
 
 VEGA_BUILD_DIR = $(BUILD_DIR)/bsp/vega
 GAPUINO_BUILD_DIR = $(BUILD_DIR)/bsp/gapuino
+AI_DECK_BUILD_DIR = $(BUILD_DIR)/bsp/ai_deck
 GAPOC_A_BUILD_DIR = $(BUILD_DIR)/bsp/gapoc_a
+GAPOC_B_BUILD_DIR = $(BUILD_DIR)/bsp/gapoc_b
 
 $(info #### Building in $(BUILD_DIR))
 $(info #### Installing to $(TARGET_INSTALL_DIR))
@@ -75,7 +79,9 @@ INC_PATH += -include $(TARGET_INSTALL_DIR)/include/rt/chips/$(TARGET_NAME)/confi
 
 OBJECTS_VEGA = $(patsubst %.c, $(VEGA_BUILD_DIR)/%.o, $(wildcard $(VEGA_SRC)))
 OBJECTS_GAPUINO = $(patsubst %.c, $(GAPUINO_BUILD_DIR)/%.o, $(wildcard $(GAPUINO_SRC)))
+OBJECTS_AI_DECK = $(patsubst %.c, $(AI_DECK_BUILD_DIR)/%.o, $(wildcard $(AI_DECK_SRC)))
 OBJECTS_GAPOC_A = $(patsubst %.c, $(GAPOC_A_BUILD_DIR)/%.o, $(wildcard $(GAPOC_A_SRC)))
+OBJECTS_GAPOC_B = $(patsubst %.c, $(GAPOC_B_BUILD_DIR)/%.o, $(wildcard $(GAPOC_B_SRC)))
 
 ifeq '$(TARGET_CHIP)' 'GAP9'
 CFLAGS += -march=rv32imcxgap9
@@ -89,7 +95,7 @@ CFLAGS += -MMD -MP -c
 ifeq '$(TARGET_CHIP)' 'GAP9'
 all: dir header vega_bsp
 else
-all: dir header gapuino_bsp gapoc_a_bsp
+all: dir header gapuino_bsp ai_deck_bsp gapoc_a_bsp gapoc_b_bsp
 endif
 
 dir:
@@ -105,9 +111,17 @@ $(OBJECTS_GAPUINO) : $(GAPUINO_BUILD_DIR)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -DCONFIG_GAPUINO $< $(INC_PATH) -o $@
 
+$(OBJECTS_AI_DECK) : $(AI_DECK_BUILD_DIR)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -DCONFIG_AI_DECK $< $(INC_PATH) -o $@
+
 $(OBJECTS_GAPOC_A) : $(GAPOC_A_BUILD_DIR)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -DCONFIG_GAPOC_A $< $(INC_PATH) -o $@
+
+$(OBJECTS_GAPOC_B) : $(GAPOC_B_BUILD_DIR)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -DCONFIG_GAPOC_B $< $(INC_PATH) -o $@
 
 vega_bsp: $(OBJECTS_VEGA)
 	mkdir -p $(LIB_DIR)/vega
@@ -117,14 +131,22 @@ gapuino_bsp: $(OBJECTS_GAPUINO)
 	mkdir -p $(LIB_DIR)/gapuino
 	$(AR) -r $(LIB_GAPUINO) $^
 
+ai_deck_bsp: $(OBJECTS_AI_DECK)
+	mkdir -p $(LIB_DIR)/ai_deck
+	$(AR) -r $(LIB_AI_DECK) $^
+
 gapoc_a_bsp: $(OBJECTS_GAPOC_A)
 	mkdir -p $(LIB_DIR)/gapoc_a
 	$(AR) -r $(LIB_GAPOC_A) $^
 
+gapoc_b_bsp: $(OBJECTS_GAPOC_B)
+	mkdir -p $(LIB_DIR)/gapoc_b
+	$(AR) -r $(LIB_GAPOC_B) $^
+
 install: all
 
 clean:
-	rm -rf $(GAPUINO_BUILD_DIR) $(GAPOC_A_BUILD_DIR) $(VEGA_BUILD_DIR)
+	rm -rf $(GAPUINO_BUILD_DIR) $(AI_DECK_BUILD_DIR) $(GAPOC_A_BUILD_DIR) $(VEGA_BUILD_DIR)
 	rm -rf $(INSTALL_HEADERS)
-	rm -rf $(LIB_GAPUINO) $(LIB_GAPOC_A) $(LIB_VEGA)
+	rm -rf $(LIB_GAPUINO) $(LIB_AI_DECK) $(LIB_GAPOC_A) $(LIB_VEGA)
 	rm -rf $(CURDIR)/build $(CURDIR)/install

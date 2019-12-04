@@ -12,7 +12,7 @@ from pathlib import Path
 
 from generation.memory_device_info import MemoryDeviceInfos
 from graph.graph_identity import GraphIdentity
-from graph.matches import get_std_match_group
+from graph.matches.matches import get_fusion
 from graph.nngraph import NNGraph
 from importer.importer import create_graph
 from quantization.qtype import QType
@@ -171,10 +171,12 @@ def load_state(graph_file: str, value_cache=None, return_extra=False):
         G.add_dimensions()
 
     if identity.is_fused:
-        # TODO - if more fusion types are added then this should replay them
         LOG.info("fusing nodes")
-        get_std_match_group().match(G)
-        G.add_dimensions()
+        # replay the fusions that were carried out
+        for fusion_name in identity.fusions:
+            fusion = get_fusion(fusion_name)
+            fusion.match(G)
+            G.add_dimensions()
 
     set_parameters(G, parameters)
     # Update the identity to match the saved graph

@@ -466,6 +466,9 @@ static void __attribute__ ((noinline)) KerConv4x1from5x1StrideNx1_V_fps(
 		case 4: // [0..4 x 0] => [0..2 x 0] PadR==2
 			C0 = *((v4s*) (Filter + 0*5+0)); C0 = (v4s)(((int)C0)<<8);
 			break;
+                case 5: // [0..4 x 0] => [0..2 x 0] PadR==2, Wo==1
+                        C0 = *((v4s*) (Filter + 0*5+0)); C0[3] = 0;
+                        break;
 	}
 	PtIn = In + (Ho_F*1-PadOrg[2])*W; PtOut = Out+Ho_F*Wo;
 	V0 = * (v4s *) PtIn; PtIn += W;
@@ -508,6 +511,9 @@ static void __attribute__ ((noinline)) KerConv1x4from1x5Stride1xN_H_fps(
 		case 4: // PadB == 2
 			C0 = *((v4s *) &Filter[0]); C0 = (v4s)((int)C0<<8);
 			break;
+                case 5: // PadB == 2, Ho == 1
+                        C0 = *((v4s *) &Filter[0]);  C0[3] = 0;
+                        break;
 	}
 	x0 = *(PtIn+0*W+0); x1 = *(PtIn+1*W+0); x2 = *(PtIn+2*W+0); x3 = *(PtIn+3*W+0); V0 = gap_pack4(x0,x1,x2,x3); PtIn+=1;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -563,6 +569,13 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fps(
 			C3 = *((v4s*) (Filter + 3*5+0)); C3 = (v4s)(((int)C3)<<8);
 			C4 = *((v4s*) (Filter + 4*5+0)); C4 = (v4s)(((int)C4)<<8);
 			break;
+                case 5: // [0..4 x 0..4] => [0..2 x 0..4] PadR == 2, Wo==1
+                        C0 = *((v4s*) (Filter + 0*5+0)); C0[3] = 0;
+                        C1 = *((v4s*) (Filter + 1*5+0)); C1[3] = 0;
+                        C2 = *((v4s*) (Filter + 2*5+0)); C2[3] = 0;
+                        C3 = *((v4s*) (Filter + 3*5+0)); C3[3] = 0;
+                        C4 = *((v4s*) (Filter + 4*5+0)); C4[3] = 0;
+                        break;
 	}
 	if (PadT==2) {
 		PtIn = In; Ho_F = 0;
@@ -577,6 +590,10 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fps(
 		V1 = *((v4s *) PtIn); PtIn += W;
 	}
 	V2 = *((v4s *) PtIn); PtIn += W;
+        if (Ho==1) {
+                int Acc = Bias; Acc = gap_sumdotp4(V0, C0, Acc); Acc = gap_sumdotp4(V1, C1, Acc); Acc = gap_sumdotp4(V2, C2, Acc); *PtOut = Acc;
+                return;
+        }
 	V3 = *((v4s *) PtIn); PtIn += W;
  	PtOut = Out+Ho_F*Wo;
 	for (unsigned int i=Ho_F; i<Ho_L; i++) {
@@ -809,6 +826,12 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5Stride1_H_fps(
 			C2 = *((v4s *) &Filter[1*5+0]);
 			C3 = *((v4s *) &Filter[2*5+0]); C4 = (v4s){0, Filter[0*5+4], Filter[1*5+4], Filter[2*5+4]};
 			break;
+                case 5: // PadB == 2, Ho == 1
+                        C0 = *((v4s *) &Filter[0*5+0]);
+                        C1 = *((v4s *) &Filter[1*5+0]);
+                        C2 = *((v4s *) &Filter[2*5+0]);
+                        C3 = (v4s){0,0,0,0}; C4 = (v4s){Filter[0*5+4], Filter[1*5+4], Filter[2*5+4], 0};
+                        break;
 	}
 	V0 = *((v4s *) (PtIn+0*W+0)); V1 = *((v4s *) (PtIn+1*W+0)); V2 = *((v4s *) (PtIn+2*W+0)); V3 = *((v4s *) (PtIn+3*W+0)); PtIn += 4;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -1748,6 +1771,9 @@ static void __attribute__ ((noinline)) KerConv4x1from5x1StrideNx1_V_fp(
 		case 4: // [0..4 x 0] => [0..2 x 0] PadR==2
 			C0 = gap_pack2(0, Filter[0*5+0]); C1 = *((v2s*) (Filter + 0*5+1));
 			break;
+                case 5: // [0..4 x 0] => [0..2 x 0] PadR==2, Wo==1
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        break;
 	}
 	PtIn = In + (Ho_F*1-PadOrg[2])*W; PtOut = Out+Ho_F*Wo;
 	V0 = * (v2s *) PtIn; V1 = *((v2s *) PtIn + 1); PtIn += W;
@@ -1791,6 +1817,9 @@ static void __attribute__ ((noinline)) KerConv1x4from1x5Stride1xN_H_fp(
 		case 4: // [0 x 0..4] => [0 x 2..4] PadB == 2
 			C0 = gap_pack2(0, Filter[0*5+0]); C1 = *((v2s*) (Filter + 0*5+1));
 			break;
+                case 5: // [0 x 0..4] => [0 x 2..4] PadB == 2, Ho == 1
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        break;
 	}
 	x0 = *(PtIn+0*W+0); x1 = *(PtIn+1*W+0); x2 = *(PtIn+2*W+0); x3 = *(PtIn+3*W+0); V0 = gap_pack2(x0,x1); V1 = gap_pack2(x2,x3); PtIn++;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -1846,6 +1875,13 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fp(
 			C6 = gap_pack2(0, Filter[3*5+0]); C7 = *((v2s*) (Filter + 3*5+1));
 			C8 = gap_pack2(0, Filter[4*5+0]); C9 = *((v2s*) (Filter + 4*5+1));
 			break;
+                case 5: // [0..4 x 0..4] => [0..2,0 x 0..4] PadR == 2
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        C2 = *((v2s*) (Filter + 1*5+0)); C3 = gap_pack2(Filter[1*5+2], 0);
+                        C4 = *((v2s*) (Filter + 2*5+0)); C5 = gap_pack2(Filter[2*5+2], 0);
+                        C6 = *((v2s*) (Filter + 3*5+0)); C7 = gap_pack2(Filter[3*5+2], 0);
+                        C8 = *((v2s*) (Filter + 4*5+0)); C9 = gap_pack2(Filter[4*5+2], 0);
+                        break;
 	}
 	if (PadT==2) {
 		PtIn = In; PtOut = Out; Ho_F = 0;
@@ -1862,6 +1898,14 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fp(
 	}
 	PtOut = Out+Ho_F*Wo;
 	V4 = *((v2s *) PtIn); PtIn += 2; V5 = *((v2s *) PtIn); PtIn += (W-2);
+        if (Ho==1) {
+                int Acc = Bias;
+                Acc = gap_sumdotp2(V0, C0, Acc); Acc = gap_sumdotp2(V1, C1, Acc);
+                Acc = gap_sumdotp2(V2, C2, Acc); Acc = gap_sumdotp2(V3, C3, Acc);
+                Acc = gap_sumdotp2(V4, C4, Acc); Acc = gap_sumdotp2(V5, C5, Acc);
+                *PtOut =  Acc;
+                return;
+        }
 	V6 = *((v2s *) PtIn); PtIn += 2; V7 = *((v2s *) PtIn); PtIn += (W-2);
 	for (unsigned int i=Ho_F; i<Ho_L; i++) {
 		int Acc = Bias;
@@ -2124,12 +2168,16 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5Stride1_H_fp(
 			break;
 		case 4: // [0..4 x 0..4] => [0..4 x 0..2] PadB==2
 			C0 = gap_pack2(0, Filter[0]); C1 = gap_pack2(0, Filter[1]); C2 = gap_pack2(0, Filter[2]); C3 = gap_pack2(0, Filter[3]); C4 = gap_pack2(0, Filter[4]);
-			// X = *((v2s *) &Filter[2*5+0]); Y = *((v2s *) &Filter[3*5+0]); C5 = __builtin_shuffle(X,Y,(v2s){0,2}); C6 = __builtin_shuffle(X,Y,(v2s){1,3});
-			// X = *((v2s *) &Filter[2*5+2]); Y = *((v2s *) &Filter[3*5+2]); C7 = __builtin_shuffle(X,Y,(v2s){0,2}); C8 = __builtin_shuffle(X,Y,(v2s){1,3});
 			X = *((v2s *) &Filter[1*5+0]); Y = *((v2s *) &Filter[2*5+0]); C5 = __builtin_shuffle(X,Y,(v2s){0,2}); C6 = __builtin_shuffle(X,Y,(v2s){1,3});
 			X = *((v2s *) &Filter[1*5+2]); Y = *((v2s *) &Filter[2*5+2]); C7 = __builtin_shuffle(X,Y,(v2s){0,2}); C8 = __builtin_shuffle(X,Y,(v2s){1,3});
 			C9 = gap_pack2(Filter[9], Filter[14]);
 			break;
+                case 5: // [0..4 x 0..4] => [0..4 x 0..2,0] PadB==2
+                        X = *((v2s *) &Filter[0*5+0]); Y = *((v2s *) &Filter[1*5+0]); C0 = __builtin_shuffle(X,Y,(v2s){0,2}); C1 = __builtin_shuffle(X,Y,(v2s){1,3});
+                        X = *((v2s *) &Filter[0*5+2]); Y = *((v2s *) &Filter[1*5+2]); C2 = __builtin_shuffle(X,Y,(v2s){0,2}); C3 = __builtin_shuffle(X,Y,(v2s){1,3});
+                        C4 = gap_pack2(Filter[4], Filter[9]);
+                        C5 = gap_pack2(Filter[10],0); C6 = gap_pack2(Filter[11],0); C7 = gap_pack2(Filter[12],0); C8 = gap_pack2(Filter[13],0); C9 = gap_pack2(Filter[14],0);
+                        break;
 	}
 	X = *((v2s *) (PtIn+0*W+0)); Y = *((v2s *) (PtIn+1*W+0)); V0 = __builtin_shuffle(X,Y,(v2s){0,2}); V1 = __builtin_shuffle(X,Y,(v2s){1,3});
 	X = *((v2s *) (PtIn+0*W+2)); Y = *((v2s *) (PtIn+1*W+2)); V2 = __builtin_shuffle(X,Y,(v2s){0,2}); V3 = __builtin_shuffle(X,Y,(v2s){1,3});
@@ -2928,7 +2976,8 @@ static void __attribute__ ((noinline)) KerConv5x1BorderStrideNx1_fp(
 		if  ((Wo-Wo_L)==2) {
 			KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
 			KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
-		} else KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, PadR+2);
+		} else if (Wo==1) KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 5);
+		else KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, PadR+2);
 	}
 }
 
@@ -2964,7 +3013,8 @@ static void __attribute__ ((noinline)) KerConv1x5BorderStride1xN_fp(
 		if((Ho-Ho_L)==2) {
 			KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 			KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
-		} else KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
+		} else if (Ho==1) KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 5);
+		else KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
 	}
 }
 
@@ -2995,16 +3045,22 @@ static void __attribute__ ((noinline)) KerConv5x5BorderStride1_fp(
 		KerConv4x5from5x5Stride1_V_fp(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+1, Filter, 1);
 	} else if (PadL==1) KerConv4x5from5x5Stride1_V_fp(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out, Filter, 1);
 	if (PadR==2) {
-		KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
-		KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
+		if (Wo==1) KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 5);
+		else {
+			KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
+			KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
+		}
 	} else if (PadR==1) KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 3);
 	if (PadT==2) {
 		KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F, Filter, 2);
 		KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F+Wo, Filter, 1);
 	} else if (PadT==1) KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F, Filter, 1);
 	if (PadB==2) {
-		KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
-		KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		if (Ho==1) KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L)*Wo+Wo_F, Filter, 5);
+		else {
+			KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
+			KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		}
 	} else if (PadB==1) KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 }
 
@@ -3239,7 +3295,8 @@ static void __attribute__ ((noinline)) KerConv5x1BorderStrideNx1_fps(
 		if ((Wo-Wo_L)==2) {
 			KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
 			KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
-		} else KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, PadR+2);
+		} else if (Wo==1) KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 5);
+		else KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, PadR+2);
 	}
 }
 
@@ -3275,7 +3332,8 @@ static void __attribute__ ((noinline)) KerConv1x5BorderStride1xN_fps(
 		if ((Ho-Ho_L)==2) { // Happens only if stride == 1
 			KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 			KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
-		} else KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
+		} else if (Ho==1) KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 5);
+		else KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
 	}
 }
 
@@ -3307,16 +3365,22 @@ static void __attribute__ ((noinline)) KerConv5x5BorderStride1_fps(
 		KerConv4x5from5x5Stride1_V_fps(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+1, Filter, 1);
 	} else if (PadL==1) KerConv4x5from5x5Stride1_V_fps(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out, Filter, 1);
 	if (PadR==2) {
-		KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
-		KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
+		if (Wo==1) KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 5);
+		else {
+			KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-2, Filter, 3);
+			KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 4);
+		}
 	} else if (PadR==1) KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Bias, Norm, Out+Wo-1, Filter, 3);
 	if (PadT==2) {
 		KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F, Filter, 2);
 		KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F+Wo, Filter, 1);
 	} else if (PadT==1) KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Wo_F, Filter, 1);
 	if (PadB==2) {
-		KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
-		KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		if (Ho==1) KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L)*Wo+Wo_F, Filter, 5);
+		else {
+			KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
+			KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		}
 	} else if (PadB==1) KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Bias, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 }
 
@@ -6076,6 +6140,681 @@ void KerParConvDWNxMDxDyStrideSxSy_fp(KerConv_fp_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+
+
+/* With double precision bias */
+
+void KerParConvDW1x1Stride1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=1, S=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		KerConv1x1Stride1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Bias_fpd[of]<<BiasNorm, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x1Stride2_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=1, S=2;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		KerConv1x1Stride2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Bias_fpd[of]<<BiasNorm, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x1StrideS_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=1, S=Arg->S;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		KerConv1x1StrideS_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, Bias_fpd[of]<<BiasNorm, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW3x1Stride1x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=3, FSy=1, Sx=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B=Bias_fpd[of]<<BiasNorm;
+		KerConv3x1Stride1x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv3x1BorderStrideNx1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW3x1Stride2x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=3, FSy=1, Sx=2, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv3x1Stride2x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv3x1BorderStrideNx1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x3Stride1x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=1, FSy=3, Sx=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv1x3Stride1x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv1x3BorderStride1xN_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x3Stride1x2_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=1, FSy=3, Sx=1, Sy=2;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv1x3Stride1x2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv1x3BorderStride1xN_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW3x3Stride1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=3, S=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv3x3Stride1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv3x3BorderStride1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW3x3Stride2_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=3, S=2;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv3x3Stride2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv3x3BorderStride2_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW3x3StrideS_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=3, S=Arg->S;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv3x3StrideS_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B, Norm);
+		if ((int)PadIn) KerConv3x3BorderStrideS_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW5x1Stride1x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=5, FSy=1, Sx=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv5x1Stride1x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv5x1BorderStrideNx1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW5x1Stride2x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=5, FSy=1, Sx=2, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv5x1Stride2x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv5x1BorderStrideNx1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x5Stride1x1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=1, FSy=5, Sx=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv1x5Stride1x1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv1x5BorderStride1xN_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW1x5Stride1x2_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=1, FSy=5, Sx=1, Sy=2;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv1x5Stride1x2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv1x5BorderStride1xN_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW5x5Stride1_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=5, S=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv5x5Stride1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv5x5BorderStride1_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW5x5Stride2_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=5, S=2;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv5x5Stride2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B, Norm);
+		if ((int)PadIn) KerConv5x5BorderStride2_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDW5x5StrideS_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=5, S=Arg->S;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConv5x5StrideS_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B, Norm);
+		if ((int)PadIn) KerConv5x5BorderStrideS_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDWNxNStrideS_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FS=Arg->N, S=Arg->S;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConvNxNStrideS_Body_fp(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B, Norm);
+		if ((int)PadIn) KerConvNxNStrideS_Border_fp(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDWNxMStrideSxSy_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=Arg->Ny, Sy=Arg->Sy;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConvNxMStrideSxSy_Body_fp(in, out, filter, FSx, FSy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, B, Norm);
+		if ((int)PadIn) KerConvNxMStrideSxSy_Border_fp(in, out, filter, FSx, FSy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvDWNxMDxDyStrideSxSy_fpd_fp(KerConv_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=Arg->Ny, Sy=Arg->Sy;
+	int Dx=Arg->D, Dy=Arg->Dy;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int BiasNorm = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Bias_fpd = (int * __restrict__) Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int Norm = Arg->Norm;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-(Dx*(FSx-1)+1)+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput((Dx*(FSx-1)+1), PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, (Dx*(FSx-1)+1), PadIn[0], Sx));
+	int Ho = (Arg->UsedH-(Dy*(FSy-1)+1)+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput((Dy*(FSy-1)+1), PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, (Dy*(FSy-1)+1), PadIn[2], Sy));
+
+       	for (unsigned int of=First; of<Last; of++) {
+		short int *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
+		int B = Bias_fpd[of]<<BiasNorm;
+		KerConvNxMDxDyStrideSxSy_Body_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, B, Norm);
+		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, B, Norm);
+	}
+	gap_waitbarrier(0);
+}
+
+
+
 
 /*
 	Optionally 0 padded convolutions.

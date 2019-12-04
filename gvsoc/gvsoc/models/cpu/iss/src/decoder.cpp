@@ -66,6 +66,7 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
 {
   if (!item->is_active) return -1;
 
+  insn->latency = 0;
   insn->hwloop_handler = NULL;
   insn->fast_handler = item->u.insn.fast_handler;
   insn->handler = item->u.insn.handler;
@@ -123,21 +124,25 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
           // We can stall the next instruction either if latency is superior
           // to 2 (due to number of pipeline stages) or if there is a data
           // dependency
-          if (darg->u.reg.latency > PIPELINE_STAGES)
-          {
-            insn->latency += darg->u.reg.latency - PIPELINE_STAGES + 1;
-          }
 
           // Go through the registers and set the handler to the stall handler
           // in case we find a register dependency so that we can properly
           // handle the stall
+          bool set_pipe_latency = true;
           for (int j=0; j<next->nb_in_reg; j++)
           {
             if (next->in_regs[j] == arg->u.reg.index)
             {
               insn->latency += darg->u.reg.latency;
+              set_pipe_latency = false;
               break;
             }
+          }
+
+          // If no dependency was found, apply the one for the pipeline stages
+          if (set_pipe_latency && darg->u.reg.latency > PIPELINE_STAGES)
+          {
+            insn->latency += darg->u.reg.latency - PIPELINE_STAGES + 1;
           }
         }
 

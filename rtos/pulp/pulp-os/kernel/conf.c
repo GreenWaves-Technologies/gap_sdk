@@ -21,6 +21,10 @@
 #include "rt/rt_api.h"
 
 __attribute__((weak)) unsigned int __rt_platform = 3;
+#ifndef __RT_IODEV__
 __attribute__((weak)) unsigned int __rt_iodev = 0;
+#else
+__attribute__((weak)) unsigned int __rt_iodev = __RT_IODEV__;
+#endif
 __attribute__((weak)) unsigned int __rt_iodev_uart_baudrate = 115200;
 __attribute__((weak)) unsigned int __rt_iodev_uart_channel = 0;

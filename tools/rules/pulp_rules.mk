@@ -69,6 +69,10 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 
 CFLAGS        = $(COMMON) -MMD -MP -c
 
+ifdef GAP_USE_OPENOCD
+PULP_CFLAGS += -D__RT_IODEV__=2
+endif
+
 TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS) -MMD -MP -c
 
 # Final binary
@@ -80,6 +84,8 @@ BIN           = $(BUILDDIR)/test
 T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_SRCS))
 
 OBJECTS       = $(T_OBJECTS_C)
+
+OBJECTS   += $(BUILDDIR)/pulp-os/conf.o
 
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap/config.h
@@ -104,6 +110,10 @@ dir:
 # Rules for creating dependency files (.d).
 #------------------------------------------
 $(T_OBJECTS_C) : $(BUILDDIR)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
+
+$(BUILDDIR)/pulp-os/conf.o: $(GAP_SDK_HOME)/rtos/pulp/pulp-os/kernel/conf.c
 	@mkdir -p $(dir $@)
 	$(CC) $(PULP_CFLAGS) $(TCFLAGS) $< $(INC_PATH) -MD -MF $(basename $@).d -o $@
 
@@ -145,6 +155,12 @@ gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 
 endif
+
+flash::
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS)
+
+launch::
+	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS)
 
 gui:: dir
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"

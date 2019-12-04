@@ -1,8 +1,4 @@
 {
-  "includes": [ "tools/vp/gvsoc.json" ],
-
-  "platform": "gvsoc",
-
   "pulp_compiler": "gcc",
 
   "pulp_rt_version": "bench",
@@ -17,21 +13,6 @@
     "use_dpi": false
   },
 
-  "vsim": {
-    "help": {
-      "gui": "Open modelsim using the GUI.",
-      "simchecker": "Activate instruction checking through golden model.",
-      "script": "Specify the script used to launch the platform"
-    },
-    "script": "run.tcl",
-    "gui": false,
-    "simchecker": false,
-    "args": [],
-    "tcl_args": [],
-    "vsim_runner_class": "runner/rtl/vsim_runner",
-    "xcelium_runner_class": "runner/rtl/xcelium_runner"
-  },
-
   "gdb": {
     "active": false
   },
@@ -43,6 +24,7 @@
     "boot": {
       "mode": "jtag"
     }
-  }
+  },
 
+  "platform": "gvsoc"
 }

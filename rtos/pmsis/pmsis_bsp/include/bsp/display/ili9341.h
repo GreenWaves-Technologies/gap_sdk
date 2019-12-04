@@ -27,7 +27,7 @@
  */
 
 /**
- * @defgroup Display Ili9341
+ * @defgroup Ili9341 Ili9341
  *
  * Display Ili9341.
  * This module is interfaced through SPIM1.
@@ -60,7 +60,9 @@ typedef enum
 /* @brief Ili9341 ioctl commands. */
 typedef enum
 {
-  PI_ILI_IOCTL_ORIENTATION = PI_DISPLAY_IOCTL_CUSTOM /*!< Display orientation command. */
+  PI_ILI_IOCTL_ORIENTATION = PI_DISPLAY_IOCTL_CUSTOM /*!< Display orientation
+    command. The argument to this command must be a value of type
+    pi_ili_orientation_e. */
 } pi_ili_ioctl_cmd_e;
 
 /**

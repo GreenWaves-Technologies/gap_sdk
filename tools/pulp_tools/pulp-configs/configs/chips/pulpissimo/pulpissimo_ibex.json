@@ -8,8 +8,10 @@
   },
 
   "config": {
+
+    "install_name": "pulpissimo_ibex",
+
     "vsim": {
-      "platform_path_eval": "os.environ.get('PULP_RTL_PULPISSIMO_IBEX')",
       "tcl_args": ["-gCORE_TYPE=1"]
     }
   }

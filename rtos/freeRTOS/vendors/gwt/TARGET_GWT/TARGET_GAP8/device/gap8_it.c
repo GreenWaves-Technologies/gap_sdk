@@ -29,7 +29,8 @@
  */
 
 #include "gap8_it.h"
-#include "gap_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
+#include "printf.h"
 
 /* Ecall Table. */
 const void *_ecall_vector[NB_ECALL] = {
@@ -50,7 +51,7 @@ void HardFault_Handler( void )
 void vSetPendSV()
 {
     NVIC->MASK_IRQ_OR = (0x1 << PENDSV_IRQN);
-    EU_FC_EVT_TrigSet(PENDSV_IRQN, 0);
+    hal_eu_fc_evt_trig_set(PENDSV_IRQN, 0);
 }
 
 /****************

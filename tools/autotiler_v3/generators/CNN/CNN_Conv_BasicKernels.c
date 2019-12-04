@@ -82,7 +82,7 @@ static void AT_KerParTileClear(AT_KerTileClear_T *Arg)
        		for (unsigned int i=First; i<Last; i++) {
 			char *Base = (In + i*W*H*Size + (W-Pad)*Size);
 			for (unsigned j=0; j<H; j++)
-				for (unsigned k=0; k<ClrSize; k++) Base[W*j + k] = 0;
+				for (unsigned k=0; k<ClrSize; k++) Base[W*Size*j + k] = 0;
 		}
 	}
 	gap_waitbarrier(0);
@@ -112,7 +112,7 @@ static void AT_KerTileClear(AT_KerTileClear_T *Arg)
 		char *Base = (In + (W-Pad)*Size);
 		int ClrSize = Pad*Size;
        		for (unsigned int i=First; i<Last; i++) 
-			for (unsigned k=0; k<ClrSize; k++) Base[W*i + k] = 0;
+			for (unsigned k=0; k<ClrSize; k++) Base[W*Size*i + k] = 0;
 	}
 	gap_waitbarrier(0);
 }
@@ -545,6 +545,9 @@ static void __attribute__ ((noinline)) KerConv4x1from5x1StrideNx1_V_fps(
 		case 4: // [0..4 x 0] => [0..2 x 0] PadR==2
 			C0 = *((v4s*) (Filter + 0*5+0)); C0 = (v4s)(((int)C0)<<8);
 			break;
+                case 5: // [0..4 x 0] => [0..2 x 0] PadR==2, Wo==1
+                        C0 = *((v4s*) (Filter + 0*5+0)); C0[3] = 0;
+                        break;
 	}
 	PtIn = In + (Ho_F*1-PadOrg[2])*W; PtOut = Out+Ho_F*Wo;
 	V0 = * (v4s *) PtIn; PtIn += W;
@@ -586,6 +589,9 @@ static void __attribute__ ((noinline)) KerConv1x4from1x5Stride1xN_H_fps(
 		case 4: // PadB == 2
 			C0 = *((v4s *) &Filter[0]); C0 = (v4s)((int)C0<<8);
 			break;
+                case 5: // PadB == 2, Ho == 1
+                        C0 = *((v4s *) &Filter[0]);  C0[3] = 0;
+                        break;
 	}
 	x0 = *(PtIn+0*W+0); x1 = *(PtIn+1*W+0); x2 = *(PtIn+2*W+0); x3 = *(PtIn+3*W+0); V0 = gap_pack4(x0,x1,x2,x3); PtIn+=1;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -640,6 +646,13 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fps(
 			C3 = *((v4s*) (Filter + 3*5+0)); C3 = (v4s)(((int)C3)<<8);
 			C4 = *((v4s*) (Filter + 4*5+0)); C4 = (v4s)(((int)C4)<<8);
 			break;
+                case 5: // [0..4 x 0..4] => [0..2 x 0..4] PadR == 2, Wo==1
+                        C0 = *((v4s*) (Filter + 0*5+0)); C0[3] = 0;
+                        C1 = *((v4s*) (Filter + 1*5+0)); C1[3] = 0;
+                        C2 = *((v4s*) (Filter + 2*5+0)); C2[3] = 0;
+                        C3 = *((v4s*) (Filter + 3*5+0)); C3[3] = 0;
+                        C4 = *((v4s*) (Filter + 4*5+0)); C4[3] = 0;
+                        break;
 	}
 	if (PadT==2) {
 		PtIn = In; Ho_F = 0;
@@ -654,6 +667,12 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fps(
 		V1 = *((v4s *) PtIn); PtIn += W;
 	}
 	V2 = *((v4s *) PtIn); PtIn += W;
+	if (Ho==1) {
+		int Acc = *PtOut<<Norm;
+		Acc = gap_sumdotp4(V0, C0, Acc); Acc = gap_sumdotp4(V1, C1, Acc); Acc = gap_sumdotp4(V2, C2, Acc);
+		Acc = gap_clip(gap_roundnorm_reg(Acc, Norm), 7); *PtOut = Acc;
+		return;
+	}
 	V3 = *((v4s *) PtIn); PtIn += W;
  	PtOut = Out+Ho_F*Wo;
 	for (unsigned int i=Ho_F; i<Ho_L; i++) {
@@ -883,6 +902,12 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5Stride1_H_fps(
 			C2 = *((v4s *) &Filter[1*5+0]);
 			C3 = *((v4s *) &Filter[2*5+0]); C4 = (v4s){0, Filter[0*5+4], Filter[1*5+4], Filter[2*5+4]};
 			break;
+                case 5: // PadB == 2, Ho == 1
+                        C0 = *((v4s *) &Filter[0*5+0]);
+                        C1 = *((v4s *) &Filter[1*5+0]);
+                        C2 = *((v4s *) &Filter[2*5+0]);
+                        C3 = (v4s){0,0,0,0}; C4 = (v4s){Filter[0*5+4], Filter[1*5+4], Filter[2*5+4], 0};
+                        break;
 	}
 	V0 = *((v4s *) (PtIn+0*W+0)); V1 = *((v4s *) (PtIn+1*W+0)); V2 = *((v4s *) (PtIn+2*W+0)); V3 = *((v4s *) (PtIn+3*W+0)); PtIn += 4;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -1009,7 +1034,7 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5StrideS_H_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fps(
+static void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fps(
 	signed char *__restrict__ In,
 	signed char *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -1160,7 +1185,7 @@ void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fps(
+static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fps(
 	signed char *__restrict__ In,
 	signed char *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -1312,7 +1337,7 @@ void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fps(
+static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fps(
 	signed char *__restrict__ In,
 	signed char *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -1808,6 +1833,9 @@ static void __attribute__ ((noinline)) KerConv4x1from5x1StrideNx1_V_fp(
 		case 4: // [0..4 x 0] => [0..2 x 0] PadR==2
 			C0 = gap_pack2(0, Filter[0*5+0]); C1 = *((v2s*) (Filter + 0*5+1));
 			break;
+                case 5: // [0..4 x 0] => [0..2 x 0] PadR==2, Wo==1
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        break;
 	}
 	PtIn = In + (Ho_F*1-PadOrg[2])*W; PtOut = Out+Ho_F*Wo;
 	V0 = * (v2s *) PtIn; V1 = *((v2s *) PtIn + 1); PtIn += W;
@@ -1850,6 +1878,9 @@ static void __attribute__ ((noinline)) KerConv1x4from1x5Stride1xN_H_fp(
 		case 4: // [0 x 0..4] => [0 x 2..4] PadB == 2
 			C0 = gap_pack2(0, Filter[0*5+0]); C1 = *((v2s*) (Filter + 0*5+1));
 			break;
+                case 5: // [0 x 0..4] => [0 x 2..4] PadB == 2, Ho == 1
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        break;
 	}
 	x0 = *(PtIn+0*W+0); x1 = *(PtIn+1*W+0); x2 = *(PtIn+2*W+0); x3 = *(PtIn+3*W+0); V0 = gap_pack2(x0,x1); V1 = gap_pack2(x2,x3); PtIn++;
 	for (unsigned int i=Wo_F; i<Wo_L; i++) {
@@ -1904,6 +1935,13 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fp(
 			C6 = gap_pack2(0, Filter[3*5+0]); C7 = *((v2s*) (Filter + 3*5+1));
 			C8 = gap_pack2(0, Filter[4*5+0]); C9 = *((v2s*) (Filter + 4*5+1));
 			break;
+                case 5: // [0..4 x 0..4] => [0..2,0 x 0..4] PadR == 2
+                        C0 = *((v2s*) (Filter + 0*5+0)); C1 = gap_pack2(Filter[0*5+2], 0);
+                        C2 = *((v2s*) (Filter + 1*5+0)); C3 = gap_pack2(Filter[1*5+2], 0);
+                        C4 = *((v2s*) (Filter + 2*5+0)); C5 = gap_pack2(Filter[2*5+2], 0);
+                        C6 = *((v2s*) (Filter + 3*5+0)); C7 = gap_pack2(Filter[3*5+2], 0);
+                        C8 = *((v2s*) (Filter + 4*5+0)); C9 = gap_pack2(Filter[4*5+2], 0);
+                        break;
 	}
 	if (PadT==2) {
 		PtIn = In; PtOut = Out; Ho_F = 0;
@@ -1920,6 +1958,15 @@ static void __attribute__ ((noinline)) KerConv4x5from5x5Stride1_V_fp(
 	}
 	PtOut = Out+Ho_F*Wo;
 	V4 = *((v2s *) PtIn); PtIn += 2; V5 = *((v2s *) PtIn); PtIn += (W-2);
+        if (Ho==1) {
+		int Acc = *PtOut<<Norm;
+                Acc = gap_sumdotp2(V0, C0, Acc); Acc = gap_sumdotp2(V1, C1, Acc);
+                Acc = gap_sumdotp2(V2, C2, Acc); Acc = gap_sumdotp2(V3, C3, Acc);
+                Acc = gap_sumdotp2(V4, C4, Acc); Acc = gap_sumdotp2(V5, C5, Acc);
+		Acc = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
+                *PtOut = Acc;
+                return;
+        }
 	V6 = *((v2s *) PtIn); PtIn += 2; V7 = *((v2s *) PtIn); PtIn += (W-2);
 	for (unsigned int i=Ho_F; i<Ho_L; i++) {
 		int Acc = *PtOut<<Norm;
@@ -2185,6 +2232,12 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5Stride1_H_fp(
 			X = *((v2s *) &Filter[1*5+2]); Y = *((v2s *) &Filter[2*5+2]); C7 = __builtin_shuffle(X,Y,(v2s){0,2}); C8 = __builtin_shuffle(X,Y,(v2s){1,3});
 			C9 = gap_pack2(Filter[9], Filter[14]);
 			break;
+                case 5: // [0..4 x 0..4] => [0..4 x 0..2,0] PadB==2
+                        X = *((v2s *) &Filter[0*5+0]); Y = *((v2s *) &Filter[1*5+0]); C0 = __builtin_shuffle(X,Y,(v2s){0,2}); C1 = __builtin_shuffle(X,Y,(v2s){1,3});
+                        X = *((v2s *) &Filter[0*5+2]); Y = *((v2s *) &Filter[1*5+2]); C2 = __builtin_shuffle(X,Y,(v2s){0,2}); C3 = __builtin_shuffle(X,Y,(v2s){1,3});
+                        C4 = gap_pack2(Filter[4], Filter[9]);
+                        C5 = gap_pack2(Filter[10],0); C6 = gap_pack2(Filter[11],0); C7 = gap_pack2(Filter[12],0); C8 = gap_pack2(Filter[13],0); C9 = gap_pack2(Filter[14],0);
+                        break;
 	}
 	X = *((v2s *) (PtIn+0*W+0)); Y = *((v2s *) (PtIn+1*W+0)); V0 = __builtin_shuffle(X,Y,(v2s){0,2}); V1 = __builtin_shuffle(X,Y,(v2s){1,3});
 	X = *((v2s *) (PtIn+0*W+2)); Y = *((v2s *) (PtIn+1*W+2)); V2 = __builtin_shuffle(X,Y,(v2s){0,2}); V3 = __builtin_shuffle(X,Y,(v2s){1,3});
@@ -2331,7 +2384,7 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5StrideS_H_fp(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fp(
+static void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fp(
 	short int *__restrict__ In,
 	short int *__restrict__ Out,
 	short int *__restrict__ Filter,
@@ -2482,7 +2535,7 @@ void __attribute__ ((noinline)) KerConvNxNStrideS_Border_fp(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fp(
+static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fp(
 	short int *__restrict__ In,
 	short int *__restrict__ Out,
 	short int *__restrict__ Filter,
@@ -2634,7 +2687,7 @@ void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_fp(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fp(
+static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fp(
 	short int *__restrict__ In,
 	short int *__restrict__ Out,
 	short int *__restrict__ Filter,
@@ -2972,7 +3025,8 @@ static void __attribute__ ((noinline)) KerConv5x1BorderStrideNx1_fp(
 		if  ((Wo-Wo_L)==2) {
 			KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
 			KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
-		} else KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, PadR+2);
+		} else if (Wo==1) KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 5);
+		else KerConv4x1from5x1StrideNx1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, PadR+2);
 	}
 }
 
@@ -3007,7 +3061,8 @@ static void __attribute__ ((noinline)) KerConv1x5BorderStride1xN_fp(
 		if((Ho-Ho_L)==2) {
 			KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 			KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
-		} else KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
+		} else if (Ho==1) KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 5);
+		else KerConv1x4from1x5Stride1xN_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
 	}
 }
 
@@ -3037,16 +3092,22 @@ static void __attribute__ ((noinline)) KerConv5x5BorderStride1_fp(
 		KerConv4x5from5x5Stride1_V_fp(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+1, Filter, 1);
 	} else if (PadL==1) KerConv4x5from5x5Stride1_V_fp(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out, Filter, 1);
 	if (PadR==2) {
-		KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
-		KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
+		if (Wo==1) KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 5);
+		else {
+			KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
+			KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
+		}
 	} else if (PadR==1) KerConv4x5from5x5Stride1_V_fp(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 3);
 	if (PadT==2) {
 		KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F, Filter, 2);
 		KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F+Wo, Filter, 1);
 	} else if (PadT==1) KerConv5x4from5x5Stride1_H_fp(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F, Filter, 1);
 	if (PadB==2) {
-		KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
-		KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		if (Ho==1) KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L)*Wo+Wo_F, Filter, 5);
+		else {
+			KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
+			KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		}
 	} else if (PadB==1) KerConv5x4from5x5Stride1_H_fp(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 }
 
@@ -3273,7 +3334,8 @@ static void __attribute__ ((noinline)) KerConv5x1BorderStrideNx1_fps(
 		if ((Wo-Wo_L)==2) {
 			KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
 			KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
-		} else KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, PadR+2);
+		} else if (Wo==1) KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 5);
+		else KerConv4x1from5x1StrideNx1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, PadR+2);
 	}
 }
 
@@ -3308,7 +3370,8 @@ static void __attribute__ ((noinline)) KerConv1x5BorderStride1xN_fps(
 		if ((Ho-Ho_L)==2) { // Happens only if stride == 1
 			KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 			KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
-		} else KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
+		} else if (Ho==1) KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 5);
+		else KerConv1x4from1x5Stride1xN_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, PadB+2);
 	}
 }
 
@@ -3339,16 +3402,22 @@ static void __attribute__ ((noinline)) KerConv5x5BorderStride1_fps(
 		KerConv4x5from5x5Stride1_V_fps(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+1, Filter, 1);
 	} else if (PadL==1) KerConv4x5from5x5Stride1_V_fps(In, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out, Filter, 1);
 	if (PadR==2) {
-		KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
-		KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
+		if (Wo==1) KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 5);
+		else {
+			KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-2, Filter, 3);
+			KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 4);
+		}
 	} else if (PadR==1) KerConv4x5from5x5Stride1_V_fps(In+Wo_L*Stride-PadLOrg, W, PadOrg, Pad, Wo, Ho, Ho_F, Ho_L, Norm, Out+Wo-1, Filter, 3);
 	if (PadT==2) {
 		KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F, Filter, 2);
 		KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F+Wo, Filter, 1);
 	} else if (PadT==1) KerConv5x4from5x5Stride1_H_fps(In, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Wo_F, Filter, 1);
 	if (PadB==2) {
-		KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
-		KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		if (Ho==1) KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L)*Wo+Wo_F, Filter, 5);
+		else {
+			KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
+			KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+(Ho_L+1)*Wo+Wo_F, Filter, 4);
+		}
 	} else if (PadB==1) KerConv5x4from5x5Stride1_H_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Norm, Out+Ho_L*Wo+Wo_F, Filter, 3);
 }
 
@@ -4430,76 +4499,6 @@ static void __attribute__ ((noinline)) KerConv1x1Stride1_Body_fp(
 	}
 }
 
-
-
-static void __attribute__ ((noinline)) KerConv1x1Stride1_Body_2In_fp(
-	short int *__restrict__ In,
-	short int *__restrict__ Out,
-	short int *__restrict__ Filter,
-	int W,
-	int H,
-	int Wo,
-	int Wo_F,
-	int Wo_L,
-	int Ho,
-	int Ho_F,
-	int Ho_L,
-	v4s Pad,
-	int Norm
-	)
-
-{
-	unsigned short int Stride = 1;
-	unsigned short int PadL = Pad[0], PadT = Pad[2];
-
-	v2s C = ((v2s *)Filter)[0];
-	int IterW = Wo_L-Wo_F;
-       	for (unsigned int h=Ho_F; h<Ho_L; h++) {
-		short int *LineOut = &Out[Wo*h+Wo_F];
-		short int *PtI = In + (h*Stride-PadT)*W + (Wo_F*Stride-PadL);
-		for (unsigned int w=0; w<IterW; w++) {
-			int O = LineOut[w]<<Norm;
-			O = gap_sumdotp2(gap_pack2(PtI[w], PtI[w+W*H]), C, O);
-			LineOut[w] = gap_clip(gap_roundnorm_reg(O, Norm), 15);
-		}
-	}
-}
-
-static void __attribute__ ((noinline)) KerConv1x1Stride2_Body_2In_fp(
-	short int *__restrict__ In,
-	short int *__restrict__ Out,
-	short int *__restrict__ Filter,
-	int W,
-	int H,
-	int Wo,
-	int Wo_F,
-	int Wo_L,
-	int Ho,
-	int Ho_F,
-	int Ho_L,
-	v4s Pad,
-	int Norm
-	)
-
-{
-	unsigned short int Stride = 2;
-	unsigned short int PadL = Pad[0], PadT = Pad[2];
-
-	v2s C = ((v2s *)Filter)[0];
-	int IterW = Wo_L-Wo_F;
-       	for (unsigned int h=Ho_F; h<Ho_L; h++) {
-		short int *LineOut = &Out[Wo*h+Wo_F];
-		short int *PtI = In + (h*Stride-PadT)*W + (Wo_F*Stride-PadL);
-		for (unsigned int w=0; w<IterW; w++) {
-			int O = LineOut[w]<<Norm;
-			O = gap_sumdotp2(gap_pack2(PtI[2*w], PtI[2*w+W*H]), C, O);
-			LineOut[w] = gap_clip(gap_roundnorm_reg(O, Norm), 15);
-		}
-	}
-}
-
-
-
 static void __attribute__ ((noinline)) KerConv1x1Stride2_Body_fp(
 	short int *__restrict__ In,
 	short int *__restrict__ Out,
@@ -5426,22 +5425,10 @@ void KerParConv1x1Stride1_fp(KerConv_fp_T *Arg)
 	unsigned int InFeatures = Arg->InFeatures;
 		
        	for (unsigned int of=First; of<Last; of++) {
-#if 0
-	       	for (unsigned int If=0; If<(InFeatures/2); If++) {
-			short int *in = In+W*H*2*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + 2*If), *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride1_Body_2In_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
-	       	}
-		if (InFeatures & 0x1) {
-			unsigned int If=InFeatures-1;
-			short int *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + If), *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
-		}
-#else
 	       	for (unsigned int If=0; If<InFeatures; If++) {
 			short int *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + If), *out = Out+Wo*Ho*(of);
 			KerConv1x1Stride1_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
 	       	}
-#endif
 	}
 	gap_waitbarrier(0);
 }
@@ -5472,22 +5459,10 @@ void KerParConv1x1Stride2_fp(KerConv_fp_T *Arg)
 	unsigned int InFeatures = Arg->InFeatures;
 		
        	for (unsigned int of=First; of<Last; of++) {
-#if 0
-	       	for (unsigned int If=0; If<(InFeatures/2); If++) {
-			short int *in = In+W*H*2*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + 2*If), *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride2_Body_2In_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
-	       	}
-		if (InFeatures & 0x1) {
-			unsigned int If=InFeatures-1;
-			short int *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + If), *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
-		}
-#else
 	       	for (unsigned int If=0; If<InFeatures; If++) {
 			short int *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of  + If), *out = Out+Wo*Ho*(of);
 			KerConv1x1Stride2_Body_fp(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, Norm);
 	       	}
-#endif
 	}
 	gap_waitbarrier(0);
 }

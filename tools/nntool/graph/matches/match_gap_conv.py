@@ -90,7 +90,8 @@ class MatchGapConv(DefaultMatcher):
                                 [node for node in subgraph.dfs()])
 
 class MatchAllGapConv(MatchGroup):
-
+    NAME = 'fuse_gap_convs'
+    DESCRIPTION = 'Fuse convolutions, pools and activations to match GAP AutoTiler operations'
     def __init__(self):
         super().__init__(\
             MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=True),\

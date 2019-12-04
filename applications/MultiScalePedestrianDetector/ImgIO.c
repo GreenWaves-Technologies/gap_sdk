@@ -1,11 +1,19 @@
 /*
- * Copyright (C) 2017 GreenWaves Technologies
- * All rights reserved.
+ * Copyright 2019 GreenWaves Technologies, SAS
  *
- * This software may be modified and distributed under the terms
- * of the BSD license.  See the LICENSE file for details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -13,6 +21,7 @@
 #include <fcntl.h>
 #include "ImgIO.h"
 #include "Gap8.h"
+#include "bsp/fs.h"
 
 #define Max(a, b)               (((a)>(b))?(a):(b))
 #define Min(a, b)               (((a)<(b))?(a):(b))
@@ -41,8 +50,9 @@ static void progress_bar(char * OutString, int n, int tot){
 static unsigned int SkipComment(unsigned char *Img, unsigned int Ind)
 
 {
+	static int Debug=0;
 	while (Img[Ind] == '#') {
-		while (Img[Ind] != '\n') {printf("%c", Img[Ind]);Ind++;}
+		while (Img[Ind] != '\n') {if(Debug) printf("%c", Img[Ind]);Ind++;}
 		Ind++;
 	}
 	return Ind;
@@ -93,10 +103,20 @@ static unsigned int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigne
 }
 
 static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsigned int *IsRGB, unsigned int *HeaderSize)
-
 {
+	struct pi_fs_conf conf;
+	pi_fs_conf_init(&conf);
+  	struct pi_device fs;
+
+	conf.type = PI_FS_HOST;
+
+	pi_open_from_conf(&fs, &conf);
+
+	if (pi_fs_mount(&fs))
+		return -2;
+
 	static int Debug=0;
-	int File = rt_bridge_open(Name,0,0,NULL);
+	void *File = pi_fs_open(&fs, Name, PI_FS_FLAGS_READ);
 
 	unsigned int Err = 0;
 
@@ -106,7 +126,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 	if (File) {
 		unsigned char *Header = (unsigned char *) rt_alloc(RT_ALLOC_L2_CL_DATA, 256);
 		Err |= (Header == 0);
-		if (rt_bridge_read(File,Header, 256, NULL) == 256) {
+		if (pi_fs_read(File,Header, 256) == 256) {
 			unsigned int i;
 			*HeaderSize = ReadPPMHeader(Header, W, H, IsRGB);
 			if (Debug) {
@@ -116,7 +136,8 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 			}
 		} else Err = 1;
 		rt_free(RT_ALLOC_L2_CL_DATA, Header,256);
-		rt_bridge_close(File,NULL);
+		pi_fs_close(File);
+		pi_fs_unmount(&fs);
 	}
 	return Err;
 }
@@ -124,10 +145,21 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int *H, unsigned char *InBuffer, unsigned int BuffSize)
 
 {
-	int File = 0;
+	void *File = NULL;
 	unsigned int IsRGB, HeaderSize, Size, AlignedSize, ReadSize=0;
 	unsigned char *ImagePtr = 0;
 	int Allocated = 0;
+
+	struct pi_fs_conf conf;
+	pi_fs_conf_init(&conf);
+  	struct pi_device fs;
+
+	conf.type = PI_FS_HOST;
+
+	pi_open_from_conf(&fs, &conf);
+
+	if (pi_fs_mount(&fs))
+		return NULL;
 
 	if (GetInputImageInfos(ImageName, W, H, &IsRGB, &HeaderSize)) {
 		printf("Failed to get input images infos, %s\n", ImageName); goto Fail;
@@ -135,7 +167,7 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (IsRGB) {
 		printf("Only Gray levels supported, found RGB\n"); goto Fail;
 	}
-	File = rt_bridge_open(ImageName, 0, 0, NULL);
+	File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_READ);
 	if (File == 0) {
 		printf("Failed to open file, %s\n", ImageName); goto Fail;
 	}
@@ -151,14 +183,14 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (ImagePtr == 0) {
 		printf("Failed to allocate %d bytes for input image\n", AlignedSize); goto Fail;
 	}
-	rt_bridge_read(File, NULL,HeaderSize,NULL);
+	pi_fs_seek(File,HeaderSize);
 	{
 		unsigned char *TargetImg = ImagePtr;
 		unsigned int RemainSize = AlignedSize;
 
 		while (RemainSize > 0) {
 			unsigned int Chunk = Min(4096, RemainSize);
-			unsigned R = rt_bridge_read(File,TargetImg, Chunk,NULL);
+			unsigned R = pi_fs_read(File,TargetImg, Chunk);
 			ReadSize+=R;
 			if (R!=Chunk) break;
 			TargetImg += Chunk; RemainSize -= Chunk;
@@ -167,20 +199,22 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	if (AlignedSize!=ReadSize) {
 		printf("Error, expects %d bytes but got %d\n", AlignedSize, ReadSize); goto Fail;
 	}
-	rt_bridge_close(File,NULL);
+	pi_fs_close(File);
+	pi_fs_unmount(&fs);
 	printf("Image %s, [W: %d, H: %d], Gray, Size: %d bytes, Loaded sucessfully\n", ImageName, *W, *H, AlignedSize);
 
 	return (ImagePtr);
 Fail:
 	if (ImagePtr && Allocated) rt_free(RT_ALLOC_L2_CL_DATA, ImagePtr, AlignedSize);
-	rt_bridge_close(File,NULL);
+	pi_fs_close(File);
+	pi_fs_unmount(&fs);
 	printf("Failed to load image %s from flash\n", ImageName);
 	return 0;
 }
 
 
 
-static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
+static void WritePPMHeader(void * FD, unsigned int W, unsigned int H)
 {
   	unsigned int Ind = 0, x, i, L;
   	unsigned char *Buffer = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, PPM_HEADER*sizeof(unsigned char));
@@ -208,7 +242,7 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
   	Buffer[Ind++] = 0x32; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0xA;
 
   	for (unsigned int a=0; a<Ind; a++){
-  		rt_bridge_write(FD,&(Buffer[a]), sizeof(unsigned char),NULL);
+  		pi_fs_write(FD,&(Buffer[a]), sizeof(unsigned char));
 	}
 
 	rt_free( RT_ALLOC_L2_CL_DATA, Buffer, PPM_HEADER*sizeof(unsigned char));
@@ -216,7 +250,19 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
   }
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *OutBuffer)
 {
-	int File = rt_bridge_open(ImageName, O_RDWR | O_CREAT, S_IRWXU, NULL);
+	struct pi_fs_conf conf;
+	pi_fs_conf_init(&conf);
+  	struct pi_device fs;
+
+	conf.type = PI_FS_HOST;
+
+	pi_open_from_conf(&fs, &conf);
+
+	if (pi_fs_mount(&fs))
+		return NULL;
+
+	void *File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_WRITE);
+
 	int ret = 0;
 	WritePPMHeader(File,W,H);
 
@@ -224,12 +270,13 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
 
 	for(int i=0;i<steps;i++){
 		progress_bar("Writing image ",i,steps);
-		ret+=rt_bridge_write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE,NULL);
+		ret+=pi_fs_write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
 	}
 	if(((W*H) % CHUNK_SIZE) != 0)
-		ret+=rt_bridge_write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H) % CHUNK_SIZE)*sizeof(unsigned char),NULL);
+		ret+=pi_fs_write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H) % CHUNK_SIZE)*sizeof(unsigned char));
 
-	rt_bridge_close(File,NULL);
+	pi_fs_close(File);
+	pi_fs_unmount(&fs);
 
 	return ret;
 }

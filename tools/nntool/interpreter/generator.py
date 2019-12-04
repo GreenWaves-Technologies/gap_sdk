@@ -5,7 +5,9 @@
 # of the BSD license.  See the LICENSE file for details.
 
 import logging
-import os
+import os, sys
+
+from cmd2 import ansi
 
 from generation.code_generator import CodeGenerator
 from generation.naming_convension import DefaultNamingConvension
@@ -15,9 +17,19 @@ from utils.new_param_state import load_state
 
 LOG = logging.getLogger("nntool")
 
+class GeneratorShellLogHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord):
+        output = self.format(record)
+        if record.levelno >= logging.ERROR:
+            print(ansi.style_error(output))
+        elif record.levelno >= logging.WARN:
+            print(ansi.style_warning(output))
+        else:
+            print(ansi.style_success(output))
+
 def generate_code(args):
     LOG.propagate = False
-    handler = logging.StreamHandler()
+    handler = GeneratorShellLogHandler()
     formatter = logging.Formatter('%(module)s - %(message)s')
     handler.setFormatter(formatter)
     LOG.addHandler(handler)
@@ -45,8 +57,12 @@ def generate_code(args):
         code_template = dynamic_template(args.template_file)
     else:
         code_template = default_template
+    model = code_template(G, code_generator=code_gen)
+    if not model:
+        LOG.error("error generating model code")
+        sys.exit(1)
     with open(model_path, "w") as output_fp:
-        output_fp.write(code_template(G, code_generator=code_gen))
+        output_fp.write(model)
     if not args.dont_dump_tensors:
         LOG.info("Writing constants to %s", opts['model_directory'])
         code_gen.write_constants()

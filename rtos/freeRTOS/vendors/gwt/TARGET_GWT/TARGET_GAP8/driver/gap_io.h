@@ -32,9 +32,10 @@
 #define _GAP_IO_H_
 
 #include "gap_util.h"
+#include "printf.h"
 
-/*!
- * @addtogroup io
+/**
+ * \addtogroup io
  * @{
  */
 
@@ -42,36 +43,20 @@
  * Definitions
  ******************************************************************************/
 
-/*! @brief uDMA transfer task stucture */
-
-
 /*******************************************************************************
  * API
  ******************************************************************************/
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
-
-/*!
- * @brief printf
+/**
+ * \brief Initialize printf via uart.
  *
- * @note .
+ * This function initializes a UART device to enable printing through it.
+ *
+ * \note Printf via uart is only available once scheduler has started. Otherwise
+ * the output will be through debug_bridge.
  */
-int GAP_IMPORT printf(const char *format, ...);
-int GAP_IMPORT puts(const char *s);
-int sprintf(char *str, const char *format, ...);
-void uart_putc(char  c);
-void abort();
 
 void printf_uart_init(void);
 
-
 /* @} */
 
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-/* @} */
-
-#endif /*_GAP_IO_H_*/
+#endif  /*_GAP_IO_H_*/

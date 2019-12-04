@@ -148,13 +148,8 @@
 #define MIMPID_ADDR     0xF13             /*!< Implementation ID Register */
 #define MHARTID_ADDR    0xF14             /*!< Hardware Thread ID Register */
 
-#if defined(__GAP8__)
 #define PCER_ADDR       0x7A0             /*!< Performance Counter Mode Register */
 #define PCMR_ADDR       0x7A1             /*!< Performance Counter Event Register */
-#elif defined(__GAP9__)
-#define PCER_ADDR       0xCC0             /*!< Performance Counter Mode Register */
-#define PCMR_ADDR       0xCC1             /*!< Performance Counter Event Register */
-#endif
 
 #ifndef ASIC
 #define PERF_CYCLE_OFFSET      0x00       /*!< Performance Counter Counter CYCLE Register */
@@ -178,21 +173,12 @@
 
 #define PCCR_ADDR(x)    (0x780 + x)       /*!< Performance Counter Counter access */
 
-#if defined(__GAP8__)
 #define HWLP_S0_ADDR    0x7B0             /*!< Hardware Loop Start0 Register */
 #define HWLP_E0_ADDR    0x7B1             /*!< Hardware Loop End0 Register */
 #define HWLP_C0_ADDR    0x7B2             /*!< Hardware Loop Count0 Register */
 #define HWLP_S1_ADDR    0x7B3             /*!< Hardware Loop Start1 Register */
 #define HWLP_E1_ADDR    0x7B4             /*!< Hardware Loop End1 Register */
 #define HWLP_C1_ADDR    0x7B5             /*!< Hardware Loop Count1 Register */
-#elif defined(__GAP9__)
-#define HWLP_S0_ADDR    0x7C0             /*!< Hardware Loop Start0 Register */
-#define HWLP_E0_ADDR    0x7C1             /*!< Hardware Loop End0 Register */
-#define HWLP_C0_ADDR    0x7C2             /*!< Hardware Loop Count0 Register */
-#define HWLP_S1_ADDR    0x7C3             /*!< Hardware Loop Start1 Register */
-#define HWLP_E1_ADDR    0x7C4             /*!< Hardware Loop End1 Register */
-#define HWLP_C1_ADDR    0x7C5             /*!< Hardware Loop Count1 Register */
-#endif
 
 #define DMHARTID_ADDR   0x014             /*!< User Unique Hardware Thread ID Register */
 #define UEPC_ADDR       0x041             /*!< User Exception Program Counter Register */
@@ -528,7 +514,6 @@ typedef union
 /**
   \brief  Structure type to access the Nested Vectored Interrupt Controller (NVIC).
  */
-#if defined(__GAP8__)
 typedef struct
 {
   __IOM  uint32_t MASK;                    /**< EU_DEMUX mask register, offset: 0x00 */
@@ -539,20 +524,6 @@ typedef struct
   __IOM  uint32_t MASK_IRQ_OR;             /**< EU_DEMUX mask irq or register, offset: 0x14 */
   __IOM  uint32_t STATUS;                  /**< EU_DEMUX Status register, offset: 0x18 */
 }  NVIC_Type;
-#elif defined(__GAP9__)
-typedef struct {
-  __IO  uint32_t MASK;           /**< FC_ITC Mask register, offset: 0x00 */
-  __IO  uint32_t MASK_SET;       /**< FC_ITC Mask set register, offset: 0x04 */
-  __IO  uint32_t MASK_CLR;       /**< FC_ITC Mask clean register, offset: 0x08 */
-  __IO  uint32_t STATUS;         /**< FC_ITC Status register, offset: 0x0C */
-  __IO  uint32_t STATUS_SET;     /**< FC_ITC Status set register, offset: 0x10 */
-  __IO  uint32_t STATUS_CLR;     /**< FC_ITC Status clean register, offset: 0x14 */
-  __IO  uint32_t ACK;            /**< FC_ITC ACK register, offset: 0x18 */
-  __IO  uint32_t ACK_SET;        /**< FC_ITC ACK set register, offset: 0x1C */
-  __IO  uint32_t ACK_CLR;        /**< FC_ITC ACK clean register, offset: 0x20 */
-  __IO  uint32_t FIFO;           /**< FC_ITC FIFO register, offset: 024 */
-} NVIC_Type;
-#endif
 /*@} end of group CMSIS_NVIC */
 
 
@@ -576,11 +547,7 @@ typedef struct
   __IOM uint32_t _reserved2[3];        /*!< Offset: 0x014 (R/W)  reserved Register */
   __OM  uint32_t CLUSTER_CG;           /*!< Offset: 0x020 (R/W)  Event out Register */
   __IOM uint32_t _reserved3[7];        /*!< Offset: 0x024 (R/W)  reserved Registers */
-#ifdef __GAP9__
-  __IOM uint32_t BOOT_ADDR[9];         /*!< Offset: 0x040 (R/W)  Vector Table Offset Register */
-#else
   __IOM uint32_t BOOT_ADDR[8];         /*!< Offset: 0x040 (R/W)  Vector Table Offset Register */
-#endif
 } SCB_Type;
 
 /* SCB Registers Definitions */
@@ -1093,6 +1060,25 @@ typedef struct
     __O uint32_t DIRECTION;
 } DMAMCHAN_COMPRESSOR_Type;
 
+typedef struct {
+    __O uint32_t TCDM_ADDR;
+    __O uint32_t L2_ADDR;
+    __O uint32_t CONF_REG;
+    __I uint32_t STAT_REG;
+    __O uint32_t LUT_REG;
+    __O uint32_t SYMBOL_REG;
+    __O uint32_t BIT_READ_REG;
+    __O uint32_t MODE_REG;
+    __O uint32_t SW_RST_REG;
+    __O uint32_t CLKEN_REG;
+    __O uint32_t TRIGGER_REG;
+    __IOM uint32_t PAD0;
+    __O uint32_t L2_COUNT_REG;
+    __O uint32_t L2_STRIDE_REG;
+    __O uint32_t TCDM_COUNT_REG;
+    __O uint32_t TCDM_STRIDE_REG;
+} decompressor_t;
+
 /**
   \ingroup    CMSIS_core_register
   \defgroup   CMSIS_core_base     Core Definitions
@@ -1131,28 +1117,12 @@ typedef struct
 
 #define CORE_SysTick_BASE   (CORE_PERI_BASE +  0x0400UL)               /*!< RISC Core SysTick Base Address */
 
-#if defined(__GAP8__)
 #define NVIC_BASE           (CORE_EU_CORE_DEMUX_BASE)                  /*!< RISC NVIC Base Address */
 #define CORE_MCHAN_BASE     (CORE_EU_DEMUX_BASE + 0x0400UL)            /*!< RISC Core DMAMCHAN Base Address between L2 and Cluster TCDM */
 
-#elif defined(__GAP9__)
-#define TIMER0_BASE         (SOC_PERI_BASE  +  0xB000UL)               /*!< RISC Peripheral TIMER0 Base Address */
-#define TIMER1_BASE         (SOC_PERI_BASE  +  0xB800UL)               /*!< RISC Peripheral TIMER1 Base Address */
-#define NVIC_BASE           (SOC_PERI_BASE  +  0x9000UL)               /*!< RISC NVIC Base Address */
-
-#define CORE_MCHAN_CL_BASE  (CORE_PERI_BASE +  0x1800UL)               /*!< RISC Core DMAMCHAN Cluster control Base Address between L2 and Cluster TCDM */
-#define CORE_MCHAN_FC_BASE  (CORE_PERI_BASE +  0x1C00UL)               /*!< RISC Core DMAMCHAN FC control Base Address between L2 and Cluster TCDM */
-#define CORE_MCHAN_COMPRESSOR_BASE   (CL_PERI_BASE+CORE_PERI_BASE + 0x2000UL)       /*!< RISC Core DMAMCHAN Compressor control Base Address between L2 and Cluster TCDM */
-#define CORE_MCHAN_BASE      CORE_MCHAN_CL_BASE
-#endif
-
 /* FC core Memory map */
 #define FC_SCBC_BASE        (FC_BASE + CORE_SCBC_BASE)                 /*!< FC System Control Block Cache Base Address */
-#if defined(__GAP8__)
 #define FC_SysTick_BASE     (FC_BASE + CORE_SysTick_BASE)              /*!< FC SysTick Base Address */
-#elif defined(__GAP9__)
-#define FC_SysTick_BASE     (TIMER0_BASE)                              /*!< FC SysTick Base Address */
-#endif
 
 #define FC_EU_BARRIER_BASE         (FC_BASE + CORE_EU_BARRIER_BASE)    /*!< FC Event Unit HW Barrier Base Address */
 #define FC_EU_SW_EVENTS_BASE       (FC_BASE + CORE_EU_SW_EVENTS_BASE)  /*!< FC Event Unit SW Events Base Address */
@@ -1196,16 +1166,12 @@ typedef struct
 #define EU_SW_EVENTS_DEMUX  ((EU_SW_EVENTS_DEMUX_Type   *) CORE_EU_SW_EVENTS_DEMUX_BASE)    /*!< EU_SW_EVENTS_DEMUX configuration struct */
 #define EU_BARRIER_DEMUX(id) ((EU_BARRIER_DEMUX_Type   *)   (CORE_EU_BARRIER_DEMUX_BASE+(id*sizeof(EU_BARRIER_DEMUX_Type))))      /*!< EU_BARRIER_DEMUX configuration struct */
 #define DMAMCHAN            ((DMAMCHAN_Type   *)   CORE_MCHAN_BASE)                              /*!< MCHAN DMA configuration struct */
-#define DMAMCHAN_COMPRESSOR ((DMAMCHAN_COMPRESSOR_Type *) CORE_MCHAN_COMPRESSOR_BASE)
+#define DMAMCHAN_COMPRESSOR ((decompressor_t *) CORE_MCHAN_COMPRESSOR_BASE)
 
 #define FC_EU_SW_EVENTS      ((EU_SW_EVENTS_DEMUX_Type   *)  FC_EU_SW_EVENTS_BASE)            /*!< EU_SW_EVENTS_DEMUX configuration struct */
 
 /** FC_CLUSTER_ID Definitions */
-#if defined(__GAP8__)
 #define FC_CLUSTER_ID                 32                /**< FC CLuster ID */
-#elif defined(__GAP9__)
-#define FC_CLUSTER_ID                 31                /**< FC CLuster ID */
-#endif
 /*@} */
 
 
@@ -1270,11 +1236,7 @@ typedef struct
 __STATIC_INLINE void __NVIC_EnableIRQ(IRQn_Type IRQn)
 {
   /* U mode does not has the right */
-  #if defined(__GAP8__)
   NVIC->MASK_IRQ_OR = (1UL << IRQn);
-  #elif defined(__GAP9__)
-  NVIC->MASK_SET = (1UL << IRQn);
-  #endif
 }
 
 /**
@@ -1288,11 +1250,7 @@ __STATIC_INLINE void __NVIC_EnableIRQ(IRQn_Type IRQn)
 __STATIC_INLINE uint32_t __NVIC_GetEnableIRQ(IRQn_Type IRQn)
 {
   /* U mode does not has the right */
-  #if defined(__GAP8__)
   return ((uint32_t)((NVIC->MASK_IRQ & (1UL << IRQn)) ? 1UL : 0UL));
-  #elif defined(__GAP9__)
-  return ((uint32_t)((NVIC->MASK & (1UL << IRQn)) ? 1UL : 0UL));
-  #endif
 }
 
 
@@ -1305,11 +1263,7 @@ __STATIC_INLINE uint32_t __NVIC_GetEnableIRQ(IRQn_Type IRQn)
 __STATIC_INLINE void __NVIC_DisableIRQ(IRQn_Type IRQn)
 {
   /* U mode does not has the right */
-  #if defined(__GAP8__)
   NVIC->MASK_IRQ_AND = (1UL << IRQn);
-  #elif defined(__GAP9__)
-  NVIC->MASK_CLR = (1UL << IRQn);
-  #endif
 }
 
 
@@ -1401,11 +1355,7 @@ __STATIC_INLINE void __NVIC_SetVector(IRQn_Type IRQn, uint32_t vector)
   if((__get_CPRIV() & CPRIV_PRIV_Msk) != 0U) {
     vectors = (uint32_t *)(__builtin_pulp_spr_read(0x305));
   } else {
-#if defined(__GAP8__)
     vectors = (uint32_t *)(0x1C000000);
-#elif defined(__GAP9__)
-    vectors = (uint32_t *)(__builtin_pulp_spr_read(0x005));
-#endif
   }
   vectors[IRQn] = __NVIC_ForgeItVect((uint32_t)vectors, IRQn, vector);
 }
@@ -1424,11 +1374,7 @@ __STATIC_INLINE uint32_t __NVIC_GetVector(IRQn_Type IRQn)
   if((__get_CPRIV() & CPRIV_PRIV_Msk) != 0U) {
     vectors = (uint32_t *)(__builtin_pulp_spr_read(0x305));
   } else {
-#if defined(__GAP8__)
     vectors = (uint32_t *)(0x1C000000);
-#elif defined(__GAP9__)
-    vectors = (uint32_t *)(__builtin_pulp_spr_read(0x005));
-#endif
   }
   return vectors[IRQn];
 }
@@ -1494,44 +1440,28 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __is_FC() {
 /* Configure the active events. eventMask is an OR of events got through SPR_PCER_EVENT_MASK */
 __attribute__((always_inline)) __STATIC_INLINE void __PCER_Set(uint32_t eventMask)
 {
-    #if defined(__GAP8__)
     __ASM volatile ("csrw 0x7A0, %0" :: "r" (eventMask));
-    #elif defined(__GAP9__)
-    __ASM volatile ("csrw 0xCC0, %0" :: "r" (eventMask));
-    #endif
 }
 
 /* Return events configuration */
 __attribute__((always_inline)) __STATIC_INLINE uint32_t __PCER_Get()
 {
     uint32_t result = 0;
-    #if defined(__GAP8__)
     __ASM volatile ("csrr %0, 0x7A0" : "=r" (result));
-    #elif defined(__GAP9__)
-    __ASM volatile ("csrr %0, 0xCC0" : "=r" (result));
-    #endif
     return result;
 }
 
 /* Configure the mode. confMask is an OR of all SPR_PCMR_* macros */
 __attribute__((always_inline)) __STATIC_INLINE void __PCMR_Set(uint32_t value)
 {
-    #if defined(__GAP8__)
     __ASM volatile ("csrw 0x7A1, %0" :: "r" (value));
-    #elif defined(__GAP9__)
-    __ASM volatile ("csrw 0xCC1, %0" :: "r" (value));
-    #endif
 }
 
 /* Get the PCMR */
 __attribute__((always_inline)) __STATIC_INLINE uint32_t __PCMR_Get()
 {
     uint32_t result = 0;
-    #if defined(__GAP8__)
     __ASM volatile ("csrr %0, 0x7A1" : "=r" (result));
-    #elif defined(__GAP9__)
-    __ASM volatile ("csrr %0, 0xCC1" : "=r" (result));
-    #endif
     return result;
 }
 

@@ -34,7 +34,7 @@
     "base": "0x10000000",
     "alias": "0x00000000",
     "size": "0x00400000",
-    "core": "ri5ky_v2_fpu_1_10",
+    "core": "ri5ky_v2_6_sfloat_single_regfile",
     "version": 5,
     "json_file": "cluster_v5_fpu",
     "nb_cluster": 1,
@@ -57,6 +57,14 @@
       "base": "0x10000000",
       "size": "0x00010000",
       "banking_factor": 2
+    },
+
+    "icache": {
+      "config": {
+        "nb_sets_bits": 6,
+        "nb_ways_bits": 2,
+        "line_size_bits": 4
+      }
     },
 
     "peripherals": {
@@ -124,7 +132,7 @@
     "size": "0x06000000",
 
     "fc": {
-      "core"        : "ri5ky_v2_fpu_1_10",
+      "core"        : "ri5ky_v2_6_sfloat_single_regfile",
       "cluster_id"  : 31,
       "core_id"     : 0,
       "fetch_enable": true,

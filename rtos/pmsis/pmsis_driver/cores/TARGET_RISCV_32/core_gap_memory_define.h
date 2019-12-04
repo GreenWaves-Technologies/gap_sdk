@@ -38,19 +38,12 @@
 /*! @brief Data will be put inside fabric L2 memory. */
 #define GAP_L2_DATA       __attribute__((section(".data")))
 
-#if defined(__GAP8__)
 /*! @brief Data will be put by the linker in FC TCDM or in cluster L1 if there is no FC. */
 #define GAP_FC_DATA       __attribute__((section(".fcTcdm")))
 /*! @brief Data will be put by the linker at the beginning of the FC TCDM or in cluster L1 if there is no FC. */
 #define GAP_FC_TINY_DATA  __attribute__((section(".fcTcdmTiny")))
 /*! @brief Data will be put in FC TCDM through global address. */
 #define GAP_FC_GLOBAL_DATA  __attribute__((section(".fcTcdm_g")))
-#elif defined(__GAP9__)
-/*! @brief No FC TCDM */
-#define GAP_FC_DATA
-#define GAP_FC_TINY_DATA
-#define GAP_FC_GLOBAL_DATA
-#endif  /* __GAP8__ || __GAP9__ */
 
 #define GAP_EXPORT        __attribute__ ((export))
 #define GAP_IMPORT        __attribute__ ((import))

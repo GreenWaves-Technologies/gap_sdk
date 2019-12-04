@@ -30,6 +30,34 @@
 AutoTiler based generators
 */
 
+/** @defgroup groupFFT2D FFT2DGenerator
+
+@ingroup groupGenerators
+
+AutoTiler based FFT2D generator
+*/
+
+/** @defgroup groupCNN CNNGenerator
+
+@ingroup groupGenerators
+
+AutoTiler based generators for CNN layers
+*/
+
+/** @defgroup groupIntegralImage IntegralImageGenerator
+
+@ingroup groupGenerators
+
+AutoTiler based generators for Integral Image
+*/
+
+/** @defgroup groupResize ResizeGenerator
+
+@ingroup groupGenerators
+
+AutoTiler based generators for BilinearResize
+*/
+
 /** @defgroup groupHOG HOGGenerator
 
 @ingroup groupGenerators
@@ -44,9 +72,4 @@ An AutoTiler based Histogram of Gradients (HOG) generator
 An AutoTiler based Q15 FIR filter generator
 */
 
-/** @defgroup groupCNN CNNGenerator
 
-@ingroup groupGenerators
-
-AutoTiler based generators for CNN layers
-*/

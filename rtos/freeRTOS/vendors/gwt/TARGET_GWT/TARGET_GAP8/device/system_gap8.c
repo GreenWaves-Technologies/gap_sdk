@@ -34,6 +34,10 @@
 #include "pmsis.h"
 #include "pmsis_driver/pmu/pmsis_pmu.h"
 
+#if defined(__SEMIHOSTING__)
+#include "semihost.h"
+#endif  /* __SEMIHOSTING__ */
+
 /* FC & L2 heaps. */
 extern char __heapfcram_start;
 extern char __heapfcram_size;
@@ -63,6 +67,10 @@ void system_init(void)
     /* Initialize malloc functions. */
     pmsis_malloc_init((void*) &__heapfcram_start, (uint32_t) &__heapfcram_size,
                       (void*) &__heapl2ram_start, (uint32_t) &__heapl2ram_size);
+
+    #if defined(PRINTF_UART)
+    printf_uart_init();
+    #endif  /* PRINTF_UART */
 }
 
 void system_setup_systick(uint32_t tick_rate_hz)
@@ -93,22 +101,27 @@ void system_core_clock_update(void)
 
 uint32_t system_core_clock_get(void)
 {
+    system_core_clock_update();
     return SystemCoreClock;
-    //return pi_fll_get_frequency(FLL_SOC);
 }
 
 void system_exit(int32_t code)
 {
     if (pi_is_fc())
     {
+        /* Write return value to APB device */
+        soc_ctrl_corestatus_set(code);
+
+        #if defined(__SEMIHOSTING__)
+        semihost_exit(code == 0 ? SEMIHOST_EXIT_SUCCESS : SEMIHOST_EXIT_ERROR);
+        #else
         /* Flush the pending messages to the debug tools
            Notify debug tools about the termination */
         BRIDGE_PrintfFlush();
         DEBUG_Exit(DEBUG_GetDebugStruct(), code);
         BRIDGE_SendNotif();
+        #endif  /* __SEMIHOSTING__ */
 
-        /* Write return value to APB device */
-        soc_ctrl_corestatus_set(code);
     }
     /* In case the platform does not support exit or this core is not allowed to exit the platform ... */
     hal_eu_evt_mask_clr(0xffffffff);

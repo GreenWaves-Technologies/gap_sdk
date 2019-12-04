@@ -10,8 +10,8 @@
   },
 
   "vsim": {
-    "vsim_runner_class": "runner/rtl/vega/vsim_runner",
-    "xcelium_runner_class": "runner/rtl/vega/xcelium_runner"
+    "vsim_runner_class": "runner/rtl/gap9/vsim_runner",
+    "xcelium_runner_class": "runner/rtl/gap9/xcelium_runner"
   },
 
   "system_tree": {

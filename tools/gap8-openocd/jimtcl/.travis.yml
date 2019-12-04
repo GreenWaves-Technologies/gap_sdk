@@ -1,0 +1,10 @@
+language: c
+sudo: false
+addons:
+  apt:
+    packages:
+      - libsqlite3-dev
+before_script:
+  - ./configure --full --with-ext="sqlite3 zlib" --disable-docs
+script:
+  - make test

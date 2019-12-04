@@ -30,6 +30,8 @@ def tuneq(G, qrecs, step_num, param, qparam1, qparam2):
                 qrec.acc_q = qrec.calc_q.clone()
         else:
             qrec = qrecs[NodeId(node, None)]
+            if not hasattr(qrec, 'calc_q') or not hasattr(qrec, 'acc_q'):
+                raise TuneError("you cannot set double precision on this operation")
             qrec.acc_q = qrec.calc_q.clone()
     elif param in ['+', '-']:
         pass

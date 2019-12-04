@@ -63,10 +63,24 @@ void I2s_periph_v1::reset(bool active)
 
 void I2s_periph_v1::handle_clkgen_tick(int clkgen, int channel)
 {
-  this->trace.msg("Clock edge (channel: %d, sck: %d)\n", channel, this->sck[clkgen]);
+  this->trace.msg("Clock edge (channel: %d, sck: %d, ws: %d)\n", channel, this->sck[clkgen], this->current_ws[clkgen]);
 
-  this->ch_itf[channel].sync(this->sck[clkgen], 1, 0);
+  this->ch_itf[channel].sync(this->sck[clkgen], this->current_ws[clkgen], 0);
+
   this->sck[clkgen] ^= 1;
+
+  if (this->sck[clkgen] == 0)
+  {
+    int bits_word = clkgen == 0 ? this->r_cfg_clkgen0.bits_word_get() : this->r_cfg_clkgen1.bits_word_get();
+
+    this->current_ws_count[clkgen]++;
+
+    if (this->current_ws_count[clkgen] == bits_word + 1)
+    {
+      this->current_ws_count[clkgen] = 0;
+      this->current_ws[clkgen] ^= 1;
+    }
+  }
 
   if (clkgen == 0)
     this->check_clkgen0();
@@ -97,6 +111,8 @@ vp::io_req_status_e I2s_periph_v1::reset_clkgen0()
     this->top->get_periph_clock()->cancel(this->clkgen0_event);
 
   this->sck[0] = 0;
+  this->current_ws_count[0] = 0;
+  this->current_ws[0] = 0;
   return vp::io_req_status_e::IO_REQ_OK;
 }
 
@@ -108,6 +124,8 @@ vp::io_req_status_e I2s_periph_v1::reset_clkgen1()
     this->top->get_periph_clock()->cancel(this->clkgen1_event);
 
   this->sck[1] = 0;
+  this->current_ws_count[1] = 0;
+  this->current_ws[1] = 0;
   return vp::io_req_status_e::IO_REQ_OK;
 }
 
@@ -289,6 +307,20 @@ void I2s_periph_v1::rx_sync(void *__this, int sck, int ws, int sd, int channel)
     (static_cast<I2s_rx_channel *>(_this->channel0))->handle_rx_bit(sck, ws, sd);
   else
     (static_cast<I2s_rx_channel *>(_this->channel1))->handle_rx_bit(sck, ws, sd);
+
+  if (_this->current_ws_count[channel] == 0)
+  {
+    if (channel == 0)
+    {
+      (static_cast<I2s_rx_channel *>(_this->channel0))->pending_bits[0] = 0;
+      (static_cast<I2s_rx_channel *>(_this->channel0))->pending_bits[1] = 0;
+    }
+    else
+    {
+      (static_cast<I2s_rx_channel *>(_this->channel1))->pending_bits[0] = 0;
+      (static_cast<I2s_rx_channel *>(_this->channel1))->pending_bits[1] = 0;
+    }
+  }
 }
 
 
@@ -454,7 +486,8 @@ void I2s_rx_channel::handle_rx_bit(int sck, int ws, int bit)
 
   if (push)
   {
-    result = result & ((1<<width)-1);
+    if (width < 32)
+      result = result & ((1<<width)-1);
     int bytes = width <= 8 ? 1 : width <= 16 ? 2 : 4;
     this->push_data((uint8_t *)&result, bytes);
   }

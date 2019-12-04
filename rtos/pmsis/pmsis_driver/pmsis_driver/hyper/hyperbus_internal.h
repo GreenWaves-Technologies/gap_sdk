@@ -32,7 +32,7 @@
 #define __HYPERBUS_INTERNAL_H__
 
 #include "pmsis.h"
-#include "pmsis_hal/udma/udma_hyper.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

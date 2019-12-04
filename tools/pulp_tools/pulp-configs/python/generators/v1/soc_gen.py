@@ -84,11 +84,6 @@ def get_config(tp):
       ('fc_events', fc_events_dict)
   ]))
 
-  soc.periph_clock = Component(properties=OrderedDict([
-    ('vp_class', "vp/clock_domain"),
-    ('frequency', 50000000)
-  ]))
-
   axi_ico_mappings = OrderedDict([
     ("soc", get_mapping(tp.get_child_dict("soc")))
   ])
@@ -724,11 +719,22 @@ def get_config(tp):
 
         if "soc" in fll_config.get('targets').get_dict():
           soc.get(fll_name).clock_out = soc.fll_soc_clock
-        elif "cluster" in fll_config.get('targets').get_dict():
+
+        if "cluster" in fll_config.get('targets').get_dict():
           for cid in range(0, nb_cluster):
             soc.get(fll_name).clock_out = soc.new_itf(get_cluster_name(cid) + '_fll')
-        elif "periph" in fll_config.get('targets').get_dict():
-          soc.get(fll_name).clock_out = soc.periph_clock.clock_in
+
+        if "periph" in fll_config.get('targets').get_dict():
+          if "soc" not in fll_config.get('targets').get_dict():
+            soc.periph_clock = Component(properties=OrderedDict([
+              ('vp_class', "vp/clock_domain"),
+              ('frequency', 50000000)
+            ]))
+            soc.get(fll_name).clock_out = soc.periph_clock.clock_in
+            if has_udma:
+              soc.periph_clock.out = soc.udma.periph_clock
+
+
 
 
     else:
@@ -742,7 +748,6 @@ def get_config(tp):
 
   if has_udma:
     soc.apb_ico.udma = soc.udma.input
-    soc.periph_clock.out = soc.udma.periph_clock
 
   if has_soc_events:
     soc.event = soc.soc_eu.event_in

@@ -70,22 +70,28 @@ install_headers: $(HEADER_DIR)
 	cd $(GAP_SDK_HOME)/rtos/pulp/archi_gap/workstation && rsync -avR * $(INSTALL_DIR)
 	cd $(GAP_SDK_HOME)/rtos/pulp/hal_gap/target && rsync -avR * $(TARGET_INSTALL_DIR)
 
-install_rt_gap8: install_headers
+install_rt_gap8:
 	make -C  $(GAP_SDK_HOME)/rtos/pulp/pulp-os MK_ROOT=$(GAP_SDK_HOME)/rtos/pulp/pulp-os/mk/gap header build install
 
-install_rt_vega: install_headers
+install_rt_vega:
 	make -C  $(GAP_SDK_HOME)/rtos/pulp/pulp-os MK_ROOT=$(GAP_SDK_HOME)/rtos/pulp/pulp-os/mk/vega header build install
 
 # Rules for creating the libs.
 #------------------------------------------
-gap: install_headers install_rt_gap8
+gap: install_rt_gap8
 
-gap_rev1: install_headers install_rt_gap8
+gap_rev1: install_rt_gap8
 
-vega: install_headers install_rt_vega
+vega: install_rt_vega
 
 clean:
 	rm -rf $(GAP_SDK_HOME)/rtos/pulp/archi_gap $(GAP_SDK_HOME)/rtos/pulp/hal_gap
+
+DEFAULT_EXCLUDES=--exclude=".git*" --exclude="BUILD*" --exclude="build*" --exclude="_build*" --exclude="__pycache__/" --exclude=junit-reports
+
+artifact:
+	mkdir -p $(PULPOS_ARTIFACT_PATH)
+	rsync -avR $(DEFAULT_EXCLUDES) * $(PULPOS_ARTIFACT_PATH)
 
 #all: install_headers $(TARGET_CHIP)
 

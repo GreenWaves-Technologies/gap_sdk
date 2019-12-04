@@ -202,7 +202,7 @@ static void hyperflash_reg_set_async(struct pi_device *device, uint32_t addr, ui
 
   hyperflash_set_reg_exec(hyperflash, addr, *(uint16_t *)value);
 
-  pi_task_enqueue(task);
+  hyperflash_handle_pending_task(device);
 }
 
 
@@ -216,7 +216,7 @@ static void hyperflash_reg_get_async(struct pi_device *device, uint32_t addr, ui
 
   *(uint16_t *)value = hyperflash_get_reg_exec(hyperflash, addr);
 
-  pi_task_enqueue(task);
+  hyperflash_handle_pending_task(device);
 }
 
 
@@ -237,8 +237,10 @@ static void hyperflash_read_2d_async(struct pi_device *device, uint32_t addr, vo
 {
   hyperflash_t *hyperflash = (hyperflash_t *)device->data;
 
-  if (hyperflash_stall_task(hyperflash, task, STALL_TASK_READ, addr, (uint32_t)data, size, stride, length))
+  if (hyperflash_stall_task(hyperflash, task, STALL_TASK_READ_2D, addr, (uint32_t)data, size, stride, length))
+  {
     return;
+  }
 
   pi_hyper_read_2d_async(&hyperflash->hyper_device, addr, data, size, stride, length, pi_task_callback(&hyperflash->task, hyperflash_handle_pending_task, device));
 }
@@ -258,6 +260,7 @@ static void hyperflash_handle_pending_task(void *arg)
   hyperflash->pending_task = NULL;
 
   pi_task_t *task = hyperflash->waiting_first;
+
   if (task)
   {
 #if defined(PMSIS_DRIVERS)
@@ -380,8 +383,8 @@ static int hyperflash_stall_task(hyperflash_t *hyperflash, pi_task_t *task, uint
     task->data[1] = arg0;
     task->data[2] = arg1;
     task->data[3] = arg2;
-    task->data[4] = arg2;
-    task->data[5] = arg2;
+    task->data[4] = arg3;
+    task->data[5] = arg4;
     task->next = NULL;
 
     if (hyperflash->waiting_first)
@@ -405,8 +408,8 @@ static int hyperflash_stall_task(hyperflash_t *hyperflash, pi_task_t *task, uint
     task->implem.data[1] = arg0;
     task->implem.data[2] = arg1;
     task->implem.data[3] = arg2;
-    task->implem.data[4] = arg2;
-    task->implem.data[5] = arg2;
+    task->implem.data[4] = arg3;
+    task->implem.data[5] = arg4;
 
     if (hyperflash->waiting_first)
       hyperflash->waiting_last->implem.next = task;
@@ -566,7 +569,7 @@ static void hyperflash_erase_chip_async(struct pi_device *device, pi_task_t *tas
   hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
   hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0x10);
 
-  pi_task_enqueue(task);
+  hyperflash_handle_pending_task(device);
 }
 
 
@@ -625,7 +628,8 @@ static void hyperflash_erase_resume(void *arg)
     if (iter_size > hyperflash->pending_erase_size)
       iter_size = hyperflash->pending_erase_size;
 
-    hyperflash_erase_sector_async(device, hyperflash->pending_erase_hyper_addr, pi_task_callback(&hyperflash->task2, hyperflash_erase_resume, device));
+    uint32_t hyper_addr = hyperflash->pending_erase_hyper_addr;
+    hyperflash_erase_sector_async(device, hyper_addr, pi_task_callback(&hyperflash->task2, hyperflash_erase_resume, device));
 
     hyperflash->pending_erase_hyper_addr += iter_size;
     hyperflash->pending_erase_size -= iter_size;

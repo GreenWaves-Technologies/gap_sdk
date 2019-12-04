@@ -86,9 +86,17 @@ class Runner(Platform):
     def flash(self):
         chip_name = self.get_json().get_child_str('**/chip/name')
 
-        if execCmd('plpbridge --cable=ftdi@digilent --chip=%s flash_erase_chip --flasher-init' % chip_name):
+        config = self.config.getOption('config_file')
+        if config is not None:
+            config = '--config-path %s' % config
+        else:
+            config = '--config %s' % self.config.getOption('config_name')
+
+        bridge_opt = '%s --cable %s' % (config, self.get_json().get_child_str('**/debug_bridge/cable/type'))
+
+        if execCmd('plpbridge %s flash_erase_chip --flasher-init' % bridge_opt):
             return -1
-        if execCmd('plpbridge --cable=ftdi@digilent --chip=%s flash_write --addr=0 --file=%s --flasher-init' % (chip_name, self.get_flash_preload_file())):
+        if execCmd('plpbridge %s flash_write --addr=0 --file=%s --flasher-init' % (bridge_opt, self.get_flash_preload_file())):
             return -1
 
         return 0
@@ -123,24 +131,29 @@ class Runner(Platform):
 
             if chip_name in ['gap', 'gap_rev1']:
 
-                config = self.config.getOption('config_file')
-                if config is not None:
-                    config = '--config-path %s' % config
-                else:
-                    config = '--config %s' % self.config.getOption('config_name')
+                if self.get_json().get_child_str('**/runner/bridge') == 'openocd' or os.environ.get('GAP_USE_OPENOCD') is not None:
 
-                bridge_opt = '%s --cable %s' % (config, self.get_json().get_child_str('**/debug_bridge/cable/type'))
-
-                if self.get_json().get_child_str('**/runner/boot-mode') == 'dev_hyper':
-                    return execCmd('plpbridge %s --boot-mode=jtag_hyper load' % (bridge_opt))
+                    cmd = "openocd -f interface/ftdi/gapuino_ftdi.cfg -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start %s elf'" % (self.get_json().get_child_str('**/openocd/board'), binary)
+                    return  execCmd(cmd)
                 else:
-                    return execCmd('plpbridge %s --boot-mode=jtag --binary=%s %s' % (bridge_opt, binary, commands))
+                    config = self.config.getOption('config_file')
+                    if config is not None:
+                        config = '--config-path %s' % config
+                    else:
+                        config = '--config %s' % self.config.getOption('config_name')
+
+                    bridge_opt = '%s --cable %s' % (config, self.get_json().get_child_str('**/debug_bridge/cable/type'))
+
+                    if self.get_json().get_child_str('**/runner/boot-mode') == 'dev_hyper':
+                        return execCmd('plpbridge %s --boot-mode=jtag_hyper load' % (bridge_opt))
+                    else:
+                        return execCmd('plpbridge %s --boot-mode=jtag --binary=%s %s' % (bridge_opt, binary, commands))
             elif self.get_json().get_child_str('**/chip/name') in ['wolfe']:
                 return execCmd('plpbridge --cable=ftdi --boot-mode=jtag --binary=%s --chip=wolfe %s' % (binary, commands))
             elif self.get_json().get_child_str('**/chip/name') in ['vivosoc3']:
                 return execCmd('plpbridge --cable=ftdi --binary=%s --chip=vivosoc3 %s' % (binary, commands))
             else:
-                return execCmd('plpbridge --binary=%s --config=%s %s' % (binary, self.config.getOption('config_file'), commands))
+                return execCmd('plpbridge --binary=%s --config-path=%s %s' % (binary, self.config.getOption('config_file'), commands))
 
         elif self.config.getOption('pulpArchi') == 'pulp3':
             return execCmd("debug_bridge -c ft2232 -b %s --binary %s --load --late-reset --loop --printf --start %s %s" % (self.config.getOption('pulpArchi').replace('-riscv', ''), binary, mask, flashOpt))

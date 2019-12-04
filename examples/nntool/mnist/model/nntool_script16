@@ -1,4 +1,5 @@
 adjust
 fusions
+set dump_tensors 0
 aquant -f 16 images/* -D 255 -O 0
 save_state

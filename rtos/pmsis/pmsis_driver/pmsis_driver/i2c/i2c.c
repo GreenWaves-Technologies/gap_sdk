@@ -31,7 +31,7 @@
 #include "pmsis_driver/i2c/i2c_internal.h"
 #include DEFAULT_MALLOC_INC
 #include "pmsis_driver/pmsis_fc_event.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

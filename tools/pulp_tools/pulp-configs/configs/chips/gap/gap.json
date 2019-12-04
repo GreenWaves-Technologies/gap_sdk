@@ -53,6 +53,14 @@
     "nb_cluster": 1,
     "nb_pe": 8,
     
+    "icache": {
+      "config": {
+        "nb_sets_bits": 6,
+        "nb_ways_bits": 2,
+        "line_size_bits": 4
+      }
+    },
+
     "pe": {
       "irq": [
         null       , null       , null         , null,

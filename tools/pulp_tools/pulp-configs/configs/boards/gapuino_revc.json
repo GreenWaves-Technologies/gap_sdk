@@ -4,8 +4,12 @@
   "board": {
     "name": "gapuino",
     "devices": {
-      "hyper": {
-        "include" : "devices/hyper.json",
+      "flash": {
+        "include" : "devices/hyperflash.json",
+        "cs": 1
+      },
+      "ram": {
+        "include" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
@@ -43,7 +47,9 @@
         "type": "ftdi@digilent",
         "system_reset_gpio": 4,
         "jtag_reset_gpio": 6,
-        "reverse_reset": true
+        "reverse_reset": true,
+        "vendor": "0x0403",
+        "product": "0x6010"
       }
     }
   }

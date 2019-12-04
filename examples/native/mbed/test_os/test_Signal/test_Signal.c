@@ -11,7 +11,7 @@
 
 // Thread allocation
 #define TASK_SIZE 1024
-GAP_FC_DATA __attribute__ ((aligned (8))) unsigned int TASK_STK[TASK_SIZE];
+GAP_FC_DATA __attribute__ ((aligned (8))) unsigned char TASK_STK[TASK_SIZE];
 
 os_thread_t    task_obj;
 osThreadAttr_t task_attr;

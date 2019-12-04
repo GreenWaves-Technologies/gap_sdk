@@ -104,6 +104,9 @@
 #define ARCHI_NB_PAD                (48)
 #define ARCHI_NB_GPIO               (32)
 
+/* PWM. */
+#define ARCHI_NB_PWM                (4)
+
 #endif  /* __GAP8__ */
 
 #endif  /* __PROPERTIES_H__ */

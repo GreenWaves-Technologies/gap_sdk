@@ -23,6 +23,7 @@
 #include "rt/rt_api.h"
 #include "hal/debug_bridge/debug_bridge.h"
 #include <stdint.h>
+#include "semihost.h"
 
 extern int _prf(int (*func)(), void *dest,
         const char *format, va_list vargs);
@@ -40,6 +41,11 @@ static rt_event_t *__rt_io_event_current;
 #endif
 
 hal_debug_struct_t HAL_DEBUG_STRUCT_NAME = HAL_DEBUG_STRUCT_INIT;
+
+#define RT_PUTC_HOST_BUFFER_SIZE 128
+
+static RT_L2_DATA char __rt_putc_host_buffer[RT_PUTC_HOST_BUFFER_SIZE];
+static int __rt_putc_host_buffer_index;
 
 static int __rt_io_pending_flush;
 
@@ -378,23 +384,84 @@ void __rt_putc_uart(char c)
 }
 #endif
 
-static void tfp_putc(void *data, char c)
+static void __rt_do_putc_host(char c)
 {
-#if defined(__RT_USE_UART)
-  if (_rt_io_uart)
+  __rt_putc_host_buffer[__rt_putc_host_buffer_index++] = c;
+
+  if (__rt_putc_host_buffer_index == RT_PUTC_HOST_BUFFER_SIZE - 1 || c == '\n')
   {
-    __rt_putc_uart(c);
+    __rt_putc_host_buffer[__rt_putc_host_buffer_index] = 0;
+    __rt_putc_host_buffer_index = 0;
+    semihost_write0(__rt_putc_host_buffer);
+  }
+}
+
+typedef struct __rt_putc_host_req_s {
+  rt_event_t event;
+  struct pi_cl_hyper_req_s *next;
+  int done;
+  unsigned char cid;
+  unsigned char c;
+} rt_putc_host_req_t;
+
+#if defined(ARCHI_HAS_CLUSTER)
+static void __rt_putc_host_cluster_req(void *arg)
+{
+  rt_putc_host_req_t *req = (rt_putc_host_req_t *)arg;
+  __rt_do_putc_host(req->c);
+  req->done = 1;
+  __rt_cluster_notif_req_done(req->cid);
+}
+#endif
+
+static void __rt_putc_host(char c)
+{
+  if (rt_is_fc())
+  {
+    __rt_do_putc_host(c);
   }
   else
-#endif
   {
-    if (hal_debug_struct_get()->use_internal_printf)
+#if defined(ARCHI_HAS_CLUSTER) && defined(ARCHI_HAS_FC)
+    rt_putc_host_req_t req;
+    __rt_task_init_from_cluster(&req.event);
+    req.done = 0;
+    req.cid = rt_cluster_id();
+    req.c = c;
+    pi_task_callback(&req.event, __rt_putc_host_cluster_req, (void* )&req);
+    __rt_cluster_push_fc_event(&req.event);
+    while((*(volatile int *)&req.done) == 0)
     {
-      __rt_putc_stdout(c);
+      eu_evt_maskWaitAndClr(1<<RT_CLUSTER_CALL_EVT);
+    }
+#endif
+  }
+}
+
+static void tfp_putc(void *data, char c)
+{
+  if (rt_iodev() == RT_IODEV_HOST)
+  {
+    __rt_putc_host(c);
+  }
+  else
+  {
+  #if defined(__RT_USE_UART)
+    if (_rt_io_uart)
+    {
+      __rt_putc_uart(c);
     }
     else
+  #endif
     {
-      __rt_putc_debug_bridge(c);
+      if (hal_debug_struct_get()->use_internal_printf)
+      {
+        __rt_putc_stdout(c);
+      }
+      else
+      {
+        __rt_putc_debug_bridge(c);
+      }
     }
   }
 }
@@ -404,7 +471,7 @@ static void __rt_io_lock()
 #if !defined(__RT_USE_UART)
   if (hal_debug_struct_get()->use_internal_printf) return;
 #else
-  if (hal_debug_struct_get()->use_internal_printf && !_rt_io_uart) return;
+  if (hal_debug_struct_get()->use_internal_printf && !_rt_io_uart && rt_iodev() != RT_IODEV_HOST) return;
 #endif
 
   if (rt_is_fc() || !rt_has_fc())
@@ -426,7 +493,7 @@ static void __rt_io_unlock()
 #if !defined(__RT_USE_UART)
   if (hal_debug_struct_get()->use_internal_printf) return;
 #else
-  if (hal_debug_struct_get()->use_internal_printf && !_rt_io_uart) return;
+  if (hal_debug_struct_get()->use_internal_printf && !_rt_io_uart && rt_iodev() != RT_IODEV_HOST) return;
 #endif
 
   if (rt_is_fc() || !rt_has_fc())
@@ -577,7 +644,15 @@ void exit(int status)
 void exit(int status)
 {
   apb_soc_status_set(status);
-  __rt_exit_debug_bridge(status);
+  
+  if (rt_iodev() == RT_IODEV_HOST)
+  {
+    semihost_exit(status == 0 ? SEMIHOST_EXIT_SUCCESS : SEMIHOST_EXIT_ERROR);
+  }
+  else
+  {
+    __rt_exit_debug_bridge(status);
+  }
   __wait_forever();
 }
 
@@ -661,8 +736,22 @@ static int __rt_io_stop(void *arg)
 #endif
 
 
+void __rt_io_set()
+{
+#if defined(__RT_USE_UART)
+  if (rt_iodev() == RT_IODEV_UART)
+  {
+    __rt_io_start(NULL);
+    __rt_cbsys_add(RT_CBSYS_STOP, __rt_io_stop, NULL);
+    __rt_io_pending_flush = 0;
+    rt_event_alloc(NULL, 1);
+  }
+#endif
+}
+
 RT_FC_BOOT_CODE void __attribute__((constructor)) __rt_io_init()
 {
+  __rt_putc_host_buffer_index = 0;
   __rt_fc_lock_init(&__rt_io_fc_lock);
 
 #if defined(__RT_USE_UART)

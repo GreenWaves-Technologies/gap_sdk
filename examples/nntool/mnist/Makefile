@@ -27,17 +27,17 @@ $(info Building GAP8 mode with $(MNIST_BITS) bit quantization)
 # 8 bit so the input to the model needs to be shifted 1 bit
 ifeq ($(MNIST_BITS),8)
   $(info Configure 8 bit model)
-  GAP_FLAGS += -DMNIST_8BIT
+  APP_CFLAGS += -DMNIST_8BIT
   NNTOOL_SCRIPT=model/nntool_script8
   MODEL_SUFFIX = _8BIT
 else
   ifeq ($(MNIST_BITS),16)
     $(info Configure 16 bit model)
-    GAP_FLAGS += -DMNIST_16BIT
+    APP_CFLAGS += -DMNIST_16BIT
     NNTOOL_SCRIPT=model/nntool_script16
     MODEL_SUFFIX = _16BIT
   else
-    $(error Don't know how to build with this bit width)
+    $(error Don\'t know how to build with this bit width)
   endif
 endif
 
@@ -46,7 +46,7 @@ include model_decl.mk
 ifdef LINK_IMAGE
   LINK_IMAGE_HEADER=$(MODEL_BUILD)/image.h
   LINK_IMAGE_NAME=$(subst .,_,$(subst /,_,$(LINK_IMAGE)))
-  GAP_FLAGS += -DLINK_IMAGE_HEADER="\"$(LINK_IMAGE_HEADER)\"" -DLINK_IMAGE_NAME="$(LINK_IMAGE_NAME)"
+  APP_CFLAGS += -DLINK_IMAGE_HEADER="\"$(LINK_IMAGE_HEADER)\"" -DLINK_IMAGE_NAME="$(LINK_IMAGE_NAME)"
 else
   LINK_IMAGE_HEADER=
 endif
@@ -68,14 +68,14 @@ MODEL_L3_CONST=hflash
 MODEL_GENFLAGS_EXTRA= -c "model/code_template.c"
 
 pulpChip = GAP
-PULP_APP = mnist2
+APP = mnist2
 USE_PMSIS_BSP=1
 
-PULP_APP_SRCS += Mnist.c ImgIO.c $(MODEL_SRCS)
+APP_SRCS += Mnist.c ImgIO.c $(MODEL_SRCS)
 
-GAP_FLAGS += -O3 -s -mno-memcpy -fno-tree-loop-distribute-patterns 
-GAP_FLAGS += -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_PATH) -I$(MODEL_BUILD)
-GAP_FLAGS += -DPERF
+APP_CFLAGS += -O3 -s -mno-memcpy -fno-tree-loop-distribute-patterns
+APP_CFLAGS += -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_PATH) -I$(MODEL_BUILD)
+APP_CFLAGS += -DPERF
 
 ifeq ($(platform),gvsoc)
   $(info Platform is GVSOC)
@@ -86,7 +86,7 @@ else
 endif
 
 ifdef NO_IMAGE
-  GAP_FLAGS += -DNO_IMAGE
+  APP_CFLAGS += -DNO_IMAGE
 else
   ifndef LINK_IMAGE
     PLPBRIDGE_FLAGS += -fileIO 15

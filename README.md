@@ -22,17 +22,18 @@ We provide you with all the necessary tools and two different operating systems 
     -   PULP OS - The open source embedded RTOS produced by the PULP project
     -   Arm® Mbed™ OS - Arm Mbed OS is an open source embedded operating system. GreenWaves Technologies has ported it to GAP8 and VEGA.
     -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
-    -   PMSIS - PMSIS (PULP Microcontroller Software Interface Standard) is an open-source system layer. Any operating system can implement it to provide a common API to applications. We currently provide it with PULP OS and FreeRTOS, and it is used by our applications to be easily portable.
+    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it fro PULP OS and FreeRTOS, and it is used by our applications to be portable.
 
 ##  Getting started with the GAP SDK
 
-These instructions were developed using a fresh Ubuntu 16.04 Xenial 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-16-04-info
+### Ubuntu 18.04
+
+These instructions were developed using a fresh Ubuntu 18.04 Bionic Beaver 64-Bit virtual machine from https://www.osboxes.org/ubuntu/#ubuntu-1804-info
 
 The following packages needed to be installed:
 
 ~~~~~shell
-sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev
-sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
+sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev rsync autoconf automake texinfo libtool pkg-config
 ~~~~~
 
 The precompiled toolchain should be clone by using git lfs, this should be installed by using the following command:
@@ -41,21 +42,6 @@ The precompiled toolchain should be clone by using git lfs, this should be insta
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
 sudo apt-get install git-lfs
 git lfs install
-~~~~~
-
-Our modules requires a few additional Python packages that you can install with this command:
-
-~~~~~shell
-pip3 install -r requirements.txt
-~~~~~
-
-In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution ( Python3 ). You can find more information here: https://www.anaconda.com/.
-
-Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
-
-~~~~~shell
-pip install -r tools/nntool/requirements.txt
-pip install -r requirements.txt
 ~~~~~
 
 ## Configure USB Port for GAPuino Evaluation Board and Gapoc board
@@ -84,19 +70,36 @@ Please also make sure that your Virtual Machine USB emulation matches your PC US
 
 The following instructions assume that you install the GAP SDK into your home directory. If you want to put it somewhere else then please modify them accordingly.
 
+### Ubuntu 16.04
+
+You can follow the steps for Ubuntu 18.04 except for the following instructions.
+
+After yu have install the system packages with apt-get, also create this symbolic link:
+
+~~~~~shell
+sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
+~~~~~
+
 ## Download and install the toolchain:
 
 Now clone the GAP8 SDK and the GAP8/RISC-V toolchain:
 
 ~~~~~shell
 git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
-git lfs clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain.git
+git clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain_ubuntu_18.git
+~~~~~
+
+In case you use an old git version, you may need to use these commands instead:
+
+~~~~~shell
+git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
+git lfs clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain_ubuntu_18.git
 ~~~~~
 
 Install the toolchain:
 
 ~~~~~shell
-cd ~/gap_riscv_toolchain
+cd ~/gap_riscv_toolchain_ubuntu_18
 ./install.sh
 ~~~~~
 
@@ -107,9 +110,28 @@ cd ~/gap_sdk
 git submodule update --init --recursive
 ~~~~~
 
+## Install Python requirements
+
+Our modules requires a few additional Python packages that you can install with this command from Gap SDK root folder:
+
+~~~~~shell
+pip3 install -r requirements.txt
+~~~~~
+
+In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution ( Python3 ). You can find more information here: https://www.anaconda.com/.
+
+Note that this is needed only if you want to use nntool, you can skip this steap otherwise. Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
+
+~~~~~shell
+pip install -r tools/nntool/requirements.txt
+pip install -r requirements.txt
+~~~~~
+
 ## Configure the SDK:
 
-You need to source the appropriate config file for the board that you have. The SDK supports 2 boards (gapuino and gapoc) and each of them can use version 1 or version 2 of the GAP8 chip. Boards bought before 10/2019 contains GAP8 version 1 and use a USB B plug for JTAG while the ones bought after contains version 2 and use a USB micro B for JTAG.
+You can either source sourceme.sh in the root sdk folder and then select the right board from the list, or directly source the board config.
+
+If you directly source the board config, you need to source the appropriate config file for the board that you have. The SDK supports 2 boards (gapuino and gapoc) and each of them can use version 1 or version 2 of the GAP8 chip. Boards bought before 10/2019 contains GAP8 version 1 and use a USB B plug for JTAG while the ones bought after contains version 2 and use a USB micro B for JTAG.
 
 Hereafter you can find a summary of the available boards and their configuration file.
 
@@ -122,7 +144,7 @@ Gapoc     | GAP8 v2    | configs/gapoc_a_v2.sh
 
 Once the proper config file is sourced, you can proceed with the SDK build.
 
-Note that after the SDK has been built, you can source another config file to change the configuration. In this case the SDK will have to be built again. As soon as the SDK has been built once for a configuration, it does not need to be built again for this configuration, unless the SDK is cleaned.
+Note that after the SDK has been built, you can source another board config file to change the board configuration, in case you want to use a different board. In this case the SDK will have to be built again. As soon as the SDK has been built once for a board configuration, it does not need to be built again for this configuration, unless the SDK is cleaned.
 
 
 ## Build the SDK:
@@ -159,6 +181,23 @@ Then execute:
 ~~~~~shell
 cd ~/gap_sdk/
 make nntool
+~~~~~
+
+## Getting OpenOCD
+
+OpenOCD for Gap8 has been introduced. Plpbridge is still used by default to load binaries until the next SDK, in which OpenOCD will become the default bridge. There are a few applications which require OpenOCD, as they are using OpenOCD semi-hosting to transfer files with the workstation.
+
+If you want to install it, execute this command from the gap SDK folder:
+
+~~~~~shell
+cd ~/gap_sdk/
+make openocd
+~~~~~
+
+Applications using it are already configured in their Makefile to use it. If you also want to force it for other examples and applications, you have to define this environment variable:
+
+~~~~~shell
+export GAP_USE_OPENOCD=1
 ~~~~~
 
 # Compiling, running and debugging programs
@@ -230,6 +269,22 @@ Once gdb has loaded connect to the gdbserver on the target.
 (gdb) target remote localhost:1234
 Remote debugging using localhost:1234
 ~~~~~
+
+## Using the virtual platform
+
+You can also run this example on the Gap virtual platform with this command:
+
+~~~~~shell
+make clean all run platform=gvsoc
+~~~~~
+
+You can also generate VCD traces to see more details about the execution:
+
+~~~~~shell
+make clean all run platform=gvsoc runner_args=--vcd
+~~~~~
+
+You should see a message from the platform telling how to open the profiler.
 
 ## Using the flasher (Hyperflash)
 

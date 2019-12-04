@@ -19,7 +19,7 @@ char string_buffer[127];
 char current_name[17];
 short current_descriptor[512];
 
-pi_nina_ble_t ble;
+nina_ble_t ble;
 pi_task_t name_task;
 pi_task_t teskriptor_task;
 
@@ -35,7 +35,7 @@ static void name_ready()
     printf("name_ready called!\n");
     current_name[16] = '\0';
     printf("Name %s got\n", current_name);
-    pi_nina_b112_send_data(&ble, &ack, 1, NULL);
+    nina_b112_send_data(&ble, &ack, 1, NULL);
     printf("BLE_ACK responded\n");
 }
 
@@ -43,7 +43,7 @@ void body(void* parameters)
 {
     char Resp_String[AT_RESP_ARRAY_LENGTH];
 
-    if (pi_nina_b112_open(&ble))
+    if (nina_b112_open(&ble))
     {
         printf("Failed to open nina ble\n");
         return ;
@@ -60,24 +60,24 @@ void body(void* parameters)
     pi_time_wait_us(1*1000*1000); // some waiting needed after BLE reset...
 
     printf("Sending cmd using pmsis bsp\n");
-    pi_nina_b112_AT_send(&ble, "E0");
+    nina_b112_AT_send(&ble, "E0");
     printf("Echo disabled\n");
-    pi_nina_b112_AT_send(&ble, "+UFACTORY");
+    nina_b112_AT_send(&ble, "+UFACTORY");
     printf("Factory configuration restored\n");
-    pi_nina_b112_AT_send(&ble, "+UBTUB=FFFFFFFFFFFF");
+    nina_b112_AT_send(&ble, "+UBTUB=FFFFFFFFFFFF");
     printf("Set UBTUB\n");
-    pi_nina_b112_AT_send(&ble, "+UBTLE=2");
+    nina_b112_AT_send(&ble, "+UBTLE=2");
     printf("Set UBTLE\n");
-    pi_nina_b112_AT_send(&ble, "+UBTLN=GreenWaves-GAPOC");
+    nina_b112_AT_send(&ble, "+UBTLN=GreenWaves-GAPOC");
     printf("Set UBTLN\n");
-    pi_nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
+    nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
     printf("BLE configuration : %s\n", rx_buffer);
-    pi_nina_b112_AT_send(&ble, "+UMRS=115200,2,8,1,1");
-    pi_nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
+    nina_b112_AT_send(&ble, "+UMRS=115200,2,8,1,1");
+    nina_b112_AT_query(&ble, "+UMRS?", (char *) rx_buffer);
     printf("BLE configuration : %s\n", rx_buffer);
-    pi_nina_b112_AT_query(&ble, "+UBTLN?", (char *) rx_buffer);
+    nina_b112_AT_query(&ble, "+UBTLN?", (char *) rx_buffer);
     printf("BLE name : %s\n", rx_buffer);
-    //pi_nina_b112_close(&ble);
+    //nina_b112_close(&ble);
 
     printf("AT Config Done\n");
 
@@ -86,7 +86,7 @@ void body(void* parameters)
     // (...but sometimes just provides empty event instead !?)
 
     // Just make sure NINA sends something as AT unsolicited response, therefore is ready :
-    pi_nina_b112_wait_for_event(&ble, Resp_String);
+    nina_b112_wait_for_event(&ble, Resp_String);
     printf("Received Event after reboot: %s\n", Resp_String);
 
     /*
@@ -106,15 +106,15 @@ void body(void* parameters)
     */
 
     // Enter Data Mode
-    pi_nina_b112_AT_send(&ble, "O");
+    nina_b112_AT_send(&ble, "O");
     printf("Data Mode Entered!\n");
 
     pi_time_wait_us(1*1000*1000); // leave some time for Central to be properly configured
 
     while(1)
     {
-        pi_nina_b112_get_data_blocking(&ble, &action, 1);
-        pi_nina_b112_get_data_blocking(&ble, (uint8_t *) current_name, 16);
+        nina_b112_get_data_blocking(&ble, &action, 1);
+        nina_b112_get_data_blocking(&ble, (uint8_t *) current_name, 16);
         current_name[16] = '\0';
         int action_id = action;
         printf("Action: %d\n", action_id);

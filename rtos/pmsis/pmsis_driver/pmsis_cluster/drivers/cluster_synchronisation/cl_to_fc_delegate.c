@@ -17,7 +17,7 @@
 #include "pmsis.h"
 #include "pmsis/rtos/event_kernel/event_kernel.h"
 #include "pmsis/cluster/cluster_sync/cl_to_fc_delegate.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 #include "pmsis_driver/pmsis_it.h"
 
 volatile uint32_t g_task;

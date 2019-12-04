@@ -20,6 +20,7 @@
 #include "rt/rt_api_decl.h"
 #include "udma.h"
 #include "cpi.h"
+#include "i2s.h"
 #include "spi.h"
 #include "i2c.h"
 #include "uart.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright 2019 GreenWaves Technologies, SAS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,12 +139,14 @@ GAP_L2_DATA signed short audioBuf[2][NB_SUBUF_SAMPLES];
 GAP_L2_DATA signed short audioBuf1[2][NB_SUBUF_SAMPLES];
 GAP_L2_DATA outputBuf_t vocalOutput;
 
+#if 0
 #ifdef RECORD_MIC
 GAP_L2_DATA micBuf_t micOutput1, micOutput2;
 #else
 #ifdef KWS
 GAP_L2_DATA outputBuf_t micOutput1;
 //GAP_L2_DATA short micOutput1[1];
+#endif
 #endif
 #endif
 
@@ -726,8 +728,6 @@ int loginput(int sel) {
 
 #define CORE_NUMBER      8
 
-GAP_L2_DATA short int *l2_big0;
-GAP_L2_DATA short int *l2_big1;
 uint32_t cluster_perf;
 
 /*******************************************************************************
@@ -761,17 +761,21 @@ char *word_list[CLast_NFEAT] = {"silence", "none", "alexa"};
 #define BUF1_SIZE  13000
 #define L1_Memory_SIZE 52000
 
+//GAP_L2_DATA short int *l2_big0;
+//GAP_L2_DATA short int *l2_big1;
+GAP_L2_DATA short int l2_big0[BUF0_SIZE];
+GAP_L2_DATA short int l2_big1[BUF1_SIZE];
 
 void CNN_Process() {
 
-    // allocate data buffers
-    l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
-    //printf("@l2_big1: %p\n", l2_big1);
-    if(l2_big1 == NULL)
-        printf("error of malloc l2_big1\n");
-    l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
-    if(l2_big0 == NULL)
-        printf("error of malloc l2_big0\n");
+  //l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
+  //  printf("@l2_big1: %p\n", l2_big1);
+  //  if(l2_big1 == NULL)
+  //    printf("error of malloc l2_big1\n");
+  //l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
+  //  printf("@l2_big0: %p\n", l2_big0);
+  //  if(l2_big0 == NULL)
+  //    printf("error of malloc l2_big0\n");
 
     #ifdef RT_HAS_HWCE
     Conv8x20MaxPool2x2_HWCE_0(pfeat_list,L2_W_0,l2_big0,8,L2_B_0,AllKernels + 0);
@@ -790,8 +794,9 @@ void CNN_Process() {
     ConvLayer3(l2_big0,L2_W_1,l2_big1,8,L2_B_1,4,10,AllKernels + 1);
     #endif
     #endif
-    free(l2_big0);
-    l2_big0 = malloc(CLast_NFEAT*sizeof(short int));
+
+    //free(l2_big0);
+    //l2_big0 = malloc(CLast_NFEAT*sizeof(short int));
 
     // in,filter,normfilter,bias,normbias,out,outsize
     #ifdef W_HALFCHAR
@@ -843,24 +848,13 @@ void runkws(char trial) {
 
 #ifdef PERF
 	PERFORMANCE_Stop(&perf);
-	//unsigned int cycles = gap8_readhwtimer();
-	//printf("MFCC cycles: %d\n",cycles);
 	printf("MFCC cycles==>%d\n",PERFORMANCE_Get(&perf, PCER_CYCLE_Pos));
 #endif
 
-	//	FC_MallocFree(W_Frame,(N_FFT+4)*sizeof(v2s));
-	//        FC_MallocFree(Frame,FRAME*sizeof(short int));
 	FC_MallocFree(W_Frame);
 	FC_MallocFree(Frame);
 
-	/* #ifdef PRINTFEAT */
-        /* printf("dump features %d\n", NUMCEP * N_FRAME); */
-        /* for (j=0; j<NUMCEP*N_FRAME; j++) { */
-        /*     if (!(j%20)) printf("%d == ",j); */
-        /*     printf(" %x ", FEAT_LIST[j]); */
-        /*     if (!((j+1)%20)) printf("\n"); */
-        /* } */
-        /* #endif */
+	
 
         /* FC send a task to Cluster */
         CLUSTER_SendTask(0, Master_Entry, 0, 0);
@@ -877,8 +871,6 @@ void runkws(char trial) {
             int max=0x80000000;
 
             for(i=0; i < CLast_NFEAT; i++) {
-	      //printf("\t%x  \n",  l2_big0[i]);
-              //l2_big0[i] = l2_big0[i] ;
 	      logscore[i]+=l2_big0[i] ;
 #ifdef DUMP_SCORE
 	      printf(" feat %d: %d  \n", i, l2_big0[i]);
@@ -897,9 +889,9 @@ void runkws(char trial) {
             printf("found word %s\n", word_list[idx_max]);
 #endif
         }
-    free(l2_big0);
-    free(l2_big1);
 
+	//free(l2_big0);
+	//free(l2_big1);
 
 
 }
@@ -989,6 +981,7 @@ int processI2sRx(int sel)
     if (!last_res&&res) store=1;
 
 #ifndef RECORD_MIC
+#if 0
 #ifdef KWS
     // load the unprocessed mic input into buffer
     if (store)
@@ -997,6 +990,7 @@ int processI2sRx(int sel)
 	if (abs(input[4*i + 0])>maxval) maxval =  abs(input[4*i + 0]);
       }
     //resTab[cntRes] = res;
+#endif
 #endif
 #endif
     resTab[cntRes/8] |= (res<<(cntRes&0x7));
@@ -1071,12 +1065,13 @@ void capture_and_process() {
 	  //printf("run kws\n");
 	  runkws(0);
 
+#if 0	  
 #ifdef KWS
 	  // second run with direct mic output
 	  audioBuff = micOutput1.buff;
 	  runkws(1);
 #endif
-	  
+#endif	  
 	  
 #ifdef FORCE_INPUT
 	  return 0;
@@ -1138,8 +1133,6 @@ int main()
     return -1;
   }
 
-  //Frame = FC_Malloc(FRAME*sizeof(short int));
-  //W_Frame = FC_Malloc((N_FFT+4)*sizeof(v2s));
 
 #if L2STACK_DBG
   printf("stack initial addr 0x%x last current stack pointer: 0x%x\n", (unsigned int *) &__l2Stack, (unsigned int)rd_stack_pt());
@@ -1151,115 +1144,6 @@ int main()
   init_I2S();
   printf(">>>\n");
   
-  if (0) {
-
-  for(uint32_t i=0; i<NB_SUBUF_SAMPLES;i++)
-  {
-    audioBuf[0][i] = 0;
-    audioBuf[1][i] = 0;
-    audioBuf1[0][i] = 0;
-    audioBuf1[1][i] = 0;
-  }
-
-  /* I2S1 Init */
-  SAI_Init(i2s_address[0], I2S1_SDI_B14, I2S1_WS, I2S0_SCK); //gapuino I2S0_SCK used for both I2S
-
-  /* I2S1 Filter Configuration  */
-  SAI_FilterConfig(i2s_address[0], uSAI_Channel1, DECIMATION_CHAN1 - 1, SHIFT_CHAN1);
-
-  /* I2S Mode Configuration  */
-#ifdef GAP_SOURCE_SCK0
-  SAI_ModeConfig(i2s_address[0], uSAI_Channel1, LSB_FIRST_CHAN1, PDM_FILT_EN_CHAN1, PDM_EN_CHAN1, PDM_DDR_CHAN1, uSAI_CLK0_INT_WS); //gapuino I2S0_SCK used for both I2S
-#else
-  SAI_ModeConfig(i2s_address[0], uSAI_Channel1, LSB_FIRST_CHAN1, PDM_FILT_EN_CHAN1, PDM_EN_CHAN1, PDM_DDR_CHAN1, 2); //gapuino I2S0_SCK used for both I2S
- #endif
-  /* I2S0 Init */
-  SAI_Init(i2s_address[0], I2S0_SDI, I2S0_WS, I2S0_SCK);
-
-  /* I2S0 Filter Configuration  */
-  SAI_FilterConfig(i2s_address[0], uSAI_Channel0, DECIMATION_CHAN0 - 1, SHIFT_CHAN0);
-
-  /* I2S Mode Configuration  */
-#ifdef GAP_SOURCE_SCK0
-  SAI_ModeConfig(i2s_address[0], uSAI_Channel0, LSB_FIRST_CHAN0, PDM_FILT_EN_CHAN0, PDM_EN_CHAN0, PDM_DDR_CHAN0, uSAI_CLK0_INT_WS);
-#else
-  SAI_ModeConfig(i2s_address[0], uSAI_Channel0, LSB_FIRST_CHAN0, PDM_FILT_EN_CHAN0, PDM_EN_CHAN0, PDM_DDR_CHAN0, 2);
-#endif
-
-  /* I2S Clock Configuration  */
-#ifdef GAP_SOURCE_SCK0
-  SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 1, 0x17);
-#else
-  SAI_ClockConfig(i2s_address[0], uSAI_Channel0, WORD_SIZE_CHAN0, 0, 0x17);
-#endif
-
-  //IO configuration linked to the board
-  //*(volatile unsigned int *) (0x1a104144) = (0x55555555) | (0x3<<22);
-
-  //syncrhonyze with python
-#ifdef PYTHON_SYNC
-  printf("c: Ready to record audio from microphones\n");
-  I2sOutHeader.cStarted = 1;
-
-  while(((volatile I2sDescriptor *) &I2sOutHeader)->micReady == 0) {};
-#endif
-
-  //#ifndef VOCAL
-  //      I2sOutHeader.l2AddrVoc2 = &vocalOutput2;
-  //      I2sOutHeader.sizeVoc2 = 1;
-  //#endif
-
-#ifndef VOCAL
-
-  printf("*********************\n");
-  printf("VAD calibration      \n");
-  printf("*********************\n");
-
-#endif
-
-  // the threshold for vocal VAD is 0 (always on)
-  init_dsp_process(3000);
-
-  prepI2sRx();
-  printf("after prepI2sRx\n");
-#ifndef PYTHON_SYNC
-    printf("c: Ready to record audio from microphones\n");
-#endif
-    printf(">>>\n");
-
-  SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S0, &xfer0I2S0);
-  SAI_TransferReceiveNonBlocking(i2s_address[0], &handle0I2S1, &xfer0I2S1);
-  SAI_TransferReceiveNonBlocking(i2s_address[0], &handle1I2S0, &xfer1I2S0);
-  SAI_TransferReceiveNonBlocking(i2s_address[0], &handle1I2S1, &xfer1I2S1);
-
-#ifdef PERF
-  for(uint32_t idx=0; idx<256;idx++)
-  {
-    perfTab[0][idx] = 0;
-    perfTab[1][idx] = 0;
-  }
-#endif
-
-  /*
-  Timer_Initialize(TIMER1, 0);
-  Timer_Reset(TIMER1);
-  Timer_Enable(TIMER1);
-  */
-  // IF FLL freq changed => must change the mic sampling clock also
-  if (0)
-    if (FLL_SetFrequency(uFLL_SOC, 100000000, 1) == -1) {
-      printf("Error of changing freqency, check Voltage value!\n");
-      printf("Test failed\n");
-      return -1;
-    }
-
-
-  // performs kws on file in L2
-
-  for (int i=0;i<NB_SUBUF_SAMPLES;i++) {audioBuf[0][i]=0;audioBuf[1][i]=0;audioBuf1[0][i]=0;audioBuf1[1][i]=0;}
-
-  }
-
 
   capture_and_process();
   

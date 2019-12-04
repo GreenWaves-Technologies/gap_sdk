@@ -7,12 +7,13 @@
  *
  */
 
-#include "ImgIO.h"
-#include "Gap.h"
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include "ImgIO.h"
+#include "Gap.h"
+
 #ifdef LINK_IMAGE_HEADER
 #include LINK_IMAGE_HEADER
 #define __int_ssize_t unsigned int
@@ -36,7 +37,6 @@ static ssize_t fake_write(unsigned char * buf, ssize_t len) {
 #else
 #ifdef __EMUL__
 #include <unistd.h>
-#define PPM_HEADER 40
 #define __OPEN(__name, __flags, __mode) open(__name, __flags, __mode)
 #define __CLOSE(__fd) close(__fd)
 #define __SEEK(__fd, __pos) lseek(__fd, __pos, SEEK_SET)
@@ -44,15 +44,14 @@ static ssize_t fake_write(unsigned char * buf, ssize_t len) {
 #define __WRITE(__fd, __buf, __len) write(__fd, __buf, __len)
 #define __int_ssize_t ssize_t
 #else
-#define __OPEN(__name, __flags, __mode) rt_bridge_open(__name, __flags, __mode, NULL)
-#define __CLOSE(__fd) rt_bridge_close(__fd, NULL)
-#define __SEEK(__fd, __pos) rt_bridge_read(__fd, NULL, __pos, NULL);
-#define __READ(__fd, __buf, __len) rt_bridge_read(__fd, __buf, __len, NULL)
-#define __WRITE(__fd, __buf, __len) rt_bridge_write(__fd, __buf, __len, NULL)
+#define __OPEN(__name, __flags, __mode) BRIDGE_Open(__name, __flags, __mode, NULL)
+#define __CLOSE(__fd) BRIDGE_Close(__fd, NULL)
+#define __SEEK(__fd, __pos) BRIDGE_Read(__fd, NULL, __pos, NULL);
+#define __READ(__fd, __buf, __len) BRIDGE_Read(__fd, __buf, __len, NULL)
+#define __WRITE(__fd, __buf, __len) BRIDGE_Write(__fd, __buf, __len, NULL)
 #define __int_ssize_t unsigned int
 #endif
 #endif
-#include <fcntl.h>
 
 #define Max(a, b)               (((a)>(b))?(a):(b))
 #define Min(a, b)               (((a)<(b))?(a):(b))
@@ -60,6 +59,8 @@ static ssize_t fake_write(unsigned char * buf, ssize_t len) {
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))
 
 #define CHUNK_SIZE 8192
+
+#define PPM_HEADER 40
 
 static void progress_bar(char * OutString, int n, int tot)
 {
@@ -140,7 +141,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
 
 	if (Debug) printf("File: %s open: %s\n", Name, (File?"Ok":"Failed"));
 	if (File) {
-		unsigned char *Header = (unsigned char *) gap_allocL2(256);
+		unsigned char *Header = (unsigned char *) pi_l2_malloc(256);
 		Err |= (Header == 0);
 		if (__READ(File, Header, 256) == 256) {
 			unsigned int i;
@@ -151,7 +152,7 @@ static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int
                 printf("\n");
 			}
 		} else Err = 1;
-		gap_freeL2(Header, 256);
+		pi_l2_free(Header, 256);
 		__CLOSE(File);
 	}
 	return Err;
@@ -181,7 +182,7 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 	} else {
 		Allocated = 1;
 		AlignedSize = ALIGN(Size, 2);
-		ImagePtr = (unsigned char *) rt_alloc(RT_ALLOC_L2_CL_DATA, AlignedSize);
+		ImagePtr = (unsigned char *) pi_l2_malloc(AlignedSize);
 	}
 	if (ImagePtr == 0) {
 		printf("Failed to allocate %d bytes for input image\n", AlignedSize); goto Fail;
@@ -207,7 +208,7 @@ unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int 
 
 	return (ImagePtr);
 Fail:
-	if (ImagePtr && Allocated) gap_freeL2(ImagePtr, AlignedSize);
+	if (ImagePtr && Allocated) pi_l2_free(ImagePtr, AlignedSize);
 	__CLOSE(File);
 	printf("Failed to load image %s from flash\n", ImageName);
 	return 0;
@@ -216,7 +217,7 @@ Fail:
 static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
 {
   	unsigned int Ind = 0, x, i, L;
-  	unsigned char *Buffer = (unsigned char *) gap_allocL2(PPM_HEADER * sizeof(unsigned char));
+  	unsigned char *Buffer = (unsigned char *) pi_l2_malloc(PPM_HEADER * sizeof(unsigned char));
 
   	/* P5<cr>* */
   	Buffer[Ind++] = 0x50; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0xA;
@@ -244,7 +245,7 @@ static void WritePPMHeader(int FD, unsigned int W, unsigned int H)
   		__WRITE(FD, &(Buffer[a]), sizeof(unsigned char));
 	}
 
-	gap_freeL2(Buffer, PPM_HEADER * sizeof(unsigned char));
+	pi_l2_free(Buffer, PPM_HEADER * sizeof(unsigned char));
 }
 
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *OutBuffer)

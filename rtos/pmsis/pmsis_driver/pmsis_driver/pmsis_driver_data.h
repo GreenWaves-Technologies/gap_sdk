@@ -1,7 +1,8 @@
-#ifndef __PMSIS_DRIVER_DATA_H__
-#define __PMSIS_DRIVER_DATA_H__
+#ifndef __PI_DRIVER_DATA_H__
+#define __PI_DRIVER_DATA_H__
 
-#include "pmsis_hal/udma/udma_core.h"
+#include "pmsis_hal/pmsis_hal.h"
+
 /* This file contains data structures used throughout  */
 
 /* HYPERBUS */
@@ -36,4 +37,4 @@ struct hyper_cb_args_s
 };
 
 
-#endif  /* __PMSIS_DRIVER_DATA_H__ */
+#endif  /* __PI_DRIVER_DATA_H__ */

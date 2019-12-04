@@ -35,12 +35,27 @@ extern uint8_t __irq_vector_base_m__;
 #define portINITIAL_MCAUSE  ( 0x00000000 )
 #endif  /* ASSEMBLY_LANGUAGE */
 
+/* Size of a word, in bytes. */
 #define portWORD_SIZE                    ( 4 )
+/* Number of chip specific additional extensions. */
 #define portGAP8_ADDITIONAL_EXTENSIONS   ( 6 )
 
+/* a0 - a7 */
+#define portGAP8_ARGS_REGS               ( 8 )
+/* t0 - t6 */
+#define portGAP8_TEMP_REGS               ( 7 )
+/* s0 - s11 */
+#define portGAP8_SAVE_REGS               ( 12 )
+/* Minimal context size to save for irq handler. */
+/* a0-a7 + t0-t6 + ra */
+#define portGAP8_MINIMAL_CONTEXT_SIZE    ( portGAP8_ARGS_REGS + portGAP8_TEMP_REGS + 1 )
+/* General context size. */
 /* ra + a0-a7 + t0-t6 + s0-s11 + mstatus + mepc */
-#define portGAP8_CONTEXT_SIZE            ( 30 )
+#define portGAP8_CONTEXT_SIZE            ( portGAP8_MINIMAL_CONTEXT_SIZE + portGAP8_SAVE_REGS + 2 )
+/* Chip's additional extensions to save. */
 #define portGAP8_ADDITIONAL_CONTEXT_SIZE ( portGAP8_ADDITIONAL_EXTENSIONS )
+/* GAP8 core total context size. */
+#define portGAP8_FULL_CONTEXT_SIZE       ( portGAP8_CONTEXT_SIZE + portGAP8_ADDITIONAL_CONTEXT_SIZE )
 
 /* Additionnal extensions. */
 /* Hardware loops. */

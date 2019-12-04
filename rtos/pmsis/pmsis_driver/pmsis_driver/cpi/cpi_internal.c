@@ -86,7 +86,6 @@ static void __pi_cpi_handle_end_of_task(struct pi_task *task)
     }
     else
     {
-        printf("default sched: %p\n",pmsis_event_get_default_scheduler());
         pmsis_event_push(pmsis_event_get_default_scheduler(), task);
     }
 }

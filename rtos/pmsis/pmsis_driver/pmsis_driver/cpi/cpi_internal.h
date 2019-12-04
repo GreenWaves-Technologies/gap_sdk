@@ -34,7 +34,7 @@
 #include "pmsis.h"
 #include "pmsis/task.h"
 #include "pmsis/drivers/cpi.h"
-#include "pmsis_hal/udma/udma_cpi.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

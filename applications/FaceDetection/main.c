@@ -1,4 +1,19 @@
-/****************************************************************************/
+/*
+ * Copyright 2019 GreenWaves Technologies, SAS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "stdio.h"
 
 /* PMSIS includes */
@@ -122,7 +137,7 @@ static int open_camera(struct pi_device *device)
 
 void test_facedetection(void)
 {
-    DEBUG_PRINTF("Entering main controller...\n");
+    printf("Entering main controller...\n");
 
     unsigned int W = CAM_WIDTH, H = CAM_HEIGHT;
     unsigned int Wout = 64, Hout = 48;
@@ -131,7 +146,7 @@ void test_facedetection(void)
     imgBuff0 = (unsigned char *)pmsis_l2_malloc((CAM_WIDTH*CAM_HEIGHT)*sizeof(unsigned char));
     if (imgBuff0 == NULL)
     {
-        DEBUG_PRINTF("Failed to allocate Memory for Image \n");
+        printf("Failed to allocate Memory for Image \n");
         pmsis_exit(-1);
     }
 
@@ -142,31 +157,31 @@ void test_facedetection(void)
 
     if (ImageOut == 0)
     {
-        DEBUG_PRINTF("Failed to allocate Memory for Image (%d bytes)\n", ImgSize*sizeof(unsigned char));
+        printf("Failed to allocate Memory for Image (%d bytes)\n", ImgSize*sizeof(unsigned char));
         pmsis_exit(-2);
     }
     if ((ImageIntegral == 0) || (SquaredImageIntegral == 0))
     {
-        DEBUG_PRINTF("Failed to allocate Memory for one or both Integral Images (%d bytes)\n", ImgSize*sizeof(unsigned int));
+        printf("Failed to allocate Memory for one or both Integral Images (%d bytes)\n", ImgSize*sizeof(unsigned int));
         pmsis_exit(-3);
   }
-    DEBUG_PRINTF("malloc done\n");
+    printf("malloc done\n");
 
     board_init();
 
     if (open_display(&ili))
     {
-        DEBUG_PRINTF("Failed to open display\n");
+        printf("Failed to open display\n");
         pmsis_exit(-4);
     }
-    DEBUG_PRINTF("display done\n");
+    printf("display done\n");
 
     if (open_camera(&cam))
     {
-        DEBUG_PRINTF("Failed to open camera\n");
+        printf("Failed to open camera\n");
         pmsis_exit(-5);
     }
-    DEBUG_PRINTF("Camera open success\n");
+    printf("Camera open success\n");
 
     #if defined(HIMAX)
     buffer.data = imgBuff0+CAM_WIDTH*2+2;
@@ -218,9 +233,10 @@ void test_facedetection(void)
     setCursor(&ili, 0, 0);
     writeText(&ili,"      Greenwaves \n       Technologies", 2);
     #endif  /* USE_DISPLAY */
-    DEBUG_PRINTF("main loop start\n");
+    printf("main loop start\n");
 
-    while (1)
+    int nb_frames = 0;
+    while (1 && (NB_FRAMES == -1 || nb_frames < NB_FRAMES))
     {
         #if defined(USE_CAMERA)
         pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);
@@ -229,7 +245,7 @@ void test_facedetection(void)
         #endif  /* USE_CAMERA */
 
         pi_cluster_send_task_to_cl(&cluster_dev, task);
-        DEBUG_PRINTF("end of face detection, num_reponse: %d\n", ClusterCall.num_reponse);
+        printf("end of face detection, num_reponse: %d\n", ClusterCall.num_reponse);
 
         #if defined(USE_DISPLAY)
         pi_display_write(&ili, &buffer_out, 40, 40, 160, 120);
@@ -242,8 +258,10 @@ void test_facedetection(void)
             //sprintf(out_perf_string,"%d  \n%d  %c", (int)((float)(1/(50000000.f/cycles)) * 28000.f),(int)((float)(1/(50000000.f/cycles)) * 16800.f),'\0');
         }
         #endif  /* USE_DISPLAY */
+
+        nb_frames++;
     }
-    DEBUG_PRINTF("Test face detection done.\n");
+    printf("Test face detection done.\n");
     pmsis_exit(0);
 }
 

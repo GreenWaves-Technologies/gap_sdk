@@ -43,6 +43,7 @@
 #include "gap8_it.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "printf.h"
 
 /****************************************************************************/
 

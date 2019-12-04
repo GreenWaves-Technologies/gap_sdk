@@ -143,9 +143,7 @@ void test_camera_with_lcd(void)
 {
     printf("Entering main controller...\n");
 
-    #if defined(__PULP_OS__)
-    rt_freq_set(__RT_FREQ_DOMAIN_FC, 250000000);
-    #endif  /* __PULP_OS__ */
+    //pi_freq_set(PI_FREQ_DOMAIN_FC, 250000000);
 
     imgBuff0 = (uint8_t *) pmsis_l2_malloc((CAMERA_WIDTH * CAMERA_HEIGHT) * sizeof(uint8_t));
     if (imgBuff0 == NULL)
@@ -167,15 +165,6 @@ void test_camera_with_lcd(void)
         pmsis_exit(-3);
     }
     pi_display_ioctl(&lcd, PI_ILI_IOCTL_ORIENTATION, (void *) PI_ILI_ORIENTATION_270);
-    #endif  /* HAVE_DISPLAY */
-
-    #if defined(USE_BRIDGE)
-    if (open_bridge())
-    {
-        printf("Failed to open bridge\n");
-        pmsis_exit(-4);
-    }
-    #endif  /* USE_BRIDGE */
 
     #if defined(HIMAX)
     buffer.data = imgBuff0 + CAMERA_WIDTH * 2 + 2;
@@ -189,6 +178,15 @@ void test_camera_with_lcd(void)
     pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0);
     #endif  /* HIMAX */
     pi_buffer_set_format(&buffer, CAMERA_WIDTH, CAMERA_HEIGHT, 1, PI_BUFFER_FORMAT_GRAY);
+    #endif  /* HAVE_DISPLAY */
+
+    #if defined(USE_BRIDGE)
+    if (open_bridge())
+    {
+        printf("Failed to open bridge\n");
+        pmsis_exit(-4);
+    }
+    #endif  /* USE_BRIDGE */
 
     printf("Main loop start\n");
     while (1)

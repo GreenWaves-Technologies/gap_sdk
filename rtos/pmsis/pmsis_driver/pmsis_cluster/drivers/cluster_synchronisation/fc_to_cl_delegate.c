@@ -11,8 +11,8 @@
 #include "pmsis/cluster/cluster_sync/cl_to_fc_delegate.h"
 #include "pmsis/cluster/cluster_sync/cl_synchronisation.h"
 #include "pmsis/cluster/cluster_team/cl_team.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
-#include "pmsis_hal/gap_eu/pmsis_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
+//#include "pmsis_hal/gap_eu/pmsis_eu.h"
 #include "cores/TARGET_RISCV_32/core_utils.h"
 #include "cores/TARGET_RISCV_32/core_gap.h"
 
@@ -34,13 +34,8 @@ extern char  __l1_preload_start;
 extern char  __l1_preload_start_inL2;
 extern char  __l1_preload_size;
 
-#if defined(__GAP8__)
 extern char  __l1FcShared_start;
 extern char  __l1FcShared_size;
-#elif defined(__GAP9__)
-extern char  __l1Shared_start;
-extern char  __l1Shared_size;
-#endif
 
 extern char  __heapsram_start;
 extern char  __heapsram_size;
@@ -101,11 +96,10 @@ void cl_cluster_exec_loop(void)
     SCBC->ICACHE_ENABLE = 0xFFFFFFFF;
 
     /* Initialization for the task dispatch loop */
-    hal_eu_evt_mask_set((1 << EU_DISPATCH_EVENT)
-            | (1 << EU_MUTEX_EVENT)
-            | (1 << EU_HW_BARRIER_EVENT)
-            | (1 << EU_LOOP_EVENT));
-
+    hal_eu_evt_mask_set((1 << EU_DISPATCH_EVENT) |
+                        (1 << EU_MUTEX_EVENT) |
+                        (1 << EU_HW_BARRIER_EVENT) |
+                        (1 << EU_LOOP_EVENT));
 
     asm volatile ("add    s1,  x0,  %0" :: "r" (CORE_EU_DISPATCH_DEMUX_BASE));
     asm volatile ("add    s2,  x0,  %0" :: "r" (CORE_EU_BARRIER_DEMUX_BASE));
@@ -133,8 +127,8 @@ void cl_cluster_exec_loop(void)
         /*
          * Core 0 will wait for tasks from FC side
          */
-        NVIC_EnableIRQ(CL_EVENT_DMA1);
-        hal_eu_evt_mask_set(1 << CL_EVENT_DMA1);
+        /* Enable IRQ for DMA on Core 0. */
+        hal_eu_irq_mask_set(1 << CL_EVENT_DMA1);
         __enable_irq();
 
         asm volatile("add   s4,  x0,  %0\n\t"
@@ -198,11 +192,7 @@ static void cl_set_core_stack(void *arg)
     {
         // master
         /* Cluster calls FC */
-#if defined(__GAP8__)
         hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
-#elif defined(__GAP9__)
-        FC_ITC->STATUS_SET = (1 << CLUSTER_NOTIFY_FC_EVENT);
-#endif
     }
 }
 
@@ -242,11 +232,7 @@ void cl_task_finish(void)
     //PRINTF("cl_task_finish: data=%p\n",data);
 
     // Notify FC that current task is done
-#if defined(__GAP8__)
     hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
-#elif defined(__GAP9__)
-    FC_ITC->STATUS_SET = (1 << CLUSTER_NOTIFY_FC_EVENT);
-#endif
 }
 
 /**
@@ -456,12 +442,8 @@ static inline void __cluster_start(struct pi_device *device)
         PRINTF("poweron is done\n");
         for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
         {
-#if defined(__GAP8__)
             extern uint8_t __irq_vector_base_m__;
             SCB->BOOT_ADDR[i] = (uint32_t) &__irq_vector_base_m__;
-#elif defined(__GAP9__)
-            SCB->BOOT_ADDR[i] = 0x1C008100;
-#endif
         }
         SCB->FETCH_EN = 0xFFFFFFFF;
 
@@ -469,11 +451,7 @@ static inline void __cluster_start(struct pi_device *device)
         memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1_preload_start), &__l1_preload_start_inL2, (size_t)&__l1_preload_size);
 
         /* Copy the FC / clusters shared data as the linker can only put it in one section (the cluster one) */
-#if defined(__GAP8__)
         memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1FcShared_start), &__l1FcShared_start, (size_t)&__l1FcShared_size);
-#elif defined(__GAP9__)
-        memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1Shared_start), &__l1Shared_start, (size_t)&__l1Shared_size);
-#endif
 
         PRINTF("conf:%p, heap_start:%p, heap_size:%lx\n",conf, conf->heap_start, conf->heap_size);
         pmsis_l1_malloc_init(conf->heap_start,conf->heap_size);

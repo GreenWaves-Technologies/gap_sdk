@@ -1,3 +1,4 @@
+#if 0
 /*
  * Copyright (c) 2018, GreenWaves Technologies, Inc.
  * All rights reserved.
@@ -31,6 +32,7 @@
 #include <time.h>
 #include "gap_rtc.h"
 #include "FreeRTOSConfig.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Variables, macros, structures,... definition
@@ -213,7 +215,7 @@ static void RTC_APB_WAIT(void)
 {
     while (*(volatile uint8_t *)&rtc_apb_pending)
     {
-        EU_EVT_MaskWaitAndClr(1<<FC_SW_NOTIFY_EVENT);
+        hal_eu_evt_mask_wait_and_clr(1<<FC_SW_NOTIFY_EVENT);
     }
 }
 
@@ -279,8 +281,8 @@ void RTC_Init(RTC_APB_Type *base, const rtc_config_t *Config)
 {
     configASSERT(Config);
 
-    SOC_EU_SetFCMask(RTC_APB_EVENT);
-    SOC_EU_SetFCMask(RTC_EVENT);
+    hal_soc_eu_set_fc_mask(RTC_APB_EVENT);
+    hal_soc_eu_set_fc_mask(RTC_EVENT);
 
     RTC_Reset(base);
 
@@ -294,8 +296,8 @@ void RTC_Deinit(RTC_APB_Type *base)
     if (rtc_is_init == 1)
     {
         RTC_Disable(base);
-        SOC_EU_ClearFCMask(RTC_EVENT);
-        SOC_EU_ClearFCMask(RTC_APB_EVENT);
+        hal_soc_eu_clear_fc_mask(RTC_EVENT);
+        hal_soc_eu_clear_fc_mask(RTC_APB_EVENT);
 
         rtc_is_init = 0;
     }
@@ -545,3 +547,4 @@ void RTC_APB_IRQHandler(void)
 {
     rtc_apb_pending = 0;
 }
+#endif

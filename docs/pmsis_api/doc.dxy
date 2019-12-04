@@ -26,6 +26,14 @@
 
 @INCLUDE = $(DOXTEMPLATE)/pulp-rt/pulp-rt.dxy
 
+# Override those macros to exclude gcc attributes(such as "__attribute__((packed))__"
+# which deform doc.
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = __attribute__(x)=
+
 PROJECT_NAME           =
 
 PROJECT_NUMBER         = "Version 1.0"
@@ -46,6 +54,7 @@ OUTPUT_DIRECTORY       = $(BUILD_DIR)/PMSIS_API
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/chips/gap8/perf.h   \
+                         $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/chips/gap8/gpio.h   \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/spi.h       \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/uart.h      \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/perf.h      \
@@ -54,6 +63,8 @@ INPUT                  = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/chip
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/gpio.h      \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/hyperbus.h  \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/cpi.h       \
+                         $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/pwm.h      \
+                         $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/drivers/i2s.h      \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_l2_malloc.h \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_fc_tcdm_malloc.h \
                          $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api/include/pmsis/rtos/malloc/pmsis_l1_malloc.h \

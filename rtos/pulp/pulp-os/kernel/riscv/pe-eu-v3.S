@@ -383,20 +383,28 @@ __rt_dma_2d:
 
     li  a2, ARCHI_MCHAN_DEMUX_ADDR
 
-__rt_dma_2d_redo:
     lw  x8, %tiny(__rt_dma_first_pending)(x0)
 
+    lw  a1, CL_DMA_CMD_T_ID(x8)
     lw  a0, CL_DMA_CMD_T_SIZE(x8)
+    p.bsetr a1, x0, a1
+    sw  a1, MCHAN_STATUS_OFFSET(a2)
     lw  a1, CL_DMA_CMD_T_LENGTH(x8)
 
     beqz a0, __rt_dma_2d_done
 
+__rt_dma_2d_redo:
     lw  x9, CL_DMA_CMD_T_CMD(x8)
     
     bgt a0, a1, __rt_dma_2d_not_last
     mv  a1, a0
 
 __rt_dma_2d_not_last:
+    lw  a0, MCHAN_CMD_OFFSET(a2)
+    sw  a0, CL_DMA_CMD_T_ID(x8)
+
+    lw  a0, CL_DMA_CMD_T_SIZE(x8)
+
     p.inserti x9, a1, MCHAN_CMD_CMD_LEN_WIDTH-1, MCHAN_CMD_CMD_LEN_BIT
 
     sw  x9, MCHAN_CMD_OFFSET(a2)   // cmd
@@ -428,15 +436,23 @@ __rt_dma_2d_exit:
     mret
 
 __rt_dma_2d_done:
+    sw  x0, CL_DMA_CMD_T_EXT_ADDR(x8)
+
     lw  x9, CL_DMA_CMD_T_NEXT(x8)
     sw  x9, %tiny(__rt_dma_first_pending)(x0)
 
     li  x8, ARCHI_EU_DEMUX_ADDR + EU_SW_EVENTS_DEMUX_OFFSET + (RT_DMA_EVENT<<2)
     sw  x0, EU_CORE_TRIGG_SW_EVENT(x8)
 
-    bnez x9, __rt_dma_2d_redo
+    beqz x9, __rt_dma_2d_exit
 
-    j   __rt_dma_2d_exit
+    mv  x8, x9
+
+    lw  a0, CL_DMA_CMD_T_SIZE(x8)
+    lw  a1, CL_DMA_CMD_T_LENGTH(x8)
+
+    j   __rt_dma_2d_redo
+
 
 
 #endif

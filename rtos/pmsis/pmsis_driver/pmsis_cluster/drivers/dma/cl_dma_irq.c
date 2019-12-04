@@ -44,18 +44,16 @@ void pi_cl_dma_2d_handler()
     hal_compiler_barrier();
 
     hal_compiler_barrier();
-    if (copy->size)
+    if ((copy != NULL) && (copy->size))
     {
         uint32_t iter_length = (copy->size < copy->length) ? copy->size : copy->length;
-        uint32_t cmd = copy->cmd | (iter_length << DMAMCHAN_CMD_LEN_Pos);
-        uint32_t loc_addr = copy->loc;
-        uint32_t ext_addr = copy->ext;
-        copy->loc = copy->loc + iter_length;
-        copy->ext = copy->ext + copy->stride;
+        uint32_t dma_cmd = copy->cmd | (iter_length << DMAMCHAN_CMD_LEN_Pos);
+        uint32_t loc = copy->loc;
+        uint32_t ext = copy->ext;
+        copy->loc = loc + iter_length;
+        copy->ext = ext + copy->stride;
         copy->size = copy->size - iter_length;
-        hal_write32(&(DMAMCHAN->CMD), cmd);
-        hal_write32(&(DMAMCHAN->CMD), loc_addr);
-        hal_write32(&(DMAMCHAN->CMD), ext_addr);
+        hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
     }
     hal_compiler_barrier();
 }

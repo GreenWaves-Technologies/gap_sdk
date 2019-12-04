@@ -9,7 +9,6 @@ fi
 export PATH="$GAP_RISCV_GCC_TOOLCHAIN/bin":"$GAP_SDK_HOME/tools/bin":$PATH
 
 export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/$TARGET_CHIP
-export BUILD_DIR=$GAP_SDK_HOME/build
 export INSTALL_DIR=$GAP_SDK_HOME/install/workstation
 export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/tools/rules
@@ -43,8 +42,10 @@ export TILER_INC=$TILER_PATH/include
 export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
 
+# OpenOCD
+export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
 
-if [ "$TARGET_CHIP" == "GAP8" ]
+if [ "$TARGET_CHIP" = "GAP8" ]
 then
     PROJECT_PATH=$(dirname $GAP_SDK_HOME)
     export VSIM_PATH=$PROJECT_PATH/fe/sim

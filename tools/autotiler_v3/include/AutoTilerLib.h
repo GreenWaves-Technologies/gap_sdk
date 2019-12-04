@@ -30,6 +30,15 @@ Functions in this group control the compilation flow of the AutoTiler
 @{ */
 
 /**
+@brief Macros to pass value to AT_SetGraphCtrl and to CNN_SetGenCtrl/CNN_SetGenCtrlList
+
+Macros to pass value to AT_SetGraphCtrl and to CNN_SetGenCtrl/CNN_SetGenCtrlList
+*/
+#define AT_OPT_ON       ((void *) 1)
+#define AT_OPT_OFF      ((void *) 0)
+#define AT_OPT_VAL(Val) ((void *) (Val))
+
+/**
 @brief Set user kernel style modelization mode.
 
 Set user kernel style modelization mode. If Old=1 uses Kernel Arg property to express Ker Arg iter space, If Old=0 use KerArgSpace() extra argument instead.
@@ -241,6 +250,7 @@ KernelLib_T *KerLibMatch(
         int I1_Type,			/**< Input1 data size in bytes or 0 if to be ignored */
 	int I2_Type,			/**< Input2 data size in bytes or 0 if to be ignored */
 	int I3_Type,			/**< Input3 data size in bytes or 0 if to be ignored */
+	int I4_Type,			/**< Input4 data size in bytes or 0 if to be ignored */
 	int O_Type,			/**< Output data size in bytes or 0 if to be ignored */
         int Fx,				/**< Filter X dimension */
 	int Fy,				/**< Filter Y dimension */
@@ -373,8 +383,22 @@ KernelIterationSpaceT *KernelIterSpace(
 	...				/**< List of KernelIteratorDescrT *, one for each dimension of the user kernel iteration space, IterFixedSpace() or IterTiledSpace() */
 	);
 
+/**
+@brief Creates a list of ArgCount Kernel C arguments
+
+Creates a list of ArgCount Kernel C arguments
+*/
+CKernel_Arg_T **AllocateCArgs(
+	unsigned int ArgCount		/**< Number of C Arguments */
+	);
+
+/**
+@brief Creates a list of ArgCount Kernel C arguments, then list of TCArg(), one for each Argument
+
+Creates a list of ArgCount Kernel C arguments, then list of TCArg(), one for each Argument
+*/
 CKernel_Arg_T **CArgs(
-	unsigned int ArgCount,
+	unsigned int ArgCount,		/**< Number of C Arguments */
 	...
 	);
 
@@ -466,6 +490,17 @@ CKernelCall_T **Calls(
 	);
 
 /**
+@brief Prepares a list of CallCount calls 
+
+Prepares a list of CallCount calls 
+
+@param CallCount Number of calls
+*/
+CKernelCall_T **AllocateCalls(
+	unsigned int CallCount
+	);
+
+/**
 @brief Create a call to a basic or a user kernel
 
 Create a call to a basic or a user kernel
@@ -513,6 +548,49 @@ Binds argument to a C user kernel or user kernel group argument and adds an imme
 ArgBindingDescr_T *C_ArgPlusImmOffset(
 	char *ArgName,			/**< A C argument name, usually a C argument of the user kernel */
 	int Offset			/**< An integer offset to be added to ArgName */
+	);
+
+/**
+@brief Binds argument to a C user kernel or user kernel group argument and combines it with an immediate Value
+
+Binds argument to a C user kernel or user kernel group argument and combines it with an immediate Value
+
+	Oper can be +,-,*,/,%
+	In case ArgName is a pointer Offset is subject to usual C pointer type promotion.
+*/
+ArgBindingDescr_T *C_ArgImmOper(
+	char *ArgName,			/**< A C argument name, usually a C argument of the user kernel */
+	char Oper,			/**< The operation to be performed passed as a char, can be +,-,*,/,% */
+	int Value			/**< An integer value to be combined with ArgName using Oper */
+	);
+
+/**
+@brief Binds argument to an immediate value combined to a C user kernel or user kernel group argument through oper
+
+Binds argument to an immediate value combined to a C user kernel or user kernel group argument through oper
+
+	Oper can be +,-,*,/,%,<<,>>
+	In case ArgName is a pointer Offset is subject to usual C pointer type promotion.
+*/
+ArgBindingDescr_T *C_ImmArgOper(
+	int Value,			/**< An integer value to be combined with ArgName using Oper */
+	char *Oper,			/**< The operation to be performed passed as a char, can be +,-,*,/,%,<<,>> */
+	char *ArgName			/**< A C argument name, usually a C argument of the user kernel */
+	);
+
+
+/**
+@brief Binds argument to a C user kernel or user kernel group argument and combines it with a C variable
+
+Binds argument to a C user kernel or user kernel group argument and combines it with an C variable
+
+	Oper can be +,-,*,/,%
+	In case ArgName is a pointer Offset is subject to usual C pointer type promotion.
+*/
+ArgBindingDescr_T *C_ArgCOper(
+	char *ArgName,			/**< A C argument name, usually a C argument of the user kernel */
+	char Oper,			/**< The operation to be performed passed as a char, can be +,-,*,/,% */
+	char *Cvar			/**< Name of the C variable used in the right hqnd side part of the expressionn */
 	);
 
 /**
@@ -602,6 +680,15 @@ ArgBindingDescr_T *KerDim(
 	KernelDimT Dim			/**< User kernel dimension: K_INP, K_OUTP, K_W, K_H */
 	);
 
+/**
+@brief Binds argument to one of the user kernel iterator actual value
+
+Binds argument to one of the user kernel iterator actual value
+*/
+ArgBindingDescr_T *Ker_IteratorIndex(
+	KernelIteratorT Sel		/**< Selected iteration space */
+	);
+
 
 /**
 @brief Binds argument to a user kernel argument (a tiled argument).
@@ -684,10 +771,21 @@ unsigned int MkTCons(
 Creates a list of user kernel arguments.
 
 @param KerArgCount Number of user kernel arguments
+*/
+Object_T **AllocateKerArgs(
+	unsigned int KerArgCount	/**< Number of Kernel arguments */
+	);
+
+/**
+@brief Creates a list of user kernel arguments.
+
+Creates a list of user kernel arguments.
+
+@param KerArgCount Number of user kernel arguments
 @param ...  List of user kernel arguments: KerArg() or KerArgPad(), KerArg(), ...
 */
 Object_T **KerArgs(
-	unsigned int KerArgCount,
+	unsigned int KerArgCount,	/**< Number of Kernel arguments */
 	...
 	);
 
@@ -701,6 +799,7 @@ KernelArgDimDescrT *KerArgSpace(
 	...				/**< List of KernelIteratorT */
 	);
 
+#ifdef LEGACY
 Object_T *_KerArgP(
 	char *KerArgName,			/**< Kernel argument name */
 	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
@@ -714,6 +813,7 @@ Object_T *_KerArgP(
 	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,		/**< Kernel argument prefered tile size, expressed on tile size - overlap, tile size must be a multiple of PreferedTileSize */
 	char *CArgName);			/**< To which user kernel C argument this kernel argument is related to */
+#endif
 
 /**
 @brief Creates one user kernel argument. Kernel argument Space is explicitely described
@@ -750,26 +850,6 @@ Object_T *KerArgP(
 	char *CArgName);
 
 
-#ifdef LEGACY
-/**
-@brief Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-
-Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-*/
-Object_T *KerArg2D(
-	char 	     *KerArgName,	/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,			/**< Kernel argument Data plane width */
-	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
-	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
-	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
-	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
-	);
-
 /**
 @brief Creates one user kernel argument with fixed padding before and after the tile generated for this argument. Kernel argument Space is explicitely described
 
@@ -792,22 +872,19 @@ Object_T *KerArgPad(
 	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+#ifdef LEGACY
 /**
-@brief Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel argument Space is explicitely described
+@brief Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
 
-Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel argument Space is explicitely described
-
+Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
 */
-Object_T *KerArgP(
+Object_T *KerArg2D(
 	char 	     *KerArgName,	/**< Kernel argument name */
 	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
 	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
 	unsigned int W,			/**< Kernel argument Data plane width */
 	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int PadL,		/**< Amount of padding to be added on the left of a line, unit is Item */
-	unsigned int PadR,		/**< Amount of padding to be added on the the right of a line, unit is Item */
-	unsigned int PadT,		/**< Amount of padding to be added on the top of a column, unit is Item */
-	unsigned int PadB,		/**< Amount of padding to be added on the bottom of a column, unit is Item */
+	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
 	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
 	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
 	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
@@ -909,6 +986,20 @@ void AddKernelInfos(
 	void *Val			/**< Value passed as a void * */
 	);
 
+/**
+@brief Alter the behaviour of UserKernel processing
+
+Alter the behaviour of UserKernel processing
+Possible Ctrl values:
+        AT_KERNEL_BUFFER_PROMOTE,             When all user kernel arguments can fit into given L1 memory promote them to buffer, default is 1
+        AT_KERNEL_PARTIAL_BUFFER_PROMOTE,     When all tile of a user kernel argument across Input Features can fit into given L1 memory promote them to partial buffer, default is 1
+        AT_KERNEL_NOSOLUTION_ERROR,           Report an error when no tiling solution is found, default is 1
+For Val use Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val)
+*/
+void AT_SetKernelCtrl(
+	AT_GraphCtrl_T Ctrl,	/**< Which option */
+	void *Val		/**< Value for this option. Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val) */
+	);
 
 /** @} */ // End of UserK group
 
@@ -951,16 +1042,47 @@ CKernelCall_T *UserKernelCall(
 	ArgBindingDescr_T **BindingList /**< See Bindings(). restricted to C_Arg(), C_ArgIndex(), C_ArgIndirect() and Imm() */
 	);
 
+Object_T *KerGroupArg(
+	char *KerArgName,		/**< User kernel group argument name */
+	Object_Type_T ObjType,		/**< Argument type, O_IN and/or O_OUT can be used only */
+	int ArgSize,			/**< Number of elements of this argument */
+	int ItemSize,			/**< Size in byte of the elementary data type of this argument */
+	char *CArgName			/**< Corresponding name in the User Kernel Group definition */
+	);
+
+/**
+@brief Binds argument to a user kernel group argument and combine it with Value using Oper
+
+Binds argument to a user kernel group argument and combine it with Value using Oper
+
+See K_Arg() for ArgName and ArgSelect. Supported operation are defined in ArgBindingOper. Value is a signed immediate constant.
+*/
+ArgBindingDescr_T *KG_ArgOper(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
+	int Value			/**< A signed immediate value */
+	);
+
 /* A user kernel group */
 /**
 @brief Declare a user kernel group
 
 Declare a user kernel group
 */
-void UserKernelGroup(char *GroupName,	/**< Group's name as in OpenKernelGroup() */
+void UserKernelGroup(
+	char *GroupName,		/**< Group's name as in OpenKernelGroup() */
        	CKernel_Arg_T **CArg,		/**< See Carg() and TCArg() */
        	CKernelCall_T **CCalls		/**< See Calls() and UserKernelCall() */
 	);
+
+KernelGroup_T *UserKernelGroupK(
+	char *GroupName,		/**< Group's name as in OpenKernelGroup() */
+	unsigned int IterCount,		/**< Number of time this group should be iterated, usually 1 but used for grouped convolution */
+       	CKernel_Arg_T **CArg,		/**< See Carg() and TCArg() */
+       	CKernelCall_T **CCalls,		/**< See Calls() and UserKernelCall() */
+        Object_T **KerArg		/**< Kernel Group arguments. Restricted to KerGroupArg() as argument of KerArgs() */
+	);
+
 /** @} */ // End of UserKernelGroup group
 
 /* CNN Graph */
@@ -973,10 +1095,25 @@ CNN Graph related functions
 @brief Set graph processing options
 
 Set graph processing options
+Possible Ctrl are:
+        AT_GRAPH_MONITOR_CYCLES,                Enable automatic cycle capture for each node of the graph, default is 0
+        AT_GRAPH_MONITOR_CVAR_NAME,             When monitor cycles is on name of the C var array to receive results, default is AT_GraphPerf
+        AT_GRAPH_PRODUCE_NODE_NAMES,            Enable production of an array containing the name of each graph node, default is 0 
+        AT_GRAPH_PRODUCE_NODE_CVAR_NAME,        When producing node names is on name of the C array receiving the names as strings, default is AT_GraphNodeNames
+        AT_GRAPH_PRODUCE_OPERINFOS,             Enable production of number of macs for each layer, default is 0
+        AT_GRAPH_PRODUCE_OPERINFOS_CVAR_NAME,   When Number of oper Infos is on name of the C array receiving mac infos for each node, default is AT_GraphOperInfosNames
+        AT_GRAPH_REORDER_CONSTANT_IN,           Enable reodering of constant inputs in order to transform 2D accesses into 1D accesses, default is 1
+        AT_GRAPH_TRACE_EXEC,                    Enable trace of activity, default is 1
+        AT_GRAPH_NOINLINE_NODE,                 If 1 all user kernel function is marked as noinline, default is 0
+        AT_GRAPH_PREF_L3_EXEC,                  In case a symbol must be allocated in L3 for execution this is the prefered memory, default is AT_MEM_L3_HRAM
+	AT_GRAPH_CONST_EXEC_FROM_FLASH,         If 1, for constant symbol executes from home location, default is 0
+        AT_GRAPH_PREF_L3_HOME,                  For constant symbols which L3 flash prefered memory, default is AT_MEM_L3_HFLASH
+
+For Val use Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val)
 */
 void AT_SetGraphCtrl(
 	AT_GraphCtrl_T Ctrl,	/**< Which option */
-	void *Val		/**< Value for this option */
+	void *Val		/**< Value for this option. Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val) */
 	);
 
 /**
@@ -1027,14 +1164,37 @@ void AddCallToNode(
 	ArgBindingDescr_T **FunArgs	/**< Function Argument list, use GArg */
 	);
 /**
-@brief Binds a given Graph node arg
+@brief Binds a given Graph node arg to a user kernel kernel argument 
 
-Binds a given Graph node arg
+Binds a given Graph node arg to a user kernel kernel argument 
 */
 ArgBindingDescr_T *GNodeArg(
-	GraghNodeArgT Type,		/**<  Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
-	char *ArgName,			/**<  Argument name, should be in internal or external graph variables */
-	char *AliasedArgName		/**<  In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	GraghNodeArgT Type,		/**< Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
+	char *ArgName,			/**< Argument name, should be in internal or external graph variables and a user kernel kernel argument */
+	char *AliasedArgName		/**< In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	);
+
+/**
+@brief Binds a given Graph node arg to a user kernel kernel C argument 
+
+Binds a given Graph node arg to a user kernel kernel C argument 
+*/
+ArgBindingDescr_T *GNodeCArg(
+	char *ArgName			/**< Argument name, should be an external graph variable and a user kernel C argument */
+	);
+
+
+/**
+@brief Binds a given Graph node arg applying an immediate operation to it
+
+Binds a given Graph node arg applying an immediate operation to it
+*/
+ArgBindingDescr_T *GNodeArgImmOper(
+	GraghNodeArgT Type,		/**< Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
+	char *ArgName,			/**< Argument name, should be in internal or external graph variables */
+	char *AliasedArgName,		/**< In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	char Oper,			/**< Offset operation to be applied */
+	int Value			/**< Offset value */
 	);
 
 /**
@@ -1072,18 +1232,44 @@ void GenerateCodeForCNNGraph(
 CNN Kernels operation related functions
 @{ */
 
-/**
-@brief Overides default behaviour of a CNN Generator
 
-Overides default behaviour of a CNN Generator
+/**
+@brief Initializes a CNN Generator control descriptor, all fields are set to default
+
+Initializes a CNN Generator control descriptor, all fields are set to default
 */
-CNN_GenControl_T *CNN_GenCtrl(
-        int TileOrientation,	/**< Controls tiling orientation. -1: use default, TILE_HOR or TILE_VER */
-	int PadType,		/**< Control padding strategy: left/right/balanced_left/balanced_right */
-        int ParallelFeatures,	/**< Control parallelization stratgey. -1: use default, 0: Each output feature is evaluated in parallel, 1: several output features are evalauted in parallel */
-        int ForceDPconv,	/**< Controls double precision option for convolution: -1: use default, 0: Disable double precision, 1: Enable double precision */
-        int UseHwCE		/**< Controls HWCE usage: -1: use default, 0: Disable HWCE, 1: Enable HWCE and use it if possible */
+void CNN_InitGenCtrl(
+	CNN_GenControl_T *Ctrl	/**< Address of a CNN generator control descriptor */
 	);
+
+/**
+@brief Overides default behaviour of a CNN Generator. Set one CNN generator control descriptor field described by it's name to Val
+
+Overides default behaviour of a CNN Generator. Set one CNN generator control descriptor field described by it's name to Val
+Name is case insensitive, list of names
+TileOrientation		Controls tiling orientation. -1: use default, TILE_HOR or TILE_VER
+ParallelFeatures	Controls parallelization strategy. -1: use default, 0: Each output feature is evaluated in parallel, 1: several output features are evalauted in parallel 
+ForcedDPConv		Controls double precision option for convolution: -1: use default, 0: Disable double precision, 1: Enable double precision
+UseHwCE			Controls HWCE usage: -1: use default, 0: Disable HWCE, 1: Enable HWCE and use it if possible
+PadType			Controls padding strategy: left/right/balanced_left/balanced_right
+EnableIm2Col		Controls if Matrix Multiply based convolution should be used when possible
+*/
+void CNN_SetGenCtrl(
+	CNN_GenControl_T *Ctrl,	/**< Address of a CNN generator control descriptor */
+	char *Name,		/**< Field name, case insensitive */
+	void *Val);		/**< Value, an integer or a string. Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val)  */
+
+/**
+@brief Overides default behaviour of a CNN Generator. Set list of CNN generator control descriptor fields (Name, Val) stops when Name = 0
+
+Overides default behaviour of a CNN Generator. Set list of CNN generator control descriptor fields (Name, Val) stops when Name = 0
+*/
+void CNN_SetGenCtrlList(
+	CNN_GenControl_T *Ctrl,	/**< Address of a CNN generator control descriptor */
+	...			/**< char *Name, void *Val pairs, stops when Name == 0 */
+	);
+
+
 
 /**
 @brief Create a CNN type size vector(4)
@@ -1095,6 +1281,7 @@ int *CNN_Type(
 	int I1,			/**< First operand type size in byte, 0 to ignore */
 	int I2,			/**< Second operand type size in byte, 0 to ignore */
 	int I3,			/**< Third operand type size in byte, 0 to ignore */
+	int I4,			/**< Fourth operand type size in byte, 0 to ignore */
 	int O);			/**< Output operand type size in byte, 0 to ignore */
 
 
@@ -1143,6 +1330,7 @@ char *CNN_FindMatchingKernel(
         int I1Size,		/**< Size in byte of the first input operand, 0 if not relevant. Order assumption: In,Filter,Bias,Out */
         int I2Size,		/**< Size in byte of the second input operand, 0 if not relevant */
         int I3Size,		/**< Size in byte of the third input operand, 0 if not relevant */
+        int I4Size,		/**< Size in byte of the fourth input operand, 0 if not relevant */
         int OSize,		/**< Size in byte of the output input operand, 0 if not relevant */
 
         int FX,			/**< If this operation is a filter, Filter X dimension, 0: not relevant, -1: All value are matching, >0 a specific dimension */

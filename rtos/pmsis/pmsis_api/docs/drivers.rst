@@ -76,6 +76,14 @@ I2C
     :private-members:
     :protected-members:
 
+I2S
+...
+
+.. doxygengroup:: I2S
+    :members:
+    :private-members:
+    :protected-members:
+
 Padframe
 ........
 

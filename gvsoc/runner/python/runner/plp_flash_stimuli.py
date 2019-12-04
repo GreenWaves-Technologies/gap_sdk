@@ -74,7 +74,7 @@ class Binary(object):
 
 class FlashImage(object):
 
-    def __init__(self, raw=None, stimuli=None, verbose=True, archi=None, encrypt=False, aesKey=None, aesIv=None, flashType='spi', qpi=True):
+    def __init__(self, raw=None, stimuli=None, verbose=True, archi=None, encrypt=False, aesKey=None, aesIv=None, flashType='spi', qpi=True, raw_fs=None):
 
         self.bootBinary = None
         self.raw = raw
@@ -92,6 +92,7 @@ class FlashImage(object):
         self.aesIv = aesIv
         self.flashType = flashType
         self.qpi = qpi
+        self.raw_fs = raw_fs
 
 
 
@@ -194,7 +195,15 @@ class FlashImage(object):
 
     def __dumpToBuff(self):
         self.__dumpBootBinaryToBuff()
-        self.__dumpCompsToBuff()
+        if self.raw_fs is not None:
+            self.__dump_raw_fs()
+        else:
+            self.__dumpCompsToBuff()
+
+    def __dump_raw_fs(self):
+        with open(self.raw_fs, 'rb') as file:
+            self.__appendBuffer(file.read())
+
 
     def __dumpFlashHeader_v1(self):
 
@@ -430,7 +439,7 @@ class FlashImage(object):
                         dumpByteToSlm(file, i, self.buff[i])
 
 
-def genFlashImage(slmStim=None, raw_stim=None, bootBinary=None, comps=[], verbose=False, archi=None, encrypt=False, aesKey=None, aesIv=None, flashType='spi', qpi=True):
+def genFlashImage(slmStim=None, raw_stim=None, bootBinary=None, comps=[], verbose=False, archi=None, encrypt=False, aesKey=None, aesIv=None, flashType='spi', qpi=True, raw_fs=None):
     if bootBinary != None or len(comps) != 0:
         if slmStim != None or raw_stim is not None:
             compsList = ''
@@ -448,6 +457,9 @@ def genFlashImage(slmStim=None, raw_stim=None, bootBinary=None, comps=[], verbos
                 cmd = "plp_mkflash %s %s --raw=%s --flash-type=%s" % (romBoot, compsList, raw_stim, flashType)
 
             if qpi: cmd+= ' --qpi'
+
+            if raw_fs is not None:
+             cmd+= ' --raw-fs=%s' % raw_fs
 
             if encrypt: cmd += ' --encrypt --aes-key=%s --aes-iv=%s' % (aesKey, aesIv)
 

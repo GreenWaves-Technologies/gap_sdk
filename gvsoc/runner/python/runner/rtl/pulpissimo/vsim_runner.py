@@ -22,4 +22,8 @@ class Runner(runner.Runner):
 
         self.set_param('ENTRY_POINT', '0x%x' % self.get_stim().get_entry())
 
+        if self.get_json().get('**/runner/peripherals') is not None:
+            self.set_arg('USE_24FC1025_MODEL', 1)
+
+
         return super(Runner, self).run()

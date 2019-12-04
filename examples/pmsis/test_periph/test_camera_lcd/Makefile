@@ -10,10 +10,6 @@ ifeq ($(ASYNC), 1)
 APP_CFLAGS      += -DASYNC
 endif
 
-override runner_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
-override runner_args += --config-opt=display/enabled=true
-
-
 ifeq ($(BOARD_NAME), gapuino)
 APP_CFLAGS      += -DHIMAX
 endif
@@ -22,6 +18,9 @@ ifeq ($(BRIDGE), 1)
 APP_CFLAGS += -DUSE_BRIDGE
 PLPBRIDGE_FLAGS += -fileIO 2
 endif
+
+override runner_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
+override runner_args += --config-opt=display/enabled=true
 
 RUNNER_CONFIG = $(CURDIR)/config.ini
 

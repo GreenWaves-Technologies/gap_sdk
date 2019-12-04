@@ -32,8 +32,7 @@
 #define __PMU_GAP8_H__
 
 #include "pmsis.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
-#include "pmsis_hal/fll/pmsis_fll.h"
+#include "pmsis_hal/pmsis_hal.h"
 #include "pmsis_pmu.h"
 
 /*!

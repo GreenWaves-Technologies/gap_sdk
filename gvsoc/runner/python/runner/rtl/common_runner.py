@@ -39,6 +39,7 @@ class Runner(Platform):
         super(Runner, self).__init__(config, js_config)
         
         self.params = {}
+        self.args = {}
 
         parser = config.getParser()
 
@@ -103,6 +104,12 @@ class Runner(Platform):
 
     def get_params(self):
         return self.params
+
+    def set_arg(self, name, value):
+        self.args[name] = value
+
+    def get_args(self):
+        return self.args
 
     def get_stim(self):
         return self.stim

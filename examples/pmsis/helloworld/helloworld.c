@@ -24,7 +24,7 @@ void cluster_delegate(void *arg)
     printf("Cluster master core entry\n");
     /* Task dispatch to cluster cores. */
     cl_sync_init_spinlock(&spinlock, &tas_addr);
-    pi_cl_team_fork(pi_nb_cluster_cores(), cluster_helloworld, arg);
+    pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_helloworld, arg);
     printf("Cluster master core exit\n");
 }
 

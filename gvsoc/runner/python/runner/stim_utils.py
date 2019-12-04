@@ -396,11 +396,22 @@ class Efuse(object):
           flash_id = self.config.get_child_bool('**/efuse/flash_id')
           fll_assert_cycles = self.config.get_child_int('**/efuse/fll/assert_cycles')
           fll_lock_tolerance = self.config.get_child_int('**/efuse/fll/lock_tolerance')
+          hyper_delay = self.config.get_child_int('**/efuse/hyper/delay')
+          hyper_latency = self.config.get_child_int('**/efuse/hyper/latency')
+
+          if hyper_delay is None:
+            hyper_delay = 3
+
           efuses = [0] * 128
           info3 = 0
           info2 = 0
           info6 = 0
-          info7 = 1 # Don't use UDMA MEMCPY as it makes RTL platform crash
+          info5 = 0
+
+          if self.config.get_child_str('**/vsim/model') == 'rtl':
+            info7 = 1 # Don't use UDMA MEMCPY as it makes RTL platform crash
+          else:
+            info7 = 0
           if load_mode == 'rom':
             # RTL platform | flash boot | no encryption | no wait xtal
             load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
@@ -409,6 +420,7 @@ class Efuse(object):
             load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
             # Hyperflash type
             info3 = (1 << 0)
+            info7 |= (1 << 2) # Partially reconfigure pads to overcome HW issue with rwds cg latch
           elif load_mode == 'rom_spim':
             # RTL platform | flash boot | no encryption | no wait xtal
             load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
@@ -436,6 +448,14 @@ class Efuse(object):
             efuses[35] = 0
             efuses[36] = 0
 
+          if hyper_delay is not None:
+            info5 |= (1<<6)
+            efuses[32] |= hyper_delay
+
+          if hyper_latency is not None:
+            info5 |= (1<<7)
+            efuses[51] |= hyper_latency
+
 
           if fll_lock_tolerance is not None or fll_assert_cycles is not None:
             info2 |= (1<< 1)
@@ -450,7 +470,7 @@ class Efuse(object):
               efuses[27] = (delta >> 8) & 0xff
               efuses[28] = xtal_check_min & 0xff
               efuses[29] = (xtal_check_min >> 8) & 0xff
-              efuses[30] = xtal_check_max & 0xff
+              efuses[30] |= xtal_check_max & 0xff
               efuses[31] = (xtal_check_max >> 8) & 0xff
 
           if load_mode_hex != None:
@@ -467,7 +487,7 @@ class Efuse(object):
           efuses[1] = info2
           efuses[37] = info3
           efuses[38] = 0
-          efuses[39] = 0     
+          efuses[39] = info5    
           efuses[40] = info6
           efuses[60] = info7
                   

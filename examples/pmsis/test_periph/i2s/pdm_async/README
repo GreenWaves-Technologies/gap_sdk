@@ -1,0 +1,3 @@
+This example shows how to capture PDM samples asynchronously using callbacks.
+It can be run on the board with command "make all run" or on gvsoc with command "make all gen run platform=gvsoc".
+On gvsoc, the Makefile is generating wav files, which are given to the microphone model to generate the input I2S stream.

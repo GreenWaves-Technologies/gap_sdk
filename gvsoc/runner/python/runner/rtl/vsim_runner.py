@@ -124,11 +124,15 @@ class Runner(runner.Runner):
             for param, key in self.get_params().items():
                 tcl_args.append('+%s=%s' % (param, key))
 
+            for param, key in self.get_args().items():
+                tcl_args.append('-g%s=%s' % (param, key))
+
             recordwlf = self.get_json().get_child_str('**/vsim/recordwlf')
             vsimdofile = self.get_json().get_child_str('**/vsim/dofile')
             enablecov = self.get_json().get_child_str('**/vsim/enablecov')
             enableJtagTargetSync = self.get_json().get_child_str('**/vsim/enableJtagTargetSync')
             vopt_args = self.get_json().get_child_str('**/vsim/vopt_args')
+            model = self.get_json().get_child_str('**/vsim/model')
             if self.get_json().get_child_str('**/chip/name') == 'vega':
                 if os.environ.get('USE_NETLIST'):
                     if os.environ.get('USE_PGPIN_NETLIST'):
@@ -162,13 +166,28 @@ class Runner(runner.Runner):
                         vsim_args.append("-do 'source %s/tcl_files/disable_tcheck_fll.do'" % (self.__get_rtl_path()))                    
                         vsim_args.append("-do 'source %s/tcl_files/%s; set_tcheck; run_and_exit;'" % (self.__get_rtl_path(), vsim_script))
             else:
-                if gui:
-                    vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
-                    vsim_args.append("-do 'source %s/tcl_files/%s; '" % (self.__get_rtl_path(), vsim_script))
+                if model == 'pgpin':
+                    os.environ['USE_NETLIST'] = '1'
+                    os.environ['USE_PGPIN_NETLIST'] = '1'
+                    if gui:
+                        vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/go_5_dec.tcl; '" % (self.__get_rtl_path()))
+                        vsim_args.append("-do 'source %s/tcl_files/run.tcl; set_osi_pgpin_netlist_tcheck; '" % (self.__get_rtl_path()))
+                    else:
+                        vsim_args.append("-c")
+                        vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/go_5_dec.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/run.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/exec_pgpin.tcl'" % self.__get_rtl_path())
+
                 else:
-                    vsim_args.append("-c")
-                    vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
-                    vsim_args.append("-do 'source %s/tcl_files/%s; run_and_exit;'" % (self.__get_rtl_path(), vsim_script))
+                    if gui:
+                        vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/%s; '" % (self.__get_rtl_path(), vsim_script))
+                    else:
+                        vsim_args.append("-c")
+                        vsim_args.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_rtl_path())
+                        vsim_args.append("-do 'source %s/tcl_files/%s; run_and_exit;'" % (self.__get_rtl_path(), vsim_script))
 
             if not self.get_json().get('**/runner/boot_from_flash').get():
                 tcl_args.append('-gLOAD_L2=JTAG')

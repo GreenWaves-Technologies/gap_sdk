@@ -29,7 +29,7 @@
  */
 
 #include "pmsis.h"
-#include "pmsis_hal/soc_eu/pmsis_soc_eu.h"
+#include "pmsis_hal/pmsis_hal.h"
 
 /*******************************************************************************
  * Definitions

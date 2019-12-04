@@ -4,8 +4,12 @@
   "board": {
     "name": "gapoc_a",
     "devices": {
-      "hyper": {
-        "include" : "devices/hyper.json",
+      "flash": {
+        "include" : "devices/hyperflash.json",
+        "cs": 1
+      },
+      "ram": {
+        "include" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
@@ -23,6 +27,14 @@
     }
   },
 
+  "runner": {
+    "config": {
+      "boot-mode": "rom_hyper",
+      "flash_type": "hyper",
+      "default_profile": "hyper"
+    }
+  },
+
   "rt": {
     "config": {
       "bsp": true
@@ -32,9 +44,12 @@
   "debug_bridge": {
     "config": {
       "cable": {
+        "type": "ftdi",
         "system_reset_gpio": 9,
         "jtag_reset_gpio": 8,
-        "reverse_reset": false
+        "reverse_reset": false,
+        "vendor": "0x15ba",
+        "product": "0x002b"
       }
     }
   }

@@ -39,6 +39,12 @@ namespace vp {
 
   public:
 
+    static const int LEVEL_ERROR   = 0;
+    static const int LEVEL_WARNING = 1;
+    static const int LEVEL_INFO    = 2;
+    static const int LEVEL_DEBUG   = 3;
+    static const int LEVEL_TRACE   = 4;
+
     inline void msg(int level, const char *fmt, ...);
     inline void msg(const char *fmt, ...);
     inline void user_msg(const char *fmt, ...);

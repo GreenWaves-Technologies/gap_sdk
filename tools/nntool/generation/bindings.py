@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 
 from .code_generators import (gen_gnode_arg, gen_imm_arg, gen_at_bindings,
-                              gen_at_func_bindings, gen_g_arg)
+                              gen_at_func_bindings, gen_g_node_c_arg)
 
 TT_TENSOR_TYPES = {
     'TT_INPUT': 0,
@@ -31,7 +31,7 @@ class GArgEdge(Binding):
         self.eparams = eparams
 
     def gen_binding(self, generator):
-        return gen_g_arg(generator.get_edge_name(self.eparams))
+        return gen_g_node_c_arg(generator.get_edge_name(self.eparams))
 
 class GArgNode(Binding):
     def __init__(self, node, target):
@@ -39,7 +39,7 @@ class GArgNode(Binding):
         self.target = target
 
     def gen_binding(self, generator):
-        return gen_g_arg(generator.get_node_name(self.node, self.target))
+        return gen_g_node_c_arg(generator.get_node_name(self.node, self.target))
 
 class GNodeArgEdge(GNodeArg):
     def __init__(self, eparams, direction="GNA_IN"):

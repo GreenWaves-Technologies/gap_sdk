@@ -14,6 +14,8 @@ from .matcher import DefaultMatcher
 LOG = logging.getLogger("nntool." + __name__)
 
 class MatchFusePad(DefaultMatcher):
+    NAME='fuse_pad'
+    DESCRIPTION='Fuse pad operation to subsequent Convolution or Pool'
     def has_no_padding(self, node):
         return node.padding.size() == 0
 

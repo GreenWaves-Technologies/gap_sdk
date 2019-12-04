@@ -22,11 +22,13 @@ FLAG_FLASH=0
 FLAG_SCRIPT=0
 # A flag for choosing the boot mode: 0-Noboot, 1-jtag, 2-hyper
 FLAG_BOOT=0
+FLAG_NORUN=0
+FLAG_NOFLASH=0
 
 #Parameters of bridge
 verbose=2
 fileio=0
-if [ "$BOARD_NAME" == "gapoc_a" ]
+if [ "$BOARD_NAME" = "gapoc_a" ];
 then
     cable=ftdi
 else
@@ -42,7 +44,11 @@ buildFlashImage=""
 
 if [ "$#" -eq 0 ]
 then
-    plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start wait &
+    if [ -n "$GAP_USE_OPENOCD" ]; then
+        openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
+    else
+        plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start wait &
+    fi
     pid_bridge=$!
 else
     while [ "$#" -gt 0 ]
@@ -59,6 +65,12 @@ else
                 gdb=gdb
                 ;;
             #Mode using flasher
+            -norun)
+                FLAG_NORUN=1
+                ;;
+            -noflash)
+                FLAG_NOFLASH=1
+                ;;
             -f)
                 FLAG_FLASH=1
                 buildFlashImage="flashImageBuilder --verbose --flash-boot-binary=test --raw=flashImg.raw"
@@ -96,25 +108,40 @@ else
     done
 
     # Now we can produce the flash image, flash the file and reboot if necessary
-    if [ "$FLAG_FLASH" -eq "1" ]
-    then
-        eval $buildFlashImage
-        plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=$TARGET_NAME flash wait
+    if [ -n "$GAP_USE_OPENOCD" ]; then
+        if [ "$FLAG_FLASH" -eq "1" ]
+        then
+            if [ "$FLAG_NOFLASH" -eq "0" ]; then
+                eval $buildFlashImage
+                openocd-flasher flashImg.raw
+            fi
+            if [ "$FLAG_NORUN" -eq "0" ]; then
+                openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
+            fi
+        fi
+    else
+        if [ "$FLAG_FLASH" -eq "1" ]
+        then
+            eval $buildFlashImage
+            plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=$TARGET_NAME flash wait
+        fi
+        if [ "$FLAG_SCRIPT" -eq "0" ]
+        then
+            plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start $gdb wait $script &
+            pid_bridge=$!
+        fi
     fi
+fi
+
+if [ -z "$GAP_USE_OPENOCD" ]; then
+    if [ "$fileio" -gt 0 ]
+    then
+        sleep $fileio
+        plpbridge-rt --verbose=$verbose $binary --chip=$TARGET_NAME&
+    fi
+
     if [ "$FLAG_SCRIPT" -eq "0" ]
     then
-        plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start $gdb wait $script &
-        pid_bridge=$!
+       wait $pid_bridge
     fi
-
-fi
-if [ "$fileio" -gt 0 ]
-then
-    sleep $fileio
-    plpbridge-rt --verbose=$verbose $binary --chip=$TARGET_NAME&
-fi
-
-if [ "$FLAG_SCRIPT" -eq "0" ]
-then
-   wait $pid_bridge
 fi

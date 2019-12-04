@@ -22,9 +22,9 @@
 /**
  * @defgroup BLE BLE
  *
- * The nina_b112 driver provides supprt for for data transfer using a BLE module,
+ * The nina_b112 driver provides support for for data transfer using a BLE module,
  * here a NINA B112 BLE module.
- * This module is interfaced on GAPOC through UART.
+ * This module is interfaced on GAPPOC through UART.
  */
 
 /**
@@ -65,7 +65,7 @@ typedef struct
 /* @brief AT command's response state. */
 typedef enum _at_resp_state
 {
-    PI_AT_RESP_NOT_STARTED,     /*!< Response not received yet fron BLE module.  */
+    PI_AT_RESP_NOT_STARTED,     /*!< Response not received yet from BLE module.  */
     PI_AT_RESP_IN_PROGRESS,     /*!< Response transmission has started. */
     PI_AT_RESP_DONE             /*!< Response transmission received, with end of resp. */
 } at_resp_state_t;
@@ -73,9 +73,9 @@ typedef enum _at_resp_state
 /*! @brief Response type received for an AT command. */
 typedef enum
 {
-    WR_RES_OK    = 0,          /*!< OK repsonse. */
+    WR_RES_OK    = 0,          /*!< OK reponse. */
     WR_RES_ERR   = -1,         /*!< ERROR response. */
-    WR_RES_UNSOL = -2,         /*!< UNSOLLICITED_RESPONSE response. */
+    WR_RES_UNSOL = -2,         /*!< UNSOLICITED_RESPONSE response. */
     WR_RES_NA    = -3          /*!< Non authorized response. */
 } write_res_t;
 
@@ -87,9 +87,9 @@ typedef void (*ble_callback_f)(void *arg);
  ******************************************************************************/
 
 /**
- * @brief Initialize ble configuration.
+ * @brief Initialize BLE configuration.
  *
- * This function initializes a ble module, opening IO interface(UART here).
+ * This function initializes a BLE module, opening IO interface(UART here).
  *
  * @param ble            Structure holding IO device.
  *
@@ -98,12 +98,12 @@ typedef void (*ble_callback_f)(void *arg);
 void pi_nina_b112_conf_init(pi_nina_ble_t *ble);
 
 /**
- * @brief Open ble module.
+ * @brief Open BLE module.
  *
- * This function initializes and sets up a ble module.
- * It does all the needed configuration to enable the ble module(buffer allocation,
- * opening IO interface,...).
- * Thus this function must be called before using ble module.
+ * This function initializes and sets up a BLE module.
+ * It does all the needed configuration to enable the BLE module(buffer allocation,
+ * opening IO interface, etc.).
+ * Thus this function must be called before using BLE module.
  *
  * @param ble            Structure holding IO device.
  *
@@ -113,10 +113,10 @@ void pi_nina_b112_conf_init(pi_nina_ble_t *ble);
 int32_t pi_nina_b112_open(pi_nina_ble_t *ble);
 
 /**
- * @brief Close ble module.
+ * @brief Close BLE module.
  *
- * This function closes a ble module.
- * This function should be called to a ble module once it is not needed and to
+ * This function closes a BLE module.
+ * This function should be called to a BLE module once it is not needed and to
  * free allocated objects.
  *
  * @param ble            Structure holding IO device.
@@ -124,25 +124,25 @@ int32_t pi_nina_b112_open(pi_nina_ble_t *ble);
 void pi_nina_b112_close(pi_nina_ble_t *ble);
 
 /**
- * @brief Send an AT command to ble module.
+ * @brief Send an AT command to BLE module.
  *
- * This function sends an AT command to a ble module.
+ * This function sends an AT command to a BLE module.
  *
  * @param ble            Structure holding IO device.
  * @param cmd            Command to send.
  *
  * @note This function is used by pi_nina_b112_AT_send(). pi_nina_b112_AT_send()
  * should be used to send AT commands since this function does not handle
- * responses sent by ble module.
+ * responses sent by BLE module.
  */
 void pi_nina_b112_AT_cmd_send(pi_nina_ble_t *ble, const char* cmd);
 
 /**
- * @brief Send an AT command to ble module.
+ * @brief Send an AT command to BLE module.
  *
- * This function sends an AT command to a ble module, and waits for response
- * from ble module.
- * This function should be used to configure ble module(name, baudrate,...).
+ * This function sends an AT command to a BLE module, and waits for response
+ * from BLE module.
+ * This function should be used to configure BLE module(name, baudrate,...).
  *
  * @param ble            Structure holding IO device.
  * @param cmd            Command to send.
@@ -151,14 +151,14 @@ void pi_nina_b112_AT_cmd_send(pi_nina_ble_t *ble, const char* cmd);
  * @retval WR_RES_ERROR  in case an error occurred.
  * @retval WR_RES_UNSOL  Response sent when not waiting for a response.
  *
- * @note Use this function to configure ble module instead of pi_nina_b112_AT_cmd_send().
+ * @note Use this function to configure BLE module instead of pi_nina_b112_AT_cmd_send().
  */
 uint32_t pi_nina_b112_AT_send(pi_nina_ble_t *ble, const char* cmd);
 
 /**
- * @brief Send an AT command request to ble module, and expect a response.
+ * @brief Send an AT command request to BLE module, and expect a response.
  *
- * This function sends an AT command request to a ble module, and it should return a response
+ * This function sends an AT command request to a BLE module, and it should return a response
  * for the command request.
  *
  * @param ble            Structure holding IO device.
@@ -168,9 +168,9 @@ uint32_t pi_nina_b112_AT_send(pi_nina_ble_t *ble, const char* cmd);
 void pi_nina_b112_AT_query(pi_nina_ble_t *ble, const char* cmd, char* resp);
 
 /**
- * @brief Wait for a (unsollicited) response.
+ * @brief Wait for a (unsolicited) response.
  *
- * This function sends an AT command request to a ble module, and it should return a response
+ * This function sends an AT command request to a BLE module, and it should return a response
  * for the command request.
  *
  * @param ble            Structure holding IO device.
@@ -179,9 +179,9 @@ void pi_nina_b112_AT_query(pi_nina_ble_t *ble, const char* cmd, char* resp);
 void pi_nina_b112_wait_for_event(pi_nina_ble_t *ble, char* resp);
 
 /**
- * @brief Get data from ble module. Blocking API.
+ * @brief Get data from BLE module. Blocking API.
  *
- * This function is used to retrieve data from ble module. The data is stored
+ * This function is used to retrieve data from BLE module. The data is stored
  * into given buffer.
  *
  * @param ble            Structure holding IO device.
@@ -195,9 +195,9 @@ void pi_nina_b112_get_data_blocking(pi_nina_ble_t *ble, uint8_t* buffer,
                                     uint32_t size);
 
 /**
- * @brief Get data from ble module. Non blocking API.
+ * @brief Get data from BLE module. Non blocking API.
  *
- * This function is used to retrieve data from ble module. The data is stored
+ * This function is used to retrieve data from BLE module. The data is stored
  * into given buffer.
  * Given struct pi_task can be used to wait end of transfer if needed.
  *
@@ -213,9 +213,9 @@ void pi_nina_b112_get_data(pi_nina_ble_t *ble, uint8_t* buffer,
                            uint32_t size, struct pi_task *task);
 
 /**
- * @brief Send data to ble module. Blocking API.
+ * @brief Send data to BLE module. Blocking API.
  *
- * This function is used to send data to ble module.
+ * This function is used to send data to BLE module.
  *
  * @param ble            Structure holding IO device.
  * @param buffer         Buffer to send.
@@ -228,9 +228,9 @@ void pi_nina_b112_send_data_blocking(pi_nina_ble_t *ble, const uint8_t* buffer,
                                      uint32_t size);
 
 /**
- * @brief Send data from ble module. Non blocking API.
+ * @brief Send data from BLE module. Non blocking API.
  *
- * This function is used to send data to ble module.
+ * This function is used to send data to BLE module.
  * Given struct pi_task can be used to wait end of transfer if needed.
  *
  * @param ble            Structure holding IO device.
@@ -247,7 +247,7 @@ void pi_nina_b112_send_data(pi_nina_ble_t *ble, const uint8_t* buffer, uint32_t 
  * @brief Exit data mode when entered.
  *
  * This function should be used to exit data mode. Data mode is entered after
- * ble module's configuration. In data mode, AT commands can not be sent, only
+ * BLE module's configuration. In data mode, AT commands can not be sent, only
  * data can be sent.
  *
  * @param ble            Structure holding IO device.

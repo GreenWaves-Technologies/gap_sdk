@@ -36,11 +36,7 @@
  *                 CMSIS definitions
  ******************************************************************************/
 #define CLUSTER_ID                    0                 /**< CLuster ID */
-#if defined(__GAP8__)
 #define CLUSTER_CORES_NUM             8                 /**< CLuster cores number */
-#elif defined(__GAP9__)
-#define CLUSTER_CORES_NUM             9                 /**< CLuster cores number */
-#endif
 
 #define CLUSTER_HW_MUTEX_NUM           1
 /** SoC events statically reserved by the runtime*/

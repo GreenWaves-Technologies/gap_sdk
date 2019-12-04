@@ -1,59 +1,31 @@
 /*
-** ###################################################################
-**     Processors:          GAP8
-**
-**     Compilers:           GNU C Compiler
-**
-**     Reference manual:    riscv-spec-v2.1, January 2017
-**     Version:             rev. 2.9, 2017-07-19
-**
-**     Abstract:
-**         CMSIS Peripheral Access Layer for GAP8
-**
-**     Copyright (c) 2015 - 2018 GreenWave Technologies, Inc.
-**     All rights reserved.
-**
-**     Redistribution and use in source and binary forms, with or without modification,
-**     are permitted provided that the following conditions are met:
-**
-**     o Redistributions of source code must retain the above copyright notice, this list
-**       of conditions and the following disclaimer.
-**
-**     o Redistributions in binary form must reproduce the above copyright notice, this
-**       list of conditions and the following disclaimer in the documentation and/or
-**       other materials provided with the distribution.
-**
-**     o Neither the name of GreenWaves Technologies, Inc. nor the names of its
-**       contributors may be used to endorse or promote products derived from this
-**       software without specific prior written permission.
-**
-**     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-**     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-**     WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-**     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-**     ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-**     (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-**     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-**     ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-**     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-**     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-**
-**     http:                 http://greenwaves-technologies.com
-**     mail:                 jie.chen@greenwaves-technologies.com
-**
-**     Revisions:
-**     - rev. 1.0 (2017-07-19)
-**         Initial version.
-** ###################################################################
-*/
-
-/*!
- * @file GAP8.h
- * @version 1.0
- * @date 2017-07-19
- * @brief CMSIS Peripheral Access Layer for GAP8
+ * Copyright (c) 2018, GreenWaves Technologies, Inc.
+ * All rights reserved.
  *
- * CMSIS Peripheral Access Layer for GAP8
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * o Redistributions of source code must retain the above copyright notice, this list
+ *   of conditions and the following disclaimer.
+ *
+ * o Redistributions in binary form must reproduce the above copyright notice, this
+ *   list of conditions and the following disclaimer in the documentation and/or
+ *   other materials provided with the distribution.
+ *
+ * o Neither the name of GreenWaves Technologies, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived from this
+ *   software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef _PMSIS_PERIPH_GAP8_H_
@@ -636,133 +608,8 @@ typedef struct {
 /* ----------------------------------------------------------------------------
    -- I2S Peripheral Access Layer
    ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup I2S_Peripheral_Access_Layer I2S Peripheral Access Layer
- * @{
- */
-
-/** I2S - Register Layout Typedef */
-typedef struct {
-  UDMA_Type      UDMA_I2S;                         /**< I2S UDMA general register, offset: 0x0 */
-  __IO  uint32_t EXT;                              /**< I2S external clock configuration register, offset: 0x20 */
-  __IO  uint32_t CFG_CLKGEN0;                      /**< I2S clock/WS generator 0 configuration register, offset: 0x24 */
-  __IO  uint32_t CFG_CLKGEN1;                      /**< I2S clock/WS generator 1 configuration register, offset: 0x28 */
-  __IO  uint32_t CHMODE;                           /**< I2S channels mode configuration register, offset: 0x2C */
-  __IO  uint32_t FILT_CH0;                         /**< I2S channels 0 filtering configuration register, offset: 0x30 */
-  __IO  uint32_t FILT_CH1;                         /**< I2S channels 0 filtering configuration register, offset: 0x34 */
-} I2S_Type;
-
-/* ----------------------------------------------------------------------------
-   -- I2S Register Masks
-   ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup I2S_Register_Masks I2S Register Masks
- * @{
- */
-/*! @name EXT - I2S external clock configuration Register */
-#define I2S_EXT_BITS_WORD_MASK                        (0x1FU)
-#define I2S_EXT_BITS_WORD_SHIFT                       (0U)
-#define I2S_EXT_BITS_WORD(x)                          (((uint32_t)(((uint32_t)(x)) << I2S_EXT_BITS_WORD_SHIFT)) & I2S_EXT_BITS_WORD_MASK)
-
-/*! @name CFG_CLKGEN0 - I2S clock/WS generator 0 configuration Register */
-#define I2S_CFG_CLKGEN0_BITS_WORD_MASK                (0x1FU)
-#define I2S_CFG_CLKGEN0_BITS_WORD_SHIFT               (0U)
-#define I2S_CFG_CLKGEN0_BITS_WORD(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN0_BITS_WORD_SHIFT)) & I2S_CFG_CLKGEN0_BITS_WORD_MASK)
-#define I2S_CFG_CLKGEN0_CLK_EN_MASK                   (0x100U)
-#define I2S_CFG_CLKGEN0_CLK_EN_SHIFT                  (8U)
-#define I2S_CFG_CLKGEN0_CLK_EN(x)                     (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN0_CLK_EN_SHIFT)) & I2S_CFG_CLKGEN0_CLK_EN_MASK)
-#define I2S_CFG_CLKGEN0_CLK_DIV_MASK                  (0xFFFF0000U)
-#define I2S_CFG_CLKGEN0_CLK_DIV_SHIFT                 (16U)
-#define I2S_CFG_CLKGEN0_CLK_DIV(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN0_CLK_DIV_SHIFT)) & I2S_CFG_CLKGEN0_CLK_DIV_MASK)
-
-/*! @name CFG_CLKGEN1 - I2S clock/WS generator 1 configuration Register */
-#define I2S_CFG_CLKGEN1_BITS_WORD_MASK                (0x1FU)
-#define I2S_CFG_CLKGEN1_BITS_WORD_SHIFT               (0U)
-#define I2S_CFG_CLKGEN1_BITS_WORD(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN1_BITS_WORD_SHIFT)) & I2S_CFG_CLKGEN1_BITS_WORD_MASK)
-#define I2S_CFG_CLKGEN1_CLK_EN_MASK                   (0x100U)
-#define I2S_CFG_CLKGEN1_CLK_EN_SHIFT                  (8U)
-#define I2S_CFG_CLKGEN1_CLK_EN(x)                     (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN1_CLK_EN_SHIFT)) & I2S_CFG_CLKGEN1_CLK_EN_MASK)
-#define I2S_CFG_CLKGEN1_CLK_DIV_MASK                  (0xFFFF0000U)
-#define I2S_CFG_CLKGEN1_CLK_DIV_SHIFT                 (16U)
-#define I2S_CFG_CLKGEN1_CLK_DIV(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CFG_CLKGEN1_CLK_DIV_SHIFT)) & I2S_CFG_CLKGEN1_CLK_DIV_MASK)
-
-/*! @name CHMODE - I2S channels mode configuration Register */
-#define I2S_CHMODE_CH0_SNAP_CAM_MASK                (0x1U)
-#define I2S_CHMODE_CH0_SNAP_CAM_SHIFT               (0U)
-#define I2S_CHMODE_CH0_SNAP_CAM(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_SNAP_CAM_SHIFT)) & I2S_CHMODE_CH0_SNAP_CAM_MASK)
-#define I2S_CHMODE_CH0_LSB_FIRST_MASK               (0x10U)
-#define I2S_CHMODE_CH0_LSB_FIRST_SHIFT              (4U)
-#define I2S_CHMODE_CH0_LSB_FIRST(x)                 (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_LSB_FIRST_SHIFT)) & I2S_CHMODE_CH0_LSB_FIRST_MASK)
-#define I2S_CHMODE_CH0_PDM_USEFILTER_MASK           (0x100U)
-#define I2S_CHMODE_CH0_PDM_USEFILTER_SHIFT          (8U)
-#define I2S_CHMODE_CH0_PDM_USEFILTER(x)             (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_PDM_USEFILTER_SHIFT)) & I2S_CHMODE_CH0_PDM_USEFILTER_MASK)
-#define I2S_CHMODE_CH0_PDM_EN_MASK                  (0x1000U)
-#define I2S_CHMODE_CH0_PDM_EN_SHIFT                 (12U)
-#define I2S_CHMODE_CH0_PDM_EN(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_PDM_EN_SHIFT)) & I2S_CHMODE_CH0_PDM_EN_MASK)
-#define I2S_CHMODE_CH0_USEDDR_MASK                  (0x10000U)
-#define I2S_CHMODE_CH0_USEDDR_SHIFT                 (16U)
-#define I2S_CHMODE_CH0_USEDDR(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_USEDDR_SHIFT)) & I2S_CHMODE_CH0_USEDDR_MASK)
-#define I2S_CHMODE_CH0_MODE_MASK                    (0x3000000U)
-#define I2S_CHMODE_CH0_MODE_SHIFT                   (24U)
-#define I2S_CHMODE_CH0_MODE(x)                      (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH0_MODE_SHIFT)) & I2S_CHMODE_CH0_MODE_MASK)
-
-#define I2S_CHMODE_CH1_SNAP_CAM_MASK                (0x2U)
-#define I2S_CHMODE_CH1_SNAP_CAM_SHIFT               (1U)
-#define I2S_CHMODE_CH1_SNAP_CAM(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_SNAP_CAM_SHIFT)) & I2S_CHMODE_CH1_SNAP_CAM_MASK)
-#define I2S_CHMODE_CH1_LSB_FIRST_MASK               (0x20U)
-#define I2S_CHMODE_CH1_LSB_FIRST_SHIFT              (5U)
-#define I2S_CHMODE_CH1_LSB_FIRST(x)                 (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_LSB_FIRST_SHIFT)) & I2S_CHMODE_CH1_LSB_FIRST_MASK)
-#define I2S_CHMODE_CH1_PDM_USEFILTER_MASK           (0x200U)
-#define I2S_CHMODE_CH1_PDM_USEFILTER_SHIFT          (9U)
-#define I2S_CHMODE_CH1_PDM_USEFILTER(x)             (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_PDM_USEFILTER_SHIFT)) & I2S_CHMODE_CH1_PDM_USEFILTER_MASK)
-#define I2S_CHMODE_CH1_PDM_EN_MASK                  (0x2000U)
-#define I2S_CHMODE_CH1_PDM_EN_SHIFT                 (13U)
-#define I2S_CHMODE_CH1_PDM_EN(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_PDM_EN_SHIFT)) & I2S_CHMODE_CH1_PDM_EN_MASK)
-#define I2S_CHMODE_CH1_USEDDR_MASK                  (0x20000U)
-#define I2S_CHMODE_CH1_USEDDR_SHIFT                 (17U)
-#define I2S_CHMODE_CH1_USEDDR(x)                    (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_USEDDR_SHIFT)) & I2S_CHMODE_CH1_USEDDR_MASK)
-#define I2S_CHMODE_CH1_MODE_MASK                    (0xC000000U)
-#define I2S_CHMODE_CH1_MODE_SHIFT                   (26U)
-#define I2S_CHMODE_CH1_MODE(x)                      (((uint32_t)(((uint32_t)(x)) << I2S_CHMODE_CH1_MODE_SHIFT)) & I2S_CHMODE_CH1_MODE_MASK)
-
-/*! @name FILT_CH0 - I2S channels 0 filtering configuration Register */
-#define I2S_FILT_CH0_DECIMATION_MASK                (0x3FFU)
-#define I2S_FILT_CH0_DECIMATION_SHIFT               (0U)
-#define I2S_FILT_CH0_DECIMATION(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_FILT_CH0_DECIMATION_SHIFT)) & I2S_FILT_CH0_DECIMATION_MASK)
-#define I2S_FILT_CH0_SHIFT_MASK                     (0x70000U)
-#define I2S_FILT_CH0_SHIFT_SHIFT                    (16U)
-#define I2S_FILT_CH0_SHIFT(x)                       (((uint32_t)(((uint32_t)(x)) << I2S_FILT_CH0_SHIFT_SHIFT)) & I2S_FILT_CH0_SHIFT_MASK)
-
-/*! @name FILT_CH1 - I2S channels 0 filtering configuration Register */
-#define I2S_FILT_CH1_DECIMATION_MASK                (0x3FFU)
-#define I2S_FILT_CH1_DECIMATION_SHIFT               (0U)
-#define I2S_FILT_CH1_DECIMATION(x)                  (((uint32_t)(((uint32_t)(x)) << I2S_FILT_CH1_DECIMATION_SHIFT)) & I2S_FILT_CH1_DECIMATION_MASK)
-#define I2S_FILT_CH1_SHIFT_MASK                     (0x70000U)
-#define I2S_FILT_CH1_SHIFT_SHIFT                    (16U)
-#define I2S_FILT_CH1_SHIFT(x)                       (((uint32_t)(((uint32_t)(x)) << I2S_FILT_CH1_SHIFT_SHIFT)) & I2S_FILT_CH1_SHIFT_MASK)
-
-/*!
- * @}
- */ /* end of group I2S_Register_Masks */
-
-
-/* I2S - Peripheral instance base addresses */
-/** Peripheral I2S base address */
-#define I2S_BASE                                 (UDMA_BASE + 8 * 128U)
-/** Peripheral I2S base pointer */
-#define I2S                                      ((I2S_Type *)I2S_BASE)
-/** Array initializer of I2S peripheral base addresses */
-#define I2S_BASE_ADDRS                           { I2S_BASE }
-/** Array initializer of I2S peripheral base pointers */
-#define I2S_BASE_PTRS                            { I2S }
-/** Interrupt vectors for the I2S peripheral type */
-#define I2S_L_IRQS                               { I2S0_L_IRQn, I2S1_L_IRQn }
-#define I2S_R_IRQS                               { I2S0_R_IRQn, I2S1_R_IRQn }
-/*!
- * @}
- */ /* end of group I2S_Peripheral_Access_Layer */
+#include "periph/i2s_periph.h"
+#define i2s(id) ((i2s_t *) UDMA_I2S(id))
 
 
 /* ----------------------------------------------------------------------------
@@ -1045,167 +892,12 @@ typedef struct {
 
 
 /* ----------------------------------------------------------------------------
-   -- PWM CTRL Peripheral Access Layer
+   -- PWM Peripheral
    ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup PWM_CTRL_Peripheral_Access_Layer PWM_CTRL Peripheral Access Layer
- * @{
- */
-
-/** PWM - Register Layout Typedef */
-typedef struct {
-  __IO  uint32_t EVENT_CFG;       /**< PWM event configuration register, offset: 0x100 */
-  __IO  uint32_t CH_EN;           /**< PWM channel enable register, offset: 0x104 */
-} PWM_CTRL_Type;
-
-/* ----------------------------------------------------------------------------
-   -- PWM_CTRL Register Masks
-   ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup PWM_CTRL_Register_Masks PWM_CTRL Register Masks
- * @{
- */
-
-/* Register Access. */
-/* Set Event. */
-#define PWM_CTRL_EVENT_TIMER_CHAN_SET_MASK               ( 0xFFFFU )
-#define PWM_CTRL_EVENT_TIMER_CHAN_SET_SHIFT( x )         ( (uint32_t)(x) )
-#define PWM_CTRL_EVENT_TIMER_CHAN_SET( tim, chan, evt )  (((uint32_t)((uint32_t)((uint32_t)tim << 2 | (uint32_t)chan)) << PWM_CTRL_EVENT_TIMER_CHAN_SET_SHIFT( evt << 2 )) & PWM_CTRL_EVENT_TIMER_CHAN_SET_MASK)
-
-/* Enable Event. */
-#define PWM_CTRL_EVENT_TIMER_ENA_MASK                    ( 0xF0000U )
-#define PWM_CTRL_EVENT_TIMER_ENA_SHIFT                   ( 16 )
-#define PWM_CTRL_EVENT_TIMER_ENA( x )                    (((uint32_t)(((uint32_t)(x)) << PWM_CTRL_EVENT_TIMER_ENA_SHIFT)) & PWM_CTRL_EVENT_TIMER_ENA_MASK)
-
-/* Timer enable. */
-#define PWM_CTRL_CG_ENA_MASK                             ( 0xFU )
-#define PWM_CTRL_CG_ENA_SHIFT                            ( 0 )
-#define PWM_CTRL_CG_ENA( x )                             (((uint32_t)(((uint32_t)(x)) << PWM_CTRL_CG_ENA_SHIFT)) & PWM_CTRL_CG_ENA_MASK)
-
-/*!
- * @}
- */ /* end of group PWM_CTRL_Register_Masks */
-
-/* PWM_CTRL - Peripheral instance base addresses */
-/** Peripheral PWM_CTRL_CTRL base address */
-#define PWM_CTRL_BASE                                (SOC_PERI_BASE + 0x05100u)
-/** Peripheral PWM_CTRL_CTRL base pointer */
-#define PWM_CTRL                                     ((PWM_CTRL_Type *)PWM_CTRL_BASE)
-/** Array initializer of PWM_CTRL_CTRL base addresses */
-#define PWM_CTRL_BASE_ADDRS                          { PWM_CTRL_BASE }
-/** Array initializer of PWM_CTRL_CTRL base pointers */
-#define PWM_CTRL_BASE_PTRS                           { PWM_CTRL }
-
-/*!
- * @}
- */ /* end of group PWM_CTRL_Peripheral_Access_Layer */
-
-
-/* ----------------------------------------------------------------------------
-   -- PWM Peripheral Access Layer
-   ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup PWM_Peripheral_Access_Layer PWM Peripheral Access Layer
- * @{
- */
-
-/** ADV_TIMER - Register Layout Typedef */
-typedef struct {
-  __O   uint32_t CMD;              /**< TIMER control register, offset: 0x00 */
-  __IO  uint32_t CFG;              /**< TIMER configuration register, offset: 0x04 */
-  __IO  uint32_t TH;               /**< TIMER threshold register, offset: 0x08 */
-  __IO  uint32_t CH_TH[4];         /**< TIMER Channles' threshold register, offset: 0x0c */
-  __IO  uint32_t CH_LUT[4];        /**< TIMER Channles' LUT register, offset: 0x1c */
-  __I   uint32_t COUNTER;          /**< TIMER Counter register, offset: 0x2c */
-} PWM_Type;
-
-/* ----------------------------------------------------------------------------
-   -- PWM Register Masks
-   ---------------------------------------------------------------------------- */
-
-/*!
- * @addtogroup PWM_Register_Masks PWM Register Masks
- * @{
- */
-
-/* Register Access. */
-/* Send command. */
-#define PWM_CMD_MASK                                ( 0x1FU )
-#define PWM_CMD_SHIFT                               ( 0 )
-#define PWM_CMD( x )                                (((uint32_t)(((uint32_t)(x)) << PWM_CMD_SHIFT)) & PWM_CMD_MASK)
-
-/* Timer config. */
-#define PWM_CONFIG_INPUT_SRC_MASK                   ( 0xFFU )
-#define PWM_CONFIG_INPUT_SRC_SHIFT                  ( 0 )
-#define PWM_CONFIG_INPUT_SRC( x )                   (((uint32_t)(((uint32_t)(x)) << PWM_CONFIG_INPUT_SRC_SHIFT)) & PWM_CONFIG_INPUT_SRC_MASK)
-
-#define PWM_CONFIG_INPUT_MODE_MASK                  ( 0x700U )
-#define PWM_CONFIG_INPUT_MODE_SHIFT                 ( 8 )
-#define PWM_CONFIG_INPUT_MODE( x )                  (((uint32_t)(((uint32_t)(x)) << PWM_CONFIG_INPUT_MODE_SHIFT)) & PWM_CONFIG_INPUT_MODE_MASK)
-
-#define PWM_CONFIG_CLKSEL_MASK                      ( 0x800U )
-#define PWM_CONFIG_CLKSEL_SHIFT                     ( 11 )
-#define PWM_CONFIG_CLKSEL( x )                      (((uint32_t)(((uint32_t)(x)) << PWM_CONFIG_CLKSEL_SHIFT)) & PWM_CONFIG_CLKSEL_MASK)
-
-#define PWM_CONFIG_UPDOWNSEL_MASK                   ( 0x1000U )
-#define PWM_CONFIG_UPDOWNSEL_SHIFT                  ( 12 )
-#define PWM_CONFIG_UPDOWNSEL( x )                   (((uint32_t)(((uint32_t)(x)) << PWM_CONFIG_UPDOWNSEL_SHIFT)) & PWM_CONFIG_UPDOWNSEL_MASK)
-
-#define PWM_CONFIG_PRESCALE_MASK                   ( 0xFF0000U )
-#define PWM_CONFIG_PRESCALE_SHIFT                  ( 16 )
-#define PWM_CONFIG_PRESCALE( x )                   (((uint32_t)(((uint32_t)(x)) << PWM_CONFIG_PRESCALE_SHIFT)) & PWM_CONFIG_PRESCALE_MASK)
-
-/* Channel config. */
-#define PWM_THRESHOLD_LOW_MASK                      ( 0xFFFFU )
-#define PWM_THRESHOLD_LOW_SHIFT                     ( 0 )
-#define PWM_THRESHOLD_LOW( x )                      (((uint32_t)(((uint32_t)(x)) << PWM_THRESHOLD_LOW_SHIFT)) & PWM_THRESHOLD_LOW_MASK)
-
-#define PWM_THRESHOLD_HIGH_MASK                     ( 0xFFFF0000U )
-#define PWM_THRESHOLD_HIGH_SHIFT                    ( 16 )
-#define PWM_THRESHOLD_HIGH( x )                     (((uint32_t)(((uint32_t)(x)) << PWM_THRESHOLD_HIGH_SHIFT)) & PWM_THRESHOLD_HIGH_MASK)
-
-/* Channel config. */
-#define PWM_CHANNEL_CONFIG_THRESHOLD_MASK           ( 0xFFFFU )
-#define PWM_CHANNEL_CONFIG_THRESHOLD_SHIFT          ( 0 )
-#define PWM_CHANNEL_CONFIG_THRESHOLD( x )           (((uint32_t)(((uint32_t)(x)) << PWM_CHANNEL_CONFIG_THRESHOLD_SHIFT)) & PWM_CHANNEL_CONFIG_THRESHOLD_MASK)
-
-#define PWM_CHANNEL_CONFIG_MODE_MASK                ( 0x70000U )
-#define PWM_CHANNEL_CONFIG_MODE_SHIFT               ( 16 )
-#define PWM_CHANNEL_CONFIG_MODE( x )                (((uint32_t)(((uint32_t)(x)) << PWM_CHANNEL_CONFIG_MODE_SHIFT)) & PWM_CHANNEL_CONFIG_MODE_MASK)
-
-/*!
- * @}
- */ /* end of group PWM_Register_Masks */
-
-
-/* PWM - Peripheral instance base addresses */
-/** Peripheral PWM base address */
-#define PWM0_BASE                               (SOC_PERI_BASE + 0x05000u)
-/** Peripheral PWM base pointer */
-#define PWM0                                    ((PWM_Type *)PWM0_BASE)
-/** Peripheral PWM base address */
-#define PWM1_BASE                               (PWM0_BASE + 0x40u)
-/** Peripheral PWM base pointer */
-#define PWM1                                    ((PWM_Type *)PWM1_BASE)
-/** Peripheral PWM base address */
-#define PWM2_BASE                               (PWM1_BASE + 0x40u)
-/** Peripheral PWM base pointer */
-#define PWM2                                    ((PWM_Type *)PWM2_BASE)
-/** Peripheral PWM base address */
-#define PWM3_BASE                               (PWM2_BASE + 0x40u)
-/** Peripheral PWM base pointer */
-#define PWM3                                    ((PWM_Type *)PWM3_BASE)
-/** Array initializer of PWM base addresses */
-#define PWM_BASE_ADDRS                          { PWM0_BASE, PWM1_BASE, PWM2_BASE, PWM3_BASE }
-/** Array initializer of PWM base pointers */
-#define PWM_BASE_PTRS                           { PWM0, PWM1, PWM2, PWM3 }
-
-/*!
- * @}
- */ /* end of group PWM_Peripheral_Access_Layer */
+#include "periph/pwm_periph.h"
+#include "periph/pwm_ctrl_periph.h"
+#define pwm(id) ((pwm_t *) (ADV_TIMER_ADDR + (id << 6)))
+#define pwm_ctrl ((pwm_ctrl_t *) (ADV_TIMER_ADDR + 0x100))
 
 
 
@@ -1261,8 +953,6 @@ typedef struct {
 /*!
  * @}
  */ /* end of group SOCEU_Peripheral_Access_Layer */
-
-
 
 
 

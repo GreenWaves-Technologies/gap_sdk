@@ -37,11 +37,5 @@ from plp_runner import *
 
 runner = Runner()
 
-runner.addPlatform('gvsoc', 'vp_runner')
-runner.addPlatform('board', 'plp_board_runner')
-runner.addPlatform('rtl', 'runner/rtl/runner')
-runner.addPlatform('hsa', 'plp_hsa_runner')
-runner.addPlatform('fpga', 'runner/fpga/runner')
-
 retval = runner.run()
 exit(retval)
