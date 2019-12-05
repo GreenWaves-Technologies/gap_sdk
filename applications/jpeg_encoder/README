@@ -1,0 +1,4 @@
+This is an example of JPEG encoding.
+It reads the input PGM image from the flash, encodes it to JPEG, and saves it to the workstation using semi-hosting.
+You can run this example with "make clean all run" or "make clean all run platform=gvsoc".
+Once it has been run, the output JPEG image can be opened in the build folder with "xview BUILD/GAP8_V2/GCC_RISCV/imgTest0.jpg" (on gapuino v2).
