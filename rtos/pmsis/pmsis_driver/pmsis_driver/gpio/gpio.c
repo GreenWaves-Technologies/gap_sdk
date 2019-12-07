@@ -70,15 +70,15 @@ static void __pi_gpio_handle_end_of_task(struct pi_task *task);
 
 void pi_gpio_print()
 {
-    DEBUG_PRINTF("GpioEn : %x ", hal_gpio_gpioen_get());
-    DEBUG_PRINTF("Paddir|Padin|Padout : %x %x %x  ",
-           hal_gpio_paddir_get(), hal_gpio_padin_get(), hal_gpio_padout_get());
+    DEBUG_PRINTF("GpioEn : %x\n", gpio_gpioen_get());
+    DEBUG_PRINTF("Paddir|Padin|Padout : %x %x %x\n",
+           gpio_paddir_get(), gpio_padin_get(), gpio_padout_get());
     DEBUG_PRINTF("Padcfg :\n");
-    for (uint32_t i=0; i<(uint32_t) ARCHI_GPIO_NB_PADCFG_REG; i++)
+    for (uint32_t i=0; i<(uint32_t) ARCHI_GPIO_NB_PADCFG_REG; i+=4)
     {
         DEBUG_PRINTF("%x %x %x %x\n",
-                     hal_gpio_padcfg_get(i + 0), hal_gpio_padcfg_get(i + 1),
-                     hal_gpio_padcfg_get(i + 2), hal_gpio_padcfg_get(i + 3));
+                     gpio_padcfg_get(i + 0), gpio_padcfg_get(i + 1),
+                     gpio_padcfg_get(i + 2), gpio_padcfg_get(i + 3));
     }
 }
 

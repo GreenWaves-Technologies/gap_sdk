@@ -228,7 +228,7 @@ void hyper_handler(void *arg)
         task = __pi_hyper_task_fifo_pop(__global_hyper_driver_fifo[0]);
         if (task != NULL)
         {
-            __pi_hyper_callback((void*)task->arg[1]);
+            __pi_hyper_callback((void *)task->arg[1]);
         }
     }
 }
@@ -784,17 +784,4 @@ static int32_t __pi_hyper_resume_misaligned_read(struct pi_task *task)
         break;
     }
     return 0;
-}
-
-/* Hyperflash settings. */
-void __pi_hyper_flash_config(struct pi_device *device)
-{
-    //pi_hyper_type_e type = ((struct pi_hyper_conf*)device->config)->type;
-    //((struct pi_hyper_conf*)device->config)->type = PI_HYPER_TYPE_FLASH;
-
-    for (uint32_t i=0; i<4; i++)
-    {
-        pi_hyper_write(device, (VCR_Seq[i].addr << 1), &VCR_Seq[i].data, 2);
-    }
-    //((struct pi_hyper_conf*)device->config)->type = type;
 }

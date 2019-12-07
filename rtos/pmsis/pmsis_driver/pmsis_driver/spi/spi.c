@@ -105,6 +105,22 @@ void pi_spi_receive_async(struct pi_device *device, void *data, size_t len, pi_s
     __pi_spi_receive_async(device->data, data, len, flag, task);
 }
 
+void pi_spi_receive_with_ucode(struct pi_device *device, void *data, size_t len,
+        pi_spi_flags_e flags, int use_ucode, int ucode_size, void *ucode)
+{
+    pi_task_t task_block;
+    pi_task_block(&task_block);
+    __pi_spi_receive_async_with_ucode(device->data, data, len, flags, use_ucode,
+            ucode_size, ucode, &task_block);
+    pi_task_wait_on(&task_block);
+    pi_task_destroy(&task_block);
+}
+
+uint32_t pi_spi_get_config(struct pi_device *device)
+{
+    return __pi_spi_get_config(device->data);
+}
+
 void pi_spi_transfer(struct pi_device *device, void *tx_data, void *rx_data, size_t len, pi_spi_flags_e flag)
 {
     // TODO

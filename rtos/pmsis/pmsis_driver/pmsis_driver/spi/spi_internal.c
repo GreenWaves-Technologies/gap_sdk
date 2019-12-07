@@ -172,6 +172,8 @@ int __pi_spi_open(struct spim_cs_data **cs_data, struct pi_spi_conf *conf)
         _cs_data->big_endian    = conf->big_endian;
         _cs_data->wordsize      = conf->wordsize;
         _cs_data->cs            = conf->cs;
+        _cs_data->cfg           = SPI_CMD_CFG(system_core_clock_get() / _cs_data->max_baudrate,
+            _cs_data->polarity, _cs_data->phase);
         *cs_data                = _cs_data;
         __pi_spim_cs_data_add(drv_data,_cs_data);
     }
@@ -203,15 +205,14 @@ void __pi_spi_receive_async(struct spim_cs_data *cs_data, void *data, size_t len
         pi_spi_flags_e flags, pi_task_t *task)
 {
     struct spim_driver_data *drv_data = SPIM_CS_DATA_GET_DRV_DATA(cs_data);
-    int qspi    = ((flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+    int qspi    = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2)&0x3);
     int cs_mode = (flags >> 0) & 0x3;
 
     int device_id = drv_data->device_id;
-    uint32_t cfg = SPI_CMD_CFG(system_core_clock_get() / cs_data->max_baudrate,
-            cs_data->polarity, cs_data->phase);
-    DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx\n",
+    uint32_t cfg = cs_data->cfg;
+    DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx, qpi=%lx\n",
             __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
-            system_core_clock_get() / drv_data->max_baudrate,cfg);
+            system_core_clock_get() / cs_data->max_baudrate,cfg, qspi);
     uint32_t byte_align = (cs_data->wordsize == PI_SPI_WORDSIZE_32)
         && cs_data->big_endian;
     int size = (len + 7) >> 3;
@@ -254,20 +255,78 @@ void __pi_spi_receive_async(struct spim_cs_data *cs_data, void *data, size_t len
     restore_irq(irq);
 }
 
+void __pi_spi_receive_async_with_ucode(struct spim_cs_data *cs_data, void *data, size_t len,
+        pi_spi_flags_e flags, int use_ucode, int ucode_size,
+        void *ucode, pi_task_t *task)
+{
+    struct spim_driver_data *drv_data = SPIM_CS_DATA_GET_DRV_DATA(cs_data);
+    int qspi    = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2) & 0x03);
+    int cs_mode = (flags >> 0) & 0x3;
+
+    int device_id = drv_data->device_id;
+    uint32_t byte_align = (cs_data->wordsize == PI_SPI_WORDSIZE_32)
+        && cs_data->big_endian;
+    uint32_t cfg = cs_data->cfg;
+    DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d,  byte_align =%lx, cfg= %lx, qspi=%lx\n",
+            __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
+            system_core_clock_get() / cs_data->max_baudrate,byte_align,cfg,qspi);
+    int size = (len + 7) >> 3;
+
+    int cmd_id = 0;
+
+    int irq = __disable_irq();
+    if(!drv_data->end_of_transfer)
+    {
+        if(cs_mode != PI_SPI_CS_AUTO)
+        {
+            hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_SPIM_RX(device_id));
+        }
+        drv_data->end_of_transfer = task;
+        drv_data->repeat_transfer = NULL;
+        if(use_ucode && ((0xFFF00000 & (uint32_t)ucode)!= 0x1c000000))
+        {
+            memcpy(&(cs_data->udma_cmd[0]), ucode, ucode_size);
+            spim_enqueue_channel(SPIM(device_id), (uint32_t)data, size,
+                    UDMA_CORE_RX_CFG_EN(1) | (2<<1), RX_CHANNEL);
+            spim_enqueue_channel(SPIM(device_id), (uint32_t)cs_data->udma_cmd,
+                    ucode_size, UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
+        }
+        else
+        {
+            spim_enqueue_channel(SPIM(device_id), (uint32_t)data, size,
+                    UDMA_CORE_RX_CFG_EN(1) | (2<<1), RX_CHANNEL);
+            spim_enqueue_channel(SPIM(device_id), (uint32_t)ucode,
+                    ucode_size, UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
+        }
+    }
+    else
+    {
+#if 0
+        struct spim_transfer transfer;
+        transfer.data = data;
+        transfer.flags = flags;
+        transfer.len = len;
+        transfer.cfg_cmd = cfg;
+        transfer.byte_align = byte_align;
+        transfer.is_send = 0;
+        __pi_spim_drv_fifo_enqueue(cs_data, &transfer, task);
+#endif
+    }
+    restore_irq(irq);
+}
+
 void __pi_spi_send_async(struct spim_cs_data *cs_data, void *data, size_t len,
         pi_spi_flags_e flags, pi_task_t *task)
 {
     struct spim_driver_data *drv_data = SPIM_CS_DATA_GET_DRV_DATA(cs_data);
-    int qspi = ((flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+    int qspi = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2)&0x3);
     int cs_mode = (flags >> 0) & 0x3;
 
     int device_id = drv_data->device_id;
-    uint32_t cfg = SPI_CMD_CFG(system_core_clock_get() / cs_data->max_baudrate,
-            cs_data->polarity, cs_data->phase);
-    DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx\n",
-            __func__,__LINE__,system_core_clock_get(),
-            cs_data->max_baudrate,
-            system_core_clock_get() / cs_data->max_baudrate,cfg);
+    uint32_t cfg = cs_data->cfg;
+    DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx, qpi=%lx\n",
+            __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
+            system_core_clock_get() / cs_data->max_baudrate,cfg, qspi);
     uint32_t byte_align = (cs_data->wordsize == PI_SPI_WORDSIZE_32)
         && cs_data->big_endian;
     int size = (len + 7) >> 3;
@@ -342,12 +401,11 @@ void __pi_spi_xfer_async(struct spim_cs_data *cs_data, void *tx_data,
         void *rx_data, size_t len, pi_spi_flags_e flags, pi_task_t *task)
 {
     struct spim_driver_data *drv_data = SPIM_CS_DATA_GET_DRV_DATA(cs_data);
-    int qspi    = ((flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+    int qspi    = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2) & 0x3);
     int cs_mode = (flags >> 0) & 0x3;
 
     int device_id = drv_data->device_id;
-    uint32_t cfg = SPI_CMD_CFG(system_core_clock_get() / cs_data->max_baudrate,
-            cs_data->polarity, cs_data->phase);
+    uint32_t cfg = cs_data->cfg;
     DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx\n",
             __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
             system_core_clock_get() / drv_data->max_baudrate,cfg);

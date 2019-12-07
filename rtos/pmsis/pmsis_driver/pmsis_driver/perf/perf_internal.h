@@ -39,11 +39,6 @@
  * Definitions
  ******************************************************************************/
 
-#define CSR_PCMR_DISABLE    ( 0x0 ) /* Disable Performance counters. */
-#define CSR_PCMR_ENABLE     ( 0x1 ) /* Enable Performance counters. */
-#define CSR_PCMR_SATURATE   ( 0x2 ) /* Activate counter saturation. */
-#define PCMR_ACTIVE         ( CSR_PCMR_ENABLE )
-
 /*******************************************************************************
  * Driver data
  *****************************************************************************/
@@ -54,15 +49,94 @@ typedef struct
     uint32_t perf_counter[PCER_EVENTS_NUM]; /*!< Performance counters value. */
 } perf_t;
 
-static perf_t fc_perf_val = {0};
-
-#if (FEATURE_CLUSTER == 1)
-static perf_t cl_perf_val[ARCHI_CLUSTER_NB_PE] = {0};
-#endif  /* FEATURE_CLUSTER */
-
 /*******************************************************************************
  * Function declaration
  ******************************************************************************/
+
+/**
+ * \brief Configure FC perf counter.
+ *
+ * This function configures Performance Counter with given events mask.
+ *
+ * \param events         Events mask.
+ */
+void __pi_perf_fc_conf(uint32_t events);
+
+/**
+ * \brief Reset FC perf counters.
+ *
+ * This function resets all Performance Counter.
+ */
+void __pi_perf_fc_reset();
+
+/**
+ * \brief Start FC perf counters.
+ *
+ * This function starts Performance Counter.
+ */
+void __pi_perf_fc_start();
+
+/**
+ * \brief Stop FC perf counters.
+ *
+ * This function stops Performance Counter.
+ */
+void __pi_perf_fc_stop();
+
+/**
+ * \brief Read FC perf counters value.
+ *
+ * This function returns Performance Counter for a given event.
+ *
+ * \param id             ID of the event.
+ *
+ * \return Value         Counter's value for the given event.
+ */
+uint32_t __pi_perf_fc_read(int id);
+
+#if defined(FEATURE_CLUSTER)
+/**
+ * \brief Configure Cluster perf counter.
+ *
+ * This function configures Performance Counter with given events mask.
+ *
+ * \param events         Events mask.
+ */
+void __pi_perf_cl_conf(uint32_t events);
+
+/**
+ * \brief Reset Cluster perf counters.
+ *
+ * This function resets all Performance Counter.
+ */
+void __pi_perf_cl_reset();
+
+/**
+ * \brief Start Cluster perf counters.
+ *
+ * This function starts Performance Counter.
+ */
+void __pi_perf_cl_start();
+
+/**
+ * \brief Stop Cluster perf counters.
+ *
+ * This function stops Performance Counter.
+ */
+void __pi_perf_cl_stop();
+
+/**
+ * \brief Read Cluster perf counters value.
+ *
+ * This function returns Performance Counter for a given event.
+ *
+ * \param id             ID of the event.
+ *
+ * \return Value         Counter's value for the given event.
+ */
+uint32_t __pi_perf_cl_read(int id);
+
+#endif  /* FEATURE_CLUSTER */
 
 /*******************************************************************************
  * Internal functions
@@ -87,150 +161,5 @@ static inline uint32_t __pi_perf_counter_get(uint32_t event)
 {
     return __PCCRs_Get(event);
 }
-
-static inline void __pi_perf_enable_timer(timer_e timer)
-{
-    timer_cfg_u cfg = {0};
-    cfg.field.enable = 1;
-    cfg.field.reset = 1;
-    cfg.field.irq_en = 0;
-    cfg.field.mode = 1;
-    cfg.field.one_shot = 0;
-    cfg.field.presc_en = 0;
-    cfg.field.clk_source = 0;
-    /* Init timer. */
-    pi_timer_init(timer, cfg, 0xFFFFFFFF);
-}
-
-/* For each event in mask, save its counter from PCCR. */
-static inline void __pi_perf_save(perf_t *perf, timer_e timer)
-{
-    uint32_t perf_mask = perf->perf_mask;
-    /* Timer cycles. */
-    if (perf_mask & (1 << PI_PERF_CYCLES))
-    {
-        perf_mask &= ~(1 << PI_PERF_CYCLES);
-        perf->perf_counter[PI_PERF_CYCLES] = pi_timer_value_read(timer);
-    }
-
-    do
-    {
-        uint32_t event = __FL1(perf_mask);
-        perf_mask &= ~(1 << event);
-        perf->perf_counter[event] = __pi_perf_counter_get(event);
-    } while (perf_mask);
-}
-
-/*******************************************************************************
- * Function implementation
- ******************************************************************************/
-
-/* FC */
-static inline void __pi_perf_fc_conf(uint32_t events)
-{
-    fc_perf_val.perf_mask = events;
-    /* Set Performance Counter Event Register(PCER) with given events mask. */
-    __pi_perf_mask_events_set(fc_perf_val.perf_mask & ~(1 << PI_PERF_CYCLES));
-}
-
-static inline void __pi_perf_fc_reset()
-{
-    /* Reset all Performace COunter Counter Register(PCCR) to 0. */
-    __pi_perf_counters_reset();
-}
-
-static inline void __pi_perf_fc_start()
-{
-    /* Start timer if used. */
-    if (fc_perf_val.perf_mask & (1 << PI_PERF_CYCLES))
-    {
-        /* TODO : Activate timers. */
-        __pi_perf_enable_timer(FC_TIMER_1);
-    }
-    /* Reset counters. */
-    __pi_perf_counters_reset();
-
-    /* Enable performance counters. */
-    __pi_perf_counter_enable(CSR_PCMR_ENABLE | CSR_PCMR_SATURATE);
-}
-
-static inline void __pi_perf_fc_stop()
-{
-    /* Disable performance counters. */
-    __pi_perf_counter_enable(CSR_PCMR_DISABLE);
-
-    /* Disable timer if used. */
-    if (fc_perf_val.perf_mask & (1 << PI_PERF_CYCLES))
-    {
-        /* TODO : disable timer. */
-        pi_timer_stop(FC_TIMER_1);
-    }
-
-    /* Save counters value. */
-    __pi_perf_save(&fc_perf_val, FC_TIMER_1);
-}
-
-static inline uint32_t __pi_perf_fc_read(int id)
-{
-    return fc_perf_val.perf_counter[id];
-}
-
-#if (FEATURE_CLUSTER == 1)
-static inline void __pi_perf_cl_conf(uint32_t events)
-{
-    uint8_t cid = pi_core_id();
-    cl_perf_val[cid].perf_mask = events;
-    /* Set Performance Counter Event Register(PCER) with given events mask. */
-    __pi_perf_mask_events_set(cl_perf_val[cid].perf_mask & ~(1 << PI_PERF_CYCLES));
-}
-
-static inline void __pi_perf_cl_reset()
-{
-    /* Reset all Performace COunter Counter Register(PCCR) to 0. */
-    __pi_perf_counters_reset();
-}
-
-static inline void __pi_perf_cl_start()
-{
-    uint8_t cid = pi_core_id();
-
-    /* Start timer if used. */
-    if (cl_perf_val[cid].perf_mask & (1 << PI_PERF_CYCLES))
-    {
-        /* TODO : Activate timers. */
-        __pi_perf_enable_timer(CL_TIMER_1);
-    }
-    /* Reset counters. */
-    __pi_perf_counters_reset();
-
-    /* Enable performance counters. */
-    __pi_perf_counter_enable(CSR_PCMR_ENABLE | CSR_PCMR_SATURATE);
-}
-
-static inline void __pi_perf_cl_stop()
-{
-    uint8_t cid = pi_core_id();
-
-    /* Disable performance counters. */
-    __pi_perf_counter_enable(CSR_PCMR_DISABLE);
-
-    /* Disable timer if used. */
-    if (cl_perf_val[cid].perf_mask & (1 << PI_PERF_CYCLES))
-    {
-        /* TODO : disable timer. */
-        pi_timer_stop(CL_TIMER_0);
-    }
-
-    /* Save counters value. */
-    __pi_perf_save(&cl_perf_val[cid], CL_TIMER_0);
-}
-
-static inline uint32_t __pi_perf_cl_read(int id)
-{
-    uint8_t cid = pi_core_id();
-    return cl_perf_val[cid].perf_counter[id];
-}
-
-#endif  /* FEATURE_CLUSTER */
 
 #endif  /* __PI_PERF_INTERNAL_H__ */

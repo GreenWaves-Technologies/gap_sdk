@@ -61,7 +61,7 @@ typedef struct
 #define SPI_CMD_SOT(cs)                                                    ((cs << 0)|(SPI_CMD_SOT_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_SEND_CMD(cmd_value,cmd_size,qpi)                           ((cmd_value << 0)|((cmd_size-1) << 16)|(qpi << 27)|(SPI_CMD_SEND_CMD_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_SEND_ADDR(cmd_size,qpi)                                    (((cmd_size-1) << 16)|(qpi << 27)|(SPI_CMD_SEND_ADDR_ID << SPI_CMD_ID_OFFSET))
-#define SPI_CMD_DUMMY(dummy_cycle)                                         ((dummy_cycle << 16)|(SPI_CMD_DUMMY_ID << SPI_CMD_ID_OFFSET))
+#define SPI_CMD_DUMMY(dummy_cycle)                                         (((dummy_cycle-1) << 16)|(SPI_CMD_DUMMY_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_WAIT(event_id)                                             ((event_id << 0)|(SPI_CMD_WAIT_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_TX_DATA(data_size,qpi,byte_align)                          (((data_size-1) << 0)|(byte_align << 26)|(qpi << 27)|(SPI_CMD_TX_DATA_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_RX_DATA(data_size,qpi,byte_align)                          (((data_size-1) << 0)|(byte_align << 26)|(qpi << 27)|(SPI_CMD_RX_DATA_ID << SPI_CMD_ID_OFFSET))
