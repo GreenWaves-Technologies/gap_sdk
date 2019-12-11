@@ -145,6 +145,21 @@ void pi_timer_stop(timer_e timer);
 uint32_t pi_timer_value_read(timer_e timer);
 
 /**
+ * \brief Set timer to trigger IRQ.
+ *
+ * This function is used to set a timer to trigger an IRQ when the given value is reached.
+ *
+ * \param timer          Timer to set.
+ * \param time_us        Timer value in us.
+ * \param one_shot       Timer mode : one-shot or continuous.
+ *
+ * \note one_shot = 1, one shot timer.
+ *       one_shot = 0, continuous mode.
+ * \note This function disables a timer if one is already enabled, and reconfigure it.
+ */
+void pi_timer_irq_set(timer_e timer, uint32_t time_us, uint8_t one_shot);
+
+/**
  * @}
  */
 
