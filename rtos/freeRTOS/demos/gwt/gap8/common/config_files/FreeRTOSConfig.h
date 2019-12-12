@@ -90,6 +90,7 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #define configTICK_RATE_HZ                        ( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES                      ( 3 )
 #define configMINIMAL_STACK_SIZE                  ( ( uint16_t ) ( 128 ) )
+#define configSTACK_DEPTH_TYPE                    uint32_t
 
 #define configMAX_TASK_NAME_LEN                   ( 16 )
 #define configUSE_TRACE_FACILITY                  ( 1 )
