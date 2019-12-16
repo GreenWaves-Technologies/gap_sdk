@@ -7,6 +7,6 @@ cmd2==0.9.16
 numpy==1.16.2
 Pillow==6.2.0
 Keras==2.2.4
-tensorflow==1.14.0
+tensorflow==1.15.0
 numpy==1.16.2
 argcomplete==1.10.0
