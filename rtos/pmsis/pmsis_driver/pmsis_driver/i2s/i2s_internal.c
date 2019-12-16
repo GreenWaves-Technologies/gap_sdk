@@ -34,6 +34,7 @@
  * Definitions
  ******************************************************************************/
 
+//#undef DEBUG_PRINTF
 //#define DEBUG_PRINTF printf
 
 /*******************************************************************************
@@ -99,12 +100,13 @@ static void __pi_i2s_resume(uint8_t i2s_id)
     uint32_t device_id = 0;
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
     uint32_t periph_freq = pi_freq_get(PI_FREQ_DOMAIN_FC);
-    uint32_t clk_div = periph_freq / fifo->frequency;
+    uint32_t clk_div = 0;
+    clk_div = periph_freq / fifo->frequency;
 
-    DEBUG_PRINTF("I2S(%d) Resuming: i2s_freq: %x, clk_div: %x, clk: %x, "
-                 "word_size: %x, format: %x, options: %x, block_size: %x, "
-                 "UDMA_CFG: %x\n",
-                 i2s_id, fifo->frequency, clk_div, fifo->clk, fifo->word_size,
+    DEBUG_PRINTF("I2S(%d) Resuming: periph_freq: %d, i2s_freq: %d, clk_div: %x, "
+                 "clk_use: %x, word_size: %x, format: %x, options: %x, "
+                 "block_size: %d, UDMA_CFG: %x\n",
+                 i2s_id, periph_freq, fifo->frequency, clk_div, fifo->clk, fifo->word_size,
                  fifo->format, fifo->options, fifo->block_size, fifo->udma_cfg);
 
     fifo->reenqueue = 1;
@@ -123,10 +125,10 @@ static void __pi_i2s_resume(uint8_t i2s_id)
     switch (fifo->clk)
     {
     case 0 :
-        hal_i2s_cfg_clkgen0_set(device_id, (fifo->word_size - 1), 1, ((clk_div - 1) >> 1));
+        hal_i2s_cfg_clkgen0_set(device_id, (fifo->word_size - 1), 1, clk_div - 1);
         break;
     case 1 :
-        hal_i2s_cfg_clkgen1_set(device_id, (fifo->word_size - 1), 1, ((clk_div - 1) >> 1));
+        hal_i2s_cfg_clkgen1_set(device_id, (fifo->word_size - 1), 1, clk_div - 1);
         break;
     default :
         break;
@@ -167,7 +169,6 @@ static void __pi_i2s_suspend(uint8_t i2s_id)
 
 void __pi_i2s_conf_init(struct pi_i2s_conf *conf)
 {
-    conf->pdm_decimation_log2 = 8;
     conf->word_size = 16;
     conf->channels = 1;
     conf->itf = 0;
@@ -177,6 +178,8 @@ void __pi_i2s_conf_init(struct pi_i2s_conf *conf)
     conf->block_size = 0;
     conf->pingpong_buffers[0] = NULL;
     conf->pingpong_buffers[1] = NULL;
+    conf->pdm_decimation = 90;
+    conf->pdm_shift = -1;
 }
 
 int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
@@ -193,7 +196,7 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     fifo->fifo_head = NULL;
     fifo->fifo_tail = NULL;
     fifo->i2s_id = conf->itf;
-    fifo->frequency = conf->frame_clk_freq;
+    fifo->frequency = conf->frame_clk_freq * conf->word_size * conf->channels;
     fifo->word_size = conf->word_size;
     fifo->channels = conf->channels;
     fifo->format = conf->format;
@@ -234,41 +237,45 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     uint16_t decimation = 0;
     uint8_t lsb = 0;
     uint8_t ddr = 0;
-    /* Use internal clock for both(i2s0->clkgen0, i2s1->clkgen1). */
-    //uint8_t ch_mode = I2S_CHMODE_CH0_MODE(0) | I2S_CHMODE_CH1_MODE(1);
+    /*
+     * Use internal clock for both i2s, clkgen0. On gapuino_v2, alternate pads
+     * are used, so bith i2s_0 and i2s_1 use i2s_0 internal clock.
+     */
+    fifo->clk = 0;
+    uint8_t clk = fifo->clk;
+    ddr = (conf->channels >> 1);
     if (pdm)
     {
-        fifo->frequency *= (1 << conf->pdm_decimation_log2);
-        /* Filter setup. */
-        shift = 10 - conf->pdm_decimation_log2;
-        shift = (shift > 7) ? 7 : shift;
-        decimation = (1 << conf->pdm_decimation_log2) - 1;
-        ddr = (conf->channels == 2) ? 1 : 0;
-    }
-    else
-    {
-        fifo->frequency *= conf->word_size;
-        if (conf->channels == 2)
+        /* PDM filter setup. */
+        if (conf->pdm_shift == -1)
         {
-            fifo->frequency *= 2;
+            shift = 4;
         }
+        else
+        {
+            shift = conf->pdm_shift;
+        }
+        fifo->shift = shift;
+        decimation = conf->pdm_decimation - 1;
     }
     if (conf->itf)
     {
+        /* Special for I2S1, use alternative pad for SDI signal. */
+        pi_pad_set_function(PI_PAD_35_B13_I2S1_SCK, PI_PAD_35_B13_I2S1_SDI_FUNC3);
+        pi_pad_set_function(PI_PAD_37_B14_I2S1_SDI, PI_PAD_37_B14_HYPER_CK_FUNC3);
+
         /* Filter setup. */
         hal_i2s_filt_ch1_set(device_id, decimation, shift);
         /* Channel mode setup. */
-        hal_i2s_chmode_ch1_set(device_id, lsb, pdm, pdm, ddr, 0);
+        hal_i2s_chmode_ch1_set(device_id, lsb, pdm, pdm, ddr, clk);
     }
     else
     {
         /* Filter setup. */
         hal_i2s_filt_ch0_set(device_id, decimation, shift);
         /* Channel mode setup. */
-        hal_i2s_chmode_ch0_set(device_id, lsb, pdm, pdm, ddr, 0);
+        hal_i2s_chmode_ch0_set(device_id, lsb, pdm, pdm, ddr, clk);
     }
-    hal_i2s_chmode_ch0_mode_set(device_id, 0);
-    hal_i2s_chmode_ch1_mode_set(device_id, 1);
 
     restore_irq(irq);
     return 0;

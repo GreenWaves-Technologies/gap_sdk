@@ -44,6 +44,7 @@ struct i2s_driver_fifo_s
     struct pi_task *fifo_tail;  /* Tail of SW fifo waiting transfers. */
     uint8_t i2s_id;
     uint32_t frequency;
+    uint8_t shift;
     uint8_t word_size;
     uint8_t channels;
     pi_i2s_fmt_t format;
