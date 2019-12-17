@@ -39,4 +39,8 @@
 #define CONFIG_HYPERRAM_START     0
 #define CONFIG_HYPERRAM_SIZE     (8<<20)
 
+
+#define PI_BSP_PROFILE_GAPUINO_0 0   // Default profile
+#define PI_BSP_PROFILE_GAPUINO_1 1   // I2S0 and I2S1 with different clock
+
 #endif

@@ -59,8 +59,8 @@ void printf_uart_init(void)
     /* Init & open uart. */
     pi_uart_conf_init(&config);
     config.baudrate_bps = 9600;
-    config.enable_tx = true;
-    config.enable_rx = true;
+    config.enable_tx = 1;
+    config.enable_rx = 1;
     config.src_clock_Hz = system_core_clock_get();
     pi_open_from_conf(&g_printf_uart_dev, &config);
 

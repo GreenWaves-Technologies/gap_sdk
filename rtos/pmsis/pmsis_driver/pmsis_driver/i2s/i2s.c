@@ -38,11 +38,17 @@
  * Driver data
  *****************************************************************************/
 
+extern uint32_t g_i2s_flags;
 extern struct i2c_driver_fifo_s *__global_i2s_driver_fifo[];
 
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
+
+void pi_i2s_setup(uint32_t flags)
+{
+    g_i2s_flags = flags;
+}
 
 void pi_i2s_conf_init(struct pi_i2s_conf *conf)
 {

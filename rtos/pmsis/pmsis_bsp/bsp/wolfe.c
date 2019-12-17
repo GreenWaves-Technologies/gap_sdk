@@ -16,6 +16,7 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "bsp/wolfe.h"
 #include "bsp/camera/himax.h"
 #include "bsp/flash/hyperflash.h"
@@ -82,3 +83,15 @@ void bsp_init()
 {
 }
 
+
+
+void pi_bsp_init_profile(int profile)
+{
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+}

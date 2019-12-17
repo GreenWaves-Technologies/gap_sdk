@@ -16,6 +16,7 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "pmsis/drivers/gpio.h"
 #include "pmsis/drivers/pad.h"
 #include "bsp/gapoc_a.h"
@@ -173,3 +174,14 @@ void bsp_init()
   __bsp_init_pads();
 }
 
+
+void pi_bsp_init_profile(int profile)
+{
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+}

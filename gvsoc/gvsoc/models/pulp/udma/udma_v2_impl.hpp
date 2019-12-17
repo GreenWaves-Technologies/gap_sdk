@@ -717,7 +717,7 @@ private:
   vp::io_req_status_e check_clkgen1();
   vp::io_req_status_e reset_clkgen0();
   vp::io_req_status_e reset_clkgen1();
-  void handle_clkgen_tick(int clkgen, int itf);
+  void handle_clkgen_tick(int clkgen);
 
   vp::trace     trace;
   vp::i2s_slave ch_itf[2];

@@ -16,6 +16,7 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "pmsis/drivers/gpio.h"
 #include "pmsis/drivers/pad.h"
 #include "bsp/gapuino.h"
@@ -103,4 +104,28 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
   }
 
   return 0;
+}
+
+
+
+
+void pi_bsp_init_profile(int profile)
+{
+    __bsp_init_pads();
+
+    if (profile == PI_BSP_PROFILE_DEFAULT)
+    {
+        /* Special for I2S1, use alternative pad for SDI signal. */
+        pi_pad_set_function(PI_PAD_35_B13_I2S1_SCK, PI_PAD_35_B13_I2S1_SDI_FUNC3);
+        pi_pad_set_function(PI_PAD_37_B14_I2S1_SDI, PI_PAD_37_B14_HYPER_CK_FUNC3);
+
+        pi_i2s_setup(PI_I2S_SETUP_SINGLE_CLOCK);
+    }
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
 }

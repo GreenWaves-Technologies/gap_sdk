@@ -74,11 +74,11 @@ extern long __syscall_error(long);
 static inline long
 __internal_semihost(long n, long _a1)
 {
-  register long a0 asm("a0") = n;
-  register long a1 asm("a1") = _a1;
+  register long a0 __asm("a0") = n;
+  register long a1 __asm("a1") = _a1;
 
   // riscv magic values for semihosting
-  asm volatile (
+  __asm volatile (
           ".option norvc;\t\n"
 		  "slli    zero,zero,0x1f\t\n"
 		  "ebreak\t\n"

@@ -408,7 +408,7 @@ void padframe::i2s_internal_edge(void *__this, int sck, int ws, int sd, int id)
   //group->tx_trace.event((uint8_t *)&data);
   if (!group->slave.is_bound())
   {
-    vp_warning_always(&_this->warning, "Trying to send I2S stream while pad is not connected (interface: %s)\n", group->name.c_str());
+    //vp_warning_always(&_this->warning, "Trying to send I2S stream while pad is not connected (interface: %s)\n", group->name.c_str());
   }
   else
   {

@@ -27,18 +27,27 @@ static int __pos_i2s_global_open_count;
 
 static pos_i2s_t __pos_i2s[ARCHI_UDMA_NB_I2S];
 
+static uint32_t __pos_i2s_flags;
+
+
+void pi_i2s_setup(uint32_t flags)
+{
+    __pos_i2s_flags = flags;
+}
+
 
 void pi_i2s_conf_init(struct pi_i2s_conf *conf)
 {
     conf->itf = 0;
     conf->frame_clk_freq = 44100;
-    conf->pdm_decimation_log2 = 8;
+    conf->pdm_decimation = 64;
     conf->format = PI_I2S_FMT_DATA_FORMAT_PDM;
     conf->options = 0;
     conf->word_size = 16;
     conf->channels = 1;
     conf->pingpong_buffers[0] = NULL;
     conf->pingpong_buffers[1] = NULL;
+    conf->pdm_shift = -1;
 }
 
 
@@ -112,29 +121,29 @@ int pi_i2s_open(struct pi_device *device)
         // Redirect all UDMA i2s events to a specific callback
         __rt_udma_register_channel_callback(channel_id, __pos_i2s_handle_copy_asm, (void *)i2s);
 
-        i2s->clk = sub_periph_id;
+        i2s->clk = __pos_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK ? 0 : sub_periph_id;
 
         unsigned int mode = hal_i2s_chmode_get(itf_id);
         int clk = i2s->clk;
 
-        mode &= ~(I2S_CHMODE_CH_SNAPCAM_MASK(clk) | I2S_CHMODE_CH_LSBFIRST_MASK(clk) | 
-        I2S_CHMODE_CH_PDM_USEFILTER_MASK(clk) | I2S_CHMODE_CH_PDM_EN_MASK(clk) | 
-        I2S_CHMODE_CH_USEDDR_MASK(clk) | I2S_CHMODE_CH_MODE_MASK(clk));
+        mode &= ~(I2S_CHMODE_CH_SNAPCAM_MASK(sub_periph_id) | I2S_CHMODE_CH_LSBFIRST_MASK(sub_periph_id) | 
+        I2S_CHMODE_CH_PDM_USEFILTER_MASK(sub_periph_id) | I2S_CHMODE_CH_PDM_EN_MASK(sub_periph_id) | 
+        I2S_CHMODE_CH_USEDDR_MASK(sub_periph_id) | I2S_CHMODE_CH_MODE_MASK(sub_periph_id));
 
         if (pdm)
         {
-            i2s->i2s_freq *= (1<<conf->pdm_decimation_log2);
+            i2s->i2s_freq *= conf->pdm_decimation;
 
-            int shift = 10 - i2s->conf.pdm_decimation_log2;
+            int shift = conf->pdm_shift != -1 ? conf->pdm_shift : 10 - __builtin_pulp_ff1(conf->pdm_decimation);
             if (shift > 7) shift = 7;
 
-            hal_i2s_filt_ch_set(i2s->conf.itf, i2s->clk, (shift << 16) | ((1<<i2s->conf.pdm_decimation_log2)-1));
+            hal_i2s_filt_ch_set(i2s->conf.itf, sub_periph_id, (shift << 16) | (i2s->conf.pdm_decimation-1));
 
-            mode |= I2S_CHMODE_CH_PDM_USEFILTER_ENA(clk) | I2S_CHMODE_CH_PDM_EN_ENA(clk);
+            mode |= I2S_CHMODE_CH_PDM_USEFILTER_ENA(sub_periph_id) | I2S_CHMODE_CH_PDM_EN_ENA(sub_periph_id);
 
             if (conf->channels == 2)
             {
-                mode |= I2S_CHMODE_CH_USEDDR_ENA(clk);
+                mode |= I2S_CHMODE_CH_USEDDR_ENA(sub_periph_id);
             }
 
         }
@@ -146,11 +155,18 @@ int pi_i2s_open(struct pi_device *device)
                 i2s->i2s_freq *= 2;
         }
 
-        mode |= I2S_CHMODE_CH_LSBFIRST_DIS(clk);
+        mode |= I2S_CHMODE_CH_LSBFIRST_DIS(sub_periph_id);
 
-        // Configure each channel on a different clock generator to avoid activating a channel
-        // when the other is first activated
-        mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,1);
+        if (__pos_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK)
+        {
+            mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,0);
+        }
+        else
+        {
+            // Configure each channel on a different clock generator to avoid activating a channel
+            // when the other is first activated
+            mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,1);
+        }
 
         hal_i2s_chmode_set(itf_id, mode);
     }
@@ -233,9 +249,9 @@ static inline void __pos_i2s_resume(pos_i2s_t *i2s)
     plp_udma_enqueue(base, (int)i2s->conf.pingpong_buffers[1], i2s->conf.block_size, i2s->udma_cfg);
 
     unsigned int conf = 
-        I2S_CFG_CLKGEN_BITS_WORD(i2s->conf.word_size) | 
-        I2S_CFG_CLKGEN_CLK_EN |
-        I2S_CFG_CLKGEN0_CLKDIV((div-1)>>1);
+        UDMA_I2S_CFG_CLKGEN0_BITS_WORD(i2s->conf.word_size - 1) | 
+        UDMA_I2S_CFG_CLKGEN0_CLK_EN(1) |
+        UDMA_I2S_CFG_CLKGEN0_CLK_DIV(((div>>1)-1));
 
     hal_i2s_cfg_clkgen_set(i2s->conf.itf, i2s->clk, conf);
 }

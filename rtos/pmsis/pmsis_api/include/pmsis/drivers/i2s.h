@@ -115,9 +115,10 @@ enum pi_i2s_ioctl_cmd {
  * @param block_size Size of one RX/TX memory block (buffer) in bytes.
  * @param pingpong_buffers Pair of buffers used in double-buffering mode to
  *   capture the incoming samples.
- * @param pdm_decimation_log2 In PDM mode, this gives the log2 of the
- *   decimation to be used, e.g. the number of bits on which the filter
- *   is applied.
+ * @param pdm_decimation In PDM mode, this gives the decimation factor
+ *   to be used, e.g. the number of bits on which the filter is applied.
+ * @param pdm_shift In PDM mode, the shift value to shift data when applying
+ *   filter.
  */
 struct pi_i2s_conf {
     uint8_t word_size;
@@ -128,8 +129,19 @@ struct pi_i2s_conf {
     uint32_t frame_clk_freq;
     size_t block_size;
     void *pingpong_buffers[2];
-    uint16_t pdm_decimation_log2;
+    uint16_t pdm_decimation;
+    int8_t pdm_shift;
 };
+
+/** \brief Setup specific I2S aspects.
+ *
+ * This function can be called to set specific I2S properties such as the 
+ * number of clock generator. This is typically used by the BSP to give
+ * board specific information.
+ *
+ * \param flags  A bitfield of chip-dependant properties.
+ */
+void pi_i2s_setup(uint32_t flags);
 
 /** \brief Initialize an I2S configuration with default values.
  *
@@ -260,5 +272,14 @@ int pi_i2s_read_status(pi_task_t *task, void **mem_block, size_t *size);
 /**
  * @}
  */
+
+
+
+/// @cond IMPLEM
+
+#define PI_I2S_SETUP_SINGLE_CLOCK (1<<0)
+
+
+/// @endcond
 
 #endif

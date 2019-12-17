@@ -1,4 +1,4 @@
-ifeq '$(pulp_chip)' 'wolfe'
+ifeq '$(pulp_chip_family)' 'wolfe'
 
 VP_INSTALL_TARGETS += $(INSTALL_DIR)/python/pulp/chips/wolfe/rom.bin
 

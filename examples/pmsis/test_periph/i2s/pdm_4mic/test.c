@@ -19,6 +19,7 @@
  */
 
 #include "pmsis.h"
+#include <bsp/bsp.h>
 
 #define NB_ELEM 256
 #define BUFF_SIZE (NB_ELEM*2)
@@ -31,7 +32,10 @@ static struct pi_device i2s[2];
 
 static int test_entry()
 {
+
     printf("Entering main controller\n");
+
+    pi_bsp_init();
 
     // Get default I2S interface config
     struct pi_i2s_conf i2s_conf;

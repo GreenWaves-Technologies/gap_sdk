@@ -98,5 +98,11 @@ int bsp_thermeye_open(struct pi_thermeye_conf *conf);
 
 void bsp_init();
 
+void pi_bsp_init();
+
+#define PI_BSP_PROFILE_DEFAULT 0
+
+void pi_bsp_init_profile(int profile);
+
 
 #endif
