@@ -108,6 +108,7 @@ extern struct target_type quark_x10xx_target;
 extern struct target_type quark_d20xx_target;
 extern struct target_type stm8_target;
 extern struct target_type riscv_target;
+extern struct target_type gap8_target;
 extern struct target_type mem_ap_target;
 extern struct target_type esirisc_target;
 
@@ -139,6 +140,7 @@ static struct target_type *target_types[] = {
 	&nds32_v3_target,
 	&nds32_v3m_target,
 	&or1k_target,
+	&gap8_target,
 	&quark_x10xx_target,
 	&quark_d20xx_target,
 	&stm8_target,
