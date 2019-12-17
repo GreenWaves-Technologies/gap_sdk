@@ -1247,8 +1247,7 @@ void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_DP_fps(
 	int StrideX,
 	int StrideY,
 	v4s Pad,
-	v4s PadOrg,
-	int Norm
+	v4s PadOrg
 	)
 
 {
@@ -2583,8 +2582,7 @@ static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_DP_fp(
 	int StrideX,
 	int StrideY,
 	v4s Pad,
-	v4s PadOrg,
-	int Norm
+	v4s PadOrg
 	)
 
 {
@@ -4342,8 +4340,7 @@ static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Body_DP_fps(
 	int Ho_L,
 	int StrideX,
 	int StrideY,
-	v4s Pad,
-	int Norm
+	v4s Pad
 	)
 {
 	unsigned short int PadL = Pad[0], PadT = Pad[2];
@@ -5235,8 +5232,7 @@ static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Body_DP_fp(
 	int Ho_L,
 	int StrideX,
 	int StrideY,
-	v4s Pad,
-	int Norm
+	v4s Pad
 	)
 {
 	unsigned short int PadL = Pad[0], PadT = Pad[2];
@@ -6010,7 +6006,6 @@ void KerParConvNxMDxDyStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg)
 	unsigned int OutFeatures = Arg->OutFeatures;
 	short int * __restrict__ Filter = Arg->Filter;
 	int * __restrict__ Out = Arg->Out;
-	unsigned int Norm = Arg->Norm;
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
@@ -6029,8 +6024,8 @@ void KerParConvNxMDxDyStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg)
 		for (unsigned int If=0; If<InFeatures; If++) {
 			short int *in = In+W*H*If, *filter = Filter+FSx*FSy*(TotalInFeatures*of  + If);
 			int *out = Out+Wo*Ho*(of);
-			KerConvNxMDxDyStrideSxSy_Body_DP_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, Norm);
-			if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, Norm);
+			KerConvNxMDxDyStrideSxSy_Body_DP_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn);
+			if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fp(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn);
 		}
 	gap_waitbarrier(0);
 }
@@ -6805,7 +6800,6 @@ void KerParConvNxMDxDyStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg)
 	unsigned int OutFeatures = Arg->OutFeatures;
 	signed char * __restrict__ Filter = Arg->Filter;
 	DP_fps_T * __restrict__ Out = Arg->Out;
-	unsigned int Norm = Arg->Norm;
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
@@ -6824,8 +6818,8 @@ void KerParConvNxMDxDyStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg)
 		for (unsigned int If=0; If<InFeatures; If++) {
 			signed char *in = In+W*H*If, *filter = Filter+FSx*FSy*(TotalInFeatures*of  + If);
 			DP_fps_T *out = Out+Wo*Ho*(of);
-			KerConvNxMDxDyStrideSxSy_Body_DP_fps(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, Norm);
-			if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fps(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, Norm);
+			KerConvNxMDxDyStrideSxSy_Body_DP_fps(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn);
+			if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fps(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn);
 		}
 	gap_waitbarrier(0);
 }
@@ -7560,7 +7554,6 @@ void KerConvNxMDxDyStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg)
 	unsigned int H = Arg->H;
 	short int * __restrict__ Filter = Arg->Filter;
 	int * __restrict__ Out = Arg->Out;
-	unsigned int Norm = Arg->Norm;
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-(Dx*(FSx-1)+1)+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput((Dx*(FSx-1)+1), PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, (Dx*(FSx-1)+1), PadIn[0], Sx));
@@ -7580,8 +7573,8 @@ void KerConvNxMDxDyStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg)
 		Ho_F = Max(First, Ho_F); Ho_L = Min(Last, Ho_L);
 	}
 	if (First<Last) {
-		KerConvNxMDxDyStrideSxSy_Body_DP_fp(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadOrg, Norm);
-		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fp(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadOrg, Norm);
+		KerConvNxMDxDyStrideSxSy_Body_DP_fp(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadOrg);
+		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fp(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadOrg);
 	}
 	gap_waitbarrier(0);
 }
@@ -8313,7 +8306,6 @@ void KerConvNxMDxDyStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg)
 	unsigned int H = Arg->H;
 	signed char * __restrict__ Filter = Arg->Filter;
 	DP_fps_T * __restrict__ Out = Arg->Out;
-	unsigned int Norm = Arg->Norm;
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-(Dx*(FSx-1)+1)+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput((Dx*(FSx-1)+1), PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, (Dx*(FSx-1)+1), PadIn[0], Sx));
@@ -8333,8 +8325,8 @@ void KerConvNxMDxDyStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg)
 		Ho_F = Max(First, Ho_F); Ho_L = Min(Last, Ho_L);
 	}
 	if (First<Last) {
-		KerConvNxMDxDyStrideSxSy_Body_DP_fps(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadOrg, Norm);
-		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fps(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadOrg, Norm);
+		KerConvNxMDxDyStrideSxSy_Body_DP_fps(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadOrg);
+		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_DP_fps(In, Out, Filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadOrg);
 	}
 	gap_waitbarrier(0);
 }

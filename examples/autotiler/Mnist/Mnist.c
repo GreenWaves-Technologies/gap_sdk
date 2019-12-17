@@ -112,13 +112,13 @@ static void RunMnist(void *arg)
                             Filter_Layer[0],
                             Bias_Layer[0],
                             Out_Layer[0],
-                            14);
+                            14,14);
 
     Conv5x5ReLUMaxPool2x2_1(Out_Layer[0],
                             Filter_Layer[1],
                             Bias_Layer[1],
                             Out_Layer[1],
-                            14);
+                            14,14);
 
     LinearLayerReLU_1(Out_Layer[1],
                       Filter_Layer[2],

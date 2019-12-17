@@ -29,7 +29,7 @@
 #endif
 #include "rt/implem/implem.h"
 
-#if PULP_CHIP_FAMILY != CHIP_VIVOSOC3 && PULP_CHIP_FAMILY != CHIP_VIVOSOC3_1
+#if PULP_CHIP_FAMILY != CHIP_VIVOSOC3 && PULP_CHIP_FAMILY != CHIP_VIVOSOC3_1 && PULP_CHIP_FAMILY != CHIP_VIVOSOC4
 
 static inline int __pi_freq_get_domain(int domain)
 {

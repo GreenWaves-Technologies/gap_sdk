@@ -42,7 +42,8 @@ class MemoryDeviceInfo():
     def __setattr__(self, k, val):
         if k in self.info:
             self.info[k] = val
-        raise AttributeError()
+        else:
+            raise AttributeError()
 
 class MemoryDeviceInfos():
     def __init__(self, infos: Sequence[MemoryDeviceInfo]):
@@ -68,6 +69,16 @@ class MemoryDeviceInfos():
 
     def todict(self):
         return [info.todict() for info in self.infos]
+
+    def setL3RamExtManaged(self,ext_managed):
+        for info in self.infos:
+            if info.memory_area == 'AT_MEM_L3_HRAM':
+                info.ext_managed=ext_managed
+
+    def setL3FlashExtManaged(self,ext_managed):
+        for info in self.infos:
+            if info.memory_area == 'AT_MEM_L3_HFLASH':
+                info.ext_managed=ext_managed
 
     def gen(self, G, code_block: CodeBlock):
         code_block.write('SetMemoryDeviceInfos({},', len(self.infos))

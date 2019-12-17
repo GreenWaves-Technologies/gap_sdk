@@ -91,7 +91,7 @@ proc gap_flasher_ctrl {ImageName ImageSize flash_offset sector_size} {
 proc gap_flash_raw {image_name image_size gap_tools_path} {
 	# flash the flasher
 	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher@gapoc_a.elf elf
-	sleep 2
+	sleep 100
 	# flash the flash image with the flasher
 	gap_flasher_ctrl $image_name $image_size 0 0x40000
 	sleep 2

@@ -682,6 +682,47 @@ void iss_wrapper::handle_ebreak()
 
   switch (id)
   {
+    case GV_SEMIHOSTING_TRACE_OPEN: {
+      int result = -1;
+      std::string path = this->read_user_string(this->cpu.regfile.regs[11]);
+      if (path == "")
+      {
+        this->warning.force_warning("Invalid user string while opening trace (addr: 0x%x)\n", this->cpu.regfile.regs[11]);
+      }
+      else
+      {
+        vp::trace *trace = this->traces.get_trace_manager()->get_trace(path);
+        if (trace == NULL)
+        {
+          this->warning.force_warning("Invalid trace (path: %s)\n", path.c_str());
+        }
+        else
+        {
+          this->trace.msg("Opened trace (path: %s, id: %d)\n", path.c_str(), trace->id);
+          result = trace->id;
+        }
+      }
+
+      this->cpu.regfile.regs[10] = result;
+
+      break;
+    }
+    
+    case GV_SEMIHOSTING_TRACE_ENABLE: {
+      int id = this->cpu.regfile.regs[11];
+      vp::trace *trace = this->traces.get_trace_manager()->get_trace_from_id(id);
+      if (trace == NULL)
+      {
+        this->warning.force_warning("Unknown trace ID while dumping trace (id: %d)\n", id);
+      }
+      else
+      {
+        trace->set_active(this->cpu.regfile.regs[12]);
+      }
+
+      break; 
+    }
+    
     case GV_SEMIHOSTING_VCD_CONFIGURE:
     break;
 

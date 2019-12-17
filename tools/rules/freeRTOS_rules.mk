@@ -269,6 +269,9 @@ endif
 gui:: dir
 	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
+flash::
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
+
 # Foramt "vsim -do xxx.do xxx.wlf"
 debug:
 	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"

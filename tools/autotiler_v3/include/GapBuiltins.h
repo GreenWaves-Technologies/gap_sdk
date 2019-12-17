@@ -184,6 +184,12 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_roundnorm(x, scale)			__builtin_pulp_addRN((x), 0, (scale), (1<<((scale)-1)))
 #define gap_roundnorm_reg(x, scale)		__builtin_pulp_addRN_r((x), 0, (scale))
 
+/* Normalization wthout rounding */
+#define gap_normu(x, scale)			__builtin_pulp_adduN((x), 0, (scale))
+#define gap_normu_reg(x, scale)			__builtin_pulp_adduN_r((x), 0, (scale))
+#define gap_norm(x, scale)			__builtin_pulp_addN((x), 0, (scale))
+#define gap_norm_reg(x, scale)			__builtin_pulp_addN_r((x), 0, (scale))
+
 #else
 /* Emulation */
 
@@ -372,6 +378,12 @@ static int _VitT0_Flag, _VitT1_Flag;
 #define gap_roundnormu_reg(x, scale)		((unsigned int)((x) + (scale?(1<<((scale)-1)):0))>>(scale))
 #define gap_roundnorm(x, scale)			((int)((x) + (1<<((scale)-1)))>>(scale))
 #define gap_roundnorm_reg(x, scale)		((int)((x) + (scale?(1<<((scale)-1)):0))>>(scale))
+
+/* Normalization without rounding */
+#define gap_normu(x, scale)			((unsigned int)(x)>>(scale))
+#define gap_normu_reg(x, scale)			((unsigned int)(x)>>(scale))
+#define gap_norm(x, scale)			((int)(x)>>(scale))
+#define gap_norm_reg(x, scale)			((int)(x)>>(scale))
 
 #endif
 

@@ -68,14 +68,23 @@ endif
 
 # PWM
 
-ifeq '$(pulp_chip_family)' 'gap'
 ifeq '$(CONFIG_PWM_ENABLED)' '1'
+
+ifeq '$(pulp_chip_family)' 'gap'
 PULP_LIB_FC_CFLAGS += -DRT_CONFIG_PWM_ENABLED
 PULP_LIB_FC_SRCS_rt += drivers/pwm/pwm.c
 PULP_LIB_FC_ASM_SRCS_rt += drivers/pwm/pwm_asm.S
-
-PULP_LIB_FC_SRCS_rt += drivers/pwm/pwm-v1.c
+has_pwm=1
 endif
+
+ifeq '$(pulp_chip_family)' 'wolfe'
+has_pwm=1
+endif
+
+endif
+
+ifeq '$(has_pwm)' '1'
+PULP_LIB_FC_SRCS_rt += drivers/pwm/pwm-v1.c
 endif
 
 

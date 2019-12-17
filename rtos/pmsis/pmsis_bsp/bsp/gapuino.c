@@ -104,9 +104,3 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 
   return 0;
 }
-
-void board_init()
-{
-    __bsp_init_pads();
-}
-

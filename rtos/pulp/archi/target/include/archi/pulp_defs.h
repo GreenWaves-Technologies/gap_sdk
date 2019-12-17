@@ -66,6 +66,7 @@
 #define CHIP_VIVOSOC3_1            45
 #define CHIP_GAP8_REVC             46
 #define CHIP_GAP9                  47
+#define CHIP_VIVOSOC4              48
 
 #define CORE_OR1K_V1  0
 #define CORE_OR1K_V2  1

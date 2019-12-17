@@ -74,7 +74,7 @@ typedef struct {
 
 
 
-static void hyperflash_program_async(struct pi_device *device, uint32_t hyper_addr, void *data, uint32_t size, pi_task_t *task);
+static void hyperflash_program_async(struct pi_device *device, uint32_t hyper_addr, const void *data, uint32_t size, pi_task_t *task);
 
 static void hyperflash_check_program(void *arg);
 
@@ -538,7 +538,7 @@ static void hyperflash_check_program(void *arg)
 
 
 
-static void hyperflash_program_async(struct pi_device *device, uint32_t hyper_addr, void *data, uint32_t size, pi_task_t *task)
+static void hyperflash_program_async(struct pi_device *device, uint32_t hyper_addr, const void *data, uint32_t size, pi_task_t *task)
 {
   hyperflash_t *hyperflash = (hyperflash_t *)device->data;
 

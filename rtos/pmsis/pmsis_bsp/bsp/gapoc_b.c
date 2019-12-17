@@ -22,7 +22,8 @@
 #include "bsp/flash/hyperflash.h"
 #include "bsp/display/ili9341.h"
 #include "bsp/ram/hyperram.h"
-#include "bsp/ble/nina_b112/nina_b112.h"
+#include "bsp/ble/nina_b112.h"
+#include "bsp/ble/nina_b112/nina_b112_old.h"
 #include "bsp/camera/thermeye.h"
 
 
@@ -104,19 +105,21 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 
 void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
 {
-
+    conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
 }
 
 int bsp_nina_b112_open(struct pi_nina_b112_conf *conf)
 {
-  __bsp_init_pads();
+    //__gpio_init();
+    return 0;
+}
 
-  if (!conf->skip_pads_config)
-  {
+int bsp_nina_b112_open_old()
+{
+    __bsp_init_pads();
+
     pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
-  }
-
-  return 0;
+    return 0;
 }
 
 void bsp_thermeye_conf_init(struct pi_thermeye_conf *conf)
@@ -139,11 +142,6 @@ int bsp_thermeye_open(struct pi_thermeye_conf *conf)
     }
 
     return 0;
-}
-
-void board_init()
-{
-    __bsp_init_pads();
 }
 
 

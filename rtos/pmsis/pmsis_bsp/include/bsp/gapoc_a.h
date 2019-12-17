@@ -57,18 +57,21 @@
 #define CONFIG_UART_RX_PAD_FUNC             0
 #define CONFIG_HYPERRAM_DATA6_PAD_FUNC      3
 
+#define CONFIG_NINA_B112_UART_ID             ( 0 )
+
 #define GPIOA0_LED                PI_GPIO_A0_PAD_12_A3
-#define GPIO_USER_LED             PI_GPIO_A0_PAD_12_A3
+#define GPIO_USER_LED                        ( PI_GPIO_A0_PAD_12_A3 )
 #define GPIOA1                    1
-#define GPIOA2_NINA_RST           PI_GPIO_A2_PAD_14_A2
 #define GPIOA3_CIS_EXP            PI_GPIO_A3_PAD_15_B1
 #define GPIOA4_1V8_EN             PI_GPIO_A4_PAD_16_A44
 #define GPIOA5_CIS_PWRON          PI_GPIO_A5_PAD_17_B40
 #define GPIOA18                   18
 #define GPIOA19                   19
-#define GPIOA21_NINA17            PI_GPIO_A21_PAD_35_B13
 
-
-void board_init();
+/* BLE Nina. */
+#define GPIOA2_NINA_RST                ( PI_GPIO_A2_PAD_14_A2 )
+#define GPIOA21_NINA17                 ( PI_GPIO_A21_PAD_35_B13 )
+#define GPIO_NINA_PWRON                ( PI_GPIO_A2_PAD_14_A2 )
+#define GPIO_NINA17_DSR                ( PI_GPIO_A21_PAD_35_B13 )
 
 #endif

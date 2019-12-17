@@ -70,18 +70,26 @@ static inline void gv_stats_dump() {
   __rt_semihosting_call(gv_SEMIHOSTING_STATS_DUMP);
 }
 
+#endif
 
-
-static inline void gv_trace_start() {
-  __rt_semihosting_call(gv_SEMIHOSTING_TRACE_START);
+static inline int gv_trace_open(char *path)
+{
+  return __rt_semihosting_call(GV_SEMIHOSTING_TRACE_OPEN, path);
 }
 
-static inline void gv_trace_stop() {
-  __rt_semihosting_call(gv_SEMIHOSTING_TRACE_STOP);
+static inline void gv_trace_enable(int trace)
+{
+  __rt_semihosting_call(GV_SEMIHOSTING_TRACE_ENABLE, trace, 1);
+}
+
+static inline void gv_trace_disable(int trace)
+{
+  __rt_semihosting_call(GV_SEMIHOSTING_TRACE_ENABLE, trace, 0);
 }
 
 
 
+#if 0
 static inline void gv_prof_start() {
   __rt_semihosting_call(gv_SEMIHOSTING_PROF_START);
 }

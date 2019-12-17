@@ -40,6 +40,9 @@
 /* Event unit. */
 #include "event_unit/event_unit.h"
 
+/* Efuse */
+#include "efuse/pmsis_efuse.h"
+
 /* GPIO. */
 #include "gpio/gpio.h"
 

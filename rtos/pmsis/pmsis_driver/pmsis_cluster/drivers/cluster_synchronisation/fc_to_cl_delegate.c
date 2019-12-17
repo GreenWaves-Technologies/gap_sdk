@@ -34,8 +34,13 @@ extern char  __l1_preload_start;
 extern char  __l1_preload_start_inL2;
 extern char  __l1_preload_size;
 
+#if defined(__GAP8__)
 extern char  __l1FcShared_start;
 extern char  __l1FcShared_size;
+#elif defined(__GAP9__)
+extern char  __l1Shared_start;
+extern char  __l1Shared_size;
+#endif
 
 extern char  __heapsram_start;
 extern char  __heapsram_size;
@@ -192,7 +197,11 @@ static void cl_set_core_stack(void *arg)
     {
         // master
         /* Cluster calls FC */
+#if defined(__GAP8__)
         hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
+#elif defined(__GAP9__)
+        FC_ITC->STATUS_SET = (1 << CLUSTER_NOTIFY_FC_EVENT);
+#endif
     }
 }
 
@@ -232,7 +241,11 @@ void cl_task_finish(void)
     //PRINTF("cl_task_finish: data=%p\n",data);
 
     // Notify FC that current task is done
+#if defined(__GAP8__)
     hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
+#elif defined(__GAP9__)
+    FC_ITC->STATUS_SET = (1 << CLUSTER_NOTIFY_FC_EVENT);
+#endif
 }
 
 /**
@@ -346,7 +359,7 @@ int pi_cluster_close_async(struct pi_device *device, pi_task_t *async_task)
     return 0;
 }
 
-uint32_t pi_cluster_ioctl(struct pi_device *device, uint32_t func_id, void *arg)
+int pi_cluster_ioctl(struct pi_device *device, uint32_t func_id, void *arg)
 {
     struct pi_device_api *api = device->api;
     struct cluster_driver_api *cluster_api = api->specific_api;
@@ -381,7 +394,7 @@ uint32_t pi_cluster_ioctl(struct pi_device *device, uint32_t func_id, void *arg)
     return ret;
 }
 
-uint32_t pi_cluster_ioctl_async(struct pi_device *device, uint32_t func_id,
+int pi_cluster_ioctl_async(struct pi_device *device, uint32_t func_id,
         void *arg, pi_task_t *async_task)
 {
     struct pi_device_api *api = device->api;
@@ -442,8 +455,12 @@ static inline void __cluster_start(struct pi_device *device)
         PRINTF("poweron is done\n");
         for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
         {
+#if defined(__GAP8__)
             extern uint8_t __irq_vector_base_m__;
             SCB->BOOT_ADDR[i] = (uint32_t) &__irq_vector_base_m__;
+#elif defined(__GAP9__)
+            SCB->BOOT_ADDR[i] = 0x1C008100;
+#endif
         }
         SCB->FETCH_EN = 0xFFFFFFFF;
 
@@ -451,7 +468,11 @@ static inline void __cluster_start(struct pi_device *device)
         memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1_preload_start), &__l1_preload_start_inL2, (size_t)&__l1_preload_size);
 
         /* Copy the FC / clusters shared data as the linker can only put it in one section (the cluster one) */
+#if defined(__GAP8__)
         memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1FcShared_start), &__l1FcShared_start, (size_t)&__l1FcShared_size);
+#elif defined(__GAP9__)
+        memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1Shared_start), &__l1Shared_start, (size_t)&__l1Shared_size);
+#endif
 
         PRINTF("conf:%p, heap_start:%p, heap_size:%lx\n",conf, conf->heap_start, conf->heap_size);
         pmsis_l1_malloc_init(conf->heap_start,conf->heap_size);

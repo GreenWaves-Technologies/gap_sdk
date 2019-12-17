@@ -9,6 +9,8 @@ COMMON_CFLAGS          += -DCONFIG_GAPOC_B
 PLPBRIDGE_FLAGS        += -ftdi
 else ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO
+else ifeq ($(BOARD_NAME), ai_deck)
+COMMON_CFLAGS          += -DCONFIG_AI_DECK
 endif
 
 ifdef RUNNER_CONFIG

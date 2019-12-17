@@ -158,7 +158,10 @@
     "rom": {
       "version": 2,
       "base": "0x1A000000",
-      "size": "0x00002000"
+      "size": "0x00002000",
+      "config": {
+        "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'pulp', 'rom.bin')"
+      }
     },
 
     "pulp_tap": {

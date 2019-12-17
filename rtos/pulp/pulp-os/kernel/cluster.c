@@ -139,7 +139,7 @@ static int __rt_cluster_setup(rt_fc_cluster_data_t *cluster)
 
 
 #ifdef FLL_VERSION
-  #if PULP_CHIP_FAMILY == CHIP_VIVOSOC3 || PULP_CHIP_FAMILY == CHIP_VIVOSOC3_1
+  #if PULP_CHIP_FAMILY == CHIP_VIVOSOC3 || PULP_CHIP_FAMILY == CHIP_VIVOSOC3_1|| PULP_CHIP_FAMILY == CHIP_VIVOSOC4
     if (rt_platform() != ARCHI_PLATFORM_FPGA)
     {
       // Check if we have to restore the cluster freqeuncy
@@ -299,7 +299,7 @@ static inline __attribute__((always_inline)) void __rt_cluster_unmount(int cid, 
   rt_trace(RT_TRACE_CONF, "Unmounting cluster (cluster: %d)\n", cid);
 
 #ifdef FLL_VERSION
-  #if PULP_CHIP_FAMILY == CHIP_VIVOSOC3 || PULP_CHIP_FAMILY == CHIP_VIVOSOC3_1
+  #if PULP_CHIP_FAMILY == CHIP_VIVOSOC3 || PULP_CHIP_FAMILY == CHIP_VIVOSOC3_1 || PULP_CHIP_FAMILY == CHIP_VIVOSOC4
     if (rt_platform() != ARCHI_PLATFORM_FPGA)
     {
       // check if cl fll was used

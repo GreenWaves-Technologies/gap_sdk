@@ -69,8 +69,18 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 
 CFLAGS        = $(COMMON) -MMD -MP -c
 
+ifdef io
+ifeq '$(io)' 'host'
+PULP_CFLAGS += -D__RT_IODEV__=2
+export GAP_USE_OPENOCD=1
+endif
+ifeq '$(io)' 'uart'
+PULP_CFLAGS += -D__RT_IODEV__=1
+endif
+else
 ifdef GAP_USE_OPENOCD
 PULP_CFLAGS += -D__RT_IODEV__=2
+endif
 endif
 
 TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS) -MMD -MP -c
@@ -157,7 +167,7 @@ gdbserver: run
 endif
 
 flash::
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
 
 launch::
 	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS)

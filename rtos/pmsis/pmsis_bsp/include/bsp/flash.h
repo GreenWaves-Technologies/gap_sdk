@@ -214,7 +214,7 @@ static inline void pi_flash_read(struct pi_device *device, uint32_t pi_flash_add
  * \param size        The size in bytes of the copy
  */
 static inline void pi_flash_program(struct pi_device *device, uint32_t pi_flash_addr,
-  void *data, uint32_t size);
+  const void *data, uint32_t size);
 
 /** \brief Erase the whole flash.
  *
@@ -297,7 +297,7 @@ static inline void pi_flash_read_async(struct pi_device *device,
    See the documentation of pi_task_t for more details.
  */
 static inline void pi_flash_program_async(struct pi_device *device,
-  uint32_t pi_flash_addr, void *data, uint32_t size, pi_task_t *task);
+  uint32_t pi_flash_addr, const void *data, uint32_t size, pi_task_t *task);
 
 /** \brief Erase the whole flash asynchronously.
  *
@@ -362,7 +362,7 @@ typedef struct __pi_flash_api_t {
   void (*close)(struct pi_device *device);
   int32_t (*ioctl)(struct pi_device *device, uint32_t cmd, void *arg);
   void (*read_async)(struct pi_device *device, uint32_t pi_flash_addr, void *data, uint32_t size, pi_task_t *task);
-  void (*program_async)(struct pi_device *device, uint32_t pi_flash_addr, void *data, uint32_t size, pi_task_t *task);
+  void (*program_async)(struct pi_device *device, uint32_t pi_flash_addr, const void *data, uint32_t size, pi_task_t *task);
   void (*erase_chip_async)(struct pi_device *device, pi_task_t *task);
   void (*erase_sector_async)(struct pi_device *device, uint32_t pi_flash_addr, pi_task_t *task);
   void (*erase_async)(struct pi_device *device, uint32_t pi_flash_addr, int size, pi_task_t *task);
@@ -424,13 +424,13 @@ static inline void pi_flash_read(struct pi_device *device, uint32_t pi_flash_add
   pi_task_wait_on(&task);
 }
 
-static inline void pi_flash_program_async(struct pi_device *device, uint32_t pi_flash_addr, void *data, uint32_t size, pi_task_t *task)
+static inline void pi_flash_program_async(struct pi_device *device, uint32_t pi_flash_addr, const void *data, uint32_t size, pi_task_t *task)
 {
   pi_flash_api_t *api = (pi_flash_api_t *)device->api;
   api->program_async(device, pi_flash_addr, data, size, task);
 }
 
-static inline void pi_flash_program(struct pi_device *device, uint32_t pi_flash_addr, void *data, uint32_t size)
+static inline void pi_flash_program(struct pi_device *device, uint32_t pi_flash_addr, const void *data, uint32_t size)
 {
   pi_task_t task;
   pi_flash_program_async(device, pi_flash_addr, data, size, pi_task_block(&task));

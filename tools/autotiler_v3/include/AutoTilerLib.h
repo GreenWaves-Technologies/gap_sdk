@@ -1063,6 +1063,27 @@ ArgBindingDescr_T *KG_ArgOper(
 	int Value			/**< A signed immediate value */
 	);
 
+/**
+@brief Creates a stacked tensor, resulting object is OutTensorName, Count in tensors passed as names are stacked according to list order
+
+Creates a list of stacked tensors, resulting object is OutTensorName, Count in tensors passed as names are stacked according to list order
+*/
+StackedTensors_T *AT_StackedTensors(
+	char *OutTensorName,
+	int Count,
+	...
+	);
+
+/**
+@brief Creates a list of stacked tensors
+
+Creates a list of stacked tensors
+*/
+StackedTensors_T *AT_StackedTensorsList(
+	int Count,
+	...
+	);
+
 /* A user kernel group */
 /**
 @brief Declare a user kernel group
@@ -1079,6 +1100,7 @@ KernelGroup_T *UserKernelGroupK(
 	char *GroupName,		/**< Group's name as in OpenKernelGroup() */
 	unsigned int IterCount,		/**< Number of time this group should be iterated, usually 1 but used for grouped convolution */
        	CKernel_Arg_T **CArg,		/**< See Carg() and TCArg() */
+	StackedTensors_T *StackedTensors, /**< List of stacked tensors */
        	CKernelCall_T **CCalls,		/**< See Calls() and UserKernelCall() */
         Object_T **KerArg		/**< Kernel Group arguments. Restricted to KerGroupArg() as argument of KerArgs() */
 	);

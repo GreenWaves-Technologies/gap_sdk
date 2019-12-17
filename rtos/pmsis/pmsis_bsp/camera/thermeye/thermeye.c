@@ -58,7 +58,7 @@ static void __pi_thermeye_reg_write(thermeye_t *thermeye, uint16_t addr, uint8_t
 
 static void __pi_thermeye_start(thermeye_t *thermeye)
 {
-    printf("Sensor On\n");
+    //printf("Sensor On\n");
     /* Start Master Clock. Need GPIO, pin E12 on sensor. */
     /* MC frequency 14 * I2C SCL frequency. Set when opened. */
     {
@@ -142,7 +142,7 @@ static void __pi_thermeye_stop(thermeye_t *thermeye)
 
     /* Disable power to sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 0);
-    printf("Sensor Off\n");
+    //printf("Sensor Off\n");
 }
 
 static void __pi_thermeye_on(thermeye_t *thermeye)
@@ -178,9 +178,9 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     memcpy(&(thermeye->conf), conf, sizeof(struct pi_thermeye_conf));
     device->data = (void *) thermeye;
 
-    printf("ThermEye: opening CPI(%d), I2C(%d), PWM(%d, %d), GPIO_Power %x, GPIO_Reset %x\n",
-           conf->cpi_id, conf->i2c_id, conf->pwm_id, conf->pwm_channel,
-           conf->gpio_power, conf->gpio_reset);
+    //printf("ThermEye: opening CPI(%d), I2C(%d), PWM(%d, %d), GPIO_Power %x, GPIO_Reset %x\n",
+    //       conf->cpi_id, conf->i2c_id, conf->pwm_id, conf->pwm_channel,
+    //       conf->gpio_power, conf->gpio_reset);
 
     /* PWM open. */
     #define PWM_FQCY_KHz    (700)
@@ -219,7 +219,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     }
 
 
-    printf("PWM: %d kHz I2C: %d kHz\n", PWM_FQCY_KHz, I2C0_FQCY_KHZ);
+    //printf("PWM: %d kHz I2C: %d kHz\n", PWM_FQCY_KHz, I2C0_FQCY_KHZ);
 
     /* CPI open. */
     struct pi_cpi_conf cpi_conf = {0};

@@ -24,7 +24,8 @@
 #include "bsp/transport/nina_w10.h"
 #include "bsp/display/ili9341.h"
 #include "bsp/ram/hyperram.h"
-#include "bsp/ble/nina_b112/nina_b112.h"
+#include "bsp/ble/nina_b112.h"
+#include "bsp/ble/nina_b112/nina_b112_old.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -34,16 +35,16 @@ static void __gpio_init()
 {
     pi_gpio_pin_configure(0, GPIOA0_LED      , PI_GPIO_OUTPUT);
     pi_gpio_pin_configure(0, GPIOA1          , PI_GPIO_INPUT);
-    pi_gpio_pin_configure(0, GPIOA2_NINA_RST , PI_GPIO_OUTPUT);
     pi_gpio_pin_configure(0, GPIOA4_1V8_EN   , PI_GPIO_OUTPUT);
     pi_gpio_pin_configure(0, GPIOA18         , PI_GPIO_INPUT);
     pi_gpio_pin_configure(0, GPIOA19         , PI_GPIO_INPUT);
-    pi_gpio_pin_configure(0, GPIOA21_NINA17  , PI_GPIO_OUTPUT);
+    /* pi_gpio_pin_configure(0, GPIOA2_NINA_RST , PI_GPIO_OUTPUT); */
+    /* pi_gpio_pin_configure(0, GPIOA21_NINA17  , PI_GPIO_OUTPUT); */
 
     pi_gpio_pin_write(0, GPIOA0_LED, 0);
-    pi_gpio_pin_write(0, GPIOA2_NINA_RST, 0);
     pi_gpio_pin_write(0, GPIOA4_1V8_EN, 1);
-    pi_gpio_pin_write(0, GPIOA21_NINA17, 1);
+    /* pi_gpio_pin_write(0, GPIOA2_NINA_RST, 0); */
+    /* pi_gpio_pin_write(0, GPIOA21_NINA17, 1); */
 }
 
 static void __bsp_init_pads()
@@ -150,24 +151,20 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 
 void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
 {
-
+    conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
 }
 
 int bsp_nina_b112_open(struct pi_nina_b112_conf *conf)
 {
-  __bsp_init_pads();
-
-  if (!conf->skip_pads_config)
-  {
-    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
-  }
-
-  return 0;
+    return 0;
 }
 
-void board_init()
+int bsp_nina_b112_open_old()
 {
     __bsp_init_pads();
+
+    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
+    return 0;
 }
 
 

@@ -1097,6 +1097,8 @@ class Runner(Platform):
 
         parser.add_argument("--no-debug-syms", dest="debug_syms", action="store_false", help="Deactivate debug symbol parsing, which can then be used for traces")
 
+        parser.add_argument("--trace-enable", dest="trace", action="store_true", help="Activate GVSOC traces")
+
         parser.add_argument("--trace", dest="traces", default=[], action="append", help="Specify gvsoc trace")
 
         parser.add_argument("--trace-level", dest="trace_level", default=None, help="Specify trace level")
@@ -1135,6 +1137,9 @@ class Runner(Platform):
 
         if args.trace_level is not None:
             self.get_json().set('gvsoc/trace-level', args.trace_level)
+
+        if args.trace is not None:
+            self.get_json().set('gvsoc/trace-enable', args.trace)
 
         for event in args.events:
             self.get_json().set('gvsoc/event', event)
@@ -1371,7 +1376,7 @@ class Runner(Platform):
 
         gen_gtkw_files(self.get_json(), gvsoc_config)
 
-        debug_mode = gvsoc_config.get_bool('vcd/active') or len(gvsoc_config.get('trace').get()) != 0 or len(gvsoc_config.get('event').get()) != 0
+        debug_mode = gvsoc_config.get_bool('trace-enable') or gvsoc_config.get_bool('vcd/active') or len(gvsoc_config.get('trace').get()) != 0 or len(gvsoc_config.get('event').get()) != 0
 
         power_engine = vp.power_engine.component(name=None, config=gvsoc_config, debug=debug_mode)
 

@@ -21,7 +21,7 @@
         "include": "devices/nina_w10.json",
         "interface": "spim1",
         "cs": 0,
-        "gpio_ready": "gpio0"
+        "gpio_ready": "gpio18"
       }
     }
   },

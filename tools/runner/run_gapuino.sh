@@ -28,8 +28,9 @@ FLAG_NOFLASH=0
 #Parameters of bridge
 verbose=2
 fileio=0
-if [ "$BOARD_NAME" = "gapoc_a" ];
-then
+if [ -n "$PLPBRIDGE_CABLE" ]; then
+    cable=$PLPBRIDGE_CABLE
+elif [ "$BOARD_NAME" = "gapoc_a" ]; then
     cable=ftdi
 else
     cable=ftdi@digilent

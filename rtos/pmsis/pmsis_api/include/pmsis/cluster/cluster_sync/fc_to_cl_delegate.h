@@ -220,9 +220,9 @@ uint8_t pi_cluster_is_on(void);
  */
 int pi_cluster_close_async(struct pi_device *device, pi_task_t *async_task);
 
-uint32_t pi_cluster_ioctl(struct pi_device *device, uint32_t func_id, void *arg);
+int pi_cluster_ioctl(struct pi_device *device, uint32_t func_id, void *arg);
 
-uint32_t pi_cluster_ioctl_async(struct pi_device *device, uint32_t func_id,
+int pi_cluster_ioctl_async(struct pi_device *device, uint32_t func_id,
         void *arg, pi_task_t *async_task);
 
 /** \brief Wait for the cluster to be free i.e. nothing executes on it

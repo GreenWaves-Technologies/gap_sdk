@@ -45,6 +45,10 @@ export TILER_GENERATOR_PATH=$TILER_PATH/generators
 # OpenOCD
 export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
 
+# Zephyr
+export CROSS_COMPILE="$GAP_RISCV_GCC_TOOLCHAIN/bin/riscv32-unknown-elf-"
+export ZEPHYR_GCC_VARIANT=cross-compile
+
 if [ "$TARGET_CHIP" = "GAP8" ]
 then
     PROJECT_PATH=$(dirname $GAP_SDK_HOME)

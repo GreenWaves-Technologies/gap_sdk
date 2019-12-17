@@ -14,6 +14,12 @@
     "boot-mode": "jtag"
   },
   
+  "vsim": {
+    "boot-mode": "jtag",
+    "vsim_runner_class": "runner/rtl/pulp/vsim_runner",
+    "xcelium_runner_class": "runner/rtl/pulp/xcelium_runner"
+  },
+  
   "system_tree": {
     "debug_bridge": {
       "boot-mode": "jtag",

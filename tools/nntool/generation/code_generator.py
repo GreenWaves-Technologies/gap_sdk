@@ -79,13 +79,18 @@ class CodeGenerator():
     def project_name(self):
         return self.naming_convension.get_project_name()
 
+    def setL3Ram_ext_managed():
+        self.opts['memory_devices'].setL3Ram_ext_managed(True)
+
     def get_edge_name(self, eparams):
         return self.name_cache[eparams]['edge']
 
     def get_node_name(self, params, target):
         return self.name_cache[params][target]
 
-    def memory_device_generator(self, indent=0):
+    def memory_device_generator(self, indent=0,L3RamUserManaged=0,L3FlashUserManaged=0):
+        self.opts['memory_devices'].setL3RamExtManaged(L3RamUserManaged)
+        self.opts['memory_devices'].setL3FlashExtManaged(L3FlashUserManaged)
         code_block = CodeBlock(starting_indent=indent)
         self.opts['memory_devices'].gen(self.G, code_block)
         return str(code_block)
@@ -121,19 +126,19 @@ class CodeGenerator():
         code_block.write(")")
         return str(code_block)
 
-    def global_generator(self, indent=0):
+    def global_generator(self, indent=0,forceinputLocation='',forceoutputLocation=''):
         code_block = CodeBlock(starting_indent=indent + 1)
 
-        num_globals = self.generate_inputs(code_block)
+        num_globals = self.generate_inputs(code_block,forceinputLocation)
         num_globals = self.generate_constants(num_globals, code_block)
-        num_globals = self.generate_outputs(num_globals, code_block)
+        num_globals = self.generate_outputs(num_globals, code_block,forceoutputLocation)
 
         code_block.deindent()
         code_block.write_start("CArgs({},", num_globals)
         code_block.write(")")
         return str(code_block)
 
-    def generate_outputs(self, num_globals, code_block):
+    def generate_outputs(self, num_globals, code_block,forceoutputLocation):
         outputs = set()
         for node in self.G.outputs():
             in_qs = self.G.quantization[NodeId(node)].in_qs
@@ -146,8 +151,8 @@ class CodeGenerator():
                     code_block.append_last(',')
                 gen_output_decl(eparams,
                                 in_qs[edge.to_idx],
-                                self.opts['default_output_home_location'],
-                                self.opts['default_output_exec_location'],
+                                self.opts['default_output_home_location'] if not forceoutputLocation else forceoutputLocation,
+                                self.opts['default_output_exec_location'] if not forceoutputLocation else forceoutputLocation,
                                 code_block)
                 num_globals += 1
         return num_globals
@@ -196,7 +201,7 @@ class CodeGenerator():
                 num_globals += 1
         return num_globals
 
-    def generate_inputs(self, code_block):
+    def generate_inputs(self, code_block,forceinputLocation):
         num_globals = 0
         inputs = set()
         for node in self.G.inputs():
@@ -210,8 +215,8 @@ class CodeGenerator():
                 inputs.add(eparams)
                 gen_input_decl(eparams,
                                out_qs[edge.from_idx],
-                               self.opts['default_input_home_location'],
-                               self.opts['default_input_exec_location'],
+                               self.opts['default_input_home_location'] if not forceinputLocation else forceinputLocation,
+                               self.opts['default_input_exec_location'] if not forceinputLocation else forceinputLocation,
                                code_block)
                 num_globals += 1
         return num_globals
@@ -378,7 +383,8 @@ class CodeGenerator():
             NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, 'weights'),
                             GNodeArgNode(params, 'biases'),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT"),
-                            Imm(conv_q.in_qs[0].q + conv_q.weights_q.q - conv_q.out_qs[0].q)))
+                            Imm(conv_q.in_qs[0].q + conv_q.weights_q.q - conv_q.out_qs[0].q),
+                            Imm(conv_q.in_qs[0].q + conv_q.weights_q.q - conv_q.out_qs[0].q) ))
         if self.opts['dump_tensors']:
             self.add_dump_params_binding(cname, params, conv_q, step_idx)
 

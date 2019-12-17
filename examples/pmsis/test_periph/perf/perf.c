@@ -44,6 +44,7 @@ void helloworld(void)
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
     sprintf(hello, "[%d %d] Hello World!\n", cluster_id, core_id);
     printf(hello);
+    uint32_t fc_perf = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
 
     struct pi_device cluster_dev = {0};
     struct pi_cluster_conf cl_conf = {0};
@@ -72,6 +73,7 @@ void helloworld(void)
     uint32_t cycles = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
     uint32_t tim_cycles = pi_perf_read(PI_PERF_CYCLES);
     printf("Perf : %d cycles Timer : %d cycles\n", cycles, tim_cycles);
+    printf("[%d %d] Perf : %d cycles\n", cluster_id, core_id, fc_perf);
     for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
     {
         printf("[%d %d] Perf : %d cycles\n", 0, i, perf_values[i]);

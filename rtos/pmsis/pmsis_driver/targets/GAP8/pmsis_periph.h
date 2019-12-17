@@ -1,31 +1,59 @@
 /*
- * Copyright (c) 2018, GreenWaves Technologies, Inc.
- * All rights reserved.
+** ###################################################################
+**     Processors:          GAP8
+**
+**     Compilers:           GNU C Compiler
+**
+**     Reference manual:    riscv-spec-v2.1, January 2017
+**     Version:             rev. 2.9, 2017-07-19
+**
+**     Abstract:
+**         CMSIS Peripheral Access Layer for GAP8
+**
+**     Copyright (c) 2015 - 2018 GreenWave Technologies, Inc.
+**     All rights reserved.
+**
+**     Redistribution and use in source and binary forms, with or without modification,
+**     are permitted provided that the following conditions are met:
+**
+**     o Redistributions of source code must retain the above copyright notice, this list
+**       of conditions and the following disclaimer.
+**
+**     o Redistributions in binary form must reproduce the above copyright notice, this
+**       list of conditions and the following disclaimer in the documentation and/or
+**       other materials provided with the distribution.
+**
+**     o Neither the name of GreenWaves Technologies, Inc. nor the names of its
+**       contributors may be used to endorse or promote products derived from this
+**       software without specific prior written permission.
+**
+**     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+**     ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+**     WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+**     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+**     ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+**     (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+**     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+**     ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+**     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+**     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**
+**     http:                 http://greenwaves-technologies.com
+**     mail:                 jie.chen@greenwaves-technologies.com
+**
+**     Revisions:
+**     - rev. 1.0 (2017-07-19)
+**         Initial version.
+** ###################################################################
+*/
+
+/*!
+ * @file GAP8.h
+ * @version 1.0
+ * @date 2017-07-19
+ * @brief CMSIS Peripheral Access Layer for GAP8
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * o Redistributions of source code must retain the above copyright notice, this list
- *   of conditions and the following disclaimer.
- *
- * o Redistributions in binary form must reproduce the above copyright notice, this
- *   list of conditions and the following disclaimer in the documentation and/or
- *   other materials provided with the distribution.
- *
- * o Neither the name of GreenWaves Technologies, Inc. nor the names of its
- *   contributors may be used to endorse or promote products derived from this
- *   software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * CMSIS Peripheral Access Layer for GAP8
  */
 
 #ifndef _PMSIS_PERIPH_GAP8_H_
@@ -1335,51 +1363,35 @@ typedef struct {
  * @{
  */
 
-/** EFUSE_CTRL - Register Layout Typedef */
-typedef struct {
-  __O  uint32_t CMD;                       /**< EFUSE_Control register, offset: 0x00 */
-  __O  uint32_t CFG;                       /**< EFUSE_Control register, offset: 0x04 */
-} EFUSE_CTRL_Type;
 
-/* ----------------------------------------------------------------------------
-   -- EFUSE_CTRL Register Masks
-   ---------------------------------------------------------------------------- */
-/*! @name CFG - EFUSE control configure register */
-#define EFUSE_CTRL_SHORT_MASK                           (0x3FFU)
-#define EFUSE_CTRL_SHORT_SHIFT                          (0U)
-#define EFUSE_CTRL_SHORT(x)                             (((uint32_t)(((uint32_t)(x)) /* << EFUSE_CTRL_SHORT_SHIFT */)) & EFUSE_CTRL_SHORT_MASK)
 
-#define EFUSE_CTRL_MEDIUM_MASK                          (0xFFC00U)
-#define EFUSE_CTRL_MEDIUM_SHIFT                         (10U)
-#define EFUSE_CTRL_MEDIUM(x)                            (((uint32_t)(((uint32_t)(x)) << EFUSE_CTRL_MEDIUM_SHIFT)) & EFUSE_CTRL_MEDIUM_MASK)
-
-#define EFUSE_CTRL_LONG_MASK                            (0x3FF00000U)
-#define EFUSE_CTRL_LONG_SHIFT                           (20U)
-#define EFUSE_CTRL_LONG(x)                              (((uint32_t)(((uint32_t)(x)) << EFUSE_CTRL_LONG_SHIFT)) & EFUSE_CTRL_LONG_MASK)
-
-/*!
- * @addtogroup EFUSE_CTRL_Register_Masks EFUSE_CTRL Register Masks
- * @{
- */
-#define    EFUSE_CTRL_CMD_READ       0x1
-#define    EFUSE_CTRL_CMD_WRITE      0x2
-#define    EFUSE_CTRL_CMD_SLEEP      0x4
-/*!
- * @}
- */ /* end of group EFUSE_CTRL_Register_Masks */
-
+#include "periph/efuse_periph.h"
 
 /* EFUSE_CTRL - Peripheral instance base addresses */
 /** Peripheral EFUSE_CTRL base address */
 #define EFUSE_CTRL_BASE                               (SOC_PERI_BASE + 0x09000u)
 /** Peripheral EFUSE_CTRL base pointer */
-#define EFUSE_CTRL                                    ((EFUSE_CTRL_Type *)EFUSE_CTRL_BASE)
+#define efuse_ctrl                                    ((efuse_ctrl_t *)EFUSE_CTRL_BASE)
 /** Array initializer of EFUSE_CTRL base addresses */
 #define EFUSE_CTRL_BASE_ADDRS                         { EFUSE_CTRL_BASE }
 /** Array initializer of EFUSE_CTRL base pointers */
 #define EFUSE_CTRL_BASE_PTRS                          { EFUSE_CTRL }
 
 /*!
+ * @}
+ */ /* end of group EFUSE_CTRL_Peripheral_Access_Layer */
+
+
+/* EFUSE_REGS - Peripheral instance base addresses */
+/** Peripheral EFUSE_REGS base address */
+#define EFUSE_REGS_BASE                                (SOC_PERI_BASE + 0x09200u)
+/** Peripheral EFUSE_REGS base pointer */
+#define efuse_regs                                     ((efuse_regs_t *)EFUSE_REGS_BASE)
+#define efuse_regs_array                               ((int32_t*)EFUSE_REGS_BASE)
+/** Array initializer of EFUSE_REGS base addresses */
+#define EFUSE_REGS_BASE_ADDRS                          { EFUSE_REGS_BASE }
+/** Array initializer of EFUSE_REGS base pointers */
+#define EFUSE_REGS_BASE_PTRS                           { EFUSE_REGS }/*!
  * @}
  */ /* end of group EFUSE_CTRL_Peripheral_Access_Layer */
 
