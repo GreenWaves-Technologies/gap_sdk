@@ -245,9 +245,9 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     uint8_t lsb = 0;
     uint8_t ddr = 0;
     uint8_t clk = fifo->clk;
-    ddr = (conf->channels >> 1);
     if (pdm)
     {
+        ddr = (conf->channels >> 1);
         /* PDM filter setup. */
         fifo->frequency *= conf->pdm_decimation;
         if (conf->pdm_shift == -1)
