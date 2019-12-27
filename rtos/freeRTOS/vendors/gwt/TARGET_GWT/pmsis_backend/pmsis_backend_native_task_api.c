@@ -35,6 +35,14 @@ int __os_native_kickoff(void *arg)
     extern uint8_t g_freertos_scheduler_started;
     g_freertos_scheduler_started = 1;
 
+    extern SemaphoreHandle_t g_printf_mutex;
+    g_printf_mutex = xSemaphoreCreateMutex();
+    if(g_printf_mutex == NULL)
+    {
+        printf("Error : printf mutex not created !\n", g_printf_mutex);
+        pmsis_exit(-4322);
+    }
+
     /* Start the kernel.  From here on, only tasks and interrupts will run. */
     vTaskStartScheduler();
 

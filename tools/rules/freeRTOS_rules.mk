@@ -116,7 +116,7 @@ COMMON          = -c -fmessage-length=0 -fno-exceptions -fno-builtin \
                   -fno-delete-null-pointer-checks -fomit-frame-pointer -O3\
                   $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(FREERTOS_FLAGS)
 
-PRINTF_FLAGS    = -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #-DPRINTF_DISABLE_SUPPORT_FLOAT
+PRINTF_FLAGS    = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #-DPRINTF_DISABLE_SUPPORT_FLOAT
 
 WARNINGS        = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
                   -Wno-unused-variable -Wno-unused-but-set-variable \
@@ -207,10 +207,13 @@ BIN             = $(BUILDDIR)/test
 
 OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
 
+OBJS_DEP        = $(patsubst %.o, %.d, $(OBJS))
 
 # Makefile targets :
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
 #------------------------------------------
+
+-include $(OBJS_DEP)
 
 all:: dir $(OBJS) $(BIN)
 

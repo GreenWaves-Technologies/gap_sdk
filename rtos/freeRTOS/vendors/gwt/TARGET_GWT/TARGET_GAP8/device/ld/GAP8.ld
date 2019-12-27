@@ -262,7 +262,8 @@ SECTIONS
     {
         /* Due to limitations on FPGA loader, loadable sections must have base and size aligned on 4 bytes */
         . = ALIGN(4);
-        __l1_preload_start = .;
+        __printf_lock_ptr = . + 0x4;
+        __l1_preload_start = . + 0x4;
         *(.l1clusterTiny)
         *(.l1clusterTiny.*)
         . = ALIGN(4);
@@ -299,14 +300,4 @@ SECTIONS
 
     __heapl2ram_size = LENGTH(L2) + ORIGIN(L2) - __heapl2ram_start;
     __heapl2ram_limit = __heapl2ram_size + __heapl2ram_start;
-
-    .stab  0 (NOLOAD) :
-    {
-        [ .stab ]
-    }
-
-    .stabstr  0 (NOLOAD) :
-    {
-        [ .stabstr ]
-    }
 }

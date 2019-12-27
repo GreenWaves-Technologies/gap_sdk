@@ -69,7 +69,7 @@ void system_init(void)
                       (void*) &__heapl2ram_start, (uint32_t) &__heapl2ram_size);
 
     #if defined(PRINTF_UART)
-    printf_uart_init();
+    printf_uart_init(0);
     #endif  /* PRINTF_UART */
 }
 
