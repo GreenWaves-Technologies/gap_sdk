@@ -70,7 +70,7 @@ def main():
         mod.generate_code(args)
         return
 
-    nntool_workdir = os.path.join(Path.home(), '.nntool')
+    nntool_workdir = os.path.join(str(Path.home()), '.nntool')
     os.makedirs(nntool_workdir, exist_ok=True, mode=0o755)
     # late import to speed up argcomplete
     mod = importlib.import_module('interpreter.nntool_shell')
