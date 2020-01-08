@@ -1054,9 +1054,10 @@ def gen_gtkw_files(config, gv_config):
                     check_user_traces(gtkw, tp, 'chip.fc', user_traces)
                     gen_gtkw_core_traces(gtkw, tp, 'sys.board.chip.soc.fc')
 
-                with gtkw.group('fc_icache', closed=True):
-                    check_user_traces(gtkw, tp, 'chip.fc_icache', user_traces)
-                    gen_gtkw_icache_traces(gtkw, tp, 'sys.board.chip.soc.fc_icache', 1<<config.get_int('**/fc_icache/nb_ways_bits'), 1<<config.get_int('**/fc_icache/nb_sets_bits'))
+                if config.get('**/fc_icache') is not None:
+                    with gtkw.group('fc_icache', closed=True):
+                        check_user_traces(gtkw, tp, 'chip.fc_icache', user_traces)
+                        gen_gtkw_icache_traces(gtkw, tp, 'sys.board.chip.soc.fc_icache', 1<<config.get_int('**/fc_icache/nb_ways_bits'), 1<<config.get_int('**/fc_icache/nb_sets_bits'))
 
 
                 if nb_pe is not None:
@@ -1103,6 +1104,8 @@ class Runner(Platform):
 
         parser.add_argument("--trace-level", dest="trace_level", default=None, help="Specify trace level")
 
+        parser.add_argument("--stdin", dest="stdin", action="store_true", help="Activate input console")
+
         parser.add_argument("--vcd", dest="vcd", action="store_true", help="Activate VCD traces")
 
         parser.add_argument("--event", dest="events", default=[], action="append", help="Specify gvsoc event (for VCD traces)")
@@ -1128,6 +1131,9 @@ class Runner(Platform):
         self.addCommand('devices', 'Show available devices')
 
         self.__prepare_env()
+
+        if args.stdin:
+            self.get_json().set('**/uart/stdin', True)
 
         if args.vcd:
             self.get_json().set('gvsoc/vcd/active', True)
@@ -1203,8 +1209,7 @@ class Runner(Platform):
 
         comps_conf = self.get_json().get('**/fs/files')
 
-        if comps_conf is not None or self.get_json().get_child_bool('**/runner/boot_from_flash'):
-
+        if (comps_conf is not None and len(comps_conf.get_dict()) != 0) or self.get_json().get_child_bool('**/runner/boot_from_flash'):
             self.gen_flash_stimuli = True
 
         if self.get_json().get('**/soc/debug_rom/stim_file') is not None:
@@ -1257,7 +1262,6 @@ class Runner(Platform):
             stim.add_binary(self.boot_binary)
             stim.add_area(self.get_json().get_child_int('**/rom/base'), self.get_json().get_child_int('**/rom/size'))
             stim.gen_stim_bin('stimuli/rom.bin')
-
 
         if self.gen_flash_stimuli:
 
@@ -1355,7 +1359,8 @@ class Runner(Platform):
             if start_value != None:
                 self.get_json().get('**/plt_loader').set('start_value', '0x%x' % start_value)
 
-        if self.get_json().get('**/fs/files') is not None or self.get_json().get_child_bool('**/runner/boot_from_flash'):
+        files_conf = self.get_json().get('**/fs/files')
+        if (files_conf is not None and len(files_conf.get_dict())) or self.get_json().get_child_bool('**/runner/boot_from_flash'):
             if self.get_json().get('**/flash') is not None:
                 self.get_json().get('**/flash').set('preload_file', self.get_flash_preload_file())
 

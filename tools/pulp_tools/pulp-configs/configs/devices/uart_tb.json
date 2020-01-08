@@ -14,6 +14,8 @@
     "baudrate": 115200,
     "loopback": false,
     "stdout": true,
+    "stdin": false,
+    "telnet": false,
     "tx_file": "tx_uart.log"
   }
 }

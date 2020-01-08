@@ -285,3 +285,13 @@ void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay)
 {
   rt_event_push_delayed(task, delay);
 }
+
+#ifdef ARCHI_HAS_CLUSTER
+
+void pi_cl_send_task_to_fc(pi_task_t *task)
+{
+  __rt_task_init_from_cluster(task);
+  __rt_cluster_push_fc_event(task);
+}
+
+#endif

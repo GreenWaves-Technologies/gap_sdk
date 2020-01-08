@@ -168,6 +168,11 @@ error:
   return -1;
 }
 
+static void __rt_fs_mount_step_noe(void *arg)
+{
+    (void)__rt_fs_mount_step(arg);
+}
+
 void rt_fs_unmount(rt_fs_t *fs, rt_event_t *event)
 {
   int irq = rt_irq_disable();
@@ -177,7 +182,6 @@ void rt_fs_unmount(rt_fs_t *fs, rt_event_t *event)
 
   rt_irq_restore(irq);
 }
-
 
 rt_fs_t *rt_fs_mount(const char *dev_name, rt_fs_conf_t *conf, rt_event_t *event)
 {
@@ -220,7 +224,7 @@ rt_fs_t *rt_fs_mount(const char *dev_name, rt_fs_conf_t *conf, rt_event_t *event
   // asynchronously with another event, otherwise just do everything
   // synchronously with no event
   if (event) {
-    fs->step_event = __rt_init_event(&fs->event, rt_event_internal_sched(), (void (*)(void *))__rt_fs_mount_step, (void *)fs);
+    fs->step_event = __rt_init_event(&fs->event, rt_event_internal_sched(), __rt_fs_mount_step_noe, (void *)fs);
   } else {
     fs->step_event = NULL;
   }

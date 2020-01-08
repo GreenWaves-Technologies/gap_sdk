@@ -394,11 +394,6 @@ void pi_spi_send_async(struct pi_device *device, void *data, size_t len, pi_spi_
   int cmd_size = 0;
   spim->udma_cmd[cmd_size++] = spim_cs->cfg;
   spim->udma_cmd[cmd_size++] = SPI_CMD_SOT(spim_cs->cs);
-  if (flags & PI_SPI_APPEND_UCODE)
-  {
-    memcpy(&spim->udma_cmd[cmd_size], spim_cs->ucode, spim_cs->ucode_size);
-    cmd_size += spim_cs->ucode_size / 4;
-  }
   spim->udma_cmd[cmd_size++] = SPI_CMD_TX_DATA(len, qspi, spim_cs->byte_align);
 
   if (cs_mode == PI_SPI_CS_AUTO && spim->pending_repeat_len == 0)
@@ -520,11 +515,6 @@ void pi_spi_receive_async(struct pi_device *device, void *data, size_t len, pi_s
   int cmd_size = 0;
   spim->udma_cmd[cmd_size++] = spim_cs->cfg;
   spim->udma_cmd[cmd_size++] = SPI_CMD_SOT(spim_cs->cs);
-  if (flags & PI_SPI_APPEND_UCODE)
-  {
-    memcpy(&spim->udma_cmd[cmd_size], spim_cs->ucode, spim_cs->ucode_size);
-    cmd_size += spim_cs->ucode_size / 4;
-  }
   spim->udma_cmd[cmd_size++] = SPI_CMD_RX_DATA(len, qspi, spim_cs->byte_align);
 
   if (cs_mode == PI_SPI_CS_AUTO && !spim->pending_repeat_len)

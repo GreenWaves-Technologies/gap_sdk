@@ -47,6 +47,10 @@ GOMP_parallel_do:
   jr      ra
 
 GOMP_parallel_notzero:
+#if defined(ARCHI_HAS_CC)
+  li        t0, ARCHI_CLUSTER_NB_PE+1
+#else
   li        t0, ARCHI_CLUSTER_NB_PE
+#endif
   beq       a2, t0, GOMP_parallel_do
   j partialParallelRegion

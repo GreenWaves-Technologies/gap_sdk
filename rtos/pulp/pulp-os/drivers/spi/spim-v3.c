@@ -236,7 +236,7 @@ void __rt_spi_handle_repeat(void *arg)
   pi_spim_cs_t *spim_cs = (pi_spim_cs_t *)spim->pending_repeat_device->data;
   unsigned int len = spim->pending_repeat_len;
   int cs_mode = (spim->pending_repeat_flags >> 0) & 0x3;
-  int qspi = ((spim->pending_repeat_flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+  int qspi = (spim->pending_repeat_flags & (0x3 << 2)) == PI_SPI_LINES_QUAD;
   if (len > 8192*8)
   {
     len = 8192*8;
@@ -328,7 +328,7 @@ void pi_spi_send_async(struct pi_device *device, void *data, size_t len, pi_spi_
 
   pi_spim_cs_t *spim_cs = (pi_spim_cs_t *)device->data;
   pi_spim_t *spim = spim_cs->spim;
-  int qspi = ((flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+  int qspi = (flags & (0x3 << 2)) == PI_SPI_LINES_QUAD;
   int cs_mode = (flags >> 0) & 0x3;
 
   if (spim->pending_copy)
@@ -406,7 +406,7 @@ void pi_spi_receive_async(struct pi_device *device, void *data, size_t len, pi_s
 
   pi_spim_cs_t *spim_cs = (pi_spim_cs_t *)device->data;
   pi_spim_t *spim = spim_cs->spim;
-  int qspi = ((flags >> 2) & 0x3) == PI_SPI_LINES_QUAD;
+  int qspi = (flags & (0x3 << 2)) == PI_SPI_LINES_QUAD;
   int cs_mode = (flags >> 0) & 0x3;
 
   if (spim->pending_copy)

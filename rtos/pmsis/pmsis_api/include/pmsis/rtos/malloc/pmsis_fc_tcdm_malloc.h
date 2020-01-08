@@ -19,7 +19,7 @@
 
 #include "pmsis/rtos/malloc/pmsis_malloc_internal.h"
 
-#if (__FC_MALLOC_NATIVE__ == 0)
+#if !defined(__FC_MALLOC_NATIVE__) || (__FC_MALLOC_NATIVE__ == 0)
 
 /**
 * @ingroup groupRTOS

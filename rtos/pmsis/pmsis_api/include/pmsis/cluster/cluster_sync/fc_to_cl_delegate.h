@@ -112,7 +112,7 @@ int pi_cluster_close(struct pi_device *device);
  * \param arg The argument to the entry point.
  */
 static inline struct pi_cluster_task *pi_cluster_task(
-  struct pi_cluster_task *task, void (*entry)(void*), void *arg);
+        struct pi_cluster_task *task, void (*entry)(void*), void *arg);
 
 /** \brief Enqueue a task for execution on the cluster.
  *
@@ -141,7 +141,7 @@ static inline struct pi_cluster_task *pi_cluster_task(
  * \param task Cluster task structure containing task and its parameters.
  */
 int pi_cluster_send_task_to_cl(struct pi_device *device,
-  struct pi_cluster_task *task);
+        struct pi_cluster_task *task);
 
 /** \brief Enqueue asynchronously a task for execution on the cluster.
  *
@@ -173,7 +173,7 @@ int pi_cluster_send_task_to_cl(struct pi_device *device,
  * \param end_task        The task used to notify the end of execution.
  */
 int pi_cluster_send_task_to_cl_async(struct pi_device *device,
-  struct pi_cluster_task *task,
+        struct pi_cluster_task *task,
         pi_task_t *end_task);
 
 //!@}
@@ -202,7 +202,7 @@ int pi_cluster_send_task_to_cl_async(struct pi_device *device,
 #define CLOSE_ASYNC_ID 7
 
 /** \brief check if any cluster is on
- */
+*/
 uint8_t pi_cluster_is_on(void);
 
 // --- Useful defines to manipulate cluster objects
@@ -250,12 +250,15 @@ int pi_cluster_open_async(struct pi_device *device,
 
 static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *task, void (*entry)(void*), void *arg)
 {
-  task->entry = entry;
-  task->arg = arg;
-  task->stacks = (void *)0;
-  task->stack_size = 0;
-  task->nb_cores = 0;
-  return task;
+#ifdef PMSIS_DRIVERS
+    memset(task, 0, sizeof(pi_cluster_task));
+#endif
+    task->entry = entry;
+    task->arg = arg;
+    task->stacks = (void *)0;
+    task->stack_size = 0;
+    task->nb_cores = 0;
+    return task;
 }
 
 /// @endcond

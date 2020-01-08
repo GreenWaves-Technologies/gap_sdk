@@ -31,7 +31,7 @@
 //define L2STACK_DBG
 
 #ifdef FORCE_INPUT
-#include "dataTest.h"
+#include "DataTest.h"
 #endif
 
 //65536 16b samples @ 16kHz eq. to 2.01 sec of total audio record with 1 I2S
@@ -923,6 +923,11 @@ int processI2sRx(int sel)
   fract input[4*128];
   //static unsigned int resTab[NB_CHUNK] = {[0 ... NB_CHUNK-1] = 0x55};
 
+
+#ifdef FORCE_INPUT
+  return 1;
+#endif
+  
     for(i = 0; i < 128; i++)
     {
       input[4*i + 0] = audioBuf[sel][j]<<SHL;
@@ -1032,11 +1037,14 @@ int processI2sRx(int sel)
 void capture_and_process() {
 
 
-  while(1) {
     
-
+#ifndef FORCE_INPUT 
+  while(1) {
     if ((buf00 && buf01) || (buf10 && buf11))
-    {
+#else
+      {
+#endif
+      {
       //printf("!\n");
 
       irq = __disable_irq();
@@ -1072,11 +1080,7 @@ void capture_and_process() {
 	  runkws(1);
 #endif
 #endif	  
-	  
-#ifdef FORCE_INPUT
-	  return 0;
-#endif
-	
+	  	
 	  
 	  int max=0;
 	  for (int i=0;i<CLast_NFEAT;i++) {
@@ -1091,7 +1095,7 @@ void capture_and_process() {
 	  }
 
 #ifdef KWS
-	  if (1) {
+	  if (0) {
 	  //if (word1==11) idxmax=11;
 	  if (word2==3) idxmax = 3;
 	  if (word2==4) idxmax=4;
@@ -1099,7 +1103,7 @@ void capture_and_process() {
 	  if (word1==5) idxmax=5;
 	  }
 #endif
-       	  printf("found word %s\n", word_list[idxmax]);
+       	  printf("found* max %s\n", word_list[idxmax]);
 	  
 	}
 	
@@ -1139,11 +1143,11 @@ int main()
   check_stack_overflow(__FUNCTION__, __LINE__);
 #endif
 
-
+#ifndef FORCE_INPUT
   printf("init_I2S\n");
   init_I2S();
   printf(">>>\n");
-  
+#endif  
 
   capture_and_process();
   

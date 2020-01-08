@@ -372,10 +372,6 @@ void test_cam(void)
         #endif  /* USE_BRIDGE */
     }
 
-    #if defined(USE_BRIDGE)
-    BRIDGE_Disconnect(NULL);
-    #endif  /* USE_BRIDGE */
-
     pmsis_exit(0);
 }
 

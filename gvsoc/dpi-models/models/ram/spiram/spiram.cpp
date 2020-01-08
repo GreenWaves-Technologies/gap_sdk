@@ -67,6 +67,7 @@ protected:
 private:
 
   void handle_command(uint8_t cmd);
+  bool check_refresh(int64_t timestamp);
 
   Spiram_qspi_itf *qspi0;
 
@@ -98,7 +99,9 @@ private:
   uint8_t current_data;
   bool is_write;
   int wait_cycles;
-
+  int64_t refresh_timestamp;
+  bool refresh_failure;
+  int cs_pulse_width;
   void *trace;
 };
 
@@ -118,6 +121,9 @@ Spiram::Spiram(js::config *config, void *handle) : Dpi_model(config, handle)
   this->state = STATE_GET_CMD;
   this->cmd_count = 0;
   this->qpi = false;
+  this->refresh_timestamp = -1;
+  this->refresh_failure = false;
+  this->cs_pulse_width = 4*1000*1000;
 
   this->trace = this->trace_new(config->get_child_str("name").c_str());
 }
@@ -138,9 +144,42 @@ void Spiram_qspi_itf::edge(int64_t timestamp, int data_0, int data_1, int data_2
   top->edge(timestamp, data_0, data_1, data_2, data_3, mask);
 }
 
+bool Spiram::check_refresh(int64_t timestamp)
+{
+  if (this->refresh_failure)
+    return true;
+
+  if (this->refresh_timestamp != -1 && this->refresh_timestamp < timestamp)
+  {
+    this->fatal("CS has not been released in time to let the RAM being refreshed");
+    memset(this->data, 0, this->mem_size);
+    this->refresh_timestamp = -1;
+    this->refresh_failure = true;
+    return true;
+  }
+
+  return false;
+}
+
 void Spiram::cs_edge(int64_t timestamp, int cs)
 {
+  if (cs == 0)
+  {
+    if (this->check_refresh(timestamp))
+      return;
+  }
+
   if (this->current_cs == cs) return;
+
+  if (this->current_cs == 1 && cs == 0)
+  {
+    this->refresh_timestamp = timestamp + this->cs_pulse_width;
+  }
+  else if (cs == 1)
+  {
+    this->refresh_timestamp = -1;
+    this->refresh_failure = false;
+  }
 
   this->current_cs = cs;
 
@@ -158,6 +197,9 @@ void Spiram::cs_edge(int64_t timestamp, int cs)
 
 void Spiram::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
+  if (this->check_refresh(timestamp))
+    return;
+
   this->trace_msg(this->trace, 4, "Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
 
   handle_clk_high(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
@@ -360,6 +402,9 @@ void Spiram::handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, 
 
 void Spiram::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
+  if (this->check_refresh(timestamp))
+    return;
+
   this->trace_msg(this->trace, 4, "SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
 
   if (prev_sck == 1 && !sck)

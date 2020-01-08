@@ -14,12 +14,13 @@ FREERTOS_SOURCE_DIR = $(FREERTOS_PATH)/freertos_kernel
 PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-GAP8/
 GWT_DIR             = $(FREERTOS_PATH)/vendors/gwt
 GWT_TARGET          = $(GWT_DIR)/TARGET_GWT
+GWT_PMSIS           = $(GWT_TARGET)/pmsis
 GWT_LIBS            = $(GWT_TARGET)/libs
 GWT_DEVICE          = $(GWT_TARGET)/TARGET_$(chip)/device
 GWT_DRIVER          = $(GWT_TARGET)/TARGET_$(chip)/driver
-GWT_PMSIS           = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_driver
-GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
-PMSIS_BACKEND       = $(GWT_TARGET)/pmsis_backend
+GWT_PMSIS_API       = $(GWT_PMSIS)/api
+GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/pmsis_backend
+GWT_PMSIS_IMPLEM    = $(GWT_PMSIS)/implem
 
 # The linker options.
 LIBS            += -lgcc
@@ -147,13 +148,13 @@ DRIVER_SRC        = $(shell find $(GWT_DRIVER) -iname "*.c")
 LIBS_SRC          = $(shell find $(GWT_LIBS)/src -iname "*.c")
 PRINTF_SRC        = $(GWT_LIBS)/printf/printf.c
 
-INC_PATH       += . \
-                  $(FREERTOS_CONFIG_DIR) \
+INC_PATH       += $(FREERTOS_CONFIG_DIR) \
                   $(PORT_DIR) \
                   $(GWT_TARGET) \
                   $(GWT_DEVICE) \
-                  $(GWT_DRIVER) \
-                  $(PMSIS_BACKEND)
+                  $(GWT_DRIVER) #\
+                  $(GWT_PMSIS)
+#                  $(PMSIS_BACKEND)
 
 INC_PATH       += $(FREERTOS_SOURCE_DIR)/include
 INC_PATH       += $(GWT_LIBS)/include
@@ -162,14 +163,20 @@ INC_PATH       += $(GWT_LIBS)/printf
 INCLUDES       += $(foreach f, $(INC_PATH), -I$f)
 INCLUDES       += $(FEAT_INCLUDES)
 
-#--- PMSIS drivers ---
-PMSIS_SRC         += $(shell find $(GWT_PMSIS) -iname "*.c" ! -path "*gap9*")
-PMSIS_BACKEND_SRC  = $(shell find $(PMSIS_BACKEND) -iname "*.c")
-PMSIS_INC_PATH    += $(GWT_PMSIS_API)/include/
-PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS) -iname "*.h" -not -path "$(GWT_PMSIS)/targets/*" -exec dirname {} \; | uniq)
-PMSIS_INC_PATH    += $(GWT_PMSIS)/targets/
-PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS)/targets/$(chip) -iname "*.h" -exec dirname {} \; | uniq)
-PMSIS_INC_PATH    += $(GWT_PMSIS)/cores
+#--- PMSIS ---
+PMSIS_SRC         += $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.c" ! -path "*gap9*")
+PMSIS_BACKEND_SRC  = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")
+PMSIS_INC_PATH    += $(GWT_PMSIS) $(GWT_PMSIS_API)/include/ $(GWT_PMSIS_BACKEND)
+PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.h"          \
+                                  ! -path "$(GWT_PMSIS_IMPLEM)/targets/*"   \
+                                  ! -path "$(GWT_PMSIS_IMPLEM)/pmsis_hal/*" \
+                                  -exec dirname {} \; | sort | uniq)
+PMSIS_INC_PATH    += $(GWT_PMSIS_IMPLEM)/targets/
+PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS_IMPLEM)/targets/$(chip)       \
+                                  $(GWT_PMSIS_IMPLEM)/pmsis_hal/$(chip)     \
+                                  -iname "*.h"                              \
+                                  -exec dirname {} \; | sort | uniq)
+#PMSIS_INC_PATH    += $(GWT_PMSIS_IMPLEM)/cores
 INCLUDES          += $(foreach f, $(PMSIS_INC_PATH), -I$f)
 
 # App sources

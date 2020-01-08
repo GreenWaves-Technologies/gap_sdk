@@ -32,7 +32,7 @@ FREERTOS_FLAGS          += $(APP_CFLAGS) $(COMMON_CFLAGS) -D__USE_TCDM_MALLOC__=
 USE_PMSIS_DRIVERS        = true
 
 ifndef NO_PMSIS_BSP
-PMSIS_BSP_DIR           += $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
+PMSIS_BSP_DIR           += $(FREERTOS_PATH)/vendors/gwt/TARGET_GWT/pmsis/bsp
 ifeq ($(BOARD_NAME), gapoc_a)
 PMSIS_SRC               += $(PMSIS_BSP_DIR)/bsp/gapoc_a.c
 NOT_IN                  += -not -path "$(PMSIS_BSP_DIR)/camera/himax/*"

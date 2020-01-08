@@ -151,6 +151,7 @@ public:
 
   int build();
   void start();
+  void stop();
   void create_task(int id);
   void create_periodic_handler(int id, int64_t period);
   int wait(int64_t t);
@@ -595,6 +596,14 @@ void dpi_wrapper::start()
   for (auto x: handlers)
   {
     x->start();
+  }
+}
+
+void dpi_wrapper::stop()
+{
+  for (int i=0; i<models.size(); i++)
+  {
+    dpi_model_stop(models[i]);
   }
 }
 

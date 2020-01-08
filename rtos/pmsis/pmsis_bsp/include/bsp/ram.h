@@ -838,26 +838,12 @@ static inline void pi_cl_ram_write_wait(pi_cl_ram_req_t *req)
 
 static inline void pi_cl_ram_copy_wait(pi_cl_ram_req_t *req)
 {
-    #if defined(PMSIS_DRIVERS)
     cl_wait_task(&(req->done));
-    #else
-    while ((*(volatile char *)&req->done) == 0)
-    {
-        eu_evt_maskWaitAndClr(1<<RT_CLUSTER_CALL_EVT);
-    }
-    #endif  /* PMSIS_DRIVERS */
 }
 
 static inline int32_t pi_cl_ram_alloc_wait(pi_cl_ram_alloc_req_t *req, uint32_t *chunk)
 {
-    #if defined(PMSIS_DRIVERS)
     cl_wait_task(&(req->done));
-    #else
-    while ((*(volatile char *)&req->done) == 0)
-    {
-        eu_evt_maskWaitAndClr(1<<RT_CLUSTER_CALL_EVT);
-    }
-    #endif  /* PMSIS_DRIVERS */
 
     *chunk = req->result;
 
@@ -866,14 +852,7 @@ static inline int32_t pi_cl_ram_alloc_wait(pi_cl_ram_alloc_req_t *req, uint32_t 
 
 static inline int32_t pi_cl_ram_free_wait(pi_cl_ram_free_req_t *req)
 {
-    #if defined(PMSIS_DRIVERS)
     cl_wait_task(&(req->done));
-    #else
-    while ((*(volatile char *)&req->done) == 0)
-    {
-        eu_evt_maskWaitAndClr(1<<RT_CLUSTER_CALL_EVT);
-    }
-    #endif  /* PMSIS_DRIVERS */
 
     return req->error;
 }

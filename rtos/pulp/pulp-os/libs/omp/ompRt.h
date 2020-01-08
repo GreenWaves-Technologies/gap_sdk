@@ -192,13 +192,7 @@ static inline void userCriticalEnd(omp_team_t *team)
 }
 
 static inline __attribute__((always_inline)) void doBarrier(omp_team_t *team) {
-#if EU_VERSION >= 3
   rt_team_barrier();
-#else
-  pulp_barrier_notify(0);
-  pulp_evt_wait();
-  pulp_gpevt_clear(0);
-#endif
 }
 
 static inline void userBarrier(omp_team_t *team) {
@@ -211,15 +205,14 @@ static inline void userBarrier(omp_team_t *team) {
 #endif
 }
 
+
+#if !defined(ARCHI_HAS_CC)
+
 static inline void __attribute__((always_inline)) parallelRegionExec(void *data, void (*fn) (void*))
 {
-#if EU_VERSION >= 3
   // Now that the team is ready, wake up slaves
   eu_dispatch_push((unsigned int)fn);
   eu_dispatch_push((unsigned int)data);
-#else
-  plp_dispatch_push2((1<<getCurrentTeam()->nbThreads)-1, (unsigned int)fn, (unsigned int)data);
-#endif
 
   // Team execution
   perfParallelEnter();  
@@ -235,6 +228,41 @@ static inline void __attribute__((always_inline)) parallelRegionExec(void *data,
   // Execute the final barrier to wait until the slaves have finished the team execution
   doBarrier((void *)0);
 }
+
+#else
+
+static inline void __attribute__((always_inline)) parallelRegionExec(void *data, void (*fn) (void*))
+{
+  // Now that the team is ready, wake up slaves
+  eu_dispatch_push((unsigned int)fn);
+  eu_dispatch_push((unsigned int)data);
+
+  // Team execution
+  perfParallelEnter();  
+#ifdef __GNUC__
+  fn(data);
+#else
+  kmpc_micro entry = (kmpc_micro)fn;
+  int id;
+  entry(&id, &id, data);
+#endif
+  perfParallelExit();
+  
+  // Execute the final barrier to wait until the slaves have finished the team execution
+  rt_team_cc_barrier();
+}
+
+static inline void __attribute__((always_inline)) parallelRegionExec_nocc(void *data, void (*fn) (void*))
+{
+  // Now that the team is ready, wake up slaves
+  eu_dispatch_push((unsigned int)fn);
+  eu_dispatch_push((unsigned int)data);
+
+  // Execute the final barrier to wait until the slaves have finished the team execution
+  rt_team_cc_barrier();
+}
+
+#endif
 
 static inline void __attribute__((always_inline)) parallelRegion(void *data, void (*fn) (void*), int num_threads)
 {

@@ -19,7 +19,7 @@ PERIPH_CFLAGS += $(CFLAGS) $(DPI_CFLAGS)
 PERIPH_LDFLAGS += $(LDFLAGS)  -Wl,-export-dynamic -ldl -rdynamic
 
 COMMON_SRCS = src/qspim.cpp src/gpio.cpp src/jtag.cpp src/ctrl.cpp \
-  src/uart.cpp src/cpi.cpp src/i2s.cpp src/i2c.cpp
+  src/uart.cpp src/cpi.cpp src/i2s.cpp src/i2c.cpp src/telnet_proxy.cpp
   
 DPI_SRCS = src/dpi.cpp $(COMMON_SRCS)
 PERIPH_SRCS = src/models.cpp $(COMMON_SRCS)

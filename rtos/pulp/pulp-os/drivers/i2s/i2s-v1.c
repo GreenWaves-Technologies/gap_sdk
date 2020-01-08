@@ -134,7 +134,11 @@ int pi_i2s_open(struct pi_device *device)
         {
             i2s->i2s_freq *= conf->pdm_decimation;
 
-            int shift = conf->pdm_shift != -1 ? conf->pdm_shift : 10 - __builtin_pulp_ff1(conf->pdm_decimation);
+#ifdef __FF1
+            int shift = conf->pdm_shift != -1 ? conf->pdm_shift : 10 - __FF1(conf->pdm_decimation);
+#else
+            int shift = 0;
+#endif
             if (shift > 7) shift = 7;
 
             hal_i2s_filt_ch_set(i2s->conf.itf, sub_periph_id, (shift << 16) | (i2s->conf.pdm_decimation-1));

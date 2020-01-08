@@ -86,6 +86,10 @@ struct pi_spi_conf {
     device. */
   signed char itf;        /*!< Specifies on which SPI interface the device is
     connected. */
+  int max_rcv_chunk_size; /*!< Specifies maximum chunk size for reception when
+    using copies. */
+  int max_snd_chunk_size; /*!< Specifies maximum chunk size for sending when
+    using copies. */
 };
 
 /** \enum pi_spi_ioctl_e
@@ -136,7 +140,10 @@ typedef enum {
   PI_SPI_LINES_SINGLE  = 0 << 2,    /*!< Use a single MISO line. */
   PI_SPI_LINES_QUAD    = 1 << 2,    /*!< Use quad MISO lines. */
   PI_SPI_LINES_OCTAL   = 2 << 2,    /*!< Use octal MISO lines. */
-  PI_SPI_APPEND_UCODE  = 1 << 4,    /*!< Append micro-append to transfer. */
+  PI_SPI_COPY_EXT2LOC  = 1 << 4,    /*!< Do a copy from external memory to local
+   chip memory. */
+  PI_SPI_COPY_LOC2EXT  = 0 << 4,    /*!< Do a copy from local chip memory to
+    external memory. */
 } pi_spi_flags_e;
 
 /** \brief Initialize an SPI master configuration with default values.
@@ -367,11 +374,25 @@ void *pi_spi_receive_ucode_set(struct pi_device *device, uint8_t *ucode, uint32_
 
 void pi_spi_receive_ucode_set_addr_info(struct pi_device *device, uint8_t *ucode, uint32_t ucode_size);
 
-void pi_spi_transfer_ucode_set(struct pi_device *device, uint8_t *ucode, uint32_t ucode_size);
-
 void *pi_spi_send_ucode_set(struct pi_device *device, uint8_t *ucode, uint32_t ucode_size);
 
 void pi_spi_send_ucode_set_addr_info(struct pi_device *device, uint8_t *ucode, uint32_t ucode_size);
+
+void pi_spi_copy(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size,
+  pi_spi_flags_e flags);
+
+void pi_spi_copy_async(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size,
+  pi_spi_flags_e flags, pi_task_t *task);
+
+void pi_spi_copy_2d(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size, uint32_t stride,
+  uint32_t length, pi_spi_flags_e flags);
+
+void pi_spi_copy_2d_async(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size, uint32_t stride,
+  uint32_t length, pi_spi_flags_e flags, pi_task_t *task);
 
 /// @endcond
 

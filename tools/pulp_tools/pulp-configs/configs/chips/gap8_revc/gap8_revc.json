@@ -24,11 +24,6 @@
 
   "board": {
     "devices": {
-      "spiflash": {
-        "includes": ["devices/spiflash.json"],
-        "interface": "spim0",
-        "cs": 0
-      },
       "uart": {
         "includes": ["devices/uart_tb.json"],
         "interface": "uart0"

@@ -56,7 +56,7 @@ RT_L1_TINY_DATA int __rt_cluster_nb_active_pe;
 RT_L1_TINY_DATA pi_cl_dma_cmd_t *__rt_dma_first_pending;
 RT_L1_TINY_DATA pi_cl_dma_cmd_t *__rt_dma_last_pending;
 
-
+RT_L1_DATA uint32_t __rt_cluster_fc_task_lock;
 
 
 void __rt_enqueue_event();
@@ -135,6 +135,7 @@ static int __rt_cluster_setup(rt_fc_cluster_data_t *cluster)
   pool->last_call_fc = NULL;
   pool->first_call_fc_for_cl = NULL;
 
+  __rt_cluster_fc_task_lock = 0;
 
 
 
@@ -419,7 +420,11 @@ struct pi_task *pi_task_callback(struct pi_task *task, void (*callback)(void*), 
 
 void __rt_cluster_push_fc_event(rt_event_t *event)
 {
-  eu_mutex_lock(eu_mutex_addr(0));
+
+  while (rt_tas_lock_32((int)&__rt_cluster_fc_task_lock) == -1)
+  {
+    eu_evt_maskWaitAndClr(1<<RT_CL_SYNC_EVENT);
+  }
 
   rt_fc_cluster_data_t *data = &__rt_fc_cluster_data[rt_cluster_id()];
 
@@ -438,7 +443,8 @@ void __rt_cluster_push_fc_event(rt_event_t *event)
   eu_evt_trig(eu_evt_trig_fc_addr(RT_FC_ENQUEUE_EVENT), 0);
 #endif
 
-  eu_mutex_unlock(eu_mutex_addr(0));
+  rt_tas_unlock_32((int)&__rt_cluster_fc_task_lock, 0);
+  eu_evt_trig(eu_evt_trig_addr(RT_CL_SYNC_EVENT), 0);
 }
 
 #endif
