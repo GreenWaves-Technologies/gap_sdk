@@ -22,7 +22,7 @@ APP_SRCS += test_resize.c ImgIO.c
 APP_INC += . $(TILER_INC)
 APP_CFLAGS +=
 
-PLPBRIDGE_FLAGS += -fileIO 2
+#PLPBRIDGE_FLAGS += -fileIO 2
 
 PMSIS_OS ?= freertos
 BOARD_NAME ?= gapuino
@@ -31,6 +31,9 @@ USE_PMSIS_BSP = 1
 ifeq ($(BOARD_NAME), gapuino)
 APP_CFLAGS += -DHIMAX
 endif
+
+export GAP_USE_OPENOCD=1
+io=host
 
 clean::
 	$(RM) pics/*.pgm

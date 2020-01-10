@@ -3,10 +3,14 @@ PMSIS_OS ?= pulpos
 
 ifeq ($(BOARD_NAME), gapoc_a)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_A
+ifeq ($(GAP_USE_OPENOCD),)
 PLPBRIDGE_FLAGS        += -ftdi
+endif
 else ifeq ($(BOARD_NAME), gapoc_b)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_B
+ifeq ($(GAP_USE_OPENOCD),)
 PLPBRIDGE_FLAGS        += -ftdi
+endif
 else ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO
 endif

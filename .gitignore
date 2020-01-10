@@ -5,5 +5,9 @@ __pycache__/
 /install/
 /build/
 /BUILD/
+*.lo
+*.o
+*.la
+*.dirstamp
 
 
