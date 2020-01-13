@@ -99,7 +99,9 @@ static void gpio_handler(void *arg)
     uint32_t event = (uint32_t) arg;
 
     /* Retrieve IRQ status from GPIO. Handle task if needed. */
-    uint32_t irq_mask = hal_gpio_get_irq_status(), pin = 0;;
+    uint32_t irq_mask = 0, pin = 0;
+    __gpio_irq_status = hal_gpio_get_irq_status();
+    irq_mask = __gpio_irq_status;
     struct pi_task *task = NULL;
     while (irq_mask)
     {
@@ -215,7 +217,6 @@ void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin)
 int pi_gpio_pin_notif_get(struct pi_device *device, uint32_t pin)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
-    __gpio_irq_status = hal_gpio_get_irq_status();
     return ((__gpio_irq_status >> pin) & 0x1);
 }
 
