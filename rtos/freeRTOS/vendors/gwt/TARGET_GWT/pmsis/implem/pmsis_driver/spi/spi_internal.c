@@ -5,7 +5,7 @@
 #ifndef DEBUG
 #define DBG_PRINTF( ... ) ((void)0)
 #else
-#define DBG_PRINTF DBG_PRINTF
+#define DBG_PRINTF printf
 #endif
 
 struct spim_driver_data *__g_spim_drv_data[UDMA_NB_SPIM] = {0};
@@ -331,7 +331,7 @@ void __pi_spi_send_async(struct spim_cs_data *cs_data, void *data, size_t len,
         && cs_data->big_endian;
     int size = (len + 7) >> 3;
 
-    DBG_PRINTF("%s:%d: udma_cmd=%p\n",__func__,__LINE__,udma_cmd);
+    DBG_PRINTF("%s:%d: udma_cmd=%p\n",__func__,__LINE__, &(cs_data->udma_cmd[0]));
     int irq = disable_irq();
     if(!drv_data->end_of_transfer)
     {// enqueue the transfer
@@ -352,6 +352,11 @@ void __pi_spi_send_async(struct spim_cs_data *cs_data, void *data, size_t len,
             spim_enqueue_channel(SPIM(device_id), (uint32_t)data, size,
                     UDMA_CORE_TX_CFG_EN(1),
                     TX_CHANNEL);
+            #if defined(DEBUG)
+            DBG_PRINTF("%s:%d: udma_cmd: %x %x %x\n", __func__, __LINE__,
+                       cs_data->udma_cmd[0], cs_data->udma_cmd[1], cs_data->udma_cmd[2]);
+            DBG_PRINTF("%s:%d: data: %p size: %d\n", __func__, __LINE__, data, size);
+            #endif  /* DEBUG */
             // wait until channel is free
             while((hal_read32((void*)&(SPIM(device_id)->udma.tx_cfg))
                         & (1<<5))>>5)
@@ -408,7 +413,7 @@ void __pi_spi_xfer_async(struct spim_cs_data *cs_data, void *tx_data,
     uint32_t cfg = cs_data->cfg;
     DBG_PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d, udma_cmd cfg =%lx\n",
             __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
-            system_core_clock_get() / drv_data->max_baudrate,cfg);
+            system_core_clock_get() / cs_data->max_baudrate,cfg);
     uint32_t byte_align = (cs_data->wordsize == PI_SPI_WORDSIZE_32)
         && cs_data->big_endian;
     int size = (len + 7) >> 3;
