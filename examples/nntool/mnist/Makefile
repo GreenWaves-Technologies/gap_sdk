@@ -14,7 +14,9 @@ ifndef MNIST_BITS
 endif
 
 LINK_IMAGE=samples/5223_5.pgm
-
+# Should be removed once openocd is the default bridge
+export GAP_USE_OPENOCD=1
+io=host
 
 $(info Building GAP8 mode with $(MNIST_BITS) bit quantization)
 
