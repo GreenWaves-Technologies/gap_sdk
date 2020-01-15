@@ -41,7 +41,7 @@
 static pi_task_t *__cb_task_array[ARCHI_NB_PWM] = {NULL};
 
 /*******************************************************************************
- * Internal functions.
+ * Internal functions
  ******************************************************************************/
 
 static void __pi_pwm_timer_conf_set(uint8_t pwm_id, struct pi_pwm_conf *conf)

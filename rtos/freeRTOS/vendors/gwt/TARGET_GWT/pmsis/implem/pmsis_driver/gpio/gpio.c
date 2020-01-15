@@ -73,6 +73,8 @@ void pi_gpio_print()
     DEBUG_PRINTF("GpioEn : %x\n", gpio_gpioen_get());
     DEBUG_PRINTF("Paddir|Padin|Padout : %x %x %x\n",
            gpio_paddir_get(), gpio_padin_get(), gpio_padout_get());
+    DEBUG_PRINTF("IRQ_Status : %x\nIRQ_Type : %x %x\n",
+                 gpio_intstatus_get(), gpio_inttype_get(0), gpio_inttype_get(1));
     DEBUG_PRINTF("Padcfg :\n");
     for (uint32_t i=0; i<(uint32_t) ARCHI_GPIO_NB_PADCFG_REG; i+=4)
     {
@@ -190,7 +192,7 @@ int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
 int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
-    *value = hal_gpio_get_input_value(pin);
+    *value = hal_gpio_pin_get_input_value(pin);
     return *value;
 }
 
@@ -245,7 +247,8 @@ int pi_gpio_mask_read(struct pi_device *device, uint32_t mask, uint32_t *value)
     return *value;
 }
 
-int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask, pi_task_t *task, pi_gpio_notif_e irq_type)
+int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask,
+                          pi_task_t *task, pi_gpio_notif_e irq_type)
 {
     uint32_t gpio_mask = mask, pin = 0;
     while (gpio_mask)
@@ -276,7 +279,7 @@ int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask)
 }
 
 int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin,
-                             pi_task_t *task, pi_gpio_notif_e irq_type)
+                         pi_task_t *task, pi_gpio_notif_e irq_type)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
     __global_gpio_task[pin] = task;
