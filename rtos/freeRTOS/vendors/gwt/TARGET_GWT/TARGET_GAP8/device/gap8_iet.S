@@ -43,8 +43,10 @@
         .extern pxCurrentTCB
         .extern __irq_stack_start__
 
+        .extern cl_notify_fc_event_handler
         .extern fc_soc_event_handler
         .extern pi_cl_dma_2d_handler
+        .extern uTaskCheckQuantum
 /******************************************************************************/
 
 
@@ -316,7 +318,6 @@
 
 
         /* Cluster Notify FC Handler. */
-        .extern cl_notify_fc_event_handler
         DECLARE cluster_notify_fc_handler
         /* Save current context. */
         addi sp, sp, -(portGAP8_MINIMAL_CONTEXT_SIZE * portWORD_SIZE)
@@ -404,6 +405,7 @@ _no_switch_pendsv:
         la sp, __irq_stack_start__
         jal ra, xTaskIncrementTick
 #ifdef PREEMPTION
+        jal ra, uTaskCheckQuantum
         beq a0, zero, _no_switch
         jal ra, vTaskSwitchContext
         lw a0, pxCurrentTCB

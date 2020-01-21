@@ -210,6 +210,26 @@ static void __debug_bridge_putc(char c)
     }
 }
 
+static uint32_t __is_irq_mode()
+{
+    uint32_t is_irq = 0;
+    if (__get_CPRIV())
+    {
+        if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
+        {
+            is_irq = 1;
+        }
+    }
+    else
+    {
+        if (__get_UCAUSE() & MCAUSE_IRQ_Msk)
+        {
+            is_irq = 1;
+        }
+    }
+    return is_irq;
+}
+
 __attribute__((noinline)) void __io_lock()
 {
     if (pi_cluster_is_on())
@@ -226,7 +246,10 @@ __attribute__((noinline)) void __io_lock()
             {
                 if (g_freertos_scheduler_started)
                 {
-                    pi_yield();
+                    if (!__is_irq_mode())
+                    {
+                        pi_yield();
+                    }
                 }
             }
         }
@@ -235,7 +258,10 @@ __attribute__((noinline)) void __io_lock()
     {
         if (g_freertos_scheduler_started)
         {
-            xSemaphoreTake(g_printf_mutex, (TickType_t) portMAX_DELAY);
+            if (!__is_irq_mode())
+            {
+                xSemaphoreTake(g_printf_mutex, (TickType_t) portMAX_DELAY);
+            }
         }
     }
 }
@@ -253,7 +279,10 @@ __attribute__((noinline)) void __io_unlock()
     {
         if (g_freertos_scheduler_started)
         {
-            xSemaphoreGive(g_printf_mutex);
+            if (!__is_irq_mode())
+            {
+                xSemaphoreGive(g_printf_mutex);
+            }
         }
     }
 }

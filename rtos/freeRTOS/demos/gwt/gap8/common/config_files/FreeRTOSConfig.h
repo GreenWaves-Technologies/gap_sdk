@@ -81,6 +81,9 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #endif
 #define configUSE_TIME_SLICING                    ( 1 )
 
+/* Time slice. Quantum a task can execute on CPU. */
+#define configPREEMPTION_QUANTUM                  ( 50 )
+
 #define configIDLE_SHOULD_YIELD                   ( 1 )
 #define configUSE_IDLE_HOOK                       ( 1 )
 #define configUSE_TICK_HOOK                       ( 0 )
