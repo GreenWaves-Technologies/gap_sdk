@@ -19,6 +19,6 @@
 
 #define WAV_HEADER_SIZE 44 //bytes
 
-void dump_wav(char *filename, int width, int sampling_rate, void *data, int size);
+void dump_wav(char *filename, int width, int sampling_rate, int nb_channels, void *data, int size);
 
 #endif

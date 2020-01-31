@@ -16,14 +16,14 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "wav_out.h"
 #include <pmsis.h>
 #include <bsp/fs.h>
 #include <bsp/flash/hyperflash.h>
+#include "wav_out.h"
 
 static PI_L2 uint8_t header_buffer[WAV_HEADER_SIZE];
 
-void dump_wav(char *filename, int width, int sampling_rate, void *data, int size)
+void dump_wav(char *filename, int width, int sampling_rate, int nb_channels, void *data, int size)
 {
     unsigned int idx = 0;
     unsigned int sz = WAV_HEADER_SIZE + size;
@@ -68,7 +68,8 @@ void dump_wav(char *filename, int width, int sampling_rate, void *data, int size
 
     // 2 bytes nb of channels: 1 or 2
     //header_buffer[idx++] = 0x02;
-    header_buffer[idx++] = 0x01;
+    //header_buffer[idx++] = 0x01;
+    header_buffer[idx++] = nb_channels;
     header_buffer[idx++] = 0x00;
 
     // 4 bytes sample rate in Hz:
