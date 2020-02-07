@@ -92,7 +92,7 @@ class spiflash : public vp::component
 {
 public:
 
-  spiflash(const char *config);
+  spiflash(js::config *config);
 
   int build();
   void start();
@@ -536,13 +536,13 @@ void spiflash::start()
   }
 }
 
-spiflash::spiflash(const char *config)
+spiflash::spiflash(js::config *config)
 : vp::component(config)
 {
 }
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new spiflash(config);
+  return new spiflash(config);
 }

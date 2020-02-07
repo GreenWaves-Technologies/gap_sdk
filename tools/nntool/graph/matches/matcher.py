@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from abc import ABC, abstractmethod
 from typing import Generator, Sequence
@@ -36,6 +41,9 @@ class Matcher(ABC):
     def match(self, G: GraphView, set_identity: bool = True):
         pass
 
+class DontReplaceError(Exception):
+    pass
+
 class DefaultMatcher(Matcher):
     @abstractmethod
     def match_function(self, G: GraphView) -> Generator[GraphView, None, None]:
@@ -50,15 +58,19 @@ class DefaultMatcher(Matcher):
         while replaced:
             replaced = False
             for subgraph in self.match_function(G):
-                replacement = self.replace_function(G, subgraph)
-                if not replacement:
-                    G.remove_fragment(subgraph)
-                elif isinstance(replacement, Node):
-                    G.replace_fragment(subgraph, replacement)
-                else:
-                    raise TypeError("unexcepted return value from replace_function")
-                replaced = True
-                break
+                try:
+                    replacement = self.replace_function(G, subgraph)
+                    if replacement is None:
+                        G.remove_fragment(subgraph)
+                    elif isinstance(replacement, Node):
+                        G.replace_fragment(subgraph, replacement)
+                    else:
+                        raise TypeError("unexcepted return value from replace_function")
+                    replaced = True
+                    break
+                except DontReplaceError:
+                    pass
+
         if set_identity:
             self.set_identity(G)
 

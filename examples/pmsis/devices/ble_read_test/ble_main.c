@@ -1,6 +1,6 @@
+#include "pmsis.h"
 #include "stdio.h"
-#include "bsp/ble/nina_b112/nina_b112.h"
-#include "bsp/gapoc_a.h"
+#include "bsp/bsp.h"
 #include "ble_protocol.h"
 
 #define QUEUE_SIZE 4
@@ -51,13 +51,13 @@ void body(void* parameters)
     printf("BLE UART init done\n");
     // --  Start NINA-B1 BLE module   -----
 
-    // Init GPIO that will control NINA DSR in deasserted position
-    pi_gpio_pin_write(0, GPIOA21_NINA17, 0);
+    /* // Init GPIO that will control NINA DSR in deasserted position */
+    /* pi_gpio_pin_write(0, GPIOA21_NINA17, 0); */
 
-    // Enable BLE (release reset)
-    pi_gpio_pin_write(0, GPIOA2_NINA_RST, 1);
+    /* // Enable BLE (release reset) */
+    /* pi_gpio_pin_write(0, GPIOA2_NINA_RST, 1); */
 
-    pi_time_wait_us(1*1000*1000); // some waiting needed after BLE reset...
+    /* pi_time_wait_us(1*1000*1000); // some waiting needed after BLE reset... */
 
     printf("Sending cmd using pmsis bsp\n");
     pi_nina_b112_AT_send(&ble, "E0");

@@ -2,6 +2,7 @@
   "version": 1,
 
   "vp_class": "pulp/itc/itc_v1",
+  "vp_component":  "pulp.itc.itc_v1_impl",
 
   "nb_fifo_events": 8,
 

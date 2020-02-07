@@ -31,6 +31,7 @@
 #define CHIP_BIGPULP_Z_7045_O      19
 #define CHIP_BIGPULP_Z_7045_RISCV  20
 #define CHIP_GAP                   10
+#define CHIP_GAP8                  10
 #define CHIP_VIVOSOC2              11
 #define CHIP_FULMINE8              12
 #define CHIP_EXACONV               13
@@ -66,6 +67,9 @@
 #define CHIP_VIVOSOC3_1            45
 #define CHIP_GAP8_REVC             46
 #define CHIP_GAP9                  47
+#define CHIP_VIVOSOC4              48
+#define CHIP_WOLFE_16              49
+#define CHIP_GAP9_V2               50
 
 #define CORE_OR1K_V1  0
 #define CORE_OR1K_V2  1

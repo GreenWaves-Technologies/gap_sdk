@@ -5,6 +5,7 @@
   "archi_files" : [ "archi/dma/mchan_v7.h" ],
 
   "vp_class": "pulp/mchan/mchan_v7",
+  "vp_component":  "pulp.mchan.mchan_v7_impl",
 
   "nb_channels": 0,
   "core_queue_depth": 2,

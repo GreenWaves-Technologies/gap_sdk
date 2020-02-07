@@ -2,6 +2,7 @@
   "version": 2,
 
   "vp_class":  "pulp/chips/gap/apb_soc",
+  "vp_component":  "pulp.chips/gap/apb_soc_impl",
   
   "hal_files" : [ "hal/chips/gap/apb_soc.h" ],
 

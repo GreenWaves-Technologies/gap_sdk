@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import copy
 from collections import OrderedDict
@@ -26,6 +31,7 @@ def appendn(row, rep, val=""):
 
 def do_header(table):
     header = [
+        TabularColumn("step"),
         TabularColumn("name"),
         TabularColumn("mean", fmt=">.3f"),
         TabularColumn("std dev", fmt=">.3f"),
@@ -33,6 +39,10 @@ def do_header(table):
         TabularColumn("max", fmt=">.3f"),
         TabularColumn("min acc", fmt=">.3f"),
         TabularColumn("max acc", fmt=">.3f"),
+        TabularColumn("weak\nOLs", fmt=">d"),
+        TabularColumn("strong\nOLs", fmt=">d"),
+        TabularColumn("min\nOL", fmt=">.3f"),
+        TabularColumn("max\nOL", fmt=">.3f"),
         TabularColumn("int\nbits", fmt=">d"),
     ]
 
@@ -46,7 +56,7 @@ def do_header(table):
 
 def do_row(table, node_name, stat, threshold, total):
 
-    row = [node_name, stat['mean'], stat['std'],
+    row = [stat['idx'], node_name, stat['mean'], stat['std'],
            stat['min'], stat['max']]
     if 'min_acc' in stat:
         row.append(stat['min_acc'])
@@ -54,6 +64,8 @@ def do_row(table, node_name, stat, threshold, total):
     else:
         row.append("")
         row.append("")
+    row.extend([stat['wols'], stat['sols'], stat['min_out'],
+                stat['max_out']])
     row.append(stat['ibits'])
 
     if 'qstats' not in stat:
@@ -92,7 +104,7 @@ def do_rows(stats, table, threshold):
 
 def do_total(table, total):
     total_row = ["TOTAL"]
-    appendn(total_row, 7 + len(STATS_BITS) * 2)
+    appendn(total_row, 12 + len(STATS_BITS) * 2)
     total_row.append(total)
     table.add_row(total_row)
 
@@ -112,12 +124,15 @@ class ActivationReporter(Reporter):
 
     def report(self, G: NNGraph, stats):
         dump_stats = OrderedDict()
-        for _, node, fusion_idx, fnode in G.nodes_iterator(self._yield_fusions):
+        for step_idx, node, fusion_idx, fnode in G.nodes_iterator(self._yield_fusions):
             stat = stats[NodeId(node, fnode)]
             stat = copy.deepcopy(stat)
             if fusion_idx:
                 name = "{}_{}".format(node.name, fusion_idx)
+                idx = "{}_{}".format(step_idx, fusion_idx)
             else:
                 name = node.name
+                idx = str(step_idx)
             dump_stats[name] = stat
+            stat['idx'] = idx
         return dump_stats_table(dump_stats, do_totals=self._do_totals, threshold=self._threshold)

@@ -31,7 +31,7 @@ class job_fifo : public vp::component {
 
 public:
 
-  job_fifo(const char *config);
+  job_fifo(js::config *config);
 
   int build();
 
@@ -56,7 +56,7 @@ private:
 
 };
 
-job_fifo::job_fifo(const char *config)
+job_fifo::job_fifo(js::config *config)
 : vp::component(config)
 {
 
@@ -162,7 +162,7 @@ int job_fifo::build()
   return 0;
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new job_fifo(config);
+  return new job_fifo(config);
 }

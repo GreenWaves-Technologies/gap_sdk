@@ -270,18 +270,17 @@ void __rt_event_sched_init()
   rt_event_alloc(&__rt_sched, 1);
 }
 
-void pi_task_push(pi_task_t *task)
-{
-  rt_event_enqueue(task);
-}
-
-void pi_task_wait_on(struct pi_task *task)
-{
-  while(!task->done)
-    rt_event_yield(NULL);
-}
-
 void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay)
 {
   rt_event_push_delayed(task, delay);
 }
+
+#ifdef ARCHI_HAS_CLUSTER
+
+void pi_cl_send_task_to_fc(pi_task_t *task)
+{
+  __rt_task_init_from_cluster(task);
+  __rt_cluster_push_fc_event(task);
+}
+
+#endif

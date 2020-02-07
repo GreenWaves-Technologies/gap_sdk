@@ -121,7 +121,7 @@ void pi_uart_conf_init(struct pi_uart_conf *conf)
     conf->parity_mode  = UART_PARITY_DISABLED;
 
     conf->stop_bit_count = UART_ONE_STOP_BIT;
-    conf->src_clock_Hz = SystemCoreClock;
+    conf->src_clock_Hz = system_core_clock_get();
 
     conf->enable_tx = 0;
     conf->enable_rx = 0;

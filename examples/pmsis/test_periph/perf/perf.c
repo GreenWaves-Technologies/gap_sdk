@@ -3,9 +3,6 @@
 
 /* Variables used. */
 struct pi_device uart;
-char hello[20];
-PI_L1 spinlock_t spinlock;
-PI_L1 int32_t tas_addr;
 PI_L2 uint32_t perf_values[ARCHI_CLUSTER_NB_PE] = {0};
 
 /* Task executed by cluster cores. */
@@ -15,11 +12,7 @@ void cluster_helloworld(void *arg)
     pi_perf_start();
 
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
-
-    cl_sync_spinlock_take(&spinlock);
-    sprintf(hello, "[%d %d] Hello World!\n", cluster_id, core_id);
-    printf(hello);
-    cl_sync_spinlock_release(&spinlock);
+    printf("[%d %d] Hello World!\n", cluster_id, core_id);
 
     pi_perf_stop();
     perf_values[core_id] = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
@@ -30,7 +23,6 @@ void cluster_delegate(void *arg)
 {
     printf("Cluster master core entry\n");
     /* Task dispatch to cluster cores. */
-    cl_sync_init_spinlock(&spinlock, &tas_addr);
     pi_cl_team_fork(pi_cl_cluster_nb_cores(), cluster_helloworld, arg);
     printf("Cluster master core exit\n");
 }
@@ -42,8 +34,8 @@ void helloworld(void)
     printf("Entering main controller\n");
     uint32_t errors = 0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
-    sprintf(hello, "[%d %d] Hello World!\n", cluster_id, core_id);
-    printf(hello);
+    printf("[%d %d] Hello World!\n", cluster_id, core_id);
+    uint32_t fc_perf = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
 
     struct pi_device cluster_dev = {0};
     struct pi_cluster_conf cl_conf = {0};
@@ -72,6 +64,7 @@ void helloworld(void)
     uint32_t cycles = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
     uint32_t tim_cycles = pi_perf_read(PI_PERF_CYCLES);
     printf("Perf : %d cycles Timer : %d cycles\n", cycles, tim_cycles);
+    printf("[%d %d] Perf : %d cycles\n", cluster_id, core_id, fc_perf);
     for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
     {
         printf("[%d %d] Perf : %d cycles\n", 0, i, perf_values[i]);

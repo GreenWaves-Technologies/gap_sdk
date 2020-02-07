@@ -22,6 +22,7 @@
 #include "string.h"
 
 RT_FC_TINY_DATA void *__rt_udma_extra_callback[ARCHI_SOC_EVENT_UDMA_NB_EXTRA_EVT];
+RT_FC_TINY_DATA void *__rt_udma_extra_callback_arg[ARCHI_SOC_EVENT_UDMA_NB_EXTRA_EVT];
 RT_FC_TINY_DATA rt_periph_channel_t periph_channels[ARCHI_NB_PERIPH*2];
 volatile unsigned int __rt_socevents_status[2];
 

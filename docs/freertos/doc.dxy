@@ -40,8 +40,9 @@ PROJECT_BRIEF          = "FreeRTOS port on GAP8/RISC-V"
 OUTPUT_DIRECTORY       = $(BUILD_DIR)/FREERTOS
 
 INPUT                  = $(GAP_SDK_HOME)/rtos/freeRTOS/
-#lib/third_party/mcu_vendor/gwt/TARGET_GWT/TARGET_GAP8/driver
 INPUT                 += $(BUILD_DIR)/FREERTOS/mainpage.md
+
+EXCLUDE_PATTERNS      += $(GAP_SDK_HOME)/rtos/freeRTOS/vendors/gwt/TARGET_GWT/libs/printf/test/*
 
 @INCLUDE = $(COM_BASE)/common.dxy
 

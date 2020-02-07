@@ -1,10 +1,16 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
+import math
 from collections import OrderedDict
 from typing import Mapping
 
@@ -13,7 +19,7 @@ import numpy as np
 from utils.stats_funcs import qsnr
 from utils.node_id import NodeId
 
-from execution.execute_graph import execute
+from execution.execute_graph import execute, execute_iterator
 from execution.quantization_mode import QuantizationMode
 
 from graph.types import FilterParameters
@@ -30,36 +36,84 @@ class ErrorStatsCollector(ReductionStatsCollector):
     def _prepare(self, G):
         pass
 
+
+    def _collect_execution(self, G, tensors, qrecs=None, qmode=None):
+        outputs = []
+        fusion_outputs = []
+        for step_idx, step, node, output, fusion_op_name, fusion_node, details in\
+            execute_iterator(G, tensors, limit=self._limit, qrecs=qrecs, qmode=qmode):
+            if qrecs:
+                qrec = qrecs[NodeId(node, fusion_node)]
+                output = [qrec.out_qs[i].dequantize(out) for i, out in enumerate(output)]
+            else:
+                output = output.copy()
+
+            del step, fusion_op_name
+            if fusion_node:
+                fusion_outputs.append({
+                    "name": "",
+                    "step_idx": "{}_{}".format(step_idx, len(fusion_outputs)),
+                    "node": fusion_node,
+                    "output": output,
+                    "details": details
+                })
+            else:
+                stat = {
+                    "name": node.name,
+                    "step_idx": str(step_idx),
+                    "node": node,
+                    "output": output,
+                    "details": details,
+                    "fusion_outputs": []
+                }
+                if len(fusion_outputs) > 0:
+                    stat['fusion_outputs'] = fusion_outputs.copy()
+                    fusion_outputs.clear()
+                outputs.append(stat)
+        return outputs
+
+    @staticmethod
+    def _collect_one(fstat, qstat):
+        fout = fstat['output']
+        qout = qstat['output']
+        error_ = np.abs(fout[0] - qout[0])
+        node = fstat['node']
+        details = qstat['details']
+        if details:
+            overflow_dot = details['overflow_dot']
+            overflow_acc = details['overflow_acc']
+        else:
+            overflow_dot = overflow_acc = ""
+
+        stat = {
+            'name': fstat['name'],
+            'op_name': node.op_name,
+            'step': fstat['step_idx'],
+            'av_err': np.mean(error_),
+            'max_err': np.max(error_),
+            'min_err': np.min(error_),
+            'qsnr': qsnr(fout[0], qout[0]),
+            'overflow_dot' : overflow_dot,
+            'overflow_acc' : overflow_acc,
+        }
+
+        return stat
+
     def _collect(self, G, input_tensors) -> Mapping[NodeId, Mapping]:
         LOG.debug("gather quantization statistics")
-        output_ = execute(G, input_tensors, limit=self._limit)
-        all_details = []
-        qoutput_ = execute(G, input_tensors, limit=self._limit,
-                           qrecs=G.quantization, qmode=QuantizationMode.all(),
-                           all_details=all_details)
+        foutputs = self._collect_execution(G, input_tensors)
+        qoutputs = self._collect_execution(G,
+                                           input_tensors,
+                                           qrecs=G.quantization,
+                                           qmode=QuantizationMode.all())
         stats = OrderedDict()
-        for idx, out in enumerate(output_):
-            error_ = np.abs(out[0] - qoutput_[idx][0])
-            step = G.graph_state.steps[idx]
-            node = step['node']
-            details = all_details[idx]
-            if details:
-                overflow_dot = details['overflow_dot']
-                overflow_acc = details['overflow_acc']
-            else:
-                overflow_dot = overflow_acc = ""
-
-            stats[NodeId(node, None)] = {
-                'name': node.name,
-                'op_name': node.op_name,
-                'step': idx,
-                'av_err': np.mean(error_),
-                'max_err': np.max(error_),
-                'min_err': np.min(error_),
-                'qsnr': qsnr(out[0], qoutput_[idx][0]),
-                'overflow_dot' : overflow_dot,
-                'overflow_acc' : overflow_acc,
-            }
+        for idx, fstat in enumerate(foutputs):
+            qstat = qoutputs[idx]
+            if fstat['fusion_outputs']:
+                for jdx, ffstat in enumerate(fstat['fusion_outputs']):
+                    stats[NodeId(fstat['node'], ffstat['node'])] =\
+                        self._collect_one(ffstat, qstat['fusion_outputs'][jdx])
+            stats[NodeId(fstat['node'], None)] = self._collect_one(fstat, qstat)
 
         return stats
 
@@ -70,6 +124,7 @@ class ErrorStatsCollector(ReductionStatsCollector):
             stat['max_qsnr'] = stat['qsnr']
             for field in ['av_err', 'qsnr']:
                 stat[field] = [stat[field]]
+
         return stats
 
     def _reduce(self, _, base: Mapping, stat: Mapping):

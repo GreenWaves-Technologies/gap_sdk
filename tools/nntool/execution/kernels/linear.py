@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 
@@ -70,7 +75,7 @@ def linear(params, in_dims, out_dims, in_tensor, weights, biases,
                         "accumulation overflow in linear OutC=%d",
                         out_c)
             if qrec.calc_q != qrec.acc_q:
-                return qrec.acc_q.reduce_from(acc_tensor, qrec.calc_q)
+                acc_tensor = qrec.acc_q.reduce_from(acc_tensor, qrec.calc_q)
         elif details is not None:
             details['min_acc'] = min(np.min(acc_slice), details['min_acc'])
             details['max_acc'] = max(np.max(acc_slice), details['max_acc'])

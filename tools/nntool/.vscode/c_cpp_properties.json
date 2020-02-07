@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/home/osboxes/projects/AutotilerV2/Emulation"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -508,7 +508,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 				int Fh_min = ht, Fh_max = Min(Fh, hb); // ht Can't be < 0 by definition of Ho_F so we can remove and use ht only
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				ht -= Stride; hb -= Stride;
 			}
 		}
@@ -521,7 +521,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 				int Acc = 0;
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				hb -= Stride;
 			}
 		}
@@ -533,7 +533,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 				int Wh_min = wl, Wh_max = Min(Fw, wr); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				wl -= Stride; wr -= Stride;
 			}
 		}
@@ -545,7 +545,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 				int Wh_min = wl, Wh_max = Min(Fw, wr); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				wr -= Stride;
 			}
 		}
@@ -560,7 +560,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wl -= Stride; wr -= Stride;
 				}
 				ht -= Stride; hb -= Stride;
@@ -576,7 +576,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wr -= Stride;
 				}
 				ht -= Stride; hb -= Stride;
@@ -594,7 +594,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wl -= Stride; wr -= Stride;
 				}
 				hb -= Stride;
@@ -610,7 +610,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wr -= Stride;
 				}
 				hb -= Stride;
@@ -659,7 +659,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 				int Fh_min = ht, Fh_max = Min(Fh, hb); // ht Can't be < 0 by definition of Ho_F so we can remove and use ht only
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				ht -= StrideY; hb -= StrideY;
 			}
 		}
@@ -672,7 +672,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 				int Acc = 0;
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				hb -= StrideY;
 			}
 		}
@@ -684,7 +684,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 				int Wh_min = wl, Wh_max = Min(Fw, wr); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				wl -= StrideX; wr -= StrideX;
 			}
 		}
@@ -696,7 +696,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 				int Wh_min = wl, Wh_max = Min(Fw, wr); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 				wr -= StrideX;
 			}
 		}
@@ -711,7 +711,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wl -= StrideX; wr -= StrideX;
 				}
 				ht -= StrideY; hb -= StrideY;
@@ -727,7 +727,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wr -= StrideX;
 				}
 				ht -= StrideY; hb -= StrideY;
@@ -745,7 +745,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wl -= StrideX; wr -= StrideX;
 				}
 				hb -= StrideY;
@@ -761,7 +761,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fp(
 					int Wh_min = wl, Wh_max = Min(Fw, wr), Fh_min = ht, Fh_max = Min(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 15));
 					wr -= StrideX;
 				}
 				hb -= StrideY;
@@ -935,7 +935,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fp(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 15));
 				}
 			}
 		} else {
@@ -946,7 +946,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fp(
 						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 15));
 				}
 			}
 		}
@@ -960,7 +960,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fp(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 15);
 				}
 			}
 		} else {
@@ -971,7 +971,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fp(
 						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 15);
 				}
 			}
 		}
@@ -1009,7 +1009,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fp(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 						S += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 15));
 				}
 			}
 		} else {
@@ -1020,7 +1020,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fp(
 						v2s *Line = (v2s *) &In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 15));
 				}
 			}
 		}
@@ -1034,7 +1034,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fp(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 						S += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 15);
 				}
 			}
 		} else {
@@ -1045,21 +1045,22 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fp(
 						v2s *Line = (v2s *) &In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp2(Line[j], ((v2s) {1,1}), S);
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 16), 15);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 15);
 				}
 			}
 		}
 	}
 }
 
-static void __attribute__ ((noinline)) KerGlobalMaxPool_fp(
+static void KerGlobalMaxPoolDP_fp(
 	short int * __restrict__ In,
-	short int * __restrict__ Out,
+	int * __restrict__ Out,
 	int W,
-	int H)
+	int H,
+	int Init)
 
 {
-	int m = *Out;
+	int m = Init?(-32768):(*Out);
 	v2s M = (v2s) {m,m};
 	v2s *Vi = (v2s *) In;
 
@@ -1069,7 +1070,45 @@ static void __attribute__ ((noinline)) KerGlobalMaxPool_fp(
 	*Out = m;
 }
 
-static void __attribute__ ((noinline)) KerGlobalAvgPool_fp(
+static void KerGlobalAvgPoolDP_fp(
+	short int * __restrict__ In,
+	int * __restrict__ Out,
+	int W,
+	int H,
+	int Init)
+
+{
+	v2s M = (v2s) {1,1};
+	v2s *Vi = (v2s *) In;
+	int Sum = Init?0:(*Out);
+
+	for (int i=0; i<((W*H)/2); i++) Sum = gap_sumdotp2(Vi[i], M, Sum);
+	if ((W*H)&0x1) Sum += In[W*H-1];
+	*Out = Sum;
+}
+
+static void KerGlobalMaxPoolFullFeat_fp(
+	short int * __restrict__ In,
+	short int * __restrict__ Out,
+	int W,
+	int H)
+
+{
+	int m = -32768;
+	v2s M = (v2s) {m,m};
+	v2s *Vi = (v2s *) In;
+
+	for (int i=0; i<((W*H)/(2*2)); i++) {
+		M = gap_max2(Vi[2*i],   M);
+		M = gap_max2(Vi[2*i+1], M);
+	}
+	if ((W*H)&0x2) M = gap_max2(Vi[(W*H)/2], M);
+	m = Max(M[0], M[1]);
+	m = Max(In[W*H-1], m);
+	*Out = m;
+}
+
+static void KerGlobalAvgPoolFullFeat_fp(
 	short int * __restrict__ In,
 	short int * __restrict__ Out,
 	int W,
@@ -1078,11 +1117,17 @@ static void __attribute__ ((noinline)) KerGlobalAvgPool_fp(
 {
 	v2s M = (v2s) {1,1};
 	v2s *Vi = (v2s *) In;
-	int Sum = *Out;
+	int Sum = 0;
 
-	for (int i=0; i<((W*H)/2); i++) Sum = gap_sumdotp2(Vi[i], M, Sum);
+	for (int i=0; i<((W*H)/(2*2)); i++) {
+		Sum = gap_sumdotp2(Vi[2*i], M, Sum);
+		Sum = gap_sumdotp2(Vi[2*i+1], M, Sum);
+	}
+	if ((W*H)&0x2) Sum = gap_sumdotp2(Vi[(W*H)/2], M, Sum);
 	if ((W*H)&0x1) Sum += In[W*H-1];
-	*Out = Sum;
+	int N = 31-gap_clb(Sum);
+	int InvWH = (1<<N)/(W*H);
+	*Out =	(Sum*InvWH)>>N;
 }
 
 static void KerMaxPool2x2Stride2_fps(
@@ -1543,7 +1588,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 	unsigned int PadL=Pad[0], PadR=Pad[1], PadT=Pad[2], PadB=Pad[3];
 	int PadLOrg = PadOrg[0], PadTOrg = PadOrg[2];
 	int PadROrg = PadOrg[1], PadBOrg = PadOrg[3];
-	unsigned int PoolFactor = (1<<8)/(Fw*Fh);
+	unsigned int PoolFactor = (1<<16)/(Fw*Fh);
 	int Hi_F = (Fh-1)/2 - PadTOrg;
 	int Hi_L = Hi_F + (Ho_L-1)*Stride;	// iff Hi_L>Hi_F
 	int Wi_F = (Fw-1)/2 - PadLOrg;
@@ -1559,7 +1604,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 				int Fh_min = ht, Fh_max = MinCond(Fh, hb); // ht Can't be < 0 by definition of Ho_F so we can remove and use ht only
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				ht -= Stride; hb -= Stride;
 			}
 		}
@@ -1572,7 +1617,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 				int Acc = 0;
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				hb -= Stride;
 			}
 		}
@@ -1584,7 +1629,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 				int Wh_min = wl, Wh_max = MinCond(Fw, wr); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				wl -= Stride; wr -= Stride;
 			}
 		}
@@ -1596,7 +1641,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 				int Wh_min = wl, Wh_max = MinCond(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				wr -= Stride;
 			}
 		}
@@ -1611,7 +1656,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(Fw, wr), Fh_min = ht, Fh_max = MinCond(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wl -= Stride; wr -= Stride;
 				}
 				ht -= Stride; hb -= Stride;
@@ -1627,7 +1672,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(wr, Fw), Fh_min = ht, Fh_max = MinCond(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wr -= Stride;
 				}
 				ht -= Stride; hb -= Stride;
@@ -1645,7 +1690,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(Fw, wr), Fh_min = ht, Fh_max = MinCond(hb, Fh);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wl -= Stride; wr -= Stride;
 				}
 				hb -= Stride;
@@ -1661,7 +1706,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(wr, Fw), Fh_min = ht, Fh_max = Min(hb, Fh);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*Stride-PadTOrg+i)*W + (w*Stride-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wr -= Stride;
 				}
 				hb -= Stride;
@@ -1693,7 +1738,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 	unsigned int PadL=Pad[0], PadR=Pad[1], PadT=Pad[2], PadB=Pad[3];
 	int PadLOrg = PadOrg[0], PadTOrg = PadOrg[2];
 	int PadROrg = PadOrg[1], PadBOrg = PadOrg[3];
-	unsigned int PoolFactor = (1<<8)/(Fw*Fh);
+	unsigned int PoolFactor = (1<<16)/(Fw*Fh);
 	int Hi_F = (Fh-1)/2 - PadTOrg;
 	int Hi_L = Hi_F + (Ho_L-1)*StrideY;	// iff Hi_L>Hi_F
 	int Wi_F = (Fw-1)/2 - PadLOrg;
@@ -1709,7 +1754,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 				int Fh_min = ht, Fh_max = MinCond(Fh, hb); // ht Can't be < 0 by definition of Ho_F so we can remove and use ht only
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				ht -= StrideY; hb -= StrideY;
 			}
 		}
@@ -1722,7 +1767,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 				int Acc = 0;
 				for (unsigned int i=Fh_min; i<Fh_max; i++) 
 					for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				hb -= StrideY;
 			}
 		}
@@ -1734,7 +1779,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 				int Wh_min = wl, Wh_max = MinCond(Fw, wr); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				wl -= StrideX; wr -= StrideX;
 			}
 		}
@@ -1746,7 +1791,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 				int Wh_min = wl, Wh_max = MinCond(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
 				for (unsigned int i=0; i<Fh; i++) 
 			       		for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-				Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+				Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 				wr -= StrideX;
 			}
 		}
@@ -1761,7 +1806,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(Fw, wr), Fh_min = ht, Fh_max = MinCond(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wl -= StrideX; wr -= StrideX;
 				}
 				ht -= StrideY; hb -= StrideY;
@@ -1777,7 +1822,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(wr, Fw), Fh_min = ht, Fh_max = MinCond(Fh, hb);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wr -= StrideX;
 				}
 				ht -= StrideY; hb -= StrideY;
@@ -1795,7 +1840,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(Fw, wr), Fh_min = ht, Fh_max = MinCond(hb, Fh);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wl -= StrideX; wr -= StrideX;
 				}
 				hb -= StrideY;
@@ -1811,7 +1856,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Border_fps(
 					int Wh_min = wl, Wh_max = MinCond(wr, Fw), Fh_min = ht, Fh_max = Min(hb, Fh);
 					for (unsigned int i=Fh_min; i<Fh_max; i++) 
 						for (unsigned int j=Wh_min; j<Wh_max; j++) Acc += In[(h*StrideY-PadTOrg+i)*W + (w*StrideX-PadLOrg+j)];
-					Out[Wo*h+w] = Max(ReVal, gap_clip(gap_roundnorm_reg(Acc*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(ReVal, gap_clip(AT_NORM(Acc*PoolFactor, 16), 7));
 					wr -= StrideX;
 				}
 				hb -= StrideY;
@@ -1972,7 +2017,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
 	int DoReLU)
 
 {
-	unsigned int PoolFactor = (1<<8)/(Fw*Fh);
+	unsigned int PoolFactor = (1<<16)/(Fw*Fh);
 	if (DoReLU) {
 		if (Fw&0x1) {
 			for (unsigned int w=Wo_F; w<Wo_L; w++) {
@@ -1983,7 +2028,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 7));
 				}
 			}
 		} else {
@@ -1994,7 +2039,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
 						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 7));
 				}
 			}
 		}
@@ -2008,7 +2053,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 7);
 				}
 			}
 		} else {
@@ -2019,7 +2064,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
 						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 7);
 				}
 			}
 		}
@@ -2046,7 +2091,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 	int DoReLU)
 
 {
-	unsigned int PoolFactor = (1<<8)/(Fw*Fh);
+	unsigned int PoolFactor = (1<<16)/(Fw*Fh);
 	if (DoReLU) {
 		if (Fw&0x1) {
 			for (unsigned int w=Wo_F; w<Wo_L; w++) {
@@ -2057,7 +2102,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 						S += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 7));
 				}
 			}
 		} else {
@@ -2068,7 +2113,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 						short int *Line = (short int *) &In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 					}
-					Out[Wo*h+w] = Max(0, gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7));
+					Out[Wo*h+w] = Max(0, gap_clip(AT_NORM(S*PoolFactor, 16), 7));
 				}
 			}
 		}
@@ -2082,7 +2127,7 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 						S += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL) + Fw - 1];
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 7);
 				}
 			}
 		} else {
@@ -2093,31 +2138,78 @@ static void __attribute__ ((noinline)) KerAvgPoolNxMStrideSxSy_Body_fps(
 						short int *Line = (short int *) &In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL)];
 						for (unsigned int j=0; j<(Fw/2); j++) S = gap_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
 					}
-					Out[Wo*h+w] = gap_clip(gap_roundnorm_reg(S*PoolFactor, 8), 7);
+					Out[Wo*h+w] = gap_clip(AT_NORM(S*PoolFactor, 16), 7);
 				}
 			}
 		}
 	}
 }
 
-static void __attribute__ ((noinline)) KerGlobalMaxPool_fps(
+static void KerGlobalMaxPoolDP_fps(
+	signed char * __restrict__ In,
+	int * __restrict__ Out,
+	int W,
+	int H,
+	int Init)
+
+{
+	int m = Init?(-128):(*Out);
+	v4s M = (v4s) {m,m,m,m};
+	v4s *Vi = (v4s *) In;
+
+	for (int i=0; i<((W*H)/(2*4)); i++) {
+		M = gap_max4(Vi[2*i], M);
+		M = gap_max4(Vi[2*i+1], M);
+	}
+	if ((W*H)&0x4) M = gap_max4(Vi[(W*H)/4-1], M);
+	m = Max(Max(M[0], M[1]), Max(M[2], M[3]));
+	for (int i=((W*H)/4); i<(W*H); i++) m = Max(In[i], m);
+	*Out = m;
+}
+
+static void KerGlobalMaxPoolFullFeat_fps(
 	signed char * __restrict__ In,
 	signed char * __restrict__ Out,
 	int W,
 	int H)
 
 {
-	int m = *Out;
+	int m = -128;
 	v4s M = (v4s) {m,m,m,m};
 	v4s *Vi = (v4s *) In;
 
-	for (int i=0; i<((W*H)/4); i++) M = gap_max4(Vi[i], M);
+	for (int i=0; i<((W*H)/(4*2)); i++) {
+		M = gap_max4(Vi[2*i],   M);
+		M = gap_max4(Vi[2*i+1], M);
+	}
+	if ((W*H)&0x4) M = gap_max4(Vi[(W*H)/4-1], M);
 	m = Max(Max(M[0], M[1]), Max(M[2], M[3]));
 	for (int i=((W*H)/4); i<(W*H); i++) m = Max(In[i], m);
 	*Out = m;
 }
 
-static void __attribute__ ((noinline)) KerGlobalAvgPool_fps(
+static void KerGlobalAvgPoolDP_fps(
+	signed char * __restrict__ In,
+	int * __restrict__ Out,
+	int W,
+	int H,
+	int Init)
+
+{
+	v4s M = (v4s) {1,1,1,1};
+	v4s *Vi = (v4s *) In;
+	int Sum = Init?0:(*Out);
+
+	for (int i=0; i<((W*H)/(2*4)); i++) {
+		Sum = gap_sumdotp4(Vi[2*i], M, Sum);
+		Sum = gap_sumdotp4(Vi[2*i+1], M, Sum);
+	}
+	if ((W*H)&0x4) Sum = gap_sumdotp4(Vi[(W*H)/4-1], M, Sum);
+	for (int i=((W*H)/4); i<(W*H); i++) Sum += In[i];
+	*Out = Sum;
+}
+
+static void KerGlobalAvgPoolFullFeat_fps(
 	signed char * __restrict__ In,
 	signed char * __restrict__ Out,
 	int W,
@@ -2126,11 +2218,17 @@ static void __attribute__ ((noinline)) KerGlobalAvgPool_fps(
 {
 	v4s M = (v4s) {1,1,1,1};
 	v4s *Vi = (v4s *) In;
-	int Sum = *Out;
+	int Sum = 0;
 
-	for (int i=0; i<((W*H)/4); i++) Sum = gap_sumdotp4(Vi[i], M, Sum);
+	for (int i=0; i<((W*H)/(2*4)); i++) {
+		Sum = gap_sumdotp4(Vi[2*i], M, Sum);
+		Sum = gap_sumdotp4(Vi[2*i+1], M, Sum);
+	}
+	if ((W*H)&0x4) Sum = gap_sumdotp4(Vi[(W*H)/4-1], M, Sum);
 	for (int i=((W*H)/4); i<(W*H); i++) Sum += In[i];
-	*Out = Sum;
+	int N = 31-gap_clb(Sum);
+	int InvWH = (1<<N)/(W*H);
+	*Out =	(Sum*InvWH)>>N;
 }
 
 /* Pooling group.
@@ -2157,9 +2255,12 @@ static void __attribute__ ((noinline)) KerGlobalAvgPool_fps(
 			|------	KerMaxPoolNxMStrideSxSy_Border_fps
 			|------	KerAvgPoolNxMStrideSxSy_Body_fps
 			|------	KerAvgPoolNxMStrideSxSy_Border_fps
-		KerParGlobalPoolInit_fps
-		KerParGlobalPool_fps
-		KerParGlobalPoolFinal_fps
+		KerParGlobalMaxPoolDP_fps
+		KerParGlobalMaxPoolDPReduct_fps
+		KerParGlobalAvgPoolDP_fps
+		KerParGlobalAvgPoolDPReduct_fps
+		KerParGlobalMaxPoolFullFeat_fps
+		KerParGlobalAvgPoolFullFeat_fps
 		
 
 	Input and output feature maps are short words:
@@ -2176,9 +2277,12 @@ static void __attribute__ ((noinline)) KerGlobalAvgPool_fps(
 			|------	KerMaxPoolNxMStrideSxSy_Border_fp
 			|------	KerAvgPoolNxMStrideSxSy_Body_fp
 			|------	KerAvgPoolNxMStrideSxSy_Border_fp
-		KerParGlobalPoolInit_fp
-		KerParGlobalPool_fp
-		KerParGlobalPoolFinal_fp
+		KerParGlobalMaxPoolDP_fp
+		KerParGlobalMaxPoolDPReduct_fp
+		KerParGlobalAvgPoolDP_fp
+		KerParGlobalAvgPoolDPReduct_fp
+		KerParGlobalMaxPoolFullFeat_fp
+		KerParGlobalAvgPoolFullFeat_fp
 	
 */
 
@@ -2285,71 +2389,117 @@ void KerParPoolNxMStrideSxSy_fps(KerReLUPool_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPoolInit_fps(KerReLUPool_fps_T *Arg)
+void KerParGlobalMaxPoolDP_fps(KerGlobalPoolDP_fps_T *Arg)
 
 {
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
-	signed char * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
-	int V = PoolMax?-128:0;
+	int * __restrict__ Out = Arg->Out;
+	int FirstTile = (Arg->TileIndex==0);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
 
-	for (unsigned int of=First; of<Last; of++) Out[of] = V;
-
+	for (unsigned int of=First; of<Last; of++) KerGlobalMaxPoolDP_fps(In+of*W*H, Out+of, W, H, FirstTile);
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPool_fps(KerReLUPool_fps_T *Arg)
+void KerParGlobalAvgPoolDP_fps(KerGlobalPoolDP_fps_T *Arg)
+
+{
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	int * __restrict__ Out = Arg->Out;
+	int FirstTile = (Arg->TileIndex==0);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalAvgPoolDP_fps(In+of*W*H, Out+of, W, H, FirstTile);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalMaxPoolDPReduct_fps(KerGlobalPoolDPReduct_fps_T *Arg)
+
+{
+	int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	for (unsigned int of=First; of<Last; of+=2) {
+		int I0 = In[of], I1 = In[of+1];
+		Out[of] = I0; Out[of+1] = I1;
+	}
+	Out[Last-1] = In[Last-1];
+	gap_waitbarrier(0);
+}
+void KerParGlobalAvgPoolDPReduct_fps(KerGlobalPoolDPReduct_fps_T *Arg)
+
+{
+	int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	for (unsigned int of=First; of<Last; of++) {
+		int X = In[of];
+		int N = 31-gap_clb(X);
+		int InvWH = (1<<N)/(W*H);
+		Out[of] = (X*InvWH)>>N;
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalMaxPoolFullFeat_fps(KerGlobalPool_fps_T *Arg)
 
 {
 	signed char * __restrict__ In = Arg->In;
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
 	signed char * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
-	int ReLU = ((int)Arg->Oper&0x1);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
-	int ReVal = ((int)ReLU)?0:0x80000000;
 
-
-	if (PoolMax) {
-		for (unsigned int of=First; of<Last; of++) KerGlobalMaxPool_fps(In+of*W*H, Out+of, W, H);
-	} else {
-		for (unsigned int of=First; of<Last; of++) KerGlobalAvgPool_fps(In+of*W*H, Out+of, W, H);
-	}
+	for (unsigned int of=First; of<Last; of++) KerGlobalMaxPoolFullFeat_fps(In+of*W*H, Out+of, W, H);
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPoolFinal_fps(KerReLUPool_fps_T *Arg)
+void KerParGlobalAvgPoolFullFeat_fps(KerGlobalPool_fps_T *Arg)
 
 {
+	signed char * __restrict__ In = Arg->In;
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
 	signed char * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
 
-
-	if (!PoolMax) {
-		for (unsigned int of=First; of<Last; of++) {
-			int X = Out[of];
-			int N = 31-gap_clb(X);
-			int InvWH = (1<<N)/(W*H);
-			Out[of] = (X*InvWH)>>N;
-		}
-	}
+	for (unsigned int of=First; of<Last; of++) KerGlobalAvgPoolFullFeat_fps(In+of*W*H, Out+of, W, H);
 	gap_waitbarrier(0);
 }
 
@@ -2412,7 +2562,7 @@ void KerParPoolNxNStrideS_fp(KerReLUPool_fp_T *Arg)
 		}
 	} else {
 		for (unsigned int of=First; of<Last; of++) {
-			KerAvgPoolNxNStrideS_Body_fp(In+of*Wref*Href, Out+of*Wo*Ho, FS, FS, PadIn[0], PadIn[2], W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, ReVal);
+			KerAvgPoolNxNStrideS_Body_fp(In+of*Wref*Href, Out+of*Wo*Ho, FS, FS, PadIn[0], PadIn[2], W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, ReLU);
 			if ((int) PadIn) KerAvgPoolNxNStrideS_Border_fp(In+of*Wref*Href, Out+of*Wo*Ho, FS, FS, PadIn, PadIn, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, ReVal);
 		}
 	}
@@ -2458,71 +2608,117 @@ void KerParPoolNxMStrideSxSy_fp(KerReLUPool_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPoolInit_fp(KerReLUPool_fp_T *Arg)
+void KerParGlobalMaxPoolDP_fp(KerGlobalPoolDP_fp_T *Arg)
 
 {
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
-	short int * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
-	int V = PoolMax?-32768:0;
+	int * __restrict__ Out = Arg->Out;
+	int FirstTile = (Arg->TileIndex==0);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
 
-	for (unsigned int of=First; of<Last; of++) Out[of] = V;
-
+	for (unsigned int of=First; of<Last; of++) KerGlobalMaxPoolDP_fp(In+of*W*H, Out+of, W, H, FirstTile);
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPool_fp(KerReLUPool_fp_T *Arg)
+void KerParGlobalAvgPoolDP_fp(KerGlobalPoolDP_fp_T *Arg)
+
+{
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	int * __restrict__ Out = Arg->Out;
+	int FirstTile = (Arg->TileIndex==0);
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+	for (unsigned int of=First; of<Last; of++) KerGlobalAvgPoolDP_fp(In+of*W*H, Out+of, W, H, FirstTile);
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalMaxPooDPReduct_fp(KerGlobalPoolDPReduct_fp_T *Arg)
+
+{
+	int * __restrict__ In = Arg->In;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	for (unsigned int of=First; of<Last; of+=2) {
+		int I0 = In[of], I1 = In[of+1];
+		Out[of] = I0; Out[of+1] = I1;
+	}
+	Out[Last-1] = In[Last-1];
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalAvgPooDPReduct_fp(KerGlobalPoolDPReduct_fp_T *Arg)
+
+{
+	int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+
+
+	for (unsigned int of=First; of<Last; of++) {
+		int X = Out[of];
+		int N = 31-gap_clb(X);
+		int InvWH = (1<<N)/(W*H);
+		Out[of] = (X*InvWH)>>N;
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParGlobalMaxPoolFullFeat_fp(KerGlobalPool_fp_T *Arg)
 
 {
 	short int * __restrict__ In = Arg->In;
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
 	short int * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
-	int ReLU = ((int)Arg->Oper&0x1);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
-	int ReVal = ((int)ReLU)?0:0x80000000;
 
-
-	if (PoolMax) {
-		for (unsigned int of=First; of<Last; of++) KerGlobalMaxPool_fp(In+of*W*H, Out+of, W, H);
-	} else {
-		for (unsigned int of=First; of<Last; of++) KerGlobalAvgPool_fp(In+of*W*H, Out+of, W, H);
-	}
+	for (unsigned int of=First; of<Last; of++) KerGlobalMaxPoolFullFeat_fp(In+of*W*H, Out+of, W, H);
 	gap_waitbarrier(0);
 }
 
-void KerParGlobalPoolFinal_fp(KerReLUPool_fp_T *Arg)
+void KerParGlobalAvgPoolFullFeat_fp(KerGlobalPool_fp_T *Arg)
 
 {
+	short int * __restrict__ In = Arg->In;
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int OutFeatures = Arg->OutFeatures;
 	short int * __restrict__ Out = Arg->Out;
-	int PoolMax = (((int)Arg->Oper&0x2)==0);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
 
-
-	if (!PoolMax) {
-		for (unsigned int of=First; of<Last; of++) {
-			int X = Out[of];
-			int N = 31-gap_clb(X);
-			int InvWH = (1<<N)/(W*H);
-			Out[of] = (X*InvWH)>>N;
-		}
-	}
+	for (unsigned int of=First; of<Last; of++) KerGlobalAvgPoolFullFeat_fp(In+of*W*H, Out+of, W, H);
 	gap_waitbarrier(0);
 }
 
@@ -2637,7 +2833,7 @@ void KerPoolNxNStrideS_fps(KerReLUPool_fps_T *Arg)
 			KerMaxPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 			if ((int) PadIn) KerMaxPoolNxNStrideS_Border_fps(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 		} else {
-			KerAvgPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
+			KerAvgPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReLU);
 			if ((int) PadIn) KerAvgPoolNxNStrideS_Border_fps(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 		}
 	} else {
@@ -2650,7 +2846,7 @@ void KerPoolNxNStrideS_fps(KerReLUPool_fps_T *Arg)
 			KerMaxPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 			if ((int) PadIn) KerMaxPoolNxNStrideS_Border_fps(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 		} else {
-			KerAvgPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
+			KerAvgPoolNxNStrideS_Body_fps(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReLU);
 			if ((int) PadIn) KerAvgPoolNxNStrideS_Border_fps(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 		}
 	}
@@ -2775,7 +2971,7 @@ void KerPoolNxNStrideS_fp(KerReLUPool_fp_T *Arg)
 			KerMaxPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 			if ((int) PadIn) KerMaxPoolNxNStrideS_Border_fp(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 		} else {
-			KerAvgPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
+			KerAvgPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReLU);
 			if ((int) PadIn) KerAvgPoolNxNStrideS_Border_fp(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Max(First, Wo_F), Min(Last, Wo_L), Ho, Ho_F, Ho_L, S, ReVal);
 		}
 	} else {
@@ -2788,7 +2984,7 @@ void KerPoolNxNStrideS_fp(KerReLUPool_fp_T *Arg)
 			KerMaxPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 			if ((int) PadIn) KerMaxPoolNxNStrideS_Border_fp(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 		} else {
-			KerAvgPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
+			KerAvgPoolNxNStrideS_Body_fp(In, Out, FS, FS, PadOrg[0], PadOrg[2], W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReLU);
 			if ((int) PadIn) KerAvgPoolNxNStrideS_Border_fp(In, Out, FS, FS, PadIn, PadOrg, W, H, Wo, Wo_F, Wo_L, Ho, Max(First, Ho_F), Min(Last, Ho_L), S, ReVal);
 		}
 	}

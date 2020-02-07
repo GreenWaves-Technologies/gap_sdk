@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 # author: martin.croome@greenwaves-technologies.com
 
@@ -11,9 +16,6 @@
 from collections.abc import Iterable
 from functools import reduce
 from math import ceil, floor
-
-import numpy as np
-
 
 class DimError(Exception):
     pass
@@ -165,6 +167,10 @@ class Dim():
         self._verify_is_ordered()
         return self._names
 
+    @property
+    def is_single_channel(self) -> bool:
+        return self.is_named and self.has_key('c') and self.c == 1
+
     def transpose(self, order):
         '''transpose dimension in order which is a list of indexes or list of names'''
         self._verify_is_ordered()
@@ -177,17 +183,22 @@ class Dim():
         object.__setattr__(self, '_shape', [self._shape[i] for i in order])
         if self.is_named:
             object.__setattr__(self, '_names', [self._names[i] for i in order])
+        return self
 
-    def apply_naming(self, other):
+    def move_last_to_first(self):
         self._verify_is_ordered()
-        # pylint: disable=protected-access
-        other._verify_is_named()
+        self._shape.append(self._shape.pop(0))
+        if self.is_named:
+            self._names.append(self._names.pop(0))
+
+    def apply_naming_hints(self, hint):
+        self._verify_is_ordered()
 
         # pylint: disable=protected-access
-        if len(self._shape) != len(other._names):
+        if len(self._shape) != len(hint):
             raise MissMatchedInputsError()
         # pylint: disable=protected-access
-        object.__setattr__(self, '_names', other._names.copy())
+        object.__setattr__(self, '_names', hint.copy())
         object.__setattr__(self, '_is_named', True)
 
     def impose_order(self, order) -> 'Dim':
@@ -228,6 +239,11 @@ class Dim():
         '''Checks if dim has the keys in keys'''
         self._verify_is_named()
         return all(k in self._names for k in keys)
+
+    def just_has_keys(self, keys: list) -> bool:
+        if not self.is_named:
+            return False
+        return all(k in self._names for k in keys) and len(self._names) == len(keys)
 
     def size(self) -> int:
         '''Get size of dim'''
@@ -638,12 +654,17 @@ class FcFilterDim(Dim):
 
     @property
     def actual_shape(self):
-        return [self.out_c, self.sz]
+        return [getattr(self, attr) for attr in self.actual_order]
 
     @property
     def actual_order(self):
-        # TODO - Fixme
-        return ['out_c', 'sz']
+        out_c_idx = self.order.index('out_c')
+        out_c_first = out_c_idx == 0
+        assert out_c_first or out_c_idx == 3, "out_c should be first or last"
+        if out_c_first:
+            return ['out_c', 'sz']
+        else:
+            return ['sz', 'out_c']
 
     def srange(self, use_order=None, **kwargs):
         if use_order is None:

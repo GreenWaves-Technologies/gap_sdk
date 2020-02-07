@@ -259,7 +259,7 @@ static inline void rt_team_critical_enter()
 #endif
 
   rt_compiler_barrier();
-  eu_mutex_lock(eu_mutex_addr(0));
+  eu_mutex_lock_from_id(0);
 }
 
 static inline void rt_team_critical_exit()
@@ -269,7 +269,7 @@ static inline void rt_team_critical_exit()
   gv_vcd_dump_trace(trace, 1);
 #endif
 
-  eu_mutex_unlock(eu_mutex_addr(0));
+  eu_mutex_unlock_from_id(0);
   rt_compiler_barrier();
 }
 

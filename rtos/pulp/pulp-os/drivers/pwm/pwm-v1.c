@@ -116,7 +116,6 @@ int32_t pi_pwm_ioctl(struct pi_device *device, pi_pwm_ioctl_cmd_e cmd, void *arg
     switch (cmd)
     {
         case PI_PWM_TIMER_COMMAND :
-    printf("WRITING START TO %lx\n", timer->base);
             ARCHI_WRITE(timer->base, PWM_T0_CMD_OFFSET - PWM_T0_CMD_OFFSET, timer_cmd);
             return 0;
 
@@ -134,7 +133,7 @@ int32_t pi_pwm_duty_cycle_set(struct pi_device *device, uint32_t frequency, uint
     pos_pwm_timer_t *timer = (pos_pwm_timer_t *)device->data;
 
     uint8_t pwm_id = timer->pwm->id;
-    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency;
+    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency / 2;
     uint16_t th_lo = 1;
     /* threshold holds frequency value. */
     uint32_t threshold = (th_hi << PWM_T0_THRESHOLD_TH_HI_BIT) | th_lo;
@@ -142,7 +141,6 @@ int32_t pi_pwm_duty_cycle_set(struct pi_device *device, uint32_t frequency, uint
     uint16_t th_timer = (th_hi * duty_cycle) / 100;
 
     /* Set counter start, end. */
-    printf("WRITING DUTY CYCLE TO %lx\n", timer->base);
     ARCHI_WRITE(timer->base, PWM_T0_THRESHOLD_OFFSET - PWM_T0_CMD_OFFSET, threshold);
 
     /* Set timer threshold, mode. */

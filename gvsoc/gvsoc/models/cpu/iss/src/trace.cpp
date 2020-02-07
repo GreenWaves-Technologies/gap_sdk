@@ -25,7 +25,7 @@
 
 #define PC_INFO_ARRAY_SIZE (64*1024)
 
-#define MAX_DEBUG_INFO_WIDTH 32
+#define MAX_DEBUG_INFO_WIDTH 24
 
 class iss_pc_info {
 public:
@@ -279,7 +279,16 @@ static char *trace_dump_debug(iss_t *iss, iss_insn_t *insn, char *buff)
     inline_func = pc_info->inline_func;
   }
 
-  int len = snprintf(buff, MAX_DEBUG_INFO_WIDTH+1, "%s:%d", inline_func, line) - 1;
+  int line_len = sprintf(buff, ":%d", line);
+  if (line_len > 5)
+    line_len = 5;
+  int max_name_len = MAX_DEBUG_INFO_WIDTH - line_len;
+
+  int len = snprintf(buff, max_name_len+1, "%s", inline_func);
+  if (len > max_name_len)
+    len = max_name_len;
+
+  len += sprintf(buff+len, ":%d", line);
 
   char *start_buff = buff;
 

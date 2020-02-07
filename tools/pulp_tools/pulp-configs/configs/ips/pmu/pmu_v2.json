@@ -3,6 +3,7 @@
   "nb_domains": 2,
 
   "vp_class": "pulp/pmu/pmu_v2",
+  "vp_component": "pulp.pmu.pmu_v2_impl",
 
   "hal_files" : [ "hal/maestro/pmu_v2.h" ],
   "archi_files" : [ "archi/maestro/maestro_v2.h" ],

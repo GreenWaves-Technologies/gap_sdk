@@ -18,6 +18,7 @@
 #define __PMSIS_TYPES__H__
 
 #include "inttypes.h"
+#include "sys/types.h"
 #ifdef PMSIS_DRIVERS
 #include "pmsis_backend/implementation_specific_defines.h"
 #endif  /* PMSIS_DRIVERS */
@@ -104,18 +105,19 @@ typedef int (*open_func_async)(struct pi_device *device,
 typedef int (*close_func_async)(struct pi_device *device, pi_task_t *async);
 
 // pmsis device minimal api: used for basic inheritance
-typedef struct pi_device_api {
+typedef struct pi_device_api
+{
     int (*open)(struct pi_device *device);
     int (*close)(struct pi_device *device);
     int (*open_async)(struct pi_device *device, pi_task_t *async);
     int (*close_async)(struct pi_device *device, pi_task_t *async);
-    uint32_t (*read)(struct pi_device *device,
-            uintptr_t size, const void *addr, const void *buffer, pi_task_t *async);
-    uint32_t (*write)(struct pi_device *device,
-            uint32_t func_id, void *arg, pi_task_t *async);
-    uint32_t (*ioctl)(struct pi_device *device, uint32_t func_id, void *arg);
-    uint32_t (*ioctl_async)(struct pi_device *device,
-            uint32_t func_id, void *arg, pi_task_t *async);
+    ssize_t (*read)(struct pi_device *device, uint32_t ext_addr,
+                    void *buffer, uint32_t size, pi_task_t *async);
+    ssize_t (*write)(struct pi_device *device, uint32_t ext_addr,
+                     const void *buffer, uint32_t size, pi_task_t *async);
+    int (*ioctl)(struct pi_device *device, uint32_t func_id, void *arg);
+    int (*ioctl_async)(struct pi_device *device, uint32_t func_id,
+                       void *arg, pi_task_t *async);
     void *specific_api;
 } pi_device_api_t;
 
@@ -179,11 +181,13 @@ typedef struct pi_task
 {
     // Warning, might be accessed inline in asm, and thus can not be moved
     uintptr_t arg[4];
-    volatile int8_t done;
     int32_t id;
     uint32_t data[PI_TASK_IMPLEM_NB_DATA];
     pi_sem_t wait_on;
     struct pi_task *next;
+    volatile int8_t done;
+    int8_t core_id;
+    int8_t cluster_id;
     PI_TASK_IMPLEM;
 } pi_task_t;
 

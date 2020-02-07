@@ -12,6 +12,7 @@
   "archi_files"   : [ "archi/riscv/priv_1_9.h", "archi/riscv/builtins_v2.h", "archi/riscv/builtins_v2_emu.h", "archi/riscv/pcer_v1.h" ],
   "defines"       : [ "ARCHI_CORE_HAS_PULPV2",  "CORE_PULP_BUILTINS" ],
   "vp_class": "cpu/iss/iss",
+  "vp_component": "cpu/iss/iss_riscy",
   "bootaddr_offset": "0x80",
   "debug_binaries": [],
   "fetch_enable"     : false,

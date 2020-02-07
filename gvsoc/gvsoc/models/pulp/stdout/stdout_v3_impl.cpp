@@ -31,7 +31,7 @@ class Stdout : public vp::component
 
 public:
 
-  Stdout(const char *config);
+  Stdout(js::config *config);
 
   int build();
   void start();
@@ -51,7 +51,7 @@ private:
 
 };
 
-Stdout::Stdout(const char *config)
+Stdout::Stdout(js::config *config)
 : vp::component(config)
 {
 
@@ -112,7 +112,7 @@ void Stdout::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new Stdout(config);
+  return new Stdout(config);
 }

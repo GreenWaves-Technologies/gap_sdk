@@ -82,7 +82,6 @@ void rt_padframe_set(rt_padframe_profile_t *profile)
 
   for (int i=0; i<ARCHI_APB_SOC_PADFUN_NB; i++)
   {
-    rt_trace(RT_TRACE_INIT, "Initializing pads function (id: %d, config: 0x%x)\n", i, config[i]);
     hal_apb_soc_padfun_set(i, config[i]);
   }
 

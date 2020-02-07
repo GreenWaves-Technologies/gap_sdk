@@ -11,7 +11,6 @@
 #include "pmsis.h"
 #include "ImgIO.h"
 #include "Gap.h"
-#include "bridge_stubs.h"
 #include "ResizeKernels.h"
 
 #define STACK_SIZE ( 1024 * 2 )
@@ -66,8 +65,6 @@ void run_Bilinear_Resize(void)
     #if !defined(NO_BRIDGE)
     char *image_name = "../../../Pedestrian.ppm";
     uint32_t w_image = 0, h_image = 0;
-    BRIDGE_Init();
-    BRIDGE_Connect(0, NULL);
     ImageIn = (uint8_t *) pi_l2_malloc(w_in * h_in * sizeof(uint8_t));
     if (ImageIn == NULL)
     {
@@ -143,7 +140,6 @@ void run_Bilinear_Resize(void)
     #else
     /* write result image to host. */
     WriteImageToFile("../../../resized_out.ppm", cluster_call.Wout, cluster_call.Hout, ImageOut);
-    BRIDGE_Disconnect(NULL);
     #endif  /* NO_BRIDGE */
 
     printf("Test %s with %ld error(s) !\n", (errors) ? "failed" : "success", errors);

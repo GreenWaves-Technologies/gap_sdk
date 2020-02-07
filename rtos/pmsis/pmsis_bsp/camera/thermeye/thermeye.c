@@ -58,7 +58,7 @@ static void __pi_thermeye_reg_write(thermeye_t *thermeye, uint16_t addr, uint8_t
 
 static void __pi_thermeye_start(thermeye_t *thermeye)
 {
-    printf("Sensor On\n");
+    //printf("Sensor On\n");
     /* Start Master Clock. Need GPIO, pin E12 on sensor. */
     /* MC frequency 14 * I2C SCL frequency. Set when opened. */
     {
@@ -124,7 +124,7 @@ static uint32_t __pi_thermeye_trigger_snapshot(thermeye_t *thermeye)
 {
     uint32_t feedback = 0;
     /* Switch on led during image capture. */
-    pi_gpio_pin_write(NULL, GPIO_USER_LED, 1);
+    //pi_gpio_pin_write(NULL, GPIO_USER_LED, 1);
 
     __pi_thermeye_reg_write(thermeye, (uint16_t) CONFIG, 0x45);
     //feedback = __pi_thermeye_reg_read(thermeye, (uint16_t) CONFIG);
@@ -134,7 +134,7 @@ static uint32_t __pi_thermeye_trigger_snapshot(thermeye_t *thermeye)
 static void __pi_thermeye_stop(thermeye_t *thermeye)
 {
     /* Switch off led. */
-    pi_gpio_pin_write(NULL, GPIO_USER_LED, 0);
+    //pi_gpio_pin_write(NULL, GPIO_USER_LED, 0);
 
     /* Reset NRST. GPIO_IR_NRST, pin M5 on sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_reset, 0);
@@ -142,7 +142,7 @@ static void __pi_thermeye_stop(thermeye_t *thermeye)
 
     /* Disable power to sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 0);
-    printf("Sensor Off\n");
+    //printf("Sensor Off\n");
 }
 
 static void __pi_thermeye_on(thermeye_t *thermeye)
@@ -167,7 +167,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     bsp_thermeye_open(conf);
 
     /* Switch on user led while config. */
-    pi_gpio_pin_write(NULL, GPIO_USER_LED, 1);
+    //pi_gpio_pin_write(NULL, GPIO_USER_LED, 1);
 
     thermeye_t *thermeye = (thermeye_t *) pi_l2_malloc(sizeof(thermeye_t));
     if (thermeye == NULL)
@@ -178,9 +178,9 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     memcpy(&(thermeye->conf), conf, sizeof(struct pi_thermeye_conf));
     device->data = (void *) thermeye;
 
-    printf("ThermEye: opening CPI(%d), I2C(%d), PWM(%d, %d), GPIO_Power %x, GPIO_Reset %x\n",
-           conf->cpi_id, conf->i2c_id, conf->pwm_id, conf->pwm_channel,
-           conf->gpio_power, conf->gpio_reset);
+    //printf("ThermEye: opening CPI(%d), I2C(%d), PWM(%d, %d), GPIO_Power %x, GPIO_Reset %x\n",
+    //       conf->cpi_id, conf->i2c_id, conf->pwm_id, conf->pwm_channel,
+    //       conf->gpio_power, conf->gpio_reset);
 
     /* PWM open. */
     #define PWM_FQCY_KHz    (700)
@@ -219,7 +219,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     }
 
 
-    printf("PWM: %d kHz I2C: %d kHz\n", PWM_FQCY_KHz, I2C0_FQCY_KHZ);
+    //printf("PWM: %d kHz I2C: %d kHz\n", PWM_FQCY_KHz, I2C0_FQCY_KHZ);
 
     /* CPI open. */
     struct pi_cpi_conf cpi_conf = {0};
@@ -257,7 +257,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     pi_gpio_pin_configure(&(thermeye->gpio_device), conf->gpio_power, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
 
     /* Init done, switch off led. */
-    pi_gpio_pin_write(NULL, GPIO_USER_LED, 0);
+    //pi_gpio_pin_write(NULL, GPIO_USER_LED, 0);
     return 0;
 }
 

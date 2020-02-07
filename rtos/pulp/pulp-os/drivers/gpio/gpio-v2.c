@@ -63,11 +63,19 @@ error:
 
 int pi_gpio_pin_configure(struct pi_device *device, pi_gpio_e pin, pi_gpio_flags_e flags)
 {
-  return pi_gpio_mask_configure(device, 1<<(pin & 0xff), flags);
+  if (pin & PI_GPIO_IS_GPIO_MASK)
+  {
+    pi_pad_e pad = (pin >> PI_GPIO_NUM_SHIFT);
+    /* Setup first pad for GPIO. */
+    pi_pad_set_function(pad, PI_PAD_FUNC1);
+  }
+  pin = (pin & PI_GPIO_NUM_MASK);
+  return pi_gpio_mask_configure(device, 1<<pin, flags);
 }
 
 int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   int irq = rt_irq_disable();
   hal_gpio_set_pin_value(pin, value);
   rt_irq_restore(irq);
@@ -76,17 +84,20 @@ int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
 
 int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   *value = (hal_gpio_get_value() >> pin) & 1;
   return 0;
 }
 
 int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin, pi_task_t *task, pi_gpio_notif_e flags)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   return 0;
 }
 
 int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   return 0;
 }
 
@@ -130,6 +141,7 @@ int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask)
 
 void pi_gpio_pin_notif_configure(struct pi_device *device, uint32_t pin, pi_gpio_notif_e flags)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   int irq = rt_irq_disable();
   if (flags == PI_GPIO_NOTIF_NONE)
   {
@@ -151,6 +163,7 @@ void pi_gpio_pin_notif_configure(struct pi_device *device, uint32_t pin, pi_gpio
 
 void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   int irq = rt_irq_disable();
   __rt_gpio_status &= ~(1<<pin);
   rt_irq_restore(irq);
@@ -158,5 +171,6 @@ void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin)
 
 int pi_gpio_pin_notif_get(struct pi_device *device, uint32_t pin)
 {
+  pin = (pin & PI_GPIO_NUM_MASK);
   return (__rt_gpio_status >> pin) & 1;
 }

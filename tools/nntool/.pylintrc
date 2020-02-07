@@ -324,6 +324,9 @@ good-names=i,
            j,
            k,
            l,
+           r,
+           i1,
+           i2,
            v,
            q,
            c,
@@ -467,10 +470,10 @@ indent-after-paren=4
 indent-string='    '
 
 # Maximum number of characters on a single line.
-max-line-length=100
+max-line-length=120
 
 # Maximum number of lines in a module.
-max-module-lines=1000
+max-module-lines=2000
 
 # List of optional constructs for which whitespace checking is disabled. `dict-
 # separator` is used to allow tabulation in dicts, etc.: {1  : 1,\n222: 2}.

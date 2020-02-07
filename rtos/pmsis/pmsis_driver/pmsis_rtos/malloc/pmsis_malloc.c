@@ -258,7 +258,6 @@ void pmsis_malloc_free(void *_chunk)
 
 void pmsis_malloc_display(void)
 {
-    pmsis_l2_malloc_dump();
     for (uint32_t i=0; i<5; i++)
     {
         struct mem_bloc *tmp = mem_table[i];

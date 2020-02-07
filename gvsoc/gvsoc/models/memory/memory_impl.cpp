@@ -28,7 +28,7 @@ class memory : public vp::component
 
 public:
 
-  memory(const char *config);
+  memory(js::config *config);
 
   int build();
   void start();
@@ -68,7 +68,7 @@ private:
   int64_t last_access_timestamp;
 };
 
-memory::memory(const char *config)
+memory::memory(js::config *config)
 : vp::component(config)
 {
 
@@ -267,7 +267,7 @@ void memory::start()
   this->last_access_timestamp = -1;
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new memory(config);
+  return new memory(config);
 }

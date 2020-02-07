@@ -22,9 +22,9 @@ LDFLAGS       = -T$(MBED_PATH)/mbed-os/targets/TARGET_GWT/TARGET_$(chip)/device/
 		-lstdc++
 
 ifeq ($(chip), GAP8)
-RISCV_FLAGS   = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__  -D__RISCV_ARCH_GAP__=1
+RISCV_FLAGS   ?= -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__$(chip)__  -D__RISCV_ARCH_GAP__=1
 else
-RISCV_FLAGS   = -march=rv32imcxgap9 -mPE=8 -mFC=1 -mfdiv -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
+RISCV_FLAGS   ?= -march=rv32imcxgap9 -mPE=8 -mFC=1 -mfdiv -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
 endif
 
 DEVICE_FLAGS  = -DDEVICE_SPI_ASYNCH=1 -DDEVICE_SPI=1 \
@@ -222,8 +222,8 @@ INC_PATH      += $(foreach d, $(INC), -I$d)  $(INC_DEFINE) $(foreach f, $(shell 
 
 all:: $(OBJECTS) $(BIN) disdump
 
-dir:
-	mkdir -p $(BUILDDIR)
+$(BUILDDIR):
+	mkdir -p $@
 
 # Rules for creating dependency files (.d).
 #------------------------------------------
@@ -256,10 +256,10 @@ $(BIN): $(OBJECTS)
 	@$(CC) $(RISCV_FLAGS) -MMD -MP $(WRAP_FLAGS) -o $@ $(OBJECTS) $(LIBS) $(LDFLAGS) $(LIBSFLAGS) $(INC_DEFINE)
 
 ifdef gvsoc
-run::
+run:
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 else ifdef rtl
-run:: dir
+run: | $(BUILDDIR)
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
@@ -267,7 +267,7 @@ run:: dir
 	@ln -sf $(VSIM_PATH)/../tb/models $(BUILDDIR)/models
 	cd $(BUILDDIR) && $(MBED_PATH)/tools/runner/run_rtl.sh $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 else
-run:: all
+run: all
 ifeq ($(chip), GAP8)
 	$(MBED_PATH)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
 else ifeq ($(chip), GAP9)
@@ -278,7 +278,7 @@ gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 endif
 
-gui:: dir
+gui:: | $(BUILDDIR)
 	@ln -sf $(VSIM_PATH)/work $(BUILDDIR)/work
 	@ln -sf $(VSIM_PATH)/modelsim.ini $(BUILDDIR)/modelsim.ini
 	@ln -sf $(VSIM_PATH)/tcl_files $(BUILDDIR)/tcl_files
@@ -302,4 +302,4 @@ clean::
 	@rm -rf ./BUILD transcript *.wav __pycache__
 	@rm -rf version.log
 
-.PHONY: gui debug disdump clean gdbserver run all dir
+.PHONY: gui debug disdump clean gdbserver run all

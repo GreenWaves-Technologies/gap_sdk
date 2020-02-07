@@ -892,7 +892,7 @@ void __pi_hyper_copy(int channel,
   int irq = rt_irq_disable();
 
   if (cs)
-    hyper_addr |= REG_MBR1;
+    hyper_addr += REG_MBR1;
 
   if (__rt_hyper_current_task != NULL)
   {
@@ -924,7 +924,7 @@ void __pi_hyper_copy_2d(int channel,
   int irq = rt_irq_disable();
 
   if (cs)
-    hyper_addr |= REG_MBR1;
+    hyper_addr += REG_MBR1;
 
   if (__rt_hyper_current_task != NULL)
   {

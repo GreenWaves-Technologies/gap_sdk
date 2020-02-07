@@ -147,10 +147,11 @@ class dpi_wrapper : public vp::component
 
 public:
 
-  dpi_wrapper(const char *config);
+  dpi_wrapper(js::config *config);
 
   int build();
   void start();
+  void stop();
   void create_task(int id);
   void create_periodic_handler(int id, int64_t period);
   int wait(int64_t t);
@@ -249,7 +250,7 @@ void dpi_periodic_handler::entry_stub(void *__this, vp::clock_event *event)
 }
 
 
-dpi_wrapper::dpi_wrapper(const char *config)
+dpi_wrapper::dpi_wrapper(js::config *config)
 : vp::component(config)
 {
   this->wakeup_evt = this->event_new(this, dpi_wrapper::wakeup_handler);
@@ -404,15 +405,13 @@ int dpi_wrapper::build()
   for(int i = 0; i < nb_comp; i++)
   {
     const char *comp_name = dpi_driver_get_comp_name(driver_handle, i);
-    void *comp_config = dpi_driver_get_comp_config(driver_handle, i);
-    const char *comp_type = dpi_config_get_str(dpi_config_get_config(comp_config, "type"));
+    js::config *comp_config = (js::config *)dpi_driver_get_comp_config(driver_handle, i);
+    std::string comp_type = comp_config->get_child_str("type");
     int nb_itf = dpi_driver_get_comp_nb_itf(comp_config, i);
 
-    this->trace.msg("Found TB driver component (index: %d, name: %s, type: %s, nb_itf: %d)\n", i, comp_name, comp_type, nb_itf);
+    this->trace.msg("Found TB driver component (index: %d, name: %s, type: %s, nb_itf: %d)\n", i, comp_name, comp_type.c_str(), nb_itf);
 
-
-
-    if (strcmp(comp_type, "dpi") == 0)
+    if (comp_type == "dpi")
     {
 //      dpi_models::periph_wrapper i_comp = new();
 //      int err;
@@ -598,6 +597,14 @@ void dpi_wrapper::start()
   }
 }
 
+void dpi_wrapper::stop()
+{
+  for (int i=0; i<models.size(); i++)
+  {
+    dpi_model_stop(models[i]);
+  }
+}
+
 extern "C" void dpi_ctrl_reset_edge(void *_handle, int reset)
 {
   ctrl_handle_t *handle = ctrl_handles[(int)(long)_handle];
@@ -780,7 +787,7 @@ extern "C" void dpi_create_periodic_handler(void *handle, int id, int64_t period
   dpi->create_periodic_handler(id, period);
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new dpi_wrapper(config);
+  return new dpi_wrapper(config);
 }

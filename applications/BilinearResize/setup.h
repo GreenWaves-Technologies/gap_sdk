@@ -19,21 +19,23 @@
 
 #if defined(CAMERA)
 #define HAVE_CAMERA
-//#define HAVE_DISPLAY
 #else
 #define HAVE_BRIDGE
 #endif  /* CAMERA */
+
+#define HAVE_DISPLAY
+//#define USE_BRIDGE
 
 #if defined(AUTOTILER)
 #define USE_AUTOTILER
 #endif  /* AUTOTILER */
 
-#if defined(HAVE_BRIDGE)
+#if defined(USE_BRIDGE)
 #include "ImgIO.h"
 #if defined(__PULP_OS__)
 #include "bridge_stubs.h"
 #endif  /* __PULP_OS__ */
-#endif  /* HAVE_BRIDGE */
+#endif  /* USE_BRIDGE */
 
 #define IMG_WIDTH  ( 320 )
 #define IMG_HEIGHT ( 240 )

@@ -1,5 +1,6 @@
 {
   "vp_class": "devices/spiflash/spiflash",
+  "vp_component": "devices.spiflash.spiflash_impl",
 
   "type": "spiflash",
   "size": "0x00800000",

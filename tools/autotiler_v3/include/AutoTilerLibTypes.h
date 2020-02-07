@@ -33,6 +33,7 @@ typedef enum {
 
 	/* Primitive operations */
 	KOP_SETBIAS,
+	KOP_SETBIAS_DP,
         KOP_CONV,
         KOP_CONV_DP,
         KOP_CONV_DW,
@@ -45,10 +46,10 @@ typedef enum {
 	KOP_DP_REDUCT_IO_MULBIAS_SCALAR,
         KOP_MAXPOOL,
         KOP_AVGPOOL,
-        KOP_GLOBAL_POOL_INIT,
         KOP_GLOBAL_MAXPOOL,
+        KOP_GLOBAL_MAXPOOL_REDUCT,
         KOP_GLOBAL_AVGPOOL,
-        KOP_GLOBAL_POOL_FINAL,
+        KOP_GLOBAL_AVGPOOL_REDUCT,
         KOP_RELU,
 	KOP_RELUN,
 	KOP_HSIGMOID,
@@ -834,6 +835,40 @@ typedef struct {
 	unsigned int Oper;
 } KernelInfos_T;
 
+/* Stacked tensor:
+ 	Can be used in the following context;
+		UserKernelGroup
+		Graph
+
+ 	Out = Stack(In1, ..., InN)
+
+	Out is expected to be a Kernel Group Kernel Argument or a non constant Graph symbol local or out
+	In1 .. InN are expected to be variable used in call sequence of a kernel group or node sequence in a graph
+		in both cases they are argument of a user kernel (or kernel group )and as such are related to
+		the user kernel arg (UKAi, i in 1..N) of this argument in the designated user kernel (kernel group).
+	       	UKA must exist, if not it is an error (for example being C with no related K arg)
+		Ini should not be defined neither as a C argument nor as a Kernel argument since it is meant to be
+		substituted by Out + Offset
+		UKAi as a defined size UKASi:
+	The effect of Stack is as follow:
+		In1 = Out
+		In2 = Out + UKAS1
+		...
+		InN = Out + Sum(UKAi, i in 1..(N-1))
+	Each occurence of Ini is replaced by Out + Offset, Offset being defined as above
+*/
+
+typedef struct A_StackedTensors_T StackedTensors_T;
+typedef struct A_StackedTensors_T {
+        NameT *OutTensor;		/* Name of the variable usd to designate a group of stacked variables */
+        CKernel_Arg_T *OutTensor_CKerArg;
+        Kernel_Arg_T *OutTensor_KerArg;
+        int TensorInCount;
+        NameT **InTensors;
+        int *InTensorsSize;
+        StackedTensors_T *Next;
+} StackedTensors_T;
+
 typedef struct A_Kernel_T {
 	NameT *Name;
 	unsigned int First;		/* For Kernel group only */
@@ -844,7 +879,6 @@ typedef struct A_Kernel_T {
 	InlineModeT  InlineMode;
 	KernelOptimizationT KerOpt;
 	Tile_Orientation_T Orientation;
-	// unsigned int Dimension;
 	unsigned int Iteration[KER_ITER_TILE_MAX];
 	unsigned int RemIteration[KER_ITER_TILE_MAX];
 	KernelIterationSpaceT *KernelIterSpace;
@@ -853,6 +887,7 @@ typedef struct A_Kernel_T {
 	Kernel_Arg_T **RefArg;
 	unsigned int CArgCount;
 	CKernel_Arg_T **CArg;
+	StackedTensors_T *StackedTensors;
 	unsigned int CCallsCount;
 	CKernelCall_T **CCalls;
 	unsigned int BaseIndex;
@@ -872,6 +907,7 @@ typedef struct {
 	int EnableIm2Col;	/* Enable mat mul based convolution when feasible */
 	int ReluN;		/* if != -1 Overides 6 as a default value for ReLUN */
 	int MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
+	int ReluNNoNorm;	/* Don't apply normalization to RELUN value */
 } CNN_GenControl_T;
 
 typedef struct {
@@ -897,20 +933,6 @@ typedef struct {
 	NameT *ParArgTypeName;
 	CNN_LayerOp_T *Oper;
 } KernelLib_T;
-
-#if 0
-typedef struct {
-	NameT *Name;
-	unsigned int Instance;
-	unsigned int First;
-	unsigned int Last;
-	unsigned int InGroup;
-	unsigned int CArgCount;
-	CKernel_Arg_T **CArg;
-	unsigned int CCallsCount;	/* Should be equal to Last-First+1 */
-	CKernelCall_T **CCalls;
-} KernelGroup_T;
-#endif
 
 typedef Kernel_T KernelGroup_T;
 
@@ -1042,6 +1064,7 @@ typedef struct {
 	unsigned int CArgsCount;		/* Number of C args */
 	CKernel_Arg_T **Locals;			/* CNN graph C local arguments, will have to be dynamically allocated */
 	unsigned int LocalsCount;		/* Number of locals */
+	StackedTensors_T *StackedTensors;	/* Stacked Tensors */
 	GraphNode_T *Nodes;			/* User Kernels or user kernel groups list */
 	GraphNode_T **OrderedNodes;		/* User Kernels or user kernel groups array after toplogical sorting */
 	unsigned int NodesCount;		/* Number of nodes */

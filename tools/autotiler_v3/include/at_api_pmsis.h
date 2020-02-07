@@ -187,7 +187,7 @@ typedef void *AT_HYPERFLASH_FS_INT_ADDR_TYPE;
 typedef pi_task_t AT_HYPERFLASH_FS_FC_EVENT;
 typedef pi_cl_fs_req_t AT_HYPERFLASH_FS_CL_EVENT;
 
-static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, struct pi_fs_conf *conf, const char *filename, int *err)
+static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, int is_write, struct pi_fs_conf *conf, const char *filename, int *err)
 {
   struct pi_hyperflash_conf hyperflash_conf;
   pi_hyperflash_conf_init(&hyperflash_conf);
@@ -198,6 +198,8 @@ static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, struct pi_f
     return;
   }
   conf->flash = &file->hyperflash;
+  if (is_write)
+    conf->type = PI_FS_HOST;
   pi_open_from_conf(&file->fs, conf);
   if (pi_fs_mount(&file->fs))
   {
@@ -205,7 +207,7 @@ static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, struct pi_f
     *err = -1;
     return;
   }
-  file->file = pi_fs_open(&file->fs, filename, 0);
+  file->file = pi_fs_open(&file->fs, filename, is_write ? PI_FS_FLAGS_WRITE : 0);
   if (file->file == NULL)
   {
     pi_fs_unmount(&file->fs);
@@ -214,6 +216,9 @@ static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, struct pi_f
     return;
   }
   *err = 0;
+
+  if (is_write)
+    file->file->size = 4*1024*1024;
 }
 
 static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
@@ -230,7 +235,13 @@ static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
   pi_fs_conf_init(dev)
 
 #define AT_HYPERFLASH_FS_OPEN(file,conf,filename,err) \
-  __at_hyperflash_fs_open(file, conf, filename, err)
+  __at_hyperflash_fs_open(file, 0, conf, filename, err)
+
+#define AT_HYPERFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  __at_hyperflash_fs_open(file, 1, conf, filename, err)
+
+#define AT_HYPERFLASH_FS_OPEN_SET_SIZE(file, size) \
+  file->file->size = size
 
 #define AT_HYPERFLASH_FS_CLOSE(file) \
   __at_hyperflash_fs_close(file)

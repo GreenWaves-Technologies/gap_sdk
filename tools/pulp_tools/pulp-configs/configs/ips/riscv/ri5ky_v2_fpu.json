@@ -14,6 +14,7 @@
   "defines"       : [ "ARCHI_CORE_HAS_PULPV2",  "CORE_PULP_BUILTINS" ],
   "debug_binaries": [],
   "vp_class": "cpu/iss/iss",
+  "vp_component": "cpu/iss/iss_riscy",
   "bootaddr_offset": "0x80",
   "power_models": {
     "includes": [

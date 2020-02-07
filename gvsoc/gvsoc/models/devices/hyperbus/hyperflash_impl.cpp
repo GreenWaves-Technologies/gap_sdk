@@ -31,7 +31,6 @@
 #include "vp/itf/hyper.hpp"
 #include "vp/itf/wire.hpp"
 #include "archi/utils.h"
-#include "archi/udma/hyper/udma_hyper_v1.h"
 
 #define REGS_AREA_SIZE 1024
 
@@ -72,7 +71,7 @@ class Hyperflash : public vp::component
 public:
   int build();
 
-  Hyperflash(const char *config);
+  Hyperflash(js::config *config);
 
   void handle_access(int reg_access, int address, int read, uint8_t data);
   int preload_file(char *path);
@@ -182,12 +181,14 @@ void Hyperflash::handle_access(int reg_access, int address, int read, uint8_t da
       {
         this->trace.msg(vp::trace::LEVEL_TRACE, "Writing to flash (address: 0x%x, value: 0x%x)\n", address, data);
 
-        if (this->data[address] != 0xff)
+        uint8_t new_value = this->data[address] & data;
+
+        if (new_value != data)
         {
-          this->warning.force_warning("Trying to program flash without erasing sector (addr: 0x%x)\n", address);
+          this->warning.force_warning("Failed to program specified location (addr: 0x%x, flash_val: 0x%2.2x, program_val: 0x%2.2x)\n", address, this->data[address], data);
         }
 
-        this->data[address] &= data;
+        this->data[address] &= new_value;
       }
       else
       {
@@ -333,7 +334,7 @@ int Hyperflash::setup_writeback_file(const char *path)
 
 
 
-Hyperflash::Hyperflash(const char *config)
+Hyperflash::Hyperflash(js::config *config)
 : vp::component(config)
 {
 }
@@ -355,7 +356,6 @@ void Hyperflash::sync_cycle(void *__this, int data)
       _this->hyper_state = HYPERBUS_STATE_DATA;
       _this->current_address = (_this->ca.low_addr | (_this->ca.high_addr << 3)) & ~1;
 
-      _this->current_address = ARCHI_REG_FIELD_GET(_this->current_address, 0, REG_MBR_WIDTH);
       _this->reg_access = _this->ca.address_space == 1;
 
       _this->trace.msg(vp::trace::LEVEL_TRACE, "Received command header (reg_access: %d, addr: 0x%x, read: %d)\n", _this->ca.address_space, _this->current_address, _this->ca.read);
@@ -409,7 +409,7 @@ int Hyperflash::build()
   this->size = conf->get("size")->get_int();
 
   this->data = new uint8_t[this->size];
-  memset(this->data, 0x57, this->size);
+  memset(this->data, 0xff, this->size);
   this->data_is_mmapped = false;
 
   this->reg_data = new uint8_t[REGS_AREA_SIZE];
@@ -439,7 +439,7 @@ int Hyperflash::build()
 
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new Hyperflash(config);
+  return new Hyperflash(config);
 }

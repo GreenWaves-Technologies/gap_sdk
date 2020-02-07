@@ -144,6 +144,11 @@ dpi_model_start(
     void* model);
 
 DPI_LINK_DECL DPI_DLLESPEC
+int
+dpi_model_stop(
+    void* model);
+
+DPI_LINK_DECL DPI_DLLESPEC
 void*
 dpi_qspim_bind(
     void* dpi_model,

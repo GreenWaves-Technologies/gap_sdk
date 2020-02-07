@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 
@@ -39,6 +44,7 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
     else:
         pad_w = pad_h = 0
 
+    weights = weights.copy()
     weights = weights.transpose(params.filter.transpose_to_order(['out_c', 'h', 'w', 'in_c']))
 
     filt_w = params.filter.w
@@ -47,6 +53,11 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
     in_w = in_dims.w
     in_h = in_dims.h
     out_c = params.filter.out_c
+
+    in_c_per_group = in_dims.c // params.groups
+    out_c_per_group = out_c // params.groups
+    in_c_off = 0
+    out_c_cnt = 0
 
     out_w = ((in_w - filt_w + pad_w))+1
     out_h = ((in_h - filt_h + pad_h))+1
@@ -67,7 +78,9 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
                                    cur_w:
                                    const_w + cur_w:
                                    1,
-                                   ...] * weights[out_c_i, cur_h, cur_w]
+                                   in_c_off:
+                                   in_c_off + in_c_per_group:
+                                   1] * weights[out_c_i, cur_h, cur_w]
                 # add depthwise
                 slabhw = slabhw.sum(axis=-1)
                 # add to the previous filter elements
@@ -76,6 +89,10 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
                 if details is not None:
                     details['min_acc'] = min(np.min(result[out_c_i]), details['min_acc'])
                     details['max_acc'] = max(np.max(result[out_c_i]), details['max_acc'])
+        out_c_cnt += 1
+        if out_c_cnt >= out_c_per_group:
+            out_c_cnt = 0
+            in_c_off += in_c_per_group
 
     if params.stride.size() > 1:
         result = result[:, ::params.stride.h, ::params.stride.w, ...]
@@ -116,7 +133,7 @@ def faster_conv_quantized(params,
         pad_w = pad_h = 0
 
     in_tensor = in_tensor.astype(qrec.calc_q.dtype)
-    
+
     weights = weights.transpose(params.filter.transpose_to_order(['out_c', 'h', 'w', 'in_c']))
 
     filt_w = params.filter.w
@@ -126,6 +143,11 @@ def faster_conv_quantized(params,
     in_h = in_dims.h
     out_c = params.filter.out_c
 
+    in_c_per_group = in_dims.c // params.groups
+    out_c_per_group = out_c // params.groups
+    in_c_off = 0
+    out_c_cnt = 0
+
     out_w = ((in_w - filt_w + pad_w))+1
     out_h = ((in_h - filt_h + pad_h))+1
     if biases is None:
@@ -133,7 +155,8 @@ def faster_conv_quantized(params,
     else:
         if qrec.acc_q != qrec.biases_q:
             biases = qrec.acc_q.expand_from(biases, qrec.biases_q)
-        result = np.ones((out_c, out_h, out_w), dtype=qrec.acc_q.dtype) * biases.reshape(out_c, 1, 1)
+        result = np.ones((out_c, out_h, out_w), dtype=qrec.acc_q.dtype) *\
+            biases.reshape(out_c, 1, 1)
 
     if detect_overflow:
         result64 = result.astype(np.int64)
@@ -151,7 +174,9 @@ def faster_conv_quantized(params,
                                          cur_w:
                                          const_w + cur_w:
                                          1,
-                                         ...].astype(np.int64) * weights[out_c_i, cur_h, cur_w]
+                                         in_c_off:
+                                         in_c_off + in_c_per_group:
+                                         1].astype(np.int64) * weights[out_c_i, cur_h, cur_w]
                     if qrec.calc_q != qrec.acc_q:
                         # reduce the accumulator
                         slabhwpost = qrec.acc_q.round_normalize_clip(slabhw64,
@@ -171,7 +196,9 @@ def faster_conv_quantized(params,
                                    cur_w:
                                    const_w + cur_w:
                                    1,
-                                   ...] * weights[out_c_i, cur_h, cur_w]
+                                   in_c_off:
+                                   in_c_off + in_c_per_group:
+                                   1] * weights[out_c_i, cur_h, cur_w]
 
                 if detect_overflow:
                     if np.any(slabhw < slabhw64):
@@ -199,6 +226,11 @@ def faster_conv_quantized(params,
                     details['min_acc'] = min(np.min(result[out_c_i]), details['min_acc'])
                     details['max_acc'] = max(np.max(result[out_c_i]), details['max_acc'])
 
+        out_c_cnt += 1
+        if out_c_cnt >= out_c_per_group:
+            out_c_cnt = 0
+            in_c_off += in_c_per_group
+
     if params.stride.size() > 1:
         result = result[:, ::params.stride.h, ::params.stride.w, ...]
 
@@ -218,7 +250,7 @@ def conv2d(params,
            details=None,
            allow_faster=True):
 
-    if allow_faster and not params.is_grouped_conv() and params.dilation.size() == 1:
+    if allow_faster and params.dilation.size() == 1:
         if qrec:
             return faster_conv_quantized(params,
                                          qrec,

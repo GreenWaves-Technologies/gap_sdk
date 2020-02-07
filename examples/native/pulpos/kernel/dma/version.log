@@ -1,0 +1,230 @@
+
+./gap_sdk
+[commit]
+8ac6f6b7eb012817da1a81ffadd2e7805abb3cda
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+  (commit or discard the untracked or modified content in submodules)
+
+	modified:   examples (modified content, untracked content)
+	modified:   pulp-os (untracked content)
+	modified:   tests/pmsis_tests (untracked content)
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	buildasync_cs_auto/
+	buildasync_cs_keep/
+	buildasync_read/
+	buildasync_read_2d/
+	buildasync_write/
+	buildasync_write_2d/
+	buildsync_cs_auto/
+	buildsync_cs_keep/
+	buildsync_read/
+	buildsync_read_2d/
+	buildsync_write/
+	buildsync_write_2d/
+	plptest/
+	pmsis_bsp_tests/
+	pulpos/
+	tools/autotiler.old/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+
+./gap_sdk/mbed-os
+[commit]
+f7bac6ba796245ea27f102b1f539fc91601b90c0
+
+HEAD detached at f7bac6ba
+nothing to commit, working tree clean
+
+
+./gap_sdk/freeRTOS
+[commit]
+7266d7185702bb92ddc55e03135e15fce8faf10a
+
+HEAD detached at 7266d71
+nothing to commit, working tree clean
+
+
+./gap_sdk/pulp-os
+[commit]
+e571854455acb699c0c7aa8704bbe87312500e84
+
+HEAD detached from 8a5dfac
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	include/hal/apb_soc/apb_soc_v1.h
+	include/hal/apb_soc/apb_soc_v2.h
+	include/hal/apb_soc/apb_soc_v4.h
+	include/hal/chips/arnold/
+	include/hal/chips/bigpulp/
+	include/hal/chips/devchip/
+	include/hal/chips/fulmine/
+	include/hal/chips/gap_rev1/
+	include/hal/chips/honey/
+	include/hal/chips/multino/
+	include/hal/chips/neuraghe/
+	include/hal/chips/oprecompkw/
+	include/hal/chips/pulp/
+	include/hal/chips/pulp_v1/
+	include/hal/chips/pulpissimo/
+	include/hal/chips/pulpissimo_v1/
+	include/hal/chips/quentin/
+	include/hal/chips/usoc_v1/
+	include/hal/chips/vega/pulp.h~
+	include/hal/chips/vivosoc2/
+	include/hal/chips/vivosoc2_1/
+	include/hal/chips/vivosoc3/
+	include/hal/chips/vivosoc3_1/
+	include/hal/chips/vivosoc3_5/
+	include/hal/chips/wolfe/
+	include/hal/dma/mchan_v4.h
+	include/hal/dma/mchan_v5.h
+	include/hal/eu/eu_v1.h
+	include/hal/eu/eu_v1_ids.h
+	include/hal/gpio/gpio_v0.h
+	include/hal/hwme/
+	include/hal/icache/icache_ctrl_v1.h
+	include/hal/maestro/pmu_v2.h
+	include/hal/mailbox/
+	include/hal/or1k/
+	include/hal/periph/
+	include/hal/rab/
+	include/hal/riscv/builtins_v2.h
+	include/hal/riscv/builtins_v2_emu.h
+	include/hal/riscv/riscv_v3.h
+	include/hal/rtc/
+	include/hal/soc_eu/soc_eu_v3.h
+	include/hal/timer/timer_v1.h
+	include/hal/tryx/
+	include/hal/udma/i2c/udma_i2c_v1.h
+	include/hal/udma/spim/udma_spim_v1.h
+	include/hal/udma/udma_v1.h
+	include/hal/xne/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+
+./gap_sdk/examples
+[commit]
+bf66ede004f707d15208239d1381d49259be62eb
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+  (commit or discard the untracked or modified content in submodules)
+
+	modified:   pmsis-examples (untracked content)
+	modified:   pulp-examples/kernel/dma/Makefile
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	pulp-examples/kernel/dma/build/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+
+./gap_sdk/examples/mbed-examples
+[commit]
+d610e27e45c00be0811b281ff9cbecefb508cad1
+
+HEAD detached at d610e27
+nothing to commit, working tree clean
+
+
+./gap_sdk/examples/freeRTOS-examples
+[commit]
+90ea882405e2bdd94c4faa419ca80a567852ef5a
+
+HEAD detached at 90ea882
+nothing to commit, working tree clean
+
+
+./gap_sdk/examples/pulp-examples
+[commit]
+bf66ede004f707d15208239d1381d49259be62eb
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+  (commit or discard the untracked or modified content in submodules)
+
+	modified:   ../pmsis-examples (untracked content)
+	modified:   kernel/dma/Makefile
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	kernel/dma/build/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+
+./gap_sdk/tf2gap8
+[commit]
+2f2d648065b80446ebaec5d85212bf2e08acbdce
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean
+
+
+./gap_sdk/tools/pulp_tools
+[commit]
+e415e9e623f23f8cf299b23a4757392489079e52
+
+HEAD detached from 58180d1
+nothing to commit, working tree clean
+
+
+./gap_sdk/tools/pulp_tools/json-tools
+[commit]
+2c3d54ae78d552bab0b991644e726a698e2b0d95
+
+HEAD detached at 2c3d54a
+nothing to commit, working tree clean
+
+
+./gap_sdk/tools/pulp_tools/pulp-configs
+[commit]
+73b0a715798410e6e833bb24ef9d58852ba2994a
+
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean
+
+
+./gap_sdk/tools/pulp_tools/pulp-debug-bridge
+[commit]
+4290a2bdbb4f81ae3c9dfe0cd851d5264ea95147
+
+HEAD detached at 4290a2b
+nothing to commit, working tree clean
+
+
+./gap_sdk/tools/pulp_tools/gap_flasher
+[commit]
+b40fbf0bc4fc81c3538033e0d15bdfcef5e28a58
+
+HEAD detached at b40fbf0
+nothing to commit, working tree clean
+
+

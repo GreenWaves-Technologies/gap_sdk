@@ -27,6 +27,16 @@
 
 namespace vp {
 
+  inline trace_engine *component_trace::get_trace_manager()
+  {
+    if (this->trace_manager == NULL)
+    {
+      this->trace_manager = (trace_engine *)this->top.get_service("trace");
+    }
+
+    return this->trace_manager;
+  }
+
   inline void vp::trace::event(uint8_t *value)
   {
   #ifdef VP_TRACE_ACTIVE

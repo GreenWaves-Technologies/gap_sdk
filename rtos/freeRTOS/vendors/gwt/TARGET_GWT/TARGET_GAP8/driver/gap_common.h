@@ -33,7 +33,6 @@
 
 #include "gap_util.h"
 #include "gap_io.h"
-#include "gap_rtc.h"
 
 #include "gap_debug.h"
 #include "gap_bridge.h"

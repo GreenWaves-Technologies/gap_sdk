@@ -26,8 +26,16 @@
 #endif
 
 #if defined(CONFIG_GAPOC_B)
+#if defined(CHIP_VERSION)
+#if (CHIP_VERSION == 1)
 #include <bsp/gapoc_b.h>
-#endif
+#elif (CHIP_VERSION == 2)
+#include <bsp/gapoc_b_v2.h>
+#else
+#include <bsp/gapoc_b_v2.h>
+#endif  /* CHIP_VERSION */
+#endif  /* CHIP_VERSION */
+#endif  /* CONFIG_GAPOC_B */
 
 #if defined(CONFIG_AI_DECK)
 #include <bsp/ai_deck.h>
@@ -43,6 +51,10 @@
 
 #if defined(CONFIG_GAP9)
 #include <bsp/gap9.h>
+#endif
+
+#if defined(CONFIG_GAP9_V2)
+#include <bsp/gap9_v2.h>
 #endif
 
 #if defined(CONFIG_HIMAX)
@@ -70,10 +82,22 @@ void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf);
 int bsp_hyperflash_open(struct pi_hyperflash_conf *conf);
 #endif
 
+#if defined(CONFIG_SPIFLASH)
+#include "bsp/flash/spiflash.h"
+void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf);
+int bsp_spiflash_open(struct pi_spiflash_conf *conf);
+#endif
+
 #if defined(CONFIG_HYPERRAM)
 #include "bsp/ram/hyperram.h"
 void bsp_hyperram_conf_init(struct pi_hyperram_conf *conf);
 int bsp_hyperram_open(struct pi_hyperram_conf *conf);
+#endif
+
+#if defined(CONFIG_SPIRAM)
+#include "bsp/ram/spiram.h"
+void bsp_spiram_conf_init(struct pi_spiram_conf *conf);
+int bsp_spiram_open(struct pi_spiram_conf *conf);
 #endif
 
 #if defined(CONFIG_NINA_W10)
@@ -83,7 +107,9 @@ int bsp_nina_w10_open(struct pi_nina_w10_conf *conf);
 #endif
 
 #if defined(CONFIG_NINA_B112)
-#include "bsp/ble/nina_b112/nina_b112.h"
+#include "bsp/ble/nina_b112/nina_b112_old.h"
+int bsp_nina_b112_open_old();
+#include "bsp/ble/nina_b112.h"
 void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf);
 int bsp_nina_b112_open(struct pi_nina_b112_conf *conf);
 #endif
@@ -95,6 +121,12 @@ int bsp_thermeye_open(struct pi_thermeye_conf *conf);
 #endif  /* CONFIG_THERMEYE */
 
 void bsp_init();
+
+void pi_bsp_init();
+
+#define PI_BSP_PROFILE_DEFAULT 0
+
+void pi_bsp_init_profile(int profile);
 
 
 #endif

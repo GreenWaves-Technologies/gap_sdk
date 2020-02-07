@@ -32,7 +32,7 @@ namespace vp {
   class power_engine : public component
   {
   public:
-    power_engine(const char *config);
+    power_engine(js::config *config);
 
     virtual void start_capture() {}
 

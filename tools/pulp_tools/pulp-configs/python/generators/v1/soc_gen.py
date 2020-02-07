@@ -79,6 +79,7 @@ def get_config(tp):
   soc = Component(properties=OrderedDict([
       ('nb_cluster', nb_cluster),
       ('vp_class', "pulp/soc"),
+      ('vp_component', 'utils.composite_impl'),
       ('peripherals_base',  tp.get_child_str("soc/peripherals/base")),
       ('soc_events_ids', soc_events_ids),
       ('fc_events', fc_events_dict)
@@ -111,7 +112,8 @@ def get_config(tp):
   soc.soc_ico = Component(properties=OrderedDict([
       ('nb_l2_shared_banks', tp.get_child_int("soc/l2/shared/nb_banks")),
       ('gv_class', "pulp.Soc_Ico_v2.Soc_Ico"),
-      ('vp_class', None)
+      ('vp_class', None),
+      ('vp_component', "")
   ]))
 
   if has_fc_ico:
@@ -384,14 +386,16 @@ def get_config(tp):
         ('size', tp.get_child_int("soc/l2/priv0/size")),
         ('map_base', tp.get_child_str("soc/l2/priv0/base")),
         ('map_size', tp.get_child_str("soc/l2/priv0/size")),
-        ('vp_class', "memory/memory")
+        ('vp_class', "memory/memory"),
+        ('vp_component', 'memory.memory_impl'),
     ]))
 
     soc.l2_priv1 = Component(properties=OrderedDict([
         ('size', tp.get_child_int("soc/l2/priv1/size")),
         ('map_base', tp.get_child_str("soc/l2/priv1/base")),
         ('map_size', tp.get_child_str("soc/l2/priv1/size")),
-        ('vp_class', "memory/memory")
+        ('vp_class', "memory/memory"),
+        ('vp_component', 'memory.memory_impl'),
     ]))
 
     soc.l2_shared = Component(properties=OrderedDict([
@@ -408,7 +412,8 @@ def get_config(tp):
         'l2_shared_%d' % i,
         Component(properties=OrderedDict([
           ('size', int(l2_shared_size / l2_shared_nb_banks)),
-          ('vp_class', "memory/memory")
+          ('vp_class', "memory/memory"),
+          ('vp_component', 'memory.memory_impl'),
         ]))
       )
 
@@ -418,7 +423,8 @@ def get_config(tp):
         ('size', tp.get_child_int("soc/l2/size")),
         ('map_base', tp.get_child_str("soc/l2/base")),
         ('map_size', tp.get_child_str("soc/l2/size")),
-        ('vp_class', "memory/memory")
+        ('vp_class', "memory/memory"),
+        ('vp_component', 'memory.memory_impl'),
     ]))
 
   if has_rom:
@@ -427,7 +433,8 @@ def get_config(tp):
       ('size', tp.get_child_int("soc/rom/size")),
       ('map_base', tp.get_child_str("soc/rom/base")),
       ('map_size', tp.get_child_str("soc/rom/size")),
-      ('vp_class', "memory/memory")
+      ('vp_class', "memory/memory"),
+      ('vp_component', 'memory.memory_impl'),
     ])
     rom_config = tp.get('soc/rom/config')
     if rom_config is not None:
@@ -484,6 +491,7 @@ def get_config(tp):
     soc.fll_ctrl = Component(properties=OrderedDict([
         ('version', tp.get_child_int("soc/peripherals/fll_ctrl/version")),
         ('vp_class', "pulp/fll/fll_ctrl"),
+        ('vp_component', "pulp.fll.fll_ctrl_impl"),
         ('gv_class', "pulp.Fll_ctrl.fll_ctrl")
     ]))
 
@@ -505,7 +513,8 @@ def get_config(tp):
   if has_fc_tcdm:
     soc.fc_tcdm = Component(properties=OrderedDict([
         ('size', tp.get_child_int("soc/fc_ico/peripherals/fc_tcdm/size")),
-        ('vp_class', "memory/memory")
+        ('vp_class', "memory/memory"),
+        ('vp_component', 'memory.memory_impl'),
     ]))
 
 
@@ -682,7 +691,8 @@ def get_config(tp):
           ('size', tp.get_child_int("**/debug_rom/size")),
           ('map_base', tp.get_child_str("**/debug_rom/base")),
           ('map_size', tp.get_child_str("**/debug_rom/size")),
-          ('vp_class', "memory/memory")
+          ('vp_class', "memory/memory"),
+          ('vp_component', 'memory.memory_impl'),
         ])
         rom_config = tp.get('**/debug_rom/config')
         if rom_config is not None:
@@ -728,6 +738,7 @@ def get_config(tp):
           if "soc" not in fll_config.get('targets').get_dict():
             soc.periph_clock = Component(properties=OrderedDict([
               ('vp_class', "vp/clock_domain"),
+              ('vp_component', "vp.clock_domain_impl"),
               ('frequency', 50000000)
             ]))
             soc.get(fll_name).clock_out = soc.periph_clock.clock_in
@@ -993,7 +1004,7 @@ def get_config(tp):
 
       soc.job_fifo.irq = soc.job_fifo_irq
 
-  if chip == 'wolfe' or chip == 'vega':
+  if chip == 'wolfe' or chip == 'vega' or chip == 'gap9' or chip == 'gap9_v2':
     soc.bootsel = soc.apb_soc_ctrl.bootsel
 
 

@@ -31,7 +31,7 @@ class soc_eu : public vp::component
 
 public:
 
-  soc_eu(const char *config);
+  soc_eu(js::config *config);
 
   int build();
   void start();
@@ -64,7 +64,7 @@ private:
   unsigned int pr_event_mask[2];
 };
 
-soc_eu::soc_eu(const char *config)
+soc_eu::soc_eu(js::config *config)
 : vp::component(config)
 {
 
@@ -235,7 +235,7 @@ void soc_eu::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new soc_eu(config);
+  return new soc_eu(config);
 }

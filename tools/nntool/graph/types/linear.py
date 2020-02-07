@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 
@@ -13,14 +18,10 @@ LOG = logging.getLogger("nntool." + __name__)
 
 class FcParameters(FilterParameters, SingleInputAndOutput):
     op_name = "linear"
-    def __init__(self, name, filt, has_bias=False, sz_order=None,
-                 in_dims_hint=None, out_dims_hint=None):
+    def __init__(self, name, **kwargs):
 
-        self.in_dims_hint = in_dims_hint
-        self.out_dims_hint = out_dims_hint
-
-        super(FcParameters, self).__init__(name, filt=filt, has_bias=has_bias)
-        self.sz_order = sz_order
+        super(FcParameters, self).__init__(name,
+                                           **kwargs)
         LOG.debug("created LINEAR %s", str(self))
 
     def get_parameter_size(self):
@@ -46,8 +47,11 @@ class FcParameters(FilterParameters, SingleInputAndOutput):
     def can_equalize(self):
         return True
 
-    def clone(self, groupn=None):
-        return FcParameters(self.filter.clone(), self.has_bias)
+    def clone(self, name, groupn=None):
+        return FcParameters(name, filt=self.filter.clone(), has_bias=self.has_bias)
+
+    def compute_load(self):
+        return self.in_dims[0].size() * self.filter.size()
 
     def __str__(self):
-        return "F {}".format(self.filter)
+        return "F {} {}".format(self.filter, self.at_options or "")

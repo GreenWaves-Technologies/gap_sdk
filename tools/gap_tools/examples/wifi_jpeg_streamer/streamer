@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import pmsis_tools as pt
+
+
+
+streamer = pt.Frame_streamer(transport=pt.Transport_socket(port=3333), show=True)
+
+camera = streamer.get_stream('filtered')
+
+for frame in camera.get_frames():
+
+	result = 0.0
+	for i in range(camera.width):
+		for j in range(camera.height):
+			for k in range(camera.depth):
+				result += frame[i][j][k]
+
+	print ('Got frame, average pixel: %f' % (result / (camera.height*camera.width*camera.depth)))

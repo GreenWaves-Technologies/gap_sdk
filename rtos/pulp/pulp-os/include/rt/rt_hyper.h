@@ -384,7 +384,7 @@ static inline void rt_hyperflash_copy(rt_hyperflash_t *dev, int channel,
    void *addr, void *_hyper_addr, int size, rt_event_t *event)
 {
 
-  uint32_t hyper_addr = REG_MBR1 | (unsigned int)_hyper_addr;
+  uint32_t hyper_addr = (unsigned int)_hyper_addr;
 
   if (channel & 1)
     if (event)

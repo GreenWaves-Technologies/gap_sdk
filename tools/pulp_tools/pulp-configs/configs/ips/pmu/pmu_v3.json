@@ -3,6 +3,7 @@
   "nb_domains": 2,
 
   "vp_class": "pulp/pmu/pmu_v3",
+  "vp_component": "pulp.pmu.pmu_v3_impl",
 
   "regmap": {
 

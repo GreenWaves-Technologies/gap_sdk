@@ -125,3 +125,36 @@ __rt_spim_handle_rx_copy:
   sw     x8, SOC_FC_MASK_LSB(x12)
 
   j      __pi_spim_handle_copy
+
+
+
+  .global __pos_spim_receive_handle_temp_buffer
+__pos_spim_receive_handle_temp_buffer:
+  la     x9, udma_event_handler_end
+  la     x12, pos_spim_receive_handle_temp_buffer
+
+  j      __rt_call_external_c_function
+
+
+  .global __pos_spim_receive_enqueue_transfer
+__pos_spim_receive_enqueue_transfer:
+  la     x9, udma_event_handler_end
+  la     x12, pos_spim_receive_enqueue_transfer
+
+  j      __rt_call_external_c_function
+
+
+  .global __pos_spim_send_enqueue_transfer
+__pos_spim_send_enqueue_transfer:
+  la     x9, udma_event_handler_end
+  la     x12, pos_spim_send_enqueue_transfer
+
+  j      __rt_call_external_c_function
+
+
+  .global __pos_spim_handle_copy_eot
+__pos_spim_handle_copy_eot:
+  la     x9, udma_event_handler_end
+  la     x12, pos_spim_handle_copy_eot
+
+  j      __rt_call_external_c_function

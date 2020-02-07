@@ -20,7 +20,7 @@ PULP_LIBS += pibsp_ai_deck
 endif
 else
 ifeq '$(pulp_chip_family)' 'gap'
-PULP_LIBS += pibsp_gapoc_a gapoc_b pibsp_gapuino pibsp_ai_deck
+PULP_LIBS += pibsp_gapoc_a pibsp_apoc_b pibsp_gapuino pibsp_ai_deck pibsp_gapuino_revc
 endif
 endif
 

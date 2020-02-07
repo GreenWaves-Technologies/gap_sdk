@@ -88,7 +88,7 @@ class router : public vp::component
 
 public:
 
-  router(const char *config);
+  router(js::config *config);
 
   int build();
 
@@ -119,7 +119,7 @@ private:
   int latency = 0;
 };
 
-router::router(const char *config)
+router::router(js::config *config)
 : vp::component(config)
 {
 
@@ -385,9 +385,9 @@ int router::build()
   return 0;
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new router(config);
+  return new router(config);
 }
 
 

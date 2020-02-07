@@ -44,7 +44,7 @@ class soc_eu : public vp::component
 
 public:
 
-  soc_eu(const char *config);
+  soc_eu(js::config *config);
 
   int build();
   void start();
@@ -75,7 +75,7 @@ private:
   vector<soc_eu_target *> targets;
 };
 
-soc_eu::soc_eu(const char *config)
+soc_eu::soc_eu(js::config *config)
 : vp::component(config)
 {
 
@@ -234,7 +234,7 @@ soc_eu_target::soc_eu_target(soc_eu *top, std::string name, std::string itf_name
   top->new_master_port(itf_name, &this->event_itf);
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new soc_eu(config);
+  return new soc_eu(config);
 }

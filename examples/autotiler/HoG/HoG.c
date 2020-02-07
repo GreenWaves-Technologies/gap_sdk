@@ -136,7 +136,6 @@ int main(int argc, char *argv[])
 	for(uint32_t i =0 ;i<W*H;i++)
 		ImageIn[i]=ImageInTest[i];
 	#else
-	rt_bridge_connect(1, NULL);
 	
 	printf("Loading image from bridge...\n");
 	unsigned int Wi, Hi;
@@ -181,10 +180,6 @@ int main(int argc, char *argv[])
 
 	// Close the cluster
 	rt_cluster_mount(UNMOUNT, CID, 0, NULL);
-
-	#if !defined(NO_BRIDGE)
-	rt_bridge_disconnect(NULL);
-	#endif
 
 	if(hash == -933402687)
     	printf("Test success\n");

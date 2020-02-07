@@ -343,7 +343,7 @@ void jpeg_encoder_process_fc(jpeg_encoder_t *enc, pi_buffer_t *image, pi_buffer_
         if (enc->current_du_x + j < width && enc->current_du_y + i < height)
           du[i*8 + j] = data[(enc->current_du_y + i)*width + enc->current_du_x + j];
         else
-          du[i*8 + j] = 0x01;
+          du[i*8 + j] = 0x00;
 
 #if 1
         int val;

@@ -361,7 +361,7 @@ void test_cam(void)
         pi_display_write(&display, &RenderBuffer, LCD_OFF_X, LCD_OFF_Y, RESIZE_WIDTH, RESIZE_HEIGHT);
         #endif  /* HAVE_DISPLAY */
 
-        #if defined(HAVE_BRIDGE)
+        #if defined(USE_BRIDGE)
         /* Original image. */
         sprintf(string_buffer, "../../../pics/num_%d.pgm", index);
         WriteImageToFile(string_buffer, CAMERA_WIDTH, CAMERA_HEIGHT, image_in);
@@ -369,7 +369,7 @@ void test_cam(void)
         sprintf(string_buffer, "../../../pics/num_%d_resize.pgm", index);
         WriteImageToFile(string_buffer, RESIZE_WIDTH, RESIZE_HEIGHT, image_out);
         index++;
-        #endif  /* HAVE_BRIDGE */
+        #endif  /* USE_BRIDGE */
     }
 
     pmsis_exit(0);
@@ -377,6 +377,6 @@ void test_cam(void)
 
 int main()
 {
-    printf("\n\n\t *** PMSIS Resize Test ***\n\n");
+    printf("\n\n\t *** PMSIS Mnist Test ***\n\n");
     return pmsis_kickoff((void *) test_cam);
 }

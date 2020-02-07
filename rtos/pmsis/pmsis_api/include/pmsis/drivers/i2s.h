@@ -14,30 +14,23 @@
  * limitations under the License.
  */
 
-/**
- * @file
- * @brief Public APIs for the I2S (Inter-IC Sound) bus drivers.
- */
-
 #ifndef __PMSIS_DRIVERS_I2S_H__
 #define __PMSIS_DRIVERS_I2S_H__
 
-/**
-* @ingroup groupDrivers
-*/
-
-
+#include <stdint.h>
 
 /**
- * @defgroup I2S I2S Interface
  * @ingroup groupDrivers
- * @brief I2S (Inter-IC Sound) Interface
+ *
+ * @defgroup I2S I2S Interface
+ *
+ * \brief I2S (Inter-IC Sound) Interface
  *
  * The I2S API provides support for the I2S interface.
+ *
+ * @addtogroup I2S
  * @{
  */
-
-#include <stdint.h>
 
 /*
  * The following #defines are used to configure the I2S controller.
@@ -50,7 +43,8 @@ typedef uint8_t pi_i2s_fmt_t;
 /** Data Format bit field mask. */
 #define PI_I2S_FMT_DATA_FORMAT_MASK        (0x7 << PI_I2S_FMT_DATA_FORMAT_SHIFT)
 
-/** @brief Standard I2S Data Format.
+/**
+ * \brief Standard I2S Data Format.
  *
  * Serial data is transmitted in two's complement with the MSB first. Both
  * Word Select (WS) and Serial Data (SD) signals are sampled on the rising edge
@@ -69,7 +63,8 @@ typedef uint8_t pi_i2s_fmt_t;
  */
 #define PI_I2S_FMT_DATA_FORMAT_I2S          (0 << PI_I2S_FMT_DATA_FORMAT_SHIFT)
 
-/** @brief Pulse-Density Modulation Format.
+/**
+ * \brief Pulse-Density Modulation Format.
  *
  * Serial data is transmitted using the pulse-density modulation. Each sample
  * is a one bit pulse, where the density of the pulses gives the amplitude of
@@ -85,7 +80,8 @@ typedef uint8_t pi_i2s_fmt_t;
 typedef uint8_t pi_i2s_opt_t;
 
 /** IOCTL command */
-enum pi_i2s_ioctl_cmd {
+enum pi_i2s_ioctl_cmd
+{
     /** @brief Start the transmission / reception of data.
      *
      * This command can be used when the interface has been opened or stopped
@@ -104,32 +100,42 @@ enum pi_i2s_ioctl_cmd {
     PI_I2S_IOCTL_STOP,
 };
 
-/** @struct pi_i2s_conf
- * @brief Interface configuration options.
+/**
+ * \struct pi_i2s_conf
  *
- * @param word_size Number of bits representing one data word.
- * @param channels Number of words per frame.
- * @param format Data stream format as defined by PI_I2S_FMT_* constants.
- * @param options Configuration options as defined by PI_I2S_OPT_* constants.
- * @param frame_clk_freq Frame clock (WS) frequency, this is sampling rate.
- * @param block_size Size of one RX/TX memory block (buffer) in bytes.
- * @param pingpong_buffers Pair of buffers used in double-buffering mode to
- *   capture the incoming samples.
- * @param pdm_decimation_log2 In PDM mode, this gives the log2 of the
- *   decimation to be used, e.g. the number of bits on which the filter
- *   is applied.
+ * \brief Interface configuration options.
  */
-struct pi_i2s_conf {
-    uint8_t word_size;
-    uint8_t channels;
-    uint8_t itf;
-    pi_i2s_fmt_t format;
-    pi_i2s_opt_t options;
-    uint32_t frame_clk_freq;
-    size_t block_size;
-    void *pingpong_buffers[2];
-    uint16_t pdm_decimation_log2;
+struct pi_i2s_conf
+{
+    uint8_t word_size;          /*!< Number of bits representing one data word. */
+    uint8_t channels;           /*!< Number of words per frame. */
+    uint8_t itf;                /*!< I2S device ID. */
+    pi_i2s_fmt_t format;        /*!< Data stream format as defined by PI_I2S_FMT_* constants. */
+    pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
+    uint32_t frame_clk_freq;    /*!< Frame clock (WS) frequency, this is sampling rate. */
+    size_t block_size;          /*!< Size of one RX/TX memory block (buffer) in bytes. */
+    void *pingpong_buffers[2];  /*!< Pair of buffers used in double-buffering mode to
+                                  capture the incoming samples.  */
+    uint16_t pdm_decimation;    /*!< In PDM mode, this gives the decimation factor to be used,
+                                  e.g. the number of bits on which the filter is applied.
+                                  This factor is usually in the range between 48 and 128.
+
+                                  PDM_freq = sampling_rate * pdm_decimation.
+                                  - PDM_freq is the clock frequency of the microphone.
+                                  - sampling_rate is the audio sampling rate(22050kHz, 44100kHZ, 48000kHZ,...).
+                                  - pdm_decimation is the decimation factor to apply. */
+    int8_t pdm_shift;           /*!< In PDM mode, the shift value to shift data when applying filter. */
 };
+
+/** \brief Setup specific I2S aspects.
+ *
+ * This function can be called to set specific I2S properties such as the 
+ * number of clock generator. This is typically used by the BSP to give
+ * board specific information.
+ *
+ * \param flags  A bitfield of chip-dependant properties.
+ */
+void pi_i2s_setup(uint32_t flags);
 
 /** \brief Initialize an I2S configuration with default values.
  *
@@ -260,5 +266,14 @@ int pi_i2s_read_status(pi_task_t *task, void **mem_block, size_t *size);
 /**
  * @}
  */
+
+
+
+/// @cond IMPLEM
+
+#define PI_I2S_SETUP_SINGLE_CLOCK (1<<0)
+
+
+/// @endcond
 
 #endif

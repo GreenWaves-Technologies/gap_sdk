@@ -147,6 +147,8 @@ public:
   void raise_event_from_ext();
   virtual void start() {};
   void start_all();
+  virtual void stop() {};
+  void stop_all();
 
 protected:
   void *trace_new(const char *name);

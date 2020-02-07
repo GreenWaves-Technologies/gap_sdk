@@ -28,7 +28,7 @@ class Clock : public vp::component
 
 public:
 
-  Clock(const char *config);
+  Clock(js::config *config);
 
   int build();
   void start();
@@ -59,7 +59,7 @@ void Clock::raise_edge()
   }
 }
 
-Clock::Clock(const char *config)
+Clock::Clock(js::config *config)
 : vp::component(config)
 {
 }
@@ -81,7 +81,7 @@ void Clock::start()
   this->event_enqueue(this->event, 1);
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new Clock(config);
+  return new Clock(config);
 }

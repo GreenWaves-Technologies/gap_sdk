@@ -55,7 +55,7 @@
  * the output will be through debug_bridge.
  */
 
-void printf_uart_init(void);
+void printf_uart_init(uint8_t uart_id);
 
 /* @} */
 

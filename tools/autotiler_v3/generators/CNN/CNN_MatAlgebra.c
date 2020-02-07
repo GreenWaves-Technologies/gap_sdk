@@ -80,9 +80,9 @@ void KerParMatAddDynAdjust_fp(KerMat3_fp_T *Arg)
 	short int * __restrict__ I1, * __restrict__ I2;
 	short int * __restrict__ O  = Out + First*W*H;
 	int OffIn = Abs(In1_Q-In2_Q);
-	int OffOut = Out_Q-Max(In1_Q, In2_Q);
+	int OffOut = Out_Q-Min(In1_Q, In2_Q);
 
-	if (In1_Q>In2_Q) {
+	if (In1_Q<=In2_Q) {
 		I1 = In2 + First*W*H; I2 = In1 + First*W*H;
 	} else {
 		I1 = In1 + First*W*H; I2 = In2 + First*W*H;
@@ -90,25 +90,26 @@ void KerParMatAddDynAdjust_fp(KerMat3_fp_T *Arg)
 	if (OffOut==0) {
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max((I1[2*j]<<OffIn)+I2[2*j], LB), UB); O[2*j+1] = Min(Max((I1[2*j+1]<<OffIn)+I2[2*j+1], LB), UB);
+				O[2*j] = Min(Max((I1[2*j]>>OffIn)+I2[2*j], LB), UB); O[2*j+1] = Min(Max((I1[2*j+1]>>OffIn)+I2[2*j+1], LB), UB);
 			}
-			O[W*H-1] = Min(Max((I1[W*H-1]<<OffIn) + I2[W*H-1], LB), UB);
+			O[W*H-1] = Min(Max((I1[W*H-1]>>OffIn) + I2[W*H-1], LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	} else if (OffOut>0) {
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max(((I1[2*j]<<OffIn)+I2[2*j])<<OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]<<OffIn)+I2[2*j+1])<<OffOut, LB), UB);
+				O[2*j] = Min(Max(((I1[2*j]>>OffIn)+I2[2*j])<<OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]>>OffIn)+I2[2*j+1])<<OffOut, LB), UB);
 			}
-			O[W*H-1] = Min(Max(((I1[W*H-1]<<OffIn) + I2[W*H-1])<<OffOut, LB), UB);
+			O[W*H-1] = Min(Max(((I1[W*H-1]>>OffIn) + I2[W*H-1])<<OffOut, LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	} else {
+		OffOut = Abs(OffOut);
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max(((I1[2*j]<<OffIn)+I2[2*j])>>OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]<<OffIn)+I2[2*j+1])>>OffOut, LB), UB);
+				O[2*j] = Min(Max(((I1[2*j]>>OffIn)+I2[2*j])>>OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]>>OffIn)+I2[2*j+1])>>OffOut, LB), UB);
 			}
-			O[W*H-1] = Min(Max(((I1[W*H-1]<<OffIn) + I2[W*H-1])>>OffOut, LB), UB);
+			O[W*H-1] = Min(Max(((I1[W*H-1]>>OffIn) + I2[W*H-1])>>OffOut, LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	}
@@ -165,9 +166,9 @@ void KerParMatAddDynAdjust_fps(KerMat3_fps_T *Arg)
 	signed char * __restrict__ I1, * __restrict__ I2;
 	signed char * __restrict__ O  = Out + First*W*H;
 	int OffIn = Abs(In1_Q-In2_Q);
-	int OffOut = Out_Q-Max(In1_Q, In2_Q);
+	int OffOut = Out_Q-Min(In1_Q, In2_Q);
 
-	if (In1_Q>In2_Q) {
+	if (In1_Q<In2_Q) {
 		I1 = In2 + First*W*H; I2 = In1 + First*W*H;
 	} else {
 		I1 = In1 + First*W*H; I2 = In2 + First*W*H;
@@ -175,25 +176,26 @@ void KerParMatAddDynAdjust_fps(KerMat3_fps_T *Arg)
 	if (OffOut==0) {
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max((I1[2*j]<<OffIn)+I2[2*j], LB), UB); O[2*j+1] = Min(Max((I1[2*j+1]<<OffIn)+I2[2*j+1], LB), UB);
+				O[2*j] = Min(Max((I1[2*j]>>OffIn)+I2[2*j], LB), UB); O[2*j+1] = Min(Max((I1[2*j+1]>>OffIn)+I2[2*j+1], LB), UB);
 			}
-			O[W*H-1] = Min(Max((I1[W*H-1]<<OffIn) + I2[W*H-1], LB), UB);
+			O[W*H-1] = Min(Max((I1[W*H-1]>>OffIn) + I2[W*H-1], LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	} else if (OffOut>0) {
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max(((I1[2*j]<<OffIn)+I2[2*j])<<OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]<<OffIn)+I2[2*j+1])<<OffOut, LB), UB);
+				O[2*j] = Min(Max(((I1[2*j]>>OffIn)+I2[2*j])<<OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]>>OffIn)+I2[2*j+1])<<OffOut, LB), UB);
 			}
-			O[W*H-1] = Min(Max(((I1[W*H-1]<<OffIn) + I2[W*H-1])<<OffOut, LB), UB);
+			O[W*H-1] = Min(Max(((I1[W*H-1]>>OffIn) + I2[W*H-1])<<OffOut, LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	} else {
+		OffOut = Abs(OffOut);
 		for (i=First; i<Last; i++) {
 			for (j=0; j<((W*H)/2); j++) {
-				O[2*j] = Min(Max(((I1[2*j]<<OffIn)+I2[2*j])>>OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]<<OffIn)+I2[2*j+1])>>OffOut, LB), UB);
+				O[2*j] = Min(Max(((I1[2*j]>>OffIn)+I2[2*j])>>OffOut, LB), UB); O[2*j+1] = Min(Max(((I1[2*j+1]>>OffIn)+I2[2*j+1])>>OffOut, LB), UB);
 			}
-			O[W*H-1] = Min(Max(((I1[W*H-1]<<OffIn) + I2[W*H-1])>>OffOut, LB), UB);
+			O[W*H-1] = Min(Max(((I1[W*H-1]>>OffIn) + I2[W*H-1])>>OffOut, LB), UB);
 			I1 += W*H; I2 += W*H; O += W*H;
 		}
 	}
@@ -270,6 +272,7 @@ void KerParMatMul_fp(KerMatMul_fp_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -291,13 +294,13 @@ void KerParMatMul_fp(KerMatMul_fp_T *Arg)
 		// for (Line=0; Line<H_In1; Line++) {
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S, Norm), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -323,6 +326,7 @@ void KerParMatMulSxSy_fp(KerMatMul_fp_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -350,13 +354,13 @@ void KerParMatMulSxSy_fp(KerMatMul_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-	       		Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+	       		Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -383,6 +387,7 @@ void KerParMatMul_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -404,13 +409,13 @@ void KerParMatMul_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S, Norm), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -436,6 +441,7 @@ void KerParMatMulSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -463,13 +469,13 @@ void KerParMatMulSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		   	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		   	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -496,6 +502,7 @@ void KerParMatMul_fps(KerMatMul_fps_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -516,14 +523,14 @@ void KerParMatMul_fps(KerMatMul_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S, Norm), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -549,6 +556,7 @@ void KerParMatMulSxSy_fps(KerMatMul_fps_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -577,14 +585,14 @@ void KerParMatMulSxSy_fps(KerMatMul_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]<<Norm);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		   	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		   	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -611,6 +619,7 @@ void KerParMatMul_fp_fps(KerMatMul_fp_fps_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -631,14 +640,14 @@ void KerParMatMul_fp_fps(KerMatMul_fp_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S, Norm), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -664,6 +673,7 @@ void KerParMatMulSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -691,14 +701,14 @@ void KerParMatMulSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-	       		Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S, Norm), LB), UB);
+	       		Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -719,19 +729,19 @@ static inline int __attribute__((always_inline)) MatMulReduct_fp(int P, int C1, 
 	int Acc;
 	switch (Oper) {
 		case 0: /* Channel Scale */
-			Acc = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(P, Norm)*M, Norm), LB), UB);
+			Acc = Min(Max(AT_NORM(AT_NORM(P, Norm)*M, Norm), LB), UB);
 			break;
 		case 1: /* H Sigmoid */
 			/* C1 = (1<<(2*Norm))-1; C2 = (1<<Norm)-1; */
 			Acc = (P+C1)>>1;
-                        Acc = gap_max(0, gap_min(C2, gap_roundnorm_reg(Acc, Norm)));
+                        Acc = gap_max(0, gap_min(C2, AT_NORM(Acc, Norm)));
 			break;
 		case 2: /* H Swish */
 			/* C1 = 3<<(2*Norm); C2 = (1<<16)/6; 1/6 in Q16 */
-			Acc = gap_roundnorm_reg(gap_roundnorm_reg(gap_roundnorm_reg(gap_min(gap_max(P + C1, 0), UB), Norm) * P, Norm) * C2, 16);
+			Acc = AT_NORM(AT_NORM(AT_NORM(gap_min(gap_max(P + C1, 0), UB), Norm) * P, Norm) * C2, 16);
 			break;
 		default:
-			Acc = Min(Max(gap_roundnorm_reg(P, Norm), LB), UB);
+			Acc = Min(Max(AT_NORM(P, Norm), LB), UB);
 
 	}
 	return Acc;
@@ -744,19 +754,19 @@ static inline int __attribute__((always_inline)) MatMulReduct_fps(int P, int C1,
 	switch (Oper) {
 		case 0: /* Channel Scale */
 			/* Norm = 2*Norm */
-			Acc = Min(Max(gap_roundnorm_reg(P*M, Norm), LB), UB);
+			Acc = Min(Max(AT_NORM(P*M, Norm), LB), UB);
 			break;
 		case 1: /* H Sigmoid */
 			/* C1 = (1<<(2*Norm))-1; C2 = (1<<Norm)-1; */
 			Acc = (P+C1)>>1;
-                        Acc = gap_max(0, gap_min(C2, gap_roundnorm_reg(Acc, Norm)));
+                        Acc = gap_max(0, gap_min(C2, AT_NORM(Acc, Norm)));
 			break;
 		case 2: /* H Swish */
 			/* Norm = 2*Norm; C1 = 3<<(2*Norm); C2 = (1<<16)/6; 1/6 in Q16 */
-			Acc = gap_roundnorm_reg(gap_roundnorm_reg(gap_min(gap_max(P + C1, 0), UB) * P, Norm) * C2, 16);
+			Acc = AT_NORM(AT_NORM(gap_min(gap_max(P + C1, 0), UB) * P, Norm) * C2, 16);
 			break;
 		default:
-			Acc = Min(Max(gap_roundnorm_reg(P, Norm), LB), UB);
+			Acc = Min(Max(AT_NORM(P, Norm), LB), UB);
 
 	}
 	return Acc;
@@ -778,6 +788,8 @@ void KerParMatMulScaleScalar_fp(KerMatMul_fp_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 	int M = *Arg->MulBias;
@@ -800,13 +812,13 @@ void KerParMatMulScaleScalar_fp(KerMatMul_fp_T *Arg)
 		// for (Line=0; Line<H_In1; Line++) {
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -832,6 +844,8 @@ void KerParMatMulScaleScalarSxSy_fp(KerMatMul_fp_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -860,13 +874,13 @@ void KerParMatMulScaleScalarSxSy_fp(KerMatMul_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -893,6 +907,8 @@ void KerParMatMulScaleScalar_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 	int M = *Arg->MulBias;
@@ -915,13 +931,13 @@ void KerParMatMulScaleScalar_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -947,6 +963,8 @@ void KerParMatMulScaleScalarSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -975,13 +993,13 @@ void KerParMatMulScaleScalarSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1008,6 +1026,8 @@ void KerParMatMulScaleScalar_fps(KerMatMul_fps_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Arg->Norm+Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 	int M = *Arg->MulBias;
@@ -1029,14 +1049,14 @@ void KerParMatMulScaleScalar_fps(KerMatMul_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1062,6 +1082,8 @@ void KerParMatMulScaleScalarSxSy_fps(KerMatMul_fps_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Arg->Norm+Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1091,14 +1113,14 @@ void KerParMatMulScaleScalarSxSy_fps(KerMatMul_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]<<Norm);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1125,6 +1147,8 @@ void KerParMatMulScaleScalar_fp_fps(KerMatMul_fp_fps_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 	int M = *Arg->MulBias;
@@ -1146,14 +1170,14 @@ void KerParMatMulScaleScalar_fp_fps(KerMatMul_fp_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1179,6 +1203,8 @@ void KerParMatMulScaleScalarSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1207,14 +1233,14 @@ void KerParMatMulScaleScalarSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1244,6 +1270,8 @@ void KerParMatMulScale_fp(KerMatMul_fp_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -1265,14 +1293,14 @@ void KerParMatMulScale_fp(KerMatMul_fp_T *Arg)
 		// for (Line=0; Line<H_In1; Line++) {
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1299,6 +1327,8 @@ void KerParMatMulScaleSxSy_fp(KerMatMul_fp_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1326,14 +1356,14 @@ void KerParMatMulScaleSxSy_fp(KerMatMul_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1355,12 +1385,14 @@ void KerParMatMulScale_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	short int * __restrict__ In2 = Arg->In2;
 	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
 	int * __restrict__ Bias = Arg->Bias;
-	short int * __restrict__ MulBias = Arg->MulBias;
+	int * __restrict__ MulBias = Arg->MulBias;
 	short int * __restrict__ Out = Arg->Out;
 	unsigned int W_Out = Arg->W_Out;
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -1382,14 +1414,14 @@ void KerParMatMulScale_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<W_In1/4; i++) {
 				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1410,12 +1442,14 @@ void KerParMatMulScaleSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	short int * __restrict__ In2 = Arg->In2;
 	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
 	int * __restrict__ Bias = Arg->Bias;
-	short int * __restrict__ MulBias = Arg->MulBias;
+	int * __restrict__ MulBias = Arg->MulBias;
 	short int * __restrict__ Out = Arg->Out;
 	unsigned int W_Out = Arg->W_Out;
 	int Pi = Arg->OutFirstCol;
 	short int *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormMulBias = Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1443,14 +1477,14 @@ void KerParMatMulScaleSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<W_In1/4; i++) {
 			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
 			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
 		       	}
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(gap_roundnorm_reg(S, Norm)*M, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(AT_NORM(S, Norm)*M, NormMulBias), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1478,6 +1512,8 @@ void KerParMatMulScale_fps(KerMatMul_fps_T *Arg)
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -1498,15 +1534,15 @@ void KerParMatMulScale_fps(KerMatMul_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]<<Norm);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1533,6 +1569,8 @@ void KerParMatMulScaleSxSy_fps(KerMatMul_fps_T *Arg)
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1561,15 +1599,15 @@ void KerParMatMulScaleSxSy_fps(KerMatMul_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]<<Norm);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1591,12 +1629,14 @@ void KerParMatMulScale_fp_fps(KerMatMul_fp_fps_T *Arg)
 	signed char * __restrict__ In2 = Arg->In2;
 	unsigned int W_In2 = Arg->W_In2;
 	short int * __restrict__ Bias = Arg->Bias;
-	signed char * __restrict__ MulBias = Arg->MulBias;
+	short int * __restrict__ MulBias = Arg->MulBias;
 	signed char * __restrict__ Out = Arg->Out;
 	unsigned int W_Out = Arg->W_Out;
 	unsigned int OutFirstCol = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int LB = Arg->LB, UB = Arg->UB;
 	int ColFirst = Arg->ColFirst;
 
@@ -1617,15 +1657,15 @@ void KerParMatMulScale_fp_fps(KerMatMul_fp_fps_T *Arg)
 		gap_waitbarrier(0);
 		for (Line=First; Line<Last; Line++) {
 			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-			int S = (Bias[Line]);
+			int S = (Bias[Line]<<NormBias);
 			for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 		}
 		gap_waitbarrier(0);
 	}
@@ -1646,12 +1686,14 @@ void KerParMatMulScaleSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	signed char * __restrict__ In2 = Arg->In2;
 	unsigned int W_In2 = Arg->W_In2;
 	short int * __restrict__ Bias = Arg->Bias;
-	signed char * __restrict__ MulBias = Arg->MulBias;
+	short int * __restrict__ MulBias = Arg->MulBias;
 	signed char * __restrict__ Out = Arg->Out;
 	unsigned int W_Out = Arg->W_Out;
 	int Pi = Arg->OutFirstCol;
 	signed char *BufferColIn2 = Arg->BufferColIn2;
 	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	unsigned int NormT = Norm+Arg->NormMulBias;
 	int Wi = Arg->W, Hi = Arg->H;
 	int Sx = Arg->Sx, Sy = Arg->Sy;
 	int LB = Arg->LB, UB = Arg->UB;
@@ -1679,15 +1721,15 @@ void KerParMatMulScaleSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	       	for (Line=First; Line<Last; Line++) {
 		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
-		       	int S = (Bias[Line]);
+		       	int S = (Bias[Line]<<NormBias);
 		       	for (i=0; i<(W_In1/(4*2)); i++) {
 				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
 				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4], VBuff[W_In1/4], S);
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			int M = MulBias[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(gap_roundnorm_reg(S*M, 2*Norm), LB), UB);
+		       	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S*M, NormT), LB), UB);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1699,6 +1741,749 @@ void KerParMatMulScaleSxSy_fp_fps(KerMatMul_fp_fps_T *Arg)
 	       	gap_waitbarrier(0);
 	}
 }
+
+
+/* Matrix multiply with h-sigmoid reduction */
+
+void KerParMatMulHsigmoid_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int ColFirst = Arg->ColFirst;
+	int C1 = (1<<(2*Norm))-1;	// FIXME
+	int C2 = (1<<Norm)-1;		// FIXME
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		// for (Line=0; Line<H_In1; Line++) {
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = gap_max(0, gap_min(C2, AT_NORM(S, Norm)));
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHsigmoidSxSy_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+	int C1 = (1<<(2*Norm))-1;
+	int C2 = (1<<Norm)-1;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Oo] = gap_max(0, gap_min(C2, AT_NORM(S, Norm)));
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHsigmoid_fps(KerMatMul_fps_T *Arg)
+
+{
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int ColFirst = Arg->ColFirst;
+	int C1 = (1<<(2*Norm))-1;
+	int C2 = (1<<Norm)-1;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=First; Line<Last; Line++) {
+			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = gap_max(0, gap_min(C2, AT_NORM(S, Norm)));
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHsigmoidSxSy_fps(KerMatMul_fps_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+	int C1 = (1<<(2*Norm))-1;
+	int C2 = (1<<Norm)-1;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		       	Out[(Line+OffLine)*W_Out+Oo] = gap_max(0, gap_min(C2, AT_NORM(S, Norm)));
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+
+/* Matrix multiply with h-swish reduction */
+
+void KerParMatMulHswish_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+	int C1 = 3<<(2*Norm);
+	int C2 = (1<<16)/6; // 1/6 in Q16
+
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		// for (Line=0; Line<H_In1; Line++) {
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = AT_NORM(AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB), Norm) * S, Norm) * C2, 16);
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswishSxSy_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+	int C1 = 3<<(2*Norm);
+	int C2 = (1<<16)/6; // 1/6 in Q16
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB), Norm) * S, Norm) * C2, 16);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswish_fps(KerMatMul_fps_T *Arg)
+
+{
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+	int C1 = 3<<(2*Norm);
+	int C2 = (1<<16)/6; // 1/6 in Q16
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=First; Line<Last; Line++) {
+			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB) * S, 2*Norm) * C2, 16);
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswishSxSy_fps(KerMatMul_fps_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+	int C1 = 3<<(2*Norm);
+	int C2 = (1<<16)/6; // 1/6 in Q16
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		       	Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB) * S, 2*Norm) * C2, 16);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+#if 0
+/* Matrix multiply with Leaky ReLU reduction */
+
+void KerParMatMulLeakyrelu_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 15);
+		       		Out[(Line+OffLine)*W_Out+Col+OffCol] = Acc0;
+			}
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyreluSxSy_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Bias = Arg->Bias;
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 15);
+				Out[(Line+OffLine)*W_Out+Oo] = Acc0;
+			}
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyrelu_fps(KerMatMul_fps_T *Arg)
+
+{
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=First; Line<Last; Line++) {
+			v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+			int S = (Bias[Line]<<NormBias);
+			for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 7);
+		       		Out[(Line+OffLine)*W_Out+Col+OffCol] = Acc0;
+			}
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyreluSxSy_fps(KerMatMul_fps_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	unsigned int NormBias = Arg->NormBias;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = (Bias[Line]<<NormBias);
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 7);
+		       		Out[(Line+OffLine)*W_Out+Oo] = Acc0;
+			}
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+#endif
+
+
+
 
 /* Matrix scaling */
 void KerParMatScale_fp(KerMat3_fp_T *Arg)
@@ -1723,12 +2508,12 @@ void KerParMatScale_fp(KerMat3_fp_T *Arg)
 		int S = Scale[i];
 		short int * __restrict__ O  = Out + i*W*H;
 		for (j=0; j<((W*H)/2); j++) {
-			int P1 = gap_roundnorm_reg(I[2*j  ]*S, Norm);
-			int P2 = gap_roundnorm_reg(I[2*j+1]*S, Norm);
+			int P1 = AT_NORM(I[2*j  ]*S, Norm);
+			int P2 = AT_NORM(I[2*j+1]*S, Norm);
 			O[2*j  ] = Min(Max(P1, LB), UB);
 			O[2*j+1] = Min(Max(P2, LB), UB);
 		}
-		O[W*H-1] = Min(Max(gap_roundnorm_reg(I[W*H-1]*S, Norm), LB), UB);
+		O[W*H-1] = Min(Max(AT_NORM(I[W*H-1]*S, Norm), LB), UB);
 	}
 	gap_waitbarrier(0);
 }
@@ -1756,12 +2541,12 @@ void KerParMatScaleScalar_fp(KerMat3_fp_T *Arg)
 		int S = Scale;
 		short int * __restrict__ O  = Out + i*W*H;
 		for (j=0; j<((W*H)/2); j++) {
-			int P1 = gap_roundnorm_reg(I[2*j  ]*S, Norm);
-			int P2 = gap_roundnorm_reg(I[2*j+1]*S, Norm);
+			int P1 = AT_NORM(I[2*j  ]*S, Norm);
+			int P2 = AT_NORM(I[2*j+1]*S, Norm);
 			O[2*j  ] = Min(Max(P1, LB), UB);
 			O[2*j+1] = Min(Max(P2, LB), UB);
 		}
-		O[W*H-1] = Min(Max(gap_roundnorm_reg(I[W*H-1]*S, Norm), LB), UB);
+		O[W*H-1] = Min(Max(AT_NORM(I[W*H-1]*S, Norm), LB), UB);
 	}
 	gap_waitbarrier(0);
 }
@@ -1788,12 +2573,12 @@ void KerParMatScale_fps(KerMat3_fps_T *Arg)
 		int S = Scale[i];
 		signed char * __restrict__ O  = Out + i*W*H;
 		for (j=0; j<((W*H)/2); j++) {
-			int P1 = gap_roundnorm_reg(I[2*j  ]*S, Norm);
-			int P2 = gap_roundnorm_reg(I[2*j+1]*S, Norm);
+			int P1 = AT_NORM(I[2*j  ]*S, Norm);
+			int P2 = AT_NORM(I[2*j+1]*S, Norm);
 			O[2*j  ] = Min(Max(P1, LB), UB);
 			O[2*j+1] = Min(Max(P2, LB), UB);
 		}
-		O[W*H-1] = Min(Max(gap_roundnorm_reg(I[W*H-1]*S, Norm), LB), UB);
+		O[W*H-1] = Min(Max(AT_NORM(I[W*H-1]*S, Norm), LB), UB);
 	}
 	gap_waitbarrier(0);
 }
@@ -1820,12 +2605,12 @@ void KerParMatScaleScalar_fps(KerMat3_fps_T *Arg)
 		int S = Scale;
 		signed char * __restrict__ O  = Out + i*W*H;
 		for (j=0; j<((W*H)/2); j++) {
-			int P1 = gap_roundnorm_reg(I[2*j  ]*S, Norm);
-			int P2 = gap_roundnorm_reg(I[2*j+1]*S, Norm);
+			int P1 = AT_NORM(I[2*j  ]*S, Norm);
+			int P2 = AT_NORM(I[2*j+1]*S, Norm);
 			O[2*j  ] = Min(Max(P1, LB), UB);
 			O[2*j+1] = Min(Max(P2, LB), UB);
 		}
-		O[W*H-1] = Min(Max(gap_roundnorm_reg(I[W*H-1]*S, Norm), LB), UB);
+		O[W*H-1] = Min(Max(AT_NORM(I[W*H-1]*S, Norm), LB), UB);
 	}
 	gap_waitbarrier(0);
 }

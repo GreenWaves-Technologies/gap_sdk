@@ -61,11 +61,15 @@ void I2s_periph_v1::reset(bool active)
 
 
 
-void I2s_periph_v1::handle_clkgen_tick(int clkgen, int channel)
+void I2s_periph_v1::handle_clkgen_tick(int clkgen)
 {
-  this->trace.msg("Clock edge (channel: %d, sck: %d, ws: %d)\n", channel, this->sck[clkgen], this->current_ws[clkgen]);
+  this->trace.msg("Clock edge (clkgen: %d, sck: %d, ws: %d)\n", clkgen, this->sck[clkgen], this->current_ws[clkgen]);
 
-  this->ch_itf[channel].sync(this->sck[clkgen], this->current_ws[clkgen], 0);
+  if (this->r_chmode.ch0_mode_get() == clkgen)
+    this->ch_itf[0].sync(this->sck[clkgen], this->current_ws[clkgen], 0);
+
+  if (this->r_chmode.ch1_mode_get() == clkgen)
+    this->ch_itf[1].sync(this->sck[clkgen], this->current_ws[clkgen], 0);
 
   this->sck[clkgen] ^= 1;
 
@@ -96,11 +100,7 @@ void I2s_periph_v1::clkgen_event_routine(void *__this, vp::clock_event *event)
 
   int clkgen = *(int *)&(event->get_args()[0]);
 
-  if (_this->r_chmode.ch0_mode_get() == clkgen)
-    _this->handle_clkgen_tick(clkgen, 0);
-
-  if (_this->r_chmode.ch1_mode_get() == clkgen)
-    _this->handle_clkgen_tick(clkgen, 1);
+  _this->handle_clkgen_tick(clkgen);
 }
 
 
@@ -306,9 +306,13 @@ void I2s_periph_v1::rx_sync(void *__this, int sck, int ws, int sd, int channel)
   if (channel == 0)
     (static_cast<I2s_rx_channel *>(_this->channel0))->handle_rx_bit(sck, ws, sd);
   else
+  {
     (static_cast<I2s_rx_channel *>(_this->channel1))->handle_rx_bit(sck, ws, sd);
+  }
 
-  if (_this->current_ws_count[channel] == 0)
+  int clkgen = channel == 0 ? _this->r_chmode.ch0_mode_get() : _this->r_chmode.ch1_mode_get();
+
+  if (_this->current_ws_count[clkgen] == 0)
   {
     if (channel == 0)
     {
@@ -421,7 +425,9 @@ bool I2s_cic_filter::handle_bit(int din, int pdm_decimation, int pdm_shift, uint
     int64_t result = z5 >> pdm_shift;
 
 
-    //gv_trace_dumpMsg(&channel->trace, "Reached decimator, enqueueing value (value: %x)\n", result);
+    //printf("Reached decimator, enqueueing value (value: %lx)\n", result);
+
+
 
 
     *dout = result;

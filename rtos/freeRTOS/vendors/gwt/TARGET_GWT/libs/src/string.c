@@ -79,6 +79,60 @@ int32_t strcmp(const char *str1, const char *str2)
     return (*s1 - *s2);
 }
 
+int strncmp(const char *str1, const char *str2, size_t n)
+{
+    uint8_t *s1 = (uint8_t *) str1;
+    uint8_t *s2 = (uint8_t *) str2;
+
+    for (; (n > 0) && (*s1 != '\0') && (*s1 == *s2); n--)
+    {
+        s1++;
+        s2++;
+    }
+    if (!n)
+    {
+        return 0;
+    }
+    else
+    {
+        return (*s1 - *s2);
+    }
+}
+
+int str_starts_with(const char *str1, const char *str2)
+{
+    return (strncmp(str1, str2, strlen(str2)) == 0);
+}
+
+int str_ends_with(const char *str1, const char *str2)
+{
+    uint8_t *s1 = (uint8_t *) str1;
+    uint8_t *s2 = (uint8_t *) str2;
+    int32_t size_s1 = strlen(str1);
+    int32_t size_s2 = strlen(str2);
+    if (size_s1 < size_s2)
+    {
+        return -1;
+    }
+    s1 = s1 + sizeof(uint8_t) * size_s1 - 1;
+    s2 = s2 + sizeof(uint8_t) * size_s2 - 1;
+    while (size_s2 && (*s1 == *s2))
+    {
+        size_s2--;
+        s1--;
+        s2--;
+    }
+    if (!size_s2)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+
 size_t strlen(const char *str)
 {
     uint8_t *s1 = (uint8_t *) str;

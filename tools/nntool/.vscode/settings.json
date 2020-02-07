@@ -25,6 +25,7 @@
         "initializer_list": "cpp",
         "utility": "cpp",
         "stat.h": "c",
-        "helpers.h": "c"
+        "helpers.h": "c",
+        "types.h": "c"
     }
 }

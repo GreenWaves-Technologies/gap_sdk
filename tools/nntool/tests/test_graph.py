@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from utils.graph import Graph, Node, Edge, MatchNameNode, MatchNode
 
@@ -12,7 +17,10 @@ def test_create1():
     G.add_node(Node('test2'))
     G.add_edge(Edge('test1', 'test2'))
     G.add_edge(Edge('test2', Node('test3')))
-    assert [node.name for node in G.dfs()] == ['test1', 'test2', 'test3']
+    expect = ['test1', 'test2', 'test3']
+    assert [node.name for node in G.dfs()] == expect
+    expect.reverse()
+    assert [node.name for node in G.dfs(reverse=True)] == expect
     assert G.num_in_edges('test1') == 0
     assert G.num_out_edges('test1') == 1
     assert not G.verify_edges()
@@ -64,7 +72,10 @@ def test_create4():
     G.add_edge(Edge('test2', Node('test3')))
     assert not G.verify_edges()
     G.replace_node('test2', Node('test4'))
-    assert [node.name for node in G.dfs()] == ['test1', 'test4', 'test3']
+    expect = ['test1', 'test4', 'test3']
+    assert [node.name for node in G.dfs()] == expect
+    expect.reverse()
+    assert [node.name for node in G.dfs(reverse=True)] == expect
     assert not G.verify_edges()
 
 def test_create5():
@@ -78,7 +89,10 @@ def test_create5():
     G.add_edge(Edge('test3', 'test4'))
     assert G.num_in_edges('test4') == 2
     assert G.num_out_edges('test1') == 2
-    assert [node.name for node in G.dfs()] == ['test1', 'test2', 'test3', 'test4']
+    expect = ['test1', 'test2', 'test3', 'test4']
+    assert [node.name for node in G.dfs()] == expect
+    expect.reverse()
+    assert [node.name for node in G.dfs(reverse=True)] == expect
     assert not G.verify_edges()
 
 def test_match1():
@@ -240,3 +254,34 @@ def test_all_predecessors():
     assert set(['test1']) == test_fn('test2')
     assert set(['test1']) == test_fn('test3')
     assert not test_fn('test1')
+
+def test_reverse_dfs1():
+    G = Graph()
+    G.add_node(Node("test1"))
+    G.add_node(Node('test2'))
+    G.add_edge(Edge('test1', 'test2'))
+    G.add_edge(Edge('test1', Node('test3')))
+    expect = ['test1', 'test2', 'test3']
+    assert [node.name for node in G.dfs()] == expect
+    expect.reverse()
+    assert [node.name for node in G.dfs(reverse=True)] == expect
+
+def test_insert():
+    G = Graph()
+    G.add_node(Node("test1"))
+    G.add_node(Node('test2'))
+    G.add_edge(Edge('test1', 'test2'))
+    G.add_edge(Edge('test1', Node('test3')))
+    G.add_node(Node('test4'))
+    G.add_edge(Edge('test2', 'test4'))
+    G.add_edge(Edge('test3', 'test4', to_idx=2))
+
+    G.insert_node(Node('test5'), 'test2', 'test4')
+
+    nodes = [node.name for node in G.dfs()]
+    assert nodes == ['test1', 'test2', 'test5', 'test3', 'test4']
+    suc = G.successor_names('test5')
+    pred = G.predecessor_names('test5')
+    assert len(suc) == 1 and 'test4' in suc
+    assert len(pred) == 1 and 'test2' in pred
+    assert not G.verify_edges()

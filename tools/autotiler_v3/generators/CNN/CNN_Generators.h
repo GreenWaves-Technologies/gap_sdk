@@ -459,8 +459,8 @@ extern int CNN_PoolReLU(
 	KernelOper_T ReLUOper
 	);
 
-/** \brief CNN_GlobalPoolReLU
- *  Generator for Global Pooling (Max or Average) followed by an optional linear rectification (ReLU, ReLUN)
+/** \brief CNN_GlobalPool
+ *  Generator for Global Pooling (Max or Average)
  * 
  
     \param    Name:           Name of the generated user kernel
@@ -480,12 +480,10 @@ extern int CNN_PoolReLU(
 
     \param    PoolOper:       KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL
 
-    \param    ReLUOper        optional rectification to be applied after pooling, KOP_RELU, KOP_RELUN or KOP_NONE
-
   Currently only homegeneous data size are supported (bytes and hald words)
 */
 
-extern int CNN_GlobalPoolReLU(
+extern int CNN_GlobalPool(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
@@ -501,8 +499,7 @@ extern int CNN_GlobalPoolReLU(
 	int Width,
 	int Height,
 
-	KernelOper_T PoolOper,
-	KernelOper_T ReLUOper
+	KernelOper_T PoolOper
 	);
 
 

@@ -30,7 +30,7 @@ class hwpe : public vp::component
 
 public:
 
-  hwpe(const char *config);
+  hwpe(js::config *config);
 
   int build();
   void start();
@@ -60,7 +60,7 @@ private:
 
 };
 
-hwpe::hwpe(const char *config)
+hwpe::hwpe(js::config *config)
 : vp::component(config)
 {
 
@@ -182,7 +182,7 @@ void hwpe::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new hwpe(config);
+  return new hwpe(config);
 }

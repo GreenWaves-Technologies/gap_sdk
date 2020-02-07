@@ -1,5 +1,7 @@
 # boot mode is shifted by 1 to the left
 set BOOT_MODE_JTAG 6
+set BOOT_MODE_JTAG_SPI_F 8
+set BOOT_MODE_JTAG_HYPER 10
 set HI_SPEED_MODE 1
 
 set _WORKAREASIZE 0xFFFFFFFF

@@ -17,9 +17,6 @@
 
 #if defined(ENABLE_BRIDGE)
 #include "ImgIO.h"
-#if defined(__PULP_OS__)
-#include "bridge_stubs.h"
-#endif  /* __PULP_OS__ */
 #else
 #include "golden.h"
 #endif  /* USE_BRIDGE */
@@ -112,13 +109,13 @@ static void RunMnist(void *arg)
                             Filter_Layer[0],
                             Bias_Layer[0],
                             Out_Layer[0],
-                            14);
+                            14,14);
 
     Conv5x5ReLUMaxPool2x2_1(Out_Layer[0],
                             Filter_Layer[1],
                             Bias_Layer[1],
                             Out_Layer[1],
-                            14);
+                            14,14);
 
     LinearLayerReLU_1(Out_Layer[1],
                       Filter_Layer[2],
@@ -182,11 +179,6 @@ void test_mnist(void)
         printf("Failed to allocate memory for image (%d bytes)\n", size_img_in);
         pmsis_exit(-2);
     }
-    
-    BRIDGE_Init();
-    printf("Connecting to bridge\n");
-    BRIDGE_Connect(1, NULL);
-    printf("Connection to bridge done\n");
 
     //Reading Image from Hyperflash
     uint8_t *read_status = ReadImageFromFile(image_name, &Wi, &Hi, image_in_real, size_img_in_real);
@@ -197,7 +189,6 @@ void test_mnist(void)
         pmsis_exit(-3);
     }
 
-    BRIDGE_Disconnect(NULL);
     #else
     image_in_real = ImageIn;
     #endif  /* ENABLE_BRIDGE */

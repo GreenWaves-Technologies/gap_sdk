@@ -1,10 +1,18 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from typing import Sequence, Optional
+
+from utils.json_serializable import JsonSerializable
+
 from .code_block import CodeBlock, quote
 
 # SetMemoryDeviceInfos(4,
@@ -42,9 +50,10 @@ class MemoryDeviceInfo():
     def __setattr__(self, k, val):
         if k in self.info:
             self.info[k] = val
-        raise AttributeError()
+        else:
+            raise AttributeError()
 
-class MemoryDeviceInfos():
+class MemoryDeviceInfos(JsonSerializable):
     def __init__(self, infos: Sequence[MemoryDeviceInfo]):
         self.infos = infos
 
@@ -63,11 +72,26 @@ class MemoryDeviceInfos():
         ])
 
     @classmethod
-    def fromdict(cls, infos):
-        return cls([MemoryDeviceInfo.fromdict(info) for info in infos])
+    def _dencapsulate(cls, val):
+        return cls([MemoryDeviceInfo.fromdict(info) for info in val])
 
-    def todict(self):
+    def _encapsulate(self):
         return [info.todict() for info in self.infos]
+
+    def set_l2_ram_ext_managed(self, ext_managed):
+        for info in self.infos:
+            if info.memory_area == 'AT_MEM_L2':
+                info.ext_managed = ext_managed and 1 or 0
+
+    def set_l3_ram_ext_managed(self, ext_managed):
+        for info in self.infos:
+            if info.memory_area == 'AT_MEM_L3_HRAM':
+                info.ext_managed = ext_managed and 1 or 0
+
+    def set_l3_flash_ext_managed(self, ext_managed):
+        for info in self.infos:
+            if info.memory_area == 'AT_MEM_L3_HFLASH':
+                info.ext_managed = ext_managed and 1 or 0
 
     def gen(self, G, code_block: CodeBlock):
         code_block.write('SetMemoryDeviceInfos({},', len(self.infos))

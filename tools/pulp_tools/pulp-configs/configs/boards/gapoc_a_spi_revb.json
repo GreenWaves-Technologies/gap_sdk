@@ -42,6 +42,13 @@
     }
   },
 
+  "openocd": {
+    "config": {
+      "cable": "interface/ftdi/olimex-arm-usb-ocd-h.cfg",
+      "board": "target/gap8revb.tcl"
+    }
+  },
+
   "debug_bridge": {
     "config": {
       "cable": {

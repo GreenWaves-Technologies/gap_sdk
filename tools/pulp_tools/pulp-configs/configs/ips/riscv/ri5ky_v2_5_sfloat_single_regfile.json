@@ -14,6 +14,7 @@
   "archi_files"   : [ "archi/riscv/priv_1_10.h", "archi/riscv/builtins_v2.h", "archi/riscv/builtins_v2_emu.h", "archi/riscv/pcer_v2.h" ],
   "defines"       : [ "ARCHI_CORE_HAS_PULPV2",  "CORE_PULP_BUILTINS" ],
   "vp_class": "cpu/iss/iss",
+  "vp_component": "cpu/iss/iss_riscy_v2_5_single_regfile",
   "first_external_pcer": 12,
   "debug_binaries": [],
   "power_models": {

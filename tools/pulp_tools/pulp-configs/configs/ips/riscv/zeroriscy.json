@@ -1,5 +1,6 @@
 {
   "vp_class"      : "cpu/iss/iss",
+  "vp_component": "cpu/iss/iss_zeroriscy",
   "bootaddr_offset": "0x80",
   "version"       : "zeroriscy",
   "archi"         : "riscv",

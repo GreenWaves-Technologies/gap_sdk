@@ -28,12 +28,14 @@
 
   "plt_loader": {
     "vp_class": "utils/loader",
+    "vp_component":  "utils.loader_imp",
     "binaries": []
   },
 
   "soc_ico": {
 
     "vp_class": "pulp/soc_ico",
+    "vp_component":  "utils.loader_imp",
 
     "gv_class": "pulp.Soc_Ico_v2.Soc_Ico",
 

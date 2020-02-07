@@ -500,9 +500,9 @@ bool iss_wrapper::user_access(iss_addr_t addr, uint8_t *buffer, iss_addr_t size,
   if (err != vp::IO_REQ_OK) 
   {
     if (err == vp::IO_REQ_INVALID)
-      this->warning.fatal("Invalid IO response during debug request");
+      this->warning.fatal("Invalid IO response during debug request\n");
     else
-      this->warning.fatal("Pending IO response during debug request");
+      this->warning.fatal("Pending IO response during debug request\n");
 
     return true;
   }
@@ -528,7 +528,7 @@ std::string iss_wrapper::read_user_string(iss_addr_t addr, int size)
       if (err == vp::IO_REQ_INVALID)
         return "";
       else
-        this->warning.fatal("Pending IO response during debug request");
+        this->warning.fatal("Pending IO response during debug request\n");
     }
 
     if (buffer == 0)
@@ -682,7 +682,51 @@ void iss_wrapper::handle_ebreak()
 
   switch (id)
   {
-    case GV_SEMIHOSTING_VCD_CONFIGURE:
+    case GV_SEMIHOSTING_TRACE_OPEN: {
+      int result = -1;
+      std::string path = this->read_user_string(this->cpu.regfile.regs[11]);
+      if (path == "")
+      {
+        this->warning.force_warning("Invalid user string while opening trace (addr: 0x%x)\n", this->cpu.regfile.regs[11]);
+      }
+      else
+      {
+        vp::trace *trace = this->traces.get_trace_manager()->get_trace_from_path(path);
+        if (trace == NULL)
+        {
+          this->warning.force_warning("Invalid trace (path: %s)\n", path.c_str());
+        }
+        else
+        {
+          this->trace.msg("Opened trace (path: %s, id: %d)\n", path.c_str(), trace->id);
+          result = trace->id;
+        }
+      }
+
+      this->cpu.regfile.regs[10] = result;
+
+      break;
+    }
+    
+    case GV_SEMIHOSTING_TRACE_ENABLE: {
+      int id = this->cpu.regfile.regs[11];
+      vp::trace *trace = this->traces.get_trace_manager()->get_trace_from_id(id);
+      if (trace == NULL)
+      {
+        this->warning.force_warning("Unknown trace ID while dumping trace (id: %d)\n", id);
+      }
+      else
+      {
+        trace->set_active(this->cpu.regfile.regs[12]);
+      }
+
+      break; 
+    }
+    
+    case GV_SEMIHOSTING_VCD_CONFIGURE: {
+      int enabled = this->cpu.regfile.regs[11];
+      this->traces.get_trace_manager()->set_global_enable(enabled);
+    }
     break;
 
     case GV_SEMIHOSTING_VCD_OPEN_TRACE: {
@@ -694,7 +738,7 @@ void iss_wrapper::handle_ebreak()
       }
       else
       {
-        vp::trace *trace = this->traces.get_trace_manager()->get_trace(path);
+        vp::trace *trace = this->traces.get_trace_manager()->get_trace_from_path(path);
         if (trace == NULL)
         {
           this->warning.force_warning("Invalid VCD trace (path: %s)\n", path.c_str());
@@ -899,16 +943,29 @@ vp::io_req_status_e iss_wrapper::dbg_unit_req(void *__this, vp::io_req *req)
 }
 
 
+
+void iss_wrapper::insn_trace_callback()
+{
+  // This is called when the state of the instruction trace has changed, we need
+  // to flush the ISS instruction cache, as it keeps the state of the trace
+  iss_cache_flush(this);
+}
+
+
+
 int iss_wrapper::build()
 {
   traces.new_trace("trace", &trace, vp::DEBUG);
   traces.new_trace("decode_trace", &decode_trace, vp::DEBUG);
   traces.new_trace("insn", &insn_trace, vp::DEBUG);
+  this->insn_trace.register_callback(std::bind(&iss_wrapper::insn_trace_callback, this));
+
   traces.new_trace("csr", &csr_trace, vp::TRACE);
   traces.new_trace("perf", &perf_counter_trace, vp::TRACE);
 
   traces.new_trace_event("state", &state_event, 8);
   traces.new_trace_event("pc", &pc_trace_event, 32);
+  this->pc_trace_event.register_callback(std::bind(&iss_wrapper::insn_trace_callback, this));
   traces.new_trace_event_string("asm", &insn_trace_event);
   traces.new_trace_event_string("func", &func_trace_event);
   traces.new_trace_event_string("inline_func", &inline_trace_event);
@@ -1000,7 +1057,11 @@ int iss_wrapper::build()
   this->cpu.config.isa = strdup(isa.c_str());
   this->cpu.config.debug_handler = this->get_js_config()->get_int("debug_handler");
 
+  this->is_active_reg.set(false);
+
   ipc_clock_event = this->event_new(iss_wrapper::ipc_stat_handler);
+
+  this->ipc_stat_delay = 0;
 
   return 0;
 }
@@ -1079,13 +1140,13 @@ void iss_wrapper::reset(bool active)
 }
 
 
-iss_wrapper::iss_wrapper(const char *config)
+iss_wrapper::iss_wrapper(js::config *config)
 : vp::component(config)
 {
 }
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new iss_wrapper(config);
+  return new iss_wrapper(config);
 }

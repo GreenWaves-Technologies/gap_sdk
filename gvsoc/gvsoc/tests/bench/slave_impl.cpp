@@ -29,7 +29,7 @@ class slave : public vp::component
 
 public:
 
-  slave(const char *config);
+  slave(js::config *config);
 
   int build();
 
@@ -55,12 +55,12 @@ int slave::build()
   return 0;
 }
 
-slave::slave(const char *config)
+slave::slave(js::config *config)
 : vp::component(config)
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new slave(config);
+  return new slave(config);
 }
