@@ -140,7 +140,7 @@ static inline struct pi_cluster_task *pi_cluster_task(
  * \param device    A pointer to the structure describing the device.
  * \param task Cluster task structure containing task and its parameters.
  */
-int pi_cluster_send_task(struct pi_device *device,
+static inline int pi_cluster_send_task(struct pi_device *device,
         struct pi_cluster_task *task);
 
 /** \brief Enqueue asynchronously a task for execution on the cluster.
@@ -172,7 +172,7 @@ int pi_cluster_send_task(struct pi_device *device,
  * \param task Cluster task structure containing task and its parameters.
  * \param end_task        The task used to notify the end of execution.
  */
-int pi_cluster_send_task_async(struct pi_device *device,
+static inline int pi_cluster_send_task_async(struct pi_device *device,
         struct pi_cluster_task *task,
         pi_task_t *end_task);
 
@@ -202,14 +202,17 @@ int pi_cluster_send_task_async(struct pi_device *device,
 #define CLOSE_ASYNC_ID 7
 
 
-static inline int pi_cluster_send_task_to_cl(struct pi_device *device, struct pi_cluster_task *task)
+int pi_cluster_send_task_to_cl(struct pi_device *device, struct pi_cluster_task *task);
+int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);
+
+static inline int pi_cluster_send_task(struct pi_device *device, struct pi_cluster_task *task)
 {
-    return pi_cluster_send_task(device, task);
+    return pi_cluster_send_task_to_cl(device, task);
 }
 
-static inline int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task)
+static inline int pi_cluster_send_task_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task)
 {
-    return pi_cluster_send_task_async(device, cluster_task, task);
+    return pi_cluster_send_task_to_cl_async(device, cluster_task, task);
 }
 
 /** \brief check if any cluster is on

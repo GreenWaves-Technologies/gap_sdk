@@ -266,17 +266,52 @@ static void pi_lfs_unmount(struct pi_device *device)
 
 static pi_fs_file_t *pi_lfs_open(struct pi_device *device, const char *file, int flags)
 {
+    enum lfs_error rc = LFS_ERR_OK;
+    pi_fs_file_t *pi_file = NULL;
+    lfs_file_t *lfs_file = NULL;
+    pi_lfs_t *pi_lfs = device->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    
+    lfs_file = pi_fc_l1_malloc(sizeof(lfs_file_t));
+    if(lfs_file == NULL) return NULL;
+    
+    rc = lfs_file_open(lfs, lfs_file, file, flags);
+    if(rc != LFS_ERR_OK) goto error;
+    
+    pi_file = pi_fc_l1_malloc(sizeof(*pi_file));
+    if(pi_file == NULL) goto error;
+    
+    pi_file->data = lfs_file;
+    pi_file->fs = device;
+    pi_file->api = &pi_lfs_api;
+    
+    return pi_file;
+    
+    error:
+    if(pi_file) pi_fc_l1_free(pi_file, sizeof(*pi_file));
+    if(lfs_file) pi_fc_l1_free(lfs_file, sizeof(lfs_file_t));
     return NULL;
 }
 
 static void pi_lfs_close(pi_fs_file_t *file)
 {
-
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    lfs_file_close(lfs, lfs_file);
 }
 
 static int32_t pi_lfs_read_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)
 {
-    return -1;
+    size_t rc;
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    rc = lfs_file_read(lfs, lfs_file, buffer, size);
+    pi_task_push(task);
+    return rc;
 }
 
 static int32_t pi_lfs_direct_read_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)

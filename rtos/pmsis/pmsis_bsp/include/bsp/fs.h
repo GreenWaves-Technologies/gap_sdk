@@ -561,7 +561,7 @@ extern pi_fs_api_t __pi_host_fs_api;
 
 typedef struct pi_fs_file_s {
   struct pi_device *fs;
-  struct __pi_fs_api_t *api;
+  pi_fs_api_t *api;
   void *data;
   unsigned int size;
 } pi_fs_file_t;
