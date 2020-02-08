@@ -210,7 +210,7 @@ static inline unsigned int hal_udma_periph_base(int id) {
   return ARCHI_SOC_PERIPHERALS_ADDR + ARCHI_UDMA_OFFSET + UDMA_PERIPH_OFFSET(id);
 }
 
-static inline unsigned int hal_udma_channel_base(int id) {
+static inline __attribute__((always_inline)) unsigned int hal_udma_channel_base(int id) {
   return ARCHI_SOC_PERIPHERALS_ADDR + ARCHI_UDMA_OFFSET + UDMA_PERIPH_OFFSET(id>>1) + UDMA_CHANNEL_OFFSET(id&1);
 }
 

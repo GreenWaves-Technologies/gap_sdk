@@ -35,7 +35,7 @@ namespace vp {
 
   public:
 
-    clock_engine(const char *config);
+    clock_engine(js::config *config);
 
     void cancel(clock_event *event);
 

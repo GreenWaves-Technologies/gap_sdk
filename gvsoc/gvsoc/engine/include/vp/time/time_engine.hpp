@@ -28,23 +28,25 @@
 #include <systemc.h>
 #endif
 
+namespace vp
+{
 
+class time_engine_client;
 
-namespace vp {
-
-  class time_engine_client;
-
-  class time_engine : public component {
-  public:
-    time_engine(const char *config);
+class time_engine : public component
+{
+public:
+    time_engine(js::config *config);
 
     void start();
 
     void run_loop();
 
-    string run();
+    void run();
 
-    int run_status() { return stop_status; }
+    void quit();
+
+    int join();
 
     inline void lock_step();
 
@@ -56,9 +58,11 @@ namespace vp {
 
     inline void unlock();
 
-    inline void stop_engine(bool force=false);
+    inline void stop_engine(bool force = false);
 
     inline void stop_engine(int status);
+
+    inline void pause();
 
     inline vp::time_engine *get_time_engine() { return this; }
 
@@ -76,8 +80,8 @@ namespace vp {
     inline void update(int64_t time);
 
     void wait_ready();
-    
-  private:
+
+private:
     time_engine_client *first_client = NULL;
     bool locked = false;
     bool locked_run_req;
@@ -85,10 +89,6 @@ namespace vp {
     bool stop_req;
     bool finished = false;
     bool init = false;
-
-
-
-
 
     bool running;
     pthread_mutex_t mutex;
@@ -104,15 +104,16 @@ namespace vp {
     sc_event sync_event;
     bool started = false;
 #endif
-  };
+};
 
-  class time_engine_client : public component {
+class time_engine_client : public component
+{
 
     friend class time_engine;
 
-  public:
-    time_engine_client(const char *config)
-      : vp::component(config)
+public:
+    time_engine_client(js::config *config)
+        : vp::component(config)
     {
     }
 
@@ -120,14 +121,14 @@ namespace vp {
 
     inline bool enqueue_to_engine(int64_t time)
     {
-      return engine->enqueue(this, time);
+        return engine->enqueue(this, time);
     }
 
     inline int64_t get_time() { return engine->get_time(); }
 
     virtual int64_t exec() = 0;
 
-  protected:
+protected:
     time_engine_client *next;
 
     // This gives the time of the next event.
@@ -139,103 +140,117 @@ namespace vp {
     vp::time_engine *engine;
     bool running = false;
     bool is_enqueued = false;
-  };
+};
 
-
-  // This can be called from anywhere so just propagate the stop request
-  // to the main python thread which will take care of stopping the engine.
-  inline void vp::time_engine::stop_engine(bool force)
-  {
+// This can be called from anywhere so just propagate the stop request
+// to the main python thread which will take care of stopping the engine.
+inline void vp::time_engine::stop_engine(bool force)
+{
     if (force || !this->no_exit)
     {
-      // In case the vp is connected to an external bridge, prevent the platform
-      // from exiting unless a ctrl-c is hit
-      pthread_mutex_lock(&mutex);
-      stop_req = true;
-      pthread_cond_broadcast(&cond);
-      pthread_mutex_unlock(&mutex);
+        // In case the vp is connected to an external bridge, prevent the platform
+        // from exiting unless a ctrl-c is hit
+        pthread_mutex_lock(&mutex);
+        stop_req = true;
+        run_req = false;
+        pthread_cond_broadcast(&cond);
+        pthread_mutex_unlock(&mutex);
     }
-  }
+}
 
-  inline void vp::time_engine::stop_engine(int status)
-  {
+inline void vp::time_engine::stop_engine(int status)
+{
     stop_status = status;
 #ifdef __VP_USE_SYSTEMC
     sync_event.notify();
 #endif
     stop_engine();
-  }
+}
 
-  inline void vp::time_engine::wait_running()
-  {
+
+
+inline void vp::time_engine::pause()
+{
     pthread_mutex_lock(&mutex);
-    while (!init) pthread_cond_wait(&cond, &mutex);
+    run_req = false;
+    pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
-  }
+}
 
-  inline void vp::time_engine::lock_step()
-  {
+
+
+inline void vp::time_engine::wait_running()
+{
+    pthread_mutex_lock(&mutex);
+    while (!init)
+        pthread_cond_wait(&cond, &mutex);
+    pthread_mutex_unlock(&mutex);
+}
+
+inline void vp::time_engine::lock_step()
+{
     if (!locked)
     {
-      locked = true;
-      locked_run_req = run_req;
-      run_req = false;
+        locked = true;
+        locked_run_req = run_req;
+        run_req = false;
     }
-  }
+}
 
-  inline void vp::time_engine::lock_step_cancel()
-  {
+inline void vp::time_engine::lock_step_cancel()
+{
     pthread_mutex_lock(&mutex);
     if (locked)
     {
-      run_req = locked_run_req;
-      locked = false;
+        run_req = locked_run_req;
+        locked = false;
     }
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
-  }
+}
 
-  inline void vp::time_engine::lock()
-  {
+inline void vp::time_engine::lock()
+{
     pthread_mutex_lock(&mutex);
     if (!locked)
     {
-      locked_run_req = run_req;
-      run_req = false;
-      locked = true;
+        locked_run_req = run_req;
+        run_req = false;
+        locked = true;
     }
     pthread_cond_broadcast(&cond);
-    while (running) pthread_cond_wait(&cond, &mutex);
+    while (running)
+        pthread_cond_wait(&cond, &mutex);
     pthread_mutex_unlock(&mutex);
-  }
+}
 
-  inline void vp::time_engine::unlock()
-  {
+inline void vp::time_engine::unlock()
+{
     pthread_mutex_lock(&mutex);
     run_req = locked_run_req;
     locked = false;
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
-  }
+}
 
-  inline void vp::time_engine::fatal(const char *fmt, ...)
-  {
+inline void vp::time_engine::fatal(const char *fmt, ...)
+{
     fprintf(stdout, "[\033[31mFATAL\033[0m] ");
     va_list ap;
     va_start(ap, fmt);
-    if (vfprintf(stdout, fmt, ap) < 0) {}
+    if (vfprintf(stdout, fmt, ap) < 0)
+    {
+    }
     va_end(ap);
     stop_engine(-1);
-  }
+}
 
-
-  inline void vp::time_engine::update(int64_t time)
-  {
+inline void vp::time_engine::update(int64_t time)
+{
     if (time > this->time)
-      this->time = time;
-  }
+        this->time = time;
+}
 
-
-};
+}; // namespace vp
 
 #endif

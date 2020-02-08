@@ -5,6 +5,7 @@
   "archi_files" : [ "archi/soc_eu/soc_eu_v1.h" ],
 
   "vp_class": "pulp/soc_eu/soc_eu_v1",
+  "vp_component":  "pulp.soc_eu.soc_eu_v1_impl",
 
   "properties": {
     "nb_fc_events": 8,

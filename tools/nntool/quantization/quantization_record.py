@@ -1,19 +1,28 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from typing import Sequence
 
 from utils.stats_funcs import closest_greater
+from utils.json_serializable import JsonSerializable
 
 from .qtype import QType
 
-class QuantizationRecord():
-    def __init__(self, in_qs: QType = None, out_qs: QType = None):
-        self._info = {}
-        self.set_qs(in_qs=in_qs, out_qs=out_qs)
+class QuantizationRecord(JsonSerializable):
+    def __init__(self, in_qs: QType = None, out_qs: QType = None, info=None):
+        if info is None:
+            self._info = {}
+            self.set_qs(in_qs=in_qs, out_qs=out_qs)
+        else:
+            self._info = info
 
 # pylint: disable=unused-argument
     def set_qs(self, **kwargs):
@@ -44,28 +53,33 @@ class QuantizationRecord():
     def has_quantization(self) -> bool:
         return bool(self._info)
 
-    def to_dict(self):
-        info = self._info.copy()
-        info['__type'] = "QuantizationRecord.{}".format(self.__class__.__name__)
-        return info
+    def _encapsulate(self):
+        return self._info
 
-    @staticmethod
-    def from_dict(json_dict):
-        class_const = globals()[json_dict['__type'].split('.')[1]]
-        del json_dict['__type']
-        return class_const(**json_dict)
+    @classmethod
+    def _dencapsulate(cls, val):
+        return cls(info=val)
 
     def __eq__(self, value):
         # pylint: disable=protected-access
         return value._info == self._info
 
+    @staticmethod
+    def ql_str(l):
+        return ",".join([str(qtype) for qtype in l])
+
+    def __str__(self):
+        return "i:({}) o:({})".format(self.ql_str(self.in_qs), self.ql_str(self.out_qs))
+
 class FilterQuantizationRecord(QuantizationRecord):
-    def __init__(self, in_qs: QType = None, out_qs: QType = None,
-                 calc_q: QType = None, acc_q: QType = None,
-                 biases_q: QType = None, weights_q: QType = None):
-        super().__init__()
-        self.set_qs(in_qs=in_qs, out_qs=out_qs, calc_q=calc_q,
-                    acc_q=acc_q, biases_q=biases_q, weights_q=weights_q)
+    def __init__(self, *args, calc_q: QType = None, acc_q: QType = None,
+                 biases_q: QType = None, weights_q: QType = None, info=None, **kwargs):
+        super(FilterQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            self._info['calc_q'] = calc_q
+            self._info['acc_q'] = acc_q
+            self._info['biases_q'] = biases_q
+            self._info['weights_q'] = weights_q
 
     def set_qs(self, **kwargs):
         super().set_qs(**kwargs)

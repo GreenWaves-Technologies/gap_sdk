@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import argparse
 import logging
@@ -62,6 +67,9 @@ def input_options(parser):
                         help="adjust image width this value")
     parser.add_argument('-T', '--transpose',
                         action="store_true", help='Swap W and H')
+    parser.add_argument('-F', '--nptype',
+                        choices=np.sctypeDict.keys(), default=None,
+                        help='interpret pixels as this numpy type')
     parser.add_argument('-M', '--mode',
                         choices=MODES.keys(), default=None,
                         help="mode to import image in")
@@ -109,7 +117,7 @@ class NNToolShellLogHandler(logging.Handler):
         else:
             self.__shell.pfeedback(ansi.style_success(output))
 
-def format_dump_file(G, outputs):
+def format_dump_file(G, outputs, quantized):
     # simplify the output since we only have one for now and add weights
     foutputs = []
     for idx, out in enumerate(outputs):
@@ -117,13 +125,21 @@ def format_dump_file(G, outputs):
         node = G.graph_state.steps[idx]['node']
         if isinstance(node, FusionParameters):
             for filt in node.contained_filters():
-                qrec = G.quantization[NodeId(node, filt)]
-                tensors.append(qrec.weights_q.quantize(filt.weights))
-                tensors.append(qrec.biases_q.quantize(filt.biases))
+                if quantized:
+                    qrec = G.quantization[NodeId(node, filt)]
+                    tensors.append(qrec.weights_q.quantize(filt.weights))
+                    tensors.append(qrec.biases_q.quantize(filt.biases))
+                else:
+                    tensors.append(np.copy(filt.weights))
+                    tensors.append(np.copy(filt.biases))
         elif isinstance(node, FilterParameters):
-            qrec = G.quantization[NodeId(node, None)]
-            tensors.append(qrec.weights_q.quantize(node.weights))
-            tensors.append(qrec.biases_q.quantize(node.biases))
+            if quantized:
+                qrec = G.quantization[NodeId(node, None)]
+                tensors.append(qrec.weights_q.quantize(node.weights))
+                tensors.append(qrec.biases_q.quantize(node.biases))
+            else:
+                tensors.append(np.copy(node.weights))
+                tensors.append(np.copy(node.biases))
         else:
             tensors.append(None)
             tensors.append(None)

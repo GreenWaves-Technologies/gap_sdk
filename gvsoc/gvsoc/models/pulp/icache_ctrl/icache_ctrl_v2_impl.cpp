@@ -28,7 +28,7 @@ class icache_ctrl : public vp::component
 
 public:
 
-  icache_ctrl(const char *config);
+  icache_ctrl(js::config *config);
 
   int build();
   void start();
@@ -46,7 +46,7 @@ private:
   vp::wire_master<uint32_t> flush_line_addr_itf;
 };
 
-icache_ctrl::icache_ctrl(const char *config)
+icache_ctrl::icache_ctrl(js::config *config)
 : vp::component(config)
 {
 
@@ -90,7 +90,7 @@ void icache_ctrl::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new icache_ctrl(config);
+  return new icache_ctrl(config);
 }

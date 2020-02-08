@@ -1,31 +1,33 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
+
+from generation.kernel_parameters import GenCtrl
 
 from ..dim import DilationDim
 from .base import FilterLikeParameters, FilterParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
 class Conv2DParameters(FilterLikeParameters, FilterParameters):
 
     op_name = "conv2d"
 
     #pylint: disable-msg=too-many-arguments
-    def __init__(self, name, filt=None, stride=None, padding=None, dilation=None,
-                 pad_type="zero", groups=None, multiplier=1,
-                 has_bias=False, custom=None, tf_depthwise=False,
-                 in_dims_hint=None, out_dims_hint=None):
+    def __init__(self, name, dilation=None, groups=None, multiplier=1,
+                 custom=None, tf_depthwise=False, **kwargs):
 
-        super(Conv2DParameters, self).__init__(name, stride=stride, padding=padding,
-                                               pad_type=pad_type, filt=filt, has_bias=has_bias)
-
-        self.in_dims_hint = in_dims_hint
-        self.out_dims_hint = out_dims_hint
+        super(Conv2DParameters, self).__init__(name, **kwargs)
 
         if dilation is None:
             dilation = DilationDim(1)
@@ -56,27 +58,34 @@ class Conv2DParameters(FilterLikeParameters, FilterParameters):
 
         LOG.debug("created CON2D %s", str(self))
 
-    def clone(self, groupn=None):
+    # @property
+    # def can_equalize(self):
+    #     return not self.tf_depthwise
+
+    def clone(self, name, groupn=None):
         """ Clones conv parameters for a specific group number
         """
         if groupn is None:
-            new_conv = Conv2DParameters(self.filter, self.stride, self.padding,\
-                self.dilation, self.pad_type, self.groups, self.multiplier, self.has_bias)
+            new_conv = Conv2DParameters(name, filter=self.filter, stride=self.stride, padding=self.padding,
+                                        dilation=self.dilation, pad_type=self.pad_type, groups=self.groups,
+                                        multiplier=self.multiplier, has_bias=self.has_bias)
         else:
             assert groupn < self.groups, "incorrect group number"
             c_per_g = self.filter.out_c//self.groups
             offset = c_per_g * groupn
             new_filter = self.filter.clone()
             new_filter.out_c = c_per_g
-            new_conv = Conv2DParameters(new_filter, self.stride, self.padding,\
-                self.dilation, self.pad_type, 1, self.multiplier, self.has_bias)
+            new_conv = Conv2DParameters(name, filter=new_filter, stride=self.stride, padding=self.padding,
+                                        dilation=self.dilation, pad_type=self.pad_type, groups=1,
+                                        multiplier=self.multiplier, has_bias=self.has_bias)
             num_out = c_per_g * self.multiplier
             if self.biases is not None:
                 new_conv.biases = self.biases[offset:offset + num_out - 1]
 
             if self.weights is not None:
                 # TODO - THIS IS NOT CORRECT. CHECK ORDER.
-                new_conv.weights = self.weights[offset:offset + num_out - 1, ...]
+                new_conv.weights = self.weights[offset:offset +
+                                                num_out - 1, ...]
 
         return new_conv
 
@@ -104,8 +113,8 @@ class Conv2DParameters(FilterLikeParameters, FilterParameters):
 
         assert len(in_dims) == 1,\
             "Only expecting one input dimension"
-        self.in_dims = in_dims
-        in_dims = in_dims[0]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        in_dims = self.in_dims[0]
 
         assert in_dims.c >= self.groups,\
             "The number of groups cannot be larger than the amount of input channels"
@@ -121,13 +130,18 @@ class Conv2DParameters(FilterLikeParameters, FilterParameters):
         out_dim.impose_order(in_dims.order)
         return [out_dim]
 
+    def compute_load(self):
+        return self.out_dims[0].size() * self.filter.h * self.filter.w *\
+            self.in_dims[0].c // self.groups
+
     def __str__(self):
-        return "F {} S {} D {} G {} M {} P {} {}".format(
+        return "F {} S {} D {} G {} M {} P {} {} {}".format(
             self.filter,
             self.stride,
             self.dilation,
             self.groups,
             self.multiplier,
             self.padding,
-            self.pad_type
+            self.pad_type,
+            self.at_options or ""
         )

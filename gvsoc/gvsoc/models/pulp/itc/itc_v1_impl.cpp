@@ -30,7 +30,7 @@ class itc : public vp::component
 
 public:
 
-  itc(const char *config);
+  itc(js::config *config);
 
   int build();
   void reset(bool active);
@@ -85,7 +85,7 @@ private:
 
 };
 
-itc::itc(const char *config)
+itc::itc(js::config *config)
 : vp::component(config)
 {
 
@@ -348,7 +348,7 @@ void itc::reset(bool active)
 
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new itc(config);
+  return new itc(config);
 }

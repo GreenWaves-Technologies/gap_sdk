@@ -35,7 +35,7 @@ namespace vp {
   class trace_engine : public component
   {
   public:
-    trace_engine(const char *config);
+    trace_engine(js::config *config);
 
     void stop();
 
@@ -52,11 +52,17 @@ namespace vp {
 
     void dump_event_delayed(vp::trace *trace, int64_t timestamp, uint8_t *event, int width);
 
+    void set_global_enable(bool enable) { this->global_enable = enable; }
+
     Event_dumper event_dumper;
 
-    vp::trace *get_trace(std::string path);
+    vp::trace *get_trace_from_path(std::string path);
 
     vp::trace *get_trace_from_id(int id);
+
+    virtual void add_trace_path(int events, std::string path) {}
+    virtual void add_exclude_trace_path(int events, std::string path) {}
+    virtual void check_traces() {}
 
   protected:
     std::map<std::string, trace *> traces_map;
@@ -82,6 +88,7 @@ namespace vp {
     trace *first_pending_event;
 
     Event_trace *first_trace_to_dump;
+    bool global_enable = true;
   };
 
 };

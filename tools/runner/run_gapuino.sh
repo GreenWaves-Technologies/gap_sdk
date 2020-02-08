@@ -19,6 +19,7 @@ here=`pwd`
 cd $here/BUILD/$TARGET_CHIP/GCC_RISCV
 
 FLAG_FLASH=0
+flash_image=""
 FLAG_SCRIPT=0
 # A flag for choosing the boot mode: 0-Noboot, 1-jtag, 2-hyper
 FLAG_BOOT=0
@@ -28,8 +29,9 @@ FLAG_NOFLASH=0
 #Parameters of bridge
 verbose=2
 fileio=0
-if [ "$BOARD_NAME" = "gapoc_a" ];
-then
+if [ -n "$PLPBRIDGE_CABLE" ]; then
+    cable=$PLPBRIDGE_CABLE
+elif [ "$BOARD_NAME" = "gapoc_a" ]; then
     cable=ftdi
 else
     cable=ftdi@digilent
@@ -42,78 +44,91 @@ binary="--binary=test"
 
 buildFlashImage=""
 
-if [ "$#" -eq 0 ]
+nb_param=$#
+
+while [ "$#" -gt 0 ]
+do
+    case ${1} in
+        # RAW Flash image
+        -i)
+            flash_image="$2"
+            ;;
+        #Mode using the script
+        -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
+            cp $here/$script_filename .
+            FLAG_SCRIPT=1
+            plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=$TARGET_NAME load $ioloop $reqloop start script --script=$2
+            ;;
+        #Mode using gdb
+        -gdb)
+            gdb=gdb
+            ;;
+        #Mode using flasher
+        -norun)
+            FLAG_NORUN=1
+            ;;
+        -noflash)
+            FLAG_NOFLASH=1
+            ;;
+        -f)
+            FLAG_FLASH=1
+            buildFlashImage="flashImageBuilder --verbose --flash-boot-binary=test --raw=flashImg.raw"
+            ;;
+        -ftdi)
+            cable=ftdi
+            ;;
+        -jtag)
+            boot_mode=jtag
+            ;;
+        -hyper)
+            ioloop=""
+            reqloop=""
+            binary=""
+            boot_mode=jtag_hyper
+            ;;
+        -fileIO)
+            if [ "$#" -gt 1 ]
+            then
+                shift
+                fileio=$1
+            else
+                fileio=2
+            fi
+
+            ;;
+        *)
+            if [ "$FLAG_FLASH" -eq "1" ]
+            then
+                buildFlashImage="$buildFlashImage --comp=$here/$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ "$FLAG_FLASH" -eq 0 ] && [ "$FLAG_NORUN" -eq 0 ] && [ "$FLAG_NOFLASH" -eq 0 ]
 then
-    if [ -n "$GAP_USE_OPENOCD" ]; then
+    if [ -n "$GAP_USE_OPENOCD" ]
+    then
         openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
     else
         plpbridge --verbose=$verbose --cable=$cable --boot-mode=$boot_mode $binary --chip=$TARGET_NAME load $ioloop $reqloop start wait &
     fi
     pid_bridge=$!
 else
-    while [ "$#" -gt 0 ]
-    do
-        case ${1} in
-            #Mode using the script
-            -s) script_filename="$(echo $2 | cut -d'@' -f2 )"
-                cp $here/$script_filename .
-                FLAG_SCRIPT=1
-                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=$boot_mode --binary=test --chip=$TARGET_NAME load $ioloop $reqloop start script --script=$2
-                ;;
-            #Mode using gdb
-            -gdb)
-                gdb=gdb
-                ;;
-            #Mode using flasher
-            -norun)
-                FLAG_NORUN=1
-                ;;
-            -noflash)
-                FLAG_NOFLASH=1
-                ;;
-            -f)
-                FLAG_FLASH=1
-                buildFlashImage="flashImageBuilder --verbose --flash-boot-binary=test --raw=flashImg.raw"
-                ;;
-            -ftdi)
-                cable=ftdi
-                ;;
-            -jtag)
-                boot_mode=jtag
-                ;;
-            -hyper)
-                ioloop=""
-                reqloop=""
-                binary=""
-                boot_mode=jtag_hyper
-                ;;
-            -fileIO)
-                if [ "$#" -gt 1 ]
-                then
-                    shift
-                    fileio=$1
-                else
-                    fileio=2
-                fi
-
-                ;;
-            *)
-                if [ "$FLAG_FLASH" -eq "1" ]
-                then
-                    buildFlashImage="$buildFlashImage --comp=$here/$1"
-                fi
-                ;;
-        esac
-        shift
-    done
-
     # Now we can produce the flash image, flash the file and reboot if necessary
     if [ -n "$GAP_USE_OPENOCD" ]; then
         if [ "$FLAG_FLASH" -eq "1" ]
         then
             if [ "$FLAG_NOFLASH" -eq "0" ]; then
-                eval $buildFlashImage
-                openocd-flasher flashImg.raw
+                if [ $flash_image ]
+                then
+                    echo "Flash image $flash_image"
+                    openocd-flasher "$flash_image"
+                else
+                    eval $buildFlashImage
+                    openocd-flasher flashImg.raw
+                fi
             fi
             if [ "$FLAG_NORUN" -eq "0" ]; then
                 openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start test elf'
@@ -122,8 +137,14 @@ else
     else
         if [ "$FLAG_FLASH" -eq "1" ]
         then
-            eval $buildFlashImage
-            plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=$TARGET_NAME flash wait
+            if [ $flash_image ]
+            then
+                echo "Flash image $flash_image"
+                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=$flash_image --chip=$TARGET_NAME flash wait
+            else
+                eval $buildFlashImage
+                plpbridge  --verbose=$verbose --cable=$cable --boot-mode=jtag --flash-image=flashImg.raw --chip=$TARGET_NAME flash wait
+            fi
         fi
         if [ "$FLAG_SCRIPT" -eq "0" ]
         then
@@ -132,6 +153,7 @@ else
         fi
     fi
 fi
+
 
 if [ -z "$GAP_USE_OPENOCD" ]; then
     if [ "$fileio" -gt 0 ]

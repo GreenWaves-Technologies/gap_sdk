@@ -29,7 +29,7 @@ class efuse : public vp::component
 
 public:
 
-  efuse(const char *config);
+  efuse(js::config *config);
 
   int build();
   void start();
@@ -54,7 +54,7 @@ private:
 
 
 
-efuse::efuse(const char *config)
+efuse::efuse(js::config *config)
 : vp::component(config)
 {
 
@@ -230,8 +230,12 @@ void efuse::start()
     }
     else
     {
-      if (fread(buffer, 1, this->nb_regs*8*2 + 10, file) == 0)
+      int size;
+
+      if ((size = fread(buffer, 1, this->nb_regs*8*2 + 10, file)) == 0)
         goto error;
+
+      buffer[size] = 0;
 
       char *str = strtok(buffer, " ");
       int index = 0;
@@ -258,7 +262,7 @@ error:
 
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new efuse(config);
+  return new efuse(config);
 }

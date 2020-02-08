@@ -146,13 +146,13 @@ INSTALL_TARGETS += $(TARGET_INSTALL_DIR)/lib/${pulp_chip}/lib$(PULP_LIB_NAME_rt)
 # CC RULES for domain: cluster
 #
 
-PULP_LIB_NAME_omp ?= omp
+PULP_LIB_NAME_omp ?= gomp
 
 PULP_CL_EXTRA_SRCS_omp = 
 PULP_CL_EXTRA_ASM_SRCS_omp = 
 PULP_CL_EXTRA_OMP_SRCS_omp = 
 
-omp_CL_OBJS =     $(patsubst %.cpp,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/%.o, $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/%.o, $(PULP_LIB_CL_SRCS_omp) $(PULP_CL_SRCS_omp) $(PULP_LIB_CL_SRCS) $(PULP_APP_SRCS) $(PULP_CL_EXTRA_SRCS_omp)))
+omp_CL_OBJS = $(patsubst %.cpp,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/%.o, $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/%.o, $(PULP_LIB_CL_SRCS_omp) $(PULP_CL_SRCS_omp) $(PULP_LIB_CL_SRCS) $(PULP_APP_SRCS) $(PULP_CL_EXTRA_SRCS_omp)))
 omp_CL_ASM_OBJS = $(patsubst %.S,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/%.o, $(PULP_LIB_CL_ASM_SRCS_omp) $(PULP_CL_ASM_SRCS_omp) $(PULP_LIB_CL_ASM_SRCS) $(PULP_APP_ASM_SRCS) $(PULP_CL_EXTRA_ASM_SRCS_omp))
 omp_CL_OMP_OBJS = $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_omp)/cl/omp/%.o, $(PULP_LIB_CL_OMP_SRCS_omp) $(PULP_CL_OMP_SRCS_omp) $(PULP_LIB_CL_OMP_SRCS) $(PULP_APP_OMP_SRCS) $(PULP_CL_EXTRA_OMP_SRCS_omp))
 

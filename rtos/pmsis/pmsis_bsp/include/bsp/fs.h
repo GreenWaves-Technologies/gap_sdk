@@ -17,6 +17,8 @@
 #ifndef __FS__FS__H__
 #define __FS__FS__H__
 
+#include "stdbool.h"
+
 #include "pmsis.h"
 
 /// @cond IMPLEM
@@ -53,7 +55,8 @@ typedef struct __pi_fs_api_t pi_fs_api_t;
  */
 typedef enum {
   PI_FS_READ_ONLY     = 0,    /*!< Read-only file system. */
-  PI_FS_HOST          = 1     /*!< Host file system. */
+  PI_FS_HOST          = 1,     /*!< Host file system. */
+  PI_FS_LFS           = 2,     /*!< LittleFS Filesystem. */
 } pi_fs_type_e;
 
 
@@ -80,7 +83,13 @@ struct pi_fs_conf {
   pi_fs_type_e type;        /*!< File-system type. */
   struct pi_device *flash;  /*!< Flash device. The flash device must be first
     opened and its device structure passed here. */
-  pi_fs_api_t *api;    /*!< Pointer to specific FS methods. Reserved for 
+  char *partition_name; /*!< useful if there are several partitions of this FS type.
+    By default this field is set to null, which allows to find the first partition compatible with this type of FS. */
+  bool auto_format;     /*!< Defined the behavior of the mount operation in case the file system could not be found in the partition.
+    if auto_format is set to false, An error is returned .
+    In the opposite case, if auto_format is set to true, the partition will be formated and ready to use.
+    Not available in ReadFS.  */
+  pi_fs_api_t *api;    /*!< Pointer to specific FS methods. Reserved for
     internal runtime usage. */
 };
 
@@ -551,46 +560,16 @@ extern pi_fs_api_t __pi_read_fs_api;
 extern pi_fs_api_t __pi_host_fs_api;
 
 typedef struct pi_fs_file_s {
-  unsigned int offset;
-  unsigned int size;
-  unsigned int addr;
-  unsigned int pending_addr;
   struct pi_device *fs;
-  pi_task_t *pending_event;
-  pi_task_t step_event;
-  unsigned int pending_buffer;
-  unsigned int pending_size;
-  unsigned char *cache;
-  unsigned int  cache_addr;
+  pi_fs_api_t *api;
+  void *data;
+  unsigned int size;
 } pi_fs_file_t;
 
 typedef enum {
   FS_MOUNT_FLASH_ERROR     = 1,     /*!< There was an error mounting the flash filesystem. */
   FS_MOUNT_MEM_ERROR       = 2      /*!< There was an error allocating memory when mounting the file-system. */
 } pi_fs_error_e;
-
-typedef struct pi_fs_l2_s
-{
-  uint32_t pi_fs_offset;
-  uint32_t reserved0;
-  uint32_t pi_fs_size;
-  uint32_t reserved1;
-} pi_fs_l2_t;
-
-typedef struct pi_fs_s
-{
-  struct pi_device *flash;
-  pi_task_t step_event;
-  pi_task_t *pending_event;
-  int mount_step;
-  int pi_fs_size;
-  pi_fs_l2_t *pi_fs_l2;
-  unsigned int *pi_fs_info;
-  int nb_comps;
-  //rt_mutex_t mutex;
-  pi_task_t event;
-  int error;
-} pi_fs_t;
 
 
 typedef struct pi_cl_fs_req_s

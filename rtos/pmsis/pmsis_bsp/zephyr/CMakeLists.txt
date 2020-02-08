@@ -6,6 +6,9 @@ zephyr_sources(
   ../display/display.c
   ../display/ili9341/ili9341.c
   ../fs/read_fs/read_fs.c
+  ../fs/fs.c
+  ../fs/host_fs/host_fs.c
+  ../fs/host_fs/semihost.c
   ../flash/flash.c
   ../flash/hyperflash/hyperflash.c
   ../ram/ram.c

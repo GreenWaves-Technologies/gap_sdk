@@ -28,7 +28,7 @@ class interleaver : public vp::component
 
 public:
 
-  interleaver(const char *config);
+  interleaver(js::config *config);
 
   int build();
 
@@ -54,7 +54,7 @@ private:
   uint64_t remove_offset;
 };
 
-interleaver::interleaver(const char *config)
+interleaver::interleaver(js::config *config)
 : vp::component(config)
 {
 
@@ -138,6 +138,11 @@ int interleaver::build()
   interleaving_bits = get_config_int("interleaving_bits");
   remove_offset = get_config_int("remove_offset");
 
+  if (stage_bits == 0)
+  {
+    stage_bits = log2(nb_slaves);
+  }
+
   offset_mask = -1;
   offset_mask &= ~((1 << (interleaving_bits + stage_bits)) - 1);
 
@@ -160,9 +165,9 @@ int interleaver::build()
   return 0;
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new interleaver(config);
+  return new interleaver(config);
 }
 
 

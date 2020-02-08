@@ -43,6 +43,7 @@
 
   "openocd": {
     "config": {
+      "cable": "interface/ftdi/gapuino_ftdi.cfg",
       "board": "target/gap8.tcl"
     }
   },

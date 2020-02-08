@@ -16,10 +16,12 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "bsp/wolfe.h"
 #include "bsp/camera/himax.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/ram/hyperram.h"
+#include "bsp/ram/spiram.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -63,6 +65,39 @@ int bsp_hyperflash_open(struct pi_hyperflash_conf *conf)
 }
 
 
+void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
+{
+  conf->size = CONFIG_SPIFLASH_SIZE;
+  // sector size is in number of KB
+  conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
+  conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
+  // try to reach max freq on gapoc_a
+  conf->baudrate = 50*1000000;
+}
+
+int bsp_spiflash_open(struct pi_spiflash_conf *conf)
+{
+  return 0;
+}
+
+
+
+void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
+{
+  conf->ram_start = CONFIG_SPIRAM_START;
+  conf->ram_size = CONFIG_SPIRAM_SIZE;
+  conf->skip_pads_config = 0;
+  conf->spi_itf = CONFIG_SPIRAM_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
+}
+
+int bsp_spiram_open(struct pi_spiram_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
+}
+
 
 void bsp_himax_conf_init(struct pi_himax_conf *conf)
 {
@@ -82,3 +117,15 @@ void bsp_init()
 {
 }
 
+
+
+void pi_bsp_init_profile(int profile)
+{
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+}

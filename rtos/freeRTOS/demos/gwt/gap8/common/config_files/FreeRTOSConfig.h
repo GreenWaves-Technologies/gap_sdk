@@ -59,8 +59,8 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
  */
 //#define malloc                                    ( pmsis_malloc )
 //#define free                                      ( pmsis_malloc_free )
-#define pvPortMalloc                              ( pmsis_malloc )
-#define vPortFree                                 ( pmsis_malloc_free )
+#define pvPortMalloc                              ( pi_malloc )
+#define vPortFree                                 ( pi_free )
 
 /* Thread local storage. */
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS   ( 0 )
@@ -81,6 +81,9 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #endif
 #define configUSE_TIME_SLICING                    ( 1 )
 
+/* Time slice. Quantum a task can execute on CPU. */
+#define configPREEMPTION_QUANTUM                  ( 50 )
+
 #define configIDLE_SHOULD_YIELD                   ( 1 )
 #define configUSE_IDLE_HOOK                       ( 1 )
 #define configUSE_TICK_HOOK                       ( 0 )
@@ -90,6 +93,7 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #define configTICK_RATE_HZ                        ( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES                      ( 3 )
 #define configMINIMAL_STACK_SIZE                  ( ( uint16_t ) ( 128 ) )
+#define configSTACK_DEPTH_TYPE                    uint32_t
 
 #define configMAX_TASK_NAME_LEN                   ( 16 )
 #define configUSE_TRACE_FACILITY                  ( 1 )

@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from collections import namedtuple
 
@@ -15,19 +20,68 @@ from collections import namedtuple
 # int ReluN;		/* if != -1 Overides 6 as a default value for ReLUN */
 # int MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
 
-GenCtrl = namedtuple('GenCtrl', [
-    "TileOrientation",
-    "ParallelFeatures",
-    "ForceDPConv",
-    "UseHwCE",
-    "PadType",
-    "EnableIm2Col",
-    "ReluN",
-    "MulBiasScalar"
-])
+from utils.option_list import OptionList
 
-def get_default_gen_ctrl():
-    return GenCtrl(0, 0, 0, 0, 0, 0, -1, -1)
+
+CTRL_FEATURES = {
+    "TILEORIENTATION": int,
+    "PARALLELFEATURES": int,
+    "FORCEDPCONV": int,
+    "USEHWCE": int,
+    "PADTYPE": int,
+    "ENABLEIM2COL": int,
+    "RELUN": int,
+    "MULBIASSCALAR": int,
+    "RELUNNONORM": int
+}
+
+
+class GenCtrl(OptionList):
+    PREFIX = "gen_ctrl_"
+
+    def __init__(self, options, *args, cname=None, **kwargs):
+        super(GenCtrl, self).__init__(*args, valid_options=CTRL_FEATURES, **kwargs)
+        if options is not None:
+            self.extend(options, name_filter=lambda name: name in CTRL_FEATURES)
+        self._cname = cname
+
+    @property
+    def is_unmodified(self):
+        return len(self) == 0
+
+    @property
+    def set_features(self):
+        return self.set_options
+
+    @property
+    def prefixed_cname(self):
+        return self.PREFIX + self._cname
+
+    @property
+    def ctrl_name(self):
+        if self.is_unmodified:
+            return "0"
+
+        return "&{}".format(self.prefixed_cname)
+
+    @property
+    def cname(self):
+        return self._cname
+
+    @cname.setter
+    def cname(self, val):
+        self._cname = val
+
+    def gen_ctrl_decl(self, code_block):
+        code_block.write('CNN_GenControl_T {};', self.prefixed_cname)
+        code_block.write('CNN_InitGenCtrl({});', self.ctrl_name)
+        for name, val in self._options.items():
+            if self.valid_options[name] == int:
+                code_block.write('CNN_SetGenCtrl({}, "{}", (void *){});',
+                                 self.ctrl_name, name.upper(), val)
+            else:
+                raise NotImplementedError()
+
 
 # ConvOper:       Type of convolution, Regular convolution: KOP_CONV,
 #                 Regular convolution with double precision output: KOP_CONV_DP,
@@ -113,4 +167,14 @@ LinearATParam = namedtuple('LinearATParam', [
 
 SoftMaxATParam = namedtuple('SoftMaxATParam', [
     "SoftMaxOper"
+])
+
+MatrixAddATParam = namedtuple('MatrixAddATParam', [
+    "MatrixAddOper"
+])
+
+TwoDTransposeATParam = namedtuple('TwoDTransposeATParam', [
+    'TwoDTransposeOper',
+    "Width",
+    "Height"
 ])

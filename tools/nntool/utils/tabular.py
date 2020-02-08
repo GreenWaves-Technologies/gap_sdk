@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from abc import ABC, abstractmethod
 
@@ -19,6 +24,10 @@ class Fmt:
     def __init__(self, fmt, extra_types=None):
         '''Pull apart the format [[fill]align][0][width][.precision][type]
         '''
+        if callable(fmt):
+            self._fmt = fmt
+            return
+
         self._fill = self._align = ""
         if fmt[0] in '<>=^':
             self._align = fmt[0]
@@ -79,13 +88,17 @@ class Fmt:
         return self._fmt
 
     def apply(self, elem):
+        if callable(self._fmt):
+            return self._fmt(elem)
+        if elem is None:
+            return ""
         return ("{:"+str(self)+"}").format(elem)
 
     def applyfn(self):
         def format_fn(elem):
             if str(elem) == "":
                 return elem
-            return ("{:"+str(self)+"}").format(elem)
+            return self.apply(elem)
         return format_fn
 
     def __str__(self):

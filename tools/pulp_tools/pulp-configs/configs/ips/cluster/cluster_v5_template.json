@@ -2,6 +2,7 @@
   "version": 5,
   "nb_pe": 8,
   "vp_class": "pulp/cluster/cluster",
+  "vp_component":  "utils.composite_impl",
   "vp_comps": [
     "cluster_ico",
     "demux_periph_ico",

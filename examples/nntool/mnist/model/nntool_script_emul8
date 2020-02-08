@@ -1,7 +1,12 @@
 adjust
-fusions
-aquant -f 8 images/* -D 255 -O 0
+# fusions
+set input_norm_func "x: (x>>1)/128"
+set input_divisor 1
+set input_offset 0
+aquant -f 8 images/*
 set dump_tensors 1
-qtune 1 dp
-qtune 2 dp
+set graph_reorder_constant_in 1
+set graph_produce_node_names 1
+set graph_produce_operinfos 1
+set graph_monitor_cycles 1
 save_state

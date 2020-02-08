@@ -131,6 +131,7 @@ typedef void (*rt_error_callback_t)(void *arg, rt_event_t *event, int error, voi
 #define RT_L1_DATA RT_L1_GLOBAL_DATA
 #define L1_DATA RT_L1_DATA
 #define PI_L1 RT_L1_DATA
+#define PI_CL_L1 RT_L1_DATA
 
 #if (defined(ARCHI_HAS_FC_TCDM) || defined(ARCHI_HAS_L2_ALIAS)) && !defined(__LLVM__) && !defined(RV_ISA_RV32)
 #define RT_FC_TINY_DATA __attribute__((section(".data_tiny_fc"))) __attribute__ ((tiny))
@@ -141,7 +142,6 @@ typedef void (*rt_error_callback_t)(void *arg, rt_event_t *event, int error, voi
 #define RT_FC_GLOBAL_DATA __attribute__((section(".data_fc")))
 
 #define RT_FC_SHARED_DATA __attribute__((section(".data_fc")))
-#define FC_L1_MEM RT_FC_GLOBAL_DATA
 
 #define RT_L2_DATA __attribute__((section(".l2_data")))
 #define L2_DATA RT_L2_DATA
@@ -150,6 +150,7 @@ typedef void (*rt_error_callback_t)(void *arg, rt_event_t *event, int error, voi
 #define RT_L2_RET_DATA __attribute__((section(".l2_data")))
 
 #define RT_FC_DATA RT_FC_GLOBAL_DATA
+#define PI_FC_L1 RT_FC_DATA
 
 #ifdef __RT_CLUSTER_START
 #define RT_LOCAL_DATA RT_L1_GLOBAL_DATA

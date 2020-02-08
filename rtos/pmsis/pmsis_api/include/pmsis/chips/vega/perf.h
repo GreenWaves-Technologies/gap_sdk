@@ -35,6 +35,9 @@
 /**        
  * @defgroup VEGA_INFO VEGA information
  *
+ * The closest memory for the FC is the L2 memory and is referred in the API as
+ * the FC L1 memory.
+ *  
  * All functions transfering data between an external device and a chip memory
  * must use the L2 memory for the chip memory.
  *

@@ -1,11 +1,16 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
-
-from graph.types import FusionParameters
 from quantization.qtype import QType
+from quantization.simple_auto_quantify import SimpleQuantizer
 from utils.node_id import NodeId
 from utils.stats_funcs import STATS_BITS
 
@@ -20,27 +25,17 @@ def get_qtype(qparam1, qparam2):
         raise TuneError("bit width is not valid")
     return QType(STATS_BITS[bits_idx], qparam2, True)
 
-def tuneq(G, qrecs, step_num, param, qparam1, qparam2):
+def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
     step = G.graph_state.steps[step_num]
     node = step['node']
     if param == 'dp':
-        if isinstance(node, FusionParameters):
-            for filt in node.contained_filters():
-                qrec = qrecs[NodeId(node, filt)]
-                qrec.acc_q = qrec.calc_q.clone()
-        else:
-            qrec = qrecs[NodeId(node, None)]
-            if not hasattr(qrec, 'calc_q') or not hasattr(qrec, 'acc_q'):
-                raise TuneError("you cannot set double precision on this operation")
-            qrec.acc_q = qrec.calc_q.clone()
-    elif param in ['+', '-']:
-        pass
-        # TODO - Implement
-        # Increase or decrease precision of layer and set input to next layers at that precision
-        # handle propagation of too high Q for next layers
+        raise ValueError("dp is deprecated. all layers are now double precision.")
+
+    qrec = qrecs[NodeId(node, None)]
+    if param == "out":
+        qtype = get_qtype(qparam1, qparam2)
+        SimpleQuantizer.propagate(G, qrecs, node, qtype)
     else:
-        qrec = qrecs[NodeId(node, None)]
         if not hasattr(qrec, param + '_q'):
             raise TuneError("parameter " + param + " not found")
         setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
-        # TODO - validate this more

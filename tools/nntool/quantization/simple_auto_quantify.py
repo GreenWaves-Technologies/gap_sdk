@@ -1,39 +1,75 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
-
-import math
-
+import logging
 from collections import OrderedDict
 
 from graph.nngraph import NNGraph
-from graph.types import (Conv2DParameters, FcParameters, FusionParameters,
-                         InputParameters, Parameters, SoftMaxParameters)
-from utils.node_id import NodeId
-from utils.stats_funcs import STATS_BITS, bits, closest_greater
+from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
+                         FusionParameters, InputParameters,
+                         MatrixAddParameters, Parameters, SoftMaxParameters)
+from utils.json_serializable import JsonSerializable
+from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
+from utils.stats_funcs import STATS_BITS, bits
 
 from .qtype import QType
 from .quantization_record import FilterQuantizationRecord, QuantizationRecord
 from .quantizer import Quantizer
 
+LOG = logging.getLogger('nntool.' + __name__)
 
-class SimpleQuantizer(Quantizer):
+
+class SimpleQuantizer(Quantizer, JsonSerializable):
     def __init__(self, activation_stats, filter_stats, min_qsnr=None, force_width=None):
         self._activation_stats = activation_stats
         self._filter_stats = filter_stats
         self._min_qsnr = min_qsnr
         self._force_width = force_width
 
+    # for tests
+    def __eq__(self, value):
+        return self._activation_stats == value._activation_stats and \
+            self._filter_stats == value._filter_stats and self._min_qsnr == value._min_qsnr and \
+            self._force_width == value._force_width
+
+    def _encapsulate(self):
+        return {
+            'activation_stats': convert_keys_to_str(self._activation_stats),
+            'filter_stats': convert_keys_to_str(self._filter_stats),
+            'min_qsnr': self._min_qsnr,
+            'force_width': self._force_width
+        }
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        return SimpleQuantizer(convert_str_to_keys(val['activation_stats']),
+                               convert_str_to_keys(val['filter_stats']),
+                               val['min_qsnr'],
+                               val['force_width'])
+
     # pylint: disable=too-many-locals
-    def calculate_filter_q(self, node: Parameters, astats, fstats,
-                           in_q: QType, min_qsnr, force_width,
-                           acc_as_calc=False, bias_as_out=True):
-        fstats = node.stats
+    def calculate_filter_q(self,
+                           node: Parameters,
+                           astats,
+                           fstats,
+                           in_q: QType,
+                           min_qsnr=None,
+                           force_width=None,
+                           force_out=None,
+                           out_as_acc=False,
+                           biases_bits_as_acc=False):
+
         w_q = self.get_quantization(fstats['weights'], min_qsnr, force_width)
-        o_q = self.get_quantization(astats, min_qsnr, force_width)
-        calc_width = closest_greater(in_q.bits + w_q.bits)
+
+        calc_width = 32
         calc_q = in_q.q + w_q.q
 
         acc_bits = bits(astats['max_acc'], astats['min_acc'])
@@ -49,42 +85,102 @@ class SimpleQuantizer(Quantizer):
             assert w_q.q >= missing_bits, "no space in weights to reduce precision"
             w_q.q = w_q.q - missing_bits
             calc_q = in_q.q + w_q.q
+            calc_int_bits = calc_width - calc_q
 
-        c_q = QType(bits=calc_width, q=calc_q, signed=True)
+        c_q = acc_q = QType(bits=calc_width, q=calc_q, signed=True)
 
-        if 'biases' in fstats:
-            if force_width:
-                # if we are forcing width then match the output size which might
-                # have been promoted if the activation didn't fit
-                b_q = self.get_quantization(fstats['biases'], min_qsnr, o_q.bits)
-            else:
+        if out_as_acc:
+            o_q = c_q
+            if 'biases' in fstats:
                 b_q = self.get_quantization(fstats['biases'], min_qsnr, force_width)
-            if bias_as_out:
-                o_q.q = min(b_q.q, o_q.q)
-                b_q.q = o_q.q
         else:
-            b_q = o_q.q
+            # The output size is requested to be force_out_width size
+            if force_out and force_out.bits:
+                # The output fixed point position is also forced
+                if force_out.q:
+                    if (force_out.bits - force_out.q) < act_acc_bits:
+                        # clipping so cannot completely satisfy
+                        o_q = QType(bits=force_out.bits,
+                                    q=force_out.bits - act_acc_bits,
+                                    signed=True)
+                    else:
+                        if force_out.q > calc_q:
+                            # We cannot shift left in the kernel
+                            # TODO - This should try to increase the input q
+                            # Unlikely to happen
+                            raise NotImplementedError()
+                        # We can satisfy the force
+                        o_q = QType(bits=force_out.bits,
+                                    q=force_out.q,
+                                    signed=True)
+                else:
+                    # Only the width is forced
+                    o_q = self.get_quantization(astats, None, force_out.bits)
+            else:
+                # The output width is not forced so calculate the output q normally
+                o_q = self.get_quantization(astats, min_qsnr, force_width)
+                if force_out and force_out.q:
+                    # The output fixed point position is forced
+                    if force_out.q > calc_q:
+                        # We cannot shift left in the kernel
+                        # TODO - This should try to increase the input q
+                        # Unlikely to happen
+                        raise NotImplementedError()
+                    o_q.q = force_out.q
 
-        if acc_as_calc or acc_bits > o_q.bits - o_q.q:
-            acc_q = c_q
-        else:
-            acc_q = o_q
+            if 'biases' in fstats:
+                if biases_bits_as_acc:
+                    b_q = self.get_quantization(fstats['biases'], None, calc_width)
+                else:
+                    # if we are forcing width then match the output size which might
+                    # have been promoted if the activation didn't fit
+                    b_q = self.get_quantization(fstats['biases'], None, o_q.bits)
+            else:
+                b_q = o_q
+            # make sure that the biases are not stored more precisily than the accumulator. It's pointless and will
+            # cause a negative shift
+            if b_q.q > acc_q.q:
+                b_q.q = acc_q.q 
 
-        norm = c_q.q - o_q.q
-
-        node.quantization = {"input_q": in_q, "weights_q": w_q,
-                             "biases_q": b_q, "norm": norm, "calc_q": c_q,
-                             "acc_q": acc_q}
-        return FilterQuantizationRecord(in_qs=[in_q], out_qs=[o_q], calc_q=c_q,
+        # node.quantization = {"input_q": in_q, "weights_q": w_q,
+        #                      "biases_q": b_q, "norm": norm, "calc_q": c_q,
+        #                      "acc_q": acc_q}
+        qrec = FilterQuantizationRecord(in_qs=[in_q], out_qs=[o_q], calc_q=c_q,
                                         acc_q=acc_q, biases_q=b_q, weights_q=w_q)
+        LOG.debug("filter %s qrec %s", node.name, qrec)
+        return qrec
+
+    # pylint: disable=too-many-locals
+    def calculate_output_q(self,
+                           node: Parameters,
+                           astats,
+                           in_qs,
+                           min_qsnr=None,
+                           force_width=None,
+                           force_out=None):
+        del node
+        if force_out:
+            if force_out.bits:
+                if force_out.q:
+                    o_q = QType(bits=force_out.bits,
+                                q=force_out.q,
+                                signed=True)
+                else:
+                    o_q = self.get_quantization(astats, None, force_out.bits)
+            elif force_out.q:
+                o_q = self.get_quantization(astats, min_qsnr, force_width)
+                o_q.q = force_out.q
+        else:
+            o_q = self.get_quantization(astats, min_qsnr, force_width)
+        return QuantizationRecord(in_qs=in_qs,
+                                  out_qs=[o_q])
 
     @staticmethod
     def get_quantization(stats, min_qsnr, force_width):
         qstats = stats['qstats']
         if force_width is not None:
-            act_bits = max(closest_greater(stats['ibits']), force_width)
-            return QType(bits=act_bits,
-                         q=qstats[act_bits]['q'],
+            return QType(bits=force_width,
+                         q=qstats[force_width]['q'],
                          signed=True)
         for width in STATS_BITS:
             if qstats[width]['qsnr'] > min_qsnr:
@@ -93,46 +189,281 @@ class SimpleQuantizer(Quantizer):
                              signed=True)
         raise ValueError("no solution for this QSNR could be found")
 
-    def calculate_q(self, node, astats, fstats, in_qs, min_qsnr, force_width):
-        if isinstance(node, InputParameters):
-            qreq = QuantizationRecord(in_qs=in_qs,
-                                      out_qs=[self.get_quantization(astats, min_qsnr, force_width)])
+    def calculate_q(self,
+                    node,
+                    astats,
+                    fstats,
+                    in_qs,
+                    min_qsnr,
+                    force_width,
+                    force_out=None):
+
+        if isinstance(node, (InputParameters, MatrixAddParameters)):
+            qrec = self.calculate_output_q(node,
+                                           astats,
+                                           in_qs,
+                                           min_qsnr=min_qsnr,
+                                           force_width=force_width,
+                                           force_out=force_out)
         elif isinstance(node, Conv2DParameters):
-            qreq = self.calculate_filter_q(node, astats, fstats, in_qs[0], min_qsnr, force_width)
+            qrec = self.calculate_filter_q(node,
+                                           astats,
+                                           fstats,
+                                           in_q=in_qs[0],
+                                           min_qsnr=min_qsnr,
+                                           force_width=force_width,
+                                           force_out=force_out,
+                                           biases_bits_as_acc=False)
         elif isinstance(node, FcParameters):
-            qreq = self.calculate_filter_q(node, astats, fstats, in_qs[0], min_qsnr, force_width,
-                                           acc_as_calc=True)
-             # TODO - put back when fixed, bias_as_out=False)
+            qrec = self.calculate_filter_q(node,
+                                           astats,
+                                           fstats,
+                                           in_q=in_qs[0],
+                                           min_qsnr=min_qsnr,
+                                           force_width=force_width,
+                                           force_out=force_out,
+                                           biases_bits_as_acc=False)
         elif isinstance(node, SoftMaxParameters):
             # softmax always outputs Q15
-            qreq = QuantizationRecord(in_qs=in_qs, out_qs=[QType(16, 15, True)])
+            qrec = QuantizationRecord(in_qs=in_qs, out_qs=[QType(16, 15, True)])
         else:
-            qreq = QuantizationRecord(in_qs=in_qs, out_qs=in_qs)
-        return qreq
+            qrec = QuantizationRecord(in_qs=in_qs, out_qs=in_qs)
+        return qrec
 
-    def quantize(self, G: NNGraph) -> OrderedDict:
-        edge_recs = {}
+    def default_quantize_fusion(self,
+                                G: NNGraph,
+                                node: FusionParameters,
+                                in_qs,
+                                force_out=None) -> QuantizationRecord:
+        del G
         result = OrderedDict()
-        for step in G.graph_state.steps:
-            node = step['node']
-            if isinstance(node, InputParameters):
-                in_qs = []
+        fin_qs = in_qs
+        for fnode in node.contained_nodes():
+            qrec = self.calculate_q(
+                fnode,
+                self._activation_stats.get(NodeId(node, fnode)),
+                self._filter_stats.get(NodeId(node, fnode)),
+                fin_qs,
+                self._min_qsnr,
+                self._force_width,
+                force_out=force_out)
+            result[NodeId(node, fnode)] = qrec
+            fin_qs = qrec.out_qs
+        return QuantizationRecord(in_qs=in_qs, out_qs=fin_qs), result
+
+    def quantize_fusion(self,
+                        G: NNGraph,
+                        node: FusionParameters,
+                        in_qs,
+                        force_out=None) -> QuantizationRecord:
+        if node.fusion_type == 'conv_active':
+            result = OrderedDict()
+            nodes = node.contained_nodes()
+            conv_node = nodes[0]
+            conv_astats = self._activation_stats.get(NodeId(node, conv_node))
+            conv_qrec = self.calculate_filter_q(node,
+                                                conv_astats,
+                                                self._filter_stats.get(NodeId(node, conv_node)),
+                                                in_q=in_qs[0],
+                                                min_qsnr=self._min_qsnr,
+                                                force_width=self._force_width,
+                                                biases_bits_as_acc=False,
+                                                out_as_acc=True)
+            result[NodeId(node, conv_node)] = conv_qrec
+            act_node = nodes[1]
+            act_astats = self._activation_stats.get(NodeId(node, act_node))
+            if force_out and force_out.bits:
+                if force_out.q:
+                    if force_out.q > conv_qrec.out_qs[0].q:
+                        # We cannot shift left in the kernel
+                        # TODO - This should try to increase the input q and perhaps the width
+                        # Unlikely to happen
+                        raise NotImplementedError()
+                    act_o_q = QType(bits=force_out.bits,
+                                    q=force_out.q,
+                                    signed=True)
+                else:
+                    act_o_q = self.get_quantization(act_astats,
+                                                    None,
+                                                    force_out.bits)
             else:
-                in_qs = [edge_recs[edge.params]
-                         for edge in G.indexed_in_edges(node.name)]
+                act_o_q = self.get_quantization(act_astats,
+                                                self._min_qsnr,
+                                                self._force_width)
+                # check that the output q is less than or equal to the filter output q
+                act_o_q.q = min(act_o_q.q, conv_qrec.out_qs[0].q)
+                if force_out and force_out.q:
+                    if force_out.q > conv_qrec.out_qs[0].q:
+                        # We cannot shift left in the kernel
+                        # TODO - This should try to increase the input q and perhaps the width
+                        # Unlikely to happen
+                        raise NotImplementedError()
+                    act_o_q.q = force_out.q
+            act_qrec = QuantizationRecord(in_qs=conv_qrec.out_qs,
+                                          out_qs=[act_o_q])
+            result[NodeId(node, act_node)] = act_qrec
+            return QuantizationRecord(in_qs=in_qs, out_qs=act_qrec.out_qs), result
+        else:
+            return self.default_quantize_fusion(G, node, in_qs)
+
+    @staticmethod
+    def get_in_qs(G, edge_recs, node):
+        if isinstance(node, InputParameters):
+            in_qs = []
+        else:
+            in_qs = [edge_recs[edge.params]
+                     for edge in G.indexed_in_edges(node.name)]
+        return in_qs
+
+    @staticmethod
+    def is_filter_node(node):
+        conv_fusion_types = set(['conv_active_pool',
+                                 'conv_pool_active',
+                                 'conv_active',
+                                 'conv_pool'])
+        return (isinstance(node, FusionParameters) and node.fusion_type in conv_fusion_types) or\
+            isinstance(node, (Conv2DParameters, FcParameters))
+
+    @staticmethod
+    def satisfied(x, y):
+        return x is None or x == y
+
+    def satisfied_force(self, force_out, o_q):
+        return not force_out or\
+            (self.satisfied(force_out.q, o_q.q) and self.satisfied(force_out.bits, o_q.bits))
+
+    def quantize_backward(self,
+                          G: NNGraph,
+                          result,
+                          edge_recs,
+                          node,
+                          force_out=None):
+
+        LOG.debug("quantize backwards %s", node.name)
+        recalculated = False
+        while True:
+            in_qs = self.get_in_qs(G, edge_recs, node)
+            if self.is_filter_node(node):
+                if isinstance(node, FusionParameters):
+                    qrec, qrecs = self.quantize_fusion(G,
+                                                       node,
+                                                       in_qs,
+                                                       force_out=force_out)
+                    for node_id, fqrec in qrecs.items():
+                        result[node_id] = fqrec
+                else:
+                    qrec = self.calculate_q(node,
+                                            self._activation_stats.get(NodeId(node, None)),
+                                            self._filter_stats.get(NodeId(node, None)),
+                                            in_qs,
+                                            self._min_qsnr,
+                                            self._force_width,
+                                            force_out=force_out)
+
+                if force_out and force_out.q is not None and qrec.out_qs[0].q < force_out.q:
+                    if recalculated:
+                        raise NotImplementedError("no quantization solution found")
+                    bits_to_gain = force_out.q - qrec.q
+                    if bits_to_gain > in_qs[0].q:
+                        raise NotImplementedError()
+                    # Try to adjust the inputs to satisfy and then
+                    # recalculate
+                    pnode = G.in_edges(node.name)[0].from_node
+                    self.quantize_backward(G,
+                                           result,
+                                           edge_recs,
+                                           pnode,
+                                           force_out=QType(bits=force_out.bits,
+                                                           q=in_qs[0].q - bits_to_gain,
+                                                           signed=True))
+            elif isinstance(node, ConcatParameters):
+                assert not recalculated
+                max_width = max(in_q.bits for in_q in in_qs)
+                min_q = min(in_q.q for in_q in in_qs)
+                if force_out:
+                    if not self.satisfied(force_out.bits, max_width):
+                        max_width = force_out.bits
+                    if not self.satisfied(force_out.q, min_q):
+                        min_q = force_out.q
+                LOG.debug("normalizing concat to %s", QType(bits=max_width, q=min_q, signed=True))
+                for pidx, pnode in enumerate([edge.from_node for edge in G.in_edges(node.name)]):
+                    pqrec = in_qs[pidx]
+                    if pqrec.q != min_q or pqrec.bits != max_width:
+                        self.quantize_backward(G,
+                                               result,
+                                               edge_recs,
+                                               pnode,
+                                               force_out=QType(bits=max_width,
+                                                               q=min_q,
+                                                               signed=True))
+                o_q = QType(bits=max_width,
+                            q=min_q,
+                            signed=True)
+                qrec = QuantizationRecord(in_qs=self.get_in_qs(G, edge_recs, node), out_qs=[o_q])
+            elif isinstance(node, SoftMaxParameters):
+                raise NotImplementedError("softmax kernel cannot change width or q")
+            else:
+                if isinstance(node, FusionParameters):
+                    qrec, qrecs = self.quantize_fusion(G,
+                                                       node,
+                                                       in_qs,
+                                                       force_out=force_out)
+                    for node_id, fqrec in qrecs.items():
+                        result[node_id] = fqrec
+                else:
+                    qrec = self.calculate_q(node,
+                                            self._activation_stats.get(NodeId(node, None)),
+                                            self._filter_stats.get(NodeId(node, None)),
+                                            in_qs,
+                                            self._min_qsnr,
+                                            self._force_width,
+                                            force_out=force_out)
+                o_q = qrec.out_qs[0]
+                if not(self.satisfied(force_out.q, o_q.q) and
+                       self.satisfied(force_out.bits, o_q.bits)):
+                    if recalculated:
+                        raise NotImplementedError("no quantization solution found")
+                    if len(G.in_edges(node.name)) > 1:
+                        raise NotImplementedError("Nodes with multiple input edges \
+                            need custom handling")
+                    pnode = G.in_edges(node.name)[0].from_node
+                    self.quantize_backward(G,
+                                           result,
+                                           edge_recs,
+                                           pnode,
+                                           force_out=force_out)
+
+            for edges in G.indexed_out_edges(node.name):
+                for edge in edges:
+                    edge_recs[edge.params] = qrec.out_qs[edge.from_idx]
+
+            result[NodeId(node, None)] = qrec
+
+            o_q = qrec.out_qs[0]
+            if self.satisfied_force(force_out, o_q):
+                break
+            if recalculated:
+                raise NotImplementedError("no quantization solution found")
+            LOG.debug("recalculate %s", node.name)
+            recalculated = True
+        LOG.debug("back complete %s %s", node.name, qrec)
+        return qrec
+
+    def quantize_forward(self, G: NNGraph, edge_recs, result=None):
+        if result is None:
+            result = OrderedDict()
+        for node in [step['node'] for step in G.graph_state.steps]:
+            LOG.debug("quantize forward %s", node.name)
+            in_qs = self.get_in_qs(G, edge_recs, node)
             if isinstance(node, FusionParameters):
-                fin_qs = in_qs
-                for fnode in node.contained_nodes():
-                    qrec = self.calculate_q(
-                        fnode,
-                        self._activation_stats.get(NodeId(node, fnode)),
-                        self._filter_stats.get(NodeId(node, fnode)),
-                        fin_qs,
-                        self._min_qsnr,
-                        self._force_width)
-                    result[NodeId(node, fnode)] = qrec
-                    fin_qs = qrec.out_qs
-                qrec = QuantizationRecord(in_qs=in_qs, out_qs=fin_qs)
+                qrec, qrecs = self.quantize_fusion(G, node, in_qs)
+                for node_id, fqrec in qrecs.items():
+                    result[node_id] = fqrec
+            elif isinstance(node, ConcatParameters):
+                qrec = self.quantize_backward(G,
+                                              result,
+                                              edge_recs,
+                                              node)
             else:
                 qrec = self.calculate_q(
                     node,
@@ -149,3 +480,71 @@ class SimpleQuantizer(Quantizer):
                 for edge in edges:
                     edge_recs[edge.params] = qrec.out_qs[edge.from_idx]
         return result
+
+    @staticmethod
+    def initialize_edge_recs(G: NNGraph, qrecs):
+        '''Initialize edge rec dictionary to current quantization settings'''
+        edge_recs = {}
+        for node in [step['node'] for step in G.graph_state.steps]:
+            nodeid = NodeId(node)
+            qrec = qrecs[nodeid]
+            for edges in G.indexed_out_edges(node.name):
+                for edge in edges:
+                    edge_recs[edge.params] = qrec.out_qs[edge.from_idx]
+        return edge_recs
+
+    def propagate_forward(self, G: NNGraph, edge_recs, start_node, new_out_qrec, result):
+        '''Propagate a new output qrec at node start_node in the graph'''
+        found_node = False
+        for node in [step['node'] for step in G.graph_state.steps]:
+            if found_node:
+                LOG.debug("propagate forwards %s", node.name)
+                in_qs = self.get_in_qs(G, edge_recs, node)
+                if isinstance(node, FusionParameters):
+                    qrec, qrecs = self.quantize_fusion(G, node, in_qs)
+                    for node_id, fqrec in qrecs.items():
+                        result[node_id] = fqrec
+                elif isinstance(node, ConcatParameters):
+                    qrec = self.quantize_backward(G,
+                                                  result,
+                                                  edge_recs,
+                                                  node)
+                else:
+                    qrec = self.calculate_q(
+                        node,
+                        self._activation_stats.get(NodeId(node, None)),
+                        self._filter_stats.get(NodeId(node, None)),
+                        in_qs,
+                        self._min_qsnr,
+                        self._force_width)
+            else:
+                if node == start_node:
+                    found_node = True
+                    qrec = self.quantize_backward(G,
+                                                  result,
+                                                  edge_recs,
+                                                  node,
+                                                  force_out=new_out_qrec)
+                else:
+                    continue
+
+            result[NodeId(node, None)] = qrec
+            if not qrec:
+                break
+
+            for edges in G.indexed_out_edges(node.name):
+                for edge in edges:
+                    edge_recs[edge.params] = qrec.out_qs[edge.from_idx]
+
+    def quantize(self, G: NNGraph) -> OrderedDict:
+        '''quantize the graph'''
+        edge_recs = {}
+        qrecs = self.quantize_forward(G, edge_recs)
+        qrecs['__quantizer'] = self
+        return qrecs
+
+    @classmethod
+    def propagate(cls, G: NNGraph, current_qrecs, start_node, new_out_qrec) -> OrderedDict:
+        '''propagate new quantization record new_out_qrec at start node through the graph'''
+        edge_recs = cls.initialize_edge_recs(G, current_qrecs)
+        return current_qrecs['__quantizer'].propagate_forward(G, edge_recs, start_node, new_out_qrec, current_qrecs)

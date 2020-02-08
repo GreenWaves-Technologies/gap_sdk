@@ -97,5 +97,14 @@ make clean all run
 
 If you want to build the KWS or ALEXA  application, just uncomment the relevant MBED_FLAG line in the Makefile.
 
+## measurement of the correct detection ratio on the reference test set
+
+An iterative test is available. It loads .wav waveforms from the dataset converts to an .h file and runs the kws program on GAP8.A partial dataset is available in "reduced_test_set" directory
+
+It measures the number of correct detections over a reduced set of data.
+
+to run the test, do:
+
+> source ./test.sh  ./reduced_test_set/testing_list_small_small.txt 0
 
 ~~~~~

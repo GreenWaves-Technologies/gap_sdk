@@ -89,8 +89,6 @@ int main(int argc, char *argv[])
 
 
 	#ifndef NO_BRIDGE
-	//To use file IO system
-	rt_bridge_connect(1, NULL);
 	//Allocating input and output image buffers in L2 memory
 	ImageIn = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, W*H*sizeof(unsigned char));
 	#endif
@@ -149,8 +147,6 @@ int main(int argc, char *argv[])
 
 	#ifdef NO_BRIDGE
 	for(unsigned int i=0;i<W*H;i++) if(IntegralImg[i]!=ImageOut_golden[i]) return -1;
-	#else
-	rt_bridge_disconnect(NULL);
 	#endif
     printf ("Test success\n");
 

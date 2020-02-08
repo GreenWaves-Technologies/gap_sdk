@@ -75,7 +75,7 @@ namespace vp {
     static inline void sync_cycle_muxed_stub(jtag_master *_this, int tdi, int tms, int trst);
 
     void (*slave_sync)(void *comp, int tdo);
-    void (*slave_sync_muxed)(void *comp, int tdo, int id);
+    void (*slave_sync_muxed)(void *comp, int tdo, int id) = NULL;
 
     void (*sync_meth)(void *, int tck, int tdi, int tms, int trst);
     void (*sync_meth_mux)(void *, int tck, int tdi, int tms, int trst, int mux);

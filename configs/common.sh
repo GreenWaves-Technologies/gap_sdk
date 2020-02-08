@@ -16,6 +16,9 @@ export RULES_DIR=$GAP_SDK_HOME/tools/rules
 export NNTOOL_DIR=$GAP_SDK_HOME/tools/nntool
 export PATH="$NNTOOL_DIR":$PATH
 
+# Gapy
+export PATH=$GAP_SDK_HOME/tools/gapy:$PATH
+
 # For pulp os
 export PULP_LIB_DIR=$TARGET_INSTALL_DIR/lib
 export PULP_INC_DIR=$TARGET_INSTALL_DIR/include
@@ -33,6 +36,7 @@ export PULP_CONFIGS_PATH=$INSTALL_DIR/configs
 # For GVSOC
 export PULP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN
 export PULP_SDK_INSTALL=$INSTALL_DIR
+export GVSOC_PATH=$INSTALL_DIR/python
 source $GAP_SDK_HOME/gvsoc/setup_gvsoc.sh
 
 # Autotiler
@@ -41,9 +45,16 @@ export TILER_LIB=$TILER_PATH/lib/libtile.a
 export TILER_INC=$TILER_PATH/include
 export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
+export TILER_CNN_KERNEL_PATH=$TILER_PATH/generators/CNN
+export TILER_CNN_GENERATOR_PATH=$TILER_PATH/generators/CNN
+
 
 # OpenOCD
 export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
+
+# Zephyr
+export CROSS_COMPILE="$GAP_RISCV_GCC_TOOLCHAIN/bin/riscv32-unknown-elf-"
+export ZEPHYR_GCC_VARIANT=cross-compile
 
 if [ "$TARGET_CHIP" = "GAP8" ]
 then

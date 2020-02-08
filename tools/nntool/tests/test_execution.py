@@ -1,19 +1,33 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
-
-import pickle
 import os
+import pickle
+import tempfile
 
 import numpy as np
 
 from execution.execute_graph import execute, execute_iterator
 from execution.quantization_mode import QuantizationMode
+from generation.code_generator import CodeGenerator
+from generation.default_template import default_template
+from generation.naming_convension import DefaultNamingConvension
+from graph.matches.matches import get_std_match_group
 from importer.importer import create_graph
+from quantization.simple_auto_quantify import SimpleQuantizer
+from stats.activation_stats_collector import ActivationStatsCollector
+from stats.filter_stats_collector import FilterStatsCollector
 from utils.data_importer import import_data
 from utils.new_param_state import load_state
+
 
 def test_graph_calc(mnist_graph, mnist_images):
     G = create_graph(mnist_graph, opts={"load_tensors":True})
@@ -106,6 +120,67 @@ def test_graph_execute_complex(ir_graph, ir_images):
     input_tensor = input_tensor.reshape((80, 80, 1))
     execute(G, [input_tensor])
 
+def test_graph_kws(kws_graph, kws_sounds):
+    G = create_graph(kws_graph, opts={"load_tensors":True})
+    G.add_dimensions()
+    input_tensor = import_data(kws_sounds[0], offset=0, divisor=128, nptype='int16')
+    normal_steps = 0
+    fusion_steps = 0
+    # pylint: disable=unused-variable
+    for step_idx, step, node, output, fusion_op_name, fusion_params, details in\
+        execute_iterator(G, [input_tensor]):
+        if fusion_op_name is not None:
+            fusion_steps += 1
+        else:
+            normal_steps += 1
+    assert normal_steps == 9 and fusion_steps == 0
+
+def test_graph_kws_auto_quant(kws_graph, kws_sounds):
+    G = create_graph(kws_graph, opts={"load_tensors":True})
+    G.add_dimensions()
+    G.adjust_order()
+    get_std_match_group().match(G)
+    G.add_dimensions()
+    stats_collector = ActivationStatsCollector()
+    for input_file in kws_sounds:
+        data = import_data(input_file, offset=0, divisor=256, nptype='int16')
+        stats_collector.collect_stats(G, [data])
+    astats = stats_collector.reduce_stats()
+    stats_collector = FilterStatsCollector()
+    fstats = stats_collector.collect_stats(G)
+    quantizer = SimpleQuantizer(astats, fstats, force_width=16)
+    qrecs = quantizer.quantize(G)
+    G.quantization = qrecs
+
+def test_fake_values_concat(concat_test_graph):
+    G = create_graph(concat_test_graph, opts={"load_tensors":True})
+    G.add_dimensions()
+    G.adjust_order()
+    matcher = get_std_match_group()
+    matcher.match(G)
+    G.add_dimensions()
+    G.constant_store.fake = True
+    stats_collector = ActivationStatsCollector()
+    stats_collector.collect_stats(G, [np.random.rand(*node.dims.shape) for node in G.inputs()])
+    astats = stats_collector.reduce_stats()
+    stats_collector = FilterStatsCollector()
+    fstats = stats_collector.collect_stats(G)
+    quantizer = SimpleQuantizer(astats, fstats, force_width=8)
+    qrecs = quantizer.quantize(G)
+    G.quantization = qrecs
+    with tempfile.TemporaryDirectory() as tempdir:
+        opts = {
+            'default_input_location': 'ARG_LOC_L2',
+            'default_output_location': 'ARG_LOC_L2',
+            'default_global_location': 'ARG_LOC_L3_HFLASH',
+            'default_local_location': '0',
+            'at_ver': 3,
+            'tensor_directory': tempdir
+        }
+        code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+        print(default_template(G, code_generator=code_gen))
+        code_gen.write_constants()
+
 # This test requires make test_files to be run in the sample project
 # directory. With the 8 bit config
 
@@ -125,7 +200,8 @@ def test_equivalence(mnist_graph, mnist_images):
     assert np.array_equal(verif_weights[3]['biases'], G.graph_state.steps[4]['node'].biases)
     assert np.array_equal(verif_weights[7]['weights'], G.graph_state.steps[7]['node'].weights)
     assert np.array_equal(verif_weights[7]['biases'], G.graph_state.steps[7]['node'].biases)
-    with open(os.path.join("tests/h5_pickles", os.path.basename(mnist_images[0])+'.pickle'), 'rb') as fp:
+    with open(os.path.join("tests/h5_pickles",
+                           os.path.basename(mnist_images[0])+'.pickle'), 'rb') as fp:
         verif = pickle.load(fp)
     assert all([np.max(np.abs(verif[idx][0] - output_[idx][0])) < 0.00001 for idx in range(7)])
     # checking the Flatten layer doesn't work because the layout was not changed in the run tool

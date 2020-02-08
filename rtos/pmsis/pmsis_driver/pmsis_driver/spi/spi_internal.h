@@ -17,7 +17,8 @@ struct spim_drv_fifo {
 struct spim_cs_data {
     struct spim_cs_data *next;
     struct spim_driver_data *drv_data;
-    uint32_t udma_cmd[4];
+    uint32_t cfg;
+    uint32_t udma_cmd[8];
     uint32_t max_baudrate;
     uint32_t polarity;
     uint32_t phase;
@@ -64,8 +65,16 @@ void __pi_spi_send_async(struct spim_cs_data *cs_data, void *data, size_t len,
         pi_spi_flags_e flags, pi_task_t *task);
 void __pi_spi_receive_async(struct spim_cs_data *cs_data, void *data, size_t len,
         pi_spi_flags_e flags, pi_task_t *task);
+void __pi_spi_receive_async_with_ucode(struct spim_cs_data *cs_data, void *data, size_t len,
+        pi_spi_flags_e flags, int use_ucode, int ucode_size,
+        void *ucode, pi_task_t *task);
 void __pi_spi_xfer_async(struct spim_cs_data *cs_data, void *tx_data,
         void *rx_data, size_t len, pi_spi_flags_e flags, pi_task_t *task);
+
+static inline uint32_t __pi_spi_get_config(struct spim_cs_data *cs_data)
+{
+    return cs_data->cfg;
+}
 
 static inline int32_t __pi_spim_drv_fifo_enqueue(struct spim_cs_data *cs_data,
                                            struct spim_transfer *transfer,

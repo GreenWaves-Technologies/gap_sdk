@@ -1,16 +1,19 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 
 import numpy as np
 
-from quantization.qtype import QType
-
-from .utils import srange, pad
+from .utils import pad, srange
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -20,24 +23,14 @@ def av_pool(params, in_dims, out_dims, in_tensor, qrec=None):
 
     filter_sz = params.filter.h * params.filter.w
     if qrec:
-        # When quantified the accumulation is done in double precision and the
-        # division is in a Q equal to the bit width of the input
-        # In the AT kernels it is unsigned but we don't care obout that here
-        in_q = qrec.in_qs[0]
-        pool_factor = (1<<in_q.bits)//filter_sz
-        # Construct a QType representing the quantization of the accumulator
-        # after the division
-        calc_q = QType(bits=in_q.bits * 2, q=in_q.bits + in_q.q, signed=False)
-        dtype = calc_q.dtype
+        pool_factor = (1<<16)//filter_sz
+        dtype = np.int32
     else:
         pool_factor = 1.0/filter_sz
         dtype = None
 
     out_tensor = np.zeros(out_dims.shape, dtype=dtype)
     in_tensor = pad(in_tensor, in_dims, params.padding, params.pad_type)
-
-    if qrec:
-        in_tensor = in_tensor.astype(calc_q.dtype)
 
     for in_c in range(out_dims.c):
 
@@ -55,15 +48,14 @@ def av_pool(params, in_dims, out_dims, in_tensor, qrec=None):
                            h=[h_idx, h_idx + params.filter.h, 1],
                            w=[w_idx, w_idx + params.filter.w, 1])
 
-                sum_ = np.sum(in_tensor[in_slice_args])
-                prod_ = np.multiply(sum_, pool_factor)
+                sum_ = np.sum(in_tensor[in_slice_args], dtype=dtype)
+                prod_ = np.multiply(sum_, pool_factor, dtype=dtype)
                 out_tensor[out_slice_args] = prod_
                 out_w += 1
             out_h += 1
 
-
     if qrec:
-        return qrec.out_qs[0].reduce_from(out_tensor, calc_q)
+        return qrec.out_qs[0].clip(out_tensor >> 16)
 
     return out_tensor
 

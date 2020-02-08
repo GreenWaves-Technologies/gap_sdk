@@ -1379,6 +1379,7 @@ void iss_csr_init(iss_t *iss, int reset)
   iss->cpu.csr.mcause = 0;
 #if defined(ISS_HAS_PERF_COUNTERS)
   iss->cpu.csr.pcmr = 3;
+  iss->cpu.csr.pcer = 3;
 #endif
   iss->cpu.csr.stack_conf = 0;
 }

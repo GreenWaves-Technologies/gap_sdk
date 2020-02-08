@@ -52,12 +52,26 @@ namespace vp {
   class clock_engine;
   class component;
 
+  class regfield
+  {
+    public:
+      regfield(std::string name, int bit, int width) : name(name), bit(bit), width(width) {}
+      std::string name;
+      int bit;
+      int width;
+  };
+
   class reg
   {
 
     public:
+      std::string get_hw_name() { return this->hw_name; }
+      std::string get_name() { return this->name != "" ? this->name : this->hw_name; }
       void init(vp::component *top, std::string name, int bits, uint8_t *value, uint8_t *reset_val);
       void reset(bool active);
+      virtual void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write) {}
+
+      virtual void build(vp::component *comp) {}
 
       inline uint8_t *get_bytes() { return this->value_bytes; }
       inline void set_1(uint8_t value) { *(uint8_t *)this->value_bytes = value; }
@@ -73,21 +87,29 @@ namespace vp {
       inline uint16_t get_16() { return *(uint16_t *)this->value_bytes; }
       inline uint32_t get_32() { return *(uint32_t *)this->value_bytes; }
       inline uint64_t get_64() { return *(uint64_t *)this->value_bytes; }
+      uint64_t get_field(int offset, int width);
+
 
       int nb_bytes;
       int bits;
       uint8_t *reset_value_bytes;
       uint8_t *value_bytes;
-      std::string name;
+      std::string name = "";
+      std::string hw_name;
       component *top;
       vp::trace trace;
       vp::trace reg_event;
+      std::vector<regfield *> regfields;
+      bool do_reset;
+      uint64_t offset;
+      int width;
   };
 
   class reg_1: public reg
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
+    void build(vp::component *comp);
 
     inline uint8_t get() { return this->value; }
     inline void set(uint8_t value) {
@@ -106,13 +128,16 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(int reg_offset, int size, uint8_t *value, bool is_write)
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
     }
+    
+  protected:
+    uint8_t reset_val;
 
   private:
     uint8_t value;
@@ -123,6 +148,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
+    void build(vp::component *comp);
 
     inline uint8_t get() { return this->value; }
     inline void set(uint8_t value) {
@@ -147,7 +173,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(int reg_offset, int size, uint8_t *value, bool is_write)
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
@@ -155,6 +181,9 @@ namespace vp {
         this->read(reg_offset, size, value);
     }
 
+  protected:
+    uint8_t reset_val;
+    
   private:
     uint8_t value;
 
@@ -164,6 +193,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
+    void build(vp::component *comp);
 
     inline uint16_t get() { return this->value; }
     inline void set(uint16_t value) {
@@ -188,7 +218,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(int reg_offset, int size, uint8_t *value, bool is_write)
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
@@ -196,6 +226,9 @@ namespace vp {
         this->read(reg_offset, size, value);
     }
 
+  protected:
+    uint16_t reset_val;
+    
   private:
     uint16_t value;
 
@@ -205,6 +238,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
+    void build(vp::component *comp);
 
     inline uint32_t get() { return this->value; }
     inline void set(uint32_t value) {
@@ -229,7 +263,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(int reg_offset, int size, uint8_t *value, bool is_write)
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
@@ -237,15 +271,30 @@ namespace vp {
         this->read(reg_offset, size, value);
     }
 
+  protected:
+    uint32_t reset_val;
+    
   private:
     uint32_t value;
 
+  };
+
+  class regmap {
+  public:
+    std::vector<reg *> get_registers() { return this->registers; }
+    void build(vp::component *comp);
+    bool access(uint64_t offset, int size, uint8_t *value, bool is_write);
+
+  protected:
+    std::vector<reg *> registers;
+    vp::component *comp;
   };
 
   class reg_64: public reg
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
+    void build(vp::component *comp);
 
     inline uint64_t get() { return this->value; }
     inline void set(uint64_t value) {
@@ -264,7 +313,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(int reg_offset, int size, uint8_t *value, bool is_write)
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
@@ -272,10 +321,16 @@ namespace vp {
         this->read(reg_offset, size, value);
     }
 
+  protected:
+    uint64_t reset_val;
+    
   private:
-    uint64_t value;
+    uint64_t value; 
 
   };
+
+
+
 
   class component : public component_clock
   {
@@ -283,23 +338,28 @@ namespace vp {
     friend class component_clock;
 
   public:
-    component(const char *config);
+    component(js::config *config);
 
+    virtual void pre_pre_build() { }
     virtual int build() { return 0; }
     virtual void pre_start() {}
     virtual void start() {}
     virtual void stop() {}
+    virtual void flush() {}
+    virtual void quit() {}
     virtual void pre_reset() {}
     virtual void reset(bool active) {}
     virtual void load() {}
     virtual void elab();
-    virtual string run() { return "error"; }
-    virtual int run_status() { return 0; }
+    virtual void run() {}
+    virtual void pause() {}
+    virtual int join() { return -1; }
 
-
-    void set_config(const char *config);
 
     inline js::config *get_js_config() { return comp_js_config; }
+
+    js::config *get_vp_config();
+    void set_vp_config(js::config *config);
 
     inline config *get_config(std::string name);
 
@@ -319,9 +379,9 @@ namespace vp {
     string get_path() { return path; }
 
 
-    void conf(string path, vp::component *parent);
+    void conf(string name, string path, vp::component *parent);
 
-    void add_child(vp::component *child);
+    void add_child(std::string name, vp::component *child);
 
     config *import_config(const char *config_string);
 
@@ -333,7 +393,19 @@ namespace vp {
       component_clock::pre_build(this);
     }
 
+    int build_new();
+
+    void load_all();
+
+    void flush_all();
+
+    void post_post_build_all();
+
     void pre_start_all();
+
+    void start_all();
+
+    void final_bind();
 
     void reset_all(bool active, bool from_itf=false);
 
@@ -347,14 +419,13 @@ namespace vp {
 
     void new_service(std::string name, void *service);
 
+    void add_service(std::string name, void *service);
+
+    vp::component *new_component(std::string name, js::config *config, std::string module="");
 
     int get_ports(bool master, int size, const char *names[], void *ports[]);
 
-    int get_services(int size, const char *names[], void *services[]);
-
     void *get_service(string name);
-
-    void set_services(int nb_services, const char *name[], void *services[]);
 
     void new_reg_any(std::string name, vp::reg *reg, int bits, uint8_t *reset_val);
     void new_reg(std::string name, vp::reg_1 *reg, uint8_t reset_val, bool reset=true);
@@ -366,6 +437,15 @@ namespace vp {
     inline trace *get_trace() { return &this->root_trace; }
 
     std::vector<vp::component *> get_childs() { return childs; }
+    std::map<std::string, vp::component *> get_childs_dict() { return childs_dict; }
+
+    virtual vp::port *get_slave_port(std::string name) { return this->slave_ports[name]; }
+    virtual vp::port *get_master_port(std::string name) { return this->master_ports[name]; }
+
+    virtual void add_slave_port(std::string name, vp::slave_port *port);
+    virtual void add_master_port(std::string name, vp::master_port *port);
+
+    void throw_error(std::string error);
 
     component_trace traces;
     component_power power;
@@ -373,21 +453,24 @@ namespace vp {
     trace warning;
 
   protected:
-    template<typename P> int get_ports(std::map<std::string, P *> ports_map,
-      int size, const char *names[], void *ports[]);
+    void create_comps();
+    void create_ports();
+    void create_bindings();
+    void bind_comps();
 
-    std::map<std::string, master_port *> master_ports;
-    std::map<std::string, slave_port *> slave_ports;
-    std::map<std::string, void *> services;
     std::map<std::string, void *> all_services;
  
     std::vector<component *> childs;
+    std::map<std::string, component *> childs_dict;
 
   private:
 
     js::config *comp_js_config;
+    js::config *vp_config = NULL;
     trace root_trace;
 
+    std::map<std::string, master_port *> master_ports;
+    std::map<std::string, slave_port *> slave_ports;
 
     string path;
 

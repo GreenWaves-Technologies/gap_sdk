@@ -32,7 +32,7 @@ class Gpio : public vp::component
 
 public:
 
-  Gpio(const char *config);
+  Gpio(js::config *config);
 
   int build();
   void start();
@@ -74,7 +74,7 @@ private:
 
 
 
-Gpio::Gpio(const char *config)
+Gpio::Gpio(js::config *config)
 : vp::component(config)
 {
 
@@ -319,7 +319,7 @@ void Gpio::start()
 
 
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new Gpio(config);
+  return new Gpio(config);
 }

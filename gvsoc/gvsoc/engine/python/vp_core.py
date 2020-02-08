@@ -103,11 +103,6 @@ class impl_master_port(object):
 
                 self.implem.implem_bind_to(self.ref, port.ref, config)
 
-    def final_bind(self):
-        if len(self.slaves) != 0:
-            if self.is_bound_to_port:
-                self.implem.implem_finalize(self.ref)
-
 
 class impl_slave_port(object):
 
@@ -131,10 +126,6 @@ class impl_slave_port(object):
 
     def is_slave(self):
         return True
-
-    def final_bind(self):
-        if self.is_bound:
-            self.implem.implem_finalize(self.ref)
 
 
 class default_implementation_class(object):
@@ -163,20 +154,11 @@ class default_implementation_class(object):
 
         self.module.vp_comp_set_config.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
 
-        self.implem_pre_start = self.module.vp_pre_start
-        self.module.vp_pre_start.argtypes = [ctypes.c_void_p]
-
         self.implem_reset = self.module.vp_reset
         self.module.vp_reset.argtypes = [ctypes.c_void_p, ctypes.c_int]
 
         self.implem_load = self.module.vp_load
         self.module.vp_load.argtypes = [ctypes.c_void_p]
-
-        self.implem_post_post_build = self.module.vp_post_post_build
-        self.module.vp_post_post_build.argtypes = [ctypes.c_void_p]
-
-        self.implem_start = self.module.vp_start
-        self.module.vp_start.argtypes = [ctypes.c_void_p]
 
         self.implem_stop = self.module.vp_stop
         self.module.vp_stop.argtypes = [ctypes.c_void_p]
@@ -188,11 +170,11 @@ class default_implementation_class(object):
         self.implem_build = self.module.vp_build
         self.module.vp_build.argtypes = [ctypes.c_void_p]
 
+        self.implem_build_new = self.module.vp_build_new
+        self.module.vp_build_new.argtypes = [ctypes.c_void_p]
+
         self.implem_bind_to = self.module.vp_port_bind_to
         self.module.vp_port_bind_to.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p]
-
-        self.implem_finalize = self.module.vp_port_finalize
-        self.module.vp_port_finalize.argtypes = [ctypes.c_void_p]
 
         self.module.vp_get_error.restype = ctypes.c_char_p
 
@@ -201,15 +183,6 @@ class default_implementation_class(object):
             [ctypes.c_void_p, ctypes.c_bool, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p),
                 ctypes.c_void_p]
         self.module.vp_comp_get_ports.restype = ctypes.c_int
-
-        self.implem_set_services = self.module.vp_comp_set_services
-        self.module.vp_comp_set_services.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p), ctypes.c_void_p]
-
-        self.implem_get_services = self.module.vp_comp_get_services
-        self.module.vp_comp_get_services.argtypes = \
-            [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p),
-                ctypes.c_void_p]
-        self.module.vp_comp_get_services.restype = ctypes.c_int
 
         if config is not None:
             config_str = config.get_string().encode('utf-8')
@@ -226,12 +199,6 @@ class default_implementation_class(object):
 
     def get_path(self):
         return self.parent.get_path()
-
-    def pre_start(self):
-        return self.implem_pre_start(self.instance)
-
-    def post_post_build(self):
-        return self.implem_post_post_build(self.instance)
 
     def start(self):
         return self.implem_start(self.instance)
@@ -287,35 +254,6 @@ class default_implementation_class(object):
         else:
             return self.slave_ports.get(name)
 
-    def __set_service(self, name, service):
-        self.parent.set_implem_service(name, service)
-
-    def set_services(self, services):
-        keys = list(services.keys())
-        size = len(keys)
-        services_param = (ctypes.c_void_p * size)()
-        names = (ctypes.c_char_p * size)()
-
-        for i in range(0, size):
-            names[i] = keys[i].encode('utf-8')
-            services_param[i] = services[keys[i]]
-
-        self.implem_set_services(self.instance, size, names, services_param)
-
-    def __get_services(self):
-        size = self.implem_get_services(self.instance, 0, None, None)
-
-        if size != 0:
-            services = (ctypes.c_void_p * size)()
-            names = (ctypes.c_char_p * size)()
-
-            size = self.implem_get_services(self.instance, size, names, services)
-
-
-
-            for i in range(0, len(names)):
-                self.__set_service(names[i].decode('utf-8'), services[i])
-        
     def get_port(self, name):
         port = self.__get_port(True, name)
         if port is not None:
@@ -340,8 +278,6 @@ class default_implementation_class(object):
         # python class
         self.__get_ports(True)
         self.__get_ports(False)
-
-        self.__get_services()
 
 
 
@@ -408,7 +344,6 @@ class component(component_trace):
 
         super(component, self).__init__()
 
-        self.implem_services = {}
         self.services = {}
         self.sub_comps = []
         self.sub_comps_dict = {}
@@ -454,18 +389,6 @@ class component(component_trace):
             return None
         else:
             return self.parent.get_implem_class()
-
-    def set_implem_service(self, name, service):
-        if self.parent is None:
-            self.implem_services[name] = service
-        else:
-            self.parent.set_implem_service(name, service)
-
-    def get_implem_services(self):
-        if self.parent is None:
-            return self.implem_services
-        else:
-            return self.parent.get_implem_services()
 
     def get_parent(self):
         return self.parent
@@ -555,15 +478,6 @@ class component(component_trace):
     def stop(self):
         pass
 
-    def pre_start(self):
-        pass
-
-    def post_start(self):
-        pass
-
-    def post_post_build(self):
-        pass
-
     def run(self):
         if self.impl is not None:
             return self.impl.run()
@@ -575,49 +489,9 @@ class component(component_trace):
         else:
             return -1
 
-    def pre_start_all(self):
+    def build_new(self):
+        self.impl.implem_build_new(self.impl.instance)
 
-        for build in self.sub_comps:
-            build.pre_start_all()
-
-        self.pre_start()
-
-        if self.impl is not None:
-            self.impl.pre_start()
-
-    def post_start_all(self):
-
-        for build in self.sub_comps:
-            build.post_start_all()
-
-        self.post_start()
-
-    def post_post_build_all(self):
-
-        if self.impl is not None:
-            self.impl.set_services(self.get_implem_services())
-
-        for build in self.sub_comps:
-            build.post_post_build_all()
-
-        self.post_post_build()
-
-        if self.impl is not None:
-            self.impl.post_post_build()
-
-    def start_all(self):
-
-        for build in self.sub_comps:
-            build.start_all()
-
-        self.trace.msg('Starting component')
-
-        self.start()
-
-        if self.impl is not None:
-            self.impl.start()
-
-        return 0
 
     def reset_all(self, active):
 
@@ -708,17 +582,6 @@ class component(component_trace):
         if  self.impl is not None:
             for port in self.impl.master_ports.values():
                 port.bind()
-
-    def final_bind(self):
-
-        for comp in self.sub_comps:
-            comp.final_bind()
-
-        if  self.impl is not None:
-            for port in self.impl.master_ports.values():
-                port.final_bind()
-            for port in self.impl.slave_ports.values():
-                port.final_bind()
 
     def create_comps(self, comps_tag, class_tag, default_class_name):
         js_config = self.get_json()

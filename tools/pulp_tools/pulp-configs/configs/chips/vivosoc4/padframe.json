@@ -1,0 +1,384 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "includes": [ "ips/padframe/padframe_v1.json"],
+
+  "profiles": {
+    "default": {
+    },
+    "default_periph": {
+      "mspi0_sck"  : { "alternate": "mspi0_sck"   },
+      "mspi0_csn0" : { "alternate": "mspi0_csn0"  },
+      "mspi0_sdio0": { "alternate": "mspi0_sdio0" },
+      "mspi0_sdio1": { "alternate": "mspi0_sdio1" },
+      "mspi0_sdio2": { "alternate": "mspi0_sdio2" },
+      "mspi0_sdio3": { "alternate": "mspi0_sdio3" },
+      "mspi0_csn1" : { "alternate": "mspi0_csn1"  },
+      "mspi0_csn2" : { "alternate": "mspi0_csn2"  },
+      "mspi1_sck"  : { "alternate": "mspi1_sck"   },
+      "mspi1_csn0" : { "alternate": "mspi1_csn0"  },
+      "mspi1_sdio0": { "alternate": "mspi1_sdio0" },
+      "mspi1_sdio1": { "alternate": "mspi1_sdio1" },
+      "mspi1_sdio2": { "alternate": "mspi1_sdio2" },
+      "mspi1_sdio3": { "alternate": "mspi1_sdio3" },
+      "mspi1_csn1" : { "alternate": "mspi1_csn1"  },
+      "mspi1_csn2" : { "alternate": "mspi1_csn2"  },
+      "uart0_tx"   : { "alternate": "uart0_tx"    },
+      "uart0_rx"   : { "alternate": "uart0_rx"    }
+    }
+  },
+
+  "groups": {
+    "spim0": {
+      "type": "qspim",
+      "nb_cs": 2,
+      "is_master": true
+    },
+    "uart0": {
+      "type": "uart",
+      "is_master": true
+    },
+    "jtag0": {
+      "type": "jtag",
+      "is_slave": true
+    },
+    "hyper0": {
+      "type": "hyper",
+      "is_master": true,
+      "nb_cs": 2
+    },
+    "cpi0": {
+      "type": "cpi",
+      "is_slave": true
+    }
+  },
+
+
+  "pads": {
+
+    "mspi0_sck": {
+      "id": 0,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio0"     , "groups": [ "gpio0" ] },
+        { "name": "mspi0_sck" , "groups": [ "spim0" ] },
+        { "name": "timer_2_2" , "groups": [ "timer2" ] },
+        { "name": "timer_0_0" , "groups": [ "timer0" ] }
+      ]
+    },
+    "mspi0_csn0": {
+      "id": 1,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio1"      , "groups": [ "gpio1" ] },
+        { "name": "mspi0_csn0" , "groups": [ "spim0" ] },
+        { "name": "timer_2_3"  , "groups": [ "timer2" ] },
+        { "name": "timer_0_1"  , "groups": [ "timer0" ] }
+      ]
+    },
+    "mspi0_sdio0": {
+      "id": 2,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio2"       , "groups": [ "gpio2" ] },
+        { "name": "mspi0_sdio0" , "groups": [ "spim0" ] },
+        { "name": "uart0_tx"    , "groups": [ "uart0" ] },
+        { "name": "timer_0_2"   , "groups": [ "timer0" ] }
+      ]
+    },
+    "mspi0_sdio1": {
+      "id": 3,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio3"       , "groups": [ "gpio3" ] },
+        { "name": "mspi0_sdio1" , "groups": [ "spim0" ] },
+        { "name": "uart0_rx"    , "groups": [ "uart0" ] },
+        { "name": "timer_0_3"   , "groups": [ "timer0" ] }
+      ]
+    },
+    "mspi0_sdio2": {
+      "id": 4,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio4"       , "groups": [ "gpio4" ] },
+        { "name": "mspi0_sdio2" , "groups": [ "spim0" ] },
+        { "name": "uart1_tx"    , "groups": [ "uart1" ] },
+        { "name": "fll_soc_clk" , "groups": [ "fll" ] }
+      ]
+    },
+    "mspi0_sdio3": {
+      "id": 5,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio5"       , "groups": [ "gpio5" ] },
+        { "name": "mspi0_sdio3" , "groups": [ "spim0" ] },
+        { "name": "uart1_rx"    , "groups": [ "uart1" ] },
+        { "name": "mspi0_csn1"  , "groups": [ "spim0" ] }
+      ]
+    },
+    "mspi0_csn1": {
+      "id": 6,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio6"      , "groups": [ "gpio6" ] },
+        { "name": "mspi0_csn1" , "groups": [ "spim0" ] },
+        { "name": "i2c_scl"    , "groups": [ "i2c" ] },
+        { "name": "mspi0_csn2" , "groups": [ "spim0" ] }
+      ]
+    },
+    "mspi0_csn2": {
+      "id": 7,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio7"      , "groups": [ "gpio7" ] },
+        { "name": "mspi0_csn2" , "groups": [ "spim0" ] },
+        { "name": "i2c_sda"    , "groups": [ "i2c" ] },
+        { "name": "mspi0_csn3" , "groups": [ "spim0" ] }
+      ]
+    },
+    "mspi1_sck": {
+      "id": 8,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio8"      , "groups": [ "gpio8" ] },
+        { "name": "mspi1_sck"  , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn1" , "groups": [ "spim0" ] },
+        { "name": "timer_1_0"  , "groups": [ "timer1" ] }
+      ]
+    },
+    "mspi1_csn0": {
+      "id": 9,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio9"      , "groups": [ "gpio9" ] },
+        { "name": "mspi1_csn0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn2" , "groups": [ "spim0" ] },
+        { "name": "timer_1_1"  , "groups": [ "timer1" ] }
+      ]
+    },
+    "mspi1_sdio0": {
+      "id": 10,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio10"      , "groups": [ "gpio10" ] },
+        { "name": "mspi1_sdio0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn3"  , "groups": [ "spim0" ] },
+        { "name": "timer_1_2"   , "groups": [ "timer1" ] }
+      ]
+    },
+    "mspi1_sdio1": {
+      "id": 11,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio11"      , "groups": [ "gpio11" ] },
+        { "name": "mspi1_sdio1" , "groups": [ "spim1" ] },
+        { "name": ""            , "groups": [ ] },
+        { "name": "timer_1_3"   , "groups": [ "timer1" ] }
+      ]
+    },
+    "mspi1_sdio2": {
+      "id": 12,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio12"      , "groups": [ "gpio12" ] },
+        { "name": "mspi1_sdio2" , "groups": [ "spim1" ] },
+        { "name": "uart0_tx"    , "groups": [ "uart0" ] },
+        { "name": "mspi1_csn2"  , "groups": [ "spim1" ] }
+      ]
+    },
+    "mspi1_sdio3": {
+      "id": 13,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio13"      , "groups": [ "gpio13" ] },
+        { "name": "mspi1_sdio3" , "groups": [ "spim1" ] },
+        { "name": "uart0_rx"    , "groups": [ "uart0" ] },
+        { "name": "mspi1_csn3"  , "groups": [ "spim1" ] }
+      ]
+    },
+    "mspi1_csn1": {
+      "id": 14,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio14"     , "groups": [ "gpio14" ] },
+        { "name": "mspi1_csn1" , "groups": [ "spim1" ] },
+        { "name": "uart1_tx"   , "groups": [ "uart1" ] },
+        { "name": "i2c_scl"    , "groups": [ "i2c" ] }
+      ]
+    },
+    "mspi1_csn2": {
+      "id": 15,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio15"     , "groups": [ "gpio15" ] },
+        { "name": "mspi1_csn2" , "groups": [ "spim1" ] },
+        { "name": "uart1_rx"   , "groups": [ "uart1" ] },
+        { "name": "i2c_sda"    , "groups": [ "i2c" ] }
+      ]
+    },
+    "uart0_tx": {
+      "id": 16,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio16"     , "groups": [ "gpio16" ] },
+        { "name": "uart0_tx"   , "groups": [ "uart0" ] },
+        { "name": "mspi1_sck"  , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn1" , "groups": [ "spim0" ] }
+      ]
+    },
+    "uart0_rx": {
+      "id": 17,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio17"     , "groups": [ "gpio17" ] },
+        { "name": "uart0_rx"   , "groups": [ "uart0" ] },
+        { "name": "mspi1_csn0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn2" , "groups": [ "spim0" ] }
+      ]
+    },
+    "i2c_scl": {
+      "id": 18,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio18"      , "groups": [ "gpio18" ] },
+        { "name": "i2c_scl"     , "groups": [ "i2c" ] },
+        { "name": "mspi1_sdio0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn3"  , "groups": [ "spim0" ] }
+      ]
+    },
+    "i2c_sda": {
+      "id": 19,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio19"      , "groups": [ "gpio19" ] },
+        { "name": "i2c_sda"     , "groups": [ "i2c" ] },
+        { "name": "mspi1_sdio1" , "groups": [ "spim1" ] },
+        { "name": "fll_per_clk" , "groups": [ "fll" ] }
+      ]
+    },
+    "gpio20": {
+      "id": 20,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio20"      , "groups": [ "gpio20" ] },
+        { "name": "timer_0_0"   , "groups": [ "timer0" ] },
+        { "name": "mspi1_sdio2" , "groups": [ "spim1" ] },
+        { "name": "mspi1_csn1"  , "groups": [ "spim1" ] }
+      ]
+    },
+    "gpio21": {
+      "id": 21,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio21"      , "groups": [ "gpio21" ] },
+        { "name": "timer_0_1"   , "groups": [ "timer0" ] },
+        { "name": "mspi1_sdio3" , "groups": [ "spim1" ] },
+        { "name": "mspi1_csn2"  , "groups": [ "spim1" ] }
+      ]
+    },
+    "gpio22": {
+      "id": 22,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio22"      , "groups": [ "gpio22" ] },
+        { "name": "timer_1_0"   , "groups": [ "timer1" ] },
+        { "name": "uart1_tx"    , "groups": [ "uart1" ] },
+        { "name": "mspi1_csn3"  , "groups": [ "spim1" ] }
+      ]
+    },
+    "gpio23": {
+      "id": 23,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio23"          , "groups": [ "gpio23" ] },
+        { "name": "timer_1_1"       , "groups": [ "timer1" ] },
+        { "name": "uart1_rx"        , "groups": [ "uart1" ] },
+        { "name": "fll_cluster_clk" , "groups": [ "fll" ] }
+      ]
+    },
+    "uart1_tx": {
+      "id": 24,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio24"      , "groups": [ "gpio24" ] },
+        { "name": "uart1_tx"    , "groups": [ "uart1" ] },
+        { "name": "mspi1_sck"   , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn1"  , "groups": [ "spim0" ] }
+      ]
+    },
+    "uart1_rx": {
+      "id": 25,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio25"     , "groups": [ "gpio25" ] },
+        { "name": "uart1_rx"   , "groups": [ "uart1" ] },
+        { "name": "mspi1_csn0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn2" , "groups": [ "spim0" ] }
+      ]
+    },
+    "eoc": {
+      "id": 26,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio26"      , "groups": [ "gpio26" ] },
+        { "name": "eoc"         , "groups": [ "eoc" ] },
+        { "name": "mspi1_sdio0" , "groups": [ "spim1" ] },
+        { "name": "mspi0_csn3"  , "groups": [ "spim0" ] }
+      ]
+    },
+    "gpio27": {
+      "id": 27,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio27"      , "groups": [ "gpio27" ] },
+        { "name": ""            , "groups": [ "" ] },
+        { "name": "mspi1_sdio1" , "groups": [ "spim1" ] },
+        { "name": "fll_soc_clk" , "groups": [ "fll" ] }
+      ]
+    },
+    "gpio28": {
+      "id": 28,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio28"      , "groups": [ "gpio28" ] },
+        { "name": "timer_2_0"   , "groups": [ "timer2" ] },
+        { "name": "mspi1_sdio2" , "groups": [ "spim1" ] },
+        { "name": "uart0_tx"    , "groups": [ "uart0" ] }
+      ]
+    },
+    "gpio29": {
+      "id": 29,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio29"      , "groups": [ "gpio29" ] },
+        { "name": "timer_2_1"   , "groups": [ "timer2" ] },
+        { "name": "mspi1_sdio3" , "groups": [ "spim1" ] },
+        { "name": "uart0_rx"    , "groups": [ "uart0" ] }
+      ]
+    },
+    "gpio30": {
+      "id": 30,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio30"     , "groups": [ "gpio30" ] },
+        { "name": "timer_3_0"  , "groups": [ "timer3" ] },
+        { "name": "mspi1_csn1" , "groups": [ "spim1" ] },
+        { "name": "i2c_scl"    , "groups": [ "i2c" ] }
+      ]
+    },
+    "gpio31": {
+      "id": 31,
+      "position": null,
+      "alternates": [ 
+        { "name": "gpio31"     , "groups": [ "gpio31" ] },
+        { "name": "timer_3_1"  , "groups": [ "timer3" ] },
+        { "name": "mspi1_csn2" , "groups": [ "spim1" ] },
+        { "name": "i2c_sda"    , "groups": [ "i2c" ] }
+      ]
+    }
+  }
+}

@@ -21,13 +21,29 @@
 
 #include "pmsis/task.h"
 
+#define POS_SPIM_UDMA_CMD_SIZE 4
+
+typedef struct
+{
+    uint32_t *temp_buff;
+    uint32_t addr;
+    uint32_t size;
+    uint32_t end;
+} pos_spim_pending_transfert_t;
+
+typedef struct
+{
+    uint32_t udma_cmd[POS_SPIM_UDMA_CMD_SIZE];
+    uint32_t temp_buff[2];
+} pos_spim_l2_t;
+
+
 typedef struct {
   pi_task_t *pending_copy;
   pi_task_t *waiting_first;
   pi_task_t *waiting_last;
   unsigned int pending_repeat_len;
-  unsigned int pending_repeat_misaligned_size;
-  unsigned int udma_cmd[4];
+  uint32_t *udma_cmd;
   int open_count;
   int id;
   pi_task_t task;
@@ -36,6 +52,20 @@ typedef struct {
   unsigned int pending_repeat_base;
   unsigned int pending_repeat_send;
   unsigned int pending_repeat_flags;
+  unsigned int pending_repeat_misaligned_size;
+  unsigned int pending_repeat_misaligned_addr;
+  unsigned int pending_repeat_misaligned_ram_addr;
+  unsigned int pending_repeat_misaligned_end;
+  unsigned int pending_repeat_misaligned_length;
+  unsigned int pending_repeat_misaligned_stride;
+  unsigned int pending_repeat_misaligned_2d_size;
+  void (*pending_callback)(int event, void *arg);
+  pos_spim_pending_transfert_t pending_transfers[2];
+  int pending_transfer_index;
+  int pending_transfer_read_index;
+  uint32_t periph_base;
+  uint32_t rx_cmd;
+  uint32_t tx_cmd;
   uint32_t buffer;
   struct pi_device *pending_repeat_device;
 } pi_spim_t;

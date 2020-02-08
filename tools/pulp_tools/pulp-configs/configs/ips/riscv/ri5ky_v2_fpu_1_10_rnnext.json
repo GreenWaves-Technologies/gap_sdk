@@ -16,6 +16,7 @@
   "defines"  : [ "ARCHI_CORE_HAS_PULPV2", "ARCHI_CORE_HAS_CPLX", "ARCHI_CORE_HAS_1_10" ],
   "debug_binaries": [],
   "vp_class": "cpu/iss/iss",
+  "vp_component": "cpu/iss/iss_riscy_v2_5",
   "first_external_pcer": 12,
   "bootaddr_offset": "0x00",
   "iss_class": "iss_riscy_v2_5",

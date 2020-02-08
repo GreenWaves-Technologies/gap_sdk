@@ -27,6 +27,8 @@
 #include "udma_v2_impl.hpp"
 #elif UDMA_VERSION == 3
 #include "udma_v3_impl.hpp"
+#elif UDMA_VERSION == 4
+#include "udma_v4_impl.hpp"
 #else
 #error Unsupported UDMA version
 #endif

@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3
 # PYTHON_ARGCOMPLETE_OK
 
 # Copyright (C) 2019 GreenWaves Technologies

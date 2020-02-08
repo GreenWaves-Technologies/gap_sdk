@@ -51,8 +51,12 @@ void vp::Event_trace::reg(int64_t timestamp, uint8_t *event, int width, uint8_t 
   if (bytes > this->bytes)
   {
     this->bytes = bytes;
-    this->buffer = (uint8_t *)realloc(this->buffer, bytes);
-    this->flags_mask = (uint8_t *)realloc(this->flags_mask, bytes);
+    //if (this->buffer)
+    //  delete this->buffer;
+    this->buffer = new uint8_t[width];
+    //if (this->flags_mask)
+    //  delete this->flags_mask;
+    this->flags_mask = new uint8_t[width];
   }
 
   memcpy(this->buffer, event, bytes);

@@ -163,13 +163,14 @@ typedef int AT_HYPERFLASH_EVENT;
 
 #define AT_HYPERFLASH_FS_TYPE 1
 
-static inline void __at_hyperflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size)
+static inline void __at_hyperflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
 {
   fseek(file, ext, SEEK_SET);
-  fread(loc, 1, size, file);
+  if (dir==AT_HYPERRAM_LOC2EXT) fwrite(loc, 1, size, file);
+  else fread(loc, 1, size, file);
 }
 
-static inline void __at_hyperflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length)
+static inline void __at_hyperflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
 {
   int Chunk;
   for (Chunk=0; Chunk<size; Chunk+=length)
@@ -178,7 +179,8 @@ static inline void __at_hyperflash_fs_copy_2d(FILE *file, unsigned int ext, void
       length = size;
 
     fseek(file, ext, SEEK_SET);
-    fread(loc, 1, length, file);
+    if (dir==AT_HYPERRAM_LOC2EXT) fwrite(loc, 1, length, file);
+    else fread(loc, 1, length, file);
 
     loc = ((char *)loc) + length;
     ext += stride;
@@ -200,22 +202,27 @@ typedef int AT_HYPERFLASH_FS_CL_EVENT;
 #define AT_HYPERFLASH_FS_OPEN(file,conf,filename,err) \
   do { *(file) = fopen(filename, "r"); *(err) = *(file) == NULL; } while(0)
 
+#define AT_HYPERFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "w"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_HYPERFLASH_FS_OPEN_SET_SIZE(file, size)
+
 #define AT_HYPERFLASH_FS_CLOSE(file) \
   fclose(*file)
 
 #define AT_HYPERFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
-  __at_hyperflash_fs_copy(*(file), ext, loc, size)
+  __at_hyperflash_fs_copy(*(file), ext, loc, size, dir)
 
 #define AT_HYPERFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
-  __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len)
+  __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
 
 #define AT_HYPERFLASH_FS_FC_WAIT(file,event)
 
 #define AT_HYPERFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
-  __at_hyperflash_fs_copy(*(file), ext, loc, size)
+  __at_hyperflash_fs_copy(*(file), ext, loc, size, dir)
 
 #define AT_HYPERFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
-  __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len)
+  __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
 
 #define AT_HYPERFLASH_FS_CL_WAIT(file,event)
 
@@ -244,8 +251,8 @@ unsigned int __L3_Read, __L3_Write, __L2_Read, __L2_Write;
 #define AT_L2_COPY(dev,ext,loc,size,dir,event) \
 do { \
   int i; \
-  char *To   = (dir==AT_L2_EXT2LOC)?((char *) (loc)):((char *) (ext)); \
-  char *From = (dir==AT_L2_EXT2LOC)?((char *) (ext)):((char *) (loc)); \
+  char *__To   = (dir==AT_L2_EXT2LOC)?((char *) (loc)):((char *) (ext)); \
+  char *__From = (dir==AT_L2_EXT2LOC)?((char *) (ext)):((char *) (loc)); \
  \
   if (dir==AT_L2_EXT2LOC) { \
     if (0) __L3_Read += size; else __L2_Read += size; \
@@ -253,14 +260,14 @@ do { \
     if (0) __L3_Write += size; else __L2_Write += size; \
   } \
  \
-  for (i=0; i<size; i++) To[i] = From[i]; \
+  for (i=0; i<size; i++) __To[i] = __From[i]; \
 } while (0)
 
 #define AT_L2_COPY2D(dev,ext,loc,size,stride,length,dir,event) \
 do { \
   int CopyIn = (dir==AT_L2_EXT2LOC); \
-  char *To   = CopyIn?((char *) (loc)):((char *) (ext)); \
-  char *From = CopyIn?((char *) (ext)):((char *) (loc)); \
+  char *__To   = CopyIn?((char *) (loc)):((char *) (ext)); \
+  char *__From = CopyIn?((char *) (ext)):((char *) (loc)); \
   int i, j, Chunk; \
  \
   if (dir==AT_L2_EXT2LOC) { \
@@ -269,11 +276,11 @@ do { \
     if (0) __L3_Write += size; else __L2_Write += size; \
   } \
   for (Chunk=0; Chunk<size; Chunk+=length)  { \
-    for (i=0; i<length; i++) To[i] = From[i]; \
+    for (i=0; i<length; i++) __To[i] = __From[i]; \
       if (CopyIn) { \
-      From += stride; To += length; \
+      __From += stride; __To += length; \
     } else { \
-      To += stride; From += length; \
+      __To += stride; __From += length; \
     } \
   } \
 } while (0)

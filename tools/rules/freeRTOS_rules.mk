@@ -7,6 +7,14 @@ OBJDUMP     = riscv32-unknown-elf-objdump
 platform     ?= gapuino
 
 chip=$(TARGET_CHIP_FAMILY)
+TARGET_CHIP_VERSION=
+ifeq ($(TARGET_CHIP), GAP8)
+TARGET_CHIP_VERSION=1
+else ifeq ($(TARGET_CHIP), GAP8_V2)
+TARGET_CHIP_VERSION=2
+else
+TARGET_CHIP_VERSION=1
+endif
 
 # Directories
 FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/gap8/common/config_files
@@ -14,12 +22,17 @@ FREERTOS_SOURCE_DIR = $(FREERTOS_PATH)/freertos_kernel
 PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-GAP8/
 GWT_DIR             = $(FREERTOS_PATH)/vendors/gwt
 GWT_TARGET          = $(GWT_DIR)/TARGET_GWT
+GWT_PMSIS           = $(GWT_TARGET)/pmsis
 GWT_LIBS            = $(GWT_TARGET)/libs
 GWT_DEVICE          = $(GWT_TARGET)/TARGET_$(chip)/device
 GWT_DRIVER          = $(GWT_TARGET)/TARGET_$(chip)/driver
-GWT_PMSIS           = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_driver
+GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/pmsis_backend
+GWT_PMSIS_IMPLEM    = $(GWT_PMSIS)/implem
+ifeq ($(GAP_SDK_HOME), )
+GWT_PMSIS_API       = $(GWT_PMSIS)/api
+else
 GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
-PMSIS_BACKEND       = $(GWT_TARGET)/pmsis_backend
+endif				# GAP_SDK_HOME
 
 # The linker options.
 LIBS            += -lgcc
@@ -34,9 +47,9 @@ LDFLAGS     = -T$(GWT_DEVICE)/ld/$(chip).ld \
 
 
 ifeq ($(chip), GAP8)
-RISCV_FLAGS     = -mchip=gap8 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
+RISCV_FLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 else
-RISCV_FLAGS     = -march=rv32imcxpulpv2 -mPE=8 -mFC=1 -D__$(chip)__ -D__RISCV_ARCH_GAP__=1
+RISCV_FLAGS     ?= -march=gap9 -mPE=8 -mFC=1 -D__riscv__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 endif
 
 # Simulation related options
@@ -116,7 +129,7 @@ COMMON          = -c -fmessage-length=0 -fno-exceptions -fno-builtin \
                   -fno-delete-null-pointer-checks -fomit-frame-pointer -O3\
                   $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(FREERTOS_FLAGS)
 
-PRINTF_FLAGS    = -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #-DPRINTF_DISABLE_SUPPORT_FLOAT
+PRINTF_FLAGS    = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #-DPRINTF_DISABLE_SUPPORT_FLOAT
 
 WARNINGS        = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
                   -Wno-unused-variable -Wno-unused-but-set-variable \
@@ -147,13 +160,13 @@ DRIVER_SRC        = $(shell find $(GWT_DRIVER) -iname "*.c")
 LIBS_SRC          = $(shell find $(GWT_LIBS)/src -iname "*.c")
 PRINTF_SRC        = $(GWT_LIBS)/printf/printf.c
 
-INC_PATH       += . \
-                  $(FREERTOS_CONFIG_DIR) \
+INC_PATH       += $(FREERTOS_CONFIG_DIR) \
                   $(PORT_DIR) \
                   $(GWT_TARGET) \
                   $(GWT_DEVICE) \
-                  $(GWT_DRIVER) \
-                  $(PMSIS_BACKEND)
+                  $(GWT_DRIVER) #\
+                  $(GWT_PMSIS)
+#                  $(PMSIS_BACKEND)
 
 INC_PATH       += $(FREERTOS_SOURCE_DIR)/include
 INC_PATH       += $(GWT_LIBS)/include
@@ -162,14 +175,20 @@ INC_PATH       += $(GWT_LIBS)/printf
 INCLUDES       += $(foreach f, $(INC_PATH), -I$f)
 INCLUDES       += $(FEAT_INCLUDES)
 
-#--- PMSIS drivers ---
-PMSIS_SRC         += $(shell find $(GWT_PMSIS) -iname "*.c" ! -path "*gap9*")
-PMSIS_BACKEND_SRC  = $(shell find $(PMSIS_BACKEND) -iname "*.c")
-PMSIS_INC_PATH    += $(GWT_PMSIS_API)/include/
-PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS) -iname "*.h" -not -path "$(GWT_PMSIS)/targets/*" -exec dirname {} \; | uniq)
-PMSIS_INC_PATH    += $(GWT_PMSIS)/targets/
-PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS)/targets/$(chip) -iname "*.h" -exec dirname {} \; | uniq)
-PMSIS_INC_PATH    += $(GWT_PMSIS)/cores
+#--- PMSIS ---
+PMSIS_SRC         += $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.c" ! -path "*gap9*")
+PMSIS_BACKEND_SRC  = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")
+PMSIS_INC_PATH    += $(GWT_PMSIS) $(GWT_PMSIS_API)/include/ $(GWT_PMSIS_BACKEND)
+PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.h"          \
+                                  ! -path "$(GWT_PMSIS_IMPLEM)/targets/*"   \
+                                  ! -path "$(GWT_PMSIS_IMPLEM)/pmsis_hal/*" \
+                                  -exec dirname {} \; | sort | uniq)
+PMSIS_INC_PATH    += $(GWT_PMSIS_IMPLEM)/targets/
+PMSIS_INC_PATH    += $(shell find $(GWT_PMSIS_IMPLEM)/targets/$(chip)       \
+                                  $(GWT_PMSIS_IMPLEM)/pmsis_hal/$(chip)     \
+                                  -iname "*.h"                              \
+                                  -exec dirname {} \; | sort | uniq)
+#PMSIS_INC_PATH    += $(GWT_PMSIS_IMPLEM)/cores
 INCLUDES          += $(foreach f, $(PMSIS_INC_PATH), -I$f)
 
 # App sources
@@ -207,15 +226,18 @@ BIN             = $(BUILDDIR)/test
 
 OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
 
+OBJS_DEP        = $(patsubst %.o, %.d, $(OBJS))
 
 # Makefile targets :
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
 #------------------------------------------
 
-all:: dir $(OBJS) $(BIN)
+-include $(OBJS_DEP)
 
-dir:
-	mkdir -p $(BUILDDIR)
+all:: $(OBJS) $(BIN)
+
+$(BUILDDIR):
+	mkdir -p $@
 
 $(ASM_OBJS): $(BUILDDIR)/%.o: %.S
 	@echo "    ASM  $(shell basename $<)"
@@ -237,6 +259,7 @@ $(BIN).s: $(BIN)
 	@echo "    OBJDUMP  $(shell basename $<) > $(shell basename $@)"
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
 
+
 ifdef PLPTEST_PLATFORM
 
 run:
@@ -246,17 +269,17 @@ else
 
 # GVSOC
 ifeq ($(platform), gvsoc)
-run:: all
+run: all
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 # RTL
 else ifeq ($(platform), rtl)
-run:: dir
+run: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 # Default : GAPUINO
 else
-run:: all
+run: all
 ifeq ($(chip), GAP8)
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS)
 else ifeq ($(chip), GAP9)
 	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi
 endif				#ifeq ($(chip), GAP8)
@@ -266,8 +289,11 @@ gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 endif
 
-gui:: dir
+gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
+
+flash:
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
 
 # Foramt "vsim -do xxx.do xxx.wlf"
 debug:
@@ -282,7 +308,7 @@ disdump: $(OBJS_DUMP) $(BIN).s
 version:
 	@$(GAP_SDK_HOME)/tools/version/record_version.sh
 
-clean::
+clean:: clean_app
 	@rm -rf $(OBJS) $(DUMP)
 	@rm -rf *~ ./BUILD$(build_dir_ext) transcript *.wav __pycache__
 	@rm -rf $(GVSOC_FILES_CLEAN)

@@ -253,6 +253,12 @@ static inline void rt_cluster_notif_wait(int event)
   eu_evt_maskWaitAndClr(event);
 }
 
+static inline void cl_notify_task_done(uint8_t *done, uint8_t cluster_id)
+{
+    *done = 1;
+    __rt_cluster_notif_req_done(cluster_id);
+}
+
 extern rt_fc_cluster_data_t __rt_fc_cluster_data[];
 
 #endif

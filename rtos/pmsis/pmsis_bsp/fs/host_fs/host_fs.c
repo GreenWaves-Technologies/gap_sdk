@@ -20,6 +20,7 @@
 
 #include "pmsis.h"
 #include "bsp/fs.h"
+#include "bsp/fs/hostfs.h"
 #include <string.h>
 #include "semihost.h"
 
@@ -47,6 +48,10 @@ static pi_fs_file_t *__pi_host_fs_open(struct pi_device *device, const char *fil
   file->fd = semihost_open(file_name, flags == PI_FS_FLAGS_WRITE ? 0x40 | 0x2 : 0);
   if (file->fd == -1)
     return NULL;
+
+  file->header.api = (pi_fs_api_t *)device->api;
+  file->header.data = file;
+  file->header.fs = device;
 
   return (pi_fs_file_t *)file;
 
@@ -147,3 +152,9 @@ pi_fs_api_t __pi_host_fs_api = {
   .copy = __pi_host_fs_copy_async,
   .copy_2d = __pi_host_fs_copy_2d_async
 };
+
+void pi_hostfs_conf_init(struct pi_hostfs_conf *conf)
+{
+    pi_fs_conf_init(&conf->fs);
+    conf->fs.api = &__pi_host_fs_api;
+}

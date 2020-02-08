@@ -29,7 +29,7 @@ class fll_ctrl : public vp::component
 
 public:
 
-  fll_ctrl(const char *config);
+  fll_ctrl(js::config *config);
 
   int build();
   void start();
@@ -43,7 +43,7 @@ private:
 
 };
 
-fll_ctrl::fll_ctrl(const char *config)
+fll_ctrl::fll_ctrl(js::config *config)
 : vp::component(config)
 {
 
@@ -75,7 +75,7 @@ void fll_ctrl::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new fll_ctrl(config);
+  return new fll_ctrl(config);
 }

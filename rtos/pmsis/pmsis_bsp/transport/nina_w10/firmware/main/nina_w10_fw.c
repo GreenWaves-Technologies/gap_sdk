@@ -104,7 +104,7 @@ const int WIFI_CONNECTED_BIT = BIT0;
 static uint8_t *commandBuffer;
 static uint8_t *responseBuffer;
 static int sock = -1;
-static int verbose;
+static int verbose = 0;
 
 typedef struct
 {

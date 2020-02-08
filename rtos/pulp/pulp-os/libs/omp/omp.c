@@ -174,12 +174,24 @@ void partialParallelRegion(void (*fn) (void*), void *data, int num_threads)
   unsigned int coreSet = (1<<num_threads)-1;
   int nbCores = team->nbThreads;
 
-#if EU_VERSION >= 3
   eu_bar_setup(eu_bar_addr(0), coreSet);
   eu_dispatch_team_config(coreSet);
   team->nbThreads = num_threads;
 
+#if defined(ARCHI_HAS_CC)
+
+  eu_bar_setup_mask(eu_bar_addr(1), coreSet | (1<<8), coreSet | (1<<8));
+
+  if (num_threads == ARCHI_CLUSTER_NB_PE + 1)
+    parallelRegionExec(data, fn);
+  else
+    parallelRegionExec_nocc(data, fn);
+
+#else
+
   parallelRegionExec(data, fn);
+
+#endif
 
   eu_bar_setup(eu_bar_addr(0), coreMask);
   eu_dispatch_team_config(coreMask);
@@ -193,12 +205,6 @@ void partialParallelRegion(void (*fn) (void*), void *data, int num_threads)
   {
     core_epoch[i] = 0;
   }
-#endif
-#else
-  team->nbThreads = num_threads;
-  pulp_barrier_setup(0, num_threads, (1<<num_threads)-1);
-  parallelRegionExec(data, fn);
-  pulp_barrier_setup(0, nbCores, _this->coreMask);
 #endif
   team->nbThreads = nbCores;
 }

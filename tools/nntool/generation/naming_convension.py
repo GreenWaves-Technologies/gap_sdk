@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from abc import ABC, abstractmethod
 from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
@@ -50,24 +55,25 @@ class DefaultNamingConvension(NamingConvension):
         if isinstance(params, SoftMaxParameters):
             return "S{}_SoftMax".format(step_idx)
         if isinstance(params, FusionParameters):
+            nodes = params.contained_nodes()
             if params.fusion_type == "conv_active_pool":
                 return "S{}_Conv2d_{}_{}Pool_{}_{}"\
-                    .format(step_idx, params.params[0].filter,
-                            params.params[2].pool_type.capitalize(), params.params[2].filter,
-                            params.params[1].activation.capitalize())
+                    .format(step_idx, nodes[0].filter,
+                            nodes[2].pool_type.capitalize(), nodes[2].filter,
+                            nodes[1].activation.capitalize())
             if params.fusion_type == "conv_pool_active":
                 return "S{}_Conv2d_{}_{}Pool_{}_{}"\
-                    .format(step_idx, params.params[0].filter,
-                            params.params[1].pool_type.capitalize(), params.params[1].filter,
-                            params.params[2].activation.capitalize())
+                    .format(step_idx, nodes[0].filter,
+                            nodes[1].pool_type.capitalize(), nodes[1].filter,
+                            nodes[2].activation.capitalize())
             if params.fusion_type == "conv_active":
                 return "S{}_Conv2d_{}_{}"\
-                    .format(step_idx, params.params[0].filter,
-                            params.params[1].activation.capitalize())
+                    .format(step_idx, nodes[0].filter,
+                            nodes[1].activation.capitalize())
             if params.fusion_type == "conv_pool":
                 return "S{}_Conv2d_{}_{}Pool_{}"\
-                    .format(step_idx, params.params[0].filter,
-                            params.params[1].pool_type.capitalize(), params.params[1].filter)
+                    .format(step_idx, nodes[0].filter,
+                            nodes[1].pool_type.capitalize(), nodes[1].filter)
         if isinstance(params, PoolingParameters):
             return "S{}_{}Pool_{}".format(step_idx, params.pool_type.capitalize(), params.filter)
         if isinstance(params, ActivationParameters):

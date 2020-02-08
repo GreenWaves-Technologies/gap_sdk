@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef __CL_MALLOC_H__
-#define __CL_MALLOC_H__
+#ifndef __PMSIS_CLUSTER_CL_MALLOC_H__
+#define __PMSIS_CLUSTER_CL_MALLOC_H__
 
 /**
-* @ingroup groupRTOS
-*/
-
-/**        
  * @addtogroup MemAlloc
- * @{        
+ * @{
  */
 
-/**@{*/
+/**
+ * @defgroup CL_L2_Malloc CL_L2 Memory allocation
+ *
+ * \brief Memory allocation in L2 from cluster cores.
+ *
+ * This API uses cluster delegation to FC to allocate memory in L2.
+ *
+ * @addtogroup CL_L2_Malloc
+ * @{
+ */
 
-/** \brief Cluster memory allocation request structure.
+/**
+ * \brief Cluster memory allocation request structure.
  *
  * This structure is used by the runtime to manage a cluster remote allocation.
  * It must be instantiated once for each allocation and must be kept alive until
@@ -39,7 +45,8 @@
 typedef struct pi_cl_alloc_req_s pi_cl_alloc_req_t ;
 
 
-/** \brief Cluster memory free request structure.
+/**
+ * \brief Cluster memory free request structure.
  *
  * This structure is used by the runtime to manage a cluster remote free.
  * It must be instantiated once for each free and must be kept alive until the
@@ -49,46 +56,52 @@ typedef struct pi_cl_alloc_req_s pi_cl_alloc_req_t ;
  */
 typedef struct pi_cl_free_req_s pi_cl_free_req_t ;
 
-/** \brief Allocate L2 memory from cluster side.
+/**
+ * \brief Allocate L2 memory from cluster side.
  *
- * \param size   The size in bytes of the memory to be allocated.
- * \param req    The request structure used for termination.
+ * \param size           Size in bytes of the memory to be allocated.
+ * \param req            Request structure used for termination.
  */
 void pi_cl_l2_malloc(int size, pi_cl_alloc_req_t *req);
 
-/** \brief Free L2 memory from cluster side.
+/**
+ * \brief Free L2 memory from cluster side.
  *
- * \param chunk  The chunk to be freed.
- * \param size   The size in bytes of the memory to be freed.
- * \param req    The request structure used for termination.
+ * \param chunk          Chunk to be freed.
+ * \param size           Size in bytes of the memory to be freed.
+ * \param req            Request structure used for termination.
  */
 void pi_cl_l2_free(void *chunk, int size, pi_cl_free_req_t *req);
 
-/** \brief Wait until the specified allocation request has finished.
+/**
+ * \brief Wait until the specified allocation request has finished.
  *
  * This blocks the calling core until the specified cluster remote allocation
  * is finished.
  *
- * \param req       The request structure used for termination.
- * \return          The allocated chunk or NULL if there was not enough
- *   memory available.
+ * \param req            Request structure used for termination.
+ *
+ * \return               Allocated chunk or NULL if there was not enough
+ *                       memory available.
  */
 static inline void *pi_cl_l2_malloc_wait(pi_cl_alloc_req_t *req);
 
-/** \brief Wait until the specified free request has finished.
+/**
+ * \brief Wait until the specified free request has finished.
  *
  * This blocks the calling core until the specified cluster remote free is
  * finished.
  *
- * \param req       The request structure used for termination.
+ * \param req            Request structure used for termination.
  */
 static inline void pi_cl_l2_free_wait(pi_cl_free_req_t *req);
 
-//!@}
-
-/**        
- * @} 
+/**
+ * @} CL_L2_Malloc
  */
 
+/**
+ * @} MemAlloc
+ */
 
-#endif
+#endif  /* __PMSIS_CLUSTER_CL_MALLOC_H__ */

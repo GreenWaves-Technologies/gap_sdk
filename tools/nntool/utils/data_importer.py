@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
 import logging
@@ -26,7 +31,7 @@ MODES = {
     'F': 1,     # (32-bit floating point pixels)
 }
 
-VALID_IMAGE_EXTENSIONS = ['.pgm', '.png']
+VALID_IMAGE_EXTENSIONS = ['.pgm', '.png', '.ppm']
 VALID_SOUND_EXTENSIONS = ['.raw', '.pcm']
 
 def import_image_data(filename, **kwargs):
@@ -47,9 +52,14 @@ def import_image_data(filename, **kwargs):
     if 'mode' in kwargs:
         img_in.convert(mode=kwargs['mode'])
 
+    if 'nptype' in kwargs:
+        nptype = getattr(np, kwargs['nptype'])
+    else:
+        nptype = np.uint8
+
     channels = MODES[img_in.mode]
     # TODO - this needs to be smarter for different image pixel types
-    img_in = np.array(img_in, dtype=np.uint8)
+    img_in = np.array(img_in, dtype=nptype)
 
     if kwargs.get('transpose'):
         if channels == 1:

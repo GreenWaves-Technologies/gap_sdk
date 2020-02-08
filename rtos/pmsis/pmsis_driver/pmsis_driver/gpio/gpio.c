@@ -70,15 +70,17 @@ static void __pi_gpio_handle_end_of_task(struct pi_task *task);
 
 void pi_gpio_print()
 {
-    DEBUG_PRINTF("GpioEn : %x ", hal_gpio_gpioen_get());
-    DEBUG_PRINTF("Paddir|Padin|Padout : %x %x %x  ",
-           hal_gpio_paddir_get(), hal_gpio_padin_get(), hal_gpio_padout_get());
+    DEBUG_PRINTF("GpioEn : %x\n", gpio_gpioen_get());
+    DEBUG_PRINTF("Paddir|Padin|Padout : %x %x %x\n",
+           gpio_paddir_get(), gpio_padin_get(), gpio_padout_get());
+    DEBUG_PRINTF("IRQ_Status : %x\nIRQ_Type : %x %x\n",
+                 gpio_intstatus_get(), gpio_inttype_get(0), gpio_inttype_get(1));
     DEBUG_PRINTF("Padcfg :\n");
-    for (uint32_t i=0; i<(uint32_t) ARCHI_GPIO_NB_PADCFG_REG; i++)
+    for (uint32_t i=0; i<(uint32_t) ARCHI_GPIO_NB_PADCFG_REG; i+=4)
     {
         DEBUG_PRINTF("%x %x %x %x\n",
-                     hal_gpio_padcfg_get(i + 0), hal_gpio_padcfg_get(i + 1),
-                     hal_gpio_padcfg_get(i + 2), hal_gpio_padcfg_get(i + 3));
+                     gpio_padcfg_get(i + 0), gpio_padcfg_get(i + 1),
+                     gpio_padcfg_get(i + 2), gpio_padcfg_get(i + 3));
     }
 }
 
@@ -99,7 +101,9 @@ static void gpio_handler(void *arg)
     uint32_t event = (uint32_t) arg;
 
     /* Retrieve IRQ status from GPIO. Handle task if needed. */
-    uint32_t irq_mask = hal_gpio_get_irq_status(), pin = 0;;
+    uint32_t irq_mask = 0, pin = 0;
+    __gpio_irq_status = hal_gpio_get_irq_status();
+    irq_mask = __gpio_irq_status;
     struct pi_task *task = NULL;
     while (irq_mask)
     {
@@ -188,7 +192,7 @@ int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
 int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
-    *value = hal_gpio_get_input_value(pin);
+    *value = hal_gpio_pin_get_input_value(pin);
     return *value;
 }
 
@@ -215,7 +219,6 @@ void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin)
 int pi_gpio_pin_notif_get(struct pi_device *device, uint32_t pin)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
-    __gpio_irq_status = hal_gpio_get_irq_status();
     return ((__gpio_irq_status >> pin) & 0x1);
 }
 
@@ -244,7 +247,8 @@ int pi_gpio_mask_read(struct pi_device *device, uint32_t mask, uint32_t *value)
     return *value;
 }
 
-int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask, pi_task_t *task, pi_gpio_notif_e irq_type)
+int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask,
+                          pi_task_t *task, pi_gpio_notif_e irq_type)
 {
     uint32_t gpio_mask = mask, pin = 0;
     while (gpio_mask)
@@ -275,7 +279,7 @@ int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask)
 }
 
 int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin,
-                             pi_task_t *task, pi_gpio_notif_e irq_type)
+                         pi_task_t *task, pi_gpio_notif_e irq_type)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
     __global_gpio_task[pin] = task;

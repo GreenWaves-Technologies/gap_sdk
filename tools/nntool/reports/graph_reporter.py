@@ -1,14 +1,30 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from graph.nngraph import NNGraph
 from utils.tabular import Tabular, TabularColumn, TabularColumnGroup
 
 from .reporter import Reporter
 
+def scale_num(num):
+    if not num:
+        return ""
+    if num > 1000000000:
+        return "{:>.2f}G".format(num/1000000000)
+    elif num > 1000000:
+        return "{:>.2f}M".format(num/1000000)
+    elif num > 1000:
+        return "{:>.2f}K".format(num/1000)
+    else:
+        return "{:>d}".format(num)
 
 def str_dim_xl(node, dim_name, dim_idx):
     dim = getattr(node, dim_name)[dim_idx]
@@ -22,6 +38,11 @@ def str_dim(node, dim_name, dim_idx):
     dim = getattr(node, dim_name)[dim_idx]
     return str(dim)
 
+def get_dim(dims, idx):
+    if idx < len(dims):
+        return dims[idx]
+    return None
+
 def graph_walk(steps, liveness):
     active = 0
 
@@ -34,11 +55,12 @@ def graph_walk(steps, liveness):
             live = liveness[t_name]
             active += live['dims'].size()
 
+        ops = node.compute_load()
         operation = node.op_name
         if operation == "fusion":
             operation += " " + node.fusion_type
 
-        yield i, node, active, params_size
+        yield i, node, active, params_size, ops
 
         for t_name in step['end']:
             live = liveness[t_name]
@@ -53,17 +75,18 @@ def get_opname(node):
 def get_graph_memory_usage(steps, liveness):
     max_active = 0
     tot_params = 0
-    for _, _, active, params_size in graph_walk(steps, liveness):
+    for _, _, active, params_size, _ in graph_walk(steps, liveness):
         tot_params += params_size
         if active > max_active:
             max_active = active
     return max_active, tot_params
 
 class GraphReporter(Reporter):
-    def __init__(self, do_totals=False, split_dims=False):
+    def __init__(self, do_totals=False, split_dims=False, step=None):
         super().__init__()
         self._do_totals = do_totals
         self._split_dims = split_dims
+        self._step = step
 
     def report(self, G: NNGraph, stats) -> Tabular:
         del stats
@@ -76,22 +99,29 @@ class GraphReporter(Reporter):
 
         max_active = 0
         tot_params = 0
+        tot_ops = 0
 
-        for i, node, active, params_size in graph_walk(steps, liveness):
+        for i, node, active, params_size, ops in graph_walk(steps, liveness):
+            if self._step is not None and self._step != node.step_idx:
+                continue
             tot_params += params_size
+            if ops:
+                tot_ops += ops
             if active > max_active:
                 max_active = active
 
-            self.do_operation(node, G, tab, i, active, params_size)
+            self.do_operation(node, G, tab, i, active, params_size, ops)
 
-        self.check_do_totals(tab, max_active, tot_params)
+        if self._step is None:
+            self.check_do_totals(tab, max_active, tot_params, tot_ops)
         return tab
 
-    def do_operation(self, node, G, tab, i, active, params_size):
+    def do_operation(self, node, G, tab, i, active, params_size, ops):
         operation = get_opname(node)
 
-        in_steps = [edge.params.creating_step for edge in G.in_edges(node.name)]
-        in_steps.sort()
+        in_edges = G.in_edges(node.name)
+        in_edges.sort(key=lambda edge: edge.to_idx)
+        in_steps = [edge.from_node.step_idx for edge in in_edges]
 
         if self._split_dims:
             s_in = str_dim_xl(node, 'in_dims', 0)
@@ -101,16 +131,18 @@ class GraphReporter(Reporter):
                 i,
                 node.name,
                 operation,
-                s_in[0],
-                s_in[1],
-                s_in[2],
-                s_out[0],
-                s_out[1],
-                s_out[2],
+                get_dim(s_in, 0),
+                get_dim(s_in, 1),
+                get_dim(s_in, 2),
+                get_dim(s_out, 0),
+                get_dim(s_out, 1),
+                get_dim(s_out, 2),
                 ",".join([str(in_step) for in_step in in_steps]),
                 active,
                 params_size,
-                str(node)
+                scale_num(ops),
+                str(node),
+                node.hints_str
             ])
         else:
             tab.add_row([
@@ -122,7 +154,9 @@ class GraphReporter(Reporter):
                 ",".join([str(in_step) for in_step in in_steps]),
                 active,
                 params_size,
-                str(node)
+                scale_num(ops),
+                str(node),
+                node.hints_str
             ])
 
     def do_headers(self, active_order, tab):
@@ -153,20 +187,22 @@ class GraphReporter(Reporter):
             TabularColumn("Inputs", fmt="^s"),
             TabularColumn("Active\nsize", fmt="^d"),
             TabularColumn("Params\nsize", fmt="^d"),
+            TabularColumn("Ops", fmt=">s"),
             TabularColumn("Params"),
+            TabularColumn("Hints")
         ])
 
         tab.add_row(headers)
 
-    def check_do_totals(self, tab, max_active, tot_params):
+    def check_do_totals(self, tab, max_active, tot_params, tot_ops):
         if self._do_totals:
             if self._split_dims:
                 tab.add_row(["", "Totals (#)\nMax active/Total params", "", "", "", "",
-                             "", "", "", "", max_active, tot_params, ""])
+                             "", "", "", "", max_active, tot_params, scale_num(tot_ops), "", ""])
                 tab.add_row(["", "Totals (#)\nMax mem usage", "", "", "", "", "", "", "",
-                             "", "", max_active + tot_params, ""])
+                             "", "", max_active + tot_params, scale_num(tot_ops), "", ""])
             else:
                 tab.add_row(["", "Totals (#)\nMax active/Total params",
-                             "", "", "", "", max_active, tot_params, ""])
+                             "", "", "", "", max_active, tot_params, scale_num(tot_ops), "", ""])
                 tab.add_row(["", "Totals (#)\nMax mem usage", "", "", "",
-                             "", "", max_active + tot_params, ""])
+                             "", "", max_active + tot_params, scale_num(tot_ops), "", ""])

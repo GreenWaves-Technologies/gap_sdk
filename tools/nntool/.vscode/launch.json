@@ -25,6 +25,69 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: start nntool with kws",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/kws.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with VWW",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/visual_wake.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with detect",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                " ~/Desktop/detect_uint8.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with concat sample tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "BUILD_MODEL_8BIT_EMUL/vs.json"
+            ],
+            "cwd": "${workspaceFolder}/../customer_nntool_examples/vergesense",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with visual wake sample tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "BUILD_MODEL_8BIT/vww.json"
+            ],
+            "cwd": "${workspaceFolder}/../nntool_examples/visual_wake",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with cifar10 sample tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "BUILD_MODEL_EMUL8BIT/Cifar10.tflite"
+            ],
+            "cwd": "${workspaceFolder}/../nntool_examples/cifar10",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: start nntool with script",
             "type": "python",
             "request": "launch",

@@ -238,6 +238,11 @@ void Dpi_model::start_all()
   create_task((void *)&Dpi_model::callback_task_stub, this);
 }
 
+void Dpi_model::stop_all()
+{
+  this->stop();
+}
+
 void Dpi_model::wait(int64_t ns)
 {
   dpi_wait(handle, ns);

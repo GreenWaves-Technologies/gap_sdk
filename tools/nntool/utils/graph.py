@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from collections import OrderedDict
 from collections.abc import Iterable, Mapping
@@ -27,7 +32,8 @@ class MoreThanOneInputError(GraphError):
 # pylint: disable=protected-access
 class Node():
     '''Node class to inherit for nodes'''
-    def __init__(self, name: str):
+    def __init__(self, name: str, *args, **kwargs):
+        super(Node, self).__init__(*args, **kwargs)
         self._name = name
 
     @property
@@ -45,6 +51,7 @@ class MatchNode(Node):
         self._matcher = matcher
 
     def _match(self, G, node, edge):
+        del G, edge
         if self._matcher:
             return self._matcher(node)
         raise NotImplementedError()
@@ -195,6 +202,21 @@ class GraphView(Mapping):
         '''Find a node by name. GraphView[node_name] also works'''
         return self[node_name]
 
+    def insert_node(self, node_to_insert, from_node_name,
+                    to_node_name, from_idx=0, to_idx=0,
+                    node_input_idx=0, node_output_idx=0):
+        '''Inserts a node between two existing nodes'''
+        if isinstance(from_node_name, Node):
+            from_node_name = from_node_name.name
+        if isinstance(to_node_name, Node):
+            to_node_name = to_node_name.name
+        existing_edge = self.edge(from_node_name, to_node_name, from_idx=from_idx, to_idx=to_idx)
+        self.remove_edge(existing_edge)
+        self.add_edge(Edge(from_node_name, node_to_insert,
+                           from_idx=from_idx, to_idx=node_input_idx))
+        self.add_edge(Edge(node_to_insert, to_node_name,
+                           from_idx=node_output_idx, to_idx=to_idx))
+
     def edge(self, from_node_name: str, to_node_name: str, from_idx: int = 0, to_idx: int = 0):
         '''Finds first edge between two nodes - WARNING - probably not good in weird situation
         when nodes have multiple connections'''
@@ -220,8 +242,7 @@ class GraphView(Mapping):
 
     def successor_names(self, node_name: str) -> Iterable:
         '''Names of nodes with outputs from node_name'''
-        return set((edge.to_node.name for edge in edge_list)\
-            for edge_list in self.successors(node_name))
+        return set([node.name for edge in self.successors(node_name) for node in edge])
 
     def predecessors(self, node_name: str) -> Iterable:
         '''Nodes with inputs to node_name'''
@@ -247,8 +268,7 @@ class GraphView(Mapping):
 
     def predecessor_names(self, node_name: str) -> Iterable:
         '''Names of nodes with inputs to node_name'''
-        return set((edge.from_node.name for edge in edge_list)\
-            for edge_list in self.predecessors(node_name))
+        return set([node.name for node in self.predecessors(node_name)])
 
     def nodes(self):
         '''All the nodes in the graph. GraphView.values() also works.'''
@@ -406,6 +426,32 @@ class GraphView(Mapping):
         return [self._nodes[node_name] for node_name in self._nodes\
             if node_name not in self._out_edges]
 
+    def __revdfs(self, node, condition, visited_nodes, visited_edges, from_node, from_edge):
+        if not node:
+            return
+        if isinstance(node, str):
+            node = self._nodes[node]
+        if node not in visited_nodes and\
+            (from_node is None or\
+                all((out_edge in visited_edges) for out_edge in self.out_edges(node.name))) and\
+            (not condition or condition(self, from_node, node, from_edge)):
+
+            yield node
+            visited_nodes.add(node)
+            in_edges = self.in_edges(node.name)
+            # Edges are visited in a repeatable order
+            in_edges.sort(key=lambda x: str(x.from_idx) + x.from_node.name + str(x.to_idx),
+                          reverse=True)
+            for edge in in_edges:
+                visited_edges.add(edge)
+
+                yield from self.__revdfs(edge.from_node,
+                                         condition,
+                                         visited_nodes,
+                                         visited_edges,
+                                         node,
+                                         edge)
+
     def __dfs(self, node, condition, visited_nodes, visited_edges, from_node, from_edge):
         if not node:
             return
@@ -431,18 +477,29 @@ class GraphView(Mapping):
                                       node,
                                       edge)
 
-    def dfs(self, node_or_name=None, condition=None):
+    def dfs(self, node_or_name=None, condition=None, reverse=False):
         if node_or_name is None:
-            nodes = self.inputs()
+            if reverse:
+                nodes = list(self.outputs())
+                # This isn't really necessary but helps with tests
+                nodes.reverse()
+            else:
+                nodes = self.inputs()
         elif isinstance(node_or_name, str):
             nodes = [self._nodes[node_or_name]]
         elif isinstance(node_or_name, Iterable):
-            nodes = [input_node if isinstance(input_node, Node) else\
-                self[input_node] for input_node in node_or_name]
+            nodes = [node if isinstance(node, Node) else\
+                self[node] for node in node_or_name]
         else:
             raise TypeError()
+
+        visited_nodes = set()
+        visited_edges = set()
         for node in nodes:
-            yield from self.__dfs(node, condition, set(), set(), None, None)
+            if reverse:
+                yield from self.__revdfs(node, condition, visited_nodes, visited_edges, None, None)
+            else:
+                yield from self.__dfs(node, condition, visited_nodes, visited_edges, None, None)
 
     def match_fragment(self, fragment: 'GraphView', node_or_name: Node = None):
         '''looks for a fragment in the graph'''

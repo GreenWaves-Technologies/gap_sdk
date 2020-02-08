@@ -56,7 +56,9 @@ namespace vp {
 
     void new_trace_event_real(std::string name, trace *trace);
 
-    trace_engine *get_trace_manager() { return trace_manager; }
+    inline trace_engine *get_trace_manager();
+
+    void set_trace_manager(trace_engine *trace_manager) { this->trace_manager = trace_manager; }
 
   protected:
 
@@ -65,6 +67,8 @@ namespace vp {
     trace_engine *trace_manager = NULL;
 
   private:
+    void reg_trace(trace *trace, int event);
+
     component &top;
 
   };

@@ -1,6 +1,7 @@
 {
 
   "vp_class": "pulp/soc",
+  "vp_component": "utils.composite_impl",
 
   "vp_comps": [ "soc_ico", "fc", "l2_priv0", "l2_priv1", "l2_shared", "rom", "plt_loader" ],
 

@@ -28,7 +28,7 @@ class xne : public vp::component
 
 public:
 
-  xne(const char *config);
+  xne(js::config *config);
 
   int build();
   void start();
@@ -42,7 +42,7 @@ private:
   vp::io_master out;
 };
 
-xne::xne(const char *config)
+xne::xne(js::config *config)
 : vp::component(config)
 {
 
@@ -76,7 +76,7 @@ void xne::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new xne(config);
+  return new xne(config);
 }

@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import argparse
 import configparser
@@ -10,6 +15,7 @@ import logging
 import os
 import pickle
 from functools import partial
+from itertools import chain
 
 import numpy as np
 from cmd2 import (Cmd, Cmd2ArgumentParser, CompletionItem, EmptyStatement,
@@ -21,30 +27,37 @@ from execution.quantization_mode import QuantizationMode
 from generation.code_generator import (DEFAULT_GEN_OPTS,
                                        DEFAULT_GEN_OPTS_DESCRIPTIONS,
                                        CodeGenerator)
-from generation.naming_convension import DefaultNamingConvension
 from generation.default_template import default_template, dynamic_template
-from graph.matches.matches import get_std_match_group, get_fusion, get_fusions
+from generation.naming_convension import DefaultNamingConvension
+from graph.types.base import NodeOptions
+from graph.matches.matches import get_fusion, get_fusions, get_std_match_group
+from graph.types.others import InputOutputParameters
+from graph.manipulations.extract import extract_node
 from importer.importer import create_graph
-from quantization.cross_layer_range_eq import weight_equalization
+from quantization.cross_layer_range_eq import (adjust_biases,
+                                               weight_equalization)
 from quantization.simple_auto_quantify import SimpleQuantizer
 from quantization.tuneq import tuneq
 from reports.activation_reporter import ActivationReporter
 from reports.error_reporter import ErrorReporter
 from reports.filter_reporter import (FilterDetailedStatsReporter,
                                      FilterStatsReporter)
+from reports.graph_reporter import GraphReporter
 from reports.quantization_reporter import QuantizationReporter
 from reports.temps_reporter import TempsReporter
-from reports.graph_reporter import GraphReporter
 from stats.activation_stats_collector import ActivationStatsCollector
 from stats.error_stats_collector import ErrorStatsCollector
+from stats.fake_filter_stats_collector import FakeFilterStatsCollector
 from stats.filter_stats_collector import (FilterDetailedStatsCollector,
                                           FilterStatsCollector)
+from stats.step_error_stats_collector import StepErrorStatsCollector
 from stats.temps_stats_collector import TempsStatsCollector
 from utils.data_importer import MODES, import_data
-from utils.gap_tensor_file import read_gap_tensors
+from utils.gap_tensor_file import read_gap_tensors, write_gap_tensor
 from utils.intermediate_cache import IntermediateCache
 from utils.new_param_state import STATE_EXTENSION, dump_state, load_state
 from utils.stats_funcs import STATS_BITS, qsnr
+from utils.node_id import NodeId
 
 from .shell_utils import (NNToolShellLogHandler, filter_dirs, find_choice,
                           format_dump_file, glob_input_files, input_options,
@@ -72,17 +85,17 @@ VALID_LOG_LEVELS = [
 
 EXTRA_PROPERTIES = {
     'log_level': 'set logging level (one of {} or number)'.format(", ".join(VALID_LOG_LEVELS)),
-    'enable_cache' : 'enable value caching',
-    'dequantize' : 'dequantize TFLITE grath on load',
-    'fusions' : 'run standard graph fusions on graph load',
-    'adjust_order' : 'adjust activation and parameter dimension order\
+    'enable_cache': 'enable value caching',
+    'dequantize': 'dequantize TFLITE grath on load',
+    'fusions': 'run standard graph fusions on graph load',
+    'adjust_order': 'adjust activation and parameter dimension order\
          to match autotiler on graph load',
-    'weight_equalization' : 'equalize weights on graph load',
+    'weight_equalization': 'equalize weights on graph load',
     'equalization_threshold': 'threshold for weight equalization convergence',
-    'adjust_image' : 'adjust image input size and channels',
-    'image_width' : 'input image width',
-    'image_height' : 'input image height',
-    'image_mode' : 'input image mode (one of {})'.format(", ".join(MODES.keys())),
+    'adjust_image': 'adjust image input size and channels',
+    'image_width': 'input image width',
+    'image_height': 'input image height',
+    'image_mode': 'input image mode (one of {})'.format(", ".join(MODES.keys())),
     'input_divisor': "divide input tensor values by this value",
     'input_offset': "add this value to input tensor values",
     'input_norm_func': "lambda function in the form x: fn(x) where x is any input",
@@ -97,6 +110,8 @@ NO_GRAPH = {
 }
 
 # pylint: disable=too-many-public-methods
+
+
 class NNToolShell(Cmd):
     intro = 'Welcome to NNTOOL. Type help or ? to list commands.\n'
     prompt = '(NNT) '
@@ -237,7 +252,6 @@ class NNToolShell(Cmd):
                 if orig_script_dir_count != len(self._script_dir):
                     self._script_dir.pop()
 
-
     # HELPERS / Properties
 
     @property
@@ -287,6 +301,11 @@ class NNToolShell(Cmd):
     @tensor_file.setter
     def tensor_file(self, val):
         self._graphs[self._graph_idx]['tensor_file'] = val
+
+    def inputs_and_outputs(self):
+        if self.G is None:
+            return []
+        return [node.name for node in chain(self.G.inputs(), self.G.outputs())]
 
     def other_open_graphs(self, only_open=False):
         items = []
@@ -349,11 +368,14 @@ class NNToolShell(Cmd):
             res['norm_func'] = self.settings['input_norm_func'] if args.norm_func is None\
                 else args.norm_func
         else:
-#            res['shift'] = self.settings['input_shift']
+            #            res['shift'] = self.settings['input_shift']
             res['divisor'] = self.settings['input_divisor']
             res['offset'] = self.settings['input_offset']
             res['transpose'] = self.settings['image_transpose']
             res['norm_func'] = self.settings['input_norm_func']
+
+        if args.nptype:
+            res['nptype'] = args.nptype
 
         return res
 
@@ -375,8 +397,8 @@ Show current graph status
     # SAVING AND LOADING SETTINGS
     def execute_save_settings(self, dirname=None):
         config = configparser.ConfigParser()
-        config['NNTOOL'] = {k: str(getattr(self, k))\
-            for k in self.settable if k != "prompt"}
+        config['NNTOOL'] = {k: str(getattr(self, k))
+                            for k in self.settable if k != "prompt"}
         config['GRAPH'] = {k: getattr(self, k) for k in ['graph_file', 'tensor_file']}
         if dirname is None:
             dirname = self._nntool_workdir
@@ -621,7 +643,6 @@ in the ~/.nntool directory"""
     def template_file(self):
         return self.settings['template_file']
 
-
     @template_file.setter
     def template_file(self, val):
         self.settings['template_file'] = val
@@ -659,6 +680,8 @@ in the ~/.nntool directory"""
 
         value_cache = IntermediateCache(self.settings['cache_dir'])\
             if self.settings['enable_cache'] else None
+
+        graph_file = os.path.expanduser(graph_file)
 
         _, ext = os.path.splitext(graph_file)
 
@@ -736,7 +759,8 @@ Select actuve graphs"""
 
     # SHOW COMMAND
     parser_show = Cmd2ArgumentParser("display graph")
-    table_options(parser_show)
+    table_options(parser_show, default_width=180)
+    parser_show.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
 
     @with_argparser(parser_show)
     def do_show(self, args: argparse.Namespace):
@@ -746,8 +770,8 @@ Display the structure of the graph"""
         fmt = ('tab' if args.output is None else args.output['fmt'])
         split_dims = fmt == "xls"
         do_totals = fmt != "csv"
-
-        tab = GraphReporter(split_dims=split_dims, do_totals=do_totals).report(self.G, None)
+        tab = GraphReporter(split_dims=split_dims, do_totals=do_totals,
+                            step=args.step).report(self.G, None)
         output_table(tab, args)
 
     # STATS COMMAND
@@ -775,6 +799,32 @@ Display statistics on weights and biases"""
                 .report(self.G, stats)
         output_table(tab, args)
 
+    # FREEZE COMMAND
+    parser_freeze = Cmd2ArgumentParser("toggle freezing of channel order of inputs or outputs")
+    parser_freeze.add_argument('node_names',
+                               nargs='+',
+                               choices_method=inputs_and_outputs,
+                               help='input or output node names to toggle freeze')
+
+    @with_argparser(parser_freeze)
+    def do_freeze(self, args: argparse.Namespace):
+        """
+Toggle freezing of channel order on inputs and outputs. When graph is adjusted frozen nodes
+ will not change channel order."""
+        self._check_graph()
+        nodes = [self.G.node(node_name) for node_name in args.node_names]
+        if not all([isinstance(node, InputOutputParameters) for node in nodes]):
+            self.perror("all nodes should be inputs or outputs")
+            return
+
+        for node in nodes:
+            if node.fixed_order:
+                LOG.info("node %s is unfrozen", node.name)
+                node.fixed_order = False
+            else:
+                LOG.info("node %s is frozen", node.name)
+                node.fixed_order = True
+            self.G.node_options[NodeId(node)] = node.at_options
 
     # FUSIONS COMMAND
     def fusions_list(self):
@@ -782,8 +832,13 @@ Display statistics on weights and biases"""
 
     parser_fusions = Cmd2ArgumentParser("apply fusions to graph")
     parser_fustions_exclusive = parser_fusions.add_mutually_exclusive_group()
-    parser_fustions_exclusive.add_argument('-l', '--list', action='store_true', help='list available fusions')
-    parser_fustions_exclusive.add_argument('-a', '--apply', type=str, choices_method=fusions_list, help='apply a fusion')
+    parser_fustions_exclusive.add_argument('-l', '--list',
+                                           action='store_true',
+                                           help='list available fusions')
+    parser_fustions_exclusive.add_argument('-a', '--apply',
+                                           type=str,
+                                           choices_method=fusions_list,
+                                           help='apply a fusion')
 
     def apply_standard_fusions(self):
         get_std_match_group().match(self.G)
@@ -822,6 +877,9 @@ Carry out the default set of fusions on the graph"""
 Adjust activation and parameter tensors to match AutoTiler order.
 Must be run before generating code."""
         self._check_graph()
+        if self.is_adjusted:
+            self.perror("graph is already adjusted")
+            return
         self.execute_adjust_order()
 
     # WEIGHT_EQUALIZATION COMMAND
@@ -829,11 +887,14 @@ Must be run before generating code."""
     parser_we.add_argument('threshold',
                            type=float, default=0.1,
                            help='convergence threshold')
+    parser_we.add_argument('-n', '--relun',
+                           action='store_true', help='process relun activations. not currently supported \
+            by autotiler kernels')
 
-    def execute_weight_equalization(self, threshold):
+    def execute_weight_equalization(self, threshold, do_relun=False):
         if not (threshold > 0 and threshold < 10):
             self.perror("threshold should be 10 > x > 0")
-        weight_equalization(self.G, threshold=threshold)
+        weight_equalization(self.G, threshold=threshold, do_relun=do_relun)
 
     @with_argparser(parser_we)
     def do_weight_equalization(self, args: argparse.Namespace):
@@ -841,14 +902,14 @@ Must be run before generating code."""
 Run weight equalization on graph. This reduces variance between weight
 channels and may improve quantization accuracy."""
         self._check_graph()
-        self.execute_weight_equalization(args.threshold)
+        self.execute_weight_equalization(args.threshold, args.relun)
 
     # ASTATS COMMAND
     parser_astats = Cmd2ArgumentParser()
-    parser_astats.add_argument('-q', '--qsnr',\
-        type=float, default=30.0, help='QSNR threshold')
-    parser_astats.add_argument('-d', '--detail',\
-        action="store_true", help='Show fusions detail')
+    parser_astats.add_argument('-q', '--qsnr',
+                               type=float, default=30.0, help='QSNR threshold')
+    parser_astats.add_argument('-d', '--detail',
+                               action="store_true", help='Show fusions detail')
     table_options(parser_astats, default_width=180)
     input_options(parser_astats)
 
@@ -859,6 +920,9 @@ Calculate activation statistics on one or more imput files."""
         self._check_graph()
         input_args = self._get_input_args(args)
         stats_collector = ActivationStatsCollector()
+        if len(args.input_files) == 0:
+            self.perror("You must enter some files to process")
+            return
         for input_file in glob_input_files(args.input_files):
             LOG.info("input file %s", input_file)
             data = import_data(input_file, **input_args)
@@ -871,13 +935,41 @@ Calculate activation statistics on one or more imput files."""
             .report(self.G, stats_collector.reduce_stats())
         output_table(tab, args)
 
+    # FQUANT COMMAND
+    parser_fquant = Cmd2ArgumentParser()
+    parser_fquant.add_argument('-f', '--force_width',
+                               choices=STATS_BITS, default=8, type=int, help='force all layers to this width')
+    table_options(parser_fquant, default_width=140)
+
+    @with_argparser(parser_fquant)
+    def do_fquant(self, args: argparse.Namespace):
+        """
+Attempt to calculate a fake quantization for graph using random tensors and parameters.
+This is intended to allow code generation for performance testing even if no real
+weights and input data are avalaible."""
+        self._check_graph()
+        self.G.constant_store.fake = True
+        stats_collector = ActivationStatsCollector()
+        input_tensors = [np.random.normal(0, 0.2, input.dims.shape) for input in self.G.inputs()]
+        stats_collector.collect_stats(self.G, input_tensors)
+        astats = stats_collector.reduce_stats()
+        stats_collector = FakeFilterStatsCollector()
+        fstats = stats_collector.collect_stats(self.G)
+        quantizer = SimpleQuantizer(astats, fstats,
+                                    force_width=args.force_width)
+        qrecs = quantizer.quantize(self.G)
+        self.G.quantization = qrecs
+        tab = QuantizationReporter().report(self.G, qrecs)
+        output_table(tab, args)
+        self.G.constant_store.fake = False
+
     # AQUANT COMMAND
     parser_aquant = Cmd2ArgumentParser()
     parser_aquant_group = parser_aquant.add_mutually_exclusive_group(required=True)
-    parser_aquant_group.add_argument('-q', '--qsnr',\
-        type=float, default=50.0, help='QSNR threshold')
-    parser_aquant_group.add_argument('-f', '--force_width',\
-        choices=STATS_BITS, type=int, help='force all layers to this width')
+    parser_aquant_group.add_argument('-q', '--qsnr',
+                                     type=float, default=50.0, help='QSNR threshold')
+    parser_aquant_group.add_argument('-f', '--force_width',
+                                     choices=STATS_BITS, type=int, help='force all layers to this width')
     table_options(parser_aquant, default_width=140)
     input_options(parser_aquant)
 
@@ -924,7 +1016,7 @@ Attempt to calculate quantization for graph using one or more sample imput files
     parser_dump_group.add_argument('-q', '--quantize', action='store_true',
                                    help='quantize the graph (must have already set quantization)')
     parser_dump_group.add_argument('-Q', '--quantize_step', type=int,
-                                   help='quantize a step of the graph (must have already'+
+                                   help='quantize a step of the graph (must have already' +
                                    ' set quantization)',
                                    default=None)
     parser_dump.add_argument('-P', '--pickle',
@@ -975,7 +1067,7 @@ specific step of the graph."""
                               dequantize=dequantize)
 
             if args.pickle or self._in_py or args.save:
-                pickles.append(format_dump_file(self.G, outputs))
+                pickles.append(format_dump_file(self.G, outputs, not qmode.is_none))
             else:
                 self.G.print_intermediates(outputs, limit=step, width=args.number_width,
                                            precision=args.precision, channel=args.channel,
@@ -1005,13 +1097,28 @@ specific step of the graph."""
     parser_tensors.add_argument('-s', '--step',
                                 type=int,
                                 help='step to compare')
-    parser_tensors.add_argument('-q', '--compare_qsnr',
-                                action='store_true',
-                                help='compare two tensors QSNR')
+    parser_outexclu = parser_tensors.add_mutually_exclusive_group()
+    parser_outexclu.add_argument('-Q', '--compare_qsnr',
+                                 action='store_true',
+                                 help='compare two tensors QSNR')
+    parser_outexclu.add_argument('-E', '--compare_error',
+                                 action='store_true',
+                                 help='compare two tensors error (first - second)')
     parser_tensors.add_argument('-n', '--name',
                                 type=str,
                                 choices_method=lambda x: x.tensor_store_names,
                                 help='name to use for the tensor in the tensor store')
+    parser_tensors.add_argument('-f', '--write_filename',
+                                type=str,
+                                completer_method=Cmd.path_complete,
+                                help='write a tensor in gap helpers format. you must select a step. ' +
+                                'the output of this step is written. specify a single tensor with ' +
+                                'the -t option.')
+    parser_tensors.add_argument('-m', '--make_filename',
+                                type=str,
+                                completer_method=Cmd.path_complete,
+                                help='write a makefile including the dimensions of the tensor written ' +
+                                'and the dimensions of the input to the node that produced it.')
     parser_texclu1 = parser_tensors.add_mutually_exclusive_group()
     parser_texclu1.add_argument('-W', '--weights',
                                 action='store_true',
@@ -1021,27 +1128,27 @@ specific step of the graph."""
                                 help='compare biases')
     parser_texclu2 = parser_tensors.add_mutually_exclusive_group()
     parser_texclu2.add_argument('-t', '--tensors',
-                                nargs=2,
+                                nargs=(1, 2),
                                 type=str,
                                 choices_method=lambda x: x.tensor_store_names,
                                 help='compare two tensors')
     parser_texclu2.add_argument('-g', '--gap_load',
                                 completer_method=Cmd.path_complete,
-                                help='load tensors dumped by autotiler code. '+
-                                'Supply the filename and'+
-                                ' an optional tensor store name. If none is given'+
+                                help='load tensors dumped by autotiler code. ' +
+                                'Supply the filename and' +
+                                ' an optional tensor store name. If none is given' +
                                 ' the filename will be used.')
     parser_texclu2.add_argument('-X', '--clear',
                                 action='store_true',
                                 help='clears the tensor store')
-
 
     @with_argparser(parser_tensors)
     def do_tensors(self, args):
         """
 Load and manipulate tensors. If no option is supplied the saved tensors will be listed.
 All the tensors in the store are available in dictionary 'tensors' in the python console
-accessed by the command 'py'."""
+accessed by the command 'py'. Tensors can be displayed side by side or the average absolute
+error or QSNR displayed. If a step is selected then the error by channel will be displayed."""
         if args.clear:
             self.pfeedback('tensor store cleared')
             self._tensor_store.clear()
@@ -1051,11 +1158,48 @@ accessed by the command 'py'."""
             self._tensor_store[store_name] = read_gap_tensors(args.gap_load)
             return
         if args.tensors:
+            if len(args.tensors) == 1:
+                tensor_name = args.tensors[0]
+                tensors = self._tensor_store.get(tensor_name)
+                if tensors is None:
+                    self.perror("{} not in store".format(tensor_name))
+                    return
+                if args.step is None:
+                    self.perror("you must select a step")
+                    return
+                if args.step >= len(tensors):
+                    self.perror("{} doesn't have that step".format(tensor_name))
+                    return
+                if tensors[args.step] is None:
+                    self.perror("{} doesn't have this tensor for that step".format(tensor_name))
+                    return
+                tensor = tensors[args.step]
+
+                if args.weights:
+                    tensor = tensor[1]
+                elif args.biases:
+                    tensors = tensor[2]
+                else:
+                    tensors = tensor[0]
+                if args.write_filename:
+                    if args.make_filename:
+                        node = self.G.graph_state.steps[args.step]['node']
+                        in_edge = self.G.in_edges(node.name)[0]
+                        in_step = in_edge.from_node.step_idx
+                        all_tensors = self._tensor_store.get(tensor_name)
+                        write_gap_tensor(args.write_filename, tensor, step=args.step,
+                                         output_tensor=all_tensors[in_step][0], make_file=args.make_filename)
+                    else:
+                        write_gap_tensor(args.write_filename, tensor, step=args.step)
+                else:
+                    self.perror("not sure what to do with this single tensor")
+                return
+
             compare = args.tensors
             tensors = [None]*2
             for i in range(2):
                 tensors[i] = self._tensor_store.get(compare[i])
-                if not tensors[i]:
+                if tensors[i] is None:
                     self.perror("{} not in store".format(compare[i]))
                     return
                 if args.weights:
@@ -1071,7 +1215,8 @@ accessed by the command 'py'."""
                         self.perror("{} doesn't have that step".format(compare[i]))
                         return
                     if tensors[i][args.step] is None:
-                        self.perror("{} doesn't have this tensor for that step".format(compare[i]))
+                        self.perror(
+                            "{} doesn't have this tensor for that step".format(compare[i]))
                         return
                     tensors[i] = [tensors[i][args.step]]
 
@@ -1084,20 +1229,98 @@ accessed by the command 'py'."""
                             tensor = tensor[c]
                         tensors[i][j] = tensor
 
-            if args.compare_qsnr:
-                out = [qsnr(t1.astype(np.float64), t2.astype(np.float64))\
-                    for t1, t2 in zip(*tensors)]
-                print(out)
+            if args.compare_qsnr or args.compare_error:
+                if args.compare_qsnr:
+                    def func(x, y):
+                        return qsnr(x.astype(np.float), y.astype(np.float))
+                else:
+                    def func(x, y):
+                        return np.average(np.abs(x - y))
+                if args.step is not None:
+                    print("error for step %s" % args.step)
+                    if args.channel is not None:
+                        print("error for dimensions [%s]" %
+                              (",".join([str(chan) for chan in args.channel])))
+#pylint: disable=unsubscriptable-object
+                    out = [func(tensors[0][0][i], tensors[1][0][i])
+                           for i in range(len(tensors[0][0]))]
+                else:
+                    out = [func(t1, t2)
+                           for t1, t2 in zip(*tensors)]
+                for idx, val in enumerate(out):
+                    if idx % 10 == 0:
+                        print("\n{:03d} {:03d}:  ".format(idx, idx+9), end='')
+                    print('{:3.0f}{}'.format(val, "" if (idx + 1) % 10 == 0 else ", "), end='')
+                print()
             else:
                 self.ppaged("\n".join(print_comparison(tensors)))
-
             return
+
         for idx, k in enumerate(self._tensor_store):
             print("{:3d}) {}".format(idx, k))
+
+    def nodeoption_choices_method(self, arg_tokens):
+        step_num = arg_tokens['step'][0]
+        if step_num == '*':
+            keys = []
+            for step in self.G.graph_state.steps:
+                node = step['node']
+                keys.extend(node.at_options.valid_options.keys())
+            return keys
+        try:
+            step_num = int(step_num)
+            node = self.G.graph_state.steps[step_num]['node']
+            return node.at_options.valid_options.keys()
+        except ValueError:
+            return []
+
+    # nodeoption COMMAND
+    parser_nodeoption = Cmd2ArgumentParser()
+    parser_nodeoption.add_argument('step', nargs=(0, 1), help='Set this step number')
+    parser_nodeoption.add_argument('parameter', nargs=(
+        0, 1), choices_method=nodeoption_choices_method, help='Set this parameter')
+    parser_nodeoption.add_argument('value', nargs=(0, 1), help='Set the parameter to this value')
+
+    @with_argparser(parser_nodeoption)
+    def do_nodeoption(self, args):
+        """ Allows setting of autotiler generator control parameters and other code generation
+options such as the location of inputs and outputs. For a complete set of the parameters that
+can be set refer to the autotiler documentation."""
+        self._check_graph()
+        if args.step is None or (args.step == '*' and args.parameter is None):
+            for nodeid, elem in self.G.node_options.items():
+                print("{}: {}".format(nodeid, elem))
+            return
+
+        if args.step == '*':
+            nodes = [step['node'] for step in self.G.graph_state.steps]
+        else:
+            try:
+                step = int(args.step)
+                nodes = [self.G.graph_state.steps[step]['node']]
+            except ValueError:
+                self.perror("that's not a valid step")
+
+        if args.parameter is None:
+            node_options = self.G.node_options.get(NodeId(nodes[0]))
+            if node_options:
+                print(node_options)
+            else:
+                print("nothing set")
+            return
+        if args.value is None:
+            val = None
+        else:
+            val = int(args.value)
+        for node in nodes:
+            node_options = node.at_options
+            setattr(node_options, args.parameter, val)
+            self.G.node_options[NodeId(node)] = node_options
 
     # QSHOW COMMAND
     parser_qshow = Cmd2ArgumentParser()
     table_options(parser_qshow)
+    parser_qshow.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
 
     @with_argparser(parser_qshow)
     def do_qshow(self, args):
@@ -1105,8 +1328,23 @@ accessed by the command 'py'."""
 Show current quantization settings."""
         self._check_graph()
         self._check_quantized()
-        tab = QuantizationReporter().report(self.G, self.G.quantization)
+        tab = QuantizationReporter(step=args.step).report(self.G, self.G.quantization)
         output_table(tab, args)
+
+    # EXTRACT COMMAND
+    parser_extract = Cmd2ArgumentParser()
+    parser_extract.add_argument('step',
+                                type=int,
+                                help='step number to extract')
+
+    @with_argparser(parser_extract)
+    def do_extract(self, args):
+        """
+Extracts a single step out of a graph and forms a new graph with inputs and outputs to this step."""
+        self._check_graph()
+        if args.step < 0 or args.step > len(self.G.graph_state.steps):
+            self.perror("step must be between 0 and {}".format(len(self.G.graph_state.steps)))
+        extract_node(self.G, self.G.graph_state.steps[args.step]['node'])
 
     # GEN COMMAND
     parser_gen = Cmd2ArgumentParser()
@@ -1116,13 +1354,13 @@ Show current quantization settings."""
                             help='file to write to, otherwise output to terminal')
     parser_gen.add_argument('-T', '--tensor_directory',
                             completer_method=Cmd.path_complete,
-                            help='path to tensor directory. full path will be created'+\
-                            ' if it doesn\'t exist. If this parameter is given it will'+\
+                            help='path to tensor directory. full path will be created' +
+                            ' if it doesn\'t exist. If this parameter is given it will' +
                             'update the settings saved with the graph state.')
     parser_gen.add_argument('-M', '--model_directory',
                             completer_method=Cmd.path_complete,
-                            help='path to model directory. full path will be created'+\
-                            ' if it doesn\'t exist. If this parameter is given it will'+\
+                            help='path to model directory. full path will be created' +
+                            ' if it doesn\'t exist. If this parameter is given it will' +
                             'update the settings saved with the graph state.')
     parser_gen.add_argument('-t', '--output_tensors',
                             action='store_true',
@@ -1190,12 +1428,34 @@ save the state files."""
         gen_opts = {k: self.settings[k] for k in DEFAULT_GEN_OPTS}
         dump_state(self.G, state_path=args.output, extra=gen_opts)
 
+    # BCORR COMMAND
+    parser_bcorr = Cmd2ArgumentParser()
+    input_options(parser_bcorr)
+
+    @with_argparser(parser_bcorr)
+    def do_bcorr(self, args):
+        """
+Correct biases with average quantization error."""
+        self._check_graph()
+        self._check_quantized()
+        stats_collector = StepErrorStatsCollector()
+        input_args = self._get_input_args(args)
+        cnt = 0
+        for filename in glob_input_files(args.input_files):
+            cnt += 1
+            data = import_data(filename, **input_args)
+            stats_collector.collect_stats(self.G, [data])
+
+        adjust_biases(self.G, stats_collector.reduce_stats())
+
     # QERROR COMMAND
     parser_qerror = Cmd2ArgumentParser()
-    parser_qerror.add_argument('-s', '--step',\
-        type=int, help='step to evaluate', default=None)
-    parser_qerror.add_argument('-r', '--report_lowest',\
-        type=int, help='QSNR threshold below which to report filename')
+    parser_qerror.add_argument('-s', '--step',
+                               action='store_true',
+                               help='evaluate quantization per step. i.e.\
+                                    individually quantize each layer')
+    parser_qerror.add_argument('-r', '--report_lowest',
+                               type=int, help='QSNR threshold below which to report filename')
     table_options(parser_qerror, default_width=140)
     input_options(parser_qerror)
 
@@ -1207,7 +1467,10 @@ Show quantization error introduced by processing one or more input files."""
         self._check_quantized()
         fmt = ('tab' if args.output is None else args.output['fmt'])
         input_args = self._get_input_args(args)
-        stats_collector = ErrorStatsCollector()
+        if args.step:
+            stats_collector = StepErrorStatsCollector()
+        else:
+            stats_collector = ErrorStatsCollector()
         cnt = 0
         for filename in glob_input_files(args.input_files):
             cnt += 1
@@ -1218,7 +1481,7 @@ Show quantization error introduced by processing one or more input files."""
                 if lowest < args.report_lowest:
                     self.pfeedback("{} had QSNR below threshold".format(filename))
 
-        tab = ErrorReporter(do_totals=(fmt != "csv"), one_input=cnt <= 1)\
+        tab = ErrorReporter(do_totals=(fmt != "csv"), one_input=cnt <= 1, with_chan=args.step)\
             .report(self.G, stats_collector.reduce_stats())
         output_table(tab, args)
 
@@ -1227,7 +1490,7 @@ Show quantization error introduced by processing one or more input files."""
     parser_tune.add_argument('step',
                              type=int, help='step to tune')
     parser_tune.add_argument('parameter',
-                             choices=['acc', 'calc', 'weights', 'dp'],
+                             choices=['acc', 'calc', 'weights', 'biases', 'dp', 'out'],
                              help='which parameter to tune')
     parser_tune.add_argument('X',
                              nargs='?',
@@ -1237,6 +1500,10 @@ Show quantization error introduced by processing one or more input files."""
                              nargs='?',
                              default=0,
                              type=int, help='Y of QX.Y')
+    parser_tune.add_argument('index',
+                             nargs='?',
+                             default=0,
+                             type=int, help='edge index')
 
     @with_argparser(parser_tune)
     def do_qtune(self, args):
@@ -1245,7 +1512,8 @@ Tune quantization of graph."""
         self._check_graph()
         self._check_quantized()
 
-        tuneq(self.G, self.G.quantization, args.step, args.parameter, args.X, args.Y)
+        tuneq(self.G, self.G.quantization, args.step,
+              args.parameter, args.X, args.Y, index=args.index)
 
     # TEMPS COMMAND
     parser_temps = Cmd2ArgumentParser()

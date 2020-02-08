@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import sys
 from typing import Sequence
@@ -11,13 +16,14 @@ import numpy as np
 
 from graph.types import (ActivationParameters, Conv2DParameters, FcParameters,
                          InputParameters, OutputParameters, PadParameters,
-                         PoolingParameters, SoftMaxParameters)
+                         PoolingParameters, SoftMaxParameters, ReshapeParameters,
+                         MatrixAddParameters, ConcatParameters, TransposeParameters)
 from quantization.quantization_record import (FilterQuantizationRecord,
                                               QuantizationRecord)
 
 from .kernels.conv2d import conv2d
 from .kernels.linear import linear
-from .kernels.misc import activation, concat, softmax
+from .kernels.misc import activation, concat, softmax, reshape, add, transpose
 from .kernels.pool import av_pool, max_pool
 from .kernels.utils import pad
 
@@ -34,7 +40,11 @@ class Executer():
             OutputParameters: cls.execute_output,
             ActivationParameters: cls.execute_activation,
             PadParameters: cls.execute_pad,
-            SoftMaxParameters: cls.execute_softmax
+            SoftMaxParameters: cls.execute_softmax,
+            ReshapeParameters: cls.execute_reshape,
+            MatrixAddParameters: cls.execute_add,
+            ConcatParameters: cls.execute_concat,
+            TransposeParameters: cls.execute_transpose
         }
         func = execute_switch.get(node.__class__)
         if func:
@@ -42,14 +52,28 @@ class Executer():
         raise NotImplementedError("kernel for node %s is not implemented" % node.__class__)
 
     @staticmethod
-    def execute_softmax(node: PoolingParameters,
+    def execute_transpose(node: TransposeParameters,
+                          in_tensors: Sequence[np.array],
+                          qrec: QuantizationRecord = None):
+
+        return [transpose(node, node.in_dims, node.out_dims, in_tensors[0], qrec)], None
+
+    @staticmethod
+    def execute_reshape(node: ReshapeParameters,
+                        in_tensors: Sequence[np.array],
+                        qrec: QuantizationRecord = None):
+
+        return [reshape(node, node.in_dims, node.out_dims, in_tensors[0], qrec)], None
+
+    @staticmethod
+    def execute_softmax(node: SoftMaxParameters,
                         in_tensors: Sequence[np.array],
                         qrec: QuantizationRecord = None):
 
         return [softmax(node, node.in_dims, node.out_dims, in_tensors[0], qrec)], None
 
     @staticmethod
-    def execute_pad(node: PoolingParameters,
+    def execute_pad(node: PadParameters,
                     in_tensors: Sequence[np.array],
                     qrec: QuantizationRecord = None):
         del qrec
@@ -57,23 +81,30 @@ class Executer():
         return [pad(in_tensors[0], node.in_dims[0], node.padding, "zero")], None
 
     @staticmethod
-    def execute_concat(node: PoolingParameters,
+    def execute_concat(node: ConcatParameters,
                        in_tensors: Sequence[np.array],
                        qrec: QuantizationRecord = None):
         # TODO - check quantization
-        # TODO - Axis
+        # This assumes that the input tensors have been transposed to the correct
+        # order for the concat
         del qrec
         return [concat(node, node.in_dims, node.out_dims[0], in_tensors)], None
 
     @staticmethod
-    def execute_activation(node: PoolingParameters,
+    def execute_add(node: MatrixAddParameters,
+                    in_tensors: Sequence[np.array],
+                    qrec: QuantizationRecord = None):
+        return [add(node, node.in_dims, node.out_dims, in_tensors, qrec)], None
+
+    @staticmethod
+    def execute_activation(node: ActivationParameters,
                            in_tensors: Sequence[np.array],
                            qrec: QuantizationRecord = None):
 
         return [activation(node, node.in_dims[0], node.out_dims[0], in_tensors[0], qrec)], None
 
     @staticmethod
-    def execute_input(node: PoolingParameters,
+    def execute_input(node: InputParameters,
                       in_tensors: Sequence[np.array],
                       qrec: QuantizationRecord = None):
         value = in_tensors[node.index]
@@ -88,15 +119,20 @@ class Executer():
             raise ValueError(
                 "Input data dimensions are not compatible with graph input: {!s}".format(ex)
             ).with_traceback(trace_back)
-
+        if node.transpose_out:
+            value = np.transpose(value, node.transpose_out)
         return [value], None
 
     @staticmethod
-    def execute_output(node: PoolingParameters,
+    def execute_output(node: OutputParameters,
                        in_tensors: Sequence[np.array],
                        qrec: QuantizationRecord = None):
-        del node, qrec
-        return [in_tensors[0]], None
+        del qrec
+        result = in_tensors[0]
+        if node.transpose_in:
+            result = np.transpose(result, node.transpose_in)
+
+        return [result], None
 
     @staticmethod
     def execute_pooling(node: PoolingParameters,

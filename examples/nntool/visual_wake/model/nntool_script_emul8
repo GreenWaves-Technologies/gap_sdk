@@ -1,0 +1,18 @@
+set debug on
+weight_equalization 0.001
+adjust
+fusions
+set input_norm_func "x: (x>>1)/128"
+set input_divisor 1
+set input_offset 0
+set l2_ram_ext_managed 0
+set dump_tensors 1
+aquant -f 8 images/*.ppm -T
+qtune 65 out 6 10
+nodeoption 0 ALLOCATE 1
+nodeoption * ENABLEIM2COL 1
+set graph_reorder_constant_in 1
+set graph_produce_node_names 1
+set graph_produce_operinfos 1
+set graph_monitor_cycles 1
+save_state

@@ -1,10 +1,17 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import numpy as np
+
+from utils.json_serializable import JsonSerializable
 
 from .qtype_base import QTypeBase
 
@@ -42,7 +49,7 @@ def normalize(obj, n_bits):
         return obj << -n_bits
     return obj >> n_bits
 
-class QType(QTypeBase):
+class QType(QTypeBase, JsonSerializable):
     def __init__(self, *args, bits=None, q=None, signed=None):
         if args:
             if isinstance(args[0], QType):
@@ -63,6 +70,13 @@ class QType(QTypeBase):
 
         if signed is not None:
             self._quant[2] = signed
+
+    def _encapsulate(self):
+        return self._quant
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        return QType(*val)
 
     def increase_precision(self):
         return QType(self.bits * 2, self.q, self.signed)
@@ -144,13 +158,15 @@ class QType(QTypeBase):
 
     def round_normalize(self, arr, cur_qtype: 'QType'):
         scale = cur_qtype.q - self.q
-        arr = arr + (1<<(scale - 1))
+        # arr = arr + (1<<(scale - 1))
         arr = normalize(arr, scale)
         return arr
 
-    def round_normalize_clip(self, arr, cur_qtype, change_type=True):
-        scale = cur_qtype.q - self.q
-        arr = arr + (1<<(scale - 1))
+    def round_normalize_clip(self, arr, from_qtype, change_type=True):
+        to_qtype = self
+        scale = from_qtype.q - to_qtype.q
+        # if scale > 0:
+        #     arr = arr + (1<<(scale - 1))
         arr = normalize(arr, scale)
         arr = self.clip(arr, change_type)
         return arr

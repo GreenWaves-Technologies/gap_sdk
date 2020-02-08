@@ -4,6 +4,7 @@
   "nb_core": 0,
 
   "vp_class": "pulp/event_unit/eu_v3",
+  "vp_component":  "pulp.event_unit.eu_v3_impl",
 
   "hal_files" : [ "hal/eu/eu_v3.h" ],
   "archi_files" : [ "archi/eu/eu_v3.h" ],

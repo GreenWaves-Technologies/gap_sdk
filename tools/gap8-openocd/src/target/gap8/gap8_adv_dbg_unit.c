@@ -120,10 +120,10 @@
 #define DBG_CPU1_CMD_IREG_WR		0x9
 #define DBG_CPU1_CMD_IREG_SEL		0xd
 
-#define MAX_READ_STATUS_WAIT		10
-#define MAX_READ_BUSY_RETRY		2
-#define MAX_READ_CRC_RETRY		2
-#define MAX_WRITE_CRC_RETRY		2
+#define MAX_READ_STATUS_WAIT		100
+#define MAX_READ_BUSY_RETRY		100
+#define MAX_READ_CRC_RETRY		100
+#define MAX_WRITE_CRC_RETRY		100
 #define BURST_READ_READY		1
 #define MAX_BUS_ERRORS			2
 
@@ -513,7 +513,7 @@ retry_read_full:
 
 	if(retry_full_busy || retry_full_crc)
 	{
-		usleep(100000);
+		usleep(1000000);
 	}
 	/* Send the BURST READ command, returns TAP to idle state */
 	retval = adbg_burst_command(jtag_info, opcode, start_address, count);

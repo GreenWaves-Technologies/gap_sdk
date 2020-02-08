@@ -32,7 +32,7 @@ class timer : public vp::component
 
 public:
 
-  timer(const char *config);
+  timer(js::config *config);
 
   int build();
   void start();
@@ -84,7 +84,7 @@ private:
   vp::clock_event *event;
 };
 
-timer::timer(const char *config)
+timer::timer(js::config *config)
 : vp::component(config)
 {
 
@@ -412,7 +412,7 @@ void timer::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new timer(config);
+  return new timer(config);
 }

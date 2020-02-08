@@ -32,6 +32,7 @@ def gen_config(name, system_config, system, device_config, usecases=[]):
 
   system.system_tree.board.add_component(name + '_clock', Component(properties=OrderedDict(
       vp_class= "vp/clock_domain",
+      vp_component= "vp.clock_domain_impl"),
       frequency= 50000000
   )))
 

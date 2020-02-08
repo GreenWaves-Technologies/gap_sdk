@@ -30,7 +30,7 @@ class converter : public vp::component
 
 public:
 
-  converter(const char *config);
+  converter(js::config *config);
 
   int build();
   void reset(bool active);
@@ -72,7 +72,7 @@ private:
   vp::io_req *last_stalled_req;
 };
 
-converter::converter(const char *config)
+converter::converter(js::config *config)
 : vp::component(config)
 {
 
@@ -239,9 +239,9 @@ int converter::build()
   return 0;
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new converter(config);
+  return new converter(config);
 }
 
 

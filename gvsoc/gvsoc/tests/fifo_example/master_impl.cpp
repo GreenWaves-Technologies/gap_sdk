@@ -40,7 +40,7 @@ class master : public vp::component
 
 public:
 
-  master(const char *config);
+  master(js::config *config);
 
   int build();
 
@@ -269,12 +269,12 @@ void master::start()
 
 
 
-master::master(const char *config)
+master::master(js::config *config)
 : vp::component(config)
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new master(config);
+  return new master(config);
 }

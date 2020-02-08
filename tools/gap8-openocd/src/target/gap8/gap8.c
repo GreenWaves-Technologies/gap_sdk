@@ -717,14 +717,14 @@ static int gap8_resume_or_step(struct target *target, int current,
 	{
 		/* Set the single step trigger. */
 		debug_reg = GAP8_DEBUG_CTRL_SSTE;
+		retval = du_core->gap8_jtag_write_cpu(&gap8->jtag, GAP8_DEBUG_REG_ADDR(gap_core_id, DBG_CTRL), 1, &debug_reg);
 	}
 	else
 	{
 		/* Clear the single step trigger. */
-		debug_reg = 0U;
+		retval = du_core->gap8_cpu_stall(&gap8->jtag, CPU_UNSTALL);
 	}
 
-	retval = du_core->gap8_jtag_write_cpu(&gap8->jtag, GAP8_DEBUG_REG_ADDR(gap_core_id, DBG_CTRL), 1, &debug_reg);
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while writing DEBUG CTRL");

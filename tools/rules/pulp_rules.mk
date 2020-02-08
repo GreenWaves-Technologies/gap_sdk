@@ -41,13 +41,24 @@ else
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gapuino.conf.ld
 endif
 
+TARGET_CHIP_VERSION=
+ifeq ($(TARGET_CHIP), GAP8)
+TARGET_CHIP_VERSION=1
+else ifeq ($(TARGET_CHIP), GAP8_V2)
+TARGET_CHIP_VERSION=2
+else
+TARGET_CHIP_VERSION=1
+endif
+
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
-RISCV_FLAGS   = -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__
+RISCV_FLAGS   ?= -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__ -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP -D__PULP_OS__
 else
-RISCV_FLAGS   = -mchip=gap9 -mPE=8 -mFC=1 -D__riscv__
+RISCV_FLAGS   ?= -mchip=gap9 -mPE=8 -mFC=1 -D__riscv__
 GAP_FLAGS	 += -D__pulp__ -DCONFIG_VEGA -D__PULP_OS__
 endif
+
+RISCV_FLAGS += -mnativeomp
 
 
 WRAP_FLAGS    = -Wl,--gc-sections
@@ -69,8 +80,18 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 
 CFLAGS        = $(COMMON) -MMD -MP -c
 
+ifdef io
+ifeq '$(io)' 'host'
+PULP_CFLAGS += -D__RT_IODEV__=2
+export GAP_USE_OPENOCD=1
+endif
+ifeq '$(io)' 'uart'
+PULP_CFLAGS += -D__RT_IODEV__=1
+endif
+else
 ifdef GAP_USE_OPENOCD
 PULP_CFLAGS += -D__RT_IODEV__=2
+endif
 endif
 
 TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS) -MMD -MP -c
@@ -99,13 +120,13 @@ INC           = $(TARGET_INSTALL_DIR)/include \
 				$(INSTALL_DIR)/include
 INC          +=	$(PULP_APP_INC_PATH)
 
-INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE) 
+INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
 
-all::    dir $(OBJECTS) $(BIN) disdump
+all::    $(OBJECTS) $(BIN) disdump | $(BUILDDIR)
 
-dir:
-	mkdir -p $(BUILDDIR)
+$(BUILDDIR):
+	mkdir -p $@
 
 # Rules for creating dependency files (.d).
 #------------------------------------------
@@ -127,6 +148,7 @@ use_pulprun=1
 endif
 endif
 
+
 ifeq ($(use_pulprun), 1)
 
 run:
@@ -134,35 +156,41 @@ run:
 
 else ifeq ($(platform), gvsoc)
 
-run::
+run:
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
 
+profiler:
+	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) --event=.*@all.bin --event-format=raw $(runner_args) prepare
+	cd $(BUILDDIR) && if [ -e all.bin ]; then rm all.bin; fi; mkfifo all.bin
+	cd $(BUILDDIR) && export PULP_CONFIG_FILE=$(BUILDDIR)/plt_config.json && profiler $(BUILDDIR) $(BIN) plt_config.json
+
+
 else ifeq ($(platform), fpga)
-run::
+run:
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
 	$(INSTALL_DIR)/runner/run_fpga.sh
 else
 	$(MBED_PATH)/tools/runner/run_gap9.sh
 endif
 else ifeq ($(platform), rtl)
-run:: dir
+run: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
 else
-run:: all
-	$(INSTALL_DIR)/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
+run: all
+	$(INSTALL_DIR)/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS)
 
 gdbserver: PLPBRIDGE_FLAGS += -gdb
 gdbserver: run
 
 endif
 
-flash::
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS)
+flash:
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
 
-launch::
+launch:
 	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS)
 
-gui:: dir
+gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"
 
 # Foramt "vsim -do xxx.do xxx.wlf"
@@ -186,4 +214,4 @@ clean::
 	@rm -rf ./BUILD$(build_dir_ext) transcript *.wav __pycache__
 	@rm -rf version.log
 
-.PHONY: all clean run debug disdump gdbserver dir
+.PHONY: all run debug disdump gdbserver

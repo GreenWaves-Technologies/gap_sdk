@@ -20,4 +20,7 @@ def test_bits():
     assert bits(1.081599854, -0.07628916) == 2
     assert bits(2.081599854, -0.07628916) == 3
     assert bits(256.081599854, -0.07628916) == 10
+    assert bits(75, -9) == 8
     assert bits(0, 0) == 1
+    assert bits(-1, 0) == 1
+    assert bits(-1, 1) == 2

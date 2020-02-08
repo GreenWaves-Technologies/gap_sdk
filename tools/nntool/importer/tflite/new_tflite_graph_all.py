@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Copied from TOCO code to reference orders
 # // Helper to deal with TensorFlow arrays using a different ordering of
@@ -31,11 +36,13 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          Conv2DParameters, FcParameters, PoolingParameters,
                          ReshapeParameters, SoftMaxParameters,
                          UnknownOpParameters, UnconvertedOpParameters,
-                         NNEdge, PadParameters)
+                         NNEdge, PadParameters, MatrixAddParameters)
 from graph.dim import (Conv2DFilterDim, Dim, FcFilterDim, PadDim,
                        PoolFilterDim, StrideDim)
 from graph.nngraph import NNGraph
+from graph.constant_store import ConstantStore
 from utils.graph import Node
+from utils.sparse_list import SparseList
 
 from . import utils
 from .tflite_schema_head import\
@@ -43,6 +50,8 @@ from .tflite_schema_head import\
      Conv2DOptions, DepthwiseConv2DOptions,
      FullyConnectedOptions, Model, Padding, Pool2DOptions,
      ReshapeOptions, SoftmaxOptions, TensorType)
+
+from .propagate_hints import propagate_hints
 
 class TFLiteImportException(Exception):
     pass
@@ -111,9 +120,10 @@ def add_node(G: NNGraph, node: Node, anode: Node = None) -> str:
 def aname(name):
     return name + "_activation"
 
-def get_tensor(model, subgraph, elem, idx, dequantize=False):
+def get_tensor(model, tensors, subgraph, elem, idx, dequantize=False):
     check(elem.InputsLength() >= idx + 1, "Not enough input tensors")
     tf_idx = elem.Inputs(idx)
+    tensors[tf_idx]['used'] = True
     tf_tensor = subgraph.Tensors(tf_idx)
     dtype = TF_TO_NUMPY_TYPE[tf_tensor.Type()]
     tf_buffer_idx = tf_tensor.Buffer()
@@ -143,23 +153,32 @@ def get_shape(subgraph, tf_idx, order):
             shape[j] = tf_tensor.Shape(i)
         return shape
 
-def get_input_size(subgraph, elem, idx, order=None):
+def remove_batch_dim(dim):
+    check(dim[0] == 1, "batch dimension should be 1")
+    return dim[1:]
+
+def get_input_size(tensors, subgraph, elem, idx, order=None):
     check(elem.InputsLength() >= idx + 1, "Not enough input tensors")
     tf_idx = elem.Inputs(idx)
+    if tensors:
+        tensors[tf_idx]['used'] = True
     return get_shape(subgraph, tf_idx, order)
 
 def get_all_input_dims(subgraph, elem, order=None):
     inputs = []
     for idx in range(elem.InputsLength()):
         tf_idx = elem.Inputs(idx)
-        inputs.append(get_shape(subgraph, tf_idx, order))
+        shape = get_shape(subgraph, tf_idx, order)
+        if len(shape) == 0:
+            continue
+        inputs.append(Dim.unnamed(remove_batch_dim(shape)))
     return inputs
 
 def get_all_output_dims(subgraph, elem, order=None):
     outputs = []
     for idx in range(elem.OutputsLength()):
         tf_idx = elem.Outputs(idx)
-        outputs.append(get_shape(subgraph, tf_idx, order))
+        outputs.append(Dim.unnamed(remove_batch_dim(get_shape(subgraph, tf_idx, order))))
     return outputs
 
 def get_fin_cput_size(subgraph, elem, idx):
@@ -186,8 +205,9 @@ def fuse_activation(G: NNGraph, tfl_opts, name: str, node: Node):
     anode = ActivationParameters(aname(name), activation)
     return add_node(G, node, anode=anode)
 
-def add_unconverted(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
-    return add_node(G,
+def add_unconverted(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+    del tensors, load_tensors, dequantize
+    node = add_node(G,
                     UnconvertedOpParameters(
                         name,
                         op_name,
@@ -199,13 +219,14 @@ def add_unconverted(G, name, subgraph, op_name, op, load_tensors=False, dequanti
                             "tflite_subgraph": subgraph
                         }
                     ))
+    return node
 
-def add_convolution(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_convolution(G, tensors, name, subgraph, _, op, load_tensors=False, dequantize=False):
     conv_opts = Conv2DOptions.Conv2DOptions()
     conv_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
 
     # get filter dimensions
-    filt = get_input_size(subgraph, op, 1, order=TF_LITE_FILTER_ORDER)
+    filt = get_input_size(tensors, subgraph, op, 1, order=TF_LITE_FILTER_ORDER)
     filt = Conv2DFilterDim(filt['h'], filt['w'],\
         filt['out_c'], in_c=filt['in_c'])
     filt = filt.impose_order(TF_LITE_FILTER_ORDER)
@@ -215,22 +236,30 @@ def add_convolution(G, name, subgraph, _, op, load_tensors=False, dequantize=Fal
     # does it have biases
     has_bias = op.InputsLength() > 2
 
-    node = Conv2DParameters(name, filt,\
-        StrideDim(conv_opts.StrideH(), conv_opts.StrideW()), pad, has_bias=has_bias)
+    node = Conv2DParameters(name,
+                            filt=filt,
+                            stride=StrideDim(conv_opts.StrideH(),
+                                             conv_opts.StrideW()),
+                            padding=pad,
+                            has_bias=has_bias,
+                            in_dims_hint=SparseList([['h', 'w', 'c']]),
+                            out_dims_hint=SparseList([['h', 'w', 'c']]),
+                            constant_store=G.constant_store)
 
     if load_tensors:
-        node.weights = get_tensor(G.model, subgraph, op, 1, dequantize=dequantize)
+        node.weights = get_tensor(G.model, tensors, subgraph, op, 1, dequantize=dequantize)
         if has_bias:
-            node.biases = get_tensor(G.model, subgraph, op, 2, dequantize=dequantize)
+            node.biases = get_tensor(G.model, tensors, subgraph, op, 2, dequantize=dequantize)
     return fuse_activation(G, conv_opts, name, node)
 
-def add_depthwise_convolution(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_depthwise_convolution(G, tensors, name, subgraph, _, op,
+                              load_tensors=False, dequantize=False):
     conv_opts = DepthwiseConv2DOptions.DepthwiseConv2DOptions()
     conv_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
 
     # get filter dimensions
-    inp = get_input_size(subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
-    filt = get_input_size(subgraph, op, 1, order=TF_LITE_DW_FILTER_ORDER)
+    inp = get_input_size(tensors, subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
+    filt = get_input_size(tensors, subgraph, op, 1, order=TF_LITE_DW_FILTER_ORDER)
     filt = Conv2DFilterDim(filt['h'], filt['w'],\
         filt['out_c'], in_c=1)
 
@@ -255,48 +284,50 @@ def add_depthwise_convolution(G, name, subgraph, _, op, load_tensors=False, dequ
 
     if convert_to_conv:
         filt.impose_order(TF_LITE_FILTER_ORDER)
-        node = Conv2DParameters(
-            name,
-            filt,
-            StrideDim(conv_opts.StrideH(), conv_opts.StrideW()),
-            pad,
-            has_bias=has_bias
-        )
+        node = Conv2DParameters(name,
+                                filt=filt,
+                                stride=StrideDim(conv_opts.StrideH(), conv_opts.StrideW()),
+                                padding=pad,
+                                has_bias=has_bias,
+                                in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                out_dims_hint=SparseList([['h', 'w', 'c']]),
+                                constant_store=G.constant_store)
     else:
         filt.impose_order(TF_LITE_DW_FILTER_ORDER)
-        node = Conv2DParameters(
-            name,
-            filt,
-            StrideDim(conv_opts.StrideH(), conv_opts.StrideW()),
-            pad,
-            groups=groups,
-            multiplier=conv_opts.DepthMultiplier(),
-            has_bias=has_bias,
-            tf_depthwise=True
-        )
+        node = Conv2DParameters(name,
+                                filt=filt,
+                                stride=StrideDim(conv_opts.StrideH(), conv_opts.StrideW()),
+                                padding=pad,
+                                groups=groups,
+                                multiplier=conv_opts.DepthMultiplier(),
+                                has_bias=has_bias,
+                                tf_depthwise=True,
+                                in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                out_dims_hint=SparseList([['h', 'w', 'c']]),
+                                constant_store=G.constant_store)
 
     if load_tensors:
-        node.weights = get_tensor(G.model, subgraph, op, 1, dequantize=dequantize)
+        node.weights = get_tensor(G.model, tensors, subgraph, op, 1, dequantize=dequantize)
         # If we've converted to a normal conv then change the weight order
         if convert_to_conv:
             node.weights = node.weights.transpose(TF_LITE_DW_FILTER_TRANSPOSE)
         if has_bias:
-            node.biases = get_tensor(G.model, subgraph, op, 2, dequantize=dequantize)
+            node.biases = get_tensor(G.model, tensors, subgraph, op, 2, dequantize=dequantize)
 
     return fuse_activation(G, conv_opts, name, node)
 
 TF_LITE_FC_ORDER = ['out_c', 'sz']
 TF_LITE_FC_EXP_ORDER = ['out_c', 'h', 'w', 'in_c']
 
-def add_fully_connected(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_fully_connected(G, tensors, name, subgraph, _, op, load_tensors=False, dequantize=False):
     fc_opts = FullyConnectedOptions.FullyConnectedOptions()
     fc_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
 
     # get filter dimensions
-    inp = get_input_size(subgraph, op, 0)
+    inp = get_input_size(tensors, subgraph, op, 0)
     check(inp[0] == 1,
           "Multi batch not supported")
-    filt = get_input_size(subgraph, op, 1, order=TF_LITE_FC_ORDER)
+    filt = get_input_size(tensors, subgraph, op, 1, order=TF_LITE_FC_ORDER)
     check(filt['sz'] == reduce(lambda i, j: i * j, inp, 1), "filter doesn't match input size")
     # in the case we get an input of 1 batch with everything flattened fill h and w with 1
     if len(inp) == 2:
@@ -312,13 +343,15 @@ def add_fully_connected(G, name, subgraph, _, op, load_tensors=False, dequantize
     # does it have biases
     has_bias = op.InputsLength() > 2
 
-    node = FcParameters(name, filt_dim, has_bias=has_bias,
-                        sz_order=['h', 'w', 'c'])
+    node = FcParameters(name, filt=filt_dim, has_bias=has_bias,
+                        in_dims_hint=SparseList([['h', 'w', 'c']]),
+                        out_dims_hint=SparseList([['c']]),
+                        constant_store=G.constant_store)
 
     if load_tensors:
-        node.weights = get_tensor(G.model, subgraph, op, 1, dequantize=dequantize)
+        node.weights = get_tensor(G.model, tensors, subgraph, op, 1, dequantize=dequantize)
         if has_bias:
-            node.biases = get_tensor(G.model, subgraph, op, 2, dequantize=dequantize)
+            node.biases = get_tensor(G.model, tensors, subgraph, op, 2, dequantize=dequantize)
 
     return fuse_activation(G, fc_opts, name, node)
 
@@ -329,94 +362,113 @@ TF_POOL_OPS = {
 }
 
 # pylint: disable=unused-argument
-def add_pool(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+def add_pool(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
     pool_opts = Pool2DOptions.Pool2DOptions()
     pool_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
     pad = get_tf_padding(pool_opts.Padding())
     pool_type = TF_POOL_OPS[op_name]
 
-    inp = get_input_size(subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
+    inp = get_input_size(None, subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
     check(inp['n'] == 1,
           "Multi batch not supported")
 
     node = PoolingParameters(name,
-                             PoolFilterDim(pool_opts.FilterHeight(),
-                                           pool_opts.FilterWidth()),
-                             StrideDim(pool_opts.StrideH(), pool_opts.StrideW()),
-                             pad,
-                             pool_type=pool_type)
+                             filt=PoolFilterDim(pool_opts.FilterHeight(),
+                                                pool_opts.FilterWidth()),
+                             stride=StrideDim(pool_opts.StrideH(),
+                                              pool_opts.StrideW()),
+                             padding=pad,
+                             pool_type=pool_type,
+                             in_dims_hint=SparseList([['h', 'w', 'c']]),
+                             out_dims_hint=SparseList([['h', 'w', 'c']]))
 
     return fuse_activation(G, pool_opts, name, node)
 
 # pylint: disable=unused-argument
-def add_softmax(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_softmax(G, tensors, name, subgraph, _, op, load_tensors=False, dequantize=False):
     softmax_opts = SoftmaxOptions.SoftmaxOptions()
     softmax_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
     return add_node(G, SoftMaxParameters(name, softmax_opts.Beta()))
 
 # pylint: disable=unused-argument
-def add_concatenation(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_concatenation(G, tensors, name, subgraph, _, op, load_tensors=False, dequantize=False):
     concat_opts = ConcatenationOptions.ConcatenationOptions()
     concat_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
 
-    node = ConcatParameters(name, axis=concat_opts.Axis())
+    node = ConcatParameters(name, axis=max(concat_opts.Axis() - 1, 0))
     return fuse_activation(G, concat_opts, name, node)
 
 # pylint: disable=unused-argument
-def add_reshape(G, name, subgraph, _, op, load_tensors=False, dequantize=False):
+def add_reshape(G, tensors, name, subgraph, _, op, load_tensors=False, dequantize=False):
     reshape_opts = ReshapeOptions.ReshapeOptions()
     reshape_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
-    inp = get_input_size(subgraph, op, 0)
+    inp = get_input_size(tensors, subgraph, op, 0)
+    set_shape = get_tensor(G.model, tensors, subgraph, op, 1)
+    # TODO - Which to use? Attribute or input? TFLITE seems to set both
+    del set_shape
     new_shape = list(reshape_opts.NewShapeAsNumpy())
     if -1 in new_shape:
         new_shape_size = reduce(lambda x, y: x * 1 if y == -1 else x * y, new_shape, 1)
         inp_size = reduce(lambda x, y: x * y, inp, 1)
         new_shape[new_shape.index(-1)] = inp_size // new_shape_size
-    new_shape = Dim.unnamed(new_shape, is_ordered=True)
-    node = ReshapeParameters(name, new_shape)
+
+    old_shape = Dim.unnamed(remove_batch_dim(inp), is_ordered=True)
+    new_shape = Dim.unnamed(remove_batch_dim(new_shape), is_ordered=True)
+    node = ReshapeParameters(name, old_shape=old_shape, shape=new_shape)
     return add_node(G, node)
 
 # pylint: disable=unused-argument
-def add_activation(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+def add_activation(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
     check(op.InputsLength() == 1,\
         "Very odd " + str(op.InputsAsNumpy()))
     activation = TF_ACTIVATION_OPERATORS[op_name]
     return add_node(G, ActivationParameters(name, activation))
 
-def add_pad(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+def add_pad(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
     check(op.InputsLength() == 2,\
         "Very odd " + str(op.InputsAsNumpy()))
-    pad_dim = get_tensor(G.model, subgraph, op, 1, dequantize=False)
+    pad_dim = get_tensor(G.model, tensors, subgraph, op, 1, dequantize=False)
     assert np.all(pad_dim[3] == 0), "channel padding not supported"
     pad_dim = [int(pad_dim[i][j]) for i in range(1, 3) for j in range(2)]
     return add_node(G,
                     PadParameters(name,
                                   PadDim(*pad_dim)))
 
-def add_mean(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+def add_add(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
     check(op.InputsLength() == 2,\
         "Very odd " + str(op.InputsAsNumpy()))
-    mean_dims = get_tensor(G.model, subgraph, op, 1, dequantize=False)
+    assert len(get_input_size(None, subgraph, op, 0)) ==\
+        len(get_input_size(None, subgraph, op, 1)),\
+        "Broadcasting nor supported"
+    return add_node(G,
+                    MatrixAddParameters(name))
+
+def add_mean(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+    check(op.InputsLength() == 2,\
+        "Very odd " + str(op.InputsAsNumpy()))
+    mean_dims = get_tensor(G.model, tensors, subgraph, op, 1, dequantize=False)
     if len(mean_dims) != 2 or mean_dims[0] != 1 or mean_dims[1] != 2:
         LOG.warning("MEAN operator seen but can't convert to global average pool")
         return add_unconverted(G, name, subgraph, op_name, op, load_tensors, dequantize)
     else:
         LOG.info("MEAN operator converted to global average pool")
 
-    inp = get_input_size(subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
+    inp = get_input_size(None, subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
     check(inp['n'] == 1,
           "Multi batch not supported")
 
     return add_node(G,
                     PoolingParameters(name,
-                                      PoolFilterDim(inp['h'],
-                                                    inp['w']),
-                                      StrideDim(1, 1),
-                                      PadDim.valid(),
-                                      pool_type="average"))
+                                      filt=PoolFilterDim(inp['h'],
+                                                         inp['w']),
+                                      stride=StrideDim(1, 1),
+                                      padding=PadDim.valid(),
+                                      pool_type="average",
+                                      in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                      out_dims_hint=SparseList([['h', 'w', 'c']])))
 
 # pylint: disable=unused-argument
-def add_custom(G, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
+def add_custom(G, tensors, name, subgraph, op_name, op, load_tensors=False, dequantize=False):
     return add_node(G,
                     UnknownOpParameters(
                         name,
@@ -437,38 +489,39 @@ SWITCH_ADD_FUNCTIONS = {
     "CONCATENATION": add_concatenation,
     "RESHAPE": add_reshape,
     "PAD": add_pad,
+    "ADD": add_add,
     "MEAN": add_mean
 }
 
 for __op in TF_ACTIVATION_OPERATORS:
     SWITCH_ADD_FUNCTIONS[__op] = add_activation
 
-def add_operator(G, model, subgraph, subgraph_idx, op, op_idx,
+def add_operator(G, model, tensors, subgraph, subgraph_idx, op, op_idx,
                  load_tensors=False, dequantize=False):
     op_name, is_custom = utils.get_operator_name(model, op.OpcodeIndex())
 
     node_name = "{}_{}_{}".format(op_name, subgraph_idx, op_idx)
 
     if is_custom:
-        return add_custom(G, node_name, subgraph, op_name, op)
+        return add_custom(G, tensors, node_name, subgraph, op_name, op)
 
     if op_name in SWITCH_ADD_FUNCTIONS:
-        return SWITCH_ADD_FUNCTIONS[op_name](G, node_name, subgraph, op_name,\
+        return SWITCH_ADD_FUNCTIONS[op_name](G, tensors, node_name, subgraph, op_name,\
             op, load_tensors=load_tensors, dequantize=dequantize)
 
-    return add_unconverted(G, node_name, subgraph, op_name, op, load_tensors=load_tensors)
+    return add_unconverted(G, tensors, node_name, subgraph, op_name, op, load_tensors=load_tensors)
 
 def create_subgraph(G, model, graph_index, load_tensors=False, dequantize=False):
     graph = model.Subgraphs(graph_index)
     tensors = []
     for i in range(graph.TensorsLength()):
         tensor = graph.Tensors(i)
-        tensors.append({'name': tensor.Name().decode('ascii'), 'in':[], 'out':None})
+        tensors.append({'name': tensor.Name().decode('ascii'), 'in':[], 'out':None, 'used': False})
 
     for i in range(graph.InputsLength()):
-        dims = get_input_size(graph, graph, i, order=TF_LITE_IN_OUT_ORDER)
+        dims = get_input_size(None, graph, graph, i, order=None)
         tensors[graph.Inputs(i)]['out'] =\
-            G.add_input(dims['c'], dims['w'], dims['h'], TF_LITE_RED_IN_OUT_ORDER)
+            G.add_input(Dim.unnamed(remove_batch_dim(dims)))
 
     for i in range(graph.OutputsLength()):
         tensors[graph.Outputs(i)]['in'].append((G.add_output(), 0))
@@ -476,7 +529,7 @@ def create_subgraph(G, model, graph_index, load_tensors=False, dequantize=False)
     for i in range(graph.OperatorsLength()):
         op = graph.Operators(i)
         in_node_name, out_node_name =\
-            add_operator(G, model, graph, graph_index, op, i,\
+            add_operator(G, model, tensors, graph, graph_index, op, i,\
                 load_tensors=load_tensors, dequantize=dequantize)
         # keep track of which input the tensor is attached to
         for j in range(op.InputsLength()):
@@ -488,6 +541,13 @@ def create_subgraph(G, model, graph_index, load_tensors=False, dequantize=False)
         if tensor['out'] is not None:
             for in_rec in tensor['in']:
                 G.add_edge(NNEdge(tensor['out'], in_rec[0], to_idx=in_rec[1]))
+        else:
+            # TODO - Load other constant tensors add constant inputs to node parameters
+            # The way to do this is to add a constant inputs parameter to the node type
+            # base and then read those in as part of the base class get output size
+            if load_tensors and not tensor['used']:
+                print("WARNING - Constant tensor %s detected - \
+                    constant tensors are not implemented" % tensor['name'])
 
 def create_graph(filename, opts):
     buf = open(filename, "rb").read()
@@ -496,7 +556,8 @@ def create_graph(filename, opts):
     check(model.Version() == 3, "Only support version 3 graphs at present")
     check(model.SubgraphsLength() == 1, "Only supports one subgraph at present")
     G = NNGraph(model=model, filename=filename, name=opts.get('name'),
-                value_cache=opts.get('value_cache'))
+                value_cache=opts.get('value_cache'), constant_store=ConstantStore())
     create_subgraph(G, model, 0, load_tensors=opts.get('load_tensors'),\
         dequantize=opts.get('dequantize'))
+    propagate_hints(G)
     return G

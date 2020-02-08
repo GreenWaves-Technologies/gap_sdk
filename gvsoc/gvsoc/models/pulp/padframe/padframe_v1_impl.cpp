@@ -149,7 +149,7 @@ class padframe : public vp::component
 
 public:
 
-  padframe(const char *config);
+  padframe(js::config *config);
 
   int build();
   void start();
@@ -209,7 +209,7 @@ private:
   int nb_itf = 0;
 };
 
-padframe::padframe(const char *config)
+padframe::padframe(js::config *config)
 : vp::component(config)
 {
 
@@ -408,7 +408,7 @@ void padframe::i2s_internal_edge(void *__this, int sck, int ws, int sd, int id)
   //group->tx_trace.event((uint8_t *)&data);
   if (!group->slave.is_bound())
   {
-    vp_warning_always(&_this->warning, "Trying to send I2S stream while pad is not connected (interface: %s)\n", group->name.c_str());
+    //vp_warning_always(&_this->warning, "Trying to send I2S stream while pad is not connected (interface: %s)\n", group->name.c_str());
   }
   else
   {
@@ -799,7 +799,7 @@ void padframe::start()
 {
 }
 
-extern "C" void *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
-  return (void *)new padframe(config);
+  return new padframe(config);
 }

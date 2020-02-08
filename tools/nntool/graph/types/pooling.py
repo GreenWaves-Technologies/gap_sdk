@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 
@@ -14,18 +19,10 @@ LOG = logging.getLogger("nntool." + __name__)
 class PoolingParameters(FilterLikeParameters):
 
     #pylint: disable-msg=too-many-arguments
-    def __init__(self, name: str, filt, stride, padding, pad_type="zero", pool_type="max",
-                 in_dims_hint=None, out_dims_hint=None):
-        super(PoolingParameters, self).__init__(name, stride=stride, padding=padding,
-                                                pad_type=pad_type)
+    def __init__(self, name: str, filt=None, pool_type="max", **kwargs):
+        super(PoolingParameters, self).__init__(name, **kwargs)
 
-        self.in_dims_hint = in_dims_hint
-        self.out_dims_hint = out_dims_hint
-
-        if filt is None:
-            self.filter = None
-        else:
-            self.filter = filt
+        self.filter = filt
         self.pool_type = pool_type
         LOG.debug("created POOL %s", str(self))
 
@@ -55,15 +52,23 @@ class PoolingParameters(FilterLikeParameters):
         out_dim.impose_order(in_dims.order)
         return [out_dim]
 
-    def clone(self, groupn=None):
-        return PoolingParameters(self.filter.clone(), self.stride.clone(),\
-            self.padding.clone(), self.pad_type, self.pool_type)
+    def clone(self, name, groupn=None):
+        return PoolingParameters(name, filt=self.filter.clone(), stride=self.stride.clone(),\
+            padding=self.padding.clone(), pad_type=self.pad_type, pool_type=self.pool_type)
+
+    def compute_load(self):
+        if self.pool_type == "max":
+            return self.out_dims[0].size() * self.filter.h * self.filter.w
+        else:
+            return (self.out_dims[0].size() * self.filter.h *\
+                self.filter.w) + self.out_dims[0].size()
 
     def __str__(self):
-        return "T {} F {} S {} P {} {}".format(
+        return "T {} F {} S {} P {} {} {}".format(
             self.pool_type,
             self.filter,
             self.stride,
             self.padding,
-            self.pad_type
+            self.pad_type,
+            self.at_options
         )

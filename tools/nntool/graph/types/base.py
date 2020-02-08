@@ -1,14 +1,21 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
 from typing import Union
 from abc import abstractmethod
 
 from utils.graph import Edge, Node
+from utils.option_list import OptionList
+from generation.kernel_parameters import GenCtrl, CTRL_FEATURES
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -18,18 +25,25 @@ class ParameterError(Exception):
 class CantPromoteQError(ParameterError):
     pass
 
+class NodeOptions(OptionList):
+    def __init__(self, *args, **kwargs):
+        super(NodeOptions, self).__init__(*args, **kwargs)
+
 # pylint: disable=too-many-instance-attributes
 class Parameters(Node):
     op_name = "unknown"
 
-    def __init__(self, name, *args, **kwargs):
-        super().__init__(name)
+    def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, constant_store=None, **kwargs):
+        super().__init__(name, *args, **kwargs)
         del args, kwargs
         self._in_dims = None
         self._out_dims = None
-        self._in_dims_hint = None
-        self._out_dims_hint = None
+        self._in_dims_hint = in_dims_hint
+        self._out_dims_hint = out_dims_hint
         self._step_idx = -1
+        self._constant_store = constant_store
+        self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int}
+        self._at_options = NodeOptions(self._valid_at_options)
 
     def get_parameters(self):
         return {}
@@ -37,13 +51,20 @@ class Parameters(Node):
     def set_parameters(self, val):
         pass
 
-    @property
-    def step_idx(self):
-        return self._step_idx
+    def get_gen_ctrl(self):
+        return GenCtrl(self.at_options)
 
-    @step_idx.setter
-    def step_idx(self, val):
-        self._step_idx = val
+    @property
+    def valid_at_options(self):
+        return self.valid_at_options
+
+    @property
+    def at_options(self):
+        return self._at_options
+
+    @at_options.setter
+    def at_options(self, val):
+        self._at_options = val
 
     @property
     def in_dims_hint(self) -> list:
@@ -60,6 +81,25 @@ class Parameters(Node):
     @out_dims_hint.setter
     def out_dims_hint(self, val: list):
         self._out_dims_hint = val
+
+    @staticmethod
+    def format_hints_str(hints):
+        if not hints:
+            return 'none'
+        return ','.join(['x'.join(hint) for hint in hints])
+
+    @property
+    def hints_str(self):
+        return 'in: {} out: {}'.format(*[self.format_hints_str(hints)\
+            for hints in [self._in_dims_hint, self._out_dims_hint]])
+
+    @property
+    def step_idx(self):
+        return self._step_idx
+
+    @step_idx.setter
+    def step_idx(self, val):
+        self._step_idx = val
 
     @property
     def value(self):
@@ -105,8 +145,29 @@ class Parameters(Node):
         pass
 
     @abstractmethod
-    def clone(self, groupn=None):
+    def clone(self, name, groupn=None):
         pass
+
+    def clone_dim_with_hints(self, dims, hint_dir="in"):
+        if hint_dir == "in":
+            hints = self._in_dims_hint
+        else:
+            hints = self._out_dims_hint
+
+        assert len(dims) == len(hints), "incorrect dimensions length"
+        cloned_dims = []
+        for dim_idx, dim in enumerate(dims):
+            if dim.is_named:
+                cloned_dims.append(dim.clone(['c', 'h', 'w']))
+            else:
+                cloned_dim = dim.clone()
+                if hints and hints[dim_idx]:
+                    cloned_dim.apply_naming_hints(hints[dim_idx])
+                cloned_dims.append(cloned_dim)
+        return cloned_dims
+
+    def compute_load(self):
+        return None
 
     @abstractmethod
     def __str__(self):
@@ -115,13 +176,16 @@ class Parameters(Node):
 class SingleInputAndOutput():
     '''Mixin that indicates that node has a single input and output'''
 
+class SensitiveToOrder():
+    '''Mixin that indicates that the node must receive channel first input'''
+
 class NoSizeChangeParameters(Parameters):
 
     def get_output_size(self, in_dims):
         return in_dims
 
     @abstractmethod
-    def clone(self, groupn=None):
+    def clone(self, name, groupn=None):
         pass
 
     @abstractmethod
@@ -129,13 +193,11 @@ class NoSizeChangeParameters(Parameters):
         pass
 
 #pylint: disable=abstract-method
-class FilterLikeParameters(Parameters, SingleInputAndOutput):
-
-    def __init__(self, name, *args, stride=None, padding=None,
+class FilterLikeParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+    def __init__(self, *args, stride=None, padding=None,
                  pad_type="zero", **kwargs):
         assert stride and padding
-        super(FilterLikeParameters, self).__init__(name, stride=None, padding=None,
-                                                   pad_type="zero", *args, **kwargs)
+        super(FilterLikeParameters, self).__init__(*args, **kwargs)
         self.stride = stride
         self.padding = padding
         self.pad_type = pad_type
@@ -151,18 +213,94 @@ class FilterLikeParameters(Parameters, SingleInputAndOutput):
     def can_equalize(self):
         return True
 
-#pylint: disable=abstract-method
-class FilterParameters(Parameters, SingleInputAndOutput):
+class Transposable(Parameters):
 
-    def __init__(self, name, *args, filt=None, has_bias=False, **kwargs):
+    def __init__(self, *args, transpose_in=None, transpose_out=None, **kwargs):
+        self._transpose_in = transpose_in
+        self._transpose_out = transpose_out
+        super(Transposable, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def first_last(dim):
+        trans = list(range(len(dim.shape)))
+        trans.append(trans.pop(0))
+        return trans
+
+    @staticmethod
+    def last_first(dim):
+        trans = list(range(len(dim.shape)))
+        trans.insert(0, trans.pop())
+        return trans
+
+    @property
+    def transpose_in(self):
+        return self._transpose_in
+
+    @transpose_in.setter
+    def transpose_in(self, val):
+        self._transpose_in = val
+
+    @property
+    def transpose_out(self):
+        return self._transpose_out
+
+    @transpose_out.setter
+    def transpose_out(self, val):
+        self._transpose_out = val
+
+    @property
+    def has_transpose(self):
+        return bool(self.transpose_in or self.transpose_out)
+
+    def __str__(self):
+        trans = [','.join([str(el) for el in t])\
+            if t else '' for t in [self.transpose_in, self.transpose_out]]
+        return "t_in:{} t_out:{}".format(
+            trans[0],
+            trans[1]
+        )
+
+#pylint: disable=abstract-method
+class FilterParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+
+    def __init__(self, *args, filt=None, has_bias=False, **kwargs):
         assert filt
-        super(FilterParameters, self).__init__(name, filt=None, has_bias=False, *args, **kwargs)
+        super(FilterParameters, self).__init__(*args, **kwargs)
         self.has_bias = has_bias
         self.filter = filt
         self.stats = None
-        self.weights = None
-        self.biases = None
+        self._weights = None
+        self._biases = None
         self.details = None
+        self.at_options.update_valid_options(CTRL_FEATURES)
+
+    @property
+    def weights(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 1)
+        else:
+            return self._weights
+
+    @weights.setter
+    def weights(self, val):
+        if self._constant_store:
+            self._constant_store.set(self, 1, val)
+        else:
+            self._weights = val
+
+    @property
+    def biases(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 2)
+        else:
+            return self._biases
+
+    @biases.setter
+    def biases(self, val):
+        if self._constant_store:
+            self._constant_store.set(self, 2, val)
+        else:
+            self._biases = val
 
     def get_parameters(self):
         return {'weights': self.weights, 'biases': self.biases}
@@ -170,61 +308,6 @@ class FilterParameters(Parameters, SingleInputAndOutput):
     def set_parameters(self, val):
         self.weights = val['weights']
         self.biases = val['biases']
-
-    # @property
-    # def can_promoteq(self):
-    #     return self.out_q.bits < 16
-
-    # def step_filter_q(self, in_q):
-    #     '''Step up the precision of the filter. Returns True if the output
-    #     quantization has changed'''
-    #     if self.out_q.bits == 16:
-    #         raise ValueError("can't step further")
-
-    #     if self.calc_q.bits <= in_q.bits and self.calc_q.bits < STATS_BITS[-1]:
-    #         self.calc_q = QType(bits=self.calc_q.bits * 2,
-    #                             q=in_q.q + self.weights_q.q,
-    #                             signed=True)
-    #         return False
-
-    #     if self.acc_q.bits < self.calc_q.bits:
-    #         self.acc_q = self.calc_q.clone()
-    #         return False
-
-    #     if self.out_q.bits < self.weights_q.bits:
-    #         self.out_q = QType(bits=self.weights_q.bits,
-    #                            q=self.weights_q.bits - (self.out_q.bits - self.out_q.q),
-    #                            signed=True)
-    #         return True
-
-    #     fstats = self.stats
-
-    #     w_qsnr = get_current_qsnr(fstats['weights'], self.weights_q.bits)
-    #     if 'biases' in fstats:
-    #         b_qsnr = get_current_qsnr(fstats['biases'], self.weights_q.bits)
-    #     else:
-    #         b_qsnr = float('Infinite')
-
-    #     if b_qsnr < w_qsnr and self.biases_q.bits < self.calc_q.bits:
-    #         self.biases_q = get_quantization(fstats['biases'], None, self.calc_q.bits)
-    #         return False
-    #     self.weights_q = get_quantization(fstats['weights'], None, self.calc_q.bits)
-    #     assert self.calc_q.bits < 32
-    #     # TODO - Calculate if we really need to expand calc_q
-    #     self.calc_q = QType(bits=self.calc_q.bits * 2,
-    #                         q=self.weights_q.q + in_q.q, signed=True)
-    #     return False
-
-    # def promoteq(self):
-    #     return self.step_filter_q(self.in_qs[0])
-
-    # @abstractmethod
-    # def scale_input(self, scale, weights=None):
-    #     pass
-
-    # @abstractmethod
-    # def scale_output(self, scale, weights=None, biases=None):
-    #     pass
 
 class EdgeParameters():
     # edge types are in, out or in_out
@@ -237,6 +320,7 @@ class EdgeParameters():
         self._creating_step = creating_step
         self._edge_type = edge_type
         self._edge_order = edge_order
+        self._is_alias = False
 
     @property
     def name(self):
@@ -245,6 +329,14 @@ class EdgeParameters():
     @name.setter
     def name(self, val):
         self._name = val
+
+    @property
+    def is_alias(self):
+        return self._is_alias
+
+    @is_alias.setter
+    def is_alias(self, val):
+        self._is_alias = val
 
     @property
     def dims(self):

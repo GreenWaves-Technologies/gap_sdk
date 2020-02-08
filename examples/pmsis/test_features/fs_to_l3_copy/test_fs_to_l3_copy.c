@@ -4,6 +4,7 @@
 #include "bsp/ram.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/ram/hyperram.h"
+#include "bsp/fs/readfs.h"
 
 /* Variables used. */
 #define  BUFF_SIZE       ( 1024 )
@@ -14,7 +15,7 @@ static struct pi_device flash;
 static struct pi_device fs;
 static struct pi_device ram;
 static struct pi_hyperflash_conf flash_conf;
-static struct pi_fs_conf fs_conf;
+static struct pi_readfs_conf fs_conf;
 static struct pi_hyperram_conf ram_conf;
 
 int32_t copy_file_from_flash_to_l3(char *file_name)
@@ -110,8 +111,8 @@ void test_fs_to_l3_copy()
     }
 
     /* Open filesystem on flash. */
-    pi_fs_conf_init(&fs_conf);
-    fs_conf.flash = &flash;
+    pi_readfs_conf_init(&fs_conf);
+    fs_conf.fs.flash = &flash;
     pi_open_from_conf(&fs, &fs_conf);
     if (pi_fs_mount(&fs))
     {

@@ -1,12 +1,19 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from utils.tabular import Tabular, TabularColumn
 
 from graph.types import FilterParameters
+from utils.node_id import NodeId
+
 from .reporter import Reporter
 
 def emit_q(qtype):
@@ -16,6 +23,10 @@ def emit_qs(qtypes):
     return ",".join([emit_q(qtype) for qtype in qtypes])
 
 class QuantizationReporter(Reporter):
+    def __init__(self, step=None):
+        super(QuantizationReporter).__init__()
+        self._step = step
+
     def report(self, G, stats):
         table = Tabular()
         table.add_row([
@@ -30,7 +41,11 @@ class QuantizationReporter(Reporter):
         ])
 
         for key, qrec in stats.items():
+            if not isinstance(key, NodeId):
+                continue
             node = G.node(key.node_name)
+            if self._step is not None and self._step != node.step_idx:
+                continue
             fnode = node.get_contained_node(key.fnode_name) if key.fnode_name else None
             step_idx = node.step_idx
             node = fnode or node

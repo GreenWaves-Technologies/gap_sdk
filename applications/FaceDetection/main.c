@@ -143,6 +143,8 @@ void test_facedetection(void)
     unsigned int Wout = 64, Hout = 48;
     unsigned int ImgSize = W*H;
 
+    pi_freq_set(PI_FREQ_DOMAIN_FC,250000000);
+
     imgBuff0 = (unsigned char *)pmsis_l2_malloc((CAM_WIDTH*CAM_HEIGHT)*sizeof(unsigned char));
     if (imgBuff0 == NULL)
     {
@@ -166,8 +168,6 @@ void test_facedetection(void)
         pmsis_exit(-3);
   }
     printf("malloc done\n");
-
-    board_init();
 
     if (open_display(&ili))
     {
@@ -216,6 +216,9 @@ void test_facedetection(void)
     pi_cluster_conf_init(&conf);
     pi_open_from_conf(&cluster_dev, (void*)&conf);
     pi_cluster_open(&cluster_dev);
+
+    //Set Cluster Frequency to max
+    pi_freq_set(PI_FREQ_DOMAIN_CL,175000000);
 
     task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
     memset(task, 0, sizeof(struct pi_cluster_task));

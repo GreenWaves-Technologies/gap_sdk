@@ -1,8 +1,13 @@
-# Copyright (C) 2019 GreenWaves Technologies
-# All rights reserved.
-
-# This software may be modified and distributed under the terms
-# of the BSD license.  See the LICENSE file for details.
+# Copyright 2019 GreenWaves Technologies, SAS
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import math
 
@@ -12,33 +17,43 @@ from quantization.qtype import QType
 
 STATS_BITS = [8, 16, 32]
 
-def bits(min_num, max_num):
-    num = math.floor(max(math.fabs(min_num), math.fabs(max_num))+0.5)
-    if num:
-        return math.ceil(math.log(num) / math.log(2)) + 2
-    return 1
+def calc_bits(num, signed=True):
+    abs_num = math.floor(math.fabs(num))
+    # calculate number of bits to represent absolute number
+    if abs_num == 0:
+        num_bits = 0
+    else:
+        num_bits = math.floor(math.log(abs_num) / math.log(2)) + 1
+    # if signed positive then one more bit is required for the unused sign
+    if signed and num >= 0:
+        num_bits += 1
+    return num_bits
+
+def bits(max_num, min_num, signed=True):
+    assert signed or (max_num >= 0 and min_num >= 0), "numeric error"
+    return max(calc_bits(min_num), calc_bits(max_num))
 
 def astats(npa, do_bits=True):
     """Extracts statistics from a tensor
     """
-    mean = np.mean(npa)
-    std = np.std(npa)
-    amax = np.amax(npa)
-    amin = np.amin(npa)
+    mean = float(np.mean(npa))
+    std = float(np.std(npa))
+    amax = float(np.amax(npa))
+    amin = float(np.amin(npa))
     quant1_3 = np.quantile(npa, [0.25, 0.75])
     iqr = quant1_3[1] - quant1_3[0]
     weak_min = (npa < quant1_3[0] - 1.5 * iqr)
     weak_max = (npa > quant1_3[1] + 1.5 * iqr)
     strong_min = (npa < quant1_3[0] - 3 * iqr)
     strong_max = (npa > quant1_3[1] + 3 * iqr)
-    weak_count = (weak_min | weak_max).sum()
-    strong_count = (strong_min|strong_max).sum()
+    weak_count = int((weak_min | weak_max).sum())
+    strong_count = int((strong_min|strong_max).sum())
     if weak_count:
-        min_out = np.min(np.abs(npa[weak_min|weak_max]))
+        min_out = float(np.min(np.abs(npa[weak_min|weak_max])))
         if strong_count:
-            max_out = np.max(np.abs(npa[strong_min|strong_max]))
+            max_out = float(np.max(np.abs(npa[strong_min|strong_max])))
         else:
-            max_out = np.max(np.abs(npa[weak_min|weak_max]))
+            max_out = float(np.max(np.abs(npa[weak_min|weak_max])))
     else:
         min_out = max_out = 0
 
@@ -69,8 +84,11 @@ def qsnr(orig, quant):
     sum_orig = np.sum(orig * orig)
     if sum_err > 0:
         if sum_orig < sum_err:
-            # Means error is larger than signal
-            return -int(round(10 * math.log10(sum_err/sum_orig), 0))
+            if sum_orig == 0:
+                return -math.inf
+            else:
+                # Means error is larger than signal
+                return -int(round(10 * math.log10(sum_err/sum_orig), 0))
         # Error portion of signal
         return int(round(10 * math.log10(sum_orig/sum_err), 0))
     # Means no error

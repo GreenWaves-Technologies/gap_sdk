@@ -54,6 +54,27 @@ void vSetPendSV()
     hal_eu_fc_evt_trig_set(PENDSV_IRQN, 0);
 }
 
+/*
+ * __pending_task_switch is needed for some corner cases.
+ * A task is delayed, when coming back, tick count may not match quantum,
+ * then task is descheduled. Next times, xTaskGetTickCountFromISR() won't tell
+ * if there are any tasks waiting on time delays.
+ */
+static volatile uint8_t __pending_task_switch = 0;
+uint32_t uTaskCheckQuantum(uint32_t schedule)
+{
+    uint32_t ctx_switch = 0;
+    uint32_t quantum = (uint32_t) configPREEMPTION_QUANTUM;
+    uint32_t tick_count = xTaskGetTickCountFromISR();
+    __pending_task_switch |= schedule;
+    if ((tick_count % quantum) == 0)
+    {
+        ctx_switch = __pending_task_switch;
+        __pending_task_switch = 0;
+    }
+    return ctx_switch;
+}
+
 /****************
  * Syscalls.
  ****************/

@@ -16,14 +16,16 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "pmsis/drivers/gpio.h"
 #include "pmsis/drivers/pad.h"
 #include "bsp/gapoc_b.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/display/ili9341.h"
 #include "bsp/ram/hyperram.h"
-#include "bsp/ble/nina_b112/nina_b112.h"
-#include "bsp/camera/thermeye.h"
+#include "bsp/ram/spiram.h"
+#include "bsp/ble/nina_b112.h"
+#include "bsp/ble/nina_b112/nina_b112_old.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -33,11 +35,9 @@ static void __gpio_init()
 {
     pi_gpio_pin_configure(0, GPIO_USER_LED, PI_GPIO_OUTPUT);
     pi_gpio_pin_configure(0, GPIO_1V8_EN  , PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-    /* pi_gpio_pin_configure(0, GPIO_NINA17  , PI_GPIO_OUTPUT); */
 
     pi_gpio_pin_write(0, GPIO_USER_LED, 0);
     pi_gpio_pin_write(0, GPIO_1V8_EN, 1);
-    /* pi_gpio_pin_write(0, GPIO_NINA17, 1); */
 }
 
 static void __bsp_init_pads()
@@ -82,6 +82,39 @@ int bsp_hyperflash_open(struct pi_hyperflash_conf *conf)
   return 0;
 }
 
+
+void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
+{
+  conf->size = CONFIG_SPIFLASH_SIZE;
+  // sector size is in number of KB
+  conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
+  conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
+  // try to reach max freq on gapoc_a
+  conf->baudrate = 50*1000000;
+}
+
+int bsp_spiflash_open(struct pi_spiflash_conf *conf)
+{
+  return 0;
+}
+
+
+void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
+{
+  conf->ram_start = CONFIG_SPIRAM_START;
+  conf->ram_size = CONFIG_SPIRAM_SIZE;
+  conf->skip_pads_config = 0;
+  conf->spi_itf = CONFIG_SPIRAM_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
+}
+
+int bsp_spiram_open(struct pi_spiram_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
+}
+
 void bsp_ili9341_conf_init(struct pi_ili9341_conf *conf)
 {
   conf->gpio = CONFIG_ILI9341_GPIO;
@@ -104,51 +137,36 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 
 void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
 {
-
+    conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
 }
 
 int bsp_nina_b112_open(struct pi_nina_b112_conf *conf)
 {
-  __bsp_init_pads();
-
-  if (!conf->skip_pads_config)
-  {
-    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
-  }
-
-  return 0;
-}
-
-void bsp_thermeye_conf_init(struct pi_thermeye_conf *conf)
-{
-    conf->cpi_id = (uint8_t) CONFIG_THERMEYE_CPI_ID;
-    conf->i2c_id = (uint8_t) CONFIG_THERMEYE_I2C_ID;
-    conf->pwm_id = (uint8_t) CONFIG_THERMEYE_PWM_ID;
-    conf->pwm_channel = (uint8_t) CONFIG_THERMEYE_PWM_CH;
-    conf->gpio_power = (pi_gpio_e) CONFIG_THERMEYE_GPIO_POWER;
-    conf->gpio_reset = (pi_gpio_e) CONFIG_THERMEYE_GPIO_RESET;
-}
-
-int bsp_thermeye_open(struct pi_thermeye_conf *conf)
-{
-    __gpio_init();
-
-    if (!conf->skip_pads_config)
-    {
-        pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
-    }
-
+    //__gpio_init();
     return 0;
 }
 
-void board_init()
+int bsp_nina_b112_open_old()
 {
     __bsp_init_pads();
-}
 
+    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
+    return 0;
+}
 
 void bsp_init()
 {
   __bsp_init_pads();
 }
 
+
+void pi_bsp_init_profile(int profile)
+{
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+}

@@ -39,6 +39,11 @@ static inline unsigned int hal_spr_read_then_clr(unsigned int reg, unsigned int 
   return __builtin_pulp_read_then_spr_bit_clr(reg, val);
 }
 
+static inline unsigned int hal_spr_read_then_set(unsigned int reg, unsigned int val)
+{
+  return __builtin_pulp_read_then_spr_bit_set(reg, val);
+}
+
 static inline void hal_spr_write(unsigned int reg, unsigned int val)
 {
   __builtin_pulp_spr_write(reg, val);
@@ -59,6 +64,13 @@ static inline unsigned int hal_spr_read(unsigned int reg)
   ({ \
     int state; \
     asm volatile ("csrrc %0, %1, %2" :  "=r" (state) : "I" (reg), "I" (val) ); \
+    state; \
+  })
+
+#define hal_spr_read_then_set(reg,val) \
+  ({ \
+    int state; \
+    asm volatile ("csrrs %0, %1, %2" :  "=r" (state) : "I" (reg), "I" (val) ); \
     state; \
   })
 
@@ -229,17 +241,24 @@ static inline void hal_irq_enable()
 
 static inline int hal_irq_disable()
 {
-  return hal_spr_read_then_clr(0x300, 0x1<<3);
+  int irq = hal_spr_read_then_clr(0x300, 0x1<<3);
+  // This memory barrier is needed to prevent the compiler to cross the irq barrier
+  __asm__ __volatile__ ("" : : : "memory");
+  return irq;
 }
 
 static inline void hal_irq_restore(int state)
 {
+  // This memory barrier is needed to prevent the compiler to cross the irq barrier
+  __asm__ __volatile__ ("" : : : "memory");
   hal_spr_write(0x300, state);
 }
 
 static inline void hal_irq_enable()
 {
-  hal_spr_write(0x300, 0x1<<3);
+  // This memory barrier is needed to prevent the compiler to cross the irq barrier
+  __asm__ __volatile__ ("" : : : "memory");
+  hal_spr_read_then_set(0x300, 0x1<<3);
 }
 
 #endif

@@ -171,7 +171,10 @@ static int __nina_w10_setup(nina_t *nina, struct pi_nina_w10_conf *conf, pi_task
   nina->setup_size = setup_size;
   nina->setup_command = setup_command;
 
-  __nina_w10_send_command(nina, setup_command, current - setup_command, pi_task_callback(&nina->task, __nina_w10_setup_resume, (void *)nina));
+  // TODO workaround until SPI driver non-multiple of 4 for the size
+  int size = ((current - setup_command) + 3) & ~3;
+
+  __nina_w10_send_command(nina, setup_command, size, pi_task_callback(&nina->task, __nina_w10_setup_resume, (void *)nina));
 
   return 0;
 }
@@ -266,7 +269,7 @@ int __nina_w10_open(struct pi_device *device)
 
   spi_conf.wordsize = PI_SPI_WORDSIZE_8;
   spi_conf.big_endian = 1;
-  spi_conf.max_baudrate = 20000000;
+  spi_conf.max_baudrate = 30000000;
   spi_conf.polarity = 0;
   spi_conf.phase = 0;
 

@@ -92,6 +92,7 @@ if args.cam:
 if args.spiflash:
   system.system_tree.board.spiflash_clock = Component(properties=OrderedDict(
       vp_class= "vp/clock_domain",
+      vp_component="vp.clock_domain_impl",
       frequency= 50000000
   ))
   system.system_tree.board.chip.spim0_cs0 = system.system_tree.board.spiflash.cs

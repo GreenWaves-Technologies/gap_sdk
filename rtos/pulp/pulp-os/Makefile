@@ -57,7 +57,7 @@ PULP_CFLAGS += $(CONFIG_CFLAGS)
 endif
 
 PULP_CFLAGS += -Os -g -fno-jump-tables -Werror
-PULP_CFLAGS += -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef
+PULP_CFLAGS += -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -Wno-address-of-packed-member
 ifneq '$(compiler)' 'llvm'
 PULP_CFLAGS += -fno-tree-loop-distribute-patterns
 endif

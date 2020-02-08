@@ -16,12 +16,26 @@
 
 #include "pmsis.h"
 
+#include "bsp/bsp.h"
 #include "bsp/ai_deck.h"
 #include "bsp/camera/himax.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/transport/nina_w10.h"
 #include "bsp/ram/hyperram.h"
+#include "bsp/ram/spiram.h"
 
+
+static int __bsp_init_pads_done = 0;
+
+static void __bsp_init_pads()
+{
+  if (!__bsp_init_pads_done)
+  {
+    __bsp_init_pads_done = 1;
+    uint32_t pads_value[] = {0x00055500, 0x0f000000, 0x003fffff, 0x00000000};
+    pi_pad_init(pads_value);
+  }
+}
 
 void bsp_hyperram_conf_init(struct pi_hyperram_conf *conf)
 {
@@ -34,6 +48,7 @@ void bsp_hyperram_conf_init(struct pi_hyperram_conf *conf)
 
 int bsp_hyperram_open(struct pi_hyperram_conf *conf)
 {
+  __bsp_init_pads();
   return 0;
 }
 
@@ -48,19 +63,55 @@ void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf)
 
 int bsp_hyperflash_open(struct pi_hyperflash_conf *conf)
 {
+  __bsp_init_pads();
+  return 0;
+}
+
+
+void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
+{
+  conf->size = CONFIG_SPIFLASH_SIZE;
+  // sector size is in number of KB
+  conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
+  conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
+  // try to reach max freq on gapoc_a
+  conf->baudrate = 50*1000000;
+}
+
+int bsp_spiflash_open(struct pi_spiflash_conf *conf)
+{
   return 0;
 }
 
 
 
+void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
+{
+  conf->ram_start = CONFIG_SPIRAM_START;
+  conf->ram_size = CONFIG_SPIRAM_SIZE;
+  conf->skip_pads_config = 0;
+  conf->spi_itf = CONFIG_SPIRAM_SPI_ITF;
+  conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
+}
+
+int bsp_spiram_open(struct pi_spiram_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
+}
+
+
 void bsp_himax_conf_init(struct pi_himax_conf *conf)
 {
+  __bsp_init_pads();
   conf->i2c_itf = CONFIG_HIMAX_I2C_ITF;
   conf->cpi_itf = CONFIG_HIMAX_CPI_ITF;
 }
 
 int bsp_himax_open(struct pi_himax_conf *conf)
 {
+  __bsp_init_pads();
   return 0;
 }
 
@@ -74,11 +125,25 @@ void bsp_nina_w10_conf_init(struct pi_nina_w10_conf *conf)
 
 int bsp_nina_w10_open(struct pi_nina_w10_conf *conf)
 {
+  __bsp_init_pads();
   return 0;
 }
 
 
 void bsp_init()
 {
+  __bsp_init_pads();
 }
 
+
+void pi_bsp_init_profile(int profile)
+{
+  __bsp_init_pads();
+}
+
+
+
+void pi_bsp_init()
+{
+  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+}

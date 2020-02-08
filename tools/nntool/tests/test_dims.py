@@ -20,6 +20,10 @@ def test_creation2():
     assert dim1.is_named
     assert not dim1.is_ordered
     assert dim1.a == 1 and dim1.b == 2 and dim1.c == 3
+    assert dim1.just_has_keys(['a', 'b', 'c'])
+    assert not dim1.just_has_keys(['a', 'b', 'c', 'd'])
+    assert not dim1.just_has_keys(['a', 'b', 'd'])
+    assert not dim1.just_has_keys(['a', 'b'])
 
 def test_creation3():
     dim1 = Dim.named(a=1, b=2, c=3, order=['c', 'b', 'a'])

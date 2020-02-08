@@ -365,3 +365,11 @@ int dpi_model_start(void *handle)
   return 0;
 }
 
+
+int dpi_model_stop(void *handle)
+{
+  Dpi_model *model = (Dpi_model *)handle;
+  model->stop_all();
+  return 0;
+}
+
