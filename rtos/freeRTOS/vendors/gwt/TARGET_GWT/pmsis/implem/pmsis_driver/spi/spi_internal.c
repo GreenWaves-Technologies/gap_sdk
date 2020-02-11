@@ -192,7 +192,7 @@ int __pi_spi_open(struct spim_cs_data **cs_data, struct pi_spi_conf *conf)
         _cs_data->big_endian    = conf->big_endian;
         _cs_data->wordsize      = conf->wordsize;
         _cs_data->cs            = conf->cs;
-        _cs_data->cfg           = SPI_CMD_CFG(clk_div, _cs_data->polarity, _cs_data->phase);
+        _cs_data->cfg           = SPI_CMD_CFG(clk_div, _cs_data->phase, _cs_data->polarity);
         *cs_data                = _cs_data;
         __pi_spim_cs_data_add(drv_data,_cs_data);
     }
