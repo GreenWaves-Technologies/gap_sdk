@@ -87,6 +87,12 @@ ifeq ($(io), rtl)
 MBED_FLAGS     += -DPRINTF_RTL
 endif
 
+ifeq ($(io), host)
+export GAP_USE_OPENOCD=1
+MBED_FLAGS     += -D__SEMIHOSTING__
+MBED_FLAGS     += -DPRINTF_SEMIHOST
+endif
+
 # Choose Simulator
 SIMULATOR      = vsim
 

@@ -106,6 +106,33 @@ void uart_putc(char c)
     }
 }
 
+#if defined(PRINTF_SEMIHOST)
+#include "semihost.h"
+
+static uint8_t g_printf_semihost_index = 0;
+static char g_printf_semihost_buffer[PRINTF_BUF_SIZE];
+
+static inline void semihost_flush_printf(char *buffer, uint32_t size)
+{
+    semihost_write0((const char *) buffer);
+    HAL_DEBUG_STRUCT_NAME.putcharCurrent = 0;
+}
+
+void semihost_putc(char c)
+{
+    /* Enqueue in debug struct buffer before flushing when buffer is full. */
+    g_printf_semihost_buffer[g_printf_semihost_index] = c;
+    g_printf_semihost_index++;
+    if ((g_printf_semihost_index == (uint32_t) PRINTF_BUF_SIZE) ||
+        (c == '\n'))
+    {
+        semihost_flush_printf(g_printf_semihost_buffer, g_printf_semihost_index);
+        g_printf_semihost_index = 0;
+        memset(g_printf_semihost_buffer, 0, (uint32_t) PRINTF_BUF_SIZE);
+    }
+}
+#endif  /* PRINTF_SEMIHOST */
+
 static void putc_debug_bridge(char c)
 {
     // Iter until we can push the character.
@@ -145,6 +172,8 @@ static void tfp_putc(void *data, char c)
         {
             uart_putc(c);
         }
+        #elif defined(PRINTF_SEMIHOST)
+        semihost_putc(c);
         #else  /* PRINTF_UART */
         if (DEBUG_GetDebugStruct()->useInternalPrintf)
         {

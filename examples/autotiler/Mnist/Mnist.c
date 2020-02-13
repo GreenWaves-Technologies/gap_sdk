@@ -180,7 +180,7 @@ void test_mnist(void)
         pmsis_exit(-2);
     }
 
-    //Reading Image from Hyperflash
+    //Reading Image from host
     uint8_t *read_status = ReadImageFromFile(image_name, &Wi, &Hi, image_in_real, size_img_in_real);
     if ((read_status == 0) || (Wi != img_w) || ( Hi!= img_h))
     {

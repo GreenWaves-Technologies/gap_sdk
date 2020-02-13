@@ -389,6 +389,7 @@ typedef struct iss_irq_s {
   int debug_saved_irq_enable;
   int req_irq;
   bool req_debug;
+  uint32_t vector_base;
   iss_insn_t *debug_handler;
 } iss_irq_t;
 

@@ -66,10 +66,16 @@
 #define GAP_L1_GLOBAL_DATA  __attribute__((section(".l1cluster_g")))
 #endif  /* FEATURE_CLUSTER */
 
-#define FC_L1_MEM          GAP_FC_DATA
 
-//Define for L2 TODO: need to be reviewed together for changing above.
-#define PI_L1              GAP_L1_GLOBAL_DATA
+
+/* Latest macros for memory location. */
+#define PI_CL_L1           GAP_L1_GLOBAL_DATA
+#define PI_FC_L1           GAP_FC_GLOBAL_DATA
 #define PI_L2              GAP_L2_DATA
+
+/* For legacy, keep those. */
+#define PI_L1              PI_CL_L1
+#define FC_L1_MEM          PI_FC_L1
+
 
 #endif  /* __CORE_GAP_COMMON_H */

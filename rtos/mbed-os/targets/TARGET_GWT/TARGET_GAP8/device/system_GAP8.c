@@ -64,6 +64,9 @@
 #include "gap_device_registers.h"
 #include "../driver/gap_common.h"
 #include "../driver/gap_debug.h"
+#if defined(__SEMIHOSTING__)
+#include "../driver/semihost.h"
+#endif  /* __SEMIHOSTING__ */
 
 #ifdef _OPENMP
 extern void CLUSTER_Start(int cid, int nbCores, int control_icache_seperation);
@@ -130,11 +133,15 @@ void Boot_Deinit()
 
 void Platform_Exit(int code)
 {
+    #if defined(__SEMIHOSTING__)
+    semihost_exit(code == 0 ? SEMIHOST_EXIT_SUCCESS : SEMIHOST_EXIT_ERROR);
+    #else
     /* Flush the pending messages to the debug tools
        Notify debug tools about the termination */
     BRIDGE_PrintfFlush();
     DEBUG_Exit(DEBUG_GetDebugStruct(), code);
     BRIDGE_SendNotif();
+    #endif  /* __SEMIHOSTING__ */
 
     /* Write return value to APB device */
     SOC_CTRL->CORE_STATUS = SOC_CTRL_CORE_STATUS_EOC(1) | code;

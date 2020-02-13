@@ -125,11 +125,12 @@ struct pi_i2s_conf
                                   - sampling_rate is the audio sampling rate(22050kHz, 44100kHZ, 48000kHZ,...).
                                   - pdm_decimation is the decimation factor to apply. */
     int8_t pdm_shift;           /*!< In PDM mode, the shift value to shift data when applying filter. */
+    uint8_t pdm_filter_ena;     /*!< When using PDM mode, enable PDM filter. */
 };
 
 /** \brief Setup specific I2S aspects.
  *
- * This function can be called to set specific I2S properties such as the 
+ * This function can be called to set specific I2S properties such as the
  * number of clock generator. This is typically used by the BSP to give
  * board specific information.
  *

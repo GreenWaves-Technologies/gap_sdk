@@ -33,7 +33,7 @@
 #include "gap_common.h"
 
 /* Printf buffer size. */
-#define PRINTF_BUFFER_SIZE    ( 128 )
+#define PRINTF_BUFFER_SIZE    ( PRINTF_BUF_SIZE )
 /* L1 TAS offset. */
 #define L1_TAS_PRINTF_OFFSET  ( 1 << 20 )
 /* IRQ used to wake up cores. */
@@ -118,7 +118,19 @@ static void __uart_putc(char c)
         //memset(g_printf_uart_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
     }
 }
-#elif defined(PRINTF_SEMIHOST)
+
+static void __uart_printf_flush(char c)
+{
+    if ((g_printf_uart_index > 0) &&
+        (g_printf_uart_index < (uint32_t) PRINTF_BUFFER_SIZE))
+    {
+        g_printf_uart_buffer[g_printf_uart_index++] = c;
+        pi_uart_write(&g_printf_uart_dev, (void *) &g_printf_uart_buffer,
+                      g_printf_uart_index);
+    }
+}
+
+#elif defined(PRINTF_SEMIHOST)  /* PRINTF_UART */
 #include "semihost.h"
 
 static uint8_t g_printf_semihost_index = 0;
@@ -174,8 +186,21 @@ static void __semihost_putc(char c)
         memset(g_printf_semihost_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
     }
 }
+
+static void __semihost_printf_flush(char c)
+{
+    if ((g_printf_semihost_index > 0) &&
+        (g_printf_semihost_index < (uint32_t) PRINTF_BUFFER_SIZE))
+    {
+        g_printf_semihost_buffer[g_printf_semihost_index++] = c;
+        __semihost_buffer_write_exec(g_printf_semihost_buffer,
+                                     g_printf_semihost_index);
+    }
+}
+
 #else  /* PRINTF_SEMIHOST */
 #if defined(PRINTF_RTL)
+
 static void __stdout_putc(char c)
 {
     #if defined(FEATURE_CLUSTER)
@@ -207,6 +232,17 @@ static void __debug_bridge_putc(char c)
     if (DEBUG_IsEmpty(DEBUG_GetDebugStruct()))
     {
         BRIDGE_PrintfFlush();
+    }
+}
+
+static void __debug_bridge_printf_flush(char c)
+{
+    debug_struct_t *debugStruct = DEBUG_GetDebugStruct();
+    if ((*(volatile uint32_t *) &(debugStruct->putcharCurrent) > 0) &&
+        (*(volatile uint32_t *) &(debugStruct->putcharCurrent) < (uint32_t) PRINTF_BUFFER_SIZE))
+    {
+        *(volatile uint8_t *) &(debugStruct->putcharBuffer[debugStruct->putcharCurrent++]) = c;
+        DEBUG_SendPrintf(debugStruct);
     }
 }
 
@@ -340,4 +376,21 @@ int puts(const char *s)
     } while (1);
     __io_unlock();
     return 0;
+}
+
+void system_exit_printf_flush()
+{
+    #if !defined(__DISABLE_PRINTF__)
+    char end_line = '\n';
+    #if defined(PRINTF_UART)
+    __uart_printf_flush(end_line);
+    #elif defined(PRINTF_SEMIHOST)
+    __semihost_printf_flush(end_line);
+    #else
+    #if defined(PRINTF_RTL)
+    __stdout_putc(end_line);
+    #endif  /* PRINTF_RTL */
+    __debug_bridge_printf_flush(end_line);
+    #endif  /* PRINTF_UART */
+    #endif  /* __DISABLE_PRINTF__ */
 }

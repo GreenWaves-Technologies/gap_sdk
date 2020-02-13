@@ -65,6 +65,40 @@ else
 FREERTOS_FLAGS  += -DPREEMPTION
 endif
 
+
+# Simulation platform
+# Default is gapuino
+
+ifdef PLPTEST_PLATFORM
+platform=$(PLPTEST_PLATFORM)
+ifneq ($(platform), gvsoc)
+use_pulprun=1
+endif				# platform
+endif				# PLPTEST_PLATFORM
+
+# GVSOC
+GVSOC_FILES_CLEAN = all_state.txt core_state.txt rt_state.txt efuse_preload.data plt_config.json stimuli tx_uart.log
+ifeq ($(platform), gvsoc)
+FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
+FREERTOS_FLAGS  += -DPRINTF_RTL
+
+# FPGA
+else ifeq ($(platform), fpga)
+FREERTOS_FLAGS  += -D__PLATFORM_FPGA__
+
+# RTL
+else ifeq ($(platform), rtl)
+FREERTOS_FLAGS  += -D__PLATFORM_RTL__
+FREERTOS_FLAGS  += -DPRINTF_RTL
+endif				# platform
+
+# Choose Simulator
+SIMULATOR      = vsim
+
+ifeq ($(sim), xcelium)
+SIMULATOR      = xcelium
+endif				# sim
+
 # Deafult is debug bridge
 io ?=
 
@@ -86,39 +120,13 @@ endif
 # Printf using semihosting
 ifeq ($(io), host)
 export GAP_USE_OPENOCD=1
-FREERTOS_FLAGS += -D__SEMIHOSTING__
-FREERTOS_FLAGS += -DPRINTF_SEMIHOST
+FREERTOS_FLAGS  += -D__SEMIHOSTING__
+FREERTOS_FLAGS  += -DPRINTF_SEMIHOST
 endif
 
 # Enabled for gvsoc
-ifeq ($(io), )
-FREERTOS_FLAGS  += -DPRINTF_RTL
-endif
+#FREERTOS_FLAGS  += -DPRINTF_RTL
 FREERTOS_FLAGS  += -DGAP_USE_DEBUG_STRUCT
-
-
-# Simulation platform
-# Default is gapuino
-# GVSOC
-GVSOC_FILES_CLEAN = all_state.txt core_state.txt rt_state.txt efuse_preload.data plt_config.json stimuli tx_uart.log
-ifeq ($(platform), gvsoc)
-FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
-
-# FPGA
-else ifeq ($(platform), fpga)
-FREERTOS_FLAGS  += -D__PLATFORM_FPGA__
-
-# RTL
-else ifeq ($(platform), rtl)
-FREERTOS_FLAGS  += -D__PLATFORM_RTL__
-endif
-
-# Choose Simulator
-SIMULATOR      = vsim
-
-ifeq ($(sim), xcelium)
-SIMULATOR      = xcelium
-endif
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
@@ -260,8 +268,7 @@ $(BIN).s: $(BIN)
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
 
 
-ifdef PLPTEST_PLATFORM
-
+ifeq ($(use_pulprun), 1)
 run:
 	pulp-run --platform $(PLPTEST_PLATFORM) --dir=$(BUILDDIR) --config=$(GVSOC_CONFIG) --binary $(BIN) $(runner_args) prepare run
 
@@ -279,13 +286,13 @@ run: | $(BUILDDIR)
 else
 run: all
 ifeq ($(chip), GAP8)
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 else ifeq ($(chip), GAP9)
-	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi
+	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi $(PLPBRIDGE_EXTRA_FLAGS)
 endif				#ifeq ($(chip), GAP8)
 endif				#ifeq ($(platform), )
 
-gdbserver: PLPBRIDGE_FLAGS += -gdb
+gdbserver: PLPBRIDGE_EXTRA_FLAGS += -gdb
 gdbserver: run
 endif
 
@@ -293,7 +300,7 @@ gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
 flash:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f  $(PLPBRIDGE_EXTRA_FLAGS)
 
 # Foramt "vsim -do xxx.do xxx.wlf"
 debug:

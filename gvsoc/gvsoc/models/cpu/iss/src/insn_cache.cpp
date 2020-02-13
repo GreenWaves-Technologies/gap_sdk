@@ -22,6 +22,7 @@
 #include <string.h>
 
 
+static void insn_block_init(iss_insn_block_t *b, iss_addr_t pc);
 void insn_init(iss_insn_t *insn, iss_addr_t addr);
 
 static void flush_cache(iss_t *iss, iss_insn_cache_t *cache)
@@ -34,7 +35,7 @@ static void flush_cache(iss_t *iss, iss_insn_cache_t *cache)
     while(b)
     {
       iss_insn_block_t *next = b->next;
-      free((void *)b);
+      insn_block_init(b, b->pc);
       b = next;
     }
     cache->blocks[i] = NULL;
@@ -70,14 +71,7 @@ static void insn_block_init(iss_insn_block_t *b, iss_addr_t pc)
 
 void iss_cache_flush(iss_t *iss)
 {
-  iss_addr_t pc = 0;
-  iss_insn_t *insn = iss->cpu.current_insn;
-  if (insn)
-    pc = insn->addr;
-
   flush_cache(iss, &iss->cpu.insn_cache);
-
-  iss->cpu.current_insn = insn_cache_get(iss, pc);
 }
 
 

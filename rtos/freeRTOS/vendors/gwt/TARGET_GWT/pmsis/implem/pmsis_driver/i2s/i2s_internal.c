@@ -183,6 +183,7 @@ void __pi_i2s_conf_init(struct pi_i2s_conf *conf)
     conf->pingpong_buffers[1] = NULL;
     conf->pdm_decimation = 64;
     conf->pdm_shift = -1;
+    conf->pdm_filter_ena = 1;
 }
 
 int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
@@ -240,6 +241,7 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     udma_init_device(UDMA_I2S_ID(device_id));
 
     uint8_t pdm = (conf->format & PI_I2S_FMT_DATA_FORMAT_MASK) == PI_I2S_FMT_DATA_FORMAT_PDM;
+    uint8_t pdm_filter_ena = conf->pdm_filter_ena;
     uint8_t shift = 0;
     uint16_t decimation = 0;
     uint8_t lsb = 0;
@@ -274,14 +276,14 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
         /* Filter setup. */
         hal_i2s_filt_ch1_set(device_id, decimation, shift);
         /* Channel mode setup. */
-        hal_i2s_chmode_ch1_set(device_id, lsb, pdm, pdm, ddr, clk);
+        hal_i2s_chmode_ch1_set(device_id, lsb, pdm_filter_ena, pdm, ddr, clk);
     }
     else
     {
         /* Filter setup. */
         hal_i2s_filt_ch0_set(device_id, decimation, shift);
         /* Channel mode setup. */
-        hal_i2s_chmode_ch0_set(device_id, lsb, pdm, pdm, ddr, clk);
+        hal_i2s_chmode_ch0_set(device_id, lsb, pdm_filter_ena, pdm, ddr, clk);
     }
 
     restore_irq(irq);
@@ -343,6 +345,7 @@ int32_t __pi_i2s_read_async(uint8_t i2s_id, pi_task_t *task)
 {
     uint32_t irq = disable_irq();
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
+    /* Fill rest of arguments for i2s driver. */
     task->data[0] = 0;
     task->data[1] = (uint32_t) fifo->pingpong_buffers[fifo->cur_read_buffer];
     task->data[2] = fifo->block_size;

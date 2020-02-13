@@ -271,11 +271,17 @@ static pi_fs_file_t *pi_lfs_open(struct pi_device *device, const char *file, int
     lfs_file_t *lfs_file = NULL;
     pi_lfs_t *pi_lfs = device->data;
     lfs_t *lfs = &pi_lfs->lfs;
+    int lfs_flags = LFS_O_RDONLY;
+    
+    if (flags == PI_FS_FLAGS_WRITE)
+    {
+        lfs_flags = LFS_O_CREAT | LFS_O_RDWR;
+    }
     
     lfs_file = pi_fc_l1_malloc(sizeof(lfs_file_t));
     if(lfs_file == NULL) return NULL;
     
-    rc = lfs_file_open(lfs, lfs_file, file, flags);
+    rc = lfs_file_open(lfs, lfs_file, file, lfs_flags);
     if(rc != LFS_ERR_OK) goto error;
     
     pi_file = pi_fc_l1_malloc(sizeof(*pi_file));
@@ -284,6 +290,7 @@ static pi_fs_file_t *pi_lfs_open(struct pi_device *device, const char *file, int
     pi_file->data = lfs_file;
     pi_file->fs = device;
     pi_file->api = &pi_lfs_api;
+    pi_file->size = lfs_file_size(lfs, lfs_file);
     
     return pi_file;
     
@@ -300,6 +307,9 @@ static void pi_lfs_close(pi_fs_file_t *file)
     lfs_file_t *lfs_file = file->data;
     
     lfs_file_close(lfs, lfs_file);
+    
+    pi_fc_l1_free(file, sizeof(pi_fs_file_t));
+    pi_fc_l1_free(lfs_file, sizeof(lfs_file_t));
 }
 
 static int32_t pi_lfs_read_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)
@@ -316,29 +326,102 @@ static int32_t pi_lfs_read_async(pi_fs_file_t *file, void *buffer, uint32_t size
 
 static int32_t pi_lfs_direct_read_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)
 {
+    pi_task_push(task);
     return -1;
 }
 
-static int32_t pi_lfs_write(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)
+static int32_t pi_lfs_write_async(pi_fs_file_t *file, void *buffer, uint32_t size, pi_task_t *task)
 {
-    return -1;
+    size_t rc;
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    rc = lfs_file_write(lfs, lfs_file, buffer, size);
+    file->size = lfs_file_size(lfs, lfs_file);
+    
+    pi_task_push(task);
+    
+    return rc;
 }
 
 static int32_t pi_lfs_seek(pi_fs_file_t *file, unsigned int offset)
 {
-    return -1;
+    int32_t rc;
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    rc = lfs_file_seek(lfs, lfs_file, offset, LFS_SEEK_SET);
+    
+    return (rc < 0) ? -1 : 0;
 }
 
 static int32_t
 pi_lfs_copy_async(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, int32_t ext2loc, pi_task_t *task)
 {
-    return -1;
+    int32_t rc;
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    rc = lfs_file_seek(lfs, lfs_file, index, LFS_SEEK_SET);
+    if(rc < 0) return -1;
+    
+    if(ext2loc)
+    {
+        rc = lfs_file_read(lfs, lfs_file, buffer, size);
+    } else
+    {
+        rc = lfs_file_write(lfs, lfs_file, buffer, size);
+        file->size = lfs_file_size(lfs, lfs_file);
+    }
+    
+    pi_task_push(task);
+    
+    return (rc < 0) ? -1 : 0;
 }
 
 static int32_t
-pi_lfs_copy_2d_async(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, uint32_t stride, uint32_t length,
+pi_lfs_copy_2d_async(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, uint32_t  stride, uint32_t length,
                      int32_t ext2loc, pi_task_t *task)
 {
+    int32_t rc;
+    pi_lfs_t *pi_lfs = file->fs->data;
+    lfs_t *lfs = &pi_lfs->lfs;
+    lfs_file_t *lfs_file = file->data;
+    
+    rc = lfs_file_seek(lfs, lfs_file, index, LFS_SEEK_SET);
+    if(rc < 0) return -1;
+    
+    while (size > 0)
+    {
+        size_t loop_length = (size >= length) ? length : size;
+        
+        if(ext2loc)
+        {
+            rc = lfs_file_read(lfs, lfs_file, buffer, loop_length);
+        } else
+        {
+            rc = lfs_file_write(lfs, lfs_file, buffer, loop_length);
+        }
+        
+        if(rc < 0) return -1;
+        
+        index += stride;
+        size -= loop_length;
+        buffer += length;
+        
+        rc = lfs_file_seek(lfs, lfs_file, stride - length, LFS_SEEK_CUR);
+        if(rc < 0) return -1;
+    }
+    
+    if(!ext2loc)
+    {
+        file->size = lfs_file_size(lfs, lfs_file);
+    }
+    
+    pi_task_push(task);
     return 0;
 }
 
@@ -349,7 +432,7 @@ pi_fs_api_t pi_lfs_api = {
         .close = pi_lfs_close,
         .read = pi_lfs_read_async,
         .direct_read = pi_lfs_direct_read_async,
-        .write = pi_lfs_write,
+        .write = pi_lfs_write_async,
         .seek = pi_lfs_seek,
         .copy = pi_lfs_copy_async,
         .copy_2d = pi_lfs_copy_2d_async

@@ -23,7 +23,7 @@ RM=rm -f
 
 PULP_APP_SRCS = HoG.c ImgIO.c $(MODEL_GEN_C) $(KER_PATH)/HoGBasicKernels.c
 
-PULP_CFLAGS += -O2 -g3 -DNO_BRIDGE
+PULP_CFLAGS += -O2 -g3 #-DNO_BRIDGE
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
 PULP_CFLAGS += -I$(TILER_INC) -I$(KER_PATH)/../include -I$(TILER_GENERATOR_PATH)/HoG
 PULP_LDFLAGS +=  -flto -Wl,--gc-sections
@@ -32,7 +32,9 @@ PULP_LDFLAGS +=  -flto -Wl,--gc-sections
 # in a clean way.
 PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 
-#PLPBRIDGE_FLAGS += -fileIO 5
+#moved to new openocd bridge
+export GAP_USE_OPENOCD=1
+io=host
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step

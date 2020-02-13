@@ -90,9 +90,10 @@ do
             if [ "$#" -gt 1 ]
             then
                 shift
-                fileio=$1
+                fileio=$1 # this option is not working anymore
             else
-                fileio=2
+                # Changed default value to higher wait time so that it is still compatible
+                fileio=10 
             fi
 
             ;;

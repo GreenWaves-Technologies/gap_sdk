@@ -174,6 +174,12 @@ inline void vp::time_engine::pause()
     pthread_mutex_lock(&mutex);
     run_req = false;
     pthread_cond_broadcast(&cond);
+
+    while(this->running)
+    {
+        pthread_cond_wait(&cond, &mutex);
+    }
+
     pthread_mutex_unlock(&mutex);
 }
 

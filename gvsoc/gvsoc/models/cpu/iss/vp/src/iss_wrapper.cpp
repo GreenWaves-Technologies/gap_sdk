@@ -948,7 +948,10 @@ void iss_wrapper::insn_trace_callback()
 {
   // This is called when the state of the instruction trace has changed, we need
   // to flush the ISS instruction cache, as it keeps the state of the trace
-  iss_cache_flush(this);
+  if (this->iss_opened)
+  {
+    iss_cache_flush(this);
+  }
 }
 
 
@@ -1062,6 +1065,7 @@ int iss_wrapper::build()
   ipc_clock_event = this->event_new(iss_wrapper::ipc_stat_handler);
 
   this->ipc_stat_delay = 0;
+  this->iss_opened = false;
 
   return 0;
 }
@@ -1078,6 +1082,8 @@ void iss_wrapper::start()
 
 
   if (iss_open(this)) throw logic_error("Error while instantiating the ISS");
+
+  this->iss_opened = true;
 
   for (auto x:this->get_js_config()->get("**/debug_binaries")->get_elems())
   {
