@@ -112,7 +112,7 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check);
  * @note .
  * @return frequency value.
  */
-int pi_fll_get_frequency(fll_type_t which_fll);
+int pi_fll_get_frequency(fll_type_t which_fll, uint8_t real);
 
 /*!
  * @brief Calculate FC SOC domain's max frequency with certain voltage
