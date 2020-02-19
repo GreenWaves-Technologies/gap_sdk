@@ -45,7 +45,7 @@
 uint32_t g_i2s_flags = 0;
 
 /* One I2S periph with two distinct devices inside. */
-struct i2s_driver_fifo_s *__global_i2s_driver_fifo[UDMA_NB_I2S << 1];
+struct i2s_driver_fifo_s *__global_i2s_driver_fifo[UDMA_NB_I2S << 1] = {NULL};
 
 /*******************************************************************************
  * Function declaration
@@ -55,6 +55,8 @@ static void __pi_i2s_handle_end_of_task(struct pi_task *task);
 static void __pi_i2s_handler(void *arg);
 static void __pi_i2s_resume(uint8_t i2s_id);
 static void __pi_i2s_suspend(uint8_t i2s_id);
+static uint8_t __pi_i2s_enqueue(uint8_t i2s_id);
+static void *__pi_i2s_pop(uint8_t i2s_id);
 
 /*******************************************************************************
  * Internal functions
@@ -79,32 +81,108 @@ static void __pi_i2s_handler(void *arg)
     uint32_t periph_id = (event >> UDMA_CHANNEL_NB_EVENTS_LOG2) - UDMA_I2S_ID(0);
 
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[channel];
+    uint8_t task_done = 1;
     if (fifo->reenqueue)
     {
-        uint8_t cur_buffer = fifo->cur_buffer;
-        fifo->cur_buffer = cur_buffer ^ 1;
-        hal_i2s_enqueue(periph_id, channel, (uint32_t) fifo->pingpong_buffers[cur_buffer],
-                        fifo->block_size, fifo->udma_cfg);
+        task_done = __pi_i2s_enqueue(fifo->i2s_id);
     }
-    pi_task_t *task = fifo->fifo_head;
-    if (task != NULL)
+    if (task_done)
     {
-        fifo->fifo_head = fifo->fifo_head->next;
-        __pi_i2s_handle_end_of_task(task);
+        pi_task_t *task = fifo->fifo_head;
+        if (task != NULL)
+        {
+            if ((fifo->options & PI_I2S_OPT_MEM_SLAB))
+            {
+                task->data[1] = (uintptr_t) __pi_i2s_pop(fifo->i2s_id);
+            }
+            fifo->fifo_head = fifo->fifo_head->next;
+            __pi_i2s_handle_end_of_task(task);
+        }
+        else
+        {
+            fifo->nb_ready_buffer++;
+        }
+    }
+}
+
+static void *__pi_i2s_pop(uint8_t i2s_id)
+{
+    struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
+    void *buffer = fifo->ring_buffer[fifo->ring_buffer_tail++];
+    if (fifo->ring_buffer_tail == fifo->ring_buffer_nb_elem)
+    {
+        fifo->ring_buffer_tail = 0;
+    }
+    return buffer;
+}
+
+static uint8_t __pi_i2s_enqueue(uint8_t i2s_id)
+{
+    struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
+    uint32_t device_id = fifo->device_id;
+    uint32_t buffer = 0;
+    uint32_t size = 0;
+    uint32_t max_size = 0;
+    uint32_t size_enqueue = 0;
+    uint8_t done = 1;
+    if (fifo->pending_size)
+    {
+        buffer = (uint32_t) fifo->pending_buffer;
+        size = fifo->pending_size;
+        done = 0;
     }
     else
     {
-        fifo->nb_ready_buffer++;
+        size = fifo->block_size;
+        if (!(fifo->options & PI_I2S_OPT_MEM_SLAB))
+        {
+            uint32_t buffer_idx = fifo->cur_buffer;
+            buffer = (uint32_t) fifo->pingpong_buffers[buffer_idx];
+            fifo->cur_buffer = buffer_idx ^ 1;
+        }
+        else
+        {
+            pi_mem_slab_alloc(fifo->mem_slab, (void **) &buffer, 0);
+            if (buffer)
+            {
+                fifo->ring_buffer[fifo->ring_buffer_head++] = (void *) buffer;
+                if (fifo->ring_buffer_head == fifo->ring_buffer_nb_elem)
+                {
+                    fifo->ring_buffer_head = 0;
+                }
+            }
+        }
     }
+
+    if (buffer)
+    {
+        /* Max size is 64kB on GAP8 UDMA. */
+        max_size = (1 << 16) - 4;
+
+        if (size > max_size)
+        {
+            size_enqueue = max_size;
+            fifo->pending_size = size - max_size;
+            fifo->pending_buffer = (void *) (buffer + max_size);
+        }
+        else
+        {
+            size_enqueue = size;
+            fifo->pending_size = 0;
+        }
+        /* Enqueue first in HW fifo. */
+        hal_i2s_enqueue(device_id, i2s_id, buffer, size_enqueue, fifo->udma_cfg);
+    }
+    return done;
 }
 
 static void __pi_i2s_resume(uint8_t i2s_id)
 {
-    uint32_t device_id = 0;
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
+    uint32_t device_id = fifo->device_id;
     uint32_t periph_freq = pi_freq_get(PI_FREQ_DOMAIN_FC);
     uint32_t clk_div = 0;
-    clk_div = periph_freq / fifo->frequency;
+    clk_div = ((periph_freq / fifo->frequency) >> 1) - 1;
 
     DEBUG_PRINTF("I2S(%d) Resuming: periph_freq: %d, i2s_freq: %d, clk_div: %x, "
                  "clk_use: %x, word_size: %x, format: %x, options: %x, "
@@ -116,22 +194,27 @@ static void __pi_i2s_resume(uint8_t i2s_id)
     fifo->cur_buffer = 0;
     fifo->cur_read_buffer = 0;
     fifo->nb_ready_buffer = 0;
-    fifo->fifo_head = NULL;
-    fifo->fifo_tail = NULL;
+    //fifo->fifo_head = NULL;
+    //fifo->fifo_tail = NULL;
 
+    #if 0
     /* Enqueue first in HW fifo. */
     hal_i2s_enqueue(device_id, i2s_id, (uint32_t) fifo->pingpong_buffers[0],
                     fifo->block_size, fifo->udma_cfg);
     hal_i2s_enqueue(device_id, i2s_id, (uint32_t) fifo->pingpong_buffers[1],
                     fifo->block_size, fifo->udma_cfg);
+    #else
+    __pi_i2s_enqueue(i2s_id);
+    #endif
+
     /* Enable clock to acquire data. */
     switch (fifo->clk)
     {
     case 0 :
-        hal_i2s_cfg_clkgen0_set(device_id, (fifo->word_size - 1), 1, (clk_div >> 1) - 1);
+        hal_i2s_cfg_clkgen0_set(device_id, (fifo->word_size - 1), 1, clk_div);
         break;
     case 1 :
-        hal_i2s_cfg_clkgen1_set(device_id, (fifo->word_size - 1), 1, (clk_div >> 1) - 1);
+        hal_i2s_cfg_clkgen1_set(device_id, (fifo->word_size - 1), 1, clk_div);
         break;
     default :
         break;
@@ -143,8 +226,8 @@ static void __pi_i2s_resume(uint8_t i2s_id)
 
 static void __pi_i2s_suspend(uint8_t i2s_id)
 {
-    uint32_t device_id = 0;
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
+    uint32_t device_id = fifo->device_id;
     fifo->reenqueue = 0;
     switch (fifo->clk)
     {
@@ -176,7 +259,7 @@ void __pi_i2s_conf_init(struct pi_i2s_conf *conf)
     conf->channels = 1;
     conf->itf = 0;
     conf->format = PI_I2S_FMT_DATA_FORMAT_SHIFT;
-    conf->options = 0;
+    conf->options = PI_I2S_OPT_PINGPONG;
     conf->frame_clk_freq = 44100;
     conf->block_size = 0;
     conf->pingpong_buffers[0] = NULL;
@@ -197,6 +280,8 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
         return -11;
     }
     __global_i2s_driver_fifo[conf->itf] = fifo;
+    fifo->nb_open++;
+    fifo->device_id = device_id;
     fifo->fifo_head = NULL;
     fifo->fifo_tail = NULL;
     fifo->i2s_id = conf->itf;
@@ -212,12 +297,11 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
      * are used, so bith i2s_0 and i2s_1 use i2s_0 internal clock.
      */
     fifo->clk = (g_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK) ? 0 : conf->itf;
-    fifo->pingpong_buffers[0] = conf->pingpong_buffers[0];
-    fifo->pingpong_buffers[1] = conf->pingpong_buffers[1];
     fifo->cur_read_buffer = 0;
     fifo->cur_buffer = 0;
     fifo->nb_ready_buffer = 0;
     fifo->reenqueue = 0;
+    fifo->pending_size = 0;
     fifo->udma_cfg = UDMA_CORE_RX_CFG_EN(1);
     fifo->udma_cfg |= UDMA_CORE_RX_CFG_DATASIZE(conf->word_size >> 4);
 
@@ -235,6 +319,31 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
         break;
     default :
         return -12;
+    }
+
+    /* Use pingpong buffers. */
+    if (!(fifo->options & PI_I2S_OPT_MEM_SLAB))
+    {
+        fifo->pingpong_buffers[0] = conf->pingpong_buffers[0];
+        fifo->pingpong_buffers[1] = conf->pingpong_buffers[1];
+        fifo->mem_slab = NULL;
+        if ((fifo->pingpong_buffers[0] == NULL) || (fifo->pingpong_buffers[1] == NULL))
+        {
+            return -13;
+        }
+    }
+    /* Use slab. */
+    else
+    {
+        fifo->mem_slab = conf->mem_slab;
+        fifo->ring_buffer_nb_elem = conf->mem_slab->num_blocks;
+        fifo->ring_buffer_head = 0;
+        fifo->ring_buffer_tail = 0;
+        fifo->ring_buffer = pi_fc_l1_malloc(fifo->ring_buffer_nb_elem * sizeof(void *));
+        if (fifo->ring_buffer == NULL)
+        {
+            return -14;
+        }
     }
 
     /* Disable UDMA CG. */
@@ -260,7 +369,7 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
         {
             shift = conf->pdm_shift;
         }
-        fifo->shift = shift;
+        //fifo->shift = shift;
         decimation = conf->pdm_decimation - 1;
     }
     else
@@ -269,9 +378,12 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     }
     if (conf->itf)
     {
+        #if 0
+        /* Done in BSP. */
         /* Special for I2S1, use alternative pad for SDI signal. */
         pi_pad_set_function(PI_PAD_35_B13_I2S1_SCK, PI_PAD_35_B13_I2S1_SDI_FUNC3);
         pi_pad_set_function(PI_PAD_37_B14_I2S1_SDI, PI_PAD_37_B14_HYPER_CK_FUNC3);
+        #endif
 
         /* Filter setup. */
         hal_i2s_filt_ch1_set(device_id, decimation, shift);
@@ -292,7 +404,7 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
 
 void __pi_i2s_close(uint8_t i2s_id)
 {
-    uint32_t device_id = 0;
+    uint32_t device_id = __global_i2s_driver_fifo[i2s_id]->device_id;
     /* Free allocated fifo. */
     pi_l2_free(__global_i2s_driver_fifo[i2s_id], sizeof(struct i2s_driver_fifo_s));
     __global_i2s_driver_fifo[i2s_id] = NULL;
@@ -347,13 +459,20 @@ int32_t __pi_i2s_read_async(uint8_t i2s_id, pi_task_t *task)
     struct i2s_driver_fifo_s *fifo = __global_i2s_driver_fifo[i2s_id];
     /* Fill rest of arguments for i2s driver. */
     task->data[0] = 0;
-    task->data[1] = (uint32_t) fifo->pingpong_buffers[fifo->cur_read_buffer];
+    if (!(fifo->options & PI_I2S_OPT_MEM_SLAB))
+    {
+        task->data[1] = (uint32_t) fifo->pingpong_buffers[fifo->cur_read_buffer];
+    }
     task->data[2] = fifo->block_size;
     task->next = NULL;
     fifo->cur_read_buffer ^= 1;
 
     if (fifo->nb_ready_buffer)
     {
+        if ((fifo->options & PI_I2S_OPT_MEM_SLAB))
+        {
+            task->data[1] = (uintptr_t) __pi_i2s_pop(i2s_id);
+        }
         fifo->nb_ready_buffer--;
         __pi_i2s_handle_end_of_task(task);
     }

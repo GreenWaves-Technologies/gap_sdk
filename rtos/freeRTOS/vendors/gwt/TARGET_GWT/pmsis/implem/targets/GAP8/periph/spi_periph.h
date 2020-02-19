@@ -57,7 +57,7 @@ typedef struct
 
 #define SPI_CMD_ID_OFFSET       28
 
-#define SPI_CMD_CFG(clkdiv,cpha,cpol)                                      ((clkdiv << 0)|(cpha << 8)|(cpol << 9)|(SPI_CMD_CFG_ID << SPI_CMD_ID_OFFSET))
+#define SPI_CMD_CFG(clkdiv,cpha,cpol)                                      (((clkdiv & 0xFF) << 0)|(cpha << 8)|(cpol << 9)|(SPI_CMD_CFG_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_SOT(cs)                                                    ((cs << 0)|(SPI_CMD_SOT_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_SEND_CMD(cmd_value,cmd_size,qpi)                           ((cmd_value << 0)|((cmd_size-1) << 16)|(qpi << 27)|(SPI_CMD_SEND_CMD_ID << SPI_CMD_ID_OFFSET))
 #define SPI_CMD_SEND_ADDR(cmd_size,qpi)                                    (((cmd_size-1) << 16)|(qpi << 27)|(SPI_CMD_SEND_ADDR_ID << SPI_CMD_ID_OFFSET))

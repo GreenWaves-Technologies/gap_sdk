@@ -39,7 +39,7 @@
  *****************************************************************************/
 
 extern uint32_t g_i2s_flags;
-extern struct i2c_driver_fifo_s *__global_i2s_driver_fifo[];
+extern struct i2s_driver_fifo_s *__global_i2s_driver_fifo[];
 
 /*******************************************************************************
  * API implementation
@@ -63,13 +63,18 @@ int pi_i2s_open(struct pi_device *device)
         __pi_i2s_open(conf);
         device->data = (void *) __global_i2s_driver_fifo[conf->itf];
     }
+    else
+    {
+        __global_i2s_driver_fifo[conf->itf]->nb_open++;
+    }
     return 0;
 }
 
 void pi_i2s_close(struct pi_device *device)
 {
     struct i2s_driver_fifo_s *fifo = (struct i2s_driver_fifo_s *) device->data;
-    if (fifo != NULL)
+    fifo->nb_open--;
+    if (fifo->nb_open == 0)
     {
         __pi_i2s_close(fifo->i2s_id);
     }

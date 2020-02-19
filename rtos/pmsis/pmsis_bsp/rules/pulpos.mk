@@ -4,8 +4,9 @@ include $(TARGET_INSTALL_DIR)/rules/pulp_properties.mk
 
 INSTALL_FILES += $(shell find include -name *.h)
 
+PULP_LIBS += pibsp_gapuino
 ifneq '$(board/name)' ''
-build_dir_ext=_$(board/name)
+build_dir_ext=_$(PULPOS_SYSTEM)
 ifeq '$(board/name)' 'gapoc_a'
 PULP_LIBS += pibsp_gapoc_a
 endif

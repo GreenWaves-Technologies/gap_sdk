@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, GreenWaves Technologies, Inc.
+ * Copyright (c) 2020, GreenWaves Technologies, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,48 +28,32 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PMSIS_H__
-#define __PMSIS_H__
+#ifndef __PMSIS_IMPLEM_PMSIS_TYPES_H__
+#define __PMSIS_IMPLEM_PMSIS_TYPES_H__
 
-#include <stddef.h>
-#include <inttypes.h>
+#include "pmsis/pmsis_types.h"
 
-/* Debug helper. */
-#ifdef DEBUG
-#define DEBUG_PRINTF printf
-#else
-#define DEBUG_PRINTF(...) ((void) 0)
-#endif  /* DEBUG */
+#ifndef PI_TASK_IMPLEM
+#define PI_TASK_IMPLEM \
+    int8_t destroy;
+#endif
 
-#if (!defined(HW_VERIF_ONLY))
+#ifndef PI_TASK_IMPLEM_NB_DATA
+#define PI_TASK_IMPLEM_NB_DATA 8
+#endif  /* PI_TASK_IMPLEM_NB_DATA */
 
-/* Backend includes. */
-#include "pmsis/backend/implementation_specific_defines.h"
-#include "targets/pmsis_targets.h"
-#include "system_gap8.h"
-/* Implementation specific pmsis_types. */
-#include "pmsis_types.h"
-/* pmsis_api includes. */
-#include "pmsis/device.h"
-#include "pmsis/task.h"
-#include "pmsis/rtos/rtos.h"
-#include "pmsis/rtos/assert.h"
-#include "pmsis/mem_slab.h"
+typedef struct pi_task
+{
+    // Warning, might be accessed inline in asm, and thus can not be moved
+    uintptr_t arg[4];
+    int32_t id;
+    uint32_t data[PI_TASK_IMPLEM_NB_DATA];
+    pi_sem_t wait_on;
+    struct pi_task *next;
+    volatile int8_t done;
+    int8_t core_id;
+    int8_t cluster_id;
+    PI_TASK_IMPLEM;
+} pi_task_t;
 
-/* PMSIS includes. */
-#include "pmsis_driver/pmsis_driver_data.h"
-#include "pmsis_driver/pmsis_drivers.h"
-#include "pmsis_rtos/mem_slab/mem_slab.h"
-#include "pmsis_rtos/os/pmsis_task.h"
-#include "pmsis_rtos/os/pmsis_freq.h"
-#include "pmsis_rtos/os/os.h"
-#if defined(FEATURE_CLUSTER)
-#include "pmsis_cluster/pmsis_cluster.h"
-#endif  /* FEATURE_CLUSTER */
-
-#endif  /* HW_VERIF_ONLY */
-
-/* Hal includes. */
-#include "pmsis_hal/pmsis_hal.h"
-
-#endif  /* __PMSIS_H__ */
+#endif  /* __PMSIS_IMPLEM_PMSIS_TYPES_H__ */

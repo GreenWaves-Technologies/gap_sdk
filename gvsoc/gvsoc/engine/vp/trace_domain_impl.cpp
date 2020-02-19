@@ -142,8 +142,7 @@ void trace_domain::check_trace_active(vp::trace *trace, int event)
         {
             if (regexec(x.second->regex, full_path.c_str(), 0, NULL, 0) == 0)
             {
-                std::string file_path = x.second->file_path;
-                
+                std::string file_path = x.second->file_path;                
                 vp::Event_trace *event_trace;
                 if (trace->is_real)
                     event_trace = event_dumper.get_trace_real(full_path, file_path);
@@ -304,21 +303,38 @@ void trace_domain::add_exclude_path(int events, const char *path)
 
     if (events)
     {
+        char *delim = (char *)::index(path, '@');
+        if (delim)
+        {
+            *delim = 0;
+        }
+
         if (this->events_path_regex.count(path) > 0)
         {
             delete this->events_path_regex[path];
             this->events_path_regex.erase(path);
         }
-        this->events_exclude_path_regex[path] = new trace_regex(path, regex, "");
+        else
+        {
+            this->events_exclude_path_regex[path] = new trace_regex(path, regex, "");
+        }
     }
     else
     {
+        char *delim = (char *)::index(path, ':');
+        if (delim)
+        {
+            *delim = 0;
+        }
         if (this->trace_regexs.count(path) > 0)
         {
             delete this->trace_regexs[path];
             this->trace_regexs.erase(path);
         }
-        this->trace_exclude_regexs[path] = new trace_regex(path, regex, "");
+        else
+        {
+            this->trace_exclude_regexs[path] = new trace_regex(path, regex, "");
+        }
     }
 
     regcomp(regex, path, 0);

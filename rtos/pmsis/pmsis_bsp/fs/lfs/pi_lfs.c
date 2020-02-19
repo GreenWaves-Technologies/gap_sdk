@@ -450,5 +450,6 @@ lfs_t *pi_lfs_get_native_lfs(pi_device_t *device)
 void pi_lfs_conf_init(struct pi_lfs_conf *conf)
 {
     pi_fs_conf_init(&conf->fs);
+    conf->fs.type = PI_FS_LFS;
     conf->fs.api = &pi_lfs_api;
 }

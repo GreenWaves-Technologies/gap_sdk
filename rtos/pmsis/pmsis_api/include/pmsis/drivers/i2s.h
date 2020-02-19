@@ -79,6 +79,32 @@ typedef uint8_t pi_i2s_fmt_t;
 
 typedef uint8_t pi_i2s_opt_t;
 
+/** @brief Mem slab mode
+ *
+ * In mem slab mode TX output or RX sampling will keep alternating between a 
+ * a set of buffers given by the user.
+ * Memory slab pointed to by the mem_slab field has to be defined and
+ * initialized by the user. For I2S driver to function correctly number of
+ * memory blocks in a slab has to be at least 2 per queue. Size of the memory
+ * block should be multiple of frame_size where frame_size = (channels *
+ * word_size_bytes). As an example 16 bit word will occupy 2 bytes, 24 or 32
+ * bit word will occupy 4 bytes.
+ */
+
+#define PI_I2S_OPT_MEM_SLAB                (1 << 0)
+
+/** @brief Ping pong mode
+ *
+ * In ping pong mode TX output or RX sampling will keep alternating between a
+ * ping buffer and a pong buffer.
+ * This is normally used in audio streams when one buffer
+ * is being populated while the other is being played (DMAed) and vice versa.
+ * So, in this mode, 2 sets of buffers fixed in size are used. These 2 buffers
+ * must be given in the configuration when the driver is opened and kept alive
+ * until the driver is closed.
+ */
+#define PI_I2S_OPT_PINGPONG                (0 << 0)
+
 /** IOCTL command */
 enum pi_i2s_ioctl_cmd
 {
@@ -113,7 +139,8 @@ struct pi_i2s_conf
     pi_i2s_fmt_t format;        /*!< Data stream format as defined by PI_I2S_FMT_* constants. */
     pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
     uint32_t frame_clk_freq;    /*!< Frame clock (WS) frequency, this is sampling rate. */
-    size_t block_size;          /*!< Size of one RX/TX memory block (buffer) in bytes. */
+    size_t block_size;          /*!< Size of one RX/TX memory block (buffer) in bytes. On some chips, this size may have to be set under a maximum size, check the chip-specific section. */
+    pi_mem_slab_t *mem_slab; /*!< memory slab to store RX/TX data. */
     void *pingpong_buffers[2];  /*!< Pair of buffers used in double-buffering mode to
                                   capture the incoming samples.  */
     uint16_t pdm_decimation;    /*!< In PDM mode, this gives the decimation factor to be used,

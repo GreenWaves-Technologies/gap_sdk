@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef __PMSIS_RTOS_RTOS_H__
-#define __PMSIS_RTOS_RTOS_H__
+#ifndef __I2S_AUDIO_REC__
+#define __I2S_AUDIO_REC_
 
-#include <stdint.h>
-#include <stddef.h>
+#define WAV_HEADER_SIZE 44 //bytes
 
-#include "pmsis/rtos/malloc/pi_malloc.h"
-#include "pmsis/rtos/malloc/fc_l1_malloc.h"
-#include "pmsis/rtos/malloc/cl_l1_malloc.h"
-#include "pmsis/rtos/malloc/l2_malloc.h"
-#include "pmsis/rtos/os_frontend_api/os.h"
-#include "pmsis/rtos/os_frontend_api/freq.h"
-#include "pmsis/rtos/os_frontend_api/pmsis_time.h"
-#include "pmsis/rtos/event_kernel/event_kernel.h"
-#include "pmsis/rtos/pi_log.h"
+void dump_wav(char *filename, int width, int sampling_rate, int nb_channels, void *data, int size);
 
-#endif  /* __PMSIS_RTOS_RTOS_H__ */
+#endif

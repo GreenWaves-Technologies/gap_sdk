@@ -65,8 +65,9 @@ int pi_gpio_pin_configure(struct pi_device *device, pi_gpio_e pin, pi_gpio_flags
 {
   if (pin & PI_GPIO_IS_GPIO_MASK)
   {
-    pi_pad_e pad = (pin >> PI_GPIO_NUM_SHIFT);
+    pi_pad_e pad = ((pin & ~PI_GPIO_IS_GPIO_MASK)>> PI_GPIO_NUM_SHIFT);
     /* Setup first pad for GPIO. */
+
     pi_pad_set_function(pad, PI_PAD_FUNC1);
   }
   pin = (pin & PI_GPIO_NUM_MASK);

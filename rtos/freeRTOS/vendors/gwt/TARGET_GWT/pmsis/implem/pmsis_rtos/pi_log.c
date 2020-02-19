@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2020 GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef __PMSIS_RTOS_RTOS_H__
-#define __PMSIS_RTOS_RTOS_H__
+/*
+ * Created by Mathieu Barbe <mathieu.barbe@greenwaves-technologies.com>.
+ * on 1/15/2020.
+ */
 
-#include <stdint.h>
-#include <stddef.h>
-
-#include "pmsis/rtos/malloc/pi_malloc.h"
-#include "pmsis/rtos/malloc/fc_l1_malloc.h"
-#include "pmsis/rtos/malloc/cl_l1_malloc.h"
-#include "pmsis/rtos/malloc/l2_malloc.h"
-#include "pmsis/rtos/os_frontend_api/os.h"
-#include "pmsis/rtos/os_frontend_api/freq.h"
-#include "pmsis/rtos/os_frontend_api/pmsis_time.h"
-#include "pmsis/rtos/event_kernel/event_kernel.h"
 #include "pmsis/rtos/pi_log.h"
 
-#endif  /* __PMSIS_RTOS_RTOS_H__ */
+
+// Global variables used by pi_log.h
+vprintf_like_t pi_log_vprint_func = &pi_log_default_vprintf;
+pi_log_level_t dynamic_log_level = PI_LOG_DEFAULT_DYNAMIC_LEVEL;
+

@@ -26,6 +26,7 @@
 
 #include "pmsis/device.h"
 #include "pmsis/task.h"
+#include "pmsis/mem_slab.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 #include "pmsis/cluster/cluster_sync/cl_to_fc_delegate.h"
 #include "pmsis/cluster/cl_malloc.h"

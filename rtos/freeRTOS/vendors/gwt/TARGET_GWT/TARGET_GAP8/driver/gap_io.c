@@ -34,8 +34,8 @@
 
 /* Printf buffer size. */
 #define PRINTF_BUFFER_SIZE    ( PRINTF_BUF_SIZE )
-/* L1 TAS offset. */
-#define L1_TAS_PRINTF_OFFSET  ( 1 << 20 )
+/* TAS offset. GAP8 : TAS in cluster L1. */
+#define PRINTF_TAS_OFFSET     ( 1 << 20 )
 /* IRQ used to wake up cores. */
 #define PRINTF_LOCK_IRQN      ( CL_EVENT_SW(6) )
 
@@ -58,7 +58,7 @@ extern char __printf_lock_ptr;
 
 /* Address to lock TAS lock. */
 volatile uint32_t *g_lock = (volatile uint32_t *) (((uint32_t) &__printf_lock_ptr) +
-                                                   (uint32_t) L1_TAS_PRINTF_OFFSET);
+                                                   (uint32_t) PRINTF_TAS_OFFSET);
 /* Address to release TAS lock. */
 volatile uint32_t *g_unlock = (volatile uint32_t *) &__printf_lock_ptr;
 

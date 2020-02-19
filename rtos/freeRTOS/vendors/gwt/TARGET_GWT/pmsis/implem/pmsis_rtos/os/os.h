@@ -32,8 +32,8 @@
 #define __PI_RTOS_IMPLEM_OS_H__
 
 #include "pmsis/rtos/os_frontend_api/os.h"
-#include "pmsis_backend/implementation_specific_defines.h"
-#include "pmsis_backend/pmsis_backend_native_task_api.h"
+#include "pmsis/backend/implementation_specific_defines.h"
+#include "pmsis/backend/pmsis_backend_native_task_api.h"
 
 /*******************************************************************************
  * Definitions

@@ -42,35 +42,110 @@ void pi_i2s_conf_init(struct pi_i2s_conf *conf)
     conf->frame_clk_freq = 44100;
     conf->pdm_decimation = 64;
     conf->format = PI_I2S_FMT_DATA_FORMAT_PDM;
-    conf->options = 0;
+    conf->options = PI_I2S_OPT_PINGPONG;
     conf->word_size = 16;
     conf->channels = 1;
     conf->pingpong_buffers[0] = NULL;
     conf->pingpong_buffers[1] = NULL;
+    conf->mem_slab = NULL;
     conf->pdm_shift = -1;
+}
+
+
+static void pos_i2s_mem_slab_pop(pos_i2s_t *i2s, pi_task_t *task)
+{
+    task->implem.data[1] = (int)i2s->ring_buffer[i2s->ring_buffer_tail++];
+    if (i2s->ring_buffer_tail == i2s->ring_buffer_nb_elem)
+        i2s->ring_buffer_tail = 0;
+}
+
+
+static int pos_i2s_enqueue(pos_i2s_t *i2s)
+{
+    char *buffer = NULL;
+    unsigned int base = hal_udma_channel_base(i2s->channel);
+    uint32_t size;
+    int task_done = 1;
+
+    if (i2s->pending_size)
+    {
+        buffer = (char *)i2s->pending_buffer;
+        size = i2s->pending_size;
+        task_done = 0;
+    }
+    else
+    {
+        size = i2s->conf.block_size;
+
+        if (i2s->is_pingpong)
+        {
+            int buffer_index = i2s->current_buffer;
+            buffer = i2s->conf.pingpong_buffers[buffer_index];
+            i2s->current_buffer = buffer_index ^ 1;
+        }
+        else
+        {
+            pi_mem_slab_alloc(i2s->conf.mem_slab, (void **)&buffer, 0);
+
+            if (buffer != NULL)
+            {
+                i2s->ring_buffer[i2s->ring_buffer_head++] = buffer;
+                if (i2s->ring_buffer_head == i2s->ring_buffer_nb_elem)
+                    i2s->ring_buffer_head = 0;
+            }
+        }
+    }
+    
+    if (buffer)
+    {
+        uint32_t iter_size;
+        uint32_t max_size = (1<<16)-4;
+
+        if (size > max_size)
+        {
+            iter_size = max_size;
+            i2s->pending_size = size - iter_size;
+            i2s->pending_buffer = buffer + iter_size;
+        }
+        else
+        {
+            iter_size = size;
+            i2s->pending_size = 0;
+        }
+
+        plp_udma_enqueue(base, (uint32_t)buffer, iter_size, i2s->udma_cfg);
+    }
+
+    return task_done;
 }
 
 
 void __pos_i2s_handle_copy(pos_i2s_t *i2s)
 {
+    int task_done = 1;
+
     if (i2s->reenqueue)
     {
-        unsigned int base = hal_udma_channel_base(i2s->channel);
-        int buffer = i2s->current_buffer;
-        plp_udma_enqueue(base, (int)i2s->conf.pingpong_buffers[buffer], i2s->conf.block_size, UDMA_CHANNEL_CFG_EN | UDMA_CHANNEL_CFG_SIZE_16);
-        i2s->current_buffer = buffer ^ 1;
+        task_done = pos_i2s_enqueue(i2s);
     }
 
-    pi_task_t *waiting = i2s->waiting_first;
+    if (task_done)
+    {
+        pi_task_t *waiting = i2s->waiting_first;
 
-    if (waiting)
-    {
-        i2s->waiting_first = waiting->implem.next;
-        __rt_event_enqueue(waiting);
-    }
-    else
-    {
-        i2s->nb_ready_buffer++;
+        if (waiting)
+        {
+            if (!i2s->is_pingpong)
+            {
+                pos_i2s_mem_slab_pop(i2s, waiting);
+            }
+            i2s->waiting_first = waiting->implem.next;
+            __rt_event_enqueue(waiting);
+        }
+        else
+        {
+            i2s->nb_ready_buffer++;
+        }
     }
 }
 
@@ -83,9 +158,13 @@ int pi_i2s_open(struct pi_device *device)
     int itf_id = conf->itf;
     pos_i2s_t *i2s = &__pos_i2s[itf_id];
     int periph_id = ARCHI_UDMA_I2S_ID(itf_id >> 1);
+    int is_pingpong = (conf->options & PI_I2S_OPT_MEM_SLAB) == 0;
 
-    if (conf->pingpong_buffers[0] == NULL || conf->pingpong_buffers[1] == NULL)
-        return -1;
+    if (is_pingpong)
+    {
+        if (conf->pingpong_buffers[0] == NULL || conf->pingpong_buffers[1] == NULL)
+            return -1;
+    }
 
     device->data = (void *)i2s;
 
@@ -107,6 +186,8 @@ int pi_i2s_open(struct pi_device *device)
 
         i2s->channel = channel_id;
         i2s->reenqueue = 0;
+        i2s->pending_size = 0;
+
         if (conf->word_size == 16)
             i2s->udma_cfg = UDMA_CHANNEL_CFG_EN | UDMA_CHANNEL_CFG_SIZE_16;
         else
@@ -122,6 +203,7 @@ int pi_i2s_open(struct pi_device *device)
         __rt_udma_register_channel_callback(channel_id, __pos_i2s_handle_copy_asm, (void *)i2s);
 
         i2s->clk = __pos_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK ? 0 : sub_periph_id;
+        i2s->is_pingpong = is_pingpong;
 
         unsigned int mode = hal_i2s_chmode_get(itf_id);
         int clk = i2s->clk;
@@ -129,6 +211,16 @@ int pi_i2s_open(struct pi_device *device)
         mode &= ~(I2S_CHMODE_CH_SNAPCAM_MASK(sub_periph_id) | I2S_CHMODE_CH_LSBFIRST_MASK(sub_periph_id) | 
         I2S_CHMODE_CH_PDM_USEFILTER_MASK(sub_periph_id) | I2S_CHMODE_CH_PDM_EN_MASK(sub_periph_id) | 
         I2S_CHMODE_CH_USEDDR_MASK(sub_periph_id) | I2S_CHMODE_CH_MODE_MASK(sub_periph_id));
+
+        if (!i2s->is_pingpong)
+        {
+            i2s->ring_buffer_nb_elem = conf->mem_slab->num_blocks;
+            i2s->ring_buffer_head = 0;
+            i2s->ring_buffer_tail = 0;
+            i2s->ring_buffer = pi_fc_l1_malloc(sizeof(void *)*i2s->ring_buffer_nb_elem);
+            if (i2s->ring_buffer == NULL)
+                return -1;
+        }
 
         if (pdm)
         {
@@ -249,8 +341,8 @@ static inline void __pos_i2s_resume(pos_i2s_t *i2s)
     i2s->nb_ready_buffer = 0;
     i2s->waiting_first = NULL;
 
-    plp_udma_enqueue(base, (int)i2s->conf.pingpong_buffers[0], i2s->conf.block_size, i2s->udma_cfg);
-    plp_udma_enqueue(base, (int)i2s->conf.pingpong_buffers[1], i2s->conf.block_size, i2s->udma_cfg);
+    pos_i2s_enqueue(i2s);
+    pos_i2s_enqueue(i2s);
 
     unsigned int conf = 
         UDMA_I2S_CFG_CLKGEN0_BITS_WORD(i2s->conf.word_size - 1) | 
@@ -298,12 +390,20 @@ int pi_i2s_read_async(struct pi_device *device, pi_task_t *task)
     // Prepare now the task results, the IRQ handler can still overwrite
     // them if they are different.
     task->implem.data[0] = 0;
-    task->implem.data[1] = (int)i2s->conf.pingpong_buffers[i2s->current_read_buffer];
+
+    if (i2s->is_pingpong)
+    {
+        task->implem.data[1] = (int)i2s->conf.pingpong_buffers[i2s->current_read_buffer];
+    }
     task->implem.data[2] = i2s->conf.block_size;
     i2s->current_read_buffer ^= 1;
 
     if (i2s->nb_ready_buffer)
     {
+        if (!i2s->is_pingpong)
+        {
+            pos_i2s_mem_slab_pop(i2s, task);
+        }
         i2s->nb_ready_buffer--;
         __rt_event_enqueue(task);
     }

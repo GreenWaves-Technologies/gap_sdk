@@ -96,7 +96,7 @@ void system_setup_systick(uint32_t tick_rate_hz)
 
 void system_core_clock_update(void)
 {
-    SystemCoreClock = pi_fll_get_frequency(FLL_SOC);
+    SystemCoreClock = pi_fll_get_frequency(FLL_SOC, 0);
 }
 
 uint32_t system_core_clock_get(void)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, GreenWaves Technologies, Inc.
+ * Copyright (c) 2020, GreenWaves Technologies, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,48 +28,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PMSIS_H__
-#define __PMSIS_H__
+#ifndef __PMSIS_RTOS_MEM_SLAB_MEM_SLAB_H__
+#define __PMSIS_RTOS_MEM_SLAB_MEM_SLAB_H__
 
-#include <stddef.h>
-#include <inttypes.h>
-
-/* Debug helper. */
-#ifdef DEBUG
-#define DEBUG_PRINTF printf
-#else
-#define DEBUG_PRINTF(...) ((void) 0)
-#endif  /* DEBUG */
-
-#if (!defined(HW_VERIF_ONLY))
-
-/* Backend includes. */
-#include "pmsis/backend/implementation_specific_defines.h"
-#include "targets/pmsis_targets.h"
-#include "system_gap8.h"
-/* Implementation specific pmsis_types. */
-#include "pmsis_types.h"
-/* pmsis_api includes. */
-#include "pmsis/device.h"
-#include "pmsis/task.h"
-#include "pmsis/rtos/rtos.h"
-#include "pmsis/rtos/assert.h"
-#include "pmsis/mem_slab.h"
-
-/* PMSIS includes. */
-#include "pmsis_driver/pmsis_driver_data.h"
-#include "pmsis_driver/pmsis_drivers.h"
+#include "pmsis.h"
 #include "pmsis_rtos/mem_slab/mem_slab.h"
-#include "pmsis_rtos/os/pmsis_task.h"
-#include "pmsis_rtos/os/pmsis_freq.h"
-#include "pmsis_rtos/os/os.h"
-#if defined(FEATURE_CLUSTER)
-#include "pmsis_cluster/pmsis_cluster.h"
-#endif  /* FEATURE_CLUSTER */
 
-#endif  /* HW_VERIF_ONLY */
+/*******************************************************************************
+ * Definitions
+ ******************************************************************************/
 
-/* Hal includes. */
-#include "pmsis_hal/pmsis_hal.h"
+struct pi_mem_slab
+{
+    uint32_t num_blocks;
+    uint32_t num_used;
+    size_t block_size;
+    char *buffer;
+    char *free_list;
+};
 
-#endif  /* __PMSIS_H__ */
+/*******************************************************************************
+ * Function declaration
+ ******************************************************************************/
+
+/*******************************************************************************
+ * API implementation
+ ******************************************************************************/
+
+#endif  /* __PMSIS_RTOS_MEM_SLAB_MEM_SLAB_H__ */

@@ -42,22 +42,31 @@ struct i2s_driver_fifo_s
     /* Best to use only one queue since both RX & TX can be used at the same time. */
     struct pi_task *fifo_head;  /* Head of SW fifo waiting transfers. */
     struct pi_task *fifo_tail;  /* Tail of SW fifo waiting transfers. */
-    uint8_t i2s_id;
+    uint32_t device_id;
     uint32_t frequency;
-    uint8_t shift;
+    uint32_t frame_clk_freq;
+    uint32_t udma_cfg;
+    uint32_t nb_open;
+    uint32_t pending_size;
+    size_t block_size;
+    uint8_t i2s_id;
+    //uint8_t shift;
     uint8_t word_size;
     uint8_t channels;
-    pi_i2s_fmt_t format;
-    pi_i2s_opt_t options;
-    uint32_t frame_clk_freq;
-    size_t block_size;
     uint8_t clk;
-    void *pingpong_buffers[2];
     uint8_t cur_buffer;
     uint8_t cur_read_buffer;
     uint8_t nb_ready_buffer;
     uint8_t reenqueue;
-    uint32_t udma_cfg;
+    pi_i2s_fmt_t format;
+    pi_i2s_opt_t options;
+    void *pending_buffer;
+    void *pingpong_buffers[2];
+    void **ring_buffer;
+    uint32_t ring_buffer_nb_elem;
+    uint32_t ring_buffer_head;
+    uint32_t ring_buffer_tail;
+    pi_mem_slab_t *mem_slab;
 };
 
 /*******************************************************************************

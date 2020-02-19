@@ -612,4 +612,14 @@ void pi_fc_l1_free(void *_chunk, int size)
 {
   return rt_free(RT_ALLOC_FC_DATA, _chunk, size);
 }
+#else
+void *pi_fc_l1_malloc(int size)
+{
+  return pi_l2_malloc(size);
+}
+
+void pi_fc_l1_free(void *_chunk, int size)
+{
+  return pi_l2_free(_chunk, size);
+}
 #endif

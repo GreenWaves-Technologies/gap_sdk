@@ -14,6 +14,8 @@
 #define pi_fll_get_frequency(x)       ( rt_freq_get(x) )
 #define pi_fll_set_frequency(x, y, z) ( rt_freq_set(x, y) )
 #define pi_pmu_set_voltage(x, y)      ( rt_voltage_force(RT_VOLTAGE_DOMAIN_MAIN, x, NULL) )
+#else
+#define pi_fll_get_frequency(x)       ( pi_fll_get_frequency(x, 1) )
 #endif  /* __PULP_OS__ */
 
 #define SOC_MAX_FREQ_AT_V(x)          ( FLL_SOC_MIN_FREQUENCY + (x - DCDC_DEFAULT_LV) * FLL_SOC_FV_SLOPE )
@@ -99,9 +101,7 @@ void test_cluster_frequency(void)
                 printf("Error changing frequency !\nTest failed...\n");
                 pmsis_exit(-3);
             }
-            #if defined(__PULP_OS__)
             cur_fc_freq = pi_fll_get_frequency(FLL_SOC);
-            #endif  /* __PULP_OS__ */
             printf("SoC Frequency : %ld Hz, Voltage : %ld mv\t freq : %ld\n",
                    cur_fc_freq, voltage, fc_freq);
 
@@ -118,9 +118,7 @@ void test_cluster_frequency(void)
                     printf("Error changing frequency !\nTest failed...\n");
                     pmsis_exit(-4);
                 }
-                #if defined(__PULP_OS__)
                 cur_cl_freq = pi_fll_get_frequency(FLL_CLUSTER);
-                #endif  /* __PULP_OS__ */
                 printf("Cluster Frequency : %ld Hz, freq : %ld\n", cur_cl_freq, cl_freq);
 
                 #if defined(ASYNC)

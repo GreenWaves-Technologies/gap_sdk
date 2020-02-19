@@ -33,6 +33,8 @@
 #ifndef __RTIO_STDIO_H__
 #define __RTIO_STDIO_H__
 
+#include "stdarg.h"
+
 typedef int FILE;
 
 #define stdin  ((FILE *) 1)
@@ -42,6 +44,10 @@ typedef int FILE;
 int puts(const char *s);
 
 int printf(const char *format, ...);
+
+int vprintf(const char *format, va_list vargs);
+
+int vfprintf(FILE *F, const char *format, va_list vargs);
 
 int putchar(int c);
 
