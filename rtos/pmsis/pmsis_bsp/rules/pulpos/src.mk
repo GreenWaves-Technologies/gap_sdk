@@ -25,6 +25,13 @@ CONFIG_SPIM = 1
 endif
 
 
+ifeq '$(CONFIG_HYPERRAM)' '1'
+PULP_SRCS += ram/ram.c ram/alloc_extern.c ram/hyperram/hyperram.c
+CONFIG_BSP = 1
+CONFIG_HYPER = 1
+endif
+
+
 ifeq '$(CONFIG_BSP)' '1'
 PULP_SRCS += bsp/$(PULPOS_BOARD).c
 endif

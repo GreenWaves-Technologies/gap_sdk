@@ -19,8 +19,9 @@ PULP_APP_SRCS += main.c ImgIO.c $(MODEL_GEN_C) $(GEN_KER_PATH)/IntegralImgBasicK
 PULP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns $(JENKINS_FLAGS)
 PULP_CFLAGS += -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_KER_PATH)
 
-
-PLPBRIDGE_FLAGS += -fileIO 10
+#moved to new openocd bridge
+export GAP_USE_OPENOCD=1
+io=host
 
 all:: model
 

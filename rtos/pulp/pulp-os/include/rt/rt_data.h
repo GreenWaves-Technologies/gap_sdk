@@ -290,6 +290,15 @@ typedef struct rt_periph_copy_s {
 } rt_periph_copy_t;
 
 
+struct pi_mem_slab {
+        uint32_t num_blocks;
+        size_t block_size;
+        char *buffer;
+        char *free_list;
+        uint32_t num_used;
+};
+
+
 struct pi_task_implem
 {
   struct pi_task *next;

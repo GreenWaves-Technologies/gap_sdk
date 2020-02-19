@@ -177,18 +177,18 @@ run: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
 else
 run: all
-	$(INSTALL_DIR)/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
-gdbserver: PLPBRIDGE_FLAGS += -gdb
+gdbserver: PLPBRIDGE_EXTRA_FLAGS += -gdb
 gdbserver: run
 
 endif
 
 flash:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f
+	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f $(PLPBRIDGE_EXTRA_FLAGS)
 
 launch:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
 gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"

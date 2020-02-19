@@ -558,6 +558,7 @@ struct __pi_fs_api_t {
 
 extern pi_fs_api_t __pi_read_fs_api;
 extern pi_fs_api_t __pi_host_fs_api;
+extern pi_fs_api_t pi_lfs_api;
 
 typedef struct pi_fs_file_s {
   struct pi_device *fs;

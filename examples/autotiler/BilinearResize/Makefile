@@ -6,6 +6,14 @@
 
 APP = Bilinear_Resize
 
+#To test new bridge features:
+#comment the line above and use this two instead
+export GAP_USE_OPENOCD=1
+io=host
+
+#PMSIS_OS ?= freertos
+
+
 RESIZE_GEN_PATH = $(TILER_GENERATOR_PATH)/Resize
 RESIZE_KER_PATH = $(TILER_GENERATOR_PATH)/Resize
 

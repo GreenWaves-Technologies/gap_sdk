@@ -51,6 +51,8 @@
  * right), the buffer contains the samples for both channels interleaved one by
  * one.
  * 
+ * I2S buffers size must be a most 64KB - 4.
+ * 
  * PI_SPI_WORDSIZE_16 is not supported.
  */
 

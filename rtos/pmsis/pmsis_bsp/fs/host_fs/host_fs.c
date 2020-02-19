@@ -156,5 +156,6 @@ pi_fs_api_t __pi_host_fs_api = {
 void pi_hostfs_conf_init(struct pi_hostfs_conf *conf)
 {
     pi_fs_conf_init(&conf->fs);
+    conf->fs.type = PI_FS_HOST;
     conf->fs.api = &__pi_host_fs_api;
 }

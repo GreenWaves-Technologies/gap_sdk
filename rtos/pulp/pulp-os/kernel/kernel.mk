@@ -9,13 +9,17 @@ endif
 
 PULP_LIB_FC_SRCS_rt     += kernel/init.c \
    kernel/dev.c kernel/irq.c kernel/debug.c \
-  kernel/utils.c kernel/error.c kernel/bridge.c kernel/conf.c
+   kernel/utils.c kernel/error.c kernel/bridge.c kernel/conf.c \
+   kernel/log.c kernel/mem_slab.c
+
 PULP_LIB_FC_ASM_SRCS_rt += kernel/$(fc_archi)/thread.S
 
 PULP_CFLAGS     += -D__RT_USE_BRIDGE=1
 
 ifdef CONFIG_WARNING_ENABLED
-PULP_CFLAGS     += -D__RT_USE_WARNING=1
+PULP_CFLAGS     += -D__RT_USE_WARNING=1 -DPI_LOG_DEFAULT_DYNAMIC_LEVEL=2
+else
+PULP_CFLAGS     += -DPI_LOG_DEFAULT_DYNAMIC_LEVEL=0
 endif
 
 ifneq '$(cluster/version)' ''

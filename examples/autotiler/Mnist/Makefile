@@ -7,12 +7,18 @@
 APP = Mnist
 RM=rm -f
 
-#To Enable Bridge functions to read/write files from host (this function will be replaced by semihosting in next SDK release):
+#To Enable Bridge functions to read/write files from host 
+#(this function will be replaced by openocd semihosting in next SDK release)
+
 USE_BRIDGE=0
 
 ifeq ($(USE_BRIDGE),1)
 APP_CFLAGS += -DENABLE_BRIDGE
-PLPBRIDGE_FLAGS += -fileIO 10
+PLPBRIDGE_FLAGS += -fileIO
+#To test new bridge features:
+#comment the line above and use this two instead
+#export GAP_USE_OPENOCD=1
+#io=host
 endif
 
 CNN_AT_PATH = $(TILER_GENERATOR_PATH)/CNN

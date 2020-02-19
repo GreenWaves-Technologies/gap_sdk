@@ -8,7 +8,7 @@ ifndef GAP_SDK_HOME
   $(error Source sourceme in gap_sdk first)
 endif
 
-# io=host
+io=host
 
 include common.mk
 
@@ -73,7 +73,7 @@ APP_CFLAGS += -I. -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(TI
 APP_CFLAGS += -DPERF $(MODEL_SIZE_CFLAGS) -DSLAVE_STACK_SIZE=$(CLUSTER_SLAVE_STACK_SIZE) -DSTACK_SIZE=$(CLUSTER_STACK_SIZE)
 
 READFS_FILES=$(abspath $(MODEL_TENSORS))
-PLPBRIDGE_FLAGS = -f
+PLPBRIDGE_FLAGS += -f
 
 ifdef NO_IMAGE
   APP_CFLAGS += -DNO_IMAGE

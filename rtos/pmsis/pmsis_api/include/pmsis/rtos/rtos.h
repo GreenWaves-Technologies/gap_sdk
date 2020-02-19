@@ -28,5 +28,6 @@
 #include "pmsis/rtos/os_frontend_api/freq.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_time.h"
 #include "pmsis/rtos/event_kernel/event_kernel.h"
+#include "pmsis/rtos/pi_log.h"
 
 #endif  /* __PMSIS_RTOS_RTOS_H__ */

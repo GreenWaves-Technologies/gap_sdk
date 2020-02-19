@@ -57,6 +57,14 @@
 
 void printf_uart_init(uint8_t uart_id);
 
+/**
+ * \brief Flush printf buffer before exit.
+ *
+ * This function is called before leaving platform/interrupting runtime to flush
+ * current output buffer if it has been filled.
+ */
+void system_exit_printf_flush();
+
 /* @} */
 
 #endif  /*_GAP_IO_H_*/

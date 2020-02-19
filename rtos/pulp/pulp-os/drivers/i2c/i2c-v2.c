@@ -79,12 +79,14 @@ extern void udma_event_handler_end();
 static int __rt_i2c_get_div(int i2c_freq)
 {
     // Round-up the divider to obtain an i2c frequency which is below the maximum
-  int div = (__rt_freq_periph_get() + i2c_freq - 1)/i2c_freq;
-    // The i2cM always divide by 2 once we activate the divider, thus increase by 1
-    // in case it is even to not go avove the max frequency.
-  if (div & 1) div += 1;
-  div >>= 1;
-  return div;
+    // Also the HW divider is adding a factor of 4 on top of on what we give
+  int div = (__rt_freq_periph_get() + i2c_freq - 1)/(i2c_freq*4);
+
+  // The counter will count from 0 to div included
+  if (div <= 1)
+    return 0;
+  else
+    return div - 1;
 }
 
 

@@ -662,5 +662,6 @@ pi_fs_api_t __pi_read_fs_api = {
 void pi_readfs_conf_init(struct pi_readfs_conf *conf)
 {
     pi_fs_conf_init(&conf->fs);
+    conf->fs.type = PI_FS_READ_ONLY;
     conf->fs.api = &__pi_read_fs_api;
 }

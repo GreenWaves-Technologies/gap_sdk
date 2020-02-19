@@ -327,12 +327,17 @@ static struct i2c_cb_args_s *__pi_i2c_task_fifo_pop(struct i2c_driver_fifo_s *fi
 
 uint32_t __pi_i2c_get_clk_div(uint32_t freq)
 {
-    uint32_t div = (pi_freq_get(PI_FREQ_DOMAIN_PERIPH) + freq - 1) / freq;
-    if (div & 0x1)
+    /* Clock divided by 4 in HW. */
+    uint32_t div = (pi_freq_get(PI_FREQ_DOMAIN_PERIPH) + freq - 1) / (freq * 4);
+    /* Clock divider counts from 0 to clk_div value included. */
+    if (div <= 1)
     {
-        div += 1;
+        div = 0;
     }
-    div >>= 1;
+    else
+    {
+        div -= 1;
+    }
     return div;
 }
 

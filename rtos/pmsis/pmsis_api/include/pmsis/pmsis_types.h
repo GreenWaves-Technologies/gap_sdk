@@ -19,9 +19,6 @@
 
 #include "inttypes.h"
 #include "sys/types.h"
-#ifdef PMSIS_DRIVERS
-#include "pmsis_backend/implementation_specific_defines.h"
-#endif  /* PMSIS_DRIVERS */
 
 /**
  * @defgroup groupDrivers Drivers
@@ -126,6 +123,9 @@ typedef struct pi_device_api
     void* mutex_object;
 #endif
 
+/** Memory slab allocator */
+typedef struct pi_mem_slab pi_mem_slab_t;
+
 /** Task types **/
 typedef void (*__pmsis_mutex_func)(void *mutex_object);
 
@@ -166,32 +166,6 @@ enum pi_task_id {
     PI_TASK_NONE_ID,
 };
 
-#ifdef PMSIS_DRIVERS
-
-#ifndef PI_TASK_IMPLEM
-#define PI_TASK_IMPLEM \
-    int8_t destroy;
-#endif
-
-#ifndef PI_TASK_IMPLEM_NB_DATA
-#define PI_TASK_IMPLEM_NB_DATA 8
-#endif  /* PI_TASK_IMPLEM_NB_DATA */
-
-typedef struct pi_task
-{
-    // Warning, might be accessed inline in asm, and thus can not be moved
-    uintptr_t arg[4];
-    int32_t id;
-    uint32_t data[PI_TASK_IMPLEM_NB_DATA];
-    pi_sem_t wait_on;
-    struct pi_task *next;
-    volatile int8_t done;
-    int8_t core_id;
-    int8_t cluster_id;
-    PI_TASK_IMPLEM;
-} pi_task_t;
-
-#endif
 
 /// @endcond
 #endif

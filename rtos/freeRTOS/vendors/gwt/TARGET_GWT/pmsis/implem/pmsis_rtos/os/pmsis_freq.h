@@ -56,11 +56,11 @@ static inline uint32_t pi_freq_get(pi_freq_domain_e domain)
     switch(domain)
     {
     case PI_FREQ_DOMAIN_FC :
-        return pi_fll_get_frequency(FLL_SOC);
+        return pi_fll_get_frequency(FLL_SOC, 0);
     case PI_FREQ_DOMAIN_CL :
-        return pi_fll_get_frequency(FLL_CLUSTER);
+        return pi_fll_get_frequency(FLL_CLUSTER, 0);
     case PI_FREQ_DOMAIN_PERIPH :
-        return pi_fll_get_frequency(FLL_SOC);
+        return pi_fll_get_frequency(FLL_SOC, 0);
     default :
         return 0;
     }

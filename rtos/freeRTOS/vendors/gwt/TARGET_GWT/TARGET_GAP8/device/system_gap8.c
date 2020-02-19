@@ -96,7 +96,7 @@ void system_setup_systick(uint32_t tick_rate_hz)
 
 void system_core_clock_update(void)
 {
-    SystemCoreClock = pi_fll_get_frequency(FLL_SOC);
+    SystemCoreClock = pi_fll_get_frequency(FLL_SOC, 0);
 }
 
 uint32_t system_core_clock_get(void)
@@ -109,19 +109,20 @@ void system_exit(int32_t code)
 {
     if (pi_is_fc())
     {
-        /* Write return value to APB device */
-        soc_ctrl_corestatus_set(code);
+        /* Flush pending output. */
+        system_exit_printf_flush();
 
+        /* Notify debug tools about the termination. */
         #if defined(__SEMIHOSTING__)
         semihost_exit(code == 0 ? SEMIHOST_EXIT_SUCCESS : SEMIHOST_EXIT_ERROR);
         #else
-        /* Flush the pending messages to the debug tools
-           Notify debug tools about the termination */
         BRIDGE_PrintfFlush();
         DEBUG_Exit(DEBUG_GetDebugStruct(), code);
         BRIDGE_SendNotif();
         #endif  /* __SEMIHOSTING__ */
 
+        /* Write return value to APB device */
+        soc_ctrl_corestatus_set(code);
     }
     /* In case the platform does not support exit or this core is not allowed to exit the platform ... */
     hal_eu_evt_mask_clr(0xffffffff);

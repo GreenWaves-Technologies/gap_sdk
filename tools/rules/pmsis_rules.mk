@@ -3,11 +3,11 @@ PMSIS_OS ?= pulpos
 
 ifeq ($(BOARD_NAME), gapoc_a)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_A
-PLPBRIDGE_FLAGS        += -ftdi
+PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
 else ifeq ($(BOARD_NAME), gapoc_b)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_B
-PLPBRIDGE_FLAGS        += -ftdi
+PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
 else ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO
@@ -48,10 +48,13 @@ endif				# FS_TYPE
 
 endif				# NO_PMSIS_BSP
 
-APP_SRC                  = $(APP_SRCS) $(PMSIS_BSP_SRCS)
-APP_INC_PATH             = $(APP_INC) $(PMSIS_BSP_INC)
-APP_LIBSFLAGS            = $(APP_LDFLAGS)
-FREERTOS_FLAGS          += $(APP_CFLAGS) $(COMMON_CFLAGS) -D__USE_TCDM_MALLOC__=1 -DPMSIS_DRIVERS=1
+APP_SRC                  = $(APP_SRCS)
+APP_INC_PATH             = $(APP_INC)
+# Compiler options in $(APP_CFLAGS) are passed to compiler in subMakefile.
+# Linker options in $(APP_LDFLAGS) are passed to linker in subMakefile.
+# Custom linker script.
+LINK_SCRIPT              = $(APP_LINK_SCRIPT)
+FREERTOS_FLAGS          += $(COMMON_CFLAGS) -D__USE_TCDM_MALLOC__=1 -DPMSIS_DRIVERS=1
 
 #$(info ## FreeRTOS app sources : $(APP_SRC))
 #$(info ## FreeRTOS app includes : $(APP_INC_PATH))
@@ -99,7 +102,7 @@ endif
 # ReadFS
 #
 
-# run_gapuino legacy: convert BRIDGE files to readfs makefile input 
+# run_gapuino legacy: convert BRIDGE files to readfs makefile input
 READFS_FILES ?= $(filter-out -%, $(PLPBRIDGE_FLAGS))
 
 include $(GAP_SDK_HOME)/tools/gapy/rules/readfs.mk

@@ -57,7 +57,7 @@
 /*******************************************************************************
  * Variables
  ******************************************************************************/
-uint32_t flls_frequency[FLL_NUM];
+static volatile uint32_t flls_frequency[FLL_NUM];
 
 /*******************************************************************************
  * Code
@@ -161,9 +161,11 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
     if (which_fll == FLL_SOC)
         system_core_clock_update();
 
+    flls_frequency[which_fll] = frequency;
+
     __restore_irq(irq);
 
-    return pi_fll_get_frequency(which_fll);
+    return flls_frequency[which_fll];
 }
 
 void pi_fll_init(fll_type_t which_fll, uint32_t ret_state)
@@ -171,7 +173,7 @@ void pi_fll_init(fll_type_t which_fll, uint32_t ret_state)
     uint32_t val;
 
     if (ret_state) {
-        pi_fll_get_frequency(which_fll);
+        pi_fll_get_frequency(which_fll, 1);
     } else {
         val = (which_fll) ? FLL_CTRL->CLUSTER_CONF1 : FLL_CTRL->SOC_CONF1;
 
@@ -196,17 +198,26 @@ void pi_fll_init(fll_type_t which_fll, uint32_t ret_state)
     }
 }
 
-int pi_fll_get_frequency(fll_type_t which_fll)
+int pi_fll_get_frequency(fll_type_t which_fll, uint8_t real)
 {
-    /* Frequency calculation from real world */
-    int real_freq = which_fll ? fll_get_frequency_from_mult_div(FLL_CTRL->CLUSTER_FLL_STATUS,
-                                                            READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->CLUSTER_CONF1))
-                              : fll_get_frequency_from_mult_div(FLL_CTRL->SOC_FLL_STATUS,
-                                                            READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->SOC_CONF1));
-    /* Update Frequency */
-    flls_frequency[which_fll] = real_freq;
-    pmu_state.frequency[which_fll] = real_freq;
-
+    if (real)
+    {
+        /* Frequency calculation from real world */
+        int real_freq = 0;
+        if (which_fll == FLL_CLUSTER)
+        {
+            real_freq = fll_get_frequency_from_mult_div(FLL_CTRL->CLUSTER_FLL_STATUS,
+                                                        READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->CLUSTER_CONF1));
+        }
+        else
+        {
+            real_freq = fll_get_frequency_from_mult_div(FLL_CTRL->SOC_FLL_STATUS,
+                                                        READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->SOC_CONF1));
+        }
+        /* Update Frequency */
+        flls_frequency[which_fll] = real_freq;
+        pmu_state.frequency[which_fll] = real_freq;
+    }
     return flls_frequency[which_fll];
 }
 

@@ -151,6 +151,7 @@ private:
 
   int irq_req;
 
+  bool iss_opened;
   int halt_cause;
   int64_t wakeup_latency;
   int bootaddr_offset;
