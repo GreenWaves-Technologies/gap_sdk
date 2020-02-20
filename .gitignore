@@ -2,12 +2,11 @@
 __pycache__/
 *.pyc
 *.swp
-/install/
-/build/
-/BUILD/
+install/
+build/
+BUILD/
 *.lo
 *.o
 *.la
 *.dirstamp
-
-
+.sconsign.dblite

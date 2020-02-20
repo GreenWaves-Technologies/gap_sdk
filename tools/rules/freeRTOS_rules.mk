@@ -167,12 +167,13 @@ RTOS_SRC            = $(FREERTOS_SOURCE_DIR)/list.c \
                       $(FREERTOS_SOURCE_DIR)/event_groups.c \
                       $(FREERTOS_SOURCE_DIR)/stream_buffer.c
 
+RTOS_SRC           += $(FREERTOS_CONFIG_DIR)/FreeRTOS_util.c
+
 PORT_SRC            = $(shell find $(PORT_DIR) -iname "*.c")
 DEVICE_SRC          = $(shell find $(GWT_DEVICE) -iname "*.c")
 DRIVER_SRC          = $(shell find $(GWT_DRIVER) -iname "*.c")
 LIBS_SRC            = $(shell find $(GWT_LIBS)/src -iname "*.c")
 PRINTF_SRC          = $(GWT_LIBS)/printf/printf.c
-DEMO_SRC            = $(FREERTOS_CONFIG_DIR)/FreeRTOS_util.c
 
 INC_PATH            = $(FREERTOS_SOURCE_DIR)/include
 INC_PATH           += $(FREERTOS_CONFIG_DIR) $(PORT_DIR)
@@ -257,7 +258,7 @@ $(ASM_OBJS): $(BUILDDIR)/%.o: %.S
 $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+	@$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	@echo "    CC $(shell basename $<)"
