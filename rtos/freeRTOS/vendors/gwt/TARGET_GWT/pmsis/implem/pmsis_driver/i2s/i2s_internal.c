@@ -350,7 +350,7 @@ int32_t __pi_i2s_open(struct pi_i2s_conf *conf)
     udma_init_device(UDMA_I2S_ID(device_id));
 
     uint8_t pdm = (conf->format & PI_I2S_FMT_DATA_FORMAT_MASK) == PI_I2S_FMT_DATA_FORMAT_PDM;
-    uint8_t pdm_filter_ena = conf->pdm_filter_ena;
+    uint8_t pdm_filter_ena = conf->pdm_filter_ena & pdm;
     uint8_t shift = 0;
     uint16_t decimation = 0;
     uint8_t lsb = 0;
