@@ -205,6 +205,7 @@ static void __pi_i2s_resume(uint8_t i2s_id)
                     fifo->block_size, fifo->udma_cfg);
     #else
     __pi_i2s_enqueue(i2s_id);
+    __pi_i2s_enqueue(i2s_id);
     #endif
 
     /* Enable clock to acquire data. */
