@@ -111,8 +111,7 @@ struct nrf5_info {
 	uint32_t code_page_size;
 	uint32_t refcount;
 
-	struct nrf5_bank {
-		struct nrf5_info *chip;
+	struct {
 		bool probed;
 		int (*write) (struct flash_bank *bank,
 			      struct nrf5_info *chip,
@@ -138,16 +137,11 @@ struct nrf5_device_spec {
 .flash_size_kb = (fsize),                           \
 }
 
-/* The known devices table below is derived from the "nRF5x series
- * compatibility matrix" documents, which can be found in the "DocLib" of
- * nordic:
+/* The known devices table below is derived from the "nRF51 Series
+ * Compatibility Matrix" document, which can be found by searching for
+ * ATTN-51 on the Nordic Semi website:
  *
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51422_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51822_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51824_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52810/latest/COMP/nrf52810/nRF52810_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52832/latest/COMP/nrf52832/ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52840/latest/COMP/nrf52840/nRF52840_ic_revision_overview
+ * http://www.nordicsemi.com/eng/content/search?SearchText=ATTN-51
  *
  * Up to date with Matrix v2.0, plus some additional HWIDs.
  *
@@ -225,11 +219,11 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 static int nrf5_bank_is_probed(struct flash_bank *bank)
 {
-	struct nrf5_bank *nbank = bank->driver_priv;
+	struct nrf5_info *chip = bank->driver_priv;
 
-	assert(nbank != NULL);
+	assert(chip != NULL);
 
-	return nbank->probed;
+	return chip->bank[bank->bank_number].probed;
 }
 static int nrf5_probe(struct flash_bank *bank);
 
@@ -240,8 +234,7 @@ static int nrf5_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf5_i
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	struct nrf5_bank *nbank = bank->driver_priv;
-	*chip = nbank->chip;
+	*chip = bank->driver_priv;
 
 	int probed = nrf5_bank_is_probed(bank);
 	if (probed < 0)
@@ -383,8 +376,7 @@ static int nrf5_protect_check(struct flash_bank *bank)
 	if (bank->base == NRF5_UICR_BASE)
 		return ERROR_OK;
 
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	assert(chip != NULL);
 
@@ -470,8 +462,7 @@ static int nrf5_probe(struct flash_bank *bank)
 {
 	uint32_t hwid;
 	int res;
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	res = target_read_u32(chip->target, NRF5_FICR_CONFIGID, &hwid);
 	if (res != ERROR_OK) {
@@ -749,8 +740,7 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t offset, const ui
 static int nrf5_write_pages(struct flash_bank *bank, uint32_t start, uint32_t end, const uint8_t *buffer)
 {
 	int res = ERROR_FAIL;
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
+	struct nrf5_info *chip = bank->driver_priv;
 
 	assert(start % chip->code_page_size == 0);
 	assert(end % chip->code_page_size == 0);
@@ -882,20 +872,18 @@ static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 		       uint32_t offset, uint32_t count)
 {
 	int res;
-	struct nrf5_bank *nbank = bank->driver_priv;
 	struct nrf5_info *chip;
 
 	res = nrf5_get_probed_chip_if_halted(bank, &chip);
 	if (res != ERROR_OK)
 		return res;
 
-	return nbank->write(bank, chip, buffer, offset, count);
+	return chip->bank[bank->bank_number].write(bank, chip, buffer, offset, count);
 }
 
 static void nrf5_free_driver_priv(struct flash_bank *bank)
 {
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
+	struct nrf5_info *chip = bank->driver_priv;
 	if (chip == NULL)
 		return;
 
@@ -909,11 +897,13 @@ static void nrf5_free_driver_priv(struct flash_bank *bank)
 FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 {
 	static struct nrf5_info *chip;
-	struct nrf5_bank *nbank = NULL;
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
+		bank->bank_number = 0;
+		break;
 	case NRF5_UICR_BASE:
+		bank->bank_number = 1;
 		break;
 	default:
 		LOG_ERROR("Invalid bank address " TARGET_ADDR_FMT, bank->base);
@@ -931,20 +921,16 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
-		nbank = &chip->bank[0];
-		nbank->write = nrf5_code_flash_write;
+		chip->bank[bank->bank_number].write = nrf5_code_flash_write;
 		break;
 	case NRF5_UICR_BASE:
-		nbank = &chip->bank[1];
-		nbank->write = nrf5_uicr_flash_write;
+		chip->bank[bank->bank_number].write = nrf5_uicr_flash_write;
 		break;
 	}
-	assert(nbank != NULL);
 
 	chip->refcount++;
-	nbank->chip = chip;
-	nbank->probed = false;
-	bank->driver_priv = nbank;
+	chip->bank[bank->bank_number].probed = false;
+	bank->driver_priv = chip;
 
 	return ERROR_OK;
 }

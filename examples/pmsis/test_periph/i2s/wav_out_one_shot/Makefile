@@ -8,14 +8,14 @@ RUNNER_CONFIG = $(CURDIR)/config.ini
 io=host
 
 # Configure GVSOC microphone model for PDM on 4 microphones using double-data rate on the 2 interfaces
-override runner_args += --config-opt=microphone0/stim_left=$(BUILDDIR)/stim_0_0.wav
-override runner_args += --config-opt=microphone0/stim_right=$(BUILDDIR)/stim_0_1.wav
-override runner_args += --config-opt=microphone0/pdm=true
-override runner_args += --config-opt=microphone0/ddr=true
-override runner_args += --config-opt=microphone1/stim_left=$(BUILDDIR)/stim_1_0.wav
-override runner_args += --config-opt=microphone1/stim_right=$(BUILDDIR)/stim_1_1.wav
-override runner_args += --config-opt=microphone1/pdm=true
-override runner_args += --config-opt=microphone1/ddr=true
+override config_args += --config-opt=microphone0/stim_left=$(BUILDDIR)/stim_0_0.wav
+override config_args += --config-opt=microphone0/stim_right=$(BUILDDIR)/stim_0_1.wav
+override config_args += --config-opt=microphone0/pdm=true
+override config_args += --config-opt=microphone0/ddr=true
+override config_args += --config-opt=microphone1/stim_left=$(BUILDDIR)/stim_1_0.wav
+override config_args += --config-opt=microphone1/stim_right=$(BUILDDIR)/stim_1_1.wav
+override config_args += --config-opt=microphone1/pdm=true
+override config_args += --config-opt=microphone1/ddr=true
 
 gen:
 	sox -n -r 44100 --bits 16 $(BUILDDIR)/stim_0_0.wav synth 3 sine 200 vol 0.995

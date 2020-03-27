@@ -26,13 +26,13 @@ def get_config(tp):
 
   chip              = tp.get_child_str('chip')
 
-  config = js.import_config({'includes': [ "defaults.json" ] })
+  config = js.import_config({'@includes@': [ "defaults.json" ] }, interpret=True)
 
   config.merge(Config(
     config=system_gen.get_config(tp)
-  ).get_js_config())
+  ).get_js_config(expand=True))
 
-  config.merge(js.import_config({'includes2': [ "chips/%s/defaults.json" % (chip) ] }))
+  config.merge(js.import_config({'@includes2@': [ "chips/%s/defaults.json" % (chip) ] }, interpret=True))
 
 
   return config

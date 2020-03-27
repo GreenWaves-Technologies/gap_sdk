@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 config = plpconf.get_config_from_tag(args.config)
 
-l2_size = config.get_int('**/l2/size')
+l2_size = config.get_str('**/l2/size')
 
 
 try:

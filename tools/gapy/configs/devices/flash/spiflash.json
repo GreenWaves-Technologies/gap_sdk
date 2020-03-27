@@ -1,0 +1,24 @@
+{
+    "name": "Spiflash",
+
+    "datasheet": {
+        "type": "spi",
+        "size": "16MB",
+        "block-size": "4KB"
+    },
+
+    "models": {
+        "gvsoc": {
+
+        },
+        "rtl": {
+            "stimuli": {
+                "format": "slm",
+                "file": "slm_files/flash_stim.slm"
+            }
+        }
+    },
+
+    "content": {
+    }
+}

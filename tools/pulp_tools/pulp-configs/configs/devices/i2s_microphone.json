@@ -8,7 +8,6 @@
 
   "platforms": [ "gvsoc", "rtl" ],
 
-  "config": {
     "type": "dpi",
     "module": "i2s_microphone.so",
     "verbose": false,
@@ -20,5 +19,4 @@
     "stim_right": null,
     "frequency": 0,
     "chain_size": 1
-  }
 }

@@ -22,8 +22,9 @@
 #include "string.h"
 #include "stdio.h"
 
-#include "flash_partition.h"
-#include "md5.h"
+#include "bsp/bsp.h"
+#include "bsp/flash_partition.h"
+#include "bsp/crc/md5.h"
 
 void flash_partition_print_partition_table(const flash_partition_table_t *table)
 {
@@ -55,6 +56,7 @@ void flash_partition_print_partition_table(const flash_partition_table_t *table)
     }
 }
 
+#if 0
 static void print_partition_header(flash_partition_table_header_t *header)
 {
     printf("Partition table header:\n"
@@ -73,6 +75,7 @@ static void print_partition_header(flash_partition_table_header_t *header)
     }
     printf("\n");
 }
+#endif
 
 pi_err_t flash_partition_table_verify(const flash_partition_table_t *table)
 {
@@ -122,49 +125,59 @@ pi_err_t flash_partition_table_load(pi_device_t *flash, const flash_partition_ta
     flash_partition_info_t *partitions = NULL;
 
     if(partition_table == NULL)
+    {
+        PARTITION_TRACE_ERR("Table argument is NULL");
         return PI_ERR_INVALID_ARG;
+    }
 
 // Alloc table containing header
     table = pi_l2_malloc(sizeof(*table));
     if(table == NULL)
     {
+        PARTITION_TRACE_ERR("Unable to allocate partition table in L2.");
         rc = PI_ERR_L2_NO_MEM;
         goto mount_error;
     }
 
     table_offset_l2 = pi_l2_malloc(sizeof(*table_offset_l2));
     if(table_offset_l2 == NULL)
-        return PI_ERR_L2_NO_MEM;
+    {
+        PARTITION_TRACE_ERR("Unable to allocate table offset variable in L2.");
+        rc = PI_ERR_L2_NO_MEM;
+        goto mount_error;
+    }
 
     pi_flash_read(flash, 0, table_offset_l2, 4);
     if(*table_offset_l2 == 0)
     {
+        PARTITION_TRACE_ERR("Partition table offset not found in flash.");
         rc = PI_ERR_NOT_FOUND;
         goto mount_error;
     }
 
+    PARTITION_TRACE_TRC("Partition table offset 0x%lx", *table_offset_l2);
     _table_offset = *table_offset_l2;
     pi_l2_free(table_offset_l2, sizeof(*table_offset_l2));
     table_offset_l2 = NULL;
-    
+
 
     // Load table header
-    pi_flash_read(flash, _table_offset, table, sizeof(flash_partition_table_header_t));
+    pi_flash_read(flash, _table_offset, &table->header, sizeof(flash_partition_table_header_t));
 
-//	print_partition_header(&table->header);
+//print_partition_header(&table->header);
 
     if(table->header.magic_bytes != PI_PARTITION_TABLE_HEADER_MAGIC)
     {
-//		printf("Partition table header magic number error\n");
+        PARTITION_TRACE_ERR("Partition table header magic number error\n");
         rc = PI_ERR_NOT_FOUND;
         goto mount_error;
     }
 
     if(table->header.format_version != PI_PARTITION_TABLE_FORMAT_VERSION)
     {
-//		printf("Partition table format version missmatch: flash version %u != BSP version %u\n",
-//		       table->header.format_version,
-//		       PI_PARTITION_TABLE_FORMAT_VERSION);
+        PARTITION_TRACE_ERR("Partition table format version missmatch: flash version %u != BSP version %u\n",
+                   table->header.format_version,
+                   PI_PARTITION_TABLE_FORMAT_VERSION);
         rc = PI_ERR_INVALID_VERSION;
         goto mount_error;
     }
@@ -173,6 +186,7 @@ pi_err_t flash_partition_table_load(pi_device_t *flash, const flash_partition_ta
     table->partitions = pi_l2_malloc(sizeof(flash_partition_info_t) * table->header.nbr_of_entries);
     if(table->partitions == NULL)
     {
+        PARTITION_TRACE_ERR("Unable to allocate partition table entries.");
         rc = PI_ERR_L2_NO_MEM;
         goto mount_error;
     }
@@ -186,11 +200,13 @@ pi_err_t flash_partition_table_load(pi_device_t *flash, const flash_partition_ta
         rc = flash_partition_table_verify(table);
         if(rc != PI_OK)
         {
-//			printf("Partitions table verification failed.\n");
+            PARTITION_TRACE_ERR("Partitions table verification failed.\n");
             pi_l2_free(table->partitions, sizeof(flash_partition_info_t) * table->header.nbr_of_entries);
             goto mount_error;
         }
     }
+
+    table->flash = flash;
 
     *partition_table = table;
     if(nbr_of_entries)
@@ -206,10 +222,10 @@ pi_err_t flash_partition_table_load(pi_device_t *flash, const flash_partition_ta
     return rc;
 }
 
-void flash_partition_table_free(flash_partition_table_t *table)
+void flash_partition_table_free(const flash_partition_table_t *table)
 {
-    pi_l2_free(table->partitions, sizeof(flash_partition_info_t) * table->header.nbr_of_entries);
-    pi_l2_free(table, sizeof(flash_partition_table_t));
+    pi_l2_free((void *) table->partitions, sizeof(flash_partition_info_t) * table->header.nbr_of_entries);
+    pi_l2_free((void *) table, sizeof(flash_partition_table_t));
 }
 
 

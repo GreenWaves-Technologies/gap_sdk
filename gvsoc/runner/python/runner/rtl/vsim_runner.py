@@ -202,7 +202,8 @@ class Runner(runner.Runner):
 
             if self.get_json().get('**/runner/boot_from_flash').get():
               if self.get_json().get('**/runner/flash_type').get() == 'spi':
-                tcl_args.append('-gSPI_FLASH_LOAD_MEM=1')
+                  if self.get_args().get('SPI_FLASH_LOAD_MEM') is None:
+                    tcl_args.append('-gSPI_FLASH_LOAD_MEM=1')
               elif self.get_json().get('**/runner/flash_type').get() == 'hyper':
                 tcl_args.append('-gHYPER_FLASH_LOAD_MEM=1')
 

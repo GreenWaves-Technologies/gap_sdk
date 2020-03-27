@@ -34,6 +34,8 @@
 /**
  * \struct pi_ble_api_t
  *
+ * \brief BLE specific API
+ *
  * Structure holding BLE specific API.
  */
 typedef struct pi_ble_api_s

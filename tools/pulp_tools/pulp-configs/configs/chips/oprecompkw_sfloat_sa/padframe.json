@@ -5,7 +5,7 @@
 
   "default_profile": "default",
 
-  "includes": [ "../../ips/padframe/padframe_v1.json"],
+  "@includes@": [ "../../ips/padframe/padframe_v1.json"],
 
   "profiles": {
     "default": {

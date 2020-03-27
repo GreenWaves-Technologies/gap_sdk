@@ -651,6 +651,11 @@ void pmu::picl_reply()
   // 
   this->pending_access = false;
 
+  if (this->picl_irq_itf.is_bound())
+  {
+    this->picl_irq_itf.sync(1);
+  }
+  
   this->check_state();
 }
 

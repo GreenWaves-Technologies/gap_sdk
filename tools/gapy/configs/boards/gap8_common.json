@@ -1,0 +1,21 @@
+{
+    "@include@": "common.json",
+
+    "gvsoc": {
+        "runner_module": "gv.chips.gap8"
+    },
+
+    "rtl": {
+        "runner_module": "runner.chips.gap8"
+    },
+
+    "runner": {
+        "flash_devices": [
+          "target/board/devices/flash"
+        ],
+        "boot": {
+            "mode": "flash",
+            "device": "target/board/devices/flash"
+        }
+    }
+}

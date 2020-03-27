@@ -19,6 +19,17 @@ export PATH="$NNTOOL_DIR":$PATH
 # Gapy
 export PATH=$GAP_SDK_HOME/tools/gapy:$PATH
 
+# PulpOS 2
+export PULPOS_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2
+export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/pmsis_bsp"
+export PULPOS_GAP8_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8
+export PULPOS_GAP9_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9
+export GAP_PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/gap_archi
+export PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/archi_pulp
+export PULPOS_HAL=$GAP_SDK_HOME/rtos/pulp/hal_pulp
+export PMSIS_API=$GAP_SDK_HOME/rtos/pmsis/pmsis_api
+
+
 # For pulp os
 export PULP_LIB_DIR=$TARGET_INSTALL_DIR/lib
 export PULP_INC_DIR=$TARGET_INSTALL_DIR/include

@@ -172,7 +172,7 @@ vp::io_req_status_e router::req(void *__this, vp::io_req *req)
   bool isRead = !req->get_is_write();
   uint64_t size = req->get_size();  
 
-  _this->trace.msg("Received IO req (offset: 0x%llx, size: 0x%llx, isRead: %d)\n", offset, size, isRead);
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Received IO req (offset: 0x%llx, size: 0x%llx, isRead: %d)\n", offset, size, isRead);
 
   if (entry)
   {
@@ -202,9 +202,9 @@ vp::io_req_status_e router::req(void *__this, vp::io_req *req)
   }
 
   if (entry == _this->defaultMapEntry) {
-    _this->trace.msg("Routing to default entry (target: %s)\n", entry->target_name.c_str());
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "Routing to default entry (target: %s)\n", entry->target_name.c_str());
   } else {
-    _this->trace.msg("Routing to entry (target: %s)\n", entry->target_name.c_str());
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "Routing to entry (target: %s)\n", entry->target_name.c_str());
   }
   
   if (0) { //_this->bandwidth != 0 and !req->is_debug()) {
@@ -251,7 +251,7 @@ vp::io_req_status_e router::req(void *__this, vp::io_req *req)
   {
     if (!entry->itf->is_bound())
     {
-      _this->warning.msg("Invalid access, trying to route to non-connected interface (offset: 0x%llx, size: 0x%llx, is_write: %d)\n", offset, size, !isRead);
+      _this->warning.msg(vp::trace::LEVEL_WARNING, "Invalid access, trying to route to non-connected interface (offset: 0x%llx, size: 0x%llx, is_write: %d)\n", offset, size, !isRead);
       return vp::IO_REQ_INVALID;
     }
     req->arg_push(req->resp_port);
@@ -398,16 +398,16 @@ extern "C" vp::component *vp_constructor(js::config *config)
 void router::init_entries() {
 
   MapEntry *current = firstMapEntry;
-  trace.msg("Building router table\n");
+  trace.msg(vp::trace::LEVEL_INFO, "Building router table\n");
   while(current) {
-    trace.msg("  0x%16llx : 0x%16llx -> %s\n", current->base, current->base + current->size, current->target_name.c_str());
+    trace.msg(vp::trace::LEVEL_INFO, "  0x%16llx : 0x%16llx -> %s\n", current->base, current->base + current->size, current->target_name.c_str());
     current = current->next;
   }
   if (errorMapEntry != NULL) {
-    trace.msg("  0x%16llx : 0x%16llx -> ERROR\n", errorMapEntry->base, errorMapEntry->base + errorMapEntry->size);
+    trace.msg(vp::trace::LEVEL_INFO, "  0x%16llx : 0x%16llx -> ERROR\n", errorMapEntry->base, errorMapEntry->base + errorMapEntry->size);
   }
   if (defaultMapEntry != NULL) {
-    trace.msg("       -     :      -     -> %s\n", defaultMapEntry->target_name.c_str());
+    trace.msg(vp::trace::LEVEL_INFO, "       -     :      -     -> %s\n", defaultMapEntry->target_name.c_str());
   }
 
   MapEntry *firstInLevel = firstMapEntry;

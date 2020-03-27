@@ -30,18 +30,18 @@
 
 
 
-void Udma_rx_channel::push_data(uint8_t *data, int size)
+bool Udma_rx_channel::push_data(uint8_t *data, int size)
 {
   if (current_cmd == NULL)
   {
     //top->warning.warning("Received data while there is no ready command\n");
-    return;
+    return true;
   }
 
   if (size + this->pending_byte_index > 4)
   {
     top->warning.force_warning("Trying to push more than 4 bytes from peripheral to udma core\n");
-    return;
+    return true;
   }
 
   memcpy(&(((uint8_t *)&this->pending_word)[this->pending_byte_index]), data, size);
@@ -61,6 +61,7 @@ void Udma_rx_channel::push_data(uint8_t *data, int size)
       handle_transfer_end();
     }
   }
+  return false;
 }
 
 void Udma_rx_channel::reset(bool active)

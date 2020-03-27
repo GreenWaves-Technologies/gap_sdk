@@ -54,61 +54,56 @@
  * @note Keep this enum in sync with PartitionDefinition class in gapy tool
  */
 typedef enum {
-	PI_PARTITION_TYPE_APP = 0x00,       //!< Application partition type
-	PI_PARTITION_TYPE_DATA = 0x01,      //!< Data partition type
+    PI_PARTITION_TYPE_APP = 0x00,       //!< Application partition type
+    PI_PARTITION_TYPE_DATA = 0x01,      //!< Data partition type
 } pi_partition_type_t;
-
-#define PI_PARTITION_MAX_OTA_SLOTS 16
 
 /**
  * @brief Partition subtype
  * @note Keep this enum in sync with PartitionDefinition class in gapy tool.
  */
 typedef enum {
-	PI_PARTITION_SUBTYPE_APP_FACTORY = 0x00,                                 //!< Factory application partition
-	PI_PARTITION_SUBTYPE_APP_OTA_MIN = 0x10,                                 //!< Base for OTA partition subtypes
-	PI_PARTITION_SUBTYPE_APP_OTA_0 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 0,  //!< OTA partition 0
-	PI_PARTITION_SUBTYPE_APP_OTA_1 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 1,  //!< OTA partition 1
-	PI_PARTITION_SUBTYPE_APP_OTA_2 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 2,  //!< OTA partition 2
-	PI_PARTITION_SUBTYPE_APP_OTA_3 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 3,  //!< OTA partition 3
-	PI_PARTITION_SUBTYPE_APP_OTA_4 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 4,  //!< OTA partition 4
-	PI_PARTITION_SUBTYPE_APP_OTA_5 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 5,  //!< OTA partition 5
-	PI_PARTITION_SUBTYPE_APP_OTA_6 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 6,  //!< OTA partition 6
-	PI_PARTITION_SUBTYPE_APP_OTA_7 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 7,  //!< OTA partition 7
-	PI_PARTITION_SUBTYPE_APP_OTA_8 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 8,  //!< OTA partition 8
-	PI_PARTITION_SUBTYPE_APP_OTA_9 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 9,  //!< OTA partition 9
-	PI_PARTITION_SUBTYPE_APP_OTA_10 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 10,//!< OTA partition 10
-	PI_PARTITION_SUBTYPE_APP_OTA_11 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 11,//!< OTA partition 11
-	PI_PARTITION_SUBTYPE_APP_OTA_12 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 12,//!< OTA partition 12
-	PI_PARTITION_SUBTYPE_APP_OTA_13 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 13,//!< OTA partition 13
-	PI_PARTITION_SUBTYPE_APP_OTA_14 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 14,//!< OTA partition 14
-	PI_PARTITION_SUBTYPE_APP_OTA_15 = PI_PARTITION_SUBTYPE_APP_OTA_MIN + 15,//!< OTA partition 15
-	PI_PARTITION_SUBTYPE_APP_OTA_MAX =
-	PI_PARTITION_SUBTYPE_APP_OTA_MIN + PI_PARTITION_MAX_OTA_SLOTS,//!< Max subtype of OTA partition
-	PI_PARTITION_SUBTYPE_APP_TEST = 0x20,                                    //!< Test application partition
-	
-	PI_PARTITION_SUBTYPE_DATA_OTA = 0x00,                                    //!< OTA selection partition
-	PI_PARTITION_SUBTYPE_DATA_PHY = 0x01,                                    //!< PHY init data partition
-	
-	PI_PARTITION_SUBTYPE_DATA_RAW = 0x80,                                    //!< RAW space partition
-	PI_PARTITION_SUBTYPE_DATA_READFS = 0x81,                               //!< Readonly filesystem partition
-	PI_PARTITION_SUBTYPE_DATA_LFS = 0x82,                                    //!< LittleFS filesystem partition
-	
-	pi_PARTITION_SUBTYPE_ANY = 0xff,                                         //!< Used to search for partitions with any subtype
+    PI_PARTITION_SUBTYPE_APP_FACTORY = 0x00,                                 //!< Factory application partition
+    PI_PARTITION_SUBTYPE_APP_OTA_0 = 0x10,  //!< OTA partition 0
+    PI_PARTITION_SUBTYPE_APP_OTA_1 = 0x11,  //!< OTA partition 1
+    PI_PARTITION_SUBTYPE_APP_TEST = 0x20,                                    //!< Test application partition
+    PI_PARTITION_SUBTYPE_APP_UPDATER_0 = 0x30,  //!< Updater partition 0
+    PI_PARTITION_SUBTYPE_APP_UPDATER_1 = 0x31,  //!< Updater partition 1
+    
+    PI_PARTITION_SUBTYPE_APP_0 = 0x40,  //!< App partition 0 to run once
+    PI_PARTITION_SUBTYPE_APP_1 = 0x41,  //!< App partition 1 to run once
+    PI_PARTITION_SUBTYPE_APP_2 = 0x42,  //!< App partition 2 to run once
+    PI_PARTITION_SUBTYPE_APP_3 = 0x43,  //!< App partition 3 to run once
+    PI_PARTITION_SUBTYPE_APP_4 = 0x44,  //!< App partition 4 to run once
+    PI_PARTITION_SUBTYPE_APP_5 = 0x45,  //!< App partition 5 to run once
+    PI_PARTITION_SUBTYPE_APP_6 = 0x46,  //!< App partition 6 to run once
+    PI_PARTITION_SUBTYPE_APP_7 = 0x47,  //!< App partition 7 to run once
+    PI_PARTITION_SUBTYPE_APP_8 = 0x48,  //!< App partition 8 to run once
+    PI_PARTITION_SUBTYPE_APP_9 = 0x49,  //!< App partition 9 to run once
+    
+    PI_PARTITION_SUBTYPE_DATA_OTA = 0x00,                                    //!< OTA selection partition
+    PI_PARTITION_SUBTYPE_DATA_PHY = 0x01,                                    //!< PHY init data partition
+    
+    PI_PARTITION_SUBTYPE_DATA_RAW = 0x80,                                    //!< RAW space partition
+    PI_PARTITION_SUBTYPE_DATA_READFS = 0x81,                               //!< Readonly filesystem partition
+    PI_PARTITION_SUBTYPE_DATA_LFS = 0x82,                                    //!< LittleFS filesystem partition
+    
+    pi_PARTITION_SUBTYPE_ANY = 0xfe,                                         //!< Used to search for partitions with any subtype
+    PI_PARTITION_SUBTYPE_UNKNOWN = 0xff,                                    //!< LittleFS filesystem partition
 } pi_partition_subtype_t;
 
 /**
  * @brief partition information structure
  */
 typedef struct partition {
-	struct pi_device *flash;         /*!< Flash device on which the partition resides */
-	pi_partition_type_t type;            /*!< partition type (app/data) */
-	pi_partition_subtype_t subtype;  /*!< partition subtype */
-	uint32_t offset;                 /*!< starting address of the partition in flash */
-	uint32_t size;                   /*!< size of the partition, in bytes */
-	char label[17];                  /*!< partition label, zero-terminated ASCII string */
-	bool encrypted;                  /*!< flag is set to true if partition is encrypted */
-	bool read_only;                  /*!< flag is set to true if partition is read only */
+    struct pi_device *flash;         /*!< Flash device on which the partition resides */
+    pi_partition_type_t type;            /*!< partition type (app/data) */
+    pi_partition_subtype_t subtype;  /*!< partition subtype */
+    uint32_t offset;                 /*!< starting address of the partition in flash */
+    uint32_t size;                   /*!< size of the partition, in bytes */
+    char label[17];                  /*!< partition label, zero-terminated ASCII string */
+    bool encrypted;                  /*!< flag is set to true if partition is encrypted */
+    bool read_only;                  /*!< flag is set to true if partition is read only */
 } pi_partition_t;
 
 /**
@@ -321,7 +316,7 @@ static inline pi_err_t pi_partition_erase(const pi_partition_t *partition, uint3
  * See the documentation of pi_task_t for more details.
  * @return PI_OK if the operation is successfull, PI_FAIL if there was an error.
  */
-static inline pi_err_t pi_partition_format_async(const pi_partition_t *partition, pi_task_t *task);
+//static inline pi_err_t pi_partition_format_async(const pi_partition_t *partition, pi_task_t *task);
 
 /** @brief Erase the whole flash partition.
  *
@@ -333,7 +328,7 @@ static inline pi_err_t pi_partition_format_async(const pi_partition_t *partition
  * The partition descriptor on which to do the operation.
  * @return PI_OK if the operation is successfull, PI_FAIL if there was an error.
  */
-static inline pi_err_t pi_partition_format(const pi_partition_t *partition);
+//static inline pi_err_t pi_partition_format(const pi_partition_t *partition);
 
 /** @brief Get the size in byte of the partition
  *
@@ -361,8 +356,8 @@ uint32_t pi_partition_get_flash_offset(const pi_partition_t *partition);
 
 static inline pi_err_t pi_partition_close(const pi_partition_t *partition)
 {
-	pi_l2_free((pi_partition_t *) partition, sizeof(pi_partition_t));
-	return PI_OK;
+    pi_l2_free((pi_partition_t *) partition, sizeof(pi_partition_t));
+    return PI_OK;
 }
 
 #define CHECK_ADDR() if (partition_addr + size > partition->size) return PI_ERR_INVALID_ARG
@@ -370,85 +365,85 @@ static inline pi_err_t pi_partition_close(const pi_partition_t *partition)
 static inline pi_err_t pi_partition_read_async(const pi_partition_t *partition, const uint32_t partition_addr,
                                                void *data, const size_t size, pi_task_t *task)
 {
-	CHECK_ADDR();
-	pi_flash_read_async(partition->flash, partition_addr + partition->offset, data, size, task);
-	return PI_OK;
+    CHECK_ADDR();
+    pi_flash_read_async(partition->flash, partition_addr + partition->offset, data, size, task);
+    return PI_OK;
 }
 
 static inline pi_err_t pi_partition_read(const pi_partition_t *partition, const uint32_t partition_addr,
                                          void *data, const size_t size)
 {
-	pi_err_t rc;
-	pi_task_t task;
-	
-	pi_task_block(&task);
-	rc = pi_partition_read_async(partition, partition_addr, data, size, &task);
-	if(rc != PI_OK)
-		return rc;
-	pi_task_wait_on(&task);
-	return PI_OK;
+    pi_err_t rc;
+    pi_task_t task;
+    
+    pi_task_block(&task);
+    rc = pi_partition_read_async(partition, partition_addr, data, size, &task);
+    if(rc != PI_OK)
+        return rc;
+    pi_task_wait_on(&task);
+    return PI_OK;
 }
 
 static inline pi_err_t
 pi_partition_write_async(const pi_partition_t *partition, const uint32_t partition_addr, const void *data,
                          const size_t size, pi_task_t *task)
 {
-	CHECK_ADDR();
-	pi_flash_program_async(partition->flash, partition_addr + partition->offset, data, size, task);
-	return PI_OK;
+    CHECK_ADDR();
+    pi_flash_program_async(partition->flash, partition_addr + partition->offset, data, size, task);
+    return PI_OK;
 }
 
 static inline pi_err_t
 pi_partition_write(const pi_partition_t *partition, const uint32_t partition_addr, const void *data, const size_t size)
 {
-	pi_err_t rc;
-	pi_task_t task;
-	
-	pi_task_block(&task);
-	rc = pi_partition_write_async(partition, partition_addr, data, size, &task);
-	if(rc != PI_OK)
-		return rc;
-	pi_task_wait_on(&task);
-	return PI_OK;
+    pi_err_t rc;
+    pi_task_t task;
+    
+    pi_task_block(&task);
+    rc = pi_partition_write_async(partition, partition_addr, data, size, &task);
+    if(rc != PI_OK)
+        return rc;
+    pi_task_wait_on(&task);
+    return PI_OK;
 }
 
 static inline pi_err_t
 pi_partition_erase_async(const pi_partition_t *partition, uint32_t partition_addr, int size, pi_task_t *task)
 {
-	CHECK_ADDR();
-	pi_flash_erase_async(partition->flash, partition_addr + partition->offset, size, task);
-	return PI_OK;
+    CHECK_ADDR();
+    pi_flash_erase_async(partition->flash, partition_addr + partition->offset, size, task);
+    return PI_OK;
 }
 
 static inline pi_err_t pi_partition_erase(const pi_partition_t *partition, uint32_t partition_addr, int size)
 {
-	pi_err_t rc;
-	pi_task_t task;
-	
-	pi_task_block(&task);
-	rc = pi_partition_erase_async(partition, partition_addr, size, &task);
-	if(rc != PI_OK)
-		return rc;
-	pi_task_wait_on(&task);
-	return PI_OK;
+    pi_err_t rc;
+    pi_task_t task;
+    
+    pi_task_block(&task);
+    rc = pi_partition_erase_async(partition, partition_addr, size, &task);
+    if(rc != PI_OK)
+        return rc;
+    pi_task_wait_on(&task);
+    return PI_OK;
 }
 
-static inline pi_err_t pi_partition_erase_partition_async(const pi_partition_t *partition, pi_task_t *task)
+static inline pi_err_t pi_partition_format_async(const pi_partition_t *partition, pi_task_t *task)
 {
-	return pi_partition_erase_async(partition, 0, partition->size, task);
+    return pi_partition_erase_async(partition, 0, partition->size, task);
 }
 
-static inline pi_err_t pi_partition_erase_partition(const pi_partition_t *partition)
+static inline pi_err_t pi_partition_format(const pi_partition_t *partition)
 {
-	pi_err_t rc;
-	pi_task_t task;
-	
-	pi_task_block(&task);
-	rc = pi_partition_erase_partition_async(partition, &task);
-	if(rc != PI_OK)
-		return rc;
-	pi_task_wait_on(&task);
-	return PI_OK;
+    pi_err_t rc;
+    pi_task_t task;
+    
+    pi_task_block(&task);
+    rc = pi_partition_format_async(partition, &task);
+    if(rc != PI_OK)
+        return rc;
+    pi_task_wait_on(&task);
+    return PI_OK;
 }
 
 /// @endcond

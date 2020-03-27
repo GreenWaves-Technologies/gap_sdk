@@ -82,6 +82,8 @@ gap: install_rt_gap8
 
 gap_rev1: install_rt_gap8
 
+gap8_revc: install_rt_gap8
+
 vega: install_rt_vega
 
 clean:

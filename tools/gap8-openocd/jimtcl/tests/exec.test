@@ -19,8 +19,6 @@ needs cmd exec
 needs cmd flush
 needs cmd after eventloop
 
-testConstraint unix [expr {$tcl_platform(platform) eq {unix}}]
-
 # Sleep which supports fractions of a second
 if {[info commands sleep] eq {}} {
     proc sleep {n} {
@@ -220,10 +218,14 @@ test exec-7.2 {multiple I/O redirections} {
 
 # Long input to command and output from command.
 
-set a [string repeat a 1000000]
+set a "0123456789 xxxxxxxxx abcdefghi ABCDEFGHIJK\n"
+set a [concat $a $a $a $a]
+set a [concat $a $a $a $a]
+set a [concat $a $a $a $a]
+set a [concat $a $a $a $a]
 test exec-8.1 {long input and output} {
-    string length [exec cat << $a]
-} 1000000
+    exec cat << $a
+} $a
 
 # More than 20 arguments to exec.
 
@@ -344,9 +346,9 @@ test exec-11.4 {commands in background} {
 
 exec {*}$sleepx 0.3
 
-test exec-12.1 {reaping background processes} -constraints unix -body {
+test exec-12.1 {reaping background processes} -body {
     for {set i 0} {$i < 20} {incr i} {
-        exec echo foo > exec.tmp1 &
+		exec echo foo > exec.tmp1 &
     }
     exec {*}$sleepx 0.1
     catch {exec ps | fgrep "echo foo" | fgrep -v fgrep | wc} msg

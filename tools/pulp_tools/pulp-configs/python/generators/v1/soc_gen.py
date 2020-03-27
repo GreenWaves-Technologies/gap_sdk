@@ -35,7 +35,7 @@ def get_config(tp):
   has_udma          = tp.get('soc/peripherals/udma') is not None
   udma_conf         = None
   if has_udma:
-    udma_conf = js.import_config_from_file(tp.get_child_str('soc/peripherals/udma/content'), find=True)
+    udma_conf = js.import_config_from_file(tp.get_child_str('soc/peripherals/udma/content'), find=True, interpret=True)
   has_spi_master    = tp.get('soc/peripherals/spi_master') is not None
   has_uart          = tp.get('soc/peripherals/uart') is not None
   has_gpio          = tp.get('soc/peripherals/gpio') is not None
@@ -103,7 +103,7 @@ def get_config(tp):
     axi_ico_mappings["ddr"] = get_mapping(tp.get_child_dict('soc/ddr'), True)
 
   soc.axi_ico = Component(properties=OrderedDict([
-      ('includes', ["ips/interco/router.json"]),
+      ('@includes@', ["ips/interco/router.json"]),
       ('latency', 9),
       ('mappings', axi_ico_mappings)
   ]))
@@ -158,12 +158,12 @@ def get_config(tp):
     })
 
   soc.soc_ico.ll_ico = Component(properties=OrderedDict([
-    ('includes', [ "ips/interco/router.json" ]),
+    ('@includes@', [ "ips/interco/router.json" ]),
     ('mappings', ll_ico_mappings)
   ]))
 
   soc.soc_ico.hb_ico = Component(properties=OrderedDict([
-    ('includes', [ "ips/interco/interleaver.json" ]),
+    ('@includes@', [ "ips/interco/interleaver.json" ]),
     ('nb_slaves', tp.get_child_int("soc/l2/shared/nb_banks")),
     ('interleaving_bits', tp.get_child_int("soc/l2/shared/interleaving_bits")),
     ('remove_offset', tp.get_child_str("soc/l2/shared/base"))
@@ -176,7 +176,7 @@ def get_config(tp):
       latency = 5
 
     soc.soc_ico.fc_fetch_ico = Component(properties=OrderedDict([
-      ('includes', [ "ips/interco/router.json" ]),
+      ('@includes@', [ "ips/interco/router.json" ]),
       ('latency', latency),
       ('mappings', OrderedDict([
         ("l2_shared", get_mapping(tp.get_child_dict("soc/l2/shared"))),
@@ -185,7 +185,7 @@ def get_config(tp):
     ]))
 
     soc.soc_ico.fc_data_ico = Component(properties=OrderedDict([
-      ('includes', [ "ips/interco/router.json" ]),
+      ('@includes@', [ "ips/interco/router.json" ]),
       ('mappings', OrderedDict([
         ("l2_shared", get_mapping(tp.get_child_dict("soc/l2/shared"))),
         ("ll_ico", OrderedDict())
@@ -194,7 +194,7 @@ def get_config(tp):
 
   if has_udma:
     soc.soc_ico.udma_rx_ico = Component(properties=OrderedDict([
-      ('includes', [ "ips/interco/router.json" ]),
+      ('@includes@', [ "ips/interco/router.json" ]),
       ('mappings', OrderedDict([
         ("l2_shared", get_mapping(tp.get_child_dict("soc/l2/shared"))),
         ("ll_ico", OrderedDict())
@@ -202,7 +202,7 @@ def get_config(tp):
     ]))
 
     soc.soc_ico.udma_tx_ico = Component(properties=OrderedDict([
-      ('includes', [ "ips/interco/router.json" ]),
+      ('@includes@', [ "ips/interco/router.json" ]),
       ('mappings', OrderedDict([
         ("l2_shared", get_mapping(tp.get_child_dict("soc/l2/shared"))),
         ("ll_ico", OrderedDict())
@@ -345,7 +345,7 @@ def get_config(tp):
     
 
   soc.apb_ico = Component(properties=OrderedDict([
-      ('includes', [ "ips/interco/router.json" ]),
+      ('@includes@', [ "ips/interco/router.json" ]),
       ('latency', 8),
       ('mappings', apb_soc_mappings)
   ]))
@@ -353,7 +353,7 @@ def get_config(tp):
   if has_fc:
     if has_fc_ico:
       soc.fc_ico =  Component(properties=OrderedDict([
-        ('includes', ["ips/interco/router.json"]),
+        ('@includes@', ["ips/interco/router.json"]),
         ('mappings', fc_ico_mappings)
       ]))
     else:
@@ -364,7 +364,7 @@ def get_config(tp):
 
   if has_fc:
     soc.fc = Component(properties=OrderedDict([
-        ('includes', [ "ips/riscv/%s.json" % tp.get_child_str('soc/fc/core') ]),
+        ('@includes@', [ "ips/riscv/%s.json" % tp.get_child_str('soc/fc/core') ]),
         ('cluster_id', tp.get_child_int("soc/fc/cluster_id")),
         ('core_id', tp.get_child_int("soc/fc/core_id")),
         ('fetch_enable', tp.get_child_bool("soc/fc/fetch_enable")),
@@ -429,7 +429,7 @@ def get_config(tp):
 
   if has_rom:
     rom_config_dict = collections.OrderedDict([
-      ('includes', ["ips/rom/rom_v%d.json" % tp.get_child_int("soc/rom/version")]),
+      ('@includes@', ["ips/rom/rom_v%d.json" % tp.get_child_int("soc/rom/version")]),
       ('size', tp.get_child_int("soc/rom/size")),
       ('map_base', tp.get_child_str("soc/rom/base")),
       ('map_size', tp.get_child_str("soc/rom/size")),
@@ -443,18 +443,18 @@ def get_config(tp):
     soc.rom = Component(properties=rom_config_dict)
 
   soc.plt_loader = Component(properties=OrderedDict([
-      ('includes', ["tools/plt_loader/plt_loader.json"])
+      ('@includes@', ["tools/plt_loader/plt_loader.json"])
   ]))
 
   if has_fc:
     if has_fc_ico:
       soc.fc_eu = Component(properties=OrderedDict([
-          ('includes', ["ips/event_unit/eu_v%d.json" % (tp.get_child_int("soc/fc_ico/peripherals/%s/version" % fc_itc_name))]),
+          ('@includes@', ["ips/event_unit/eu_v%d.json" % (tp.get_child_int("soc/fc_ico/peripherals/%s/version" % fc_itc_name))]),
           ('nb_core', 1)
       ]))
     else:
       soc.fc_itc = Component(properties=OrderedDict([
-          ('includes', ["ips/itc/itc_v%d.json" % (tp.get_child_int("soc/peripherals/%s/version" % fc_itc_name))])
+          ('@includes@', ["ips/itc/itc_v%d.json" % (tp.get_child_int("soc/peripherals/%s/version" % fc_itc_name))])
       ]))
 
   if has_fll:
@@ -463,15 +463,15 @@ def get_config(tp):
 
     if flls_config is None:
       soc.fll = Component(properties=OrderedDict([
-          ('includes', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
+          ('@includes@', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
       ]))
 
       soc.fll1 = Component(properties=OrderedDict([
-          ('includes', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
+          ('@includes@', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
       ]))
 
       soc.fll2 = Component(properties=OrderedDict([
-          ('includes', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
+          ('@includes@', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
       ]))
 
       soc.ref_clock = soc.fll.ref_clock
@@ -482,7 +482,7 @@ def get_config(tp):
       for fll_name, fll_config in flls_config.get_items().items():
 
         soc.add_component(fll_name, Component(properties=OrderedDict([
-            ('includes', ["ips/fll/fll_v%d.json" % (fll_config.get_child_int("version"))])
+            ('@includes@', ["ips/fll/fll_v%d.json" % (fll_config.get_child_int("version"))])
         ])))
 
         soc.ref_clock = soc.get(fll_name).ref_clock
@@ -497,7 +497,7 @@ def get_config(tp):
 
 
   apb_soc_params = OrderedDict([
-    ('includes', ["chips/%s/apb_soc.json" % chip])
+    ('@includes@', ["chips/%s/apb_soc.json" % chip])
   ])
 
   if has_cluster and has_pmu:
@@ -507,7 +507,7 @@ def get_config(tp):
   soc.apb_soc_ctrl = Component(properties=apb_soc_params)
 
   soc.stdout = Component(properties=OrderedDict([
-      ('includes', ["ips/stdout/stdout_v%d.json" % tp.get_child_int("soc/peripherals/stdout/version")])
+      ('@includes@', ["ips/stdout/stdout_v%d.json" % tp.get_child_int("soc/peripherals/stdout/version")])
   ]))
 
   if has_fc_tcdm:
@@ -520,7 +520,7 @@ def get_config(tp):
 
   if has_gpio:
     gpio_config = OrderedDict([
-      ('includes', ["ips/gpio/gpio_v%d.json" % tp.get_child_int("soc/peripherals/gpio/version")])
+      ('@includes@', ["ips/gpio/gpio_v%d.json" % tp.get_child_int("soc/peripherals/gpio/version")])
     ])
     if tp.get('soc_events') is not None:
       gpio_config['soc_event'] = tp.get('soc_events').get_int('soc_evt_gpio')
@@ -550,7 +550,7 @@ def get_config(tp):
       apb_soc_mappings.update({
         name : get_mapping(config.get_dict(), True),
       })
-      comp_config = OrderedDict([('includes', [ file ])])
+      comp_config = OrderedDict([('@includes@', [ file ])])
       if config.get('config') is not None:
         comp_config.update(config.get('config').get_dict())
       soc.add_component(name, Component(properties=comp_config))
@@ -559,10 +559,10 @@ def get_config(tp):
 
   if has_fc_icache:
     soc.fc_icache_ctrl = Component(properties=OrderedDict([
-        ('includes', ["ips/icache_ctrl/icache_ctrl_v%d.json" % tp.get_child_int("**/fc_icache/version")])
+        ('@includes@', ["ips/icache_ctrl/icache_ctrl_v%d.json" % tp.get_child_int("**/fc_icache/version")])
     ]))
     soc.fc_icache = Component(properties=OrderedDict([
-        ('includes', ["ips/cache/cache.json"])
+        ('@includes@', ["ips/cache/cache.json"])
     ]))
 
     soc.fc_icache_ctrl.enable = soc.fc_icache.enable
@@ -573,21 +573,21 @@ def get_config(tp):
   if has_fc:
     if has_fc_ico:
       soc.timer = Component(properties=OrderedDict([
-          ('includes', ["ips/timer/timer_v%d.json" % tp.get_child_int("soc/fc_ico/peripherals/fc_timer/version")])
+          ('@includes@', ["ips/timer/timer_v%d.json" % tp.get_child_int("soc/fc_ico/peripherals/fc_timer/version")])
       ]))
     else:
       soc.timer = Component(properties=OrderedDict([
-          ('includes', ["ips/timer/timer_v%d.json" % tp.get_child_int("soc/peripherals/fc_timer/version")])
+          ('@includes@', ["ips/timer/timer_v%d.json" % tp.get_child_int("soc/peripherals/fc_timer/version")])
       ]))
 
   if has_hwme:
     soc.hwme = Component(properties=OrderedDict([
-        ('includes', ["ips/hwme/hwme_v%d.json" % tp.get_child_int("soc/peripherals/hwme/version")])
+        ('@includes@', ["ips/hwme/hwme_v%d.json" % tp.get_child_int("soc/peripherals/hwme/version")])
     ]))
 
   if has_soc_events:
     soc.soc_eu = Component(properties=OrderedDict([
-        ('includes', ["ips/soc_eu/soc_eu_v%d.json" % tp.get_child_int("soc/peripherals/soc_eu/version")]),
+        ('@includes@', ["ips/soc_eu/soc_eu_v%d.json" % tp.get_child_int("soc/peripherals/soc_eu/version")]),
         ('ref_clock_event', tp.get('soc_events').get('soc_evt_ref_clock').get_int())
     ]))
 
@@ -595,18 +595,18 @@ def get_config(tp):
     content = tp.get_child_str('soc/peripherals/udma/content')
     if content is not None:
       soc.udma = Component(properties=OrderedDict([
-          ('includes', [ content ])
+          ('@includes@', [ content ])
       ]))
     else:
       soc.udma = Component(properties=OrderedDict([
-          ('includes', ["chips/%s/udma.json" % chip])
+          ('@includes@', ["chips/%s/udma.json" % chip])
       ]))
 
     comps['udma'] = soc.udma
 
     if has_mram:      
       mram_config_dict = collections.OrderedDict([
-        ('includes', ["ips/mram/mram.json"])
+        ('@includes@', ["ips/mram/mram.json"])
       ])
       mram_config = tp.get('soc/mram/config')
       if mram_config is not None:
@@ -619,18 +619,18 @@ def get_config(tp):
 
   if has_spi_master:
     soc.spi_master = Component(properties=OrderedDict([
-        ('includes', ["ips/spi_master/spi_master_v1.json"])
+        ('@includes@', ["ips/spi_master/spi_master_v1.json"])
     ]))
 
   if has_uart:
     soc.apb_uart = Component(properties=OrderedDict([
-        ('includes', ["ips/uart/uart_v0.json"])
+        ('@includes@', ["ips/uart/uart_v0.json"])
     ]))
 
   if has_efuse:
     efuse_conf = tp.get('soc/peripherals/efuse')
     config = OrderedDict([
-        ('includes', ["ips/efuse/efuse_v%d.json" % tp.get_child_int("soc/peripherals/efuse/version")])
+        ('@includes@', ["ips/efuse/efuse_v%d.json" % tp.get_child_int("soc/peripherals/efuse/version")])
     ])
     if efuse_conf.get('config') is not None:
       config.update(efuse_conf.get('config').get_dict())
@@ -660,7 +660,7 @@ def get_config(tp):
 
 
   if taps_conf is None:
-    adv_dbg_unit_config = OrderedDict([('includes', ["ips/adv_dbg_unit/adv_dbg_unit.json"])])
+    adv_dbg_unit_config = OrderedDict([('@includes@', ["ips/adv_dbg_unit/adv_dbg_unit.json"])])
     if tp.get('**/adv_dbg_unit/config') is not None:
       adv_dbg_unit_config.update(tp.get('**/adv_dbg_unit/config').get_dict())
 
@@ -687,7 +687,7 @@ def get_config(tp):
       if tap_template.get_bool('riscv_debug'):
 
         debug_rom_config_dict = collections.OrderedDict([
-          ('includes', ["ips/rom/rom_v%d.json" % tp.get_child_int("**/debug_rom/version")]),
+          ('@includes@', ["ips/rom/rom_v%d.json" % tp.get_child_int("**/debug_rom/version")]),
           ('size', tp.get_child_int("**/debug_rom/size")),
           ('map_base', tp.get_child_str("**/debug_rom/base")),
           ('map_size', tp.get_child_str("**/debug_rom/size")),
@@ -933,7 +933,6 @@ def get_config(tp):
       is_master = itf_conf.get_child_bool('is_master')
       is_slave = itf_conf.get_child_bool('is_slave')
       is_dual = itf_conf.get_child_bool('is_dual')
-      has_irq = itf_conf.get_child_bool('has_irq')
       for channel in range(0, nb_channels):
         itf_name = itf.get() + str(channel)
 
@@ -969,11 +968,13 @@ def get_config(tp):
           tap.confreg_ext = soc.apb_soc_ctrl.confreg_ext
 
   # Interrupts
-  if has_fc_eu:
-    for name, irq in fc_events_dict.items():
-      if len(name.split('.')) == 2:
-        comp_name, itf_name = name.split('.')
+  for name, irq in fc_events_dict.items():
+    if len(name.split('.')) == 2:
+      comp_name, itf_name = name.split('.')
+      if has_fc_eu:
         comps[comp_name].set(itf_name, soc.fc_eu.new_itf('in_event_%d_pe_0' % irq))
+      else:
+        comps[comp_name].set(itf_name, soc.fc_itc.new_itf('in_event_%d' % irq))
 
 
 
@@ -983,14 +984,14 @@ def get_config(tp):
 
   if tp.get('soc/job_fifo') is not None:
       soc.job_fifo = Component(properties=OrderedDict([
-          ('includes', ["chips/oprecompkw_sa/job_fifo.json"])
+          ('@includes@', ["chips/oprecompkw_sa/job_fifo.json"])
       ]))
       soc.job_fifo_injector = Component(properties=OrderedDict([
-          ('includes', ["tools/vp/injector.json"])
+          ('@includes@', ["tools/vp/injector.json"])
       ]))
 
       soc.host_injector = Component(properties=OrderedDict([
-          ('includes', ["tools/vp/injector.json"])
+          ('@includes@', ["tools/vp/injector.json"])
       ]))
 
       soc.apb_ico.get_property('mappings')["job_fifo"] = OrderedDict([("base", "0x1A120000"), ("size", "0x00001000"), ("remove_offset", "0x1A120000")])

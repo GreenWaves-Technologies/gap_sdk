@@ -90,16 +90,13 @@ int32_t pi_nina_b112_open(pi_nina_ble_t *ble)
         return -1;
     }
     pi_uart_conf_init(uart_conf);
-    uart_conf->baudrate_bps = (uint32_t) PI_NINA_UART_AT_BAUDRATE_bps;
+    uart_conf->baudrate_bps = PI_NINA_UART_AT_BAUDRATE_bps;
     /* Format 8N-0-1. */
     //uart_conf->bit_length = UART_8_BITS;
     //uart_conf->parity_mode = UART_PARITY_DISABLED;
     //uart_conf->stop_bit_count = UART_ONE_STOP_BIT;
     uart_conf->enable_rx = 1;
     uart_conf->enable_tx = 1;
-    #if defined(PMSIS_DRIVER)
-    uart_conf->src_clock_Hz = SystemCoreClock;
-    #endif  /* PMSIS_DRIVER */
 
     /* struct pi_nina_b112_conf *_conf = pmsis_l2_malloc(sizeof(struct pi_nina_b112_conf)); */
     /* _conf->skip_pads_config = 0; */

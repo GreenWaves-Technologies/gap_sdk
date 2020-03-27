@@ -33,7 +33,7 @@ These instructions were developed using a fresh Ubuntu 18.04 Bionic Beaver 64-Bi
 The following packages needed to be installed:
 
 ~~~~~shell
-sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev rsync autoconf automake texinfo libtool pkg-config
+sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev rsync autoconf automake texinfo libtool pkg-config libsdl2-ttf-dev
 ~~~~~
 
 The precompiled toolchain should be clone by using git lfs, this should be installed by using the following command:
@@ -74,7 +74,7 @@ The following instructions assume that you install the GAP SDK into your home di
 
 You can follow the steps for Ubuntu 18.04 except for the following instructions.
 
-After yu have install the system packages with apt-get, also create this symbolic link:
+After you have installed the system packages with apt-get,  you need to also create this symbolic link:
 
 ~~~~~shell
 sudo ln -s /usr/bin/libftdi-config /usr/bin/libftdi1-config
@@ -380,13 +380,13 @@ If you want to upgrade/downgrade your SDK to a new/old version:
 cd gap_sdk
 git checkout master && git pull
 git checkout <release tag name>
+git submodule sync --recursive
 git submodule update --init --recursive
-make clean all
+make clean sdk
 ~~~~~
 
 Please check our release tags here to ensure the version:
 https://github.com/GreenWaves-Technologies/gap_sdk/releases
-
 
 
 ## Getting help

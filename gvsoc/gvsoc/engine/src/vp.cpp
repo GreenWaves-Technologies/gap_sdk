@@ -88,8 +88,8 @@ static Gv_proxy *proxy = NULL;
 uint64_t vp::reg::get_field(int offset, int width)
 {
     uint64_t value = 0;
-    this->read(0, 0, (uint8_t *)&value);
-    return (value >> offset) & ((1<<width)-1);
+    this->read(0, (offset + width + 7)/8, (uint8_t *)&value);
+    return (value >> offset) & ((1UL<<width)-1);
 }
 
 
@@ -98,11 +98,11 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
 {
     for (auto x: this->get_registers())
     {
-        if (offset >= x->offset && offset < x->offset + x->width/8)
+        if (offset >= x->offset && offset + size <= x->offset + (x->width+7)/8)
         {
             x->access((offset - x->offset), size, value, is_write);
             
-            if (this->comp->get_trace()->get_active(vp::trace::LEVEL_DEBUG))
+            if (x->trace.get_active(vp::trace::LEVEL_DEBUG))
             {
                 std::string regfields_values = "";
 
@@ -128,7 +128,7 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
                     regfields_values = std::string(buff);
                 }
 
-                this->comp->get_trace()->msg(vp::trace::LEVEL_DEBUG,
+                x->trace.msg(vp::trace::LEVEL_DEBUG,
                     "Register access (name: %s, offset: 0x%x, size: 0x%x, is_write: 0x%x, value: %s)\n",
                     x->get_name().c_str(), offset, size, is_write, regfields_values.c_str()
                 );
@@ -138,19 +138,26 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
         }
     }
 
-    vp_warning_always(this->comp->get_trace(), "Accessing invalid register (offset: 0x%lx, size: 0x%x, is_write: %d)\n", offset, size, is_write);
+    vp_warning_always(this->trace, "Accessing invalid register (offset: 0x%lx, size: 0x%x, is_write: %d)\n", offset, size, is_write);
     return true;
 }
 
 
 
-void vp::regmap::build(vp::component *comp)
+void vp::regmap::build(vp::component *comp, vp::trace *trace, std::string name)
 {
     this->comp = comp;
+    this->trace = trace;
 
     for (auto x: this->get_registers())
     {
-        x->build(comp);
+        std::string reg_name = name;
+        if (reg_name == "")
+            reg_name = x->get_hw_name();
+        else
+            reg_name = reg_name + "/" + x->get_hw_name();
+
+        x->build(comp, reg_name);
     }
 }
 
@@ -1138,6 +1145,14 @@ void vp::component::new_reg(std::string name, vp::reg_64 *reg, uint64_t reset_va
     this->regs.push_back(reg);
 }
 
+bool vp::reg::access_callback(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+{
+    if (this->callback != NULL)
+        this->callback(reg_offset, size, value, is_write);
+
+    return this->callback != NULL;
+}
+
 void vp::reg::init(vp::component *top, std::string name, int bits, uint8_t *value, uint8_t *reset_value)
 {
     this->top = top;
@@ -1195,29 +1210,29 @@ void vp::reg_64::init(vp::component *top, std::string name, uint8_t *reset_val)
     reg::init(top, name, 64, (uint8_t *)&this->value, reset_val);
 }
 
-void vp::reg_1::build(vp::component *top)
+void vp::reg_1::build(vp::component *top, std::string name)
 {
-    top->new_reg(this->get_hw_name(), this, this->reset_val, this->do_reset);
+    top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
-void vp::reg_8::build(vp::component *top)
+void vp::reg_8::build(vp::component *top, std::string name)
 {
-    top->new_reg(this->get_hw_name(), this, this->reset_val, this->do_reset);
+    top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
-void vp::reg_16::build(vp::component *top)
+void vp::reg_16::build(vp::component *top, std::string name)
 {
-    top->new_reg(this->get_hw_name(), this, this->reset_val, this->do_reset);
+    top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
-void vp::reg_32::build(vp::component *top)
+void vp::reg_32::build(vp::component *top, std::string name)
 {
-    top->new_reg(this->get_hw_name(), this, this->reset_val, this->do_reset);
+    top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
-void vp::reg_64::build(vp::component *top)
+void vp::reg_64::build(vp::component *top, std::string name)
 {
-    top->new_reg(this->get_hw_name(), this, this->reset_val, this->do_reset);
+    top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
 void vp::master_port::final_bind()
@@ -1434,6 +1449,20 @@ void vp::component::bind_comps()
     }
 }
 
+
+void *vp::component::external_bind(std::string name)
+{
+    for (auto &x : this->childs)
+    {
+        void *result = x->external_bind(name);
+        if (result != NULL)
+            return result;
+    }
+
+    return NULL;
+}
+
+
 void vp::master_port::bind_to_virtual(vp::port *port)
 {
     vp_assert_always(port != NULL, this->get_comp()->get_trace(), "Trying to bind master port to NULL\n");
@@ -1487,13 +1516,16 @@ void Gv_proxy::proxy_loop(int socket_fd)
         {
             if (words[0] == "run")
             {
+                int64_t timestamp = top->get_time();
                 this->top->run();
+                dprintf(this->reply_pipe, "running %ld\n", timestamp);
             }
             else if (words[0] == "stop")
             {
                 this->top->pause();
                 this->top->flush_all();
                 fflush(NULL);
+                dprintf(this->reply_pipe, "stopped %ld\n", top->get_time());
             }
             else if (words[0] == "quit")
             {
@@ -1694,6 +1726,58 @@ Gvsoc_proxy::Gvsoc_proxy(std::string config_path)
 
 
 
+void Gvsoc_proxy::proxy_loop()
+{
+    FILE *sock = fdopen(this->reply_pipe[0], "r");
+
+    while(1)
+    {
+        char line[1024];
+
+        if (!fgets(line, 1024, sock)) 
+            return ;
+
+        std::string s = std::string(line);
+        std::regex regex{R"([\s]+)"};
+        std::sregex_token_iterator it{s.begin(), s.end(), regex, -1};
+        std::vector<std::string> words{it, {}};
+
+
+        for (auto x: words)
+        {
+            printf("%s\n", x.c_str());
+        }
+
+        if (words.size() > 0)
+        {
+            if (words[0] == "stopped")
+            {
+                int64_t timestamp = std::atoll(words[1].c_str());
+                printf("GOT STOP AT %ld\n", timestamp);
+                this->mutex.lock();
+                this->stopped_timestamp = timestamp;
+                this->running = false;
+                this->cond.notify_all();
+                this->mutex.unlock();
+            }
+            else if (words[0] == "running")
+            {
+                int64_t timestamp = std::atoll(words[1].c_str());
+                printf("GOT RUN AT %ld\n", timestamp);
+                this->mutex.lock();
+                this->running = true;
+                this->cond.notify_all();
+                this->mutex.unlock();
+            }
+            else
+            {
+                printf("Ignoring invalid command: %s\n", words[0].c_str());
+            }
+        }
+    }
+}
+
+
 int Gvsoc_proxy::open()
 {
     pid_t ppid_before_fork = getpid();
@@ -1726,6 +1810,11 @@ int Gvsoc_proxy::open()
 
         return retval;
     }
+    else
+    {
+        this->running = false;
+        this->loop_thread = new std::thread(&Gvsoc_proxy::proxy_loop, this);
+    }
 
     return 0;
 }
@@ -1739,9 +1828,18 @@ void Gvsoc_proxy::run()
 
 
 
-void Gvsoc_proxy::pause()
+int64_t Gvsoc_proxy::pause()
 {
+    int64_t result;
     dprintf(this->req_pipe[1], "stop\n");
+    std::unique_lock<std::mutex> lock(this->mutex);
+    while (this->running)
+    {
+        this->cond.wait(lock);
+    }
+    result = this->stopped_timestamp;
+    lock.unlock();
+    return result;
 }
 
 
@@ -1828,3 +1926,10 @@ int sc_main(int argc, char *argv[])
     return 0;
 }
 #endif
+
+
+extern "C" void *gv_chip_pad_bind(void *handle, char *name)
+{
+    vp::component *instance = (vp::component *)handle;
+    return instance->external_bind(name);
+}

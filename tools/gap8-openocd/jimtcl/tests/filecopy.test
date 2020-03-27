@@ -5,7 +5,7 @@ needs cmd file
 needs cmd exec
 needs cmd parray tclcompat
 
-cd [file dirname [info script]]
+cd $testdir
 
 file mkdir tempdir
 
@@ -69,6 +69,6 @@ test filecopy-2.6 "Source and target identical (-force)" {
 } 16
 
 file delete tempfile
-file delete --force tempdir
+exec rm -rf tempdir
 
 testreport

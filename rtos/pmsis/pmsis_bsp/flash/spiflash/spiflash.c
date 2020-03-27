@@ -247,7 +247,7 @@ static inline void pi_qpi_flash_conf_spi(struct pi_spi_conf *conf,
     // we remove 1500 to make sure divisor will be okay even if freq is not 
     // precisely at target. Value is empiric
     // we then mult by two to workaround divisor bogus spec
-    conf->max_baudrate = flash_conf->baudrate;
+    conf->max_baudrate = flash_conf->baudrate*2;
     conf->wordsize = PI_SPI_WORDSIZE_8;
     conf->polarity = 0;
     conf->phase = conf->polarity;
@@ -266,6 +266,7 @@ static int spiflash_open(struct pi_device *bsp_flash_dev)
     memset(flash_dev, 0, sizeof(spi_flash_t));
     struct pi_spiflash_conf *flash_conf = bsp_flash_dev->config;
     pi_qpi_flash_conf_spi(&flash_dev->qspi_conf, flash_conf);
+
     pi_open_from_conf(&flash_dev->qspi_dev,&flash_dev->qspi_conf);
     int ret = pi_spi_open(&flash_dev->qspi_dev);
     if(ret)
@@ -290,9 +291,9 @@ static int spiflash_open(struct pi_device *bsp_flash_dev)
 
     pi_spi_send_ucode_set_addr_info(&flash_dev->qspi_dev, send_ucode + 2*4 + 1, 3);
 
-    ucode[0] = SPI_UCODE_CMD_SEND_CMD(QSPIF_QO_FAST_READ_CMD, 8, 0);
+    ucode[0] = SPI_UCODE_CMD_SEND_CMD(QSPIF_QIO_FAST_READ_CMD, 8, 0);
     ucode[1] = SPI_UCODE_CMD_SEND_ADDR(24, 1);
-    ucode[3] = SPI_CMD_DUMMY(6);
+    ucode[3] = SPI_CMD_DUMMY(3);
 
     uint8_t *receive_ucode = pi_spi_receive_ucode_set(&flash_dev->qspi_dev, (uint8_t *)ucode, 4*4);
     if (receive_ucode == NULL)
@@ -1201,4 +1202,7 @@ void pi_spiflash_conf_init(struct pi_spiflash_conf *conf)
     conf->flash.api = &spiflash_api;
     bsp_spiflash_conf_init(conf);
     __flash_conf_init(&conf->flash);
+    // try to reach max freq on gapoc_a
+    // It does not work if we are too close to 50MHz on SPI
+    conf->baudrate = 24*1000000;
 }

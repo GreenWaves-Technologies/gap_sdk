@@ -2,7 +2,7 @@
   "cable": {
     "type": "jtag-proxy",
     "tap": 0,
-    "includes": [
+    "@includes@": [
       "tools/debug-bridge/cable_jtag-proxy.json",
       "tools/debug-bridge/cable_ftdi.json"
     ],

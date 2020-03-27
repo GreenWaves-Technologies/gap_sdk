@@ -1,3 +1,6 @@
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SELF_DIR)/../../src.mk
+
 ifdef PULPOS_BOARD
 BOARD_UPPER = $(shell echo $(PULPOS_BOARD) | tr 'a-z' 'A-Z')
 PULP_CFLAGS += -DCONFIG_$(BOARD_UPPER)
@@ -17,20 +20,57 @@ PULP_CFLAGS += -DCONFIG_PROFILE_$(BOARD_PROFILE_UPPER)
 
 
 
+# BSP is needed if i2s is used to properly configure pads
+ifeq '$(CONFIG_I2S)' '1'
+CONFIG_BSP = 1
+endif
 
 ifeq '$(CONFIG_SPIRAM)' '1'
-PULP_SRCS += ram/ram.c ram/alloc_extern.c ram/spiram/spiram.c
+PULP_SRCS += $(BSP_RAM_SRC) $(BSP_SPIRAM_SRC)
 CONFIG_BSP = 1
 CONFIG_SPIM = 1
 endif
 
-
 ifeq '$(CONFIG_HYPERRAM)' '1'
-PULP_SRCS += ram/ram.c ram/alloc_extern.c ram/hyperram/hyperram.c
+PULP_SRCS += $(BSP_RAM_SRC) $(BSP_HYPERRAM_SRC)
 CONFIG_BSP = 1
 CONFIG_HYPER = 1
 endif
 
+ifeq '$(CONFIG_READFS)' '1'
+PULP_SRCS += $(BSP_READFS_SRC)
+CONFIG_FS = 1
+endif
+
+ifeq '$(CONFIG_LFS)' '1'
+PULP_SRCS += $(BSP_LFS_SRC)
+CONFIG_FS = 1
+endif
+
+ifeq '$(CONFIG_HOSTFS)' '1'
+PULP_SRCS += $(BSP_HOSTFS_SRC)
+CONFIG_FS = 1
+endif
+
+ifeq '$(CONFIG_FS)' '1'
+PULP_SRCS += $(BSP_FS_SRC)
+CONFIG_BSP = 1
+endif
+
+ifeq '$(CONFIG_HYPERFLASH)' '1'
+PULP_SRCS += $(BSP_HYPERFLASH_SRC)
+CONFIG_FLASH = 1
+endif
+
+ifeq '$(CONFIG_SPIFLASH)' '1'
+PULP_SRCS += $(BSP_SPIFLASH_SRC)
+CONFIG_FLASH = 1
+endif
+
+ifeq '$(CONFIG_FLASH)' '1'
+PULP_SRCS += $(BSP_FLASH_SRC)
+CONFIG_BSP = 1
+endif
 
 ifeq '$(CONFIG_BSP)' '1'
 PULP_SRCS += bsp/$(PULPOS_BOARD).c

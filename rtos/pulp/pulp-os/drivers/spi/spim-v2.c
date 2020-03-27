@@ -49,6 +49,7 @@ typedef struct
   uint32_t udma_send_cmd_size;
   uint8_t *ucode;
   uint32_t ucode_size;
+  int freq;
   int max_baudrate;
   unsigned int cfg;
   uint32_t max_rcv_size;
@@ -138,12 +139,13 @@ extern void __pi_spim_handle_eot(void *arg);
 
 
 
-static int __rt_spi_get_div(int spi_freq)
+static int __rt_spi_get_div(pi_spim_cs_t *spim_cs, int spi_freq)
 {
   int periph_freq = __rt_freq_periph_get();
 
   if (spi_freq >= periph_freq)
   {
+    spim_cs->freq = periph_freq / 2;
     return 0;
   }
   else
@@ -156,6 +158,7 @@ static int __rt_spi_get_div(int spi_freq)
     if (div & 1) div += 1;
     div >>= 1;
 
+    spim_cs->freq = periph_freq / (div * 2);
     return div;
   }
 }
@@ -215,16 +218,31 @@ int pi_spi_open(struct pi_device *device)
   spim_cs->max_baudrate = conf->max_baudrate;
   spim_cs->cs = conf->cs;
   spim_cs->byte_align = __rt_spim_get_byte_align(conf->wordsize, conf->big_endian);
-  spim_cs->max_rcv_size = conf->max_rcv_chunk_size;
-  spim_cs->max_snd_size = conf->max_snd_chunk_size;
+
   spim_cs->udma_send_cmd = NULL;
   spim_cs->udma_receive_cmd = NULL;
 
-  int div = __rt_spi_get_div(spim_cs->max_baudrate);
+  int div = __rt_spi_get_div(spim_cs, spim_cs->max_baudrate);
+  /* Clock div does not fit on 8 bits, SoC frequency needs to be lowered. */
+  if (div > 0xFF) goto error;
   spim_cs->div = div;
 
   spim_cs->cfg = SPI_CMD_CFG(div, conf->polarity, conf->phase);
   pos_spim_apply_conf(spim_cs);
+
+  // Compute chunk size to respect CS low pulse width. We account the 6 dummy cycles, 8 cycles for command and address and some margin
+  if (conf->max_rcv_chunk_size != -1)
+    spim_cs->max_rcv_size = (conf->max_rcv_chunk_size / (2*1000000000 / spim_cs->freq) - 12) & ~0x3;
+  else
+    spim_cs->max_rcv_size = 8192;
+
+  // We take more margin for sending as the TX buffer is enqueued after the command buffer
+  // which makes the time between CS low and the end of transfer unpredictable, e.g. a cache miss
+  // can increase it.
+  if (conf->max_snd_chunk_size != -1)
+    spim_cs->max_snd_size = (conf->max_snd_chunk_size / (2*1000000000 / spim_cs->freq) - 48) & ~0x3;
+  else
+    spim_cs->max_snd_size = 8192;
 
   spim->open_count++;
   if (spim->open_count == 1)
@@ -268,7 +286,7 @@ void pi_spi_ioctl(struct pi_device *device, uint32_t cmd, void *_arg)
   if (set_freq)
   {
     spim_cs->max_baudrate = arg;
-    spim_cs->div = __rt_spi_get_div(arg);
+    spim_cs->div = __rt_spi_get_div(spim_cs, arg);
   }
 
   if (polarity) spim_cs->polarity = polarity >> 1;
@@ -1254,7 +1272,7 @@ void pi_spi_copy_async(struct pi_device *device,
   uint32_t addr, void *data, uint32_t size,
   pi_spi_flags_e flags, pi_task_t *task)
 {
-    //printf("Copy bitstream (device: %p, ext2loc: %d, addr: 0x%lx, buffer: %p, size: 0x%lx, flags: 0x%x, task: %p)\n", device, __BITEXTRACT(flags, 1, 4), addr, data, size, flags, task);
+    //printf("Copy bitstream (device: %p, ext2loc: %d, addr: 0x%lx, buffer: %p, size: 0x%lx, flags: 0x%x, task: %p)\n", device, __BITEXTRACTU(flags, 1, 4), addr, data, size, flags, task);
 
     pi_spim_cs_t *spim_cs = (pi_spim_cs_t *)device->data;
     pi_spim_t *spim = spim_cs->spim;
@@ -1263,9 +1281,9 @@ void pi_spi_copy_async(struct pi_device *device,
 
     if (likely(!spim->pending_copy))
     {
-        int qspi = __BITEXTRACT(flags, 2, 2) == 1;
-        int cs_mode = __BITEXTRACT(flags, 2, 0);
-        int ext2loc = __BITEXTRACT(flags, 1, 4);
+        int qspi = __BITEXTRACTU(flags, 2, 2) == 1;
+        int cs_mode = __BITEXTRACTU(flags, 2, 0);
+        int ext2loc = __BITEXTRACTU(flags, 1, 4);
         
         spim->pending_copy = task;
 
@@ -1312,9 +1330,9 @@ void pi_spi_copy_2d_async(struct pi_device *device,
 
     if (likely(!spim->pending_copy))
     {
-        int qspi = __BITEXTRACT(flags, 2, 2) == 1;
-        int cs_mode = __BITEXTRACT(flags, 2, 0);
-        int ext2loc = __BITEXTRACT(flags, 1, 4);
+        int qspi = __BITEXTRACTU(flags, 2, 2) == 1;
+        int cs_mode = __BITEXTRACTU(flags, 2, 0);
+        int ext2loc = __BITEXTRACTU(flags, 1, 4);
 
         spim->pending_copy = task;
 

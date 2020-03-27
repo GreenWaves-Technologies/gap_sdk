@@ -5,9 +5,7 @@
 #include <jim.h>
 
 #ifdef USE_LINENOISE
-#ifdef HAVE_UNISTD_H
-    #include <unistd.h>
-#endif
+#include <unistd.h>
 #include "linenoise.h"
 #else
 #define MAX_LINE_LEN 512
@@ -98,25 +96,28 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
         const char *result;
         int reslen;
         char prompt[20];
+        const char *str;
 
-        if (retcode != JIM_OK) {
+        if (retcode != 0) {
             const char *retcodestr = Jim_ReturnCode(retcode);
 
             if (*retcodestr == '?') {
-                snprintf(prompt, sizeof(prompt) - 3, "[%d] . ", retcode);
+                snprintf(prompt, sizeof(prompt) - 3, "[%d] ", retcode);
             }
             else {
-                snprintf(prompt, sizeof(prompt) - 3, "[%s] . ", retcodestr);
+                snprintf(prompt, sizeof(prompt) - 3, "[%s] ", retcodestr);
             }
         }
         else {
-            strcpy(prompt, ". ");
+            prompt[0] = '\0';
         }
+        strcat(prompt, ". ");
 
         scriptObjPtr = Jim_NewStringObj(interp, "", 0);
         Jim_IncrRefCount(scriptObjPtr);
         while (1) {
             char state;
+            int len;
             char *line;
 
             line = Jim_HistoryGetline(prompt);
@@ -129,18 +130,21 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
                 goto out;
             }
             if (Jim_Length(scriptObjPtr) != 0) {
-                /* Line continuation */
                 Jim_AppendString(interp, scriptObjPtr, "\n", 1);
             }
             Jim_AppendString(interp, scriptObjPtr, line, -1);
             free(line);
-            if (Jim_ScriptIsComplete(interp, scriptObjPtr, &state))
+            str = Jim_GetString(scriptObjPtr, &len);
+            if (len == 0) {
+                continue;
+            }
+            if (Jim_ScriptIsComplete(str, len, &state))
                 break;
 
             snprintf(prompt, sizeof(prompt), "%c> ", state);
         }
 #ifdef USE_LINENOISE
-        if (strcmp(Jim_String(scriptObjPtr), "h") == 0) {
+        if (strcmp(str, "h") == 0) {
             /* built-in history command */
             Jim_HistoryShow();
             Jim_DecrRefCount(interp, scriptObjPtr);
@@ -156,6 +160,7 @@ int Jim_InteractivePrompt(Jim_Interp *interp)
         Jim_DecrRefCount(interp, scriptObjPtr);
 
         if (retcode == JIM_EXIT) {
+            retcode = JIM_EXIT;
             break;
         }
         if (retcode == JIM_ERR) {

@@ -391,10 +391,14 @@ static inline void eu_mutex_lock(unsigned int mutexAddr)
   evt_read32(mutexAddr, 0);
 }
 
+#if defined(__OPTIMIZE__)
 static inline void eu_mutex_lock_from_id(unsigned int id)
 {
   evt_read32(ARCHI_EU_DEMUX_ADDR, EU_MUTEX_DEMUX_OFFSET + (id << 2));
 }
+#else
+#define eu_mutex_lock_from_id(id) evt_read32(ARCHI_EU_DEMUX_ADDR, EU_MUTEX_DEMUX_OFFSET + ((id) << 2))
+#endif
 
 static inline void eu_mutex_unlock(unsigned int mutexAddr)
 {

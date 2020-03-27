@@ -93,3 +93,8 @@ pulp/udma/udma_v4_$(pulp_chip_family)_impl_CFLAGS += -I$(INSTALL_DIR)/include/ar
 pulp/udma/udma_v4_$(pulp_chip_family)_impl_CFLAGS += $(UDMA_CFLAGS)
 pulp/udma/udma_v4_$(pulp_chip_family)_impl_SRCS += pulp/udma/udma_v4_impl.cpp
 endif
+
+ifeq '$(udma/uart/version)' '2'
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_UART
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/uart/udma_uart_v2.cpp
+endif

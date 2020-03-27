@@ -135,7 +135,7 @@ void Hyperram::sync_cycle(void *__this, int data)
     if (_this->ca_count == 0)
     {
       _this->state = HYPERBUS_STATE_DATA;
-      _this->current_address = (_this->ca.low_addr | (_this->ca.high_addr << 3)) & ~1;
+      _this->current_address = _this->ca.low_addr | (_this->ca.high_addr << 3);
 
       _this->reg_access = _this->ca.address_space == 1;
 

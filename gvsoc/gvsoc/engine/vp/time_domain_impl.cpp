@@ -72,7 +72,7 @@ void time_domain::pre_pre_build()
 
 int time_domain::build()
 {
-    this->new_component("sys", this->get_js_config()->get("system_tree"));
+    this->new_component("sys", this->get_js_config()->get("**/system_tree"));
     return 0;
 }
 

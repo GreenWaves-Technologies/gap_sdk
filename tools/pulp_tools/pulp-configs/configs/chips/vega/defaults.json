@@ -25,13 +25,13 @@
       "chip": {
         "soc": {
           "rtc": {
-            "includes": [ "ips/rtc/rtc.json" ]
+            "@includes@": [ "ips/rtc/rtc.json" ]
           },
           "quiddikey": {
-            "includes": [ "ips/vendors/iid/quiddikey_v1.json"]
+            "@includes@": [ "ips/vendors/iid/quiddikey_v1.json"]
           },
           "csi2": {
-            "includes": [ "ips/vendors/lnt/csi2_v1.json"]
+            "@includes@": [ "ips/vendors/lnt/csi2_v1.json"]
           }
         }
       }

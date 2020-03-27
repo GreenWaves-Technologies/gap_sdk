@@ -9,7 +9,7 @@ platform     ?= gapuino
 # The linker options.
 LIBS += -L$(TARGET_INSTALL_DIR)/lib/gap/$(BOARD_NAME) -lpibsp
 
-ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \
 				-lrt -lrtio -lrt -lgcc
 else
@@ -26,6 +26,8 @@ ifeq ($(TARGET_CHIP), GAP8)
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8.ld
 else ifeq ($(TARGET_CHIP), GAP8_V2)
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8_rev1.ld
+else ifeq ($(TARGET_CHIP), GAP8_V3)
+LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap8_rev2.ld
 else
 LDFLAGS       = -T$(INSTALL_DIR)/ld/link.gap9.ld
 endif
@@ -46,11 +48,13 @@ ifeq ($(TARGET_CHIP), GAP8)
 TARGET_CHIP_VERSION=1
 else ifeq ($(TARGET_CHIP), GAP8_V2)
 TARGET_CHIP_VERSION=2
+else ifeq ($(TARGET_CHIP), GAP8_V3)
+TARGET_CHIP_VERSION=3
 else
 TARGET_CHIP_VERSION=1
 endif
 
-ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 RISCV_FLAGS   ?= -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__ -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP -D__PULP_OS__
 else
@@ -100,7 +104,8 @@ TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -Wextra -Wal
 #------------------------------------------
 BUILDDIR      = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
 
-BIN           = $(BUILDDIR)/test
+APP          ?= test
+BIN           = $(BUILDDIR)/$(APP)
 
 T_OBJECTS_C   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PULP_APP_FC_SRCS) $(PULP_APP_SRCS))
 
@@ -108,7 +113,7 @@ OBJECTS       = $(T_OBJECTS_C)
 
 OBJECTS   += $(BUILDDIR)/pulp-os/conf.o
 
-ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap/config.h
 else
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/$(TARGET_NAME)/config.h
@@ -148,6 +153,11 @@ use_pulprun=1
 endif
 endif
 
+override config_args += $(foreach file, $(READFS_FILES), --config-opt=flash/content/partitions/readfs/files=$(file))
+
+ifdef LFS_ROOT_DIR
+override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
+endif
 
 ifeq ($(use_pulprun), 1)
 
@@ -157,7 +167,7 @@ run:
 else ifeq ($(platform), gvsoc)
 
 run:
-	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
+	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --all --binary=$(BIN) gvsoc $(runner_args)
 
 profiler:
 	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) --event=.*@all.bin --event-format=raw $(runner_args) prepare
@@ -167,7 +177,7 @@ profiler:
 
 else ifeq ($(platform), fpga)
 run:
-ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2))
+ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 	$(INSTALL_DIR)/runner/run_fpga.sh
 else
 	$(MBED_PATH)/tools/runner/run_gap9.sh
@@ -177,7 +187,7 @@ run: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode)
 else
 run: all
-	$(INSTALL_DIR)/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
 gdbserver: PLPBRIDGE_EXTRA_FLAGS += -gdb
 gdbserver: run
@@ -185,10 +195,10 @@ gdbserver: run
 endif
 
 flash:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f $(PLPBRIDGE_EXTRA_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -norun $(PLPBRIDGE_FLAGS) -f $(PLPBRIDGE_EXTRA_FLAGS)
 
 launch:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -noflash $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
+	$(INSTALL_DIR)/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -noflash $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
 gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(INSTALL_DIR)/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) "GUI"

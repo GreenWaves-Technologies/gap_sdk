@@ -1,5 +1,5 @@
 {
-  "includes": [ "ips/udma/udma_v3.json"],
+  "@includes@": [ "ips/udma/udma_v3.json"],
 
   "vp_component": "pulp.udma.udma_v3_vivosoc3_1_impl",
 

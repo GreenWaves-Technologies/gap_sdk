@@ -232,7 +232,7 @@ inline int iss_wrapper::data_req_aligned(iss_addr_t addr, uint8_t *data_ptr, int
   }
   else if (err == vp::IO_REQ_INVALID) 
   {
-    vp_warning_always(&this->warning, "Invalid access (offset: 0x%x, size: 0x%x, is_write: %d)\n", addr, size, is_write);
+    vp_warning_always(&this->warning, "Invalid access (pc: 0x%x, offset: 0x%x, size: 0x%x, is_write: %d)\n", this->cpu.current_insn->addr, addr, size, is_write);
   }
   return err;
 }

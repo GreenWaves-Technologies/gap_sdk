@@ -1,6 +1,6 @@
 import sys
 
-verbose = True
+verbose = False
 def newLine():
 	info("")
 

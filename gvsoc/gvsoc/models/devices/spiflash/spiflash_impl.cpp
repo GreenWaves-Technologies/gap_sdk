@@ -491,6 +491,15 @@ void spiflash::start()
 
   // Preload the memory
   js::config *stim_file_conf = this->get_js_config()->get("stim_file");
+  if (stim_file_conf == NULL)
+  {
+    stim_file_conf = this->get_js_config()->get("content/image");
+  }
+  if (stim_file_conf == NULL)
+  {
+    stim_file_conf = this->get_js_config()->get("preload_file");
+  }
+
   if (stim_file_conf != NULL)
   {
     string path = stim_file_conf->get_str();

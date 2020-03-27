@@ -21,4 +21,6 @@ export OPENOCD_CHIP_TARGET=target/gap8revb.tcl
 export OPENOCD_CABLE=interface/ftdi/gapuino_ftdi.cfg
 export PLPBRIDGE_CABLE=ftdi@digilent
 
+export GAPY_TARGET=gapuino_v2
+
 source $GAP_SDK_HOME/configs/common.sh

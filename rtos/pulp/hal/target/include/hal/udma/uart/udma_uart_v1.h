@@ -148,4 +148,87 @@ static inline void plp_uart_reg_write(int channel, unsigned int addr, unsigned i
   pulp_write32(ARCHI_UDMA_ADDR + UDMA_UART_OFFSET(channel) + UDMA_CHANNEL_CUSTOM_OFFSET + addr, cfg);
 }
 
+
+/**
+ * Setup UART. The UART defaults to 8 bit character mode with 1 stop bit.
+ *
+ * parity       Enable/disable parity mode
+ * word_size    Bit length of word(5, 6, 7 or 8)
+ * stop_bit     Number of bits(1 or 2)
+ * tx_ena       Enable TX
+ * rx_ena       Enable RX
+ * clk_counter  Clock counter value that is used to derive the UART clock.
+ *              There is a prescaler in place that already divides the SoC
+ *              clock by 16.  Since this is a counter, a value of 0 means that
+ *              the SoC clock divided by 16 is used. A value of 31 would mean
+ *              that we use the SoC clock divided by 16*32 = 512.
+ */
+
+static inline void plp_uart_setup_set(int channel, int parity, int word_size,
+                                      int stop_bit, int tx_ena, int rx_ena,
+                                      uint16_t clk_counter)
+{
+
+  // [31:16]: clock divider (from SoC clock)
+  // [9]: RX enable
+  // [8]: TX enable
+  // [3]: stop bits  0 = 1 stop bit
+  //                 1 = 2 stop bits
+  // [2:1]: bits     00 = 5 bits
+  //                 01 = 6 bits
+  //                 10 = 7 bits
+  //                 11 = 8 bits
+  // [0]: parity
+
+  unsigned int val = (parity << UART_PARITY_OFFSET) |
+                     (word_size << UART_BIT_LENGTH_OFFSET) |
+                     (stop_bit << UART_STOP_BITS_OFFSET) |
+                     (tx_ena << UART_TX_OFFSET) |
+                     (rx_ena << UART_RX_OFFSET) |
+                     (clk_counter << UART_CLKDIV_OFFSET);
+
+  pulp_write32(ARCHI_UDMA_ADDR + UDMA_UART_OFFSET(channel) + UDMA_CHANNEL_CUSTOM_OFFSET + UART_SETUP_OFFSET, val);
+}
+
+static inline void plp_uart_rx_disable(int channel)
+{
+  unsigned int setup = plp_uart_reg_read(channel, UART_SETUP_OFFSET);
+  setup &= ~UART_RX_MASK;
+  plp_uart_reg_write(channel, UART_SETUP_OFFSET, setup);
+}
+
+static inline void plp_uart_rx_enable(int channel)
+{
+  unsigned int setup = plp_uart_reg_read(channel, UART_SETUP_OFFSET);
+  setup |= UART_RX_ENA;
+  plp_uart_reg_write(channel, UART_SETUP_OFFSET, setup);
+}
+
+static inline void plp_uart_tx_disable(int channel)
+{
+  unsigned int setup = plp_uart_reg_read(channel, UART_SETUP_OFFSET);
+  setup &= ~UART_TX_MASK;
+  plp_uart_reg_write(channel, UART_SETUP_OFFSET, setup);
+}
+
+static inline void plp_uart_tx_enable(int channel)
+{
+  unsigned int setup = plp_uart_reg_read(channel, UART_SETUP_OFFSET);
+  setup |= UART_TX_ENA;
+  plp_uart_reg_write(channel, UART_SETUP_OFFSET, setup);
+}
+
+static inline void plp_uart_rx_clr(int channel)
+{
+  unsigned int channelBase = ARCHI_UDMA_ADDR + UDMA_UART_OFFSET(channel) + UDMA_CHANNEL_RX_OFFSET;
+  plp_udma_clr(channelBase);
+}
+
+static inline void plp_uart_tx_clr(int channel)
+{
+  unsigned int channelBase = ARCHI_UDMA_ADDR + UDMA_UART_OFFSET(channel) + UDMA_CHANNEL_TX_OFFSET;
+  plp_udma_clr(channelBase);
+}
+
+
 #endif

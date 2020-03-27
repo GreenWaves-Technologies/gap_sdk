@@ -8,27 +8,27 @@
   },
 
   "dma": {
-    "includes": [ "mchan_v4.json" ]
+    "@includes@": [ "mchan_v4.json" ]
   },
 
   "event_unit": {
-    "includes": [ "eu_v1.json" ]
+    "@includes@": [ "eu_v1.json" ]
   },
 
   "timer": {
-    "includes": [ "timer_v1.json" ]
+    "@includes@": [ "timer_v1.json" ]
   },
 
   "pe": {
-    "includes" : ["ri5ky_v0.json"]
+    "@includes@" : ["ri5ky_v0.json"]
   },
 
   "icache_ctrl": {
-    "includes": [ "icache_ctrl_v1.json" ]
+    "@includes@": [ "icache_ctrl_v1.json" ]
   },
 
   "cluster_ctrl": {
-    "includes": [ "cluster_ctrl_v2.json" ],
+    "@includes@": [ "cluster_ctrl_v2.json" ],
     "nb_core" : 4
   }
 }

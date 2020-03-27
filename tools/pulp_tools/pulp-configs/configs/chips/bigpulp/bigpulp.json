@@ -5,7 +5,7 @@
   "board": {
     "devices": {
       "jtag_proxy": {
-        "includes": ["devices/jtag_proxy.json"]
+        "@includes@": ["devices/jtag_proxy.json"]
       }
     }
   },

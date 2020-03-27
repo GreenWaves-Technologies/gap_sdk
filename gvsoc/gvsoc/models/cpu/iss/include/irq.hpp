@@ -114,6 +114,7 @@ static inline void iss_irq_set_vector_table(iss_t *iss, iss_addr_t base)
   {
     iss->cpu.irq.vectors[i] = insn_cache_get(iss, base + i * 4);
   }
+  iss->cpu.irq.vector_base = base;
 }
 
 static inline void iss_irq_build(iss_t *iss)
@@ -130,6 +131,14 @@ static inline void iss_irq_init(iss_t *iss)
   iss->cpu.irq.irq_enable = 0;
   iss->cpu.irq.req_irq = -1;
   iss->cpu.irq.req_debug = false;
+#if defined(PRIV_1_10)
+  iss->cpu.irq.debug_handler = insn_cache_get(iss, iss->cpu.config.debug_handler);
+#endif
+}
+
+static inline void iss_irq_flush(iss_t *iss)
+{
+  iss_irq_set_vector_table(iss, iss->cpu.irq.vector_base);
 #if defined(PRIV_1_10)
   iss->cpu.irq.debug_handler = insn_cache_get(iss, iss->cpu.config.debug_handler);
 #endif

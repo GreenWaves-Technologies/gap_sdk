@@ -1,11 +1,11 @@
 {
-  "includes": [ "chips/gap/gap.json" ],
+  "@includes@": [ "chips/gap/gap.json" ],
 
   "board": {
     "name": "gapuino",
     "devices": {
       "flash": {
-        "include" : "devices/hyperflash.json",
+        "@include@" : "devices/hyperflash.json",
         "cs": 1
       }
     }

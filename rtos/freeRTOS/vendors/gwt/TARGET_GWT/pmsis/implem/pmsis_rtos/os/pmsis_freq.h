@@ -33,7 +33,11 @@
 #define __PI_FREQ_H__
 
 #include "pmsis.h"
-#include "pmsis_hal/pmsis_hal.h"
+#if defined(__GAP8__)
+#include "pmsis_driver/pmsis_drivers.h"
+#elif defined(__GAP9__)
+#include "pmsis/implem/drivers/drivers.h"
+#endif  /* __GAP8__ */
 
 /*******************************************************************************
  * Definitions

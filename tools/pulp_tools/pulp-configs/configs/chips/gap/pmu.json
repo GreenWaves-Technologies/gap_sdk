@@ -1,5 +1,5 @@
 {
-  "includes": [
+  "@includes@": [
     "ips/pmu/pmu_v1.json"
   ],
 

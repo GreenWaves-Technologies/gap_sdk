@@ -38,6 +38,8 @@ RM = rm -rf
 MKDIR = mkdir -p
 MAKE = make
 
+TIMEOUT ?= 300
+
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 ifeq ($(TARGET_CHIP_FAMILY), GAP8)
@@ -116,6 +118,9 @@ openocd:
 	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
 	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins
 
+test:
+	plptest --max-timeout=$(TIMEOUT)
+
 #
 # Littlefs
 #
@@ -137,4 +142,3 @@ $(LFS_BUILD_DIR):
 
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher
-

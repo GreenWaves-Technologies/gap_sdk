@@ -24,7 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl.h"
+#include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_regs.h"
+#include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_regfields.h"
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_gvsoc.h"
 
 #define L2_NB_BANKS 16
@@ -652,7 +653,7 @@ int apb_soc_ctrl::build()
   this->l1_power = (1<<L1_NB_BANKS)-1;
   this->l1_standby = 0;
 
-  this->regmap.build(this);
+  this->regmap.build(this, &this->trace);
 
   return 0;
 }

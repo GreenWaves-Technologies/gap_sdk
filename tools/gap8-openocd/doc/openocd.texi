@@ -4949,20 +4949,6 @@ flash drivers can distinguish between probing and autoprobing,
 but most don't bother.
 @end deffn
 
-@section Preparing a Target before Flash Programming
-
-The target device should be in well defined state before the flash programming
-begins.
-
-@emph{Always issue} @command{reset init} before @ref{flashprogrammingcommands,,Flash Programming Commands}.
-Do not issue another @command{reset} or @command{reset halt} or @command{resume}
-until the programming session is finished.
-
-If you use @ref{programmingusinggdb,,Programming using GDB},
-the target is prepared automatically in the event gdb-flash-erase-start
-
-The jimtcl script @command{program} calls @command{reset init} explicitly.
-
 @section Erasing, Reading, Writing to Flash
 @cindex flash erasing
 @cindex flash reading
@@ -5138,7 +5124,7 @@ command or the flash driver then it defaults to 0xff.
 @end deffn
 
 @anchor{program}
-@deffn Command {program} filename [preverify] [verify] [reset] [exit] [offset]
+@deffn Command {program} filename [verify] [reset] [exit] [offset]
 This is a helper script that simplifies using OpenOCD as a standalone
 programmer. The only required parameter is @option{filename}, the others are optional.
 @xref{Flash Programming}.
@@ -7517,7 +7503,7 @@ change any behavior.
 @chapter Flash Programming
 
 OpenOCD implements numerous ways to program the target flash, whether internal or external.
-Programming can be achieved by either using @ref{programmingusinggdb,,Programming using GDB},
+Programming can be achieved by either using GDB @ref{programmingusinggdb,,Programming using GDB},
 or using the commands given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
 
 @*To simplify using the flash commands directly a jimtcl script is available that handles the programming and verify stage.
@@ -7528,7 +7514,6 @@ The script is executed as follows and by default the following actions will be p
 @item 'init' is executed.
 @item 'reset init' is called to reset and halt the target, any 'reset init' scripts are executed.
 @item @code{flash write_image} is called to erase and write any flash using the filename given.
-@item If the @option{preverify} parameter is given, the target is "verified" first and only flashed if this fails.
 @item @code{verify_image} is called if @option{verify} parameter is given.
 @item @code{reset run} is called if @option{reset} parameter is given.
 @item OpenOCD is shutdown if @option{exit} parameter is given.
@@ -9487,6 +9472,29 @@ When on, prefer to use System Bus Access to access memory.  When off, prefer to
 use the Program Buffer to access memory.
 @end deffn
 
+@deffn Command {riscv set_enable_virtual} on|off
+When on, memory accesses are performed on physical or virtual memory depending
+on the current system configuration. When off, all memory accessses are performed
+on physical memory.
+@end deffn
+
+@deffn Command {riscv set_enable_virt2phys} on|off
+When on, memory accesses are performed on physical or virtual memory depending
+on the current satp configuration. When off, all memory accessses are performed
+on physical memory.
+@end deffn
+
+@deffn Command {riscv resume_order} normal|reversed
+Some software assumes all harts are executing nearly continuously. Such
+software may be sensitive to the order that harts are resumed in. On harts
+that don't support hasel, this option allows the user to choose the order the
+harts are resumed in. If you are using this option, it's probably masking a
+race condition problem in your code.
+
+Normal order is from lowest hart index to highest. This is the default
+behavior. Reversed order is from highest hart index to lowest.
+@end deffn
+
 @deffn Command {riscv set_ir} (@option{idcode}|@option{dtmcs}|@option{dmi}) [value]
 Set the IR value for the specified JTAG register.  This is useful, for
 example, when using the existing JTAG interface on a Xilinx FPGA by
@@ -9496,6 +9504,26 @@ values.
 When utilizing version 0.11 of the RISC-V Debug Specification,
 @option{dtmcs} and @option{dmi} set the IR values for the DTMCONTROL
 and DBUS registers, respectively.
+@end deffn
+
+@deffn Command {riscv use_bscan_tunnel} value
+Enable or disable use of a BSCAN tunnel to reach DM.  Supply the width of
+the DM transport TAP's instruction register to enable.  Supply a value of 0 to disable.
+@end deffn
+
+@deffn Command {riscv set_ebreakm} on|off
+Control dcsr.ebreakm. When on (default), M-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
+@end deffn
+
+@deffn Command {riscv set_ebreaks} on|off
+Control dcsr.ebreaks. When on (default), S-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
+@end deffn
+
+@deffn Command {riscv set_ebreaku} on|off
+Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
+OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
 
 @subsection RISC-V Authentication Commands

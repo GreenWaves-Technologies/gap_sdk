@@ -25,10 +25,9 @@ LDLIBS += @LDLIBS@
 LIBS += @LIBS@
 exec_prefix ?= @exec_prefix@
 prefix ?= @prefix@
-docdir = @docdir@
 
-CC += -Wall $(OPTIM) -I.
-CXX += -Wall $(OPTIM) -I.
+CC += -D_GNU_SOURCE -Wall $(OPTIM) -I.
+CXX += -D_GNU_SOURCE -Wall $(OPTIM) -I.
 @if srcdir != .
 CFLAGS += -I@srcdir@
 CXXFLAGS += -I@srcdir@
@@ -74,8 +73,8 @@ docs: Tcl.html
 
 @if JIM_DOCS
 install-docs: docs
-	$(INSTALL_DATA_DIR) $(DESTDIR)$(docdir)
-	$(INSTALL_DATA) Tcl.html $(DESTDIR)$(docdir)
+	$(INSTALL_DATA_DIR) $(DESTDIR)$(prefix)/doc/jim
+	$(INSTALL_DATA) Tcl.html $(DESTDIR)$(prefix)/doc/jim
 @else
 install-docs:
 @endif
@@ -113,7 +112,7 @@ uninstall:
 @endif
 
 test check: $(JIMSH)
-	cd @srcdir@/tests; $(DEF_LD_PATH) $(MAKE) jimsh=@builddir@/jimsh TOPSRCDIR=@top_srcdir@
+	cd @srcdir@/tests; $(DEF_LD_PATH) $(MAKE) jimsh=@builddir@/jimsh
 
 $(OBJS): Makefile $(wildcard *.h)
 
@@ -154,10 +153,6 @@ file.so: jim-file.c
 	$(CC) $(CFLAGS) $(SHOBJ_CFLAGS) -c -o jim-file.o $> $^
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SHOBJ_LDFLAGS) -o $@ jim-file.o $(SH_LIBJIM)
 
-interp.so: jim-interp.c
-	$(CC) $(CFLAGS) $(SHOBJ_CFLAGS) -c -o jim-interp.o jim-interp.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SHOBJ_LDFLAGS) -o $@ jim-interp.o $(SH_LIBJIM) @LDLIBS_interp@
-
 posix.so: jim-posix.c
 	$(CC) $(CFLAGS) $(SHOBJ_CFLAGS) -c -o jim-posix.o $> $^
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SHOBJ_LDFLAGS) -o $@ jim-posix.o $(SH_LIBJIM)
@@ -197,10 +192,6 @@ mk.so: jim-mk.cpp
 sdl.so: jim-sdl.c
 	$(CC) $(CFLAGS) $(SHOBJ_CFLAGS) -c -o jim-sdl.o $> $^
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SHOBJ_LDFLAGS) -o $@ jim-sdl.o $(SH_LIBJIM) @LDLIBS_sdl@
-
-zlib.so: jim-zlib.c
-	$(CC) $(CFLAGS) $(SHOBJ_CFLAGS) -c -o jim-zlib.o $> $^
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SHOBJ_LDFLAGS) -o $@ jim-zlib.o $(SH_LIBJIM) @LDLIBS_zlib@
 
 Tcl.html: jim_tcl.txt
 	@tclsh@ @srcdir@/make-index $> $^ | asciidoc -o $@ -d manpage - || cp @srcdir@/Tcl_shipped.html Tcl.html

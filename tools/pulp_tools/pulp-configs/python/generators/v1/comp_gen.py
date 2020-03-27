@@ -39,7 +39,10 @@ class Interface(object):
 
 class Component(object):
 
-    def __init__(self, properties=None, config=None, template=None):
+    def __init__(self, properties=None, config=None, template=None, name=None):
+
+        self.__dict__['name'] = name
+
         self.__dict__['is_empty'] = False
         self.__dict__['is_tb_comp'] = False
 
@@ -180,6 +183,7 @@ class Component(object):
         result = OrderedDict()
 
         properties = self.__dict__.get('_Component__properties')
+
         if properties is not None:
             for key, value in properties.items():
                 result[key] = value

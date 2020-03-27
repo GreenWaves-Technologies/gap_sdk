@@ -29,7 +29,11 @@
  */
 
 #include "stdlib.h"
+#if defined(__GAP8__)
 #include "system_gap8.h"
+#else
+#include "system_gap9.h"
+#endif  /* __GAP8__ */
 
 int32_t abs(int32_t x)
 {

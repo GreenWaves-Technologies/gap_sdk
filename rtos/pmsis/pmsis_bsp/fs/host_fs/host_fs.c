@@ -63,6 +63,7 @@ static void __pi_host_fs_close(pi_fs_file_t *arg)
 {
   pi_host_fs_file_t *file = (pi_host_fs_file_t *)arg;
   semihost_close(file->fd);
+  pmsis_l2_malloc_free(file, sizeof(pi_host_fs_file_t));
 }
 
 static int32_t __pi_host_fs_read_async(pi_fs_file_t *arg, void *buffer, uint32_t size, pi_task_t *task)
@@ -114,7 +115,7 @@ static int32_t __pi_host_fs_copy_2d_async(pi_fs_file_t *file, uint32_t index, vo
   {
     if (length > size)
       length = size;
-    
+
     if (__pi_host_fs_seek(file, index))
       goto error;
 

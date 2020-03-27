@@ -18,7 +18,7 @@
   "first_external_pcer": 12,
   "debug_binaries": [],
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

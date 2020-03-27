@@ -57,6 +57,9 @@
 #include <bsp/gap9_v2.h>
 #endif
 
+/* Include debug helper. */
+#include "bsp/debug.h"
+
 #if defined(CONFIG_HIMAX)
 #include "bsp/camera/himax.h"
 void bsp_himax_conf_init(struct pi_himax_conf *conf);

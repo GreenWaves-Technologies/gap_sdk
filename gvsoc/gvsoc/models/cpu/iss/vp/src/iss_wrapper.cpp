@@ -629,18 +629,31 @@ void iss_wrapper::handle_riscv_ebreak()
       if (size < 1024)
         iter_size = size;
 
-      if (read(args[0], (void *)(long)buffer, iter_size) != iter_size)
-        break;
+      int read_size = read(args[0], (void *)(long)buffer, iter_size);
 
-      if (this->user_access(addr, buffer, iter_size, true))
+      if (read_size <= 0)
+      {
+        if (read_size < 0)
+        {
+          this->cpu.regfile.regs[10] = -1;
+          return;
+        }
+        else
+        {
+          break;
+        }
+      }
+
+      if (this->user_access(addr, buffer, read_size, true))
       {
         this->cpu.regfile.regs[10] = -1;
         return;
       }
 
-      size -= iter_size;
-      addr += iter_size;
+      size -= read_size;
+      addr += read_size;
     }
+
     this->cpu.regfile.regs[10] = size;
   }
   else if (id == 0xA)

@@ -1,5 +1,5 @@
 {
-  "includes": [ "ips/udma/udma_v3.json"],
+  "@includes@": [ "ips/udma/udma_v3.json"],
 
   "vp_impl": "pulp.udma.udma_v3_vega_impl",
   "vp_component": "pulp.udma.udma_v3_vega_impl",
@@ -72,7 +72,7 @@
   },
 
   "i2s": {
-    "includes"     : [ "ips/udma/i2s/udma_i2s_v2.json" ],
+    "@includes@"     : [ "ips/udma/i2s/udma_i2s_v2.json" ],
     "nb_channels"  : 1,
     "ids"          : [11],
     "offsets"      : ["0x580"],

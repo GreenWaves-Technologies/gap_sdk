@@ -42,9 +42,6 @@ void test_uart_delegate(void)
     uart_conf.enable_tx = 1;
     uart_conf.enable_rx = 0;
     uart_conf.baudrate_bps = 115200;
-    #if !defined(__PULP_OS__)
-    uart_conf.src_clock_Hz = pi_fll_get_frequency(FLL_SOC);
-    #endif  /* __PULP_OS__ */
     pi_open_from_conf(&uart, &uart_conf);
     if (pi_uart_open(&uart))
     {

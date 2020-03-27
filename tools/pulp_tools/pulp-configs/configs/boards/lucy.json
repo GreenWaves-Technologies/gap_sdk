@@ -1,5 +1,5 @@
 {
-  "includes": [ "chips/vivosoc3/vivosoc3.json" ],
+  "@includes@": [ "chips/vivosoc3/vivosoc3.json" ],
 
   "board": {
     "name": "lucy"

@@ -1,0 +1,35 @@
+{
+    "description": "RTL simulator.",
+
+    "runner_module": "runner.rtl.rtl_runner",
+
+    "verbose": true,
+    "simulator": "vsim",
+    "mode": "shell",
+
+    "vsim": {
+        "profiles": {
+            "rtl": {
+                "commands": {
+                    "shell": {
+                        "executable": "vsim",
+                        "args_eval": [
+                            "\"-64\"",
+                            "\"-c\"",
+                            "\"-do 'source \" + os.environ.get(\"VSIM_PATH\") +  \"/tcl_files/config/run_and_exit.tcl'\"",
+                            "\"-do 'source \" + os.environ.get(\"VSIM_PATH\") +  \"/tcl_files/run.tcl; run_and_exit'\""
+                        ]
+                    },
+                    "gui": {
+                        "executable": "vsim",
+                        "args_eval": [
+                            "\"-64\"",
+                            "\"-do 'source \" + os.environ.get(\"VSIM_PATH\") +  \"/tcl_files/config/run_and_exit.tcl'\"",
+                            "\"-do 'source \" + os.environ.get(\"VSIM_PATH\") +  \"/tcl_files/run.tcl;'\""
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,32 +1,41 @@
 {
-  "runner": {
-  	"platform_class": "vp_runner"
-  },
+    "runner": {
+      "platform_class": "vp_runner"
+    },
 
-  "gvsoc": {
-    "cycles_to_seconds": "int(max(cycles * nb_cores / 5000000, 600))",
-    "trace-file": ["stdout"],
-    "trace-level": "debug",
-    "debug-mode": false,
-    "trace": [],
-    "event": [],
-    "load-binary": [],
-    "pdb-no-break": "True",
-    "werror": "True",
-    "vcd"  : {
-      "help": {
-        "active": "Activate VCD tracing.",
-        "all": "Activate all VCD traces.",
-        "gtkw": "Generate script for Gtkwave."
-      },
-      "format": "fst",
-      "active": false,
-      "all": true,
-      "gtkw": false,
-      "files": [ ],
-      "traces": {},
-      "tags" : [ "overview" ],
-      "gtkw": false
+    "gvsoc": {
+
+        "runner_module": "gv.gvsoc",
+
+        "cycles_to_seconds": "int(max(cycles * nb_cores / 5000000, 600))",
+
+        "verbose": true,
+        "debug-mode": false,
+
+        "launchers": {
+            "default": "gvsoc_launcher",
+            "debug": "gvsoc_launcher_debug"
+        },
+  
+        "traces": {
+            "level": "debug",
+            "enabled": false,
+            "include_regex": [],
+            "exclude_regex": []
+        },
+
+        "events": {
+            "enabled": false,
+            "include_regex": [],
+            "exclude_regex": [],
+            "format": "fst",
+            "active": false,
+            "all": true,
+            "gtkw": false,
+            "files": [ ],
+            "traces": {},
+            "tags" : [ "overview" ],
+            "gtkw": false
+        }
     }
-  }
 }

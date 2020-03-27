@@ -57,6 +57,7 @@ static int hyperram_open(struct pi_device *device)
   struct pi_hyper_conf hyper_conf;
   pi_hyper_conf_init(&hyper_conf);
 
+  hyper_conf.burst_length = 4000;
   hyper_conf.id = conf->hyper_itf;
   hyper_conf.cs = conf->hyper_cs;
   hyper_conf.type = PI_HYPER_TYPE_RAM;
@@ -76,7 +77,7 @@ static int hyperram_open(struct pi_device *device)
   return 0;
 
 error2:
-  extern_alloc_init(&hyperram->alloc, 0, conf->ram_size);
+  extern_alloc_deinit(&hyperram->alloc);
 error:
   pmsis_l2_malloc_free(hyperram, sizeof(hyperram_t));
   return -2;
@@ -88,6 +89,7 @@ static void hyperram_close(struct pi_device *device)
 {
   hyperram_t *hyperram = (hyperram_t *)device->data;
   pi_hyper_close(&hyperram->hyper_device);
+  extern_alloc_deinit(&hyperram->alloc);
   pmsis_l2_malloc_free(hyperram, sizeof(hyperram_t));
 }
 

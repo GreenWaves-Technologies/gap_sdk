@@ -34,9 +34,11 @@ typedef enum {
     PI_ERR_TIMEOUT = 0x07, /*!< Operation timed out */
     PI_ERR_INVALID_CRC = 0x08, /*!< CRC or checksum was invalid */
     PI_ERR_INVALID_VERSION = 0x09, /*!< Version was invalid */
+    PI_ERR_INVALID_APP = 0x0A, /*!< App binary is not compliant with GAP. */
+    PI_ERR_INVALID_MAGIC_CODE = 0x0B, /*!< Magic code does not match. */
 
     PI_ERR_NO_MEM = 0x200, /*!< Generic out of memory */
-    PI_ERR_L2_NO_MEM = 0x200, /*!< L2 out of memory */
+    PI_ERR_L2_NO_MEM = 0x201, /*!< L2 out of memory */
 } pi_err_t;
 
 #endif //API_ERRNO_H

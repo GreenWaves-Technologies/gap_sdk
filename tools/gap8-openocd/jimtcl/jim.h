@@ -39,7 +39,7 @@
  *--- Inline Header File Documentation ---
  *    [By Duane Ellis, openocd@duaneellis.com, 8/18/8]
  *
- * Belief is "Jim" would greatly benefit if Jim Internals where
+ * Belief is "Jim" would greatly benifit if Jim Internals where
  * documented in some way - form whatever, and perhaps - the package:
  * 'doxygen' is the correct approach to do that.
  *
@@ -156,7 +156,7 @@ extern "C" {
 #define JIM_SUBST_NOVAR 1 /* don't perform variables substitutions */
 #define JIM_SUBST_NOCMD 2 /* don't perform command substitutions */
 #define JIM_SUBST_NOESC 4 /* don't perform escapes substitutions */
-#define JIM_SUBST_FLAG 128 /* flag to indicate that this is a real substitution object */
+#define JIM_SUBST_FLAG 128 /* flag to indicate that this is a real substition object */
 
 /* Flags used by API calls getting a 'nocase' argument. */
 #define JIM_CASESENS    0   /* case sensitive */
@@ -341,7 +341,7 @@ typedef struct Jim_Obj {
             int argc;
         } scriptLineValue;
     } internalRep;
-    /* These fields add 8 or 16 bytes more for every object
+    /* This are 8 or 16 bytes more for every object
      * but this is required for efficient garbage collection
      * of Jim references. */
     struct Jim_Obj *prevObjPtr; /* pointer to the prev object. */
@@ -362,7 +362,7 @@ typedef struct Jim_Obj {
  * can just call Jim_FreeNewObj. To call Jim_Free directly
  * seems too raw, the object handling may change and we want
  * that Jim_FreeNewObj() can be called only against objects
- * that are believed to have refcount == 0. */
+ * that are belived to have refcount == 0. */
 #define Jim_FreeNewObj Jim_FreeObj
 
 /* Free the internal representation of the object. */
@@ -410,7 +410,12 @@ typedef struct Jim_ObjType {
 
 /* Jim_ObjType flags */
 #define JIM_TYPE_NONE 0        /* No flags */
-#define JIM_TYPE_REFERENCES 1    /* The object may contain references. */
+#define JIM_TYPE_REFERENCES 1    /* The object may contain referneces. */
+
+/* Starting from 1 << 20 flags are reserved for private uses of
+ * different calls. This way the same 'flags' argument may be used
+ * to pass both global flags and private flags. */
+#define JIM_PRIV_FLAG_SHIFT 20
 
 /* -----------------------------------------------------------------------------
  * Call frame, vars, commands structures
@@ -432,16 +437,17 @@ typedef struct Jim_CallFrame {
     Jim_Obj *fileNameObj;       /* file and line of caller of this proc (if available) */
     int line;
     Jim_Stack *localCommands; /* commands to be destroyed when the call frame is destroyed */
+    int tailcall;            /* non-zero if a tailcall is being evaluated at this level */
     struct Jim_Obj *tailcallObj;  /* Pending tailcall invocation */
     struct Jim_Cmd *tailcallCmd;  /* Resolved command for pending tailcall invocation */
 } Jim_CallFrame;
 
 /* The var structure. It just holds the pointer of the referenced
  * object. If linkFramePtr is not NULL the variable is a link
- * to a variable of name stored in objPtr living in the given callframe
+ * to a variable of name store on objPtr living on the given callframe
  * (this happens when the [global] or [upvar] command is used).
  * The interp in order to always know how to free the Jim_Obj associated
- * with a given variable because in Jim objects memory management is
+ * with a given variable because In Jim objects memory managment is
  * bound to interpreters. */
 typedef struct Jim_Var {
     Jim_Obj *objPtr;
@@ -456,8 +462,8 @@ typedef void Jim_DelCmdProc(struct Jim_Interp *interp, void *privData);
 
 
 /* A command is implemented in C if isproc is 0, otherwise
- * it is a Tcl procedure with the arglist and body represented by the
- * two objects referenced by arglistObjPtr and bodyObjPtr. */
+ * it's a Tcl procedure with the arglist and body represented by the
+ * two objects referenced by arglistObjPtr and bodyoObjPtr. */
 typedef struct Jim_Cmd {
     int inUse;           /* Reference count */
     int isproc;          /* Is this a procedure? */
@@ -502,7 +508,7 @@ typedef struct Jim_Interp {
     Jim_Obj *result; /* object returned by the last command called. */
     int errorLine; /* Error line where an error occurred. */
     Jim_Obj *errorFileNameObj; /* Error file where an error occurred. */
-    int addStackTrace; /* > 0 if a level should be added to the stack trace */
+    int addStackTrace; /* > 0 If a level should be added to the stack trace */
     int maxCallFrameDepth; /* Used for infinite loop detection. */
     int maxEvalDepth; /* Used for infinite loop detection. */
     int evalDepth;  /* Current eval depth */
@@ -721,8 +727,8 @@ JIM_EXPORT void Jim_SetResultFormatted(Jim_Interp *interp, const char *format, .
 /* commands */
 JIM_EXPORT void Jim_RegisterCoreCommands (Jim_Interp *interp);
 JIM_EXPORT int Jim_CreateCommand (Jim_Interp *interp,
-        const char *cmdName, Jim_CmdProc *cmdProc, void *privData,
-         Jim_DelCmdProc *delProc);
+        const char *cmdName, Jim_CmdProc cmdProc, void *privData,
+         Jim_DelCmdProc delProc);
 JIM_EXPORT int Jim_DeleteCommand (Jim_Interp *interp,
         const char *cmdName);
 JIM_EXPORT int Jim_RenameCommand (Jim_Interp *interp,
@@ -816,10 +822,6 @@ JIM_EXPORT int Jim_EvalExpression (Jim_Interp *interp,
 JIM_EXPORT int Jim_GetBoolFromExpr (Jim_Interp *interp,
         Jim_Obj *exprObjPtr, int *boolPtr);
 
-/* boolean object */
-JIM_EXPORT int Jim_GetBoolean(Jim_Interp *interp, Jim_Obj *objPtr,
-        int *booleanPtr);
-
 /* integer object */
 JIM_EXPORT int Jim_GetWide (Jim_Interp *interp, Jim_Obj *objPtr,
         jim_wide *widePtr);
@@ -841,9 +843,8 @@ JIM_EXPORT void Jim_WrongNumArgs (Jim_Interp *interp, int argc,
         Jim_Obj *const *argv, const char *msg);
 JIM_EXPORT int Jim_GetEnum (Jim_Interp *interp, Jim_Obj *objPtr,
         const char * const *tablePtr, int *indexPtr, const char *name, int flags);
-JIM_EXPORT int Jim_ScriptIsComplete(Jim_Interp *interp,
-        Jim_Obj *scriptObj, char *stateCharPtr);
-
+JIM_EXPORT int Jim_ScriptIsComplete (const char *s, int len,
+        char *stateCharPtr);
 /**
  * Find a matching name in the array of the given length.
  *

@@ -1,3 +1,8 @@
+/**
+ * This example blinks a user led on Gapuino boards(Gapuino_V2),
+ * Gapoc_a and Gapoc_b boards.
+ */
+
 /* PMSIS includes */
 #include "pmsis.h"
 #include "bsp/bsp.h"

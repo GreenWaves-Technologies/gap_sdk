@@ -21,9 +21,15 @@
 #include "archi/pulp_defs.h"
 #include "archi/utils.h"
 
+#ifdef __PULPOS2__
+#define  __A_PULP_CHIP_INC(x) #x
+#define  _A_PULP_CHIP_INC(x) __A_PULP_CHIP_INC(archi/chips/x/pulp_archi.h)
+#define  A_PULP_CHIP_INC(x) _A_PULP_CHIP_INC(x)
+#else
 #define  __A_PULP_CHIP_INC(x) #x
 #define  _A_PULP_CHIP_INC(x) __A_PULP_CHIP_INC(archi/chips/x/pulp.h)
 #define  A_PULP_CHIP_INC(x) _A_PULP_CHIP_INC(x)
+#endif
 
 #if defined(PULP_CHIP_FAMILY)
 #include A_PULP_CHIP_INC(PULP_CHIP_FAMILY_STR)

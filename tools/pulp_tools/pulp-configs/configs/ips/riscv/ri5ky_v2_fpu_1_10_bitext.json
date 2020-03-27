@@ -21,7 +21,7 @@
   "bootaddr_offset": "0x00",
   "iss_class": "iss_riscy_v2_5",
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   }

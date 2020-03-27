@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 ETH Zurich and University of Bologna
+# Copyright (C) 2019 GreenWaves Technologies
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,34 +14,54 @@
 # limitations under the License.
 #
 
-#
-# Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
-#
-
 import json
 from collections import OrderedDict
 import os
 import sys
 import io
+import importlib
+import configparser
+import collections
+
+
+def argToInt(value):
+	""" Given a size or addresse of the type passed in args	(ie 512KB or 1MB) then return the value in bytes.
+	In case of neither KB or MB was specified, 0x prefix can be used.
+	"""
+	for letter, multiplier in [("kb", 1024), ("mb", 1024 * 1024)]:
+		if value.lower().endswith(letter):
+			return int(value[:-len(letter)], 0) * multiplier
+	else:
+		return int(value, 0)
+
+
+def add_paths(paths, path):
+    if path is not None:
+        paths += path.split(':')
+
+    return paths
+
 
 def get_paths(path=None, paths=None):
 
-  env_path = os.environ.get('BUILDER_CONFIGS_PATH')
-  if env_path is None:
-      env_path = os.environ.get('SDK_CONFIGS_PATH')
-      if env_path is None:
-        env_path = os.environ.get('PULP_CONFIGS_PATH')
+    all_paths = []
 
-  all_paths = env_path.split(':')
-  if paths is not None:
-    all_paths = all_paths + paths
-  if path is not None:
-    all_paths = all_paths + [path]
-  return all_paths
+    if paths is not None:
+        all_paths += paths
+    
+    add_paths(all_paths, os.environ.get('GAPY_CONFIGS'))
+    add_paths(all_paths, os.environ.get('BUILDER_CONFIGS_PATH'))
+    add_paths(all_paths, os.environ.get('SDK_CONFIGS_PATH'))
+    add_paths(all_paths, os.environ.get('PULP_CONFIGS_PATH'))
+
+    if path is not None:
+        all_paths = all_paths + [path]
+
+    return all_paths
 
 
 def is_string(config):
-    if sys.version_info >= (3,0,0):
+    if sys.version_info >= (3, 0, 0):
         return type(config) == str
     else:
         return type(config) == str or isinstance(config, unicode)
@@ -49,35 +69,61 @@ def is_string(config):
 
 def find_config(config, paths):
 
-  for path in paths:
-    full_path = os.path.join(path, config)
-    if os.path.exists(full_path):
-      return full_path
+    for path in paths:
+        full_path = os.path.join(path, config)
+        if os.path.exists(full_path):
+            return full_path
 
-  return None
-
-
-
-def import_config(config, interpret=False, path=None):
-    return config_object(config, interpret, path)
+    return None
 
 
-def get_config_file(file_path, interpret=False, find=False, path=None):
+def import_config(config, interpret=False, path=None, paths=None, gen=False, indent='', ini_configs=[], config_items=[]):
+    config = config_object(config, interpret=interpret, path=path, paths=paths, gen=gen, indent=indent)
+
+    ini_configs_dict = {}
+
+    for ini_config in ini_configs:
+      parser = configparser.SafeConfigParser(ini_configs_dict, dict_type=collections.OrderedDict)
+      parser.optionxform = str
+      paths = parser.read(ini_config)
+      if len(paths) == 0:
+          raise Exception("Didn't manage to open file: %s" % (ini_config))
+          
+      for section in parser.sections():
+        for item in parser.items(section):
+          path = ('%s.%s' % (section, item[0])).split('.')
+          config.set_from_list(path, item[1])
+
+
+    for config_opt in config_items:
+        key, value = config_opt.split('=', 1)
+        config.user_set(key, value)
+
+
+    config = config_object(config.get_dict(), interpret=interpret, path=path, paths=paths, gen=gen, indent=indent)
+
+    return config
+
+
+
+def get_config_file(file_path, interpret=False, find=False, path=None, paths=None):
 
     if find:
-        paths = get_paths(path=path)
+        paths = get_paths(path=path, paths = paths)
         new_file_path = find_config(file_path, paths)
         if new_file_path is None:
-            raise Exception("Didn't find JSON file from any specified path (file: %s, paths: %s)" % (file_path, ":".join(paths)))
+            raise Exception("Didn't find JSON file from any specified path (file: %s, paths: %s)" % (
+                file_path, ":".join(paths)))
         file_path = new_file_path
 
     with io.open(file_path, 'r', encoding='utf-8') as fd:
         config_dict = json.load(fd, object_pairs_hook=OrderedDict)
         return config_dict
 
-def import_config_from_file(file_path, interpret=False, find=False, path=None):
-    config_dict = get_config_file(file_path, interpret, find, path)
-    return import_config(config_dict, interpret, path=os.path.dirname(file_path))
+
+def import_config_from_file(file_path, interpret=False, find=False, path=None, gen=False, paths=None, indent='', ini_configs=[], config_items=[]):
+    config_dict = get_config_file(file_path, interpret=interpret, find=find, path=path, paths=paths)
+    return import_config(config_dict, interpret=interpret, path=os.path.dirname(file_path), gen=gen, paths=paths, indent=indent, ini_configs=ini_configs, config_items=config_items)
 
 
 class config(object):
@@ -142,19 +188,22 @@ class config(object):
     def merge(self, new_value):
         return new_value
 
-    def get_tree(self, config, interpret=False, path=None):
+    def get_tree(self, config, interpret=False, path=None, do_eval=False, paths=None, indent='', gen=False):
         if type(config) == list:
-            return config_array(config)
+            return config_array(config, interpret=interpret)
         elif type(config) == dict or type(config) == OrderedDict:
-            return config_object(config, interpret, path)
+            return config_object(config, interpret=interpret, path=path, paths=paths, do_eval=do_eval, indent=indent, gen=gen)
         elif is_string(config):
-            return config_string(config)
+            return config_string(config, do_eval=do_eval)
         elif type(config) == bool:
-            return config_bool(config)
+            return config_bool(config, do_eval=do_eval)
         else:
-            return config_number(config)
+            return config_number(config, do_eval=do_eval)
 
     def get_string(self):
+        return self.dump_to_string()
+
+    def __str__(self):
         return self.dump_to_string()
 
     def dump_to_string(self, indent=2):
@@ -169,24 +218,58 @@ class config(object):
 
 class config_object(config):
 
-    def __init__(self, config, interpret=False, path=None):
+    def __init__(self, config=None, interpret=False, path=None, do_eval=False, gen=False, paths=None, indent=''):
         self.items = OrderedDict()
 
-        for key, value in config.items():
+        #if gen == True and interpret == False:
+        #    raise RuntimeError("")
 
-            if interpret and (key == 'includes' or key == 'includes2' or key == 'include'):
+        if config is not None:
+            generator = None
+            current_config = config_object(interpret=interpret, path=path, paths=paths, gen=gen, indent = indent + '  ')
 
-                if key == 'include':
-                    value = [value]
+            for key, value in config.items():
 
-                for include in value:
-                    self.merge(import_config_from_file(include, interpret=interpret, find=True, path=path))
+                #print (indent + 'PARSE ' + key)
+                #print (id(self))
+
+                if interpret and (key == '@eval@' or key == '@includes@' or key == '@includes2@' or key == '@include@' or key == 'includes' or key == 'includes2' or key == 'include'):
+
+                    if key == '@eval@':
+                        current_config.merge(current_config.get_tree(value, interpret, path, do_eval=True, indent=indent+'  ', gen=gen))
+                    else:
+                        if key == '@include@' or key == 'include':
+                            value = [value]
+
+                        for include in value:
+                            current_config.merge(import_config_from_file(
+                                include, interpret=interpret, find=True, path=path, paths=paths, gen=False, indent=indent+'  '))
+
+                else:
+                    if current_config.items.get(key) is not None:
+                        current_config.items[key] = current_config.items[key].merge(
+                            current_config.get_tree(value, interpret, path, paths=paths, do_eval=do_eval, indent=indent+'  ', gen=gen))
+                    else:
+                        #print ('GET')
+                        current_config.items[key] = current_config.get_tree(value, interpret, path, paths=paths, do_eval=do_eval, indent=indent+'  ', gen=gen)
+
+                #print (indent + 'DONE ' + key)
+                #print (id(self))
+               # print (current_config.dump_to_string())
+
+
+
+            if gen == True and interpret and current_config.items.get("@generator@") is not None:
+
+                generator = current_config.get_str("@generator@")
+
+                module = importlib.import_module(generator.replace('/', '.'))
+
+                self.merge(module.get_config(config_object(current_config.get_dict(), interpret, path, gen=False, indent=indent)))
 
             else:
-                if self.items.get(key) is not None:
-                    self.items[key] = self.items[key].merge(self.get_tree(value, interpret, path))
-                else:
-                    self.items[key] = self.get_tree(value, interpret, path)
+
+                self.merge(current_config)
 
     def browse(self, callback, *kargs, **kwargs):
         callback(self, *kargs, **kwargs)
@@ -212,7 +295,7 @@ class config_object(config):
         config = self.get(name)
         if config is None:
             return None
-        return config.get()
+        return config.get_int()
 
     def merge(self, new_value):
         for key, value in new_value.items.items():
@@ -290,7 +373,6 @@ class config_object(config):
     def get_child(self, name):
         return self.get(name)
 
-
     def get(self, name):
         return self.get_from_list(name.split('/'))
 
@@ -322,9 +404,16 @@ class config_object(config):
             result = {}
         else:
             result = OrderedDict()
-        for key,value in self.items.items():
+        for key, value in self.items.items():
             result[key] = value.get_dict(serialize=serialize)
         return result
+
+    def get_py(self, name):
+        obj = self.get(name)
+        if obj is None:
+            return None
+        else:
+            return obj.get_dict()
 
     def get_items(self):
         return self.items
@@ -332,26 +421,30 @@ class config_object(config):
     def dump_help(self, name=None, root=None):
         prop_help = self.items.get('help')
         if prop_help is not None:
-          print ('')
-          print ('  ' + name + ' group:')
-          for key in prop_help.get_dict().keys():
-            full_name = key
-            if name is not None:
-              full_name = '%s/%s' % (name, key)
-            print ('    %-40s %s' % (full_name, prop_help.get_str(key)))
+            print('')
+            print('  ' + name + ' group:')
+            for key in prop_help.get_dict().keys():
+                full_name = key
+                if name is not None:
+                    full_name = '%s/%s' % (name, key)
+                print('    %-40s %s' % (full_name, prop_help.get_str(key)))
 
         for key, prop in self.items.items():
-          full_name = key
-          if name is not None:
-            full_name = '%s/%s' % (name, key)
-          prop.dump_help(name=full_name)
+            full_name = key
+            if name is not None:
+                full_name = '%s/%s' % (name, key)
+            prop.dump_help(name=full_name)
+
 
 class config_array(config):
 
-    def __init__(self, config):
+    def __init__(self, config, interpret=False):
         self.elems = []
         for elem in config:
-            self.elems.append(self.get_tree(elem))
+            self.elems.append(self.get_tree(elem, interpret=interpret))
+
+    def __len__(self):
+        return len(self.elems)
 
     def get_from_list(self, name_list):
         if len(name_list) == 0:
@@ -395,14 +488,22 @@ class config_array(config):
 
     def dump_help(self, name=None, root=None):
         for elem in self.elems:
-          elem.dump_help(name=name)
+            elem.dump_help(name=name)
 
+def do_node_eval(config):
+    try:
+        return eval(config)
+    except:
+        return config
 
 
 class config_string(config):
 
-    def __init__(self, config):
-        self.value = config
+    def __init__(self, config, do_eval=False):
+        if do_eval:
+            self.value = do_node_eval(config)
+        else:
+            self.value = config
 
     def get_from_list(self, name_list):
         if len(name_list) == 0:
@@ -419,16 +520,20 @@ class config_string(config):
         return self.value
 
     def get_int(self):
-        return int(self.get(), 0)
+        return argToInt(self.get())
 
     def set_from_list(self, name_list, value):
         if len(name_list) == 0:
             self.value = self.get_tree(value)
 
+
 class config_number(config):
 
-    def __init__(self, config):
-        self.value = config
+    def __init__(self, config, do_eval=False):
+        if do_eval:
+            self.value = eval(config)
+        else:
+            self.value = config
 
     def get_from_list(self, name_list):
         if len(name_list) == 0:
@@ -451,8 +556,11 @@ class config_number(config):
 
 class config_bool(config):
 
-    def __init__(self, config):
-        self.value = config
+    def __init__(self, config, do_eval=False):
+        if do_eval:
+            self.value = eval(config)
+        else:
+            self.value = config
 
     def get_from_list(self, name_list):
         if len(name_list) == 0:

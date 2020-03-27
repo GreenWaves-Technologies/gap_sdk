@@ -18,7 +18,7 @@
   "boot_addr" : "0x00000000",
   "debug_binaries": [],
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

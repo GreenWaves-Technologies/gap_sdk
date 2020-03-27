@@ -46,17 +46,15 @@ static inline void pi_task_destroy(pi_task_t *task)
 {
 }
 
-extern int pmsis_exit_value;
-
 static inline int pmsis_kickoff(void *arg)
 {
   ((void (*)())arg)();
-  return pmsis_exit_value;
+  return -1;
 }
 
 static inline void pmsis_exit(int err)
 {
-  pmsis_exit_value = err;
+  exit(err);
 }
 
 static inline void pi_yield()

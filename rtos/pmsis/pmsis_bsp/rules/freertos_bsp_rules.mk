@@ -24,6 +24,10 @@ else ifeq ($(BOARD_NAME), gapoc_a)
 PMSIS_BSP_SRC = $(GAPOC_A_SRC)
 else ifeq ($(BOARD_NAME), gapoc_b)
 PMSIS_BSP_SRC = $(GAPOC_B_SRC)
+else ifeq ($(BOARD_NAME), vega)
+PMSIS_BSP_SRC = $(GAP9_SRC)
+else ifeq ($(BOARD_NAME), gap9_v2)
+PMSIS_BSP_SRC = $(GAP9_SRC)
 endif
 
 EXCLUDE_FROM_SRCS= transport/transport.c transport/nina_w10/nina_w10.c flash/spiflash/spiflash.c

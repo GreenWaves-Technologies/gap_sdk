@@ -1,5 +1,5 @@
 {
-  "includes": [ "chips/pulpissimo/pulpissimo.json" ],
+  "@includes@": [ "chips/pulpissimo/pulpissimo.json" ],
 
   "board": {
     "name": "pulpissimo_genesys2"

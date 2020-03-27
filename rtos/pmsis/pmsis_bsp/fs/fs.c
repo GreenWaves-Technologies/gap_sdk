@@ -158,12 +158,7 @@ int32_t pi_fs_seek(pi_fs_file_t *file, unsigned int offset)
 void __pi_cl_fs_req_done(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    #if defined(PMSIS_DRIVERS)
     cl_notify_task_done(&(req->done), req->cid);
-    #else
-    req->done = 1;
-    __rt_cluster_notif_req_done(req->cid);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void __pi_cl_fs_req(void *_req)
@@ -189,15 +184,8 @@ void pi_cl_fs_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req
     req->done = 0;
     req->direct = 0;
 
-    #if defined(__PULP_OS__)
-    __rt_task_init_from_cluster(&req->task);
-    #endif  /* __PULP_OS__ */
     pi_task_callback(&req->task, __pi_cl_fs_req, (void *) req);
-    #if defined(PMSIS_DRIVERS)
     pi_cl_send_task_to_fc(&(req->task));
-    #else
-    __rt_cluster_push_fc_event(&req->task);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void pi_cl_fs_direct_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req_t *req)
@@ -209,27 +197,15 @@ void pi_cl_fs_direct_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl
     req->done = 0;
     req->direct = 1;
 
-    #if defined(__PULP_OS__)
-    __rt_task_init_from_cluster(&req->task);
-    #endif  /* __PULP_OS__ */
     pi_task_callback(&req->task, __pi_cl_fs_req, (void *) req);
-    #if defined(PMSIS_DRIVERS)
     pi_cl_send_task_to_fc(&(req->task));
-    #else
-    __rt_cluster_push_fc_event(&req->task);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void __pi_cl_fs_seek_req(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
     req->result = pi_fs_seek(req->file, req->offset);
-    #if defined(PMSIS_DRIVERS)
     cl_notify_task_done(&(req->done), req->cid);
-    #else
-    req->done = 1;
-    __rt_cluster_notif_req_done(req->cid);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void pi_cl_fs_seek(pi_fs_file_t *file, uint32_t offset, pi_cl_fs_req_t *req)
@@ -239,26 +215,14 @@ void pi_cl_fs_seek(pi_fs_file_t *file, uint32_t offset, pi_cl_fs_req_t *req)
     req->cid = pi_cluster_id();
     req->done = 0;
 
-    #if defined(__PULP_OS__)
-    __rt_task_init_from_cluster(&req->task);
-    #endif  /* __PULP_OS__ */
     pi_task_callback(&req->task, __pi_cl_fs_seek_req, (void *) req);
-    #if defined(PMSIS_DRIVERS)
     pi_cl_send_task_to_fc(&(req->task));
-    #else
-    __rt_cluster_push_fc_event(&req->task);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void __pi_cl_fs_copy_req_done(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    #if defined(PMSIS_DRIVERS)
     cl_notify_task_done(&(req->done), req->cid);
-    #else
-    req->done = 1;
-    __rt_cluster_notif_req_done(req->cid);
-    #endif  /* PMSIS_DRIVERS */
 }
 
 void __pi_cl_fs_copy_req(void *_req)
@@ -284,15 +248,8 @@ void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t si
   req->length = 0;
   req->done = 0;
   req->cid = pi_cluster_id();
-  #if defined(__PULP_OS__)
-  __rt_task_init_from_cluster(&req->task);
-  #endif  /* __PULP_OS__ */
   pi_task_callback(&req->task, __pi_cl_fs_copy_req, (void *) req);
-  #if defined(PMSIS_DRIVERS)
   pi_cl_send_task_to_fc(&(req->task));
-  #else
-  __rt_cluster_push_fc_event(&req->task);
-  #endif  /* PMSIS_DRIVERS */
 }
 
 void pi_cl_fs_copy_2d(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, uint32_t stride, uint32_t length, int32_t ext2loc, pi_cl_fs_req_t *req)
@@ -306,13 +263,6 @@ void pi_cl_fs_copy_2d(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t
   req->ext2loc = ext2loc;
   req->done = 0;
   req->cid = pi_cluster_id();
-  #if defined(__PULP_OS__)
-  __rt_task_init_from_cluster(&req->task);
-  #endif  /* __PULP_OS__ */
   pi_task_callback(&req->task, __pi_cl_fs_copy_req, (void *) req);
-  #if defined(PMSIS_DRIVERS)
   pi_cl_send_task_to_fc(&(req->task));
-  #else
-  __rt_cluster_push_fc_event(&req->task);
-  #endif  /* PMSIS_DRIVERS */
 }

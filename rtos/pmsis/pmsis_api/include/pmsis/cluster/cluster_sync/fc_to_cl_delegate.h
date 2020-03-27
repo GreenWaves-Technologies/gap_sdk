@@ -264,9 +264,9 @@ int pi_cluster_open_async(struct pi_device *device,
 
 static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *task, void (*entry)(void*), void *arg)
 {
-#ifdef PMSIS_DRIVERS
-    memset(task, 0, sizeof(pi_cluster_task));
-#endif
+    #if defined(PMSIS_DRIVERS)
+    memset(task, 0, sizeof(struct pi_cluster_task));
+    #endif  /* PMSIS_DRIVERS */
     task->entry = entry;
     task->arg = arg;
     task->stacks = (void *)0;

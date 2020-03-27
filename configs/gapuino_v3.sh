@@ -18,4 +18,6 @@ export PULP_CURRENT_CONFIG=$BOARD_NAME@config_file=config/gapuino_revc.json
 export GVSOC_CONFIG=gapuino_revc
 export PLPBRIDGE_CABLE=ftdi@digilent
 
+export GAPY_TARGET=gapuino_v3
+
 source $GAP_SDK_HOME/configs/common.sh

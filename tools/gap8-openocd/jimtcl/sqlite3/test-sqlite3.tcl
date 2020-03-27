@@ -1,6 +1,6 @@
 # A simple test of the "big" sqlite3 extension
 
-set auto_path [list . {*}$auto_path]
+lappend auto_path .
 
 package require sqlite3
 

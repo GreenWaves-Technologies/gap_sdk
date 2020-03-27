@@ -22,7 +22,7 @@
   "soc": {
     "nb_cluster"       : 1,
     "cluster": {
-      "includes": ["ips/cluster_v4.json"],
+      "@includes@": ["ips/cluster_v4.json"],
 
       "l1": {
         "size" : 32768
@@ -36,11 +36,11 @@
     },
 
     "stdout": {
-      "includes"  : ["ips/stdout_v2.json"]
+      "@includes@"  : ["ips/stdout_v2.json"]
     },
 
     "udma": {
-      "includes"  : ["ips/udma/udma_v1.json"]
+      "@includes@"  : ["ips/udma/udma_v1.json"]
     }
   }
   

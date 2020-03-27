@@ -20,7 +20,7 @@
   "debug_binaries": [],
   "debug_handler" : "0x1a190800",
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

@@ -20,4 +20,6 @@ fi
 export GVSOC_CONFIG=$BOARD_NAME
 export PLPBRIDGE_CABLE=ftdi@digilent
 
+export GAPY_TARGET=gapuino
+
 . $GAP_SDK_HOME/configs/common.sh

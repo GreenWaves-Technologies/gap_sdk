@@ -1,10 +1,10 @@
 # vim:se syn=tcl:
 #
 
-define JIM_VERSION 77
+define JIM_VERSION 76
 
 # Note: modules which support options *must* be included before 'options'
-use cc cc-shared cc-db cc-lib pkg-config
+use cc cc-shared cc-db cc-lib
 use local
 
 options {
@@ -12,15 +12,13 @@ options {
     lineedit=1      => "disable line editing"
     references=1    => "disable support for references"
     math            => "include support for math functions"
-    ssl             => "include ssl/tls support in the aio extension"
     ipv6            => "include ipv6 support in the aio extension"
     maintainer      => {enable the [debug] command and JimPanic}
-    full            => "Enable some optional features: ipv6, ssl, math, utf8, binary, oo, tree"
+    full            => "Enable some optional features: ipv6, math, utf8, binary, oo, tree"
     with-jim-shared shared => "build a shared library instead of a static library"
     jim-regexp=1    => "prefer POSIX regex if over the the built-in (Tcl-compatible) regex"
     docs=1          => "don't build or install the documentation"
-    docdir:path     => "path to install docs (if built)"
-    random-hash	    => "randomise hash tables. more secure but hash table results are not predicable"
+    random-hash		=> "randomise hash tables. more secure but hash table results are not predicable"
     with-jim-ext: {with-ext:"ext1 ext2 ..."} => {
         Specify additional jim extensions to include.
         These are enabled by default:
@@ -54,7 +52,6 @@ options {
         mk        - Interface to Metakit
         tclprefix - Support for the tcl::prefix command
         sqlite3   - Interface to sqlite3
-        zlib      - Interface to zlib
         win32     - Interface to win32
     }
     with-out-jim-ext: {without-ext:"default|ext1 ext2 ..."} => {
@@ -104,16 +101,12 @@ cc-check-functions ualarm lstat fork vfork system select execvpe
 cc-check-functions backtrace geteuid mkstemp realpath strptime isatty
 cc-check-functions regcomp waitpid sigaction sys_signame sys_siglist isascii
 cc-check-functions syslog opendir readlink sleep usleep pipe getaddrinfo utimes
-cc-check-functions shutdown socketpair isinf isnan link symlink fsync dup
+cc-check-functions shutdown socketpair isinf isnan link symlink
 
 if {[cc-check-functions sysinfo]} {
     cc-with {-includes sys/sysinfo.h} {
         cc-check-members "struct sysinfo.uptime"
     }
-}
-
-cc-with {-includes fcntl.h} {
-    cc-check-types "struct flock"
 }
 
 cc-check-lfs
@@ -148,7 +141,7 @@ define tclsh [info nameofexecutable]
 
 if {![cc-check-functions _NSGetEnviron]} {
     msg-checking "Checking environ declared in unistd.h..."
-    if {[cctest -cflags {-D_GNU_SOURCE -D_POSIX_SOURCE} -includes unistd.h -code {char **ep = environ;}]} {
+    if {[cctest -cflags -D_GNU_SOURCE -includes unistd.h -code {char **ep = environ;}]} {
         define NO_ENVIRON_EXTERN
         msg-result "yes"
     } else {
@@ -190,29 +183,6 @@ if {[opt-bool ipv6 full]} {
     msg-result "Enabling IPv6"
     define JIM_IPV6
 }
-if {[opt-bool ssl full]} {
-    if {[pkg-config-init 0]} {
-        foreach pkg {openssl libssl} {
-            if {[pkg-config $pkg]} {
-                define JIM_SSL
-                define-append LDLIBS [pkg-config-get $pkg LIBS]
-                define-append LDFLAGS [pkg-config-get $pkg LDFLAGS]
-                define-append CCOPTS [pkg-config-get $pkg CFLAGS]
-                msg-result "Enabling SSL ($pkg)"
-                break
-            }
-        }
-    }
-    if {![is-defined JIM_SSL]} {
-        if {[cc-check-includes openssl/ssl.h] && [cc-check-function-in-lib ERR_error_string crypto] && [cc-check-function-in-lib TLSv1_2_method ssl]} {
-            msg-result "Enabling SSL"
-            define JIM_SSL
-            define-append LDLIBS [get-define lib_ERR_error_string] [get-define lib_TLSv1_2_method]
-        } elseif {[opt-bool ssl]} {
-            user-error "SSL support requires OpenSSL"
-        }
-    }
-}
 if {[opt-bool lineedit full]} {
     if {([cc-check-includes termios.h] && [have-feature isatty]) || [have-feature winconsole]} {
         msg-result "Enabling line editing"
@@ -234,11 +204,6 @@ define LIBSOEXT [format [get-define SH_SOEXTVER] [format %.2f [expr {[get-define
 define JIM_INSTALL [opt-bool install-jim]
 define JIM_DOCS [opt-bool docs]
 define JIM_RANDOMISE_HASH [opt-bool random-hash]
-if {[opt-val docdir] ne ""} {
-    define docdir [opt-val docdir]
-} else {
-    define docdir {${prefix}/docs/jim}
-}
 
 # Attributes of the extensions
 # tcl=Pure Tcl extension
@@ -256,7 +221,6 @@ dict set extdb attrs {
     file      {}
     glob      { tcl }
     history   {}
-    interp    { }
     load      { static }
     mk        { cpp optional }
     namespace { static }
@@ -272,7 +236,6 @@ dict set extdb attrs {
     sdl       { optional }
     signal    { static }
     sqlite3   { optional }
-    zlib      { optional }
     stdlib    { tcl static }
     syslog    {}
     tclcompat { tcl static }
@@ -294,15 +257,14 @@ dict set extdb info {
     namespace { dep nshelper }
     posix    { check {[have-feature waitpid]} }
     readdir  { check {[have-feature opendir]} }
-    readline { pkg-config readline check {[cc-check-function-in-lib readline readline]} libdep lib_readline}
+    readline { check {[cc-check-function-in-lib readline readline]} libdep lib_readline}
     rlprompt { dep readline }
     tree     { dep oo }
-    sdl      { pkg-config SDL_gfx check {[cc-check-function-in-lib SDL_SetVideoMode SDL] && [cc-check-function-in-lib rectangleRGBA SDL_gfx]}
+    sdl      { check {[cc-check-function-in-lib SDL_SetVideoMode SDL] && [cc-check-function-in-lib rectangleRGBA SDL_gfx]}
                libdep {lib_SDL_SetVideoMode lib_rectangleRGBA}
              }
     signal   { check {[have-feature sigaction] && [have-feature vfork]} }
-    sqlite3  { pkg-config sqlite3 check {[cc-check-function-in-lib sqlite3_prepare_v2 sqlite3]} libdep lib_sqlite3_prepare_v2 }
-    zlib     { pkg-config zlib check {[cc-check-function-in-lib deflate z]} libdep lib_deflate }
+    sqlite3  { check {[cc-check-function-in-lib sqlite3_prepare_v2 sqlite3]} libdep lib_sqlite3_prepare_v2 }
     syslog   { check {[have-feature syslog]} }
     tree     { dep oo }
     win32    { check {[have-feature windows]} }

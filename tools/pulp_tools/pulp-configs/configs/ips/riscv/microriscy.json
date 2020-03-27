@@ -17,7 +17,7 @@
   "defines"       : [ "CORE_NO_MUL"],
   "debug_binaries": [],
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

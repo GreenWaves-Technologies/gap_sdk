@@ -28,6 +28,7 @@ endif # VP_USE_SYSTEMC_DRAMSYS
 	make -C engine headers
 	make -C engine build $(GV_MAKEFLAGS)
 	make -C launcher build
+	make -C dpi-wrapper build
 	make -C models props ARCHI_DIR=$(ARCHI_DIR)
 	make -C models build ARCHI_DIR=$(ARCHI_DIR) $(GV_MAKEFLAGS)
 

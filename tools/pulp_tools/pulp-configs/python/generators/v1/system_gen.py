@@ -59,7 +59,7 @@ def get_config(tp):
   )
 
   system.system_tree = Empty_Component(OrderedDict([
-      ('includes', [ "pulp_system_common.json" ]),
+      ('@includes@', [ "pulp_system_common.json" ]),
       ('vp_class', "pulp/system"),
       ('vp_component', 'utils.composite_impl')
   ]))
@@ -67,7 +67,7 @@ def get_config(tp):
 
 
   debug_bridge_dict = OrderedDict([
-      ('includes', ["tools/debug-bridge/debug_bridge.json"])
+      ('@includes@', ["tools/debug-bridge/debug_bridge.json"])
   ])
 
   debug_bridge_config = tp.get('**/debug_bridge/config')
@@ -82,7 +82,7 @@ def get_config(tp):
 
 
   openocd_dict = OrderedDict([
-      ('includes', ["tools/openocd/openocd.json"])
+      ('@includes@', ["tools/openocd/openocd.json"])
   ])
 
   openocd_config = tp.get('**/openocd/config')
@@ -97,7 +97,7 @@ def get_config(tp):
 
 
   runner_dict = OrderedDict([
-      ('includes', ["tools/runner/runner.json"])
+      ('@includes@', ["tools/runner/runner.json"])
   ])
 
   runner_config = tp.get('**/runner/config')
@@ -106,13 +106,14 @@ def get_config(tp):
     runner_dict.update(runner_config.get_dict())
 
   system.runner = Component(
+    name='runner',
     properties=runner_dict
   )
 
 
 
   rt_dict = OrderedDict([
-      ('includes', ["tools/rt/rt.json"])
+      ('@includes@', ["tools/rt/rt.json"])
   ])
 
   rt_config = tp.get('**/rt/config')
@@ -148,7 +149,6 @@ def get_config(tp):
   if board_name is None:
     board_name = chip
 
-
   system.system_tree.board = Component(OrderedDict([
       ('vp_class', "pulp/board"),
       ('vp_component', 'utils.composite_impl'),
@@ -171,7 +171,7 @@ def get_config(tp):
 
 
   system.system_tree.board.dpi = Component(OrderedDict([
-      ('includes', [ "periph/dpi_wrapper.json" ])
+      ('@includes@', [ "periph/dpi_wrapper.json" ])
   ]))
 
   system.system_tree.board.dpi_clock.out = system.system_tree.board.dpi.clock
@@ -185,7 +185,7 @@ def get_config(tp):
   ]))
 
   system.system_tree.board.ref_clock = Component(OrderedDict([
-    ('includes', [ "ips/misc/clock.json" ])
+    ('@includes@', [ "ips/misc/clock.json" ])
   ]))
 
   system.system_tree.board.ref_clock_clock.out = system.system_tree.board.ref_clock.clock
@@ -219,7 +219,7 @@ def get_config(tp):
     ]))
 
     system.system_tree.board.ddr = Component(OrderedDict([
-        ('includes', [ "ips/memory/ddr.json" ]),
+        ('@includes@', [ "ips/memory/ddr.json" ]),
         ('size', tp.get_child_str("ddr/size"))
     ]))
 
@@ -227,18 +227,25 @@ def get_config(tp):
     system.system_tree.board.ddr_clock.out = system.system_tree.board.ddr.clock
 
 
+  devices = {}
+
   if tp.get('**/devices') is not None:
-    for device_name, device in tp.get('**/devices').items.items():
+    devices.update(tp.get('**/devices').items)
 
-      generator = device.get_child_str('generator')
-      if generator is None:
-        raise Exception('No generator specified for device (name: %s)' % device_name)
+  if tp.get('target/board/devices') is not None:
+    devices.update(tp.get('target/board/devices').items)
 
-      file, path, descr = imp.find_module(generator, None)
-      module = imp.load_module(generator, file, path, descr)
+  for device_name, device in devices.items():
 
-      module.gen_config(device_name, tp, system, device)
+    generator = device.get_child_str('generator')
+    if generator is None:
+      raise Exception('No generator specified for device (name: %s)' % device_name)
+
+    file, path, descr = imp.find_module(generator, None)
+    module = imp.load_module(generator, file, path, descr)
+
+    module.gen_config(device_name, tp, system, device)
 
 
 
-  return system.get_js_config()
+  return system.get_js_config(expand=True)

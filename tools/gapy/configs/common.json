@@ -1,0 +1,37 @@
+{
+    "gvsoc": {
+        "@include@": "platforms/gvsoc.json"
+    },
+
+    "rtl": {
+        "@include@": "platforms/rtl.json"
+    },
+
+    "fpga": {
+        "@include@": "platforms/fpga.json"
+    },
+
+    "gapy": {
+        "@include@" : "tools/gapy.json"
+    },
+
+    "openocd": {
+        "remote": {
+            "enabled": false,
+            "ssh": null,
+            "scp": null
+        },
+        "@eval@": {
+            "path": "os.environ.get('GAP_OPENOCD_PATH') if os.environ.get('GAP_OPENOCD_PATH') is not None else openocd"
+        }
+    },
+
+    "runner": {
+        "flash_devices": [
+        ],
+        "boot": {
+            "mode": "default",
+            "device": null
+        }
+    }
+}

@@ -158,7 +158,7 @@
   },
 
   "rom": {
-    "includes"  : ["../rom_v2.json"],
+    "@includes@"  : ["../rom_v2.json"],
     "size"      : 8192,
     "map_base"  : "0x1A000000",
     "map_size"  : "0x00010000",
@@ -167,7 +167,7 @@
 
   "peripherals_base": "0x1A100000",
   "stdout": {
-    "includes"  : ["../stdout_v3.json"]
+    "@includes@"  : ["../stdout_v3.json"]
   },
   "gpio": {
     "version"   : 2,
@@ -177,22 +177,22 @@
   },
   
   "pmu": {
-    "includes"  : ["../pmu_v2.json"]
+    "@includes@"  : ["../pmu_v2.json"]
   },
   "udma": {
-    "includes"  : ["udma.json"]
+    "@includes@"  : ["udma.json"]
   },
   "timer": {
-    "includes"  : ["../timer_v2.json"]
+    "@includes@"  : ["../timer_v2.json"]
   },
   "soc_eu": {
-    "includes"  : ["../soc_eu_v2.json"]
+    "@includes@"  : ["../soc_eu_v2.json"]
   },
   "uart": {
     "version": 1
   },
   "fc_itc": {
-    "includes"  : ["../itc_v1.json"]
+    "@includes@"  : ["../itc_v1.json"]
   },
   "fc_debug": {
     "version": 1

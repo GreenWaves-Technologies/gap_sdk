@@ -4,7 +4,7 @@
 # @synopsis:
 #
 # This module supports common system interrogation and options
-# such as --host, --build, --prefix, and setting srcdir, builddir, and EXEEXT
+# such as --host, --build, --prefix, and setting srcdir, builddir, and EXEXT.
 #
 # It also support the 'feature' naming convention, where searching
 # for a feature such as sys/type.h defines HAVE_SYS_TYPES_H
@@ -106,13 +106,12 @@ proc write-if-changed {file buf {script {}}} {
 # If $outfile is blank/omitted, $template should end with ".in" which
 # is removed to create the output file name.
 #
-# Each pattern of the form @define@ is replaced with the corresponding
+# Each pattern of the form @define@ is replaced the the corresponding
 # define, if it exists, or left unchanged if not.
 # 
-# The special value @srcdir@ is substituted with the relative
+# The special value @srcdir@ is subsituted with the relative
 # path to the source directory from the directory where the output
-# file is created, while the special value @top_srcdir@ is substituted
-# with the relative path to the top level source directory.
+# file is created. Use @top_srcdir@ for the absolute path.
 #
 # Conditional sections may be specified as follows:
 ## @if name == value
@@ -154,9 +153,8 @@ proc make-template {template {out {}}} {
 	# Make sure the directory exists
 	file mkdir $outdir
 
-	# Set up srcdir and top_srcdir to be relative to the target dir
+	# Set up srcdir to be relative to the target dir
 	define srcdir [relative-path [file join $::autosetup(srcdir) $outdir] $outdir]
-	define top_srcdir [relative-path $::autosetup(srcdir) $outdir]
 
 	set mapping {}
 	foreach {n v} [array get ::define] {

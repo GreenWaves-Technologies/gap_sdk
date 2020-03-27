@@ -5,7 +5,6 @@ from plp_platform import *
 import os
 import os.path
 import time
-import plptree
 
 def execCmd(cmd):
     print ('Executing command: ' + cmd)

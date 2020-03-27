@@ -170,7 +170,7 @@ public:
   Udma_rx_channel(udma *top, int id, string name) : Udma_channel(top, id, name) {}
   bool is_tx() { return false; }
   void reset(bool active);
-  void push_data(uint8_t *data, int size);
+  bool push_data(uint8_t *data, int size);
   bool has_cmd() { return this->current_cmd != NULL; }
 
 private:
@@ -680,6 +680,9 @@ class I2s_rx_channel : public Udma_rx_channel
 public:
   I2s_rx_channel(udma *top, I2s_periph_v1 *periph, int id, int event_id, string name);
   void handle_rx_bit(int sck, int ws, int bit);
+
+protected:
+  bool wait_ws_start = false;
 
 private:
   void reset(bool active);

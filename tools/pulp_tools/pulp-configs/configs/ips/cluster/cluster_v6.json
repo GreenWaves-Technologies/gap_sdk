@@ -1,6 +1,6 @@
 {
-  "includes" : ["cluster_v6_template.json"],
+  "@includes@" : ["cluster_v6_template.json"],
   "pe": {
-    "includes" : ["ips/riscv/ri5ky_v2.json"]
+    "@includes@" : ["ips/riscv/ri5ky_v2.json"]
   }
 }

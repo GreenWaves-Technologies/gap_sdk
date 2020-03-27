@@ -69,15 +69,17 @@ def create_config(name, config, config_name=None, interpret=False, **kwargs):
 
     type_config = config.get_child_str("config_type")
 
-    if type_config is None:
+    if type_config is None or (config.get_child_str("generator") is None and config.get_child_str("@generator@") is None):
 
         return Pulp_config(name, config.get_dict(), interpret=interpret, config_name=config_name)
 
     else:
 
-        if type_config == 'generator':
+        if type_config == 'generator' or type_config == '@generator@':
             
             generator = config.get_child_str("generator")
+            if generator is None:
+              generator = config.get_child_str("@generator@")
 
             file, path, descr = imp.find_module(generator, None)
             module = imp.load_module(generator, file, path, descr)
@@ -112,7 +114,6 @@ def get_config(file, name="", config_name=None, ini_configs=[], ini_configs_dict
       file = file.split(':')[0]
 
     config = js.import_config_from_file(file, find=True, interpret=interpret)
-
 
     for ini_config in ini_configs:
       parser = configparser.SafeConfigParser(ini_configs_dict, dict_type=collections.OrderedDict)
