@@ -3518,7 +3518,8 @@ int CNN_SoftMax(
 		Width:		Width of a given feature
 		Height:		Height of a given feature
 
-        	KernelOper_T 	AddMatOper	Should always be KOP_MATADD
+        KernelOper_T 	AddMatOper	Should always be KOP_MATADD
+        KernelOper_T 	ReLUOper	KOP_RELU if ReLU has to be applied after Linear, KOP_NONE otherwise
 
 	CNN_MatAdd
 	
@@ -3542,7 +3543,8 @@ int CNN_MatAdd(
 	int Width,
 	int Height,
 
-        KernelOper_T AddMatOper
+    KernelOper_T AddMatOper
+    KernelOper_T ReLUOper
 )
 
 {
@@ -3557,9 +3559,9 @@ int CNN_MatAdd(
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
 	unsigned int LayerOp = 0;
 	int OutLB, OutUB;
-	KernelOper_T KernelOper = CNN_CompositeKernel(AddMatOper, KOP_NONE, KOP_NONE);
+	KernelOper_T KernelOper = CNN_CompositeKernel(AddMatOper, ReLUOper, KOP_NONE);
 
-	char *MatAddKerName = CNN_FindMatchingKernel(AddMatOper, KOP_NONE, ParFeat, In1_DataSize, In2_DataSize, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+	char *MatAddKerName = CNN_FindMatchingKernel(AddMatOper, ReLUOper, ParFeat, In1_DataSize, In2_DataSize, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 
 	if (MatAddKerName==0) GenTilingError("CNN_MatAdd Kernel: %s, Can't find a matching basic kernel", Name);
 
