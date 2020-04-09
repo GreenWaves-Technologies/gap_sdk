@@ -19,7 +19,8 @@
  */
 
 #include "../udma_v4_impl.hpp"
-#include "udma_spim/udma_spim.h"
+#include "udma_spim/udma_spim_regs.h"
+#include "udma_spim/udma_spim_regfields.h"
 #include "archi/udma/spim/spim_v4.h"
 #include "archi/utils.h"
 #include "vp/itf/qspim.hpp"
@@ -99,7 +100,7 @@ void Spim_periph_v4::check_state()
 void Spim_v4_rx_channel::handle_rx_bits(int data_0, int data_1, int data_2, int data_3, int mask)
 {
   this->periph->rx_received_bits = (data_3 << 3) | (data_2 << 2) | (data_1 << 1) | (data_0 << 0);
-  this->top->get_trace()->msg("Received data (value: 0x%x)\n", this->periph->rx_received_bits);
+  this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "Received data (value: 0x%x)\n", this->periph->rx_received_bits);
 }
 
 
@@ -255,7 +256,7 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
     }
 
 
-    _this->top->get_trace()->msg("Sampled bits (nb_bits: %d, shift: %d, value: 0x%x, pending_word: 0x%x, pending_word_bits: %d)\n", nb_bits, shift, received_bits, _this->rx_pending_word, _this->nb_received_bits);
+    _this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "Sampled bits (nb_bits: %d, shift: %d, value: 0x%x, pending_word: 0x%x, pending_word_bits: %d)\n", nb_bits, shift, received_bits, _this->rx_pending_word, _this->nb_received_bits);
 
     if (!_this->qspim_itf.is_bound())
     {
@@ -277,7 +278,7 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
       _this->rx_counter_transf++;
       if (_this->rx_counter_transf == 1<<_this->spi_wordtrans)
       {
-        _this->top->get_trace()->msg("End of word transfer, pushing word (value: 0x%x)\n", _this->rx_pending_word);
+        _this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "End of word transfer, pushing word (value: 0x%x)\n", _this->rx_pending_word);
 
         (static_cast<Spim_v4_rx_channel *>(_this->channel0))->push_data((uint8_t *)&_this->rx_pending_word, 4);
         
@@ -323,7 +324,7 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
     }
 
     unsigned int bits = ARCHI_REG_FIELD_GET(_this->spi_tx_pending_word, shift, nb_bits);
-    _this->top->get_trace()->msg("Sending bits (nb_bits: %d, shift: %d, value: 0x%x)\n", nb_bits, shift, bits);
+    _this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "Sending bits (nb_bits: %d, shift: %d, value: 0x%x)\n", nb_bits, shift, bits);
 
     raised_edge = true;
 
@@ -379,7 +380,7 @@ void Spim_v4_cmd_channel::handle_eot(bool cs_keep)
       periph->top->warning.force_warning("Trying to set chip select to unbound QSPIM interface\n");
     else
     {
-      trace.msg("Deactivating chip select\n");
+      trace.msg(vp::trace::LEVEL_DEBUG, "Deactivating chip select\n");
       periph->qspim_itf.cs_sync(this->cs, 0);
     }
   }
@@ -394,7 +395,7 @@ bool Spim_periph_v4::push_rx_to_spi(int nb_bits, int qpi, int lsb_first, int bit
 {
   if (this->spi_tx_pending_bits == 0)
   {
-    this->top->get_trace()->msg("Forwarding read data to input buffer (nb_bits: %d, qpi: %d, lsb_first: %d, bitsword: %d, wordtrans: %d)\n", nb_bits, lsb_first, bitsword, wordtrans);
+    this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "Forwarding read data to input buffer (nb_bits: %d, qpi: %d, lsb_first: %d, bitsword: %d, wordtrans: %d)\n", nb_bits, lsb_first, bitsword, wordtrans);
 
     this->spi_qpi = this->qpi;
     this->spi_lsb_first = this->lsb_first;
@@ -411,7 +412,7 @@ bool Spim_periph_v4::push_tx_to_spi(uint32_t value, int nb_bits, int qpi, int ls
 {
   if (this->spi_tx_pending_bits == 0)
   {
-    this->top->get_trace()->msg("Forwarding data to output buffer (nb_bits: %d, value: 0x%x, qpi: %d, lsb_first: %d, bitsword: %d, wordtrans: %d)\n", nb_bits, value, qpi, lsb_first, bitsword, wordtrans);
+    this->top->get_trace()->msg(vp::trace::LEVEL_TRACE, "Forwarding data to output buffer (nb_bits: %d, value: 0x%x, qpi: %d, lsb_first: %d, bitsword: %d, wordtrans: %d)\n", nb_bits, value, qpi, lsb_first, bitsword, wordtrans);
     this->spi_tx_pending_word = value;
     this->spi_tx_pending_bits = nb_bits;
     this->spi_qpi = qpi;
@@ -455,14 +456,14 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
       this->periph->clkdiv = (data >> SPI_CMD_CFG_CLK_DIV_OFFSET) & ((1<<SPI_CMD_CFG_CLK_DIV_WIDTH)-1);
       unsigned int cpol = (data >> SPI_CMD_CFG_CPOL_OFFSET) & 1;
       unsigned int cpha = (data >> SPI_CMD_CFG_CPHA_OFFSET) & 1;
-      trace.msg("Handling command CFG (clock_div: %d, cpol: %d, cpha: %d)\n", this->periph->clkdiv, cpol, cpha);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command CFG (clock_div: %d, cpol: %d, cpha: %d)\n", this->periph->clkdiv, cpol, cpha);
       //period = top->getEngine()->getPeriod() * clockDiv * 2;
       break;
     }
 
     case SPI_CMD_SOT_ID: {
       this->cs = (data >> SPI_CMD_SOT_CS_OFFSET) & ((1<<SPI_CMD_SOT_CS_WIDTH)-1);
-      trace.msg("Handling command SOT (cs: %d)\n", this->cs);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command SOT (cs: %d)\n", this->cs);
       if (!periph->qspim_itf.is_bound())
         periph->top->warning.force_warning("Trying to set chip select to unbound QSPIM interface\n");
       else
@@ -474,7 +475,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
       unsigned short bits = (data >> SPI_CMD_SEND_BITS_BITS_OFFSET) & ((1<<SPI_CMD_SEND_BITS_BITS_WIDTH)-1);
       unsigned int size = ((data>>SPI_CMD_SEND_BITS_SIZE_OFFSET) & ((1<<SPI_CMD_SEND_BITS_SIZE_WIDTH)-1)) + 1;
       int qpi = (data>>SPI_CMD_SEND_BITS_QPI_OFFSET) & 0x1;
-      trace.msg("Handling command SEND_BITS (bits: 0x%x, size: %d, qpi: %d)\n", bits, size, qpi);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command SEND_BITS (bits: 0x%x, size: %d, qpi: %d)\n", bits, size, qpi);
 
       this->qpi = qpi;
       this->lsb_first = false;
@@ -491,12 +492,12 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
 
     case SPI_CMD_DUMMY_ID: {
       int cycles = (data >> SPI_CMD_DUMMY_CYCLE_OFFSET) & ((1<<SPI_CMD_DUMMY_CYCLE_WIDTH)-1);
-      trace.msg("Handling command DUMMY (cycles: %d)\n", cycles);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command DUMMY (cycles: %d)\n", cycles);
       break;
     }
 
     case SPI_CMD_WAIT_ID: {
-      trace.msg("Handling command WAIT\n");
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command WAIT\n");
       //waitingEvent = (data >> SPI_CMD_WAIT_EVENT_OFFSET) & ((1<<SPI_CMD_WAIT_EVENT_WIDTH)-1);
       //isReadyToExecCommand = false;
       break;
@@ -510,7 +511,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
         this->periph->wordtrans = ((data >> SPI_CMD_TX_DATA_WORDTRANS_OFFSET) & ((1<<SPI_CMD_TX_DATA_WORDTRANS_WIDTH)-1));
         this->periph->lsb_first = ARCHI_REG_FIELD_GET(data, SPI_CMD_TX_DATA_LSBFIRST_OFFSET, 1);
         this->periph->qpi = ARCHI_REG_FIELD_GET(data, SPI_CMD_TX_DATA_QPI_OFFSET, 1);
-        trace.msg("Handling command TX_DATA (size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", size, this->periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
+        trace.msg(vp::trace::LEVEL_DEBUG, "Handling command TX_DATA (size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", size, this->periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
         this->periph->waiting_tx = true;
         this->periph->tx_pending_bits = size*(this->periph->bitsword+1);
       }
@@ -525,7 +526,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
         this->periph->wordtrans = ((data >> SPI_CMD_RX_DATA_WORDTRANS_OFFSET) & ((1<<SPI_CMD_RX_DATA_WORDTRANS_WIDTH)-1));
         this->periph->lsb_first = ARCHI_REG_FIELD_GET(data, SPI_CMD_RX_DATA_LSBFIRST_OFFSET, 1);
         this->periph->qpi = ARCHI_REG_FIELD_GET(data, SPI_CMD_RX_DATA_QPI_OFFSET, 1);
-        trace.msg("Handling command RX_DATA (raw: 0x%x, size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", data, size, periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
+        trace.msg(vp::trace::LEVEL_DEBUG, "Handling command RX_DATA (raw: 0x%x, size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", data, size, periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
         this->periph->cmd_pending_bits = size*(this->periph->bitsword + 1);
 
         this->periph->rx_bit_offset = 0;
@@ -568,7 +569,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
         this->periph->bitsword = ((data >> SPI_CMD_FUL_BITSWORD_OFFSET) & ((1<<SPI_CMD_FUL_BITSWORD_WIDTH)-1));
         this->periph->wordtrans = ((data >> SPI_CMD_FUL_WORDTRANS_OFFSET) & ((1<<SPI_CMD_FUL_WORDTRANS_WIDTH)-1));
         this->periph->lsb_first = ARCHI_REG_FIELD_GET(data, SPI_CMD_FUL_LSBFIRST_OFFSET, 1);
-        trace.msg("Handling command FUL DUPLEX (size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", size, this->periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
+        trace.msg(vp::trace::LEVEL_DEBUG, "Handling command FUL DUPLEX (size: %d, lsb_first: %d, qpi: %d, bitsword: %d, wordtrans: %d)\n", size, this->periph->lsb_first, this->periph->qpi, this->periph->bitsword, this->periph->wordtrans);
         this->periph->tx_pending_bits = size*(this->periph->bitsword+1);
 
         this->periph->spi_rx_pending_bits = size*(this->periph->bitsword+1);
@@ -590,7 +591,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
 
     case SPI_CMD_RPT_ID: {
       unsigned short iter = (data >> SPI_CMD_RPT_NB_OFFSET) & ((1<<SPI_CMD_RPT_NB_WIDTH)-1);
-      trace.msg("Handling command RPT (nbIter: %d)\n", iter);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command RPT (nbIter: %d)\n", iter);
       //pendingRepeatCount = iter;
       //if (!usingCommandCache) {
       //  fillingCommandCache = true;
@@ -601,10 +602,10 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
     case SPI_CMD_EOT_ID: {
       this->gen_eot_with_evt = (data >> SPI_CMD_EOT_GEN_EVT_OFFSET) & 1;
       int cs_keep = (data >> SPI_CMD_EOT_CS_KEEP_OFFSET) & 1;
-      trace.msg("Handling command EOT (evt: %d)\n", this->gen_eot_with_evt);
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command EOT (evt: %d)\n", this->gen_eot_with_evt);
       if (this->periph->tx_pending_bits > 0 || this->periph->spi_tx_pending_bits > 0)
       {
-        trace.msg("Waiting TX flush (tx pending bits: %d, spi pending bits: %d)\n", this->periph->tx_pending_bits, this->periph->spi_tx_pending_bits);
+        trace.msg(vp::trace::LEVEL_DEBUG, "Waiting TX flush (tx pending bits: %d, spi pending bits: %d)\n", this->periph->tx_pending_bits, this->periph->spi_tx_pending_bits);
         handled_all = false;
         this->periph->waiting_tx_flush = true;
       }
@@ -615,23 +616,23 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
       break;
     }
     case SPI_CMD_RPT_END_ID: {
-      trace.msg("Handling command RPT_END\n");
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command RPT_END\n");
       //pendingRepeatCount--;
       //if (pendingRepeatCount >= 0) {
-      //  trace.msg("Repeating sequence (newCount: %d)\n", pendingRepeatCount);
+      //  trace.msg(vp::trace::LEVEL_TRACE, "Repeating sequence (newCount: %d)\n", pendingRepeatCount);
       //  fillingCommandCache = false;
       //  usingCommandCache = true;
       //  isReadyToExecCommand = false;
       //  commandCacheIndex = 0;
       //} else {
-      //  trace.msg("End of repeat reached\n");
+      //  trace.msg(vp::trace::LEVEL_TRACE, "End of repeat reached\n");
       //  isReadyToExecCommand = true;
       //  usingCommandCache = false;
       //}
       break;
     }
     case SPI_CMD_RX_CHECK_ID: {
-      trace.msg("Handling command RX_CHECK\n");
+      trace.msg(vp::trace::LEVEL_DEBUG, "Handling command RX_CHECK\n");
       //int mode = (data >> SPI_CMD_RX_CHECK_MODE_OFFSET) & ((1<<SPI_CMD_RX_CHECK_MODE_WIDTH)-1);
       //uint16_t value = (data >> SPI_CMD_RX_CHECK_VALUE_OFFSET) & ((1<<SPI_CMD_RX_CHECK_VALUE_WIDTH)-1);
       //uint16_t bits = ((data >> SPI_CMD_RX_CHECK_SIZE_OFFSET) & ((1<<SPI_CMD_RX_CHECK_SIZE_WIDTH)-1))+1;
@@ -646,15 +647,15 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
       //switch (mode) {
       //  case SPI_CMD_RX_CHECK_MODE_MATCH:
       //  reachedCheck = value == data;
-      //  trace.msg("Checking exact match (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
+      //  trace.msg(vp::trace::LEVEL_TRACE, "Checking exact match (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
       //  break;
       //  case SPI_CMD_RX_CHECK_MODE_ONES:
       //  reachedCheck = (data & value) == value;
-      //  trace.msg("Checking ones (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
+      //  trace.msg(vp::trace::LEVEL_TRACE, "Checking ones (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
       //  break;
       //  case SPI_CMD_RX_CHECK_MODE_ZEROS:
       //  reachedCheck = (~data & ~value) == ~value;
-      //  trace.msg("Checking zeros match (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
+      //  trace.msg(vp::trace::LEVEL_TRACE, "Checking zeros match (result: %d, readValue: 0x%x, expected: 0x%x)\n", reachedCheck, data, value);
       //  break;
       //}
       break;
@@ -673,7 +674,7 @@ void Spim_v4_cmd_channel::handle_data(uint32_t data)
   {
     pending_word = *(uint32_t *)req->get_data();
     has_pending_word = true;
-    trace.msg("Store L2 data to shift register (value: 0x%x)\n", pending_word);
+    trace.msg(vp::trace::LEVEL_TRACE, "Store L2 data to shift register (value: 0x%x)\n", pending_word);
   }
   #endif
 

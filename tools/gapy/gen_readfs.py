@@ -11,6 +11,7 @@ from errors import FatalError, NotSupportedError
 import common
 import traces
 import binary
+import json_tools as js
 
 __version__ = "0.1"
 
@@ -125,7 +126,7 @@ def getCompsFromDir(path, rec = False, incDirInName = True):
 	return files
 
 
-def appendArgs(parser: argparse.ArgumentParser) -> None:
+def appendArgs(parser: argparse.ArgumentParser, partitionConfig: js.config=None) -> None:
 	"""
 	Append specific module arguments.
 
@@ -142,23 +143,34 @@ def appendArgs(parser: argparse.ArgumentParser) -> None:
 	parser.add_argument("--comp-dir-rec", dest = "compDirRec",
 	                    action = "append", nargs = "*", default = [],
 	                    help = "Recursive component directory")
+	kwargs = {'default': []}
+	if partitionConfig:
+	    kwargs['default'] = [partitionConfig.get_py("files")]
 	parser.add_argument("--comp", dest = "comp",
-	                    action = "append", nargs = "*", default = [],
-	                    help = "Component list")
+	                    action = "append", nargs = "*",
+	                    help = "Component list",
+                        **kwargs)
 	
 	parser.add_argument('--include-path', action = 'store_true', dest = 'incDirInName',
 	                    help = 'Include folders path in component name')
 	
 	# Output
+	kwargs = {'default': 'readfs.rfs'}
+	if partitionConfig:
+	    kwargs['default'] = partitionConfig.get_py("image")
 	parser.add_argument('-o',
-	                    dest = 'output', default = 'readfs.rfs',
-	                    help = 'ReadFS partition image output')
+	                    dest = 'output',
+	                    help = 'ReadFS partition image output',
+                        **kwargs)
 
 
-def operationFunc(args):
-	traces.verbose = args.verbose
+def operationFunc(args, config=None):
+
+	if (len(args.comp) == 0 or (len(args.comp) == 1 and len(args.comp[0]) == 0)) and len(args.compDir) == 0 and len(args.compDirRec) == 0:
+		return
+
 	traces.info('Generating ReadFS image')
-	
+
 	# Concatenate input listsd
 	compList = []
 	for l in args.comp:
@@ -179,20 +191,26 @@ def operationFunc(args):
 	readFS = ReadFS()
 	
 	for comp in compList:
+		is_enabled = True
 		readFS.appendComponent(Comp(os.path.dirname(comp), os.path.basename(comp), args.incDirInName))
 	
 	for compDir in compDirList:
 		for comp in getCompsFromDir(compDir, incDirInName = args.incDirInName):
 			readFS.appendComponent(comp)
+			is_enabled = True
 	
 	for compDir in compDirRecList:
 		for comp in getCompsFromDir(compDir, rec = True, incDirInName = args.incDirInName):
 			readFS.appendComponent(comp)
+			is_enabled = True
 			
 	readFS.generate(args.output)
 
+	if config is not None:
+		config.set('enabled', True)
 
-def main(custom_commandline = None):
+
+def main(custom_commandline = None, config = None, partition_config = None):
 	"""
 	Main function for build Flash image
 
@@ -207,13 +225,19 @@ def main(custom_commandline = None):
 		fromfile_prefix_chars = '@')
 	
 	common.appendCommonOptions(parser)
-	appendArgs(parser)
+	appendArgs(parser, partition_config)
 	
 	argcomplete.autocomplete(parser)
+
+	# If no argument has been passed and a config has been passed, force arg_parse to not take arguments from sys.argv
+	# as this would parse arguments for the calling script
+	if custom_commandline is None and (config is not None or flash_config is not None):
+		custom_commandline = []
+
 	args = parser.parse_args(custom_commandline)
 	
 	try:
-		operationFunc(args)
+		operationFunc(args, config=partition_config)
 	finally:
 		try:  # Clean up AddrFilenamePairAction files
 			for address, argfile in args.addr_filename:

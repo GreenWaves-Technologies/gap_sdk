@@ -7,10 +7,8 @@
   "generator": "generators/v1/devices/hyper_gen",
   "interface": "hyper0",
 
-  "config": {
-    "vp_class": "devices/hyperbus/hyperram",
-    "vp_component": "devices.hyperbus.hyperram_impl",
+  "vp_class": "devices/hyperbus/hyperram",
+  "vp_component": "devices.hyperbus.hyperram_impl",
 
-    "size": "0x00800000"
-  }
+  "size": "0x00800000"
 }

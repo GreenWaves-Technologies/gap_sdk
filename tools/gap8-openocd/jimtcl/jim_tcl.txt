@@ -3,7 +3,7 @@ Jim Tcl(n)
 
 NAME
 ----
-Jim Tcl v0.77 - reference manual for the Jim Tcl scripting language
+Jim Tcl v0.76 - reference manual for the Jim Tcl scripting language
 
 SYNOPSIS
 --------
@@ -51,34 +51,24 @@ Some notable differences with Tcl 8.5/8.6 are:
 
 RECENT CHANGES
 --------------
-Changes between 0.76 and 0.77
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Add support for `aio sync`
-2. Add SSL and TLS support in aio
-3. Added `zlib`
-4. Added support for boolean constants in `expr`
-5. `string is` now supports 'boolean' class
-6. Add support for `aio lock` and `aio unlock`
-7. Add new `interp` command
-
 Changes between 0.75 and 0.76
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. `glob` now supports the +-tails+ option
-2. Add support for `string cat`
-3. Allow `info source` to add source info
+1. Add support for `file link`
+2. `glob` now supports the '--tails' option
+3. Add support for `string cat`
+4. Allow `info source` to add source info
 
 Changes between 0.74 and 0.75
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. `binary`, `pack` and `unpack` now support floating point
-2. `file copy` +-force+ handles source and target as the same file
+2. `file copy` '-force' handles source and target as the same file
 3. `format` now supports +%b+ for binary conversion
-4. `lsort` now supports +-unique+ and +-real+
-5. Add support for half-close with `aio close` +?r|w?+
+4. `lsort` now supports '-unique' and '-real'
+5. Add support for half-close with `aio close` ?r|w?
 6. Add `socket pair` for a bidirectional pipe
 7. Add '--random-hash' to randomise hash tables for greater security
 8. `dict` now supports 'for', 'values', 'incr', 'append', 'lappend', 'update', 'info' and 'replace'
 9. `file stat` no longer requires the variable name
-10. Add support for `file link`
 
 Changes between 0.73 and 0.74
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,8 +124,7 @@ Changes between 0.70 and 0.71
 
 TCL INTRODUCTION
 -----------------
-Tcl stands for 'tool command language' and is pronounced
-'http://www.oxforddictionaries.com/definition/american_english/tickle[tickle]'.
+Tcl stands for 'tool command language' and is pronounced 'tickle.'
 It is actually two things: a language and a library.
 
 First, Tcl is a simple textual language, intended primarily for
@@ -710,29 +699,23 @@ If no numeric interpretation is possible, then an operand is left
 as a string (and only a limited set of operators may be applied to
 it).
 
-String constants representing boolean constants
-(+'0'+, +'1'+, +'false'+, +'off'+, +'no'+, +'true'+, +'on'+, +'yes'+)
-are also recognized and can be used in logical operations.
-
 1. Operands may be specified in any of the following ways:
 
 2. As a numeric value, either integer or floating-point.
 
-3. As one of valid boolean constants
-
-4. As a Tcl variable, using standard '$' notation.
+3. As a Tcl variable, using standard '$' notation.
 The variable's value will be used as the operand.
 
-5. As a string enclosed in double-quotes.
+4. As a string enclosed in double-quotes.
 The expression parser will perform backslash, variable, and
 command substitutions on the information between the quotes,
 and use the resulting value as the operand
 
-6. As a string enclosed in braces.
+5. As a string enclosed in braces.
 The characters between the open brace and matching close brace
 will be used as the operand without any substitutions.
 
-7. As a Tcl command enclosed in brackets.
+6. As a Tcl command enclosed in brackets.
 The command will be executed and its result will be used as
 the operand.
 
@@ -765,6 +748,7 @@ of precedence:
     * +'double()'+ converts the numeric argument to floating point.
     * +'round()'+ converts the numeric argument to the closest integer value.
     * +'abs()'+ takes the absolute value of the numeric argument.
+    * +'rand()'+ takes the absolute value of the numeric argument.
     * +'rand()'+ returns a pseudo-random floating-point value in the range (0,1).
     * +'srand()'+ takes an integer argument to (re)seed the random number generator. Returns the first random number from that seed.
 
@@ -870,7 +854,7 @@ In any case, overflow and underflow are generally not detected
 reliably for intermediate results.
 
 Conversion among internal representations for integer, floating-point,
-string operands is done automatically as needed.
+and string operands is done automatically as needed.
 For arithmetic computations, integers are used until some
 floating-point number is introduced, after which floating-point is used.
 For example,
@@ -989,7 +973,7 @@ Consider the following attempt to exec a list:
     set cmd {ls -l}
     exec $cmd
 
-This will attempt to exec a command named "ls -l", which will clearly not
+This will attempt to exec the a command named "ls -l", which will clearly not
 work. Typically eval and concat are required to solve this problem, however
 it can be solved much more easily with +\{*\}+.
 
@@ -1036,15 +1020,14 @@ This engine supports UTF-8 as well as some +ARE+ features. The differences with 
 and POSIX are highlighted below.
 
 1. UTF-8 strings and patterns are both supported
-2. All Tcl character classes are supported (e.g. +[:alnum:]+, +[:digit:]+, +[:space:]+), but...
-3. Character classes apply to ASCII characters only
-4. Supported shorthand character classes: +{backslash}w+ = +[:alnum:]+, +{backslash}W+ = +^[:alnum:]+, +{backslash}d+ = +[:digit:],+ +{backslash}D+ = +^[:digit:],+ +{backslash}s+ = +[:space:]+, + +{backslash}S+ = +^[:space:]+
+2. Supported character classes: +[:alnum:]+, +[:digit:]+ and +[:space:]+
+3. Supported shorthand character classes: +{backslash}w+ = +[:alnum:]+, +{backslash}d+ = +[:digit:],+ +{backslash}s+ = +[:space:]+
+4. Character classes apply to ASCII characters only
 5. Supported constraint escapes: +{backslash}m+ = +{backslash}<+ = start of word, +{backslash}M+ = +{backslash}>+ = end of word
 6. Backslash escapes may be used within regular expressions, such as +{backslash}n+ = newline, +{backslash}uNNNN+ = unicode
-7. Partially supported constraint escapes: +{backslash}A+ = start of string, +{backslash}Z+ = end of string
-8. Support for the +?+ non-greedy quantifier. e.g. +*?+
-9. Support for non-capturing parentheses +(?:...)+
-10. Jim Tcl considers that both patterns and strings end at a null character (+\x00+)
+7. Support for the +?+ non-greedy quantifier. e.g. +*?+
+8. Support for non-capuring parentheses +(?:...)+
+9. Jim Tcl considers that both patterns and strings end at a null character (+\x00+)
 
 COMMAND RESULTS
 ---------------
@@ -1132,21 +1115,21 @@ argument specifiers:
 +name+::
     Required Argument - A simple argument name.
 
-+{name default}+::
++name default+::
     Optional Argument - A two-element list consisting of the
     argument name, followed by the default value, which will
     be used if the corresponding argument is not supplied.
 
 +&name+::
     Reference Argument - The caller is expected to pass the name of
-    an existing variable. An implicit +`upvar` 1 origname name+ is done
+    an existing variable. An implicit `upvar 1 'origname' 'name'` is done
     to make the variable available in the proc scope.
 
 +*args*+::
     Variable Argument - The special name +'args'+, which is
     assigned all remaining arguments (including none) as a list. The
     variable argument may only be specified once. Note that
-    the syntax +{args newname}+ may be used to retain the special
+    the syntax +args newname+ may be used to retain the special
     behaviour of +'args'+ with a different local name. In this case,
     the variable is named +'newname'+ rather than +'args'+.
 
@@ -1385,8 +1368,8 @@ Jim Tcl currently supports "light-weight" namespaces which should be adequate fo
 purposes. This feature is currently experimental. See README.namespaces for more information
 and the documentation of the `namespace` command.
 
-GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION
------------------------------------------------
+GARBAGE COLLECTION, REFERENCES, LAMBDA
+--------------------------------------
 Unlike Tcl, Jim has some sophisticated support for functional programming.
 These are described briefly below.
 
@@ -1451,9 +1434,9 @@ The finalizer for a reference may be examined or changed with the `finalize` com
     jim> finalize $r newf
     newf
 
-Lambda Function
-~~~~~~~~~~~~~~~
-Jim provides a garbage collected `lambda` function. This is a procedure
+Lambda
+~~~~~~
+Jim provides a garbage collected lambda function. This is a procedure
 which is able to create an anonymous procedure.  Consider:
 
     jim> set f [lambda {a} {{x 0}} { incr x $a }]
@@ -1841,15 +1824,6 @@ clock
 +*clock seconds*+::
     Returns the current time as seconds since the epoch.
 
-+*clock clicks*+::
-    Returns the current time in `clicks'.
-
-+*clock microseconds*+::
-    Returns the current time in microseconds.
-
-+*clock milliseconds*+::
-    Returns the current time in milliseconds.
-
 +*clock format* 'seconds' ?*-format* 'format?'+::
     Format the given time (seconds since the epoch) according to the given
     format. See strftime(3) for supported formats.
@@ -1877,7 +1851,7 @@ collect
 Normally reference garbage collection is automatically performed periodically.
 However it may be run immediately with the `collect` command.
 
-See GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 concat
 ~~~~~~
@@ -1951,7 +1925,7 @@ command.  The legal +'options'+ are:
     dict get with the remaining arguments as second (and possibly
     subsequent) arguments. This facilitates lookups in nested dictionaries.
     If no keys are provided, dict would return a list containing pairs
-    of elements in a manner similar to array get. That is, the first
+    of elements in a man- ner similar to array get. That is, the first
     element of each pair would be the key and the second element would
     be the value for that key.  It is an error to attempt to retrieve
     a value for a key that is not present in the dictionary.
@@ -2097,23 +2071,18 @@ both standard output and standard error).
 
 Under normal conditions the result of the `exec` command
 consists of the standard output produced by the last command
-in the pipeline followed by the standard error output.
-
-If any of the commands writes to its standard error file,
-then this will be included in the result after the standard output
-of the last command.
-
-Note that unlike Tcl, data written to standard error does not cause
-`exec` to return an error.
+in the pipeline.
 
 If any of the commands in the pipeline exit abnormally or
-are killed or suspended, then `exec` will return an error.
-If no standard error output was produced, or is redirected,
-the error message will include the normal result, as above,
-followed by error messages describing the abnormal terminations.
+are killed or suspended, then `exec` will return an error
+and the error message will include the pipeline's output followed by
+error messages describing the abnormal terminations.
 
-If any standard error output was produced, these abnormal termination
-messages are suppressed.
+If any of the commands writes to its standard error file,
+then `exec` will return an error, and the error message
+will include the pipeline's output, followed by messages
+about abnormal terminations (if any), followed by the standard error
+output.
 
 If the last character of the result or error message
 is a newline then that character is deleted from the result
@@ -2288,7 +2257,7 @@ abbreviation for +'option'+ is acceptable.  The valid options are:
     If it can't be deleted, an error is generated. Non-empty directories will not be deleted
     unless the +-force+ options is given. In this case no errors will be generated, even
     if the file/directory can't be deleted. Use +'--'+ if there is any possibility of
-    the first name being +'-force'+.
+	the first name being +'-force'+.
 
 +*file dirname* 'name'+::
     Return all of the characters in +'name'+ up to but not including
@@ -2324,8 +2293,8 @@ abbreviation for +'option'+ is acceptable.  The valid options are:
 
 +*file link* ?*-hard|-symbolic*? 'newname target'+::
     Creates a hard link (default) or symbolic link from +'newname'+ to +'target'+.
-    Note that the sense of this command is the opposite of `file rename` and `file copy`
-    and also of `ln`, but this is compatible with Tcl.
+	Note that the sense of this command is the opposite of `file rename` and `file copy`
+	and also of `ln`, but this is compatible with Tcl.
     An error is returned if +'target'+ doesn't exist or +'newname'+ already exists.
 
 +*file lstat* 'name varName'+::
@@ -2373,8 +2342,8 @@ abbreviation for +'option'+ is acceptable.  The valid options are:
 
 +*file rename* ?*-force*? 'oldname' 'newname'+::
     Renames the file from the old name to the new name.
-    If +'newname'+ already exists, an error is returned unless +'-force'+ is
-    specified.
+	If +'newname'+ already exists, an error is returned unless +'-force'+ is
+	specified.
 
 +*file rootname* 'name'+::
     Return all of the characters in +'name'+ up to but not including
@@ -2388,7 +2357,7 @@ abbreviation for +'option'+ is acceptable.  The valid options are:
 
 +*file stat* 'name ?varName?'+::
     Invoke the 'stat' kernel call on +'name'+, and return the result
-    as a dictionary with the following keys: 'atime',
+	as a dictionary with the following keys: 'atime',
     'ctime', 'dev', 'gid', 'ino', 'mode', 'mtime',
     'nlink', 'size', 'type', 'uid'.
     Each element except 'type' is a decimal string with the value of
@@ -2396,8 +2365,8 @@ abbreviation for +'option'+ is acceptable.  The valid options are:
     manual entry for 'stat' for details on the meanings of the values.
     The 'type' element gives the type of the file in the same form
     returned by the command `file type`.
-    If +'varName'+ is specified, it is taken to be the name of an array
-    variable and the values are also stored into the array.
+	If +'varName'+ is specified, it is taken to be the name of an array
+	variable and the values are also stored into the array.
 
 +*file tail* 'name'+::
     Return all of the characters in +'name'+ after the last slash.
@@ -2438,7 +2407,7 @@ the empty string to remove the current finalizer.
 The reference must be a valid reference create with the `ref`
 command.
 
-See GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 flush
 ~~~~~
@@ -2544,7 +2513,7 @@ getref
 Returns the string associated with +'reference'+. The reference must
 be a valid reference create with the `ref` command.
 
-See GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 gets
 ~~~~
@@ -2776,8 +2745,8 @@ The legal +'option'+'s (which may be abbreviated) are:
     With a single argument, returns the original source location of the given script as a list of
     +{filename linenumber}+. If the source location can't be determined, the
     list +{{} 0}+ is returned. If +'filename'+ and +'line'+ are given, returns a copy
-    of +'script'+ with the associate source information. This can be useful to produce
-    useful messages from `eval`, etc. if the original source information may be lost.
+	of +'script'+ with the associate source information. This can be useful to produce
+	useful messages from `eval`, etc. if the original source information may be lost.
 
 +*info stacktrace*+::
     After an error is caught with `catch`, returns the stack trace as a list
@@ -2840,7 +2809,7 @@ The `lambda` command is identical to `proc`, except rather than
 creating a named procedure, it creates an anonymous procedure and returns
 the name of the procedure.
 
-See `proc` and GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See `proc` and GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 lappend
 ~~~~~~~
@@ -2871,8 +2840,8 @@ lassign
 
 This command treats the value +'list'+ as a list and assigns successive elements from that list to
 the variables given by the +'varName'+ arguments in order. If there are more variable names than
-list elements, the remaining variables are set to the empty string. If there are more list elements
-than variables, a list of unassigned elements is returned.
+list elements, the remaining variables are set to the empty string. If there are more list ele-
+ments than variables, a list of unassigned elements is returned.
 
     jim> lassign {1 2 3} a b; puts a=$a,b=$b
     3
@@ -3202,12 +3171,12 @@ the list are to be matched against pattern and must have one of the values below
 
 lsort
 ~~~~~
-+*lsort* ?*-index* 'listindex'? ?*-nocase|-integer|-real|-command* 'cmdname'? ?*-unique*? ?*-decreasing*|*-increasing*? 'list'+
++*lsort* ?*-index* 'listindex'? ?*-nocase!-integer|-real|-command* 'cmdname'? ?*-unique*? ?*-decreasing*|*-increasing*? 'list'+
 
 Sort the elements of +'list'+, returning a new list in sorted order.
 By default, ASCII (or UTF-8) sorting is used, with the result in increasing order.
 
-If +-nocase+ is specified, comparisons are case-insensitive.
+If +-nocase+ is specified, comparisons are case-insenstive.
 
 If +-integer+ is specified, numeric sorting is used.
 
@@ -3306,7 +3275,7 @@ Searches for the package with the given +'name'+ by examining each path
 in '$::auto_path' and trying to load '$path/$name.so' as a dynamic extension,
 or '$path/$name.tcl' as a script package.
 
-The first such file which is found is considered to provide the package.
+The first such file which is found is considered to provide the the package.
 (The version number is ignored).
 
 If '$name.so' exists, it is loaded with the `load` command,
@@ -3337,7 +3306,7 @@ proc
 The `proc` command creates a new Tcl command procedure, +'name'+.
 When the new command is invoked, the contents of +'body'+ will be executed.
 Tcl interpreter. +'args'+ specifies the formal arguments to the procedure.
-If specified, +'statics'+, declares static variables which are bound to the
+If specified, +'static'+, declares static variables which are bound to the
 procedure.
 
 See PROCEDURES for detailed information about Tcl procedures.
@@ -3469,7 +3438,7 @@ The following switches modify the behaviour of +'regexp'+
     Use newline-sensitive matching. By default, newline
     is a completely ordinary character with no special meaning in
     either REs or strings. With this flag, +[^+ bracket expressions
-    and +.+ never match newline, an +^+ anchor matches the null
+    and +.+ never match newline, a +^+ anchor matches the null
     string after any newline in the string in addition to its normal
     function, and the +$+ anchor matches the null string before any
     newline in the string in addition to its normal function.
@@ -3561,7 +3530,7 @@ The following switches modify the behaviour of +'regsub'+
     Use newline-sensitive matching. By default, newline
     is a completely ordinary character with no special meaning in
     either REs or strings.  With this flag, +[^+ bracket expressions
-    and +.+ never match newline, an +^+ anchor matches the null
+    and +.+ never match newline, a +^+ anchor matches the null
     string after any newline in the string in addition to its normal
     function, and the +$+ anchor matches the null string before any
     newline in the string in addition to its normal function.
@@ -3588,7 +3557,7 @@ The finalizer is invoked as:
 
   finalizer reference string
 
-See GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 rename
 ~~~~~~
@@ -3709,7 +3678,7 @@ Store a new string in +'reference'+, replacing the existing string.
 The reference must be a valid reference create with the `ref`
 command.
 
-See GARBAGE COLLECTION, REFERENCES, LAMBDA FUNCTION for more detail.
+See GARBAGE COLLECTION, REFERENCES, LAMBDA for more detail.
 
 signal
 ~~~~~~
@@ -3916,7 +3885,6 @@ The legal options (which may be abbreviated) are:
   +alnum+;;  Any alphabet or digit character.
   +alpha+;;  Any alphabet character.
   +ascii+;;  Any character with a value less than 128 (those that are in the 7-bit ascii range).
-  +boolean+;;  Any of the valid string formats for a boolean value in Tcl (0, false, no, off, 1, true, yes, on)
   +control+;; Any control character.
   +digit+;;  Any digit character.
   +double+;; Any of the valid forms for a double in Tcl, with optional surrounding whitespace.
@@ -3931,8 +3899,6 @@ The legal options (which may be abbreviated) are:
   +xdigit+;; Any hexadecimal digit character ([0-9A-Fa-f]).
  ::
     Note that string classification does +'not'+ respect UTF-8. See UTF-8 AND UNICODE
- ::
-    Note that only +'lowercase'+ boolean values are recognized (Tcl accepts any case).
 
 +*string last* 'string1 string2 ?lastIndex?'+::
     Search +'string2'+ for a sequence of characters that exactly match
@@ -4501,7 +4467,7 @@ aio
 
 +$handle *close* ?r(ead)|w(rite)?+::
     Closes the stream.
-    The  two-argument form is a "half-close" on a socket. See the +shutdown(2)+ man page.
+	The  two-argument form is a "half-close" on a socket. See the +shutdown(2)+ man page.
 
 +$handle *copyto* 'tofd ?size?'+::
     Copy bytes to the file descriptor +'tofd'+. If +'size'+ is specified, at most
@@ -4523,14 +4489,6 @@ aio
 
 +$handle *isatty*+::
     Returns 1 if the stream is a tty device.
-
-+$handle *lock*+::
-    Apply a POSIX lock to the open file associated with the handle using
-    fcntl(2).
-    The handle must be open for write access.
-    Returns 1 if the lock was successfully obtained, 0 otherwise.
-    An error occurs if the handle is not suitable for locking (e.g.
-    if it is not open for write)
 
 +$handle *ndelay ?0|1?*+::
     Set O_NDELAY (if arg). Returns current/new setting.
@@ -4558,24 +4516,8 @@ aio
     ways for other handle types.
     Returns the number of bytes written.
 
-+$handle *sync*+::
-    Flush the stream, then fsync(2) to commit any changes to storage.
-    Only available on platforms that support fsync(2).
-
 +$handle *tell*+::
     Returns the current seek position
-
-+$handle *ssl* *?-server cert priv?*+::
-    Initiates a SSL/TLS session and returns a new stream
-
-+$handle *unlock*+::
-    Release a POSIX lock previously acquired by `aio lock`.
-
-+$handle *verify*+::
-    Verifies the certificate of a SSL/TLS stream peer
-
-+*load_ssl_certs* 'dir'+::
-    Loads SSL/TLS CA certificates for use during verification
 
 fconfigure
 ~~~~~~~~~~
@@ -4601,7 +4543,7 @@ handler is removed.
     Sets or returns the script for when the socket is writable.
 
 +$handle *onexception* '?exception-script?'+::
-    Sets or returns the script for when oob data received.
+    Sets or returns the script for when when oob data received.
 
 For compatibility with 'Tcl', these may be prefixed with `fileevent`.  e.g.
 
@@ -4614,7 +4556,7 @@ Time-based execution is also available via the eventloop API.
     Sleeps for the given number of milliseconds. No events are
     processed during this time.
 
-+*after* 'ms'|*idle* 'script ?script \...?'+::
++*after* 'ms'|*idle* script ?script \...?'+::
     The scripts are concatenated and executed after the given
     number of milliseconds have elapsed.  If 'idle' is specified,
     the script will run the next time the event loop is processed
@@ -4635,7 +4577,7 @@ Time-based execution is also available via the eventloop API.
     match an event.
 
 +*vwait* 'variable'+::
-    A call to `vwait` enters the eventloop. `vwait` processes
+    A call to `vwait` is enters the eventloop. `vwait` processes
     events until the named (global) variable changes or all
     event handlers are removed. The variable need not exist
     beforehand.  If there are no event handlers defined, `vwait`
@@ -4656,8 +4598,8 @@ to prevent infinite errors. (A time event handler is always removed after execut
 
 +*bgerror* 'msg'+::
     Called when an event handler script generates an error. Note that the normal command resolution
-    rules are used for bgerror. First the name is resolved in the current namespace, then in the
-    global scope.
+	rules are used for bgerror. First the name is resolved in the current namespace, then in the
+	global scope.
 
 socket
 ~~~~~~
@@ -4697,12 +4639,12 @@ address.
 The returned value is channel and may generally be used with the various file I/O
 commands (gets, puts, read, etc.), either as object-based syntax or Tcl-compatible syntax.
 
-    . set f [socket stream www.google.com:80]
+    set f [socket stream www.google.com:80]
     aio.sockstream1
-    . $f puts -nonewline "GET / HTTP/1.0\r\n\r\n"
-    . $f gets
+    $f puts -nonewline "GET / HTTP/1.0\r\n\r\n"
+    $f gets
     HTTP/1.0 302 Found
-    . $f close
+    $f close
 
 Server sockets, however support only 'accept', which is most useful in conjunction with
 the EVENTLOOP API.
@@ -4780,7 +4722,7 @@ The optional 'pack' extension provides commands to encode and decode binary stri
     +'varName'+. The value is packed according to the given type
     (integer/floating point/string, big-endian/little-endian), width and bit offset.
     The variable is created if necessary (like `append`).
-    The variable is expanded if necessary.
+    Ihe variable is expanded if necessary.
 
 +*unpack* 'binvalue' *-intbe|-intle|-uintbe|-uintle|-floatbe|-floatle|-str* 'bitpos bitwidth'+::
     Unpacks bits from +'binvalue'+ at bit position +'bitpos'+ and with +'bitwidth'+.
@@ -4791,30 +4733,6 @@ The optional 'pack' extension provides commands to encode and decode binary stri
     For the string type, both the width and the offset must be on a byte boundary (multiple of 8). Attempting to
     access outside the length of the value will return 0 for integer types, 0.0 for floating point types
     or the empty string for the string type.
-
-zlib
-~~~~
-The optional 'zlib' extension provides a Tcl-compatible subset of the `zlib` command.
-
-+*crc32* 'data' '?startValue?'+::
-    Returns the CRC32 checksum of a buffer. Optionally, an initial value may be specified; this is most useful
-    for calculating the checksum of chunked data read from a stream (for instance, a pipe).
-
-+*deflate* 'string' '?level?'+::
-    Compresses a buffer and outputs a raw, Deflate-compressed stream. Optionally, a compression level (1-9) may
-    be specified to choose the desired speed vs. compression rate ratio.
-
-+*inflate* 'data' '?bufferSize?'+::
-    Decompresses a raw, Deflate-compressed stream. When the uncompressed data size is known and specified, memory
-    allocation is more efficient. Otherwise, decomperssion is chunked and therefore slower.
-
-+*gzip* 'string' '?-level level?'+::
-    Compresses a buffer and adds a gzip header.
-
-+*gunzip* 'data' '?-buffersize size?'+::
-    Decompresses a gzip-compressed buffer. Decompression is chunked, with a default, small buffer size of 64K
-    which guarantees lower memory footprint at the cost of speed. It is recommended to use a bigger size, on
-    systems without a severe memory constraint.
 
 binary
 ~~~~~~
@@ -4846,7 +4764,7 @@ See the online documentation (http://jim.tcl.tk/index.html/doc/www/www/documenta
 tree
 ~~~~
 The optional, pure-Tcl 'tree' extension implements an OO, general purpose tree structure
-similar to that provided by tcllib ::struct::tree (http://core.tcl.tk/tcllib/doc/trunk/embedded/www/tcllib/files/modules/struct/struct_tree.html)
+similar to that provided by tcllib ::struct::tree (http://tcllib.sourceforge.net/doc/struct_tree.html)
 
 A tree is a collection of nodes, where each node (except the root node) has a single parent
 and zero or more child nodes (ordered), as well as zero or more attribute/value pairs.
@@ -4856,7 +4774,7 @@ and zero or more child nodes (ordered), as well as zero or more attribute/value 
     All operations on the tree are invoked through this object.
 
 +$tree *destroy*+::
-    Destroy the tree and all it's nodes. (Note that the tree will also
+    Destroy the tree and all it's nodes. (Note that the the tree will also
     be automatically garbage collected once it goes out of scope).
 
 +$tree *set* 'nodename key value'+::
@@ -4991,28 +4909,6 @@ Provides namespace-related functions. See also: http://www.tcl.tk/man/tcl8.6/Tcl
 +*namespace which* '?-command|-variable? name'+::
     Looks up +'name'+ as either a command (the default) or variable and returns its fully-qualified name.
 
-interp
-~~~~~~
-The optional 'interp' command allows sub-interpreters to be created where commands may be run
-independently (but synchronously) of the main interpreter.
-
-+*interp*+::
-    Creates and returns a new interpreter object (command).
-	The created interpeter contains any built-in commands along with static extensions,
-	but does not include any dynamically loaded commands (package require, load).
-	These must be reloaded in the child interpreter if required.
-
-+*$interp delete*+::
-    Deletes the interpeter object.
-
-+*$interp eval* 'script' ...+::
-	Evaluates a script in the context for the child interpreter, in the same way as 'eval'.
-
-+*$interp alias* 'alias childcmd parentcmd ?arg ...?'+::
-	Similar to 'alias', but creates a command, +'childcmd'+, in the child interpreter that is an
-	alias for +'parentcmd'+ in the parent interpreter, with the given, fixed arguments. 
-	The alias may be deleted in the child with 'rename'.
-
 [[BuiltinVariables]]
 BUILT-IN VARIABLES
 ------------------
@@ -5066,7 +4962,6 @@ The following global variables are set by jimsh.
     example of the contents of this array.
 
     tcl_platform(byteOrder)     = littleEndian
-    tcl_platform(engine)        = Jim
     tcl_platform(os)            = Darwin
     tcl_platform(platform)      = unix
     tcl_platform(pointerSize)   = 8

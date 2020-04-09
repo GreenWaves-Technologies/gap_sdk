@@ -13,3 +13,6 @@ utils/composite_impl_SRCS = utils/composite_impl.cpp
 
 IMPLEMENTATIONS += utils/clock_impl
 utils/clock_impl_SRCS = utils/clock_impl.cpp
+
+IMPLEMENTATIONS += utils/dpi_chip_wrapper
+utils/dpi_chip_wrapper_SRCS = utils/dpi_chip_wrapper.cpp

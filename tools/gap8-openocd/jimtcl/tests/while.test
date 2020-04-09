@@ -110,10 +110,6 @@ test while-old-5.2 {while return result} {
     set x 1
     while {$x} {set x 0}
 } {}
-test while-old-5.3 {while return result} {
-    set x true
-    while {$x} {set x 0}
-} {}
 
 # cleanup
 testreport

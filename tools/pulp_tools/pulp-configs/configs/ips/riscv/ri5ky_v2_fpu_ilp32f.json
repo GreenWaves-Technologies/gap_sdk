@@ -17,7 +17,7 @@
   "vp_component": "cpu/iss/iss_riscy",
   "bootaddr_offset": "0x80",
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

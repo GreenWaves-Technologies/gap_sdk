@@ -22,6 +22,9 @@
 #define __GV__GVSOC_PROXY_HPP__
 
 #include <string>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
 
 class Gvsoc_proxy
 {
@@ -32,7 +35,7 @@ public:
 
     void run();
 
-    void pause();
+    int64_t pause();
 
     void close();
 
@@ -46,9 +49,17 @@ public:
 
 private: 
 
+    void proxy_loop();
+
+    std::mutex mutex;
+    std::condition_variable cond;
     int req_pipe[2];
     int reply_pipe[2];
     std::string config_path;
+    std::thread *loop_thread;
+
+    bool running;
+    int64_t stopped_timestamp;
 
 };
 

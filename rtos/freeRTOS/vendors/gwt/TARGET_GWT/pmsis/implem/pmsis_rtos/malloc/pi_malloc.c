@@ -32,7 +32,11 @@
 #include "pmsis/rtos/malloc/pi_malloc.h"
 #include "pmsis/rtos/malloc/fc_l1_malloc.h"
 #include "pmsis/rtos/malloc/l2_malloc.h"
+#if defined(__GAP8__)
 #include "targets/pmsis_targets.h"
+#elif defined(__GAP9__)
+#include "pmsis/targets/target.h"
+#endif  /* __GAP8__ */
 
 /*******************************************************************************
  * Variables, macros, structures,... definition
@@ -62,14 +66,15 @@ static struct mem_bloc *mem_table[HASH_TABLE_KEYS]; /*!< Hash table for allocate
 
 static inline int32_t hash_code(uint32_t key)
 {
-#ifdef __GAP8__
+    #if defined(__GAP8__)
     uint32_t address = (key & 0xFFFF0000);
-#else
-    uint32_t address = (key & 0xFFF80000);
-#endif
+    #elif defined(__GAP9__)
+    uint32_t address = (key & 0xFFFF8000);
+    #endif  /* __GAP8__ */
+
     switch (address)
     {
-#ifdef __GAP8__
+    #if defined(__GAP8__)
     case 0x00000000 :
     case 0x1B000000 :
         return 0;
@@ -90,20 +95,17 @@ static inline int32_t hash_code(uint32_t key)
     case 0x1C070000 :
         return 4;
         break;
-#else
-    case 0x1C000000 :
+    #elif defined(__GAP9__)
+    case 0x1C000000 :           /* L2_PRIV0. */
         return 0;
         break;
-    case 0x1C080000 :
+    case 0x1C008000 :           /* L2_PRIV1. */
         return 1;
         break;
-    case 0x1C100000 :
-        return 0;
+    case 0x1C010000 :           /* L2_SHARED. */
+        return 2;
         break;
-    case 0x1C180000 :
-        return 1;
-        break;
-#endif
+    #endif  /* __GAP8__ */
     default :
         break;
     }
@@ -117,12 +119,8 @@ void pi_malloc_init(void *fc_heap_start, uint32_t fc_heap_size,
     {
         mem_table[i] = NULL;
     }
-#ifdef __GAP8__
-    if (__native_is_fc())
-    {
-        pi_fc_l1_malloc_init(fc_heap_start, fc_heap_size);
-    }
-#endif
+
+    pi_fc_l1_malloc_init(fc_heap_start, fc_heap_size);
     pi_l2_malloc_init(l2_heap_start, l2_heap_size);
 }
 
@@ -130,25 +128,16 @@ void *pi_malloc(size_t size)
 {
     /* Real memory bloc to return. */
     void *ptr = NULL;
-#ifdef __GAP8__
-    if (__native_is_fc())
-    {
-        ptr = pi_fc_l1_malloc(size);
-    }
+
+    ptr = pi_fc_l1_malloc(size);
     if (ptr == NULL)
-#endif
     {
         ptr = pi_l2_malloc(size);
     }
     /* Memory bloc to keep history of mallocs */
     void *ptr_bloc = NULL;
-#ifdef __GAP8__
-    if (__native_is_fc())
-    {
-        ptr_bloc = pi_fc_l1_malloc(sizeof(struct mem_bloc));
-    }
+    ptr_bloc = pi_fc_l1_malloc(sizeof(struct mem_bloc));
     if (ptr_bloc == NULL)
-#endif
     {
         ptr_bloc = pi_l2_malloc(sizeof(struct mem_bloc));
     }
@@ -187,25 +176,25 @@ void *pi_malloc_align(size_t size, uint32_t align)
 
 void pi_free(void *_chunk)
 {
-    uint32_t key = hash_code((uint32_t) _chunk);
+    uint32_t key_chunk = hash_code((uint32_t) _chunk);
     uint32_t size = -1;
-    if (mem_table[key] == NULL)
+    if (mem_table[key_chunk] == NULL)
     {
         return;
     }
     else
     {
-        struct mem_bloc *tmp = mem_table[key];
+        struct mem_bloc *tmp = mem_table[key_chunk];
         while (tmp != NULL)
         {
             if (tmp->ptr == (uint32_t *) _chunk)
             {
                 size = tmp->size;
                 /* Node is first of list. */
-                if (tmp == mem_table[key])
+                if (tmp == mem_table[key_chunk])
                 {
-                    mem_table[key] = tmp->next;
-                    mem_table[key]->prev = NULL;
+                    mem_table[key_chunk] = tmp->next;
+                    mem_table[key_chunk]->prev = NULL;
                 }
                 /* Node is elsewhere in list. */
                 else
@@ -214,21 +203,31 @@ void pi_free(void *_chunk)
                     tmp->next->prev = tmp->prev;
                 }
                 /* Free MemBloc_t struct. */
+                #if defined(__GAP8__)
                 uint8_t bloc_area = ((uint32_t) tmp >> 24);
                 switch (bloc_area)
                 {
-#ifdef __GAP8__
                 case 0x00 :
                 case 0x1B :
                     pi_fc_l1_free((void *) tmp, sizeof(struct mem_bloc));
                     break;
-#endif
                 case 0x1C :
                     pi_l2_free((void *) tmp, sizeof(struct mem_bloc));
                     break;
                 default :
                     break;
                 }
+                #elif defined(__GAP9__)
+                uint32_t key_mem_bloc = hash_code((uint32_t) tmp);
+                if (key_mem_bloc < 2)
+                {
+                    pi_fc_l1_free((void *) tmp, sizeof(struct mem_bloc));
+                }
+                else
+                {
+                    pi_l2_free((void *) tmp, sizeof(struct mem_bloc));
+                }
+                #endif  /* __GAP8__ */
                 break;
             }
             tmp = tmp->next;
@@ -236,21 +235,30 @@ void pi_free(void *_chunk)
     }
 
     /* Free allocated memory bloc. */
+    #if defined(__GAP8__)
     uint8_t area = ((uint32_t) _chunk >> 24);
     switch (area)
     {
-#ifdef __GAP8__
     case 0x00 :
     case 0x1B :
         pi_fc_l1_free(_chunk, size);
         break;
-#endif
     case 0x1C :
         pi_l2_free(_chunk, size);
         break;
     default :
         break;
     }
+    #elif defined(__GAP9__)
+    if (key_chunk < 2)
+    {
+        pi_fc_l1_free(_chunk, size);
+    }
+    else
+    {
+        pi_l2_free(_chunk, size);
+    }
+    #endif  /* __GAP8__ */
 }
 
 void pi_malloc_display(void)

@@ -31,8 +31,11 @@ I2s_periph::I2s_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
 
   top->traces.new_trace(itf_name, &trace, vp::DEBUG);
 
-  channel0 = new I2s_rx_channel(top, this, 0, UDMA_EVENT_ID(id), itf_name + "_0");
-  channel1 = new I2s_rx_channel(top, this, 1, UDMA_EVENT_ID(id)+1, itf_name + "_1");
+  //channel0 = new I2s_rx_channel(top, this, 0, UDMA_EVENT_ID(id), itf_name + "_0");
+  //channel1 = new I2s_rx_channel(top, this, 1, UDMA_EVENT_ID(id)+1, itf_name + "_1");
+
+  channel0 = new I2s_rx_channel(top, this, 0, 0, itf_name + "_0");
+  channel1 = new I2s_rx_channel(top, this, 1, 0, itf_name + "_1");
 
   top->new_slave_port(this, "i2s" + std::to_string(itf_id*2), &this->ch_itf[0]);
   top->new_slave_port(this, "i2s" + std::to_string(itf_id*2+1), &this->ch_itf[1]);
@@ -55,7 +58,7 @@ I2s_periph::I2s_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
   this->tdm_channels.reserve(this->nb_tdm_channels);
   for (int i=0; i<this->nb_tdm_channels; i++)
   {
-    this->tdm_channels[i] = new I2s_rx_channel(top, this, 0, UDMA_EVENT_ID(id) + 4 + ((i/2)*4) + (i&1), itf_name + "_tdm_" + std::to_string(i));
+    //this->tdm_channels[i] = new I2s_rx_channel(top, this, 0, UDMA_EVENT_ID(id) + 4 + ((i/2)*4) + (i&1), itf_name + "_tdm_" + std::to_string(i));
   }
 }
  
@@ -288,7 +291,7 @@ vp::io_req_status_e I2s_periph::custom_req(vp::io_req *req, uint64_t offset)
 
   if (size != 4) return vp::IO_REQ_INVALID;
 
-  offset += UDMA_CHANNEL_CUSTOM_OFFSET;
+  //offset += UDMA_CHANNEL_CUSTOM_OFFSET;
 
   if (offset < 0x80)
   {
@@ -354,7 +357,7 @@ void I2s_periph::rx_sync(void *__this, int sck, int ws, int sd, int channel)
 
 
 
-I2s_rx_channel::I2s_rx_channel(udma *top, I2s_periph *periph, int id, int event_id, string name) : Udma_rx_channel(top, event_id, name), periph(periph), id(id)
+I2s_rx_channel::I2s_rx_channel(udma *top, I2s_periph *periph, int id, int event_id, string name) : Udma_rx_channel(top, name), periph(periph), id(id)
 {
   for (int i=0; i<2; i++)
   {

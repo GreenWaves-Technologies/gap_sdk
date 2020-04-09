@@ -44,7 +44,7 @@ are prefixed with 'Account' and a space.
 
 PREDEFINED CLASS METHODS
 ------------------------
-Declaring a class pre-defines a number of "class" methods. i.e. those which don't
+Decaring a class pre-defines a number of "class" methods. i.e. those which don't
 require an object and simply return or manipulate properties of the class. These are:
 
   new ?instancevars?::
@@ -84,7 +84,7 @@ For example:
 
 PREDEFINED OBJECT METHODS
 -------------------------
-Declaring a class pre-defines a number of "object" methods. i.e. those which operate
+Decaring a class pre-defines a number of "object" methods. i.e. those which operate
 on a specific object.
 
   destroy::
@@ -99,18 +99,6 @@ on a specific object.
     Makes any given local variables available to the body, along with
 	the instance variables, and evaluate the body in that context.
 	This can be used for one-off evaluation to avoid declaring a method.
-
-RESERVED METHODS
-----------------
-The following methods are special
-
-  constructor::
-    If this method exists, it is invoked (with no arguments) after an object is created
-
-  unknown methodname ...::
-    If an undefined method is invoked, and this method exists, it is called with the methodname
-	and the original arguments
-
 
 CREATING OBJECTS
 ----------------
@@ -132,11 +120,9 @@ For example:
   . $b get balance
   1000
 
-If the 'constructor' method exists, it is invoked just after the object is created
-
 DECLARING METHODS
 -----------------
-In addition to the predefined methods, new methods may be declared, or existing
+In addition to the predefined methods, new methods may be decared, or existing
 methods redefined with the class method, method.
 
 Declaring a method is very similar to defining a proc, and the arglist

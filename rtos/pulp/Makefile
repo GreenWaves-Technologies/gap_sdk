@@ -28,6 +28,11 @@ do.hal: pulp_configs
 
 build.hal: do.hal
 	cd $(GAP_SDK_HOME)/rtos/pulp/hal/target && rsync -avR * $(TARGET_INSTALL_DIR)
+
+build.gap_archi:
+ifeq '$(TARGET_CHIP)' 'GAP9_V2'
+	cd $(GAP_SDK_HOME)/rtos/pulp/gap_archi && make build
+endif
 	
 artifact.hal: do.hal
 	mkdir -p $(ARTIFACT_PATH)/rtos/pulp/hal
@@ -39,5 +44,7 @@ artifact.pulpos:
 
 artifact: artifact.archi artifact.hal artifact.pulpos
 
-build: build.archi build.hal
+build: build.archi build.hal build.gap_archi
+ifneq '$(TARGET_CHIP)' 'GAP9_V2'
 	$(MAKE) -C pulp-os -f gap_sdk.mk $(TARGET_NAME)
+endif

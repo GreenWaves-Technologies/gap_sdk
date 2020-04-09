@@ -241,16 +241,18 @@ void trace_domain::pre_pre_build()
 {
     new_service("trace", static_cast<trace_engine *>(this));
 
-    for (auto x : this->get_vp_config()->get("trace")->get_elems())
+    for (auto x : this->get_vp_config()->get("traces/include_regex")->get_elems())
     {
         std::string trace_path = x->get_str();
         this->add_trace_path(0, trace_path);
     }
-    for (auto x : this->get_vp_config()->get("event")->get_elems())
+    for (auto x : this->get_vp_config()->get("events/include_regex")->get_elems())
     {
         std::string trace_path = x->get_str();
         this->add_trace_path(1, trace_path);
     }
+
+    this->set_trace_level(this->get_vp_config()->get_child_str("traces/level").c_str());
 }
 
 int trace_domain::build()
@@ -259,7 +261,7 @@ int trace_domain::build()
 
     js::config *config = get_js_config()->get("gvsoc");
 
-    auto vcd_traces = config->get("vcd/traces");
+    auto vcd_traces = config->get("events/traces");
 
     if (vcd_traces != NULL)
     {

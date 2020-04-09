@@ -7,7 +7,7 @@ PULP_PROPERTIES += udma/version timer/version stdout/version soc_eu/version \
 	udma/cpi/version padframe/version pulp_chip_family pmu/version \
 	udma/hyper/version efuse/version udma/i2c/version rtc/version gpio/version \
   fc/iss_class pe/iss_class udma/i2s/version udma/mram/version hwce/version \
-   udma/tcdm/version hwacc/base
+   udma/tcdm/version hwacc/base udma/uart/version
 
 properties := $(foreach prop,$(PULP_PROPERTIES), --property=$(prop))
 

@@ -75,7 +75,7 @@ def get_config(tp, cluster_id):
   l1_ts_mapping['remove_offset'] = l1_ts_mapping['base']
 
   cluster.cluster_ico = Component(properties=OrderedDict([
-    ('includes', ["ips/interco/router.json"]),
+    ('@includes@', ["ips/interco/router.json"]),
     ('latency', 2),
     ('mappings', OrderedDict([
       ("l1", get_mapping_area(tp.get_child_dict("cluster/l1"), cluster_size, cluster_id, True)),
@@ -93,7 +93,7 @@ def get_config(tp, cluster_id):
   demux_eu_mapping = tp.get_child_dict("cluster/demux_peripherals/event_unit")
   demux_eu_mapping['base'] = '0x%x' % (int(demux_eu_mapping['base'], 0) - tp.get_child_int("cluster/demux_peripherals/base"))
   cluster.demux_periph_ico = Component(properties=OrderedDict([
-      ('includes', ["ips/interco/router.json"]),
+      ('@includes@', ["ips/interco/router.json"]),
       ('mappings', OrderedDict([
         ("demux_event_unit", get_mapping(demux_eu_mapping)),
       ]))
@@ -134,7 +134,7 @@ def get_config(tp, cluster_id):
     ]))
 
   cluster.periph_ico = Component(properties=OrderedDict([
-    ('includes', ["ips/interco/router.json"]),
+    ('@includes@', ["ips/interco/router.json"]),
     ('mappings', periph_ico_mappings)
   ]))
 
@@ -181,7 +181,7 @@ def get_config(tp, cluster_id):
     cluster.l1_ico.add_component(
       'pe%d_ico' % i,
       Component(properties=OrderedDict([
-        ('includes', ["ips/interco/router.json"]),
+        ('@includes@', ["ips/interco/router.json"]),
         ('mappings', OrderedDict([
           ("l1", l1_mapping),
           ("l1_ts", l1_ts_mapping),
@@ -203,20 +203,20 @@ def get_config(tp, cluster_id):
     l1_interleaver_nb_masters += 4
 
   cluster.l1_ico.interleaver = Component(properties=OrderedDict([
-    ('includes', ["ips/interco/l1_interleaver.json"]),
+    ('@includes@', ["ips/interco/l1_interleaver.json"]),
     ('nb_slaves', nb_l1_banks),
     ('nb_masters', l1_interleaver_nb_masters),
     ('interleaving_bits', 2)
   ]))
 
   cluster.l1_ico.ext2loc = Component(properties=OrderedDict([
-    ('includes', ["ips/interco/converter.json"]),
+    ('@includes@', ["ips/interco/converter.json"]),
     ('output_width', 4),
     ('output_align', 4)
   ]))
 
   cluster.l1_ico.ext2loc_ts = Component(properties=OrderedDict([
-    ('includes', ["ips/interco/converter.json"]),
+    ('@includes@', ["ips/interco/converter.json"]),
     ('output_width', 4),
     ('output_align', 4)
   ]))
@@ -240,7 +240,7 @@ def get_config(tp, cluster_id):
         ('width_bits', 2),
         ('vp_class', "memory/memory"),
         ('vp_component', 'memory.memory_impl'),
-        ('power_models', {"includes": ["power_models/l1/l1.json"] }),
+        ('power_models', {"@includes@": ["power_models/l1/l1.json"] }),
         ('power_trigger', True if i == 0 else False)
       ]))
     )
@@ -256,41 +256,41 @@ def get_config(tp, cluster_id):
   ]))
 
   cluster.dma = Component(properties=OrderedDict([
-    ('includes', ["ips/mchan/mchan_v%d.json" % tp.get_child_int('cluster/peripherals/dma/version')]),
+    ('@includes@', ["ips/mchan/mchan_v%d.json" % tp.get_child_int('cluster/peripherals/dma/version')]),
     ('nb_channels', nb_pe+1),
     ('is_64', tp.get_child_bool('cluster/peripherals/dma/is_64') == True)
   ]))
 
   cluster.cluster_ctrl = Component(properties=OrderedDict([
-    ('includes', ["ips/cluster_ctrl/cluster_ctrl_v2.json"]),
+    ('@includes@', ["ips/cluster_ctrl/cluster_ctrl_v2.json"]),
     ('nb_core', nb_pe)
   ]))
 
   cluster.event_unit = Component(properties=OrderedDict([
-    ('includes', ["ips/event_unit/eu_v3.json"]),
+    ('@includes@', ["ips/event_unit/eu_v3.json"]),
     ('nb_core', nb_pe)
   ]))
 
   cluster.timer = Component(properties=OrderedDict([
-    ('includes', ["ips/timer/timer_v2.json"])
+    ('@includes@', ["ips/timer/timer_v2.json"])
   ]))
 
   if has_hwce:
     cluster.hwce = Component(properties=OrderedDict([
-      ('includes', ["ips/hwce/hwce_v%d.json" % tp.get_child_int('cluster/peripherals/hwce/version')])
+      ('@includes@', ["ips/hwce/hwce_v%d.json" % tp.get_child_int('cluster/peripherals/hwce/version')])
     ]))
 
   if has_hwacc:
     cluster.hwacc = Component(properties=OrderedDict([
-      ('includes', ["ips/hwacc/hwacc.json"])
+      ('@includes@', ["ips/hwacc/hwacc.json"])
     ]))
 
   cluster.icache_ctrl = Component(properties=OrderedDict([
-    ('includes', ["ips/icache_ctrl/icache_ctrl_v2.json"])
+    ('@includes@', ["ips/icache_ctrl/icache_ctrl_v2.json"])
   ]))
 
   icache_config_dict = OrderedDict([
-    ('includes', ["ips/cache/cache.json"])
+    ('@includes@', ["ips/cache/cache.json"])
   ])
 
   icache_config = tp.get('cluster/icache/config')
@@ -315,7 +315,7 @@ def get_config(tp, cluster_id):
     cluster.add_component(
       'pe%d' % i,
       Component(properties=OrderedDict([
-        ('includes', ["ips/riscv/%s.json" % cluster_core]),
+        ('@includes@', ["ips/riscv/%s.json" % cluster_core]),
         ('cluster_id', cluster_id),
         ('core_id', i),
         ('fetch_enable', tp.get_child_bool("cluster%d/pe%d/fetch_enable" % (cluster_id, i))),
@@ -326,7 +326,7 @@ def get_config(tp, cluster_id):
     cluster.add_component(
       'pe',
       Empty_Component(properties=OrderedDict([
-        ('includes', ["ips/riscv/%s.json" % cluster_core]),
+        ('@includes@', ["ips/riscv/%s.json" % cluster_core]),
         ('cluster_id', cluster_id),
         ('core_id', 0),
         ('boot_addr', "0x1C000000")

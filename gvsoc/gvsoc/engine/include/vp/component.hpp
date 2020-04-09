@@ -70,8 +70,9 @@ namespace vp {
       void init(vp::component *top, std::string name, int bits, uint8_t *value, uint8_t *reset_val);
       void reset(bool active);
       virtual void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write) {}
+      virtual void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write) {}
 
-      virtual void build(vp::component *comp) {}
+      virtual void build(vp::component *comp, std::string name) {}
 
       inline uint8_t *get_bytes() { return this->value_bytes; }
       inline void set_1(uint8_t value) { *(uint8_t *)this->value_bytes = value; }
@@ -88,6 +89,8 @@ namespace vp {
       inline uint32_t get_32() { return *(uint32_t *)this->value_bytes; }
       inline uint64_t get_64() { return *(uint64_t *)this->value_bytes; }
       uint64_t get_field(int offset, int width);
+      void register_callback(std::function<void(uint64_t, int, uint8_t *, bool)> callback) { this->callback = callback; }
+      bool access_callback(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
 
 
       int nb_bytes;
@@ -103,13 +106,14 @@ namespace vp {
       bool do_reset;
       uint64_t offset;
       int width;
+      std::function<void(uint64_t, int, uint8_t *, bool)> callback = NULL;
   };
 
   class reg_1: public reg
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
-    void build(vp::component *comp);
+    void build(vp::component *comp, std::string name);
 
     inline uint8_t get() { return this->value; }
     inline void set(uint8_t value) {
@@ -128,12 +132,20 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    inline void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
+    }
+
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    {
+      if (!this->access_callback(reg_offset, size, value, is_write))
+      {
+        this->update(reg_offset, size, value, is_write);
+      }
     }
     
   protected:
@@ -148,7 +160,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
-    void build(vp::component *comp);
+    void build(vp::component *comp, std::string name);
 
     inline uint8_t get() { return this->value; }
     inline void set(uint8_t value) {
@@ -157,7 +169,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)&this->value);
     }
     inline void set_field(uint8_t value, int offset, int width) {
-      this->value = (this->value & (((1<<width)-1)<<offset)) | (value << offset);
+      this->value = (this->value & ~(((1UL<<width)-1)<<offset)) | (value << offset);
       if (this->reg_event.get_event_active())
         this->reg_event.event((uint8_t *)&this->value);
     }
@@ -173,12 +185,20 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    inline void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
+    }
+
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    {
+      if (!this->access_callback(reg_offset, size, value, is_write))
+      {
+        this->update(reg_offset, size, value, is_write);
+      }
     }
 
   protected:
@@ -193,7 +213,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
-    void build(vp::component *comp);
+    void build(vp::component *comp, std::string name);
 
     inline uint16_t get() { return this->value; }
     inline void set(uint16_t value) {
@@ -202,7 +222,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)&this->value);
     }
     inline void set_field(uint16_t value, int offset, int width) {
-      this->value = (this->value & (((1<<width)-1)<<offset)) | (value << offset);
+      this->value = (this->value & ~(((1UL<<width)-1)<<offset)) | (value << offset);
       if (this->reg_event.get_event_active())
         this->reg_event.event((uint8_t *)&this->value);
     }
@@ -218,12 +238,20 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    inline void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
+    }
+
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    {
+      if (!this->access_callback(reg_offset, size, value, is_write))
+      {
+        this->update(reg_offset, size, value, is_write);
+      }
     }
 
   protected:
@@ -238,7 +266,7 @@ namespace vp {
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
-    void build(vp::component *comp);
+    void build(vp::component *comp, std::string name);
 
     inline uint32_t get() { return this->value; }
     inline void set(uint32_t value) {
@@ -247,7 +275,7 @@ namespace vp {
         this->reg_event.event((uint8_t *)&this->value);
     }
     inline void set_field(uint32_t value, int offset, int width) {
-      this->value = (this->value & (((1<<width)-1)<<offset)) | (value << offset);
+      this->value = (this->value & ~(((1UL<<width)-1)<<offset)) | (value << offset);
       if (this->reg_event.get_event_active())
         this->reg_event.event((uint8_t *)&this->value);
     }
@@ -263,12 +291,20 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    inline void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
+    }
+
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    {
+      if (!this->access_callback(reg_offset, size, value, is_write))
+      {
+        this->update(reg_offset, size, value, is_write);
+      }
     }
 
   protected:
@@ -282,19 +318,20 @@ namespace vp {
   class regmap {
   public:
     std::vector<reg *> get_registers() { return this->registers; }
-    void build(vp::component *comp);
+    void build(vp::component *comp, vp::trace *trace, std::string name="");
     bool access(uint64_t offset, int size, uint8_t *value, bool is_write);
 
   protected:
     std::vector<reg *> registers;
     vp::component *comp;
+    vp::trace *trace;
   };
 
   class reg_64: public reg
   {
   public:
     void init(vp::component *top, std::string name, uint8_t *reset_val);
-    void build(vp::component *comp);
+    void build(vp::component *comp, std::string name);
 
     inline uint64_t get() { return this->value; }
     inline void set(uint64_t value) {
@@ -313,12 +350,20 @@ namespace vp {
         this->reg_event.event((uint8_t *)this->value_bytes);
     }
     inline void dump_after_write() { this->trace.msg("Modified register (value: 0x%x)\n", this->value); }
-    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    inline void update(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
     {
       if (is_write)
         this->write(reg_offset, size, value);
       else
         this->read(reg_offset, size, value);
+    }
+
+    inline void access(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+    {
+      if (!this->access_callback(reg_offset, size, value, is_write))
+      {
+        this->update(reg_offset, size, value, is_write);
+      }
     }
 
   protected:
@@ -406,6 +451,8 @@ namespace vp {
     void start_all();
 
     void final_bind();
+
+    virtual void *external_bind(std::string name);
 
     void reset_all(bool active, bool from_itf=false);
 

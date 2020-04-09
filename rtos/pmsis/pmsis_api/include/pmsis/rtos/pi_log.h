@@ -151,7 +151,7 @@ static inline pi_log_level_t pi_log_get_level(void)
 #define LOG_RESET_COLOR   "\033[0m"
 #define LOG_COLOR_E       LOG_COLOR(LOG_COLOR_RED)
 #define LOG_COLOR_W       LOG_COLOR(LOG_COLOR_BROWN)
-#define LOG_COLOR_I       LOG_COLOR(LOG_COLOR_GREEN)
+#define LOG_COLOR_I
 #define LOG_COLOR_D
 #define LOG_COLOR_T
 #else //CONFIG_LOG_COLORS
@@ -264,5 +264,19 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 #define SSBL_INF(fmt, ...) PI_LOG_INF(SSBL_TAG, fmt, ##__VA_ARGS__)
 #define SSBL_DBG(fmt, ...) PI_LOG_DBG(SSBL_TAG, fmt, ##__VA_ARGS__)
 #define SSBL_TRC(fmt, ...) PI_LOG_TRC(SSBL_TAG, fmt, ##__VA_ARGS__)
+
+#define I2S_TAG "i2s"
+#define I2S_ERR(fmt, ...) PI_LOG_ERR(I2S_TAG, fmt, ##__VA_ARGS__)
+#define I2S_WNG(fmt, ...) PI_LOG_WNG(I2S_TAG, fmt, ##__VA_ARGS__)
+#define I2S_INF(fmt, ...) PI_LOG_INF(I2S_TAG, fmt, ##__VA_ARGS__)
+#define I2S_DBG(fmt, ...) PI_LOG_DBG(I2S_TAG, fmt, ##__VA_ARGS__)
+#define I2S_TRC(fmt, ...) PI_LOG_TRC(I2S_TAG, fmt, ##__VA_ARGS__)
+
+#define INIT_TAG "init"
+#define INIT_ERR(fmt, ...) PI_LOG_ERR(INIT_TAG, fmt, ##__VA_ARGS__)
+#define INIT_WNG(fmt, ...) PI_LOG_WNG(INIT_TAG, fmt, ##__VA_ARGS__)
+#define INIT_INF(fmt, ...) PI_LOG_INF(INIT_TAG, fmt, ##__VA_ARGS__)
+#define INIT_DBG(fmt, ...) PI_LOG_DBG(INIT_TAG, fmt, ##__VA_ARGS__)
+#define INIT_TRC(fmt, ...) PI_LOG_TRC(INIT_TAG, fmt, ##__VA_ARGS__)
 
 #endif //PI_LOG_H

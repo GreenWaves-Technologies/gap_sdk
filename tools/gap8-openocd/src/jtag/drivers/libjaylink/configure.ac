@@ -105,7 +105,8 @@ AS_IF([test "x$enable_subproject_build" != "xyes"],
 # Use C99 compatible stdio functions on MinGW instead of the incompatible
 # functions provided by Microsoft.
 AS_CASE([$host_os], [mingw*],
-	[JAYLINK_CFLAGS="$JAYLINK_CFLAGS -D__USE_MINGW_ANSI_STDIO"])
+	[AC_DEFINE([__USE_MINGW_ANSI_STDIO], [1],
+		[Define to 1 to use C99 compatible stdio functions on MinGW.])])
 
 # Add the Winsock2 library on MinGW for socket and other network-related
 # functions.

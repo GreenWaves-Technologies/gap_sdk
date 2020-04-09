@@ -128,7 +128,14 @@ void vp::trace::dump_header()
 void vp::trace::dump_warning_header()
 {
   int max_trace_len = comp->traces.get_trace_manager()->get_max_path_len();
-  fprintf(this->trace_file, "%ld: %ld: [\033[31m%-*.*s\033[0m] ", comp->get_clock()->get_time(), comp->get_clock()->get_cycles(), max_trace_len, max_trace_len, path.c_str());
+  int64_t cycles = 0;
+  int64_t time = 0;
+  if (comp->get_clock())
+  {
+    cycles = comp->get_clock()->get_cycles();
+    time = comp->get_clock()->get_time();
+  }
+  fprintf(this->trace_file, "%ld: %ld: [\033[31m%-*.*s\033[0m] ", time, cycles, max_trace_len, max_trace_len, path.c_str());
 }
 
 void vp::trace::dump_fatal_header()

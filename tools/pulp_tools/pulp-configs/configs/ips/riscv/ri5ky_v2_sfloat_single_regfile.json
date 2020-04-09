@@ -16,7 +16,7 @@
   "vp_component": "cpu/iss/iss_riscy_single_regfile",
   "debug_binaries": [],
   "power_models": {
-    "includes": [
+    "@includes@": [
       "power_models/core/riscy.json"
     ]
   },

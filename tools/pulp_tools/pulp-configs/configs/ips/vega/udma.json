@@ -1,5 +1,5 @@
 {
-  "includes": [ "../../ips/udma/udma_v3.json"],
+  "@includes@": [ "../../ips/udma/udma_v3.json"],
 
   "nb_periphs": 7,
 
@@ -45,7 +45,7 @@
   },
 
   "i2s": {
-    "includes": [ "../../ips/udma/i2s/udma_i2s_v2.json" ],
+    "@includes@": [ "../../ips/udma/i2s/udma_i2s_v2.json" ],
     "nb_channels"  : 1,
     "ids"          : [10],
     "offsets"      : ["0x500"]

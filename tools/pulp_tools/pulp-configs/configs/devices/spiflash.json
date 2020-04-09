@@ -1,5 +1,36 @@
 {
   "name": "SPI_flash",
+
+  "datasheet": {
+    "type": "spi",
+    "size": "16MB",
+    "block-size": "4KB"
+  },
+
+  "models": {
+      "rtl": {
+          "stimuli": {
+              "format": "slm",
+              "file": "slm_files/flash_stim.slm"
+          }
+      }
+  },
+
+  "content": {
+      "partitions": {
+          "readfs": {
+              "type": "readfs",
+              "enabled": false,
+              "files": []
+          },
+          "lfs": {
+              "type": "lfs",
+              "enabled": false,
+              "root_dir": null
+          }
+      }
+  },
+
   "doc_rst": "devices/spiflash.rst",
   "description": "SPI flash model",
   "platforms": [ "gvsoc", "rtl" ],
@@ -8,7 +39,6 @@
   "interface": "spim0",
   "cs": 0,
 
-  "config": {
     "type": "dpi",
     "module": "spiflash.so",
     "mem_size": "0x01000000",
@@ -18,5 +48,4 @@
       "aes_key": 0,
       "aes_iv": 0
     }
-  }
 }

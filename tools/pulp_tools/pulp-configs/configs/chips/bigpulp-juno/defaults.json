@@ -19,18 +19,18 @@
       "chip": {
         "soc": {
           "mailbox": {
-            "includes": [ "ips/mailbox/mailbox_v0.json"]
+            "@includes@": [ "ips/mailbox/mailbox_v0.json"]
           },
           "rab": {
-            "includes": [ "ips/rab/rab_v1.json"]
+            "@includes@": [ "ips/rab/rab_v1.json"]
           },
           "archi_host": {
-            "includes": [ "ips/archi_host/archi_host_v1.json"]
+            "@includes@": [ "ips/archi_host/archi_host_v1.json"]
           },
           "archi_host_src_files": [ "src/arm64/phys_addr.c" ],
           "cluster": {
             "tryx": {
-              "includes": [ "ips/tryx/tryx_v1.json"]
+              "@includes@": [ "ips/tryx/tryx_v1.json"]
             }
           }
         }

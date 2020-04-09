@@ -5,11 +5,11 @@
   "board": {
     "devices": {
       "uart": {
-        "includes": ["devices/uart_tb.json"],
+        "@includes@": ["devices/uart_tb.json"],
         "interface": "uart0"
       },
       "jtag_proxy": {
-        "includes": ["devices/jtag_proxy.json"]
+        "@includes@": ["devices/jtag_proxy.json"]
       }
     }
   },

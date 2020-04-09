@@ -592,14 +592,7 @@ typedef struct pi_cl_fs_req_s
 
 static inline __attribute__((always_inline)) int32_t pi_cl_fs_wait(pi_cl_fs_req_t *req)
 {
-    #if defined(PMSIS_DRIVERS)
     cl_wait_task(&(req->done));
-    #else
-    while((*(volatile char *)&req->done) == 0)
-    {
-        eu_evt_maskWaitAndClr(1<<RT_CLUSTER_CALL_EVT);
-    }
-    #endif  /* PMSIS_DRIVERS */
     return req->result;
 }
 

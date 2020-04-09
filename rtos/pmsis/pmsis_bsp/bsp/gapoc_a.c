@@ -88,9 +88,21 @@ void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
   conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
 }
 
+static void __bsp_init_spi_pads()
+{
+    pi_pad_set_function(PI_PAD_40_D2_SPIM0_SDIO0 , PI_PAD_40_D2_SPIM0_SDIO0_FUNC0 );
+    pi_pad_set_function(PI_PAD_41_A11_SPIM0_SDIO1, PI_PAD_41_A11_SPIM0_SDIO1_FUNC0);
+    pi_pad_set_function(PI_PAD_42_B10_SPIM0_SDIO2, PI_PAD_42_B10_SPIM0_SDIO2_FUNC0);
+    pi_pad_set_function(PI_PAD_43_A10_SPIM0_SDIO3, PI_PAD_43_A10_SPIM0_SDIO3_FUNC0);
+    pi_pad_set_function(PI_PAD_44_B8_SPIM0_CSN0  , PI_PAD_44_B8_SPIM0_CSN0_FUNC0  );
+    pi_pad_set_function(PI_PAD_45_A8_SPIM0_CSN1  , PI_PAD_45_A8_SPIM0_CSN1_FUNC0  );
+    pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK   , PI_PAD_46_B7_SPIM0_SCK_FUNC0   );
+}
+
 int bsp_spiram_open(struct pi_spiram_conf *conf)
 {
   __bsp_init_pads();
+  __bsp_init_spi_pads();
   return 0;
 }
 
@@ -102,13 +114,12 @@ void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
   conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
   conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
   conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
-  // try to reach max freq on gapoc_a
-  conf->baudrate = 50*1000000;
 }
 
 int bsp_spiflash_open(struct pi_spiflash_conf *conf)
 {
   __bsp_init_pads();
+  __bsp_init_spi_pads();
   return 0;
 }
 

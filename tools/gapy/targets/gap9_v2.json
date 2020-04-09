@@ -1,0 +1,47 @@
+{
+    "@include@": "common.json",
+
+    "target": {
+        "@includes@": [ "chips/gap9_v2/gap9_v2.json" ],
+      
+        "board": {
+            "name": "gap9_v2",
+
+            "devices": {
+                "spiflash": {
+                    "@include@": "devices/flash/spiflash_s26ks512.json",
+                    "interface": "spim1",
+                    "cs": 0
+                }
+            }
+        }
+    },
+
+    "gvsoc": {
+        "runner_module": "gv.chips.gap9_v2"
+    },
+
+    "rtl": {
+        "runner_module": "runner.rtl.chips.gap9",
+
+        "vsim": {
+            "path_envvar": "PULP_RTL_GAP9_V2"
+        }
+    },
+
+    "openocd": {
+        "cable": "interface/jlink.cfg",
+        "script": "tcl/gap9revb.cfg"
+    },
+
+    "runner": {
+        "flash_devices": [
+          "target/board/devices/flash",
+          "target/board/devices/spiflash"
+        ],
+        "boot": {
+            "mode": "flash",
+            "device": "target/board/devices/spiflash"
+        }
+    }
+}

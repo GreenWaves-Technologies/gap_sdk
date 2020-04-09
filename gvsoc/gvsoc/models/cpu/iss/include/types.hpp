@@ -318,6 +318,7 @@ typedef struct iss_insn_block_s {
   iss_addr_t pc;
   iss_insn_t insns[ISS_INSN_BLOCK_SIZE];
   iss_insn_block_t *next;
+  bool is_init;
 } iss_insn_block_t;
 
 typedef struct iss_insn_cache_s {

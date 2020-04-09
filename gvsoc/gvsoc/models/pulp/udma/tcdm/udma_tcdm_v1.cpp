@@ -194,7 +194,7 @@ void Tcdm_periph_v1::handle_reqs(void *__this, vp::clock_event *event)
 
 void Tcdm_periph_v1::check_state()
 {
-  if (!this->pending_reqs_event->is_enqueued() && !this->out_reqs->is_empty() && !this->channel1->ready_reqs->is_empty())
+  if (!this->pending_reqs_event->is_enqueued() && !this->out_reqs->is_empty() && (!this->channel1->ready_reqs->is_empty() || !this->channel0->ready_reqs->is_empty()))
   {
     this->top->event_reenqueue(this->pending_reqs_event, 1);
   }

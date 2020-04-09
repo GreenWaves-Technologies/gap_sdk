@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef __BSP_GAPOC_B_H__
-#define __BSP_GAPOC_B_H__
+#ifndef __BSP_GAPOC_B_V2_H__
+#define __BSP_GAPOC_B_V2_H__
 
 #define CONFIG_THERMAL_EYE
 #define CONFIG_HYPERFLASH

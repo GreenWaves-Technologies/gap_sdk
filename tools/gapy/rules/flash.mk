@@ -9,6 +9,8 @@
 #
 # Parameters:
 # - BUILDDIR : Output directory to store generated flash image.
+# - PARTITION_TABLE (optional): A partition table in CSV or binary format.
+#       if no partition table is provided, a typical partition table will be used with a partition for LFS.
 # - FLASH_IMAGE_NAME (optional): flash image name into $(BUILDDIR). By default $(APP).flash
 #
 # Provides:
@@ -49,6 +51,14 @@ FLASH_IMAGE ?= $(BUILDDIR)/$(FLASH_IMAGE_NAME)
 RAW_IMAGE_PLPBRIDGE_FLAGS = -i $(FLASH_IMAGE)
 
 #
+# Partition table
+#
+ifdef PARTITION_TABLE
+GEN_FLASH_IMAGE_FLAGS += --partition-table=$(PARTITION_TABLE)
+FLASH_DEPS += $(PARTITION_TABLE)
+endif
+
+#
 # Targets
 #
 
@@ -56,4 +66,13 @@ all:: flash_image
 flash_image: $(FLASH_IMAGE)
 
 $(FLASH_IMAGE): $(BIN) $(FLASH_DEPS)
-	$(GAPY) gen_flash_image --boot-loader $< $(GEN_FLASH_IMAGE_FLAGS) -o $@ --flash-size 64M --block-size 256K --flash-type hyper
+	$(GAPY) --target=$(GAPY_TARGET) $(gapy_args) gen_flash_image --boot-loader $< $(GEN_FLASH_IMAGE_FLAGS) -o $@ 
+
+#flash:
+#	$(GAPY) --target $(BOARD_NAME) $(gapy_args) flash $(FLASH_IMAGE)
+
+clean:: clean_flash_image
+clean_flash_image:
+	rm -f $(FLASH_IMAGE)
+
+

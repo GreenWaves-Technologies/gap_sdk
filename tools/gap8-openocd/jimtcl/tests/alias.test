@@ -62,7 +62,6 @@ test curry-1.4 "Two word curry" {
 	list [$two x] [$two y]
 } {1 0}
 
-collect
 test curry-1.5 "Delete curry" {
 	unset one two
 	collect

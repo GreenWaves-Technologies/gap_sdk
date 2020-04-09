@@ -247,8 +247,6 @@ static void hyperflash_read_2d_async(struct pi_device *device, uint32_t addr, vo
 
 
 
-
-
 static void hyperflash_handle_pending_task(void *arg)
 {
   struct pi_device *device = (struct pi_device *)arg;
@@ -263,7 +261,7 @@ static void hyperflash_handle_pending_task(void *arg)
 
   if (task)
   {
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
     hyperflash->waiting_first = task->next;
 #else
     hyperflash->waiting_first = task->implem.next;
@@ -274,7 +272,7 @@ static void hyperflash_handle_pending_task(void *arg)
 
   if (task)
   {
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
     if (task->data[0] == STALL_TASK_PROGRAM)
     {
       hyperflash_program_async(device, task->data[1], (void *)task->data[2], task->data[3], task);
@@ -351,7 +349,7 @@ static void hyperflash_handle_pending_erase_task(void *arg)
   pi_task_t *task = hyperflash->erase_waiting_first;
   if (task)
   {
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
     hyperflash->erase_waiting_first = task->next;
 #else
     hyperflash->erase_waiting_first = task->implem.next;
@@ -362,7 +360,7 @@ static void hyperflash_handle_pending_erase_task(void *arg)
 
   if (task)
   {
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
     hyperflash_erase_async(device, task->data[1], task->data[2], task);
 #else
     hyperflash_erase_async(device, task->implem.data[1], task->implem.data[2], task);
@@ -376,7 +374,7 @@ static int hyperflash_stall_task(hyperflash_t *hyperflash, pi_task_t *task, uint
 {
   uint32_t irq = disable_irq();
 
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
   if (hyperflash->pending_task != NULL)
   {
     task->data[0] = id;
@@ -436,7 +434,7 @@ static int hyperflash_stall_erase_task(hyperflash_t *hyperflash, pi_task_t *task
 {
   uint32_t irq = disable_irq();
 
-#if defined(PMSIS_DRIVERS)
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
   if (hyperflash->erase_task != NULL)
   {
     task->data[0] = id;

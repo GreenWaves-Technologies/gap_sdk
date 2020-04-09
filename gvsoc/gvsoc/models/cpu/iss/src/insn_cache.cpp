@@ -35,10 +35,9 @@ static void flush_cache(iss_t *iss, iss_insn_cache_t *cache)
     while(b)
     {
       iss_insn_block_t *next = b->next;
-      insn_block_init(b, b->pc);
+      b->is_init = false;
       b = next;
     }
-    cache->blocks[i] = NULL;
  }
 }
 
@@ -60,6 +59,7 @@ void insn_init(iss_insn_t *insn, iss_addr_t addr) {
 
 static void insn_block_init(iss_insn_block_t *b, iss_addr_t pc)
 {
+  b->is_init = true;
   for (int i=0; i<ISS_INSN_BLOCK_SIZE; i++)
   {
     iss_insn_t *insn = &b->insns[i];
@@ -83,19 +83,32 @@ iss_insn_t *insn_cache_get(iss_t *iss, iss_addr_t pc)
   unsigned int block_id = pc_base & (ISS_INSN_NB_BLOCKS - 1);
   iss_insn_cache_t *cache = &iss->cpu.insn_cache;
   iss_insn_block_t *block = cache->blocks[block_id];
+  iss_insn_block_t *first_free = NULL;
 
   while (block)
   {
-    if (block->pc == pc_base) return &block->insns[insn_id];
+    if (block->pc == pc_base)
+    {
+      return &block->insns[insn_id];
+    }
+    if (!block->is_init)
+    {
+      first_free = block;
+    }
+
     block = block->next;
   }
 
-  iss_insn_block_t *b = (iss_insn_block_t *)malloc(sizeof(iss_insn_block_t));
+  iss_insn_block_t *b = first_free;
+  if (b == NULL)
+  {
+    b = (iss_insn_block_t *)malloc(sizeof(iss_insn_block_t));
+    b->next = cache->blocks[block_id];
+    cache->blocks[block_id] = b;
+  }
+
   b->pc = pc_base;
   
-  b->next = cache->blocks[block_id];
-  cache->blocks[block_id] = b;
-
   insn_block_init(b, pc_base);
 
   return &b->insns[insn_id];

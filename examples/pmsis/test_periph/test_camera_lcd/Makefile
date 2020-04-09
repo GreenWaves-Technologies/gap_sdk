@@ -19,8 +19,8 @@ APP_CFLAGS += -DUSE_BRIDGE
 PLPBRIDGE_FLAGS += -fileIO 2
 endif
 
-override runner_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
-override runner_args += --config-opt=display/enabled=true
+override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
+override config_args += --config-opt=display/enabled=true
 
 RUNNER_CONFIG = $(CURDIR)/config.ini
 

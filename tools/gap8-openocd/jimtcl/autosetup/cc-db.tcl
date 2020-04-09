@@ -3,7 +3,7 @@
 
 # @synopsis:
 #
-# The 'cc-db' module provides a knowledge based of system idiosyncrasies
+# The 'cc-db' module provides a knowledge based of system idiosyncracies
 # In general, this module can always be included
 
 use cc

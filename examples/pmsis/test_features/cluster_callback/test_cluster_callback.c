@@ -2,7 +2,7 @@
 #include "pmsis.h"
 
 /* Variables used. */
-#define BUFFER_SIZE      ( 2048 )
+#define BUFFER_SIZE      ( 256 * ARCHI_CLUSTER_NB_PE )
 
 static uint8_t l2_in[BUFFER_SIZE], l2_out[BUFFER_SIZE];
 
@@ -144,7 +144,7 @@ void test_cluster_callback(void)
         if (l2_out[i] != (uint8_t) (l2_in[i] * 3))
         {
             errors++;
-            printf("%x-%x ", l2_out[i], (uint8_t) (l2_in[i] * 3));
+            printf("%d) %x-%x ", i, l2_out[i], (uint8_t) (l2_in[i] * 3));
         }
     }
 

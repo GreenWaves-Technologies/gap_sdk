@@ -31,6 +31,8 @@ int gv_run(void *_instance);
 
 void gv_stop(void *_instance);
 
+void *gv_chip_pad_bind(void *handle, char *name);
+
 #ifdef __cplusplus
 }
 #endif

@@ -20,4 +20,6 @@ export OPENOCD_CHIP_TARGET=target/gap8.tcl
 export OPENOCD_CABLE=interface/ftdi/olimex-arm-usb-ocd-h.cfg
 export PLPBRIDGE_CABLE=ftdi
 
+export GAPY_TARGET=gapoc_a
+
 source $GAP_SDK_HOME/configs/common.sh

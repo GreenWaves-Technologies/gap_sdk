@@ -9,6 +9,6 @@
   "archi_files": [ "archi/chips/neuraghe/pulp.h", "archi/chips/neuraghe/memory_map.h", "archi/chips/neuraghe/properties.h" ],
 
   "soc": {
-    "includes" : ["chips/neuraghe/soc.json"]
+    "@includes@" : ["chips/neuraghe/soc.json"]
   }
 }

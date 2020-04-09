@@ -71,7 +71,12 @@ CFLAGS += -std=gnu99 -mPE=8 -mFC=1 -D__riscv__ -O2 -g -Werror -Wall
 CFLAGS += -Wno-unused-variable -Wno-unused-function
 CFLAGS += -MMD -MP -c
 
+ifeq '$(TARGET_CHIP)' 'GAP9_V2'
+all:
+else
 all: dir header $(INSTALL_LIB_PATH)
+endif
+
 
 dir:
 	mkdir -p $(BUILD_DIR) $(TARGET_INSTALL_DIR) $(LIB_DIR)

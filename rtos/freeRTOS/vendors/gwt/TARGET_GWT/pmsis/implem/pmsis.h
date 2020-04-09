@@ -41,17 +41,16 @@
 #define DEBUG_PRINTF(...) ((void) 0)
 #endif  /* DEBUG */
 
+#if defined(__GAP8__)
 #if (!defined(HW_VERIF_ONLY))
 
 /* Backend includes. */
 #include "pmsis/backend/implementation_specific_defines.h"
 #include "targets/pmsis_targets.h"
-#include "system_gap8.h"
-/* Implementation specific pmsis_types. */
-#include "pmsis_types.h"
 /* pmsis_api includes. */
 #include "pmsis/device.h"
 #include "pmsis/task.h"
+#include "pmsis_types.h"
 #include "pmsis/rtos/rtos.h"
 #include "pmsis/rtos/assert.h"
 #include "pmsis/mem_slab.h"
@@ -71,5 +70,37 @@
 
 /* Hal includes. */
 #include "pmsis_hal/pmsis_hal.h"
+#elif defined(__GAP9__)
+#if (!defined(HW_VERIF_ONLY))
+
+/* Backend includes. */
+#include "pmsis/backend/implementation_specific_defines.h"
+#include "pmsis/targets/target.h"
+/* pmsis_api includes. */
+#include "pmsis/device.h"
+#include "pmsis/task.h"
+#include "pmsis_types.h"
+#include "pmsis/rtos/rtos.h"
+#include "pmsis/rtos/assert.h"
+#include "pmsis/mem_slab.h"
+
+/* PMSIS includes. */
+#include "pmsis/implem/debug.h"
+#include "pmsis/implem/drivers/drivers_data.h"
+#include "pmsis/implem/drivers/drivers.h"
+#include "pmsis_rtos/mem_slab/mem_slab.h"
+#include "pmsis_rtos/os/pmsis_task.h"
+#include "pmsis_rtos/os/pmsis_freq.h"
+#include "pmsis_rtos/os/os.h"
+#if defined(FEATURE_CLUSTER)
+#include "pmsis/implem/cluster/cluster.h"
+#endif  /* FEATURE_CLUSTER */
+
+#endif  /* HW_VERIF_ONLY */
+
+/* Hal includes. */
+#include "pmsis/implem/hal/hal.h"
+#endif  /* __GAP8__ */
+
 
 #endif  /* __PMSIS_H__ */

@@ -421,6 +421,11 @@ int Hyperflash::build()
   this->pending_cmd = 0;
   
   js::config *preload_file_conf = conf->get("preload_file");
+  if (preload_file_conf == NULL)
+  {
+    preload_file_conf = conf->get("content/image");
+  }
+
   if (preload_file_conf)
   {
     if (this->preload_file((char *)preload_file_conf->get_str().c_str()))

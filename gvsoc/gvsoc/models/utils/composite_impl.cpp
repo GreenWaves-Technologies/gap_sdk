@@ -36,6 +36,7 @@ public:
 
     int build();
 
+
 private:
     void add_port(std::string name, vp::port *port);
     std::map<std::string, vp::port *> ports;
@@ -59,7 +60,6 @@ int composite::build()
 
     return 0;
 }
-
 
 
 

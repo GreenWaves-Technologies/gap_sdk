@@ -1,5 +1,5 @@
 {
-  "includes": [ "chips/pulp/pulp.json" ],
+  "@includes@": [ "chips/pulp/pulp.json" ],
 
   "soc": {
     "fc": {

@@ -64,8 +64,7 @@ def appendArgs(parser: argparse.ArgumentParser) -> None:
 	                    nargs = '?', default = '-')
 
 
-def operationFunc(args):
-	traces.verbose = args.verbose
+def operationFunc(args, config=None):
 	
 	traces.info("gen_partition tools")
 	

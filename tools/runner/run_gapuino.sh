@@ -15,8 +15,11 @@ echo ""
 echo "---------------------------------GAPUINO------------------------------------"
 echo ""
 
-here=`pwd`
-cd $here/BUILD/$TARGET_CHIP/GCC_RISCV
+#here=`pwd`
+#cd $here/BUILD/$TARGET_CHIP/GCC_RISCV
+build_dir=$1
+cd $build_dir
+shift
 
 FLAG_FLASH=0
 flash_image=""
@@ -40,7 +43,8 @@ boot_mode=jtag
 gdb=""
 ioloop=ioloop
 reqloop=reqloop
-binary="--binary=test"
+binary="--binary=$1"
+shift
 
 buildFlashImage=""
 

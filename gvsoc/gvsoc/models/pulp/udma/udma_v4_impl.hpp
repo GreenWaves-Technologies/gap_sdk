@@ -34,8 +34,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
-#include "archi/udma/udma_v4.h"
-#include "udma_core_lin/udma_core_lin.h"
+#include "udma_ctrl/udma_ctrl_regs.h"
+#include "udma_ctrl/udma_ctrl_regfields.h"
+#include "udma_ctrl/udma_ctrl_gvsoc.h"
+#include "udma_core_lin/udma_core_lin_regs.h"
+#include "udma_core_lin/udma_core_lin_regfields.h"
 #include "udma_core_lin/udma_core_lin_gvsoc.h"
 
 class udma;
@@ -88,6 +91,7 @@ class Udma_channel
 public:
   Udma_channel(udma *top, std::string name);
   virtual vp::io_req_status_e req(vp::io_req *req, uint64_t offset);
+  virtual vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
   virtual void reset(bool active);
   virtual bool is_tx() { return false; }
   void set_next(Udma_channel *next) { this->next = next; }
@@ -111,15 +115,12 @@ protected:
   udma *top;
 
 private:
-  virtual vp::io_req_status_e saddr_req(vp::io_req *req);
-  virtual vp::io_req_status_e size_req(vp::io_req *req);
-  virtual vp::io_req_status_e cfg_req(vp::io_req *req); 
+  void cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
   void enqueue_transfer();
   virtual void handle_ready_req(vp::io_req *req);
 
-  uint32_t saddr;
-  uint32_t size;
-  
+  vp_regmap_udma_core_lin_addrgen regmap;
+
   int transfer_size;
   bool continuous_mode;
 
@@ -133,8 +134,6 @@ private:
   Udma_queue<Udma_transfer> *pending_reqs;
 
   vp::trace     state_event;
-
-  vp_udma_core_lin_addrgen_cfg_ctrl r_cfg;
 };
 
 
@@ -323,8 +322,16 @@ protected:
 
 private:
 
+  vp_regmap_udma_ctrl ctrl_regmap;
+
   void check_state();
 
+  void cfg_cg_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void cfg_cg_set_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void cfg_cg_clr_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void cfg_rstn_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void cfg_rstn_set_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void cfg_rstn_clr_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
   vp::io_req_status_e conf_req(vp::io_req *req, uint64_t offset);
   vp::io_req_status_e periph_req(vp::io_req *req, uint64_t offset);
   vp::io_req_status_e channel_req(vp::io_req *req, uint64_t offset);
@@ -360,6 +367,14 @@ private:
 #ifdef HAS_SPIM
 #include "spim/udma_spim_v4.hpp"
 #endif
+
+#ifdef HAS_UART
+#include "uart/udma_uart_v2.hpp"
+#endif
+
+//#ifdef HAS_I2S
+#include "i2s/udma_i2s_v3.hpp"
+//#endif
 
 #ifdef HAS_HYPER
 #include "hyper/udma_hyper_v3.hpp"

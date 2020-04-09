@@ -357,7 +357,7 @@ static int __pi_nina_b112_open(struct pi_device *device)
     struct pi_uart_conf uart_conf = {0};
     pi_uart_conf_init(&uart_conf);
     uart_conf.uart_id = conf->uart_itf;
-    uart_conf.baudrate_bps = (uint32_t) PI_NINA_B112_UART_BAUDRATE;
+    uart_conf.baudrate_bps = PI_NINA_B112_UART_BAUDRATE;
     uart_conf.enable_rx = 1;
     uart_conf.enable_tx = 1;
     pi_open_from_conf(&(nina->uart_device), &uart_conf);

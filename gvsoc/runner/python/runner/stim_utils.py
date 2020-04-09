@@ -214,7 +214,7 @@ class Efuse(object):
 
     pulp_chip_family = self.config.get_child_str('**/chip/pulp_chip_family')
 
-    if pulp_chip_family == 'gap' or pulp_chip == 'vega' or pulp_chip == 'gap9':
+    if pulp_chip_family == 'gap' or pulp_chip == 'vega' or pulp_chip == 'gap9' or pulp_chip == 'gap9_v2':
 
       load_mode = self.config.get_child_str('**/runner/boot-mode')
       encrypted = self.config.get_child_str('**/efuse/encrypted')
@@ -345,6 +345,91 @@ class Efuse(object):
         efuses[38] = info4
         efuses[39] = info5 
         efuses[40] = info6
+
+      elif pulp_chip == 'gap9_v2':
+
+        efuses = [0] * 128
+        info2 = 0
+        info3 = 0
+        info4 = 0
+        info5 = 0
+        info6 = 0
+
+        clk_div = self.config.get_child_int('**/efuse/clkdiv')
+        fll_freq = self.config.get_child_int('**/efuse/fll/freq')
+        fll_assert_cycles = self.config.get_child_int('**/efuse/fll/assert_cycles')
+        fll_lock_tolerance = self.config.get_child_int('**/efuse/fll/lock_tolerance')
+        hyper_delay = self.config.get_child_int('**/efuse/hyper/delay')
+        hyper_latency = self.config.get_child_int('**/efuse/hyper/latency')
+
+        if load_mode == 'rom':
+          # RTL platform | flash boot | no encryption | no wait xtal
+          load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
+          info5 |= 1 << 1   # Boot on UDMA SPIM1 interface (first single spi)
+        elif load_mode == 'rom_hyper':
+          # RTL platform | flash boot | no encryption | no wait xtal
+          load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
+          # Hyperflash type
+          info3 = (1 << 0)
+        elif load_mode == 'rom_spim':
+          # RTL platform | flash boot | no encryption | no wait xtal
+          load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
+          # SPI flash type
+          info3 = (0 << 0)
+          info5 |= 1 << 1   # Boot on UDMA SPIM1 interface (first single spi)
+        elif load_mode == 'rom_mram':
+          # RTL platform | flash boot | no encryption | no wait xtal
+          load_mode_hex = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
+          # MRAM type
+          info3 = (2 << 0)
+          # Activate MRAM TRIM CFG and fill it with dummy numbers until we get the real one. Also activate clock divider
+          info6 |= (1 << 6) | (1<<7)
+          info2 |= (2 << 3)
+          efuses[56] = 32*4
+          for i in range(0, 32):
+            efuses [57+i] = i | ((i*4+1)<<8) | ((i*4+2)<<16) | ((i*4+3)<<24)
+        
+        if clk_div is not None:
+          info6 |= 1 << 7
+          info2 = (info2 & ~(3<<3)) | (clk_div << 3)
+
+
+        if fll_freq is not None:
+          info2 |= (1 << 0) | (1 << 2)
+          efuses[31] = fll_freq
+
+        if fll_lock_tolerance is not None or fll_assert_cycles is not None:
+          info2 |= (1<< 1)
+          efuses[32] = fll_lock_tolerance
+          efuses[33] = fll_assert_cycles
+
+        if hyper_delay is not None:
+          info5 |= (1<<6)
+          efuses[30] = hyper_delay
+
+        if hyper_latency is not None:
+          info5 |= (1<<7)
+          efuses[51] = hyper_latency
+
+
+
+        if load_mode_hex != None:
+            if encrypted: 
+                load_mode_hex |= 0x40
+                info6 |= 1<<4
+                for i in range(0, 16):
+                    efuses[2+i] = aes_key[30-i*2:32-i*2]
+                for i in range(0, 8):
+                    efuses[18+i] = aes_iv[14-i*2:16-i*2]
+
+            efuses[0] = load_mode_hex
+    
+        efuses[1] = info2
+        efuses[37] = info3
+        efuses[38] = info4
+        efuses[39] = info5 
+        efuses[40] = info6
+
       elif pulp_chip == 'gap_rev1':
           info3 = 0
           info6 = 0
@@ -493,7 +578,7 @@ class Efuse(object):
                   
 
     # Efuse preloading file generation
-    if pulp_chip == 'vega' or pulp_chip == 'gap9':
+    if pulp_chip == 'vega' or pulp_chip == 'gap9' or pulp_chip == 'gap9_v2':
 
       self.dump('  Generating to file: ' + filename)
 

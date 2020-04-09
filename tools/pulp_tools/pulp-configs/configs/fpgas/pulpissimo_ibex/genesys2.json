@@ -1,5 +1,5 @@
 {
-  "includes": [ "chips/pulpissimo/pulpissimo_ibex.json" ],
+  "@includes@": [ "chips/pulpissimo/pulpissimo_ibex.json" ],
 
   "board": {
     "name": "pulpissimo_ibex_genesys2"

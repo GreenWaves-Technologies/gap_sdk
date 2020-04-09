@@ -10,7 +10,11 @@
 #include "pmsis/cluster/cluster_sync/cl_synchronisation.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
 #include "cores/TARGET_RISCV_32/core_utils.h"
+#if defined(__GAP8__)
 #include "pmsis_hal/pmsis_hal.h"
+#elif defined(__GAP9__)
+#include "pmsis/implem/hal/hal.h"
+#endif  /* __GAP8__ */
 
 //#define DEBUG
 #ifndef DEBUG

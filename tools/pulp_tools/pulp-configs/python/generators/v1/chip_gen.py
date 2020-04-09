@@ -25,7 +25,7 @@ def get_config(tp):
   padframe              = tp.get('padframe')
   padframe_conf         = None
   if padframe is not None:
-    padframe_conf = js.import_config_from_file(tp.get_child_str('padframe/content'), find=True)
+    padframe_conf = js.import_config_from_file(tp.get_child_str('padframe/content'), find=True, interpret=True)
   chip_family           = tp.get_child_str('chip_family')
   chip_name              = tp.get_child_str('chip')
   has_pmu           = tp.get('soc/peripherals/pmu') is not None
@@ -65,11 +65,11 @@ def get_config(tp):
     content = tp.get_child_str('padframe/content')
     if content is not None:
       chip.padframe = Component(properties=OrderedDict([
-          ('includes', [ content ])
+          ('@includes@', [ content ])
       ]))
     else:
       chip.padframe = Component(properties=OrderedDict([
-        ('includes', [ "%s" % padframe ])
+        ('@includes@', [ "%s" % padframe ])
       ]))
 
     chip.ref_clock = chip.padframe.ref_clock_pad
@@ -122,14 +122,14 @@ def get_config(tp):
     rtc_version = tp.get_child_int('**/rtc/version')
     if rtc_version == 1 or rtc_version is None:
       properties = properties=OrderedDict([
-        ('includes', ["ips/vendors/dolphin/rtc.json"])
+        ('@includes@', ["ips/vendors/dolphin/rtc.json"])
       ])
       properties.update(tp.get('soc/peripherals/rtc').get('config').get_dict())
       chip.rtc = Component(properties=properties)
       chip.rtc.apb_irq = chip.soc.rtc_apb_irq
     else:
       chip.rtc = Component(OrderedDict([
-        ('includes', ["ips/rtc/rtc_v%d.json" % rtc_version])
+        ('@includes@', ["ips/rtc/rtc_v%d.json" % rtc_version])
       ]))
 
     chip.rtc.irq = chip.soc.wakeup_rtc
@@ -145,11 +145,11 @@ def get_config(tp):
 
     if pmu_content is not None:
       chip.pmu = Component(OrderedDict([
-        ('includes', [ pmu_content ])
+        ('@includes@', [ pmu_content ])
       ]))
     else:
       chip.pmu = Component(OrderedDict([
-        ('includes', ["ips/pmu/pmu_v%d.json" % tp.get_child_str('soc/peripherals/pmu/version')])
+        ('@includes@', ["ips/pmu/pmu_v%d.json" % tp.get_child_str('soc/peripherals/pmu/version')])
       ]))
     chip.soc.pmu_input = chip.pmu.input
     if not tp.get_child_bool('**/apb_soc_ctrl/has_pmu_bypass'):
@@ -226,7 +226,7 @@ def get_config(tp):
     chip.soc.ddr = chip.ddr
 
 
-  config = chip.get_json_config()
+  config = chip.get_json_config(expand=True)
 
   if tp.get('soc/job_fifo') is not None:
       chip.soc.job_fifo_irq = chip.cluster.job_fifo_irq

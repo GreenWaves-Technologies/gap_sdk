@@ -96,7 +96,7 @@ void Hyper_periph_v1::handle_pending_word(void *__this, vp::clock_event *event)
       _this->state = HYPER_STATE_DELAY;
       _this->delay = 72;
       _this->ca_count = 6;
-      _this->ca.low_addr = ARCHI_REG_FIELD_GET(addr, 0, 3);
+      _this->ca.low_addr = ARCHI_REG_FIELD_GET(addr, 0, 3) & ~1;
       _this->ca.high_addr = ARCHI_REG_FIELD_GET(addr, 3, 29);
       _this->ca.burst_type = 0;
       _this->ca.address_space = ARCHI_REG_FIELD_GET(_this->regs[HYPER_MEM_CFG3_CHANNEL_OFFSET/4], HYPER_MEM_CFG3_CRT0_OFFSET, 1);

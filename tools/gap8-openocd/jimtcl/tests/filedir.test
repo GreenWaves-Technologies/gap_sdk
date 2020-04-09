@@ -3,13 +3,12 @@ source [file dirname [info script]]/testing.tcl
 needs cmd file
 needs cmd exec
 
-cd [file dirname [info script]]
-
-file delete -force tmp
-file mkdir tmp
-file copy testio.in tmp/file
-file mkdir tmp/dir
-
+catch {
+	exec rm -rf tmp
+	exec mkdir tmp
+	exec touch tmp/file
+	exec mkdir tmp/dir
+}
 
 test mkdir-1.1 "Simple dir" {
 	file mkdir tmp/abc
@@ -62,6 +61,8 @@ test rmdir-2.2 "Remove non-empty dir" {
 	catch {file delete tmp/def}
 } {1}
 
-file delete -force tmp
+catch {
+	exec rm -rf tmp
+}
 
 testreport

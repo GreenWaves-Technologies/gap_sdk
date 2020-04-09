@@ -252,7 +252,7 @@
   "vp_component":  "utils.composite_impl",
 
   "cluster_ico": {
-    "includes": [ "interco/router.json" ],
+    "@includes@": [ "interco/router.json" ],
 
     "latency": 2,
 
@@ -276,7 +276,7 @@
   },
 
   "demux_periph_ico": {
-    "includes": [ "interco/router.json" ],
+    "@includes@": [ "interco/router.json" ],
     "mappings": {
       "demux_event_unit": {
         "base": "0x00000000",
@@ -286,7 +286,7 @@
   },
 
   "periph_ico": {
-    "includes": [ "interco/router.json" ],
+    "@includes@": [ "interco/router.json" ],
 
     "mappings": {
       "cluster_ctrl": {
@@ -388,7 +388,7 @@
     "vp_class": null,
 
     "pe0_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -432,7 +432,7 @@
       }
     },
     "pe1_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -476,7 +476,7 @@
       }
     },
     "pe2_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -520,7 +520,7 @@
       }
     },
     "pe3_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -564,7 +564,7 @@
       }
     },
     "pe4_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -608,7 +608,7 @@
       }
     },
     "pe5_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -652,7 +652,7 @@
       }
     },
     "pe6_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -696,7 +696,7 @@
       }
     },
     "pe7_ico": {
-      "includes": [ "interco/router.json" ],
+      "@includes@": [ "interco/router.json" ],
       "mappings": {
         "l1": {
           "base": "0x10000000",
@@ -741,14 +741,14 @@
     },
 
     "interleaver": {
-      "includes": [ "interco/l1_interleaver.json" ],
+      "@includes@": [ "interco/l1_interleaver.json" ],
       "nb_slaves": 16,
       "nb_masters": 12,
       "interleaving_bits": 2
     },
 
     "ext2loc": {
-      "includes": [ "interco/converter.json" ],
+      "@includes@": [ "interco/converter.json" ],
       "output_width": 4,
       "output_align": 4
     }
@@ -847,75 +847,75 @@
   },
 
   "dma": {
-    "includes": [ "mchan_v7.json" ],
+    "@includes@": [ "mchan_v7.json" ],
     "nb_channels": 9
   },
 
   "cluster_ctrl": {
-    "includes": [ "cluster_ctrl_v2.json" ],
+    "@includes@": [ "cluster_ctrl_v2.json" ],
     "nb_core" : 8
   },
 
   "event_unit": {
-    "includes": [ "eu_v3.json" ],
+    "@includes@": [ "eu_v3.json" ],
     "nb_core": 8
   },
 
   "timer": {
-    "includes": [ "timer_v2.json" ]
+    "@includes@": [ "timer_v2.json" ]
   },
 
   "icache_ctrl": {
-    "includes": [ "icache_ctrl_v2.json" ]
+    "@includes@": [ "icache_ctrl_v2.json" ]
   },
 
   "pe": {
   },
 
   "pe0": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 0,
     "boot_addr" : "0x1C000000"
   },
   "pe1": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 1,
     "boot_addr" : "0x1C000000"
   },
   "pe2": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 2,
     "boot_addr" : "0x1C000000"
   },
   "pe3": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 3,
     "boot_addr" : "0x1C000000"
   },
   "pe4": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 4,
     "boot_addr" : "0x1C000000"
   },
   "pe5": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 5,
     "boot_addr" : "0x1C000000"
   },
   "pe6": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 6,
     "boot_addr" : "0x1C000000"
   },
   "pe7": {
-    "includes"  : ["ips/riscv/ri5ky_v2.json"],
+    "@includes@"  : ["ips/riscv/ri5ky_v2.json"],
     "cluster_id": 0,
     "core_id"   : 7,
     "boot_addr" : "0x1C000000"

@@ -117,13 +117,7 @@ puts "TEST 17 PASSED"
 # REGTEST 18
 # 12 Apr 2011 - crashes on unset for loop var
 catch {
-    set j 0
-    for {set i 0} {$i < 5} {incr i} {
-        unset i
-        if {[incr j] == 5} {
-            break
-        }
-    }
+    for {set i 0} {$i < 5} {incr i} {unset i}
 }
 puts "TEST 18 PASSED"
 

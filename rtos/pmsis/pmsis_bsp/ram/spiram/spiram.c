@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -57,7 +57,7 @@ static int __spiram_send_cmd(spiram_t *spiram, uint32_t cmd, uint32_t flags)
 
 
 static int spiram_open(struct pi_device *device)
-{  
+{
     RAM_TRACE(POS_LOG_INFO, "Opening SPIRAM device (device: %p)\n", device);
 
     struct pi_spiram_conf *conf = (struct pi_spiram_conf *)device->config;
@@ -96,19 +96,8 @@ static int spiram_open(struct pi_device *device)
     spi_conf.itf = conf->spi_itf;
     spi_conf.cs = conf->spi_cs;
 
-    // Compute chunk size to respect CS low pulse width. We account the 6 dummy cycles, 8 cycles for command and address and some margin
-    int chunk_size = conf->baudrate / 1000 * SPIRAM_CS_PULSE_WIDTH_NS / 1000000;
-    if (chunk_size < 40)
-    {
-        POS_WARNING("[SPIRAM] Error during driver opening: baudrate is too low to respect maximum chip select pulse width\n");
-        goto error3;
-    }
-
-    spi_conf.max_rcv_chunk_size = (chunk_size - 12) & ~0x3;
-    // We take more margin for sending as the TX buffer is enqueued after the command buffer
-    // which makes the time between CS low and the end of transfer unpredictable, e.g. a cache miss
-    // can increase it.
-    spi_conf.max_snd_chunk_size = (chunk_size - 48) & ~0x3;
+    spi_conf.max_rcv_chunk_size = SPIRAM_CS_PULSE_WIDTH_NS;
+    spi_conf.max_snd_chunk_size = SPIRAM_CS_PULSE_WIDTH_NS;
 
     spi_conf.max_baudrate = conf->baudrate*2;
 
@@ -198,6 +187,7 @@ static void spiram_close(struct pi_device *device)
     spiram_t *spiram = (spiram_t *)device->data;
     RAM_TRACE(POS_LOG_INFO, "Closing SPIRAM device (device: %p)\n", device);
     pi_spi_close(&spiram->spi_device);
+    extern_alloc_deinit(&spiram->alloc);
     pi_l2_free(spiram->buffer, sizeof(uint32_t));
     pi_fc_l1_free(spiram, sizeof(spiram_t));
 }
@@ -305,7 +295,7 @@ static pi_ram_api_t spiram_api = {
 void pi_spiram_conf_init(struct pi_spiram_conf *conf)
 {
     conf->ram.api = &spiram_api;
-    conf->baudrate = 25000000;
+    conf->baudrate = 24000000;
     bsp_spiram_conf_init(conf);
 }
 

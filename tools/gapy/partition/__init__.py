@@ -15,7 +15,7 @@ MAX_PARTITION_TABLE_ENTRIES = 31
 MAX_PARTITION_TABLE_SIZE = MAX_PARTITION_TABLE_ENTRIES * PARTITION_TABLE_ENTRY_SIZE + PARTITION_HEADER_SIZE
 
 MIN_PARTITION_SUBTYPE_APP_OTA = 0x10
-NUM_PARTITION_SUBTYPE_APP_OTA = 16
+NUM_PARTITION_SUBTYPE_APP_OTA = 2
 
 APP_TYPE = 0x00
 DATA_TYPE = 0x01
@@ -26,8 +26,25 @@ TYPES = {
 }
 
 FACTORY_SUBTYPE = 0x00
+APP_OTA_MIN_SUBTYPE = 0x10
+APP_OTA0_SUBTYPE = APP_OTA_MIN_SUBTYPE + 0
+APP_OTA1_SUBTYPE = APP_OTA_MIN_SUBTYPE + 1
 TEST_SUBTYPE = 0x20
+UPDATER0_SUBTYPE = 0x30
+UPDATER1_SUBTYPE = 0x31
 
+APP0_SUBTYPE = 0x40
+APP1_SUBTYPE = 0x41
+APP2_SUBTYPE = 0x42
+APP3_SUBTYPE = 0x43
+APP4_SUBTYPE = 0x44
+APP5_SUBTYPE = 0x45
+APP6_SUBTYPE = 0x46
+APP7_SUBTYPE = 0x47
+APP8_SUBTYPE = 0x48
+APP9_SUBTYPE = 0x49
+
+DATA_OTA_SUBTYPE = 0x0
 RAW_SUBTYPE = 0x80
 READFS_SUBTYPE = 0x81
 LFS_SUBTYPE = 0x82
@@ -36,9 +53,24 @@ LFS_SUBTYPE = 0x82
 SUBTYPES = {
 	APP_TYPE: {
 		"factory": FACTORY_SUBTYPE,
+		"ota0": APP_OTA0_SUBTYPE,
+		"ota1": APP_OTA1_SUBTYPE,
 		"test": TEST_SUBTYPE,
+		"updater0": UPDATER0_SUBTYPE,
+		"updater1": UPDATER1_SUBTYPE,
+		"app0": APP0_SUBTYPE,
+		"app1": APP1_SUBTYPE,
+		"app2": APP2_SUBTYPE,
+		"app3": APP3_SUBTYPE,
+		"app4": APP4_SUBTYPE,
+		"app5": APP5_SUBTYPE,
+		"app6": APP6_SUBTYPE,
+		"app7": APP7_SUBTYPE,
+		"app8": APP8_SUBTYPE,
+		"app9": APP9_SUBTYPE,
 	},
 	DATA_TYPE: {
+		"ota": DATA_OTA_SUBTYPE,
 		"readfs": READFS_SUBTYPE,
 		"lfs": LFS_SUBTYPE,
 	},
@@ -78,14 +110,14 @@ class PartitionNameFilenamePairAction(argparse.Action):
 		
 		setattr(namespace, self.dest, entry)
 
-def parse_int(v, keywords = {}):
+def parse_int(v, keywords = {}, sectorSize = None):
 	"""Generic parser for integer fields - int(x,0) with provision for
 	k/m/K/M suffixes and 'keyword' value lookup.
 	"""
 	try:
-		for letter, multiplier in [("k", 1024), ("m", 1024 * 1024), ("kb", 1024), ("mb", 1024 * 1024), ]:
+		for letter, multiplier in [("k", 1024), ("m", 1024 * 1024), ("kb", 1024), ("mb", 1024 * 1024), ('sec', sectorSize)]:
 			if v.lower().endswith(letter):
-				return parse_int(v[:-len(letter)], keywords) * multiplier
+				return parse_int(v[:-len(letter)], keywords, sectorSize) * multiplier
 		return int(v, 0)
 	except ValueError:
 		if len(keywords) == 0:
@@ -108,16 +140,17 @@ class PartitionDefinition(object):
 	for ota_slot in range(NUM_PARTITION_SUBTYPE_APP_OTA):
 		SUBTYPES[TYPES["app"]]["ota_%d" % ota_slot] = MIN_PARTITION_SUBTYPE_APP_OTA + ota_slot
 	
-	def __init__(self, name = '', type = None, subtype = None, offset = None, size = None, encrypted = False):
+	def __init__(self, name = '', type = None, subtype = None, offset = None, size = None, encrypted = False, path = None):
 		self.name = name
 		self.type = type
 		self.subtype = subtype
 		self.offset = offset
 		self.size = size
 		self.encrypted = encrypted
+		self.path = path
 	
 	@classmethod
-	def from_csv(cls, line, line_no):
+	def from_csv(cls, line, line_no, sectorSize):
 		""" Parse a line from the CSV """
 		line_w_defaults = line + ",,,,"  # lazy way to support default fields
 		fields = [f.strip() for f in line_w_defaults.split(",")]
@@ -127,8 +160,8 @@ class PartitionDefinition(object):
 		res.name = fields[0]
 		res.type = res.parse_type(fields[1])
 		res.subtype = res.parse_subtype(fields[2])
-		res.offset = res.parse_address(fields[3])
-		res.size = res.parse_address(fields[4])
+		res.offset = res.parse_address(fields[3], sectorSize = sectorSize)
+		res.size = res.parse_address(fields[4], sectorSize = sectorSize)
 		if res.size is None:
 			raise InputError("Size field can't be empty")
 		
@@ -182,10 +215,10 @@ class PartitionDefinition(object):
 			return 0  # default
 		return parse_int(strval, SUBTYPES.get(self.type, {}))
 	
-	def parse_address(self, strval):
+	def parse_address(self, strval, sectorSize):
 		if strval == "":
 			return None  # PartitionTable will fill in default
-		return parse_int(strval)
+		return parse_int(strval, sectorSize = sectorSize)
 	
 	def verify(self, align):
 		# Minimal align check
@@ -312,7 +345,7 @@ class PartitionTable(list):
 			if line.startswith("#") or len(line) == 0:
 				continue
 			try:
-				res.append(PartitionDefinition.from_csv(line, line_no + 1))
+				res.append(PartitionDefinition.from_csv(line, line_no + 1, sectorSize))
 			except InputError as e:
 				raise InputError("Error at line %d: %s" % (line_no + 1, e))
 			except Exception:

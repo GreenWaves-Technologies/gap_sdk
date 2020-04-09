@@ -924,7 +924,7 @@ def gen_rt_traces_for_cluster(config, gv_config, cluster, cluster_alias):
             'filter': 'rt_state.txt'
         }
 
-        gv_config.set('vcd/traces/%s_pe%d' % (cluster, i), pe_conf)
+        gv_config.set('events/include_regex/%s_pe%d' % (cluster, i), pe_conf)
 
 
 
@@ -940,8 +940,8 @@ def gen_rt_traces(config, gv_config):
 def gen_gtkw_files(config, gv_config):
     nb_pe = config.get_int('**/cluster/nb_pe')
 
-    user_traces = gv_config.get('**/vcd/traces')
-    tags = gv_config.get('**/vcd/tags').get_dict()
+    user_traces = gv_config.get('**/events/traces')
+    tags = gv_config.get('**/events/tags').get_dict()
 
     gen_rt_traces(config, gv_config)
 
@@ -970,7 +970,7 @@ def gen_gtkw_files(config, gv_config):
 
     tp = Trace_pool()
 
-    if len(gv_config.get('event').get()) != 0 or gv_config.get_bool('vcd/active'):
+    if len(gv_config.get('events/include_regex').get()) != 0 or gv_config.get_bool('events/enabled'):
         path = os.path.join(os.getcwd(), 'view.gtkw')
         with open(path, 'w') as file:
             gtkw = gtkw_new.GTKWSave(file)
@@ -1078,11 +1078,11 @@ def gen_gtkw_files(config, gv_config):
         print ()
 
         for trace in tp.get_traces(tags):
-            gv_config.set('event', trace.get_vp())
+            gv_config.set('events/include_regex', trace.get_vp())
 
 
-    if gv_config.get_bool('**/vcd/gtkw'):
-        gv_config.set('vcd/format', 'vcd')
+    if gv_config.get_bool('**/events/gtkw'):
+        gv_config.set('events/format', 'vcd')
         os.mkfifo('all.vcd')
         gtkw_new.spawn_gtkwave_interactive('all.vcd', 'view.gtkw', quiet=False)
 
@@ -1137,28 +1137,28 @@ class Runner(Platform):
             self.get_json().set('**/uart/stdin', True)
 
         if args.vcd:
-            self.get_json().set('gvsoc/vcd/active', True)
+            self.get_json().set('gvsoc/events/enabled', True)
 
         for trace in args.traces:
-            self.get_json().set('gvsoc/trace', trace)
+            self.get_json().set('gvsoc/traces/include_regex', trace)
 
         if args.trace_level is not None:
-            self.get_json().set('gvsoc/trace-level', args.trace_level)
+            self.get_json().set('gvsoc/traces/level', args.trace_level)
 
         if args.trace is not None:
-            self.get_json().set('gvsoc/trace-enable', args.trace)
+            self.get_json().set('gvsoc/traces/enabled', args.trace)
 
         for event in args.events:
-            self.get_json().set('gvsoc/event', event)
+            self.get_json().set('gvsoc/events/include_regex', event)
 
         for tag in args.event_tags:
-            self.get_json().set('gvsoc/vcd/tags', tag)
+            self.get_json().set('gvsoc/events/tags', tag)
 
         if args.format is not None:
-            self.get_json().set('gvsoc/vcd/format', args.format)
+            self.get_json().set('gvsoc/events/format', args.format)
 
         if args.gtkw:
-            self.get_json().set('gvsoc/vcd/gtkw', True)
+            self.get_json().set('gvsoc/events/gtkw', True)
 
 
     def devices(self):
@@ -1376,7 +1376,7 @@ class Runner(Platform):
 
         gvsoc_config = self.get_json().get('gvsoc')
 
-        debug_mode = gvsoc_config.get_bool('trace-enable') or gvsoc_config.get_bool('vcd/active') or len(gvsoc_config.get('trace').get()) != 0 or len(gvsoc_config.get('event').get()) != 0
+        debug_mode = gvsoc_config.get_bool('traces/enabled') or gvsoc_config.get_bool('events/enabled') or len(gvsoc_config.get('traces/include_regex').get()) != 0 or len(gvsoc_config.get('events/include_regex').get()) != 0
         self.get_json().get('**/gvsoc').set('debug-mode', debug_mode)
 
         plt_config = os.path.join(os.getcwd(), 'plt_config.json')
@@ -1393,7 +1393,7 @@ class Runner(Platform):
 
         gvsoc_config = self.get_json().get('gvsoc')
 
-        debug_mode = gvsoc_config.get_bool('trace-enable') or gvsoc_config.get_bool('vcd/active') or len(gvsoc_config.get('trace').get()) != 0 or len(gvsoc_config.get('event').get()) != 0
+        debug_mode = gvsoc_config.get_bool('traces/enabled') or gvsoc_config.get_bool('events/enabled') or len(gvsoc_config.get('traces/include_regex').get()) != 0 or len(gvsoc_config.get('events/include_regex').get()) != 0
         
         if debug_mode:
             launcher = 'gvsoc_launcher_debug'
@@ -1401,6 +1401,8 @@ class Runner(Platform):
             launcher = 'gvsoc_launcher'
 
         plt_config = os.path.join(os.getcwd(), 'plt_config.json')
+        
+        os.environ['PULP_CONFIG_FILE'] = plt_config
         
         if self.args.cmd:
             print ('GVSOC command:')

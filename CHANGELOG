@@ -1,3 +1,9 @@
+3.2.2
+
+Bug fixes:
+
+	- Proper closing of bluetooth module, and few instabilities.
+
 3.1
 
 Highlights of this release:

@@ -8,7 +8,6 @@
   "interface": "spim0",
   "cs": 0,
 
-  "config": {
     "vp_class": "devices/spiflash/spiflash",
     "vp_component": "devices.spiflash.spiflash_impl",
     "type": "spiflash",
@@ -19,6 +18,5 @@
       "encrypt": false,
       "aes_key": 0,
       "aes_iv": 0
-    }
   }
 }

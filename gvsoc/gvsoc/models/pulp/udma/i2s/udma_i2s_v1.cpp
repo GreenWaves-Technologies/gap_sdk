@@ -83,6 +83,19 @@ void I2s_periph_v1::handle_clkgen_tick(int clkgen)
     {
       this->current_ws_count[clkgen] = 0;
       this->current_ws[clkgen] ^= 1;
+
+      if (this->current_ws[clkgen] == 0)
+      {
+        if (this->r_chmode.ch0_mode_get() == clkgen)
+        {
+          (static_cast<I2s_rx_channel *>(this->channel0))->wait_ws_start = false;
+        }
+      
+        if (this->r_chmode.ch1_mode_get() == clkgen)
+        {
+          (static_cast<I2s_rx_channel *>(this->channel1))->wait_ws_start = false;
+        }
+      }
     }
   }
 
@@ -172,7 +185,16 @@ vp::io_req_status_e I2s_periph_v1::cfg_clkgen0_req(int reg_offset, int size, boo
       this->r_cfg_clkgen0.bits_word_get(), this->r_cfg_clkgen0.clk_en_get(), this->r_cfg_clkgen0.clk_div_get()
     );
   
-  this->reset_clkgen0();
+  if (this->r_chmode.ch0_mode_get() == 0)
+  {
+    (static_cast<I2s_rx_channel *>(this->channel0))->wait_ws_start = true;
+  }
+
+  if (this->r_chmode.ch0_mode_get() == 0)
+  {
+    (static_cast<I2s_rx_channel *>(this->channel0))->wait_ws_start = true;
+  }
+
   this->check_clkgen0();
 
   return vp::io_req_status_e::IO_REQ_OK;
@@ -189,7 +211,16 @@ vp::io_req_status_e I2s_periph_v1::cfg_clkgen1_req(int reg_offset, int size, boo
       this->r_cfg_clkgen1.bits_word_get(), this->r_cfg_clkgen1.clk_en_get(), this->r_cfg_clkgen1.clk_div_get()
     );
   
-  this->reset_clkgen1();
+  if (this->r_chmode.ch1_mode_get() == 1)
+  {
+    (static_cast<I2s_rx_channel *>(this->channel0))->wait_ws_start = true;
+  }
+
+  if (this->r_chmode.ch1_mode_get() == 1)
+  {
+    (static_cast<I2s_rx_channel *>(this->channel0))->wait_ws_start = true;
+  }
+
   this->check_clkgen1();
 
   return vp::io_req_status_e::IO_REQ_OK;
@@ -442,6 +473,11 @@ bool I2s_cic_filter::handle_bit(int din, int pdm_decimation, int pdm_shift, uint
 
 void I2s_rx_channel::handle_rx_bit(int sck, int ws, int bit)
 {
+  if (this->wait_ws_start)
+  {
+    return;
+  }
+
   int pdm = this->id == 0 ? this->periph->r_chmode.ch0_pdm_en_get() : this->periph->r_chmode.ch1_pdm_en_get();
   int ddr = this->id == 0 ? this->periph->r_chmode.ch0_useddr_get() : this->periph->r_chmode.ch1_useddr_get();
   int lsb_first = this->id == 0 ? this->periph->r_chmode.ch0_lsb_first_get() : this->periph->r_chmode.ch1_lsb_first_get();
@@ -495,6 +531,7 @@ void I2s_rx_channel::handle_rx_bit(int sck, int ws, int bit)
     if (width < 32)
       result = result & ((1<<width)-1);
     int bytes = width <= 8 ? 1 : width <= 16 ? 2 : 4;
-    this->push_data((uint8_t *)&result, bytes);
+    if (this->push_data((uint8_t *)&result, bytes))
+      this->wait_ws_start = true;
   }
 }

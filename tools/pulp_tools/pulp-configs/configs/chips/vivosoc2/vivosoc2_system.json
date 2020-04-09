@@ -1,7 +1,7 @@
 {
 
   "system_tree": {
-    "includes": [ "pulp_system_common.json" ],
+    "@includes@": [ "pulp_system_common.json" ],
 
     "debug-bridge": {
       "cable": {
@@ -11,7 +11,7 @@
 
     "board": {
       "chip": {
-        "includes": ["vivosoc2.json"]
+        "@includes@": ["vivosoc2.json"]
       },
       "pulp_chip": {
         "vivosoc2" : {

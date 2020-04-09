@@ -425,27 +425,6 @@ static int cortex_a_instr_write_data_dcc(struct arm_dpm *dpm,
 			&dscr);
 }
 
-static int cortex_a_instr_write_data_rt_dcc(struct arm_dpm *dpm,
-	uint8_t rt, uint32_t data)
-{
-	struct cortex_a_common *a = dpm_to_a(dpm);
-	uint32_t dscr = DSCR_INSTR_COMP;
-	int retval;
-
-	if (rt > 15)
-		return ERROR_TARGET_INVALID;
-
-	retval = cortex_a_write_dcc(a, data);
-	if (retval != ERROR_OK)
-		return retval;
-
-	/* DCCRX to Rt, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
-	return cortex_a_exec_opcode(
-			a->armv7a_common.arm.target,
-			ARMV4_5_MRC(14, 0, rt, 0, 5, 0),
-			&dscr);
-}
-
 static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t data)
 {
@@ -453,7 +432,15 @@ static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 	uint32_t dscr = DSCR_INSTR_COMP;
 	int retval;
 
-	retval = cortex_a_instr_write_data_rt_dcc(dpm, 0, data);
+	retval = cortex_a_write_dcc(a, data);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* DCCRX to R0, "MCR p14, 0, R0, c0, c5, 0", 0xEE000E15 */
+	retval = cortex_a_exec_opcode(
+			a->armv7a_common.arm.target,
+			ARMV4_5_MRC(14, 0, 0, 0, 5, 0),
+			&dscr);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -495,25 +482,6 @@ static int cortex_a_instr_read_data_dcc(struct arm_dpm *dpm,
 	return cortex_a_read_dcc(a, data, &dscr);
 }
 
-static int cortex_a_instr_read_data_rt_dcc(struct arm_dpm *dpm,
-	uint8_t rt, uint32_t *data)
-{
-	struct cortex_a_common *a = dpm_to_a(dpm);
-	uint32_t dscr = DSCR_INSTR_COMP;
-	int retval;
-
-	if (rt > 15)
-		return ERROR_TARGET_INVALID;
-
-	retval = cortex_a_exec_opcode(
-			a->armv7a_common.arm.target,
-			ARMV4_5_MCR(14, 0, rt, 0, 5, 0),
-			&dscr);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return cortex_a_read_dcc(a, data, &dscr);
-}
 
 static int cortex_a_instr_read_data_r0(struct arm_dpm *dpm,
 	uint32_t opcode, uint32_t *data)
@@ -531,7 +499,14 @@ static int cortex_a_instr_read_data_r0(struct arm_dpm *dpm,
 		return retval;
 
 	/* write R0 to DCC */
-	return cortex_a_instr_read_data_rt_dcc(dpm, 0, data);
+	retval = cortex_a_exec_opcode(
+			a->armv7a_common.arm.target,
+			ARMV4_5_MCR(14, 0, 0, 0, 5, 0),
+			&dscr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return cortex_a_read_dcc(a, data, &dscr);
 }
 
 static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
@@ -1918,8 +1893,7 @@ static int cortex_a_write_cpu_memory_slow(struct target *target,
 {
 	/* Writes count objects of size size from *buffer. Old value of DSCR must
 	 * be in *dscr; updated to new value. This is slow because it works for
-	 * non-word-sized objects. Avoid unaligned accesses as they do not work
-	 * on memory address space without "Normal" attribute. If size == 4 and
+	 * non-word-sized objects and (maybe) unaligned accesses. If size == 4 and
 	 * the address is aligned, cortex_a_write_cpu_memory_fast should be
 	 * preferred.
 	 * Preconditions:
@@ -2076,22 +2050,7 @@ static int cortex_a_write_cpu_memory(struct target *target,
 		/* We are doing a word-aligned transfer, so use fast mode. */
 		retval = cortex_a_write_cpu_memory_fast(target, count, buffer, &dscr);
 	} else {
-		/* Use slow path. Adjust size for aligned accesses */
-		switch (address % 4) {
-			case 1:
-			case 3:
-				count *= size;
-				size = 1;
-				break;
-			case 2:
-				if (size == 4) {
-					count *= 2;
-					size = 2;
-				}
-			case 0:
-			default:
-				break;
-		}
+		/* Use slow path. */
 		retval = cortex_a_write_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}
 
@@ -2177,8 +2136,7 @@ static int cortex_a_read_cpu_memory_slow(struct target *target,
 {
 	/* Reads count objects of size size into *buffer. Old value of DSCR must be
 	 * in *dscr; updated to new value. This is slow because it works for
-	 * non-word-sized objects. Avoid unaligned accesses as they do not work
-	 * on memory address space without "Normal" attribute. If size == 4 and
+	 * non-word-sized objects and (maybe) unaligned accesses. If size == 4 and
 	 * the address is aligned, cortex_a_read_cpu_memory_fast should be
 	 * preferred.
 	 * Preconditions:
@@ -2394,23 +2352,7 @@ static int cortex_a_read_cpu_memory(struct target *target,
 		/* We are doing a word-aligned transfer, so use fast mode. */
 		retval = cortex_a_read_cpu_memory_fast(target, count, buffer, &dscr);
 	} else {
-		/* Use slow path. Adjust size for aligned accesses */
-		switch (address % 4) {
-			case 1:
-			case 3:
-				count *= size;
-				size = 1;
-				break;
-			case 2:
-				if (size == 4) {
-					count *= 2;
-					size = 2;
-				}
-				break;
-			case 0:
-			default:
-				break;
-		}
+		/* Use slow path. */
 		retval = cortex_a_read_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}
 

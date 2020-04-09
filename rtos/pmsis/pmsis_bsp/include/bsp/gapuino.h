@@ -52,6 +52,12 @@
 #define CONFIG_SPIFLASH_SIZE        (1<<24)
 #define CONFIG_SPIFLASH_SECTOR_SIZE (1<<12)
 
+#if defined(CHIP_VERSION)
+#if (CHIP_VERSION == 2)
+#define GPIO_USER_LED                        ( PI_GPIO_A3_PAD_15_B1 )
+#endif  /* CHIP_VERSION */
+#endif  /* CHIP_VERSION */
+
 #define PI_BSP_PROFILE_GAPUINO_0 0   // Default profile
 #define PI_BSP_PROFILE_GAPUINO_1 1   // I2S0 and I2S1 with different clock
 

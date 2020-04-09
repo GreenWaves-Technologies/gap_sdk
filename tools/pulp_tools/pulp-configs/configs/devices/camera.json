@@ -9,10 +9,8 @@
   "ctrl_interface": "i2c0",
   "cs": 0,
 
-  "config": {
     "type": "dpi",
     "model": "himax",
     "module": "camera.so",
     "color-mode": "gray"
-  }
 }

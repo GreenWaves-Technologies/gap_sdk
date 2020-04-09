@@ -1,38 +1,38 @@
 {
   "config_type": "generator",
-  "generator": "generators/v1/config_gen",
+  "@generator@": "generators/v1/config_gen",
 
   "board": {
     "devices": {
       "spiflash": {
-        "includes": ["devices/spiflash_s26ks512.json"],
+        "@includes@": ["devices/spiflash_s26ks512.json"],
         "interface": "spim1",
         "cs": 0
       },
       "spiram": {
-        "include" : "devices/spiram.json",
+        "@include@" : "devices/spiram.json",
         "interface": "spim0",
         "cs": 0
       },
-      "hyperflash": {
-        "include" : "devices/hyperflash.json",
+      "flash": {
+        "@include@" : "devices/hyperflash.json",
         "cs": 1
       },
       "ram": {
-        "include" : "devices/hyperram.json",
+        "@include@" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
-        "include": "devices/camera.json",
+        "@include@": "devices/camera.json",
         "interface": "cpi0",
         "ctrl_interface": "i2c1"
       },
       "uart": {
-        "includes": ["devices/uart_tb.json"],
+        "@includes@": ["devices/uart_tb.json"],
         "interface": "uart0"
       },
       "jtag_proxy": {
-        "includes": ["devices/jtag_proxy.json"]
+        "@includes@": ["devices/jtag_proxy.json"]
       }
     }
   },
@@ -180,13 +180,15 @@
       "base": "0x1A000000",
       "size": "0x00002000",
       "config": {
-        "binary": "os.path.join(os.environ.get('TARGET_INSTALL_DIR'), 'bin', 'boot-gap9_v2')"
+        "@eval@": {
+          "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'gap9_v2', 'rom.bin')"
+        }
       }
     },
 
     "pulp_tap": {
       "config": {
-        "includes": ["ips/debug/pulp_tap.json"],
+        "@includes@": ["ips/debug/pulp_tap.json"],
         "confreg_instr": 6,
         "confreg_length": 8
       }
@@ -195,7 +197,7 @@
     "riscv_tap": {
       "riscv_debug": true,
       "config": {
-        "includes": ["ips/debug/riscv_dtm.json"]
+        "@includes@": ["ips/debug/riscv_dtm.json"]
       }
     },
 
@@ -346,7 +348,10 @@
           "evt_scu_ok"          : 25,
 
           "evt_soc_evt"         : 26,
-          "evt_queue_error"     : 29
+          "evt_queue_error"     : 29,
+
+          "udma.hyper0_irq"     : 30,
+          "udma.hyper1_irq"    : 31
         }
       },
 
@@ -379,7 +384,9 @@
         "base": "0x1A190800",
         "size": "0x00000800",
         "config": {
-          "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'gap9_v2', 'debug_rom.bin')"
+          "@eval@": {
+            "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'gap9_v2', 'debug_rom.bin')"
+          }
         }
       }
 

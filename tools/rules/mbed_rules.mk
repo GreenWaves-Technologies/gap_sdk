@@ -112,7 +112,8 @@ CXXFLAGS      = -std=gnu++98 -fno-rtti -Wvla $(COMMON)
 
 # Final binary
 #------------------------------------------
-BIN           = $(BUILDDIR)/test
+APP          ?= test
+BIN           = $(BUILDDIR)/$(APP)
 
 BUILDDIR      = $(shell pwd)/BUILD/$(TARGET_CHIP)/GCC_RISCV
 
@@ -298,7 +299,7 @@ run: | $(BUILDDIR)
 else
 run: all
 ifeq ($(chip), GAP8)
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(PLPBRIDGE_FLAGS)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(PLPBRIDGE_FLAGS)
 else ifeq ($(chip), GAP9)
 	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi
 endif

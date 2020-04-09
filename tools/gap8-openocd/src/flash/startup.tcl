@@ -17,12 +17,9 @@ proc program_error {description exit} {
 
 proc program {filename args} {
 	set exit 0
-	set needsflash 1
 
 	foreach arg $args {
-		if {[string equal $arg "preverify"]} {
-			set preverify 1
-		} elseif {[string equal $arg "verify"]} {
+		if {[string equal $arg "verify"]} {
 			set verify 1
 		} elseif {[string equal $arg "reset"]} {
 			set reset 1
@@ -32,15 +29,6 @@ proc program {filename args} {
 			set address $arg
 		}
 	}
-
-	# Set variables
-	set filename \{$filename\}
-	if {[info exists address]} {
-		set flash_args "$filename $address"
-	} else {
-		set flash_args "$filename"
-	}
-
 
 	# make sure init is called
 	if {[catch {init}] != 0} {
@@ -52,45 +40,39 @@ proc program {filename args} {
 		program_error "** Unable to reset target **" $exit
 	}
 
-	# Check whether programming is needed
-	if {[info exists preverify]} {
-		echo "**pre-verifying**"
-		if {[catch {eval verify_image $flash_args}] == 0} {
-			echo "**Verified OK - No flashing**"
-			set needsflash 0
-		}
-	}
-
 	# start programming phase
-	if {$needsflash == 1} {
-		echo "** Programming Started **"
+	echo "** Programming Started **"
+	set filename \{$filename\}
+	if {[info exists address]} {
+		set flash_args "$filename $address"
+	} else {
+		set flash_args "$filename"
+	}
 
-		if {[catch {eval flash write_image erase $flash_args}] == 0} {
-			echo "** Programming Finished **"
-			if {[info exists verify]} {
-				# verify phase
-				echo "** Verify Started **"
-				if {[catch {eval verify_image $flash_args}] == 0} {
-					echo "** Verified OK **"
-				} else {
-					program_error "** Verify Failed **" $exit
-				}
+	if {[catch {eval flash write_image erase $flash_args}] == 0} {
+		echo "** Programming Finished **"
+		if {[info exists verify]} {
+			# verify phase
+			echo "** Verify Started **"
+			if {[catch {eval verify_image $flash_args}] == 0} {
+				echo "** Verified OK **"
+			} else {
+				program_error "** Verify Failed **" $exit
 			}
-		} else {
-			program_error "** Programming Failed **" $exit
 		}
-	}
 
-	if {[info exists reset]} {
-		# reset target if requested
-		if {$exit == 1} {
-			# also disable target polling, we are shutting down anyway
-			poll off
+		if {[info exists reset]} {
+			# reset target if requested
+			if {$exit == 1} {
+				# also disable target polling, we are shutting down anyway
+				poll off
+			}
+			echo "** Resetting Target **"
+			reset run
 		}
-		echo "** Resetting Target **"
-		reset run
+	} else {
+		program_error "** Programming Failed **" $exit
 	}
-
 
 	if {$exit == 1} {
 		shutdown
@@ -99,7 +81,7 @@ proc program {filename args} {
 }
 
 add_help_text program "write an image to flash, address is only required for binary images. verify, reset, exit are optional"
-add_usage_text program "<filename> \[address\] \[pre-verify\] \[verify\] \[reset\] \[exit\]"
+add_usage_text program "<filename> \[address\] \[verify\] \[reset\] \[exit\]"
 
 # stm32f0x uses the same flash driver as the stm32f1x
 # this alias enables the use of either name.

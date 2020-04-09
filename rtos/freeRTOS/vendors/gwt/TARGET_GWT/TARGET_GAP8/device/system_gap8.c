@@ -32,7 +32,7 @@
 
 /* PMSIS includes. */
 #include "pmsis.h"
-#include "pmsis_driver/pmu/pmsis_pmu.h"
+#include "pmsis_driver/pmu/pmu.h"
 
 #if defined(__SEMIHOSTING__)
 #include "../driver/semihost.h"
@@ -48,11 +48,14 @@ volatile uint32_t SystemCoreClock = (uint32_t) DEFAULT_SYSTEM_CLOCK;
 
 void system_init(void)
 {
-    /* Deactivate all soc events as they are active by default */
+    /* Disable all IRQs first. */
+    NVIC->MASK_IRQ_AND = 0xFFFFFFFF;
+
+    /* Deactivate all soc events. */
     SOCEU->FC_MASK_MSB = 0xFFFFFFFF;
     SOCEU->FC_MASK_LSB = 0xFFFFFFFF;
 
-    /* FC Icache Enable*/
+    /* FLush FC Icache and then enable it. */
     SCBC->ICACHE_ENABLE = 0xFFFFFFFF;
 
     /* Setup FC_SOC events handler. */
@@ -65,8 +68,8 @@ void system_init(void)
     __enable_irq();
 
     /* Initialize malloc functions. */
-    pmsis_malloc_init((void*) &__heapfcram_start, (uint32_t) &__heapfcram_size,
-                      (void*) &__heapl2ram_start, (uint32_t) &__heapl2ram_size);
+    pi_malloc_init((void*) &__heapfcram_start, (uint32_t) &__heapfcram_size,
+                   (void*) &__heapl2ram_start, (uint32_t) &__heapl2ram_size);
 
     #if defined(PRINTF_UART)
     printf_uart_init(0);

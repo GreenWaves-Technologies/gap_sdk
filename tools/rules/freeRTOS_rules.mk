@@ -3,6 +3,8 @@ CXX         = riscv32-unknown-elf-g++
 CC          = riscv32-unknown-elf-gcc
 AR          = riscv32-unknown-elf-ar
 OBJDUMP     = riscv32-unknown-elf-objdump
+NM          = riscv32-unknown-elf-nm
+SIZE        = riscv32-unknown-elf-size
 
 platform     ?= gapuino
 
@@ -15,11 +17,12 @@ TARGET_CHIP_VERSION=2
 else
 TARGET_CHIP_VERSION=1
 endif
+chip_lowercase = $(shell echo $(chip) | tr A-Z a-z)
 
 # Directories
-FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/gap8/common/config_files
+FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/$(chip_lowercase)/common/config_files
 FREERTOS_SOURCE_DIR = $(FREERTOS_PATH)/freertos_kernel
-PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-GAP8/
+PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-$(chip)/
 GWT_DIR             = $(FREERTOS_PATH)/vendors/gwt
 GWT_TARGET          = $(GWT_DIR)/TARGET_GWT
 GWT_PMSIS           = $(GWT_TARGET)/pmsis
@@ -35,12 +38,13 @@ GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
 endif				# GAP_SDK_HOME
 
 ifeq ($(chip), GAP8)
-RISCV_FLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1 -D__riscv__ -D__$(chip)__ \
-                   -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
+RISCV_FLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1
 else
-RISCV_FLAGS     ?= -mchip=gap9 -mPE=8 -mFC=1 -D__riscv__ -D__$(chip)__ \
-                   -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
+RISCV_FLAGS     ?= -mchip=gap9 -mPE=8 -mFC=1
 endif				# chip
+
+FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
+                   -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 
 # Simulation related options
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
@@ -67,8 +71,10 @@ endif				# platform
 endif				# PLPTEST_PLATFORM
 
 # GVSOC
-GVSOC_FILES_CLEAN = all_state.txt core_state.txt rt_state.txt efuse_preload.data plt_config.json stimuli tx_uart.log
 ifeq ($(platform), gvsoc)
+GVSOC_FILES_CLEAN   = all_state.txt core_state.txt rt_state.txt  \
+                      efuse_preload.data plt_config.json stimuli \
+                      tx_uart.log
 FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
 FREERTOS_FLAGS  += -DPRINTF_RTL
 
@@ -83,10 +89,9 @@ FREERTOS_FLAGS  += -DPRINTF_RTL
 endif				# platform
 
 # Choose Simulator
-SIMULATOR      = vsim
-
+SIMULATOR           = vsim
 ifeq ($(sim), xcelium)
-SIMULATOR      = xcelium
+SIMULATOR           = xcelium
 endif				# sim
 
 # Deafult is debug bridge
@@ -94,29 +99,29 @@ io ?=
 
 # No printf
 ifeq ($(io), disable)
-FREERTOS_FLAGS  += -D__DISABLE_PRINTF__
+FREERTOS_FLAGS     += -D__DISABLE_PRINTF__
 endif
 
 # Printf using uart
 ifeq ($(io), uart)
-FREERTOS_FLAGS  += -DPRINTF_UART
+FREERTOS_FLAGS     += -DPRINTF_UART
 endif
 
 # Printf using stdout
 ifeq ($(io), rtl)
-FREERTOS_FLAGS  += -DPRINTF_RTL
+FREERTOS_FLAGS     += -DPRINTF_RTL
 endif
 
 # Printf using semihosting
 ifeq ($(io), host)
 export GAP_USE_OPENOCD=1
-FREERTOS_FLAGS  += -D__SEMIHOSTING__
-FREERTOS_FLAGS  += -DPRINTF_SEMIHOST
+FREERTOS_FLAGS     += -D__SEMIHOSTING__
+FREERTOS_FLAGS     += -DPRINTF_SEMIHOST
 endif
 
 # Enabled for gvsoc
-#FREERTOS_FLAGS  += -DPRINTF_RTL
-FREERTOS_FLAGS  += -DGAP_USE_DEBUG_STRUCT
+#FREERTOS_FLAGS     += -DPRINTF_RTL
+FREERTOS_FLAGS     += -DGAP_USE_DEBUG_STRUCT
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
@@ -124,8 +129,13 @@ FREERTOS_FLAGS     += -D__FREERTOS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
 
 COMMON              = -c -g -fmessage-length=0 -fno-exceptions -fno-builtin \
                       -ffunction-sections -fdata-sections -funsigned-char \
-                      -fno-delete-null-pointer-checks -fomit-frame-pointer -O3\
+                      -fno-delete-null-pointer-checks -fomit-frame-pointer -Os \
                       $(DEVICE_FLAGS) $(FEATURE_FLAGS) $(RISCV_FLAGS) $(FREERTOS_FLAGS)
+
+GCC_OPTIM_LEVEL     = -Os	# Optimize for size.
+
+# Enable log/traces. Often another flag should be set in order to print traces.
+DEBUG_FLAGS         = -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
 PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
                       -DPRINTF_DISABLE_SUPPORT_FLOAT
@@ -136,16 +146,23 @@ WARNINGS            = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
 
 ASMFLAGS            = -x assembler-with-cpp $(COMMON) $(WARNINGS) -DASSEMBLY_LANGUAGE
 
-CFLAGS              = -std=gnu99 $(COMMON) $(WARNINGS) $(PRINTF_FLAGS)
+CFLAGS              = -std=gnu99 $(COMMON) $(WARNINGS) $(PRINTF_FLAGS) $(DEBUG_FLAGS)
 
 # Objdump options(disassembly).
-OBJDUMP_OPT         = -S -D -l -f
+#OBJDUMP_OPT         = -D -l -f -g -z
+OBJDUMP_OPT         = -d -h -S -t -w --show-raw-insn
+
+# NM options.
+NM_OPT              = -a -A -l -S --size-sort --special-syms
+
+# Size options.
+SIZE_OPT            = -B -x --common
 
 # The linker options.
 # The options used in linking as well as in any direct use of ld.
 LIBS                = -lgcc
 STRIP               = -Wl,--gc-sections,-Map=$@.map,-static #,-s
-ifeq ($(LINK_SCRIPT), )
+ifeq ($(LINK_SCRIPT),)
 LINK_SCRIPT         = $(GWT_DEVICE)/ld/$(chip).ld
 endif				# LINK_SCRIPT
 LDFLAGS             = -nostartfiles -nostdlib -T$(LINK_SCRIPT) $(STRIP) $(LIBS)
@@ -183,19 +200,15 @@ INC_PATH           += $(GWT_LIBS)/printf
 
 
 # PMSIS
-PMSIS_SRC           = $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.c" ! -path "*gap9*") \
-                      $(PMSIS_BSP_SRCS)
+PMSIS_IMPLEM_DIR    = $(GWT_PMSIS_IMPLEM)
+-include $(GWT_PMSIS_IMPLEM)/pmsis_implem.mk
 PMSIS_BACKEND_SRC   = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")
-PMSIS_INC_PATH      = $(GWT_PMSIS) $(GWT_PMSIS_API)/include/ $(GWT_PMSIS_BACKEND)
-PMSIS_INC_PATH     += $(shell find $(GWT_PMSIS_IMPLEM) -iname "*.h"          \
-                                   ! -path "$(GWT_PMSIS_IMPLEM)/targets/*"   \
-                                   ! -path "$(GWT_PMSIS_IMPLEM)/pmsis_hal/*" \
-                                   -exec dirname {} \; | sort | uniq)
-PMSIS_INC_PATH     += $(GWT_PMSIS_IMPLEM)/targets/
-PMSIS_INC_PATH     += $(shell find $(GWT_PMSIS_IMPLEM)/targets/$(chip)       \
-                                   $(GWT_PMSIS_IMPLEM)/pmsis_hal/$(chip)     \
-                                   -iname "*.h"                              \
-                                   -exec dirname {} \; | sort | uniq)
+PMSIS_SRC           = $(PMSIS_IMPLEM_SRCS)
+PMSIS_SRC          += $(PMSIS_BSP_SRCS)
+
+PMSIS_INC_PATH      = $(GWT_PMSIS) $(GWT_PMSIS_API)/include/
+PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)
+PMSIS_INC_PATH     += $(PMSIS_IMPLEM_INC)
 PMSIS_INC_PATH     += $(PMSIS_BSP_INC)
 
 INCLUDES           += $(foreach f, $(INC_PATH) $(PMSIS_INC_PATH), -I$f)
@@ -211,33 +224,41 @@ APP_CFLAGS         +=
 APP_LDFLAGS        +=
 
 # Directory containing built objects
-BUILDDIR          = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
+BUILDDIR            = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
 
 # Objects
-PORT_ASM_OBJ      = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
-CRT0_OBJ          = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
-RTOS_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
-PORT_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
-DEVICE_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
-DRIVER_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(DRIVER_SRC))
-LIBS_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(LIBS_SRC))
-PRINTF_OBJ        = $(patsubst %.c, $(BUILDDIR)/%.o, $(PRINTF_SRC))
-DEMO_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEMO_SRC))
-PMSIS_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_SRC))
-PMSIS_BACKEND_OBJ = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_BACKEND_SRC))
-APP_OBJ           = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
+PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
+CRT0_OBJ            = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
+RTOS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
+PORT_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
+DEVICE_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
+DRIVER_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DRIVER_SRC))
+LIBS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(LIBS_SRC))
+PRINTF_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(PRINTF_SRC))
+DEMO_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEMO_SRC))
+PMSIS_OBJ           = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_SRC))
+PMSIS_BACKEND_OBJ   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_BACKEND_SRC))
+APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
 
-ASM_OBJS        = $(PORT_ASM_OBJ) $(CRT0_OBJ)
-C_OBJS          = $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
-                  $(DEVICE_OBJ) $(LIBS_OBJ) $(PRINTF_OBJ) \
-                  $(API_OBJ) $(HAL_OBJ) $(PMSIS_OBJ) $(PMSIS_BACKEND_OBJ)
-OBJS            = $(APP_OBJ) $(ASM_OBJS) $(C_OBJS)
+ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ)
+C_OBJS              = $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
+                      $(DEVICE_OBJ) $(LIBS_OBJ) $(PRINTF_OBJ) \
+                      $(API_OBJ) $(HAL_OBJ) $(PMSIS_OBJ) $(PMSIS_BACKEND_OBJ)
 
-BIN             = $(BUILDDIR)/test
-
-OBJS_DUMP       = $(patsubst %.o, %.dump, $(OBJS))
-
-OBJS_DEP        = $(patsubst %.o, %.d, $(OBJS))
+# Objects to build.
+BUILDING_OBJS       = $(APP_OBJ) $(ASM_OBJS) $(C_OBJS)
+# In case there are duplicate sources and user wants to use his own sources.
+# User can exclude some source from build, using APP_EXCLUDE_SRCS.
+APP_EXCLUDE_OBJS    = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_EXCLUDE_SRCS))
+# Final objects to build.
+OBJS                = $(filter-out $(APP_EXCLUDE_OBJS),$(BUILDING_OBJS))
+# Objects disassembly.
+OBJS_DUMP           = $(patsubst %.o, %.dump, $(OBJS))
+# Objects dependency.
+OBJS_DEP            = $(patsubst %.o, %.d, $(OBJS))
+# Binary file name.
+APP                ?= test
+BIN                 = $(BUILDDIR)/$(APP)
 
 # Makefile targets :
 # Build objects (*.o) amd associated dependecies (*.d) with disassembly (*.dump).
@@ -258,7 +279,7 @@ $(ASM_OBJS): $(BUILDDIR)/%.o: %.S
 $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+	@$(CC) $(CFLAGS) $(APP_CFLAGS) $(GCC_OPTIM_LEVEL) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	@echo "    CC $(shell basename $<)"
@@ -272,8 +293,14 @@ $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
 
 $(BIN).s: $(BIN)
-	@echo "    OBJDUMP  $(shell basename $<) > $(shell basename $@)"
+	@echo "    OBJDUMP  $(shell basename $<) > $@"
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
+
+$(BIN).size: $(BIN)
+	@echo "    DUMP SYMBOLS AND SIZE  $(shell basename $<) > $@"
+	@$(SIZE) $(SIZE_OPT) $< > $@
+	@echo -e "\n" >> $@
+	@$(NM) $(NM_OPT) $< >> $@
 
 
 ifeq ($(use_pulprun), 1)
@@ -285,7 +312,8 @@ else
 # GVSOC
 ifeq ($(platform), gvsoc)
 run: all
-	gvsoc --config=$(GVSOC_CONFIG) --dir=$(BUILDDIR) --binary $(BIN) $(runner_args) prepare run
+	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --all --binary=$(BIN) gvsoc $(runner_args)
+
 # RTL
 else ifeq ($(platform), rtl)
 run: | $(BUILDDIR)
@@ -294,7 +322,7 @@ run: | $(BUILDDIR)
 else
 run: all
 ifeq ($(chip), GAP8)
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 else ifeq ($(chip), GAP9)
 	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi $(PLPBRIDGE_EXTRA_FLAGS)
 endif				#ifeq ($(chip), GAP8)
@@ -308,7 +336,10 @@ gui:: | $(BUILDDIR)
 	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
 
 flash:
-	$(INSTALL_DIR)/runner/run_gapuino.sh -norun $(PLPBRIDGE_FLAGS) -f  $(PLPBRIDGE_EXTRA_FLAGS)
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -norun $(PLPBRIDGE_FLAGS) -f  $(PLPBRIDGE_EXTRA_FLAGS)
+
+launch:
+	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -noflash $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
 # Foramt "vsim -do xxx.do xxx.wlf"
 debug:
@@ -318,7 +349,7 @@ debug:
 debug_xcelium:
 	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
 
-disdump: $(OBJS_DUMP) $(BIN).s
+disdump: $(OBJS_DUMP) $(BIN).s $(BIN).size
 
 version:
 	@$(GAP_SDK_HOME)/tools/version/record_version.sh

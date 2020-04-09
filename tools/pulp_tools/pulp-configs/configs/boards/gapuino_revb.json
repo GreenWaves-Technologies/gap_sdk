@@ -1,24 +1,24 @@
 {
-  "includes": [ "chips/gap_rev1/gap_rev1.json" ],
+  "@includes@": [ "chips/gap_rev1/gap_rev1.json" ],
 
   "board": {
     "name": "gapuino",
     "devices": {
       "flash": {
-        "include" : "devices/hyperflash.json",
+        "@include@" : "devices/hyperflash.json",
         "cs": 1
       },
       "ram": {
-        "include" : "devices/hyperram.json",
+        "@include@" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
-        "include": "devices/camera.json",
+        "@include@": "devices/camera.json",
         "interface": "cpi0",
         "ctrl_interface": "i2c1"
       },
       "display": {
-        "include": "devices/lcd_ili9341.json",
+        "@include@": "devices/lcd_ili9341.json",
         "interface": "spim1",
         "ctrl_interface": "gpio19",
         "enabled": false,

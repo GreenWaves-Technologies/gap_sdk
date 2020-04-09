@@ -27,7 +27,7 @@ def gen_config(name, system_config, system, device_config, usecases=[]):
   cs = device_config.get_str('cs')
 
   system.system_tree.board.add_component(name, Config(
-    config=device_config.get('config')
+    config=device_config
   ))
 
   system.system_tree.board.add_component(name + '_clock', Component(properties=OrderedDict(

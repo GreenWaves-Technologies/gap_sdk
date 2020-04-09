@@ -78,7 +78,7 @@ vp::Event_trace *vp::Event_dumper::get_trace(string trace_name, string file_name
 
     if (event_file == NULL)
     {
-      std::string format = this->comp->get_js_config()->get_child_str("**/vcd/format");
+      std::string format = this->comp->get_js_config()->get_child_str("**/events/format");
 
       if (format == "vcd")
       {

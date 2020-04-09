@@ -5,7 +5,7 @@
   "board": {
     "devices": {
       "jtag_proxy": {
-        "includes": ["devices/jtag_proxy.json"]
+        "@includes@": ["devices/jtag_proxy.json"]
       }
     }
   },
@@ -122,7 +122,7 @@
 
     "pulp_tap": {
       "config": {
-        "includes": [ "ips/debug/pulp_tap.json" ]
+        "@includes@": [ "ips/debug/pulp_tap.json" ]
       }
     },
 

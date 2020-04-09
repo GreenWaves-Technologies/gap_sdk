@@ -890,7 +890,6 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 
 	/* Polling loop, more or less taken from libftdi */
 	int64_t start = timeval_ms();
-	int64_t warn_after = 2000;
 	while (!write_result.done || !read_result.done) {
 		struct timeval timeout_usb;
 
@@ -914,11 +913,9 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 			}
 		}
 
-		int64_t now = timeval_ms();
-		if (now - start > warn_after) {
-			LOG_WARNING("Haven't made progress in mpsse_flush() for %" PRId64
-					"ms.", now - start);
-			warn_after *= 2;
+		if (timeval_ms() - start > 2000) {
+			LOG_ERROR("Timed out handling USB events in mpsse_flush().");
+			break;
 		}
 	}
 

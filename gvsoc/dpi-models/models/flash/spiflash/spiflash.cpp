@@ -164,6 +164,15 @@ void Spiflash::start(void)
 
   // Preload the memory
   js::config *stim_file_conf = this->get_config()->get("stim_file");
+  if (stim_file_conf == NULL)
+  {
+    stim_file_conf = this->get_config()->get("content/image");
+  }
+  if (stim_file_conf == NULL)
+  {
+    stim_file_conf = this->get_config()->get("preload_file");
+  }
+
   if (stim_file_conf != NULL)
   {
     std::string path = stim_file_conf->get_str();
@@ -417,6 +426,16 @@ void Spiflash::handle_command(uint8_t cmd)
     this->is_write = false;
     this->is_read = true;
     this->wait_cycles = 6;
+  }
+  else if (this->current_cmd == 0xEB)
+  {
+    this->trace_msg(this->trace, 1, "SPI fast quad read");
+    this->quad_command = true;
+    this->quad_address = true;
+    this->state = STATE_GET_ADDRESS;
+    this->is_write = false;
+    this->is_read = true;
+    this->wait_cycles = 3;
   }
   else if (this->current_cmd == 0x66)
   {
