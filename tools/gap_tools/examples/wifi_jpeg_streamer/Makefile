@@ -6,7 +6,7 @@ APP_LDFLAGS += -lgaptools -lgaplib
 
 RUNNER_CONFIG = $(CURDIR)/config.ini
 
-override runner_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
+override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
 
 streamer:
 	./streamer

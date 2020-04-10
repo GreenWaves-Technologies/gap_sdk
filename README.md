@@ -96,7 +96,7 @@ git clone https://github.com/GreenWaves-Technologies/gap_sdk.git
 git lfs clone https://github.com/GreenWaves-Technologies/gap_riscv_toolchain_ubuntu_18.git
 ~~~~~
 
-Install the toolchain:
+Install the toolchain (this may require to launch the script through sudo):
 
 ~~~~~shell
 cd ~/gap_riscv_toolchain_ubuntu_18
@@ -146,6 +146,17 @@ Once the proper config file is sourced, you can proceed with the SDK build.
 
 Note that after the SDK has been built, you can source another board config file to change the board configuration, in case you want to use a different board. In this case the SDK will have to be built again. As soon as the SDK has been built once for a board configuration, it does not need to be built again for this configuration, unless the SDK is cleaned.
 
+## OpenOCD
+
+OpenOCD for Gap8 is now used instead of plpbridge. There are a few applications which require OpenOCD, as they are using OpenOCD semi-hosting to transfer files with the workstation.
+
+You have to install the system dependencies required by OpenOCD that you can find here: http://openocd.org/doc-release/README
+
+There are different cables setup by default for each board. In case you want to use a different cable, you can define this environment variable (this is ):
+
+~~~~~shell
+export GAPY_OPENOCD_CABLE=interface/ftdi/olimex-arm-usb-ocd-h.cfg
+~~~~~
 
 ## Build the SDK:
 
@@ -181,23 +192,6 @@ Then execute:
 ~~~~~shell
 cd ~/gap_sdk/
 make nntool
-~~~~~
-
-## Getting OpenOCD
-
-OpenOCD for Gap8 has been introduced. Plpbridge is still used by default to load binaries until the next SDK, in which OpenOCD will become the default bridge. There are a few applications which require OpenOCD, as they are using OpenOCD semi-hosting to transfer files with the workstation.
-
-If you want to install it, execute this command from the gap SDK folder:
-
-~~~~~shell
-cd ~/gap_sdk/
-make openocd
-~~~~~
-
-Applications using it are already configured in their Makefile to use it. If you also want to force it for other examples and applications, you have to define this environment variable:
-
-~~~~~shell
-export GAP_USE_OPENOCD=1
 ~~~~~
 
 # Compiling, running and debugging programs

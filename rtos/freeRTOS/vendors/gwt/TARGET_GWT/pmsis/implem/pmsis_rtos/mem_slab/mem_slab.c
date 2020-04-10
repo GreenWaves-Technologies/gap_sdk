@@ -5,7 +5,7 @@
  */
 
 #include "pmsis.h"
-#include "pmsis_rtos/mem_slab/mem_slab.h"
+#include "pmsis/mem_slab/mem_slab.h"
 
 
 static void create_free_list(struct pi_mem_slab *slab)

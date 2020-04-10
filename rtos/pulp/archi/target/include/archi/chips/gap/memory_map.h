@@ -145,4 +145,13 @@
 #define ARCHI_EU_DEMUX_ADDR                   ( ARCHI_DEMUX_PERIPHERALS_ADDR + ARCHI_EU_DEMUX_OFFSET )
 #define ARCHI_MCHAN_DEMUX_ADDR                ( ARCHI_DEMUX_PERIPHERALS_ADDR + ARCHI_MCHAN_DEMUX_OFFSET )
 
+
+/*
+ * For backward compatibility
+ */
+ 
+#define HWCE_ADDR_BASE  ARCHI_HWCE_ADDR
+
+
+
 #endif

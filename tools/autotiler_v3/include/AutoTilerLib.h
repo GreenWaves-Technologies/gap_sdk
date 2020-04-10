@@ -982,9 +982,22 @@ Add informations to selected user kernel
 void AddKernelInfos(
 	char *Name,			/**< A defined User Kernel Name */
 	AT_KernelInfo_T Info,		/**< Which type of information */
-	int NumVal,			/**< Value passed as an integer  */
+	long long int NumVal,		/**< Value passed as an integer  */
 	void *Val			/**< Value passed as a void * */
 	);
+
+/**
+@brief Add informations to selected argument of selected user kernel
+
+Add informations to selected argument of selected user kernel
+*/
+void AddKernelArgDim(
+	char *Name,		/**< Kernel Name */
+	char *ArgName,		/**< Argument Name */
+	int Dim,		/**< Number of dimensions or -1 (in this case list must be 0 terminated */
+	...			/**< List of space dimensions from outer to inner, most inner is the item size */
+	);
+
 
 /**
 @brief Alter the behaviour of UserKernel processing
@@ -1000,6 +1013,11 @@ void AT_SetKernelCtrl(
 	AT_GraphCtrl_T Ctrl,	/**< Which option */
 	void *Val		/**< Value for this option. Use APT_OPT_ON, AT_OPT_OFF, AT_OPT_VAL(Val) */
 	);
+
+void *AT_GetKernelCtrl(
+	AT_GraphCtrl_T Ctrl	/**< Which option */
+	);
+
 
 /** @} */ // End of UserK group
 
@@ -1260,8 +1278,11 @@ void AddStackedTensors(char *OutTensorName, int Count, ...);
 Generate code for the CNN Graph if any
 */
 void GenerateCodeForCNNGraph(
-	CNNGraph_T *Graph,	/**< Pointer to the CNN graph */
-	int Declare,		/**< if 1 declare graph related entry points, if 0 generate bodies */
+	CNNGraph_T *Graph,		/**< Pointer to the CNN graph */
+	int Declare,			/**< if 1 declare graph related entry points, if 0 generate bodies */
+	unsigned int TensorDumpFilter,	/**< Automatic dump control */
+	char *L2_DumpBuffer,		/**< L2 Dump Buffer if needed (tensor trace) */
+	unsigned int L2_DumpBufferSize,	/**< Size of the L2 Buffer */
 	FILE *Fi		/**< File where to dump generated code */
 	);
 
@@ -1474,6 +1495,7 @@ void GenTilingWarning(
 extern ArgBindingDescr_T *AT_NO_ARG_BINDING, *AT_IGNORE_ARG_BINDING;
 extern CKernelCall_T *AT_NO_CALL;
 extern Object_T *AT_NO_KER_ARG;
+extern CKernel_Arg_T *AT_NO_C_ARG;
 
 extern void SetAT_TestFile(char *AT_TestFileName);
 extern void AT_PrepareForTest(char *Name,
@@ -1498,6 +1520,12 @@ extern void DecodeCNNOper(
 	int *DoMatAdd,
 	int *DoMatMul,
 	int *DoSoftMax);
+
+#define MAX_KERNEL              10000
+#define MAX_KERNEL_LIB_TEMPL    500
+#define MAX_KERNEL_LIB          1000
+#define MAX_KERNEL_GROUP        1000
+#define MAX_KERNEL_ARG          50
 
 
 #endif

@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from typing import Union
@@ -154,7 +158,7 @@ class Parameters(Node):
         else:
             hints = self._out_dims_hint
 
-        assert len(dims) == len(hints), "incorrect dimensions length"
+        assert hints is None or len(dims) == len(hints), "incorrect dimensions length"
         cloned_dims = []
         for dim_idx, dim in enumerate(dims):
             if dim.is_named:
@@ -178,6 +182,9 @@ class SingleInputAndOutput():
 
 class SensitiveToOrder():
     '''Mixin that indicates that the node must receive channel first input'''
+
+class SameNumberOfDimensionsForInputs():
+    '''Mixin that indicates that the node has multiple inputs that have the same dimension length'''
 
 class NoSizeChangeParameters(Parameters):
 
@@ -259,6 +266,26 @@ class Transposable(Parameters):
             trans[0],
             trans[1]
         )
+
+class MultiplicativeBiasParameters(Parameters):
+    def __init__(self, *args, **kwargs):
+        super(MultiplicativeBiasParameters, self).__init__(*args, **kwargs)
+        self.has_mul_bias = False
+        self._mul_biases = None
+
+    @property
+    def mul_biases(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 3)
+        else:
+            return self._mul_biases
+
+    @mul_biases.setter
+    def mul_biases(self, val):
+        if self._constant_store:
+            self._constant_store.set(self, 3, val)
+        else:
+            self._mul_biases = val
 
 #pylint: disable=abstract-method
 class FilterParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):

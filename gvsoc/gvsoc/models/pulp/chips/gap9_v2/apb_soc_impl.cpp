@@ -96,7 +96,7 @@ private:
 
   unsigned int extwake_sync;
 
-  vp_apb_soc_ctrl_safe_pmu_sleepctrl   r_sleep_ctrl;
+  vp_apb_soc_ctrl_sleep_ctrl   r_sleep_ctrl;
   //vp_apb_soc_ctrl_safe_l2_btrim_stdby  r_l2_btrim_stdby;
   //vp_apb_soc_ctrl_safe_fll_ctrl        r_fll_ctrl;
   //vp_apb_soc_ctrl_safe_l1_pwr_ctrl     r_l1_pwr_ctrl;
@@ -413,10 +413,10 @@ vp::io_req_status_e apb_soc_ctrl::req(void *__this, vp::io_req *req)
     }
     else
     {
-      *(uint32_t *)data = _this->jtag_reg_ext.get() << APB_SOC_CTRL_JTAGREG_EXT_SYNC_BIT;
+      *(uint32_t *)data = _this->jtag_reg_ext.get() << APB_SOC_CTRL_JTAGREG_EXTERNAL_BIT;
     }
   }
-  else if (offset == APB_SOC_CTRL_SLEEP_CTRL_OFFSET || offset == APB_SOC_CTRL_SAFE_PMU_SLEEPCTRL_OFFSET)
+  else if (offset == APB_SOC_CTRL_SLEEP_CTRL_OFFSET || offset == APB_SOC_CTRL_SLEEP_CTRL_OFFSET)
   {
     err = _this->sleep_ctrl_req(reg_offset, size, is_write, data);
   }

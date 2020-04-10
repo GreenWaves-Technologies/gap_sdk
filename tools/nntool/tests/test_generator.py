@@ -20,22 +20,22 @@ def test_conv_pool_relu_kernel_gen(mnist_unfused_8bit_state):
     relu_q = G.quantization[NodeId(relu_params)]
     code_block = gen_conv_pool_relu("Test", conv_params, conv_q, None, None, None, None)
     assert str(code_block) ==\
-        'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_NONE);'
+'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 7, 7, 7, 6, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_NONE);'
     code_block = gen_conv_pool_relu("Test", conv_params, conv_q, pool_params, pool_q, relu_params, relu_q)
     assert str(code_block) ==\
-        'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);'
+'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 7, 7, 7, 6, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);'
     code_block = gen_conv_pool_relu("Test", conv_params, conv_q, None, None, relu_params, relu_q)
     assert str(code_block) ==\
-        'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_RELU);'
+'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 7, 7, 7, 6, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_RELU);'
     code_block = gen_conv_pool_relu("Test", conv_params, conv_q, pool_params, pool_q, None, None)
     assert str(code_block) ==\
-        'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_NONE);'
+'CNN_ConvolutionPoolReLU("Test", 0, 1, 1, 1, 1, 7, 7, 7, 6, 1, 1, 1, 1, 1, 32, 28, 28,\n    KOP_CONV_DP, 5, 5, 1, 1, 1, 1, 0,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_NONE);'
     code_block = gen_conv_pool_relu("Test", None, None, pool_params, pool_q, relu_params, relu_q)
     assert str(code_block) ==\
-        'CNN_PoolReLU("Test", 0, 1, 1, 1, 1, 32, 32, 24, 24,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);'
+'CNN_PoolReLU("Test", 0, 1, 1, 6, 6, 1, 1, 32, 32, 24, 24,\n    KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);'
     code_block = gen_conv_pool_relu("Test", None, None, None, None, relu_params, relu_q)
     assert str(code_block) ==\
-        'CNN_PoolReLU("Test", 0, 1, 1, 1, 1, 32, 32, 24, 24,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_RELU);'
+'CNN_PoolReLU("Test", 0, 1, 1, 6, 6, 1, 1, 32, 32, 24, 24,\n    KOP_NONE, 0, 0, 0, 0, 0, 0, 0, KOP_RELU);'
 
 def test_unfused_operational(caplog, mnist_unfused_8bit_state):
     caplog.set_level(logging.INFO)

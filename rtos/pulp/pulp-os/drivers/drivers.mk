@@ -122,3 +122,12 @@ PULP_LIB_FC_SRCS_rt += drivers/uart/uart.c
 endif
 endif
 
+
+# HWCE
+
+ifeq '$(CONFIG_HWCE_ENABLED)' '1'
+ifneq '$(hwce/version)' ''
+PULP_LIB_FC_SRCS_rt += drivers/hwce/hwce-v$(hwce/version).c
+endif
+endif
+

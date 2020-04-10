@@ -6,6 +6,12 @@ OBJDUMP     = riscv32-unknown-elf-objdump
 NM          = riscv32-unknown-elf-nm
 SIZE        = riscv32-unknown-elf-size
 
+# Print compile command
+TRC_MAKE=@
+ifeq ($(VERBOSE), 1)
+TRC_MAKE=
+endif				# VERBOSE
+
 platform     ?= gapuino
 
 chip=$(TARGET_CHIP_FAMILY)
@@ -49,6 +55,10 @@ FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
 # Simulation related options
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
+# Main stack size in Bytes.
+MAIN_STACK_SIZE ?= 1024
+FREERTOS_FLAGS  += -DMAIN_STACK_SIZE=$(MAIN_STACK_SIZE)
+
 # Option to use cluster features
 FEATURE_FLAGS   = -DFEATURE_CLUSTER=1
 
@@ -81,6 +91,7 @@ FREERTOS_FLAGS  += -DPRINTF_RTL
 # FPGA
 else ifeq ($(platform), fpga)
 FREERTOS_FLAGS  += -D__PLATFORM_FPGA__
+io ?= host
 
 # RTL
 else ifeq ($(platform), rtl)
@@ -251,7 +262,7 @@ BUILDING_OBJS       = $(APP_OBJ) $(ASM_OBJS) $(C_OBJS)
 # User can exclude some source from build, using APP_EXCLUDE_SRCS.
 APP_EXCLUDE_OBJS    = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_EXCLUDE_SRCS))
 # Final objects to build.
-OBJS                = $(filter-out $(APP_EXCLUDE_OBJS),$(BUILDING_OBJS))
+OBJS                = $(filter-out $(APP_EXCLUDE_OBJS), $(BUILDING_OBJS))
 # Objects disassembly.
 OBJS_DUMP           = $(patsubst %.o, %.dump, $(OBJS))
 # Objects dependency.
@@ -274,20 +285,20 @@ $(BUILDDIR):
 $(ASM_OBJS): $(BUILDDIR)/%.o: %.S
 	@echo "    ASM  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(ASMFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+	$(TRC_MAKE)$(CC) $(ASMFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@echo "    CC  $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(APP_CFLAGS) $(GCC_OPTIM_LEVEL) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(GCC_OPTIM_LEVEL) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	@echo "    CC $(shell basename $<)"
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
-	@$(CC) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS) $(APP_LDFLAGS)
+	$(TRC_MAKE)$(CC) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS) $(APP_LDFLAGS)
 
 $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
@@ -324,7 +335,7 @@ run: all
 ifeq ($(chip), GAP8)
 	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 else ifeq ($(chip), GAP9)
-	$(GAP_SDK_HOME)/tools/runner/run_gap9.sh $(PLPBRIDGE_FLAGS) -ftdi $(PLPBRIDGE_EXTRA_FLAGS)
+	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --all --binary=$(BIN) $(platform) $(runner_args)
 endif				#ifeq ($(chip), GAP8)
 endif				#ifeq ($(platform), )
 

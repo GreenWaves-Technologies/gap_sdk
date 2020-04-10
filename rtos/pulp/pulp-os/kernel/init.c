@@ -68,8 +68,8 @@ void __rt_deinit()
 
 #else
 
-extern unsigned char stack;
-extern unsigned char stack_start;
+extern unsigned char __rt_fc_stack[];
+extern unsigned int __rt_fc_stack_size;
 
 void __rt_init()
 {
@@ -83,10 +83,9 @@ void __rt_init()
   __rt_bridge_set_available();
 #endif
 
-  if (rt_platform() == ARCHI_PLATFORM_GVSOC)
-  {
-    cpu_stack_check_enable((int)&stack_start, (int)&stack);
-  }
+#ifdef __RT_USE_ASSERT
+  cpu_stack_check_enable((int)__rt_fc_stack, (int)__rt_fc_stack + __rt_fc_stack_size);
+#endif
 
   rt_trace(RT_TRACE_INIT, "Starting runtime initialization\n");
 
@@ -163,10 +162,9 @@ error:
 
 void __rt_deinit()
 {
-  if (rt_platform() == ARCHI_PLATFORM_GVSOC)
-  {
-    cpu_stack_check_disable();
-  }
+#ifdef __RT_USE_ASSERT
+  cpu_stack_check_disable();
+#endif
 
 #ifndef __ariane__
 

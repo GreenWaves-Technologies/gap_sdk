@@ -79,14 +79,14 @@ void KerFirParallelNTaps(KerFirParallel_ArgT *Arg)
 
 		Out[i] = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
 	}
-	rt_team_barrier();
+	gap_waitbarrier(0);
 
 	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
 	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
-	rt_team_barrier();
+	gap_waitbarrier(0);
 }
 
 /** @brief A specialized implementation of a 20 taps FIR filter.
@@ -138,14 +138,14 @@ void KerFirParallel20Taps(KerFirParallel_ArgT *Arg)
 		Acc = gap_sumdotp2(InV[9], C9, Acc);
 		Out[i] = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
 	}
-	rt_team_barrier();
+	gap_waitbarrier(0);
 
 	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
 	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
-	rt_team_barrier();
+	gap_waitbarrier(0);
 }
 
 /** @brief A specialized implementation of a 10 taps FIR filter.
@@ -194,14 +194,14 @@ void KerFirParallel10Taps(KerFirParallel_ArgT *Arg)
 		Acc = gap_sumdotp2(InV[4], C4, Acc);
 		Out[i] = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
 	}
-	rt_team_barrier();
+	gap_waitbarrier(0);
 
 	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
 	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
-	rt_team_barrier();
+	gap_waitbarrier(0);
 }
 
 /** @brief A generic Ntaps fixed point FIR filter.
@@ -236,12 +236,12 @@ void KerFirParallelScalarNTaps(KerFirParallel_ArgT *Arg)
 		for (j=0; j<NCoeffs; j++) Acc += In[i-NCoeffs+j]*Coeffs[j];
 		Out[i] = gap_clip(gap_roundnorm_reg(Acc, Norm), 15);
 	}
-	rt_team_barrier();
+	gap_waitbarrier(0);
 
 	/* Copy the last NCoeffs samples into the bottom part of NextTile buffer, avoid
 	parallel implementation since NSamples can be < NCoeffs and in this case conurrent copy
 	is not guaranteed to work ok */
 
 	if (CoreId==0) for (j=0, i=NSamples-(NCoeffs-1); (unsigned int)i<NSamples; i++, j++) NextIn[j-(NCoeffs-1)] = In[i];
-	rt_team_barrier();
+	gap_waitbarrier(0);
 }

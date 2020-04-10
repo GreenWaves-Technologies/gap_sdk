@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 
@@ -19,10 +23,11 @@ from generation.naming_convension import (DefaultNamingConvension,
 from ..dim import Dim, MoreThanOneInputError
 from ..types import (ConcatParameters, EdgeParameters, InputParameters,
                      OutputParameters, Parameters, SingleInputAndOutput,
-                     ReshapeParameters)
+                     ReshapeParameters, ConstantInputParameters)
 
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
     cloned_dims = []
@@ -33,9 +38,11 @@ def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
         cloned_dims.append(cloned_dim)
     return cloned_dims
 
+
 def set_input_size(node: Parameters, dims: Sequence[Dim]):
     node.in_dims = clone_dims(dims, node.in_dims_hint)
     return node.in_dims
+
 
 def set_output_size(node: Parameters, dims: Sequence[Dim]):
     node.out_dims = clone_dims(dims, node.out_dims_hint)
@@ -48,6 +55,7 @@ def connected_to_concat(G, node):
     if isinstance(node, ReshapeParameters):
         return connected_to_concat(G, G.out_edges(node.name)[0].to_node)
     return False
+
 
 def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
                         naming_convension: NamingConvension, edge_type: str = "in_out"):
@@ -66,6 +74,7 @@ def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
         eparams.is_alias = any_concat
         LOG.debug("%s %s is alias %s", node.name, ename, any_concat)
 
+
 def set_out_edges_one(G, node: Parameters, dim: Dim, step_idx: int,
                       naming_convension: NamingConvension, edge_type: str = "in_out"):
     ename = naming_convension.get_edge_name(node.name, step_idx, edge_type)
@@ -80,6 +89,7 @@ def set_out_edges_one(G, node: Parameters, dim: Dim, step_idx: int,
     eparams.is_alias = any_concat
     set_output_size(node, [dim])
 
+
 def validate_one_in_edge(G, node: Parameters, expect_named: bool = True):
     edges = G.in_edges(node.name)
     if len(edges) != 1:
@@ -89,6 +99,7 @@ def validate_one_in_edge(G, node: Parameters, expect_named: bool = True):
     assert not expect_named or eparams.dims.has_keys(['c', 'h', 'w']), "dimensions not yet set"
     set_input_size(node, [eparams.dims])
     return eparams
+
 
 def validate_multi_in_edge(G, node: Parameters, expect_named: bool = True):
     dims = []
@@ -101,12 +112,23 @@ def validate_multi_in_edge(G, node: Parameters, expect_named: bool = True):
     set_input_size(node, dims)
     return dims
 
+
 def add_dimensions_concat(G, node: Parameters, step_idx: int,
                           naming_convension: NamingConvension, indexes):
     del indexes
     in_dims = validate_multi_in_edge(G, node, expect_named=False)
     out_dims = node.get_output_size(in_dims)
     set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension)
+
+
+def add_dimensions_constant(G, node: Parameters, step_idx: int,
+                            naming_convension: NamingConvension, indexes):
+    node.index = indexes['constant']
+    indexes['constant'] += 1
+    constant_dims = node.get_output_size(None)
+    set_out_edges_one(G, node, constant_dims[0], step_idx,
+                      naming_convension, edge_type="in")
+
 
 def add_dimensions_input(G, node: Parameters, step_idx: int,
                          naming_convension: NamingConvension, indexes):
@@ -116,6 +138,7 @@ def add_dimensions_input(G, node: Parameters, step_idx: int,
     set_input_size(node, input_dims)
     set_out_edges_one(G, node, input_dims[0], step_idx,
                       naming_convension, edge_type="in")
+
 
 def add_dimensions_output(G, node: Parameters, step_idx: int,
                           naming_convension: NamingConvension, indexes):
@@ -127,6 +150,7 @@ def add_dimensions_output(G, node: Parameters, step_idx: int,
     # set the dimensions of the output node
     set_output_size(node, node.get_output_size([eparams.dims]))
 
+
 def add_dimensions_unknown_single(G, node: Parameters, step_idx: int,
                                   naming_convension: NamingConvension, indexes):
     del indexes
@@ -134,18 +158,22 @@ def add_dimensions_unknown_single(G, node: Parameters, step_idx: int,
     out_dims = node.get_output_size([eparams.in_dims])
     set_out_edges_one(G, node, out_dims[0], step_idx, naming_convension)
 
+
 def add_dimensions_unknown(G, node: Parameters, step_idx: int,
                            naming_convension: NamingConvension):
     in_dims = validate_multi_in_edge(G, node, expect_named=False)
     set_out_edges_multi(G, node, node.get_output_size(in_dims),
                         step_idx, naming_convension)
 
+
 OP_ROUTINES = {
     InputParameters: add_dimensions_input,
     OutputParameters: add_dimensions_output,
     ConcatParameters: add_dimensions_concat,
+    ConstantInputParameters: add_dimensions_constant,
     SingleInputAndOutput: add_dimensions_unknown_single
 }
+
 
 def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
     """ Walks graph setting all edge names and dimensions
@@ -156,8 +184,8 @@ def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
         edge.params = None
 
     steps = []
-    indexes = {'input': 0, 'output': 0}
-    for node in G.dfs(G.inputs()):
+    indexes = {'input': 0, 'output': 0, 'constant': 0}
+    for node in G.dfs():
         node.step_idx = len(steps)
         steps.append({'node': node})
         if node.__class__ in OP_ROUTINES:

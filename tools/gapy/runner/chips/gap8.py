@@ -30,6 +30,7 @@ class Runner(object):
         chip = self.config.get_str('**/chip')
 
         if chip == 'gap8_revc':
+
             if self.get_boot_mode() == 'flash':
                 efuses[0] = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
 

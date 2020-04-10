@@ -29,7 +29,8 @@ class Runner(object):
 
           # RTL platform | flash boot | no encryption | no wait xtal
         efuses[0] = 2 | (2 << 3) | (0 << 4) | (0 << 5) | (0 << 6) | (0 << 7)
-        efuses[39] = 0x2   # Boot on UDMA SPIM1 interface (first single spi)
+        efuses[37] = 1 << 0   # Boot on UDMA hyper
+        #efuses[39] = 0x2   # Boot on UDMA SPIM1 interface (first single spi)
 
 
         traces.info('  Generating to file: ' + filename)

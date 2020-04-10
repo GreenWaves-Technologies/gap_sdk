@@ -52,6 +52,7 @@ typedef enum {
         KOP_GLOBAL_AVGPOOL_REDUCT,
         KOP_RELU,
 	KOP_RELUN,
+	KOP_RELUN_VECTOR,
 	KOP_HSIGMOID,
 	KOP_HSWISH,
 	KOP_LEAKYRELU,
@@ -61,10 +62,20 @@ typedef enum {
         KOP_MATADD,
         KOP_MATADD_DYNADJUST,
         KOP_MATMUL,
+        KOP_MATMUL_SM1,
         KOP_MATMUL_SCALE,
         KOP_MATMUL_SCALE_SCALAR,
-	KOP_MATSCALE,
+        KOP_MATMUL_SCALE_SM1,
+        KOP_MATMUL_SCALE_SCALAR_SM1,
+	KOP_MATSCALE_VECTOR,
 	KOP_MATSCALE_SCALAR,
+	KOP_MATSCALE_VECTOR_SCALAR,
+	KOP_MATTRANSP,
+	KOP_MATPERM_CHW2CWH,
+	KOP_MATPERM_CHW2HWC,
+	KOP_MATPERM_CHW2WHC,
+	KOP_MATPERM_CHW2WCH,
+	KOP_MATPERM_CHW2HCW,
         KOP_SOFTMAX,
 
 	/* Grouped operations */
@@ -123,6 +134,7 @@ typedef enum {
         KACT_NONE = 0,
         KACT_RELU,
         KACT_RELUN,
+	KACT_RELUN_VECTOR,
         KACT_HSIGMOID,
         KACT_HSWISH,
         KACT_LEAKY,
@@ -169,6 +181,7 @@ typedef enum {
 	KER_ITER_LAST=7		/**< Marker for last */
 } KernelIteratorT;
 /// @cond PrivateStuff
+#define MAX_ARG_DIM 5
 #define KER_ITER_TILE_MAX 3
 #define IS_TILED_SPACE(Space) ((Space)<KER_ITER_TILE_MAX)
 #define IterSpaceToTile(Space) (((Space)==0)?O_TILE0:(((Space)==1)?O_TILE1:(((Space)==2)?O_TILE2:0)))
@@ -647,6 +660,13 @@ typedef enum {
 	AT_MEM_LAST
 } AT_MemLocation_T;
 
+typedef enum {
+	AT_DUMP_CONSTANT_IN = 1,
+	AT_DUMP_IN = 2,
+	AT_DUMP_OUT = 4,
+} AT_DumpTensor_T;
+
+#define IS_EXTERNAL_MEM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_MRAMFLASH))
 #define IS_L3_RAM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L3_OSPIRAM))
 #define IS_FLASH_LOC(Loc) (((Loc)==AT_MEM_L3_HFLASH)||((Loc)==AT_MEM_L3_QSPIFLASH)||((Loc)==AT_MEM_L3_OSPIFLASH)||((Loc)==AT_MEM_L3_MRAMFLASH))
 #define IS_VALID_MEM(Mem) (((Mem)>=AT_MEM_L3_HRAM) && ((Mem)<=AT_MEM_L1))
@@ -729,6 +749,8 @@ typedef struct {
 	char UsedPointer[2*CG_MAX_PIPE_DEPTH+1];	/* To track usage of tile pointers for proper variable declaration */
 	char UsedSize[2*CG_MAX_PIPE_DEPTH+1];		/* To track size of tiles for proper variable declaration */
 	char UsedLength[2*CG_MAX_PIPE_DEPTH+1];		/* To tack 2D length of tiles (if arg is 2D) for proper variable declaration */
+	int ArgNDim;					/* Number of dimensions of this argumentt */
+	int *ArgDim;					/* Space dimension from outer to inner, most inner dim is item size */
 } KerArgInfos_T;
 #define TILE_PTR(PipeOff)	((PipeOff) + CG_MAX_PIPE_DEPTH)
 
@@ -829,10 +851,12 @@ typedef struct A_Object_T {
 
 typedef enum {
 	AT_KERINFO_OPER,
+	AT_KERINFO_BANDWIDTH,
 } AT_KernelInfo_T;
 
 typedef struct {
-	unsigned int Oper;
+	unsigned long long int Oper;
+	unsigned long long int Bandwidth;
 } KernelInfos_T;
 
 /* Stacked tensor:
@@ -907,7 +931,6 @@ typedef struct {
 	int EnableIm2Col;	/* Enable mat mul based convolution when feasible */
 	int ReluN;		/* if != -1 Overides 6 as a default value for ReLUN */
 	int MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
-	int ReluNNoNorm;	/* Don't apply normalization to RELUN value */
 } CNN_GenControl_T;
 
 typedef struct {
@@ -1091,6 +1114,8 @@ typedef enum {
 	AT_GRAPH_PREF_L3_EXEC,			/* In case a symbol must be allocated in L3 for execution this is the prefered memory, default is AT_MEM_L3_HRAM */
 	AT_GRAPH_CONST_EXEC_FROM_FLASH,		/* If 1, for constant symbol executes from home location, default is 0 */
 	AT_GRAPH_PREF_L3_HOME,			/* For constant symbols which L3 flash prefered memory, default is AT_MEM_L3_HFLASH */
+	AT_GRAPH_DUMP_TENSOR,			/* Trace selected tensors arguments at inference time, either all nodes or selected node */
+	AT_GRAPH_DUMP_ONE_NODE,			/* Trace one specific graph node */
 } AT_GraphCtrl_T;
 /*
 #define AT_OPT_ON	((void *) 1)
@@ -1113,6 +1138,8 @@ typedef struct {
 	AT_MemLocation_T PreferedL3ExecLoc;	/* In case a symbol must be allocated in L3 in which memory, default is AT_MEM_L3_HRAM */
 	int ConstExecFromFlash;			/* If 1, for constant symbol executes from home location, default is 0 */
 	AT_MemLocation_T PreferedConstL3HomeLoc;/* For a constant symbol where to store it L3, default is AT_MEM_L3_HFLASH */
+	unsigned int DumpTensorFilter;		/* A bit vector of AT_DumpTensor_T */
+	NameT *DumpTensorNode;			/* Dump tensor defined by DumpTensorFilter for this specific node, if null dump all */
 } GraphControl_T;
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))

@@ -32,6 +32,7 @@
             "active": false,
             "all": true,
             "gtkw": false,
+            "gen_gtkw": true,
             "files": [ ],
             "traces": {},
             "tags" : [ "overview" ],

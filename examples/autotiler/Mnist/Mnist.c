@@ -39,7 +39,7 @@ int16_t *Out_Layer[3];
 uint32_t Out_Layer_Size[3] = {0};
 uint16_t *image_in = NULL;
 uint8_t *image_in_real = NULL;
-uint8_t rec_digit = 0xAD;
+uint8_t rec_digit = 0x2A;
 
 int ConvAt(short *In, short int *Filter, unsigned int X, unsigned int Y, unsigned int W, unsigned int H, unsigned int Norm)
 {
@@ -108,24 +108,21 @@ static void RunMnist(void *arg)
     Conv5x5ReLUMaxPool2x2_0((int16_t *) image_in,
                             Filter_Layer[0],
                             Bias_Layer[0],
-                            Out_Layer[0],
-                            14,14);
+                            Out_Layer[0]);
 
     Conv5x5ReLUMaxPool2x2_1(Out_Layer[0],
                             Filter_Layer[1],
                             Bias_Layer[1],
-                            Out_Layer[1],
-                            14,14);
+                            Out_Layer[1]);
 
     LinearLayerReLU_1(Out_Layer[1],
                       Filter_Layer[2],
                       Bias_Layer[2],
-                      Out_Layer[2],
-                      16,
-                      13);
+                      Out_Layer[2]);
 
-    uint8_t *digit = (uint8_t *) arg;
+    uint8_t * digit = (uint8_t *) arg;
     int16_t highest = Out_Layer[2][0];
+    *digit = 0;
     for (uint8_t i = 1; i < 10; i++)
     {
         if (highest < Out_Layer[2][i])
@@ -196,7 +193,7 @@ void test_mnist(void)
     //Convert in Mnist dataset format
     for (uint32_t i = 0; i < (img_w * img_h); i++)
     {
-        image_in[i] = image_in_real[i] * 16;
+        image_in[i] = image_in_real[i] << 4; //Q8+Q4 = 12
     }
 
     //TODO Move this to Cluster

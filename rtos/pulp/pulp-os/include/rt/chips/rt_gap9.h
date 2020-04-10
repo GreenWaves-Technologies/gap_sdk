@@ -17,7 +17,7 @@
 #ifndef __RT_CHIPS_RT_GAP9_H__
 #define __RT_CHIPS_RT_GAP9_H__
 
-#ifdef CONFIG_GAP9
+#ifdef CONFIG_GAP9_V2
 
 /// @cond IMPLEM
 

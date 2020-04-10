@@ -3,5 +3,10 @@
 
     "target": {
         "@includes@": [ "boards/gapoc_a_spi_revb.json" ]
+    },
+
+    "openocd": {
+        "cable": "interface/ftdi/olimex-arm-usb-ocd-h.cfg",
+        "script": "target/gap8revb.tcl"
     }
 }

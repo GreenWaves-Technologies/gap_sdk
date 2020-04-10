@@ -49,6 +49,9 @@
 
 #define AT_HYPERRAM_FREE(dev,ptr,size) free(ptr)
 
+#define AT_QSPIRAM_ALLOC(dev,size) malloc(size)
+
+#define AT_QSPIRAM_FREE(dev,ptr,size) free(ptr)
 
 #define AT_L2_ALLOC(dev,size) malloc(size)
 
@@ -226,8 +229,180 @@ typedef int AT_HYPERFLASH_FS_CL_EVENT;
 
 #define AT_HYPERFLASH_FS_CL_WAIT(file,event)
 
+/*
+ * Spiram
+ */
+
+#define AT_QSPIRAM_TYPE 0
+
+typedef int         AT_QSPIRAM_CONF_T;
+typedef int         AT_QSPIRAM_T;
+typedef char *      AT_QSPIRAM_EXT_ADDR_TYPE;
+typedef char *      AT_QSPIRAM_LOC_ADDR_TYPE;
+typedef int         AT_QSPIRAM_FC_EVENT;
+typedef int         AT_QSPIRAM_CL_EVENT;
+typedef char *      AT_QSPIRAM_POINTER;
+typedef char *      AT_QSPIRAM_INT_ADDR_TYPE;
+
+#define AT_QSPIRAM_EXT2LOC 0
+#define AT_QSPIRAM_LOC2EXT 1
+
+#define AT_QSPIRAM_CONF_INIT(dev,type,name) 
+
+#define AT_QSPIRAM_OPEN(dev,conf,err) \
+  do { *(err) = 0; } while (0)
+
+#define AT_QSPIRAM_CLOSE(dev) 
+
+#define AT_QSPIRAM_FC_COPY(dev,ext,loc,size,dir,event) \
+do { \
+  int i; \
+  char *To   = (dir==AT_QSPIRAM_EXT2LOC)?((char *) (loc)):((char *) (ext)); \
+  char *From = (dir==AT_QSPIRAM_EXT2LOC)?((char *) (ext)):((char *) (loc)); \
+ \
+  if (dir==AT_QSPIRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+ \
+  for (i=0; i<size; i++) To[i] = From[i]; \
+} while (0)
+
+#define AT_QSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+do { \
+  int CopyIn = (dir==AT_QSPIRAM_EXT2LOC); \
+  char *To   = CopyIn?((char *) (loc)):((char *) (ext)); \
+  char *From = CopyIn?((char *) (ext)):((char *) (loc)); \
+  int i, j, Chunk; \
+ \
+  if (dir==AT_QSPIRAM_EXT2LOC) { \
+    if (1) __L3_Read += size; else __L2_Read += size; \
+  } else { \
+    if (1) __L3_Write += size; else __L2_Write += size; \
+  } \
+  for (Chunk=0; Chunk<size; Chunk+=length)  { \
+    for (i=0; i<length; i++) To[i] = From[i]; \
+      if (CopyIn) { \
+      From += stride; To += length; \
+    } else { \
+      To += stride; From += length; \
+    } \
+  } \
+} while (0)
+
+#define AT_QSPIRAM_FC_WAIT(dev,event) 
+
+#define AT_QSPIRAM_CL_COPY(dev,ext,loc,size,dir,event) AT_QSPIRAM_FC_COPY(dev,ext,loc,size,dir,event)
+
+#define AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+#define AT_QSPIRAM_CL_WAIT(dev,event) 
+
+/*
+ * Spiflash
+ */
+
+#define AT_QSPIFLASH_TYPE 1
+
+typedef int     AT_QSPIFLASH_CONF_T;
+typedef int     AT_QSPIFLASH_T;
+typedef int     AT_QSPIFLASH_EXT_ADDR_TYPE;
+typedef int     AT_QSPIFLASH_LOC_ADDR_TYPE;
+typedef int     AT_QSPIFLASH_EVENT;
+
+#define AT_QSPIFLASH_EXT2LOC 0
+#define AT_QSPIFLASH_LOC2EXT 1
+
+// TODO not yet supported
+#define AT_QSPIFLASH_CONF_INIT(dev,type,name) 
+
+// TODO not yet supported
+#define AT_QSPIFLASH_OPEN(dev,conf,err) 
+
+// TODO not yet supported
+#define AT_QSPIFLASH_CLOSE(dev) 
+
+// TODO not yet supported
+#define AT_QSPIFLASH_COPY(dev,ext,loc,size,dir,event)
+
+// TODO not yet supported
+#define AT_QSPIFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+// TODO not yet supported
+#define AT_QSPIFLASH_WAIT(dev,event)
 
 
+
+/*
+ * SPIflash FS
+ */
+
+#define AT_QSPIFLASH_FS_TYPE 1
+
+typedef int            AT_QSPIFLASH_FS_CONF_T;
+typedef FILE*          AT_QSPIFLASH_FS_T;
+typedef unsigned int   AT_QSPIFLASH_FS_EXT_ADDR_TYPE;
+typedef void *         AT_QSPIFLASH_FS_INT_ADDR_TYPE;
+typedef int            AT_QSPIFLASH_FS_FC_EVENT;
+typedef int            AT_QSPIFLASH_FS_CL_EVENT;
+
+#define AT_QSPIFLASH_FS_EXT2LOC 0
+#define AT_QSPIFLASH_FS_LOC2EXT 1
+
+static inline void __at_qspiflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
+{
+  fseek(file, ext, SEEK_SET);
+  if (dir==AT_QSPIFLASH_FS_EXT2LOC) fwrite(loc, 1, size, file);
+  else fread(loc, 1, size, file);
+}
+
+static inline void __at_qspiflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
+{
+  int Chunk;
+  for (Chunk=0; Chunk<size; Chunk+=length)
+  {
+    if (length > size)
+      length = size;
+
+    fseek(file, ext, SEEK_SET);
+    if (dir==AT_QSPIFLASH_FS_EXT2LOC) fwrite(loc, 1, length, file);
+    else fread(loc, 1, length, file);
+
+    loc = ((char *)loc) + length;
+    ext += stride;
+  }
+}
+
+
+#define AT_QSPIFLASH_FS_CONF_INIT(dev,type,name) 
+
+#define AT_QSPIFLASH_FS_OPEN(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "r"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_QSPIFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  do { *(file) = fopen(filename, "w"); *(err) = *(file) == NULL; } while(0)
+
+#define AT_QSPIFLASH_FS_OPEN_SET_SIZE(file, size) 
+
+#define AT_QSPIFLASH_FS_CLOSE(file) \
+  fclose(*file)
+
+#define AT_QSPIFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
+  __at_qspiflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_QSPIFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_qspiflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_QSPIFLASH_FS_FC_WAIT(file,event) 
+
+#define AT_QSPIFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
+  __at_qspiflash_fs_copy(*(file), ext, loc, size, dir)
+
+#define AT_QSPIFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  __at_qspiflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
+
+#define AT_QSPIFLASH_FS_CL_WAIT(file,event) 
 
 
 /*

@@ -10,7 +10,9 @@ int __os_native_kickoff(void *arg)
     BaseType_t xTask;
     TaskHandle_t xHandler0 = NULL;
 
-    xTask = xTaskCreate(arg, "main", 1024,
+    uint32_t stack_size = (uint32_t) MAIN_STACK_SIZE;
+    stack_size /= sizeof(configSTACK_DEPTH_TYPE);
+    xTask = xTaskCreate(arg, "main", stack_size,
                         NULL, tskIDLE_PRIORITY + 1, &xHandler0);
     if (xTask != pdPASS)
     {
@@ -37,7 +39,7 @@ int __os_native_kickoff(void *arg)
 
     extern SemaphoreHandle_t g_printf_mutex;
     g_printf_mutex = xSemaphoreCreateMutex();
-    if(g_printf_mutex == NULL)
+    if (g_printf_mutex == NULL)
     {
         printf("Error : printf mutex not created !\n", g_printf_mutex);
         pmsis_exit(-4322);

@@ -13,13 +13,14 @@ USE_BRIDGE=0
 
 ifeq ($(USE_BRIDGE),1)
 APP_CFLAGS += -DENABLE_BRIDGE
-PLPBRIDGE_FLAGS += -f 
+endif
 #To test new bridge features:
 #comment the line above and use this two instead
 READFS_FILES= Mnist_L3_Flash_Const.dat
+PLPBRIDGE_FLAGS += -f 
 export GAP_USE_OPENOCD=1
 io=host
-endif
+
 
 CNN_AT_PATH = $(TILER_GENERATOR_PATH)/CNN
 

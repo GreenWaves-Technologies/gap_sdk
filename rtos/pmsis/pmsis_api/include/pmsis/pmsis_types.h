@@ -133,7 +133,7 @@ typedef struct pmsis_mutex {
     IMPLEM_MUTEX_OBJECT_TYPE
     __pmsis_mutex_func take;
     __pmsis_mutex_func release;
-} pmsis_mutex_t;
+} pmsis_mutex_t, pi_mutex_t;
 
 
 #ifndef IMPLEM_SEM_OBJECT_TYPE

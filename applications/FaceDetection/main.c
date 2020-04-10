@@ -220,14 +220,14 @@ void test_facedetection(void)
     //Set Cluster Frequency to max
     pi_freq_set(PI_FREQ_DOMAIN_CL,175000000);
 
-    task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    task = (struct pi_cluster_task *) pmsis_l2_malloc(sizeof(struct pi_cluster_task));
     memset(task, 0, sizeof(struct pi_cluster_task));
-    task->entry = faceDet_cluster_init;
+    task->entry = (void *)faceDet_cluster_init;
     task->arg = &ClusterCall;
 
     pi_cluster_send_task_to_cl(&cluster_dev, task);
 
-    task->entry = faceDet_cluster_main;
+    task->entry = (void *)faceDet_cluster_main;
     task->arg = &ClusterCall;
 
     #if defined(USE_DISPLAY)
@@ -248,7 +248,7 @@ void test_facedetection(void)
         #endif  /* USE_CAMERA */
 
         pi_cluster_send_task_to_cl(&cluster_dev, task);
-        printf("end of face detection, num_reponse: %d\n", ClusterCall.num_reponse);
+        printf("end of face detection, faces detected: %d\n", ClusterCall.num_reponse);
 
         #if defined(USE_DISPLAY)
         pi_display_write(&ili, &buffer_out, 40, 40, 160, 120);

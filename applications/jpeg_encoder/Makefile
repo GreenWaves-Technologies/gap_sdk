@@ -8,6 +8,6 @@ IMAGE1=imgTest0.pgm
 export GAP_USE_OPENOCD=1
 
 PLPBRIDGE_FLAGS += -f $(IMAGE1)
-override runner_args += --config-opt=flash/fs/files=$(CURDIR)/$(IMAGE1)
+override config_args += --config-opt=flash/fs/files=$(CURDIR)/$(IMAGE1)
 
 include $(RULES_DIR)/pmsis_rules.mk

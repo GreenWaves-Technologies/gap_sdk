@@ -7,55 +7,58 @@
  *
  */
 
+/* PMSIS includes. */
+#include "pmsis.h"
+
 #include <stdio.h>
 #include "Gap.h"
 #include "FirKernels.h"
 
 
-
-
 //short int * __restrict__ Samples;
-RT_CL_DATA short int * __restrict__ L1_Coeffs40;
-RT_CL_DATA short int * __restrict__ L1_Coeffs10;
-RT_CL_DATA short int *  __restrict__ L1_Coeffs20;
+
+PI_L1 short int * __restrict__ L1_Coeffs40;
+PI_L1 short int * __restrict__ L1_Coeffs10;
+PI_L1 short int *  __restrict__ L1_Coeffs20;
 //short int * __restrict__ Out;
 
 int finished = 0;
 
+#define STACK_SIZE  1024
 #define NSAMPLES	32768
 #define NCOEFFS		40
 int ERR=0 ;
 
 // include coeffs, input, output from numpy ref
-L2_MEM short int Samples[NSAMPLES] = {
+PI_L2 short int Samples[NSAMPLES] = {
 #include "fir_in32768.h"
 };
 
-L2_MEM short int Out_ref40[NSAMPLES] = {
+PI_L2 short int Out_ref40[NSAMPLES] = {
 #include "fir_out40.h"
 };
 
-L2_MEM short int Out_ref20[NSAMPLES] = {
+PI_L2 short int Out_ref20[NSAMPLES] = {
 #include "fir_out20.h"
 };
 
-L2_MEM short int Out_ref10[NSAMPLES] = {
+PI_L2 short int Out_ref10[NSAMPLES] = {
 #include "fir_out10.h"
 };
 
 
-short int *Out;
+PI_L2 short int *Out;
 //L2_MEM short int Out[NSAMPLES];
 
-L2_MEM short int Coeffs40[NCOEFFS] = {
+PI_L2 short int Coeffs40[NCOEFFS] = {
 #include "fir_coeff40.h"
 };
 
-L2_MEM short int Coeffs20[NCOEFFS] = {
+PI_L2 short int Coeffs20[NCOEFFS] = {
 #include "fir_coeff20.h"
 };
 
-L2_MEM short int Coeffs10[NCOEFFS] = {
+PI_L2 short int Coeffs10[NCOEFFS] = {
 #include "fir_coeff10.h"
 };
 
@@ -88,16 +91,16 @@ void check_output(int ncoeff) {
   
 }
 
-static inline __attribute__((always_inline)) void DumpPerf(rt_perf_t * p_perf, int taps, const char * typ)
+static inline __attribute__((always_inline)) void DumpPerf(int taps, const char * typ)
 {
-	rt_perf_stop(p_perf);
-	rt_perf_save(p_perf);
+	pi_perf_stop();
+
 	printf("Core %1d %d Taps %5d Samples %s Cycles %8d PerOut %2d\n", gap_ncore(), taps,
-		NSAMPLES, typ, rt_perf_read(RT_PERF_CYCLES), rt_perf_read(RT_PERF_CYCLES)/NSAMPLES);
+		NSAMPLES, typ, pi_perf_read(PI_PERF_ACTIVE_CYCLES), pi_perf_read(PI_PERF_ACTIVE_CYCLES)/NSAMPLES);
 	check_output(taps);
-	rt_perf_init(p_perf);
-	rt_perf_reset(p_perf);
-	rt_perf_start(p_perf);
+	
+	pi_perf_reset();
+	pi_perf_start();
 }
 
 
@@ -107,47 +110,46 @@ static void cluster_main()
 {
 	printf ("cluster master start\n");
 
-	rt_dma_copy_t DmaR_Evt1;
+	pi_cl_dma_cmd_t DmaR_Evt1;
 	
 	// load coeffs from L2 to L1
-	rt_dma_memcpy((rt_pointerT) Coeffs40, (rt_pointerT) L1_Coeffs40,  40*sizeof(short int),  RT_DMA_DIR_EXT2LOC, 0, &DmaR_Evt1);
-	rt_dma_wait(&DmaR_Evt1);
-	rt_dma_memcpy((rt_pointerT) Coeffs20, (rt_pointerT) L1_Coeffs20,  20*sizeof(short int),  RT_DMA_DIR_EXT2LOC, 0, &DmaR_Evt1);
-	rt_dma_wait(&DmaR_Evt1);
-	rt_dma_memcpy((rt_pointerT) Coeffs10, (rt_pointerT) L1_Coeffs10,  10*sizeof(short int),  RT_DMA_DIR_EXT2LOC, 0, &DmaR_Evt1);
-	rt_dma_wait(&DmaR_Evt1);
+	pi_cl_dma_cmd((int) Coeffs40, (int) L1_Coeffs40,  40*sizeof(short int),  PI_CL_DMA_DIR_EXT2LOC, &DmaR_Evt1);
+	pi_cl_dma_cmd_wait(&DmaR_Evt1);
+	pi_cl_dma_cmd((int) Coeffs20, (int) L1_Coeffs20,  20*sizeof(short int),  PI_CL_DMA_DIR_EXT2LOC, &DmaR_Evt1);
+	pi_cl_dma_cmd_wait(&DmaR_Evt1);
+	pi_cl_dma_cmd((int) Coeffs10, (int) L1_Coeffs10,  10*sizeof(short int),  PI_CL_DMA_DIR_EXT2LOC, &DmaR_Evt1);
+	pi_cl_dma_cmd_wait(&DmaR_Evt1);
 	
 	unsigned int Ti, Ti1, Ti2;
-	rt_perf_t perf;
-	rt_perf_init(&perf);
-	rt_perf_reset(&perf);
-	rt_perf_conf(&perf, RT_PERF_CYCLES);
-	rt_perf_start(&perf);
 	
+	pi_perf_conf(1 << PI_PERF_ACTIVE_CYCLES);
+ 	pi_perf_start();
+
+
 	TiledFir10GenericScalar(Samples, L1_Coeffs10, Out, 16);
-	DumpPerf(&perf, 10, "GenericScalar");
+	DumpPerf( 10, "GenericScalar");
 
 	TiledFir10Generic(Samples, L1_Coeffs10, Out, 16);
-	DumpPerf(&perf, 10, "GenericVect  ");
+	DumpPerf( 10, "GenericVect  ");
 
 	TiledFir10Opt(Samples, L1_Coeffs10, Out, 16);
-	DumpPerf(&perf, 10, "OptVect      ");
+	DumpPerf( 10, "OptVect      ");
 
 	TiledFir20GenericScalar(Samples, L1_Coeffs20, Out, 16);
-	DumpPerf(&perf, 20, "GenericScalar");
+	DumpPerf( 20, "GenericScalar");
 
 	TiledFir20Generic(Samples, L1_Coeffs20, Out, 16);
-	DumpPerf(&perf, 20, "GenericVect  ");
+	DumpPerf( 20, "GenericVect  ");
 
 	TiledFir20Opt(Samples, (short int*)L1_Coeffs20, Out, 16);
-	DumpPerf(&perf, 20, "OptVect      ");	
+	DumpPerf( 20, "OptVect      ");	
 
 	TiledFir40GenericScalar(Samples,  (short int*)L1_Coeffs40, Out, 16);
-	DumpPerf(&perf, 40, "GenericScalar");
+	DumpPerf( 40, "GenericScalar");
 
 	TiledFir40Generic(Samples,  (short int*)L1_Coeffs40, Out, 16);
-	DumpPerf(&perf, 40, "GenericVect  ");
-	rt_perf_stop(&perf);
+	DumpPerf( 40, "GenericVect  ");
+	pi_perf_stop();
 }
 
 static void end_of_app(){
@@ -155,50 +157,63 @@ static void end_of_app(){
 	printf ("End of application\n");
 }
 
-int main()
+void test_fir()
 {
 	printf ("Start of application\n");
 
-	// Allocate a scheduler and initialize for some events
-	rt_event_sched_t sched;
-	rt_event_sched_init(&sched);
-	if (rt_event_alloc(&sched, 4)) return -1;
-
 	// Switch on the cluster
-	rt_cluster_mount(1, 0, 0, NULL);
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
+    cl_conf.id = 0;
+    pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
+    if (pi_cluster_open(&cluster_dev))
+    {
+        printf("Cluster open failed !\n");
+        pmsis_exit(-1);
+    }
 
 	printf ("Allocate memory\n");
 	// Allocate the necessary memory areas in shared L1
-	FIR_L1_Memory = rt_alloc(RT_ALLOC_CL_DATA, _FIR_L1_Memory_SIZE);
+	FIR_L1_Memory = pmsis_l1_malloc(_FIR_L1_Memory_SIZE);
 
-	Out = (short int*) rt_alloc(RT_ALLOC_L2_CL_DATA, NSAMPLES*sizeof(short int) );
+	Out = (short int*) pmsis_l2_malloc(NSAMPLES*sizeof(short int) );
 	
-	L1_Coeffs40        = (short int *) rt_alloc(RT_ALLOC_CL_DATA, (40)*sizeof(short int));
-	L1_Coeffs20        = (short int *) rt_alloc(RT_ALLOC_CL_DATA, (20)*sizeof(short int));
-	L1_Coeffs10        = (short int *) rt_alloc(RT_ALLOC_CL_DATA, (10)*sizeof(short int));
+	L1_Coeffs40  = (short int *) pmsis_l1_malloc((40)*sizeof(short int));
+	L1_Coeffs20  = (short int *) pmsis_l1_malloc((20)*sizeof(short int));
+	L1_Coeffs10  = (short int *) pmsis_l1_malloc((10)*sizeof(short int));
+	
 	// Allocate areas in L2 for input and output
 	//Samples       = (short int *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(short int));
 	//Out           = (short int *) rt_alloc(RT_ALLOC_FC_RET_DATA, NSAMPLES*sizeof(short int));
 	
 	if (!(FIR_L1_Memory && L1_Coeffs10 && L1_Coeffs20 && L1_Coeffs40)) {
 		printf("Memory allocation failed, L1 Tiler %p, Samples: %p, Coeffs: %p, Out: %p\n", FIR_L1_Memory, Samples, L1_Coeffs10, Out);
-		return 1;
+		pmsis_exit(-1);
 	}
 
 	printf ("Call cluster\n");
-	rt_cluster_call(NULL, 0, cluster_main, NULL, NULL, 0, 0, rt_nb_pe(), rt_event_get(&sched, end_of_app, 0));
+	struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    memset(task, 0, sizeof(struct pi_cluster_task));
+    task->entry = cluster_main;
+    task->arg = (void *) NULL;
+    task->stack_size = (uint32_t) STACK_SIZE;
 
-	while(!finished)
-		rt_event_execute(&sched, 1);
+    pi_cluster_send_task_to_cl(&cluster_dev, task);
 
-	rt_cluster_mount(0, 0, 0, NULL);
-
+	pi_cluster_close(&cluster_dev);
+	
 	if (ERR==0) {
 	  printf("Test success\n");
-	  return 0;
+	  pmsis_exit(0);
 	}
 	else {
 	  printf("Test failed on accuracy wrt ref\n");
-	  return 1;
+	  pmsis_exit(-1);
 	}
+}
+
+int main()
+{
+    printf("\n\n\t *** PMSIS Fir Filter Test ***\n\n");
+    return pmsis_kickoff((void *) test_fir);
 }

@@ -19,6 +19,10 @@ import os
 import errors
 import argparse
 import json_tools as js
+try:
+    import gv.gvsoc
+except:
+    pass
 
 
 def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None:
@@ -31,7 +35,10 @@ def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None
                         action="store_true",
                         help="Launch in gui mode")
 
-
+    try:
+        gv.gvsoc.appendArgs(parser, runnerConfig)
+    except:
+        pass
 
 
 class Runner(runner.default_runner.Runner):
@@ -41,6 +48,11 @@ class Runner(runner.default_runner.Runner):
 
         self.__process_args()
 
+        try:
+            gv.gvsoc.process_args(args, config)
+        except:
+            pass
+
         self.plt_args = []
         self.env = {}
         self.platform_path = None
@@ -49,21 +61,38 @@ class Runner(runner.default_runner.Runner):
         self.plt_config = self.config.get('rtl/' + self.platform_tool)
         self.plt_profile_config = self.plt_config.get('profiles/rtl')
 
-        if os.environ.get('INSTALL_DIR') is not None:
-            dpi_path = '%s/lib/libpulpdpi' % (os.environ.get('INSTALL_DIR'))
-            if os.path.exists(dpi_path + '.so'):
-                self.set_arg('-sv_lib %s' % dpi_path)
+        if self.config.get('**/runner/peripherals') is not None:
+            self.set_arg('-gCONFIG_FILE=rtl_config.json')
 
-        self.set_arg('-gCONFIG_FILE=rtl_config.json')
+            if os.environ.get('INSTALL_DIR') is not None:
+                dpi_path = '%s/lib/libpulpdpi' % (os.environ.get('INSTALL_DIR'))
+                if os.path.exists(dpi_path + '.so'):
+                    self.set_arg('-sv_lib %s' % dpi_path)
 
-        full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
 
-        with open('rtl_config.json', 'w') as file:
-            file.write(full_config.dump_to_string())
+        if self.config.get('**/runner/enable_dpi') is not None:
+            try:
+                full_config, gvsoc_config_path = gv.gvsoc.prepare_exec(self.config)
+            except:
+                pass
+
+            self.set_arg('-gDPI_CONFIG_FILE=%s' % gvsoc_config_path)
+
+            if os.environ.get('INSTALL_DIR') is not None:
+                dpi_path = '%s/lib/libgvsocdpi' % (os.environ.get('INSTALL_DIR'))
+                if os.path.exists(dpi_path + '.so'):
+                    self.set_arg('-sv_lib %s' % dpi_path)
+
+        self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
 
 
     def exec(self):
+        os.chdir(self.config.get_str('gapy/work_dir'))
+
         command = self.__get_platform_cmd()
+
+        with open('rtl_config.json', 'w') as file:
+            file.write(self.full_config.dump_to_string())
 
         print ('Launching simulator with command:')
         print (command)

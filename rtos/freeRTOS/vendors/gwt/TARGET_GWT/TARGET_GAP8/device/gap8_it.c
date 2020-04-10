@@ -29,7 +29,7 @@
  */
 
 #include "gap8_it.h"
-#include "pmsis_hal/pmsis_hal.h"
+#include "pmsis/implem/hal/hal.h"
 #include "printf.h"
 
 /* Ecall Table. */

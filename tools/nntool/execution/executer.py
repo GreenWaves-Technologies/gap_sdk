@@ -1,37 +1,52 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import logging
 import sys
 from typing import Sequence
 
 import numpy as np
+from skimage.transform import resize
 
-from graph.types import (ActivationParameters, Conv2DParameters, FcParameters,
-                         InputParameters, OutputParameters, PadParameters,
-                         PoolingParameters, SoftMaxParameters, ReshapeParameters,
-                         MatrixAddParameters, ConcatParameters, TransposeParameters)
+from graph.types import (ActivationParameters, ConcatParameters,
+                         ConstantInputParameters, Conv2DParameters,
+                         FcParameters, GlobalPoolParameters, InputParameters,
+                         MatrixAddParameters,
+                         MatrixBroadcastedLinearOpParameters,
+                         MatrixDivParameters, MatrixMulParameters,
+                         MatrixSubParameters, MatScaleFusionParameters,
+                         OutputParameters, PadParameters, PoolingParameters,
+                         ReshapeParameters, SoftMaxParameters,
+                         TransposeParameters)
 from quantization.quantization_record import (FilterQuantizationRecord,
                                               QuantizationRecord)
 
 from .kernels.conv2d import conv2d
 from .kernels.linear import linear
-from .kernels.misc import activation, concat, softmax, reshape, add, transpose
-from .kernels.pool import av_pool, max_pool
+from .kernels.misc import (activation, concat, matscale, piecewise, reshape,
+                           softmax, transpose)
+from .kernels.pool import av_global_pool, av_pool, max_pool, max_global_pool
 from .kernels.utils import pad
+
+LOG = logging.getLogger("nntool." + __name__)
 
 
 class Executer():
 
     @classmethod
-    def execute(cls, node, in_tensors, qrec=False):
+    def execute(cls, node, in_tensors, qrec=None):
         execute_switch = {
             Conv2DParameters: cls.execute_conv2d,
             FcParameters: cls.execute_linear,
@@ -42,14 +57,48 @@ class Executer():
             PadParameters: cls.execute_pad,
             SoftMaxParameters: cls.execute_softmax,
             ReshapeParameters: cls.execute_reshape,
-            MatrixAddParameters: cls.execute_add,
+            MatrixAddParameters: cls.execute_piecewise,
+            MatrixDivParameters: cls.execute_piecewise,
+            MatrixMulParameters: cls.execute_piecewise,
+            MatrixSubParameters: cls.execute_piecewise,
             ConcatParameters: cls.execute_concat,
-            TransposeParameters: cls.execute_transpose
+            TransposeParameters: cls.execute_transpose,
+            ConstantInputParameters: cls.execute_constant,
+            MatScaleFusionParameters: cls.execute_matscale,
+            GlobalPoolParameters: cls.execute_globalpool,
         }
         func = execute_switch.get(node.__class__)
         if func:
+            LOG.debug("executing step %s params %s", node.step_idx, node.__class__.__name__)
             return func(node, in_tensors, qrec)
         raise NotImplementedError("kernel for node %s is not implemented" % node.__class__)
+
+    @staticmethod
+    def execute_globalpool(node: GlobalPoolParameters,
+                           in_tensors: Sequence[np.array],
+                           qrec: QuantizationRecord = None):
+        if node.pool_type == "average":
+            return [av_global_pool(node, node.in_dims[0], node.out_dims[0], in_tensors[0], qrec=qrec)], None
+        return [max_global_pool(node, node.in_dims[0], node.out_dims[0], in_tensors[0], qrec=qrec)], None
+        
+
+    @staticmethod
+    def execute_matscale(node: MatScaleFusionParameters,
+                         in_tensors: Sequence[np.array],
+                         qrec: QuantizationRecord = None):
+
+        return [matscale(node, node.in_dims, node.out_dims, in_tensors, qrec=qrec)], None
+
+    @staticmethod
+    def execute_constant(node: ConstantInputParameters,
+                         in_tensors: Sequence[np.array],
+                         qrec: QuantizationRecord = None):
+        del in_tensors
+        value = node.value
+        if qrec:
+            LOG.debug("executing quantized constant")
+            value = qrec.out_qs[0].quantize(value)
+        return [value], None
 
     @staticmethod
     def execute_transpose(node: TransposeParameters,
@@ -91,10 +140,10 @@ class Executer():
         return [concat(node, node.in_dims, node.out_dims[0], in_tensors)], None
 
     @staticmethod
-    def execute_add(node: MatrixAddParameters,
-                    in_tensors: Sequence[np.array],
-                    qrec: QuantizationRecord = None):
-        return [add(node, node.in_dims, node.out_dims, in_tensors, qrec)], None
+    def execute_piecewise(node: MatrixBroadcastedLinearOpParameters,
+                          in_tensors: Sequence[np.array],
+                          qrec: QuantizationRecord = None):
+        return [piecewise(node, node.in_dims, node.out_dims, in_tensors, qrec)], None
 
     @staticmethod
     def execute_activation(node: ActivationParameters,
@@ -108,6 +157,10 @@ class Executer():
                       in_tensors: Sequence[np.array],
                       qrec: QuantizationRecord = None):
         value = in_tensors[node.index]
+        if value.size == node.dims.size():
+            value = value.reshape(node.dims.shape)
+        else:
+            value = resize(value, node.dims.shape)
         if qrec:
             value = qrec.out_qs[0].quantize(value)
 
@@ -177,9 +230,14 @@ class Executer():
         if qrec:
             weights = qrec.weights_q.quantize(node.weights)
             biases = qrec.biases_q.quantize(node.biases)
+            if node.has_mul_bias:
+                mul_biases = qrec.mul_biases_q.quantize(node.mul_biases)
+            else:
+                mul_biases = None
         else:
             weights = node.weights
             biases = node.biases
+            mul_biases = node.mul_biases
 
         details = {}
         res = conv2d(node,
@@ -188,6 +246,7 @@ class Executer():
                      in_tensors[0],
                      weights,
                      biases,
+                     mul_biases=mul_biases,
                      qrec=qrec,
                      details=details)
         return [res], details

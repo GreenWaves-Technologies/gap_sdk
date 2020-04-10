@@ -32,11 +32,7 @@
 #include "pmsis/rtos/malloc/pi_malloc.h"
 #include "pmsis/rtos/malloc/fc_l1_malloc.h"
 #include "pmsis/rtos/malloc/l2_malloc.h"
-#if defined(__GAP8__)
-#include "targets/pmsis_targets.h"
-#elif defined(__GAP9__)
 #include "pmsis/targets/target.h"
-#endif  /* __GAP8__ */
 
 /*******************************************************************************
  * Variables, macros, structures,... definition

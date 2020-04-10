@@ -94,9 +94,10 @@ ${gen.kernel_generator(indent=1)}
 ${gen.global_generator(indent=2)},
         /* Locals, allocated dynamically */
 ${gen.local_generator(indent=2)}
-        /* Stacked tensors - Concats */
-${gen.stack_generator(indent=2)}
     );
+
+    /* Stacked tensors - Concats */
+${gen.stack_generator(indent=1)}
 
 ${gen.binding_generator(indent=1)}
     CloseGraph();

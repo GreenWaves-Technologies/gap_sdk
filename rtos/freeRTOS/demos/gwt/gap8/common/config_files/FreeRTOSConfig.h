@@ -45,7 +45,7 @@
 #endif
 
 /* GAP8 specifics. */
-#include "pmsis_targets.h"
+#include "pmsis/targets/target.h"
 
 extern volatile uint32_t SystemCoreClock;
 extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *expr );

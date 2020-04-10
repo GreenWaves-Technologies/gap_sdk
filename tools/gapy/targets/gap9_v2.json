@@ -8,6 +8,10 @@
             "name": "gap9_v2",
 
             "devices": {
+                "flash": {
+                    "@include@": "devices/flash/hyperflash.json",
+                    "cs": 1
+                },
                 "spiflash": {
                     "@include@": "devices/flash/spiflash_s26ks512.json",
                     "interface": "spim1",
@@ -31,7 +35,9 @@
 
     "openocd": {
         "cable": "interface/jlink.cfg",
-        "script": "tcl/gap9revb.cfg"
+        "@eval@": {
+            "script": "os.environ.get('GAP_SDK_HOME') + '/tools/gap8-openocd-tools/tcl/gap9revb.tcl'"
+        }
     },
 
     "runner": {
@@ -41,7 +47,7 @@
         ],
         "boot": {
             "mode": "flash",
-            "device": "target/board/devices/spiflash"
+            "device": "target/board/devices/flash"
         }
     }
 }

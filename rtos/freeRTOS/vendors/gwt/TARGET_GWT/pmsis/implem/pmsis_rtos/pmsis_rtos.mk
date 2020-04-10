@@ -31,8 +31,7 @@ PMSIS_RTOS_SRCS         := $(filter-out $(EXCLUDE_FROM_SRCS), $(PMSIS_RTOS_SRC))
 PMSIS_RTOS_SRCS         := $(foreach f, $(PMSIS_RTOS_SRCS), $(PMSIS_RTOS_DIR)/$f)
 
 PMSIS_RTOS_INC           = $(PMSIS_RTOS_DIR) \
-                           $(PMSIS_RTOS_DIR)/mem_slab \
-                           $(PMSIS_RTOS_DIR)/os
+                           $(PMSIS_RTOS_DIR)/include
 
 
 #$(info #### Sources : $(PMSIS_RTOS_SRCS))

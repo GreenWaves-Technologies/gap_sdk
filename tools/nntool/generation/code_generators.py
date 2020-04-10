@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # pylint: disable=line-too-long
 
@@ -17,10 +21,11 @@ from graph.dim import PadDim
 
 from .code_block import CodeBlock
 from .kernel_parameters import (NO_ACTIVATION, NO_CONV, NO_POOL,
-                                ActivationATParam, ConvATParam,
-                                GroupedConvATParam, LinearATParam,
-                                MatrixAddATParam, PoolATParam, SoftMaxATParam,
-                                TwoDTransposeATParam, GenCtrl)
+                                ActivationATParam, ConvATParam, GenCtrl,
+                                GlobalPoolATParam, GroupedConvATParam,
+                                LinearATParam, MatrixAddATParam,
+                                MatScaleATParam, PoolATParam, SoftMaxATParam,
+                                ThreeDTensorTransposeATParam)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -31,7 +36,9 @@ GEN_LINEAR_RELU = "CNN_LinearReLU"
 GEN_SOFTMAX = "CNN_SoftMax"
 GEN_MATADD = "CNN_MatAdd"
 GEN_MATADDDYN = "CNN_MatAddDynAdjust"
-GEN_2D_TRANSPOSE = "CNN_Mat2DTranspose"
+GEN_3D_TRANSPOSE = "CNN_3DTensorPermute"
+GEN_GLOBALPOOL = "CNN_GlobalPool"
+GEN_MATSCALE = "CNN_MatScale"
 
 
 def gen_ctrl_call(api, op, val, code_block):
@@ -212,6 +219,8 @@ def gen_pool_at_params(params, pad_compatibilities):
 
 
 def at_bits(qtype):
+    if qtype is None:
+        return 0
     # 1: byte, 2: half word, 4: word
     if qtype.bits == 8:
         return 1
@@ -222,21 +231,37 @@ def at_bits(qtype):
     raise NotImplementedError("unsupported number of bits")
 
 
+def at_q(qtype):
+    if qtype is None:
+        return 0
+    return qtype.q
+
+
 def at_bits_and_q(qtype):
     return "{}, {}".format(at_bits(qtype), qtype.q)
 
 
-def gen_active_at_params(params):
-    if params.activation == "relu":
+def gen_activation_op(activation):
+    if activation is None or activation == "none":
+        aop = "KOP_NONE"
+    elif activation == "relu":
         aop = "KOP_RELU"
-    elif params.activation == "relu6":
+    elif activation == "relu6":
         aop = "KOP_RELUN"
-    elif params.activation == "sigmoid":
+    elif activation == "relun":
+        aop = "KOP_RELUN"
+    elif activation == "sigmoid" or activation == "hsigmoid":
         aop = "KOP_HSIGMOID"
+    elif activation == "swish" or activation == "hswish":
+        aop = "KOP_HSWISH"
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("activation type %s not implemented" % activation)
+    return aop
+
+
+def gen_active_at_params(params):
     return ActivationATParam(
-        ReLUOper=aop
+        ReLUOper=gen_activation_op(params.activation)
     )
 
 
@@ -252,6 +277,12 @@ def gen_softmax_at_params(_):
     )
 
 
+def gen_globalpool_at_params(params):
+    return GlobalPoolATParam(
+        GlobalPoolOper="KOP_GLOBAL_AVGPOOL" if params.pool_type == "average" else "KOP_GLOBAL_MAXPOOL"
+    )
+
+
 def gen_matrixadd_at_params(_):
     return MatrixAddATParam(
         MatrixAddOper="KOP_MATADD"
@@ -264,12 +295,31 @@ def gen_matrixadddyn_at_params(_):
     )
 
 
-def gen_2d_transpose_at_params(params):
-    size = params.transpose_size
-    return TwoDTransposeATParam(
-        TwoDTransposeOper="KOP_MAT2DTRANSPOSE",
-        Width=size[0],
-        Height=size[1]
+def gen_matscale_at_params(params):
+    # KOP_MATSCALE_VECTOR, KOP_MATSCALE_SCALAR or KOP_MATSCALE_VECTOR_SCALAR
+    if params.fusion_type == "vec_scalar":
+        ms_op = 'KOP_MATSCALE_VECTOR_SCALAR'
+    elif params.fusion_type == "vector":
+        ms_op = 'KOP_MATSCALE_VECTOR'
+    elif params.fusion_type == "scalar":
+        ms_op = 'KOP_MATSCALE_SCALAR'
+    else:
+        raise NotImplementedError("unknown fusion type %s" % params.fusion_type)
+    return MatScaleATParam(
+        ScaleOper=ms_op,
+        ReLUOper=gen_activation_op(params.activation)
+    )
+
+
+def gen_3d_transpose_at_params(params):
+    if params.transpose_dimension == 2:
+        perm = params.permute(['H', 'W'])
+        permop = "KOP_MATPERM_CHW2C{}".format("".join(perm))
+    else:
+        perm = params.permute(['C', 'H', 'W'])
+        permop = "KOP_MATPERM_CHW2{}".format("".join(perm))
+    return ThreeDTensorTransposeATParam(
+        MatPermOper=permop
     )
 
 # extern void CNN_PoolReLU(
@@ -303,8 +353,8 @@ def gen_2d_transpose_at_params(params):
 # pylint: disable=too-many-arguments
 
 
-def gen_at_pool_relu(code_block, name, in_size, out_size, in_dim,
-                     out_dim, at_pool, at_active, gen_ctrl=None):
+def gen_at_pool_relu(code_block, name, in_q, out_q, in_dim,
+                     out_dim, at_pool, at_active, gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
@@ -324,9 +374,15 @@ def gen_at_pool_relu(code_block, name, in_size, out_size, in_dim,
     else:
         dims = [in_dim.c, in_dim.h, in_dim.w, out_dim.c]
 
-    code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {},',
-                     GEN_POOL_RELU, name, gen_ctrl, in_size, out_size,
-                     dims[0], dims[3], dims[2], dims[1])
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {},',
+                         GEN_POOL_RELU, name, gen_ctrl, at_bits(in_q), at_bits(out_q),
+                         dims[0], dims[3], dims[2], dims[1])
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {}, {}, {},',
+                         GEN_POOL_RELU, name, gen_ctrl, at_bits(
+                             in_q), at_bits(out_q), in_q.q, out_q.q,
+                         dims[0], dims[3], dims[2], dims[1])
     code_block.indent()
     code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});',
                      at_pool.PoolOper, at_pool.Fpx, at_pool.Fpy,
@@ -378,18 +434,25 @@ def gen_at_pool_relu(code_block, name, in_size, out_size, in_dim,
 # pylint: disable=too-many-arguments
 
 
-def gen_at_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size,
-                          filt_size, bias_size, in_dim, out_dim,
-                          at_conv, at_pool, at_active, gen_ctrl=None):
+def gen_at_conv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
+                          filt_q, bias_q, in_dim, out_dim,
+                          at_conv, at_pool, at_active, gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         gen_ctrl = gen_ctrl.ctrl_name
 
-    code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
-                     GEN_CONV_POOL_RELU, name, gen_ctrl,
-                     in_size, filt_size, bias_size, out_size,
-                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
+                         GEN_CONV_POOL_RELU, name, gen_ctrl,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
+                         GEN_CONV_POOL_RELU, name, gen_ctrl,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_q.q, filt_q.q, bias_q.q, out_q.q,
+                         in_dim.c, out_dim.c, in_dim.w, in_dim.h)
     code_block.indent()
     code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
                      at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
@@ -448,19 +511,28 @@ def gen_at_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size,
 # pylint: disable=too-many-arguments
 
 
-def gen_at_grouped_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size,
-                                  filt_size, bias_size, in_dim, out_dim,
-                                  at_conv, at_pool, at_active, gen_ctrl=None):
+def gen_at_grouped_conv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
+                                  filt_q, bias_q, in_dim, out_dim,
+                                  at_conv, at_pool, at_active, gen_ctrl=None,
+                                  at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         gen_ctrl = gen_ctrl.ctrl_name
 
-    code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
-                     GEN_GROUPED_CONV_POOL_RELU, name, gen_ctrl,
-                     at_conv.GroupIn, at_conv.GroupOut,
-                     in_size, filt_size, bias_size, out_size,
-                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
+                         GEN_GROUPED_CONV_POOL_RELU, name, gen_ctrl,
+                         at_conv.GroupIn, at_conv.GroupOut,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
+                         GEN_GROUPED_CONV_POOL_RELU, name, gen_ctrl,
+                         at_conv.GroupIn, at_conv.GroupOut,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_q.q, filt_q.q, bias_q.q, out_q.q,
+                         in_dim.c, out_dim.c, in_dim.w, in_dim.h)
     code_block.indent()
     code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
                      at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
@@ -497,18 +569,25 @@ def gen_at_grouped_conv_pool_relu(code_block: CodeBlock, name, in_size, out_size
 # pylint: disable=too-many-arguments
 
 
-def gen_at_linear_relu(code_block: CodeBlock, name, in_size, out_size,
-                       filt_size, bias_size, in_dim, out_dim,
-                       at_linear, at_active, gen_ctrl=None):
+def gen_at_linear_relu(code_block: CodeBlock, name, in_q, out_q,
+                       filt_q, bias_q, in_dim, out_dim,
+                       at_linear, at_active, gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         gen_ctrl = gen_ctrl.ctrl_name
 
-    code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {},',
-                     GEN_LINEAR_RELU, name, gen_ctrl,
-                     in_size, filt_size, bias_size, out_size,
-                     in_dim.size(), out_dim.size())
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {},',
+                         GEN_LINEAR_RELU, name, gen_ctrl,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_dim.size(), out_dim.size())
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {},',
+                         GEN_LINEAR_RELU, name, gen_ctrl,
+                         at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
+                         in_q.q, filt_q.q, bias_q.q, out_q.q,
+                         in_dim.size(), out_dim.size())
     code_block.indent()
     code_block.write('{}, {});',
                      at_linear.LinearOper, at_active.ReLUOper)
@@ -526,17 +605,18 @@ def gen_at_linear_relu(code_block: CodeBlock, name, in_size, out_size,
 # )
 
 
-def gen_at_2d_transpose(code_block: CodeBlock, name, in_size, out_size,
-                        in_dim, at_transpose_params, gen_ctrl=None):
+def gen_at_3d_transpose(code_block: CodeBlock, name, in_q, out_q,
+                        in_shape, at_transpose_params, gen_ctrl=None,
+                        at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('{}("{}", {}, {}, 1, 1, {}, {}, {});',
-                     GEN_2D_TRANSPOSE, name, gen_ctrl, in_size,
-                     at_transpose_params.Width, at_transpose_params.Height,
-                     at_transpose_params.TwoDTransposeOper)
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {}, {}, {});',
+                     GEN_3D_TRANSPOSE, name, gen_ctrl, at_bits(in_q), at_bits(out_q),
+                     in_q.q, out_q.q, in_shape[0], in_shape[1], in_shape[2],
+                     at_transpose_params.MatPermOper)
 
 
 # extern void CNN_SoftMax(
@@ -553,64 +633,134 @@ def gen_at_2d_transpose(code_block: CodeBlock, name, in_size, out_size,
 # pylint: disable=too-many-arguments
 
 
-def gen_at_softmax(code_block: CodeBlock, name, in_size, out_size,
-                   in_dim, at_softmax, gen_ctrl=None):
+def gen_at_softmax(code_block: CodeBlock, name, in_q, out_q,
+                   in_dim, at_softmax, gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {});',
-                     GEN_SOFTMAX, name, gen_ctrl,
-                     in_size, out_size, in_dim.size(), at_softmax.SoftMaxOper)
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {});',
+                         GEN_SOFTMAX, name, gen_ctrl,
+                         at_bits(in_q), at_bits(out_q), in_dim.size(), at_softmax.SoftMaxOper)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {});',
+                         GEN_SOFTMAX, name, gen_ctrl,
+                         at_bits(in_q), at_bits(out_q), in_q.q, out_q.q, in_dim.size(), at_softmax.SoftMaxOper)
+
+# /** \brief CNN_GlobalPool
+#  *  Generator for Global Pooling (Max or Average)
+#  * 
+ 
+#     \param    Name:           Name of the generated user kernel
+
+#     \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+#     \param    In_DataSize:    1: byte, 2: half word, 4: word
+#     \param    Out_DataSize:   1: byte, 2: half word, 4: word
+
+#     \param    In_Q:           In fixed point format
+#     \param    Out_Q:          Out fixed point format
+
+#     \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
+#     \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+#     \param    InFeat:         Number of input feature's maps
+#     \param    OutFeat:        Number of output feature's maps (InFeat has to be equal to OutFeat for these generators
+#     \param    Width:          Number of columns of a given feature map
+#     \param    Height:         Number of lines of a given feature map
+
+#     \param    PoolOper:       KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL
+
+
+def gen_at_globalpool(code_block: CodeBlock, name, in_q, out_q,
+                      in_dim, out_dim, at_globalpool, gen_ctrl=None, at_ver=3):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        raise NotImplementedError("genctrl is not yet implemented")
+
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_GLOBALPOOL, name, gen_ctrl,
+                         at_bits(in_q), at_bits(out_q), in_dim.shape[0], out_dim.shape[0],
+                         in_dim.shape[1], in_dim.shape[2], at_globalpool.GlobalPoolOper)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_GLOBALPOOL, name, gen_ctrl,
+                         at_bits(in_q), at_bits(
+                             out_q), in_q.q, out_q.q, in_dim.shape[0], out_dim.shape[0],
+                         in_dim.shape[1], in_dim.shape[2], at_globalpool.GlobalPoolOper)
 
 # pylint: disable=too-many-arguments
 
 
-def gen_at_matrixadd(code_block: CodeBlock, name, in_size1, in_size2, out_size,
-                     in_dim, out_dim, at_matrixadd, gen_ctrl=None):
+def gen_at_matrixadd(code_block: CodeBlock, name, in_q1, in_q2, out_q,
+                     in_dim, out_dim, at_matrixadd, gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('{}("{}", {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
-                     GEN_MATADD, name, gen_ctrl,
-                     in_size1, in_size2, out_size, in_dim.shape[0], out_dim.shape[0],
-                     in_dim.shape[1], in_dim.shape[2], at_matrixadd.MatrixAddOper)
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_MATADD, name, gen_ctrl,
+                         at_bits(in_q1), at_bits(in_q2), at_bits(
+                             out_q), in_dim.shape[0], out_dim.shape[0],
+                         in_dim.shape[1], in_dim.shape[2], at_matrixadd.MatrixAddOper)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_MATADD, name, gen_ctrl,
+                         at_bits(in_q1), at_bits(in_q2), at_bits(out_q),
+                         in_q1.q, in_q2.q, out_q.q, in_dim.shape[0], out_dim.shape[0],
+                         in_dim.shape[1], in_dim.shape[2], at_matrixadd.MatrixAddOper)
 
 # pylint: disable=too-many-arguments
 
 
-def gen_at_matrixadddyn(code_block: CodeBlock, name, in_size1, in_size2, out_size,
-                        inq1, inq2, outq, in_dim, out_dim, at_matrixadd, gen_ctrl=None):
+def gen_at_matrixadddyn(code_block: CodeBlock, name, in_q1, in_q2, out_q,
+                        in_dim, out_dim, at_matrixadd, gen_ctrl=None):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('{}("{}", {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {}, {}, {}, {});',
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
                      GEN_MATADDDYN, name, gen_ctrl,
-                     in_size1, in_size2, out_size,
-                     inq1, inq2, outq,
+                     at_bits(in_q1), at_bits(in_q2), at_bits(out_q),
+                     in_q1.q, in_q2.q, out_q.q,
                      in_dim.shape[0], out_dim.shape[0],
                      in_dim.shape[1], in_dim.shape[2], at_matrixadd.MatrixAddOper)
+
+# pylint: disable=too-many-arguments
+
+
+def gen_at_matscale(code_block: CodeBlock, name, other_q, vector_q, scalar_q, out_q,
+                    in_dim, out_dim, at_matscale, gen_ctrl=None):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        raise NotImplementedError("genctrl is not yet implemented")
+
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {}, {}, {});',
+                     GEN_MATSCALE, name, gen_ctrl,
+                     at_bits(other_q), at_bits(vector_q), at_bits(scalar_q), at_bits(out_q),
+                     at_q(other_q), at_q(vector_q), at_q(scalar_q), at_q(out_q),
+                     in_dim.shape[0], out_dim.shape[0],
+                     in_dim.shape[2], in_dim.shape[1], at_matscale.ScaleOper, at_matscale.ReLUOper)
 
 # convolution followed by a pool and optional relu
 # pylint: disable=too-many-branches
 
 
-def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_params, act_q, code_block=None, at_ver=2, gen_ctrl=None):
+def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_params, act_q, code_block=None, at_ver=3, gen_ctrl=None):
 
     if gen_ctrl is None:
         gen_ctrl = GenCtrl(None, cname=name)
     else:
         gen_ctrl.cname = name
 
-    if at_ver < 3:
-        fsize = at_bits
-    else:
-        fsize = at_bits_and_q
     in_q = filter_q = out_q = bias_q = None
     in_dim = out_dim = None
     pad_compatibilities = []
@@ -645,9 +795,14 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
         if in_q is None:
             in_q = act_q.in_qs[0]
         out_q = act_q.out_qs[0]
-        if act_params.activation == "relu6" and out_q.q != 0:
-            gen_ctrl.ReluN = 6 << out_q.q
-            gen_ctrl.ReluNNoNorm = 1
+        if at_ver < 3:
+            if act_params.activation == "relu6" and out_q.q != 0:
+                gen_ctrl.ReluN = 6 << out_q.q
+                gen_ctrl.ReluNNoNorm = 1
+        else:
+            if act_params.activation == "relun":
+                gen_ctrl.ReluN = act_params.activation_params
+
     else:
         at_act_params = NO_ACTIVATION
 
@@ -669,37 +824,34 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
         if in_q.bits != out_q.bits:
             raise NotImplementedError("only homogenious operations are supported at present")
         LOG.debug("%s: pool relu inq %s outq %s control block", name, in_q, out_q)
-        gen_at_pool_relu(code_block, name, fsize(in_q), fsize(out_q),
-                         in_dim, out_dim, at_pool_params, at_act_params, gen_ctrl=gen_ctrl)
+        gen_at_pool_relu(code_block, name, in_q, out_q,
+                         in_dim, out_dim, at_pool_params, at_act_params, gen_ctrl=gen_ctrl,
+                         at_ver=at_ver)
     else:
         if isinstance(at_conv_params, ConvATParam):
             LOG.debug("%s: conv pool relu inq %s outq %s control block", name, in_q, out_q)
-            gen_at_conv_pool_relu(code_block, name, fsize(in_q), fsize(out_q),
-                                  fsize(filter_q), fsize(bias_q),
+            gen_at_conv_pool_relu(code_block, name, in_q, out_q,
+                                  filter_q, bias_q,
                                   in_dim, out_dim, at_conv_params, at_pool_params,
-                                  at_act_params, gen_ctrl=gen_ctrl)
+                                  at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
         elif isinstance(at_conv_params, GroupedConvATParam):
             LOG.debug("%s: grouped conv pool relu inq %s outq %s control block", name, in_q, out_q)
-            gen_at_grouped_conv_pool_relu(code_block, name, fsize(in_q), fsize(out_q),
-                                          fsize(filter_q), fsize(bias_q),
+            gen_at_grouped_conv_pool_relu(code_block, name, in_q, out_q,
+                                          filter_q, bias_q,
                                           in_dim, out_dim, at_conv_params, at_pool_params,
-                                          at_act_params, gen_ctrl=gen_ctrl)
+                                          at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
         else:
             raise ValueError('Internal error')
 
     return code_block
 
 
-def gen_pool_relu(name, pool_params, pool_q, act_params, act_q, code_block=None, at_ver=2, gen_ctrl=None):
+def gen_pool_relu(name, pool_params, pool_q, act_params, act_q, code_block=None, at_ver=3, gen_ctrl=None):
     if gen_ctrl is None:
         gen_ctrl = GenCtrl(None, cname=name)
     else:
         gen_ctrl.cname = name
 
-    if at_ver < 3:
-        fsize = at_bits
-    else:
-        fsize = at_bits_and_q
     in_q = out_q = None
     in_dim = out_dim = None
     pad_compatibilities = []
@@ -724,9 +876,13 @@ def gen_pool_relu(name, pool_params, pool_q, act_params, act_q, code_block=None,
         if in_q is None:
             in_q = act_q.in_qs[0]
         out_q = act_q.out_qs[0]
-        if act_params.activation == "relu6" and out_q.q != 0:
-            gen_ctrl.ReluN = 6 << out_q.q
-            gen_ctrl.ReluNNoNorm = 1
+        if at_ver < 3:
+            if act_params.activation == "relu6" and out_q.q != 0:
+                gen_ctrl.ReluN = 6 << out_q.q
+                gen_ctrl.ReluNNoNorm = 1
+        else:
+            if act_params.activation == "relun":
+                gen_ctrl.ReluN = act_params.activation_params
     else:
         at_act_params = NO_ACTIVATION
 
@@ -747,8 +903,9 @@ def gen_pool_relu(name, pool_params, pool_q, act_params, act_q, code_block=None,
         raise NotImplementedError("only homogenious operations are supported at present")
     if pool_params is None:
         raise NotImplementedError("activation layer on its own is not implemented at present")
-    gen_at_pool_relu(code_block, name, fsize(in_q), fsize(out_q),
-                     in_dim, out_dim, at_pool_params, at_act_params, gen_ctrl=gen_ctrl)
+    gen_at_pool_relu(code_block, name, in_q, out_q,
+                     in_dim, out_dim, at_pool_params, at_act_params, gen_ctrl=gen_ctrl,
+                     at_ver=at_ver)
     return code_block
 
 
@@ -756,16 +913,12 @@ def gen_pool_relu(name, pool_params, pool_q, act_params, act_q, code_block=None,
 # pylint: disable=too-many-branches
 
 
-def gen_linear_relu(name, linear_params, linear_q, act_params, act_q, code_block=None, at_ver=2, gen_ctrl=None):
+def gen_linear_relu(name, linear_params, linear_q, act_params, act_q, code_block=None, at_ver=3, gen_ctrl=None):
     if gen_ctrl is None:
         gen_ctrl = GenCtrl(None, cname=name)
     else:
         gen_ctrl.cname = name
 
-    if at_ver < 3:
-        fsize = at_bits
-    else:
-        fsize = at_bits_and_q
     assert linear_params is not None, "linear should always be included"
     at_linear_params = gen_linear_at_params(linear_params)
     in_dim = linear_params.in_dims[0]
@@ -778,36 +931,58 @@ def gen_linear_relu(name, linear_params, linear_q, act_params, act_q, code_block
     if act_params is not None:
         at_act_params = gen_active_at_params(act_params)
         out_q = act_q.out_qs[0]
-        if act_params.activation == "relu6" and out_q.q != 0:
-            gen_ctrl.ReluN = 6 << out_q.q
-            gen_ctrl.ReluNNoNorm = 1
+        if at_ver < 3:
+            if act_params.activation == "relu6" and out_q.q != 0:
+                gen_ctrl.ReluN = 6 << out_q.q
+                gen_ctrl.ReluNNoNorm = 1
+        else:
+            if act_params.activation == "relun":
+                gen_ctrl.ReluN = act_params.activation_params
     else:
         at_act_params = NO_ACTIVATION
 
     if code_block is None:
         code_block = CodeBlock()
 
-    gen_at_linear_relu(code_block, name, fsize(in_q), fsize(out_q),
-                       fsize(filter_q), fsize(bias_q),
-                       in_dim, out_dim, at_linear_params, at_act_params)
+    gen_at_linear_relu(code_block, name, in_q, out_q,
+                       filter_q, bias_q,
+                       in_dim, out_dim, at_linear_params, at_act_params,
+                       at_ver=at_ver)
     return code_block
 
 
-def gen_2d_transpose(name, transpose_params, transpose_q, code_block=None):
-    at_transpose_params = gen_2d_transpose_at_params(transpose_params)
-    in_dim = transpose_params.in_dims[0]
+def gen_3d_transpose(name, transpose_params, transpose_q, code_block=None):
+    at_transpose_params = gen_3d_transpose_at_params(transpose_params)
+    in_shape = transpose_params.in_dims[0].shape
+    if transpose_params.transpose_dimension == 2:
+        in_shape.insert(0, 1)
     in_q = transpose_q.in_qs[0]
     out_q = transpose_q.out_qs[0]
 
     if code_block is None:
         code_block = CodeBlock()
 
-    gen_at_2d_transpose(code_block, name, at_bits(in_q), at_bits(out_q),
-                        in_dim, at_transpose_params)
+    gen_at_3d_transpose(code_block, name, in_q, out_q,
+                        in_shape, at_transpose_params)
     return code_block
 
 
-def gen_softmax(name, softmax_params, softmax_q, code_block=None):
+def gen_globalpool(name, globalpool_params, globalpool_q, code_block=None, at_ver=3):
+    at_globalpool_params = gen_globalpool_at_params(globalpool_params)
+    in_dim = globalpool_params.in_dims[0]
+    out_dim = globalpool_params.out_dims[0]
+    in_q = globalpool_q.in_qs[0]
+    out_q = globalpool_q.out_qs[0]
+
+    if code_block is None:
+        code_block = CodeBlock()
+
+    gen_at_globalpool(code_block, name, in_q, out_q,
+                      in_dim, out_dim, at_globalpool_params, at_ver=at_ver)
+    return code_block
+
+
+def gen_softmax(name, softmax_params, softmax_q, code_block=None, at_ver=3):
     at_softmax_params = gen_softmax_at_params(softmax_params)
     in_dim = softmax_params.in_dims[0]
     in_q = softmax_q.in_qs[0]
@@ -816,12 +991,12 @@ def gen_softmax(name, softmax_params, softmax_q, code_block=None):
     if code_block is None:
         code_block = CodeBlock()
 
-    gen_at_softmax(code_block, name, at_bits(in_q), at_bits(out_q),
-                   in_dim, at_softmax_params)
+    gen_at_softmax(code_block, name, in_q, out_q,
+                   in_dim, at_softmax_params, at_ver=at_ver)
     return code_block
 
 
-def gen_matrixadd(name, matrixadd_params, matrixadd_q, code_block=None):
+def gen_matrixadd(name, matrixadd_params, matrixadd_q, code_block=None, at_ver=3):
     at_matrixadd_params = gen_matrixadd_at_params(matrixadd_params)
     in_dim = matrixadd_params.in_dims[0]
     out_dim = matrixadd_params.out_dims[0]
@@ -832,12 +1007,40 @@ def gen_matrixadd(name, matrixadd_params, matrixadd_q, code_block=None):
     if code_block is None:
         code_block = CodeBlock()
 
-    gen_at_matrixadd(code_block, name, at_bits(in_q1), at_bits(in_q2), at_bits(out_q),
-                     in_dim, out_dim, at_matrixadd_params)
+    gen_at_matrixadd(code_block, name, in_q1, in_q2, out_q,
+                     in_dim, out_dim, at_matrixadd_params, at_ver=at_ver)
     return code_block
 
 
-def gen_matrixadddyn(name, matrixadd_params, matrixadd_q, code_block=None):
+def gen_matscale(name, params, qrec, code_block=None):
+    at_matscale_params = gen_matscale_at_params(params)
+    in_dim = params.in_dims[0]
+    out_dim = params.out_dims[0]
+    assert in_dim.shape[0] == out_dim.shape[0]
+    if params.fusion_type == "vec_scalar":
+        otherq = qrec.in_qs[0]
+        vectorq = qrec.in_qs[1]
+        scalarq = qrec.in_qs[2]
+    elif params.fusion_type == "vector":
+        otherq = qrec.in_qs[1]
+        vectorq = qrec.in_qs[2]
+        scalarq = None
+    elif params.fusion_type == "scalar":
+        otherq = qrec.in_qs[0]
+        vectorq = None
+        scalarq = qrec.in_qs[1]
+    else:
+        raise NotImplementedError("unknown fusion type %s" % params.fusion_type)
+
+    if code_block is None:
+        code_block = CodeBlock()
+
+    gen_at_matscale(code_block, name, otherq, vectorq, scalarq, qrec.out_qs[0],
+                    in_dim, out_dim, at_matscale_params)
+    return code_block
+
+
+def gen_matrixadddyn(name, matrixadd_params, matrixadd_q, code_block=None, at_ver=3):
     at_matrixadd_params = gen_matrixadddyn_at_params(matrixadd_params)
     in_dim = matrixadd_params.in_dims[0]
     out_dim = matrixadd_params.out_dims[0]
@@ -848,6 +1051,6 @@ def gen_matrixadddyn(name, matrixadd_params, matrixadd_q, code_block=None):
     if code_block is None:
         code_block = CodeBlock()
 
-    gen_at_matrixadddyn(code_block, name, at_bits(in_q1), at_bits(in_q2), at_bits(out_q),
-                        in_q1.q, in_q2.q, out_q.q, in_dim, out_dim, at_matrixadd_params)
+    gen_at_matrixadddyn(code_block, name, in_q1, in_q2, out_q, in_dim,
+                        out_dim, at_matrixadd_params)
     return code_block

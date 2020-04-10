@@ -272,9 +272,9 @@ void *dpi_chip_wrapper::external_bind(std::string name)
             {
                 callback->pad_value = &group->data_1;
             }
-            else if (pad_name.find("cs") != string::npos)
+            else if (pad_name.find("csn") != string::npos)
             {
-                int cs = std::stoi(pad_name.substr(2));
+                int cs = std::stoi(pad_name.substr(3));
                 callback->pad_value = &group->cs[cs];
                 callback->is_cs = true;
                 callback->cs_id = cs;
@@ -312,7 +312,7 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
 
         if (!this->cs_master[callback->cs_id]->is_bound())
         {
-            this->trace.force_warning("Trying to synchronize unconnected pads\n");
+            //this->trace.force_warning("Trying to synchronize unconnected pads\n");
         }
         else
         {
@@ -332,7 +332,7 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
         {
             if (!this->master[this->active_cs]->is_bound())
             {
-                this->trace.force_warning("Trying to synchronize unconnected pads\n");
+                //this->trace.force_warning("Trying to synchronize unconnected pads\n");
             }
             else
             {

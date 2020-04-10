@@ -74,5 +74,6 @@
 #include "rt/rt_bridge.h"
 #include "rt/rt_eeprom.h"
 #include "rt/rt_task.h"
+#include "rt/hwce.h"
 
 #endif

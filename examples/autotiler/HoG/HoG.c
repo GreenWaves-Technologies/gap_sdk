@@ -21,10 +21,10 @@
 #define UNMOUNT         0
 #define CID             0
 
-L2_MEM unsigned char *ImageIn;
-L2_MEM unsigned short *HoGFeatures;
-L1_CL_MEM unsigned char *CellLinesBuffer;
-L2_MEM rt_perf_t *cluster_perf;
+PI_L2 unsigned char *ImageIn;
+PI_L2 unsigned short *HoGFeatures;
+PI_L1 unsigned char *CellLinesBuffer;
+PI_L2 rt_perf_t *cluster_perf;
 
 typedef struct ArgCluster {
 	unsigned char *ImageIn;
@@ -32,7 +32,6 @@ typedef struct ArgCluster {
 	unsigned int H;
 	unsigned short *HoGFeatures;
 } ArgCluster_T;
-
 
 unsigned char *CreateCellLinesBuffer(unsigned int CellsPerLine, unsigned int LineCount)
 
@@ -70,12 +69,9 @@ static void cluster_main(ArgCluster_T *ArgC)
 	int W=ArgC->W, H=ArgC->H;
 	unsigned int i, MaxCore = rt_nb_pe();
 
-	rt_perf_t *perf = cluster_perf;
-	// initialize the performance clock
-	rt_perf_init(perf);
 	// Configure performance counters for counting the cycles
-	rt_perf_conf(perf, (1<<RT_PERF_CYCLES));
-
+	pi_perf_conf(1 << PI_PERF_ACTIVE_CYCLES);
+ 	
 	printf("Cluster core %d Launched, %d cores configuration\n", rt_core_id(), rt_nb_pe());
 
 	CellLinesBuffer = CreateCellLinesBuffer((W-2)/HOG_CELL_SIZE, HOG_BLOCK_SIZE);
@@ -89,30 +85,27 @@ static void cluster_main(ArgCluster_T *ArgC)
 
 	//Get cycles count before HOG cluster call
 	//Starting hardware timer to get cluster cycles
-    rt_perf_reset(perf); rt_perf_start(perf);
+    pi_perf_start();
 
 	//Launching HoG on cluster
 	MyHOG(ArgC->ImageIn, (unsigned short **) CellLinesBuffer, ArgC->HoGFeatures, 0);
 
 	//Stoping hardware timer to get cluster cycles
-	rt_perf_stop(perf); rt_perf_save(perf);
+	pi_perf_stop();
     //Get cycles count after HOG cluster call
-    unsigned int Ti = rt_perf_get(perf, RT_PERF_CYCLES);
+    unsigned int Ti = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
 
 	printf("[W:%d, H:%d] Hog Features extraction done in %d cycles at %f cycles per pixel ....\n", W, H, Ti, (float)Ti/(W*H));
 
 }
 
 
-int main(int argc, char *argv[])
-
+void test_hog()
 {
 	int FromImage = 1;
 	char *ImageName = "../../../Pedestrian.ppm";
 
 	unsigned int W = 322, H = 242;
-
-	if (rt_event_alloc(NULL, 8)) return -1;
 
 	unsigned int BlockW = (((((W-2)/HOG_CELL_SIZE) - HOG_BLOCK_SIZE)/HOG_BLOCK_CELL_STRIDE) + 1);	// Number of blocks in a line
 	unsigned int BlockH = (((((H-2)/HOG_CELL_SIZE) - HOG_BLOCK_SIZE)/HOG_BLOCK_CELL_STRIDE) + 1);	// Number of blocks in a row
@@ -123,16 +116,16 @@ int main(int argc, char *argv[])
 
 	printf ("Start HoG Example application\n");
 
-	ImageIn = (unsigned char *) rt_alloc( RT_ALLOC_L2_CL_DATA, AllocSize);
+	ImageIn = (unsigned char *) pi_l2_malloc(AllocSize);
 	HoGFeatures = (unsigned short *) ImageIn;
 	if (AllocSize > (W*H+2)) ImageIn += ALIGN((AllocSize-W*H-2), 2);
 	
 	if (ImageIn==0) {
 		printf("Failed to allocate Memory for Image and HoGFeatures (%d bytes)\n", AllocSize);
-		return 1;
+		pmsis_exit(-1);
 	}
 
-	#if defined(NO_BRIDGE)
+	#ifdef NO_BRIDGE
 	for(uint32_t i =0 ;i<W*H;i++)
 		ImageIn[i]=ImageInTest[i];
 	#else
@@ -141,7 +134,7 @@ int main(int argc, char *argv[])
 	unsigned int Wi, Hi;
 	if ((ReadImageFromFile(ImageName, &Wi, &Hi, ImageIn, AllocSize)==0) || (Wi!=W) || (Hi!=H)) {
 		printf("Failed to load image %s or dimension mismatch Expects [%dx%d], Got [%dx%d]\n", ImageName, W, H, Wi, Hi);
-		return 1;
+		pmsis_exit(-1);
 	}
 	printf("Image Loaded.\n");
 	#endif
@@ -149,24 +142,28 @@ int main(int argc, char *argv[])
 	ReportHoGConfiguration( W, H, BlockW, BlockH);
 
 	// Activate the Cluster
-	rt_cluster_mount(MOUNT, CID, 0, NULL);
-
-	// Allocate the memory of L2 for the performance structure
-	cluster_perf = rt_alloc(RT_ALLOC_L2_CL_DATA, sizeof(rt_perf_t));
-	if (cluster_perf == NULL) return -1;
-
-	// Allocate some stacks for cluster in L1, rt_nb_pe returns how many cores exist.
-	void *stacks = rt_alloc(RT_ALLOC_CL_DATA, STACK_SIZE*rt_nb_pe());
-	if (stacks == NULL) return -1;
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
+    cl_conf.id = 0;
+    pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
+    if (pi_cluster_open(&cluster_dev))
+    {
+        printf("Cluster open failed !\n");
+        pmsis_exit(-1);
+    }
 
 	ClusterCall.ImageIn     = ImageIn;
 	ClusterCall.W           = W;
 	ClusterCall.H           = H;
 	ClusterCall.HoGFeatures = HoGFeatures;
 
-	// Execute the function "cluster_main" on the Core 0 of cluster.
-	rt_cluster_call(NULL, CID, (void (*)(void *)) cluster_main, &ClusterCall, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), NULL);
-	// The FC arrives here when the Cluster finished its job.
+	struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    memset(task, 0, sizeof(struct pi_cluster_task));
+    task->entry = (void *)cluster_main;
+    task->arg = (void *) &ClusterCall;
+    task->stack_size = (uint32_t) STACK_SIZE;
+
+    pi_cluster_send_task_to_cl(&cluster_dev, task);
 
 
 	
@@ -179,13 +176,21 @@ int main(int argc, char *argv[])
 	#endif
 
 	// Close the cluster
-	rt_cluster_mount(UNMOUNT, CID, 0, NULL);
-
-	if(hash == -933402687)
+	pi_cluster_close(&cluster_dev);
+	
+	if(hash == -933402687){
     	printf("Test success\n");
-    else
+    	pmsis_exit(0);
+	}
+    else{
 		printf("Test failed\n");
+		pmsis_exit(-1);
+    }
 
+}
 
-	return 0;
+int main()
+{
+    printf("\n\n\t *** PMSIS Fir Filter Test ***\n\n");
+    return pmsis_kickoff((void *) test_hog);
 }

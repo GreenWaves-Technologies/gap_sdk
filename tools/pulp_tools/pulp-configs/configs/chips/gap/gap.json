@@ -38,6 +38,33 @@
     "content": "chips/gap/padframe.json"
   },
 
+  "cluster0": {
+    "pe0": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe1": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe2": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe3": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe4": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe5": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe6": {
+      "boot_addr"   : "0x1C000080"
+    },
+    "pe7": {
+      "boot_addr"   : "0x1C000080"
+    }
+  },
+
   "cluster": {
     "base": "0x10000000",
     "alias": "0x00000000",

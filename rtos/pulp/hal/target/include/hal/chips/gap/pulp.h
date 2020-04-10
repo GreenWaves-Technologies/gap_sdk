@@ -31,10 +31,10 @@
 #include "hal/fll/fll_v1.h"
 #include "hal/efuse/efuse_v1.h"
 #include "hal/chips/gap/efuse.h"
-#include "hal/hwce/hwce_v4.h"
 #include "hal/vendors/dolphin/rtc.h"
 #include "hal/pwm/pwm_v1.h"
 #include "hal/gpio/gpio_v2.h"
+#include "hal/hwce/hwce_v4.h"
 
 #include "hal/udma/cpi/udma_cpi_v1.h"
 #include "hal/udma/hyper/udma_hyper_v1.h"

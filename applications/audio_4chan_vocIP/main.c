@@ -768,15 +768,17 @@ GAP_L2_DATA short int l2_big1[BUF1_SIZE];
 
 void CNN_Process() {
 
-  //l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
-  //  printf("@l2_big1: %p\n", l2_big1);
-  //  if(l2_big1 == NULL)
-  //    printf("error of malloc l2_big1\n");
-  //l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
-  //  printf("@l2_big0: %p\n", l2_big0);
-  //  if(l2_big0 == NULL)
-  //    printf("error of malloc l2_big0\n");
-
+#if 0
+  // allocate data buffers
+    l2_big1 = malloc(BUF1_SIZE * sizeof(short int));
+    //printf("@l2_big1: %p\n", l2_big1);
+    if(l2_big1 == NULL)
+        printf("error of malloc l2_big1\n");
+    l2_big0 = malloc(BUF0_SIZE * sizeof(short int));
+    if(l2_big0 == NULL)
+        printf("error of malloc l2_big0\n");
+#endif
+    
     #ifdef RT_HAS_HWCE
     Conv8x20MaxPool2x2_HWCE_0(pfeat_list,L2_W_0,l2_big0,8,L2_B_0,AllKernels + 0);
     Conv6x10_HWCE_1(l2_big0,L2_W_1,l2_big1,8,L2_B_1,AllKernels + 1);
@@ -884,7 +886,7 @@ void runkws(char trial) {
                 #endif
             }
 	    if (trial) word1=idx_max; else word2=idx_max;
-            //printf("found max %d\n", idx_max+1);
+            printf("found max %d\n", idx_max+1);
 #ifdef DUMP_SCORE
             printf("found word %s\n", word_list[idx_max]);
 #endif
@@ -923,10 +925,6 @@ int processI2sRx(int sel)
   fract input[4*128];
   //static unsigned int resTab[NB_CHUNK] = {[0 ... NB_CHUNK-1] = 0x55};
 
-
-#ifdef FORCE_INPUT
-  return 1;
-#endif
   
     for(i = 0; i < 128; i++)
     {
@@ -981,9 +979,14 @@ int processI2sRx(int sel)
 
 
     last_res=res;
+
+#ifndef FORCE_INPUT
     res = dsp_process_block(input, NULL, vocalOutput.buff+OFFSET_BU*CHUNK_SIZE+cntBuf*CHUNK_SIZE, 4, CHUNK_SIZE);
 
     if (!last_res&&res) store=1;
+#else
+    return 1;
+#endif
 
 #ifndef RECORD_MIC
 #if 0
@@ -1034,15 +1037,15 @@ int processI2sRx(int sel)
     return 0;
 }
 
-void capture_and_process() {
+int capture_and_process() {
 
+  while(1) {
 
     
 #ifndef FORCE_INPUT 
-  while(1) {
     if ((buf00 && buf01) || (buf10 && buf11))
 #else
-      {
+      stat_log=1;
 #endif
       {
       //printf("!\n");
@@ -1098,12 +1101,16 @@ void capture_and_process() {
 	  if (0) {
 	  //if (word1==11) idxmax=11;
 	  if (word2==3) idxmax = 3;
-	  if (word2==4) idxmax=4;
+	  if (word2==4) idxmax = 4;
 	  //if (word1==6) idxmax=6;
 	  if (word1==5) idxmax=5;
 	  }
 #endif
-       	  printf("found* max %s\n", word_list[idxmax]);
+       	  printf("found word %s\n", word_list[idxmax]);
+
+#ifdef FORCE_INPUT
+	  return 0;
+#endif
 	  
 	}
 	

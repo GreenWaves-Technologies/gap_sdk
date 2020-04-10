@@ -1,20 +1,26 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
 
 from graph.nngraph import NNGraph
-from graph.types import ReshapeParameters, ConcatParameters
-
+from graph.types import (ConstantInputParameters,
+                         MatrixBroadcastedLinearOpParameters,
+                         ReshapeParameters)
 from utils.sparse_list import SparseList
+
 
 def propagate_downwards(G: NNGraph):
     for node in G.dfs():
@@ -25,6 +31,13 @@ def propagate_downwards(G: NNGraph):
             if isinstance(node, ReshapeParameters):
                 assert len(node.old_shape) == len(node.in_dims_hint[0]), "reshape doesn't match input"
                 node.old_shape.apply_naming_hints(node.in_dims_hint[0])
+            elif isinstance(node, MatrixBroadcastedLinearOpParameters):
+                max_hint = None
+                for hint in node.in_dims_hint:
+                    if hint and max_hint is None or len(hint) > len(max_hint):
+                        max_hint = hint
+                if max_hint is not None:
+                    node.out_dims_hint = [max_hint]
             else:
                 if node.out_dims_hint is None:
                     node.out_dims_hint = deepcopy(node.in_dims_hint)
@@ -32,8 +45,8 @@ def propagate_downwards(G: NNGraph):
         # if we have an out dim hint then propagate it to downstream nodes
         if node.out_dims_hint is not None:
             for edge in G.out_edges(node.name):
-                
                 hint = node.out_dims_hint[edge.from_idx]
+                assert hint is not None
                 if edge.to_node.in_dims_hint is None:
                     edge.to_node.in_dims_hint = SparseList()
                 if edge.to_node.in_dims_hint[edge.to_idx] is None:
@@ -46,10 +59,13 @@ def propagate_upwards(G: NNGraph):
 
         if node.out_dims_hint is not None:
             if isinstance(node, ReshapeParameters):
-                assert len(node.shape) == len(node.out_dims_hint[0])
                 node.shape.apply_naming_hints(node.out_dims_hint[0])
                 if node.in_dims_hint is None:
                     node.in_dims_hint = SparseList([["%s" % i for i in range(len(node.old_shape))]])
+            elif isinstance(node, MatrixBroadcastedLinearOpParameters):
+                node.in_dims_hint = [node.out_dims_hint[0]] * 2
+            elif isinstance(node, ConstantInputParameters) and not node.dims.is_named:
+                node.dims.apply_naming_hints(node.out_dims_hint[0])
             else:
                 if node.in_dims_hint is None:
                     node.in_dims_hint = deepcopy(node.out_dims_hint)
@@ -58,6 +74,8 @@ def propagate_upwards(G: NNGraph):
         if node.in_dims_hint is not None:
             for edge in G.in_edges(node.name):
                 hint = node.in_dims_hint[edge.to_idx]
+                if hint is None:
+                    continue
                 if edge.from_node.out_dims_hint is None:
                     edge.from_node.out_dims_hint = SparseList()
                 if edge.from_node.out_dims_hint[edge.from_idx] is None:

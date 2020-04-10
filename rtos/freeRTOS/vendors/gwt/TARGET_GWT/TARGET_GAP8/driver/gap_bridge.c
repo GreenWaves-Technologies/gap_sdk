@@ -31,7 +31,7 @@
 #include <stddef.h>
 #include "string.h"
 #include "gap_bridge.h"
-#include "pmsis_hal/pmsis_hal.h"
+#include "pmsis/implem/hal/hal.h"
 
 /*******************************************************************************
  * Variables

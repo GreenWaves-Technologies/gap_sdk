@@ -24,7 +24,7 @@ FACE_DET_MODEL_GEN_C = $(addsuffix .c, $(FACE_DET_MODEL_GEN))
 FACE_DET_MODEL_GEN_CLEAN = $(FACE_DET_MODEL_GEN_C) $(addsuffix .h, $(FACE_DET_MODEL_GEN))
 FACE_DET_SRCS +=  main.c faceDet.c FaceDetBasicKernels.c ImageDraw.c $(FACE_DET_MODEL_GEN_C)
 
-RUNNER_CONFIG=$(CURDIR)/config.ini
+override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
 
 APP_SRCS += $(FACE_DET_SRCS)
 APP_INC  += $(TILER_INC)
@@ -33,6 +33,9 @@ APP_CFLAGS += -O3 -g -D__PMSIS__ -DUSE_CAMERA -DUSE_DISPLAY -DNB_FRAMES=$(NB_FRA
 BOARD_NAME ?= gapoc_a
 PMSIS_OS ?= freertos
 USE_PMSIS_BSP=1
+
+export GAP_USE_OPENOCD=1
+io=host
 
 ifeq '$(BOARD_NAME)' 'gapuino'
 APP_CFLAGS += -DGAPUINO

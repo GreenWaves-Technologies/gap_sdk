@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 
@@ -22,7 +26,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 # pylint: disable=invalid-name
 def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
-                weights: np.ndarray, biases: np.ndarray, details):
+                weights: np.ndarray, biases: np.ndarray, mul_biases: np.ndarray, details):
     '''3D convolution by sub-matrix summing.
     '''
     if details is not None:
@@ -97,6 +101,9 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
     if params.stride.size() > 1:
         result = result[:, ::params.stride.h, ::params.stride.w, ...]
 
+    if params.has_mul_bias:
+        result *= mul_biases.reshape(out_c, 1, 1)
+
     return result.transpose(out_dims.transpose_from_order(['c', 'h', 'w']))
 
 # pylint: disable=invalid-name
@@ -107,6 +114,7 @@ def faster_conv_quantized(params,
                           in_tensor: np.ndarray,
                           weights: np.ndarray,
                           biases: np.ndarray,
+                          mul_biases: np.ndarray,
                           details,
                           detect_overflow=True):
     '''3D convolution by sub-matrix summing.
@@ -237,6 +245,11 @@ def faster_conv_quantized(params,
     if qrec.out_qs[0] != qrec.acc_q:
         result = qrec.out_qs[0].reduce_from(result, qrec.acc_q)
 
+    if params.has_mul_bias:
+        result = result.astype(qrec.calc_q.dtype)
+        result *= mul_biases.reshape(out_c, 1, 1)
+        result = qrec.out_qs[0].reduce_from(result, qrec.out_qs[0] + qrec.mul_biases_q)
+
     return result.transpose(out_dims.transpose_from_order(['c', 'h', 'w']))
 
 # filter OIHW
@@ -245,7 +258,9 @@ def conv2d(params,
            in_dims: Dim,
            out_dims: Dim,
            in_tensor: np.ndarray,
-           weights: np.ndarray, biases: np.ndarray,
+           weights: np.ndarray,
+           biases: np.ndarray,
+           mul_biases: np.ndarray = None,
            qrec=None,
            details=None,
            allow_faster=True):
@@ -259,6 +274,7 @@ def conv2d(params,
                                          in_tensor,
                                          weights,
                                          biases,
+                                         mul_biases,
                                          details)
         else:
             return faster_conv(params,
@@ -267,7 +283,10 @@ def conv2d(params,
                                in_tensor,
                                weights,
                                biases,
+                               mul_biases,
                                details)
+
+    assert mul_biases is None, "mulbiases not supported in dilated conv"
 
     acc_tensor = prepare_acc(biases, out_dims, qrec)
 

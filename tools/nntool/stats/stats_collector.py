@@ -1,34 +1,54 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
 from typing import Mapping, Sequence
 
 from utils.node_id import NodeId
 
-
 class StatsCollector(ABC):
+    def __init__(self):
+        self._fusion_cnt = None
+
     @abstractmethod
-    def _collect(self, G) -> Mapping[NodeId, Mapping]:
+    def _collect(self, G, step_idx) -> Mapping[NodeId, Mapping]:
         pass
 
-    def collect_stats(self, G):
-        return self._collect(G)
+    def matches_step(self, step_idx, node, fnode):
+        if step_idx is None:
+            return True
+        if isinstance(step_idx, tuple):
+            if fnode is None or step_idx[0] != node.step_idx:
+                return False
+            if self._fusion_cnt is None:
+                self._fusion_cnt = 0
+            else:
+                self._fusion_cnt += 1
+            return step_idx[1] == self._fusion_cnt
+        return step_idx == node.step_idx and fnode is None
+
+    def collect_stats(self, G, step_idx=None):
+        return self._collect(G, step_idx)
 
 class ReductionStatsCollector(ABC):
     def __init__(self):
         self._collected_stats = []
+        self._fusion_cnt = None
 
     @abstractmethod
-    def _collect(self, G, input_tensors) -> Mapping[NodeId, Mapping]:
+    def _collect(self, G, input_tensors, step_idx) -> Mapping[NodeId, Mapping]:
         pass
 
     def reduce_stats(self):
@@ -54,7 +74,20 @@ class ReductionStatsCollector(ABC):
     def _reduce_finalize(self, stats: Mapping) -> Mapping[NodeId, Mapping]:
         pass
 
-    def collect_stats(self, G, input_tensors):
-        stat = self._collect(G, input_tensors)
+    def matches_step(self, step_idx, node, fnode):
+        if step_idx is None:
+            return True
+        if isinstance(step_idx, tuple):
+            if fnode is None or step_idx[0] != node.step_idx:
+                return False
+            if self._fusion_cnt is None:
+                self._fusion_cnt = 0
+            else:
+                self._fusion_cnt += 1
+            return step_idx[1] == self._fusion_cnt
+        return step_idx == node.step_idx and fnode is None
+
+    def collect_stats(self, G, input_tensors, step_idx=None):
+        stat = self._collect(G, input_tensors, step_idx)
         self._collected_stats.append(stat)
         return stat

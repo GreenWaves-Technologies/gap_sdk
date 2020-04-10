@@ -25,6 +25,7 @@
 #include "bsp/flash/hyperflash.h"
 #include "bsp/ram/hyperram.h"
 #include "bsp/ram/spiram.h"
+#include "bsp/transport/nina_w10.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -156,6 +157,20 @@ void pi_bsp_init_profile(int profile)
         pi_i2s_setup(PI_I2S_SETUP_SINGLE_CLOCK);
 #endif
     }
+}
+
+
+
+void bsp_nina_w10_conf_init(struct pi_nina_w10_conf *conf)
+{
+  conf->spi_itf = CONFIG_NINA_W10_SPI_ITF;
+  conf->spi_cs = CONFIG_NINA_W10_SPI_CS;
+}
+
+int bsp_nina_w10_open(struct pi_nina_w10_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
 }
 
 

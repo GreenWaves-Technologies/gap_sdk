@@ -1,0 +1,5 @@
+{
+    "description": "Board",
+
+    "runner_module": "runner.board.board_runner"
+}

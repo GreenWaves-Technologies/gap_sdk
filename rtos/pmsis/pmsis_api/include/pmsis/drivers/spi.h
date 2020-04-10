@@ -396,6 +396,24 @@ void pi_spi_transfer_async(struct pi_device *device, void *tx_data,
 
 /// @cond IMPLEM
 
+/**
+ * Enqueue receive ucode given by the user, and receive answer in data buffer
+ */
+void pi_spi_receive_with_ucode(struct pi_device *device, void *data,
+        size_t len, pi_spi_flags_e flags, int ucode_size,
+        void *ucode);
+
+/**
+ * Enqueue receive ucode given by the user, and receive answer in data buffer
+ */
+void pi_spi_send_with_ucode(struct pi_device *device, void *data,
+        size_t len, pi_spi_flags_e flags, int ucode_size,
+        void *ucode);
+
+/**
+ * Extract config from device (useful to craft ucode)
+ */
+uint32_t pi_spi_get_config(struct pi_device *device);
 
 #define SPI_UCODE_CMD_SEND_CMD(cmd,bits,qpi)    ((2<<28) | ((qpi)<<27) | (((bits)-1)<<16) | (((cmd)>>8)<<0) | (((cmd)&0xff)<<(0+8)))
 #define SPI_UCODE_CMD_SEND_ADDR(bits,qpi)       ((3<<28) | ((qpi)<<27) | (((bits)-1)<<16))

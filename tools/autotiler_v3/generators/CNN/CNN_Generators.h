@@ -40,6 +40,11 @@ extern void LoadCNNLibrary();
  \param    Bias_DataSize:  1: byte, 2: half word, 4: word
  \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+ \param	   In_Q:           In fixed point format
+ \param	   Filter_Q:       Filter fixed point format
+ \param	   Bias_Q:         Bias fixed point format
+ \param	   Out_Q:          Out fixed point format
+
  \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
  \param    Filter_InL3:    0: Filter is in L2, 1: Filter is in L3 memory
  \param    Bias_InL3:      0: Bias is in L2, 1: Bias is in L3 memory
@@ -68,7 +73,10 @@ extern void LoadCNNLibrary();
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+ \param    Signature:      Name(In, Filter, Bias, Out)
+ \param                    Name(In, Filter, Bias, ReLUN, Out)
 
  */
 
@@ -81,6 +89,11 @@ extern int CNN_ConvolutionPoolReLU(
 	int Filter_DataSize,
 	int Bias_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Filter_InL3,
@@ -128,6 +141,12 @@ extern int CNN_ConvolutionPoolReLU(
  \param    MulBias_DataSize:1: byte, 2: half word, 4: word
  \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+ \param	   In_Q:           In fixed point format
+ \param	   Filter_Q:       Filter fixed point format
+ \param	   Bias_Q:         Bias fixed point format
+ \param	   MulBias_Q:      MulBias fixed point format
+ \param	   Out_Q:          Out fixed point format
+
  \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
  \param    Filter_InL3:    0: Filter is in L2, 1: Filter is in L3 memory
  \param    Bias_InL3:      0: Bias is in L2, 1: Bias is in L3 memory
@@ -157,7 +176,10 @@ extern int CNN_ConvolutionPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+ \param    Signature:      Name(In, Filter, Bias, MulBias, Out)
+ \param                    Name(In, Filter, Bias, MulBias, ReLUN, Out)
 
  */
 
@@ -171,6 +193,12 @@ extern int CNN_ConvolutionMulBiasPoolReLU(
 	int Bias_DataSize,
 	int MulBias_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Filter_InL3,
@@ -220,6 +248,11 @@ extern int CNN_ConvolutionMulBiasPoolReLU(
  \param    Bias_DataSize:  1: byte, 2: half word, 4: word
  \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+ \param	   In_Q:           In fixed point format
+ \param	   Filter_Q:       Filter fixed point format
+ \param	   Bias_Q:         Bias fixed point format
+ \param	   Out_Q:          Out fixed point format
+
  \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
  \param    Filter_InL3:    0: Filter is in L2, 1: Filter is in L3 memory
  \param    Bias_InL3:      0: Bias is in L2, 1: Bias is in L3 memory
@@ -248,7 +281,10 @@ extern int CNN_ConvolutionMulBiasPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+ \param    Signature:      Name(In, Filter, Bias, Out)
+ \param                    Name(In, Filter, Bias, ReLUN, Out)
 
  */
 
@@ -264,6 +300,11 @@ extern int CNN_GroupedConvolutionPoolReLU(
 	int Filter_DataSize,
 	int Bias_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Filter_InL3,
@@ -313,6 +354,12 @@ extern int CNN_GroupedConvolutionPoolReLU(
  \param    MulBias_DataSize:1: byte, 2: half word, 4: word
  \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+ \param	   In_Q:           In fixed point format
+ \param	   Filter_Q:       Filter fixed point format
+ \param	   Bias_Q:         Bias fixed point format
+ \param	   MulBias_Q:      MulBias fixed point format
+ \param	   Out_Q:          Out fixed point format
+
  \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
  \param    Filter_InL3:    0: Filter is in L2, 1: Filter is in L3 memory
  \param    Bias_InL3:      0: Bias is in L2, 1: Bias is in L3 memory
@@ -342,7 +389,10 @@ extern int CNN_GroupedConvolutionPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+ \param    Signature:      Name(In, Filter, Bias, MulBias, Out)
+ \param                    Name(In, Filter, Bias, MulBias, ReLUN, Out)
 
  */
 
@@ -359,6 +409,12 @@ extern int CNN_GroupedConvolutionMulBiasPoolReLU(
 	int Bias_DataSize,
 	int MulBias_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Filter_InL3,
@@ -408,6 +464,9 @@ extern int CNN_GroupedConvolutionMulBiasPoolReLU(
   \param     In_DataSize:    1: byte, 2: half word, 4: word
   \param     Out_DataSize:   1: byte, 2: half word, 4: word
 
+  \param     In_Q:           In fixed point format
+  \param     Out_Q:          Out fixed point format
+
   \param     In_InL3:        0: In is in L2, 1: In is in L3 memory
   \param     Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
 
@@ -425,7 +484,13 @@ extern int CNN_GroupedConvolutionMulBiasPoolReLU(
   \param     Spy:            Pooling stride, y dimension
 
   \param     PoolPad:        0: No padding, 1: Zero padding
-  \param     ReLUOper:       optional rectification to be applied after pooling, KOP_RELU or KOP_NONE
+  \param     ReLUOper:       Optional activation function: if (PoolOper!=KOP_NONE) KOP_RELU or KOP_NONE
+  \param                     else Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+  \param     ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+  \param     Signature:      Name(In, Out)
+  \param                     Name(In, ReLUN, Out)
 
   Currently only homegeneous data size are supported (bytes and hald words)
 
@@ -439,7 +504,10 @@ extern int CNN_PoolReLU(
 	int In_DataSize,
 	int Out_DataSize,
 
-	int In_InL3,           // 1 if In comes from L3, 0 if it comes from L2
+	int In_Q,
+	int Out_Q,
+
+	int In_InL3,
 	int Out_InL3,
 
 	int InFeat,
@@ -470,6 +538,9 @@ extern int CNN_PoolReLU(
     \param    In_DataSize:    1: byte, 2: half word, 4: word
     \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+    \param    In_Q:           In fixed point format
+    \param    Out_Q:          Out fixed point format
+
     \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
     \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
 
@@ -479,6 +550,8 @@ extern int CNN_PoolReLU(
     \param    Height:         Number of lines of a given feature map
 
     \param    PoolOper:       KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL
+
+    \param    Signature:      Name(In, Out)
 
   Currently only homegeneous data size are supported (bytes and hald words)
 */
@@ -491,7 +564,10 @@ extern int CNN_GlobalPool(
 	int In_DataSize,
 	int Out_DataSize,
 
-	int In_InL3,            // 1 if In comes from L3, 0 if it comes from L2
+	int In_Q,
+	int Out_Q,
+
+	int In_InL3,
 	int Out_InL3,
 
 	int InFeat,
@@ -518,6 +594,11 @@ extern int CNN_GlobalPool(
     \param    Bias_DataSize:  1: byte, 2: half word, 4: word
     \param    Out_DataSize:   1: byte, 2: half word, 4: word
 
+    \param    In_Q:           In fixed point format
+    \param    Filter_Q:       Filter fixed point format
+    \param    Bias_Q:         Bias fixed point format
+    \param    Out_Q:          Out fixed point format
+
     \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
     \param    Filter_InL3:    0: Filter is in L2, 1: Filter is in L3 memory
     \param    Bias_InL3:      0: Bias is in L2, 1: Bias is in L3 memory
@@ -526,8 +607,11 @@ extern int CNN_GlobalPool(
     \param    InDim:          Number of inputs
     \param    OutDim:         Number of outputs
 
-    \param    KernelOper_T    LinearOper      Should always be KOP_LINEAR
-    \param    KernelOper_T    ReLUOper        KOP_RELU if ReLU has to be applied after Linear, KOP_NONE otherwise
+    \param    LinearOper:     Should always be KOP_LINEAR
+    \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+    \param    Signature:      Name(In, Filter, Bias, Out)
+    \param                    Name(In, Filter, Bias, ReLUN, Out)
 
 */
 
@@ -540,6 +624,11 @@ extern int CNN_LinearReLU(
         int Filter_DataSize,
         int Bias_DataSize,
         int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int Out_Q,
 
         int In_InL3,
         int Filter_InL3,
@@ -565,12 +654,16 @@ extern int CNN_LinearReLU(
    \param    In_DataSize:    1: byte, 2: half word,
    \param    Out_DataSize:   2: half word (Q15 format)
 
+   \param    In_Q:           In fixed point format
+   \param    Out_Q:          Out fixed point format
+
    \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
 
    \param    Dim:            Number of inputs
 
-   \param    KernelOper_T    SoftMaxOper     Should always be KOP_SOFTMAX
+   \param    SoftMaxOper:    Should always be KOP_SOFTMAX
+   \param    Signature:      Name(In, Out)
 
 */
 
@@ -581,6 +674,9 @@ extern int CNN_SoftMax(
 
         int In_DataSize,
         int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
 
         int In_InL3,
         int Out_InL3,
@@ -601,6 +697,10 @@ extern int CNN_SoftMax(
     \param    In2_DataSize:   1: byte, 2: half word,
     \param    Out_DataSize:   1: byte, 2: half word
 
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Out_Q:          Out fixed point format
+
     \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
@@ -610,7 +710,9 @@ extern int CNN_SoftMax(
     \param    Width:          Width of a given feature
     \param    Height:         Height of a given feature
 
-    \param    KernelOper_T    AddMatOper      Should always be KOP_MATADD
+    \param    AddMatOper:     Should always be KOP_MATADD
+
+    \param    Signature:      Name(In1, In2, Out)
 
 */
 
@@ -622,6 +724,10 @@ extern int CNN_MatAdd(
         int In1_DataSize,
         int In2_DataSize,
         int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Out_Q,
 
         int In1_InL3,
         int In2_InL3,
@@ -647,6 +753,10 @@ extern int CNN_MatAdd(
     \param    In2_DataSize:   1: byte, 2: half word,
     \param    Out_DataSize:   1: byte, 2: half word
 
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Out_Q:          Out fixed point format
+
     \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
@@ -661,7 +771,9 @@ extern int CNN_MatAdd(
     \param    Width:          Width of a given feature
     \param    Height:         Height of a given feature
 
-    \param    KernelOper_T    AddMatOper      Should always be KOP_MATADD
+    \param    AddMatOper:     Should always be KOP_MATADD
+
+    \param    Signature:      Name(In1, In2, Out)
 
 */
 
@@ -674,13 +786,13 @@ extern int CNN_MatAddDynAdjust(
         int In2_DataSize,
         int Out_DataSize,
 
-        int In1_InL3,
-        int In2_InL3,
-        int Out_InL3,
-
 	int In1_Q,
 	int In2_Q,
 	int Out_Q,
+
+        int In1_InL3,
+        int In2_InL3,
+        int Out_InL3,
 
         int InFeat,
         int OutFeat,
@@ -692,18 +804,26 @@ extern int CNN_MatAddDynAdjust(
 
 /** \brief CNN_MatScale
 
-    Generator for Matrix Scaling layers, Scaling is in In2 either as a vector[OutFeat] or as a scalar for all channels
+    Generator for Matrix Scaling layers, one scale per channel or a single scale for all channels (scalar) or scalar for each and then vector per channel
+
 
     \param    Name:           Name of the generated user kernel
 
     \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
 
-    \param    In1_DataSize:   1: byte, 2: half word,
-    \param    In2_DataSize:   1: byte, 2: half word,
+    \param    In_DataSize:    1: byte, 2: half word,
+    \param    Vector_DataSize:1: byte, 2: half word,
+    \param    Scalar_DataSize:1: byte, 2: half word,
     \param    Out_DataSize:   1: byte, 2: half word
 
-    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
-    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    In_Q:           In fixed point format
+    \param    Vector_Q:       Vector fixed point format
+    \param    Scalar_Q:       Scalar fixed point format
+    \param    Out_Q:          Out fixed point format
+
+    \param    In_InL3:        0: In is in L2, 1: In is in L3 memory
+    \param    Vector_InL3:    0: Vector is in L2, 1: Vector is in L3 memory
+    \param    Scalar_InL3:    0: Scalar is in L2, 1: Scalar is in L3 memory
     \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
 
     \param    InFeat:         Number of input features
@@ -711,8 +831,15 @@ extern int CNN_MatAddDynAdjust(
     \param    Width:          Width of a given feature
     \param    Height:         Height of a given feature
 
-    \param    KernelOper_T    ScaleOper    Should always be KOP_MATSCALE or KOP_MATSCALE_SCALAR
-    \param    KernelOper_T    ReLUOper     Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN
+    \param    ScaleOper       Should always be KOP_MATSCALE_VECTOR, KOP_MATSCALE_SCALAR or KOP_MATSCALE_VECTOR_SCALAR
+    \param    ReLUOper        Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN or KOP_RELUN_VECTOR
+
+    \param    Signature:      Name(In, Scalar, Out)
+    \param                    Name(In, Scalar, Out, ReLUN)
+    \param                    Name(In, Vector, Out)
+    \param                    Name(In, Vector, Out, ReLUN)
+    \param                    Name(In, Vector, Scalar, Out)
+    \param                    Name(In, Vector, Scalar, Out, ReLUN)
 
 */
 
@@ -721,12 +848,19 @@ extern int CNN_MatScale(
 
         CNN_GenControl_T *Ctrl,
 
-        int In1_DataSize,
-        int In2_DataSize,
+        int In_DataSize,
+        int Vector_DataSize,
+        int Scalar_DataSize,
         int Out_DataSize,
 
-        int In1_InL3,
-        int In2_InL3,
+	int In_Q,
+	int Vector_Q,
+	int Scalar_Q,
+	int Out_Q,
+
+        int In_InL3,
+        int Vector_InL3,
+        int Scalar_InL3,
         int Out_InL3,
 
         int InFeat,
@@ -741,7 +875,12 @@ extern int CNN_MatScale(
 
 /** \brief CNN_MatMul
 
-    Generator for Matrix Multiplication layers. Can be used for 2D 1x1 conv, in this case In1 contains the weights, In2 InputFeatures [Inf x W x H], Strides apply to In2
+    Generator for Matrix Multiplication layers.
+
+    Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+    When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+    Bias [OutFeat x 1] is added to each individual features
+    Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
 
     \param    Name:           Name of the generated user kernel
 
@@ -751,6 +890,11 @@ extern int CNN_MatScale(
     \param    In2_DataSize:   1: byte, 2: half word,
     \param    Bias_DataSize:  1: byte, 2: half word,
     \param    Out_DataSize:   1: byte, 2: half word
+
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Bias_Q:         Bias fixed point format
+    \param    Out_Q:          Out fixed point format
 
     \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
@@ -770,8 +914,11 @@ extern int CNN_MatScale(
     \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-    \param    KernelOper_T    MatMulOper   Should always be KOP_MATMUL
-    \param    KernelOper_T    ReLUOper	   Optional Activation
+    \param    MatMulOper:     Should always be KOP_MATMUL
+    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+    \param    Signature:      Name(In2, In1, Bias, Out)
+    \param                    Name(In2, In1, Bias, ReLUN, Out)
 
 */
         
@@ -784,6 +931,11 @@ extern int CNN_MatMul(
         int In2_DataSize,
         int Bias_DataSize,
         int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int Out_Q,
 
         int In1_InL3,
         int In2_InL3,
@@ -807,6 +959,92 @@ extern int CNN_MatMul(
         KernelOper_T ReLUOper
 	);
 
+/** \brief CNN_MatMulSmallM1
+
+    Generator for Matrix Multiplication layers.  Special form to handle small form factor In1 (InFeat x OutFeat)
+
+    Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+    When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+    Bias [OutFeat x 1] is added to each individual features
+    Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+
+    \param    Name:           Name of the generated user kernel
+
+    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+    \param    In1_DataSize:   1: byte, 2: half word,
+    \param    In2_DataSize:   1: byte, 2: half word,
+    \param    Bias_DataSize:  1: byte, 2: half word,
+    \param    Out_DataSize:   1: byte, 2: half word
+
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Bias_Q:         Bias fixed point format
+    \param    Out_Q:          Out fixed point format
+
+    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    Bias_InL3:      0: In is in L2, 1: In is in L3 memory
+    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+    \param    ColM1:          Number of colums for matrix In1, for 1x1 convolution this is InFeat
+    \param    LineM1:         Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+    \param    ColM2:          Number of colums for matrix In2, for 1x1 convolution this is Width*Height
+    \param    LineM2:         Number of lines for matrix In2, for 1x1 convolution this is InFeat
+
+    \param    Width           For 1x1 convolution, width of an input feature map
+    \param    Height          For 1x1 convolution, height of an input feature map
+    \param    Scx:            stride x dimension for In2
+    \param    Scy:            stride y dimension for In2
+
+    \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+    \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+
+    \param    MatMulOper:     Should always be KOP_MATMUL
+    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+    \param    Signature:      Name(In2, In1, Bias, Out)
+    \param                    Name(In2, In1, Bias, ReLUN, Out)
+
+*/
+extern int CNN_MatMulSmallM1(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In1_DataSize,
+        int In2_DataSize,
+        int Bias_DataSize,
+        int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int Out_Q,
+
+        int In1_InL3,
+        int In2_InL3,
+        int Bias_InL3,
+        int Out_InL3,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        int Width,
+        int Height,
+        int Scx,
+        int Scy,
+
+	int ReLU_LowerBound,
+	int ReLU_UpperBound,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ReLUOper
+	);
+
+
 /** \brief CNN_MatMulScale
  
     Generator for Matrix Multiplication layers with output scaling.
@@ -827,6 +1065,12 @@ extern int CNN_MatMul(
     \param    MulBias_DataSize:1: byte, 2: half word, 4: word
     \param    Out_DataSize:   1: byte, 2: half word
 
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Bias_Q:         Bias fixed point format
+    \param    MulBias_Q:      MulBias fixed point format
+    \param    Out_Q:          Out fixed point format
+
     \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
     \param    Bias_InL3:      0: In is in L2, 1: In is in L3 memory
@@ -846,8 +1090,11 @@ extern int CNN_MatMul(
     \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-    \param    KernelOper_T    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
-    \param    KernelOper_T    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+    \param    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
+    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+    \param    Signature:      Name(In2, In1, Bias, Out)
+    \param                    Name(In2, In1, Bias, ReLUN, Out)
 
 */
 
@@ -861,6 +1108,12 @@ extern int CNN_MatMulScale(
         int Bias_DataSize,
         int MulBias_DataSize,
         int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
 
         int In1_InL3,
         int In2_InL3,
@@ -885,6 +1138,188 @@ extern int CNN_MatMulScale(
         KernelOper_T ReLUOper
 	);
 
+/** \brief CNN_MatMulScaleSmallM1
+ 
+    Generator for Matrix Multiplication layers with output scaling.  Special form to handle small form factor In1 (InFeat x OutFeat).
+
+    Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+    When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+    Bias [OutFeat x 1] is added to each individual features
+    Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+
+    Template:
+    \param    Name:           Name of the generated user kernel
+
+    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+    \param    In1_DataSize:   1: byte, 2: half word,
+    \param    In2_DataSize:   1: byte, 2: half word,
+    \param    Bias_DataSize:  1: byte, 2: half word,
+    \param    MulBias_DataSize:1: byte, 2: half word, 4: word
+    \param    Out_DataSize:   1: byte, 2: half word
+
+    \param    In1_Q:          In1 fixed point format
+    \param    In2_Q:          In2 fixed point format
+    \param    Bias_Q:         Bias fixed point format
+    \param    MulBias_Q:      MulBias fixed point format
+    \param    Out_Q:          Out fixed point format
+
+    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
+    \param    Bias_InL3:      0: In is in L2, 1: In is in L3 memory
+    \param    MulBias_InL3:   0: MulBias is in L2, 1: Bias is in L3 memory
+    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+    \param    ColM1:          Number of colums for matrix In1, for 1x1 convolution this is InFeat
+    \param    LineM1:         Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+    \param    ColM2:          Number of colums for matrix In2, for 1x1 convolution this is W*H
+    \param    LineM2:         Number of lines for matrix In2, for 1x1 convolution this is InFeat
+
+    \param    Width           For 1x1 convolution, width of an input feature map
+    \param    Height          For 1x1 convolution, height of an input feature map
+    \param    Scx:            stride x dimension for In2
+    \param    Scy:            stride y dimension for In2
+
+    \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+    \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+
+    \param    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
+    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+    \param    Signature:      Name(In2, In1, Bias, Out)
+    \param                    Name(In2, In1, Bias, ReLUN, Out)
+
+*/
+extern int CNN_MatMulScaleSmallM1(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In1_DataSize,
+        int In2_DataSize,
+        int Bias_DataSize,
+        int MulBias_DataSize,
+        int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
+
+        int In1_InL3,
+        int In2_InL3,
+        int Bias_InL3,
+        int MulBias_InL3,
+        int Out_InL3,
+
+        int ColM1,
+        int LineM1,
+        int ColM2,
+        int LineM2,
+
+        int Width,
+        int Height,
+        int Scx,
+        int Scy,
+
+        int ReLU_LowerBound,
+        int ReLU_UpperBound,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ReLUOper
+	);
+
+/** \brief CNN_MatTranspose
+
+        Generator for Matrix Transposition
+
+        Template:
+        \param  Name:           Name of the generated user kernel
+
+        \param  Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+        \param  In_DataSize:    1: byte, 2: half word,
+        \param  Out_DataSize:   1: byte, 2: half word
+
+    	\param  In_Q:           In fixed point format
+    	\param  Out_Q:          Out fixed point format
+
+        \param  In_InL3:        0: In is in L2, 1: In is in L3 memory
+        \param  Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+        \param  InFeat          Number of matrices
+        \param  Width           For 1x1 convolution, width of an input feature map
+        \param  Height          For 1x1 convolution, height of an input feature map
+
+	\param  Signature:	Name(In, Out)
+*/
+int CNN_MatTranspose(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int In_DataSize,
+        int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
+
+        int In_InL3,
+        int Out_InL3,
+
+        int InFeat,
+        int Width,
+        int Height
+);
+
+
+/** \brief CNN_3DTensorPermute
+ 
+        Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}
+
+        Template:
+	\param	Name:           Name of the generated user kernel
+
+	\param	Ctrl:           Overide generator default options
+
+	\param	In_DataSize:    1: byte, 2: half word,
+	\param	Out_DataSize:   1: byte, 2: half word
+
+	\param	In_Q:           In fixed point format
+	\param	Out_Q:          Out fixed point format
+
+	\param	In_InL3:        0: In is in L2, 1: In is in L3 memory
+	\param	Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+
+	\param	InFeat          Number of channels of the tensor
+	\param	Width           Tensor width
+	\param	Height          Tensor height
+
+	\param	MatPermOper     Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
+
+	\param  Signature:	Name(In, Out)
+
+*/
+int CNN_3DTensorPermute(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In_DataSize,
+	int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
+
+	int In_InL3,
+	int Out_InL3,
+
+	int InFeat,
+	int Width,
+	int Height,
+ 	KernelOper_T MatPermOper
+);
 
 /** @} */
 #endif

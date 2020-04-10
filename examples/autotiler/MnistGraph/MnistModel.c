@@ -21,18 +21,18 @@ void MnistModel(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Mem
     
     LoadCNNLibrary();
     //Convolutional Layer
-    CNN_ConvolutionPoolReLU("Conv5x5ReLUMaxPool2x2_0", 0, 2,2,2,2, 1,1,1,1, 1,32,28,28,
+    CNN_ConvolutionPoolReLU("Conv5x5ReLUMaxPool2x2_0", 0, 2,2,2,2, 12,14,14,12, 1,1,1,1, 1,32,28,28,
         Cop, 5, 5, 1, 1, 1, 1, 0,
         KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);
     //Convolutional Layer
-    CNN_ConvolutionPoolReLU("Conv5x5ReLUMaxPool2x2_1", 0, 2,2,2,2, 1,1,1,1, 32,64,12,12,
+    CNN_ConvolutionPoolReLU("Conv5x5ReLUMaxPool2x2_1", 0, 2,2,2,2, 12,14,14,12, 1,1,1,1, 32,64,12,12,
         Cop, 5, 5, 1, 1, 1, 1, 0,
         KOP_MAXPOOL, 2, 2, 1, 1, 2, 2, 0, KOP_RELU);
     //Linear Layer 
-    CNN_LinearReLU("LinearLayerReLU_0", 0, 2,2,2,2, 2,2,2,2, 1024, 10,
+    CNN_LinearReLU("LinearLayerReLU_0", 0, 2,2,2,2, 12,12,8,11, 2,2,2,2, 1024, 10,
         KOP_LINEAR, KOP_NONE);
     //Sofmax
-    CNN_SoftMax("SoftMax_0", 0, 2,2, 1,1, 10, KOP_SOFTMAX);
+    CNN_SoftMax("SoftMax_0", 0, 2,2, 15,15,1,1, 10, KOP_SOFTMAX);
 
 #define GRAPH
 #ifdef GRAPH
@@ -62,20 +62,18 @@ void MnistModel(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Mem
     );
     //Node Connections with arguments
     AddNode("Conv5x5ReLUMaxPool2x2_0", //Name of the Generated Layer
-            Bindings(6,                //Number of parameters that genereted layers has and that needs to be connected
+            Bindings(4,                //Number of parameters that genereted layers has and that needs to be connected
                                                         //void Conv5x5ReLUMaxPool2x2_0(
                 GNodeArg(GNA_IN, "Input0", 0),          //short int * __restrict__ In,
                 GNodeArg(GNA_IN, "Step1Weights", 0),    //short int * __restrict__ Filter,
                 GNodeArg(GNA_IN, "Step1Biases", 0),     //short int * __restrict__ Bias,
-                GNodeArg(GNA_OUT, "OutputStep2", 0),    //short int * __restrict__ Out,
-                Imm(14),                                //unsigned int Norm,
-                Imm(14)                                 //unsigned int NormBias)
+                GNodeArg(GNA_OUT, "OutputStep2", 0)    //short int * __restrict__ Out
                 )
             );
 
-    AddNode("Conv5x5ReLUMaxPool2x2_1", Bindings(6, GNodeArg(GNA_IN, "OutputStep2", 0), GNodeArg(GNA_IN, "Step2Weights", 0), GNodeArg(GNA_IN, "Step2Biases", 0), GNodeArg(GNA_OUT, "OutputStep3",0), Imm(14),Imm(14)));
-    AddNode("LinearLayerReLU_0", Bindings(6, GNodeArg(GNA_IN, "OutputStep3", 0), GNodeArg(GNA_IN, "Step3Weights", 0), GNodeArg(GNA_IN, "Step3Biases", 0), GNodeArg(GNA_OUT, "OutputStep4",0), Imm(13),Imm(16)));
-    AddNode("SoftMax_0", Bindings(3, GNodeArg(GNA_IN, "OutputStep4", 0), GNodeArg(GNA_OUT, "Output0", 0),Imm(15)));
+    AddNode("Conv5x5ReLUMaxPool2x2_1", Bindings(4, GNodeArg(GNA_IN, "OutputStep2", 0), GNodeArg(GNA_IN, "Step2Weights", 0), GNodeArg(GNA_IN, "Step2Biases", 0), GNodeArg(GNA_OUT, "OutputStep3",0)));
+    AddNode("LinearLayerReLU_0", Bindings(4, GNodeArg(GNA_IN, "OutputStep3", 0), GNodeArg(GNA_IN, "Step3Weights", 0), GNodeArg(GNA_IN, "Step3Biases", 0), GNodeArg(GNA_OUT, "OutputStep4",0)));
+    AddNode("SoftMax_0", Bindings(2, GNodeArg(GNA_IN, "OutputStep4", 0), GNodeArg(GNA_OUT, "Output0", 0)));
     //Close Graph creation
     CloseGraph();
 #endif

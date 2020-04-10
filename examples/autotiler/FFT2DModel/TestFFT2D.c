@@ -23,50 +23,40 @@
 #define UNMOUNT         0
 #define CID             0
 
-L2_MEM unsigned char *ImageIn;
-L2_MEM int *Out;
-L2_MEM rt_perf_t *cluster_perf;
-L2_MEM unsigned char done = 0;
+PI_L2 unsigned char *ImageIn;
+PI_L2 int *Out;
+PI_L2 unsigned char done = 0;
 
 void Process()
 
 {
-  printf("FFT Process start\n");
-  rt_perf_t *perf = cluster_perf;
-  unsigned int instr[2], cycles[2];
-  // initialize the performance clock
-  rt_perf_init(perf);
-  // Configure performance counters for counting the cycles
-  rt_perf_conf(perf, (1<<RT_PERF_CYCLES) | (1<<RT_PERF_INSTR));
-  rt_perf_reset(perf);
-  rt_perf_start(perf);
+    printf("FFT Process start on Cluster\n");
+    // initialize the performance clock
+    pi_perf_conf(1 << PI_PERF_ACTIVE_CYCLES);
+    // Configure performance counters for counting the cycles
+    pi_perf_reset();
+    pi_perf_start();
 
-  FFT2D_128(ImageIn,
+    FFT2D_128(ImageIn,
       (int32_t *) Out,
       R2_Twiddles_128,
       R2_SwapTable_128);
 
-  rt_perf_stop(perf);
-  rt_perf_save(perf);
-  instr[0] = rt_perf_get(perf, RT_PERF_INSTR);
-  cycles[0] = rt_perf_get(perf, RT_PERF_CYCLES);
+    pi_perf_stop();
+  
+    printf("FFT2D 128, Cycles = %d\n", pi_perf_read(PI_PERF_ACTIVE_CYCLES));
 
-  printf("FFT2D 128, Cycles = %d, Instructions: %d\n", cycles[0], instr[0]);
+    pi_perf_reset();
+    
 
-  rt_perf_reset(perf);
-  rt_perf_start(perf);
-
-  FFT2D_256(ImageIn,
+    FFT2D_256(ImageIn,
       (int32_t *) Out,
       R4_Twiddles_256,
       R4_SwapTable_256);
 
-  rt_perf_stop(perf);
-  rt_perf_save(perf);
-  instr[1] = rt_perf_get(perf, RT_PERF_INSTR) - instr[0];
-  cycles[1] = rt_perf_get(perf, RT_PERF_CYCLES) - cycles[0];
+    pi_perf_stop();
 
-  printf("FFT2D 256, Cycles = %d, Instructions: %d\n", cycles[1], instr[1]);
+    printf("FFT2D 256, Cycles = %d\n", pi_perf_read(PI_PERF_ACTIVE_CYCLES));
 
 }
 
@@ -77,56 +67,61 @@ static void end_of_app(){
 
 }
 
-int main()
+void fft_2d(void)
 
 {
-  printf("FC Launched\n");
-  if (rt_event_alloc(NULL, 4)) return -1;
+    printf("FC Launched\n");
 
-  rt_cluster_mount(MOUNT, CID, 0, NULL);
+    // Configure and open cluster
 
-  // Allocate the memory of L2 for the performance structure
-  cluster_perf = rt_alloc(RT_ALLOC_L2_CL_DATA, sizeof(rt_perf_t));
-  if (cluster_perf == NULL){
-      printf("cluster perf alloc failed\n");
-      return -1;
-  }
+    struct pi_device cluster_dev;
+    struct pi_cluster_conf cl_conf;
+    cl_conf.id = 0;
+    pi_open_from_conf(&cluster_dev, (void *) &cl_conf);
+    if (pi_cluster_open(&cluster_dev))
+    {
+        printf("Cluster open failed !\n");
+        pmsis_exit(-1);
+    }
 
-  // Allocate some stacks for cluster in L1, rt_nb_pe returns how many cores exist.
-  void *stacks = rt_alloc(RT_ALLOC_CL_DATA, STACK_SIZE*rt_nb_pe());
-  if (stacks == NULL){
-      printf("cluster stacks alloc failed\n");
-      return -1;
-  }
+    ImageIn = pi_l2_malloc(DIM*DIM*sizeof(char));
+    if(ImageIn == NULL) {
+        printf("ImageIn buffer alloc failed\n");
+        pmsis_exit(-1);
+    }
 
-  ImageIn = rt_alloc(RT_ALLOC_L2_CL_DATA, DIM*DIM*sizeof(char));
-  if(ImageIn == NULL) {
-    printf("ImageIn buffer alloc failed\n");
-    return -1;
-  }
+    Out = pi_l2_malloc(DIM*DIM*sizeof(int));
+    if(Out == NULL) {
+        printf("Out buffer alloc failed\n");
+        pmsis_exit(-1);
+    }
 
-  Out = rt_alloc(RT_ALLOC_L2_CL_DATA, DIM*DIM*sizeof(int));
-  if(Out == NULL) {
-    printf("Out buffer alloc failed\n");
-    return -1;
-  }
+    L1_Memory = pi_l1_malloc(0,_L1_Memory_SIZE);
+    if(L1_Memory == NULL) {
+        printf("L1_Memory buffer alloc failed\n");
+        pmsis_exit(-1);
+    }
 
-  L1_Memory = rt_alloc(RT_ALLOC_CL_DATA, _L1_Memory_SIZE);
-  if(L1_Memory == NULL) {
-    printf("L1_Memory buffer alloc failed\n");
-    return -1;
-  }
+    struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+    memset(task, 0, sizeof(struct pi_cluster_task));
+    task->entry = (void *)Process;
+    task->arg = (void *) NULL;
+    task->stack_size = (uint32_t) STACK_SIZE;
 
-  // Execute the function "Process" on the cluster.
-  rt_cluster_call(NULL, CID, (void *) Process, NULL, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), rt_event_get(NULL, end_of_app, 0));
+    pi_cluster_send_task_to_cl(&cluster_dev, task);
 
-  while(!done)
-      rt_event_execute(NULL, 1);
+    // Close the cluster
+    pi_cluster_close(&cluster_dev);
+    printf("Test success\n");
 
-  // Close the cluster
-  rt_cluster_mount(UNMOUNT, CID, 0, NULL);
-  printf("Test success\n");
+    pmsis_exit(0);
 
-  return 0;
+}
 
+
+
+int main()
+{
+    printf("\n\n\t *** PMSIS FFT 2D Autotiler Test ***\n\n");
+    return pmsis_kickoff((void *) fft_2d);
 }

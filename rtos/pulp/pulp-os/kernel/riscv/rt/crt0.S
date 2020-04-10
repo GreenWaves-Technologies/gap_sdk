@@ -99,7 +99,11 @@ is_ariane:
 
 
   /* Stack initialization */
-  la   x2, stack
+  la   a0, __rt_fc_stack_size
+  lw   a0, 0(a0)
+  la   x2, __rt_fc_stack
+  add  x2, x2, a0
+
 
 #if defined(__RT_USE_LIBC)
   la      a0, __libc_fini_array   # Register global termination functions

@@ -32,7 +32,7 @@
 #include "pmsis/task.h"
 #include "pmsis/rtos/rtos.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_time.h"
-#include "pmsis_rtos/os/pmsis_task.h"
+#include "pmsis/rtos/os/pmsis_task.h"
 
 /*******************************************************************************
  * Function implementation

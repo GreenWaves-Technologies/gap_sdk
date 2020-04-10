@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from utils.graph import Graph, Node, Edge, MatchNameNode, MatchNode
 
@@ -152,6 +156,30 @@ def test_match3():
     fragment.add_node(MatchNameNode('test2'))
     fragment.add_edge(Edge('test1', 'test2'))
     fragment.add_edge(Edge('test1', MatchNameNode('test3')))
+
+    res = G.match_fragment(fragment)
+    assert len(res) == 1
+    assert res[0].num_nodes() == 3
+    assert res[0].num_edges() == 2
+
+def test_match4():
+    G = Graph()
+    G.add_node(Node("test1"))
+    G.add_node(Node('test2'))
+    G.add_node(Node('test3'))
+    G.add_node(Node('test4'))
+    G.add_node(Node('test5'))
+    G.add_edge(Edge('test1', 'test2'))
+    G.add_edge(Edge('test2', 'test4'))
+    G.add_edge(Edge('test3', 'test4', to_idx=1))
+    G.add_edge(Edge('test4', 'test5'))
+
+    fragment = Graph()
+    fragment.add_node(MatchNameNode("test2"))
+    fragment.add_node(MatchNameNode('test3'))
+    fragment.add_node(MatchNameNode('test4'))
+    fragment.add_edge(Edge('test2', 'test4'))
+    fragment.add_edge(Edge('test3', 'test4', to_idx=1))
 
     res = G.match_fragment(fragment)
     assert len(res) == 1

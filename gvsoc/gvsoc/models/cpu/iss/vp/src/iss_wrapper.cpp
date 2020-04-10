@@ -1013,6 +1013,7 @@ int iss_wrapper::build()
   power.new_trace("power_trace", &power_trace);
 
   this->new_reg("bootaddr", &this->bootaddr_reg, get_config_int("boot_addr"));
+  
   this->new_reg("fetch_enable", &this->fetch_enable_reg, get_js_config()->get("fetch_enable")->get_bool());
   this->new_reg("is_active", &this->is_active_reg, false);
   this->new_reg("stalled", &this->stalled, false);
