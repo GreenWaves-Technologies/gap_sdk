@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 import configparser
@@ -29,7 +33,6 @@ from generation.code_generator import (DEFAULT_GEN_OPTS,
                                        CodeGenerator)
 from generation.default_template import default_template, dynamic_template
 from generation.naming_convension import DefaultNamingConvension
-from graph.types.base import NodeOptions
 from graph.matches.matches import get_fusion, get_fusions, get_std_match_group
 from graph.types.others import InputOutputParameters
 from graph.manipulations.extract import extract_node
@@ -38,6 +41,7 @@ from quantization.cross_layer_range_eq import (adjust_biases,
                                                weight_equalization)
 from quantization.simple_auto_quantify import SimpleQuantizer
 from quantization.tuneq import tuneq
+from quantization.adjust_relun import adjust_relun
 from reports.activation_reporter import ActivationReporter
 from reports.error_reporter import ErrorReporter
 from reports.filter_reporter import (FilterDetailedStatsReporter,
@@ -86,7 +90,7 @@ VALID_LOG_LEVELS = [
 EXTRA_PROPERTIES = {
     'log_level': 'set logging level (one of {} or number)'.format(", ".join(VALID_LOG_LEVELS)),
     'enable_cache': 'enable value caching',
-    'dequantize': 'dequantize TFLITE grath on load',
+    'load_quantization': 'load TFLITE quantization information',
     'fusions': 'run standard graph fusions on graph load',
     'adjust_order': 'adjust activation and parameter dimension order\
          to match autotiler on graph load',
@@ -125,7 +129,7 @@ class NNToolShell(Cmd):
         self.settings = {
             'enable_cache': True,
             'cache_dir': './.value_cache',
-            'dequantize': False,
+            'load_quantization': False,
             'fusions': False,
             'adjust_order': False,
             'weight_equalization': False,
@@ -171,6 +175,9 @@ class NNToolShell(Cmd):
             if args.template_file:
                 self.settings['template_file'] = args.template_file
 
+            if args.tf_quant:
+                self.settings['load_quantization'] = args.tf_quant
+
         if 'log_level' not in self.settings:
             self.settings['log_level'] = "INFO"
 
@@ -179,7 +186,7 @@ class NNToolShell(Cmd):
             self._startup_commands.append(self.__build_open_graph(
                 graph_file,
                 tensor_file,
-                self.dequantize
+                self.load_quantization
             ))
         else:
             self._graphs = [
@@ -305,7 +312,7 @@ class NNToolShell(Cmd):
     def inputs_and_outputs(self):
         if self.G is None:
             return []
-        return [node.name for node in chain(self.G.inputs(), self.G.outputs())]
+        return [node.name for node in chain(self.G.inputs_and_constants(), self.G.outputs())]
 
     def other_open_graphs(self, only_open=False):
         items = []
@@ -504,15 +511,15 @@ in the ~/.nntool directory"""
         LOG.setLevel(self.settings['log_level'])
         LOG.info("set log level to %s", val)
 
-    # DEQUANTIZE PROPERTY
+    # load_quantization PROPERTY
 
     @property
-    def dequantize(self):
-        return self.settings['dequantize']
+    def load_quantization(self):
+        return self.settings['load_quantization']
 
-    @dequantize.setter
-    def dequantize(self, val):
-        self.settings['dequantize'] = bool(val)
+    @load_quantization.setter
+    def load_quantization(self, val):
+        self.settings['load_quantization'] = bool(val)
 
     # FUSIONS PROPERTY
 
@@ -657,26 +664,22 @@ in the ~/.nntool directory"""
                              nargs=argparse.OPTIONAL,
                              completer_method=Cmd.path_complete,
                              help='optional tensor file')
-    parser_open.add_argument('-d', '--dequantize',
-                             help='dequantize TFLite tensors', action='store_true')
-    parser_open.add_argument('-t', '--tflite_version',
-                             help='dequantize TFLite tensors',
-                             choices=['v3', 'head'],
-                             default='v3')
+    parser_open.add_argument('-q', '--load_quantization',
+                             help='load TFLite quantization information', action='store_true')
     parser_open.add_argument('-n', '--new',
                              help='open as new graph - keep existing graph open',
                              action='store_true')
 
     @staticmethod
-    def __build_open_graph(graph_file, tensor_file, dequantize):
+    def __build_open_graph(graph_file, tensor_file, load_quantization):
         command = ["open", graph_file, "-n"]
         if tensor_file:
             command.append("-t {}".format(tensor_file))
-        if dequantize:
-            command.append("-d")
+        if load_quantization:
+            command.append("-q")
         return " ".join(command)
 
-    def __open_graph(self, graph_file, tensor_file, tflite_version, dequantize):
+    def __open_graph(self, graph_file, tensor_file, load_quantization):
 
         value_cache = IntermediateCache(self.settings['cache_dir'])\
             if self.settings['enable_cache'] else None
@@ -694,9 +697,8 @@ in the ~/.nntool directory"""
             LOG.info("opening graph file %s", graph_file)
             opts = {
                 'load_tensors': True,
-                'dequantize': dequantize,
+                'load_quantization': load_quantization,
                 'value_cache': value_cache,
-                'tflite_schema': tflite_version
             }
 
             G = create_graph(graph_file, opts=opts)
@@ -707,7 +709,7 @@ in the ~/.nntool directory"""
             self.graph_file = graph_file
             if tensor_file is not None:
                 self.tensor_file = tensor_file
-            self.settings['dequantize'] = bool(dequantize)
+            self.settings['load_quantization'] = bool(load_quantization)
             if self.settings['adjust_order']:
                 LOG.info("adjusting order")
                 self.execute_adjust_order()
@@ -729,7 +731,7 @@ Open a graph or state file"""
         else:
             # reset the current graph
             self._graphs[self._graph_idx] = NO_GRAPH.copy()
-        self.__open_graph(args.nnfile, args.tensor_file, args.tflite_version, args.dequantize)
+        self.__open_graph(args.nnfile, args.tensor_file, args.load_quantization)
         self._update_prompt()
         self.py_locals['G'] = self.G
 
@@ -780,6 +782,10 @@ Display the structure of the graph"""
                               action="store_true", help='Dump detailed statistics')
     parser_stats.add_argument('-q', '--qsnr',
                               type=float, default=30.0, help='QSNR threshold')
+    parser_stats.add_argument('-s', '--step',
+                              type=int,
+                              nargs=(1, 2),
+                              help='display information by channel for step')
     table_options(parser_stats, default_width=180)
 
     @with_argparser(parser_stats)
@@ -793,9 +799,15 @@ Display statistics on weights and biases"""
             stats = stats_collector.collect_stats(self.G)
             tab = FilterDetailedStatsReporter().report(self.G, stats)
         else:
+            step_idx = args.step
+            if step_idx is not None:
+                if len(step_idx) == 1:
+                    step_idx = step_idx[0]
+                else:
+                    step_idx = tuple(step_idx)
             stats_collector = FilterStatsCollector()
-            stats = stats_collector.collect_stats(self.G)
-            tab = FilterStatsReporter(do_totals=(fmt != "csv"), threshold=args.qsnr)\
+            stats = stats_collector.collect_stats(self.G, step_idx=step_idx)
+            tab = FilterStatsReporter(do_totals=(fmt != "csv"), threshold=args.qsnr, step_idx=step_idx)\
                 .report(self.G, stats)
         output_table(tab, args)
 
@@ -904,12 +916,30 @@ channels and may improve quantization accuracy."""
         self._check_graph()
         self.execute_weight_equalization(args.threshold, args.relun)
 
+    # BALANCE_FILTER COMMAND
+    parser_bf = Cmd2ArgumentParser()
+    parser_bf.add_argument('step',
+                           type=int, help='step to balance. should be a convolution')
+
+    @with_argparser(parser_bf)
+    def do_balance_filter(self, args: argparse.Namespace):
+        """
+Balance filter weights. THis will reduce variance in weights and will result in
+a more balanced quantization at the expense of a multiplicative bias calculation."""
+        self._check_graph()
+        self.G.balance_filter(args.step)
+
     # ASTATS COMMAND
     parser_astats = Cmd2ArgumentParser()
     parser_astats.add_argument('-q', '--qsnr',
                                type=float, default=30.0, help='QSNR threshold')
     parser_astats.add_argument('-d', '--detail',
                                action="store_true", help='Show fusions detail')
+    parser_astats.add_argument('-s',
+                               '--step',
+                               type=int,
+                               nargs=(1, 2),
+                               help='display information by channel for step. You can indicate a fusion step with two values. The step_idx and the idx of the node in the fusion.')
     table_options(parser_astats, default_width=180)
     input_options(parser_astats)
 
@@ -920,19 +950,25 @@ Calculate activation statistics on one or more imput files."""
         self._check_graph()
         input_args = self._get_input_args(args)
         stats_collector = ActivationStatsCollector()
+        step_idx = args.step
+        if step_idx is not None:
+            if len(step_idx) == 1:
+                step_idx = step_idx[0]
+            else:
+                step_idx = tuple(step_idx)
         if len(args.input_files) == 0:
             self.perror("You must enter some files to process")
             return
         for input_file in glob_input_files(args.input_files):
             LOG.info("input file %s", input_file)
             data = import_data(input_file, **input_args)
-            data = stats_collector.collect_stats(self.G, [data])
+            data = stats_collector.collect_stats(self.G, [data], step_idx=step_idx)
 
         fmt = ('tab' if args.output is None else args.output['fmt'])
         tab = ActivationReporter(do_totals=(fmt != "csv"),
                                  threshold=args.qsnr,
-                                 yield_fusions=args.detail)\
-            .report(self.G, stats_collector.reduce_stats())
+                                 yield_fusions=args.detail or isinstance(step_idx, tuple)).report(self.G,
+                                                            stats_collector.reduce_stats())
         output_table(tab, args)
 
     # FQUANT COMMAND
@@ -950,7 +986,8 @@ weights and input data are avalaible."""
         self._check_graph()
         self.G.constant_store.fake = True
         stats_collector = ActivationStatsCollector()
-        input_tensors = [np.random.normal(0, 0.2, input.dims.shape) for input in self.G.inputs()]
+        input_tensors = [np.random.normal(0, 0.2, input.dims.shape)
+                         for input in self.G.input_nodes()]
         stats_collector.collect_stats(self.G, input_tensors)
         astats = stats_collector.reduce_stats()
         stats_collector = FakeFilterStatsCollector()
@@ -970,6 +1007,10 @@ weights and input data are avalaible."""
                                      type=float, default=50.0, help='QSNR threshold')
     parser_aquant_group.add_argument('-f', '--force_width',
                                      choices=STATS_BITS, type=int, help='force all layers to this width')
+    parser_aquant.add_argument('-a', '--adjust_relun',
+                               action='store_true', help='Adjust relu N activations to match dynamic in test data.')
+    parser_aquant.add_argument('-r', '--relun_threshold',
+                               type=int, default=1, help='Threshold above floored max value to adjust relun\'s to.')
     table_options(parser_aquant, default_width=140)
     input_options(parser_aquant)
 
@@ -990,6 +1031,8 @@ Attempt to calculate quantization for graph using one or more sample imput files
             self.perror("No imput files found")
             return
         astats = stats_collector.reduce_stats()
+        if args.adjust_relun:
+            adjust_relun(self.G, astats, threshold=args.relun_threshold)
         stats_collector = FilterStatsCollector()
         fstats = stats_collector.collect_stats(self.G)
         quantizer = SimpleQuantizer(astats, fstats,
@@ -1504,6 +1547,10 @@ Show quantization error introduced by processing one or more input files."""
                              nargs='?',
                              default=0,
                              type=int, help='edge index')
+    parser_tune.add_argument('-f',
+                             '--sub_step_fusion',
+                             type=int,
+                             help='index of the subnode for qtune inside of a fused one')
 
     @with_argparser(parser_tune)
     def do_qtune(self, args):

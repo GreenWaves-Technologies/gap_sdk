@@ -7,8 +7,18 @@ platform = $(PMSIS_PLATFORM)
 endif
 endif
 
+ifeq '$(PMSIS_OS)' 'pulpos'
+ifeq '$(TARGET_CHIP)' 'GAP9_V2'
+export USE_PULPOS=1
+endif
+endif
+
 ifndef USE_PULPOS
 ifeq ($(BOARD_NAME), gapoc_a)
+COMMON_CFLAGS          += -DCONFIG_GAPOC_A
+PLPBRIDGE_EXTRA_FLAGS        += -ftdi
+
+else ifeq ($(BOARD_NAME), gapoc_a_revb)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_A
 PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
@@ -95,9 +105,10 @@ include $(GAP_SDK_HOME)/tools/rules/zephyr_rules.mk
 else
 
 ifeq '$(USE_PULPOS)' '1'
-
+ifndef PULP_APP
 PULP_APP = $(APP)
-PULP_APP_SRCS = $(APP_SRCS)
+endif
+PULP_APP_SRCS += $(APP_SRCS)
 PULP_CFLAGS  += $(foreach d, $(APP_INC), -I$d) $(APP_CFLAGS) $(COMMON_CFLAGS)
 PULP_LDFLAGS += $(APP_LDFLAGS) $(COMMON_LDFLAGS)
 
@@ -105,8 +116,6 @@ include $(PULPOS_HOME)/rules/pulpos.mk
 
 BUILDDIR      = $(TARGET_BUILD_DIR)
 BIN           = $(TARGETS)
-
-$(info $(BUILDDIR))
 
 else
 

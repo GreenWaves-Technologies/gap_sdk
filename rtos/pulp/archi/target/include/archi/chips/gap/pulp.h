@@ -30,9 +30,10 @@
 #include "archi/eu/eu_v3.h"
 #include "archi/gpio/gpio_v2.h"
 #include "archi/soc_eu/soc_eu_v1.h"
-#include "archi/hwce/hwce_v4_old.h"
 #include "archi/dma/mchan_v6.h"
 #include "archi/pwm/v1/pwm_v1.h"
+#include "archi/hwce/hwce_v4_old.h"
+#include "archi/hwce/v4/hwce.h"
 
 #include "archi/udma/cpi/udma_cpi_v1_old.h"
 #include "archi/udma/cpi/udma_cpi_v1.h"

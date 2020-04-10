@@ -54,15 +54,6 @@
 #define HWCE_ACQUIRE_QUEUE_FULL   -1
 #define HWCE_ACQUIRE_READY        0
 
-#define HWCE_GEN_CONFIG0_WSTRIDE(x) ((x) >> 16)
-#define HWCE_GEN_CONFIG0_NCP(x)     (((x) >> 13) & 0x1)
-#define HWCE_GEN_CONFIG0_CONV(x)    (((x) >> 11) & 0x3)
-#define HWCE_GEN_CONFIG0_VECT(x)    (((x) >> 9) & 0x3)
-#define HWCE_GEN_CONFIG0_UNS(x)     (((x) >> 8) & 1)
-#define HWCE_GEN_CONFIG0_NY(x)      (((x) >> 7) & 1)
-#define HWCE_GEN_CONFIG0_NF(x)      (((x) >> 6) & 1)
-#define HWCE_GEN_CONFIG0_QF(x)      ((x) & 0x3f)
-
 #define HWCE_GEN_CONFIG0_CONV_5x5 0
 #define HWCE_GEN_CONFIG0_CONV_3x3 1
 #define HWCE_GEN_CONFIG0_CONV_4x7 2
@@ -70,21 +61,6 @@
 #define HWCE_GEN_CONFIG0_VECT_1 0
 #define HWCE_GEN_CONFIG0_VECT_2 1
 #define HWCE_GEN_CONFIG0_VECT_4 2
-
-#define HWCE_GEN_CONFIG1_PIXSHIFTR(x)  (((x) >> 16) & 0x1F)
-#define HWCE_GEN_CONFIG1_PIXMODE(x)    (((x) >> 8) & 0x3)
-#define HWCE_GEN_CONFIG1_PIXSHIFTL(x)  (((x) >> 0) & 0x1F)
-
-#define HWCE_JOB_CONFIG0_NOYCONST(x) ((x) >> 16)
-#define HWCE_JOB_CONFIG0_LBUFLEN(x)  ((x) & 0x3ff)
-
-#define HWCE_JOB_CONFIG1_LO(x)                (((x) >> 24) & 0x1)
-#define HWCE_JOB_CONFIG1_WIF(x)               (((x) >> 16) & 0x3F)
-#define HWCE_JOB_CONFIG1_WOF(x)               (((x) >> 8) & 0x1F)
-#define HWCE_JOB_CONFIG1_VECT_DISABLE_MASK(x) (((x) >> 0) & 0xF)
-
-#define HWCE_JOB_STRIDE(x) ((x) >> 16)
-#define HWCE_JOB_LENGTH(x) ((x) & 0xffff)
 
 /* utility constants - used by hwce_rt and other libs */
 

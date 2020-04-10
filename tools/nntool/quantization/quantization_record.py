@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Sequence
 
@@ -73,13 +77,14 @@ class QuantizationRecord(JsonSerializable):
 
 class FilterQuantizationRecord(QuantizationRecord):
     def __init__(self, *args, calc_q: QType = None, acc_q: QType = None,
-                 biases_q: QType = None, weights_q: QType = None, info=None, **kwargs):
+                 biases_q: QType = None, weights_q: QType = None, mul_biases_q: QType = None, info=None, **kwargs):
         super(FilterQuantizationRecord, self).__init__(*args, info=info, **kwargs)
         if info is None:
             self._info['calc_q'] = calc_q
             self._info['acc_q'] = acc_q
             self._info['biases_q'] = biases_q
             self._info['weights_q'] = weights_q
+            self._info['mul_biases_q'] = mul_biases_q
 
     def set_qs(self, **kwargs):
         super().set_qs(**kwargs)
@@ -87,15 +92,18 @@ class FilterQuantizationRecord(QuantizationRecord):
         self._info['acc_q'] = kwargs.get('acc_q')
         self._info['biases_q'] = kwargs.get('biases_q')
         self._info['weights_q'] = kwargs.get('weights_q')
+        self._info['mul_biases_q'] = kwargs.get('mul_biases_q')
 
     @property
     def calc_q(self) -> QType:
         calc_q = self._info.get('calc_q')
         if calc_q:
             return calc_q
-        return QType(bits=closest_greater(self.in_qs[0].bits + self.weights_q.bits),
+        if hasattr(self.in_qs[0], 'bits') and hasattr(self.weights_q, 'bits'):
+            return QType(bits=closest_greater(self.in_qs[0].bits + self.weights_q.bits),
                      q=self.in_qs[0].q + self.weights_q.q,
                      signed=True)
+            
     @property
     def acc_q(self) -> QType:
         return self._info.get('acc_q')
@@ -107,6 +115,10 @@ class FilterQuantizationRecord(QuantizationRecord):
     @property
     def weights_q(self) -> QType:
         return self._info.get('weights_q')
+
+    @property
+    def mul_biases_q(self) -> QType:
+        return self._info.get('mul_biases_q')
 
     @calc_q.setter
     def calc_q(self, val: QType):
@@ -123,3 +135,7 @@ class FilterQuantizationRecord(QuantizationRecord):
     @weights_q.setter
     def weights_q(self, val: QType):
         self._info['weights_q'] = val
+
+    @mul_biases_q.setter
+    def mul_biases_q(self, val: QType):
+        self._info['mul_biases_q'] = val

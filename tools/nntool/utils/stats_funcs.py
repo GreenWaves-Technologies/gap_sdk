@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
 
@@ -17,25 +21,23 @@ from quantization.qtype import QType
 
 STATS_BITS = [8, 16, 32]
 
+def range_twos_complement(bits):
+    return (math.pow(-2, bits - 1), math.pow(2, bits - 1) - 1)
+
 def calc_bits(num, signed=True):
     abs_num = math.floor(math.fabs(num))
-    # calculate number of bits to represent absolute number
+    if num < 0 and abs_num > 0:
+        abs_num -= 1
     if abs_num == 0:
-        num_bits = 0
-    else:
-        num_bits = math.floor(math.log(abs_num) / math.log(2)) + 1
-    # if signed positive then one more bit is required for the unused sign
-    if signed and num >= 0:
-        num_bits += 1
-    return num_bits
+        return 1
+    # calculate number of bits to represent absolute number
+    return math.floor(math.log(abs_num) / math.log(2)) + 2
 
 def bits(max_num, min_num, signed=True):
     assert signed or (max_num >= 0 and min_num >= 0), "numeric error"
     return max(calc_bits(min_num), calc_bits(max_num))
 
-def astats(npa, do_bits=True):
-    """Extracts statistics from a tensor
-    """
+def do_stat(npa, do_bits=True, channel_dim=None, all_channel_range=None):
     mean = float(np.mean(npa))
     std = float(np.std(npa))
     amax = float(np.amax(npa))
@@ -70,6 +72,30 @@ def astats(npa, do_bits=True):
     }
     if do_bits:
         ret['ibits'] = bits(amax, amin)
+    # all_channel_range must not be 0
+    if all_channel_range and npa.size > 1:
+        if channel_dim is not None:
+            # there is no point to this if there is only one item per channel
+            if not all(npa.shape[axis] == 1 if axis != channel_dim else True for axis in range(len(npa.shape))):
+                dims = tuple(dim for dim in range(len(npa.shape)) if dim != channel_dim)
+                ret['min_prec'] = np.average(np.ptp(npa, axis=dims)/all_channel_range)
+        else:
+            ret['min_prec'] = np.ptp(npa)/all_channel_range
+
+    return ret
+
+def astats(npa, do_bits=True, channel_dim=None, channel_details=None):
+    """Extracts statistics from a tensor
+    """
+    all_channel_range = np.ptp(npa)
+    ret = do_stat(npa, do_bits=do_bits, channel_dim=channel_dim, all_channel_range=all_channel_range)
+    if channel_details and channel_dim is not None:
+        idx = [slice(None) for dim in npa.shape]
+        channel_data = []
+        for channel in range(npa.shape[channel_dim]):
+            idx[channel_dim] = slice(channel, channel + 1)
+            channel_data.append(do_stat(npa[tuple(idx)], do_bits=True, all_channel_range=all_channel_range))
+        ret['channel_stats'] = channel_data
     return ret
 
 def max_error(orig, quant):
@@ -104,7 +130,7 @@ def calculate_qsnr(npa, bit_size, frac_bits):
     qnpa = (qnpa / 2.0 ** frac_bits)
     return qsnr(npa, qnpa)
 
-def calculate_qsnrs(npa, ideal_ibits, force_ideal=True):
+def calculate_qsnrs(npa, ideal_ibits, force_ideal=False):
     """"Walk away from the ideal whole bit representation to see if
         there is something better around it.
     """
@@ -114,7 +140,7 @@ def calculate_qsnrs(npa, ideal_ibits, force_ideal=True):
         """
         nonlocal store
 
-        if frac_bits < 0 or frac_bits > bit_size:
+        if frac_bits < 0 or frac_bits >= bit_size:
             return -math.inf
         if frac_bits not in store:
             store[frac_bits] = calculate_qsnr(npa, bit_size, frac_bits)
@@ -128,7 +154,7 @@ def calculate_qsnrs(npa, ideal_ibits, force_ideal=True):
 
     for bit_size in STATS_BITS:
 
-        frac_bits = max(bit_size - ideal_ibits, 0)
+        frac_bits = min(max(bit_size - ideal_ibits, 0), bit_size -  1)
 
         if force_ideal:
             get_qsnr(npa, bit_size, frac_bits)

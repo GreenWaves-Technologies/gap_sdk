@@ -6,7 +6,7 @@
     },
 
     "rtl": {
-        "runner_module": "runner.chips.gap8"
+        "runner_module": "runner.rtl.chips.gap8"
     },
 
     "runner": {

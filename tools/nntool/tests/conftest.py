@@ -26,6 +26,8 @@ CIFAR10_GRAPH = 'tests/graph/cifar10_model.tflite'
 KWS_GRAPH = 'tests/graph/kws.tflite'
 VISUAL_GRAPH = 'tests/graph/visual_wake.tflite'
 CONCAT_TEST_GRAPH = 'tests/graph/concat_test.tflite'
+QVISUAL_GRAPH = 'tests/graph/model_quantized.tflite'
+MN3_GRAPH = 'tests/graph/v3-large_224_1.0_float.tflite'
 
 MNIST_IMAGES = glob('tests/images/*.pgm')
 VWW_IMAGES = glob('tests/vwwimages/*.png')
@@ -57,7 +59,7 @@ def save_state(temp_dir, width, fusions=False, adjust=False):
 @pytest.fixture()
 def two_conv_graph():
     G = NNGraph(name='two_conv_graph')
-    ti = G.add_input(Dim.unnamed([10, 10, 2]))
+    ti = G.add_input(Dim.unnamed([10, 10, 2])).name
     c1filt = Conv2DFilterDim(3, 3, 2, in_c=2)
     c1filt.impose_order(['out_c', 'h', 'w', 'in_c'])
     n1 = Conv2DParameters("node1",
@@ -120,6 +122,10 @@ def vww_graph():
     yield VISUAL_GRAPH
 
 @pytest.fixture(scope="session")
+def qvww_graph():
+    yield QVISUAL_GRAPH
+
+@pytest.fixture(scope="session")
 def mnist_graph():
     yield MNIST_GRAPH
 
@@ -142,6 +148,10 @@ def kws_graph():
 @pytest.fixture(scope="session")
 def concat_test_graph():
     yield CONCAT_TEST_GRAPH
+
+@pytest.fixture(scope="session")
+def mn3_graph():
+    yield MN3_GRAPH
 
 @pytest.fixture(scope="session")
 def ir_images():

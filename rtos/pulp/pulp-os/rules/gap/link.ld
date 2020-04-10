@@ -32,9 +32,6 @@ SECTIONS
     *(.fcTcdm_g)
     *(.fcTcdm_g.*)
     . = ALIGN(16);
-    stack_start = .;
-    . = . + 0x800;
-    stack = .;
   } > fc_tcdm
 
   __fc_tcdm_end = ALIGN(4);

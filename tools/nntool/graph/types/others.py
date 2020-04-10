@@ -1,25 +1,29 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import sys
 from functools import reduce
 
-from generation.kernel_parameters import GenCtrl
-
 from ..dim import Dim
-from .base import (FilterParameters, NoSizeChangeParameters, Parameters,
-                   SensitiveToOrder, SingleInputAndOutput, Transposable, NodeOptions)
+from .base import (FilterParameters, NodeOptions, NoSizeChangeParameters,
+                   Parameters, SameNumberOfDimensionsForInputs,
+                   SensitiveToOrder, SingleInputAndOutput, Transposable)
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 class InputOutputParameters(Transposable):
 
@@ -67,35 +71,8 @@ class InputOutputParameters(Transposable):
     def clone(self, name, groupn=None):
         raise NotImplementedError()
 
-class InputParameters(InputOutputParameters):
-    op_name = "input"
 
-    def set_input(self, value):
-        try:
-            value = value.reshape(self.dims.shape)
-        except ValueError as ex:
-            trace_back = sys.exc_info()[2]
-            raise ValueError(
-                "Input data dimensions are not compatible with graph input: {!s}".format(ex)
-            ).with_traceback(trace_back)
-        self.output_value = value
-
-    # @property
-    # def can_promoteq(self):
-    #     return self.out_q.bits < STATS_BITS[-1]
-
-    # def promoteq(self):
-    #     if self.out_q.bits == STATS_BITS[-1]:
-    #         raise ValueError("can't step further")
-    #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
-    #     return True
-
-    def __str__(self):
-        return "I {} {} {}".format(
-            self.dims,
-            Transposable.__str__(self),
-            self.at_options
-        )
+class InputBaseParameters(InputOutputParameters):
 
     @property
     def in_dims(self):
@@ -108,6 +85,13 @@ class InputParameters(InputOutputParameters):
     def in_dims(self, val):
         pass
 
+    def __str__(self):
+        return "I {} {} {}".format(
+            self.dims,
+            Transposable.__str__(self),
+            self.at_options
+        )
+
     def get_output_size(self, _):
         out_dim = self.dims.clone()
         if self.transpose_out:
@@ -116,8 +100,60 @@ class InputParameters(InputOutputParameters):
             out_dim.apply_naming_hints(self.out_dims_hint[0])
         return [out_dim]
 
+
+class InputParameters(InputBaseParameters):
+    op_name = "input"
+
+    def set_input(self, value):
+        try:
+            value = value.reshape(self.dims.shape)
+        except ValueError as ex:
+            trace_back = sys.exc_info()[2]
+            raise ValueError(
+                "Input data dimensions are not compatible with graph input: {!s}".format(ex)
+            ).with_traceback(trace_back)
+        self.output_value = value
+
     def clone(self, name, groupn=None):
         raise NotImplementedError()
+
+    # @property
+    # def can_promoteq(self):
+    #     return self.out_q.bits < STATS_BITS[-1]
+
+    # def promoteq(self):
+    #     if self.out_q.bits == STATS_BITS[-1]:
+    #         raise ValueError("can't step further")
+    #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
+    #     return True
+
+
+class ConstantInputParameters(InputBaseParameters):
+    op_name = "constant"
+
+    def __init__(self, *args, **kwargs):
+        self.value = None
+        super(ConstantInputParameters, self).__init__(*args, **kwargs)
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def get_parameter_size(self):
+        return self.dims.size()
+
+    def get_parameters(self):
+        return {'value': self.value}
+
+    def set_parameters(self, val):
+        self.value = val['value']
+
+    def __str__(self):
+        return "Const {} {} {}".format(
+            self.dims,
+            Transposable.__str__(self),
+            self.at_options
+        )
+
 
 class OutputParameters(InputOutputParameters):
     op_name = "output"
@@ -149,6 +185,7 @@ class OutputParameters(InputOutputParameters):
     def clone(self, name, groupn=None):
         raise NotImplementedError()
 
+
 class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
 
     def __init__(self, name, activation="relu", activation_params=None):
@@ -176,11 +213,17 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
         # TODO - Be more accurate with different activation types
         return self.out_dims[0].size()
 
+    def activation_to_string(self):
+        if self.activation == "relun":
+            return "relun({})".format(self.activation_params)
+        return self.activation
+
     def __str__(self):
         return "Activation {} {}".format(
-            self.activation,
+            self.activation_to_string(),
             self.at_options
         )
+
 
 class TransposeParameters(Transposable, SingleInputAndOutput):
     op_name = "transpose"
@@ -191,6 +234,9 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     def get_parameter_size(self):
         return 0
+
+    def permute(self, val):
+        return [val[i] for i in self.transpose_in]
 
     @property
     def can_equalize(self):
@@ -219,7 +265,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
     def transpose_dimension(self):
         if self._transpose_in is None:
             return 1
-        return len(self.transpose_elements())
+        return len(self.transpose_in)
 
     @property
     def transpose_out(self):
@@ -244,6 +290,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
             self.transpose_in and ','.join([str(i) for i in self.transpose_in]) or "None",
             self.at_options
         )
+
 
 class ConcatParameters(Transposable):
     op_name = "concat"
@@ -278,19 +325,69 @@ class ConcatParameters(Transposable):
             self.at_options
         )
 
-class FusionParameters(Parameters, SingleInputAndOutput):
-    '''Fusion of operators. At present restricted to single input and output but
-    this could be removed perhaps'''
-
-    op_name = "fusion"
+class FusionBase(Parameters):
+    fusion_op_name = "!!NOT SET!!"
 
     def __init__(self, name, fusion_type, subgraph):
-        super(FusionParameters, self).__init__(name)
+        super(FusionBase, self).__init__(name)
         self._subgraph = subgraph
         nodes = self.contained_nodes()
         self.in_dims_hint = nodes[0].in_dims_hint
         self.out_dims_hint = nodes[-1].out_dims_hint
         self.fusion_type = fusion_type
+
+    @property
+    def op_name(self):
+        return self.fusion_op_name + '_' + self.fusion_type
+
+    @property
+    def subgraph(self):
+        return self._subgraph
+
+    def contained_nodes(self):
+        return [node for node in self.subgraph.dfs()]
+
+    def get_contained_node(self, name):
+        return next((n for n in self.contained_nodes() if n.name == name), None)
+
+    @property
+    def can_equalize(self):
+        return all([param.can_equalize for param in self.contained_nodes()])
+
+    def clone(self, name, groupn=None):
+        return self.__class__(name, self.fusion_type, self._subgraph)
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+
+        out_dims = in_dims
+
+        for node in self.contained_nodes():
+            out_dims = node.get_output_size(out_dims)
+
+        return out_dims
+
+    def __str__(self):
+        return "{}".format(", ".join([str(node).strip() for node in self.contained_nodes()]))
+
+
+class MatScaleFusionParameters(FusionBase):
+    fusion_op_name = "matscale"        
+
+    def __init__(self, *args, activation=None, **kwargs):
+        self.activation = activation
+        super(MatScaleFusionParameters, self).__init__(*args, **kwargs)
+
+    def get_output_size(self, in_dims):
+        return [Dim.broadcast(in_dims)]
+
+class ConvFusionParameters(FusionBase, SingleInputAndOutput):
+    '''Fusion of operators. At present restricted to single input and output but
+    this could be removed perhaps'''
+
+    fusion_op_name = "conv_fusion"
 
     def _init_at_options(self):
         if self._at_options is None:
@@ -325,44 +422,18 @@ class FusionParameters(Parameters, SingleInputAndOutput):
         if filters:
             return filters[0].quantized_biases
 
+    def __str__(self):
+        return "{} {}".format(", ".join([str(node).strip() for node in self.contained_nodes()]), self.gen_ctrl or "")
+
     # # Needs to be refactored out
     # @property
     # def params(self):
     #     return self._nodes
 
-    @property
-    def subgraph(self):
-        return self._subgraph
-
-    def contained_nodes(self):
-        return [node for node in self.subgraph.dfs()]
-
-    def get_contained_node(self, name):
-        return next((n for n in self.contained_nodes() if n.name == name), None)
-
-    def get_output_size(self, in_dims):
-
-        assert len(in_dims) == 1
-        out_dims = in_dims
-
-        for node in self.contained_nodes():
-            out_dims = node.get_output_size(out_dims)
-
-        return out_dims
-
-    @property
-    def can_equalize(self):
-        return all([param.can_equalize for param in self.contained_nodes()])
-
-    def clone(self, name, groupn=None):
-        return FusionParameters(name, self.fusion_type, self._subgraph)
-
     def compute_load(self):
-        return sum([load if load else 0 for load in [node.compute_load()\
-            for node in self.contained_nodes()]])
+        return sum([load if load else 0 for load in [node.compute_load()
+                                                     for node in self.contained_nodes()]])
 
-    def __str__(self):
-        return "{} {}".format(",".join([str(node) for node in self.contained_nodes()]), self.gen_ctrl or "")
 
 class GroupParameters(Parameters, SensitiveToOrder):
 
@@ -402,6 +473,7 @@ class GroupParameters(Parameters, SensitiveToOrder):
             self.groups
         )
 
+
 class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     op_name = "pad"
 
@@ -432,6 +504,39 @@ class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     def __str__(self):
         return "PAD {}".format(self.padding)
+
+
+class GlobalPoolParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+    op_name = "global"
+
+    def __init__(self, name, pool_type="average", in_dims_hint=None, out_dims_hint=None):
+
+        super(GlobalPoolParameters, self).__init__(name,
+                                                   in_dims_hint=in_dims_hint,
+                                                   out_dims_hint=out_dims_hint)
+        self.pool_type = pool_type
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        assert len(in_dims) == 1
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        out_dim = self.in_dims[0].clone()
+        out_dim.w = 1
+        out_dim.h = 1
+        return [out_dim]
+
+    @property
+    def can_equalize(self):
+        return True
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "GLOBAL {}".format(self.pool_type)
+
 
 class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
@@ -471,6 +576,7 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
             self.algo,
             self.factor
         )
+
 
 class ReshapeParameters(Transposable, SingleInputAndOutput):
     '''This class covers reshapes and transposes'''
@@ -529,6 +635,7 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
             Transposable.__str__(self)
         )
 
+
 class YoloParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
 
     op_name = "yolo"
@@ -555,10 +662,8 @@ class YoloParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOr
             self.classes, self.total, self.mask, self.max_boxes
         )
 
-class MatrixAddParameters(NoSizeChangeParameters):
 
-    op_name = "add"
-
+class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForInputs):
     @property
     def can_equalize(self):
         return False
@@ -572,8 +677,29 @@ class MatrixAddParameters(NoSizeChangeParameters):
     def compute_load(self):
         return self.out_dims[0].size() * 2
 
+    def get_output_size(self, in_dims):
+        max_idx, _ = max(enumerate(in_dims), key=lambda x: x[1].size())
+        return [in_dims[max_idx]]
+
     def __str__(self):
-        return "{}".format(self.at_options)
+        return "{} {}".format(self.op_name, self.at_options)
+
+
+class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):
+    op_name = "add"
+
+
+class MatrixMulParameters(MatrixBroadcastedLinearOpParameters):
+    op_name = "mul"
+
+
+class MatrixSubParameters(MatrixBroadcastedLinearOpParameters):
+    op_name = "sub"
+
+
+class MatrixDivParameters(MatrixBroadcastedLinearOpParameters):
+    op_name = "div"
+
 
 class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
 
@@ -603,8 +729,11 @@ class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveT
         )
 
 # pylint: disable=abstract-method
+
+
 class UnexecutableOpParameters(Parameters):
     pass
+
 
 class UnconvertedOpParameters(UnexecutableOpParameters):
 
@@ -638,6 +767,7 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
 
     def __str__(self):
         return self.indicated_op_name
+
 
 class UnknownOpParameters(UnexecutableOpParameters):
 

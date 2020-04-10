@@ -1028,6 +1028,8 @@ def gen_gtkw_files(config, gv_config):
                             [tp.get('overview', 'sys.board.chip.cluster.dma.channel_15', '[7:0]'), 'channel_15'],
                         ])
 
+                        gtkw.trace(tp.get('overview', 'sys.board.chip.cluster.hwce.busy'), 'hwce')
+
                         gtkw.trace(tp.get('overview', 'sys.board.chip.cluster_clock.period'), 'period')
                         gtkw.trace(tp.get('clock', 'sys.board.chip.cluster_clock.cycles'), 'cycles')
 
@@ -1063,6 +1065,9 @@ def gen_gtkw_files(config, gv_config):
                             check_user_traces(gtkw, tp, 'chip.cluster.icache', user_traces)
                             gen_gtkw_icache_traces(gtkw, tp, 'sys.board.chip.cluster.icache', 1<<config.get_int('**/cluster/icache/nb_ways_bits'), 1<<config.get_int('**/cluster/icache/nb_sets_bits'))
 
+                        with gtkw.group('hwce', closed=True):
+                            gtkw.trace(tp.get('hwce', 'sys.board.chip.cluster.hwce.conv_exec'), 'conv_exec')
+                            gtkw.trace(tp.get('hwce', 'sys.board.chip.cluster.hwce.conv_value', '[31:0]'), 'conv_out')
 
         print ()
         print ('A Gtkwave script has been generated and can be opened with the following command:')

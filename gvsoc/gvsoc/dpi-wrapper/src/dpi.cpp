@@ -25,13 +25,15 @@
 
 using namespace std;
 
-extern "C" void *dpi_open()
+extern "C" void dpi_external_edge(int handle, int value);
+
+extern "C" void *dpi_open(char *config_path)
 {
-  void *handle = gv_open("/home/haugoug/src/pulp-sdk/tests/pmsis_tests/quick/hello/build/gvsoc_config.json", 0, NULL, 0, 0);
+  void *handle = gv_open(config_path, 0, NULL, 0, 0);
   return handle;
 }
 
-extern "C" void *dpi_bind(void *handle, char *name)
+extern "C" void *dpi_bind(void *handle, char *name, int sv_handle)
 {
   void *result = gv_chip_pad_bind(handle, name);
   return result;

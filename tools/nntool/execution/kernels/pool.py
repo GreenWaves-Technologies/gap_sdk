@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 
@@ -18,12 +22,14 @@ from .utils import pad, srange
 LOG = logging.getLogger("nntool." + __name__)
 
 # pylint: disable=too-many-arguments, too-many-locals
+
+
 def av_pool(params, in_dims, out_dims, in_tensor, qrec=None):
     # Prepare the quantization levels
 
     filter_sz = params.filter.h * params.filter.w
     if qrec:
-        pool_factor = (1<<16)//filter_sz
+        pool_factor = (1 << 16)//filter_sz
         dtype = np.int32
     else:
         pool_factor = 1.0/filter_sz
@@ -59,6 +65,7 @@ def av_pool(params, in_dims, out_dims, in_tensor, qrec=None):
 
     return out_tensor
 
+
 def max_pool(params, in_dims, out_dims, in_tensor, qrec=None):
     dtype = qrec.out_qs[0].dtype if qrec else None
     out_tensor = np.zeros(out_dims.shape, dtype=dtype)
@@ -86,3 +93,42 @@ def max_pool(params, in_dims, out_dims, in_tensor, qrec=None):
             out_h += 1
 
     return out_tensor
+
+
+def gap_clb(sum_):
+    '''Count Leading 0s or 1s'''
+    sum_bin = [np.binary_repr(sum_elem, width=32) for sum_elem in sum_]
+    return [len(s) - len(s.lstrip(s[0])) - 1 for s in sum_bin]
+
+
+def av_global_pool(params, in_dims, out_dims, in_tensor, qrec=None):
+    # Prepare the quantization levels
+    if qrec:
+        dtype = np.int32
+    else:
+        dtype = None
+
+    sum_by_chan = np.sum(in_tensor, dtype=dtype, axis=(
+        in_dims.get_order_idx('w'), in_dims.get_order_idx('h')))
+
+    if qrec:
+        norm = (np.array([31], dtype=np.int32) - gap_clb(sum_by_chan)).astype(np.int32)
+        inv_wh = (1 << norm) // (in_dims.h * in_dims.w)
+        out_tensor = (inv_wh * sum_by_chan) >> norm
+        return qrec.out_qs[0].clip(out_tensor).reshape(out_dims.shape)
+
+    return (sum_by_chan / (in_dims.h * in_dims.w)).reshape(out_dims.shape)
+
+
+def max_global_pool(params, in_dims, out_dims, in_tensor, qrec=None):
+    # Prepare the quantization levels
+    if qrec:
+        dtype = out_dims.dtype
+    else:
+        dtype = None
+
+    return np.max(in_tensor,
+                  dtype=dtype,
+                  axis=(in_dims.get_order_idx('w'),
+                        in_dims.get_order_idx('h')),
+                  keepdims=True)

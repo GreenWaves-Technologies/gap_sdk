@@ -1,4 +1,4 @@
-# Copyright (C) 2017 GreenWaves Technologies
+# Copyright (C) 2020 GreenWaves Technologies
 # All rights reserved.
 
 # This software may be modified and distributed under the terms
@@ -14,10 +14,12 @@ APP_SRCS += Cifar10.c Cifar10Kernels.c \
             $(CNN_AT_PATH)/CNN_Pooling_BasicKernels.c
 APP_INC += $(TILER_INC) $(CNN_AT_PATH)
 
+COEF_FLAG = -DCOEF_L2
+
 APP_CFLAGS += -O2 -mno-memcpy -fno-tree-loop-distribute-patterns  -fdata-sections -ffunction-sections
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-APP_CFLAGS += -Wall -Wno-maybe-uninitialized -Wno-unused-but-set-variable
+APP_CFLAGS += -w -Wno-maybe-uninitialized -Wno-unused-but-set-variable $(COEF_FLAG)
 #APP_CFLAGS += -I$(TILER_INC) -I$(CNN_AT_PATH)
 
 LDFLAGS +=  -flto -Wl,--gc-sections
@@ -55,7 +57,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenCifar10 -I$(TILER_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(CNN_AT_PATH)/CNN_Generators.c $(TILER_LIB)
+	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(CNN_AT_PATH)/CNN_Generators.c $(TILER_LIB)
 
 # Run the code generator
 Cifar10Kernels.c: GenTile

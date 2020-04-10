@@ -44,7 +44,9 @@ artifact.pulpos:
 
 artifact: artifact.archi artifact.hal artifact.pulpos
 
-build: build.archi build.hal build.gap_archi
+build.pulprt:
 ifneq '$(TARGET_CHIP)' 'GAP9_V2'
 	$(MAKE) -C pulp-os -f gap_sdk.mk $(TARGET_NAME)
 endif
+
+build: build.archi build.hal build.gap_archi build.pulprt

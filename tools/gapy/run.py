@@ -76,12 +76,15 @@ def appendPlatform(subparsers, config):
         runner_module = plt_config.get_str('runner_module')
 
         if runner_module is not None:
-            runner = import_runner(runner_module)
+            try:
+                runner = import_runner(runner_module)
 
-            parser = subparsers.add_parser(
-                plt_name,
-                help = plt_config.get_str('description'))
-            runner.appendArgs(parser, config)
+                parser = subparsers.add_parser(
+                    plt_name,
+                    help = plt_config.get_str('description'))
+                runner.appendArgs(parser, config)
+            except:
+                pass
 
 
 def appendArgs(parser: argparse.ArgumentParser, config: js.config) -> None:
@@ -123,6 +126,10 @@ def appendArgs(parser: argparse.ArgumentParser, config: js.config) -> None:
                         action = "store_true",
                         help = "Upload all images on the target (e.g. write flash image to the flash)")
 
+    parser.add_argument("--exec-prepare", dest = "exec_prepare",
+                        action = "store_true",
+                        help = "Launch execution on the target")
+
     parser.add_argument("--exec", dest = "exec",
                         action = "store_true",
                         help = "Launch execution on the target")
@@ -136,6 +143,8 @@ def operationFunc(args, config = None):
 
     #if args.target is None:
     #    raise InputError('The target must be specified')
+
+    config.set('runner/platform', args.platform)
 
     if args.binary is not None:
         config.set('runner/boot-loader', args.binary)

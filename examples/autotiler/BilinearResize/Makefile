@@ -23,7 +23,9 @@ APP_SRCS += ResizeKernels.c $(RESIZE_KER_PATH)/ResizeBasicKernels.c
 APP_INC += . $(TILER_EMU_INC) $(TILER_INC) $(RESIZE_KER_PATH)
 
 APP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns $(USER_FLAGS)
-APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
+APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable
+APP_CFLAGS += -DOUT_FILE_PATH=\"$(CURDIR)/resized_out.ppm\"
+APP_CFLAGS += -DIN_FILE_PATH=\"$(CURDIR)/Pedestrian.ppm\"
 
 MODEL_SRC = ResizeModel.c
 MODEL_GEN = ResizeKernels

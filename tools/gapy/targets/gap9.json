@@ -1,0 +1,33 @@
+{
+    "@include@": "common.json",
+
+    "target": {
+        "@includes@": [ "chips/vega/vega.json" ],
+      
+        "board": {
+            "name": "vega"
+        }
+    },
+
+    "gvsoc": {
+        "runner_module": "gv.chips.vega"
+    },
+
+    "rtl": {
+        "runner_module": "runner.rtl.chips.vega",
+
+        "vsim": {
+            "path_envvar": "PULP_RTL_VEGA"
+        }
+    },
+
+    "runner": {
+        "flash_devices": [
+          "target/board/devices/flash"
+        ],
+        "boot": {
+            "mode": "flash",
+            "device": "target/board/devices/flash"
+        }
+    }
+}

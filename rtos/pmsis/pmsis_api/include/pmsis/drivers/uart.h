@@ -57,6 +57,8 @@ struct pi_uart_conf
     uint8_t enable_rx;      /*!< 1 to activate reception, 0 to deactivate it. */
     uint8_t enable_tx;      /*!< 1 to activate transmission, 0 to deactivate it. */
     uint8_t uart_id;        /*!< Uart interface ID. */
+    uint8_t use_ctrl_flow;  /*!< 1 to activate control flow. */
+    uint8_t is_usart;       /*!< 1 to activate usart */
 };
 
 /**

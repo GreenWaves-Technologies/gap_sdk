@@ -22,6 +22,10 @@
               "type": "readfs",
               "files": []
           },
+          "hostfs": {
+              "type": "hostfs",
+              "files": []
+          },
           "lfs": {
               "type": "lfs",
               "root_dir": []

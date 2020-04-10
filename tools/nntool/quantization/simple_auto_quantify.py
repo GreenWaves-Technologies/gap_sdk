@@ -1,24 +1,33 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from collections import OrderedDict
 
 from graph.nngraph import NNGraph
-from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
-                         FusionParameters, InputParameters,
-                         MatrixAddParameters, Parameters, SoftMaxParameters)
+from graph.types import (ActivationParameters, ConcatParameters,
+                         ConstantInputParameters, Conv2DParameters,
+                         ConvFusionParameters, FcParameters, InputParameters,
+                         MatrixAddParameters,
+                         MatrixBroadcastedLinearOpParameters,
+                         MatScaleFusionParameters,
+                         MultiplicativeBiasParameters, Parameters,
+                         SoftMaxParameters)
 from utils.json_serializable import JsonSerializable
 from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
-from utils.stats_funcs import STATS_BITS, bits
+from utils.stats_funcs import STATS_BITS, bits, calc_bits
 
 from .qtype import QType
 from .quantization_record import FilterQuantizationRecord, QuantizationRecord
@@ -93,6 +102,8 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             o_q = c_q
             if 'biases' in fstats:
                 b_q = self.get_quantization(fstats['biases'], min_qsnr, force_width)
+            else:
+                b_q = o_q
         else:
             # The output size is requested to be force_out_width size
             if force_out and force_out.bits:
@@ -137,16 +148,22 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
                     b_q = self.get_quantization(fstats['biases'], None, o_q.bits)
             else:
                 b_q = o_q
-            # make sure that the biases are not stored more precisily than the accumulator. It's pointless and will
-            # cause a negative shift
-            if b_q.q > acc_q.q:
-                b_q.q = acc_q.q 
+        # make sure that the biases are not stored more precisily than the accumulator. It's pointless and will
+        # cause a negative shift
+        if b_q.q > acc_q.q:
+            b_q.q = acc_q.q
+
+        if isinstance(node, MultiplicativeBiasParameters) and node.has_mul_bias:
+            mb_q = self.get_quantization(fstats['mul_biases'], None, o_q.bits)
+        else:
+            mb_q = None
 
         # node.quantization = {"input_q": in_q, "weights_q": w_q,
         #                      "biases_q": b_q, "norm": norm, "calc_q": c_q,
         #                      "acc_q": acc_q}
         qrec = FilterQuantizationRecord(in_qs=[in_q], out_qs=[o_q], calc_q=c_q,
-                                        acc_q=acc_q, biases_q=b_q, weights_q=w_q)
+                                        acc_q=acc_q, biases_q=b_q, weights_q=w_q,
+                                        mul_biases_q=mb_q)
         LOG.debug("filter %s qrec %s", node.name, qrec)
         return qrec
 
@@ -198,7 +215,8 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
                     force_width,
                     force_out=None):
 
-        if isinstance(node, (InputParameters, MatrixAddParameters)):
+        if isinstance(node, (InputParameters, MatrixBroadcastedLinearOpParameters,
+                             ConstantInputParameters, MatScaleFusionParameters)):
             qrec = self.calculate_output_q(node,
                                            astats,
                                            in_qs,
@@ -226,13 +244,39 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
         elif isinstance(node, SoftMaxParameters):
             # softmax always outputs Q15
             qrec = QuantizationRecord(in_qs=in_qs, out_qs=[QType(16, 15, True)])
+        elif isinstance(node, ActivationParameters):
+            qrec = QuantizationRecord(in_qs=in_qs,
+                                      out_qs=[self.compute_activation_out_qtype(node, in_qs[0])])
         else:
             qrec = QuantizationRecord(in_qs=in_qs, out_qs=in_qs)
         return qrec
 
+    @staticmethod
+    def compute_activation_out_maxq(node, num_bits):
+        relun = None
+        if node.activation == "relu6":
+            relun = 6
+        elif node.activation == "relun":
+            relun = node.activation_params
+            if isinstance(relun, list):
+                relun = max(relun)
+        if relun is None:
+            return None
+        relu_bits = calc_bits(relun)
+        return num_bits - relu_bits
+
+    def compute_activation_out_qtype(self, node, in_q):
+        max_q = self.compute_activation_out_maxq(node, in_q.bits)
+        if max_q is None:
+            return in_q
+
+        return QType(bits=in_q.bits,
+                     q=min(in_q.q, max_q),
+                     signed=True)
+
     def default_quantize_fusion(self,
                                 G: NNGraph,
-                                node: FusionParameters,
+                                node: ConvFusionParameters,
                                 in_qs,
                                 force_out=None) -> QuantizationRecord:
         del G
@@ -253,7 +297,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
 
     def quantize_fusion(self,
                         G: NNGraph,
-                        node: FusionParameters,
+                        node: ConvFusionParameters,
                         in_qs,
                         force_out=None) -> QuantizationRecord:
         if node.fusion_type == 'conv_active':
@@ -261,7 +305,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             nodes = node.contained_nodes()
             conv_node = nodes[0]
             conv_astats = self._activation_stats.get(NodeId(node, conv_node))
-            conv_qrec = self.calculate_filter_q(node,
+            conv_qrec = self.calculate_filter_q(conv_node,
                                                 conv_astats,
                                                 self._filter_stats.get(NodeId(node, conv_node)),
                                                 in_q=in_qs[0],
@@ -273,8 +317,9 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             act_node = nodes[1]
             act_astats = self._activation_stats.get(NodeId(node, act_node))
             if force_out and force_out.bits:
-                if force_out.q:
-                    if force_out.q > conv_qrec.out_qs[0].q:
+                act_max_q = self.compute_activation_out_maxq(act_node, force_out.bits)
+                if force_out.q is not None:
+                    if (act_max_q is not None and force_out.q > act_max_q) or force_out.q > conv_qrec.out_qs[0].q:
                         # We cannot shift left in the kernel
                         # TODO - This should try to increase the input q and perhaps the width
                         # Unlikely to happen
@@ -286,14 +331,20 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
                     act_o_q = self.get_quantization(act_astats,
                                                     None,
                                                     force_out.bits)
+                    if act_max_q is not None:
+                        act_o_q.q = min(act_max_q, act_o_q.q)
             else:
                 act_o_q = self.get_quantization(act_astats,
                                                 self._min_qsnr,
                                                 self._force_width)
+                act_max_q = self.compute_activation_out_maxq(act_node, act_o_q.bits)
                 # check that the output q is less than or equal to the filter output q
-                act_o_q.q = min(act_o_q.q, conv_qrec.out_qs[0].q)
+                if act_max_q is not None:
+                    act_o_q.q = min(act_o_q.q, conv_qrec.out_qs[0].q, act_max_q)
+                else:
+                    act_o_q.q = min(act_o_q.q, conv_qrec.out_qs[0].q)
                 if force_out and force_out.q:
-                    if force_out.q > conv_qrec.out_qs[0].q:
+                    if force_out.q > act_max_q or force_out.q > conv_qrec.out_qs[0].q:
                         # We cannot shift left in the kernel
                         # TODO - This should try to increase the input q and perhaps the width
                         # Unlikely to happen
@@ -304,7 +355,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             result[NodeId(node, act_node)] = act_qrec
             return QuantizationRecord(in_qs=in_qs, out_qs=act_qrec.out_qs), result
         else:
-            return self.default_quantize_fusion(G, node, in_qs)
+            return self.default_quantize_fusion(G, node, in_qs, force_out=force_out)
 
     @staticmethod
     def get_in_qs(G, edge_recs, node):
@@ -321,7 +372,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
                                  'conv_pool_active',
                                  'conv_active',
                                  'conv_pool'])
-        return (isinstance(node, FusionParameters) and node.fusion_type in conv_fusion_types) or\
+        return (isinstance(node, ConvFusionParameters) and node.fusion_type in conv_fusion_types) or\
             isinstance(node, (Conv2DParameters, FcParameters))
 
     @staticmethod
@@ -344,7 +395,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
         while True:
             in_qs = self.get_in_qs(G, edge_recs, node)
             if self.is_filter_node(node):
-                if isinstance(node, FusionParameters):
+                if isinstance(node, ConvFusionParameters):
                     qrec, qrecs = self.quantize_fusion(G,
                                                        node,
                                                        in_qs,
@@ -403,7 +454,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             elif isinstance(node, SoftMaxParameters):
                 raise NotImplementedError("softmax kernel cannot change width or q")
             else:
-                if isinstance(node, FusionParameters):
+                if isinstance(node, ConvFusionParameters):
                     qrec, qrecs = self.quantize_fusion(G,
                                                        node,
                                                        in_qs,
@@ -455,7 +506,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
         for node in [step['node'] for step in G.graph_state.steps]:
             LOG.debug("quantize forward %s", node.name)
             in_qs = self.get_in_qs(G, edge_recs, node)
-            if isinstance(node, FusionParameters):
+            if isinstance(node, ConvFusionParameters):
                 qrec, qrecs = self.quantize_fusion(G, node, in_qs)
                 for node_id, fqrec in qrecs.items():
                     result[node_id] = fqrec
@@ -500,7 +551,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             if found_node:
                 LOG.debug("propagate forwards %s", node.name)
                 in_qs = self.get_in_qs(G, edge_recs, node)
-                if isinstance(node, FusionParameters):
+                if isinstance(node, ConvFusionParameters):
                     qrec, qrecs = self.quantize_fusion(G, node, in_qs)
                     for node_id, fqrec in qrecs.items():
                         result[node_id] = fqrec

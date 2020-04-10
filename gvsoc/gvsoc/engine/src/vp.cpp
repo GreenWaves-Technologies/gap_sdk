@@ -100,15 +100,22 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
     {
         if (offset >= x->offset && offset + size <= x->offset + (x->width+7)/8)
         {
-            x->access((offset - x->offset), size, value, is_write);
+            vp::reg *aliased_reg = x;
+
+            if (x->alias)
+            {
+                x = x->alias();
+            }
+
+            x->access((offset - aliased_reg->offset), size, value, is_write);
             
-            if (x->trace.get_active(vp::trace::LEVEL_DEBUG))
+            if (aliased_reg->trace.get_active(vp::trace::LEVEL_DEBUG))
             {
                 std::string regfields_values = "";
 
-                if (x->regfields.size() != 0)
+                if (aliased_reg->regfields.size() != 0)
                 {
-                    for (auto y: x->regfields)
+                    for (auto y: aliased_reg->regfields)
                     {
                         char buff[256];
                         snprintf(buff, 256, "0x%lx", x->get_field(y->bit, y->width));
@@ -124,13 +131,13 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
                 else
                 {
                     char buff[256];
-                    snprintf(buff, 256, "0x%lx", x->get_field(0, x->width));
+                    snprintf(buff, 256, "0x%lx", x->get_field(0, aliased_reg->width));
                     regfields_values = std::string(buff);
                 }
 
-                x->trace.msg(vp::trace::LEVEL_DEBUG,
+                aliased_reg->trace.msg(vp::trace::LEVEL_DEBUG,
                     "Register access (name: %s, offset: 0x%x, size: 0x%x, is_write: 0x%x, value: %s)\n",
-                    x->get_name().c_str(), offset, size, is_write, regfields_values.c_str()
+                    aliased_reg->get_name().c_str(), offset, size, is_write, regfields_values.c_str()
                 );
             }
 

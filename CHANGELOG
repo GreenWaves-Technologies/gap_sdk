@@ -1,8 +1,32 @@
+3.3
+
+Highlights of this release:
+
+- Autotiler:
+	- Generators api changed, now the fixed point format is passed when generating the code:
+		In_Q: In fixed point format
+		Filter_Q: Filter fixed point format
+		Bias_Q: Bias fixed point format
+		Out_Q: Out fixed point format
+		For CNN_ConvolutionPoolReLU:
+		bias norm si calcualted as Filter_Q+In_Q-Bias_Q
+		while output adjust is calculated as Filter_Q+In_Q-Out_Q
+		for multiplicative bias you can see formula in generators.
+	- Added swish activation
+	- Added relu6 activation
+	- Added leaky relu activation
+	- Added sigmoid activation
+	- Lots of bug fixing
+
+- NNTool
+	- Support for new autotiler generators and new activations.
+	- Support for mul scaling.
+
 3.2.2
 
 Bug fixes:
 
-	- Proper closing of bluetooth module, and few instabilities.
+- Proper closing of bluetooth module, and few instabilities.
 
 3.1
 

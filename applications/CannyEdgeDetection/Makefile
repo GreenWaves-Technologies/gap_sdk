@@ -13,9 +13,17 @@
 # limitations under the License.
 
 
-PULP_APP = cannyEdge
-PULP_APP_SRCS = CannyDetect.c ImgIO.c
-PULP_CFLAGS += -O3 -g -DFROM_FILE
+APP = cannyEdge
+APP_SRCS = CannyDetect.c ImgIO.c
+APP_CFLAGS += -O3 -g -DFROM_FILE
+
+APP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns
+APP_CFLAGS += -I$(TILER_INC)
+APP_LDFLAGS +=  -flto -Wl,--gc-sections
+
+# The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
+# in a clean way.
+APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef 
 
 # Should be removed once openocd is the default bridge
 export GAP_USE_OPENOCD=1
@@ -24,4 +32,4 @@ io=host
 clean::
 	rm -rf img_OUT.ppm
 
-include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk
+include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk

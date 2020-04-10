@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from typing import Optional, Sequence, Set, Mapping
@@ -16,7 +20,7 @@ import numpy as np
 
 from utils.graph import Node
 from utils.node_id import NodeId
-from graph.types import FusionParameters, InputParameters
+from graph.types import ConvFusionParameters, InputParameters, ConstantInputParameters
 from quantization.quantization_record import QuantizationRecord
 
 from .executer import Executer
@@ -100,7 +104,7 @@ def execute_qnoq_iterator(G,
         nid = NodeId(node, None)
         qrec = qrecs[nid]
 
-        if isinstance(node, FusionParameters):
+        if isinstance(node, ConvFusionParameters):
             for fusion_node in node.contained_nodes():
                 fnid = NodeId(node, fusion_node)
                 fqrec = qrecs[fnid]
@@ -115,7 +119,7 @@ def execute_qnoq_iterator(G,
 
                 yield step_idx, node, output, details, qoutput, qdetails, fusion_node
         else:
-            if isinstance(node, InputParameters):
+            if isinstance(node, (InputParameters, ConstantInputParameters)):
                 output, details = Executer.execute(node, in_tensors)
                 qoutput, qdetails = Executer.execute(node, in_tensors, qrec=qrec)
             else:
@@ -178,7 +182,7 @@ def execute_triangle_iterator(G,
         for inp in inputs:
             ExecutionProgress.progress(step_idx, node.name)
 
-            if isinstance(node, FusionParameters):
+            if isinstance(node, ConvFusionParameters):
                 for fusion_node in node.contained_nodes():
                     fqrec = qrecs[NodeId(node, fusion_node)]
                     outputs.append(Executer.execute(fusion_node, inp, qrec=fqrec))
@@ -219,7 +223,7 @@ def execute_cached_comparison_iterator(G,
         output = __collect_outputs(saved_outputs, node, G)
 
         ExecutionProgress.progress(step_idx, node.name)
-        if isinstance(node, FusionParameters):
+        if isinstance(node, ConvFusionParameters):
             fusion_outputs = cache_entry[step_idx]
             for idx, fusion_node in enumerate(node.contained_nodes()):
                 qoutput = []
@@ -282,7 +286,7 @@ def execute_cached_iterator(G,
 
         if has_quantized:
             ExecutionProgress.progress(step_idx, node.name)
-            if isinstance(node, FusionParameters):
+            if isinstance(node, ConvFusionParameters):
                 for fusion_node in node.contained_nodes():
                     fqrec = None if not qrec else qrecs[NodeId(node, fusion_node)]
                     output, details = Executer.execute(fusion_node, output, qrec=fqrec)
@@ -291,7 +295,7 @@ def execute_cached_iterator(G,
                 output, details = Executer.execute(node, output, qrec=qrec)
         else:
             ExecutionProgress.progress(step_idx, node.name, is_cached=True)
-            if isinstance(node, FusionParameters):
+            if isinstance(node, ConvFusionParameters):
                 fusion_outputs = cache_entry[step_idx]
                 for fusion_idx, fusion_node in enumerate(node.contained_nodes()):
                     output = fusion_outputs[fusion_idx]
@@ -326,7 +330,7 @@ def execute_uncached_step(G, in_tensors, step_idx, qrecs, qmode):
     else:
         qrec = None
 
-    if isinstance(node, FusionParameters):
+    if isinstance(node, ConvFusionParameters):
         for fusion_node in node.contained_nodes():
             fnid = NodeId(node, fusion_node)
             fqrec = None if not qrec else qrecs[fnid]
@@ -384,7 +388,7 @@ def execute_uncached_iterator(G,
         else:
             qrec = None
 
-        if isinstance(node, FusionParameters):
+        if isinstance(node, ConvFusionParameters):
             for fusion_node in node.contained_nodes():
                 fnid = NodeId(node, fusion_node)
                 fqrec = None if not qrec else qrecs[fnid]

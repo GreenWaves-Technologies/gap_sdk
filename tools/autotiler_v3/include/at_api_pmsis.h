@@ -19,7 +19,9 @@
 
 #include "pmsis.h"
 #include "bsp/ram/hyperram.h"
+#include "bsp/ram/spiram.h"
 #include "bsp/flash/hyperflash.h"
+#include "bsp/flash/spiflash.h"
 #include "bsp/fs.h"
 
 
@@ -31,7 +33,7 @@
 #define AT_COREID()        __builtin_pulp_CoreId()
 #define AT_CLUSTERID()     __builtin_pulp_ClusterId()
 #define AT_NCORE()         __builtin_pulp_CoreCount()
- 
+
 static inline void gap_fc_starttimer()
 {
   pi_perf_conf(1<<PI_PERF_CYCLES);
@@ -74,6 +76,9 @@ static inline uint32_t gap_cl_readhwtimer()
 
 #define AT_HYPERRAM_FREE(dev,ptr,size) pi_ram_free((dev), (ptr), (size))
 
+#define AT_QSPIRAM_ALLOC(dev,size) ({ uint32_t ptr; int err = pi_ram_alloc((dev), &ptr, (size)); if (!err && ptr == 0) err = pi_ram_alloc((dev), &ptr, (size)); if (err) ptr = 0; ptr; })
+
+#define AT_QSPIRAM_FREE(dev,ptr,size) pi_ram_free((dev), (ptr), (size))
 
 #define AT_L2_ALLOC(dev,size) pmsis_l2_malloc(size)
 
@@ -90,7 +95,7 @@ static inline uint32_t gap_cl_readhwtimer()
  * Hyperram
  */
 
-#define AT_HYPERRAM_TYPE 0
+#define AT_SPIRAM_TYPE 0
 
 typedef struct pi_hyperram_conf AT_HYPERRAM_CONF_T;
 typedef struct pi_device     AT_HYPERRAM_T;
@@ -103,7 +108,7 @@ typedef char *               AT_HYPERRAM_INT_ADDR_TYPE;
 
 #define AT_HYPERRAM_EXT2LOC 0
 #define AT_HYPERRAM_LOC2EXT 1
- 
+
 #define AT_HYPERRAM_CONF_INIT(dev,type,name) \
   pi_hyperram_conf_init(dev)
 
@@ -146,7 +151,7 @@ typedef pi_cl_ram_req_t           AT_HYPERFLASH_EVENT;
 
 #define AT_HYPERFLASH_EXT2LOC 0
 #define AT_HYPERFLASH_LOC2EXT 1
- 
+
 #define AT_HYPERFLASH_CONF_INIT(dev,type,name) \
   pi_hyperflash_conf_init(dev)
 
@@ -175,7 +180,7 @@ typedef pi_cl_ram_req_t           AT_HYPERFLASH_EVENT;
 
 typedef struct pi_fs_conf AT_HYPERFLASH_FS_CONF_T;
 
-typedef struct 
+typedef struct
 {
   struct pi_device fs;
   struct pi_device hyperflash;
@@ -230,7 +235,7 @@ static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
 
 #define AT_HYPERFLASH_FS_EXT2LOC 0
 #define AT_HYPERFLASH_FS_LOC2EXT 1
- 
+
 #define AT_HYPERFLASH_FS_CONF_INIT(dev,type,name) \
   pi_fs_conf_init(dev)
 
@@ -265,6 +270,184 @@ static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
   pi_cl_fs_wait(event)
 
 
+/*
+ * Spiram
+ */
+
+#define AT_QSPIRAM_TYPE 0
+
+typedef struct pi_spiram_conf   AT_QSPIRAM_CONF_T;
+typedef struct pi_device        AT_QSPIRAM_T;
+typedef uint32_t                AT_QSPIRAM_EXT_ADDR_TYPE;
+typedef void *                  AT_QSPIRAM_LOC_ADDR_TYPE;
+typedef pi_task_t               AT_QSPIRAM_FC_EVENT;
+typedef pi_cl_ram_req_t         AT_QSPIRAM_CL_EVENT;
+typedef uint32_t                AT_QSPIRAM_POINTER;
+typedef char *                  AT_QSPIRAM_INT_ADDR_TYPE;
+
+#define AT_QSPIRAM_EXT2LOC 0
+#define AT_QSPIRAM_LOC2EXT 1
+
+#define AT_QSPIRAM_CONF_INIT(dev,type,name) \
+  pi_spiram_conf_init(dev)
+
+#define AT_QSPIRAM_OPEN(dev,conf,err) \
+  do { pi_open_from_conf((dev), (conf)); *(err) = pi_ram_open(dev); } while(0)
+
+#define AT_QSPIRAM_CLOSE(dev) \
+  pi_ram_close(dev)
+
+#define AT_QSPIRAM_FC_COPY(dev,ext,loc,size,dir,event) \
+  pi_ram_copy_async(dev, (AT_QSPIRAM_EXT_ADDR_TYPE)(ext), (AT_QSPIRAM_LOC_ADDR_TYPE)(loc), (size), !(dir), pi_task_block(event))
+
+#define AT_QSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+  pi_ram_copy_2d_async(dev, (AT_QSPIRAM_EXT_ADDR_TYPE)(ext), (AT_QSPIRAM_LOC_ADDR_TYPE)(loc), (size), (stride), (len), !(dir), pi_task_block(event))
+
+#define AT_QSPIRAM_FC_WAIT(dev,event) \
+  pi_task_wait_on(event)
+
+#define AT_QSPIRAM_CL_COPY(dev,ext,loc,size,dir,event) \
+  pi_cl_ram_copy(dev, (AT_QSPIRAM_EXT_ADDR_TYPE)(ext), (AT_QSPIRAM_LOC_ADDR_TYPE)(loc), (size), !(dir), (event))
+
+#define AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+  pi_cl_ram_copy_2d(dev, (AT_QSPIRAM_EXT_ADDR_TYPE)(ext), (AT_QSPIRAM_LOC_ADDR_TYPE)(loc), (size), (stride), (len), !(dir), (event))
+
+#define AT_QSPIRAM_CL_WAIT(dev,event) \
+  pi_cl_ram_copy_wait(event)
+
+
+/*
+ * Spiflash
+ */
+
+#define AT_QSPIFLASH_TYPE 1
+
+typedef struct pi_spiflash_conf     AT_QSPIFLASH_CONF_T;
+typedef struct pi_device            AT_QSPIFLASH_T;
+typedef uint32_t                    AT_QSPIFLASH_EXT_ADDR_TYPE;
+typedef void *                      AT_QSPIFLASH_LOC_ADDR_TYPE;
+typedef pi_cl_ram_req_t             AT_QSPIFLASH_EVENT;
+
+#define AT_QSPIFLASH_EXT2LOC 0
+#define AT_QSPIFLASH_LOC2EXT 1
+
+#define AT_QSPIFLASH_CONF_INIT(dev,type,name) \
+  pi_spiflash_conf_init(dev)
+
+#define AT_QSPIFLASH_OPEN(dev,conf,err) \
+  do { pi_open_from_conf((dev), (conf)); *(err) = pi_flash_open(dev); } while(0)
+
+#define AT_QSPIFLASH_CLOSE(dev) \
+  pi_flash_close(dev)
+
+// TODO not yet supported
+#define AT_QSPIFLASH_COPY(dev,ext,loc,size,dir,event)
+
+// TODO not yet supported
+#define AT_QSPIFLASH_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+
+// TODO not yet supported
+#define AT_QSPIFLASH_WAIT(dev,event)
+
+
+
+/*
+ * SPIflash FS
+ */
+
+#define AT_QSPIFLASH_FS_TYPE 1
+
+typedef struct pi_fs_conf AT_QSPIFLASH_FS_CONF_T;
+
+typedef struct
+{
+  struct pi_device fs;
+  struct pi_device qspiflash;
+  pi_fs_file_t *file;
+} AT_QSPIFLASH_FS_T;
+
+typedef unsigned int AT_QSPIFLASH_FS_EXT_ADDR_TYPE;
+typedef void *AT_QSPIFLASH_FS_INT_ADDR_TYPE;
+typedef pi_task_t AT_QSPIFLASH_FS_FC_EVENT;
+typedef pi_cl_fs_req_t AT_QSPIFLASH_FS_CL_EVENT;
+
+static inline void __at_qspiflash_fs_open(AT_QSPIFLASH_FS_T *file, int is_write, struct pi_fs_conf *conf, const char *filename, int *err)
+{
+  struct pi_spiflash_conf qspiflash_conf;
+  pi_spiflash_conf_init(&qspiflash_conf);
+  pi_open_from_conf(&file->qspiflash, &qspiflash_conf);
+  if (pi_flash_open(&file->qspiflash))
+  {
+    *err = -1;
+    return;
+  }
+  conf->flash = &file->qspiflash;
+  if (is_write)
+    conf->type = PI_FS_HOST;
+  pi_open_from_conf(&file->fs, conf);
+  if (pi_fs_mount(&file->fs))
+  {
+    pi_flash_close(&file->qspiflash);
+    *err = -1;
+    return;
+  }
+  file->file = pi_fs_open(&file->fs, filename, is_write ? PI_FS_FLAGS_WRITE : 0);
+  if (file->file == NULL)
+  {
+    pi_fs_unmount(&file->fs);
+    pi_flash_close(&file->qspiflash);
+    *err = -1;
+    return;
+  }
+  *err = 0;
+
+  if (is_write)
+    file->file->size = 4*1024*1024;
+}
+
+static inline void __at_qspiflash_fs_close(AT_QSPIFLASH_FS_T *file)
+{
+  pi_fs_close(file->file);
+  pi_fs_unmount(&file->fs);
+  pi_flash_close(&file->qspiflash);
+}
+
+#define AT_QSPIFLASH_FS_EXT2LOC 0
+#define AT_QSPIFLASH_FS_LOC2EXT 1
+
+#define AT_QSPIFLASH_FS_CONF_INIT(dev,type,name) \
+  pi_fs_conf_init(dev)
+
+#define AT_QSPIFLASH_FS_OPEN(file,conf,filename,err) \
+  __at_qspiflash_fs_open(file, 0, conf, filename, err)
+
+#define AT_QSPIFLASH_FS_OPEN_WRITE(file,conf,filename,err) \
+  __at_qspiflash_fs_open(file, 1, conf, filename, err)
+
+#define AT_QSPIFLASH_FS_OPEN_SET_SIZE(file, size) \
+  file->file->size = size
+
+#define AT_QSPIFLASH_FS_CLOSE(file) \
+  __at_qspiflash_fs_close(file)
+
+#define AT_QSPIFLASH_FS_FC_COPY(fs,ext,loc,size,dir,event) \
+  pi_fs_copy_async((fs)->file, ext, loc, size, !(dir), pi_task_block(event))
+
+#define AT_QSPIFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_fs_copy_2d_async(file->file, ext, loc, size, stride, len, !(dir), pi_task_block(event))
+
+#define AT_QSPIFLASH_FS_FC_WAIT(file,event) \
+  pi_task_wait_on(event)
+
+#define AT_QSPIFLASH_FS_CL_COPY(fs,ext,loc,size,dir,event) \
+  pi_cl_fs_copy((fs)->file, ext, loc, size, !(dir), event)
+
+#define AT_QSPIFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+  pi_cl_fs_copy_2d(file->file, ext, loc, size, stride, len, !(dir), event)
+
+#define AT_QSPIFLASH_FS_CL_WAIT(file,event) \
+  pi_cl_fs_wait(event)
+
 
 
 /*
@@ -294,7 +477,7 @@ typedef char *AT_L2_INT_ADDR_TYPE;
  * Team
  */
 
-typedef void (*AT_FORK_FUN_TYPE)(void *); 
+typedef void (*AT_FORK_FUN_TYPE)(void *);
 typedef void *AT_FORK_ARG_TYPE;
 
 #define AT_FORK(nb_cores,entry,arg) pi_cl_team_fork((nb_cores),(AT_FORK_FUN_TYPE)(entry),(AT_FORK_ARG_TYPE)(arg))

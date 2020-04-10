@@ -39,7 +39,7 @@
 #include "tcpip_adapter.h"
 #include "esp_event_loop.h"
 #include "soc/rtc_cntl_reg.h"
-#include "esp32/rom/cache.h"
+//#include "esp32/rom/cache.h"
 #include "driver/spi_slave.h"
 #include "esp_spi_flash.h"
 #include "driver/gpio.h"
@@ -104,7 +104,7 @@ const int WIFI_CONNECTED_BIT = BIT0;
 static uint8_t *commandBuffer;
 static uint8_t *responseBuffer;
 static int sock = -1;
-static int verbose = 0;
+static int verbose = 1;
 
 typedef struct
 {
@@ -125,19 +125,46 @@ void my_post_trans_cb(spi_slave_transaction_t *trans) {
 
 static EventGroupHandle_t s_connect_event_group;
 
-static void on_got_ip(void* arg, esp_event_base_t event_base,
+/*static void on_got_ip(void* arg, esp_event_base_t event_base,
                       int32_t event_id, void* event_data)
 {
     ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
     memcpy(&s_ip_addr, &event->ip_info.ip, sizeof(s_ip_addr));
     xEventGroupSetBits(s_connect_event_group, GOT_IPV4_BIT);
-}
+}*/
 
-static void on_wifi_disconnect(void* arg, esp_event_base_t event_base,
+/*static void on_wifi_disconnect(void* arg, esp_event_base_t event_base,
                                int32_t event_id, void* event_data)
 {
     ESP_LOGI(TAG, "Wi-Fi disconnected, trying to reconnect...");
     ESP_ERROR_CHECK( esp_wifi_connect() );
+}*/
+
+static esp_err_t event_handler(void *ctx, system_event_t *event)
+{
+    switch(event->event_id) {
+    case SYSTEM_EVENT_STA_START:
+        //esp_wifi_connect();
+        break;
+    case SYSTEM_EVENT_STA_GOT_IP:
+        ESP_LOGI(TAG, "got ip:%s",
+                 ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+
+        memcpy(&s_ip_addr, &event->event_info.got_ip.ip_info, sizeof(s_ip_addr));
+        xEventGroupSetBits(s_connect_event_group, GOT_IPV4_BIT);
+
+        break;
+    case SYSTEM_EVENT_STA_DISCONNECTED:
+        {
+            ESP_LOGI(TAG, "Wi-Fi disconnected, trying to reconnect...");
+            ESP_ERROR_CHECK( esp_wifi_connect() );
+            
+            break;
+        }
+    default:
+        break;
+    }
+    return ESP_OK;
 }
 
 static void start(wifi_config_t *wifi_config)
@@ -146,8 +173,10 @@ static void start(wifi_config_t *wifi_config)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &on_wifi_disconnect, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_got_ip, NULL));
+    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL) );
+
+    //ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &on_wifi_disconnect, NULL));
+    //ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &on_got_ip, NULL));
 
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_LOGI(TAG, "Connecting to %s...", wifi_config->sta.ssid);
@@ -520,6 +549,7 @@ void set_gpio(int gpio, int value)
 }
 #endif
 
+#define BLINK_GPIO 4
 void app_main()
 {
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -527,4 +557,18 @@ void app_main()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     xTaskCreate(tcp_client_task, "tcp_client", 4096, NULL, 5, NULL);
+
+  //Set the LED GPIO for blinking
+    gpio_pad_select_gpio(BLINK_GPIO);
+    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+    while(1) {
+        /* Blink off (output low) */
+	//printf("Turning off the LED\n");
+        gpio_set_level(BLINK_GPIO, 0);
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        /* Blink on (output high) */
+	//printf("Turning on the LED\n");
+        gpio_set_level(BLINK_GPIO, 1);
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
 }

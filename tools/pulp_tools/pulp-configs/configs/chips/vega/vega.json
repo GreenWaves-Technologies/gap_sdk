@@ -1,6 +1,6 @@
 {
   "config_type": "generator",
-  "generator": "generators/v1/config_gen",
+  "@generator@": "generators/v1/config_gen",
 
   "board": {
     "devices": {
@@ -174,7 +174,9 @@
       "base": "0x1A000000",
       "size": "0x00002000",
       "config": {
-        "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'vega', 'rom.bin')"
+        "@eval@": {
+          "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'vega', 'rom.bin')"
+        }
       }
     },
 
@@ -380,7 +382,9 @@
         "base": "0x1A190800",
         "size": "0x00000800",
         "config": {
-          "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'vega', 'debug_rom.bin')"
+          "@eval@": {
+            "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'vega', 'debug_rom.bin')"
+          }
         }
       }
 

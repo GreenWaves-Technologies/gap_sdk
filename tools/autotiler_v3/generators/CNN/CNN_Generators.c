@@ -30,27 +30,25 @@ void LoadCNNLibrary()
 {
 	/* Templates for Features and coefficients on 32 bits */
 	LibKernelTemplate("KerSetBias_fpd_T",
-                  CArgs(7,
+                  CArgs(6,
 			TCArg("int * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("int * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 
 	/* Templates for Features and coefficients on 16 bits */
 	LibKernelTemplate("KerSetBias_fp_T",
-                  CArgs(7,
+                  CArgs(6,
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("short int * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 	LibKernelTemplate("KerConv_fp_T",
@@ -108,7 +106,7 @@ void LoadCNNLibrary()
 			TCArg("unsigned short int", "H"),
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned short int", "InFeatures"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
@@ -148,20 +146,22 @@ void LoadCNNLibrary()
 			)
 	);
 	LibKernelTemplate("KerGlobalPoolDPReduct_fp_T",
-                  CArgs(5,
+                  CArgs(6,
 			TCArg("int * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
+			TCArg("unsigned char", "Norm"),
 			TCArg("short int * __restrict__", "Out")
 			)
 	);
 	LibKernelTemplate("KerGlobalPool_fp_T",
-                  CArgs(5,
+                  CArgs(6,
 			TCArg("short int * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
+			TCArg("unsigned char", "Norm"),
 			TCArg("short int * __restrict__", "Out")
 			)
 	);
@@ -175,7 +175,7 @@ void LoadCNNLibrary()
 			TCArg("short int * __restrict__", "Bias"),
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB")
 			)
@@ -205,8 +205,8 @@ void LoadCNNLibrary()
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
-			TCArg("char", "Norm"),
-			TCArg("char", "NormBias"),
+			TCArg("signed char", "Norm"),
+			TCArg("signed char", "NormBias"),
 			TCArg("char", "Oper")
 			)
 	);
@@ -225,6 +225,21 @@ void LoadCNNLibrary()
 			TCArg("unsigned char", "Out_Q")
 			)
 	);
+	LibKernelTemplate("KerMatScale_fp_T",
+                  CArgs(11,
+			TCArg("short int *__restrict__", "In1"),
+			TCArg("short int *__restrict__", "In2"),
+			TCArg("short int *__restrict__", "Out"),
+			TCArg("unsigned short int", "W"),
+			TCArg("unsigned short int", "H"),
+			TCArg("unsigned short int", "N"),
+			TCArg("int", "LB"),
+			TCArg("int", "UB"),
+			TCArg("short int *__restrict__", "ScaleScalar"),
+			TCArg("unsigned char", "Scale_Q"),
+			TCArg("unsigned char", "Norm")
+			)
+	);
 	LibKernelTemplate("KerMatMul_fp_T",
                   CArgs(21,
 			TCArg("short int * __restrict__", "In1"),
@@ -241,7 +256,7 @@ void LoadCNNLibrary()
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned char", "NormMulBias"),
 			TCArg("unsigned char", "ColFirst"),
 			TCArg("unsigned char", "Sx"),
@@ -266,13 +281,24 @@ void LoadCNNLibrary()
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned char", "NormMulBias"),
 			TCArg("unsigned char", "ColFirst"),
 			TCArg("unsigned char", "Sx"),
 			TCArg("unsigned char", "Sy"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H")
+			)
+	);
+	LibKernelTemplate("KerMatTranspose_fp_T",
+                  CArgs(7,
+			TCArg("short int *__restrict__", "In"),
+			TCArg("short int *__restrict__", "Out"),
+			TCArg("unsigned short int", "Feat"),
+			TCArg("unsigned short int", "W"),
+			TCArg("unsigned short int", "H"),
+			TCArg("unsigned char", "Sx"),
+			TCArg("unsigned char", "Sy")
 			)
 	);
 	LibKernelTemplate("KerSoftMax_fp_T",
@@ -286,14 +312,13 @@ void LoadCNNLibrary()
 
 	/* Templates for Features and coefficients on 8 bits */
 	LibKernelTemplate("KerSetBias_fps_T",
-                  CArgs(7,
+                  CArgs(6,
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("signed char * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 	LibKernelTemplate("KerConv_fps_T",
@@ -351,7 +376,7 @@ void LoadCNNLibrary()
 			TCArg("unsigned short int", "H"),
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned short int", "InFeatures"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
@@ -391,20 +416,22 @@ void LoadCNNLibrary()
 			)
 	);
 	LibKernelTemplate("KerGlobalPoolDPReduct_fps_T",
-                  CArgs(5,
+                  CArgs(6,
 			TCArg("int * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
+			TCArg("unsigned char", "Norm"),
 			TCArg("signed char * __restrict__", "Out")
 			)
 	);
 	LibKernelTemplate("KerGlobalPool_fps_T",
-                  CArgs(5,
+                  CArgs(6,
 			TCArg("signed char * __restrict__", "In"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
+			TCArg("unsigned char", "Norm"),
 			TCArg("signed char * __restrict__", "Out")
 			)
 	);
@@ -418,7 +445,7 @@ void LoadCNNLibrary()
 			TCArg("signed char * __restrict__", "Bias"),
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB")
 			)
@@ -439,8 +466,8 @@ void LoadCNNLibrary()
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
-			TCArg("char", "Norm"),
-			TCArg("char", "NormBias"),
+			TCArg("signed char", "Norm"),
+			TCArg("signed char", "NormBias"),
 			TCArg("char", "Oper")
 			)
 	);
@@ -459,6 +486,21 @@ void LoadCNNLibrary()
 			TCArg("unsigned char", "Out_Q")
 			)
 	);
+	LibKernelTemplate("KerMatScale_fps_T",
+                  CArgs(11,
+			TCArg("signed char *__restrict__", "In1"),
+			TCArg("signed char *__restrict__", "In2"),
+			TCArg("signed char *__restrict__", "Out"),
+			TCArg("unsigned short int", "W"),
+			TCArg("unsigned short int", "H"),
+			TCArg("unsigned short int", "N"),
+			TCArg("int", "LB"),
+			TCArg("int", "UB"),
+			TCArg("signed char *__restrict__", "ScaleScalar"),
+			TCArg("unsigned char", "Scale_Q"),
+			TCArg("unsigned char", "Norm")
+			)
+	);
 	LibKernelTemplate("KerMatMul_fps_T",
                   CArgs(21,
 			TCArg("signed char * __restrict__", "In1"),
@@ -475,7 +517,7 @@ void LoadCNNLibrary()
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned char", "NormMulBias"),
 			TCArg("unsigned char", "ColFirst"),
 			TCArg("unsigned char", "Sx"),
@@ -500,13 +542,24 @@ void LoadCNNLibrary()
 			TCArg("int", "LB"),
 			TCArg("int", "UB"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("unsigned char", "NormMulBias"),
 			TCArg("unsigned char", "ColFirst"),
 			TCArg("unsigned char", "Sx"),
 			TCArg("unsigned char", "Sy"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H")
+			)
+	);
+	LibKernelTemplate("KerMatTranspose_fps_T",
+                  CArgs(7,
+			TCArg("signed char *__restrict__", "In"),
+			TCArg("signed char *__restrict__", "Out"),
+			TCArg("unsigned short int", "Feat"),
+			TCArg("unsigned short int", "W"),
+			TCArg("unsigned short int", "H"),
+			TCArg("unsigned char", "Sx"),
+			TCArg("unsigned char", "Sy")
 			)
 	);
 	LibKernelTemplate("KerSoftMax_fps_T",
@@ -520,36 +573,33 @@ void LoadCNNLibrary()
 
 	/* Templates for Features and coefficients on hybrid formats */
 	LibKernelTemplate("KerSetBias_fp_fps_T",
-                  CArgs(7,
+                  CArgs(6,
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("signed char * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 	LibKernelTemplate("KerSetBias_fpd_fps_T",
-		  CArgs(7,
+		  CArgs(6,
 			TCArg("int * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("signed char * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 	LibKernelTemplate("KerSetBias_fpd_fp_T",
-                  CArgs(7,
+                  CArgs(6,
 			TCArg("int * __restrict__", "Out"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H"),
 			TCArg("unsigned short int", "OutFeatures"),
 			TCArg("short int * __restrict__", "Bias"),
-			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias")
+			TCArg("signed char", "NormBias")
 			)
 	);
 	LibKernelTemplate("KerLinearLayerReLU_fp_fps_fp_T",
@@ -562,7 +612,7 @@ void LoadCNNLibrary()
 			TCArg("short int * __restrict__", "Bias"),
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB")
 			)
@@ -577,7 +627,7 @@ void LoadCNNLibrary()
 			TCArg("short int * __restrict__", "Bias"),
 			TCArg("short int * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB")
 			)
@@ -592,7 +642,7 @@ void LoadCNNLibrary()
 			TCArg("short int * __restrict__", "Bias"),
 			TCArg("int * __restrict__", "Out"),
 			TCArg("unsigned char", "Norm"),
-			TCArg("unsigned char", "NormBias"),
+			TCArg("signed char", "NormBias"),
 			TCArg("int", "LB"),
 			TCArg("int", "UB")
 			)
@@ -794,11 +844,14 @@ void LoadCNNLibrary()
 
 	/* Linear Rectification (ReLU) */
         LibKernel("KerParReLU_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",			CNN_Match(CNN_OperList(2, KOP_RELU, KOP_RELUN), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerParReLUN_Vector_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",		CNN_Match(CNN_OperList(1, KOP_RELUN_VECTOR), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParHswish_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",			CNN_Match(CNN_OperList(1, KOP_HSWISH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
         LibKernel("KerParHsigmoid_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",			CNN_Match(CNN_OperList(1, KOP_HSIGMOID), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
 
 	/* Linear layer followed by an optional activation, don't use when partial evaluation of the output is needed */
 	LibKernel("KerParLinearLayerReLU_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
+													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParLinearLayerReLUN_Vector_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_T",CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 1,
 													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerHswish_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_HSWISH), 1,
 													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
@@ -806,56 +859,131 @@ void LoadCNNLibrary()
 													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 
 	/* Matrix Algebra */
+	/* Matrix Addition */
 	LibKernel("KerParMatAdd_fp", CALL_PARALLEL, 0, "KerMat3_fp_T",				CNN_Match(CNN_OperList(1, KOP_MATADD), 0, 1, CNN_Type(2,2,0,0,2), 0,0,0,0,0,0));
+	/* Matrix Addition with per channel dynamic adjustment */
 	LibKernel("KerParMatAddDynAdjust_fp", CALL_PARALLEL, 0, "KerMat3_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATADD_DYNADJUST), 0, 1, CNN_Type(2,2,0,0,2), 0,0,0,0,0,0));
+	/* Matrix Addition with post ReLU or ReLUN */
 	LibKernel("KerParMatAddReLU_fp", CALL_PARALLEL, 0, "KerMat3_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATADD), CNN_OperList(1, KOP_RELU), 1, CNN_Type(2,2,0,0,2), 0,0,0,0,0,0));
 
-	LibKernel("KerParMatScale_fp", CALL_PARALLEL, 0, "KerMat3_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATSCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+	/* Matrix scaling, one scalar per channel */
+	LibKernel("KerParMatScaleVector_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,0,0));
-	LibKernel("KerParMatScaleScalar_fp", CALL_PARALLEL, 0, "KerMat3_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+	LibKernel("KerParMatScaleVector_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,0,0));
+	/* Matrix scaling, single scalar for all channels */
+	LibKernel("KerParMatScaleScalar_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,0,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleScalar_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,0,2,0,2), 0,0,0,0,0,0));
+	/* Matrix scaling, single scalar for all channels then one scalar per channel */
+	LibKernel("KerParMatScaleVectorScalar_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleVectorScalar_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatScale_fp_T",CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 
 	/* Matrix multiplication */
 	LibKernel("KerParMatMul_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSy_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMul_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSy_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulSmallFeat_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication, output scaled, single scalar for all channels */
 	LibKernel("KerParMatMulScaleScalar_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalar_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleScalarSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSxSy_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulScaleScalar_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalar_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleScalarSxSy_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSxSy_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalarSmallFeat_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication, output scaled, one scalar per channel */
 	LibKernel("KerParMatMulScale_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScale_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSxSy_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulScale_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScale_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleSxSy_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSxSy_ReLUN_Vector_fpd_fp", CALL_PARALLEL, 0, "KerMatMul_fpd_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,4,4,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleSmallFeat_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(2,2,2,2,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with H Swish reduction */
 	LibKernel("KerParMatMulHswish_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulHswishSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulHswishSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with H Sigmoid reduction */
 	LibKernel("KerParMatMulHsigmoid_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulHsigmoidSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulHsigmoidSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+
+	/* Matrix multiplication with Leaky ReLU reduction */
+	LibKernel("KerParMatMulLeakyrelu_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyreluSxSy_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulLeakyreluSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+
+	/* Matrix Transposition */
+	LibKernel("CNN_ParTranspose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_ParTransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
+	LibKernel("CNN_Transpose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_TransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
+
+	/* Tensor Permutation */
+	LibKernel("CNN_MatPermCHW2CWH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2HWC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2WHC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2WCH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2HCW_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 
 	/* SoftMax */
 	LibKernel("KerParSoftMax_fp", CALL_PARALLEL, 0, "KerSoftMax_fp_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
@@ -993,9 +1121,12 @@ void LoadCNNLibrary()
 
 	/* Linear Rectification (ReLU) */
         LibKernel("KerReLU_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",				CNN_Match(CNN_OperList(2, KOP_RELU, KOP_RELUN), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+        LibKernel("KerReLU_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerReLUPool_fp_T",		CNN_Match(CNN_OperList(1, KOP_RELUN_VECTOR), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
 
 	/* Linear layer followed by an optional activation */
 	LibKernel("KerLinearLayerReLU_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
+													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerLinearLayerReLUN_Vector_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_T",	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 0,
 													  CNN_Type(2,2,2,0,2), 0,0,0,0,0,0));
 
 	/* Full precision Linear layer */
@@ -1003,7 +1134,7 @@ void LoadCNNLibrary()
 	LibKernel("KerDPLinearLayer_fp_fps", CALL_PARALLEL, 0, "KerDPLinearLayer_fp_fps_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR_DP), 0, 0, CNN_Type(2,1,0,0,4), 0,0,0,0,0,0));
 	LibKernel("KerDPLinearLayerReduct_fp", CALL_SEQUENTIAL_STRUCT, 0, "KerDPLinearLayerReduct_fp_T",
 												CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_LINEAR),
-													  CNN_OperList(6, KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU),
+													  CNN_OperList(7, KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU),
 													  0, CNN_Type(4,2,0,0,2), 0,0,0,0,0,0));
 
 	/****************************************************************************************************************/
@@ -1206,11 +1337,14 @@ void LoadCNNLibrary()
 
 	/* Linear Rectification (ReLU) */
         LibKernel("KerParReLU_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",			CNN_Match(CNN_OperList(2, KOP_RELU, KOP_RELUN), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerParReLUN_Vector_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",		CNN_Match(CNN_OperList(1, KOP_RELUN_VECTOR), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("KerParHswish_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",			CNN_Match(CNN_OperList(1, KOP_HSWISH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("KerParHsigmoid_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",			CNN_Match(CNN_OperList(1, KOP_HSIGMOID), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
 
 	/* Linear layer followed by an optional activation, don't use when partial evaluation of the output is needed */
 	LibKernel("KerParLinearLayerReLU_fps", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
+													  CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParLinearLayerReLUN_Vector_fps", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
 													  CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerHswish_fps", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_HSWISH), 1,
 													  CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
@@ -1223,56 +1357,127 @@ void LoadCNNLibrary()
 	/* Matrix Addition with per channel dynamic adjustment */
 	LibKernel("KerParMatAddDynAdjust_fps", CALL_PARALLEL, 0, "KerMat3_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATADD_DYNADJUST), 0, 1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
 	/* Matrix Addition with post ReLU or ReLUN */
-	LibKernel("KerParMatAddReLU_fps", CALL_PARALLEL, 0, "KerMat3_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATADD), 0, 1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParMatAddReLU_fps", CALL_PARALLEL, 0, "KerMat3_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATADD), CNN_OperList(2, KOP_RELU, KOP_RELUN),
+													1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
 
 	/* Matrix scaling, one scalar per channel */
-	LibKernel("KerParMatScale_fps", CALL_PARALLEL, 0, "KerMat3_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATSCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+	LibKernel("KerParMatScaleVector_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleVector_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
 	/* Matrix scaling, single scalar for all channels */
-	LibKernel("KerParMatScaleScalar_fps", CALL_PARALLEL, 0, "KerMat3_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
-													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleScalar_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,0,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleScalar_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",CNN_Match(CNN_OperList(1, KOP_MATSCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,0,1,0,1), 0,0,0,0,0,0));
+	/* Matrix scaling, single scalar for all channels then one scalar per channel */
+	LibKernel("KerParMatScaleVectorScalar_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerParMatScaleVectorScalar_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatScale_fps_T",CNN_Match(CNN_OperList(1, KOP_MATSCALE_VECTOR_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
 
 	/* Matrix multiplication */
 	LibKernel("KerParMatMul_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSy_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMul_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulSxSy_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSy_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulSmallFeat_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 
 	/* Matrix multiplication, output scaled, single scalar for all channels */
 	LibKernel("KerParMatMulScaleScalar_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalar_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleScalarSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSxSy_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulScaleScalar_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalar_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleScalarSxSy_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSxSy_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleScalarSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleScalarSmallFeat_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
 
 	/* Matrix multiplication, output scaled, one scalar per channel */
 	LibKernel("KerParMatMulScale_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScale_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSxSy_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
 													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulScale_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScale_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulScaleSxSy_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSxSy_ReLUN_Vector_fp_fps", CALL_PARALLEL, 0, "KerMatMul_fp_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,2,2,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulScaleSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulScaleSmallFeat_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SM1), CNN_OperList(1, KOP_RELUN_VECTOR),
+													  1, CNN_Type(1,1,1,1,1), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with H Swish reduction */
 	LibKernel("KerParMatMulHswish_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulHswishSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulHswishSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 
 	/* Matrix multiplication with H Sigmoid reduction */
 	LibKernel("KerParMatMulHsigmoid_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulHsigmoidSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulHsigmoidSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+
+	/* Matrix multiplication with Leaky ReLU reduction */
+	LibKernel("KerParMatMulLeakyrelu_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyreluSxSy_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulLeakyreluSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+
+	/* Matrix Transposition */
+	LibKernel("CNN_ParTranspose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_ParTransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
+	LibKernel("CNN_Transpose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_TransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
+
+	/* Tensor Permutation */
+	LibKernel("CNN_MatPermCHW2CWH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2HWC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2WHC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2WCH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_MatPermCHW2HCW_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 
 	/* SoftMax */
 	LibKernel("KerParSoftMax_fps", CALL_PARALLEL, 0, "KerSoftMax_fps_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, 0, CNN_Type(1,0,0,0,2), 0,0,0,0,0,0));
@@ -1408,16 +1613,19 @@ void LoadCNNLibrary()
 
 	/* Linear Rectification (ReLU) */
         LibKernel("KerReLU_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",				CNN_Match(CNN_OperList(2, KOP_RELU, KOP_RELUN), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
+        LibKernel("KerReLUN_Vector_fps", CALL_PARALLEL, 0, "KerReLUPool_fps_T",			CNN_Match(CNN_OperList(1, KOP_RELUN_VECTOR), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
 
 	/* Linear layer followed by an optional activation */
 	LibKernel("KerLinearLayerReLU_fps", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_T", 	CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
+													  CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerLinearLayerReLUN_Vector_fps", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_T",CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 0,
 													  CNN_Type(1,1,1,0,1), 0,0,0,0,0,0));
 
 	/* Full precision Linear Layer followed by a reduction */
 	LibKernel("KerDPLinearLayer_fps", CALL_PARALLEL, 0, "KerDPLinearLayer_fps_T", 		CNN_Match(CNN_OperList(1, KOP_LINEAR_DP), 0, 0, CNN_Type(1,1,0,0,4), 0,0,0,0,0,0));
 	LibKernel("KerDPLinearLayerReduct_fps", CALL_SEQUENTIAL_STRUCT, 0, "KerDPLinearLayerReduct_fps_T",
 												CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_LINEAR),
-													  CNN_OperList(6, KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU),
+													  CNN_OperList(7, KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSIGMOID, KOP_HSWISH, KOP_LEAKYRELU),
 													  0, CNN_Type(4,1,0,0,1), 0,0,0,0,0,0));
 
 
@@ -1430,18 +1638,30 @@ void LoadCNNLibrary()
 
 	LibKernel("KerDP_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDP_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
 	LibKernel("KerDP_IO_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
 
 	LibKernel("KerDPMulBiasScalar_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS_SCALAR),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBiasScalar_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS_SCALAR),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerDPMulBiasScalar_IO_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBiasScalar_IO_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
 
 	LibKernel("KerDPMulBias_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBias_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerDPMulBias_IO_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBias_IO_ReLUN_Vector_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(4,0,2,0,2), 0,0,0,0,0,0));
 
 	LibKernel("KerDP_hswish_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_HSWISH), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
@@ -1453,24 +1673,42 @@ void LoadCNNLibrary()
 	LibKernel("KerDP_IO_hsigmoid_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
 
+	LibKernel("KerDP_leakyrelu_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_leakyrelu_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+
 	/****************************************************************************************************************/
 	/* Kernels for double precision, 16 or 32 bits, reduction to 8 bits single precision                            */
 	/****************************************************************************************************************/
 
 	LibKernel("KerDP_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDP_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,0,0,1), 0,0,0,0,0,0));
+
 	LibKernel("KerDP_IO_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,0,0,1), 0,0,0,0,0,0));
 
 	LibKernel("KerDPMulBiasScalar_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS_SCALAR),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBiasScalar_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS_SCALAR),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
 	LibKernel("KerDPMulBiasScalar_IO_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBiasScalar_IO_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS_SCALAR), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
 
 	LibKernel("KerDPMulBias_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS),    CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBias_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_MULBIAS),    CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
 	LibKernel("KerDPMulBias_IO_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDPMulBias_IO_ReLUN_Vector_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO_MULBIAS), CNN_OperList(1, KOP_RELUN_VECTOR), -1, CNN_Type(DP_fps_S,0,1,0,1), 0,0,0,0,0,0));
 
 	LibKernel("KerDP_hswish_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_HSWISH), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
@@ -1481,6 +1719,11 @@ void LoadCNNLibrary()
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 	LibKernel("KerDP_IO_hsigmoid_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+
+	LibKernel("KerDP_leakyrelu_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_leakyrelu_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
 	/****************************************************************************************************************/
 	/* Kernels for features/coeffs on different sizes. Kernels for multiple output features evaluated in parallel   */
@@ -1494,9 +1737,15 @@ void LoadCNNLibrary()
 	/* Linear layer followed by an optional ReLU */
 	LibKernel("KerParLinearLayerReLU_fps_fps_fp",CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_fps_fp_T",CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
 														   CNN_Type(1,1,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParLinearLayerReLUN_Vector_fps_fps_fp",CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_fps_fp_T",CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 1,
+														   CNN_Type(1,1,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerReLU_fp_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
 														   CNN_Type(2,1,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParLinearLayerReLUN_Vector_fp_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 1,
+														   CNN_Type(2,1,2,0,2), 0,0,0,0,0,0));
 	LibKernel("KerParLinearLayerReLU_fp_fp_fpd", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fp_fpd_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 1,
+														   CNN_Type(2,2,2,0,4), 0,0,0,0,0,0));
+	LibKernel("KerParLinearLayerReLUN_Vector_fp_fp_fpd", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fp_fpd_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 1,
 														   CNN_Type(2,2,2,0,4), 0,0,0,0,0,0));
 
 
@@ -1512,11 +1761,17 @@ void LoadCNNLibrary()
 	/* Linear layer followed by an optional ReLU */
 	LibKernel("KerLinearLayerReLU_fp_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
 														CNN_Type(2,1,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerLinearLayerReLUN_Vector_fp_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 0,
+														CNN_Type(2,1,2,0,2), 0,0,0,0,0,0));
 
-	LibKernel("KerLinearLayerReLU_fps_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(2, KOP_RELU, KOP_NONE), 0,
+	LibKernel("KerLinearLayerReLU_fps_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
+														  CNN_Type(1,1,2,0,2), 0,0,0,0,0,0));
+	LibKernel("KerLinearLayerReLUN_Vector_fps_fps_fp", CALL_PARALLEL, 0, "KerLinearLayerReLU_fps_fps_fp_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 0,
 														  CNN_Type(1,1,2,0,2), 0,0,0,0,0,0));
 
 	LibKernel("KerLinearLayerReLU_fp_fp_fpd", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fp_fpd_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
+														CNN_Type(2,2,2,0,4), 0,0,0,0,0,0));
+	LibKernel("KerLinearLayerReLUN_Vector_fp_fp_fpd", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fp_fpd_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(1, KOP_RELUN_VECTOR), 0,
 														CNN_Type(2,2,2,0,4), 0,0,0,0,0,0));
 }
 
@@ -1541,9 +1796,10 @@ static int EncodeActivation(KernelOper_T Oper)
 	switch (Oper) {
 		case KOP_RELU: return 1;
 		case KOP_RELUN: return 2;
-		case KOP_HSIGMOID: return 3;
-		case KOP_HSWISH: return 4;
-		case KOP_LEAKYRELU: return 5;
+		case KOP_RELUN_VECTOR: return 3;
+		case KOP_HSIGMOID: return 4;
+		case KOP_HSWISH: return 5;
+		case KOP_LEAKYRELU: return 6;
 		default: return 0;
 	}
 }
@@ -1566,32 +1822,113 @@ static int Scm(int a, int b)
         return ((a*b)/Gcd(a,b));
 }
 
+static int UsedInputDimension(int Dim, int F, int S, int D, int PadL, int PadR)
+
+{
+	/* Dim: input dimension, F: Filter dim, S: Stride, D: Dilation, PadL,PadR: pad values on both sides */
+	return ((Dim-1)*S+(D*(F-1)+1)-PadL-PadR);
+}
+
+static int TotalPaddingValue(int Dim, int F, int S, int D)
+
+{
+	/* F: Filter dim, S: Stride, D: Dilation */
+	return ((Dim%S) == 0)?Max((D*(F-1)+1)-S, 0):Max((D*(F-1)+1) - (Dim%S), 0);
+}
+
+static v4s EdgePaddingValue(AT_PadType PadType, int Padw, int Padh)
+
+{
+	v4s Pad;
+        switch (PadType) {
+		case PAD_LEFT: Pad = (v4s) {Padw, 0, Padh, 0}; break;
+		case PAD_RIGHT: Pad = (v4s) {0, Padw, 0, Padh}; break;
+		case PAD_BALANCED_LEFT: Pad = (v4s) {Padw-Padw/2, Padw/2, Padh-Padh/2, Padh/2}; break;
+		case PAD_BALANCED_RIGHT: Pad = (v4s) {Padw/2, Padw-Padw/2, Padh/2, Padh-Padh/2}; break;
+		default: GenTilingError("EdgePaddingValue: unknown padding method %d", PadType);
+        }
+	return Pad;
+}
+
 static void ConvOutDim(	int Width, int Height,
 			KernelOper_T ConvOper, int Fcx, int Fcy, int Dcx, int Dcy, int Scx, int Scy, int ConvPad,
 			KernelOper_T PoolOper, int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy, int PoolPad,
 			int *Wc, int *Hc, int *Wo, int *Ho)
 
 {
+	/* Convolution: Fc = Filter dim, Sc = Stride, Dc = Dilation
+	   Pooling    : Fp = Filter dim, Sp = Stride, Dp = Dilation
+	   3 different configurations:
+	   	Convolution then Pooling
+	   	Convolution
+	   	Pooling
+	   Wc, Hc: convolution output dimension if present, otherwise returns Width, Eight
+	   Wo, Ho: If conv then pool output dimension after conv and pooling, if pool only pool out dim, if conv only conv out dim
+	*/
         int PadCw=0, PadCh=0;
         int PadPw=0, PadPh=0;
 
+	if (ConvOper==KOP_NONE) {
+		Fcx=1; Dcx=1; Scx=1; Fcy=1; Dcy=1; Scy=1;
+	}
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
-        if (ConvPad) {
-                PadCw = ((Width%Scx)  == 0)?Max((Dcx*(Fcx-1)+1)-Scx, 0):Max((Dcx*(Fcx-1)+1) -(Width%Scx), 0);
-		PadCh = ((Height%Scy) == 0)?Max((Dcy*(Fcy-1)+1)-Scy, 0):Max((Dcy*(Fcy-1)+1) -(Height%Scy), 0);
+        if (ConvOper!=KOP_NONE && ConvPad) {
+		PadCw = TotalPaddingValue(Width, Fcx, Scx, Dcx); PadCh = TotalPaddingValue(Height, Fcy, Scy, Dcy);
         }
-        *Wc = (Width - (Dcx*(Fcx-1)+1)  + PadCw)/Scx + 1; *Hc = (Height - (Dcy*(Fcy-1)+1) + PadCh)/Scy + 1;
-        if (PoolOper && PoolPad) {
-                PadPw = ((*Wc%Spx) == 0)?Max((Dpx*(Fpx-1)+1)-Spx, 0):Max((Dpx*(Fpx-1)+1)-(*Wc%Spx), 0);
-		PadPh = ((*Hc%Spy) == 0)?Max((Dpy*(Fpy-1)+1)-Spy, 0):Max((Dpy*(Fpy-1)+1)-(*Hc%Spy), 0);
+	int ConvW = (Width  - (Dcx*(Fcx-1)+1) + PadCw)/Scx + 1;
+	int ConvH = (Height - (Dcy*(Fcy-1)+1) + PadCh)/Scy + 1;
+
+	if (Wc) *Wc = ConvW; else ConvW = Width;
+	if (Hc) *Hc = ConvH; else ConvH = Height;
+
+        if (PoolOper!=KOP_NONE && PoolPad) {
+		PadPw = TotalPaddingValue(ConvW, Fpx, Spx, Dpx); PadPh = TotalPaddingValue(ConvH, Fpy, Spy, Dpy);
         }
 
-        *Wo = (*Wc - (Dpx*(Fpx-1)+1) + PadPw)/Spx + 1; *Ho = (*Hc - (Dpy*(Fpy-1)+1) + PadPh)/Spy + 1;
+        if (Wo) *Wo = (ConvW - (Dpx*(Fpx-1)+1) + PadPw)/Spx + 1;
+	if (Ho) *Ho = (ConvH - (Dpy*(Fpy-1)+1) + PadPh)/Spy + 1;
 }
 
-static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int *LB, int *UB, int ReluN)
+static int TileOverlap(Tile_Orientation_T TileOrientation,
+			int Fcx, int Fcy, int Dcx, int Dcy, int Scx, int Scy,
+			int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy,
+			int *OverlapC, int *OverlapP
+		)
+
+{
+	/* Convolution: Fc = Filter dim, Sc = Stride, Dc = Dilation
+	   Pooling    : Fp = Filter dim, Sp = Stride, Dp = Dilation
+	   3 different configurations:
+	   	Convolution then Pooling
+	   	Convolution
+	   	Pooling
+	*/
+	if (OverlapC == 0) {
+		Fcx = Scx = Dcx = 1; Fcy = Scy = Dcy = 1;
+	}
+	if (OverlapP == 0) {
+		Fpx = Spx = Dpx = 1; Fpy = Spy = Dpy = 1;
+	}
+	int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1);
+	int OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
+	int OverlapPx = (Dpx*(Fpx-1)+1)-Spx;
+	int OverlapPy = (Dpy*(Fpy-1)+1)-Spy;
+
+	if (OverlapC) *OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
+	if (OverlapP) *OverlapP = (TileOrientation==TILE_HOR)?OverlapPy:OverlapPx;
+
+
+}
+
+static int CheckIfRepresentable(int Value, int Nbits)
+
+{
+	return ((Abs(Value)&((1<<Nbits)-1)) == Value);
+}
+
+static int SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int *LB, int *UB, int ReluN, int Precision)
 
 {
 	if (DataSize==4) {
@@ -1599,7 +1936,10 @@ static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU,
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 0x7fffffff;
 			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN;
+				*LB = 0; *UB = ReluN<<Precision;
+				if (!CheckIfRepresentable(*UB, 31)) return 1;
+			} else if (ReLUOper == KOP_RELUN_VECTOR) {
+				*LB = 0;
 			}
 		} else {
 			*LB = 0x80000000; *UB = 0x7fffffff;
@@ -1609,7 +1949,10 @@ static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU,
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 32767;
 			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN;
+				*LB = 0; *UB = ReluN<<Precision;
+				if (!CheckIfRepresentable(*UB, 15)) return 1;
+			} else if (ReLUOper == KOP_RELUN_VECTOR) {
+				*LB = 0;
 			}
 		} else {
 			*LB = -32768; *UB = 32767;
@@ -1619,12 +1962,16 @@ static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU,
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 127;
 			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN;
+				*LB = 0; *UB = ReluN<<Precision;
+				if (!CheckIfRepresentable(*UB, 7)) return 1;
+			} else if (ReLUOper == KOP_RELUN_VECTOR) {
+				*LB = 0;
 			}
 		} else {
 			*LB = -128; *UB = 127;
 		}
 	}
+	return 0;
 }
 
 
@@ -1640,6 +1987,11 @@ static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU,
 		Filter_DataSize:1: byte, 2: half word, 4: word
 		Bias_DataSize:	1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
+
+		In_Q:		In fixed point format
+		Filter_Q:	Filter fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
 
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Filter_InL3:	0: Filter is in L2, 1: Filter is in L3 memory
@@ -1669,8 +2021,10 @@ static void SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU,
 		Spy:		Pooling filter stride y dimension
 		PoolPad:	0: No padding, 1: Zero padding
 
-		ReLUOper:	Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+		ReLUOper:	Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
+		Signature:	Name(In, Filter, Bias, Out)
+				Name(In, Filter, Bias, ReLUN, Out)
 
 	CNN_ConvolutionPoolReLU
 	
@@ -1686,7 +2040,12 @@ int CNN_ConvolutionPoolReLU(
 			int Bias_DataSize,
 			int Out_DataSize,
 
-			int In_InL3,		// 1 if In comes from L3, 0 if it comes from L2
+			int In_Q,
+			int Filter_Q,
+			int Bias_Q,
+			int Out_Q,
+
+			int In_InL3,
 			int Filter_InL3,
 			int Bias_InL3,
 			int Out_InL3,
@@ -1725,7 +2084,7 @@ int CNN_ConvolutionPoolReLU(
 	int FilterL3 = Filter_InL3?O_L2DB:0;
 	int BiasL3 = Bias_InL3?O_L2DB:0;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
-	int OutLB, OutUB, ReluN = 6, ReluNNoNorm = 0;
+	int OutLB, OutUB, ReluN = 6;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
@@ -1743,7 +2102,6 @@ int CNN_ConvolutionPoolReLU(
 		}
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
-		if (Ctrl->ReluNNoNorm != -1) ReluNNoNorm = Ctrl->ReluNNoNorm;
 	}
         int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1), OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
 	int OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
@@ -1760,13 +2118,13 @@ int CNN_ConvolutionPoolReLU(
 	int ConvDoReLU=0, PoolDoReLU=0, ConvDP=(ConvOper==KOP_CONV_DP||ConvOper==KOP_CONV_DWDP), DWConv=(ConvOper==KOP_CONV_DW||ConvOper==KOP_CONV_DWDP);
 	int NeedFcx, NeedFcy, NeedDcx, NeedDcy, NeedScx, NeedScy;
 	int NeedFpx, NeedFpy, NeedDpx, NeedDpy, NeedSpx, NeedSpy;
-	int ConvOut_DataSize = ConvDP?((Out_DataSize==1)?DP_fps_S:(2*Out_DataSize)):Out_DataSize;
+	int          ConvOut_DataSize = ConvDP?((Out_DataSize==1)?DP_fps_S:(2*Out_DataSize)):Out_DataSize;
 	KernelOper_T KernelOper = CNN_CompositeKernel(ConvOper, PoolOper, ReLUOper);
 	int Os=(DWConv?D0:D1);
-	int DP_Bias = (DWConv && (Bias_DataSize == (2*In_DataSize)));
 	int UsedWidth, UsedHeight, UsedWc, UsedHc;
 	int InTileCons = 1;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int Log=1;
 
 	if (ReLUOper) {
@@ -1783,17 +2141,19 @@ int CNN_ConvolutionPoolReLU(
 					 &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
 	if (ConvKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching Convolution basic kernel", Name);
 	if (ConvDP) {
-		DPReductionKerName = CNN_FindMatchingKernel(PoolOper?KOP_DP_REDUCT_IO:KOP_DP_REDUCT, ConvDoReLU?ReLUOper:KOP_NONE, ParFeat, ConvOut_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+		/* We take care of the activation now */
+		DPReductionKerName = CNN_FindMatchingKernel(PoolOper?KOP_DP_REDUCT_IO:KOP_DP_REDUCT, ReLUOper, ParFeat, ConvOut_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 		if (DPReductionKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching double precision to single precision basic kernel", Name);
 	}
 	if (PoolOper!=KOP_NONE) {
-		PoolKerName = CNN_FindMatchingKernel(PoolOper, ReLUOper, ParFeat,
+		/* Omit activation in case of double precision convolution since it has already been taken care of */
+		PoolKerName = CNN_FindMatchingKernel(PoolOper, ConvDP?KOP_NONE:ReLUOper, ParFeat,
 						Out_DataSize, 0, 0, 0, Out_DataSize,
 						Fpx, Fpy, Dpx, Dpy, Spx, Spy,
 						&NeedFpx, &NeedFpy, &NeedDpx, &NeedDpy, &NeedSpx, &NeedSpy, 0);
 		if (PoolKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching Pooling %s basic kernel", Name, ReLUOper?"with linear rectification":"");
 	}
-	if (ReLUOper && (PoolOper==KOP_NONE)) {
+	if (ReLUOper && (PoolOper==KOP_NONE) && !ConvDP) {
 		ReLUKerName = CNN_FindMatchingKernel(ReLUOper, KOP_NONE, ParFeat, Out_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 		if (ReLUKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching Linear Rectification basic kernel", Name);
 	}
@@ -1846,12 +2206,17 @@ int CNN_ConvolutionPoolReLU(
 		default: InTileCons = 1;
 	}
 	/* Set Lower/Upper bounds for convolution output */
-	SetUpperLowerBounds(ReLUOper, Out_DataSize, (ConvDoReLU||PoolDoReLU), &OutLB, &OutUB, ReluN);
+	if (SetUpperLowerBounds(ReLUOper, Out_DataSize, (ConvDoReLU||PoolDoReLU), &OutLB, &OutUB, ReluN, Out_Q))
+		GenTilingError("CNN_ConvolutionPoolReLU %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
 
 	LayerOp += Wc*Hc*Fcx*Fcy*OutFeat;
 	if (DWConv==0) LayerOp *= InFeat;
 	if (PoolOper) LayerOp += OutFeat*Wo*Ho*Fpx*Fpy;
 	if (ReLUOper) LayerOp += OutFeat*Wo*Ho;
+	LayerBandwidth += Width*Height*In_DataSize*InFeat*(DWConv?1:OutFeat);
+	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
+	LayerBandwidth += Fcx*Fcy*Filter_DataSize*InFeat*(DWConv?1:OutFeat);
+	LayerBandwidth += Bias_DataSize*OutFeat;
 
 	if (Log) {
 		printf("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
@@ -1869,20 +2234,75 @@ int CNN_ConvolutionPoolReLU(
 		if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
 		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
 		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %d\n", LayerOp);
+		printf("Nb Oper : %lld\n", LayerOp);
 		
 	}
-	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1) && (OutFeat>=8)) {
+	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1)) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+		if ((InFeat+OutFeat)<80) {
+			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
+			int Ok = CNN_MatMulSmallM1(Name, 0,
+			   		In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize,
+					In_Q, Filter_Q, Bias_Q, Out_Q,
+			   		In_InL3, Filter_InL3, Bias_InL3, Out_InL3,
+			   		InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
+			   		OutLB, OutUB, KOP_MATMUL_SM1, ReLUOper);
+			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
+			if (Ok) return Ok;
+		}
 		if (Log) printf("Mapping this convolution to matrix multiplication\n");
 		int Ok = CNN_MatMul(Name, 0,
 			   In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize,
+			   In_Q, Filter_Q, Bias_Q, Out_Q,
 			   In_InL3, Filter_InL3, Bias_InL3, Out_InL3,
 			   InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
-			   0, 0, KOP_MATMUL, ReLUOper);
+			   OutLB, OutUB, KOP_MATMUL, ReLUOper);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok) return Ok;
 		if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
+	}
+
+	/* User kernel C arguments */
+	CKernel_Arg_T **KCArgs = AllocateCArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
+	/* Usre kernel kernel arguments */
+	Object_T **KArgs = AllocateKerArgs(4+(ReLUOper==KOP_RELUN_VECTOR)+(PoolOper||ConvDP));
+	int Ka=0;
+
+	KArgs[Ka++] = KerArgP("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, In_DataSize, 	    OverlapC, 0, TileCons, "In");
+	if (DWConv) {
+	KArgs[Ka++] = KerArg ("Bias",   KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			  Bias_DataSize,           0, 0,        0, "Bias");
+	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			  Fcx*Fcy*Filter_DataSize, 0, 0,        0, "Filter");
+		if ((ReLUOper==KOP_RELUN_VECTOR)) {
+	KArgs[Ka++] = KerArg ("ReLUN",  KerArgSpace(1,D0),    O_IN|O_DB|O_CONST,          1,     1,                       			  1,                       0, 0,        0, "ReLUN");
+		}
+       	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			  Out_DataSize,            0, 0,        0, "Out");
+	} else {
+	KArgs[Ka++] = KerArg ("Bias",   KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			  Bias_DataSize,           0, 0,        0, "Bias");
+	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			  Fcx*Fcy*Filter_DataSize, 0, 0,        0, "Filter");
+		if ((ReLUOper==KOP_RELUN_VECTOR)) {
+	KArgs[Ka++] = KerArg ("ReLUN",  KerArgSpace(1,D1),    O_IN|O_DB|O_CONST,          1,     1,                       			  1,                       0, 0,        0, "ReLUN");
+		}
+       	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,D1,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			  Out_DataSize,            0, 0,        0, "Out");
+	}
+	if (PoolOper||ConvDP) {
+		if (ParFeat) {
+			if (DWConv) {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,           ConvOut_DataSize, OverlapP, 0,        0,  "");
+			} else {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,           ConvOut_DataSize, OverlapP, 0,        0,  "");
+			}
+		} else {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(1,T0),    O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	  ConvOut_DataSize, OverlapP, 0,        0,  "");
+		}
 	}
 
         Kernel_T *Kernel = UserKernel(Name,
@@ -1894,18 +2314,11 @@ int CNN_ConvolutionPoolReLU(
 		KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)):
 		KernelIterSpace(3, IterFixedSpace(D1, OutFeat), IterTiledSpace(T0), IterFixedSpace(D0, InFeat))),
                 TileOrientation,
-                CArgs(6,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-                      TCArg("unsigned int", "Norm"),
-                      TCArg("unsigned int", "NormBias")
-                     ),
+		KCArgs,
                 Calls(4,
 			DWConv?AT_NO_CALL:
                         Call(SetBiasKerName, LOC_D0_PROLOG,
-                                Bindings(7,
+                                Bindings(6,
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE),		/* SetBias output tile */
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE_W),		/* SetBias output tile width */
                                         K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE_H),		/* SetBias output tile height */
@@ -1913,8 +2326,7 @@ int CNN_ConvolutionPoolReLU(
 					K_ArgPar((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_PARTILE_SIZE, Os): /* Number of output features in this tile */
 					AT_IGNORE_ARG_BINDING,							/* Not relevant for non KerPar */
 					K_Arg("Bias", KER_ARG_TILE),						/* SetBias Bias tile */
-					C_Arg("Norm"),								/* Fixed point format for the output */
-					C_Arg("NormBias")							/* Fixed point format for the bias */
+					ConvDP?Imm(Filter_Q+In_Q-Bias_Q):AT_IGNORE_ARG_BINDING			/* Bias adjust w+i-p, only in DP context */
 					)),
                         Call(ConvKerName, DWConv?LOC_LOOP:LOC_D0,
                                 Bindings(20, 
@@ -1932,12 +2344,12 @@ int CNN_ConvolutionPoolReLU(
 					K_Arg("Filter", KER_ARG_TILE),						/* Conv filter */
 					DWConv?K_Arg("Bias", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,		/* Conv Bias when Conv depth wise */
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE),		/* Conv output */
-					C_Arg("Norm"),								/* Output fixed point format */
+					Imm(Filter_Q+In_Q-Out_Q),						/* Output fixed point adjust, w+i-o */
 					ParFeat?
 					(DWConv?
-					C_Arg("NormBias"):							/* For Depth Wise convolution Norm factor for Bias */
+					Imm(Filter_Q+In_Q-Bias_Q):						/* For Depth Wise convolution Bias adjust: w+i-b */
 					K_ArgPar("Filter", KER_ARG_LOADEDPARTILE_SIZE, D0)):			/* Total number of input features currently in L1 memory, argument promotion */
-					(DWConv?C_Arg("NormBias"):AT_IGNORE_ARG_BINDING),			/* For DW conv Norm factor for Bias, Ignore otherwise */
+					(DWConv?Imm(Filter_Q+In_Q-Bias_Q):AT_IGNORE_ARG_BINDING),		/* For DW conv Bias adjust, Ignore otherwise */
 					K_Arg("In", KER_ARG_TILE_PAD),						/* Conv Padding */
 					Imm((TileOrientation==TILE_HOR)?1:0),					/* Orientation */
 					NeedFcx?Imm(Fcx):AT_IGNORE_ARG_BINDING,					/* Conv Fx */
@@ -1955,14 +2367,16 @@ int CNN_ConvolutionPoolReLU(
 					K_Arg("ConvOut", KER_ARG_TILE_W),					/* Double precision input tile width */
 					K_Arg("ConvOut", KER_ARG_TILE_H),					/* Double precision input tile height */
 					K_Arg(PoolOper?"ConvOut":"Out", KER_ARG_TILE),				/* Single precision output tile, warning use IO kernel when In=Out */
-					C_Arg("Norm"),								/* Fixed point format for out */
+					Imm(Filter_Q+In_Q-Out_Q),						/* Fixed point adjust for out, w+i-o */
 					AT_IGNORE_ARG_BINDING, 							/* Fixed point format for MulBias, unused here */
 					ParFeat?
 					K_ArgPar(PoolOper?"ConvOut":"Out", KER_ARG_PARTILE_SIZE, Os):Imm(1),	/* Number of features */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(ConvDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm unless explicitly set */
-					Imm(OutUB),								/* Conv out upper bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):								/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):						/* ReLUN input tile */
+					Imm(OutUB)),								/* Conv out upper bound, clip or relu */
 					AT_IGNORE_ARG_BINDING							/* MulBias, not relevant here */
 				)
 			):AT_NO_CALL,
@@ -1987,9 +2401,11 @@ int CNN_ConvolutionPoolReLU(
 					AT_IGNORE_ARG_BINDING,							/* Pooling only, Pool Stridey */
 					AT_IGNORE_ARG_BINDING,							/* Pooling only, Pool Dy */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(ConvDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB)								/* Conv out upper bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):								/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):						/* ReLUN input tile */
+					Imm(OutUB))								/* Conv out upper bound, clip or relu */
 				)
 			):(PoolOper?										/* Need pooling */
 			Call(PoolKerName, DWConv?LOC_LOOP:LOC_D0_EPILOG,
@@ -2013,40 +2429,30 @@ int CNN_ConvolutionPoolReLU(
 					NeedSpy?Imm(Spy):AT_IGNORE_ARG_BINDING,					/* Pooling Stridey */
 					NeedDpy?Imm(Dpy):AT_IGNORE_ARG_BINDING,					/* Pooling Dy */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(PoolDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm */
 					Imm(OutUB)								/* Conv out upper bound, clip or relu */
 				)
 			):AT_NO_CALL)
                      ),
-                KerArgs(5,
-                        KerArgP("In",        KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, In_DataSize, 	       OverlapC, 0, TileCons, "In"),
-			DWConv?
-			KerArg ("Bias",      KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			      Bias_DataSize,           0,        0,        0, "Bias"):
-			KerArg ("Bias",      KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			      Bias_DataSize,           0,        0,        0, "Bias"),
-			DWConv?
-			KerArg ("Filter",    KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			      Fcx*Fcy*Filter_DataSize, 0,        0,        0, "Filter"):
-			KerArg ("Filter",    KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			      Fcx*Fcy*Filter_DataSize, 0,        0,        0, "Filter"),
-			DWConv?
-                        KerArg ("Out",       KerArgSpace(2,D0,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			      Out_DataSize,            0,        0,        0, "Out"):
-                        KerArg ("Out",       KerArgSpace(2,D1,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			      Out_DataSize,            0,        0,        0, "Out"),
-			(PoolOper||ConvDP)?(ParFeat?
-			(DWConv?
-			KerArgP("ConvOut",   KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  ""):
-			KerArgP("ConvOut",   KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  "")):
-			KerArgP("ConvOut",   KerArgSpace(1,T0),    O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  "")):
-			AT_NO_KER_ARG
-
-		)
+		KArgs
         );
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
 
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
-			  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
-			  (In_DataSize==1)?7:15, 0);
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		if (DWConv) AddKernelArgDim(Name, "Filter", 4, InFeat, Fcx, Fcy, Filter_DataSize);
+		else AddKernelArgDim(Name, "Filter", 5, OutFeat, InFeat, Fcx, Fcy, Filter_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, OutFeat, Bias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, OutFeat, 1);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Ho, Wo, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
+				  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
+				  (In_DataSize==1)?7:15, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -2064,6 +2470,12 @@ int CNN_ConvolutionPoolReLU(
 		Bias_DataSize:	1: byte, 2: half word, 4: word
 		MulBias_DataSize:1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
+
+		In_Q:		In fixed point format
+		Filter_Q:	Filter fixed point format
+		Bias_Q:		Bias fixed point format
+		MulBias_Q:	MulBias fixed point format
+		Out_Q:		Out fixed point format
 
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Filter_InL3:	0: Filter is in L2, 1: Filter is in L3 memory
@@ -2094,8 +2506,10 @@ int CNN_ConvolutionPoolReLU(
 		Spy:		Pooling filter stride y dimension
 		PoolPad:	0: No padding, 1: Zero padding
 
-		ReLUOper:	Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+		ReLUOper:	Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
+		Signature:	Name(In, Filter, Bias, MulBias, Out)
+				Name(In, Filter, Bias, MulBias, ReLUN, Out)
 
 	CNN_ConvolutionMulBiasPoolReLU
 	
@@ -2112,7 +2526,13 @@ int CNN_ConvolutionMulBiasPoolReLU(
 			int MulBias_DataSize,
 			int Out_DataSize,
 
-			int In_InL3,		// 1 if In comes from L3, 0 if it comes from L2
+			int In_Q,
+			int Filter_Q,
+			int Bias_Q,
+			int MulBias_Q,
+			int Out_Q,
+
+			int In_InL3,
 			int Filter_InL3,
 			int Bias_InL3,
 			int MulBias_InL3,
@@ -2153,7 +2573,7 @@ int CNN_ConvolutionMulBiasPoolReLU(
 	int BiasL3 = Bias_InL3?O_L2DB:0;
 	int MulBiasL3 = MulBias_InL3?O_L2DB:0;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
-	int OutLB, OutUB, ReluN = 6, ReluNNoNorm = 0;
+	int OutLB, OutUB, ReluN = 6;
 	int MulBiasScalar = 0;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
@@ -2173,7 +2593,6 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 		if (Ctrl->MulBiasScalar != -1) MulBiasScalar = Ctrl->MulBiasScalar;
-		if (Ctrl->ReluNNoNorm != -1) ReluNNoNorm = Ctrl->ReluNNoNorm;
 	}
         int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1), OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
 	int OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
@@ -2193,10 +2612,10 @@ int CNN_ConvolutionMulBiasPoolReLU(
 	int          ConvOut_DataSize = ConvDP?((Out_DataSize==1)?DP_fps_S:(2*Out_DataSize)):Out_DataSize;
 	KernelOper_T KernelOper = CNN_CompositeKernel(ConvOper, PoolOper, ReLUOper);
 	int Os=(DWConv?D0:D1);
-	int DP_Bias = (DWConv && (Bias_DataSize == (2*In_DataSize)));
 	int UsedWidth, UsedHeight, UsedWc, UsedHc;
 	int InTileCons = 1;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int Log=1;
 
 	if (ReLUOper) {
@@ -2211,20 +2630,22 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					 &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
 	if (ConvKerName==0) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Can't find a matching Convolution basic kernel", Name);
 	if (ConvDP) {
-		DPReductionKerName = CNN_FindMatchingKernel(PoolOper?(MulBiasScalar?KOP_DP_REDUCT_IO_MULBIAS:KOP_DP_REDUCT_IO_MULBIAS_SCALAR):
-								     (MulBiasScalar?KOP_DP_REDUCT_MULBIAS:KOP_DP_REDUCT_MULBIAS_SCALAR),
-							    ConvDoReLU?ReLUOper:KOP_NONE,
+		/* We take care of the activation now */
+		DPReductionKerName = CNN_FindMatchingKernel(PoolOper?(MulBiasScalar?KOP_DP_REDUCT_IO_MULBIAS_SCALAR:KOP_DP_REDUCT_IO_MULBIAS):
+								     (MulBiasScalar?KOP_DP_REDUCT_MULBIAS_SCALAR:KOP_DP_REDUCT_MULBIAS),
+							    ReLUOper,
 							    ParFeat, ConvOut_DataSize, 0, MulBias_DataSize, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 		if (DPReductionKerName==0) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Can't find a matching double precision to single precision basic kernel", Name);
 	} else GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Multiplicative Bias can be used only with KOP_CONV_DP or KOP_CONV_DWDP", Name);
 	if (PoolOper!=KOP_NONE) {
-		PoolKerName = CNN_FindMatchingKernel(PoolOper, ReLUOper, ParFeat,
+		/* Omit activation in case of double precision convolution since it has already been taken care of */
+		PoolKerName = CNN_FindMatchingKernel(PoolOper, ConvDP?KOP_NONE:ReLUOper, ParFeat,
 						Out_DataSize, 0, 0, 0, Out_DataSize,
 						Fpx, Fpy, Dpx, Dpy, Spx, Spy,
 						&NeedFpx, &NeedFpy, &NeedDpx, &NeedDpy, &NeedSpx, &NeedSpy, 0);
 		if (PoolKerName==0) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Can't find a matching Pooling %s basic kernel", Name, ReLUOper?"with linear rectification":"");
 	}
-	if (ReLUOper && (PoolOper==KOP_NONE)) {
+	if (ReLUOper && (PoolOper==KOP_NONE) && !ConvDP) {
 		ReLUKerName = CNN_FindMatchingKernel(ReLUOper, KOP_NONE, ParFeat, Out_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 		if (ReLUKerName==0) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Can't find a matching Linear Rectification basic kernel", Name);
 	}
@@ -2277,12 +2698,18 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		default: InTileCons = 1;
 	}
 	/* Set Lower/Upper bounds for convolution output */
-	SetUpperLowerBounds(ReLUOper, Out_DataSize, (ConvDoReLU||PoolDoReLU), &OutLB, &OutUB, ReluN);
+	if (SetUpperLowerBounds(ReLUOper, Out_DataSize, (ConvDoReLU||PoolDoReLU), &OutLB, &OutUB, ReluN, Out_Q))
+		GenTilingError("CNN_ConvolutionMulBiasPoolReLU %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
 
 	LayerOp += Wc*Hc*Fcx*Fcy*OutFeat;
 	if (DWConv==0) LayerOp *= InFeat;
 	if (PoolOper) LayerOp += OutFeat*Wo*Ho*Fpx*Fpy;
 	if (ReLUOper) LayerOp += OutFeat*Wo*Ho;
+	LayerBandwidth += Width*Height*In_DataSize*InFeat*(DWConv?1:OutFeat);
+	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
+	LayerBandwidth += Fcx*Fcy*Filter_DataSize*InFeat*(DWConv?1:OutFeat);
+	LayerBandwidth += Bias_DataSize*OutFeat;
+	LayerBandwidth += MulBias_DataSize*OutFeat;
 
 	if (Log) {
 		printf("InFeat: %d, OutFeat: %d\n", InFeat, OutFeat);
@@ -2300,20 +2727,86 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		if (DPReductionKerName) printf("%20s: %s\n", "DPReductionKerName", DPReductionKerName);
 		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
 		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %d\n", LayerOp);
+		printf("Nb Oper : %lld\n", LayerOp);
 		
 	}
-	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1) && (OutFeat>=8)) {
+	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV_DP) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1)) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+		if ((InFeat+OutFeat)<80) {
+			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
+			int Ok = CNN_MatMulScaleSmallM1(Name, 0,
+			   		In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize,
+			   		In_Q, Filter_Q, Bias_Q, MulBias_Q, Out_Q,
+			   		In_InL3, Filter_InL3, Bias_InL3, MulBias_InL3, Out_InL3,
+			   		InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
+			   		OutLB, OutUB, MulBiasScalar?KOP_MATMUL_SCALE_SCALAR_SM1:KOP_MATMUL_SCALE_SM1, ReLUOper);
+			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
+			if (Ok) return Ok;
+		}
 		if (Log) printf("Mapping this convolution to matrix multiplication\n");
 		int Ok = CNN_MatMulScale(Name, 0,
 			   In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize,
+			   In_Q, Filter_Q, Bias_Q, MulBias_Q, Out_Q,
 			   In_InL3, Filter_InL3, Bias_InL3, MulBias_InL3, Out_InL3,
 			   InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy,
-			   0, 0, MulBiasScalar?KOP_MATMUL_SCALE_SCALAR:KOP_MATMUL_SCALE, ReLUOper);
+			   OutLB, OutUB, MulBiasScalar?KOP_MATMUL_SCALE_SCALAR:KOP_MATMUL_SCALE, ReLUOper);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok) return Ok;
 		if (Log) printf("Mapping this convolution to matrix multiplication FAILED, reverting to standard implementation\n");
+	}
+
+	/* User kernel C arguments */
+	CKernel_Arg_T **KCArgs = AllocateCArgs(5+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(MulBias_DataSize,1,1),"MulBias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
+	/* User kernel kernel arguments */
+	Object_T **KArgs = AllocateKerArgs(5+(ReLUOper==KOP_RELUN_VECTOR)+(PoolOper||ConvDP));
+	int Ka=0;
+
+	KArgs[Ka++] = KerArgP("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, In_DataSize, 	    OverlapC, 0, TileCons, "In");
+	if (DWConv) {
+	KArgs[Ka++] = KerArg ("Bias",   KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			  Bias_DataSize,           0, 0,        0, "Bias");
+		if (MulBiasScalar) {
+	KArgs[Ka++] = KerArg ("MulBias",KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,1,     1,               		          MulBias_DataSize,        0, 0,        0, "MulBias");
+		} else {
+	KArgs[Ka++] = KerArg ("MulBias",KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|MulBiasL3,1,     1,                       			  MulBias_DataSize,        0, 0,        0, "MulBias");
+		}
+	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			  Fcx*Fcy*Filter_DataSize, 0, 0,        0, "Filter");
+		if ((ReLUOper==KOP_RELUN_VECTOR)) {
+	KArgs[Ka++] = KerArg ("ReLUN",  KerArgSpace(1,D0),    O_IN|O_DB|O_CONST,          1,     1,                       			  1,                       0, 0,        0, "ReLUN");
+		}
+       	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			  Out_DataSize,            0, 0,        0, "Out");
+	} else {
+	KArgs[Ka++] = KerArg ("Bias",   KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			  Bias_DataSize,           0, 0,        0, "Bias");
+		if (MulBiasScalar) {
+	KArgs[Ka++] = KerArg ("MulBias",KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,1,     1,               		          MulBias_DataSize,        0, 0,        0, "MulBias");
+		} else {
+	KArgs[Ka++] = KerArg ("MulBias",KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|MulBiasL3,1,     1,                       			  MulBias_DataSize,        0, 0,        0, "MulBias");
+		}
+	KArgs[Ka++] = KerArg ("Filter", KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			  Fcx*Fcy*Filter_DataSize, 0, 0,        0, "Filter");
+		if ((ReLUOper==KOP_RELUN_VECTOR)) {
+	KArgs[Ka++] = KerArg ("ReLUN",  KerArgSpace(1,D1),    O_IN|O_DB|O_CONST,          1,     1,                       			  1,                       0, 0,        0, "ReLUN");
+		}
+       	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,D1,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			  Out_DataSize,            0, 0,        0, "Out");
+	}
+	if (PoolOper||ConvDP) {
+		if (ParFeat) {
+			if (DWConv) {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,           ConvOut_DataSize, OverlapP, 0,        0,  "");
+			} else {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,           ConvOut_DataSize, OverlapP, 0,        0,  "");
+			}
+		} else {
+	KArgs[Ka++] = KerArgP("ConvOut",KerArgSpace(1,T0),    O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	  ConvOut_DataSize, OverlapP, 0,        0,  "");
+		}
 	}
 
         Kernel_T *Kernel = UserKernel(Name,
@@ -2325,20 +2818,11 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)):
 		KernelIterSpace(3, IterFixedSpace(D1, OutFeat), IterTiledSpace(T0), IterFixedSpace(D0, InFeat))),
                 TileOrientation,
-                CArgs(8,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-                      TCArg(CNN_ArgDataType(MulBias_DataSize,1,1),"MulBias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-                      TCArg("unsigned int", "Norm"),
-                      TCArg("unsigned int", "NormBias"),
-                      TCArg("unsigned int", "NormMulBias")
-                     ),
+                KCArgs,
                 Calls(4,
 			DWConv?AT_NO_CALL:
                         Call(SetBiasKerName, LOC_D0_PROLOG,
-                                Bindings(7,
+                                Bindings(6,
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE),		/* SetBias output tile */
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE_W),		/* SetBias output tile width */
                                         K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE_H),		/* SetBias output tile height */
@@ -2346,8 +2830,7 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					K_ArgPar((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_PARTILE_SIZE, Os): /* Number of output features in this tile */
 					AT_IGNORE_ARG_BINDING,							/* Not relevant for non KerPar */
 					K_Arg("Bias", KER_ARG_TILE),						/* SetBias Bias tile */
-					C_Arg("Norm"),								/* Fixed point format for Output */
-					C_Arg("NormBias")							/* Fixed point format for Bias */
+					ConvDP?Imm(Filter_Q+In_Q-Bias_Q):AT_IGNORE_ARG_BINDING			/* For DP, Bias adjust w+i-p */
 					)),
                         Call(ConvKerName, DWConv?LOC_LOOP:LOC_D0,
                                 Bindings(20, 
@@ -2365,12 +2848,12 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					K_Arg("Filter", KER_ARG_TILE),						/* Conv filter */
 					DWConv?K_Arg("Bias", KER_ARG_TILE):AT_IGNORE_ARG_BINDING,		/* Conv Bias when Conv depth wise */
 					K_Arg((PoolOper||ConvDP)?"ConvOut":"Out", KER_ARG_TILE),		/* Conv output */
-					C_Arg("Norm"),								/* Output fixed point format */
+					Imm(Filter_Q+In_Q-Out_Q),						/* Output fixed point format adjust w+i-o */
 					ParFeat?
 					(DWConv?
-					C_Arg("NormBias"):							/* For Depth Wise convolution fixed point format for Bias */
+					Imm(Filter_Q+In_Q-Bias_Q):						/* For Depth Wise convolution Bias adjust w+i-p */
 					K_ArgPar("Filter", KER_ARG_LOADEDPARTILE_SIZE, D0)):			/* Par Feat Conv, Total number of input features currently in L1 memory */
-					(DWConv?C_Arg("NormBias"):AT_IGNORE_ARG_BINDING),			/* For DW conv Norm factor for Bias, Ignore otherwise */
+					(DWConv?Imm(Filter_Q+In_Q-Bias_Q):AT_IGNORE_ARG_BINDING),		/* For DW conv Norm factor for Bias, Ignore otherwise */
 					K_Arg("In", KER_ARG_TILE_PAD),						/* Conv Padding */
 					Imm((TileOrientation==TILE_HOR)?1:0),					/* Orientation */
 					NeedFcx?Imm(Fcx):AT_IGNORE_ARG_BINDING,					/* Conv Fx */
@@ -2388,14 +2871,16 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					K_Arg("ConvOut", KER_ARG_TILE_W),					/* Double precision input tile width */
 					K_Arg("ConvOut", KER_ARG_TILE_H),					/* Double precision input tile height */
 					K_Arg(PoolOper?"ConvOut":"Out", KER_ARG_TILE),				/* Single precision output tile, warning use IO kernel when In=Out */
-					C_Arg("Norm"),								/* Output fixed point format */
-					C_Arg("NormMulBias"),							/* MulBias fixed point format */
+					Imm(Filter_Q+In_Q-Out_Q),						/* Output fixed point format adjust w+i-o */
+					Imm(MulBias_Q),								/* MulBias fixed point format */
 					ParFeat?
 					K_ArgPar(PoolOper?"ConvOut":"Out", KER_ARG_PARTILE_SIZE, Os):Imm(1),	/* Number of features */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(ConvDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB),								/* Conv out upper bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):								/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):						/* ReLUN input tile */
+					Imm(OutUB)),								/* Conv out upper bound, clip or relu */
 					MulBiasScalar?C_ArgIndirect("MulBias", 0):K_Arg("MulBias", KER_ARG_TILE)/* Multiplicative Bias, either a tile or a scalar */
 					
 				)
@@ -2421,9 +2906,11 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					AT_IGNORE_ARG_BINDING,							/* Pooling only, Pool Stridey */
 					AT_IGNORE_ARG_BINDING,							/* Pooling only, Pool Dy */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(ConvDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB)								/* Conv out upper bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):								/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):						/* ReLUN input tile */
+					Imm(OutUB))								/* Conv out upper bound, clip or relu */
 				)
 			):(PoolOper?										/* Need pooling */
 			Call(PoolKerName, DWConv?LOC_LOOP:LOC_D0_EPILOG,
@@ -2447,45 +2934,30 @@ int CNN_ConvolutionMulBiasPoolReLU(
 					NeedSpy?Imm(Spy):AT_IGNORE_ARG_BINDING,					/* Pooling Stridey */
 					NeedDpy?Imm(Dpy):AT_IGNORE_ARG_BINDING,					/* Pooling Dy */
 					Imm(OutLB),								/* Conv out lower bound, clip or relu */
-					(PoolDoReLU&&(ReLUOper==KOP_RELUN)&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):					/* For ReLUN, upper bound N expressed in QNorm */
 					Imm(OutUB)								/* Conv out upper bound, clip or relu */
 				)
 			):AT_NO_CALL)
                      ),
-                KerArgs(6,
-                        KerArgP("In",        KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, UsedWidth, UsedHeight, PadIncT, PadInc, In_DataSize, 	       OverlapC, 0, TileCons, "In"),
-			DWConv?
-			KerArg ("Bias",      KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			      Bias_DataSize,           0,        0,        0, "Bias"):
-			KerArg ("Bias",      KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|BiasL3,   1,     1,                       			      Bias_DataSize,           0,        0,        0, "Bias"),
-			MulBiasScalar?
-			KerArg ("MulBias",   KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,1,     1,                    			      MulBias_DataSize,        0,        0,        0, "MulBias"):
-			(DWConv?
-			KerArg ("MulBias",   KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|MulBiasL3,1,     1,                       			      MulBias_DataSize,        0,        0,        0, "MulBias"):
-			KerArg ("MulBias",   KerArgSpace(1,D1),    O_IN|O_DB|O_CONST|MulBiasL3,1,     1,                       			      MulBias_DataSize,        0,        0,        0, "MulBias")),
-			DWConv?
-			KerArg ("Filter",    KerArgSpace(1,D0),    O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			      Fcx*Fcy*Filter_DataSize, 0,        0,        0, "Filter"):
-			KerArg ("Filter",    KerArgSpace(2,D1,D0), O_IN|O_DB|O_CONST|FilterL3, 1,     1,                       			      Fcx*Fcy*Filter_DataSize, 0,        0,        0, "Filter"),
-			DWConv?
-                        KerArg ("Out",       KerArgSpace(2,D0,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			      Out_DataSize,            0,        0,        0, "Out"):
-                        KerArg ("Out",       KerArgSpace(2,D1,T0), O_OUT|O_DB|OutL3,          Wo,    Ho,                      			      Out_DataSize,            0,        0,        0, "Out"),
-			(PoolOper||ConvDP)?(ParFeat?
-			(DWConv?
-			KerArgP("ConvOut",   KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  ""):
-			KerArgP("ConvOut",   KerArgSpace(2,D1,T0), O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  "")):
-			KerArgP("ConvOut",   KerArgSpace(1,T0),    O_BUFF|O_ONETILE,          Wc,    Hc,     UsedWc, UsedHc, PadInp, PadInp,  	      ConvOut_DataSize,        OverlapP, 0,        0,  "")):
-			AT_NO_KER_ARG
-
-		)
+		KArgs
         );
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
 
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
-			  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
-			  (In_DataSize==1)?7:15, 0);
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		if (DWConv) AddKernelArgDim(Name, "Filter", 4, InFeat, Fcx, Fcy, Filter_DataSize); else AddKernelArgDim(Name, "Filter", 5, OutFeat, InFeat, Fcx, Fcy, Filter_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, OutFeat, Bias_DataSize);
+		if (MulBiasScalar) AddKernelArgDim(Name, "MulBias", 2, 1, MulBias_DataSize); else AddKernelArgDim(Name, "MulBias", 2, OutFeat, MulBias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, OutFeat, 1);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Ho, Wo, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
+				  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  Fcx, Fcy, Scx, Scy, Dcx, Dcy, PadInc, Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp, KernelOper,
+				  (In_DataSize==1)?7:15, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -2504,6 +2976,11 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		Filter_DataSize:1: byte, 2: half word, 4: word
 		Bias_DataSize:	1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
+
+		In_Q:		In fixed point format
+		Filter_Q:	Filter fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
 
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Filter_InL3:	0: Filter is in L2, 1: Filter is in L3 memory
@@ -2533,8 +3010,10 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		Spy:		Pooling filter stride y dimension
 		PoolPad:	0: No padding, 1: Zero padding
 
-		ReLUOper:	Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+		ReLUOper:	Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
+		Signature:	Name(In, Filter, Bias, Out)
+				Name(In, Filter, Bias, ReLUN, Out)
 
 	CNN_GroupedConvolutionPoolReLU
 	
@@ -2553,7 +3032,12 @@ int CNN_GroupedConvolutionPoolReLU(
 			int Bias_DataSize,
 			int Out_DataSize,
 
-			int In_InL3,		// 1 if In comes from L3, 0 if it comes from L2
+			int In_Q,
+			int Filter_Q,
+			int Bias_Q,
+			int Out_Q,
+
+			int In_InL3,
 			int Filter_InL3,
 			int Bias_InL3,
 			int Out_InL3,
@@ -2586,7 +3070,6 @@ int CNN_GroupedConvolutionPoolReLU(
 
 {
 	char *BodyName = AppendNames(Name, "Body");
-	char *TailName = AppendNames(Name, "Tail");
 	KernelGroup_T *UKGroup;
 	int g, Wc, Hc, Wo, Ho;
 	int NGroups = InFeat/GroupIn;
@@ -2602,7 +3085,7 @@ int CNN_GroupedConvolutionPoolReLU(
 	OpenKernelGroup(Name);
 	CNN_ConvolutionPoolReLU(BodyName,
 			Ctrl,
-			In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize, In_InL3, Filter_InL3, Bias_InL3, Out_InL3,
+			In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize, In_Q, Filter_Q, Bias_Q, Out_Q, In_InL3, Filter_InL3, Bias_InL3, Out_InL3,
                         GroupIn, GroupOut, Width, Height,
 			ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 			PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
@@ -2610,35 +3093,47 @@ int CNN_GroupedConvolutionPoolReLU(
 			);
 	CloseKernelGroup();
 
+	CKernel_Arg_T **KCArgs = AllocateCArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
+	Object_T **KArgs = AllocateKerArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ka=0;
+	KArgs[Ka++] = KerGroupArg("In",	    O_IN,  NGroups*GroupIn*Width*Height,     In_DataSize,     "In");
+	KArgs[Ka++] = KerGroupArg("Filter", O_IN,  NGroups*GroupIn*GroupOut*Fcx*Fcy, Filter_DataSize, "Filter");
+	KArgs[Ka++] = KerGroupArg("Bias",   O_IN,  NGroups*GroupOut,                 Bias_DataSize,   "Bias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KArgs[Ka++] = KerGroupArg("ReLUN",  O_IN,  NGroups*GroupOut,                 1,               "ReLUN");
+	KArgs[Ka++] = KerGroupArg("Out",    O_OUT, NGroups*GroupOut*Wo*Ho,           Out_DataSize,    "Out");
+
         UKGroup = UserKernelGroupK(Name,
 		NGroups,
-                CArgs(6,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-                      TCArg("unsigned int", "Norm"),
-                      TCArg("unsigned int", "NormBias")
-                     ),
+		KCArgs,
 		0,
 		Calls(1,
 		      UserKernelCall(BodyName, LOC_GROUP,
-				Bindings(6,
+		      		(ReLUOper==KOP_RELUN_VECTOR)?
+				Bindings(5,
 					KG_ArgOper("In",     '*', GroupIn*Width*Height*In_DataSize),
 					KG_ArgOper("Filter", '*', GroupIn*GroupOut*Fcx*Fcy*Filter_DataSize),
 					KG_ArgOper("Bias",   '*', GroupOut*Bias_DataSize),
-					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize),
-					C_Arg("Norm"),
-					C_Arg("NormBias")
-					)
+					KG_ArgOper("ReLUN",  '*', GroupOut*1),
+					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize)
+				):
+				Bindings(4,
+					KG_ArgOper("In",     '*', GroupIn*Width*Height*In_DataSize),
+					KG_ArgOper("Filter", '*', GroupIn*GroupOut*Fcx*Fcy*Filter_DataSize),
+					KG_ArgOper("Bias",   '*', GroupOut*Bias_DataSize),
+					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize)
 				)
+			)
 		),
-                KerArgs(4,
-			KerGroupArg("In",	O_IN,  NGroups*GroupIn*Width*Height,     In_DataSize, "In"),
-			KerGroupArg("Filter",	O_IN,  NGroups*GroupIn*GroupOut*Fcx*Fcy, Filter_DataSize, "Filter"),
-			KerGroupArg("Bias",	O_IN,  NGroups*GroupOut,                 Bias_DataSize, "Bias"),
-			KerGroupArg("Out",	O_OUT, NGroups*GroupOut*Wo*Ho,           Out_DataSize, "Out")
-		)
+                KArgs
 	);
 	return (UKGroup!=0);
 }
@@ -2660,6 +3155,12 @@ int CNN_GroupedConvolutionPoolReLU(
 		Bias_DataSize:	1: byte, 2: half word, 4: word
 		MulBias_DataSize:1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
+
+		In_Q:		In fixed point format
+		Filter_Q:	Filter fixed point format
+		Bias_Q:		Bias fixed point format
+		MulBias_Q:	MulBias fixed point format
+		Out_Q:		Out fixed point format
 
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Filter_InL3:	0: Filter is in L2, 1: Filter is in L3 memory
@@ -2690,7 +3191,10 @@ int CNN_GroupedConvolutionPoolReLU(
 		Spy:		Pooling filter stride y dimension
 		PoolPad:	0: No padding, 1: Zero padding
 
-		ReLUOper:	Optional linear rectification to be performed as a final step, KOP_RELU or KOP_NONE
+		ReLUOper:	Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+		Signature:	Name(In, Filter, Bias, MulBias, Out)
+				Name(In, Filter, Bias, MulBias, ReLUN, Out)
 
 
 	CNN_GroupedConvolutionPoolReLU
@@ -2710,6 +3214,12 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 			int Bias_DataSize,
 			int MulBias_DataSize,
 			int Out_DataSize,
+
+			int In_Q,
+			int Filter_Q,
+			int Bias_Q,
+			int MulBias_Q,
+			int Out_Q,
 
 			int In_InL3,
 			int Filter_InL3,
@@ -2745,7 +3255,6 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 
 {
 	char *BodyName = AppendNames(Name, "Body");
-	char *TailName = AppendNames(Name, "Tail");
 	KernelGroup_T *UKGroup;
 	int g, Wc, Hc, Wo, Ho;
 	int NGroups = InFeat/GroupIn;
@@ -2765,7 +3274,7 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 	OpenKernelGroup(Name);
 	CNN_ConvolutionMulBiasPoolReLU(BodyName,
 			Ctrl,
-			In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize, In_InL3, Filter_InL3, Bias_InL3, MulBias_InL3, Out_InL3,
+			In_DataSize, Filter_DataSize, Bias_DataSize, MulBias_DataSize, Out_DataSize, In_Q, Filter_Q, Bias_Q, MulBias_Q, Out_Q, In_InL3, Filter_InL3, Bias_InL3, MulBias_InL3, Out_InL3,
                         GroupIn, GroupOut, Width, Height,
 			ConvOper, Fcx, Fcy, Dcx, Dcy, Scx, Scy, ConvPad,
 			PoolOper, Fpx, Fpy, Dpx, Dpy, Spx, Spy, PoolPad,
@@ -2773,40 +3282,51 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 			);
 	CloseKernelGroup();
 
+	CKernel_Arg_T **KCArgs = AllocateCArgs(5+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(MulBias_DataSize,1,1),"MulBias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
+	Object_T **KArgs = AllocateKerArgs(5+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ka=0;
+	KArgs[Ka++] = KerGroupArg("In",	    O_IN,  NGroups*GroupIn*Width*Height,     In_DataSize,     "In");
+	KArgs[Ka++] = KerGroupArg("Filter", O_IN,  NGroups*GroupIn*GroupOut*Fcx*Fcy, Filter_DataSize, "Filter");
+	KArgs[Ka++] = KerGroupArg("Bias",   O_IN,  NGroups*GroupOut,                 Bias_DataSize,   "Bias");
+	KArgs[Ka++] = KerGroupArg("MulBias",O_IN,  MulBiasScalar?1:NGroups*GroupOut, MulBias_DataSize, "MulBias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KArgs[Ka++] = KerGroupArg("ReLUN",  O_IN,  NGroups*GroupOut,                 1,               "ReLUN");
+	KArgs[Ka++] = KerGroupArg("Out",    O_OUT, NGroups*GroupOut*Wo*Ho,           Out_DataSize,    "Out");
+
         UKGroup = UserKernelGroupK(Name,
 		NGroups,
-                CArgs(8,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-                      TCArg(CNN_ArgDataType(MulBias_DataSize,1,1),"MulBias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-                      TCArg("unsigned int", "Norm"),
-                      TCArg("unsigned int", "NormBias"),
-                      TCArg("unsigned int", "MulBias")
-                     ),
+		KCArgs,
 		0,
 		Calls(1,
 		      UserKernelCall(BodyName, LOC_GROUP,
+		      		(ReLUOper==KOP_RELUN_VECTOR)?
 				Bindings(6,
 					KG_ArgOper("In",     '*', GroupIn*Width*Height*In_DataSize),
 					KG_ArgOper("Filter", '*', GroupIn*GroupOut*Fcx*Fcy*Filter_DataSize),
 					KG_ArgOper("Bias",   '*', GroupOut*Bias_DataSize),
 					KG_ArgOper("MulBias",'*', MulBiasScalar?1:GroupOut*Bias_DataSize),
-					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize),
-					C_Arg("Norm"),
-					C_Arg("NormBias"),
-					C_Arg("MulBias")
-					)
+					KG_ArgOper("ReLUN",  '*', GroupOut*1),
+					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize)
+				):
+				Bindings(5,
+					KG_ArgOper("In",     '*', GroupIn*Width*Height*In_DataSize),
+					KG_ArgOper("Filter", '*', GroupIn*GroupOut*Fcx*Fcy*Filter_DataSize),
+					KG_ArgOper("Bias",   '*', GroupOut*Bias_DataSize),
+					KG_ArgOper("MulBias",'*', MulBiasScalar?1:GroupOut*Bias_DataSize),
+					KG_ArgOper("Out",    '*', GroupOut*Wo*Ho*Out_DataSize)
+				)
 		      )
 		),
-                KerArgs(5,
-			KerGroupArg("In",	O_IN,  NGroups*GroupIn*Width*Height,     In_DataSize, "In"),
-			KerGroupArg("Filter",	O_IN,  NGroups*GroupIn*GroupOut*Fcx*Fcy, Filter_DataSize, "Filter"),
-			KerGroupArg("Bias",	O_IN,  NGroups*GroupOut,                 Bias_DataSize, "Bias"),
-			KerGroupArg("MulBias",	O_IN,  MulBiasScalar?1:NGroups*GroupOut, MulBias_DataSize, "MulBias"),
-			KerGroupArg("Out",	O_OUT, NGroups*GroupOut*Wo*Ho,           Out_DataSize, "Out")
-		)
+                KArgs
 	);
 	return (UKGroup!=0);
 }
@@ -2821,6 +3341,9 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 
 		In_DataSize:	1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
+
+		In_Q:		In fixed point format
+		Out_Q:		Out fixed point format
 
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
@@ -2838,7 +3361,11 @@ int CNN_GroupedConvolutionMulBiasPoolReLU(
 		Spx:		Pooling stride, x dimension
 		Spy:		Pooling stride, y dimension
 
-		ReLUOper	optional rectification to be applied after pooling, KOP_RELU or KOP_NONE
+		ReLUOper:	Optional activation function: if (PoolOper!=KOP_NONE) KOP_RELU or KOP_NONE
+				else Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+		Signature:	Name(In, Out)
+				Name(In, ReLUN, Out)
 
 	Currently only homegeneous data size are supported (bytes and hald words)
 
@@ -2854,7 +3381,10 @@ int CNN_PoolReLU(
 			int In_DataSize,
 			int Out_DataSize,
 
-			int In_InL3,		// 1 if In comes from L3, 0 if it comes from L2
+			int In_Q,
+			int Out_Q,
+
+			int In_InL3,
 			int Out_InL3,
 
                         int InFeat,
@@ -2880,7 +3410,7 @@ int CNN_PoolReLU(
 	int InL3 = In_InL3?O_L2DB:0;
 	int OutL3 = Out_InL3?O_L2DB:0;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
-	int ReluN = 6, OutLB, OutUB, ReluNNoNorm = 0;
+	int ReluN = 6, OutLB, OutUB;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
@@ -2889,7 +3419,6 @@ int CNN_PoolReLU(
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
-		if (Ctrl->ReluNNoNorm != -1) ReluNNoNorm = Ctrl->ReluNNoNorm;
 	}
         int OverlapPx = (Dpx*(Fpx-1)+1)-Spx, OverlapPy = (Dpy*(Fpy-1)+1)-Spy;
 	int OverlapP = (TileOrientation==TILE_HOR)?OverlapPy:OverlapPx;
@@ -2901,7 +3430,8 @@ int CNN_PoolReLU(
 	v4s PadInp = (v4s){0,0,0,0};
 	char *PoolKerName=0, *ReLUKerName=0;
 	KernelOper_T KernelOper = CNN_CompositeKernel(PoolOper, ReLUOper, KOP_NONE);
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int Log=1;
 
 	if (InFeat != OutFeat) GenTilingError("CNN_PoolReLU Kernel: %s, InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
@@ -2936,10 +3466,14 @@ int CNN_PoolReLU(
 	PadInp[1] = Max(0, PadInp[1]-(Width-UsedWidth)); PadInp[3] = Max(0, PadInp[3]-(Height-UsedHeight));
 
 	/* Set output Lower and Upper bounds */
-	SetUpperLowerBounds(ReLUOper, Out_DataSize, (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN), &OutLB, &OutUB, ReluN);
+	if (SetUpperLowerBounds(ReLUOper, Out_DataSize, (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR), &OutLB, &OutUB, ReluN, Out_Q))
+		GenTilingError("CNN_PoolReLU %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
 
 	if (PoolOper) LayerOp += OutFeat*Wo*Ho*Fpx*Fpy;
 	if (ReLUOper) LayerOp += OutFeat*Wo*Ho;
+
+	LayerBandwidth += Width*Height*In_DataSize*InFeat;
+	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
 
 	if (Log) {
         	printf("Pool => W: %d, Pad:[%d,%d] => Wo: %d\n", Width,  PadInp[0], PadInp[1], Wo);
@@ -2949,24 +3483,29 @@ int CNN_PoolReLU(
 		printf("UsedIn  : [%d x %d]\n", UsedWidth, UsedHeight);
 		if (PoolKerName) printf("%20s: %s\n", "PoolKerName", PoolKerName);
 		if (ReLUKerName) printf("%20s: %s\n", "ReLUKerName", ReLUKerName);
-		printf("Nb Oper : %d\n", LayerOp);
+		printf("Nb Oper : %lld\n", LayerOp);
 	}
+
+	CKernel_Arg_T **KCArgs = AllocateCArgs(2+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
+	Object_T **KArgs = AllocateKerArgs(2+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ka=0;
+	KArgs[Ka++] = KerArgP("In",     KerArgSpace(2,D0,T0), OBJ_IN_DB|InL3,   Width, Height, UsedWidth, UsedHeight, PadInp,PadInp, In_DataSize,  OverlapP, 0, TileCons, "In");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KArgs[Ka++] = KerArg ("ReLUN",  KerArgSpace(1,D0),    O_IN|O_DB|O_CONST,    1,      1,                       		     1,                   0, 0,        0, "ReLUN");
+	KArgs[Ka++] = KerArg ("Out",    KerArgSpace(2,D0,T0), OBJ_OUT_DB|OutL3,    Wo,     Ho,                   		     Out_DataSize,        0, 0,        0, "Out");
 
         Kernel_T *Kernel = UserKernel(Name,
 		ParFeat?
 		KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)):
 		KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)),
                 TileOrientation,
-		(ReLUOper==KOP_RELUN)?
-                CArgs(3,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1), "In"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out"),
-                      TCArg("unsigned int", "Norm")
-                     ):
-                CArgs(2,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1), "In"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")
-                     ),
+                KCArgs,
                 Calls(1,
 			PoolOper?
 			Call(PoolKerName, LOC_LOOP,
@@ -2990,8 +3529,6 @@ int CNN_PoolReLU(
 					NeedSpy?Imm(Spy):AT_IGNORE_ARG_BINDING,			/* Pooling Stridey */
 					NeedDpy?Imm(Dpy):AT_IGNORE_ARG_BINDING,			/* Pooling Dy */
 					Imm(OutLB),						/* Conv out lower bound, clip or relu */
-					(ReLUOper==KOP_RELUN)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):			/* For ReLUN, upper bound N expressed in QNorm */
 					Imm(OutUB)						/* Conv out upper bound, clip or relu */
 				)
 			):
@@ -3015,28 +3552,34 @@ int CNN_PoolReLU(
 					AT_IGNORE_ARG_BINDING,					/* Pooling only, Pool Fy */
 					AT_IGNORE_ARG_BINDING,					/* Pooling only, Pool Stridey */
 					AT_IGNORE_ARG_BINDING,					/* Pooling only, Pool Dy */
-					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?C_Arg("Norm"):	/* Use LB to pass Norm */
-					Imm(OutLB),						/* Conv out lower bound, clip or relu */
-					(ReLUOper==KOP_RELUN&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):			/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB)						/* Conv out upper bound, clip or relu */
+					Imm(OutLB),						/* Activation lower bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):						/* Use UB to pass Norm */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+					Imm(OutUB))						/* Activation upper bound, clip or relu */
 				)
 			)
                      ),
-                KerArgs(2,
-			KerArgP("In",     KerArgSpace(2,D0,T0), OBJ_IN_DB|InL3,   Width, Height, UsedWidth, UsedHeight, PadInp,PadInp, In_DataSize,  OverlapP,  0, TileCons, "In"),
-                        KerArg ("Out",    KerArgSpace(2,D0,T0), OBJ_OUT_DB|OutL3, Wo,    Ho,                   		               Out_DataSize,        0,  0,        0, "Out")
-		)
+                KArgs
         );
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, 0, 0, Out_DataSize},
-			  (v4s) {InL3!=0,0,0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp,
-			  KernelOper,
-			  (In_DataSize==1)?7:15, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, OutFeat, 1);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Ho, Wo, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, 0, 0, Out_DataSize},
+				  (v4s) {InL3!=0,0,0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  Fpx, Fpy, Spx, Spy, Dpx, Dpy, PadInp,
+				  KernelOper,
+				  (In_DataSize==1)?7:15, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -3052,6 +3595,9 @@ int CNN_PoolReLU(
 		In_DataSize:	1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
 
+		In_Q:		In fixed point format
+		Out_Q:		Out fixed point format
+
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
 
@@ -3061,6 +3607,8 @@ int CNN_PoolReLU(
 		Height:		Number of lines of a given feature map
 
 		PoolOper:	KOP_GLOBAL_MAXPOOL or KOP_GLOBAL_AVGPOOL
+
+		Signature:	Name(In, Out)
 
 	Currently only homegeneous data size are supported (bytes and hald words)
 
@@ -3076,7 +3624,10 @@ int CNN_GlobalPool(
 			int In_DataSize,
 			int Out_DataSize,
 
-			int In_InL3,		// 1 if In comes from L3, 0 if it comes from L2
+			int In_Q,
+			int Out_Q,
+
+			int In_InL3,
 			int Out_InL3,
 
                         int InFeat,
@@ -3095,7 +3646,8 @@ int CNN_GlobalPool(
 	int Wo, Ho;
 	char *PoolKerName=0, *PoolInitKerName=0, *PoolFinalKerName=0;
 	KernelOper_T KernelOper = CNN_CompositeKernel(PoolOper, KOP_NONE, KOP_NONE);
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int Log=1;
 
 	if (!(PoolOper == KOP_GLOBAL_MAXPOOL || PoolOper == KOP_GLOBAL_AVGPOOL))
@@ -3109,13 +3661,15 @@ int CNN_GlobalPool(
 	/* Set output Lower and Upper bounds */
 
 	if (PoolOper) LayerOp += OutFeat*Wo*Ho*Width*Height;
+	LayerBandwidth += Width*Height*In_DataSize*InFeat;
+	LayerBandwidth += Wo*Ho*Out_DataSize*OutFeat;
 
 	if (Log) {
         	printf("Global Pool => W: %d => Wo: %d\n", Width,  Wo);
         	printf("            => H: %d => Ho: %d\n", Height, Ho);
         	printf("            => Feat: %d\n", OutFeat);
 		if (PoolKerName)      printf("%20s: %s\n", "PoolKerName", PoolKerName);
-		printf("Nb Oper : %d\n", LayerOp);
+		printf("Nb Oper : %lld\n", LayerOp);
 	}
 
         Kernel_T *Kernel;
@@ -3129,11 +3683,12 @@ int CNN_GlobalPool(
                      ),
                 Calls(1,
 			Call(PoolKerName, LOC_LOOP,
-				Bindings(5,
+				Bindings(6,
 					K_Arg("In", KER_ARG_TILE),				/* In tile */
 					Imm(Width),						/* In tile width */
 					Imm(Height),						/* In Tile Height */
 					K_Arg("Out", KER_ARG_TILE_H),				/* Number of output features in this tile */
+					Imm(Out_Q),						/* Output fixed point format */
 					K_Arg("Out", KER_ARG_TILE)				/* Output tile */
 					)
 			    )
@@ -3159,7 +3714,7 @@ int CNN_GlobalPool(
         		printf("               => Feat: %d\n", OutFeat);
 			if (PoolKerName)       printf("%20s: %s\n", "PoolKerName", PoolKerName);
 			if (PoolReductKerName) printf("%20s: %s\n", "PoolReductKerName", PoolReductKerName);
-			printf("Nb Oper : %d\n", LayerOp);
+			printf("Nb Oper : %lld\n", LayerOp);
 		}
        		Kernel = UserKernel(Name,
 			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
@@ -3180,32 +3735,39 @@ int CNN_GlobalPool(
 					)
 				),
 				Call(PoolReductKerName, LOC_LOOP_EPILOG,
-					Bindings(5,
+					Bindings(6,
 						K_Arg("DPOut", KER_ARG_TILE),				/* In tile */
 						Imm(Width),						/* Feature width */
 						Imm(Height),						/* Feature Height */
 						K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0),		/* Number of output features in this tile */
+						Imm(Out_Q),						/* Output fixed point format */
 						K_Arg("Out", KER_ARG_TILE)				/* Output tile */
 					)
 				)
 	                ),
 	                KerArgs(3,
-				KerArg("In",     KerArgSpace(2,D0,T0), OBJ_IN_DB|InL3,   Width, Height, In_DataSize, 0, 0, 0, "In"),
-			//	KerArg("DPOut",  KerArgSpace(1,D0),    O_BUFF|O_ONETILE, 1,     1,      4,           0, 0, 0,  ""),
-				KerArg("DPOut",  KerArgSpace(1,D0),    O_BUFF,           1,     1,      4,           0, 0, 0,  ""),
+				KerArg("In",     KerArgSpace(2,D0,T0), OBJ_IN_DB|InL3,   Width, Height, In_DataSize,  0, 0, 0, "In"),
+				KerArg("DPOut",  KerArgSpace(1,D0),    O_BUFF,           1,     1,      4,            0, 0, 0,  ""),
 	                        KerArg("Out",    KerArgSpace(1,D0),    OBJ_OUT_DB|OutL3, 1,     1,      Out_DataSize, 0, 0, 0, "Out")
 			)
 		);
 	}
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, 0, 0, Out_DataSize},
-			  (v4s) {InL3!=0,0,0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0, 0, 0, 0, 0, 0, (v4s) 0,
-			  KernelOper,
-			  (In_DataSize==1)?7:15, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, 1, 1, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, 0, 0, Out_DataSize},
+				  (v4s) {InL3!=0,0,0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0, 0, 0, 0, 0, 0, (v4s) 0,
+				  KernelOper,
+				  (In_DataSize==1)?7:15, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -3223,6 +3785,11 @@ int CNN_GlobalPool(
 		Bias_DataSize:	1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word, 4: word
 
+		In_Q:		In fixed point format
+		Filter_Q:	Filter fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
+
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Filter_InL3:	0: Filter is in L2, 1: Filter is in L3 memory
 		Bias_InL3:	0: Bias is in L2, 1: Bias is in L3 memory
@@ -3231,8 +3798,11 @@ int CNN_GlobalPool(
 		InDim:		Number of inputs
 		OutDim:		Number of outputs
 
-		KernelOper_T 	LinearOper	Should always be KOP_LINEAR
-		KernelOper_T 	ReLUOper	KOP_RELU if ReLU has to be applied after Linear, KOP_NONE otherwise
+		LinearOper	Should always be KOP_LINEAR
+		ReLUOper	Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+
+		Signature:	Name(In, Filter, Bias, Out)
+				Name(In, Filter, Bias, ReLUN, Out)
 
 	CNN_LinearReLU
 		Input, Bias and Output are assumed to fit into shared L1 (Buffer In or Out) and Filter is tiled.
@@ -3248,6 +3818,11 @@ int CNN_LinearReLU(
 	int Filter_DataSize,
 	int Bias_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Filter_Q,
+	int Bias_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Filter_InL3,
@@ -3266,19 +3841,19 @@ int CNN_LinearReLU(
 	int Iter;
 	Tile_Orientation_T TileOrientation = TILE_HOR;
 	int ParFeat = 1;
-	int ReluN = 6, OutLB, OutUB, ReluNNoNorm = 0;
+	int ReluN = 6, OutLB, OutUB;
 	if (Ctrl) {
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
-		if (Ctrl->ReluNNoNorm != -1) ReluNNoNorm = Ctrl->ReluNNoNorm;
 	}
 	int InL3 = In_InL3?O_L2DB:0;
 	int FilterL3 = Filter_InL3?O_L2DB:0;
 	int BiasL3 = Bias_InL3?O_L2DB:0;
 	int OutL3 = Out_InL3?O_L2DB:0;
 	KernelOper_T KernelOper = CNN_CompositeKernel(LinearOper, ReLUOper, KOP_NONE);
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 
 	if (LinearOper != KOP_LINEAR) GenTilingError("CNN_LinearReLU Kernel: %s, only KOP_LINEAR should be used as LinearOper argument", Name);
 
@@ -3287,28 +3862,46 @@ int CNN_LinearReLU(
 	if (LinearKerName==0) GenTilingError("CNN_LinearReLU Kernel: %s, Can't find a matching %s basic kernel", Name, ReLUOper?"with linear rectification":"");
 
 	/* Set output Lower and Upper bounds */
-	SetUpperLowerBounds(ReLUOper, Out_DataSize, (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN), &OutLB, &OutUB, ReluN);
+	if (SetUpperLowerBounds(ReLUOper, Out_DataSize, (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR), &OutLB, &OutUB, ReluN, Out_Q))
+		GenTilingError("CNN_LinearReLU %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
 
 	LayerOp += InDim*OutDim;
 	if (ReLUOper) LayerOp += OutDim;
+	LayerBandwidth += InDim*OutDim*In_DataSize;
+	LayerBandwidth += OutDim*Out_DataSize;
+	LayerBandwidth += InDim*OutDim*Filter_DataSize;
+	LayerBandwidth += Bias_DataSize*OutDim;
+
 	if (Log) {
 		printf("Linear Layer %s, %s: InDim: %d, OutDim: %d, Activation: %s\n", Name, CNN_KernelOperImage(LinearOper), InDim, OutDim, CNN_KernelOperImage(ReLUOper));
 		if (LinearKerName) printf("Linear Kernel: %s\n", LinearKerName);
 	}
 	Kernel_T *Kernel;
 
+	CKernel_Arg_T **KCArgs = AllocateCArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ca=0;
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter");
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+       	KCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
+
+	Object_T **KArgs = AllocateKerArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+	int Ka=0;
+	KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|InL3,  1, 1,      InDim*In_DataSize,     0, 0, 0, "In");
+	KArgs[Ka++] = KerArg("Filter",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST|FilterL3, 1, 1,      InDim*Filter_DataSize, 0, 0, 0, "Filter");
+	KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), OBJ_IN_DB|O_CONST|BiasL3,   1, 1,      Bias_DataSize,         0, 0, 0, "Bias");
+	if (ReLUOper==KOP_RELUN_VECTOR)
+	KArgs[Ka++] = KerArg("ReLUN",   KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,          1, 1,      1,                     0, 0, 0, "ReLUN");
+	KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), OBJ_OUT_DB|OutL3,           1, 1,      Out_DataSize,          0, 0, 0, "Out");
+
         Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterParSpace(D0, OutDim, 8), IterTiledSpace(T0)),
                 TileOrientation,
-                CArgs(6,
-                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-                      TCArg("unsigned int", "Norm"),
-                      TCArg("unsigned int", "NormBias")
-                     ),
+                KCArgs,
                 Calls(1,
 			Call(LinearKerName, LOC_LOOP,
 				Bindings(11,
@@ -3319,23 +3912,19 @@ int CNN_LinearReLU(
 					K_Arg("Filter", KER_ARG_TILE),				/* Filter tile */
 					K_Arg("Bias", KER_ARG_TILE),				/* Bias tile */
 					K_Arg("Out", KER_ARG_TILE),				/* Output tile */
-					C_Arg("Norm"),						/* Output fixed point format */
-					C_Arg("NormBias"),					/* Bias fixed point format */
+					Imm(Filter_Q+In_Q-Out_Q),				/* Output fixed point adjust w+i-o */
+					Imm(Filter_Q+In_Q-Bias_Q),				/* Bias fixed point adjust w+i-b */
 					Imm(OutLB),						/* Conv out lower bound, clip or relu */
-					(ReLUOper==KOP_RELUN&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):			/* For ReLUN, upper vound N expressed in QNorm */
-					Imm(OutUB)						/* Conv out upper bound, clip or relu */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):						/* Output format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+					Imm(OutUB))						/* Activation upper bound, clip or relu */
 				)
 			)
 		),
-                KerArgs(4,
-                        KerArg("In",      KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|InL3,  1, 1,      InDim*In_DataSize,     0, 0, 0, "In"),
-                        KerArg("Filter",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST|FilterL3, 1, 1,      InDim*Filter_DataSize, 0, 0, 0, "Filter"),
-                        KerArg("Bias",    KerArgSpace(1,D0), OBJ_IN_DB|O_CONST|BiasL3,   1, 1,      Bias_DataSize,         0, 0, 0, "Bias"),
-                        KerArg("Out",     KerArgSpace(1,D0), OBJ_OUT_DB|OutL3,           1, 1,      Out_DataSize,          0, 0, 0, "Out")
-                        )
+                KArgs
 	);
-	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 	if (Kernel==0) {
 		char *LinearKerName = CNN_FindMatchingKernel(KOP_LINEAR_DP, KOP_NONE, 0, In_DataSize, Filter_DataSize, 0, 0, 4, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 		char *ReductKerName = CNN_FindMatchingKernel(KOP_DP_REDUCT_LINEAR, ReLUOper, 0, 4, Bias_DataSize, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
@@ -3348,17 +3937,21 @@ int CNN_LinearReLU(
 		}
 		if (LinearKerName==0 || ReductKerName==0) GenTilingError("CNN_LinearReLU Kernel: %s, Can't find a matching %s basic kernel", Name, ReLUOper?"with linear rectification":"");
 
+		/* First try with Input as a buffer in */
+		Object_T **KArgs = AllocateKerArgs(5+(ReLUOper==KOP_RELUN_VECTOR));
+		int Ka=0;
+		KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), OBJ_BUFFER_IN|InL3,            1, InDim,  In_DataSize,     0, 0, 0, "In");
+		KArgs[Ka++] = KerArg("Filter",  KerArgSpace(2,D0,T0), OBJ_IN_DB|O_CONST|FilterL3, 1, InDim,  Filter_DataSize, 0, 0, 0, "Filter");
+		KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), OBJ_BUFFER_IN|O_CONST|BiasL3,  1, 1,      Bias_DataSize,   0, 0, 0, "Bias");
+		if (ReLUOper==KOP_RELUN_VECTOR)
+		KArgs[Ka++] = KerArg("ReLUN",   KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1,      1,               0, 0, 0, "ReLUN");
+		KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), OBJ_BUFFER_OUT|OutL3,          1, 1,      Out_DataSize,    0, 0, 0, "Out");
+		KArgs[Ka++] = KerArg("Reduct",  KerArgSpace(1,T0), O_BUFF|O_NTILED,               8, 1,      4,               0, 0, 0, 0);
+
 	        Kernel = UserKernel(Name,
 			KernelIterSpace(2, IterFixedSpace(D0, OutDim), IterTiledSpace(T0)),
 	                TileOrientation,
-	                CArgs(6,
-	                      TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In"),
-	                      TCArg(CNN_ArgDataType(Filter_DataSize,1,1), "Filter"),
-	                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1),   "Bias"),
-	                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out"),
-	                      TCArg("unsigned int", "Norm"),
-	                      TCArg("unsigned int", "NormBias")
-	                     ),
+                	KCArgs,
 	                Calls(2,
 				Call(LinearKerName, LOC_INNER_LOOP,
 					Bindings(5,
@@ -3375,33 +3968,90 @@ int CNN_LinearReLU(
 						K_Arg("Bias", KER_ARG_TILE),				/* Filter tile */
 						K_Arg("Out", KER_ARG_TILE),				/* Output tile */
 						Imm(OutLB),						/* LB */
-						Imm(OutUB),						/* UB */
-						C_Arg("Norm"),						/* Normalization factor to be used for sum of product */
-						C_Arg("NormBias"),					/* Normalization factor to be used to adjust bias or filter */
+						(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+						Imm(Out_Q):						/* Output fixed point format */
+						((ReLUOper==KOP_RELUN_VECTOR)?
+						K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+						Imm(OutUB)),						/* Activation upper bound, clip or relu */
+						Imm(Filter_Q+In_Q-Out_Q),				/* Normalization factor to be used for sum of product */
+						Imm(Filter_Q+In_Q-Bias_Q),				/* Normalization factor to be used to adjust bias */
+						Imm(Out_Q),						/* Output fixed point format */
 						Imm(EncodeActivation(ReLUOper))				/* Oper, unused here */
 					)
 				)
 			),
-	                KerArgs(5,
-	                        KerArg("In",      KerArgSpace(1,T0), OBJ_IN_DB|InL3,                   1, InDim,  In_DataSize,     0, 0, 0, "In"),
-	                        KerArg("Filter",  KerArgSpace(2,D0,T0), OBJ_IN_DB|O_CONST|FilterL3,    1, InDim,  Filter_DataSize, 0, 0, 0, "Filter"),
-	                        KerArg("Bias",    KerArgSpace(1,D0), OBJ_BUFFER_IN|O_CONST|BiasL3,     1, 1,      Bias_DataSize,   0, 0, 0, "Bias"),
-	                        KerArg("Out",     KerArgSpace(1,D0), OBJ_BUFFER_OUT|OutL3,             1, 1,      Out_DataSize,    0, 0, 0, "Out"),
-	                        KerArg("Reduct",  KerArgSpace(1,T0), O_BUFF|O_NTILED,                  8, 1,      4,               0, 0, 0, 0)
-	                        )
+	                KArgs
 		);
+
+		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
+		if (Log && (Kernel==0)) printf("Feature parallel with in buffered failed, switching to non buffered in form\n");
+		if (Kernel==0) {
+			Object_T **KArgs = AllocateKerArgs(5+(ReLUOper==KOP_RELUN_VECTOR));
+			int Ka=0;
+			KArgs[Ka++] = KerArg("In",      KerArgSpace(1,T0), OBJ_IN_DB|InL3,                1, InDim,  In_DataSize,     0, 0, 0, "In");
+			KArgs[Ka++] = KerArg("Filter",  KerArgSpace(2,D0,T0), OBJ_IN_DB|O_CONST|FilterL3, 1, InDim,  Filter_DataSize, 0, 0, 0, "Filter");
+			KArgs[Ka++] = KerArg("Bias",    KerArgSpace(1,D0), OBJ_BUFFER_IN|O_CONST|BiasL3,  1, 1,      Bias_DataSize,   0, 0, 0, "Bias");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KArgs[Ka++] = KerArg("ReLUN",   KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1,      1,               0, 0, 0, "ReLUN");
+			KArgs[Ka++] = KerArg("Out",     KerArgSpace(1,D0), OBJ_BUFFER_OUT|OutL3,          1, 1,      Out_DataSize,    0, 0, 0, "Out");
+			KArgs[Ka++] = KerArg("Reduct",  KerArgSpace(1,T0), O_BUFF|O_NTILED,               8, 1,      4,               0, 0, 0, 0);
+
+		        Kernel = UserKernel(Name,
+				KernelIterSpace(2, IterFixedSpace(D0, OutDim), IterTiledSpace(T0)),
+		                TileOrientation,
+	                	KCArgs,
+		                Calls(2,
+					Call(LinearKerName, LOC_INNER_LOOP,
+						Bindings(5,
+							K_Arg("In", KER_ARG_TILE),				/* Input tile */
+							K_Arg("Filter", KER_ARG_TILE),				/* Filter tile */
+							K_Arg("Reduct", KER_ARG_TILE),				/* Output tile */
+							K_Arg("In", KER_ARG_TILE_H),				/* Input tile size */
+							Ker_IteratorIndex(T0)					/* Which tile index */
+						)
+					),
+					Call(ReductKerName, LOC_INNER_LOOP_EPILOG,
+						Bindings(8,
+							K_Arg("Reduct", KER_ARG_TILE),				/* Input tile */
+							K_Arg("Bias", KER_ARG_TILE),				/* Filter tile */
+							K_Arg("Out", KER_ARG_TILE),				/* Output tile */
+							Imm(OutLB),						/* LB */
+							(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+							Imm(Out_Q):						/* Output fixed point format */
+							((ReLUOper==KOP_RELUN_VECTOR)?
+							K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+							Imm(OutUB)),						/* Activation upper bound, clip or relu */
+							Imm(Filter_Q+In_Q-Out_Q),				/* Normalization factor to be used for sum of product */
+							Imm(Filter_Q+In_Q-Bias_Q),				/* Normalization factor to be used to adjust bias */
+							Imm(EncodeActivation(ReLUOper))				/* Oper, unused here */
+						)
+					)
+				),
+		                KArgs
+			);
+		}
 	}
 
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
-			  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
-			  InDim, OutDim, 1, 1,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  KernelOper,
-			  (In_DataSize==1)?7:15,
-			  (Filter_DataSize==1)?7:15);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 2, InDim, In_DataSize);
+		AddKernelArgDim(Name, "Filter", 3, OutDim, InDim, Filter_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, OutDim, Bias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, OutDim, 1);
+		AddKernelArgDim(Name, "Out", 2, OutDim, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, Filter_DataSize, Bias_DataSize, Out_DataSize},
+				  (v4s) {InL3!=0,FilterL3!=0,BiasL3!=0,OutL3!=0},
+				  InDim, OutDim, 1, 1,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  KernelOper,
+				  (In_DataSize==1)?7:15,
+				  (Filter_DataSize==1)?7:15);
+	}
 	return (Kernel!=0);
 }
 
@@ -3416,12 +4066,17 @@ int CNN_LinearReLU(
 		In_DataSize:	1: byte, 2: half word,
 		Out_DataSize:	2: half word only, Q15 format
 
+		In_Q:		In fixed point format
+		Out_Q:		Out fixed point format
+
 		In_InL3:	0: In is in L2, 1: In is in L3 memory
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
 
 		Dim:		Number of inputs
 
-        	KernelOper_T 	SoftMaxOper	Should always be KOP_SOFTMAX
+		SoftMaxOper:	Should always be KOP_SOFTMAX
+
+		Signature:	Name(In, Out)
 
 	CNN_SoftMax
                 Input and output are assumed to fit within given shared L1 memory. Dim is partitionned into subsets of inputs and each subset is given to
@@ -3437,6 +4092,9 @@ int CNN_SoftMax(
 
 	int In_DataSize,
 	int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
 
 	int In_InL3,
 	int Out_InL3,
@@ -3455,26 +4113,27 @@ int CNN_SoftMax(
 	int InL3 = In_InL3?O_L2DB:0;
 	int OutL3 = Out_InL3?O_L2DB:0;
 	KernelOper_T KernelOper = CNN_CompositeKernel(SoftMaxOper, KOP_NONE, KOP_NONE);
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	char *SoftMaxKerName = CNN_FindMatchingKernel(SoftMaxOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 
-	if (SoftMaxKerName==0) GenTilingError("CNN_SoftMax Kernel: %s, Can't find a matching basic kernel, warning 16 bits output only", Name);
+	if (SoftMaxKerName==0) GenTilingError("CNN_SoftMax Kernel: %s, Can't find a matching basic kernel, warning 16 bits output only, Q15 output", Name);
 
 	LayerOp += Dim;
+	LayerBandwidth += Dim*In_DataSize + Dim*Out_DataSize;
         Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(1, IterTiledSpace(T0)),
                 TileOrientation,
-                CArgs(3,
+                CArgs(2,
                       TCArg(CNN_ArgDataType(In_DataSize,1,1), "In"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out"),
-                      TCArg("unsigned int", "Norm")
+                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")
                      ),
                 Calls(1,
 			Call(SoftMaxKerName, LOC_INNER_LOOP,
 				Bindings(4,
 					K_Arg("In", KER_ARG_TILE),	/* Input tile */
 					K_Arg("In", KER_ARG_TILE_H),	/* Number of inputs */
-					C_Arg("Norm"),			/* Normalization factor */
+					Imm(In_Q),			/* Input fixed point format */
 					K_Arg("Out", KER_ARG_TILE)	/* Output tile */
 				)
 			)
@@ -3484,15 +4143,22 @@ int CNN_SoftMax(
                         KerArg("Out", KerArgSpace(1,T0), OBJ_BUFFER_OUT|OutL3, 1, Dim, Out_DataSize, 0, 0, 0, "Out")
 		)
 	);
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In_DataSize, 0, 0, Out_DataSize},
-			  (v4s) {InL3!=0,0,0,OutL3!=0},
-			  1, 1, 1, Dim,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  KernelOper,
-			  (Out_DataSize==1)?7:15, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 2, Dim, In_DataSize);
+		AddKernelArgDim(Name, "Out", 2, Dim, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, 0, 0, Out_DataSize},
+				  (v4s) {InL3!=0,0,0,OutL3!=0},
+				  1, 1, 1, Dim,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  KernelOper,
+				  (Out_DataSize==1)?7:15, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -3509,6 +4175,10 @@ int CNN_SoftMax(
 		In2_DataSize:	1: byte, 2: half word,
 		Out_DataSize:	1: byte, 2: half word
 
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Out_Q:		Out fixed point format
+
 		In1_InL3:	0: In is in L2, 1: In is in L3 memory
 		In2_InL3:	0: In is in L2, 1: In is in L3 memory
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
@@ -3518,7 +4188,9 @@ int CNN_SoftMax(
 		Width:		Width of a given feature
 		Height:		Height of a given feature
 
-        	KernelOper_T 	AddMatOper	Should always be KOP_MATADD
+		AddMatOper:	Should always be KOP_MATADD
+
+		Signature:	Name(In1, In2, Out)
 
 	CNN_MatAdd
 	
@@ -3532,6 +4204,10 @@ int CNN_MatAdd(
 	int In1_DataSize,
 	int In2_DataSize,
 	int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Out_Q,
 
 	int In1_InL3,
 	int In2_InL3,
@@ -3555,7 +4231,8 @@ int CNN_MatAdd(
 	unsigned int In1L3 = In1_InL3?O_L2DB:0;
 	unsigned int In2L3 = In2_InL3?O_L2DB:0;
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int OutLB, OutUB;
 	KernelOper_T KernelOper = CNN_CompositeKernel(AddMatOper, KOP_NONE, KOP_NONE);
 
@@ -3563,9 +4240,13 @@ int CNN_MatAdd(
 
 	if (MatAddKerName==0) GenTilingError("CNN_MatAdd Kernel: %s, Can't find a matching basic kernel", Name);
 
-	SetUpperLowerBounds(KOP_NONE, Out_DataSize, 0, &OutLB, &OutUB, 0);
+	SetUpperLowerBounds(KOP_NONE, Out_DataSize, 0, &OutLB, &OutUB, 0, Out_Q);
 
 	LayerOp += OutFeat * Width * Height;
+	LayerBandwidth += Width*Height*In1_DataSize*InFeat;
+	LayerBandwidth += Width*Height*In2_DataSize*InFeat;
+	LayerBandwidth += Width*Height*Out_DataSize*OutFeat;
+
         Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
                 TileOrientation,
@@ -3597,15 +4278,23 @@ int CNN_MatAdd(
                         KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|In2L3, Width, Height,  Out_DataSize, 0, 0, 0, "Out")
 		)
 	);
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In1_DataSize, In2_DataSize, 0, Out_DataSize},
-			  (v4s) {In1L3!=0,In2L3!=0,0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  KernelOper,
-			  0, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 4, InFeat,  Height, Width, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, InFeat,  Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Height, Width, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In1_DataSize, In2_DataSize, 0, Out_DataSize},
+				  (v4s) {In1L3!=0,In2L3!=0,0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  KernelOper,
+				  0, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -3621,20 +4310,22 @@ int CNN_MatAdd(
 		In2_DataSize:	1: byte, 2: half word,
 		Out_DataSize:	1: byte, 2: half word
 
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Out_Q:		Out fixed point format
+
 		In1_InL3:	0: In is in L2, 1: In is in L3 memory
 		In2_InL3:	0: In is in L2, 1: In is in L3 memory
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
-
-		In1_Q:		In1 Quantization
-		In2_Q:		In2 Quantization
-		Out_Q:		Out Quantization
 
 		InFeat:		Number of input features
 		OutFeat:	Number of input features, should always be equal to InFeat
 		Width:		Width of a given feature
 		Height:		Height of a given feature
 
-        	KernelOper_T 	AddMatOper	Should always be KOP_MATADD_DYNADJUST
+		AddMatOper:	Should always be KOP_MATADD_DYNADJUST
+
+		Signature:	Name(In1, In2, Out)
 
 	CNN_MatAddDynAdjust
 	
@@ -3649,13 +4340,13 @@ int CNN_MatAddDynAdjust(
 	int In2_DataSize,
 	int Out_DataSize,
 
-	int In1_InL3,
-	int In2_InL3,
-	int Out_InL3,
-
 	int In1_Q,
 	int In2_Q,
 	int Out_Q,
+
+	int In1_InL3,
+	int In2_InL3,
+	int Out_InL3,
 
 	int InFeat,
 	int OutFeat,
@@ -3675,7 +4366,8 @@ int CNN_MatAddDynAdjust(
 	unsigned int In1L3 = In1_InL3?O_L2DB:0;
 	unsigned int In2L3 = In2_InL3?O_L2DB:0;
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int OutLB, OutUB;
 	KernelOper_T KernelOper = CNN_CompositeKernel(AddMatOper, KOP_NONE, KOP_NONE);
 
@@ -3686,8 +4378,13 @@ int CNN_MatAddDynAdjust(
 	if ((In2_Q<0) || (In2_Q>(In2_DataSize*8 - 1))) GenTilingError("CNN_MatAddDynAdjust Kernel: %s, Incorrect quantization value for In2 %d", Name, In2_Q);
 	if ((Out_Q<0) || (Out_Q>(Out_DataSize*8 - 1))) GenTilingError("CNN_MatAddDynAdjust Kernel: %s, Incorrect quantization value for Out %d", Name, Out_Q);
 
-	SetUpperLowerBounds(KOP_NONE, Out_DataSize, 0, &OutLB, &OutUB, 0);
+	SetUpperLowerBounds(KOP_NONE, Out_DataSize, 0, &OutLB, &OutUB, 0, Out_Q);
+
 	LayerOp += OutFeat * Width * Height;
+	LayerBandwidth += Width*Height*In1_DataSize*InFeat;
+	LayerBandwidth += Width*Height*In2_DataSize*InFeat;
+	LayerBandwidth += Width*Height*Out_DataSize*OutFeat;
+
         Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
                 TileOrientation,
@@ -3719,33 +4416,48 @@ int CNN_MatAddDynAdjust(
                         KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|In2L3, Width, Height,  Out_DataSize, 0, 0, 0, "Out")
 		)
 	);
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In1_DataSize, In2_DataSize, 0, Out_DataSize},
-			  (v4s) {In1L3!=0,In2L3!=0,0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  KernelOper,
-			  0, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 4, InFeat,  Height, Width, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, InFeat,  Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Height, Width, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In1_DataSize, In2_DataSize, 0, Out_DataSize},
+				  (v4s) {In1L3!=0,In2L3!=0,0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  KernelOper,
+				  0, 0);
+	}
 	return (Kernel!=0);
 }
 
 
 /*********************************************************************************************************************************************************************
- 	Generator for Matrix Scaling layers, one scale per channel or a single scale for all channels (scalar)
+ 	Generator for Matrix Scaling layers, one scale per channel or a single scale for all channels (scalar) or scalar for each and then vector per channel
 
 	Template:
 		Name:		Name of the generated user kernel
 
 		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
 
-		In1_DataSize:	1: byte, 2: half word,
-		In2_DataSize:	1: byte, 2: half word,
+		In_DataSize:	1: byte, 2: half word,
+		Vector_DataSize:1: byte, 2: half word,
+		Scalar_DataSize:1: byte, 2: half word,
 		Out_DataSize:	1: byte, 2: half word
 
-		In1_InL3:	0: In is in L2, 1: In is in L3 memory
-		In2_InL3:	0: In is in L2, 1: In is in L3 memory. Scaling factor, a vector or a scalar
+		In_Q:		In fixed point format
+		Vector_Q:	Vector fixed point format
+		Scalar_Q:	Scalar fixed point format
+		Out_Q:		Out fixed point format
+
+		In_InL3:	0: In is in L2, 1: In is in L3 memory
+		Vector_InL3:	0: Vector is in L2, 1: Vector is in L3 memory. Scaling factor, a vector
+		Scalar_InL3:	0: Scalar is in L2, 1: Scalar is in L3 memory. Scaling factor, a scalar
 		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
 
 		InFeat:		Number of input features
@@ -3753,8 +4465,15 @@ int CNN_MatAddDynAdjust(
 		Width:		Width of a given feature
 		Height:		Height of a given feature
 
-        	KernelOper_T 	ScaleOper	Should always be KOP_MATSCALE or KOP_MATSCALE_SCALAR
-        	KernelOper_T 	ReLUOper	Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN
+		ScaleOper:	Should always be KOP_MATSCALE_VECTOR, KOP_MATSCALE_SCALAR or KOP_MATSCALE_VECTOR_SCALAR
+		ReLUOper:	Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN or KOP_RELUN_VECTOR
+
+		Signature:	Name(In, Scalar, Out)
+				Name(In, Scalar, Out, ReLUN)
+				Name(In, Vector, Out)
+				Name(In, Vector, Out, ReLUN)
+				Name(In, Vector, Scalar, Out)
+				Name(In, Vector, Scalar, Out, ReLUN)
 
 	CNN_MatScale
 	
@@ -3765,12 +4484,19 @@ int CNN_MatScale(
 
 	CNN_GenControl_T *Ctrl,
 
-	int In1_DataSize,
-	int In2_DataSize,
+	int In_DataSize,
+	int Vector_DataSize,
+	int Scalar_DataSize,
 	int Out_DataSize,
 
-	int In1_InL3,
-	int In2_InL3,
+	int In_Q,
+	int Vector_Q,
+	int Scalar_Q,
+	int Out_Q,
+
+	int In_InL3,
+	int Vector_InL3,
+	int Scalar_InL3,
 	int Out_InL3,
 
 	int InFeat,
@@ -3789,110 +4515,207 @@ int CNN_MatScale(
 		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
 	}
-	unsigned int In1L3 = In1_InL3?O_L2DB:0;
-	unsigned int In2L3 = In2_InL3?O_L2DB:0;
+	unsigned int InL3 = In_InL3?O_L2DB:0;
+	unsigned int VectorL3 = Vector_InL3?O_L2DB:0;
+	unsigned int ScalarL3 = Scalar_InL3?O_L2DB:0;
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
 	int OutLB, OutUB;
 
-	if (!(ScaleOper == KOP_MATSCALE || ScaleOper == KOP_MATSCALE_SCALAR)) GenTilingError("CNN_MatScale Kernel: %s, ScaleOper should be KOP_MATSCALE or KOP_MATSCALE_SCALAR", Name);
+	switch (ScaleOper) {
+		case KOP_MATSCALE_VECTOR:
+			Scalar_DataSize = 0;
+			break;
+		case KOP_MATSCALE_SCALAR:
+			Vector_DataSize = 0;
+			Vector_Q = Scalar_Q;
+			break;
+		case KOP_MATSCALE_VECTOR_SCALAR:
+			break;
+		default: GenTilingError("CNN_MatScale Kernel: %s, ScaleOper should be KOP_MATSCALE_VECTOR, KOP_MATSCALE_SCALAR or KOP_MATSCALE_VECTOR_SCALAR", Name);
+	}
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(ScaleOper, KOP_NONE, KOP_NONE);
 
-	char *MatScaleKerName = CNN_FindMatchingKernel(ScaleOper, KOP_NONE, ParFeat, In1_DataSize, In2_DataSize, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
+	char *MatScaleKerName = CNN_FindMatchingKernel(ScaleOper, ReLUOper, ParFeat, In_DataSize, Vector_DataSize, Scalar_DataSize, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 
 	if (MatScaleKerName==0) GenTilingError("CNN_MatScale Kernel: %s, Can't find a matching basic kernel", Name);
-	SetUpperLowerBounds(KOP_NONE, Out_DataSize, 0, &OutLB, &OutUB, 0);
+	SetUpperLowerBounds(ReLUOper, Out_DataSize, (ReLUOper!=KOP_NONE), &OutLB, &OutUB, 0, Out_Q);
 
 	LayerOp += OutFeat * Width * Height;
+
+	LayerBandwidth += Width*Height*In_DataSize*InFeat;
+	if (ScaleOper==KOP_MATSCALE_VECTOR || ScaleOper==KOP_MATSCALE_VECTOR_SCALAR) LayerBandwidth += Vector_DataSize*InFeat;
+	LayerBandwidth += Width*Height*Out_DataSize*OutFeat;
+
         Kernel_T *Kernel;
+	CKernel_Arg_T **KerCArgs;
+	int Ca=0;
+	Object_T **KArgs;
+	int Ka=0;
+
+	switch (ScaleOper) {
+		case KOP_MATSCALE_VECTOR:
+			KerCArgs = AllocateCArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Vector_DataSize,1,1), "Vector");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+                      	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+			KArgs = AllocateKerArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                        KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             1, 1, Width*Height*In_DataSize,  0, 0, 0, "In");
+                        KArgs[Ka++] = KerArg("Vector", KerArgSpace(1,D0), O_IN|O_DB|VectorL3,            1, 1, Vector_DataSize,           0, 0, 0, "Vector");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                         0, 0, 0, "ReLUN");
+                        KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        1, 1, Width*Height*Out_DataSize, 0, 0, 0, "Out");
+			break;
+		case KOP_MATSCALE_SCALAR:
+			KerCArgs = AllocateCArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Scalar_DataSize,1,1), "Scalar");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+                      	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+			KArgs = AllocateKerArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                        KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             1, 1, Width*Height*In_DataSize,  0, 0, 0, "In");
+                        KArgs[Ka++] = KerArg("Scalar", KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|VectorL3, 1, 1, Scalar_DataSize,           0, 0, 0, "Scalar");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                         0, 0, 0, "ReLUN");
+                        KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        1, 1, Width*Height*Out_DataSize, 0, 0, 0, "Out");
+			break;
+		case KOP_MATSCALE_VECTOR_SCALAR:
+			KerCArgs = AllocateCArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+                	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(In_DataSize,1,1),     "In");
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Vector_DataSize,1,1), "Vector");
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Scalar_DataSize,1,1), "Scalar");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KerCArgs[Ca++] = TCArg(CNN_ArgDataType(1,1,1),               "ReLUN");
+                      	KerCArgs[Ca++] = TCArg(CNN_ArgDataType(Out_DataSize,1,1),    "Out");
+			KArgs = AllocateKerArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+                        KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             1, 1, Width*Height*In_DataSize,  0, 0, 0, "In");
+                        KArgs[Ka++] = KerArg("Vector", KerArgSpace(1,D0), O_IN|O_DB|VectorL3,            1, 1, Vector_DataSize,           0, 0, 0, "Vector");
+                        KArgs[Ka++] = KerArg("Scalar", KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|VectorL3, 1, 1, Scalar_DataSize,           0, 0, 0, "Scalar");
+			if (ReLUOper==KOP_RELUN_VECTOR)
+			KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                         0, 0, 0, "ReLUN");
+                        KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        1, 1, Width*Height*Out_DataSize, 0, 0, 0, "Out");
+			break;
+	}
 
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
        	Kernel= UserKernel(Name,
 		KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
                 TileOrientation,
-                CArgs(4,
-                      TCArg(CNN_ArgDataType(In1_DataSize,1,1), "In1"),
-                      TCArg(CNN_ArgDataType(In2_DataSize,1,1), "In2"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out"),
-                      TCArg("unsigned int", "Norm")
-                     ),
+		KerCArgs,
                 Calls(1,
 			Call(MatScaleKerName, LOC_INNER_LOOP,
 				Bindings(11,
-					K_Arg("In1", KER_ARG_TILE),			/* First input tile */
-					K_Arg("In2", KER_ARG_TILE),			/* Second input tile */
+					K_Arg("In", KER_ARG_TILE),			/* First input tile */
+					(ScaleOper==KOP_MATSCALE_VECTOR||ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+					K_Arg("Vector", KER_ARG_TILE):			/* Vector Scale input tile */
+					AT_IGNORE_ARG_BINDING,				/* Vector Scale, Not relevant here */
 					K_Arg("Out", KER_ARG_TILE),			/* Output tile */
 					Imm(Width), 					/* Input tile width */
 					Imm(Height),					/* Input tile height */
-					K_ArgPar("In1", KER_ARG_PARTILE_SIZE, D0),	/* Number of Matrices involved */
+					K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0),	/* Number of Matrices involved */
 					Imm(OutLB),					/* Out lower bound */
-					(ReLUOper==KOP_RELUN)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):		/* For ReLUN, Out upper bound N expressed in QNorm */
-					Imm(OutUB),					/* Out Upper bound, clip or relu */
-					AT_IGNORE_ARG_BINDING,				/* In1_Q, not relevant here */
-					AT_IGNORE_ARG_BINDING,				/* In2_Q, not relevant here */
-					C_Arg("Norm")					/* Out_Q, Normalization factor */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):			/* ReLUN input tile */
+					Imm(OutUB)),					/* Activation upper bound, clip or relu */
+					(ScaleOper==KOP_MATSCALE_SCALAR||ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+					K_Arg("Scalar", KER_ARG_TILE):			/* Scalar Scale input tile */
+					AT_IGNORE_ARG_BINDING,				/* Scale Scalar, not relevant here */
+					(ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+					Imm(Scalar_Q):
+					AT_IGNORE_ARG_BINDING,				/* Scalar Fixed Point format, not relevant here */
+					Imm(In_Q+Vector_Q-Out_Q)			/* Norm = i1+i2-o, output normalization factor */
 				)
 			)
 		),
-                KerArgs(3,
-                        KerArg("In1",  KerArgSpace(2,D0,T0), O_IN|O_DB|In1L3,         1, 1, Width*Height*In1_DataSize, 0, 0, 0, "In1"),
-			(ScaleOper==KOP_MATSCALE_SCALAR)?
-                        KerArg("In2",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|In2L3, 1, 1, In2_DataSize,              0, 0, 0, "In2"):
-                        KerArg("In2",  KerArgSpace(1,D0), O_IN|O_DB|In2L3,            1, 1, In2_DataSize,              0, 0, 0, "In2"),
-                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|In2L3,        1, 1, Width*Height*Out_DataSize, 0, 0, 0, "Out")
-		)
+		KArgs
 	);
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 
 	if (Kernel == 0) {
+		Ka=0;
+		switch (ScaleOper) {
+			case KOP_MATSCALE_VECTOR:
+				KArgs = AllocateKerArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                        	KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, In_DataSize,     0, 0, 0, "In");
+                        	KArgs[Ka++] = KerArg("Vector", KerArgSpace(1,D0), O_IN|O_DB|VectorL3,                1,      1, Vector_DataSize, 0, 0, 0, "Vector");
+				if (ReLUOper==KOP_RELUN_VECTOR)
+				KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                        0, 0, 0, "ReLUN");
+                        	KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        Width, Height, Out_DataSize,    0, 0, 0, "Out");
+				break;
+			case KOP_MATSCALE_SCALAR:
+				KArgs = AllocateKerArgs(3+(ReLUOper==KOP_RELUN_VECTOR));
+                        	KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, In_DataSize,     0, 0, 0, "In");
+                        	KArgs[Ka++] = KerArg("Scalar", KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|VectorL3,     1,      1, Scalar_DataSize, 0, 0, 0, "Scalar");
+				if (ReLUOper==KOP_RELUN_VECTOR)
+				KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                        0, 0, 0, "ReLUN");
+                        	KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        Width, Height, Out_DataSize,    0, 0, 0, "Out");
+				break;
+			case KOP_MATSCALE_VECTOR_SCALAR:
+				KArgs = AllocateKerArgs(4+(ReLUOper==KOP_RELUN_VECTOR));
+                        	KArgs[Ka++] = KerArg("In",     KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,             Width, Height, In_DataSize,     0, 0, 0, "In");
+                        	KArgs[Ka++] = KerArg("Vector", KerArgSpace(1,D0), O_IN|O_DB|VectorL3,                1,      1, Vector_DataSize, 0, 0, 0, "Vector");
+                        	KArgs[Ka++] = KerArg("Scalar", KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|VectorL3,     1,      1, Scalar_DataSize, 0, 0, 0, "Scalar");
+				if (ReLUOper==KOP_RELUN_VECTOR)
+				KArgs[Ka++] = KerArg("ReLUN",  KerArgSpace(1,D0), OBJ_IN_DB|O_CONST,             1, 1, 1,                        0, 0, 0, "ReLUN");
+                        	KArgs[Ka++] = KerArg("Out",    KerArgSpace(2,D0,T0), O_OUT|O_DB|VectorL3,        Width, Height, Out_DataSize,    0, 0, 0, "Out");
+				break;
+		}
 	       	Kernel= UserKernel(Name,
 			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)),
 	                TileOrientation,
-	                CArgs(4,
-	                      TCArg(CNN_ArgDataType(In1_DataSize,1,1), "In1"),
-	                      TCArg(CNN_ArgDataType(In2_DataSize,1,1), "In2"),
-	                      TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out"),
-	                      TCArg("unsigned int", "Norm")
-	                     ),
+			KerCArgs,
 	                Calls(1,
 				Call(MatScaleKerName, LOC_INNER_LOOP,
 					Bindings(11,
-						K_Arg("In1", KER_ARG_TILE),			/* First input tile */
-						K_Arg("In2", KER_ARG_TILE),			/* Second input tile */
+						K_Arg("In", KER_ARG_TILE),			/* First input tile */
+						(ScaleOper==KOP_MATSCALE_VECTOR||ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+						K_Arg("Vector", KER_ARG_TILE):			/* Vector Scale input tile */
+						AT_IGNORE_ARG_BINDING,				/* Vector Scale, Not relevant here */
 						K_Arg("Out", KER_ARG_TILE),			/* Output tile */
-						K_Arg("In1", KER_ARG_TILE_W),			/* Input tile width */
-						K_Arg("In1", KER_ARG_TILE_H),			/* Input tile height */
-						K_ArgPar("In1", KER_ARG_PARTILE_SIZE, D0),	/* Number of Matrices involved */
+						K_Arg("In", KER_ARG_TILE_W),			/* Input tile width */
+						K_Arg("In", KER_ARG_TILE_H),			/* Input tile height */
+						K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0),	/* Number of Matrices involved */
 						Imm(OutLB),					/* Out lower bound */
-						(ReLUOper==KOP_RELUN)?
-						C_ImmArgOper(OutUB, "<<", "Norm"):		/* For ReLUN, Out upper bound N expressed in QNorm */
-						Imm(OutUB),					/* Out Upper bound, clip or relu */
-						AT_IGNORE_ARG_BINDING,				/* In1_Q, not relevant here */
-						AT_IGNORE_ARG_BINDING,				/* In2_Q, not relevant here */
-						C_Arg("Norm")					/* Out_Q, Normalization factor */
+						((ReLUOper==KOP_RELUN_VECTOR)?
+						K_Arg("ReLUN", KER_ARG_TILE):			/* ReLUN input tile */
+						Imm(OutUB)),					/* Activation upper bound, clip or relu */
+						(ScaleOper==KOP_MATSCALE_SCALAR||ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+						K_Arg("Scalar", KER_ARG_TILE):			/* Scalar Scale input tile */
+						AT_IGNORE_ARG_BINDING,				/* Scalar Scale, not relevant here */
+						(ScaleOper==KOP_MATSCALE_SCALAR||ScaleOper==KOP_MATSCALE_VECTOR_SCALAR)?
+						Imm(Scalar_Q):					/* Scalar fixed point format */
+						AT_IGNORE_ARG_BINDING,				/* Scalar fixed point format, not relevant here */
+						Imm(In_Q+Vector_Q-Out_Q)			/* Out_Q = i1+i2-o, output normalization factor */
 					)
 				)
 			),
-	                KerArgs(3,
-	                        KerArg("In1",  KerArgSpace(2,D0,T0), O_IN|O_DB|In1L3,         Width, Height, In1_DataSize, 0, 0, 0, "In1"),
-				(ScaleOper==KOP_MATSCALE_SCALAR)?
-	                        KerArg("In2",  KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED|In2L3, 1,      1,     In2_DataSize, 0, 0, 0, "In2"):
-	                        KerArg("In2",  KerArgSpace(1,D0), O_IN|O_DB|In2L3,            1,      1,     In2_DataSize, 0, 0, 0, "In2"),
-	                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|In2L3,        Width, Height, Out_DataSize, 0, 0, 0, "Out")
-			)
+			KArgs
 		);
 	}
-	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-	AT_PrepareForTest(Name,
-			  (v4s) {In1_DataSize, In2_DataSize, 0, Out_DataSize},
-			  (v4s) {In1L3!=0,In2L3!=0,0,OutL3!=0},
-			  InFeat, OutFeat, Width, Height,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  0,0, 0,0, 0,0, (v4s) 0,
-			  KernelOper,
-			  0, 0);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		if (ScaleOper==KOP_MATSCALE_VECTOR || ScaleOper==KOP_MATSCALE_VECTOR_SCALAR) AddKernelArgDim(Name, "Vector", 2, InFeat, Vector_DataSize);
+		if (ScaleOper==KOP_MATSCALE_SCALAR || ScaleOper==KOP_MATSCALE_VECTOR_SCALAR) AddKernelArgDim(Name, "Scalar", 2, 1, Scalar_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, OutFeat, 1);
+		AddKernelArgDim(Name, "Out", 4, OutFeat, Height, Width, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+				  (v4s) {In_DataSize, Vector_DataSize, 0, Out_DataSize},
+				  (v4s) {InL3!=0,VectorL3!=0,0,OutL3!=0},
+				  InFeat, OutFeat, Width, Height,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  0,0, 0,0, 0,0, (v4s) 0,
+				  KernelOper,
+				  0, 0);
+	}
 	return (Kernel!=0);
 }
 
@@ -3907,12 +4730,17 @@ int CNN_MatScale(
 	Template:
 		Name:		Name of the generated user kernel
 
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+		Ctrl:		Overide generator default options (ReluN), Def=(6)
 
 		In1_DataSize:	1: byte, 2: half word,
 		In2_DataSize:	1: byte, 2: half word,
 		Bias_DataSize:	1: byte, 2: half word,
 		Out_DataSize:	1: byte, 2: half word
+
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
 
 		In1_InL3:	0: In is in L2, 1: In is in L3 memory
 		In2_InL3:	0: In is in L2, 1: In is in L3 memory
@@ -3932,8 +4760,11 @@ int CNN_MatScale(
 		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
 		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-        	KernelOper_T 	MatMulOper	Should always be KOP_MATMUL
-        	KernelOper_T 	ReLUOper	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+		MatMulOper:	Should always be KOP_MATMUL
+		ReLUOper:	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+		Signature:	Name(In2, In1, Bias, Out)
+				Name(In2, In1, Bias, ReLUN, Out)
 
 	CNN_MatMul
 	
@@ -3948,6 +4779,11 @@ int CNN_MatMul(
 	int In2_DataSize,
 	int Bias_DataSize,
 	int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int Out_Q,
 
 	int In1_InL3,
 	int In2_InL3,
@@ -3979,15 +4815,21 @@ int CNN_MatMul(
 	unsigned int BiasL3 = Bias_InL3?O_L2DB:0;
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
 	int NeedScx, NeedScy;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
         int LineO = LineM1, ColO = ColM2;
-	int OutLB, OutUB, ReluNNoNorm = 0;
+	int OutLB, OutUB, ReluN = 6;
 	int ConsT0 = Scx;
+	int MultiLineBuff = 0;
+	int Nbuff = MultiLineBuff?4:1;
 
+	if (Ctrl) {
+		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
+	}
 	if (!(MatMulOper == KOP_MATMUL)) GenTilingError("CNN_MatMul Kernel: %s, MatMulOper should be KOP_MATMUL", Name);
 
-	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_MatMul Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID or KOP_LEAKYRELU", Name);
+	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MatMul Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID or KOP_LEAKYRELU", Name);
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ReLUOper, KOP_NONE);
 	if (ColM1 != LineM2) GenTilingError("CNN_MatMul: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
@@ -4002,6 +4844,9 @@ int CNN_MatMul(
 
 	ColO = ((Width+Scx-1)/Scx) * ((Height+Scy-1)/Scy);
 	LayerOp += ColM1*ColO*LineM1;
+	LayerBandwidth += LineM1*(ColM1*ColM2*(In1_DataSize+In2_DataSize));
+	LayerBandwidth += LineM1*ColM2*Out_DataSize;
+	LayerBandwidth += LineM1*Bias_DataSize;
 
 	if (Scy!=1) ConsT0 = Width*Scy; else if (In2_DataSize==1) ConsT0 = 4; else ConsT0 = 2;
 	
@@ -4010,9 +4855,14 @@ int CNN_MatMul(
 	} else if (Out_DataSize==2) {
 		OutLB = -32768; OutUB = 32767;
 	} else GenTilingError("CNN_MatMul Kernel: %s, Unsupported Data Type Size for Output", Name);
-	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN) {
-		if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
-		if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR) {
+		if (ReLU_LowerBound==0 && ReLU_UpperBound==0) {
+			if (SetUpperLowerBounds(ReLUOper, Out_DataSize, 1, &OutLB, &OutUB, ReluN, Out_Q))
+				GenTilingError("CNN_MatMul %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
+		} else {
+			if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
+			if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+		}
 	}
 
 	if (Log) {
@@ -4022,18 +4872,18 @@ int CNN_MatMul(
 		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
 		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
 		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		// printf("Nb Oper : %d\n", LayerOp);
+		// printf("Nb Oper : %lld\n", LayerOp);
 	}
+
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
-                CArgs(6,
+                CArgs(5,
                       TCArg(CNN_ArgDataType(In2_DataSize,1,1),  "In2"),
                       TCArg(CNN_ArgDataType(In1_DataSize,1,1),  "In1"),
                       TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out"),
-		      TCArg("unsigned int", "Norm"),
-		      TCArg("unsigned int", "NormBias")
+		      (ReLUOper==KOP_RELUN_VECTOR)?TCArg(CNN_ArgDataType(1,1,1), "ReLUN"):AT_NO_C_ARG,
+                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out")
                 ),
 		Calls(1,
 			Call(MatMulKerName, LOC_INNER_LOOP,
@@ -4044,11 +4894,13 @@ int CNN_MatMul(
 					K_Arg("Out", KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W), K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
 					K_Arg("KerBuff", KER_ARG_TILE),
 					Imm(OutLB),
-					(ReLUOper==KOP_RELUN&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):			/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB),						/* Upper bound, clip or relu */
-					C_Arg("Norm"),						/* Out fixed point format */
-					C_Arg("NormBias"),					/* Bias fixed point format */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):						/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+					Imm(OutUB)),						/* Activation upper bound, clip or relu */
+					Imm(In1_Q+In2_Q-Out_Q),					/* Out fixed point adjust */
+					Imm(In1_Q+In2_Q-Bias_Q),				/* Bias fixed point adjust */
 					AT_IGNORE_ARG_BINDING,					/* MulBias fixed point format, unused */
 					Imm(ColFirst),
 					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
@@ -4059,23 +4911,35 @@ int CNN_MatMul(
 			)
 		),
 		ColFirst?
-		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED,          ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
+		KerArgs(6,
+			KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
 			KerArg("In1",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
 			KerArg("Bias",   KerArgSpace(1, T0), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
-			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,         ColO,   LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",  KerArgSpace(1, T0), O_IN|O_DB|O_CONST,            1,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "ReLUN"):AT_NO_KER_ARG,
+			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		):
-		KerArgs(5,
-			KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED,          ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
+		KerArgs(6,
+			KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
 			KerArg("In1",    KerArgSpace(1, T1), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
 			KerArg("Bias",   KerArgSpace(1, T1), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
-			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,         ColO,   LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",  KerArgSpace(1, T1), O_IN|O_DB|O_CONST,            1,  LineO,  1,             0, OBJ_CONSTRAINTS_PAD_REM,                          0, "ReLUN"):AT_NO_KER_ARG,
+			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		)
 	);
 	if (Kernel) {
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, LineO, 1);
+		AddKernelArgDim(Name, "Out", 3, LineO, ColO, Out_DataSize);
+
 		AT_PrepareForTest(Name,
 			  	(v4s) {In1_DataSize, In2_DataSize, Bias_DataSize, Out_DataSize},
 			  	(v4s) {In1L3!=0,In2L3!=0,BiasL3!=0,OutL3!=0},
@@ -4088,7 +4952,240 @@ int CNN_MatMul(
 	return (Kernel!=0);
 }
 
+/*********************************************************************************************************************************************************************
+ 	Generator for Matrix Multiplication layers. Special form to handle small form factor In1 (InFeat x OutFeat)
 
+	Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+	When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+	Bias [OutFeat x 1] is added to each individual features
+	Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+	This generator assumes that the whole In1 and Bias can be accomodated into shared L1. Expecting to be used for us to 32 InFeat x 32 OutFeat
+
+	Template:
+		Name:		Name of the generated user kernel
+
+		Ctrl:		Overide generator default options (ReluN), Def=(6)
+
+		In1_DataSize:	1: byte, 2: half word,
+		In2_DataSize:	1: byte, 2: half word,
+		Bias_DataSize:	1: byte, 2: half word,
+		Out_DataSize:	1: byte, 2: half word
+
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
+
+		In1_InL3:	0: In is in L2, 1: In is in L3 memory
+		In2_InL3:	0: In is in L2, 1: In is in L3 memory
+		Bias_InL3:	0: In is in L2, 1: In is in L3 memory
+		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
+
+		ColM1:		Number of colums for matrix In1, for 1x1 convolution this is InFeat
+		LineM1:		Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+		ColM2:		Number of colums for matrix In2, for 1x1 convolution this is W*H
+		LineM2:		Number of lines for matrix In2, for 1x1 convolution this is InFeat
+
+		Width		For 1x1 convolution, width of an input feature map
+		Height		For 1x1 convolution, height of an input feature map
+		Scx:		stride x dimension for In2
+		Scy:		stride y dimension for In2
+
+		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+
+        	MatMulOper	Should always be KOP_MATMUL
+        	ReLUOper	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+		Signature:	Name(In2, In1, Bias, Out)
+				Name(In2, In1, Bias, ReLUN, Out)
+
+	CNN_MatMulSmallM1
+	
+*********************************************************************************************************************************************************************/
+
+int CNN_MatMulSmallM1(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In1_DataSize,
+	int In2_DataSize,
+	int Bias_DataSize,
+	int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int Out_Q,
+
+	int In1_InL3,
+	int In2_InL3,
+	int Bias_InL3,
+	int Out_InL3,
+
+	int ColM1,
+	int LineM1,
+	int ColM2,
+	int LineM2,
+
+	int Width,
+	int Height,
+	int Scx,
+	int Scy,
+
+	int ReLU_LowerBound,
+	int ReLU_UpperBound,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ReLUOper
+)
+
+{
+	int Log = 1;
+	Tile_Orientation_T TileOrientation = TILE_VER;
+	unsigned int In1L3 = In1_InL3?O_L2DB:0;
+	unsigned int In2L3 = In2_InL3?O_L2DB:0;
+	unsigned int BiasL3 = Bias_InL3?O_L2DB:0;
+	unsigned int OutL3 = Out_InL3?O_L2DB:0;
+	int NeedScx, NeedScy;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
+        int LineO = LineM1, ColO = ColM2;
+	int OutLB, OutUB, ReluN = 6;
+	int ConsT0 = Scx;
+	int TileCons = 8;
+
+	if (Ctrl) {
+		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
+	}
+	if (!(MatMulOper == KOP_MATMUL_SM1)) GenTilingError("CNN_MatMulSmallM1 Kernel: %s, MatMulOper should be KOP_MATMUL_SM1", Name);
+
+	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MatMulSmallM1 Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID or KOP_RELUN", Name);
+
+	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ReLUOper, KOP_NONE);
+	if (ColM1 != LineM2) GenTilingError("CNN_MatMulSmallM1: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
+	if (Width==0||Height==0) {
+		Width = ColM2; Height=1; Scx = 1; Scy = 1;
+	} else if (Scy != 1) TileCons = Width*Scy;
+	if ((Width*Height) != ColM2) GenTilingError("CNN_MatMulSmallM1: %s, ColM2: %d should always be equal to Width: %d * Height: %d", Name, ColM2, Width, Height);
+
+	char *MatMulKerName = CNN_FindMatchingKernel(MatMulOper, ReLUOper, 1, In1_DataSize, In2_DataSize, Bias_DataSize, 0, Out_DataSize, 0,0,0,0,1,1, 0,0,0,0, &NeedScx, &NeedScy, 0);
+	if (MatMulKerName==0) GenTilingError("CNN_MatMulSmallM1 Kernel: %s, Can't find a matrix multiplication matching basic kernel", Name);
+
+	char *MatTransKerName = CNN_FindMatchingKernel(KOP_MATTRANSP, KOP_NONE, 0, In2_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,Scx,Scy, 0,0,0,0, &NeedScx, &NeedScy, 0);
+	if (MatTransKerName==0) GenTilingError("CNN_MatMulSmallM1 Kernel: %s, Can't find a matrix transpose matching basic kernel", Name);
+
+	ColO = ((Width+Scx-1)/Scx) * ((Height+Scy-1)/Scy);
+	LayerOp += ColM1*ColO*LineM1;
+	LayerBandwidth += LineM1*(ColM1*ColM2*(In1_DataSize+In2_DataSize));
+	LayerBandwidth += LineM1*ColM2*Out_DataSize;
+	LayerBandwidth += LineM1*Bias_DataSize;
+
+	if (Out_DataSize==1) {
+		OutLB = -128; OutUB = 127;
+	} else if (Out_DataSize==2) {
+		OutLB = -32768; OutUB = 32767;
+	} else GenTilingError("CNN_MatMulSmallM1 Kernel: %s, Unsupported Data Type Size for Output", Name);
+	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR) {
+		if (ReLU_LowerBound==0 && ReLU_UpperBound==0) {
+			if (SetUpperLowerBounds(ReLUOper, Out_DataSize, 1, &OutLB, &OutUB, ReluN, Out_Q))
+				GenTilingError("CNN_MatMulSmallM1 %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
+		} else {
+			if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
+			if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+		}
+	}
+
+	if (Log) {
+		printf("CNN_MatMulSmallM1: %s\n", Name);
+		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
+		printf("Out  => W: %4d, H: %4d\n", ColO, LineO);
+		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
+		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+	Kernel_T *Kernel = UserKernel(Name,
+		KernelIterSpace(1, IterTiledSpace(T0)),
+                TILE_VER,
+                CArgs(5,
+                      TCArg(CNN_ArgDataType(In2_DataSize,1,1),  "In2"),
+                      TCArg(CNN_ArgDataType(In1_DataSize,1,1),  "In1"),
+                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"),
+		      (ReLUOper==KOP_RELUN_VECTOR)?TCArg(CNN_ArgDataType(1,1,1), "ReLUN"):AT_NO_C_ARG,
+                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out")
+                ),
+		Calls(2,
+			Call(MatTransKerName, LOC_INNER_LOOP,
+				Bindings(7,
+					K_Arg("In2", KER_ARG_TILE),			/* Input tile */
+					K_Arg("TransIn2", KER_ARG_TILE),		/* Transposed input tile */
+					Imm(1),						/* A single matrix */
+					K_Arg("In2", KER_ARG_TILE_W),			/* Input tile width */
+					K_Arg("In2", KER_ARG_TILE_H),			/* Input tile height */
+					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
+					NeedScy?Imm(Scy):AT_IGNORE_ARG_BINDING
+				)
+			),
+			Call(MatMulKerName, LOC_INNER_LOOP,
+				Bindings(21,
+					K_Arg("In1",  KER_ARG_TILE), Imm(ColM1), Imm(LineM1),
+					K_Arg("TransIn2",  KER_ARG_TILE), K_Arg("TransIn2",  KER_ARG_TILE_W),
+					K_Arg("Bias",KER_ARG_TILE),  AT_IGNORE_ARG_BINDING,
+					K_Arg("Out", KER_ARG_TILE),  AT_IGNORE_ARG_BINDING, AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					Imm(OutLB),
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):						/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+					Imm(OutUB)),						/* Activation upper bound, clip or relu */
+					Imm(In1_Q+In2_Q-Out_Q),					/* Out fixed point format */
+					Imm(In1_Q+In2_Q-Bias_Q),				/* Bias fixed point format */
+					AT_IGNORE_ARG_BINDING,					/* MulBias fixed point format, unused */
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING
+				)
+			)
+		),
+		KerArgs(6,
+			KerArg("In1",      KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|In1L3,  ColM1, LineM1, In1_DataSize,  0, 0, 0, "In1"),
+			KerArg("In2",      KerArgSpace(1, T0), O_IN|O_DB|In2L3,                     ColM2, LineM2, In2_DataSize,  0, 0, TileCons, "In2"),
+			KerArg("TransIn2", KerArgSpace(1, T0), O_BUFF|O_ONETILE,                     ColO, LineM2, In2_DataSize,  0, 0, 0,  ""),
+			KerArg("Bias",     KerArgSpace(1, T0), O_BUFF|O_IN|O_NTILED|O_CONST|BiasL3,     1, LineM1, Bias_DataSize, 0, 0, 0, "Bias"),
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST,                       1,  LineO,  1,            0, 0, 0, "ReLUN"):AT_NO_KER_ARG,
+			KerArg("Out",      KerArgSpace(1, T0), O_OUT|O_DB|OutL3,                     ColO, LineM1, Out_DataSize,  0, 0, 0, "Out")
+		)
+	);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, LineO, 1);
+		AddKernelArgDim(Name, "Out", 3, LineO, ColO, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+			  	(v4s) {In1_DataSize, In2_DataSize, Bias_DataSize, Out_DataSize},
+			  	(v4s) {In1L3!=0,In2L3!=0,BiasL3!=0,OutL3!=0},
+			  	ColM1, LineM1, ColM2, LineM2,
+			  	0,0, Scx,Scy, 0,0, (v4s) Width,
+			  	0,0, 0,0, 0,0, (v4s) Height,
+			  	KernelOper,
+			  	(In1_DataSize==1)?7:15, 0);
+	}
+	return (Kernel!=0);
+
+}
 /*********************************************************************************************************************************************************************
  	Generator for Matrix Multiplication layers with output scaling.
 
@@ -4100,13 +5197,19 @@ int CNN_MatMul(
 	Template:
 		Name:		Name of the generated user kernel
 
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+		Ctrl:		Overide generator default options (ReluN), Def=(6)
 
 		In1_DataSize:	1: byte, 2: half word,
 		In2_DataSize:	1: byte, 2: half word,
 		Bias_DataSize:	1: byte, 2: half word,
 		MulBias_DataSize:1: byte, 2: half word, 4: word
 		Out_DataSize:	1: byte, 2: half word
+
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Bias_Q:		Bias fixed point format
+		MulBias_Q:	MulBias fixed point format
+		Out_Q:		Out fixed point format
 
 		In1_InL3:	0: In is in L2, 1: In is in L3 memory
 		In2_InL3:	0: In is in L2, 1: In is in L3 memory
@@ -4127,8 +5230,11 @@ int CNN_MatMul(
 		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
 		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-        	KernelOper_T 	MatMulOper	Should always be KOP_MATMUL_SCALE or KOP_MATMUL_SCALE_SCALAR
-        	KernelOper_T 	ReLUOper	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+        	MatMulOper	Should always be KOP_MATMUL_SCALE or KOP_MATMUL_SCALE_SCALAR
+        	ReLUOper	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+		Signature:	Name(In2, In1, Bias, MulBias, Out)
+				Name(In2, In1, Bias, MulBias, ReLUN, Out)
 
 	CNN_MatMulScale
 	
@@ -4144,6 +5250,12 @@ int CNN_MatMulScale(
 	int Bias_DataSize,
 	int MulBias_DataSize,
 	int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
 
 	int In1_InL3,
 	int In2_InL3,
@@ -4177,20 +5289,20 @@ int CNN_MatMulScale(
 	unsigned int MulBiasL3 = MulBias_InL3?O_L2DB:0;
 	unsigned int OutL3 = Out_InL3?O_L2DB:0;
 	int NeedScx, NeedScy;
-	unsigned int LayerOp = 0;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
         int LineO = LineM1, ColO = ColM2;
-	int OutLB, OutUB, ReluNNoNorm = 0;
+	int OutLB, OutUB, ReluN = 6;
 	int ConsT0 = Scx;
 	int MulBiasScalar = (MatMulOper==KOP_MATMUL_SCALE_SCALAR);
 
+	if (Ctrl) {
+		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
+	}
 	if (!(MatMulOper == KOP_MATMUL_SCALE || MatMulOper == KOP_MATMUL_SCALE_SCALAR))
 		GenTilingError("CNN_MatMulScale Kernel: %s, MatMulOper should be KOP_MATMUL_SCALE or KOP_MATMUL_SCALE_SCALAR", Name);
-	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
+	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_MatMulScale Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID or KOP_LEAKYRELU", Name);
-
-	if (Ctrl) {
-		if (Ctrl->ReluNNoNorm != -1) ReluNNoNorm = Ctrl->ReluNNoNorm;
-	}
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ReLUOper, KOP_NONE);
 	if (ColM1 != LineM2) GenTilingError("CNN_MatMulScale: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
@@ -4206,6 +5318,11 @@ int CNN_MatMulScale(
 	ColO = ((Width+Scx-1)/Scx) * ((Height+Scy-1)/Scy);
 	LayerOp += ColM1*ColO*LineM1;
 
+	LayerBandwidth += LineM1*(ColM1*ColM2*(In1_DataSize+In2_DataSize));
+	LayerBandwidth += LineM1*ColM2*Out_DataSize;
+	LayerBandwidth += LineM1*Bias_DataSize;
+	if (MatMulOper == KOP_MATMUL_SCALE) LayerBandwidth += LineM1*MulBias_DataSize;
+
 	if (Scy!=1) ConsT0 = Width*Scy; else if (In2_DataSize==1) ConsT0 = 4; else ConsT0 = 2;
 	
 	if (Out_DataSize==1) {
@@ -4213,9 +5330,14 @@ int CNN_MatMulScale(
 	} else if (Out_DataSize==2) {
 		OutLB = -32768; OutUB = 32767;
 	} else GenTilingError("CNN_MatMulScale Kernel: %s, Unsupported Data Type Size for Output", Name);
-	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN) {
-		if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
-		if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR) {
+		if (ReLU_LowerBound==0 && ReLU_UpperBound==0) {
+			if (SetUpperLowerBounds(ReLUOper, Out_DataSize, 1, &OutLB, &OutUB, ReluN, Out_Q))
+				GenTilingError("CNN_MatMulScale %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
+		} else {
+			if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
+			if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+		}
 	}
 
 	if (Log) {
@@ -4225,20 +5347,18 @@ int CNN_MatMulScale(
 		printf("Out  => W: %4d, H: %4d => %s\n", ColO, LineO, ColFirst?"Column first":"Line First");
 		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
 		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
-		// printf("Nb Oper : %d\n", LayerOp);
+		// printf("Nb Oper : %lld\n", LayerOp);
 	}
 	Kernel_T *Kernel = UserKernel(Name,
 		KernelIterSpace(2, IterTiledSpace(T1), IterTiledSpace(T0)),
                 TILE_HOR,
-                CArgs(8,
+                CArgs(6,
                       TCArg(CNN_ArgDataType(In2_DataSize,1,1),  "In2"),
                       TCArg(CNN_ArgDataType(In1_DataSize,1,1),  "In1"),
                       TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"),
                       TCArg(CNN_ArgDataType(MulBias_DataSize,1,1), "MulBias"),
-                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out"),
-		      TCArg("unsigned int", "Norm"),
-		      TCArg("unsigned int", "NormBias"),
-		      TCArg("unsigned int", "NormMulBias")
+		      (ReLUOper==KOP_RELUN_VECTOR)?TCArg(CNN_ArgDataType(1,1,1), "ReLUN"):AT_NO_C_ARG,
+                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out")
                 ),
 		Calls(1,
 			Call(MatMulKerName, LOC_INNER_LOOP,
@@ -4249,12 +5369,14 @@ int CNN_MatMulScale(
 					K_Arg("Out", KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W), K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
 					K_Arg("KerBuff", KER_ARG_TILE),
 					Imm(OutLB),
-					(ReLUOper==KOP_RELUN&&!ReluNNoNorm)?
-					C_ImmArgOper(OutUB, "<<", "Norm"):			/* For ReLUN, upper bound N expressed in QNorm */
-					Imm(OutUB),						/* Upper bound, clip or relu */
-					C_Arg("Norm"),						/* Fixed point for output */
-					C_Arg("NormBias"),					/* Fixed point for bias */
-					C_Arg("NormMulBias"),					/* Fixed point for multiplicative bias */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):						/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):				/* ReLUN input tile */
+					Imm(OutUB)),						/* Activation upper bound, clip or relu */
+					Imm(In1_Q+In2_Q-Out_Q),					/* Fixed point adjust for output */
+					Imm(In1_Q+In2_Q-Bias_Q),				/* Fixed point adjust for bias */
+					Imm(MulBias_Q),						/* Fixed point format for multiplicative bias */
 					Imm(ColFirst),
 					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
 					NeedScy?Imm(Scy):AT_IGNORE_ARG_BINDING,
@@ -4264,7 +5386,7 @@ int CNN_MatMulScale(
 			)
 		),
 		ColFirst?
-		KerArgs(6,
+		KerArgs(7,
 			KerArg("KerBuff", KerArgSpace(1, T1), O_BUFF|O_NTILED,             ColM1,  1,      In2_DataSize,     0, 0,                                                0, 0),
 			KerArg("In1",     KerArgSpace(1, T0), O_IN|O_DB|O_CONST|In1L3,     ColM1,  LineM1, In1_DataSize,     0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",     KerArgSpace(1, T1), O_IN|O_DB|In2L3,             ColM2,  LineM2, In2_DataSize,     0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
@@ -4272,9 +5394,11 @@ int CNN_MatMulScale(
 			MulBiasScalar?
 			KerArg("MulBias", KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,     1,  1,      MulBias_DataSize, 0, 0,                                                0, "MulBias"):
 			KerArg("MulBias", KerArgSpace(1, T0), O_IN|O_DB|O_CONST|MulBiasL3,     1,  LineO,  MulBias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "MulBias"),
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",   KerArgSpace(1, T0), O_IN|O_DB|O_CONST,               1,  LineO,  1,                0, OBJ_CONSTRAINTS_PAD_REM,                          0, "ReLUN"):AT_NO_KER_ARG,
 			KerArg("Out",     KerArgSpace(1, T1), O_OUT|O_DB|OutL3,             ColO,  LineO,  Out_DataSize,     0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
 		):
-		KerArgs(6,
+		KerArgs(7,
 			KerArg("KerBuff", KerArgSpace(1, T0), O_BUFF|O_NTILED,             ColM1,  1,      In2_DataSize,     0, 0,                                                0, 0),
 			KerArg("In1",     KerArgSpace(1, T1), O_IN|O_DB|O_CONST|In1L3,     ColM1,  LineM1, In1_DataSize,     0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",     KerArgSpace(1, T0), O_IN|O_DB|In2L3,             ColM2,  LineM2, In2_DataSize,     0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
@@ -4282,11 +5406,22 @@ int CNN_MatMulScale(
 			MulBiasScalar?
 			KerArg("MulBias", KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,     1,  1,      MulBias_DataSize, 0, 0,                                                0, "MulBias"):
 			KerArg("MulBias", KerArgSpace(1, T1), O_IN|O_DB|O_CONST|MulBiasL3,     1,  LineO,  MulBias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "MulBias"),
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",   KerArgSpace(1, T1), O_IN|O_DB|O_CONST,               1,  LineO,  1,                0, OBJ_CONSTRAINTS_PAD_REM,                          0, "ReLUN"):AT_NO_KER_ARG,
 			KerArg("Out",     KerArgSpace(1, T1), O_OUT|O_DB|OutL3,            ColO,   LineO,  Out_DataSize,     0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		)
 	);
 	if (Kernel) {
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		if (MulBiasScalar) AddKernelArgDim(Name, "MulBias", 2, 1, MulBias_DataSize); else AddKernelArgDim(Name, "MulBias", 2, LineO, MulBias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, LineO, 1);
+		AddKernelArgDim(Name, "Out", 3, LineO, ColO, Out_DataSize);
+
 		AT_PrepareForTest(Name,
 			  	(v4s) {In1_DataSize, In2_DataSize, Bias_DataSize, Out_DataSize},
 			  	(v4s) {In1L3!=0,In2L3!=0,BiasL3!=0,OutL3!=0},
@@ -4295,6 +5430,507 @@ int CNN_MatMulScale(
 			  	0,0, 0,0, 0,0, (v4s) Height,
 			  	KernelOper,
 			  	(In1_DataSize==1)?7:15, 0);
+	}
+	return (Kernel!=0);
+}
+
+/*********************************************************************************************************************************************************************
+ 	Generator for Matrix Multiplication layers with output scaling. Special form to handle small form factor In1 (InFeat x OutFeat)
+
+	Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+	When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+	Bias [OutFeat x 1] is added to each individual features
+	Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+	This generator assumes that the whole In1 and Bias can be accomodated into shared L1. Expecting to be used for us to 32 InFeat x 32 OutFeat
+
+	Template:
+		Name:		Name of the generated user kernel
+
+		Ctrl:		Overide generator default options (ReluN), Def=(6)
+
+		In1_DataSize:	1: byte, 2: half word,
+		In2_DataSize:	1: byte, 2: half word,
+		Bias_DataSize:	1: byte, 2: half word,
+		MulBias_DataSize:1: byte, 2: half word, 4: word
+		Out_DataSize:	1: byte, 2: half word
+
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Bias_Q:		Bias fixed point format
+		MulBias_Q:	MulBias fixed point format
+		Out_Q:		Out fixed point format
+
+		In1_InL3:	0: In is in L2, 1: In is in L3 memory
+		In2_InL3:	0: In is in L2, 1: In is in L3 memory
+		Bias_InL3:	0: In is in L2, 1: In is in L3 memory
+		MulBias_InL3:	0: MulBias is in L2, 1: Bias is in L3 memory
+		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
+
+		ColM1:		Number of colums for matrix In1, for 1x1 convolution this is InFeat
+		LineM1:		Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+		ColM2:		Number of colums for matrix In2, for 1x1 convolution this is W*H
+		LineM2:		Number of lines for matrix In2, for 1x1 convolution this is InFeat
+
+		Width		For 1x1 convolution, width of an input feature map
+		Height		For 1x1 convolution, height of an input feature map
+		Scx:		stride x dimension for In2
+		Scy:		stride y dimension for In2
+
+		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+
+        	MatMulOper	Should always be KOP_MATMUL_SCALE_SM1 or KOP_MATMUL_SCALE_SCALAR_SM1
+        	ReLUOper	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+
+		Signature:	Name(In2, In1, Bias, MulBias, Out)
+				Name(In2, In1, Bias, MulBias, ReLUN, Out)
+
+	CNN_MatMulScaleSmallM1
+	
+*********************************************************************************************************************************************************************/
+
+int CNN_MatMulScaleSmallM1(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In1_DataSize,
+	int In2_DataSize,
+	int Bias_DataSize,
+	int MulBias_DataSize,
+	int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Bias_Q,
+	int MulBias_Q,
+	int Out_Q,
+
+	int In1_InL3,
+	int In2_InL3,
+	int Bias_InL3,
+	int MulBias_InL3,
+	int Out_InL3,
+
+	int ColM1,
+	int LineM1,
+	int ColM2,
+	int LineM2,
+
+	int Width,
+	int Height,
+	int Scx,
+	int Scy,
+
+	int ReLU_LowerBound,
+	int ReLU_UpperBound,
+
+        KernelOper_T MatMulOper,
+        KernelOper_T ReLUOper
+)
+
+{
+
+	int Log = 1;
+	Tile_Orientation_T TileOrientation = TILE_VER;
+	unsigned int In1L3 = In1_InL3?O_L2DB:0;
+	unsigned int In2L3 = In2_InL3?O_L2DB:0;
+	unsigned int BiasL3 = Bias_InL3?O_L2DB:0;
+	unsigned int MulBiasL3 = MulBias_InL3?O_L2DB:0;
+	unsigned int OutL3 = Out_InL3?O_L2DB:0;
+	int NeedScx, NeedScy;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
+        int LineO = LineM1, ColO = ColM2;
+	int OutLB, OutUB, ReluN = 6;
+	int TileCons = 8;
+	int MulBiasScalar = (MatMulOper==KOP_MATMUL_SCALE_SCALAR_SM1);
+
+	if (Ctrl) {
+		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
+	}
+	if (!(MatMulOper == KOP_MATMUL_SCALE_SM1 || MatMulOper==KOP_MATMUL_SCALE_SCALAR_SM1))
+		GenTilingError("CNN_MatMulScaleSmallM1 Kernel: %s, MatMulOper should be KOP_MATMUL_SCALE_SM1 or KOP_MATMUL_SCALE_SCALAR_SM1", Name);
+
+	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_MatMulScaleSmallM1 Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU or KOP_RELUN", Name);
+
+	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ReLUOper, KOP_NONE);
+	if (ColM1 != LineM2) GenTilingError("CNN_MatMulScaleSmallM1: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
+	if (Width==0||Height==0) {
+		Width = ColM2; Height=1; Scx = 1; Scy = 1;
+	} else if (Scy != 1) TileCons = Width*Scy;
+	if ((Width*Height) != ColM2) GenTilingError("CNN_MatMulScaleSmallM1: %s, ColM2: %d should always be equal to Width: %d * Height: %d", Name, ColM2, Width, Height);
+
+	char *MatMulKerName = CNN_FindMatchingKernel(MatMulOper, ReLUOper, 1, In1_DataSize, In2_DataSize, Bias_DataSize, 0, Out_DataSize, 0,0,0,0,1,1, 0,0,0,0, &NeedScx, &NeedScy, 0);
+	if (MatMulKerName==0) GenTilingError("CNN_MatMulScaleSmallM1 Kernel: %s, Can't find a matrix multiplication matching basic kernel", Name);
+
+	char *MatTransKerName = CNN_FindMatchingKernel(KOP_MATTRANSP, KOP_NONE, 0, In2_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,Scx,Scy, 0,0,0,0, &NeedScx, &NeedScy, 0);
+	if (MatTransKerName==0) GenTilingError("CNN_MatMulScaleSmallM1 Kernel: %s, Can't find a matrix transpose matching basic kernel", Name);
+
+	ColO = ((Width+Scx-1)/Scx) * ((Height+Scy-1)/Scy);
+	LayerOp += ColM1*ColO*LineM1;
+
+	LayerBandwidth += LineM1*(ColM1*ColM2*(In1_DataSize+In2_DataSize));
+	LayerBandwidth += LineM1*ColM2*Out_DataSize;
+	LayerBandwidth += LineM1*Bias_DataSize;
+	if (MatMulOper == KOP_MATMUL_SCALE_SM1) LayerBandwidth += LineM1*MulBias_DataSize;
+
+	if (Out_DataSize==1) {
+		OutLB = -128; OutUB = 127;
+	} else if (Out_DataSize==2) {
+		OutLB = -32768; OutUB = 32767;
+	} else GenTilingError("CNN_MatMulScaleSmallM1 Kernel: %s, Unsupported Data Type Size for Output", Name);
+	if (ReLUOper==KOP_RELU || ReLUOper==KOP_RELUN || ReLUOper==KOP_RELUN_VECTOR) {
+		if (ReLU_LowerBound==0 && ReLU_UpperBound==0) {
+			if (SetUpperLowerBounds(ReLUOper, Out_DataSize, 1, &OutLB, &OutUB, ReluN, Out_Q))
+				GenTilingError("CNN_MatMulScaleSmallM1 %s, cannot represent saturation value with given out fixed point format %d", Name, Out_Q);
+		} else {
+			if (ReLU_LowerBound) OutLB = ReLU_LowerBound; else OutLB = 0;
+			if (ReLU_UpperBound) OutUB = ReLU_UpperBound;
+		}
+	}
+
+	if (Log) {
+		printf("CNN_MatMulScaleSmallM1: %s\n", Name);
+		printf("In1  => W: %4d, H: %4d\n", ColM1, LineM1);
+		printf("In2  => W: %4d, H: %4d, w: %4d, h: %4d, Sx: %1d, Sy: %1d, TileCons: %d\n", ColM2, LineM2, Width, Height, Scx, Scy, TileCons);
+		printf("Out  => W: %4d, H: %4d\n", ColO, LineO);
+		if (MatMulKerName) printf("%20s: %s\n", "MatMulKerName", MatMulKerName);
+		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
+		printf("ReLU: %s\n", CNN_KernelOperImage(ReLUOper));
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+	Kernel_T *Kernel = UserKernel(Name,
+		KernelIterSpace(1, IterTiledSpace(T0)),
+                TILE_VER,
+                CArgs(6,
+                      TCArg(CNN_ArgDataType(In2_DataSize,1,1),  "In2"),
+                      TCArg(CNN_ArgDataType(In1_DataSize,1,1),  "In1"),
+                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"),
+                      TCArg(CNN_ArgDataType(MulBias_DataSize,1,1), "MulBias"),
+		      (ReLUOper==KOP_RELUN_VECTOR)?TCArg(CNN_ArgDataType(1,1,1), "ReLUN"):AT_NO_C_ARG,
+                      TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out")
+                ),
+		Calls(2,
+			Call(MatTransKerName, LOC_INNER_LOOP,
+				Bindings(7,
+					K_Arg("In2", KER_ARG_TILE),			/* Input tile */
+					K_Arg("TransIn2", KER_ARG_TILE),		/* Transposed input tile */
+					Imm(1),						/* A single matrix */
+					K_Arg("In2", KER_ARG_TILE_W),			/* Input tile width */
+					K_Arg("In2", KER_ARG_TILE_H),			/* Input tile height */
+					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,		/* Stride x if != 1 */
+					NeedScy?Imm(Scy):AT_IGNORE_ARG_BINDING		/* Stride y if != 1 */
+				)
+			),
+			Call(MatMulKerName, LOC_INNER_LOOP,
+				Bindings(21,
+					K_Arg("In1",  KER_ARG_TILE), Imm(ColM1), Imm(LineM1),
+					K_Arg("TransIn2",  KER_ARG_TILE), K_Arg("TransIn2",  KER_ARG_TILE_W),
+					K_Arg("Bias",KER_ARG_TILE), MulBiasScalar?C_Arg("MulBias"):K_Arg("MulBias",KER_ARG_TILE),
+					K_Arg("Out", KER_ARG_TILE),  AT_IGNORE_ARG_BINDING, AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					Imm(OutLB),					/* Output lower bound */
+					(ReLUOper==KOP_HSWISH||ReLUOper==KOP_HSIGMOID)?
+					Imm(Out_Q):					/* Output fixed point format */
+					((ReLUOper==KOP_RELUN_VECTOR)?
+					K_Arg("ReLUN", KER_ARG_TILE):			/* ReLUN input tile */
+					Imm(OutUB)),					/* Activation upper bound, clip or relu */
+					Imm(In1_Q+In2_Q-Out_Q),				/* Out fixed point adjust format */
+					Imm(In1_Q+In2_Q-Bias_Q),			/* Bias fixed point adjust format */
+					Imm(MulBias_Q),					/* MulBias fixed point format */
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING,
+					AT_IGNORE_ARG_BINDING
+				)
+			)
+		),
+		KerArgs(7,
+			KerArg("In1",      KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|In1L3,     ColM1, LineM1, In1_DataSize,     0, 0, 0, "In1"),
+			KerArg("In2",      KerArgSpace(1, T0), O_IN|O_DB|In2L3,                        ColM2, LineM2, In2_DataSize,     0, 0, TileCons, "In2"),
+			KerArg("TransIn2", KerArgSpace(1, T0), O_BUFF|O_ONETILE,                        ColO, LineM2, In2_DataSize,     0, 0, 0,  ""),
+			KerArg("Bias",     KerArgSpace(1, T0), O_BUFF|O_IN|O_NTILED|O_CONST|BiasL3,        1, LineM1, Bias_DataSize,    0, 0, 0, "Bias"),
+			MulBiasScalar?
+                        KerArg("MulBias",  KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,     1,      1, MulBias_DataSize, 0, 0, 0, "MulBias"):
+                        KerArg("MulBias",  KerArgSpace(1, T0), O_IN|O_BUFF|O_NTILED|O_CONST|MulBiasL3,     1, LineM1, MulBias_DataSize, 0, 0, 0, "MulBias"),
+		        (ReLUOper==KOP_RELUN_VECTOR)?
+			KerArg("ReLUN",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST,                          1,  LineO, 1,                0, 0, 0, "ReLUN"):AT_NO_KER_ARG,
+			KerArg("Out",      KerArgSpace(1, T0), O_OUT|O_DB|OutL3,                        ColO, LineM1, Out_DataSize,     0, 0, 0, "Out")
+		)
+	);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, In1_DataSize);
+		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, In2_DataSize);
+		AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		if (MulBiasScalar) AddKernelArgDim(Name, "MulBias", 2, 1, MulBias_DataSize); else AddKernelArgDim(Name, "MulBias", 2, LineO, MulBias_DataSize);
+		if (ReLUOper==KOP_RELUN_VECTOR) AddKernelArgDim(Name, "ReLUN", 2, LineO, 1);
+		AddKernelArgDim(Name, "Out", 3, LineO, ColO, Out_DataSize);
+
+		AT_PrepareForTest(Name,
+			  	(v4s) {In1_DataSize, In2_DataSize, Bias_DataSize, Out_DataSize},
+			  	(v4s) {In1L3!=0,In2L3!=0,BiasL3!=0,OutL3!=0},
+			  	ColM1, LineM1, ColM2, LineM2,
+			  	0,0, Scx,Scy, 0,0, (v4s) Width,
+			  	0,0, 0,0, 0,0, (v4s) Height,
+			  	KernelOper,
+			  	(In1_DataSize==1)?7:15, 0);
+	}
+	return (Kernel!=0);
+}
+
+
+/*********************************************************************************************************************************************************************
+ 	Generator for Matrix Transposition
+
+	Template:
+		Name:		Name of the generated user kernel
+
+		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+		In_DataSize:	1: byte, 2: half word,
+		Out_DataSize:	1: byte, 2: half word
+
+		In_Q:		In fixed point format
+		Out_Q:		Out fixed point format
+
+		In_InL3:	0: In is in L2, 1: In is in L3 memory
+		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
+
+		InFeat		Number of matrices
+		Width		For 1x1 convolution, width of an input feature map
+		Height		For 1x1 convolution, height of an input feature map
+
+		Signature:	Name(In, Out)
+
+	CNN_MatTranspose
+	
+*********************************************************************************************************************************************************************/
+
+
+int CNN_MatTranspose(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In_DataSize,
+	int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
+
+	int In_InL3,
+	int Out_InL3,
+
+	int InFeat,
+	int Width,
+	int Height
+)
+
+{
+	int Log = 1;
+	Tile_Orientation_T TileOrientation = TILE_HOR;
+	unsigned int OutTileOrientation;
+	int ParFeat = 1;
+	if (Ctrl) {
+		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
+		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
+	}
+	unsigned int InL3 = In_InL3?O_L2DB:0;
+	unsigned int OutL3 = Out_InL3?O_L2DB:0;
+	KernelOper_T MatTransOper = KOP_MATTRANSP;
+	unsigned long long int LayerOp = Width*Height*InFeat;
+	unsigned long long int LayerBandwidth = 0;
+
+	char *MatTransKerName = CNN_FindMatchingKernel(MatTransOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+
+	if (MatTransKerName==0) GenTilingError("CNN_MatTranspose Kernel: %s, Can't find a matching basic kernel", Name);
+
+	if (TileOrientation==TILE_HOR) OutTileOrientation = OBJ_CONSTRAINTS_TILE_VER; else OutTileOrientation = OBJ_CONSTRAINTS_TILE_HOR;
+	LayerBandwidth += Width*Height*In_DataSize;
+	LayerBandwidth += Width*Height*Out_DataSize;
+
+	if (Log) {
+		printf("CNN_MatTranspose: %s %s\n", Name, ParFeat?"Par Feat":"");
+		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
+		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
+		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+
+	Kernel_T *Kernel =
+		UserKernel(Name,
+			(ParFeat)?
+			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)):
+			KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)),
+	        	TileOrientation,
+                	CArgs(2,
+                      		TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"),
+                      		TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")
+                	),
+			Calls(1,
+				Call(MatTransKerName, LOC_INNER_LOOP,
+					Bindings(7,
+						K_Arg("In", KER_ARG_TILE),			/* Input tile */
+						K_Arg("Out", KER_ARG_TILE),			/* Output tile */
+						(ParFeat)?
+						K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0):	/* Number of Matrices involved */
+						Imm(1),						/* A single matrix */
+						K_Arg("In", KER_ARG_TILE_W),			/* Input tile width */
+						K_Arg("In", KER_ARG_TILE_H),			/* Input tile height */
+						AT_IGNORE_ARG_BINDING,				/* StrideX */
+						AT_IGNORE_ARG_BINDING				/* StrideY */
+					)
+				)
+			),
+	                KerArgs(2,
+	                        KerArg("In",   KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,  Width, Height, In_DataSize,  0, 0, 0, "In"),
+	                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|InL3, Height, Width, Out_DataSize, 0, OutTileOrientation, 0, "Out")
+			)
+		);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In",  4, InFeat, Height, Width, In_DataSize);
+		AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
+	}
+	return (Kernel!=0);
+}
+
+/*********************************************************************************************************************************************************************
+ 	Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}
+
+	Template:
+		Name:		Name of the generated user kernel
+
+		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+		In_DataSize:	1: byte, 2: half word,
+		Out_DataSize:	1: byte, 2: half word
+
+		In_Q:		In fixed point format
+		Out_Q:		Out fixed point format
+
+		In_InL3:	0: In is in L2, 1: In is in L3 memory
+		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
+
+		InFeat		Number of channels of the tensor
+		Width		Tensor width
+		Height		Tensor height
+		MatPermOper	Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
+
+		Signature:	Name(In, Out)
+
+	CNN_3DTensorPermute
+	
+*********************************************************************************************************************************************************************/
+
+int CNN_3DTensorPermute(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int In_DataSize,
+	int Out_DataSize,
+
+	int In_Q,
+	int Out_Q,
+
+	int In_InL3,
+	int Out_InL3,
+
+	int InFeat,
+	int Width,
+	int Height,
+	KernelOper_T MatPermOper
+)
+
+{
+	int Log = 1;
+	int ParFeat = 1;
+	unsigned int InL3 = In_InL3?O_L2DB:0;
+	unsigned int OutL3 = Out_InL3?O_L2DB:0;
+	unsigned long long int LayerOp = Width*Height*InFeat;
+	unsigned long long int LayerBandwidth = 0;
+
+	char *MatPermKerName = CNN_FindMatchingKernel(MatPermOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+
+	LayerBandwidth += InFeat*Width*Height*In_DataSize;
+	LayerBandwidth += InFeat*Width*Height*Out_DataSize;
+	if (Log) {
+		printf("CNN_MatPermute: %s %s\n", Name, ParFeat?"Par Feat":"");
+		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
+		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
+		if (MatPermKerName) printf("%20s: %s\n", "MatPermKerName", MatPermKerName);
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+
+	Object_T **PKerArgs = AllocateKerArgs(2);
+	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB|InL3,  Width, Height*InFeat, In_DataSize,  0, 0, 0, "In");
+	switch (MatPermOper) {
+		case KOP_MATPERM_CHW2CWH:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*Height, InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
+		case KOP_MATPERM_CHW2HWC:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*InFeat, Height, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
+		case KOP_MATPERM_CHW2WHC:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			break;
+		case KOP_MATPERM_CHW2WCH:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			break;
+		case KOP_MATPERM_CHW2HCW:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width, Height*InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
+	}
+	Kernel_T *Kernel = UserKernel(Name,
+			KernelIterSpace(1, IterTiledSpace(T0)),
+	        	TILE_VER,
+                	CArgs(2, TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"), TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")),
+			Calls(1,
+				Call(MatPermKerName, LOC_INNER_LOOP,
+					Bindings(7,
+						K_Arg("In", KER_ARG_TILE),	/* Input tile */
+						K_Arg("Out", KER_ARG_TILE),	/* Output tile */
+						Imm(InFeat), 			/* Number of Channels */
+						K_Arg("In", KER_ARG_TILE_W),	/* Input tile width */
+						Imm(Height),			/* Input tile height */
+						AT_IGNORE_ARG_BINDING,		/* StrideX */
+						AT_IGNORE_ARG_BINDING		/* StrideY */
+					)
+				)
+			),
+			PKerArgs
+		);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		switch (MatPermOper) {
+			case KOP_MATPERM_CHW2CWH:
+				AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
+				break;
+			case KOP_MATPERM_CHW2HWC:
+				AddKernelArgDim(Name, "Out", 4, Height, Width, InFeat, Out_DataSize);
+				break;
+			case KOP_MATPERM_CHW2WHC:
+				AddKernelArgDim(Name, "Out", 4, Width, Height, InFeat, Out_DataSize);
+				break;
+			case KOP_MATPERM_CHW2WCH:
+				AddKernelArgDim(Name, "Out", 4, Width, InFeat, Height, Out_DataSize);
+				break;
+			case KOP_MATPERM_CHW2HCW:
+				AddKernelArgDim(Name, "Out", 4, Height, InFeat, Width, Out_DataSize);
+				break;
+		}
 	}
 	return (Kernel!=0);
 }

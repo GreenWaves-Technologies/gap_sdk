@@ -21,16 +21,16 @@ MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .c, $(MODEL_GEN)) $(addsuffix .h, $
 pulpFc=1
 RM=rm -f
 
-PULP_APP_SRCS = HoG.c ImgIO.c $(MODEL_GEN_C) $(KER_PATH)/HoGBasicKernels.c
+APP_SRCS = HoG.c ImgIO.c $(MODEL_GEN_C) $(KER_PATH)/HoGBasicKernels.c
 
-PULP_CFLAGS += -O2 -g3 #-DNO_BRIDGE
-PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_CFLAGS += -I$(TILER_INC) -I$(KER_PATH)/../include -I$(TILER_GENERATOR_PATH)/HoG
-PULP_LDFLAGS +=  -flto -Wl,--gc-sections
+APP_CFLAGS += -O2 -g3 #-DNO_BRIDGE
+APP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef 
+APP_CFLAGS += -I$(TILER_INC) -I$(KER_PATH)/../include -I$(TILER_GENERATOR_PATH)/HoG
+APP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
-PULP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
+APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable
 
 #moved to new openocd bridge
 export GAP_USE_OPENOCD=1
@@ -55,6 +55,6 @@ clean::
 
 .PHONY: model clean
 
-include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk
+include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
 
 

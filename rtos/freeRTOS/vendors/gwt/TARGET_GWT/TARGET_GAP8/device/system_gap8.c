@@ -32,7 +32,7 @@
 
 /* PMSIS includes. */
 #include "pmsis.h"
-#include "pmsis_driver/pmu/pmu.h"
+#include "pmsis/implem/drivers/pmu/pmu.h"
 
 #if defined(__SEMIHOSTING__)
 #include "../driver/semihost.h"

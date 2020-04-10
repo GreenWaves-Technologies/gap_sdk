@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.nngraph import NNGraph
 from utils.tabular import Tabular, TabularColumn, TabularColumnGroup
@@ -38,6 +42,9 @@ def str_dim(node, dim_name, dim_idx):
     dim = getattr(node, dim_name)[dim_idx]
     return str(dim)
 
+def str_dims(node, dim_name):
+    return "\n".join([str(dim) for dim in getattr(node, dim_name)])
+
 def get_dim(dims, idx):
     if idx < len(dims):
         return dims[idx]
@@ -56,9 +63,6 @@ def graph_walk(steps, liveness):
             active += live['dims'].size()
 
         ops = node.compute_load()
-        operation = node.op_name
-        if operation == "fusion":
-            operation += " " + node.fusion_type
 
         yield i, node, active, params_size, ops
 
@@ -68,8 +72,6 @@ def graph_walk(steps, liveness):
 
 def get_opname(node):
     operation = getattr(node, 'op_name')
-    if operation == "fusion":
-        operation += " " + node.fusion_type
     return operation
 
 def get_graph_memory_usage(steps, liveness):
@@ -149,9 +151,9 @@ class GraphReporter(Reporter):
                 i,
                 node.name,
                 operation,
-                str_dim(node, 'in_dims', 0),
-                str_dim(node, 'out_dims', 0),
-                ",".join([str(in_step) for in_step in in_steps]),
+                str_dims(node, 'in_dims'),
+                str_dims(node, 'out_dims'),
+                "\n".join([str(in_step) for in_step in in_steps]),
                 active,
                 params_size,
                 scale_num(ops),

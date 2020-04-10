@@ -31,7 +31,7 @@ APP_SRCS += Mnist.c MnistKernels.c \
 
 APP_INC += $(TILER_INC) $(CNN_AT_PATH)
 
-APP_CFLAGS += -O2 -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
+APP_CFLAGS += -w -O3 -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
 APP_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-but-set-variable 
 LDFLAGS    +=  -flto -Wl,--gc-sections
 

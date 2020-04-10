@@ -1,18 +1,23 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import copy
 from collections import OrderedDict
 
 from graph.nngraph import NNGraph
+from graph.types import FilterParameters, ConvFusionParameters
 from utils.stats_funcs import STATS_BITS, astats, calculate_qsnrs
 from utils.tabular import Tabular, TabularColumn
 from utils.node_id import NodeId
@@ -44,6 +49,7 @@ def do_header(table):
         TabularColumn("min\nOL", fmt=">.3f"),
         TabularColumn("max\nOL", fmt=">.3f"),
         TabularColumn("int\nbits", fmt=">d"),
+        TabularColumn("avg\nprec", fmt=">.3f"),
     ]
 
     for bit_size in STATS_BITS:
@@ -54,9 +60,9 @@ def do_header(table):
 
     table.add_row(header)
 
-def do_row(table, node_name, stat, threshold, total):
+def do_row(table, step_idx, node_name, stat, threshold, total):
 
-    row = [stat['idx'], node_name, stat['mean'], stat['std'],
+    row = [step_idx, node_name, stat['mean'], stat['std'],
            stat['min'], stat['max']]
     if 'min_acc' in stat:
         row.append(stat['min_acc'])
@@ -67,6 +73,7 @@ def do_row(table, node_name, stat, threshold, total):
     row.extend([stat['wols'], stat['sols'], stat['min_out'],
                 stat['max_out']])
     row.append(stat['ibits'])
+    row.append(stat['min_prec'] if 'min_prec' in stat else None)
 
     if 'qstats' not in stat:
         appendn(row, len(STATS_BITS) * 2 + 1)
@@ -94,17 +101,24 @@ def do_row(table, node_name, stat, threshold, total):
     table.add_row(row)
     return total
 
+def in_and_true(elem, *vals):
+    return all(val in elem and elem[val] for val in vals)
+
 def do_rows(stats, table, threshold):
     total = 0
 
     for node_name, stat in stats.items():
-        total = do_row(table, node_name, stat, threshold, total)
+        if in_and_true(stat, 'channel_stats'):
+            for channel_idx, channel_stat in enumerate(stat['channel_stats']):
+                do_row(table, stat['idx'], "channel {}".format(channel_idx), channel_stat, threshold, 0)
+ 
+        total = do_row(table, stat['idx'], node_name, stat, threshold, total)
 
     return total
 
 def do_total(table, total):
     total_row = ["TOTAL"]
-    appendn(total_row, 12 + len(STATS_BITS) * 2)
+    appendn(total_row, 13 + len(STATS_BITS) * 2)
     total_row.append(total)
     table.add_row(total_row)
 
@@ -117,15 +131,21 @@ def dump_stats_table(stats, do_totals=True, threshold=30):
     return table
 
 class ActivationReporter(Reporter):
-    def __init__(self, do_totals=True, threshold=30.0, yield_fusions=False):
+    def __init__(self, do_totals=True, threshold=30.0, yield_fusions=False, step_idx=None):
         self._do_totals = do_totals
         self._threshold = threshold
         self._yield_fusions = yield_fusions
+        self._step_idx = step_idx
 
     def report(self, G: NNGraph, stats):
         dump_stats = OrderedDict()
         for step_idx, node, fusion_idx, fnode in G.nodes_iterator(self._yield_fusions):
-            stat = stats[NodeId(node, fnode)]
+            if self._step_idx is not None and self._step_idx != step_idx:
+                continue
+            nid = NodeId(node, fnode)
+            if nid not in stats:
+                continue
+            stat = stats[nid]
             stat = copy.deepcopy(stat)
             if fusion_idx:
                 name = "{}_{}".format(node.name, fusion_idx)

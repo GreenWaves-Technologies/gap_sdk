@@ -83,7 +83,6 @@ void printf_uart_init(uint8_t uart_id)
     config.baudrate_bps = 115200;
     config.enable_tx = 1;
     config.enable_rx = 1;
-    config.src_clock_Hz = system_core_clock_get();
     pi_open_from_conf(&g_printf_uart_dev, &config);
 
     if (pi_uart_open(&g_printf_uart_dev))

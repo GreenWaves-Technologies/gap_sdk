@@ -14,14 +14,17 @@
 # limitations under the License.
 #
 
-import runner.rtl_runner
+import runner.rtl.rtl_runner
+import runner.chips.gap8
 import os
 
 
-class Runner(runner.rtl_runner.Runner):
+class Runner(runner.rtl.rtl_runner.Runner, runner.chips.gap8.Runner):
 
     def __init__(self, args, config):
-        super(Runner, self).__init__(args, config)
+        runner.rtl.rtl_runner.Runner.__init__(self, args, config)
+        runner.chips.gap8.Runner.__init__(self, args, config)
+
         self.__process_args()
 
         self.set_arg('-gHYPER_FLASH_LOAD_MEM=1')
@@ -35,31 +38,11 @@ class Runner(runner.rtl_runner.Runner):
         self.set_arg('+preload_file=efuse_preload.data')
         self.set_arg('-gBAUDRATE=115200')
 
+        self.set_env('VOPT_ACC_ENA', 'YES')
+
         path = os.path.join(self.config.get_str('gapy/work_dir'), 'efuse_preload.data')
         self.gen_efuse_stim(path)
 
-
-    def gen_efuse_stim(self, filename):
-        self.dump('Creating efuse stimuli')
-
-        nb_regs = 128
-        efuses = [0] * nb_regs
-
-        efuses[0] = 0x2a
-
-        values = [0] * nb_regs * 8
-        for efuse_id in range(0, nb_regs):
-            value = efuses[efuse_id]
-            self.dump('  Writing register (index: %d, value: 0x%x)' % (efuse_id, value))
-            for index in range(0, 8):
-                if (value >> index) & 1 == 1:
-                    values[efuse_id + index*128] = 1
-
-        self.dump('  Generating to file: ' + filename)
-
-        with open(filename, 'w') as file:
-            for value in values:
-                file.write('%d ' % (value))
 
 
     def dump(self, str):

@@ -23,6 +23,10 @@
               "enabled": false,
               "files": []
           },
+          "hostfs": {
+              "type": "hostfs",
+              "files": []
+          },
           "lfs": {
               "type": "lfs",
               "enabled": false,

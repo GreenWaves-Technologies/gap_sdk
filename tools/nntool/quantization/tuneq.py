@@ -1,19 +1,23 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from quantization.qtype import QType
 from quantization.simple_auto_quantify import SimpleQuantizer
 from utils.node_id import NodeId
 from utils.stats_funcs import STATS_BITS
-
+from graph.types import ConvFusionParameters
 
 class TuneError(Exception):
     pass
@@ -31,11 +35,19 @@ def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
     if param == 'dp':
         raise ValueError("dp is deprecated. all layers are now double precision.")
 
-    qrec = qrecs[NodeId(node, None)]
     if param == "out":
         qtype = get_qtype(qparam1, qparam2)
         SimpleQuantizer.propagate(G, qrecs, node, qtype)
     else:
-        if not hasattr(qrec, param + '_q'):
-            raise TuneError("parameter " + param + " not found")
-        setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
+        if isinstance(node, ConvFusionParameters):
+            for subnode in node.subgraph.nodes():
+                qrec = qrecs[NodeId(node, subnode)]
+                if hasattr(qrec, param + '_q'):
+                    setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
+                    return
+            raise TuneError("parameter " + param + " not found")       
+        else:
+            qrec = qrecs[NodeId(node, None)]
+            if not hasattr(qrec, param + '_q'):
+                raise TuneError("parameter " + param + " not found")
+            setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))

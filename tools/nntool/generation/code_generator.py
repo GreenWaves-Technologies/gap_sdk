@@ -1,68 +1,92 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import os
 
+from graph.types import (ActivationParameters, ConcatParameters,
+                         ConstantInputParameters, Conv2DParameters,
+                         ConvFusionParameters, FcParameters, FilterParameters,
+                         GlobalPoolParameters, InputParameters,
+                         MatrixAddParameters, MatScaleFusionParameters,
+                         OutputParameters, PoolingParameters,
+                         ReshapeParameters, SoftMaxParameters,
+                         TransposeParameters)
 from utils.node_id import NodeId
 
-from graph.types import (ActivationParameters, Conv2DParameters, FcParameters,
-                         FilterParameters, FusionParameters, InputParameters,
-                         PoolingParameters, SoftMaxParameters, OutputParameters,
-                         ReshapeParameters, MatrixAddParameters, ConcatParameters,
-                         TransposeParameters)
 from .bindings import (TT_TENSOR_TYPES, CommentBindingList,
                        FunctionBindingList, GArgEdge, GArgNode, GNodeArgEdge,
                        GNodeArgNode, Imm, NodeBindingList)
 from .checksums import calc_value_checksum, checksum_func
 from .code_block import CodeBlock
-from .code_generators import (gen_const_info, gen_conv_pool_relu,
-                              gen_global_decl, gen_input_decl, gen_linear_relu,
-                              gen_local_decl, gen_output_decl, gen_softmax,
-                              gen_matrixadd, gen_matrixadddyn, gen_stack_decl,
-                              gen_2d_transpose, gen_pool_relu, gen_kernel_ctrl, gen_graph_ctrl)
+from .code_generators import (gen_3d_transpose, gen_const_info,
+                              gen_conv_pool_relu, gen_global_decl,
+                              gen_globalpool, gen_graph_ctrl, gen_input_decl,
+                              gen_kernel_ctrl, gen_linear_relu, gen_local_decl,
+                              gen_matrixadd, gen_matrixadddyn, gen_matscale,
+                              gen_output_decl, gen_pool_relu, gen_softmax,
+                              gen_stack_decl)
 from .memory_device_info import MemoryDeviceInfos
 from .write_constants import write_constants
 
 LOG = logging.getLogger("nntool." + __name__)
 
 AUTO_TILER_OPTIONS = [
-    {'name': 'KERNEL_BUFFER_PROMOTE', 'type': 'kernel',
+    {
+        'name': 'KERNEL_BUFFER_PROMOTE', 'type': 'kernel',
         'descr': 'When all user kernel arguments can fit into given L1 memory promote them to buffer', 'default': True},
-    {'name': 'KERNEL_PARTIAL_BUFFER_PROMOTE', 'type': 'kernel',
+    {
+        'name': 'KERNEL_PARTIAL_BUFFER_PROMOTE', 'type': 'kernel',
         'descr': 'When all tile of a user kernel argument across Input Features can fit into given L1 memory promote them to partial buffer', 'default': True},
-    {'name': 'KERNEL_NOSOLUTION_ERROR', 'type': 'kernel',
+    {
+        'name': 'KERNEL_NOSOLUTION_ERROR', 'type': 'kernel',
         'descr': 'Report an error when no tiling solution is found', 'default': True},
-    {'name': 'GRAPH_MONITOR_CYCLES', 'type': 'graph',
+    {
+        'name': 'GRAPH_MONITOR_CYCLES', 'type': 'graph',
         'descr': 'Enable automatic cycle capture for each node of the graph', 'default': False},
-    {'name': 'GRAPH_MONITOR_CVAR_NAME', 'type': 'graph',
+    {
+        'name': 'GRAPH_MONITOR_CVAR_NAME', 'type': 'graph',
         'descr': 'When monitor cycles is on name of the C var array to receive results', 'default': 'AT_GraphPerf'},
-    {'name': 'GRAPH_PRODUCE_NODE_NAMES', 'type': 'graph',
+    {
+        'name': 'GRAPH_PRODUCE_NODE_NAMES', 'type': 'graph',
         'descr': 'Enable production of an array containing the name of each graph node', 'default': False},
-    {'name': 'GRAPH_PRODUCE_NODE_CVAR_NAME', 'type': 'graph',
+    {
+        'name': 'GRAPH_PRODUCE_NODE_CVAR_NAME', 'type': 'graph',
         'descr': 'When producing node names is on name of the C array receiving the names as strings', 'default': 'AT_GraphNodeNames'},
-    {'name': 'GRAPH_PRODUCE_OPERINFOS', 'type': 'graph',
+    {
+        'name': 'GRAPH_PRODUCE_OPERINFOS', 'type': 'graph',
         'descr': 'Enable production of number of macs for each layer', 'default': False},
-    {'name': 'GRAPH_PRODUCE_OPERINFOS_CVAR_NAME', 'type': 'graph',
+    {
+        'name': 'GRAPH_PRODUCE_OPERINFOS_CVAR_NAME', 'type': 'graph',
         'descr': 'When Number of oper Infos is on name of the C array receiving mac infos for each node', 'default': 'AT_GraphOperInfosNames'},
-    {'name': 'GRAPH_REORDER_CONSTANT_IN', 'type': 'graph',
+    {
+        'name': 'GRAPH_REORDER_CONSTANT_IN', 'type': 'graph',
         'descr': 'Enable reodering of constant inputs in order to transform 2D accesses into 1D accesses', 'default': True},
-    {'name': 'GRAPH_TRACE_EXEC', 'type': 'graph', 'descr': 'Enable trace of activity', 'default': True},
-    {'name': 'GRAPH_NOINLINE_NODE', 'type': 'graph',
+    {
+        'name': 'GRAPH_TRACE_EXEC', 'type': 'graph', 'descr': 'Enable trace of activity', 'default': True},
+    {
+        'name': 'GRAPH_NOINLINE_NODE', 'type': 'graph',
         'descr': 'If on, all user kernel function are marked as noinline', 'default': False},
-    {'name': 'GRAPH_PREF_L3_EXEC', 'type': 'graph',
+    {
+        'name': 'GRAPH_PREF_L3_EXEC', 'type': 'graph',
         'descr': 'In case a symbol must be allocated in L3 for execution this is the prefered memory', 'default': 'AT_MEM_L3_HRAM'},
-    {'name': 'GRAPH_CONST_EXEC_FROM_FLASH', 'type': 'graph',
+    {
+        'name': 'GRAPH_CONST_EXEC_FROM_FLASH', 'type': 'graph',
         'descr': 'If on, constant symbols executes from home location', 'default': False},
-    {'name': 'GRAPH_PREF_L3_HOME', 'type': 'graph',
+    {
+        'name': 'GRAPH_PREF_L3_HOME', 'type': 'graph',
         'descr': 'For constant symbols which L3 flash prefered memory', 'default': 'AT_MEM_L3_HFLASH'},
 ]
 
@@ -84,7 +108,7 @@ DEFAULT_GEN_OPTS = {
     'tensor_directory': '.',
     'model_directory': '.',
     'model_file': 'model.c',
-    'at_ver': 2,
+    'at_ver': 3,
     'memory_devices': MemoryDeviceInfos.default()
 }
 
@@ -290,7 +314,7 @@ class CodeGenerator():
 
     def generate_outputs(self, num_globals, code_block):
         outputs = set()
-        for node in self.G.outputs():
+        for node in self.G.output_nodes():
             in_qs = self.G.quantization[NodeId(node)].in_qs
             for edge in self.G.in_edges(node.name):
                 eparams = edge.params
@@ -350,12 +374,32 @@ class CodeGenerator():
                                 code_block,
                                 const_info=const_info)
                 num_globals += 1
+            elif isinstance(anode, ConstantInputParameters):
+                qrec = self.G.quantization[NodeId(pnode, fnode)]
+                # the name cache will be updated when all the edges are analysed by local_generator
+                # the name of the constant is attached to the output edge so find it
+                out_edge = self.G.out_edges(pnode.name)[0]
+                eparams = out_edge.params
+                cname = self.naming_convension.get_edge_name(eparams.creating_node.name,
+                                                            eparams.creating_step,
+                                                            eparams.edge_type,
+                                                            eparams.edge_order)
+                if num_globals != 0:
+                    code_block.append_last(',')
+                const_info = gen_const_info(os.path.join(self.opts['tensor_directory'],
+                                                         cname+".tensor"), qrec.out_qs[0])
+                gen_global_decl(cname, qrec.out_qs[0],
+                                self.opts['default_global_home_location'],
+                                self.opts['default_global_exec_location'],
+                                code_block,
+                                const_info=const_info)
+                num_globals += 1
         return num_globals
 
     def generate_inputs(self, code_block):
         num_globals = 0
         inputs = set()
-        for node in self.G.inputs():
+        for node in self.G.input_nodes():
             out_qs = self.G.quantization[NodeId(node)].out_qs
             for edge in self.G.out_edges(node.name):
                 eparams = edge.params
@@ -421,38 +465,46 @@ class CodeGenerator():
                                      dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                 gen_linear_relu(cname, node, qrec, None, None, code_block=code_block,
                                 at_ver=at_ver, gen_ctrl=node.get_gen_ctrl())
+            elif isinstance(node, GlobalPoolParameters):
+                self.set_in_out_bindings(in_eparams, out_eparams, cname, node, qrec)
+                gen_globalpool(cname, node, qrec, code_block=code_block, at_ver=at_ver)
             elif isinstance(node, SoftMaxParameters):
                 self.set_softmax_bindings(in_eparams, out_eparams, cname, node, qrec)
-                gen_softmax(cname, node, qrec, code_block=code_block)
-            elif isinstance(node, FusionParameters):
+                gen_softmax(cname, node, qrec, code_block=code_block, at_ver=at_ver)
+            elif isinstance(node, ConvFusionParameters):
                 cnodes = node.contained_nodes()
                 quants = [self.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
                 if node.fusion_type == "conv_active_pool":
                     self.set_conv_bindings(step_idx, in_eparams, out_eparams,
-                                           cname, cnodes[0], quants[0], out_q=quants[1], dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
+                                           cname, cnodes[0], quants[0], out_q=quants[1],
+                                           dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                     gen_conv_pool_relu(cname, cnodes[0], quants[0], cnodes[2], quants[2],
                                        cnodes[1], quants[1], code_block=code_block, at_ver=at_ver,
                                        gen_ctrl=node.get_gen_ctrl())
                 elif node.fusion_type == "conv_pool_active":
                     self.set_conv_bindings(step_idx, in_eparams, out_eparams,
-                                           cname, cnodes[0], quants[0], out_q=quants[2], dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
+                                           cname, cnodes[0], quants[0], out_q=quants[2],
+                                           dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                     gen_conv_pool_relu(cname, cnodes[0], quants[0], cnodes[1], quants[1],
                                        cnodes[2], quants[2], code_block=code_block, at_ver=at_ver,
                                        gen_ctrl=node.get_gen_ctrl())
                 elif node.fusion_type == "conv_active":
                     self.set_conv_bindings(step_idx, in_eparams, out_eparams,
-                                           cname, cnodes[0], quants[0], out_q=quants[1], dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
+                                           cname, cnodes[0], quants[0], out_q=quants[1],
+                                           dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                     gen_conv_pool_relu(cname, cnodes[0], quants[0], None, None, cnodes[1],
                                        quants[1], code_block=code_block, at_ver=at_ver,
                                        gen_ctrl=node.get_gen_ctrl())
                 elif node.fusion_type == "conv_pool":
                     self.set_conv_bindings(step_idx, in_eparams, out_eparams,
-                                           cname, cnodes[0], quants[0], out_q=quants[1], dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
+                                           cname, cnodes[0], quants[0], out_q=quants[1],
+                                           dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                     gen_conv_pool_relu(cname, cnodes[0], quants[0], cnodes[1], quants[1], None,
                                        None, code_block=code_block, at_ver=at_ver, gen_ctrl=node.get_gen_ctrl())
                 elif node.fusion_type == "linear_active":
                     self.set_fc_bindings(step_idx, in_eparams, out_eparams,
-                                         cname, cnodes[0], quants[0], out_q=quants[1], dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
+                                         cname, cnodes[0], quants[0], out_q=quants[1],
+                                         dump_tensors=self.opts['dump_tensors'] or node.at_options.dump_tensors)
                     gen_linear_relu(cname, cnodes[0], quants[0],
                                     cnodes[1], quants[1], code_block=code_block, at_ver=at_ver,
                                     gen_ctrl=node.get_gen_ctrl())
@@ -464,12 +516,18 @@ class CodeGenerator():
                                   gen_ctrl=node.get_gen_ctrl())
                 else:
                     raise NotImplementedError("this fusion type is not implemented")
+            elif isinstance(node, MatScaleFusionParameters):
+                if at_ver < 3:
+                    raise NotImplementedError(
+                        "matscale not imlemented before version 3 of AUtoTiler")
+                self.set_matscale_bindings(in_eparams, out_eparams, cname, node, qrec)
+                gen_matscale(cname, node, qrec, code_block=code_block)
             elif isinstance(node, MatrixAddParameters):
                 self.set_matrixadd_bindings(in_eparams, out_eparams, cname, node, qrec)
                 if qrec.in_qs[0].q == qrec.in_qs[1].q and qrec.in_qs[0].q == qrec.out_qs[0].q:
-                    gen_matrixadd(cname, node, qrec, code_block=code_block)
+                    gen_matrixadd(cname, node, qrec, code_block=code_block, at_ver=at_ver)
                 else:
-                    gen_matrixadddyn(cname, node, qrec, code_block=code_block)
+                    gen_matrixadddyn(cname, node, qrec, code_block=code_block, at_ver=at_ver)
             elif isinstance(node, ReshapeParameters):
                 if node.transpose_in is not None or node.transpose_out is not None:
                     LOG.error("Don't know how to generate kernel \
@@ -479,12 +537,12 @@ class CodeGenerator():
             elif isinstance(node, TransposeParameters):
                 if node.transpose_dimension == 1:
                     continue
-                if node.transpose_dimension != 2:
-                    raise NotImplementedError("3D and above transposes are not implemented")
+                if node.transpose_dimension < 2 or node.transpose_dimension > 3:
+                    raise NotImplementedError("only 2D or 3D transposes are currently supported")
                 code_block.comment("transpose from {} to {}", node.in_dims[0], node.out_dims[0])
                 self.set_in_out_bindings(in_eparams, out_eparams, cname, node, qrec)
-                gen_2d_transpose(cname, node, qrec, code_block=code_block)
-            elif isinstance(node, (InputParameters)):
+                gen_3d_transpose(cname, node, qrec, code_block=code_block)
+            elif isinstance(node, (InputParameters, ConstantInputParameters)):
                 if self.opts['dump_tensors'] or node.at_options.dump_tensors:
                     dump_input = True
                 continue
@@ -603,6 +661,26 @@ class CodeGenerator():
             NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT")))
 
+    def set_matscale_bindings(self, in_eparams, out_eparams, cname, params, node_q):
+        if self.opts['at_ver'] < 3:
+            raise NotImplementedError("matscale is only implemented in AutoTiler v3")
+        if params.fusion_type == "vec_scalar":
+            self.bindings.append(
+                CommentBindingList("Node {} inq1 {} inq2 {} inq3 {} outq {}", params.name,
+                                   node_q.in_qs[0].q, node_q.in_qs[1].q, node_q.in_qs[2].q, node_q.out_qs[0].q)
+            )
+            self.bindings.append(
+                NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]), GNodeArgEdge(in_eparams[2]),
+                                GNodeArgEdge(out_eparams[0], "GNA_OUT")))
+        else:
+            self.bindings.append(
+                CommentBindingList("Node {} inq1 {} inq2 {} outq {}", params.name,
+                                   node_q.in_qs[0].q, node_q.in_qs[1].q, node_q.out_qs[0].q)
+            )
+            self.bindings.append(
+                NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
+                                GNodeArgEdge(out_eparams[0], "GNA_OUT")))
+
     def set_softmax_bindings(self, in_eparams, out_eparams, cname, params, node_q):
         self.bindings.append(
             CommentBindingList("Node {} inq {} outq {}", params.name,
@@ -618,7 +696,8 @@ class CodeGenerator():
                                 GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                                 Imm(node_q.in_qs[0].q)))
 
-    def set_conv_bindings(self, step_idx, in_eparams, out_eparams, cname, params, conv_q, out_q=None, dump_tensors=False):
+    def set_conv_bindings(self, step_idx, in_eparams, out_eparams, cname, params, conv_q,
+                          out_q=None, dump_tensors=False):
         if out_q is None:
             out_q = conv_q
         self.bindings.append(
@@ -643,7 +722,8 @@ class CodeGenerator():
         if dump_tensors:
             self.add_dump_params_binding(cname, params, conv_q, step_idx)
 
-    def set_fc_bindings(self, step_idx, in_eparams, out_eparams, cname, params, linear_q, out_q=None, dump_tensors=False):
+    def set_fc_bindings(self, step_idx, in_eparams, out_eparams, cname,
+                        params, linear_q, out_q=None, dump_tensors=False):
         if out_q is None:
             out_q = linear_q
         self.bindings.append(

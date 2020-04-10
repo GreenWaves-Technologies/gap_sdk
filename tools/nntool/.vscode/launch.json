@@ -35,6 +35,16 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: start nntool with squeezenet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/squeezenet.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: start nntool with VWW",
             "type": "python",
             "request": "launch",
@@ -66,14 +76,81 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: start nntool with visual wake sample tflite quantized",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/model_quantized.tflite",
+                "-q"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with ssd_mobilenet_v1 tflite fp",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/ssd_mobilenet_v1.tflite"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with ssd_mobilenet_v1 from Thales tflite quantized",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/ssd_mobilenet_v1_quant_thales.tflite"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with mobilenet_v1 tflite quantized",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/mobv1_quant.tflite"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with mobilenet_v3 tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/v3-large_224_1.0_float.tflite"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: start nntool with visual wake sample tflite",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/nntool",
             "args": [
-                "BUILD_MODEL_8BIT/vww.json"
+                "BUILD_MODEL_8BIT_EMUL/vww.tflite"
             ],
             "cwd": "${workspaceFolder}/../nntool_examples/visual_wake",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with mnist sample tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "BUILD_MODEL_8BIT_EMUL/mnist.json"
+            ],
+            "cwd": "${workspaceFolder}/../nntool_examples/mnist",
             "console": "integratedTerminal"
         },
         {

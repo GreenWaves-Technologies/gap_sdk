@@ -1,26 +1,33 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import os
 from typing import Generator, Sequence, Union
 
 from utils.graph import Graph, Node
+from utils.json_serializable import JsonSerializable
+from utils.node_id import NodeId
 
 from .dim import Dim
 from .dump_tensor import PrintDumper, dump_tensor
 from .graph_identity import GraphIdentity
-from .manipulations import add_dimensions, adjust_order, calculate_liveness
-from .types import (FilterParameters, FusionParameters, InputParameters,
-                    OutputParameters)
+from .manipulations import add_dimensions, adjust_order, calculate_liveness, balance_filter
+from .types import (ConstantInputParameters, FilterParameters,
+                    ConvFusionParameters, InputBaseParameters, InputParameters,
+                    OutputParameters, MultiplicativeBiasParameters)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -30,12 +37,42 @@ class NNGraphError(Exception):
 class GraphStepsNotCalculatedError(NNGraphError):
     pass
 
+class NNGraphAttributeChanges(JsonSerializable):
+    def __init__(self, init=None):
+        if init is not None:
+            self._changes = init['changes']
+            return
+        self._changes = []
+
+    def _encapsulate(self):
+        return {'changes': self._changes}
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        return cls(init=val)
+
+    def modify(self, node, attr, val, fnode=None):
+        nid = NodeId(node, fnode)
+        self._changes.append({
+            'nid': nid,
+            'attr': attr,
+            'val': val
+        })
+        if fnode is not None:
+            node = fnode
+        setattr(node, attr, val)
+
+    def replay(self, G):
+        for change in self._changes:
+            node = change['nid'].get_node(G)
+            setattr(node, change['attr'], change['val'])
+
 class NNGraphState():
     def __init__(self):
         self._state = {
             'liveness': None,
             'steps': None,
-            'quantization': None
+            'quantization': None,
         }
 
     @property
@@ -78,6 +115,7 @@ class NNGraph(Graph):
 
         self.num_inputs = 0
         self.num_outputs = 0
+        self.num_constants = 0
         self.node_options = {}
 
         self.graph_state = NNGraphState()
@@ -90,7 +128,8 @@ class NNGraph(Graph):
         self.constant_store = constant_store
         self.graph_identity = GraphIdentity(filename)
         self._info = {
-            'quantization': None
+            'quantization': None,
+            'changes': NNGraphAttributeChanges()
         }
 
     @property
@@ -110,11 +149,23 @@ class NNGraph(Graph):
         self._info['quantization'] = val
 
     @property
+    def changes(self):
+        return self._info['changes']
+
+    @property
     def name(self) -> str:
         if self.graphname is None:
             base, _ = os.path.splitext(os.path.basename(self.graph_identity.filename))
             return base
         return self.graphname
+
+    @property
+    def inputs_dim(self) -> list:
+        return [in_node.in_dims[0].shape for in_node in self.input_nodes()]
+
+    @property
+    def outputs_dim(self) -> list:
+        return [out_node.out_dims[0].shape for out_node in self.output_nodes()]
 
     @name.setter
     def name(self, val):
@@ -137,10 +188,13 @@ class NNGraph(Graph):
         out_edges.sort(key=lambda edge: edge.from_idx)
         return [edge.params for edge in out_edges]
 
-    def inputs(self) -> Generator[Node, None, None]:
+    def inputs_and_constants(self) -> Generator[Node, None, None]:
+        return (node for node in self.nodes() if isinstance(node, InputBaseParameters))
+
+    def input_nodes(self) -> Generator[Node, None, None]:
         return (node for node in self.nodes() if isinstance(node, InputParameters))
 
-    def outputs(self) -> Generator[Node, None, None]:
+    def output_nodes(self) -> Generator[Node, None, None]:
         return (node for node in self.nodes() if isinstance(node, OutputParameters))
 
     def is_input(self, node_name: Union[str, Node]) -> bool:
@@ -156,23 +210,33 @@ class NNGraph(Graph):
     def reset_inout_counts(self):
         self.num_inputs = 0
         self.num_outputs = 0
+        self.num_constants = 0
 
     def add_input(self, dim: Dim) -> str:
         self.num_inputs += 1
         node_name = "input_"+str(self.num_inputs)
-        self.add_node(InputParameters(node_name, dims=dim))
-        return node_name
+        node = InputParameters(node_name, dims=dim)
+        self.add_node(node)
+        return node
+
+    def add_constant(self, dim: Dim) -> str:
+        self.num_constants += 1
+        node_name = "constant_"+str(self.num_constants)
+        node = ConstantInputParameters(node_name, dims=dim)
+        self.add_node(node)
+        return node
 
     def add_output(self) -> str:
         self.num_outputs += 1
         node_name = "output_"+str(self.num_outputs)
-        self.add_node(OutputParameters(node_name))
-        return node_name
+        node = OutputParameters(node_name)
+        self.add_node(node)
+        return node
 
     def nodes_iterator(self, yield_fusions=True):
         for step_idx, step in enumerate(self.graph_state.steps):
             node = step['node']
-            if isinstance(node, FusionParameters):
+            if isinstance(node, ConvFusionParameters):
                 if yield_fusions:
                     for fusion_idx, fnode in enumerate(node.contained_nodes()):
                         yield (step_idx, node, fusion_idx, fnode)
@@ -191,11 +255,19 @@ class NNGraph(Graph):
         LOG.info("calculate liveness")
         self.graph_state.liveness = calculate_liveness(self, self.graph_state.steps)
 
+    def balance_filter(self, step_idx):
+        if step_idx > len(self.graph_state.steps) or step_idx < 0:
+            raise ValueError("step idx out of range")
+        node = self.graph_state.steps[step_idx]['node']
+        if not isinstance(node, MultiplicativeBiasParameters):
+            raise ValueError("weights can only be balanced on nodes that support multiplicative bias")
+        balance_filter(node)
+
     def get_weights_by_step(self):
         weights = []
         for step in self.graph_state.steps:
             node = step['node']
-            if isinstance(node, (FilterParameters, FusionParameters)):
+            if isinstance(node, (FilterParameters, ConvFusionParameters)):
                 weights.append({'weights': node.quantized_weights, 'biases': node.quantized_biases})
             else:
                 weights.append(None)

@@ -11,6 +11,7 @@ BSP_SPIRAM_SRC = ram/spiram/spiram.c
 BSP_RAM_SRC = ram/ram.c ram/alloc_extern.c
 BSP_OTA_SRC = ota/ota.c ota/ota_utility.c ota/updater.c
 BSP_BOOTLOADER_SRC = bootloader/bootloader_utility.c
+BSP_NINA_SRC = transport/transport.c transport/nina_w10/nina_w10.c
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -65,6 +66,7 @@ GAPUINO_SRC = \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_SPIRAM_SRC) \
   $(BSP_SPIFLASH_SRC) \
+  $(BSP_NINA_SRC) \
   $(BSP_RAM_SRC)
 
 AI_DECK_SRC = \
@@ -73,8 +75,7 @@ AI_DECK_SRC = \
   camera/camera.c \
   camera/himax/himax.c \
   $(BSP_HYPERFLASH_SRC) \
-  transport/transport.c \
-  transport/nina_w10/nina_w10.c \
+  $(BSP_NINA_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_SPIRAM_SRC) \
   $(BSP_SPIFLASH_SRC) \

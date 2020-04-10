@@ -43,8 +43,8 @@ TIMEOUT ?= 300
 PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 ifeq ($(TARGET_CHIP_FAMILY), GAP8)
-sdk: all autotiler nntool openocd
-all: pulp-os tools gvsoc flasher docs littlefs
+sdk: all autotiler nntool
+all: pulp-os tools gvsoc flasher docs littlefs openocd
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -54,6 +54,7 @@ clean:
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 clean; fi
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
+	if [ -e tools/profiler ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/profiler clean; fi
 
 else
 sdk: all autotiler
@@ -83,7 +84,7 @@ install_others: | $(INSTALL_BIN_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/rules $(INSTALL_DIR)
 
-install_pulp_tools: install_others
+install_pulp_tools: install_others plptest.build
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools all
 
 tools: install_others install_pulp_tools
@@ -118,6 +119,12 @@ openocd:
 	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
 	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins
 
+profiler:
+	$(MAKE) -C tools/profiler all
+	mkdir -p $(INSTALL_DIR)/bin
+	cp tools/profiler/gui/build/profiler $(INSTALL_DIR)/bin
+
+
 test:
 	plptest --max-timeout=$(TIMEOUT)
 
@@ -138,6 +145,70 @@ $(LFS_MAKEFILE): $(LFS_DIR)/CMakeLists.txt | $(LFS_BUILD_DIR)
 
 $(LFS_BUILD_DIR):
 	$(MKDIR) -p $@
+
+
+
+plptest.checkout:
+	git submodule update --init tools/plptest
+
+plptest.build:
+	if [ -e tools/plptest ]; then cd tools/plptest && make build; fi
+	cd tools/plptest && make build
+
+plptest.all: plptest.checkout plptest.build
+
+
+
+gap-configs.checkout:
+	git submodule update --init tools/gap-configs
+
+gap-configs.all: gap-configs.checkout
+
+
+
+gapy.checkout: gap-configs.checkout
+	git submodule update --init tools/gapy
+
+gapy.all: gapy.checkout gap-configs.all
+
+
+
+tests.checkout:
+	git submodule update --init tests/pmsis_tests tests/bsp_tests
+
+
+pulpos.checkout:
+	git submodule update --init rtos/pulp/pulpos-2 rtos/pulp/pulpos-2_gap8 rtos/pulp/pulpos-2_gap9 rtos/pulp/gap_archi rtos/pmsis/pmsis_api rtos/pmsis/pmsis_bsp
+
+pulpos.all: pulpos.checkout
+
+
+pmsis-bsp.checkout:
+	git submodule update --init rtos/pmsis/pmsis-bsp
+
+pmsis-bsp.build:
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+
+pmsis-bsp.all: pmsis-bsp.checkout pmsis-bsp.build
+
+
+pulprt.checkout:
+	git submodule update --init rtos/pulp/pulp-os
+
+pulprt.build:
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build.pulprt
+
+pulprt.all: pulprt.checkout pulprt.build
+
+
+
+gvsoc.checkout:
+	git submodule update --init gvsoc/gvsoc
+
+gvsoc.build:
+	make -C gvsoc/gvsoc build BUILD_DIR=$(BUILD_DIR)/gvsoc INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
+
+gvsoc.all: gvsoc.checkout gvsoc.build
 
 
 

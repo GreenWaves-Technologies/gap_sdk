@@ -59,6 +59,9 @@ def create_parser():
     parser.add_argument('-v', '--version',
                         action='store_true',
                         help='show version number')
+    parser.add_argument('-q', '--tf_quant',
+                        action='store_true',
+                        help='load tflite quantization parameters')
 
     return parser
 

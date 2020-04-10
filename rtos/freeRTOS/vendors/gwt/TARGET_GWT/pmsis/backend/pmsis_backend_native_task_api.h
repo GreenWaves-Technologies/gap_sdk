@@ -94,39 +94,14 @@ static inline int __os_native_api_sem_deinit(pi_sem_t *sem)
 
 static inline void __os_native_api_mutex_lock(void *mutex_object)
 {
-    int irq = __disable_irq();
-    if (pi_cluster_id() == (uint32_t) ARCHI_FC_CID)
-    {
-        if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
-        {
-            /* This case should never happen ! */
-            BaseType_t ret;
-            xSemaphoreTakeFromISR(mutex_object, &ret);
-        }
-        else
-        {
-            xSemaphoreTake(mutex_object, portMAX_DELAY);
-        }
-    }
-    __restore_irq(irq);
+    xSemaphoreTake(mutex_object, portMAX_DELAY);
 }
 
 static inline void __os_native_api_mutex_release(void *mutex_object)
 {
     int irq = __disable_irq();
-    if (pi_cluster_id() == (uint32_t) ARCHI_FC_CID)
-    {
-        if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
-        {
-            BaseType_t ret;
-            xSemaphoreGiveFromISR(mutex_object, &ret);
-            portYIELD_FROM_ISR(ret);
-        }
-        else
-        {
-            xSemaphoreGive(mutex_object);
-        }
-    }
+    BaseType_t ret;
+    xSemaphoreGiveFromISR(mutex_object, &ret);
     __restore_irq(irq);
 }
 

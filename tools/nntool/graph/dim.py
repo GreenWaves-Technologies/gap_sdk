@@ -1,13 +1,17 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # author: martin.croome@greenwaves-technologies.com
 
@@ -193,6 +197,7 @@ class Dim():
 
     def apply_naming_hints(self, hint):
         self._verify_is_ordered()
+        assert hint is not None, "hint should not be none"
 
         # pylint: disable=protected-access
         if len(self._shape) != len(hint):
@@ -263,6 +268,38 @@ class Dim():
             else:
                 raise TypeError("elements of order should be k or list of keys")
         return newshape
+
+    @classmethod
+    def broadcast(cls, dims):
+        shapes = [dim.shape.copy() for dim in dims]
+        max_len = max(len(shape) for shape in shapes)
+        keys = None
+        for idx, shape in enumerate(shapes):
+            if len(shape) == max_len:
+                if dims[idx].is_named:
+                    if keys is None:
+                        keys = dims[idx].keys
+                    elif dims[idx].keys != keys:
+                        raise ValueError('axis names do not match')
+            else:
+                while len(shape) < max_len:
+                    shape.insert(0, 1)
+
+        broadcast_axis = -1
+        res = []
+        for idx, elems in enumerate(zip(*shapes)):
+            max_elem = max(elems)
+            if all(elem == 1 or elem == max_elem for elem in elems):
+                res.append(max_elem)
+            elif broadcast_axis == -1:
+                broadcast_axis = idx
+                res.append(sum(elems))
+            else:
+                raise ValueError("shapes cannot be broadcast")
+        res = cls.unnamed(res)
+        if keys is not None:
+            res.apply_naming_hints(keys)
+        return res
 
     @staticmethod
     def combine(dims: Iterable, axis) -> 'Dim':

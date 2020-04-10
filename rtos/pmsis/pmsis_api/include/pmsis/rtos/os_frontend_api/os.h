@@ -82,6 +82,9 @@ static inline int pmsis_kickoff(void *arg);
  */
 static inline void pmsis_exit(int err);
 
+
+#if defined(PMSIS_DRIVERS)
+
 /**
  * \deprecated
  * \brief Create a task.
@@ -306,6 +309,8 @@ static inline void pmsis_mutex_take(pmsis_mutex_t *mutex);
  * \param mutex          Pointer to struct pmsis_mutex.
  */
 static inline void pmsis_mutex_release(pmsis_mutex_t *mutex);
+
+#endif
 
 /**
  * @} addtogroup Mutex

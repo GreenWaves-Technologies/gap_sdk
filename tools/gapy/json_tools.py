@@ -233,9 +233,20 @@ class config_object(config):
                 #print (indent + 'PARSE ' + key)
                 #print (id(self))
 
-                if interpret and (key == '@eval@' or key == '@includes@' or key == '@includes2@' or key == '@include@' or key == 'includes' or key == 'includes2' or key == 'include'):
+                if interpret and (key == '@cond@' or key == '@eval@' or key == '@includes@' or key == '@includes2@' or key == '@include@' or key == 'includes' or key == 'includes2' or key == 'include'):
 
-                    if key == '@eval@':
+                    if key == '@cond@':
+
+                        for expr, expr_value in value.items():
+                            if expr[0] == '@' and expr[-1] == '@':
+                                expr = expr[1:len(expr)-1]
+                                expr_result = eval(expr)
+                                print (expr_result)
+                            else:
+                                pass
+
+
+                    elif key == '@eval@':
                         current_config.merge(current_config.get_tree(value, interpret, path, do_eval=True, indent=indent+'  ', gen=gen))
                     else:
                         if key == '@include@' or key == 'include':

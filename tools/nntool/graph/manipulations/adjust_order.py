@@ -1,23 +1,27 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from copy import deepcopy
 
-from ..types import (Conv2DParameters, FcParameters, ConcatParameters,
-                     ReshapeParameters, InputParameters, OutputParameters,
+from ..types import (ConcatParameters, ConstantInputParameters,
+                     Conv2DParameters, FcParameters, InputBaseParameters,
+                     OutputParameters, ReshapeParameters,
                      UnconvertedOpParameters)
-
-from .eliminate_transposes import eliminate_transposes
 from .dimensions import add_dimensions
+from .eliminate_transposes import eliminate_transposes
 
 AT_CONVFILTER_ORD = ['out_c', 'in_c', 'h', 'w']
 AT_FCFILTER_EXP_ORD = ['out_c', 'in_c', 'h', 'w']
@@ -53,12 +57,14 @@ def adjust_dims(step_idx, node, dims, hint, direction="input"):
 def adjust_order(G, reshape_weights=True):
     for step_idx, node, fusion_idx, _ in G.nodes_iterator():
         assert not fusion_idx, "order must be adjusted before fusing"
-        if isinstance(node, InputParameters):
+        if isinstance(node, InputBaseParameters):
             if node.fixed_order:
                 node.transpose_out = node.last_first(node.dims)
                 if node.out_dims_hint and node.out_dims_hint[0]:
                     node.out_dims_hint[0] = deepcopy(AT_ACTIVATION_ORD)
             else:
+                if isinstance(node, ConstantInputParameters) and node.value is not None and reshape_weights:
+                    node.value = maybe_transpose(node.dims, AT_ACTIVATION_ORD, node.value)
                 adjust_dims(step_idx, node, node.out_dims, node.out_dims_hint, direction="output")
                 node.dims = node.out_dims[0]
             continue

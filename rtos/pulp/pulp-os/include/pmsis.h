@@ -55,6 +55,7 @@
 #include "pmsis/drivers/pwm.h"
 #include "pmsis/drivers/pad.h"
 #include "pmsis/cluster/dma/cl_dma.h"
+#include "rt/hwce.h"
 
 #include "pmsis/data/data.h"
 

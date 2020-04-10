@@ -170,3 +170,25 @@ def test_combine2():
     dim4 = Dim.unnamed((1, 200, 2))
     res = Dim.combine((dim1, dim2, dim3, dim4), 1)
     assert res.shape == [1, 17000, 2]
+
+def test_broadcast1():
+    dim1 = Dim.unnamed((1, 12800, 2))
+    dim2 = Dim.unnamed((1, 3200, 2))
+    dim3 = Dim.unnamed((1, 800, 2))
+    dim4 = Dim.unnamed((1, 200, 2))
+    res = Dim.broadcast((dim1, dim2, dim3, dim4))
+    assert res.shape == [1, 17000, 2]
+
+def test_broadcast2():
+    dim1 = Dim.unnamed([6])
+    dim2 = Dim.unnamed((3, 2, 6))
+    dim3 = Dim.unnamed((4, 2, 6))
+    res = Dim.broadcast((dim1, dim2, dim3))
+    assert res.shape == [8, 2, 6]
+
+def test_broadcast3():
+    dim1 = Dim.named(['c'], c=6)
+    dim2 = Dim.named(['h', 'w', 'c'], h=3, w=2, c=6)
+    dim3 = Dim.named(['h', 'w', 'c'], h=4, w=2, c=6)
+    res = Dim.broadcast((dim1, dim2, dim3))
+    assert res.shape == [8, 2, 6] and res.is_named

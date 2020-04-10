@@ -119,7 +119,7 @@ private:
   void enqueue_transfer();
   virtual void handle_ready_req(vp::io_req *req);
 
-  vp_regmap_udma_core_lin_addrgen regmap;
+  vp_regmap_udma_core_lin regmap;
 
   int transfer_size;
   bool continuous_mode;

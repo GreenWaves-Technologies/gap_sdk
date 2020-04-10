@@ -3,5 +3,11 @@
 
     "target": {
         "@includes@": [ "boards/gapuino_revb.json" ]
+    },
+
+    "openocd": {
+        "cable": "interface/ftdi/gapuino_ftdi.cfg",
+        "script": "target/gap8revb.tcl"
     }
+
 }

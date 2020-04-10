@@ -259,7 +259,7 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
 	pi_open_from_conf(&fs, &conf);
 
 	if (pi_fs_mount(&fs))
-		return NULL;
+		return 0;
 
 	void *File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_WRITE);
 

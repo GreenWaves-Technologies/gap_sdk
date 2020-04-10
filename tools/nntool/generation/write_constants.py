@@ -1,20 +1,25 @@
-# Copyright 2019 GreenWaves Technologies, SAS
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (C) 2020  GreenWaves Technologies, SAS
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import numpy as np
 
 from utils.node_id import NodeId
 
-from graph.types import FilterParameters
+from graph.types import FilterParameters, ConstantInputParameters
+
 
 def write_constants(G, naming_convension, tensor_directory=None):
     if tensor_directory is None:
@@ -43,3 +48,16 @@ def write_constants(G, naming_convension, tensor_directory=None):
             cname = naming_convension.get_global_name(pnode.name, step_idx, pnode, "biases")
             with open(os.path.join(tensor_directory, cname + ".tensor"), 'wb') as t_fp:
                 biases.tofile(t_fp)
+        elif isinstance(anode, ConstantInputParameters):
+            out_edge = G.out_edges(anode.name)[0]
+            eparams = out_edge.params
+            cname = naming_convension.get_edge_name(eparams.creating_node.name,
+                                                    eparams.creating_step,
+                                                    eparams.edge_type,
+                                                    eparams.edge_order)
+            qrec = G.quantization[NodeId(pnode, fnode)]
+            constant_q = qrec.out_qs[0]
+            with open(os.path.join(tensor_directory, cname + ".tensor"), 'wb') as t_fp:
+                weights_q.quantize(anode.value)\
+                    .astype(constant_q.dtype, order='C', casting='no', copy=True)\
+                    .tofile(t_fp)

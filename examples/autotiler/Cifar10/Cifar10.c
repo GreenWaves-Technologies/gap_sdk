@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 GreenWaves Technologies
+ * Copyright (C) 2020 GreenWaves Technologies
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms
@@ -16,8 +16,7 @@
 #include "CifarData.h"
 
 /* Variables used. */
-#define COEF_L2
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_PRINTF printf
@@ -28,18 +27,20 @@
 #ifdef COEF_L2
 #include "coef/CifarCoeff.h"
 #else
+#include "bsp/bsp.h"
 #include "bsp/fs.h"
+#include "bsp/fs/readfs.h"
 #include "bsp/flash/hyperflash.h"
 
 #define  BUFFER_SIZE   (1024)
 
-struct fs_conf conf_fs;
-struct hyperflash_conf conf_flash;
-struct hyperram_conf conf_ram;
+struct pi_readfs_conf conf_fs;
+struct pi_hyperflash_conf conf_flash;
+struct pi_hyperram_conf conf_ram;
 struct pi_device flash;
 struct pi_device fs;
-struct pi_device ram;
-fs_file_t *file;
+struct pi_device HyperRam;
+pi_fs_file_t *file;
 int16_t *buff;
 #endif  /* COEF_L2 */
 
@@ -117,14 +118,14 @@ void Check(char *Mess, short int *Planes, int NPlane, int W, int H)
 void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *hyper_buff, uint32_t *hyper_size)
 {
     DEBUG_PRINTF("Loading layer \"%s\" from FS to L3\n", file_name);
-    file = fs_open(fs, file_name, 0);
+    file = pi_fs_open(fs, file_name, 0);
     if (file == NULL)
     {
         printf("File open failed !\n");
         pmsis_exit(-1);
     }
 
-    if (ram_alloc(&ram, hyper_buff, file->size))
+    if (pi_ram_alloc(&HyperRam, hyper_buff, file->size))
     {
         printf("Ram malloc failed !\n");
         pmsis_exit(-2);
@@ -137,19 +138,19 @@ void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *hype
     pi_task_t task;
     do
     {
-        size = fs_read_async(file, buff, BUFFER_SIZE, pi_task_block(&task));
+        size = pi_fs_read_async(file, buff, BUFFER_SIZE, pi_task_block(&task));
         pi_task_wait_on(&task);
         size = ((size + 3) & ~3);
         if (size)
         {
-            ram_write(&ram, (uint32_t) (*hyper_buff+size_total), buff, size);
+            pi_ram_write(&HyperRam, (uint32_t) (*hyper_buff+size_total), buff, size);
             size_total += size;
         }
     } while (size_total < file->size);
     DEBUG_PRINTF("Loading layer \"%s\" from FS to L3, hyper %x size = %d\n", file_name, *hyper_buff, size_total);
 
-    fs_seek(file, 0);
-    fs_close(file);
+    pi_fs_seek(file, 0);
+    pi_fs_close(file);
 }
 #endif  /* COEF_L2 */
 
@@ -160,21 +161,17 @@ static void RunCifar10(void *arg)
     Conv5x5MaxPool2x2_SW_0(ImageIn,
                            Filter_Layer[0],
                            Bias_Layer[0],
-                           Out_Layer[0],
-                           14,14);
+                           Out_Layer[0]);
 
     Conv5x5MaxPool2x2_SW_1(Out_Layer[0],
                            Filter_Layer[1],
                            Bias_Layer[1],
-                           Out_Layer[1],
-                           14,14);
+                           Out_Layer[1]);
 
     LinearLayerReLU_1(Out_Layer[1],
                       Filter_Layer[2],
                       Bias_Layer[2],
-                      Out_Layer[2],
-                      16,
-                      10);
+                      Out_Layer[2]);
 
     DEBUG_PRINTF("Cluster: End run Cifar10\n");
 }
@@ -197,27 +194,27 @@ void test_cifar10(void)
         pmsis_exit(-1);
     }
 
-    hyperram_conf_init(&conf_ram);
-    pi_open_from_conf(&ram, &conf_ram);
-    if (ram_open(&ram))
+    pi_hyperram_conf_init(&conf_ram);
+    pi_open_from_conf(&HyperRam, &conf_ram);
+    if (pi_ram_open(&HyperRam))
     {
         printf("Error ram open !\n");
         pmsis_exit(-2);
     }
 
-    hyperflash_conf_init(&conf_flash);
+    pi_hyperflash_conf_init(&conf_flash);
     pi_open_from_conf(&flash, &conf_flash);
-    if (flash_open(&flash))
+    if (pi_flash_open(&flash))
     {
         printf("Error flash open !\n");
         pmsis_exit(-3);
     }
 
-    fs_conf_init(&conf_fs);
-    conf_fs.flash = &flash;
+    pi_readfs_conf_init(&conf_fs);
+    conf_fs.fs.flash = &flash;
     pi_open_from_conf(&fs, &conf_fs);
 
-    int32_t err = fs_mount(&fs);
+    int32_t err = pi_fs_mount(&fs);
     if (err)
     {
         printf("Error FS mounting : %d !\n", err);
@@ -232,11 +229,11 @@ void test_cifar10(void)
     CopyFileFromFlashToL3(&fs, "Cifar10_Filter2.dat", &Filter_Layer[2], &Filter_Layer_Size[2]);
     CopyFileFromFlashToL3(&fs, "Cifar10_Bias2.dat",   &Bias_Layer[2], &Bias_Layer_Size[2]);
 
-    fs_unmount(&fs);
+    pi_fs_unmount(&fs);
     printf("FS unmounted.\n");
-    flash_close(&flash);
+    pi_flash_close(&flash);
 
-    if (ram_alloc(&ram, (uint32_t *) &Out_Layer[0], Out_Layer_Size[0]))
+    if (pi_ram_alloc(&HyperRam, (uint32_t *) &Out_Layer[0], Out_Layer_Size[0]))
     {
         printf("Ram malloc failed !\n");
         pmsis_exit(-5);
@@ -286,6 +283,13 @@ void test_cifar10(void)
         pmsis_exit(-7);
     }
 
+    Cifar10_L2_Memory = pmsis_l2_malloc(_Cifar10_L2_Memory_SIZE);
+    if (Cifar10_L2_Memory == NULL)
+    {
+        printf("L2 Memory Allocation Error! Quit...\n");
+        pmsis_exit(-8);
+    }
+
     /* Allocate the predetermined memory in the shared L1 memory that the cluster can act on. */
     Cifar10_L1_Memory = pmsis_l1_malloc(_Cifar10_L1_Memory_SIZE);
     if (Cifar10_L1_Memory == NULL)
@@ -319,11 +323,11 @@ void test_cifar10(void)
     #if !defined(COEF_L2)
     for (uint32_t i = 0; i < 3; i++)
     {
-        ram_free(&ram, Filter_Layer[i], Filter_Layer_Size[i]);
-        ram_free(&ram, Bias_Layer[i], Bias_Layer_Size[i]);
+        pi_ram_free(&HyperRam, Filter_Layer[i], Filter_Layer_Size[i]);
+        pi_ram_free(&HyperRam, Bias_Layer[i], Bias_Layer_Size[i]);
     }
-    ram_free(&ram, (uint32_t) Out_Layer[0], Out_Layer_Size[0]);
-    ram_close(&ram);
+    pi_ram_free(&HyperRam, (uint32_t) Out_Layer[0], Out_Layer_Size[0]);
+    pi_ram_close(&HyperRam);
     pmsis_l2_malloc_free(buff, BUFFER_SIZE);
     #else
     pmsis_l2_malloc_free(Out_Layer[0], Out_Layer_Size[0]);

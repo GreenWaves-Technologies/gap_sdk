@@ -279,7 +279,7 @@ void faceDet_cluster_init(ArgCluster_T *ArgC){
 
 	//DEBUG_PRINTF ("Cluster Init start\n");
 
-    face_det_l1_memory = (char *) pmsis_l1_malloc(FACE_DETECT_L1_MEMORY_POOL_SIZE);
+    face_det_l1_memory = (uint8_t *) pmsis_l1_malloc(FACE_DETECT_L1_MEMORY_POOL_SIZE);
     if (!face_det_l1_memory) {
 		DEBUG_PRINTF("Failed to allocate L1 memory pool\n");
         return ;
@@ -307,8 +307,8 @@ void faceDet_cluster_init(ArgCluster_T *ArgC){
 
 	//Assigning space to cascade buffers
 
-	ArgC->model->buffers_l1[0] = __l1_malloc_private(max_cascade_size);
-	ArgC->model->buffers_l1[1] = __l1_malloc_private(max_cascade_size);
+	ArgC->model->buffers_l1[0] = (single_cascade_t *)__l1_malloc_private(max_cascade_size);
+	ArgC->model->buffers_l1[1] = (single_cascade_t *)__l1_malloc_private(max_cascade_size);
 
 
 
@@ -441,9 +441,11 @@ void faceDet_cluster_main(ArgCluster_T *ArgC)
 
 
 	ArgC->num_reponse=reponse_idx;
+	int detected_faces = 0;
 	for (int i=0; i<reponse_idx; i++)
             if (reponses[i].x!=-1)
             {
+            	detected_faces++;
                 //printf("Found a face: ");
                 //printf("X: %d Y: %d W: %d H: %d\n",reponses[i].x,reponses[i].y,reponses[i].w,reponses[i].h);
                 DrawRectangle(ArgC->ImageIn, Hin, Win,  reponses[i].x, reponses[i].y, reponses[i].w, reponses[i].h, 0);
@@ -453,7 +455,7 @@ void faceDet_cluster_main(ArgCluster_T *ArgC)
                 DrawRectangle(ArgC->ImageIn, Hin, Win,  reponses[i].x-4, reponses[i].y-4, reponses[i].w+8, reponses[i].h+8, 0);
                 //real_detections++;
             }
-
+    ArgC->num_reponse=detected_faces;
 	final_resize(ArgC->ImageIn,ArgC->ImageOut);
 }
 

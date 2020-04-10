@@ -16,9 +16,6 @@ export RULES_DIR=$GAP_SDK_HOME/tools/rules
 export NNTOOL_DIR=$GAP_SDK_HOME/tools/nntool
 export PATH="$NNTOOL_DIR":$PATH
 
-# Gapy
-export PATH=$GAP_SDK_HOME/tools/gapy:$PATH
-
 # PulpOS 2
 export PULPOS_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2
 export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/pmsis_bsp"
@@ -62,10 +59,20 @@ export TILER_CNN_GENERATOR_PATH=$TILER_PATH/generators/CNN
 
 # OpenOCD
 export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
+export GAP_USE_OPENOCD=1
 
 # Zephyr
 export CROSS_COMPILE="$GAP_RISCV_GCC_TOOLCHAIN/bin/riscv32-unknown-elf-"
 export ZEPHYR_GCC_VARIANT=cross-compile
+
+# Gapy
+export PATH=$GAP_SDK_HOME/tools/gapy:$PATH
+export PYTHONPATH=$GAP_SDK_HOME/tools/gap-configs/python:$PYTHONPATH
+export PYTHONPATH=$GAP_SDK_HOME/tools/gapy:$PYTHONPATH
+export PULP_CONFIGS_PATH=$GAP_SDK_HOME/tools/gap-configs/configs:$PULP_CONFIGS_PATH
+
+# GAP LIB
+export GAP_LIB_PATH=$GAP_SDK_HOME/libs/gap_lib
 
 if [ "$TARGET_CHIP" = "GAP8" ]
 then

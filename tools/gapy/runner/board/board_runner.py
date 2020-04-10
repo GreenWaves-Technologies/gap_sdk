@@ -37,7 +37,18 @@ class Runner(runner.default_runner.Runner):
         super(Runner, self).__init__(args, config)
 
 
+    def flash(self):
+        flash = self.get_boot_flash()
+        if flash.get_bool('content/flash'):
+            return os.system('openocd-flasher %s' % flash.get_str('content/image'))
+        
+        return 0
+
+
     def exec(self):
+
+        if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
+            self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
 
         openocd = self.config.get_str("openocd/path")
         cable = self.config.get_str('openocd/cable')
@@ -75,7 +86,13 @@ class Runner(runner.default_runner.Runner):
 
         else:
 
-            cmd = '%s -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+            platform = self.config.get('runner/platform')
+            if platform == 'fpga':
+                cmd = '%s -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+            else:
+                cmd = "%s -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
+
+            os.chdir(self.config.get_str('gapy/work_dir'))
 
             print ('Launching execution with command:')
             print (cmd)

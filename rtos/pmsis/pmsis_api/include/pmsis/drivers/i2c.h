@@ -58,6 +58,10 @@ typedef struct pi_i2c_conf
       connected. */
     int8_t cs;               /*!< i2c slave address (7 bits on MSB), the
       runtime will take care of the LSB of read and write. */
+    int8_t is_slave;
+    uint16_t slave_addr;
+    uint16_t gap_slave_addr0;
+    uint16_t gap_slave_addr1;
     uint32_t max_baudrate;   /*!< Maximum baudrate for the I2C bitstream which
       can be used with the opened device . */
 } pi_i2c_conf_t;
