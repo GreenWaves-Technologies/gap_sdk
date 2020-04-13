@@ -216,4 +216,68 @@ gvsoc.all: gvsoc.checkout gvsoc.build
 
 
 
+plptest.checkout:
+	git submodule update --init tools/plptest
+
+plptest.build:
+	if [ -e tools/plptest ]; then cd tools/plptest && make build; fi
+	cd tools/plptest && make build
+
+plptest.all: plptest.checkout plptest.build
+
+
+
+gap-configs.checkout:
+	git submodule update --init tools/gap-configs
+
+gap-configs.all: gap-configs.checkout
+
+
+
+gapy.checkout: gap-configs.checkout
+	git submodule update --init tools/gapy
+
+gapy.all: gapy.checkout gap-configs.all
+
+
+
+tests.checkout:
+	git submodule update --init tests/pmsis_tests tests/bsp_tests
+
+
+pulpos.checkout:
+	git submodule update --init rtos/pulp/pulpos-2 rtos/pulp/pulpos-2_gap8 rtos/pulp/pulpos-2_gap9 rtos/pulp/gap_archi rtos/pmsis/pmsis_api rtos/pmsis/pmsis_bsp
+
+pulpos.all: pulpos.checkout
+
+
+pmsis-bsp.checkout:
+	git submodule update --init rtos/pmsis/pmsis-bsp
+
+pmsis-bsp.build:
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
+
+pmsis-bsp.all: pmsis-bsp.checkout pmsis-bsp.build
+
+
+pulprt.checkout:
+	git submodule update --init rtos/pulp/pulp-os
+
+pulprt.build:
+	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build.pulprt
+
+pulprt.all: pulprt.checkout pulprt.build
+
+
+
+gvsoc.checkout:
+	git submodule update --init gvsoc/gvsoc
+
+gvsoc.build:
+	make -C gvsoc/gvsoc build BUILD_DIR=$(BUILD_DIR)/gvsoc INSTALL_DIR=$(INSTALL_DIR) TARGET_INSTALL_DIR=$(GAP_SDK_HOME)/install
+
+gvsoc.all: gvsoc.checkout gvsoc.build
+
+
+
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher
