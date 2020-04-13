@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+
+
+#
+# Copyright (C) 2018 ETH Zurich and University of Bologna
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+
+import argparse
+import os
+import logging
+import pulp_config as plpconf
+try:
+  import psutil
+except:
+  pass
+import csv
+import collections
+
+# In case gtk3 is not available just skip gui
+try:
+  from plptest_gui import *
+except:
+  pass
+
+from plptest_runner import *
+
+
+
+if os.environ.get('PYTHON_LOG') != None:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def run_done():
+    runner.plpobjects.dumpTestsToConsole()
+    runner.plpobjects.dumpTestsToJunit(reportPath + '/junit-reports')
+    runner.command_done()
+
+def run(tests):
+  runner.runTests(args.testList, run_done)
+  return 0
+
+def show(tests):
+  for testset in tests:
+    testset.show()
+
+  runner.command_done()
+
+  return 0
+
+def score(tests):
+
+  nb_score = 0
+  score = 0
+
+  table = PrettyTable(['Test', 'Bench item', 'Desc', 'Value', 'score'])
+  table.float_format='.3'
+  table.align = "l"
+
+  for testset in tests:
+    (test_score, test_nb_score) = testset.score(table=table)
+
+    score += test_score
+    nb_score += test_nb_score
+
+  if nb_score > 0:
+      score = score / nb_score
+
+  print (table)
+
+  print ('\nFinal score: %f' % score)
+
+  runner.command_done()
+
+  return 0
+
+commands = {
+  'run'    : ['Run the tests', run],
+  'show'   : ['Show the tests', show],
+  'score'   : ['Show the scores', score],
+}
+	
+
+commandHelp = """Available commands:
+"""
+
+for name, cmd in commands.items():
+	commandHelp += '  %-10s %s\n' % (name, cmd[0])
+
+parser = argparse.ArgumentParser(description='Run a testset',epilog=commandHelp, formatter_class=argparse.RawDescriptionHelpFormatter)
+
+parser.add_argument('command', metavar='CMD', type=str, nargs='*',
+                   help='a command to be executed (see the command help afterwards)')
+
+parser.add_argument("--config", dest="config_name", default=None, help="specify the system configuration name")
+
+parser.add_argument("--config-def", dest="configDef", action="append", default=None, help="Specifies json files containing configurations definition")
+parser.add_argument("--testset", dest="testset", action="append", default=None, metavar="PATH", help="Path to the testset. Default: %(default)s")
+parser.add_argument("--cmd", dest="commands", action="append", default=None, metavar="PATH", help="Add command to be executed. Default: %(default)s")
+parser.add_argument("--gui", dest="gui", action="store_true", help="Opens user interface")
+parser.add_argument("--dry-run", dest="dry_run", action="store_true", help="Dry run")
+parser.add_argument("--threads", dest="threads", default=None, type=int, help="Specify the number of worker threads")
+parser.add_argument("--load-average", dest="load_average", default=0.9, type=float, help="Specify the system average load that this tool should try to respect, from 0 to 1")
+parser.add_argument("--stdout", dest="stdout", action="store_true", help="Dumps test output to stdout")
+parser.add_argument("--safe-stdout", dest="safe_stdout", action="store_true", help="Dumps test output to stdout once the test is done")
+parser.add_argument("--max-output-len", dest="maxOutputLen", type=int, default=-1, help="Maximum length of a test output. Default: %(default)s bytes")
+parser.add_argument("--test", dest="testList", default=None, action="append", help="Specify a test to be run")
+parser.add_argument("--max-timeout", dest="maxTimeout", default="3600", help="Sets maximum timeout allowed for a test")
+parser.add_argument("--db", dest="db", action='store_true', default=False, help="Activate Pulp database access")
+parser.add_argument("--worker-pool", dest="worker_pool", default=None, help="Specify worker pool")
+parser.add_argument("--score-csv-file", dest="score_csv_file", default=None, help="Specify CSV file for scores")
+parser.add_argument("--bench-csv-file", dest="bench_csv_file", default=None, help="Specify CSV file for benchmark results")
+parser.add_argument("--bench-regexp", dest="bench_regexp", default='@BENCH@(.*)@DESC@(.*)@', help="Specify regexp for extracting benchmark results")
+
+
+args = parser.parse_args()
+
+if args.testset is None:
+  args.testset = [os.getcwd() + '/testset.cfg']
+
+if args.threads is None:
+  try:
+    args.threads = psutil.cpu_count(logical=True)
+  except:
+    args.threads = 1
+
+reportPath = os.getcwd()
+
+bench_csv_file = None
+if args.bench_csv_file is not None:
+  bench_csv_file = collections.OrderedDict()
+  if os.path.exists(args.bench_csv_file):
+    with open(args.bench_csv_file, 'r') as file:
+      csv_reader = csv.reader(file)
+      for row in csv_reader:
+        bench_csv_file[row[0]] = row[1:]
+
+
+def command_handle():
+  if len(args.command) == 0:
+    runner.stop()
+    return
+
+  cmd = args.command.pop()
+
+  logging.debug('Executing command: ' + cmd)
+
+  if commands.get(cmd) == None:
+      raise Exception('Invalid command: ' + cmd)
+  elif commands.get(cmd)[1](runner.tests) != 0:
+    print ()
+    print (bcolors.FAIL + 'FATAL ERROR: the command \'%s\' has failed' % (cmd) + bcolors.ENDC)
+    exit(1)
+
+if len(args.command) == 0 and not args.gui:
+  args.command.append('run')
+
+runner = TestRunner(
+    nbThreads=args.threads, stdout=args.stdout, safe_stdout=args.safe_stdout, maxOutputLen=args.maxOutputLen,
+    maxTimeout=args.maxTimeout, worker_pool=args.worker_pool, db=args.db, average_load=args.load_average,
+    bench_csv_file=bench_csv_file, bench_regexp=args.bench_regexp, commands=args.commands, dry_run=args.dry_run,
+    server=args.gui
+)
+for testset in args.testset:
+  runner.addTestset(testset)
+
+if args.config_name is None:
+  for config in plpconf.get_configs_from_env():
+    runner.addConfig(config)
+else:
+  config = plpconf.get_config_from_tag(args.config_name)
+  runner.addConfig(config)
+
+
+
+if args.gui:
+  gui = TestGui()
+  runner.start()
+else:
+  runner.start(command_handle)
+
+if bench_csv_file is not None:
+  with open(args.bench_csv_file, 'w') as file:
+    csv_writer = csv.writer(file)
+    for key, value in bench_csv_file.items():
+      csv_writer.writerow([key] + value)

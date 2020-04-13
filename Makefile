@@ -44,7 +44,7 @@ PULP_BRIDGE_PATH = $(GAP_SDK_HOME)/tools/pulp_tools/pulp-debug-bridge
 
 ifeq ($(TARGET_CHIP_FAMILY), GAP8)
 sdk: all autotiler nntool
-all: pulp-os tools gvsoc flasher docs littlefs openocd
+all: pulp-os tools gvsoc flasher docs littlefs.build openocd
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -58,7 +58,7 @@ clean:
 
 else
 sdk: all autotiler
-all: pulp-os gvsoc littlefs
+all: pulp-os gvsoc littlefs.build
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
@@ -137,7 +137,7 @@ LFS_MAKEFILE = $(LFS_BUILD_DIR)/Makefile
 
 #include $(LFS_MAKEFILE)
 
-littlefs: $(LFS_MAKEFILE)
+littlefs.build: $(LFS_MAKEFILE)
 	make -C $(LFS_BUILD_DIR) all install
 
 $(LFS_MAKEFILE): $(LFS_DIR)/CMakeLists.txt | $(LFS_BUILD_DIR)
@@ -146,6 +146,11 @@ $(LFS_MAKEFILE): $(LFS_DIR)/CMakeLists.txt | $(LFS_BUILD_DIR)
 $(LFS_BUILD_DIR):
 	$(MKDIR) -p $@
 
+littlefs.checkout:
+	git submodule update --init tools/littlefs
+
+littlefs.all: littlefs.checkout littlefs.build
+
 
 
 plptest.checkout:
@@ -153,7 +158,6 @@ plptest.checkout:
 
 plptest.build:
 	if [ -e tools/plptest ]; then cd tools/plptest && make build; fi
-	cd tools/plptest && make build
 
 plptest.all: plptest.checkout plptest.build
 
