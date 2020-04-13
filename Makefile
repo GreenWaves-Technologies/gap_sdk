@@ -84,7 +84,7 @@ install_others: | $(INSTALL_BIN_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/rules $(INSTALL_DIR)
 
-install_pulp_tools: install_others plptest.build
+install_pulp_tools: install_others
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools all
 
 tools: install_others install_pulp_tools
@@ -96,10 +96,10 @@ pulp-os: install_pulp_tools | $(TARGET_INSTALL_DIR)
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
-	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all 
+	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all
 
 gap_tools:
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_tools all 
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_tools all
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
