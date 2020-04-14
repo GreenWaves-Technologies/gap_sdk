@@ -12,7 +12,7 @@ ifeq ($(VERBOSE), 1)
 TRC_MAKE=
 endif				# VERBOSE
 
-platform     ?= board
+platform     ?= gapuino
 
 chip=$(TARGET_CHIP_FAMILY)
 TARGET_CHIP_VERSION=
@@ -56,8 +56,8 @@ FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
 # Main stack size in Bytes.
-MAIN_STACK_SIZE     ?= 1024
-MAIN_APP_STACK_SIZE  = $(MAIN_STACK_SIZE)
+MAIN_STACK_SIZE ?= 1024
+FREERTOS_FLAGS  += -DMAIN_STACK_SIZE=$(MAIN_STACK_SIZE)
 
 # Option to use cluster features
 FEATURE_FLAGS   = -DFEATURE_CLUSTER=1
@@ -85,8 +85,8 @@ ifeq ($(platform), gvsoc)
 GVSOC_FILES_CLEAN   = all_state.txt core_state.txt rt_state.txt  \
                       efuse_preload.data plt_config.json stimuli \
                       tx_uart.log
-FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__ #-DPRINTF_RTL
-io = rtl
+FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
+FREERTOS_FLAGS  += -DPRINTF_RTL
 
 # FPGA
 else ifeq ($(platform), fpga)
@@ -97,7 +97,6 @@ io ?= host
 else ifeq ($(platform), rtl)
 FREERTOS_FLAGS  += -D__PLATFORM_RTL__
 FREERTOS_FLAGS  += -DPRINTF_RTL
-io = rtl
 endif				# platform
 
 # Choose Simulator
@@ -106,41 +105,38 @@ ifeq ($(sim), xcelium)
 SIMULATOR           = xcelium
 endif				# sim
 
-export GAP_USE_OPENOCD=1
-# Default is semihosting
-io ?= host
+# Deafult is debug bridge
+io ?=
 
 # No printf
 ifeq ($(io), disable)
-IO                  = -D__DISABLE_PRINTF__
-endif
-
-# Printf using semihosting
-ifeq ($(io), host)
-FREERTOS_FLAGS     += -D__SEMIHOSTING__
-IO                  = -DPRINTF_SEMIHOST
+FREERTOS_FLAGS     += -D__DISABLE_PRINTF__
 endif
 
 # Printf using uart
 ifeq ($(io), uart)
-IO                  = -DPRINTF_UART -DPRINTF_SEMIHOST
-MAIN_APP_STACK_SIZE    := $(shell expr $(MAIN_APP_STACK_SIZE) + 1024)
+FREERTOS_FLAGS     += -DPRINTF_UART
 endif
 
 # Printf using stdout
 ifeq ($(io), rtl)
-IO                  = -DPRINTF_RTL
+FREERTOS_FLAGS     += -DPRINTF_RTL
+endif
+
+# Printf using semihosting
+ifeq ($(io), host)
+export GAP_USE_OPENOCD=1
+FREERTOS_FLAGS     += -D__SEMIHOSTING__
+FREERTOS_FLAGS     += -DPRINTF_SEMIHOST
 endif
 
 # Enabled for gvsoc
 #FREERTOS_FLAGS     += -DPRINTF_RTL
+FREERTOS_FLAGS     += -DGAP_USE_DEBUG_STRUCT
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-FREERTOS_FLAGS     += -D__FREERTOS__ -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
-
-# App task stack size.
-FREERTOS_FLAGS     += -DMAIN_APP_STACK_SIZE=$(MAIN_APP_STACK_SIZE)
+FREERTOS_FLAGS     += -D__FREERTOS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
 
 COMMON              = -c -g -fmessage-length=0 -fno-exceptions -fno-builtin \
                       -ffunction-sections -fdata-sections -funsigned-char \
@@ -154,7 +150,6 @@ DEBUG_FLAGS         = -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
 PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
                       -DPRINTF_DISABLE_SUPPORT_FLOAT
-PRINTF_FLAGS       += $(IO)
 
 WARNINGS            = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
                       -Wno-unused-variable -Wno-unused-but-set-variable \
