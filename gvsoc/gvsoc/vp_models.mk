@@ -24,9 +24,14 @@ VP_COMP_CPPFLAGS=-std=c++11
 VP_COMP_LDFLAGS=-O2 -g -shared -L$(INSTALL_DIR)/lib
 VP_COMP_STD_LDFLAGS=-lpulpvp
 VP_COMP_DBG_LDFLAGS=-lpulpvp-debug
+VP_COMP_SV_LDFLAGS=-lpulpvp-sv
 
 VP_COMP_CFLAGS += -Werror -Wfatal-errors
 VP_COMP_LDFLAGS += -Werror -Wfatal-errors
+
+ifdef VP_USE_SYSTEMV
+VP_COMP_CFLAGS += -D__VP_USE_SYSTEMV
+endif
 
 ifdef VP_USE_SYSTEMC
 VP_COMP_CFLAGS += -D__VP_USE_SYSTEMC -I$(SYSTEMC_HOME)/include
@@ -131,6 +136,43 @@ endef
 
 
 
+define declare_sv_implementation
+
+$(eval $(1)_SV_OBJS = $(patsubst %.cc, $(VP_BUILD_DIR)/$(1)/sv/%.o, $(patsubst %.c, $(VP_BUILD_DIR)/$(1)/sv/%.o, $(patsubst %.cpp, $(VP_BUILD_DIR)/$(1)/sv/%.o, $($(1)_SRCS)))))
+
+-include $($(1)_SV_OBJS:.o=.d)
+
+$(VP_BUILD_DIR)/$(1)/sv/%.o: %.cpp $($(1)_DEPS)
+	@echo "CXX SV $$<"
+	@mkdir -p `dirname $$@`
+	$(V)$(CPP) -c $$< -o $$@ $($(1)_CFLAGS) $(VP_COMP_CFLAGS) $($(1)_CPPFLAGS) $(VP_COMP_CPPFLAGS) -DVP_TRACE_ACTIVE=1 -D__VP_USE_SYSTEMV=1
+
+$(VP_BUILD_DIR)/$(1)/sv/%.o: %.cc $($(1)_DEPS)
+	@echo "CXX SV $$<"
+	@mkdir -p `dirname $$@`
+	$(V)$(CPP) -c $$< -o $$@ $($(1)_CFLAGS) $(VP_COMP_CFLAGS) $($(1)_CPPFLAGS) $(VP_COMP_CPPFLAGS) -DVP_TRACE_ACTIVE=1 -D__VP_USE_SYSTEMV=1
+
+$(VP_BUILD_DIR)/$(1)/sv/%.o: %.c $($(1)_DEPS)
+	@echo "CC SV $$<"
+	@mkdir -p `dirname $$@`
+	$(V)$(CC) -c $$< -o $$@ $($(1)_CFLAGS) $(VP_COMP_CFLAGS) -DVP_TRACE_ACTIVE=1
+
+
+$(VP_BUILD_DIR)/sv/$(1)$(VP_COMP_EXT): $($(1)_SV_OBJS) $($(1)_DEPS) $(INSTALL_DIR)/lib/libpulpvp-sv.so
+	@echo "LD SV $$<"
+	@mkdir -p `dirname $$@`
+	$(V)$(CPP) $($(1)_SV_OBJS) -o $$@ $($(1)_CFLAGS) $(VP_COMP_CFLAGS) $($(1)_LDFLAGS) $(VP_COMP_LDFLAGS) $(VP_COMP_SV_LDFLAGS)
+
+$(VP_PY_INSTALL_PATH)/sv/$(1)$(VP_COMP_EXT): $(VP_BUILD_DIR)/sv/$(1)$(VP_COMP_EXT)
+	@echo "CP SV $$<"
+	$(V)install -D $$^ $$@
+
+VP_INSTALL_TARGETS += $(VP_PY_INSTALL_PATH)/sv/$(1)$(VP_COMP_EXT)
+
+endef
+
+
+
 define declare_component
 
 $(VP_PY_INSTALL_PATH)/$(1).py: $(1).py
@@ -156,6 +198,8 @@ endef
 $(foreach implementation, $(IMPLEMENTATIONS), $(eval $(call declare_implementation,$(implementation))))
 
 $(foreach implementation, $(IMPLEMENTATIONS), $(eval $(call declare_debug_implementation,$(implementation))))
+
+$(foreach implementation, $(IMPLEMENTATIONS), $(eval $(call declare_sv_implementation,$(implementation))))
 
 $(foreach component, $(COMPONENTS), $(eval $(call declare_component,$(component))))
 

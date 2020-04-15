@@ -262,7 +262,6 @@ SECTIONS
     {
         /* Due to limitations on FPGA loader, loadable sections must have base and size aligned on 4 bytes */
         . = ALIGN(4);
-        __printf_lock_ptr = . + 0x4;
         __l1_preload_start = . + 0x4;
         *(.l1clusterTiny)
         *(.l1clusterTiny.*)
@@ -272,6 +271,8 @@ SECTIONS
     .l1cluster_g (ORIGIN(L1_sram) + SIZEOF(.l1clusterTiny)) :
     {
         . = ALIGN(4);
+        __printf_lock_ptr = . + 0x4;
+        . = __printf_lock_ptr + 0x4;
         *(.heapsram)
         *(.heapsram.*)
         . = ALIGN(4);

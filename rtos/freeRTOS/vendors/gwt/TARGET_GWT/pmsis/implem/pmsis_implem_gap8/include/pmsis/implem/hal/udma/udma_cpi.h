@@ -170,6 +170,14 @@ static inline void cpi_frameslice_lly_set(uint32_t device_id, uint16_t value)
                    | CPI_CFG_LL_FRAMESLICE_LLY(value));
 }
 
+static inline void hal_cpi_frameslice_ll_set(uint32_t device_id, uint16_t x,
+                                             uint16_t y)
+{
+    uint32_t xy = CPI_CFG_LL_FRAMESLICE_LLX(x) |
+                  CPI_CFG_LL_FRAMESLICE_LLY(y);
+    cpi_cfg_ll_set(device_id, xy);
+}
+
 
 /*! CFG_UR. */
 /* Set slice's upper right X coordinate. */
@@ -186,6 +194,14 @@ static inline void cpi_frameslice_ury_set(uint32_t device_id, uint16_t value)
     cpi_cfg_ur_set(device_id,
                    (cpi_cfg_ur_get(device_id) & ~CPI_CFG_UR_FRAMESLICE_URY_MASK)
                    | CPI_CFG_UR_FRAMESLICE_URY(value));
+}
+
+static inline void hal_cpi_frameslice_ur_set(uint32_t device_id, uint16_t x,
+                                             uint16_t y)
+{
+    uint32_t xy = CPI_CFG_UR_FRAMESLICE_URX(x) |
+                  CPI_CFG_UR_FRAMESLICE_URY(y);
+    cpi_cfg_ur_set(device_id, xy);
 }
 
 
@@ -222,6 +238,16 @@ static inline void cpi_filter_r_coeff_set(uint32_t device_id, uint8_t value)
     cpi_cfg_filter_set(device_id,
                        (cpi_cfg_filter_get(device_id) & ~CPI_CFG_FILTER_R_COEFF_MASK)
                        | CPI_CFG_FILTER_R_COEFF(value));
+}
+
+/* Set R, G and B components multiplier coefficients. */
+static inline void hal_cpi_filter_rgb_coeff_set(uint32_t device_id, uint8_t r,
+                                                uint8_t g, uint8_t b)
+{
+    uint32_t rgb = CPI_CFG_FILTER_B_COEFF(b) |
+                   CPI_CFG_FILTER_G_COEFF(g) |
+                   CPI_CFG_FILTER_R_COEFF(r);
+    cpi_cfg_filter_set(device_id, rgb);
 }
 
 

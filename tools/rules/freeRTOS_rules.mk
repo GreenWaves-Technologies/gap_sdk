@@ -12,7 +12,7 @@ ifeq ($(VERBOSE), 1)
 TRC_MAKE=
 endif				# VERBOSE
 
-platform     ?= gapuino
+platform     ?= board
 
 chip=$(TARGET_CHIP_FAMILY)
 TARGET_CHIP_VERSION=
@@ -56,8 +56,8 @@ FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
 # Main stack size in Bytes.
-MAIN_STACK_SIZE ?= 1024
-FREERTOS_FLAGS  += -DMAIN_STACK_SIZE=$(MAIN_STACK_SIZE)
+MAIN_STACK_SIZE     ?= 1024
+MAIN_APP_STACK_SIZE  = $(MAIN_STACK_SIZE)
 
 # Option to use cluster features
 FEATURE_FLAGS   = -DFEATURE_CLUSTER=1
@@ -85,8 +85,8 @@ ifeq ($(platform), gvsoc)
 GVSOC_FILES_CLEAN   = all_state.txt core_state.txt rt_state.txt  \
                       efuse_preload.data plt_config.json stimuli \
                       tx_uart.log
-FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__
-FREERTOS_FLAGS  += -DPRINTF_RTL
+FREERTOS_FLAGS  += -D__PLATFORM_GVSOC__ #-DPRINTF_RTL
+io = rtl
 
 # FPGA
 else ifeq ($(platform), fpga)
@@ -97,6 +97,7 @@ io ?= host
 else ifeq ($(platform), rtl)
 FREERTOS_FLAGS  += -D__PLATFORM_RTL__
 FREERTOS_FLAGS  += -DPRINTF_RTL
+io = rtl
 endif				# platform
 
 # Choose Simulator
@@ -105,38 +106,41 @@ ifeq ($(sim), xcelium)
 SIMULATOR           = xcelium
 endif				# sim
 
-# Deafult is debug bridge
-io ?=
+export GAP_USE_OPENOCD=1
+# Default is semihosting
+io ?= host
 
 # No printf
 ifeq ($(io), disable)
-FREERTOS_FLAGS     += -D__DISABLE_PRINTF__
-endif
-
-# Printf using uart
-ifeq ($(io), uart)
-FREERTOS_FLAGS     += -DPRINTF_UART
-endif
-
-# Printf using stdout
-ifeq ($(io), rtl)
-FREERTOS_FLAGS     += -DPRINTF_RTL
+IO                  = -D__DISABLE_PRINTF__
 endif
 
 # Printf using semihosting
 ifeq ($(io), host)
-export GAP_USE_OPENOCD=1
 FREERTOS_FLAGS     += -D__SEMIHOSTING__
-FREERTOS_FLAGS     += -DPRINTF_SEMIHOST
+IO                  = -DPRINTF_SEMIHOST
+endif
+
+# Printf using uart
+ifeq ($(io), uart)
+IO                  = -DPRINTF_UART -DPRINTF_SEMIHOST
+MAIN_APP_STACK_SIZE    := $(shell expr $(MAIN_APP_STACK_SIZE) + 1024)
+endif
+
+# Printf using stdout
+ifeq ($(io), rtl)
+IO                  = -DPRINTF_RTL
 endif
 
 # Enabled for gvsoc
 #FREERTOS_FLAGS     += -DPRINTF_RTL
-FREERTOS_FLAGS     += -DGAP_USE_DEBUG_STRUCT
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-FREERTOS_FLAGS     += -D__FREERTOS__=1 -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
+FREERTOS_FLAGS     += -D__FREERTOS__ -DTOOLCHAIN_GCC_RISCV -DTOOLCHAIN_GCC
+
+# App task stack size.
+FREERTOS_FLAGS     += -DMAIN_APP_STACK_SIZE=$(MAIN_APP_STACK_SIZE)
 
 COMMON              = -c -g -fmessage-length=0 -fno-exceptions -fno-builtin \
                       -ffunction-sections -fdata-sections -funsigned-char \
@@ -150,6 +154,7 @@ DEBUG_FLAGS         = -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
 PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
                       -DPRINTF_DISABLE_SUPPORT_FLOAT
+PRINTF_FLAGS       += $(IO)
 
 WARNINGS            = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
                       -Wno-unused-variable -Wno-unused-but-set-variable \
@@ -277,7 +282,7 @@ BIN                 = $(BUILDDIR)/$(APP)
 
 -include $(OBJS_DEP)
 
-all:: $(OBJS) $(BIN)
+all:: $(OBJS) $(BIN) image flash
 
 $(BUILDDIR):
 	mkdir -p $@
@@ -314,49 +319,27 @@ $(BIN).size: $(BIN)
 	@$(NM) $(NM_OPT) $< >> $@
 
 
-ifeq ($(use_pulprun), 1)
-run:
-	pulp-run --platform $(PLPTEST_PLATFORM) --dir=$(BUILDDIR) --config=$(GVSOC_CONFIG) --binary $(BIN) $(runner_args) prepare run
+override config_args += $(foreach file, $(READFS_FILES), --config-opt=flash/content/partitions/readfs/files=$(file))
+override config_args += $(foreach file, $(HOSTFS_FILES), --config-opt=flash/content/partitions/hostfs/files=$(file))
 
-else
-
-# GVSOC
-ifeq ($(platform), gvsoc)
-run: all
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --all --binary=$(BIN) gvsoc $(runner_args)
-
-# RTL
-else ifeq ($(platform), rtl)
-run: | $(BUILDDIR)
-	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
-# Default : GAPUINO
-else
-run: all
-ifeq ($(chip), GAP8)
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS) $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
-else ifeq ($(chip), GAP9)
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --all --binary=$(BIN) $(platform) $(runner_args)
-endif				#ifeq ($(chip), GAP8)
-endif				#ifeq ($(platform), )
-
-gdbserver: PLPBRIDGE_EXTRA_FLAGS += -gdb
-gdbserver: run
+ifdef LFS_ROOT_DIR
+override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
 endif
 
-gui:: | $(BUILDDIR)
-	cd $(BUILDDIR) && $(GAP_SDK_HOME)/tools/runner/run_rtl.sh $(SIMULATOR) $(recordWlf) $(vsimDo) $(vsimPadMuxMode) $(vsimBootTypeMode) "GUI" $(load) $(PLPBRIDGE_FLAGS) -a $(chip)
+flash: $(BIN)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
 
-flash:
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -norun $(PLPBRIDGE_FLAGS) -f  $(PLPBRIDGE_EXTRA_FLAGS)
+image: $(BIN)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(runner_args)
 
-launch:
-	$(GAP_SDK_HOME)/tools/runner/run_gapuino.sh $(BUILDDIR) $(BIN) -noflash $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
+run: $(BIN)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
 
-# Foramt "vsim -do xxx.do xxx.wlf"
+# Format "vsim -do xxx.do xxx.wlf"
 debug:
 	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
 
-# Foramt "simvision -input xxx.svcf xxx.trn"
+# Format "simvision -input xxx.svcf xxx.trn"
 debug_xcelium:
 	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
 

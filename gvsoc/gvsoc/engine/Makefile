@@ -23,10 +23,12 @@ LDFLAGS += -L$(SYSTEMC_HOME)/lib-linux64 -lsystemc
 endif
 
 CFLAGS_DBG += -DVP_TRACE_ACTIVE=1
+CFLAGS_SV += -DVP_TRACE_ACTIVE=1 -D__VP_USE_SYSTEMV=1
 
 VP_SRCS = src/vp.cpp src/trace/trace.cpp src/clock/clock.cpp src/trace/event.cpp src/trace/vcd.cpp src/trace/lxt2.cpp src/power/power.cpp src/trace/lxt2_write.c src/trace/fst/fastlz.c  src/trace/fst/lz4.c src/trace/fst/fstapi.c src/trace/fst.cpp src/trace/raw.cpp src/trace/raw/trace_dumper.cpp
 VP_OBJS = $(patsubst src/%.cpp,$(ENGINE_BUILD_DIR)/%.o,$(patsubst src/%.c,$(ENGINE_BUILD_DIR)/%.o,$(VP_SRCS)))
 VP_DBG_OBJS = $(patsubst src/%.cpp,$(ENGINE_BUILD_DIR)/dbg/%.o,$(patsubst src/%.c,$(ENGINE_BUILD_DIR)/dbg/%.o,$(VP_SRCS)))
+VP_SV_OBJS = $(patsubst src/%.cpp,$(ENGINE_BUILD_DIR)/sv/%.o,$(patsubst src/%.c,$(ENGINE_BUILD_DIR)/sv/%.o,$(VP_SRCS)))
 
 VP_HEADERS += $(shell find include -name *.hpp)
 VP_HEADERS += $(shell find include -name *.h)
@@ -68,6 +70,16 @@ $(ENGINE_BUILD_DIR)/dbg/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
 	$(V)$(CC) $(CFLAGS) $(CFLAGS_DBG) -o $@ -c $<
 
+$(ENGINE_BUILD_DIR)/sv/%.o: src/%.c
+	@echo "CXX SV $<"
+	@mkdir -p $(basename $@)
+	$(V)$(CC) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
+
+$(ENGINE_BUILD_DIR)/sv/%.o: src/%.cpp
+	@echo "CXX SV $<"
+	@mkdir -p $(basename $@)
+	$(V)$(CC) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
+
 $(ENGINE_BUILD_DIR)/libpulpvp.so: $(VP_OBJS)
 	@echo "CXX $<"
 	@mkdir -p $(basename $@)
@@ -76,6 +88,11 @@ $(ENGINE_BUILD_DIR)/libpulpvp.so: $(VP_OBJS)
 
 $(ENGINE_BUILD_DIR)/libpulpvp-debug.so: $(VP_DBG_OBJS)
 	@echo "CXX DBG $<"
+	@mkdir -p $(basename $@)
+	$(V)$(CC) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
+
+$(ENGINE_BUILD_DIR)/libpulpvp-sv.so: $(VP_SV_OBJS)
+	@echo "CXX SV $<"
 	@mkdir -p $(basename $@)
 	$(V)$(CC) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
 
@@ -110,6 +127,10 @@ $(INSTALL_DIR)/lib/libpulpvp-debug.so: $(ENGINE_BUILD_DIR)/libpulpvp-debug.so
 	@echo "CP DBG $<"
 	$(V)install -D $^ $@
 
+$(INSTALL_DIR)/lib/libpulpvp-sv.so: $(ENGINE_BUILD_DIR)/libpulpvp-sv.so
+	@echo "CP SV $<"
+	$(V)install -D $^ $@
+
 $(INSTALL_DIR)/python/libpulpvp.so: $(ENGINE_BUILD_DIR)/libpulpvp.so
 	@echo "CP $<"
 	$(V)install -D $^ $@
@@ -118,10 +139,14 @@ $(INSTALL_DIR)/python/libpulpvp-debug.so: $(ENGINE_BUILD_DIR)/libpulpvp-debug.so
 	@echo "CP DBG $<"
 	$(V)install -D $^ $@
 
+$(INSTALL_DIR)/python/libpulpvp-sv.so: $(ENGINE_BUILD_DIR)/libpulpvp-sv.so
+	@echo "CP SV $<"
+	$(V)install -D $^ $@
+
 
 headers: $(INSTALL_FILES)
 
-build: $(INSTALL_DIR)/lib/libpulpvp.so $(INSTALL_DIR)/lib/libpulpvp-debug.so $(INSTALL_DIR)/python/libpulpvp.so $(INSTALL_DIR)/python/libpulpvp-debug.so $(INSTALL_DIR)/bin/gvsoc_launcher $(INSTALL_DIR)/bin/gvsoc_launcher_debug
+build: $(INSTALL_DIR)/lib/libpulpvp.so $(INSTALL_DIR)/lib/libpulpvp-debug.so $(INSTALL_DIR)/lib/libpulpvp-sv.so $(INSTALL_DIR)/python/libpulpvp.so $(INSTALL_DIR)/python/libpulpvp-debug.so $(INSTALL_DIR)/python/libpulpvp-sv.so $(INSTALL_DIR)/bin/gvsoc_launcher $(INSTALL_DIR)/bin/gvsoc_launcher_debug
 
 clean: vp_clean
 	rm -rf $(ENGINE_BUILD_DIR)

@@ -35,6 +35,7 @@ public:
     bool is_sck;
     void *group;
     int cs_id;
+    int handle;
 };
 
 #endif

@@ -23,6 +23,7 @@ try:
     import gv.gvsoc
 except:
     pass
+from errors import FatalError
 
 
 def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None:
@@ -67,21 +68,30 @@ class Runner(runner.default_runner.Runner):
             if os.environ.get('INSTALL_DIR') is not None:
                 dpi_path = '%s/lib/libpulpdpi' % (os.environ.get('INSTALL_DIR'))
                 if os.path.exists(dpi_path + '.so'):
-                    self.set_arg('-sv_lib %s' % dpi_path)
+                    raise FatalError('Did no find DPI models: ' + dpi_path + '.so')
+
+                self.set_arg('-sv_lib %s' % dpi_path)
 
 
-        if self.config.get('**/runner/enable_dpi') is not None:
-            try:
-                full_config, gvsoc_config_path = gv.gvsoc.prepare_exec(self.config)
-            except:
-                pass
+        #
+        # Co-simulation with GVSOC
+        #
+        if self.config.get_bool('**/runner/gvsoc_dpi/enabled'):
+            dpi_path = '%s/lib/libgvsocdpi' % (os.environ.get('INSTALL_DIR'))
 
+            if not os.path.exists(dpi_path + '.so'):
+                    raise FatalError('Did no find DPI models: ' + dpi_path + '.so')
+                
+            self.set_arg('-sv_lib %s' % dpi_path)
+
+
+            full_config, gvsoc_config_path = gv.gvsoc.gen_config(args, self.config)
+            gv.gvsoc.prepare_exec(self.config, full_config)
+            gv.gvsoc.dump_config(full_config, gvsoc_config_path)
+        
             self.set_arg('-gDPI_CONFIG_FILE=%s' % gvsoc_config_path)
 
-            if os.environ.get('INSTALL_DIR') is not None:
-                dpi_path = '%s/lib/libgvsocdpi' % (os.environ.get('INSTALL_DIR'))
-                if os.path.exists(dpi_path + '.so'):
-                    self.set_arg('-sv_lib %s' % dpi_path)
+
 
         self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
 

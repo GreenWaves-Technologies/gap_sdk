@@ -179,23 +179,23 @@ override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS
 endif
 
 flash:
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(platform) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
 
 image:
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(platform) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(runner_args)
 
 run.prepare:
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --binary=$(BIN) $(platform) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --binary=$(BIN) $(runner_args)
 
 run.exec:
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) $(platform) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) $(runner_args)
 
 run: 
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(platform) $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
 
 
 profiler:
-	gapy --target=$(GAPY_TARGET) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) gvsoc  --event=.*@all.bin --event-format=raw $(runner_args)
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) --event=.*@all.bin --event-format=raw $(runner_args)
 	cd $(BUILDDIR) && if [ -e all.bin ]; then rm all.bin; fi; mkfifo all.bin
 	cd $(BUILDDIR) && export PULP_CONFIG_FILE=$(BUILDDIR)/gvsoc_config.json && profiler $(BUILDDIR) $(BIN) gvsoc_config.json
 

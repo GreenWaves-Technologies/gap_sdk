@@ -45,20 +45,6 @@ if PYTHON2:
     exit(1)
 
 
-def get_platforms():
-    platform_list = {}
-    for path in js.get_paths(paths=common.gapyJsonPath):
-        config_path = os.path.join(path, 'platforms')
-        if os.path.exists(config_path):
-            files = os.listdir(config_path)
-            for platform_file in files:
-                name = platform_file[:platform_file.index('.json')]
-                if platform_list.get(name) is None:
-                    platform_list[name] = os.path.join(config_path, platform_file)
-
-    return platform_list
-
-
 def import_runner(name):
     module = importlib.import_module(name)
     if module is None:
@@ -67,38 +53,24 @@ def import_runner(name):
     return module
 
 
-def appendPlatform(subparsers, config):
+def append_platform(parser, plt_name, plt_config_path):
 
-    platforms = get_platforms()
+    plt_config = js.import_config_from_file(plt_config_path, paths = gapyJsonPath, find=True, interpret=True)
+    runner_module = plt_config.get_str('runner_module')
 
-    for plt_name, plt_config_path in get_platforms().items():
-        plt_config = js.import_config_from_file(plt_config_path, paths = gapyJsonPath, find=True, interpret=True)
-        runner_module = plt_config.get_str('runner_module')
+    if runner_module is not None:
+        try:
+            runner = import_runner(runner_module)
 
-        if runner_module is not None:
-            try:
-                runner = import_runner(runner_module)
-
-                parser = subparsers.add_parser(
-                    plt_name,
-                    help = plt_config.get_str('description'))
-                runner.appendArgs(parser, config)
-            except:
-                pass
+            runner.appendArgs(parser, None)
+        except:
+            raise
 
 
-def appendArgs(parser: argparse.ArgumentParser, config: js.config) -> None:
+def appendArgs(top_parser: argparse.ArgumentParser, parser: argparse.ArgumentParser, config: js.config) -> None:
     """
     Append specific module arguments.
     """
-    
-    #
-    # Plateforms
-    #
-    platformParsers = parser.add_subparsers(
-        dest = 'platform',
-        help = 'Gives the name of the platform where the target is running. Run run {platform} -h for additional help')
-    appendPlatform(platformParsers, config)
     
     #
     # Commons args
@@ -134,6 +106,11 @@ def appendArgs(parser: argparse.ArgumentParser, config: js.config) -> None:
                         action = "store_true",
                         help = "Launch execution on the target")
 
+    [args, otherArgs] = top_parser.parse_known_args()
+
+    if args.platform is not None:
+        append_platform(parser, args.platform, common.get_platforms()[args.platform])
+    
 
 def operationFunc(args, config = None):
 

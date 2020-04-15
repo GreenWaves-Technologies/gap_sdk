@@ -6,11 +6,29 @@ import traces
 
 import json_tools as js
 
+import importlib
+
 gapyDir = os.path.dirname(os.path.realpath(__file__))
 targetsDir = os.path.join(gapyDir, 'targets')
 configsDir = os.path.join(gapyDir, 'configs')
 gapyJsonPath = [targetsDir, configsDir]
 openocdDir = os.path.join(gapyDir, 'openocd')
+
+
+def get_platforms():
+    platform_list = {}
+    for path in js.get_paths(paths=gapyJsonPath):
+        config_path = os.path.join(path, 'platforms')
+        if os.path.exists(config_path):
+            files = os.listdir(config_path)
+            for platform_file in files:
+                name = platform_file[:platform_file.index('.json')]
+                if platform_list.get(name) is None:
+                    platform_list[name] = os.path.join(config_path, platform_file)
+
+    return platform_list
+
+
 
 def appendCommonOptions(parser):
     """
@@ -28,10 +46,25 @@ def appendCommonOptions(parser):
         targetList.append(target[:target.index('.json')])
     parser.add_argument('--target',
                         dest = 'target',
-                        default = None,
+                        default = 'None',
                         choices = targetList,
                         help = 'Gives the name of the target configuration.')
     
+    #
+    # Plateforms
+    #
+    platforms = get_platforms()
+    parser.add_argument('--platform',
+                        dest = 'platform',
+                        default = None,
+                        choices = platforms,
+                        help = 'Gives the name of the platform configuration.')
+
+    [args, otherArgs] = parser.parse_known_args()
+
+    if args.platform is not None:
+        os.environ['GAPY_PLATFORM'] = args.platform
+
     # Verbose
     parser.add_argument('-v',
                         action = 'store_true',

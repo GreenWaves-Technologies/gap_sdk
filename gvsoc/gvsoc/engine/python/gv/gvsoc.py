@@ -91,7 +91,6 @@ def gen_config(args, config):
 
     gvsoc_config.set("debug-mode", debug_mode)
 
-
     if debug_mode:
         debug_binaries = []
 

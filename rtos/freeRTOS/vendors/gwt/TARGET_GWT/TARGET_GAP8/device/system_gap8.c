@@ -34,9 +34,7 @@
 #include "pmsis.h"
 #include "pmsis/implem/drivers/pmu/pmu.h"
 
-#if defined(__SEMIHOSTING__)
 #include "../driver/semihost.h"
-#endif  /* __SEMIHOSTING__ */
 
 /* FC & L2 heaps. */
 extern char __heapfcram_start;
@@ -115,14 +113,10 @@ void system_exit(int32_t code)
         /* Flush pending output. */
         system_exit_printf_flush();
 
+        #if !defined(__PLATFORM_GVSOC__)
         /* Notify debug tools about the termination. */
-        #if defined(__SEMIHOSTING__)
         semihost_exit(code == 0 ? SEMIHOST_EXIT_SUCCESS : SEMIHOST_EXIT_ERROR);
-        #else
-        BRIDGE_PrintfFlush();
-        DEBUG_Exit(DEBUG_GetDebugStruct(), code);
-        BRIDGE_SendNotif();
-        #endif  /* __SEMIHOSTING__ */
+        #endif  /* __PLATFORM_GVSOC__ */
 
         /* Write return value to APB device */
         soc_ctrl_corestatus_set(code);

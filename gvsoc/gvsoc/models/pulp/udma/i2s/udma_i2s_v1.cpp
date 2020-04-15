@@ -79,7 +79,7 @@ void I2s_periph_v1::handle_clkgen_tick(int clkgen)
 
     this->current_ws_count[clkgen]++;
 
-    if (this->current_ws_count[clkgen] == bits_word + 1)
+    if (this->current_ws_count[clkgen] >= bits_word + 1)
     {
       this->current_ws_count[clkgen] = 0;
       this->current_ws[clkgen] ^= 1;

@@ -15,12 +15,16 @@
  */
 
 
+#include <stdio.h>
+
 /* PMSIS includes. */
 #include "pmsis.h"
 
-#include <stdio.h>
+/* Autotiler includes. */
 #include "Gap.h"
-#include "ImgIO.h"
+
+/* Gap_lib includes. */
+#include "gaplib/ImgIO.h"
 
 #define STACK_SIZE      2048
 #define MOUNT           1
@@ -48,7 +52,7 @@ PI_L2 unsigned char *ImageIn_L2;
 #else
 #include "Mills.h"
 #endif
-unsigned char RT_L2_DATA *ImageOut_L2;
+unsigned char PI_L2 *ImageOut_L2;
 
 
 typedef struct ArgImage {
@@ -103,7 +107,7 @@ static inline unsigned int ChunkSize(unsigned int X)
     unsigned int Log2Core;
     unsigned int Chunk;
 
-    if (CoreCountDynamic) NCore = ActiveCore; else NCore = rt_nb_pe();
+    if (CoreCountDynamic) NCore = ActiveCore; else NCore = gap_ncore();
     Log2Core = gap_fl1(NCore);
     Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
     return Chunk;
@@ -177,7 +181,7 @@ void MasterRGBConvert(unsigned int W, unsigned int H)
                     3*W*(NextLast-NextFirst), PI_CL_DMA_DIR_EXT2LOC, &dmaCpIn);
         }
         ArgC.In = InImage + (Toggle&h)*3*W; ArgC.Out = OutImage + (Toggle&h)*W; ArgC.H = Last-First;
-        rt_team_fork(ActiveCore, (void *) RGBConvert, (void *) &ArgC);
+        pi_cl_team_fork(ActiveCore, (void *) RGBConvert, (void *) &ArgC);
 
         // If not the first iteration wait for previous copy to L2 to finish
         if (i!=0) pi_cl_dma_cmd_wait(&dmaCpOut);
@@ -639,8 +643,8 @@ static void cluster_main()
         }
     } else {
         /* Here the canny edge would be executed only on all the cores of cluster*/
-        printf("Canny Edge Detector running on %d cores, Source %s image[W=%d, H=%d]\n", rt_nb_pe(), ISRGB?"RGB":"Mono", W, H);
-        ActiveCore = rt_nb_pe();
+        printf("Canny Edge Detector running on %d cores, Source %s image[W=%d, H=%d]\n", gap_ncore(), ISRGB?"RGB":"Mono", W, H);
+        ActiveCore = gap_ncore();
         if (ISRGB) {
             MasterRGBConvert(W, H);
         }
@@ -707,7 +711,7 @@ void canny_edge_detector()
     char imgName[50];
     sprintf(imgName, "../../../img_OUT.ppm");
     printf("imgName: %s\n", imgName);
-    WriteImageToFile(imgName, COL, LINE, (ImageOut_L2));
+    WriteImageToFile(imgName, COL, LINE, (ImageOut_L2), sizeof(unsigned char));
 
     pi_cluster_close(&cluster_dev);
     

@@ -33,6 +33,14 @@
 
 /* Define those flags in Makefile or command line to enable traces/logs. */
 
+#if defined(TRACE_CPI)
+#define CPI_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
+#define CPI_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define CPI_TRACE(...)             ((void) 0)
+#define CPI_TRACE_ERR(...)         ((void) 0)
+#endif  /* TRACE_CPI */
+
 #if defined(TRACE_HYPERBUS)
 #define HYPER_TRACE(...)           PI_LOG_DBG(__func__, __VA_ARGS__)
 #define HYPER_TRACE_ERR(...)       PI_LOG_ERR(__func__, __VA_ARGS__)

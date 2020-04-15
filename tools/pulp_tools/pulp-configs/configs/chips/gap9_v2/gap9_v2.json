@@ -27,15 +27,22 @@
         "interface": "cpi0",
         "ctrl_interface": "i2c1"
       },
-      "uart": {
-        "@includes@": ["devices/uart_tb.json"],
-        "interface": "uart0"
-      },
       "jtag_proxy": {
         "@includes@": ["devices/jtag_proxy.json"]
       }
     }
   },
+
+  "components": {
+    "uart": {
+      "@includes@": ["devices/uart_checker.json"]
+    }
+  },
+
+  "bindings": [
+    [ "chip.uart0", "uart.input" ]
+  ],
+
 
   "chip": "gap9_v2",
   "chip_family": "gap9_v2",
@@ -181,6 +188,7 @@
       "size": "0x00002000",
       "config": {
         "@eval@": {
+          "binary": "os.path.join(os.environ.get('TARGET_INSTALL_DIR'), 'bin', 'boot-gap9_v2')",
           "stim_file": "os.path.join(os.environ.get('INSTALL_DIR'), 'python', 'pulp', 'chips', 'gap9_v2', 'rom.bin')"
         }
       }

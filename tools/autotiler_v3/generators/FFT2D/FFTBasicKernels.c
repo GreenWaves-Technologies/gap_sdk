@@ -459,7 +459,7 @@ static inline void __attribute__ ((__always_inline__)) Radix4FFT_DIF_Par_Interna
     }
     iL <<= 2; iM >>= 2;
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
   // Layer iLog4N - 2
   iM = 4; iL = (N_fft>>(2+2)); iQ = 0;
@@ -476,7 +476,7 @@ static inline void __attribute__ ((__always_inline__)) Radix4FFT_DIF_Par_Interna
     }
     iQ += iL;
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   // Layer iLog4N - 1
@@ -490,7 +490,7 @@ static inline void __attribute__ ((__always_inline__)) Radix4FFT_DIF_Par_Interna
     iA =  iA + 4 * iM;
   }
   // Synchronize all cores for last layer of the trellis
-  wait_synch_barrier();
+  gap_waitbarrier(0);
 }
 
 void Radix4FFT_DIF_Par(FFT_Arg_T *Arg)
@@ -761,7 +761,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
     iM >>= 1;
   }
   // Synchronize all cores for current layer of the trellis
-  wait_synch_barrier();
+  gap_waitbarrier(0);
   for (iCnt1 = 4; iCnt1 < (iLog2N-1); iCnt1++) {
     iQ = 0;
     for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
@@ -784,7 +784,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
     iM >>= 1;
     }
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
     iA = 0;
     /* Last Layer: W = (1, 0) */
     Chunk = ((N_fft>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_fft>>1));
@@ -812,7 +812,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       }
     }
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
   /* Reorder from natural indexes to digitally-reversed one. Uses a pre computed LUT */
   void SwapSamples(SwapSamples_Arg_T *Arg)
@@ -854,7 +854,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       }
     }
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   void SwapSamples_2D_Horizontal_Par(SwapSamples_2D_Arg_T *Arg)
@@ -883,7 +883,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       }
     }
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   void SwapSamples_2D_Vertical_Par(SwapSamples_2D_Arg_T *Arg)
@@ -912,7 +912,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       }
     }
     // Synchronize all cores for current layer of the trellis
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /* 2D FFT */
@@ -935,7 +935,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
     for (i=First; i<Last; i++) {
       Out[i] = (v2s) {In[i], 0};
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   void Samples2Complex(Samples2Complex_Arg_T *Arg)
@@ -1027,7 +1027,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
         break;
       default: ;
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /* Horizontal part of a Radix4 2D FFT (in place), W=Arg->N_fft, H=Arg->Nb */
@@ -1048,7 +1048,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       Radix4FFT_DIF_Internal(In + (2*Arg->N_fft*i), Arg->Twiddles, Arg->N_fft, 0);
       // In += 2*Arg->N_fft;
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /* Vertical part of a Radix4 2D FFT (in place), W=Arg->Nb, H=Arg->N_fft */
@@ -1070,7 +1070,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       Radix4FFT_DIF_Vertical_Internal(In + (2*i), Arg->Twiddles, Arg->N_fft, Arg->Nb, 0);
       // In += 2;
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /* Horizontal part of a Radix2 2D FFT (in place), W=Arg->N_fft, H=Arg->Nb */
@@ -1092,7 +1092,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       Radix2FFT_DIF_Internal(In + (2*Arg->N_fft*i), Arg->Twiddles, Arg->N_fft);
       // In += 2*Arg->N_fft;
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /* Vertical part of a Radix2 2D FFT (in place), W=Arg->Nb, H=Arg->N_fft */
@@ -1113,7 +1113,7 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
       Radix2FFT_DIF_Vertical_Internal(In + (2*i), Arg->Twiddles, Arg->N_fft, Arg->Nb);
       // In += 2;
     }
-    wait_synch_barrier();
+    gap_waitbarrier(0);
   }
 
   /*
@@ -1137,7 +1137,8 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
   {
     #define  DMA_COPY_IN 1
 
-    rt_dma_copy_t DmaR_Evt1, DmaR_Evt2;
+      //rt_dma_copy_t DmaR_Evt1, DmaR_Evt2;
+      AT_L2_EVENT DmaR_Evt1, DmaR_Evt2;
     int TwidSize, LUTSize;
 
     if (Arg->Radix == 2) TwidSize = Arg->Nfft * sizeof(short);
@@ -1145,10 +1146,17 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg)
     LUTSize = Arg->Nfft*sizeof(short);
 
     //[TODO] Replace with AT Standard Calls
+    #if 0
     rt_dma_memcpy(Arg->Twiddles, Arg->L1_Twiddles, TwidSize, DMA_COPY_IN, 0, &DmaR_Evt1);
     rt_dma_memcpy(Arg->SwapLUT, Arg->L1_SwapLUT,  LUTSize,  DMA_COPY_IN, 0, &DmaR_Evt2);
     rt_dma_wait(&DmaR_Evt1);
     rt_dma_wait(&DmaR_Evt2);
+    #else
+    AT_L2_COPY(0, Arg->Twiddles, Arg->L1_Twiddles, TwidSize, AT_L2_EXT2LOC, &DmaR_Evt1);
+    AT_L2_COPY(0, Arg->SwapLUT, Arg->L1_SwapLUT,  LUTSize,  AT_L2_EXT2LOC, &DmaR_Evt2);
+    AT_L2_WAIT(0, &DmaR_Evt1);
+    AT_L2_WAIT(0, &DmaR_Evt2);
+    #endif
 
     #undef DMA_COPY_IN
   

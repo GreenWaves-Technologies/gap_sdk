@@ -25,17 +25,26 @@
 
 using namespace std;
 
-extern "C" void dpi_external_edge(int handle, int value);
-
 extern "C" void *dpi_open(char *config_path)
 {
-  void *handle = gv_open(config_path, 0, NULL, 0, 0);
+  void *handle = gv_create(config_path);
   return handle;
+}
+
+extern "C" void dpi_start(void *instance)
+{
+  gv_start(instance, 0, NULL, 0, 0);
+}
+
+extern "C" void dpi_start_task(void *arg0, void *arg1)
+{
+    void (*callback)(void *) = (void (*)(void *))arg0;
+    callback(arg1);
 }
 
 extern "C" void *dpi_bind(void *handle, char *name, int sv_handle)
 {
-  void *result = gv_chip_pad_bind(handle, name);
+  void *result = gv_chip_pad_bind(handle, name, sv_handle);
   return result;
 }
 

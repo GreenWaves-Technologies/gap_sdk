@@ -40,7 +40,29 @@ class Runner(runner.default_runner.Runner):
     def flash(self):
         flash = self.get_boot_flash()
         if flash.get_bool('content/flash'):
-            return os.system('openocd-flasher %s' % flash.get_str('content/image'))
+
+            if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
+                self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
+
+            openocd = self.config.get_str("openocd/path")
+            cable = self.config.get_str('openocd/cable')
+            script = self.config.get_str('openocd/script')
+            image = flash.get_str('content/image')
+            image_size = os.path.getsize(image)
+            gap_tools = os.environ.get('GAP_OPENOCD_TOOLS')
+
+            if self.config.get_str('**/chip_family') == 'gap':
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; gap_flash_raw %s %d %s; exit;"' % (openocd, cable, script, image, image_size, gap_tools)
+
+            else:
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; gap9_flash_raw_hyper %s %d %s; exit;"' % (openocd, cable, script, gap_tools, image, image_size, gap_tools)
+
+            print ('Flashing image with command:')
+            print (cmd)
+            
+            return os.system(cmd)
         
         return 0
 
@@ -76,7 +98,7 @@ class Runner(runner.default_runner.Runner):
             if os.system(cmd) != 0:
                 return -1
 
-            cmd = 'ssh -t %s "%s -c \\"script %s; script %s; load_and_start_binary %s/test 0x%x\\""' % (url, openocd, cable, script, path, entry)
+            cmd = 'ssh -t %s "%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c \\"script %s; script %s; load_and_start_binary %s/test 0x%x\\""' % (url, openocd, cable, script, path, entry)
             print ('Launching execution with command:')
             print (cmd)
             if os.system(cmd) != 0:
@@ -86,11 +108,11 @@ class Runner(runner.default_runner.Runner):
 
         else:
 
-            platform = self.config.get('runner/platform')
+            platform = self.config.get_str('runner/platform')
             if platform == 'fpga':
-                cmd = '%s -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
             else:
-                cmd = "%s -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
+                cmd = "%s -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
 
             os.chdir(self.config.get_str('gapy/work_dir'))
 

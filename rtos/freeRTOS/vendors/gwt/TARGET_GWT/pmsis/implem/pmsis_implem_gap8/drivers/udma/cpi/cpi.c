@@ -41,88 +41,34 @@
  * Driver data
  *****************************************************************************/
 
-static uint8_t _cpi_init = 0;
-
-extern struct cpi_driver_fifo_s *__global_cpi_driver_fifo[];
-
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
 
 void pi_cpi_conf_init(struct pi_cpi_conf *conf)
 {
-    conf->device = PI_DEVICE_CPI_TYPE;
-    conf->itf = 0;
+    __pi_cpi_conf_init(conf);
 }
 
 int pi_cpi_open(struct pi_device *device)
 {
+    int32_t status = -1;
     struct pi_cpi_conf *conf = (struct pi_cpi_conf *) device->config;
-    /* Init CPI periph. */
-    if (!_cpi_init)
-    {
-        /* Make a copy of config just in case. */
-        struct pi_cpi_conf *config = (struct pi_cpi_conf *) pi_default_malloc(sizeof(struct pi_cpi_conf));
-        if (config == NULL)
-        {
-            return -1;
-        }
-        config->device = conf->device;
-        config->itf = conf->itf;
-        device->config = config;
-        /* Init fifo struct for CPI. */
-        struct cpi_driver_fifo_s *fifo = (struct cpi_driver_fifo_s *) pi_default_malloc(sizeof(struct cpi_driver_fifo_s));
-        if (fifo == NULL)
-        {
-            pi_default_free(conf, sizeof(struct pi_cpi_conf));
-            return -2;
-        }
-        fifo->hw_buffer[RX_CHANNEL] = NULL;
-        #if 0
-        fifo->hw_fifo_head = NULL;
-        fifo->hw_fifo_tail = NULL;
-        #endif
-        fifo->fifo_head = NULL;
-        fifo->fifo_tail = NULL;
-        device->data = (void *) fifo;
-        __global_cpi_driver_fifo[conf->itf] = fifo;
-
-        /* Set handlers. */
-        pi_fc_event_handler_set(SOC_EVENT_UDMA_CPI_RX(conf->itf), cpi_handler);
-        /* Enable SOC events propagation to FC. */
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_CPI_RX(conf->itf));
-
-        /* Disable UDMA CG. */
-        udma_init_device(UDMA_CPI_ID(conf->itf));
-
-        _cpi_init = 1;
-        return 0;
-    }
-    return 1;
+    CPI_TRACE("Open device id=%ld\n", conf->itf);
+    status = __pi_cpi_open(conf, (struct cpi_itf_data_s **) &(device->data));
+    CPI_TRACE("Open status : %ld, driver data : %lx\n",
+              status, (struct cpi_itf_data_s *) device->data);
+    return status;
 }
 
 void pi_cpi_close(struct pi_device *device)
 {
-    struct pi_cpi_conf *conf = (struct pi_cpi_conf *) device->config;
-    /* Deinit CPI periph. */
-    if (_cpi_init)
+    struct cpi_itf_data_s *device_data =  (struct cpi_itf_data_s *) device->data;
+    CPI_TRACE("Close device id=%ld\n", device_data->device_id);
+    if (device_data != NULL)
     {
-        /* Clear allocated fifo. */
-        struct cpi_driver_fifo_s *fifo = (struct cpi_driver_fifo_s *) device->data;
-        pi_default_free(fifo, sizeof(struct cpi_driver_fifo_s));
-
-        /* Clear handlers. */
-        pi_fc_event_handler_clear(SOC_EVENT_UDMA_CPI_RX(conf->itf));
-        /* Disable SOC events propagation to FC. */
-        hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_CPI_RX(conf->itf));
-
-        /* Enable UDMA CG. */
-        udma_deinit_device(UDMA_CPI_ID(conf->itf));
-
-        /* Free allocated config. */
-        pi_default_free(conf, sizeof(struct pi_cpi_conf));
-
-        _cpi_init = 0;
+        __pi_cpi_close(device_data);
+        device->data = NULL;
     }
 }
 
@@ -145,12 +91,8 @@ void pi_cpi_capture(struct pi_device *device, void *buffer, int32_t bufferlen)
 void pi_cpi_capture_async(struct pi_device *device, void *buffer,
                           int32_t bufferlen, struct pi_task *task)
 {
-    struct pi_cpi_conf *conf = (struct pi_cpi_conf *) device->config;
-    struct cpi_transfer_s transfer = {0};
-    transfer.buffer = buffer;
-    transfer.size = bufferlen;
-    transfer.device_id = conf->itf;
-    DEBUG_PRINTF("CPI(%d) RX Transfer : %x %d\n",
-                 transfer.device_id, transfer.buffer, transfer.size);
-    __pi_cpi_copy((struct cpi_driver_fifo_s *) device->data, &transfer, task);
+    struct cpi_itf_data_s *device_data = (struct cpi_itf_data_s *) device->data;
+    CPI_TRACE("CPI(%d) RX Transfer : %lx %ld\n",
+              device_data->device_id, buffer, bufferlen);
+    __pi_cpi_copy(device_data, buffer, bufferlen, task);
 }

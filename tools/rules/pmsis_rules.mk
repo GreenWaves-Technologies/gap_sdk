@@ -79,6 +79,8 @@ APP_INC_PATH             = $(APP_INC)
 # Custom linker script.
 LINK_SCRIPT              = $(APP_LINK_SCRIPT)
 FREERTOS_FLAGS          += $(COMMON_CFLAGS) -D__USE_TCDM_MALLOC__=1 -DPMSIS_DRIVERS=1
+FREERTOS_FLAGS          += -D__FC_MALLOC_NATIVE__=0 -D__L2_MALLOC_NATIVE__=0 \
+                           -D__PMSIS_L2_MALLOC_NATIVE__=0
 
 #$(info ## FreeRTOS app sources : $(APP_SRC))
 #$(info ## FreeRTOS app includes : $(APP_INC_PATH))
@@ -162,6 +164,10 @@ ifeq '$(USE_OLD_PULPOS)' '1'
 include_fs_targets = 0
 endif
 
+ifeq ($(PMSIS_OS), freertos)
+include_fs_targets = 0
+endif
+
 endif
 
 
@@ -180,7 +186,7 @@ override config_args += --config-opt **/flash/preload_file=$(FLASH_IMAGE) \
 # run_gapuino legacy: convert BRIDGE files to readfs makefile input
 READFS_FILES ?= $(filter-out -%, $(PLPBRIDGE_FLAGS))
 
-include $(GAP_SDK_HOME)/tools/gapy/rules/readfs.mk
+#include $(GAP_SDK_HOME)/tools/gapy/rules/readfs.mk
 
 #
 # Littlefs

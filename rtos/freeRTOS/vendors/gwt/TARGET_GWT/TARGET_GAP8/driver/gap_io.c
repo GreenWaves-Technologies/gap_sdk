@@ -33,13 +33,11 @@
 #include "gap_common.h"
 
 /* Printf buffer size. */
-#define PRINTF_BUFFER_SIZE    ( PRINTF_BUF_SIZE )
+#define PRINTF_BUFFER_SIZE    ( 128 )
 /* TAS offset. GAP8 : TAS in cluster L1. */
 #define PRINTF_TAS_OFFSET     ( 1 << 20 )
 /* IRQ used to wake up cores. */
 #define PRINTF_LOCK_IRQN      ( CL_EVENT_SW(6) )
-
-debug_struct_t HAL_DEBUG_STRUCT_NAME = GAP_DEBUG_STRUCT_INIT;
 
 /*
  * This should be used in case of printf via uart before scheduler has started.
@@ -62,74 +60,7 @@ volatile uint32_t *g_lock = (volatile uint32_t *) (((uint32_t) &__printf_lock_pt
 /* Address to release TAS lock. */
 volatile uint32_t *g_unlock = (volatile uint32_t *) &__printf_lock_ptr;
 
-#if defined(FEATURE_CLUSTER)
-#include "pmsis/cluster/cluster_sync/cl_synchronisation.h"
-#include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
-#endif  /* FEATURE_CLUSTER */
-
-#if defined(PRINTF_UART)
-
-static uint8_t g_printf_uart_index = 0;
-static char g_printf_uart_buffer[PRINTF_BUFFER_SIZE];
-
-struct pi_device g_printf_uart_dev = {0};
-
-void printf_uart_init(uint8_t uart_id)
-{
-    struct pi_uart_conf config = {0};
-    /* Init & open uart. */
-    pi_uart_conf_init(&config);
-    config.uart_id = uart_id;
-    config.baudrate_bps = 115200;
-    config.enable_tx = 1;
-    config.enable_rx = 1;
-    pi_open_from_conf(&g_printf_uart_dev, &config);
-
-    if (pi_uart_open(&g_printf_uart_dev))
-    {
-        pmsis_exit(-117);
-    }
-    g_printf_uart_index = 0;
-}
-
-static void __uart_putc(char c)
-{
-    g_printf_uart_buffer[g_printf_uart_index] = c;
-    g_printf_uart_index++;
-    if ((g_printf_uart_index == (uint32_t) PRINTF_BUFFER_SIZE) ||
-        (c == '\n'))
-    {
-        #if defined(FEATURE_CLUSTER)
-        if (!__native_is_fc())
-        {
-            pi_cl_uart_req_t req;
-            pi_cl_uart_write(&g_printf_uart_dev, (void *) g_printf_uart_buffer,
-                             g_printf_uart_index, &req);
-            pi_cl_uart_write_wait(&req);
-        }
-        else
-        #endif  /* FEATURE_CLUSTER */
-        {
-            pi_uart_write(&g_printf_uart_dev, (void *) &g_printf_uart_buffer,
-                          g_printf_uart_index);
-        }
-        g_printf_uart_index = 0;
-        //memset(g_printf_uart_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
-    }
-}
-
-static void __uart_printf_flush(char c)
-{
-    if ((g_printf_uart_index > 0) &&
-        (g_printf_uart_index < (uint32_t) PRINTF_BUFFER_SIZE))
-    {
-        g_printf_uart_buffer[g_printf_uart_index++] = c;
-        pi_uart_write(&g_printf_uart_dev, (void *) &g_printf_uart_buffer,
-                      g_printf_uart_index);
-    }
-}
-
-#elif defined(PRINTF_SEMIHOST)  /* PRINTF_UART */
+#if defined(PRINTF_SEMIHOST)  /* PRINTF_UART */
 #include "semihost.h"
 
 static uint8_t g_printf_semihost_index = 0;
@@ -196,9 +127,100 @@ static void __semihost_printf_flush(char c)
                                      g_printf_semihost_index);
     }
 }
+#endif  /* PRINTF_SEMIHOST */
 
-#else  /* PRINTF_SEMIHOST */
-#if defined(PRINTF_RTL)
+#if defined(PRINTF_UART)
+static uint8_t g_printf_uart_index = 0;
+static char g_printf_uart_buffer[PRINTF_BUFFER_SIZE];
+
+struct pi_device g_printf_uart_dev = {0};
+
+struct uart_putc_req_s
+{
+    char *buffer;               /*!< Buffer to send. */
+    uint32_t size;              /*!< Buffer size. */
+    uint8_t done;               /*!< Variable to check completion. */
+    uint8_t cid;                /*!< Cluster ID. */
+    pi_task_t cb;               /*!< Callback function. */
+};
+
+
+void printf_uart_init(uint8_t uart_id)
+{
+    struct pi_uart_conf config = {0};
+    /* Init & open uart. */
+    pi_uart_conf_init(&config);
+    config.uart_id = uart_id;
+    config.baudrate_bps = 115200;
+    config.enable_tx = 1;
+    config.enable_rx = 1;
+    pi_open_from_conf(&g_printf_uart_dev, &config);
+
+    if (pi_uart_open(&g_printf_uart_dev))
+    {
+        pmsis_exit(-117);
+    }
+    g_printf_uart_index = 0;
+}
+
+static void __uart_write_exec(char *buffer, uint32_t size)
+{
+    /* Wait while there are transfers on Hyperbus. */
+    while ((hyperbus(0)->udma.rx_cfg && UDMA_CORE_RX_CFG_EN_MASK) ||
+           (hyperbus(0)->udma.tx_cfg && UDMA_CORE_TX_CFG_EN_MASK));
+    pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_FUNC0);
+    pi_uart_write(&g_printf_uart_dev, (void *) buffer, size);
+    pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_FUNC3);
+}
+
+static void __uart_putc_cluster_req(void *arg)
+{
+    struct uart_putc_req_s *req = (struct uart_putc_req_s *) arg;
+    __uart_write_exec(req->buffer, req->size);
+    cl_notify_task_done(&(req->done), req->cid);
+}
+
+static void __uart_putc(char c)
+{
+    g_printf_uart_buffer[g_printf_uart_index] = c;
+    g_printf_uart_index++;
+    if ((g_printf_uart_index == (uint32_t) PRINTF_BUFFER_SIZE) ||
+        (c == '\n'))
+    {
+        #if defined(FEATURE_CLUSTER)
+        if (!__native_is_fc())
+        {
+            struct uart_putc_req_s req = {0};
+            req.buffer = g_printf_uart_buffer;
+            req.size = g_printf_uart_index;
+            req.done = 0;
+            req.cid = __native_cluster_id();
+            pi_task_callback(&(req.cb), (void *) __uart_putc_cluster_req, &req);
+            pi_cl_send_task_to_fc(&(req.cb));
+            cl_wait_task(&(req.done));
+        }
+        else
+        #endif  /* FEATURE_CLUSTER */
+        {
+            __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
+        }
+        g_printf_uart_index = 0;
+        //memset(g_printf_uart_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
+    }
+}
+
+static void __uart_printf_flush(char c)
+{
+    if ((g_printf_uart_index > 0) &&
+        (g_printf_uart_index < (uint32_t) PRINTF_BUFFER_SIZE))
+    {
+        g_printf_uart_buffer[g_printf_uart_index++] = c;
+        __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
+    }
+}
+
+#endif
+#if defined(PRINTF_RTL)       /* PRINTF_UART */
 
 static void __stdout_putc(char c)
 {
@@ -214,36 +236,6 @@ static void __stdout_putc(char c)
     }
 }
 #endif  /* PRINTF_RTL */
-#endif  /* PRINTF_UART */
-
-static void __debug_bridge_putc(char c)
-{
-    /* Iter until we can push the character. */
-    while (DEBUG_PutcharNoPoll(DEBUG_GetDebugStruct(), c))
-    {
-        BRIDGE_Delay();
-    }
-
-    /*
-     * If the buffer has been flushed to the bridge, we now need to send him
-     * a notification.
-     */
-    if (DEBUG_IsEmpty(DEBUG_GetDebugStruct()))
-    {
-        BRIDGE_PrintfFlush();
-    }
-}
-
-static void __debug_bridge_printf_flush(char c)
-{
-    debug_struct_t *debugStruct = DEBUG_GetDebugStruct();
-    if ((*(volatile uint32_t *) &(debugStruct->putcharCurrent) > 0) &&
-        (*(volatile uint32_t *) &(debugStruct->putcharCurrent) < (uint32_t) PRINTF_BUFFER_SIZE))
-    {
-        *(volatile uint8_t *) &(debugStruct->putcharBuffer[debugStruct->putcharCurrent++]) = c;
-        DEBUG_SendPrintf(debugStruct);
-    }
-}
 
 static uint32_t __is_irq_mode()
 {
@@ -332,24 +324,14 @@ static void tfp_putc(void *data, char c)
     }
     else
     {
-        __debug_bridge_putc(c);
+        __semihost_putc(c);
     }
     #elif defined(PRINTF_SEMIHOST)
     __semihost_putc(c);
-    #else
-    #if defined(PRINTF_RTL)  /* PRINTF_SEMIHOST */
-    if (DEBUG_GetDebugStruct()->useInternalPrintf)
-    {
-        /* This is for core internal printf in Simulation */
-        __stdout_putc(c);
-    }
-    else
+    #elif defined(PRINTF_RTL)
+    /* This is for core internal printf in Simulation */
+    __stdout_putc(c);
     #endif  /* PRINTF_RTL */
-    {
-        /* Only use for JTAG */
-        __debug_bridge_putc(c);
-    }
-    #endif /* PRINTF_UART */
     #endif /* __DISABLE_PRINTF__ */
 }
 
@@ -385,11 +367,8 @@ void system_exit_printf_flush()
     __uart_printf_flush(end_line);
     #elif defined(PRINTF_SEMIHOST)
     __semihost_printf_flush(end_line);
-    #else
-    #if defined(PRINTF_RTL)
+    #elif defined(PRINTF_RTL)
     __stdout_putc(end_line);
     #endif  /* PRINTF_RTL */
-    __debug_bridge_printf_flush(end_line);
-    #endif  /* PRINTF_UART */
     #endif  /* __DISABLE_PRINTF__ */
 }

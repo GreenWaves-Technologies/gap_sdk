@@ -50,6 +50,8 @@ struct pi_hyperram_conf
     int ram_start;         /*!< Hyperram start address. */
     int ram_size;          /*!< Hyperram size. */
     uint32_t baudrate;     /*!< Baudrate (in bytes/second). */
+    int reserve_addr_0;    /*!< Reserve address 0 and never return a chunk with
+      address 0. */
 };
 
 /** \brief Initialize an Hyperram configuration with default values.

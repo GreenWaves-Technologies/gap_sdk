@@ -164,8 +164,10 @@ _jump2main: /* Jump to main */
         the platform loader. It is using a fixed address so that the loader can also find it
         and then knows the address of the debug structure.
         */
+        /*
         .org 0x90
         .global __rt_debug_struct_ptr
 __rt_debug_struct_ptr:
         .word Debug_Struct
+        */
 /******************************************************************************/
