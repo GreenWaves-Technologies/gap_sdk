@@ -19,7 +19,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	unsigned int Log2Core;
 	unsigned int Chunk;
 
-	NCore = rt_nb_pe();
+	NCore = gap_ncore();
 	Log2Core = gap_fl1(NCore);
 	Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
 	return Chunk;
@@ -29,7 +29,7 @@ void KerPrime(KerPrimeImage_ArgT *KerArg)
 {
 	unsigned int W = KerArg->W;
 	unsigned int *Buffer = KerArg->KerBuffer;
-	unsigned int Col,CoreId = rt_core_id();
+	unsigned int Col,CoreId = gap_coreid();
 
 	unsigned int ChunkBlock = ChunkSize(W);
 	unsigned int First = CoreId*ChunkBlock;
@@ -50,7 +50,7 @@ void KerProcess(KerProcessImage_ArgT *KerArg)
 	unsigned int* outIntImg = KerArg->IntegralImage;
 	unsigned int* buff = KerArg->KerBuffer;
 	unsigned int Col,Line;
-	unsigned int CoreId = rt_core_id();
+	unsigned int CoreId = gap_coreid();
 
 	unsigned int ChunkBlock = ChunkSize(W);
 	unsigned int FirstCol = CoreId*ChunkBlock;
@@ -67,13 +67,13 @@ void KerProcess(KerProcessImage_ArgT *KerArg)
 		}
 
 	}
-	rt_team_barrier();
+	gap_waitbarrier(0);
 	//Saving to Buff intermediate results
 	for (Col=FirstCol; Col<LastCol; Col++){
 		buff[Col] = outIntImg[Col+((H-1)*W)];
 	}
 
-	rt_team_barrier();
+	gap_waitbarrier(0);
 	for (Line=FirstLine; Line<LastLine; Line++){
 		for (Col=0; Col<W-1; Col++){
 			outIntImg[Col+1 +(Line*W)] = outIntImg[Col+(Line)*W] + outIntImg[Col+1+(Line)*W];

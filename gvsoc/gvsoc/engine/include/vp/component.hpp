@@ -454,7 +454,7 @@ namespace vp {
 
     void final_bind();
 
-    virtual void *external_bind(std::string name);
+    virtual void *external_bind(std::string name, int handle);
 
     void reset_all(bool active, bool from_itf=false);
 

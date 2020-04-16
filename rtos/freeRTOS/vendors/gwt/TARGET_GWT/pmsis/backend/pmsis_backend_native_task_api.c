@@ -10,7 +10,7 @@ int __os_native_kickoff(void *arg)
     BaseType_t xTask;
     TaskHandle_t xHandler0 = NULL;
 
-    uint32_t stack_size = (uint32_t) MAIN_STACK_SIZE;
+    uint32_t stack_size = (uint32_t) MAIN_APP_STACK_SIZE;
     stack_size /= sizeof(configSTACK_DEPTH_TYPE);
     xTask = xTaskCreate(arg, "main", stack_size,
                         NULL, tskIDLE_PRIORITY + 1, &xHandler0);

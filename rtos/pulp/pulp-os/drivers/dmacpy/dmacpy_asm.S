@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 GreenWaves Technologies
+ * Copyright (C) 2018 GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,27 +18,16 @@
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
-#ifndef __GV__GVSOC_H__
-#define __GV__GVSOC_H__
+#include "rt/rt_data.h"
+#include "archi/pulp.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+  // x8: callback arg, x9: channel, x10:event, x11,x12:temp
+  .global pos_dmacpy_handle_copy_asm
+pos_dmacpy_handle_copy_asm:
 
-void *gv_open(const char *config_path, bool open_proxy, int *proxy_socket, int req_pipe, int reply_pipe);
+  mv        x10, x8
+  la        x12, pos_dmacpy_handle_copy
+  la        x9, udma_event_handler_end
+  j         __rt_call_external_c_function
 
-void *gv_create(const char *config_path);
-
-void gv_start(void *instance, bool open_proxy, int *proxy_socket, int req_pipe, int reply_pipe);
-
-int gv_run(void *_instance);
-
-void gv_stop(void *_instance);
-
-void *gv_chip_pad_bind(void *handle, char *name, int ext_handle);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+	

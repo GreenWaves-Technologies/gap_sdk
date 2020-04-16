@@ -28,7 +28,7 @@
 PI_L2 unsigned char *buff;
 
 static struct pi_device camera;
-static pi_task_t tasks[2];
+static pi_task_t rx_tasks[2];
 static int remaining_size;
 static volatile int done;
 static int nb_transfers;
@@ -43,7 +43,7 @@ static void handle_transfer_end(void *arg);
 // This is called to enqueue new transfers
 static void enqueue_transfer()
 {
-  // We can enqueue new transfers if there are still a part of the image to 
+  // We can enqueue new transfers if there are still a part of the image to
   // capture and less than 2 transfers are pending (the dma supports up to 2 transfers
   // at the same time)
   while (remaining_size > 0 && nb_transfers < 2)
@@ -52,12 +52,12 @@ static void enqueue_transfer()
     if (remaining_size < iter_size)
       iter_size = remaining_size;
 
-    pi_task_t *task = &tasks[current_task];
+    pi_task_t *task = &rx_tasks[current_task];
 
     // Enqueue a transfer. The callback will be called once the transfer is finished
     // so that  a new one is enqueued while another one is already running
     pi_camera_capture_async(&camera, current_buff, iter_size, pi_task_callback(task, handle_transfer_end, NULL));
-    
+
     remaining_size -= iter_size;
     nb_transfers++;
     current_buff += iter_size;
@@ -129,7 +129,7 @@ static int test_entry()
   pi_hostfs_conf_init(&conf);
 
   struct pi_device fs;
-  
+
   pi_open_from_conf(&fs, &conf);
 
   if (pi_fs_mount(&fs))

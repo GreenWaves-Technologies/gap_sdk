@@ -86,5 +86,8 @@ void fc_soc_event_handler(void)
 
     // TODO: USE builtins
     event &= 0xFF;
-    fc_event_handlers[event]((void*)event);
+    if (fc_event_handlers[event] != NULL)
+    {
+        fc_event_handlers[event]((void*)event);
+    }
 }

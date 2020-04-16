@@ -43,7 +43,7 @@ if PYTHON2:
     print("Fatal error: Gapy needs to be run with python version 3")
     exit(1)
 
-def appendOperations(subparsers, config):
+def appendOperations(parser, subparsers, config):
     #
     # Gen ReadFS command
     #
@@ -66,16 +66,6 @@ def appendOperations(subparsers, config):
         flashConfig = None
     gen_flash_image.appendArgs(parserGenFlashImage, flashConfig)
 
-    #
-    # Run command
-    #
-    
-    parserRun = subparsers.add_parser(
-        'run',
-        help = 'Run application to a specific platform.')
-    
-    run.appendArgs(parserRun, config)
-    
     #
     # Flash command
     #
@@ -111,7 +101,7 @@ def appendOperations(subparsers, config):
         'run',
         help = 'Run application to a specific platform.')
     
-    run.appendArgs(parserRun, config)
+    run.appendArgs(parser, parserRun, config)
 
 
 def main(custom_commandline = None):
@@ -143,7 +133,7 @@ def main(custom_commandline = None):
     subparsers = parser.add_subparsers(
         dest = 'operation',
         help = 'Gapy operation. Run gapy {command} -h for additional help')
-    appendOperations(subparsers, config)
+    appendOperations(parser, subparsers, config)
     
     # Every operation matches a module function called operationFunc.
     for operation in subparsers.choices.keys():

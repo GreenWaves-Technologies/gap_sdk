@@ -45,10 +45,16 @@
 #include <sys/prctl.h>
 
 
+extern "C" long long int dpi_time_ps();
 
 
 #ifdef __VP_USE_SYSTEMC
 #include <systemc.h>
+#endif
+
+
+#ifdef __VP_USE_SYSTEMV
+extern "C" void dpi_raise_event();
 #endif
 
 char vp_error[VP_ERROR_SIZE];
@@ -401,6 +407,10 @@ bool vp::time_engine::enqueue(time_engine_client *client, int64_t time)
     // by an external systemC component and the engine needs to be waken up
     if (started)
         sync_event.notify();
+#endif
+
+#ifdef __VP_USE_SYSTEMV
+    dpi_raise_event();
 #endif
 
     if (client->is_running())
@@ -1291,7 +1301,11 @@ vp::component *vp::component::new_component(std::string name, js::config *config
         module_name = config->get_child_str("vp_component");
     }
 
-    if (this->get_vp_config()->get_child_bool("debug-mode"))
+    if (this->get_vp_config()->get_child_bool("sv-mode"))
+    {
+        module_name = "sv." + module_name;
+    }
+    else if (this->get_vp_config()->get_child_bool("debug-mode"))
     {
         module_name = "debug." + module_name;
     }
@@ -1457,11 +1471,11 @@ void vp::component::bind_comps()
 }
 
 
-void *vp::component::external_bind(std::string name)
+void *vp::component::external_bind(std::string name, int handle)
 {
     for (auto &x : this->childs)
     {
-        void *result = x->external_bind(name);
+        void *result = x->external_bind(name, handle);
         if (result != NULL)
             return result;
     }
@@ -1671,7 +1685,7 @@ void Gv_proxy::stop()
 
 
 
-extern "C" void *gv_open(const char *config_path, bool open_proxy, int *proxy_socket, int req_pipe, int reply_pipe)
+extern "C" void *gv_create(const char *config_path)
 {
     js::config *js_config = js::import_config_from_file(config_path);
     if (js_config == NULL)
@@ -1684,10 +1698,15 @@ extern "C" void *gv_open(const char *config_path, bool open_proxy, int *proxy_so
 
     std::string module_name = "vp.trace_domain_impl";
 
-    if (gv_config->get_child_bool("debug-mode"))
+    if (gv_config->get_child_bool("sv-mode"))
+    {
+        module_name = "sv." + module_name;
+    }
+    else if (gv_config->get_child_bool("debug-mode"))
     {
         module_name = "debug." + module_name;
     }
+
 
     std::replace(module_name.begin(), module_name.end(), '.', '/');
 
@@ -1709,6 +1728,14 @@ extern "C" void *gv_open(const char *config_path, bool open_proxy, int *proxy_so
 
     instance->set_vp_config(gv_config);
 
+    return (void *)instance;
+}
+
+
+extern "C" void gv_start(void *arg, bool open_proxy, int *proxy_socket, int req_pipe, int reply_pipe)
+{
+    vp::component *instance = (vp::component *)arg;
+
     instance->pre_pre_build();
     instance->pre_build();
     instance->build();
@@ -1720,9 +1747,19 @@ extern "C" void *gv_open(const char *config_path, bool open_proxy, int *proxy_so
         proxy->open(0, proxy_socket);
     }
 
-    return (void *)instance;
 }
 
+
+extern "C" void *gv_open(const char *config_path, bool open_proxy, int *proxy_socket, int req_pipe, int reply_pipe)
+{
+    void *instance = gv_create(config_path);
+    if (instance == NULL)
+        return NULL;
+
+    gv_start(instance, open_proxy, proxy_socket, req_pipe, reply_pipe);
+
+    return instance;
+}
 
 
 Gvsoc_proxy::Gvsoc_proxy(std::string config_path)
@@ -1935,8 +1972,8 @@ int sc_main(int argc, char *argv[])
 #endif
 
 
-extern "C" void *gv_chip_pad_bind(void *handle, char *name)
+extern "C" void *gv_chip_pad_bind(void *handle, char *name, int ext_handle)
 {
     vp::component *instance = (vp::component *)handle;
-    return instance->external_bind(name);
+    return instance->external_bind(name, ext_handle);
 }

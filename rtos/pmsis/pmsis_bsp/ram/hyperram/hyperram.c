@@ -44,7 +44,16 @@ static int hyperram_open(struct pi_device *device)
 
   device->data = (void *)hyperram;
 
-  if (extern_alloc_init(&hyperram->alloc, 0, conf->ram_size))
+  int size = conf->ram_size;
+  uint32_t start_addr = 0;
+
+  if (conf->reserve_addr_0)
+  {
+    size -= 4;
+    start_addr = 4;
+  }
+
+  if (extern_alloc_init(&hyperram->alloc, (void *)start_addr, size))
   {
       goto error;
   }
@@ -201,6 +210,7 @@ void pi_hyperram_conf_init(struct pi_hyperram_conf *conf)
 {
   conf->ram.api = &hyperram_api;
   conf->baudrate = 0;
+  conf->reserve_addr_0 = 1;
   bsp_hyperram_conf_init(conf);
 }
 

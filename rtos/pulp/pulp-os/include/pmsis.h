@@ -52,6 +52,7 @@
 #include "pmsis/drivers/spi.h"
 #include "pmsis/drivers/gpio.h"
 #include "pmsis/drivers/uart.h"
+#include "pmsis/drivers/dmacpy.h"
 #include "pmsis/drivers/pwm.h"
 #include "pmsis/drivers/pad.h"
 #include "pmsis/cluster/dma/cl_dma.h"

@@ -131,3 +131,8 @@ PULP_LIB_FC_SRCS_rt += drivers/hwce/hwce-v$(hwce/version).c
 endif
 endif
 
+
+ifneq '$(tcdm/version)' ''
+PULP_LIB_FC_SRCS_rt += drivers/dmacpy/dmacpy.c
+PULP_LIB_FC_ASM_SRCS_rt += drivers/dmacpy/dmacpy_asm.S
+endif

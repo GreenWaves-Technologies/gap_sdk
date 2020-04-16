@@ -2,7 +2,15 @@
     "@include@": "common.json",
 
     "target": {
-        "@includes@": [ "chips/gap9_v2/gap9_v2.json" ],
+        "@cond@": {
+          "@os.environ.get('GAPY_PLATFORM') != 'rtl'@": {
+            "@includes@": [ "chips/gap9_v2/gap9_v2.json" ]
+          },
+
+          "@os.environ.get('GAPY_PLATFORM') == 'rtl'@": {
+            "@includes@": [ "chips/gap9_v2/gap9_v2_rtl.json" ]
+          }
+        },
       
         "board": {
             "name": "gap9_v2",
@@ -22,7 +30,10 @@
     },
 
     "gvsoc": {
-        "runner_module": "gv.chips.gap9_v2"
+        "runner_module": "gv.chips.gap9_v2",
+        "@os.environ.get('GAPY_PLATFORM') == 'rtl'@": {
+            "sv-mode": true
+        }
     },
 
     "rtl": {

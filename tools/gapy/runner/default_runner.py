@@ -107,7 +107,7 @@ class Runner(object):
                     if type_name is None:
                         raise errors.InputError('No partition type found')
 
-                    if type_name not in ['hostfs'] and partition.get('files') is not None and len(partition.get('files').get_dict()) != 0:
+                    if type_name not in ['hostfs'] and ((partition.get('files') is not None and len(partition.get('files').get_dict()) != 0) or (partition.get_str('root_dir'))):
                         flash_image = True
 
                     img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.' + name + '.img')

@@ -33,24 +33,31 @@
 
 using namespace std;
 
+class dpi_chip_wrapper;
+
+extern "C" void dpi_external_edge(int handle, int value);
+
 
 class Pad_group
 {
 public:
-    Pad_group(std::string name) : name(name) {}
+    Pad_group(dpi_chip_wrapper *top, std::string name) : name(name), top(top) {}
 
     static void edge_wrapper(void *_this, int64_t timestamp, int data);
     virtual void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data) {}
+    virtual bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback) { return false; }
 
     std::string name;
+    dpi_chip_wrapper *top;
 };
 
 
 class Qspim_group : public Pad_group
 {
 public:
-  Qspim_group(std::string name) : Pad_group(name) {}
+  Qspim_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
   void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data);
+  bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback);
   vp::trace trace;
   vp::trace data_0_trace;
   vp::trace data_1_trace;
@@ -71,10 +78,25 @@ public:
 };
 
 
+class Uart_group : public Pad_group
+{
+public:
+    Uart_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
+    void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data);
+    void rx_edge(int data);
+    bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback);
+    vp::trace trace;
+    vp::uart_master master;
+    vp::trace tx_trace;
+    vp::trace rx_trace;
+    Dpi_chip_wrapper_callback *rx_callback;
+};
+
+
 class Hyper_group : public Pad_group
 {
 public:
-  Hyper_group(std::string name) : Pad_group(name) {}
+  Hyper_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
   vp::trace data_trace;
   int nb_cs;
   vector<vp::trace *> cs_trace;
@@ -91,14 +113,15 @@ public:
 
     dpi_chip_wrapper(js::config *config);
 
-    void *external_bind(std::string name);
+    void *external_bind(std::string name, int handle);
 
     int build();
     void start();
 
 private:
     static void qspim_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
-
+    static void uart_rx_edge(void *__this, int data, int id);
+    static void uart_sync(void *__this, int data, int id);
     static void hyper_sync_cycle(void *__this, int data, int id);
 
     vp::trace     trace;
@@ -140,7 +163,7 @@ int dpi_chip_wrapper::build()
 
             if (type == "qspim")
             {
-                Qspim_group *group = new Qspim_group(name);
+                Qspim_group *group = new Qspim_group(this, name);
                 group->active_cs = -1;
                 this->groups.push_back(group);
 
@@ -175,7 +198,7 @@ int dpi_chip_wrapper::build()
             }
             else if (type == "hyper")
             {
-                Hyper_group *group = new Hyper_group(name);
+                Hyper_group *group = new Hyper_group(this, name);
                 this->groups.push_back(group);
                 traces.new_trace_event(name + "/data", &group->data_trace, 8);
                 js::config *nb_cs_config = config->get("nb_cs");
@@ -195,6 +218,18 @@ int dpi_chip_wrapper::build()
                     new_master_port(name + "_cs" + std::to_string(i), cs_itf);
                     group->cs_master.push_back(cs_itf);
                 }
+                nb_itf++;
+            }
+            else if (type == "uart")
+            {
+                Uart_group *group = new Uart_group(this, name);
+                new_master_port(name, &group->master);
+                traces.new_trace(name, &group->trace, vp::WARNING);
+
+                group->master.set_sync_meth_muxed(&dpi_chip_wrapper::uart_rx_edge, nb_itf);
+                this->groups.push_back(group);
+                traces.new_trace_event(name + "/tx", &group->tx_trace, 1);
+                traces.new_trace_event(name + "/rx", &group->rx_trace, 1);
                 nb_itf++;
             }
         }
@@ -223,6 +258,13 @@ void dpi_chip_wrapper::qspim_sync(void *__this, int data_0, int data_1, int data
   #endif
 }
 
+void dpi_chip_wrapper::uart_rx_edge(void *__this, int data, int id)
+{
+  dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
+  Uart_group *group = static_cast<Uart_group *>(_this->groups[id]);
+  group->rx_edge(data);
+}
+
 
 void dpi_chip_wrapper::hyper_sync_cycle(void *__this, int data, int id)
 {
@@ -236,7 +278,8 @@ void dpi_chip_wrapper::hyper_sync_cycle(void *__this, int data, int id)
 }
 
 
-void *dpi_chip_wrapper::external_bind(std::string name)
+
+void *dpi_chip_wrapper::external_bind(std::string name, int handle)
 {
     trace.msg("Binding pad (name: %s)\n", name.c_str());
 
@@ -250,36 +293,16 @@ void *dpi_chip_wrapper::external_bind(std::string name)
         {
             Dpi_chip_wrapper_callback *callback = new Dpi_chip_wrapper_callback();
 
+            trace.msg("Found group\n");
             callback->function = &Pad_group::edge_wrapper;
             callback->_this = callback;
             callback->group = x;
             callback->name = pad_name;
             callback->is_cs = false;
             callback->is_sck = false;
+            callback->handle = handle;
 
-            Qspim_group *group = (Qspim_group *)x;
-
-            if (pad_name == "sck")
-            {
-                callback->pad_value = &group->sck;
-                callback->is_sck = true;
-            }
-            else if (pad_name == "mosi")
-            {
-                callback->pad_value = &group->data_0;
-            }
-            else if (pad_name == "miso")
-            {
-                callback->pad_value = &group->data_1;
-            }
-            else if (pad_name.find("csn") != string::npos)
-            {
-                int cs = std::stoi(pad_name.substr(3));
-                callback->pad_value = &group->cs[cs];
-                callback->is_cs = true;
-                callback->cs_id = cs;
-            }
-            else
+            if (x->bind(pad_name, callback))
             {
                 return NULL;
             }
@@ -297,6 +320,41 @@ void Pad_group::edge_wrapper(void *__this, int64_t timestamp, int data)
     Dpi_chip_wrapper_callback *callback = (Dpi_chip_wrapper_callback *)__this;
     Pad_group *_this = (Pad_group *)callback->group;
     _this->edge(callback, timestamp, data);
+}
+
+
+/*
+ * QSPIM
+ */
+
+bool Qspim_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
+{
+    if (pad_name == "sck")
+    {
+        callback->pad_value = &this->sck;
+        callback->is_sck = true;
+    }
+    else if (pad_name == "mosi")
+    {
+        callback->pad_value = &this->data_0;
+    }
+    else if (pad_name == "miso")
+    {
+        callback->pad_value = &this->data_1;
+    }
+    else if (pad_name.find("csn") != string::npos)
+    {
+        int cs = std::stoi(pad_name.substr(3));
+        callback->pad_value = &this->cs[cs];
+        callback->is_cs = true;
+        callback->cs_id = cs;
+    }
+    else
+    {
+        return true;
+    }
+
+    return false;
 }
 
 
@@ -340,6 +398,40 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
             }
         }
     }
+}
+
+
+/*
+ * UART
+ */
+
+bool Uart_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
+{
+    if (pad_name == "rx")
+    {
+        this->rx_callback = callback;
+    }
+    return false;
+}
+
+
+void Uart_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data)
+{
+    this->top->get_time_engine()->update(timestamp);
+
+    this->trace.msg(vp::trace::LEVEL_TRACE, "UART edge (name: %s, value: %d)\n", callback->name.c_str(), data);
+
+    if (this->master.is_bound())
+    {
+        this->master.sync(data);
+    }
+}
+
+void Uart_group::rx_edge(int data)
+{
+    this->rx_trace.event((uint8_t *)&data);
+
+    dpi_external_edge(this->rx_callback->handle, data);
 }
 
 

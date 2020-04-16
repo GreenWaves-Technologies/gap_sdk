@@ -28,7 +28,7 @@
           },
           "lfs": {
               "type": "lfs",
-              "root_dir": []
+              "root_dir": null
           }
       }
   },

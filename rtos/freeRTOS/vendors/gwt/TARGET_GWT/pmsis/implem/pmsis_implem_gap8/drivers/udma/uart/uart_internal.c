@@ -334,9 +334,10 @@ int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
     }
     else
     {
+        data->nb_open++;
+        *device_data = g_uart_itf_data[data->device_id];
         UART_TRACE("Device id=%x already opened, now open=%d\n",
                    data->device_id, data->nb_open);
-        data->nb_open++;
     }
     return 0;
 }

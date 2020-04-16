@@ -45,7 +45,7 @@ static void cluster_main(ArgCluster_T *ArgC)
 	printf ("cluster master start\n");
 
 	int W=ArgC->W, H=ArgC->H;
-	unsigned int i, MaxCore = rt_nb_pe();
+	unsigned int i, MaxCore = gap_ncore();
 
     pi_perf_conf(1 << PI_PERF_ACTIVE_CYCLES);
     

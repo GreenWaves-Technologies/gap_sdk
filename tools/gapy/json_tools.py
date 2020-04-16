@@ -190,7 +190,7 @@ class config(object):
 
     def get_tree(self, config, interpret=False, path=None, do_eval=False, paths=None, indent='', gen=False):
         if type(config) == list:
-            return config_array(config, interpret=interpret)
+            return config_array(config, interpret=interpret, do_eval=do_eval)
         elif type(config) == dict or type(config) == OrderedDict:
             return config_object(config, interpret=interpret, path=path, paths=paths, do_eval=do_eval, indent=indent, gen=gen)
         elif is_string(config):
@@ -241,7 +241,8 @@ class config_object(config):
                             if expr[0] == '@' and expr[-1] == '@':
                                 expr = expr[1:len(expr)-1]
                                 expr_result = eval(expr)
-                                print (expr_result)
+                                if expr_result:
+                                    current_config.merge(current_config.get_tree(expr_value, interpret, path, do_eval=do_eval, indent=indent+'  ', gen=gen))
                             else:
                                 pass
 
@@ -449,10 +450,10 @@ class config_object(config):
 
 class config_array(config):
 
-    def __init__(self, config, interpret=False):
+    def __init__(self, config, interpret=False, do_eval=False):
         self.elems = []
         for elem in config:
-            self.elems.append(self.get_tree(elem, interpret=interpret))
+            self.elems.append(self.get_tree(elem, interpret=interpret, do_eval=do_eval))
 
     def __len__(self):
         return len(self.elems)

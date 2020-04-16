@@ -23,6 +23,11 @@
 #include <pthread.h>
 #include <signal.h>
 
+extern "C" void dpi_wait_event();
+extern "C" void dpi_wait_event_timeout_ps(long long int delay);
+extern "C" long long int dpi_time_ps();
+extern "C" void dpi_create_task(void *arg0, void *arg1);
+
 static pthread_t sigint_thread;
 
 #ifdef __VP_USE_SYSTEMC
@@ -227,10 +232,21 @@ end:
 }
 
 
+#ifdef __VP_USE_SYSTEMV
+
+void engine_routine_sv_stub(void *arg)
+{
+    vp::time_engine *engine = (vp::time_engine *)arg;
+
+    engine->update(dpi_time_ps());
+    engine->run_loop();
+}
+
+#endif
+
 
 void vp::time_engine::start()
 {
-
     js::config *item_conf = this->get_js_config()->get("**/gvsoc/no_exit");
     this->no_exit = item_conf != NULL && item_conf->get_bool();
 
@@ -240,7 +256,13 @@ void vp::time_engine::start()
         // from exiting in case there is no more events.
         retain_count++;
     }
+#ifdef __VP_USE_SYSTEMV
+    this->retain_count++;
+    this->run_req = true;
+    dpi_create_task((void *)engine_routine_sv_stub, this);
+#else
     pthread_create(&run_thread, NULL, engine_routine, (void *)this);
+#endif
 }
 
 void vp::time_engine::wait_ready()
@@ -302,7 +324,7 @@ void vp::time_engine::run_loop()
             {
                 current->running = true;
 
-#ifdef __VP_USE_SYSTEMC
+#if defined(__VP_USE_SYSTEMC) || defined(__VP_USE_SYSTEMV)
 
                 // Update the global engine time with the current event time
                 this->time = current->next_event_time;
@@ -351,19 +373,33 @@ void vp::time_engine::run_loop()
 
                         // In case we don't have any event to schedule, just wait until the systemc part
                         // enqueues something on our side
+#if defined(__VP_USE_SYSTEMV)
+                        dpi_wait_event();
+#else
                         wait(sync_event);
+#endif
                     }
                     else
                     {
                         // Otherwise, either wait until we can schedule our event
                         // or wait unil the systemC part enqueues something before
 
+#if defined(__VP_USE_SYSTEMV)
+                        //vp_assert(first_client->next_event_time >= (int64_t)dpi_time_ps(), NULL, "SystemV time is after vp time\n");
+                        dpi_wait_event_timeout_ps(first_client->next_event_time - dpi_time_ps());
+                        this->time = dpi_time_ps();
+                        if (this->time == first_client->next_event_time)
+                            break;
+#else
                         vp_assert(first_client->next_event_time >= (int64_t)sc_time_stamp().to_double(), NULL, "SystemC time is after vp time\n");
                         wait(first_client->next_event_time - (int64_t)sc_time_stamp().to_double(), SC_PS, sync_event);
 
                         int64_t current_sc_time = (int64_t)sc_time_stamp().to_double();
+
                         if (current_sc_time == first_client->next_event_time)
                             break;
+#endif
+
                     }
                 }
 
@@ -453,7 +489,11 @@ void vp::time_engine::run_loop()
 
         while (!first_client && retain_count && !locked)
         {
-#ifdef __VP_USE_SYSTEMC
+#if defined(__VP_USE_SYSTEMV)
+            pthread_mutex_unlock(&mutex);
+            dpi_wait_event();
+            pthread_mutex_lock(&mutex);
+#elif defined(__VP_USE_SYSTEMC)
             pthread_mutex_unlock(&mutex);
             wait(SC_ZERO_TIME);
             pthread_mutex_lock(&mutex);
