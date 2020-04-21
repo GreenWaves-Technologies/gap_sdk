@@ -26,31 +26,71 @@ volatile uint32_t resp[4] = {0};
    -------------------------------------------------------------------------
    See page 49 (60 pdf numbering) of Physical Layer Simplified Spec Ver2.00
 */
-#define CMD0   0x0   // GO_IDLE_STATE
-#define CMD2   0x200 // ALL_SEND_CID
-#define CMD3   0x300 // SEND_RELATIVE_ADDR
-#define ACMD6  0x600
-#define CMD7   0x700
-#define CMD8   0x800
-#define CMD55  0x3700
-#define ACMD41 0x2900 // ACMD, need to be used after APP_SPEC_CMD
-#define CMD8   0x800
-#define CMD9   0x900
-#define CMD10  0x0A00
-#define CMD11  0x0B00
-#define CMD12  0x0C00
-#define CMD13  0x0D00
-#define CMD16  0x1000
-#define CMD17  0x1100 // READ_SINGLE_BLOCK
-#define CMD18  0x1200
-#define CMD24  0x1800 // WRITE_SINGLE_BLOCK
-#define CMD25  0x1900 // WRITE_MULTIPLE_BLOCK
+#define CMD0   0x00   // GO_IDLE_STATE
+#define CMD2   0x20 // ALL_SEND_CID
+#define CMD3   0x30 // SEND_RELATIVE_ADDR
+#define ACMD6  0x60
+#define CMD7   0x70
+#define CMD8   0x80
+#define CMD55  0x370
+#define ACMD41 0x290 // ACMD, need to be used after APP_SPEC_CMD
+#define CMD8   0x80
+#define CMD9   0x090
+#define CMD10  0x0A0
+#define CMD11  0x0B0
+#define CMD12  0x0C0
+#define CMD13  0x0D0
+#define CMD16  0x100
+#define CMD17  0x110 // READ_SINGLE_BLOCK
+#define CMD18  0x120
+#define CMD24  0x180 // WRITE_SINGLE_BLOCK
+#define CMD25  0x190 // WRITE_MULTIPLE_BLOCK
 
 /* Response type */
 #define RSP_48_CRC     0x1
 #define RSP_48_NO_CRC  0x2
 #define RSP_136        0x3
 #define RSP_48_BUSY    0x4
+
+typedef struct {
+    __IO  uint32_t RX_DEST;
+    __IO  uint32_t TX_DEST;
+    __IO  uint32_t TRANS_AUTO;
+    __IO  uint32_t TRANS_ADDR;
+    __IO  uint32_t TRANS_SIZE;
+    __IO  uint32_t TRANS_CFG;
+    __IO  uint32_t reserved0;
+    __IO  uint32_t reserved1;
+    __IO  uint32_t EXT_ADDR;                 /**< HYPERBUS Memory access address register, offset: 0x20 */
+    __IO  uint32_t TIMING_CFG;               /**< HYPERBUS Timing Configuration register, offset: 0x24 */
+    __IO  uint32_t MBR0;                     /**< HYPERBUS Memory base address 0 register, offset: 0x28 */
+    __IO  uint32_t MBR1;                     /**< HYPERBUS Memory base address 1 register, offset: 0x2C */
+    __IO  uint32_t DEVICE_TYPE;              /**< HYPERBUS device type register, offset: 0x30 */
+    __IO  uint32_t OSPI_CMD;                 /**< HYPERBUS Octo SPI command register, offset: 0x34 */
+    __IO  uint32_t OSPI_ADDR;                /**< HYPERBUS Octo SPI address register, offset: 0x38 */
+    __IO  uint32_t OSPI_CFG;                 /**< HYPERBUS Octo SPI cofiguration register, offset: 0x3C */
+    __IO  uint32_t OSPI_CSN;                 /**< HYPERBUS Octo SPI chip select register, offset: 0x40 */
+    __IO  uint32_t OSPI_JEDEC_RESET;         /**< HYPERBUS Octo SPI cofiguration register, offset: 0x44 */
+    __IO  uint32_t reserved2;
+    __IO  uint32_t reserved3;
+    __IO  uint32_t BURST_SIZE;               /**< HYPERBUS Octo SPI burst size register, offset: 0x50 */
+    __IO  uint32_t LINE_2D;                  /**< HYPERBUS Octo SPI burst size register, offset: 0x54 */
+    __IO  uint32_t STRIDE_2D;                /**< HYPERBUS Octo SPI burst size register, offset: 0x58 */
+    __IO  uint32_t BURST_ENABLE;             /**< HYPERBUS Octo SPI burst enable register, offset: 0x5C */
+    __IO  uint32_t IRQ_EN;                   /**< HYPERBUS Octo SPI interrupt enable, offset: 0x60 */
+    __IO  uint32_t CLK_DIV;                  /**< HYPERBUS Clock devider register, offset: 0x64 */
+    __IO  uint32_t STATUS;                   /**< HYPERBUS Status register, offset: 0x68 */
+    __IO  uint32_t CMD_ARG;                  /**< HYPERBUS SDIO argument register, offset: 0x6C */
+    __IO  uint32_t RSP0;                     /**< HYPERBUS SDIO response 0 register, offset: 0x70 */
+    __IO  uint32_t RSP1;                     /**< HYPERBUS SDIO response 0 register, offset: 0x74 */
+    __IO  uint32_t RSP2;                     /**< HYPERBUS SDIO response 0 register, offset: 0x78 */
+    __IO  uint32_t RSP3;                     /**< HYPERBUS SDIO response 0 register, offset: 0x7C */
+
+} HYPERBUS_Type0;
+
+#define TEST_HYPERBUS                        ((HYPERBUS_Type0 *)(0x1A102080 + PER_ID_HYPERBUS * 0x80))
+
+
 
 static inline int SDIO_Wait()
 {
@@ -60,16 +100,16 @@ static inline int SDIO_Wait()
     do {
         ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
 
-        if (SDIO->STATUS & SDIO_STATUS_ERROR_MASK) {
+        if (TEST_HYPERBUS->STATUS & (1 << 3)) {
             /* Clear ERR flag */
-            SDIO->STATUS = SDIO_STATUS_ERROR_MASK;
+            TEST_HYPERBUS->STATUS = (1 << 3);
 
             return -1;
         }
-    } while ( !(SDIO->STATUS & SDIO_STATUS_EOT_MASK));
+    } while ( !(TEST_HYPERBUS->STATUS & (1 << 4)));
 
     /* Clear EOT flag */
-    SDIO->STATUS = SDIO_STATUS_EOT_MASK;
+    TEST_HYPERBUS->STATUS = (1 << 4);
 
     /* Restore IRQ */
     EU_RestoreUDMAIRQ(irq);
@@ -79,22 +119,22 @@ static inline int SDIO_Wait()
 
 static void sdio_read_response(void)
 {
-    resp[0] = SDIO->RSP0;
-    resp[1] = SDIO->RSP1;
-    resp[2] = SDIO->RSP2;
-    resp[3] = SDIO->RSP3;
+    resp[0] = TEST_HYPERBUS->RSP0;
+    resp[1] = TEST_HYPERBUS->RSP1;
+    resp[2] = TEST_HYPERBUS->RSP2;
+    resp[3] = TEST_HYPERBUS->RSP3;
 
     /* printf("RES: 0x%08x:%08x:%08x:%08x\n", resp[3], resp[2], resp[1], resp[0]); */
 }
 
 static int sdio_send_cmd(uint32_t cmd_op, uint32_t cmd_arg)
 {
-    SDIO->CMD_OP  = cmd_op;
-    SDIO->CMD_ARG = cmd_arg;
-    SDIO->START   = 1;
+    TEST_HYPERBUS->OSPI_CMD  = (cmd_op << 20);
+    TEST_HYPERBUS->CMD_ARG   = cmd_arg;
+    TEST_HYPERBUS->TRANS_CFG |= (1 << 1);
 
     if ( SDIO_Wait() ) {
-        printf("STATUS : %x\n", (SDIO->STATUS >> 16));
+        printf("STATUS : %x\n", (TEST_HYPERBUS->STATUS >> 16));
         return -1;
     }
 
@@ -191,20 +231,24 @@ void test_single_block_read()
     sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Read */
-    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE;
-    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)TX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE;
+
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | (0 << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_CFG   = 1;
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
 
     // Send CMD 17
     sdio_send_cmd(CMD17 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -244,36 +288,45 @@ void test_single_block_write()
     sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Write */
-    SDIO->UDMA_SDIO.TX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.TX_SIZE  = BLOCK_SIZE;
-    SDIO->UDMA_SDIO.TX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_WRITE)       |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->TX_DEST     = 1;
+    TEST_HYPERBUS->RX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)TX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE;
+    TEST_HYPERBUS->TRANS_CFG   = 0;
+
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | (0 << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
 
     // Send CMD 24
     sdio_send_cmd(CMD24 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
+
 
     /* Read */
-    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)RX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE;
-    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(0)          |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)RX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE;
+
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | (0 << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_CFG   = 1;
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
 
     // Send CMD 17
     sdio_send_cmd(CMD17 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -314,20 +367,24 @@ void test_multiple_block_read(int block_count)
     sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Read */
-    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE * block_count;
-    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)TX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE * block_count;
+
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | ((block_count - 1) << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_CFG   = 1;
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
 
     /* Stop transfer automatically */
     sdio_send_cmd(CMD18 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
 }
 
 /////////////////////////////////////////////////////////////////
@@ -369,54 +426,64 @@ void test_multiple_block_write(int block_count)
     sdio_send_cmd(ACMD6 | RSP_48_CRC, SDIO_4BITS ? 2 : 0);
 
     /* Write */
-    SDIO->UDMA_SDIO.TX_SADDR = (uint32_t)TX_BUFFER;
-    SDIO->UDMA_SDIO.TX_SIZE  = BLOCK_SIZE * block_count;
-    SDIO->UDMA_SDIO.TX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_WRITE)       |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->TX_DEST     = 1;
+    TEST_HYPERBUS->RX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)TX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE * block_count;
+    TEST_HYPERBUS->TRANS_CFG   = 0;
 
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | ((block_count - 1) << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
+
+    // Send CMD 25
     sdio_send_cmd(CMD25 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
 
     /* Read */
-    SDIO->UDMA_SDIO.RX_SADDR = (uint32_t)RX_BUFFER;
-    SDIO->UDMA_SDIO.RX_SIZE  = BLOCK_SIZE * block_count;
-    SDIO->UDMA_SDIO.RX_CFG   = 0x10;
-    SDIO->DATA_SETUP         = SDIO_DATA_SETUP_EN(1) |
-        SDIO_DATA_SETUP_RWN(SDIO_READ)        |
-        SDIO_DATA_SETUP_QUAD(SDIO_4BITS)      |
-        SDIO_DATA_SETUP_BLOCK_NUM(block_count - 1) |
-        SDIO_DATA_SETUP_BLOCK_SIZE(BLOCK_SIZE - 1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = (uint32_t)TX_BUFFER;
+    TEST_HYPERBUS->TRANS_SIZE  = BLOCK_SIZE * block_count;
 
+    TEST_HYPERBUS->OSPI_CSN = (1 << 6)
+        | (SDIO_4BITS << 7)
+        | ((block_count - 1) << 8)
+        | ((BLOCK_SIZE - 1) << 16);
+    TEST_HYPERBUS->TRANS_CFG   = 1;
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
+
+    /* Stop transfer automatically */
     sdio_send_cmd(CMD18 | RSP_48_CRC, BLOCK_COUNT);
+    TEST_HYPERBUS->TRANS_AUTO  = 0;
 
     /* Clear Setup */
-    SDIO->DATA_SETUP = 0;
+    TEST_HYPERBUS->OSPI_CSN = 0;
 }
 
 void udma_sdio_init(void)
 {
     /* Set 12 - 17 pin to alt 2 - SDIO */
-    volatile uint32_t val0 = PORTA->PADFUN[0] & ~(0xFF000000);
-    volatile uint32_t val1 = PORTA->PADFUN[1] & ~(0xF);
-    PORTA->PADFUN[0] = val0 | (uint32_t)(0xAA000000);
-    PORTA->PADFUN[1] = val1 | (uint32_t)(0xA);
+    volatile uint32_t val = PORTA->PADFUN[2] & ~(0xFFFC);
+    PORTA->PADFUN[2] = val | (uint32_t)(0xFFFC);
 
-    /* Disable clock gating */
-    UDMA_GC->CG |= (1 << PER_ID_SDIO);
+    /* Clock gating enable */
+    UDMA_GC->CG |= (1 << PER_ID_HYPERBUS);
+    UDMA_GC->RST |= (1 << PER_ID_HYPERBUS);
 
-    /* set event mask */
-    SOC_EU_SetFCMask((PER_ID_SDIO << 2));
-    SOC_EU_SetFCMask((PER_ID_SDIO << 2) + 1);
-    SOC_EU_SetFCMask((PER_ID_SDIO << 2) + 2);
-    SOC_EU_SetFCMask((PER_ID_SDIO << 2) + 3);
+    /* Attach event unit for end interrupt */
+    SOC_EU_SetFCMask(40 + 31);
 
-    SDIO->CLK_DIV = SDIO_CLK_DIV_VALID(1) | SDIO_CLK_DIV(10);
+    TEST_HYPERBUS->DEVICE_TYPE = (1 << 3);
+
+    TEST_HYPERBUS->IRQ_EN      = HYPERBUS_IRQ_EN(1);
+
+    TEST_HYPERBUS->CLK_DIV     = 10;
 }
 
 int main()

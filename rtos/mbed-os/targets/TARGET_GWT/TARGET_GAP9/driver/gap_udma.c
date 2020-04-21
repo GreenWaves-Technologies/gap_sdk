@@ -134,6 +134,7 @@ void UDMA_Init(UDMA_Type *base)
     /* Clock gating enable */
     uint32_t index = UDMA_GetInstance(base);
     UDMA_GC->CG |= (1 << index);
+    UDMA_GC->RST |= (1 << index);
 
     /* Attach event unit for end interrupt */
     if(index < UDMA_CHANNEL_NUM) {
@@ -155,6 +156,7 @@ void UDMA_Deinit(UDMA_Type *base)
 
   /* Clock gating disable */
   UDMA_GC->CG &= (~(1 << index));
+  UDMA_GC->RST &= (~(1 << index));
 
   /*  Detach event unit */
   if(index < UDMA_CHANNEL_NUM) {

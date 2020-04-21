@@ -17,6 +17,40 @@
 #define SA                      0x4000
 
 typedef struct {
+    __IO  uint32_t RX_DEST;
+    __IO  uint32_t TX_DEST;
+    __IO  uint32_t TRANS_AUTO;
+    __IO  uint32_t TRANS_ADDR;
+    __IO  uint32_t TRANS_SIZE;
+    __IO  uint32_t TRANS_CFG;
+    __IO  uint32_t reserved0;
+    __IO  uint32_t reserved1;
+    __IO  uint32_t EXT_ADDR;                 /**< HYPERBUS Memory access address register, offset: 0x20 */
+    __IO  uint32_t TIMING_CFG;               /**< HYPERBUS Timing Configuration register, offset: 0x24 */
+    __IO  uint32_t MBR0;                     /**< HYPERBUS Memory base address 0 register, offset: 0x28 */
+    __IO  uint32_t MBR1;                     /**< HYPERBUS Memory base address 1 register, offset: 0x2C */
+    __IO  uint32_t DEVICE_TYPE;              /**< HYPERBUS device type register, offset: 0x30 */
+    __IO  uint32_t OSPI_CMD;                 /**< HYPERBUS Octo SPI command register, offset: 0x34 */
+    __IO  uint32_t OSPI_ADDR;                /**< HYPERBUS Octo SPI address register, offset: 0x38 */
+    __IO  uint32_t OSPI_CFG;                 /**< HYPERBUS Octo SPI cofiguration register, offset: 0x3C */
+    __IO  uint32_t OSPI_CSN;                 /**< HYPERBUS Octo SPI chip select register, offset: 0x40 */
+    __IO  uint32_t OSPI_JEDEC_RESET;         /**< HYPERBUS Octo SPI cofiguration register, offset: 0x44 */
+    __IO  uint32_t reserved2;
+    __IO  uint32_t reserved3;
+    __IO  uint32_t BURST_SIZE;               /**< HYPERBUS Octo SPI burst size register, offset: 0x50 */
+    __IO  uint32_t LINE_2D;                  /**< HYPERBUS Octo SPI burst size register, offset: 0x54 */
+    __IO  uint32_t STRIDE_2D;                /**< HYPERBUS Octo SPI burst size register, offset: 0x58 */
+    __IO  uint32_t BURST_ENABLE;             /**< HYPERBUS Octo SPI burst enable register, offset: 0x5C */
+    __IO  uint32_t IRQ_EN;                   /**< HYPERBUS Octo SPI interrupt enable, offset: 0x60 */
+    __IO  uint32_t CLK_DIV;                  /**< HYPERBUS Clock devider register, offset: 0x64 */
+    __IO  uint32_t STATUS;                   /**< HYPERBUS Status register, offset: 0x68 */
+} HYPERBUS_Type0;
+
+
+
+#define TEST_HYPERBUS                        ((HYPERBUS_Type0 *)(0x1A102080 + PER_ID_HYPERBUS * 0x80))
+
+typedef struct {
     uint16_t data;
     uint16_t addr;
 } cmdSeq;
@@ -44,14 +78,16 @@ uint32_t id_reg;
 
 void hyper_write(int addr, uint32_t l2_addr, int size)
 {
-    HYPERBUS0->EXT_ADDR   = FLASH_ADDR + addr;
+    TEST_HYPERBUS->EXT_ADDR   = FLASH_ADDR + addr;
 
     /* Disable UDMA IRQ */
     int irq = EU_DisableUDMAIRQ();
 
-    HYPERBUS0->UDMA_HYPERBUS.TX_SADDR = l2_addr;
-    HYPERBUS0->UDMA_HYPERBUS.TX_SIZE  = size;
-    HYPERBUS0->UDMA_HYPERBUS.TX_CFG   = UDMA_CFG_EN(1);
+    TEST_HYPERBUS->TX_DEST     = 1;
+    TEST_HYPERBUS->RX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = l2_addr;
+    TEST_HYPERBUS->TRANS_SIZE  = size;
+    TEST_HYPERBUS->TRANS_CFG   = 2;
 
     ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
 
@@ -61,14 +97,16 @@ void hyper_write(int addr, uint32_t l2_addr, int size)
 
 void hyper_read(int addr, uint32_t l2_addr, int size)
 {
-    HYPERBUS0->EXT_ADDR   = FLASH_ADDR + addr;
+    TEST_HYPERBUS->EXT_ADDR   = FLASH_ADDR + addr;
 
     /* Disable UDMA IRQ */
     int irq = EU_DisableUDMAIRQ();
 
-    HYPERBUS0->UDMA_HYPERBUS.RX_SADDR = l2_addr;
-    HYPERBUS0->UDMA_HYPERBUS.RX_SIZE  = size;
-    HYPERBUS0->UDMA_HYPERBUS.RX_CFG   = UDMA_CFG_EN(1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = l2_addr;
+    TEST_HYPERBUS->TRANS_SIZE  = size;
+    TEST_HYPERBUS->TRANS_CFG   = 3;
 
     ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
 
@@ -171,12 +209,12 @@ int test_hyperbus()
 {
     /* Clock gating enable */
     UDMA_GC->CG |= (1 << PER_ID_HYPERBUS);
+    UDMA_GC->RST |= (1 << PER_ID_HYPERBUS);
 
     /* Attach event unit for end interrupt */
-    SOC_EU_SetFCMask(PER_ID_HYPERBUS << 2);
-    SOC_EU_SetFCMask((PER_ID_HYPERBUS << 2) + 1);
+    SOC_EU_SetFCMask(40 + 31);
 
-    HYPERBUS0->TIMING_CFG  =
+    TEST_HYPERBUS->TIMING_CFG  =
         HYPERBUS_TIMING_CFG_CSM(666)                           |
         HYPERBUS_TIMING_CFG_ADDITIONAL_LATENCY_AUTOCHECK_EN(1) |
         HYPERBUS_TIMING_CFG_RWDS_DELAY(1)                      |
@@ -184,9 +222,11 @@ int test_hyperbus()
         HYPERBUS_TIMING_CFG_LATENCY1( LATENCY )                |
         HYPERBUS_TIMING_CFG_LATENCY0(0);
 
-    HYPERBUS0->MBR0       = RAM_ADDR;
-    HYPERBUS0->MBR1       = FLASH_ADDR;
-    HYPERBUS0->DEVICE_TYPE = HYPERBUS_DEVICE_DT1(1) | HYPERBUS_DEVICE_DT0(0) | HYPERBUS_DEVICE_TYPE(1);
+    TEST_HYPERBUS->MBR0       = RAM_ADDR;
+    TEST_HYPERBUS->MBR1       = FLASH_ADDR;
+    TEST_HYPERBUS->DEVICE_TYPE = HYPERBUS_DEVICE_DT1(1) | HYPERBUS_DEVICE_DT0(0) | HYPERBUS_DEVICE_TYPE(1);
+    TEST_HYPERBUS->IRQ_EN      = HYPERBUS_IRQ_EN(1);
+    TEST_HYPERBUS->TRANS_AUTO  = 1;
 
     /* Initialize the samples */
     for (int i = 0; i< BUFFER_SIZE; i++)

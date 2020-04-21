@@ -51,20 +51,6 @@ typedef enum{
     QQVGA,      /*!< Resolution QQVGA: 160*120 (pixels). */
 }rt_cam_resol_e;
 
-/** \enum rt_ov7670_format_e
- * \brief Output format of the ov7670 image sensor.
- *
- * This enum defines the output format of the OV7670 image sensor.
- * The simulator currently only supports RGB565.
- */
-typedef enum{
-    OV7670_RGB565 = 0,   /*!< Data format RGB565, 5bits for R, 6bits for G and 5bits for B. */
-    OV7670_RGB555,       /*!< Data format RGB555, 5bits for R, 5bits for G and 5bits for B. */
-    OV7670_RGB444,       /*!< Data format RGB444, 4bits for R, 4bits for G and 4bits for B. */
-    OV7670_YUV422,       /*!< Data format YUV422, for each 4 bytes: Y,U,Y,V. */
-    OV7670_MONO_COLOR,   /*!< Data format Grayscale, 1 pixel = 1 Bytes. */
-}rt_ov7670_format_e;
-
 /** \enum rt_himax_format_e
  * \brief Output format of the Himax image sensor.
  *
@@ -157,7 +143,6 @@ typedef struct{
  */
 typedef enum {
   RT_CAM_TYPE_HIMAX,     /*!< Himax camera. */
-  RT_CAM_TYPE_OV7670    /*!< Ov7670 camera. */
 } rt_cam_type_e;
 
 
@@ -169,7 +154,7 @@ typedef enum {
  */
 typedef struct{
   unsigned int     resolution;            /*!< Resolution of the sensor. Please check the available values in enum rt_cam_resol_e */
-  unsigned int     format;                /*!< Image format of the sensor. Please check the available values in enum rt_ov7670_format_e or rt_himax_format_e */
+  unsigned int     format;                /*!< Image format of the sensor. Please check the available values in enum rt_himax_format_e */
   unsigned int     fps;                   /*!< Frames per second of the sensor. Please check the available value in enum rt_cam_fps_e */
   unsigned int     slice_en;              /*!< Enables slicing mode */
   unsigned int     shift;                 /*!< Number of bits to shift pixels. For example, shift = 2, pixel received = (pixel >> 2) */

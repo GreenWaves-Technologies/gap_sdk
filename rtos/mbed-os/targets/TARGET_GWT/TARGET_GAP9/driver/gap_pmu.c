@@ -120,23 +120,10 @@ void PMU_ClusterPowerOn() {
         PMU_DLC_PCTRL_PWDATA( (1 << READ_PMU_STATE_INDEX(PMU_STATE_CLUSTER_ON)) );
 
     ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
+    #endif
 
-    // Unblock transactions from dc fifos to soc
-    SOC_CTRL->CLUSTER_ISO = 0;
-
-    // Tell external loader (such as gdb) that the cluster is on so that it can take it
-    // into account
-    SOC_CTRL->CLUSTER_BYPASS =
-        SOC_CTRL_CLUSTER_BYPASS_ENABLE(1)       |
-        SOC_CTRL_CLUSTER_BYPASS_POWER(1)        |
-        SOC_CTRL_CLUSTER_BYPASS_RESET(1)        |
-        SOC_CTRL_CLUSTER_BYPASS_CLOCK_GATING(1) |
-        SOC_CTRL_CLUSTER_BYPASS_DBG1(1);
-
-    #else
     // On the FPGA the only thing to manage is the cluster isolation
     SOC_CTRL->CLUSTER_ISO = 0;
-    #endif
 }
 
 void PMU_ClusterPowerOff() {
@@ -144,11 +131,6 @@ void PMU_ClusterPowerOff() {
     #ifndef __PLATFORM_FPGA__
     volatile int i = 0;
     for (i = 0; i < 20; i++);
-
-    // Check bit 14 of bypass register to see if an external tool (like gdb) is preventing us
-    // from shutting down the cluster
-    if(READ_SOC_CTRL_CLUSTER_BYPASS_DBG2(SOC_CTRL->CLUSTER_BYPASS))
-        return;
 
     // Wait until cluster is not busy anymore as isolating it while
     // AXI transactions are sent would break everything
@@ -159,17 +141,6 @@ void PMU_ClusterPowerOff() {
 
     // Block transactions from dc fifos to soc
     SOC_CTRL->CLUSTER_ISO = 1;
-
-    // Cluster clock-gating
-    SOC_CTRL->CLUSTER_BYPASS =
-        SOC_CTRL_CLUSTER_BYPASS_ENABLE(1) |
-        SOC_CTRL_CLUSTER_BYPASS_POWER(1);
-    ITC_WaitEvent_NOIRQ(CLUSTER_CLOCK_GATE_OK_IRQn);
-
-    // Cluster shutdown
-    SOC_CTRL->CLUSTER_BYPASS = SOC_CTRL_CLUSTER_BYPASS_ENABLE(1);
-    ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
-    // We should not need to wait for power off as it is really quick but we actually do
     #endif
     #endif
 }

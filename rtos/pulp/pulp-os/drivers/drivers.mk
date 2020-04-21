@@ -118,7 +118,9 @@ endif
 
 ifeq '$(CONFIG_UART_ENABLED)' '1'
 ifneq '$(udma/uart/version)' ''
+PULP_CFLAGS += -DUART_FLOW_CONTROL_EMU
 PULP_LIB_FC_SRCS_rt += drivers/uart/uart.c
+PULP_LIB_FC_ASM_SRCS_rt += drivers/uart/uart_asm.S
 endif
 endif
 

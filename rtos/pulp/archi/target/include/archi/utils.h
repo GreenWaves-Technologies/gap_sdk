@@ -20,10 +20,10 @@
 
 
 #define __ARCHI_DEF_REG_STR(x) #x
-#define _ARCHI_DEF_REG_MASK(x) __ARCHI_DEF_REG_STR(x ## _MASK ARCHI_REG_MASK(x ## _BIT, x ## _BITS))
+#define _ARCHI_DEF_REG_MASK(x) __ARCHI_DEF_REG_STR(x ## _MASK ARCHI_REG_MASK(x ## _BIT, x ## _BITS))
 #define ARCHI_DEF_REG_MASK(x) _ARCHI_DEF_REF_MASK(x)
 
-#define _ARCHI_DEF_REG_VALUE(x, vname, val) __ARCHI_DEF_REG_STR(x ## _ ## vname  (val << (x ## _BIT)))
+#define _ARCHI_DEF_REG_VALUE(x, vname, val) __ARCHI_DEF_REG_STR(x ## _ ## vname  (val << (x ## _BIT)))
 #define ARCHI_DEF_REG_VALUE(x, vname, val) _ARCHI_DEF_REG_VALUE(x, vname, val)
 
 

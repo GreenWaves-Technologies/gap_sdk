@@ -98,6 +98,10 @@ def appendArgs(top_parser: argparse.ArgumentParser, parser: argparse.ArgumentPar
                         action = "store_true",
                         help = "Upload all images on the target (e.g. write flash image to the flash)")
 
+    parser.add_argument("--force", dest = "force",
+                        action = "store_true",
+                        help = "Force flash operation")
+
     parser.add_argument("--exec-prepare", dest = "exec_prepare",
                         action = "store_true",
                         help = "Launch execution on the target")

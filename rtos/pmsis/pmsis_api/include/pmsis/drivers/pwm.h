@@ -244,7 +244,6 @@ int32_t pi_pwm_open(struct pi_device *device);
 void pi_pwm_close(struct pi_device *device);
 
 /**
- * @deprecated
  * \brief PWM ioctl command.
  *
  * This function allows to send different commands to PWM device.

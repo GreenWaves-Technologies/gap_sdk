@@ -63,6 +63,10 @@ struct uart_itf_data_s
     struct pi_task *fifo_tail[2]; /*!< 0 = RX | 1 = TX. */
     uint32_t nb_open;             /*!< Number of times device has been opened. */
     uint32_t device_id;           /*!< Device ID. */
+    uint8_t flow_ctrl_ena;        /*!< Flow control enable? */
+    #if defined(UART_FLOW_CONTROL_EMU)
+    struct pi_device pwm;         /*!< PWM device used to emulate flow control. */
+    #endif  /* UART_FLOW_CONTROL_EMU */
     UART_DRIVER_DATA_IMPLEM_SPECIFC
 };
 

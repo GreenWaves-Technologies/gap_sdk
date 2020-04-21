@@ -95,6 +95,7 @@ CFLAGS += -std=gnu99 -mPE=8 -mFC=1 -D__riscv__ -Os -g -Werror -Wall
 CFLAGS += -Wno-unused-variable -Wno-unused-function
 CFLAGS += -MMD -MP -c
 CFLAGS += -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
+CFLAGS += -fdata-sections -ffunction-sections
 
 ifeq '$(TARGET_CHIP)' 'GAP9_V2'
 all:

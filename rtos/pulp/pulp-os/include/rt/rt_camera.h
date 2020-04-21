@@ -84,7 +84,7 @@ rt_camera_t* rt_camera_open(char *dev_name, rt_cam_conf_t *conf, rt_event_t *eve
  *       CMD         |     Type of argument
  *    --|--
  *    CMD_RESOL      |     rt_cam_resol_e
- *    CMD_FORMAT     |     rt_ov7670_format_e OR rt_himax_format_e
+ *    CMD_FORMAT     |     rt_himax_format_e
  *    CMD_FPS        |     rt_cam_fps_e
  *    CMD_SLICE      |     rt_img_slice_t
  *    CMD_FILTER     |     rt_img_filter_t
@@ -218,7 +218,6 @@ typedef enum{
 }rt_cam_presc_e;
 
 extern rt_cam_dev_t himax_desc;
-extern rt_cam_dev_t ov7670_desc;
 
 static inline void rt_cam_control(rt_camera_t *dev, rt_cam_cmd_e cmd, void *arg)
 {

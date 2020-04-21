@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -22,7 +22,7 @@
 
 typedef struct __pos_pwm_s pos_pwm_t;
 
-typedef struct 
+typedef struct
 {
     pos_pwm_t *pwm;
     int id;
@@ -113,10 +113,25 @@ int32_t pi_pwm_ioctl(struct pi_device *device, pi_pwm_ioctl_cmd_e cmd, void *arg
     pi_pwm_cmd_e timer_cmd = (pi_pwm_cmd_e) arg;
     pos_pwm_timer_t *timer = (pos_pwm_timer_t *)device->data;
 
+    unsigned int offset = 0;
+    unsigned int value = 0;
     switch (cmd)
     {
         case PI_PWM_TIMER_COMMAND :
             ARCHI_WRITE(timer->base, PWM_T0_CMD_OFFSET - PWM_T0_CMD_OFFSET, timer_cmd);
+            return 0;
+
+        case PI_PWM_TIMER_THRESH :
+            offset = PWM_T0_THRESHOLD_OFFSET - PWM_T0_CMD_OFFSET;
+            value = (unsigned int) arg;
+            ARCHI_WRITE(timer->base, offset, value);
+            return 0;
+
+        case PI_PWM_CH_CONFIG :
+            offset = PWM_T0_TH_CHANNEL0_OFFSET - PWM_T0_CMD_OFFSET + (timer->channel_id)*4;
+            value = (PI_PWM_SET << PWM_T3_TH_CHANNEL0_MODE_BIT) |
+                    (0xFFFF << PWM_T0_TH_CHANNEL0_TH_BIT);
+            ARCHI_WRITE(timer->base, offset, value);
             return 0;
 
         default:

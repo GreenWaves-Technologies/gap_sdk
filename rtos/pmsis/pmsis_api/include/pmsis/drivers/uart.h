@@ -148,7 +148,22 @@ enum pi_uart_ioctl_cmd
      *
      * This command enables transmission on UART device.
      */
-    PI_UART_IOCTL_ENABLE_TX  = 4
+    PI_UART_IOCTL_ENABLE_TX  = 4,
+    /**
+     * \brief Enable flow control.
+     *
+     * This command enables flow control on UART device.
+     *
+     * \note On GAP8, flow control is emulated using a PWM device(Timer0, channel2)
+     *       and two GPIOs(PI_GPIO_A1_PAD_9_B3, PI_GPIO_A0_PAD_8_A4).
+     */
+    PI_UART_IOCTL_ENABLE_FLOW_CONTROL = 5,
+    /**
+     * \brief Disable flow control.
+     *
+     * This command disables flow control on UART device.
+     */
+    PI_UART_IOCTL_DISABLE_FLOW_CONTROL = 6
 };
 
 /**

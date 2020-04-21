@@ -117,8 +117,6 @@ rt_camera_t* rt_camera_open(char *dev_name, rt_cam_conf_t *conf, rt_event_t*even
     channel = ARCHI_UDMA_CAM_ID(conf->id);
     if (conf->type == RT_CAM_TYPE_HIMAX)
       desc = &himax_desc;
-    else if (conf->type == RT_CAM_TYPE_OV7670)
-      desc = &ov7670_desc;
     else
       goto error;
   }

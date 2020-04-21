@@ -188,7 +188,7 @@ int main()
 
     QUIDDIKEY_Init(QUIDDIKEY, &config);
 
-    /* Allocate space for AC (864bytes) */
+    /* Allocate space for AC (996bytes) */
     char *active_code = malloc(GAP_QUIDDIKEY_AC_BYTES);
 
     /* ENROLL */

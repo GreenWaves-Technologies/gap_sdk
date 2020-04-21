@@ -69,7 +69,7 @@ endif
 
 ifeq '$(CONFIG_CAM_ENABLED)' '1'
 ifneq '$(udma/cpi/version)' ''
-PULP_LIB_FC_SRCS_rt += drivers_deprecated/camera/himax.c drivers_deprecated/camera/ov7670.c drivers_deprecated/camera/camera.c
+PULP_LIB_FC_SRCS_rt += drivers_deprecated/camera/himax.c drivers_deprecated/camera/camera.c
 endif
 endif
 

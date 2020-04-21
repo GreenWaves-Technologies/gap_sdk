@@ -59,6 +59,9 @@ class Runner(runner.default_runner.Runner):
         self.platform_path = None
         self.platform_tool = self.config.get_str('rtl/simulator')
 
+        if os.environ.get('GAPY_RTL_SIMULATOR') is not None:
+            self.platform_tool = os.environ.get('GAPY_RTL_SIMULATOR')
+
         self.plt_config = self.config.get('rtl/' + self.platform_tool)
         self.plt_profile_config = self.plt_config.get('profiles/rtl')
 
@@ -119,8 +122,12 @@ class Runner(runner.default_runner.Runner):
 
         if self.platform_path is None:
 
-            plt_path_name = 'VSIM_PATH'
-            plt_path = os.environ.get('VSIM_PATH')
+            if self.platform_tool == 'vsim':
+                plt_path_name = 'VSIM_PATH'
+                plt_path = os.environ.get('VSIM_PATH')
+            else:
+                plt_path_name = 'XCSIM_PATH'
+                plt_path = os.environ.get('XCSIM_PATH')
 
             platform_path_name = self.plt_config.get_str('path_envvar')
             if platform_path_name is not None:
@@ -140,17 +147,40 @@ class Runner(runner.default_runner.Runner):
 
             self.platform_path = plt_path
 
-            os.environ['VSIM_PATH'] = plt_path
             os.environ['PULP_PATH'] = plt_path
             os.environ['TB_PATH']   = plt_path
             os.environ['VSIM_PLATFORM'] = plt_path
+            os.environ['VSIM_PLATFORM'] = plt_path
 
-            self.__create_symlink(plt_path, 'boot')
-            self.__create_symlink(plt_path, 'modelsim.ini')
-            self.__create_symlink(plt_path, 'work')
-            self.__create_symlink(plt_path, 'tcl_files')
-            self.__create_symlink(plt_path, 'waves')
-            self.__create_symlink(plt_path, 'models')
+            if self.platform_tool == 'vsim':
+
+                self.__create_symlink(plt_path, 'boot')
+                self.__create_symlink(plt_path, 'modelsim.ini')
+                self.__create_symlink(plt_path, 'work')
+                self.__create_symlink(plt_path, 'tcl_files')
+                self.__create_symlink(plt_path, 'waves')
+                self.__create_symlink(plt_path, 'models')
+
+            else:
+
+                os.environ['XCSIM_PLATFORM'] = plt_path
+                sim_path = os.environ.get('SIM_PATH')
+
+                self.__create_symlink(plt_path, 'boot')
+                self.__create_symlink(plt_path, 'ips_inputs')
+                self.__create_symlink(plt_path, 'models')
+                self.__create_symlink(plt_path, 'tcl_files')
+                self.__create_symlink(plt_path, 'cds.lib')
+                self.__create_symlink(plt_path, 'hdl.var')
+                self.__create_symlink(plt_path, 'waves')
+                self.__create_symlink(plt_path, 'xcsim_libs')
+                self.__create_symlink(plt_path, 'min_access.txt')
+                self.__create_symlink(plt_path, 'scripts')
+                self.__create_symlink(sim_path, 'scripts', 'sim_scripts')
+
+                os.system('xmsdfc models/s27ks0641/bmod/s27ks0641.sdf')
+                os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf')
+                os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf')
 
             self.platform_path = plt_path
 
@@ -180,11 +210,15 @@ class Runner(runner.default_runner.Runner):
 
 
 
-    def __create_symlink(self, rtl_path, name):
-        if os.path.islink(name):
-          os.remove(name)
+    def __create_symlink(self, rtl_path, name, symname=None):
 
-        os.symlink(os.path.join(rtl_path, name), name)
+        if symname is None:
+            symname = name
+
+        if os.path.islink(symname):
+          os.remove(symname)
+
+        os.symlink(os.path.join(rtl_path, name), symname)
 
 
     def set_env(self, key, value):

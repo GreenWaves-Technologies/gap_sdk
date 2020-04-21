@@ -112,22 +112,22 @@
 #define    UDMA_EVENT_RESERVED0                   128
 
 /*! @brief SoC Event List */
-#define    S_EVENT_I3C0                           129
-#define    S_EVENT_I3C1                           130
+#define    S_EVENT_I3C0                           88
+#define    S_EVENT_I3C1                           89
 
-#define    S_EVENT_PMU_DLC_BRIDGE_PICL_OK         133
-#define    S_EVENT_PMU_DLC_BRIDGE_SCU_OK          134
+#define    S_EVENT_PMU_DLC_BRIDGE_PICL_OK         90
+#define    S_EVENT_PMU_DLC_BRIDGE_SCU_OK          91
 
-#define    S_EVENT_PWM0                           135
-#define    S_EVENT_PWM1                           136
-#define    S_EVENT_PWM2                           137
-#define    S_EVENT_PWM3                           138
-#define    S_EVENT_GPIO                           139           /**< GPIO group interrupt */
+#define    S_EVENT_PWM0                           92
+#define    S_EVENT_PWM1                           93
+#define    S_EVENT_PWM2                           94
+#define    S_EVENT_PWM3                           95
+#define    S_EVENT_GPIO                           96           /**< GPIO group interrupt */
 
-#define    S_EVENT_RTC_APB                        140
-#define    S_EVENT_RTC                            141
+#define    S_EVENT_RTC_APB                        97
+#define    S_EVENT_RTC                            98
 
-#define    S_EVENT_REF32K_CLK_RISE                168
+#define    S_EVENT_REF32K_CLK_RISE                107
 
 /*! @brief FC Event List */
 #define    FC_EVENT_SW0                           0              /**< GAP9 FC SW Event0 */

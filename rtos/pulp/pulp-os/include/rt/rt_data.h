@@ -335,6 +335,32 @@ typedef struct pi_task{
 } pi_task_t;
 
 #include "pmsis/pmsis_types.h"
+
+#ifndef IMPLEM_MUTEX_OBJECT_TYPE
+#define IMPLEM_MUTEX_OBJECT_TYPE \
+    void* mutex_object;
+#endif
+
+struct pi_mutex
+{
+  IMPLEM_MUTEX_OBJECT_TYPE
+  __pmsis_mutex_func take;
+  __pmsis_mutex_func give;
+};
+
+#ifndef IMPLEM_SEM_OBJECT_TYPE
+#define IMPLEM_SEM_OBJECT_TYPE \
+    void* sem_object;
+#endif
+
+struct pi_sem
+{
+  IMPLEM_SEM_OBJECT_TYPE
+  __pi_sem_func take;
+  __pi_sem_func give;
+};
+
+
 #include "pmsis/cluster/cl_pmsis_types.h"
 
 typedef struct pi_task rt_event_t;

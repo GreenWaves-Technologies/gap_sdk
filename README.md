@@ -152,7 +152,7 @@ OpenOCD for Gap8 is now used instead of plpbridge. There are a few applications 
 
 You have to install the system dependencies required by OpenOCD that you can find here: http://openocd.org/doc-release/README
 
-There are different cables setup by default for each board. In case you want to use a different cable, you can define this environment variable (this is ):
+There are different cables setup by default for each board. In case you want to use a different cable, you can define this environment variable:
 
 ~~~~~shell
 export GAPY_OPENOCD_CABLE=interface/ftdi/olimex-arm-usb-ocd-h.cfg
