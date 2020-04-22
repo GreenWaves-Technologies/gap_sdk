@@ -446,7 +446,7 @@ unsigned int Camera_stream::get_pixel()
     image_buffer = NULL;
   }
 
-  unsigned int shift = 8;
+  unsigned int shift = (sizeof(pixel->red) - 1)*8;
   if (color_mode == COLOR_MODE_GRAY)
   {
     return pixel->red >> shift;

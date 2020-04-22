@@ -1,0 +1,7 @@
+{
+  "version"   : 3,
+  "nb_gpio"   : 32,
+
+  "vp_class": "pulp/gpio/gpio_v3",
+  "vp_component":  "pulp.gpio.gpio_v3_impl"
+}

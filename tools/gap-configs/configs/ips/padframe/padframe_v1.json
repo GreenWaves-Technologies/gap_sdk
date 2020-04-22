@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "vp_class": "pulp/padframe/padframe_v1",
+  "vp_component":  "pulp.padframe.padframe_v1_impl"
+}

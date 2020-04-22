@@ -54,6 +54,7 @@ class Runner(runner.default_runner.Runner):
         except:
             pass
 
+        self.cmd_args = []
         self.plt_args = []
         self.env = {}
         self.platform_path = None
@@ -85,7 +86,10 @@ class Runner(runner.default_runner.Runner):
             if not os.path.exists(dpi_path + '.so'):
                     raise FatalError('Did no find DPI models: ' + dpi_path + '.so')
                 
-            self.set_arg('-sv_lib %s' % dpi_path)
+            if self.platform_tool == 'vsim':
+                self.set_arg('-sv_lib %s' % dpi_path)
+            else:
+                self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
 
             full_config, gvsoc_config_path = gv.gvsoc.gen_config(args, self.config)
@@ -94,6 +98,12 @@ class Runner(runner.default_runner.Runner):
         
             self.set_arg('-gDPI_CONFIG_FILE=%s' % gvsoc_config_path)
 
+        else:
+            if self.platform_tool == 'vsim':
+                self.set_arg('-sv_lib %s/%s' % (self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper'))
+            else:
+                self.set_cmd_arg('-sv_lib %s/%s' % (self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper'))
+
 
 
         self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
@@ -101,6 +111,42 @@ class Runner(runner.default_runner.Runner):
 
     def exec(self):
         os.chdir(self.config.get_str('gapy/work_dir'))
+
+        plt_path = self.__get_platform_path()
+
+        if self.platform_tool == 'vsim':
+
+            self.__create_symlink(plt_path, 'boot')
+            self.__create_symlink(plt_path, 'modelsim.ini')
+            self.__create_symlink(plt_path, 'work')
+            self.__create_symlink(plt_path, 'tcl_files')
+            self.__create_symlink(plt_path, 'waves')
+            self.__create_symlink(plt_path, 'models')
+
+        else:
+
+            sim_path = os.environ.get('SIM_PATH')
+
+            self.__create_symlink(plt_path, 'boot')
+            self.__create_symlink(plt_path, 'ips_inputs')
+            self.__create_symlink(plt_path, 'models')
+            self.__create_symlink(plt_path, 'tcl_files')
+            self.__create_symlink(plt_path, 'cds.lib')
+            self.__create_symlink(plt_path, 'hdl.var')
+            self.__create_symlink(plt_path, 'waves')
+            self.__create_symlink(plt_path, 'xcsim_libs')
+            self.__create_symlink(plt_path, 'min_access.txt')
+            self.__create_symlink(plt_path, 'scripts')
+            self.__create_symlink(sim_path, 'scripts', 'sim_scripts')
+
+            if os.system('xmsdfc models/s27ks0641/bmod/s27ks0641.sdf'):
+                return -1
+
+            if os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf'):
+                return -1
+
+            if os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf'):
+                return -1
 
         command = self.__get_platform_cmd()
 
@@ -153,34 +199,9 @@ class Runner(runner.default_runner.Runner):
             os.environ['VSIM_PLATFORM'] = plt_path
 
             if self.platform_tool == 'vsim':
-
-                self.__create_symlink(plt_path, 'boot')
-                self.__create_symlink(plt_path, 'modelsim.ini')
-                self.__create_symlink(plt_path, 'work')
-                self.__create_symlink(plt_path, 'tcl_files')
-                self.__create_symlink(plt_path, 'waves')
-                self.__create_symlink(plt_path, 'models')
-
+                pass
             else:
-
                 os.environ['XCSIM_PLATFORM'] = plt_path
-                sim_path = os.environ.get('SIM_PATH')
-
-                self.__create_symlink(plt_path, 'boot')
-                self.__create_symlink(plt_path, 'ips_inputs')
-                self.__create_symlink(plt_path, 'models')
-                self.__create_symlink(plt_path, 'tcl_files')
-                self.__create_symlink(plt_path, 'cds.lib')
-                self.__create_symlink(plt_path, 'hdl.var')
-                self.__create_symlink(plt_path, 'waves')
-                self.__create_symlink(plt_path, 'xcsim_libs')
-                self.__create_symlink(plt_path, 'min_access.txt')
-                self.__create_symlink(plt_path, 'scripts')
-                self.__create_symlink(sim_path, 'scripts', 'sim_scripts')
-
-                os.system('xmsdfc models/s27ks0641/bmod/s27ks0641.sdf')
-                os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf')
-                os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf')
 
             self.platform_path = plt_path
 
@@ -202,6 +223,8 @@ class Runner(runner.default_runner.Runner):
         command.append(self.plt_profile_config.get_str("commands/%s/executable" % self.config.get_str("rtl/mode")))
 
         commands = self.plt_profile_config.get("commands/%s" % self.config.get_str("rtl/mode"))
+
+        command += self.cmd_args
 
         for arg in commands.get("args_eval").get_dict():
             command.append(eval(arg))
@@ -226,6 +249,9 @@ class Runner(runner.default_runner.Runner):
 
     def set_arg(self, arg):
         self.plt_args.append(arg)
+
+    def set_cmd_arg(self, arg):
+        self.cmd_args.append(arg)
 
     def get_args(self):
         return self.plt_args

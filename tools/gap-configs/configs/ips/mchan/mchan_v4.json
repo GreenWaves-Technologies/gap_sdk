@@ -1,0 +1,7 @@
+{
+  "version": 4,
+
+  "hal_files" : [ "hal/dma/mchan_v4.h" ],
+  "archi_files" : [ "archi/dma/mchan_v3.h" ]
+
+}

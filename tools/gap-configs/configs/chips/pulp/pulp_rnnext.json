@@ -1,0 +1,13 @@
+{
+  "@includes@": [ "chips/pulp/pulp.json" ],
+
+  "soc": {
+    "fc": {
+      "core"        : "ri5ky_v2_6_sfloat_single_regfile_rnnext"
+    }
+  },
+
+  "cluster": {
+    "core": "ri5ky_v2_6_sfloat_single_regfile_rnnext"
+  }
+}

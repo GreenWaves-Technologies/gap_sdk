@@ -1,0 +1,7 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/hwme/hwme_v1.h" ],
+  "archi_files" : [ "archi/hwme/hwme_v1.h" ]
+
+}

@@ -1,0 +1,5 @@
+{
+    "vp_class": "utils/loader",
+    "vp_component": "utils.loader_impl",
+    "binaries": []
+}

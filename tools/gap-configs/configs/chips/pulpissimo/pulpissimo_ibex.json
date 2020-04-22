@@ -1,0 +1,18 @@
+{
+  "@includes@": [ "chips/pulpissimo/pulpissimo.json" ],
+
+  "soc": {
+    "fc": {
+      "core"        : "ibex"
+    }
+  },
+
+  "config": {
+
+    "install_name": "pulpissimo_ibex",
+
+    "vsim": {
+      "tcl_args": ["-gCORE_TYPE=1"]
+    }
+  }
+}

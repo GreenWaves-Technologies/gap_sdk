@@ -1,0 +1,10 @@
+{
+  "version": 1,
+
+
+  "vp_class": "pulp/quiddikey/quiddikey_v1",
+  "vp_component":  "pulp.soc_eu.soc_eu_v2_impl",
+  "hal_files" : [ "hal/vendors/iid/quiddikey_v1.h" ],
+  "archi_files" : [ "archi/vendors/iid/quiddikey_v1.h" ]
+
+}

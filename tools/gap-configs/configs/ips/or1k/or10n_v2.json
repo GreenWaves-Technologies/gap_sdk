@@ -1,0 +1,11 @@
+{
+  "version"       : "or10nv2",
+  "archi"         : "or1k",
+  "implementation": "or10n",
+  "gv_isa"        : [ ],
+  "isa"           : "",
+  "features"      : [  ],
+  "hal_files"     : [ "hal/or1k/or1k_v5.h", "hal/or1k/or10nv2_builtins.h" ],
+  "archi_files"   : [ "archi/or1k/spr-defs.h" ],
+  "defines"       : [  ]
+}

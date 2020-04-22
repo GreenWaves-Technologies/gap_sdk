@@ -1,0 +1,7 @@
+{
+  "vp_class": "pulp/cluster/l1_interleaver",
+  "vp_component": "pulp.cluster.l1_interleaver_impl",
+  "nb_slaves": 0,
+  "nb_masters": 0,
+  "stage_bits": 0
+}

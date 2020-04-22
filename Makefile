@@ -205,6 +205,11 @@ pulprt.build:
 pulprt.all: pulprt.checkout pulprt.build
 
 
+freertos.checkout:
+	git submodule update --recursive --init rtos/freeRTOS
+
+freertos.all: freertos.checkout
+
 
 gvsoc.checkout:
 	git submodule update --init gvsoc/gvsoc

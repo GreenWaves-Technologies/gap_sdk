@@ -1,0 +1,48 @@
+{
+  "@includes@": [ "chips/gap/gap.json" ],
+
+  "board": {
+    "name": "gapuino",
+    "devices": {
+      "flash": {
+        "@include@" : "devices/hyperflash.json",
+        "cs": 1
+      }
+    }
+  },
+
+  "runner": {
+    "config": {
+      "boot-mode": "rom_hyper",
+      "flash_type": "hyper",
+      "default_profile": "hyper"
+    }
+  },
+
+  "rt": {
+    "config": {
+      "bsp": true
+    }
+  },
+
+  "openocd": {
+    "config": {
+      "cable": "interface/ftdi/gapuino_ftdi.cfg",
+      "board": "target/gap8.tcl"
+    }
+  },
+
+  "debug_bridge": {
+    "config": {
+      "cable": {
+        "type": "ftdi@digilent",
+        "system_reset_gpio": 4,
+        "jtag_reset_gpio": 6,
+        "reverse_reset": true,
+        "vendor": "0x0403",
+        "product": "0x6010"
+      }
+    }
+  }
+
+}

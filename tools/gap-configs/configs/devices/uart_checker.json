@@ -1,0 +1,30 @@
+{
+    "vp_comps": [
+        "checker", "clock"
+    ],
+
+    "vp_bindings": [
+        ["self->input", "checker->input"],
+        ["clock->out", "checker->clock"],
+        ["checker->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "checker": {
+        "name": "UART_checker",
+
+        "vp_component": "devices.uart.uart_checker",
+
+        "verbose": false,
+        "baudrate": 115200,
+        "loopback": false,
+        "stdout": true,
+        "stdin": false,
+        "telnet": false,
+        "tx_file": "tx_uart.log"
+    }
+}

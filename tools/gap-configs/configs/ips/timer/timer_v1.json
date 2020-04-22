@@ -1,0 +1,6 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/timer/timer_v1.h" ]
+
+}

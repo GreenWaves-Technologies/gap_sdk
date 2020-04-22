@@ -282,30 +282,55 @@ You should see a message from the platform telling how to open the profiler.
 
 ## Using the flasher (Hyperflash)
 
-Add the following line into your application Makefile:
+As soon as at least one file for a file-system is specified, the command "make all" will
+also build a flash image containing the file systems and upload it to the flash.
+
+For example, you can include files for the readfs file-system with these flags in your Makefile:
 
 ~~~~~shell
-PLPBRIDGE_FLAGS += -f <file1> <file2> <file3> ......
+READFS_FILES += <file1> <file2> <file3> ......
 ~~~~~
 
-Without any further options the files are flashed but your application is not executed.
-
-If you want to execute your application after flashing use the following options:
-
-If you want to boot your application from jtag:
+In case you don't have any file but you still want to upload the flash image, for example for booting
+from flash, you can execute after you compiled your application:
 
 ~~~~~shell
-PLPBRIDGE_FLAGS += -jtag
+make flash
 ~~~~~
 
-If you wan to boot your application from hyperflash:
+In case you specified files, the command "make all" will not only build the application but also build
+the flash image and upload it to the flash. In case you just want to build your application, you can do:
+
 ~~~~~shell
-PLPBRIDGE_FLAGS += -hyper
+make build
 ~~~~~
 
-These two flags cannot be used at the same time.
+Then after that if you want to produce the flash image and upload it, you can do:
 
-If you choose to boot your application from HyperFlash, and you want to view the output of printf's in your code then you can use a terminal program, like "cutecom":
+~~~~~shell
+make image flash
+~~~~~
+
+
+## Boot from flash
+
+The board is by default configured to boot through JTAG. If you want to boot from flash, you need to
+first program a few efuses to tell the ROM to boot from flash. Be careful that this is a permanent operation, even though
+it will still be possible to boot from JTAG. This will just always boot from flash when you power-up the board or reset it.
+To program the efuses, execute the following command and follow the instructions:
+
+~~~~~shell
+openocd-fuser-hyperflash
+~~~~~
+
+If you choose to boot your application from HyperFlash, and you want to view the output of printf's in your code then you can first compile your application
+with the printf redirected on the UART with this command:
+
+~~~~~shell
+make clean all run io=uart
+~~~~~
+
+You can also use a terminal program, like "cutecom":
 
 ~~~~~shell
 sudo apt-get install -y cutecom
@@ -313,33 +338,6 @@ cutecom&
 ~~~~~
 
 Then please configure your terminal program to use /dev/ttyUSB1 with a 115200 baud rate, 8 data bits and 1 stop bit.
-
-## Using the file IO
-
-Through our new bridge tool (pulp-rt-bridge), you could load/store from/to in your PC.
-For example, if you want to use an image locally, but run the algorithm with this image on GAP8. You could use this functionality to do it.
-
-To trigger this function in bridge, you need to add this flag in your Makefile:
-
-~~~~~shell
-PLPBRIDGE_FLAGS += -fileIO <option>
-~~~~~
-
-The option should be a number, which would be used for let the bridge wait for \<option\> seconds. Because of the synchronization between this bridge and our debug bridge, we need to wait until the program has been load and executed on GAP8. If you don't put a number, the default value is 2 (seconds).
-
-Otherwise, you could run this service manually:
-
-In another terminal:
-
-Configure the environment, and then:
-
-~~~~~shell
-plpbridge-rt --binary=<path of your binary file> --chip=gap
-~~~~~
-
-Please read the example for more information: examples/pulp-examples/kernel/bridge
-
-For your information, this new bridge is quite slow, please be patient when you are using it. We will resolve this problem as soon as possible.
 
 ## Documentation
 

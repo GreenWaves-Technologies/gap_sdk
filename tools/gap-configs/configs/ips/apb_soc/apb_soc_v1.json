@@ -1,0 +1,6 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/apb_soc/apb_soc_v1.h" ]
+
+}

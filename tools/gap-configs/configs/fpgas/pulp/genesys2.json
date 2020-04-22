@@ -1,0 +1,14 @@
+{
+  "@includes@": [ "chips/pulp/pulp.json" ],
+
+  "board": {
+    "name": "pulp_genesys2"
+  },
+
+  "config": {
+    "rt": {
+      "iodev": "uart"
+    }
+  }
+
+}

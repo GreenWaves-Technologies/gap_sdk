@@ -1,0 +1,55 @@
+{
+  "name": "Hyperflash",
+
+  "datasheet": {
+    "type": "hyper",
+    "size": "64MB",
+    "block-size": "256KB"
+  },
+
+  "models": {
+      "rtl": {
+          "stimuli": {
+              "format": "slm",
+              "file": "slm_files/flash_stim.slm"
+          }
+      }
+  },
+
+  "content": {
+      "partitions": {
+          "readfs": {
+              "type": "readfs",
+              "enabled": false,
+              "files": []
+          },
+          "hostfs": {
+              "type": "hostfs",
+              "files": []
+          },
+          "lfs": {
+              "type": "lfs",
+              "enabled": false,
+              "root_dir": null
+          }
+      }
+  },
+
+  "doc_rst": "devices/hyperflash.rst",
+  "description": "Hyperflash model",
+  "platforms": [ "gvsoc" ],
+
+  "generator": "generators/v1/devices/hyper_gen",
+  "interface": "hyper0",
+
+    "vp_class": "devices/hyperbus/hyperflash",
+    "vp_component": "devices.hyperbus.hyperflash_impl",
+
+    "size": "0x04000000",
+    "fs": {
+      "files": [],
+      "encrypt": false,
+      "aes_key": 0,
+      "aes_iv": 0
+    }
+}

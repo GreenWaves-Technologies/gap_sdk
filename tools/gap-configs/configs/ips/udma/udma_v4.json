@@ -1,0 +1,8 @@
+{
+  "version": 4,
+  "archi"  : 4,
+
+  "vp_class": "pulp/udma/udma_v4",
+
+  "nb_channels": 32
+}

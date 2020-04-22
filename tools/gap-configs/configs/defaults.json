@@ -1,0 +1,30 @@
+{
+  "pulp_compiler": "gcc",
+
+  "pulp_rt_version": "bench",
+
+  "pulp_omp_version": {
+    "default" : "libgomp",
+    "libgomp" : {},
+    "new"     : {}
+  },
+
+  "testbench": {
+    "use_dpi": false
+  },
+
+  "gdb": {
+    "active": false
+  },
+
+  "loader": {
+    "bridge": "none",
+    "cable": "proxy",
+    "binaries": [],
+    "boot": {
+      "mode": "jtag"
+    }
+  },
+
+  "platform": "gvsoc"
+}

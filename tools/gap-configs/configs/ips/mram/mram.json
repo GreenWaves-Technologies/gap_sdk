@@ -1,0 +1,7 @@
+{
+  "version": 1,
+
+  "vp_class": "pulp/mram/mram_v1",
+  "vp_component": "pulp.mram.mram_v1_impl"
+
+}

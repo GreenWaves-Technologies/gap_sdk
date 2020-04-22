@@ -1,0 +1,50 @@
+{
+  "@includes@": [ "ips/udma/udma_v4.json"],
+
+  "vp_impl": "pulp.udma.udma_v4_gap9_v2_impl",
+  "vp_component": "pulp.udma.udma_v4_gap9_v2_impl",
+
+  "nb_periphs": 18,
+
+  "properties": {
+    "l2_read_fifo_size": 8
+  },
+
+  "interfaces" : ["spim", "hyper", "i2s", "uart"],
+
+  "spim": {
+    "version"      : 4,
+    "nb_channels"  : 4,
+    "ids"          : [0, 1, 2, 3],
+    "offsets"      : ["0x000", "0x080", "0x100", "0x180"],
+    "is_master"    : true,
+    "eot_events"   : [ 40, 41, 42, 43 ]
+  },
+
+  "hyper": {
+    "version"      : 3,
+    "nb_channels"  : 2,
+    "ids"          : [13, 14],
+    "offsets"      : ["0x680", "0x700"],
+    "is_master"    : true,
+    "eot_events"   : [ 71, 72 ]
+  },
+
+  "uart": {
+    "version"      : 2,
+    "nb_channels"  : 5,
+    "ids"          : [4, 5, 6, 7, 8],
+    "offsets"      : ["0x200", "0x280", "0x300", "0x380", "0x400"],
+    "is_master"    : true
+  },
+
+  "i2s": {
+    "version"      : 3,
+    "nb_channels"  : 1,
+    "ids"          : [11],
+    "offsets"      : ["0x580"],
+    "is_slave"     : true,
+    "is_dual"      : true
+  }
+
+}

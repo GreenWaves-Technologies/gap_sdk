@@ -1,0 +1,16 @@
+{
+  "name": "JTAG_proxy",
+  "doc_rst": "devices/jtag_proxy.rst",
+  "description": "JTAG proxy for connecting debug bridge to the platform through sockets",
+  "platforms": [ "gvsoc", "rtl" ],
+
+  "generator": "generators/v1/devices/jtag_proxy_gen",
+
+  "config": {
+    "type": "dpi",
+    "active": false,
+    "module": "jtag_proxy.so",
+    "verbose": false,
+    "port": 37539
+  }
+}

@@ -1,0 +1,271 @@
+{
+
+  "regmap": {
+
+    "info": {
+
+      "info": {
+        "offset": "0x000",
+        "help"  : "CONTAINS NUMBER OF CORES [31:16] AND CLUSTERS [15:0]"
+      }
+
+    },
+
+
+
+    "loader": {
+
+      "corestatus": {
+        "offset": "0x80",
+        "help"  : "32bit GP register to be used during testing to return EOC(bit[31]) and status(bit[30:0])"
+      },
+
+      "jtagreg": {
+        "offset": "0x84",
+        "help"  : "JTAG REG"
+      }
+
+    },
+
+
+
+    "user": {
+
+      "cs_ro": {
+        "offset": "0x100",
+        "help"  : "32bit GP register to be used during testing to return EOC(bit[31]) and status(bit[30:0]) Read Only mirror"
+      }
+
+    },
+
+
+
+    "pads": {
+
+      "padfun0": {
+        "offset": "0x180",
+        "help"  : "sets the mux for pins  0 (bits [1:0]) to 15 (bits [31:30]"
+      },
+      "padfun1": {
+        "offset": "0x184",
+        "help"  : "sets the mux for pins  16 (bits [1:0]) to 31 (bits [31:30]"
+      },
+      "padfun2": {
+        "offset": "0x188",
+        "help"  : "sets the mux for pins  32 (bits [1:0]) to 47 (bits [31:30]"
+      },
+      "padfun3": {
+        "offset": "0x18C",
+        "help"  : "sets the mux for pins  48 (bits [1:0]) to 63 (bits [31:30]"
+      },
+      "padcfg0": {
+        "offset": "0x190",
+        "help"  : "sets config for pin  0(bits [7:0]) to pin  3(bits [31:24])"
+      },
+      "padcfg1": {
+        "offset": "0x194",
+        "help"  : "sets config for pin  4(bits [7:0]) to pin  7(bits [31:24])"
+      },
+      "padcfg2": {
+        "offset": "0x198",
+        "help"  : "sets config for pin  8(bits [7:0]) to pin  11(bits [31:24])"
+      },
+      "padcfg3": {
+        "offset": "0x19C",
+        "help"  : "sets config for pin  12(bits [7:0]) to pin  15(bits [31:24])"
+      },
+      "padcfg4": {
+        "offset": "0x1A0",
+        "help"  : "sets config for pin  16(bits [7:0]) to pin  19(bits [31:24])"
+      },
+      "padcfg5": {
+        "offset": "0x1A4",
+        "help"  : "sets config for pin  20(bits [7:0]) to pin  23(bits [31:24])"
+      },
+      "padcfg6": {
+        "offset": "0x1A8",
+        "help"  : "sets config for pin  24(bits [7:0]) to pin  27(bits [31:24])"
+      },
+      "padcfg7": {
+        "offset": "0x1AC",
+        "help"  : "sets config for pin  28(bits [7:0]) to pin  31(bits [31:24])"
+      },
+      "padcfg8": {
+        "offset": "0x1B0",
+        "help"  : "sets config for pin  32(bits [7:0]) to pin  35(bits [31:24])"
+      },
+      "padcfg9": {
+        "offset": "0x1B4",
+        "help"  : "sets config for pin  36(bits [7:0]) to pin  39(bits [31:24])"
+      },
+      "padcfg10": {
+        "offset": "0x1B8",
+        "help"  : "sets config for pin  40(bits [7:0]) to pin  43(bits [31:24])"
+      },
+      "padcfg11": {
+        "offset": "0x1BC",
+        "help"  : "sets config for pin  44(bits [7:0]) to pin  47(bits [31:24])"
+      },
+      "padcfg12": {
+        "offset": "0x1C0",
+        "help"  : "sets config for pin  48(bits [7:0]) to pin  51(bits [31:24])"
+      },
+      "padcfg13": {
+        "offset": "0x1C4",
+        "help"  : "sets config for pin  52(bits [7:0]) to pin  55(bits [31:24])"
+      },
+      "padcfg14": {
+        "offset": "0x1C8",
+        "help"  : "sets config for pin  56(bits [7:0]) to pin  59(bits [31:24])"
+      },
+      "padcfg15": {
+        "offset": "0x1CC",
+        "help"  : "sets config for pin  60(bits [7:0]) to pin  63(bits [31:24])"
+      }
+    },
+
+
+
+    "power": {
+
+      "clusiso": {
+        "offset": "0x200",
+        "help"  : "ISOLATION REGISTER FOR THE CLUSTER"
+      },
+
+      "clusbusy": {
+        "offset": "0x204",
+        "help"  : "CLUSTER BUSY SIGNAL (read only)"
+      },
+
+      "cluster_byp": {
+        "offset": "0x208",
+        "help"  : "CLUSTER PMU BYPASS"
+      },
+
+      "l2_sleep": {
+        "offset": "0x20C",
+        "help"  : "L2 MEMORY SLEEP"
+      },
+      "sleep_ctrl": {
+        "offset": "0x210",
+        "help"  : "RO register with configuration of sleep/wake"
+      }
+
+    },
+
+
+
+    "clock": {
+
+      "clk_sel": {
+        "offset": "0x280",
+        "help"  : ""
+      },
+      "clk_div_soc": {
+        "offset": "0x284",
+        "help"  : ""
+      },
+      "clk_div_clu": {
+        "offset": "0x288",
+        "help"  : ""
+      },
+      "clk_div_per": {
+        "offset": "0x28C",
+        "help"  : ""
+      }
+
+    },
+
+
+
+    "boot": {
+
+      "fcboot": {
+        "offset": "0x300",
+        "help"  : "UNUSED"
+      },
+      "fcfetch": {
+        "offset": "0x304",
+        "help"  : "UNUSED"
+      },
+      "bootsel": {
+        "offset": "0x308",
+        "help"  : "bootsel"
+      }
+
+    }
+
+
+
+    "safe": {
+
+      "rar": {
+        "offset": "0x400",
+        "help"  : "PMU register"
+      },
+
+      "sleep_ctrl": {
+        "offset": "0x404",
+        "help"  : "PMU register"
+      },
+
+      "notused": {
+        "offset": "0x408",
+        "help"  : "PMU register"
+      },
+
+      "pgcfg": {
+        "offset": "0x40C",
+        "help"  : "PMU register"
+      },
+
+      "sleeppadcfg0": {
+        "offset": "0x450",
+        "help"  : "sets the pad sleep mode for pins  0 (bits [1:0]) to 15 (bits [31:30]) BITS 0 = OUTPUT ENABLE, BITS 1 = OUTPUT DATA"
+      },
+
+      "sleeppadcfg1": {
+        "offset": "0x454",
+        "help"  : "sets the pad sleep mode for pins  16 (bits [1:0]) to 31 (bits [31:30]) BITS 0 = OUTPUT ENABLE, BITS 1 = OUTPUT DATA"
+      },
+
+      "sleeppadcfg2": {
+        "offset": "0x458",
+        "help"  : "sets the pad sleep mode for pins  32 (bits [1:0]) to 47 (bits [31:30]) BITS 0 = OUTPUT ENABLE, BITS 1 = OUTPUT DATA"
+      },
+
+      "sleeppadcfg3": {
+        "offset": "0x45C",
+        "help"  : "sets the pad sleep mode for pins  48 (bits [1:0]) to 63 (bits [31:30]) BITS 0 = OUTPUT ENABLE, BITS 1 = OUTPUT DATA"
+      },
+
+      "padlseep": {
+        "offset": "0x460",
+        "help"  : "sets the pad sleep mode on (1= on, 0= off)"
+      },
+
+      "rtc_clock": {
+        "offset": "0x4D0",
+        "help"  : ""
+      },
+
+      "rtc_alarm": {
+        "offset": "0x4D4",
+        "help"  : ""
+      },
+
+      "rtc_timer": {
+        "offset": "0x4D8",
+        "help"  : ""
+      },
+
+      "rtc_date": {
+        "offset": "0x4DC",
+        "help"  : ""
+      }
+
+    }
+
+  }
+}
