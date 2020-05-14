@@ -18,7 +18,6 @@ import sys
 from typing import Sequence
 
 import numpy as np
-from skimage.transform import resize
 
 from graph.types import (ActivationParameters, ConcatParameters,
                          ConstantInputParameters, Conv2DParameters,
@@ -46,7 +45,7 @@ LOG = logging.getLogger("nntool." + __name__)
 class Executer():
 
     @classmethod
-    def execute(cls, node, in_tensors, qrec=None):
+    def execute(cls, node, in_tensors, qrec=False, detect_overflow=True):
         execute_switch = {
             Conv2DParameters: cls.execute_conv2d,
             FcParameters: cls.execute_linear,
@@ -69,7 +68,8 @@ class Executer():
         }
         func = execute_switch.get(node.__class__)
         if func:
-            LOG.debug("executing step %s params %s", node.step_idx, node.__class__.__name__)
+            if func == cls.execute_conv2d:
+                return func(node, in_tensors, qrec, detect_overflow)
             return func(node, in_tensors, qrec)
         raise NotImplementedError("kernel for node %s is not implemented" % node.__class__)
 
@@ -159,18 +159,20 @@ class Executer():
         value = in_tensors[node.index]
         if value.size == node.dims.size():
             value = value.reshape(node.dims.shape)
-        else:
-            value = resize(value, node.dims.shape)
+        #else:
+        #    value = resize(value, node.dims.shape)
         if qrec:
             value = qrec.out_qs[0].quantize(value)
 
         # ensure that the shape of the input is correct
         try:
             value = value.reshape(node.dims.shape)
+
         except ValueError as ex:
             trace_back = sys.exc_info()[2]
             raise ValueError(
-                "Input data dimensions are not compatible with graph input: {!s}".format(ex)
+                "Input data dimensions are not compatible with graph input: {!s} try -W and -H flags \
+                to force the input dimensions to specific value".format(ex)
             ).with_traceback(trace_back)
         if node.transpose_out:
             value = np.transpose(value, node.transpose_out)
@@ -225,15 +227,13 @@ class Executer():
     @staticmethod
     def execute_conv2d(node: Conv2DParameters,
                        in_tensors: Sequence[np.array],
-                       qrec: FilterQuantizationRecord = None):
+                       qrec: FilterQuantizationRecord = None,
+                       detect_overflow = True):
 
         if qrec:
             weights = qrec.weights_q.quantize(node.weights)
-            biases = qrec.biases_q.quantize(node.biases)
-            if node.has_mul_bias:
-                mul_biases = qrec.mul_biases_q.quantize(node.mul_biases)
-            else:
-                mul_biases = None
+            biases = qrec.biases_q.quantize(node.biases) if node.has_bias else None
+            mul_biases = qrec.mul_biases_q.quantize(node.mul_biases) if node.has_mul_bias else None
         else:
             weights = node.weights
             biases = node.biases
@@ -248,5 +248,6 @@ class Executer():
                      biases,
                      mul_biases=mul_biases,
                      qrec=qrec,
-                     details=details)
+                     details=details,
+                     detect_overflow=detect_overflow)
         return [res], details

@@ -37,19 +37,22 @@
  * Definitions
  ******************************************************************************/
 
-struct i2s_driver_fifo_s
+struct i2s_itf_data_s
 {
     /* Best to use only one queue since both RX & TX can be used at the same time. */
     struct pi_task *fifo_head;  /* Head of SW fifo waiting transfers. */
     struct pi_task *fifo_tail;  /* Tail of SW fifo waiting transfers. */
     uint32_t device_id;
+    uint32_t nb_open;
     uint32_t frequency;
     uint32_t frame_clk_freq;
     uint32_t udma_cfg;
-    uint32_t nb_open;
     uint32_t pending_size;
     size_t block_size;
     uint8_t i2s_id;
+    uint16_t pdm_decimation;
+    int8_t pdm_shift;
+    uint8_t pdm_filter_ena;
     //uint8_t shift;
     uint8_t word_size;
     uint8_t channels;
@@ -77,20 +80,65 @@ struct i2s_driver_fifo_s
  * Function declaration
  ******************************************************************************/
 
+/**
+ * \brief Init i2s configuration structure.
+ *
+ * \param conf           Pointer to i2s conf.
+ */
 void __pi_i2s_conf_init(struct pi_i2s_conf *conf);
 
-int32_t __pi_i2s_open(struct pi_i2s_conf *conf);
+/**
+ * \brief Open i2s device.
+ *
+ * \param conf           Pointer to i2s conf.
+ * \param device_data    Pointer to device data.
+ *
+ * \retval 0             Operation is successful.
+ * \retval ERRNO         Error code.
+ */
+int32_t __pi_i2s_open(struct pi_i2s_conf *conf, struct i2s_itf_data_s **device_data);
 
-void __pi_i2s_close(uint8_t i2s_id);
+/**
+ * \brief Close i2s device.
+ *
+ * \param i2s_id         ID of i2s interface.
+ */
+void __pi_i2s_close(struct i2s_itf_data_s *itf_data);
 
-int32_t __pi_i2s_ioctl(uint8_t i2s_id, uint32_t cmd, void *arg);
+/**
+ * \brief Ioctl function.
+ *
+ * \param i2s_id         ID of i2s interface.
+ * \param cmd            Ioctl command.
+ * \param arg            Ioctl argument.
+ *
+ * \retval -1            Uknown command.
+ * \retval Value         Ioctl command return value.
+ */
+int32_t __pi_i2s_ioctl(struct i2s_itf_data_s *itf_data, uint32_t cmd, void *arg);
 
-int32_t __pi_i2s_read(uint8_t i2s_id, void **mem_block, size_t *size);
+/**
+ * \brief Load data from micro.
+ *
+ * \param itf_data       Pointer to driver data.
+ * \param task           Pointer to struct pi_task.
+ */
+int32_t __pi_i2s_read_async(struct i2s_itf_data_s *itf_data, pi_task_t *task);
 
-int32_t __pi_i2s_read_async(uint8_t i2s_id, pi_task_t *task);
-
+/**
+ * \brief Return status.
+ *
+ * \param task           Pointer to struct pi_task.
+ * \param mem_block      Pointer to data buffer.
+ * \param size           Pointer to size.
+ */
 int32_t __pi_i2s_read_status(pi_task_t *task, void **mem_block, size_t *size);
 
-int32_t __pi_i2s_write(uint8_t i2s_id, void *mem_block, size_t size);
+/**
+ * \brief Setup misc flags.
+ *
+ * \param flags          Flags to set.
+ */
+void __pi_i2s_setup(uint32_t flags);
 
 #endif  /* __I2S_INTERNAL_H__ */

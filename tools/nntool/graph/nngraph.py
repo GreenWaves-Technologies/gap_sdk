@@ -24,7 +24,7 @@ from utils.node_id import NodeId
 from .dim import Dim
 from .dump_tensor import PrintDumper, dump_tensor
 from .graph_identity import GraphIdentity
-from .manipulations import add_dimensions, adjust_order, calculate_liveness, balance_filter
+from .manipulations import add_dimensions, adjust_order, calculate_liveness, balance_filter, balance_all_filters
 from .types import (ConstantInputParameters, FilterParameters,
                     ConvFusionParameters, InputBaseParameters, InputParameters,
                     OutputParameters, MultiplicativeBiasParameters)
@@ -255,23 +255,25 @@ class NNGraph(Graph):
         LOG.info("calculate liveness")
         self.graph_state.liveness = calculate_liveness(self, self.graph_state.steps)
 
-    def balance_filter(self, step_idx):
-        if step_idx > len(self.graph_state.steps) or step_idx < 0:
-            raise ValueError("step idx out of range")
-        node = self.graph_state.steps[step_idx]['node']
-        if not isinstance(node, MultiplicativeBiasParameters):
-            raise ValueError("weights can only be balanced on nodes that support multiplicative bias")
-        balance_filter(node)
-
-    def get_weights_by_step(self):
-        weights = []
-        for step in self.graph_state.steps:
-            node = step['node']
-            if isinstance(node, (FilterParameters, ConvFusionParameters)):
-                weights.append({'weights': node.quantized_weights, 'biases': node.quantized_biases})
+    def balance_filters(self, step_idx=None, precision_threshold=0.20):
+        if step_idx is not None:
+            if step_idx > len(self.graph_state.steps) or step_idx < 0:
+                raise ValueError("step idx out of range")
+            pnode = self.graph_state.steps[step_idx]['node']
+            if isinstance(pnode, ConvFusionParameters):
+                fnode = pnode.contained_filters()
+                if len(fnode) > 1:
+                    raise NotImplementedError("fusions with more than one contained filter is not supported")
+                fnode = fnode[0]
+                node = fnode
             else:
-                weights.append(None)
-        return weights
+                node = pnode
+                fnode = None
+            if not isinstance(node, MultiplicativeBiasParameters):
+                raise ValueError("weights can only be balanced on nodes that support multiplicative bias")
+            balance_filter(pnode, fnode=fnode, G=self)
+        else:
+            balance_all_filters(self, precision_threshold=precision_threshold)
 
     def print_intermediates(self, outputs, limit=None, width=8,
                             precision=4, channel=None, order=None):

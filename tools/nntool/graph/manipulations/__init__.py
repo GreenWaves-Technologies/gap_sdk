@@ -16,4 +16,4 @@
 from .dimensions import add_dimensions
 from .adjust_order import adjust_order
 from .liveness import calculate_liveness
-from .balance_filter import balance_filter
+from .balance_filter import balance_filter, balance_all_filters

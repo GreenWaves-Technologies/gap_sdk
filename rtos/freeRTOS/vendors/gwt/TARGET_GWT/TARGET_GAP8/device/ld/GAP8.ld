@@ -68,6 +68,11 @@ SECTIONS
         *(.text.reset)
         *(.text)
         *(.text.*)
+        . = ALIGN(4);
+        __cluster_text_start = .;
+        *(.cluster.text)
+        *(.cluster.text.*)
+        __cluster_text_end = .;
         _etext  =  .;
         *(.lit)
         *(.shdata)
@@ -136,13 +141,14 @@ SECTIONS
       PROVIDE_HIDDEN (__fini_array_end = .);
     } > L2
 
-
     .rodata : {
         /* Due to limitations on FPGA loader, loadable sections must have base and size aligned on 4 bytes */
         . = ALIGN(4);
-        *(.rodata);
+        *(.rodata)
         *(.rodata.*)
-        . = ALIGN(4);
+        *(.srodata)
+        *(.srodata.*)
+        *(.eh_frame*)
     } > L2
 
     /* or1k-specific */
@@ -177,6 +183,9 @@ SECTIONS
         __data_start__ = .;      /* create a global symbol at data start */
         *(.data);
         *(.data.*)
+        . = ALIGN(4);
+        *(.sdata)
+        *(.sdata.*)
         KEEP(*(.jcr*))
         . = ALIGN(4);
         __data_end__ = .;        /* define a global symbol at data end */
@@ -249,10 +258,10 @@ SECTIONS
 
     .heapfcram (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__ ) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__)
     {
-        . = ALIGN(4);
+        . = ALIGN(8);
         *(.heapfcram)
 
-        . = ALIGN(4);
+        . = ALIGN(8);
         __heapfcram_start = .;
     } > FC_tcdm
 
@@ -283,7 +292,7 @@ SECTIONS
         . = ALIGN(4);
         *(.libgomp)
         *(.libgomp.*)
-        . = ALIGN(4);
+        . = ALIGN(8);
         __heapsram_start = .;
     } > L1_sram AT> L2
 
@@ -292,10 +301,10 @@ SECTIONS
 
     .heapl2ram (__l1_preload_start_inL2 + __l1_preload_size) :
     {
-        . = ALIGN(4);
+        . = ALIGN(8);
         *(.heapl2ram)
         *(.heapl2ram.*)
-        . = ALIGN(4);
+        . = ALIGN(8);
         __heapl2ram_start = .;
     } > L2
 

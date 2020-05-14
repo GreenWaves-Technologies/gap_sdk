@@ -295,9 +295,18 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 class ConcatParameters(Transposable):
     op_name = "concat"
 
-    def __init__(self, *args, axis=None, **kwargs):
+    def __init__(self, *args, axis=None, axis_hint=None, **kwargs):
         super(ConcatParameters, self).__init__(*args, **kwargs)
-        self.axis = axis
+        self._axis = axis
+        self._axis_hint = axis_hint
+
+    @property
+    def axis(self):
+        return self._axis
+
+    @axis.setter
+    def axis(self, val):
+        self._axis = val
 
     def get_parameter_size(self):
         return 0
@@ -307,6 +316,8 @@ class ConcatParameters(Transposable):
         return False
 
     def get_output_size(self, in_dims):
+        if in_dims[0].is_named and self._axis_hint:
+            self._axis = in_dims[0].get_order_idx(self._axis_hint)
         self.in_dims = in_dims
         if self.transpose_in:
             in_dims = [in_dim.clone().transpose(self.transpose_in) for in_dim in in_dims]
@@ -409,18 +420,6 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput):
 
     def get_parameter_size(self):
         return sum([node.get_parameter_size() for node in self.contained_nodes()])
-
-    @property
-    def quantized_weights(self):
-        filters = self.contained_filters()
-        if filters:
-            return filters[0].quantized_weights
-
-    @property
-    def quantized_biases(self):
-        filters = self.contained_filters()
-        if filters:
-            return filters[0].quantized_biases
 
     def __str__(self):
         return "{} {}".format(", ".join([str(node).strip() for node in self.contained_nodes()]), self.gen_ctrl or "")

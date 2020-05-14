@@ -47,10 +47,6 @@ L2_MEM short int *ResOut;
 typedef signed char IMAGE_IN_T;
 L2_MEM IMAGE_IN_T *ImageIn;
 
-#ifdef PERF
-L2_MEM rt_perf_t *cluster_perf;
-#endif
-
 static void RunNetwork()
 {
   printf("Running on cluster\n");

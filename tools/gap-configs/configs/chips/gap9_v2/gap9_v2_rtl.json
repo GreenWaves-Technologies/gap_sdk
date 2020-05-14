@@ -19,6 +19,15 @@
         "mic0": {
           "@includes@": ["devices/microphone.json"]
         },
+        "mic1": {
+          "@includes@": ["devices/microphone.json"]
+        },
+        "mic2": {
+          "@includes@": ["devices/microphone.json"]
+        },
+        "mic3": {
+          "@includes@": ["devices/microphone.json"]
+        },
         "sink0": {
           "@includes@": ["devices/speaker.json"]
         },
@@ -30,6 +39,12 @@
       "bindings": [
         [ "chip.uart0", "uart.input" ],
         [ "mic0.i2s", "chip.i2s0" ],
+        [ "mic1.i2s", "chip.i2s0" ],
+        [ "mic2.i2s", "chip.i2s0" ],
+        [ "mic3.i2s", "chip.i2s0" ],
+        [ "mic0.ws_out", "mic1.ws_in" ],
+        [ "mic1.ws_out", "mic2.ws_in" ],
+        [ "mic2.ws_out", "mic3.ws_in" ],
         [ "sink0.i2s", "chip.i2s0" ]
       ],
     

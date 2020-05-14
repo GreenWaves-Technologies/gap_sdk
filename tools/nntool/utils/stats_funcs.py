@@ -78,9 +78,9 @@ def do_stat(npa, do_bits=True, channel_dim=None, all_channel_range=None):
             # there is no point to this if there is only one item per channel
             if not all(npa.shape[axis] == 1 if axis != channel_dim else True for axis in range(len(npa.shape))):
                 dims = tuple(dim for dim in range(len(npa.shape)) if dim != channel_dim)
-                ret['min_prec'] = np.average(np.ptp(npa, axis=dims)/all_channel_range)
+                ret['avg_prec'] = np.average(np.ptp(npa, axis=dims)/all_channel_range)
         else:
-            ret['min_prec'] = np.ptp(npa)/all_channel_range
+            ret['avg_prec'] = np.ptp(npa)/all_channel_range
 
     return ret
 

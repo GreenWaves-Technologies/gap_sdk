@@ -34,6 +34,8 @@
 /* PMSIS api includes. */
 /* Chips specifics. */
 #include "pmsis/chips/gap8/perf.h"
+#include "pmsis/chips/gap8/pad.h"
+#include "pmsis/chips/gap8/gpio.h"
 
 /* Drivers. */
 #include "pmsis/drivers/cpi.h"

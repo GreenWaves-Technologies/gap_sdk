@@ -133,7 +133,7 @@ void *__malloc_extern(malloc_t *a, int32_t size)
 
 uint32_t __attribute__((noinline)) __malloc_extern_free(malloc_t *a, void *_chunk, int32_t size)
 {
-    malloc_chunk_t *chunk = NULL, *new = NULL;
+    malloc_chunk_t *chunk = NULL;
     malloc_chunk_t *next = a->first_free, *prev = 0;
     size = ALIGN_UP(size, MIN_CHUNK_SIZE);
 

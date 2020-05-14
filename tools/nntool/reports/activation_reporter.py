@@ -73,7 +73,7 @@ def do_row(table, step_idx, node_name, stat, threshold, total):
     row.extend([stat['wols'], stat['sols'], stat['min_out'],
                 stat['max_out']])
     row.append(stat['ibits'])
-    row.append(stat['min_prec'] if 'min_prec' in stat else None)
+    row.append(stat['avg_prec'] if 'avg_prec' in stat else None)
 
     if 'qstats' not in stat:
         appendn(row, len(STATS_BITS) * 2 + 1)

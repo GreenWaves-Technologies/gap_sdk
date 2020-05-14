@@ -25,6 +25,9 @@
 
 #define UDMA_UART_MAX_SIZE 0x1FFFF
 
+#if defined(UART_FLOW_CONTROL_EMU) && PULP_CHIP == CHIP_VEGA
+#undef UART_FLOW_CONTROL_EMU
+#endif
 
 /*
  * Uart IRQ handler, written in ASM.

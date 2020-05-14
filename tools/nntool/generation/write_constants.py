@@ -18,7 +18,7 @@ import numpy as np
 
 from utils.node_id import NodeId
 
-from graph.types import FilterParameters, ConstantInputParameters
+from graph.types import FilterParameters, ConstantInputParameters, MultiplicativeBiasParameters
 
 
 def write_constants(G, naming_convension, tensor_directory=None):
@@ -48,6 +48,15 @@ def write_constants(G, naming_convension, tensor_directory=None):
             cname = naming_convension.get_global_name(pnode.name, step_idx, pnode, "biases")
             with open(os.path.join(tensor_directory, cname + ".tensor"), 'wb') as t_fp:
                 biases.tofile(t_fp)
+
+            if isinstance(anode, MultiplicativeBiasParameters) and anode.has_mul_bias:
+                mul_biases_q = qrec.mul_biases_q
+                mul_biases = mul_biases_q.quantize(anode.mul_biases)\
+                    .astype(mul_biases_q.dtype, order='C', casting='no', copy=True)
+
+                cname = naming_convension.get_global_name(pnode.name, step_idx, pnode, "mul_biases")
+                with open(os.path.join(tensor_directory, cname + ".tensor"), 'wb') as t_fp:
+                    mul_biases.tofile(t_fp)
         elif isinstance(anode, ConstantInputParameters):
             out_edge = G.out_edges(anode.name)[0]
             eparams = out_edge.params

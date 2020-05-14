@@ -44,7 +44,7 @@ struct pi_cl_dma_cmd_s
 {
     uint32_t tid;
     uint32_t cmd;
-    uint16_t size;
+    uint32_t size;
     uint32_t stride;
     uint32_t length;
     uint32_t loc;
@@ -70,6 +70,7 @@ extern pi_cl_dma_cmd_t *fifo_last;
 static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint16_t len,
                                        uint8_t dir, uint8_t merge, pi_cl_dma_cmd_t *cmd)
 {
+    uint32_t irq = disable_irq();
     int32_t tid = -1;
     if (!merge)
     {
@@ -81,25 +82,30 @@ static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint16_t len,
                                            DMA_ELE_ENA, DMA_ILE_DIS, DMA_BLE_ENA);
     hal_compiler_barrier();
     hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
+    restore_irq(irq);
 }
 
 static inline void __pi_cl_dma_2d_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                        uint32_t stride, uint32_t length,
                                        uint8_t dir, uint8_t merge, pi_cl_dma_cmd_t *cmd)
 {
+    uint32_t irq = disable_irq();
     int32_t tid = -1;
-    if (!merge)
-    {
-        tid = hal_cl_dma_tid_get();
-    }
     if (stride < (1 << 15))
     {
-        cmd->tid = tid;
+        if (!merge)
+        {
+            tid = hal_cl_dma_tid_get();
+        }
         cmd->length = 0;
         uint32_t dma_cmd = hal_cl_dma_cmd_make(len, dir, DMA_INC, DMA_IS_2D,
                                                DMA_ELE_ENA, DMA_ILE_DIS, DMA_BLE_ENA);
         hal_compiler_barrier();
         hal_cl_dma_2d_transfer_push(dma_cmd, loc, ext, stride, length);
+        if (!merge)
+        {
+            cmd->tid = tid;
+        }
     }
     else
     {
@@ -107,9 +113,9 @@ static inline void __pi_cl_dma_2d_copy(uint32_t ext, uint32_t loc, uint32_t len,
         uint32_t iter_length = (len < length) ? len : length;
         uint32_t dma_cmd = hal_cl_dma_cmd_make(iter_length, dir, DMA_INC, DMA_IS_1D,
                                                DMA_ELE_DIS, DMA_ILE_ENA, DMA_BLE_ENA);
-        cmd->loc = loc + iter_length;
-        cmd->ext = ext + stride;
-        cmd->size = len - iter_length;
+        cmd->loc = loc;
+        cmd->ext = ext;
+        cmd->size = len;
         cmd->stride = stride;
         cmd->length = length;
         cmd->cmd = hal_cl_dma_cmd_make(0, dir, DMA_INC, DMA_IS_1D,
@@ -118,21 +124,24 @@ static inline void __pi_cl_dma_2d_copy(uint32_t ext, uint32_t loc, uint32_t len,
         cmd->next = NULL;
 
         hal_compiler_barrier();
-        uint32_t irq = disable_irq();
         if (fifo_first != NULL)
         {
             fifo_last->next = cmd;
         }
         else
         {
+            cmd->loc += iter_length;
+            cmd->ext += stride;
+            cmd->size -= iter_length;
             hal_compiler_barrier();
+            cmd->tid = hal_cl_dma_tid_get();
             hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
             fifo_first = cmd;
         }
         fifo_last = cmd;
         hal_compiler_barrier();
-        restore_irq(irq);
     }
+    restore_irq(irq);
 }
 
 static inline void __pi_cl_dma_wait(pi_cl_dma_cmd_t *cmd)
@@ -144,11 +153,11 @@ static inline void __pi_cl_dma_wait(pi_cl_dma_cmd_t *cmd)
     }
     else
     {
-        while (*(volatile uint16_t *) &(cmd->size) > 0)
+        /* 2D transfer. */
+        while (*(volatile uint32_t *) &(cmd->size) > 0)
         {
-            hal_eu_evt_mask_wait(1 << DMA_SW_IRQN);
+            hal_eu_evt_mask_wait_and_clr(1 << DMA_SW_IRQN);
         }
-        hal_cl_dma_tid_free(cmd->tid);
     }
 }
 

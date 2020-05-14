@@ -969,21 +969,29 @@ void Core_event_unit::check_state()
     }
     else
     {
-      switch (state)
+      if (status_evt_masked)
       {
-        case CORE_STATE_WAITING_EVENT:
-        case CORE_STATE_WAITING_BARRIER:
-        if (status_evt_masked)
+        if (this->pending_elw)
         {
-          top->trace.msg("Activating clock (core: %d)\n", core_id);
-          state = CORE_STATE_NONE;
-          check_wait_mask();
-          if (!wakeup_event->is_enqueued())
+          this->set_state(CORE_STATE_SKIP_ELW);
+        }
+        else
+        {
+          switch (state)
           {
-            top->event_enqueue(wakeup_event, EU_WAKEUP_LATENCY);
+            case CORE_STATE_WAITING_EVENT:
+            case CORE_STATE_WAITING_BARRIER:
+
+              top->trace.msg("Activating clock (core: %d)\n", core_id);
+              state = CORE_STATE_NONE;
+              check_wait_mask();
+              if (!wakeup_event->is_enqueued())
+              {
+                top->event_enqueue(wakeup_event, EU_WAKEUP_LATENCY);
+              }
+              break;
           }
         }
-        break;
       }
     }
   }
@@ -1319,16 +1327,6 @@ void Barrier_unit::check_barrier(int barrier_id)
   {
     trace.msg("Barrier reached, triggering event (barrier: %d, coreMask: 0x%x, targetMask: 0x%x)\n", barrier_id, barrier->core_mask, barrier->target_mask);
     barrier->status = 0;
-
-    for (int i=0; i<this->top->nb_core; i++)
-    {
-      if ((barrier->target_mask >> i) & 1)
-      {
-        Core_event_unit *core_eu = &this->top->core_eu[i];
-        if (core_eu->pending_elw)
-          core_eu->set_state(CORE_STATE_SKIP_ELW);
-      }
-    }
 
     top->trigger_event(1<<barrier_event, barrier->target_mask);
   }

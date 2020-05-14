@@ -39,6 +39,8 @@ GEN_MATADDDYN = "CNN_MatAddDynAdjust"
 GEN_3D_TRANSPOSE = "CNN_3DTensorPermute"
 GEN_GLOBALPOOL = "CNN_GlobalPool"
 GEN_MATSCALE = "CNN_MatScale"
+GEN_MULCONV_POOL_RELU = "CNN_ConvolutionMulBiasPoolReLU"
+GEN_GROUPED_MULCONV_POOL_RELU = "CNN_GroupedConvolutionMulBiasPoolReLU"
 
 
 def gen_ctrl_call(api, op, val, code_block):
@@ -464,6 +466,35 @@ def gen_at_conv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
                      at_pool.PoolPad, at_active.ReLUOper)
     code_block.deindent()
 
+
+def gen_at_mulconv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
+                             filt_q, bias_q, mul_biases_q, in_dim, out_dim,
+                             at_conv, at_pool, at_active, gen_ctrl=None, at_ver=3):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        gen_ctrl = gen_ctrl.ctrl_name
+
+    if at_ver < 3:
+        raise NotImplementedError("mulbias before ver 3 not supported")
+
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, 1, {}, {}, {}, {},',
+                     GEN_MULCONV_POOL_RELU, name, gen_ctrl,
+                     at_bits(in_q), at_bits(filt_q), at_bits(
+                         bias_q), at_bits(mul_biases_q), at_bits(out_q),
+                     in_q.q, filt_q.q, bias_q.q, mul_biases_q.q, out_q.q,
+                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    code_block.indent()
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
+                     at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
+                     at_conv.Dcx, at_conv.Dcy, at_conv.Scx, at_conv.Scy,
+                     at_conv.ConvPad)
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});',
+                     at_pool.PoolOper, at_pool.Fpx, at_pool.Fpy,
+                     at_pool.Dpx, at_pool.Dpy, at_pool.Spx, at_pool.Spy,
+                     at_pool.PoolPad, at_active.ReLUOper)
+    code_block.deindent()
+
 # extern void CNN_ConvolutionPoolReLU(
 # 	char         *Name,
 
@@ -533,6 +564,37 @@ def gen_at_grouped_conv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
                          at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
                          in_q.q, filt_q.q, bias_q.q, out_q.q,
                          in_dim.c, out_dim.c, in_dim.w, in_dim.h)
+    code_block.indent()
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
+                     at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
+                     at_conv.Dcx, at_conv.Dcy, at_conv.Scx, at_conv.Scy,
+                     at_conv.ConvPad)
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});',
+                     at_pool.PoolOper, at_pool.Fpx, at_pool.Fpy,
+                     at_pool.Dpx, at_pool.Dpy, at_pool.Spx, at_pool.Spy,
+                     at_pool.PoolPad, at_active.ReLUOper)
+    code_block.deindent()
+
+
+def gen_at_grouped_mulconv_pool_relu(code_block: CodeBlock, name, in_q, out_q,
+                                     filt_q, bias_q, mul_biases_q, in_dim, out_dim,
+                                     at_conv, at_pool, at_active, gen_ctrl=None,
+                                     at_ver=3):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        gen_ctrl = gen_ctrl.ctrl_name
+
+    if at_ver < 3:
+        raise NotImplementedError("mulbias before ver 3 not supported")
+
+    code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, 1, {}, {}, {}, {},',
+                     GEN_GROUPED_MULCONV_POOL_RELU, name, gen_ctrl,
+                     at_conv.GroupIn, at_conv.GroupOut,
+                     at_bits(in_q), at_bits(filt_q), at_bits(bias_q),
+                     at_bits(mul_biases_q), at_bits(out_q),
+                     in_q.q, filt_q.q, bias_q.q, mul_biases_q.q, out_q.q,
+                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
     code_block.indent()
     code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
                      at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
@@ -651,8 +713,8 @@ def gen_at_softmax(code_block: CodeBlock, name, in_q, out_q,
 
 # /** \brief CNN_GlobalPool
 #  *  Generator for Global Pooling (Max or Average)
-#  * 
- 
+#  *
+
 #     \param    Name:           Name of the generated user kernel
 
 #     \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
@@ -772,6 +834,8 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
         in_q = conv_q.in_qs[0]
         out_q = conv_q.out_qs[0]
         bias_q = conv_q.biases_q
+        if conv_params.has_mul_bias:
+            mul_biases_q = conv_q.mul_biases_q
     else:
         at_conv_params = NO_CONV
 
@@ -829,17 +893,32 @@ def gen_conv_pool_relu(name, conv_params, conv_q, pool_params, pool_q, act_param
                          at_ver=at_ver)
     else:
         if isinstance(at_conv_params, ConvATParam):
-            LOG.debug("%s: conv pool relu inq %s outq %s control block", name, in_q, out_q)
-            gen_at_conv_pool_relu(code_block, name, in_q, out_q,
-                                  filter_q, bias_q,
-                                  in_dim, out_dim, at_conv_params, at_pool_params,
-                                  at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
+            if conv_params.has_mul_bias:
+                LOG.debug("%s: mulconv pool relu inq %s outq %s control block", name, in_q, out_q)
+                gen_at_mulconv_pool_relu(code_block, name, in_q, out_q,
+                                         filter_q, bias_q, mul_biases_q,
+                                         in_dim, out_dim, at_conv_params, at_pool_params,
+                                         at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
+            else:
+                LOG.debug("%s: conv pool relu inq %s outq %s control block", name, in_q, out_q)
+                gen_at_conv_pool_relu(code_block, name, in_q, out_q,
+                                      filter_q, bias_q,
+                                      in_dim, out_dim, at_conv_params, at_pool_params,
+                                      at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
         elif isinstance(at_conv_params, GroupedConvATParam):
-            LOG.debug("%s: grouped conv pool relu inq %s outq %s control block", name, in_q, out_q)
-            gen_at_grouped_conv_pool_relu(code_block, name, in_q, out_q,
-                                          filter_q, bias_q,
-                                          in_dim, out_dim, at_conv_params, at_pool_params,
-                                          at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
+            if conv_params.has_mul_bias:
+                LOG.debug("%s: grouped conv pool relu inq %s outq %s control block", name, in_q, out_q)
+                gen_at_grouped_mulconv_pool_relu(code_block, name, in_q, out_q,
+                                                 filter_q, bias_q, mul_biases_q,
+                                                 in_dim, out_dim, at_conv_params, at_pool_params,
+                                                 at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
+            else:
+                LOG.debug("%s: grouped mulconv pool relu inq %s outq %s control block",
+                          name, in_q, out_q)
+                gen_at_grouped_conv_pool_relu(code_block, name, in_q, out_q,
+                                              filter_q, bias_q,
+                                              in_dim, out_dim, at_conv_params, at_pool_params,
+                                              at_act_params, gen_ctrl=gen_ctrl, at_ver=at_ver)
         else:
             raise ValueError('Internal error')
 

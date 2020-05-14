@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+
 from collections import OrderedDict
 
 from graph.types import (Conv2DParameters, FcParameters,
@@ -23,11 +25,12 @@ from utils.stats_funcs import astats, calculate_qsnrs
 from .ranges import Ranges
 from .stats_collector import StatsCollector
 
+LOG = logging.getLogger("nntool." + __name__)
 
 def filter_stats(pnode, fnode, anode, channel_details=None):
     stats = {}
     if isinstance(anode, MultiplicativeBiasParameters) and anode.has_mul_bias:
-        stats['mul_biases'] = mul_biases = astats(anode.biases)
+        stats['mul_biases'] = mul_biases = astats(anode.mul_biases)
         mul_biases['qstats'] = calculate_qsnrs(anode.mul_biases,
                                                mul_biases['ibits'],
                                                force_ideal=False)
@@ -61,8 +64,10 @@ class FilterStatsCollector(StatsCollector):
         for _, pnode, _, fnode in G.nodes_iterator(True):
             if not self.matches_step(step_idx, pnode, fnode):
                 continue
+
             key = NodeId(pnode, fnode)
             anode = pnode if fnode is None else fnode
+            LOG.debug("collecting stats for %s step %s", anode.name, pnode.step_idx)
             if anode.__class__ in STATS_FUNCTIONS:
                 stats[key] = STATS_FUNCTIONS[anode.__class__](pnode, fnode, anode, channel_details=step_idx is not None)
         return stats

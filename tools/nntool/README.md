@@ -38,7 +38,7 @@ When everything is installed, the nntool command line can be accessed with:
 
 	nntool
 
-These staeps will automatically be executed by the GAP SDK setup procedure
+These steps will automatically be executed by the GAP SDK setup procedure
 
 ## Visual-Wake-Words Example
 

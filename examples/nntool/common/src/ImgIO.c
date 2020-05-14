@@ -9,6 +9,10 @@
 #include "ImgIO.h"
 #include "Gap.h"
 
+#ifndef PPM_HEADER
+#define PPM_HEADER                          40
+#endif
+
 #define Max(a, b)               (((a)>(b))?(a):(b))
 #define Min(a, b)               (((a)<(b))?(a):(b))
 

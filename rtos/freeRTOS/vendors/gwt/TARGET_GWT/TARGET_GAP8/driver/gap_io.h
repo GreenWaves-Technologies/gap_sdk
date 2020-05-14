@@ -31,7 +31,6 @@
 #ifndef _GAP_IO_H_
 #define _GAP_IO_H_
 
-#include "gap_util.h"
 #include "printf.h"
 
 /**

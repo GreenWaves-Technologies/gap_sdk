@@ -54,17 +54,36 @@ private:
 };
 
 
+class Outfile_wav : public Output
+{
+
+public:
+    Outfile_wav(Speaker *top, std::string file, int width, int sample_rate);
+    ~Outfile_wav();
+    void write_data(int64_t timestamp, long long int data);
+
+private:
+    Speaker *top;
+#ifdef USE_SNDFILE
+    SndfileHandle *sndfile;
+#endif
+    int width;
+};
+
+
 
 
 
 class Speaker : public vp::component
 {
     friend class Outfile_hex;
+    friend class Outfile_wav;
 
 public:
     Speaker(js::config *config);
 
     int build();
+    void stop();
     int push_data();
 
 protected:
@@ -84,6 +103,7 @@ protected:
     int pending_bits;       // Number of bits of the current sample which remain to be sent
     int width;              // Number of bits of the samples
     int current_value;      // Value of the current sample being sent
+    int sample_rate;
     Output *out = NULL;
     
     vp::trace trace;
@@ -101,7 +121,48 @@ Outfile_hex::Outfile_hex(Speaker *top, std::string file, int width)
 void Outfile_hex::write_data(int64_t timestamp, long long int data)
 {
     this->top->trace.msg(vp::trace::LEVEL_DEBUG, "Writing sample (value: 0x%x)\n", data);
-    fprintf(this->file, "%llx\n", data);
+    fprintf(this->file, "0x%llx\n", data);
+}
+
+
+Outfile_wav::Outfile_wav(Speaker *top, std::string file, int width, int sample_rate)
+: top(top), width(width)
+{
+#ifdef USE_SNDFILE
+
+    unsigned int pcm_width = width == 16 ? SF_FORMAT_PCM_16 : width == 8 ? SF_FORMAT_PCM_S8 : width == 24 ? SF_FORMAT_PCM_24 : SF_FORMAT_PCM_32;
+    this->sndfile = new SndfileHandle (file, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 1, 44100) ;
+
+#else
+
+    this->top->get_trace()->fatal("Unable to open file (%s), libsndfile support is not active\n", file.c_str());
+    return;
+
+#endif
+
+}
+
+
+Outfile_wav::~Outfile_wav()
+{
+}
+
+
+void Outfile_wav::write_data(int64_t timestamp, long long int data)
+{
+    this->top->trace.msg(vp::trace::LEVEL_DEBUG, "Writing sample (value: 0x%x)\n", data);
+#ifdef USE_SNDFILE
+    if (this->width <= 16)
+    {
+        int16_t sample = (int16_t)data;
+        this->sndfile->write(&sample, 1);
+    }
+    else
+    {
+        int32_t sample = (int32_t)data;
+        this->sndfile->write(&sample, 1);
+    }
+#endif
 }
 
 
@@ -126,13 +187,12 @@ int Speaker::build()
     this->current_ws_delay = 0;
     this->pending_bits = 0;
     this->width = this->get_js_config()->get_int("width");
+    this->sample_rate = this->get_js_config()->get_int("sample-rate");
 
     std::string mode = this->get_js_config()->get_child_str("out_mode");
     if (mode == "file")
     {
         std::string out_file = this->get_js_config()->get_child_str("outfile");
-
-        printf("OUT FILE %s\n", out_file.c_str());
 
         if (out_file != "") {
 
@@ -148,6 +208,10 @@ int Speaker::build()
             {
                 this->out = new Outfile_hex(this, out_file, this->width);
             }
+            else if (strcmp(ext, ".wav") == 0)
+            {
+                this->out = new Outfile_wav(this, out_file, this->width, this->sample_rate);
+            }
             else
             {
                 this->get_trace()->fatal("Unsupported file extension: %s\n", out_file.c_str());
@@ -155,6 +219,13 @@ int Speaker::build()
         }
     }
     return 0;
+}
+
+
+void Speaker::stop()
+{
+    if (this->out)
+        delete this->out;
 }
 
 

@@ -71,7 +71,7 @@ class Runner(runner.default_runner.Runner):
 
             if os.environ.get('INSTALL_DIR') is not None:
                 dpi_path = '%s/lib/libpulpdpi' % (os.environ.get('INSTALL_DIR'))
-                if os.path.exists(dpi_path + '.so'):
+                if not os.path.exists(dpi_path + '.so'):
                     raise FatalError('Did no find DPI models: ' + dpi_path + '.so')
 
                 self.set_arg('-sv_lib %s' % dpi_path)
@@ -122,6 +122,7 @@ class Runner(runner.default_runner.Runner):
             self.__create_symlink(plt_path, 'tcl_files')
             self.__create_symlink(plt_path, 'waves')
             self.__create_symlink(plt_path, 'models')
+            self.__create_symlink(plt_path, 'ips_inputs')
 
         else:
 

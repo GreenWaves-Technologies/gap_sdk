@@ -54,6 +54,59 @@ def getOptionValue(value):
     return os.path.expandvars(value)
             
 
+def parse_testset(top_testset, testset, topParent, runner, path, rootdir):
+  if testset.parent != None: parent = testset.struct
+  else: parent = topParent
+
+  testset.struct = Testset(runner, testset.name, path, parent)
+  if top_testset is not None:
+    top_testset.append(testset.struct)
+
+  testset.struct.set_restrict(testset.restrict)
+  testset.struct.set_parallel(testset.parallel)
+
+
+  for file in testset.files:
+    if file.find('.ini') != -1:
+      IniParser(runner, os.path.join(rootdir, file)).parse(testset.struct)
+    else:
+      CfgParser(runner, os.path.join(rootdir, file)).parse(testset.struct)
+
+  for sub_testset in testset.testsets:
+    parse_testset(None, sub_testset, testset.struct, runner, path, rootdir)
+
+  for sub_test in testset.tests:
+    parse_test(None, sub_test, testset.struct, runner, path)
+
+
+  return parent
+
+
+def parse_test(top_testset, test, topParent, runner, path):
+  if test.parent != None: parent = test.struct
+  else: parent = topParent
+
+  logging.debug("Adding test (name: %s)" % (test.name))
+  test.struct = Test(runner, test.name, path, parent)
+  if top_testset is not None:
+    top_testset.append(test.struct)
+
+  for cmd in test.commands:
+    test.struct.addCommand(cmd)
+
+  if test.path != None: test.struct.setDir(test.path)
+
+  test.struct.set_restrict(test.restrict)
+  test.struct.scores = test.scores
+
+  for tag in test.tags:
+    test.struct.addTag(tag)
+
+  test.struct.setTimeout(int(test.timeout))
+
+  for param in test.params:
+    test.struct.addParam(param)
+
 
 class CfgParser(object):
 
@@ -89,22 +142,7 @@ class CfgParser(object):
 
     if testsets != None:
       for testset in testsets:
-
-        if testset.parent != None: parent = testset.struct
-        else: parent = topParent
-
-        testset.struct = Testset(self.runner, testset.name, self.path, parent)
-        top_testset.append(testset.struct)
-
-        testset.struct.set_restrict(testset.restrict)
-        testset.struct.set_parallel(testset.parallel)
-
-
-        for file in testset.files:
-          if file.find('.ini') != -1:
-            IniParser(self.runner, os.path.join(os.path.dirname(self.file), file)).parse(testset.struct)
-          else:
-            CfgParser(self.runner, os.path.join(os.path.dirname(self.file), file)).parse(testset.struct)
+        parent = parse_testset(top_testset, testset, topParent, self.runner, self.path, os.path.dirname(self.file))
 
     files = self.config.get('files')
     if files is not None:
@@ -120,28 +158,7 @@ class CfgParser(object):
     top_tests = []
     if tests != None:
       for test in tests:
-        if test.parent != None: parent = test.struct
-        else: parent = topParent
-
-        logging.debug("Adding test (name: %s)" % (test.name))
-        test.struct = Test(self.runner, test.name, self.path, parent)
-        top_testset.append(test.struct)
-
-        for cmd in test.commands:
-          test.struct.addCommand(cmd)
-
-        if test.path != None: test.struct.setDir(test.path)
-
-        test.struct.set_restrict(test.restrict)
-        test.struct.scores = test.scores
-
-        for tag in test.tags:
-          test.struct.addTag(tag)
-
-        test.struct.setTimeout(int(test.timeout))
-
-        for param in test.params:
-          test.struct.addParam(param)
+        parse_test(top_testset, test, topParent, self.runner, self.path)
 
     return result
 

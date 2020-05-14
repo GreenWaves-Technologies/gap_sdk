@@ -552,24 +552,6 @@ static void hyperflash_program_async(struct pi_device *device, uint32_t hyper_ad
 
 
 
-static void hyperflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
-{
-  hyperflash_t *hyperflash = (hyperflash_t *)device->data;
-
-  if (hyperflash_stall_task(hyperflash, task, STALL_TASK_ERASE_CHIP, 0, 0, 0, 0, 0))
-    return;
-
-  // Enqueue command header synchronously as this should be quick
-  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0xAA);
-  hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
-  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0x80);
-  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0xAA);
-  hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
-  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0x10);
-
-  hyperflash_handle_pending_task(device);
-}
-
 
 
 static void hyperflash_check_erase(void *arg)
@@ -588,6 +570,24 @@ static void hyperflash_check_erase(void *arg)
   }
 }
 
+
+static void hyperflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
+{
+  hyperflash_t *hyperflash = (hyperflash_t *)device->data;
+
+  if (hyperflash_stall_task(hyperflash, task, STALL_TASK_ERASE_CHIP, 0, 0, 0, 0, 0))
+    return;
+
+  // Enqueue command header synchronously as this should be quick
+  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0xAA);
+  hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
+  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0x80);
+  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0xAA);
+  hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
+  hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0x10);
+
+  pi_task_push_delayed_us(pi_task_callback(&hyperflash->task, hyperflash_check_erase, device), 100000);
+}
 
 
 static void hyperflash_erase_sector_async(struct pi_device *device, uint32_t addr, pi_task_t *task)

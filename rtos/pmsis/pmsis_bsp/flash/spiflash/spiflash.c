@@ -515,7 +515,7 @@ static int spiflash_program(struct pi_device *bsp_flash_dev, uint32_t flash_addr
 
 
 int spiflash_reg_set(struct pi_device *bsp_flash_dev, uint32_t reg, uint8_t *value)
-{]
+{
     spi_flash_t *flash_dev  = (spi_flash_t*)bsp_flash_dev->data;
     uint32_t sector_size = flash_dev->sector_size;
     pi_device_t *qspi_dev = &flash_dev->qspi_dev;

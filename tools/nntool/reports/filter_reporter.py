@@ -106,7 +106,7 @@ class FilterStatsReporter(Reporter):
         row = [step_idx, "{}{}_{}".format(node_name, op_name, vartype),
                var['mean'], var['std'], var['min'], var['max'],
                var['wols'], var['sols'], var['min_out'],
-               var['max_out'], var['ibits'], var['min_prec'] if 'min_prec' in var else None]
+               var['max_out'], var['ibits'], var['avg_prec'] if 'avg_prec' in var else None]
         if 'qstats' not in var:
             appendn(row, 7)
             table.add_row(row)

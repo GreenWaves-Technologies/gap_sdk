@@ -19,6 +19,7 @@ import numpy as np
 
 from graph.dim import Dim
 from quantization.quantization_record import FilterQuantizationRecord
+from quantization.qtype import QType
 
 from .utils import pad, prepare_acc, srange
 
@@ -32,6 +33,9 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
     if details is not None:
         details['min_acc'] = float("Infinity")
         details['max_acc'] = float("-Infinity")
+        if params.has_mul_bias:
+            details['pre_mul_bias_min'] = float("Infinity")
+            details['pre_mul_bias_max'] = float("-Infinity")
 
     in_tensor = in_tensor.transpose(in_dims.transpose_to_order(['h', 'w', 'c']))
     if params.padding.h + params.padding.w > 0:
@@ -102,6 +106,9 @@ def faster_conv(params, in_dims: Dim, out_dims: Dim, in_tensor: np.ndarray,
         result = result[:, ::params.stride.h, ::params.stride.w, ...]
 
     if params.has_mul_bias:
+        if details is not None:
+            details['pre_mul_bias_min'] = min(np.min(result), details['pre_mul_bias_min'])
+            details['pre_mul_bias_max'] = max(np.max(result), details['pre_mul_bias_max'])
         result *= mul_biases.reshape(out_c, 1, 1)
 
     return result.transpose(out_dims.transpose_from_order(['c', 'h', 'w']))
@@ -242,13 +249,12 @@ def faster_conv_quantized(params,
     if params.stride.size() > 1:
         result = result[:, ::params.stride.h, ::params.stride.w, ...]
 
+    if params.has_mul_bias:
+        result *= mul_biases.reshape(out_c, 1, 1)
+        result >>= qrec.mul_biases_q.q
+
     if qrec.out_qs[0] != qrec.acc_q:
         result = qrec.out_qs[0].reduce_from(result, qrec.acc_q)
-
-    if params.has_mul_bias:
-        result = result.astype(qrec.calc_q.dtype)
-        result *= mul_biases.reshape(out_c, 1, 1)
-        result = qrec.out_qs[0].reduce_from(result, qrec.out_qs[0] + qrec.mul_biases_q)
 
     return result.transpose(out_dims.transpose_from_order(['c', 'h', 'w']))
 
@@ -263,7 +269,8 @@ def conv2d(params,
            mul_biases: np.ndarray = None,
            qrec=None,
            details=None,
-           allow_faster=True):
+           allow_faster=True,
+           detect_overflow=True):
 
     if allow_faster and params.dilation.size() == 1:
         if qrec:
@@ -274,8 +281,9 @@ def conv2d(params,
                                          in_tensor,
                                          weights,
                                          biases,
-                                         mul_biases,
-                                         details)
+					                     mul_biases,
+                                         details,
+                                         detect_overflow)
         else:
             return faster_conv(params,
                                in_dims,

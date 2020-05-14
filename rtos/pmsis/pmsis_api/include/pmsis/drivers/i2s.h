@@ -80,30 +80,30 @@ typedef uint8_t pi_i2s_fmt_t;
 /** Data order bit field position. */
 #define PI_I2S_CH_FMT_DATA_ORDER_SHIFT       0
 /** Data order bit field mask. */
-#define PI_I2S_CH_FMT_DATA_ORDER_MASK        (1 << 0)
+#define PI_I2S_CH_FMT_DATA_ORDER_MASK        (1 << 3)
 
 /** Data align bit field position. */
 #define PI_I2S_CH_FMT_DATA_ALIGN_SHIFT       1
 /** Data align bit field mask. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_MASK        (1 << 1)
+#define PI_I2S_CH_FMT_DATA_ALIGN_MASK        (1 << 4)
 
 /** Data align bit field position. */
 #define PI_I2S_CH_FMT_DATA_SIGN_SHIFT       2
 /** Data align bit field mask. */
-#define PI_I2S_CH_FMT_DATA_SIGN_MASK        (1 << 2)
+#define PI_I2S_CH_FMT_DATA_SIGN_MASK        (1 << 5)
 
 /** Send MSB first */
-#define PI_I2S_CH_FMT_DATA_ORDER_MSB              (0 << 0)
+#define PI_I2S_CH_FMT_DATA_ORDER_MSB              (0 << 3)
 /** Send LSB first */
-#define PI_I2S_CH_FMT_DATA_ORDER_LSB              (1 << 0)
+#define PI_I2S_CH_FMT_DATA_ORDER_LSB              (1 << 4)
 /** Left Justified Data Format. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_LEFT             (0 << 1)
+#define PI_I2S_CH_FMT_DATA_ALIGN_LEFT             (0 << 4)
 /** Right Justified Data Format. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_RIGHT            (1 << 1)
+#define PI_I2S_CH_FMT_DATA_ALIGN_RIGHT            (1 << 5)
 /** No sign extension. */
-#define PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND         (0 << 2)
+#define PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND         (0 << 5)
 /** Sign extension. */
-#define PI_I2S_CH_FMT_DATA_SIGN_EXTEND            (1 << 2)
+#define PI_I2S_CH_FMT_DATA_SIGN_EXTEND            (1 << 5)
 
 
 typedef uint8_t pi_i2s_opt_t;
@@ -193,7 +193,21 @@ typedef uint8_t pi_i2s_opt_t;
  * In this mode each slot must be configured separately
  * using the I2S configuration. Each slot can have an RX and a TX channel. 
  */
-#define PI_I2S_OPT_TDM                     (1 << 1)
+#define PI_I2S_OPT_TDM                        (1 << 5)
+
+/** @brief Use external clock
+ *
+ * If this option is specified, no clock is generated and an external clock
+ * is used.
+ */
+#define PI_I2S_OPT_EXT_CLK                    (1 << 6)
+
+/** @brief Use external word strobe
+ *
+ * If this option is specified, no word strobe is generated and an external
+ * one is used.
+ */
+#define PI_I2S_OPT_EXT_WS                     (1 << 7)
 
 
 /** IOCTL command */
@@ -277,6 +291,9 @@ struct pi_i2s_conf
         channels minus 1. In TDM mode this gives the ID of the slot to be
         configured. The options field can be used to specify if the RX or TX
         channel must be configured. */
+    int8_t asrc_channel;        /*!< If different from -1, this redirect the
+        specified stream (can be input or output) to/from the ASRC block with
+        the channel specified here. */
 };
 
 

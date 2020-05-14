@@ -19,7 +19,6 @@
 
 #include "pmsis/pmsis_types.h"
 #include "pmsis/drivers/pad.h"
-#include "pmsis/chips/gap8/gpio.h"
 
 /**
  * @ingroup groupDrivers

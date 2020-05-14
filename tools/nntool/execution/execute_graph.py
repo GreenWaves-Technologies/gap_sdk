@@ -467,3 +467,79 @@ def execute(G,
             if all_details is not None:
                 all_details.append(details)
     return outputs
+
+# pylint: disable=too-many-arguments
+def execute_validation(G,
+                       in_tensors,
+                       limit=None,
+                       output_fn=None,
+                       qrecs: Mapping[NodeId, QuantizationRecord] = False,
+                       qmode: QuantizationMode = None,
+                       value_cache=None,
+                       dequantize=True,
+                       validation=False,
+                       all_details=None,
+                       silent=False):
+                       
+    if qmode is None:
+        qmode = QuantizationMode.none()
+    outputs = []
+    outputs.append(execute_iterator_validation(G, in_tensors, limit, qrecs,
+                         qmode, silent))
+    return outputs
+
+#import time
+# pylint: disable=too-many-locals
+def execute_iterator_validation(G,
+                                in_tensors,
+                                limit=None,
+                                qrecs: Mapping[NodeId, QuantizationRecord] = False,
+                                qmode: QuantizationMode = None,
+                                silent=False):
+    if qmode is None:
+        qmode = QuantizationMode.none()
+    if not silent:
+        LOG.info("execute uncached validation: quantization mode %s", qmode)
+    saved_outputs = {}
+    if not silent:
+        ExecutionProgress.start()
+    for step_idx, step in enumerate(G.graph_state.steps):
+
+        if limit is not None and step_idx > limit:
+            break
+
+        node = step['node']
+
+        # collect outputs from previous nodes
+        # InputNode is already set above
+        output = __collect_outputs(saved_outputs, node, G)
+
+        if not silent:  
+            ExecutionProgress.progress(step_idx, node.name)
+
+        nid = NodeId(node, None)
+
+        if qmode.get_quantized(node, step_idx):
+            qrec = qrecs[nid]
+            if qmode.is_step and output:
+                __quantize_input(qrec, output)
+        else:
+            qrec = None
+
+        if isinstance(node, ConvFusionParameters):
+            for fusion_node in node.contained_nodes():
+                fnid = NodeId(node, fusion_node)
+                fqrec = None if not qrec else qrecs[fnid]
+                output, details = Executer.execute(fusion_node, output, qrec=fqrec, detect_overflow=False)
+                #yield step_idx, step, node, output, fusion_node.op_name, fusion_node, details
+        elif isinstance(node, InputParameters):
+            output, details = Executer.execute(node, in_tensors, qrec=qrec, detect_overflow=False)
+        else:
+            output, details = Executer.execute(node, output, qrec=qrec, detect_overflow=False)
+
+        #yield step_idx, step, node, output, None, None, details
+
+        __save_output(saved_outputs, node, output)
+    if not silent:
+        ExecutionProgress.end()
+    return output

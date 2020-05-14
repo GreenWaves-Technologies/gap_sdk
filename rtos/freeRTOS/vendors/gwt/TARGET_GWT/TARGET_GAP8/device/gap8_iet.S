@@ -405,7 +405,7 @@ _no_switch_pendsv:
         la sp, __irq_stack_start__
         jal ra, xTaskIncrementTick
 #ifdef PREEMPTION
-        jal ra, uTaskCheckQuantum
+        //jal ra, uTaskCheckQuantum
         beq a0, zero, _no_switch
         jal ra, vTaskSwitchContext
         lw a0, pxCurrentTCB

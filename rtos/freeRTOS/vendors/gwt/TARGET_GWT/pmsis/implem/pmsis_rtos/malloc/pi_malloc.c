@@ -262,10 +262,10 @@ void pi_malloc_display(void)
     for (uint32_t i=0; i<5; i++)
     {
         struct mem_bloc *tmp = mem_table[i];
-        printf("Table %d", i);
+        printf("Table %ld", i);
         while (tmp != NULL)
         {
-            printf("\tAddress %x\t Size %d\n", tmp->ptr, tmp->size);
+            printf("\tAddress %lx\t Size %ld\n", (uint32_t) tmp->ptr, tmp->size);
             tmp = tmp->next;
         }
         printf("\n");

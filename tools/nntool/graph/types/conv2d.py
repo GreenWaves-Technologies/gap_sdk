@@ -15,15 +15,14 @@
 
 import logging
 
-from generation.kernel_parameters import GenCtrl
 
 from ..dim import DilationDim
-from .base import FilterLikeParameters, FilterParameters, MultiplicativeBiasParameters
+from .base import FilterLikeParameters, MultiplicativeBiasParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class Conv2DParameters(FilterLikeParameters, FilterParameters, MultiplicativeBiasParameters):
+class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters):
 
     op_name = "conv2d"
 

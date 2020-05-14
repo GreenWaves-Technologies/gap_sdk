@@ -18,6 +18,9 @@
 #define __BSP__GAPUINO_H__
 
 #define CONFIG_HIMAX
+#define CONFIG_OV7670
+#define CONFIG_GC0308
+#define CONFIG_OV5640
 #define CONFIG_NINA_W10
 #define CONFIG_ILI9341
 #define CONFIG_HYPERFLASH
@@ -27,6 +30,15 @@
 
 #define CONFIG_HIMAX_CPI_ITF 0
 #define CONFIG_HIMAX_I2C_ITF 1
+
+#define CONFIG_OV7670_CPI_ITF 0
+#define CONFIG_OV7670_I2C_ITF 1
+
+#define CONFIG_GC0308_CPI_ITF 0
+#define CONFIG_GC0308_I2C_ITF 1
+
+#define CONFIG_OV5640_CPI_ID         ( 0 )
+#define CONFIG_OV5640_I2C_ID         ( 1 )
 
 #define CONFIG_NINA_W10_SPI_ITF            1
 #define CONFIG_NINA_W10_SPI_CS             0

@@ -1,0 +1,4 @@
+adjust
+fusions
+aquant -f 16 images/* -D 1 -O 0 -F int16
+save_state

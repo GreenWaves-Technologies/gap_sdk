@@ -71,6 +71,27 @@ def test_load7(qvww_graph):
     assert G
 
 
+def test_load10():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/xor.tflite", {'load_tensors': True})
+    steps = add_dimensions(G)
+    assert G
+
+def test_load12():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/imu.tflite", {'load_tensors': True})
+    steps = add_dimensions(G)
+    verify_steps(steps, 8)
+    assert G
+
+
+def test_load11():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/ring.tflite", {'load_tensors': True})
+    steps = add_dimensions(G)
+    verify_steps(steps, 11)
+    assert G
+
 def test_add_dimension1(mnist_graph):
     tfi = TfliteImporter()
     G = tfi.create_graph(mnist_graph, {})
@@ -222,13 +243,13 @@ def test_adjust5(kws_graph):
     assert all([not (node.transpose_in or node.transpose_out)
                 for node in G.nodes() if isinstance(node, Transposable)]), "shouldn't have transposes"
 
-
-def test_adjust6(vww_graph):
-    tfi = TfliteImporter()
-    G = tfi.create_graph(vww_graph, {'load_tensors': True})
-    G.add_dimensions()
-    G.adjust_order()
-    G.balance_filter(32)
+# TODO - fix when balance filter is rewritten
+# def test_adjust6(vww_graph):
+#     tfi = TfliteImporter()
+#     G = tfi.create_graph(vww_graph, {'load_tensors': True})
+#     G.add_dimensions()
+#     G.adjust_order()
+#     G.balance_filter(32)
 
 
 def test_adjust7(concat_test_graph):
@@ -256,3 +277,12 @@ def test_adjust8(qvww_graph):
     matcher = get_fusion("fuse_external_bias")
     matcher.match(G)
     G.add_dimensions()
+
+# def test_adjust9(mn3q2_graph):
+#     tfi = TfliteImporter()
+#     G = tfi.create_graph(mn3q2_graph, {'load_tensors': True})
+#     G.add_dimensions()
+#     G.adjust_order()
+#     matcher = get_fusion("fuse_external_bias")
+#     matcher.match(G)
+#     G.add_dimensions()

@@ -55,6 +55,8 @@ protected:
     int get_data();
 
     vp::i2s_master i2s_itf;
+    vp::i2s_master ws_out_itf;
+    vp::i2s_slave ws_in_itf;
     vp::clock_master clock_cfg;
 
     int channel_ws;         // Word-Select of this microphone. It will send data whe the ws corresponds to this one
@@ -67,11 +69,17 @@ protected:
     int frequency;          // Sampling frequency
     int pdm;                // Generate samples in PDM mode
     bool stim_incr;         // True if the stimuli should be an incrising number
+    int stim_incr_value;    // In case incr is active, give the increment value
     int current_stim;       // When using incrementing stim value, this gives the first value
     bool is_active;         // Set to true when the word-select of this microphone is detected. The microphone is sending samples when this is true;
     Stim_txt *stim;         // Pointer to the stim generator
+    int ws_in;
+    bool lower_ws_out;
 
     vp::trace trace;
+
+
+    static void ws_in_sync(void *__this, int sck, int ws, int sd);
 
 };
 
@@ -262,13 +270,25 @@ Microphone::Microphone(js::config *config)
 {
 }
 
+void Microphone::ws_in_sync(void *__this, int sck, int ws, int sd)
+{
+    Microphone *_this = (Microphone *)__this;
+
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "Received input WS edge (ws: %d)\n", ws);
+
+    _this->ws_in = ws;
+}
 
 int Microphone::build()
 {
     traces.new_trace("trace", &trace, vp::DEBUG);
 
     this->new_master_port("i2s", &this->i2s_itf);
+    this->new_master_port("ws_out", &this->ws_out_itf);
+    this->new_slave_port("ws_in", &this->ws_in_itf);
     this->new_master_port("clock_cfg", &this->clock_cfg);
+
+    this->ws_in_itf.set_sync_meth(&Microphone::ws_in_sync);
 
     this->i2s_itf.set_sync_meth(&Microphone::sync);
 
@@ -318,9 +338,12 @@ int Microphone::build()
     {
         this->stim_incr = true;
         this->current_stim = this->get_js_config()->get_int("stim_incr_start");
+        this->stim_incr_value = this->get_js_config()->get_int("stim_incr_value");
     }
     this->current_ws_delay = 0;
-    this->pending_bits = 0;
+    this->pending_bits = -1;
+    this->ws_in = 0;
+    this->lower_ws_out = false;
 
     return 0;
 }
@@ -346,7 +369,7 @@ int Microphone::get_data()
         {
             this->trace.msg(vp::trace::LEVEL_TRACE, "Incrementing stim (value: 0x%x)\n", this->current_stim);
             //fprintf(stderr, "stim incr %x %d\n", this->current_stim, (short)this->current_stim);
-            return this->current_stim++;
+            return this->current_stim += this->stim_incr_value;
         }
     }
 
@@ -409,39 +432,45 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
 {
     Microphone *_this = (Microphone *)__this;
 
-    _this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d)\n", sck, ws, sd);
+    if (_this->ws_in_itf.is_bound())
+        ws = _this->ws_in;
+
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d %d)\n", sck, ws, sd, _this->ws_in_itf.is_bound());
 
     if (sck)
     {
-        if (!_this->is_active)
+        // The channel is the one of this microphone
+        if (_this->prev_ws != ws && ws == _this->channel_ws)
         {
-            // The channel is the one of this microphone
-            if (_this->prev_ws != ws && ws == _this->channel_ws)
+            if (!_this->is_active)
             {
                 _this->trace.msg(vp::trace::LEVEL_TRACE, "Activating channel\n");
+            }
 
+            _this->is_active = true;
+
+            // If the WS just changed, apply the delay before starting sending
+            _this->current_ws_delay = _this->ws_delay;
+            if (_this->current_ws_delay == 0)
+            {
                 _this->is_active = true;
-
-                // If the WS just changed, apply the delay before starting sending
-                _this->current_ws_delay = _this->ws_delay;
             }
         }
 
-        if (_this->is_active)
+        // If there is a delay, decrease it
+        if (_this->current_ws_delay > 0)
         {
-            // If there is a delay, decrease it
-            if (_this->current_ws_delay > 0)
+            _this->current_ws_delay--;
+            if (_this->current_ws_delay == 0)
             {
-                _this->current_ws_delay--;
-                if (_this->current_ws_delay == 0)
-                {
-                    // And reset the sample
-                    _this->start_sample();
-                }
+                // And reset the sample
+                _this->start_sample();
             }
+        }
 
+        if (_this->is_active && _this->pending_bits > 0)
+        {
             int data = _this->pop_data();
-
             if (data >= 0)
             {
                 //fprintf(stderr, "Popped data %d\n", data);
@@ -455,13 +484,30 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
             {
                 _this->i2s_itf.sync(sck, ws, 2);
                 _this->is_active = false;
+                _this->ws_out_itf.sync(0, 0, 0);
             }
+        }
+        else if (_this->pending_bits == 0)
+        {
+            _this->pending_bits = -1;
+            _this->trace.msg(vp::trace::LEVEL_TRACE, "Releasing output\n");
+            _this->i2s_itf.sync(sck, ws, 2);
         }
 
         _this->prev_ws = ws;
     }
     else
     {
+        if (_this->pending_bits == 0 && _this->ws_out_itf.is_bound())
+        {
+            _this->ws_out_itf.sync(0, 1, 0);
+            _this->lower_ws_out = true;
+        }
+        else if ( _this->lower_ws_out)
+        {
+            _this->ws_out_itf.sync(0, 0, 0);
+            _this->lower_ws_out = false;
+        }
 
     }
 }

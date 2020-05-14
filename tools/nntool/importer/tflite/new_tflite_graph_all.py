@@ -207,8 +207,9 @@ def get_all_const_broadcasted_inputs(G, model, tensors, subgraph, elem, load_ten
     for idx in range(elem.InputsLength()):
         tf_idx = elem.Inputs(idx)
         shape = get_shape(subgraph, tf_idx, None)
+        # if shape is empty then it is a scalar
         if len(shape) == 0:
-            continue
+            shape = [1]
         tensor = tensors[tf_idx]
         if tensor.is_constant(model):
             constant_nodes.append(tensor)
@@ -551,6 +552,8 @@ class TfliteImporter(ImporterBase):
         # in the case we get an input of 1 batch with everything flattened fill h and w with 1
         if len(inp) == 2:
             inp = {'h': 1, 'w': 1, 'c': inp[1]}
+        elif len(inp) == 3:
+            inp = {'h': 1, 'w': inp[1], 'c': inp[2]}
         elif len(inp) == 4:
             inp = {'h': inp[1], 'w': inp[2], 'c': inp[3]}
         else:
@@ -651,10 +654,31 @@ class TfliteImporter(ImporterBase):
         concat_opts = ConcatenationOptions.ConcatenationOptions()
         concat_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
 
-        node = ConcatParameters(name, axis=max(concat_opts.Axis() - 1, 0))
+        input_tensors = get_input_tensors(self.tensors, op)
+        output_tensors = get_output_tensors(self.tensors, op)
+
+        axis_hint = None
+        # nasty hack to try to figure out how the axis relates to our
+        # internal axis representation
+        if concat_opts.Axis() == 0:
+            if len(output_tensors[0].shape) == 2:
+                axis_hint = 'c'
+            elif len(output_tensors[0].shape) == 4:
+                axis_hint = 'h'
+        elif concat_opts.Axis() == 1:
+            if len(output_tensors[0].shape) == 2:
+                axis_hint = 'c'
+            elif len(output_tensors[0].shape) == 4:
+                axis_hint = 'h'
+        elif concat_opts.Axis() == 3:
+            if len(output_tensors[0].shape) == 4:
+                axis_hint = 'c'
+
+        node = ConcatParameters(name, axis=max(concat_opts.Axis() - 1, 0), axis_hint=axis_hint)
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node)
+            self.load_tf_quantization(input_tensors,
+                                      output_tensors,
+                                      node)
         return self.fuse_activation(concat_opts, name, node)
 
     # pylint: disable=unused-argument

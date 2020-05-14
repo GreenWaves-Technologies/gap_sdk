@@ -57,7 +57,6 @@ int pi_spi_open(struct pi_device *device)
 
 void pi_spi_close(struct pi_device *device)
 {
-    struct pi_spi_conf *conf = (struct pi_spi_conf *) device->config;
     int irq = __disable_irq();
     __pi_spi_close(device->data);
     restore_irq(irq);
@@ -68,7 +67,8 @@ void pi_spi_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
     // TODO
 }
 
-void pi_spi_send(struct pi_device *device, void *data, size_t len, pi_spi_flags_e flag)
+void pi_spi_send(struct pi_device *device, void *data, size_t len,
+        pi_spi_flags_e flag)
 {
     pi_task_t task_block;
     pi_task_block(&task_block);
@@ -81,12 +81,14 @@ void pi_spi_send(struct pi_device *device, void *data, size_t len, pi_spi_flags_
     DEBUG_PRINTF("%s:%d\n",__func__,__LINE__);
 }
 
-void pi_spi_send_async(struct pi_device *device, void *data, size_t len, pi_spi_flags_e flag, pi_task_t *task)
+void pi_spi_send_async(struct pi_device *device, void *data, size_t len,
+        pi_spi_flags_e flag, pi_task_t *task)
 {
     __pi_spi_send_async(device->data, data, len, flag, task);
 }
 
-void pi_spi_receive(struct pi_device *device, void *data, size_t len, pi_spi_flags_e flag)
+void pi_spi_receive(struct pi_device *device, void *data, size_t len,
+        pi_spi_flags_e flag)
 {
     pi_task_t task_block;
     pi_task_block(&task_block);
@@ -99,7 +101,8 @@ void pi_spi_receive(struct pi_device *device, void *data, size_t len, pi_spi_fla
     DEBUG_PRINTF("%s:%d\n",__func__,__LINE__);
 }
 
-void pi_spi_receive_async(struct pi_device *device, void *data, size_t len, pi_spi_flags_e flag, pi_task_t *task)
+void pi_spi_receive_async(struct pi_device *device, void *data, size_t len,
+        pi_spi_flags_e flag, pi_task_t *task)
 {
     __pi_spi_receive_async(device->data, data, len, flag, task);
 }
@@ -131,7 +134,8 @@ uint32_t pi_spi_get_config(struct pi_device *device)
     return __pi_spi_get_config(device->data);
 }
 
-void pi_spi_transfer(struct pi_device *device, void *tx_data, void *rx_data, size_t len, pi_spi_flags_e flag)
+void pi_spi_transfer(struct pi_device *device, void *tx_data, void *rx_data,
+        size_t len, pi_spi_flags_e flag)
 {
     // TODO
     pi_task_t task_block;
@@ -145,8 +149,79 @@ void pi_spi_transfer(struct pi_device *device, void *tx_data, void *rx_data, siz
     DEBUG_PRINTF("%s:%d\n",__func__,__LINE__);
 }
 
-void pi_spi_transfer_async(struct pi_device *device, void *tx_data, void *rx_data, size_t len, pi_spi_flags_e flag, pi_task_t *task)
+void pi_spi_transfer_async(struct pi_device *device, void *tx_data,
+        void *rx_data, size_t len, pi_spi_flags_e flag, pi_task_t *task)
 {
     // TODO
     __pi_spi_xfer_async(device->data, tx_data, rx_data, len, flag, task);
 }
+
+
+#define SPI_UCODE_CMD_SEND_CMD(cmd,bits,qpi)    ((2<<28) | ((qpi)<<27) | (((bits)-1)<<16) | (((cmd)>>8)<<0) | (((cmd)&0xff)<<(0+8)))
+#define SPI_UCODE_CMD_SEND_ADDR(bits,qpi)       ((3<<28) | ((qpi)<<27) | (((bits)-1)<<16))
+#define SPI_UCODE_CMD_DUMMY(cycles)             ((4<<28) | (((cycles)-1)<<16))
+
+void *pi_spi_receive_ucode_set(struct pi_device *device, uint8_t *ucode,
+        uint32_t ucode_size)
+{
+    return __pi_spi_receive_ucode_set(device->data, ucode, ucode_size);
+}
+
+void pi_spi_receive_ucode_set_addr_info(struct pi_device *device, uint8_t *ucode,
+        uint32_t ucode_size)
+{
+    __pi_spi_receive_ucode_set_addr_info(device->data, ucode, ucode_size);
+}
+
+void *pi_spi_send_ucode_set(struct pi_device *device, uint8_t *ucode,
+        uint32_t ucode_size)
+{
+    return __pi_spi_send_ucode_set(device->data, ucode, ucode_size);
+}
+
+void pi_spi_send_ucode_set_addr_info(struct pi_device *device, uint8_t *ucode,
+        uint32_t ucode_size)
+{
+    __pi_spi_send_ucode_set_addr_info(device->data, ucode, ucode_size);
+}
+
+void pi_spi_copy(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size,
+  pi_spi_flags_e flags)
+{
+    pi_task_t task;
+    pi_task_block(&task);
+    __pi_spi_copy_async(device->data, addr, data, size*8, flags, &task);
+    pi_task_wait_on(&task);
+    pi_task_destroy(&task);
+}
+
+void pi_spi_copy_async(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size,
+  pi_spi_flags_e flags, pi_task_t *task)
+{
+    __pi_spi_copy_async(device->data, addr, data, size*8, flags, task);
+}
+
+void pi_spi_copy_2d(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size, uint32_t stride,
+  uint32_t length, pi_spi_flags_e flags)
+{
+    pi_task_t task;
+    pi_task_block(&task);
+    __pi_spi_copy_async_2d(device->data, addr, data, size*8, stride, length,
+            flags, &task);
+    pi_task_wait_on(&task);
+    pi_task_destroy(&task);
+}
+
+void pi_spi_copy_2d_async(struct pi_device *device,
+  uint32_t addr, void *data, uint32_t size, uint32_t stride,
+  uint32_t length, pi_spi_flags_e flags, pi_task_t *task)
+{
+    __pi_spi_copy_async_2d(device->data, addr, data, size*8, stride, length,
+            flags, task);
+    return;
+}
+
+

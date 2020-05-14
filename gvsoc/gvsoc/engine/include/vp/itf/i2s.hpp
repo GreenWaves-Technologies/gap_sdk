@@ -44,10 +44,7 @@ namespace vp {
 
     inline i2s_master();
 
-    inline void sync(int sck, int ws, int sd)
-    {
-      return sync_meth(this->get_remote_context(), sck, ws, sd);
-    }
+    inline void sync(int sck, int ws, int sd);
 
     void bind_to(vp::port *port, vp::config *config);
 
@@ -72,6 +69,8 @@ namespace vp {
     int sync_mux;
     i2s_slave *slave_port = NULL;
     int mux_id;
+
+    int sd;
 
   };
 
@@ -99,6 +98,8 @@ namespace vp {
 
     bool is_bound() { return remote_port != NULL; }
 
+    inline int get_sd();
+
   private:
 
     static inline void sync_muxed_stub(i2s_slave *_this, int sck, int ws, int sd);
@@ -123,6 +124,7 @@ namespace vp {
   inline i2s_master::i2s_master() {
     slave_sync = &i2s_master::sync_default;
     slave_sync_mux = NULL;
+    this->sd = 2;
   }
 
 
@@ -168,9 +170,36 @@ namespace vp {
   {
   }
 
+  inline void i2s_master::sync(int sck, int ws, int sd)
+  {
+    this->sd = sd;
+    return sync_meth(this->get_remote_context(), sck, ws, this->slave_port->get_sd());
+  }
+
   inline void i2s_slave::sync_muxed_stub(i2s_slave *_this, int sck, int ws, int sd)
   {
     return _this->slave_sync_meth_mux(_this->comp_mux, sck, ws, sd, _this->sync_mux);
+  }
+
+  inline int i2s_slave::get_sd()
+  {
+    int sd = this->master_port->sd;
+    i2s_slave *current = this->next;
+
+    while(current)
+    {
+      int next_sd = current->master_port->sd;
+      if (next_sd != 2)
+      {
+        if (sd == 2 || next_sd == sd)
+          sd = next_sd;
+        else
+          sd = 3;
+      }
+      current = current->next;
+    }
+
+    return sd;
   }
 
   inline void i2s_slave::bind_to(vp::port *_port, vp::config *config)

@@ -16,9 +16,11 @@
 from copy import deepcopy
 
 from graph.nngraph import NNGraph
+from graph.dim import Dim
 from graph.types import (ConstantInputParameters,
                          MatrixBroadcastedLinearOpParameters,
-                         ReshapeParameters)
+                         ReshapeParameters,
+                         InputParameters)
 from utils.sparse_list import SparseList
 
 
@@ -52,6 +54,7 @@ def propagate_downwards(G: NNGraph):
                 if edge.to_node.in_dims_hint[edge.to_idx] is None:
                     edge.to_node.in_dims_hint[edge.to_idx] = hint
 
+
 def propagate_upwards(G: NNGraph):
     for node in G.dfs(reverse=True):
         # First propagate the out dim hints to the in dim hints
@@ -59,6 +62,9 @@ def propagate_upwards(G: NNGraph):
 
         if node.out_dims_hint is not None:
             if isinstance(node, ReshapeParameters):
+                if len(node.shape) < len(node.out_dims_hint[0]):
+                    node.shape = Dim.unnamed(
+                        ([1] * (len(node.out_dims_hint[0]) - len(node.shape))) + node.shape.shape)
                 node.shape.apply_naming_hints(node.out_dims_hint[0])
                 if node.in_dims_hint is None:
                     node.in_dims_hint = SparseList([["%s" % i for i in range(len(node.old_shape))]])
@@ -80,6 +86,14 @@ def propagate_upwards(G: NNGraph):
                     edge.from_node.out_dims_hint = SparseList()
                 if edge.from_node.out_dims_hint[edge.from_idx] is None:
                     edge.from_node.out_dims_hint[edge.from_idx] = hint
+                    if isinstance(edge.from_node, InputParameters):
+                        assert edge.from_idx == 0, "input node should only have one output"
+                        dims_len = len(edge.from_node.dims)
+                        hint_len = len(hint)
+                        if dims_len < hint_len:
+                            edge.from_node.dims = Dim.unnamed(
+                                [1] * (hint_len - dims_len) + edge.from_node.dims.shape)
+
 
 def propagate_hints(G):
     propagate_downwards(G)

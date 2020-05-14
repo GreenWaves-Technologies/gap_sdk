@@ -60,12 +60,7 @@ HeapRegion_t xHeapRegions[] =
 #if configUSE_IDLE_HOOK == 1
 void vApplicationIdleHook( void )
 {
-    while(1)
-    {
-        hal_eu_evt_wait();
-        pi_yield();
-        //hal_eu_evt_mask_wait(0xFFFFFFFF);
-    }
+    asm volatile("wfi");
 }
 #endif //configUSE_IDLE_HOOK
 /*-----------------------------------------------------------*/
@@ -87,7 +82,7 @@ void vApplicationMallocFailedHook( void )
       provide information on how the remaining heap might be fragmented).
     */
     printf("Memory Allocation failed! Exiting !\n");
-    exit(0);
+    exit(-4322);
     /*
     taskDISABLE_INTERRUPTS();
     for( ;; );
@@ -109,7 +104,7 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
       function is called if a stack overflow is detected.
     */
     printf("Stack Overflow : %s ! Exiting !\n", pcTaskName);
-    exit(0);
+    exit(-4321);
     /*
     taskDISABLE_INTERRUPTS();
     for( ;; );

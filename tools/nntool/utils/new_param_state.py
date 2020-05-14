@@ -121,6 +121,7 @@ def set_options(G, node_options, graph_node_options=None):
 
 
 def load_state(graph_file: str, value_cache=None, return_extra=False):
+    #state_dir = os.path.dirname(os.path.abspath(graph_file))
     graph_base, _ = os.path.splitext(graph_file)
     state_filename = graph_base + STATE_EXTENSION
     state_file = Path(state_filename)
@@ -157,6 +158,7 @@ def load_state(graph_file: str, value_cache=None, return_extra=False):
     identity.identity = info_state['identity']
 
     LOG.info("loading graph from %s", identity.filename)
+    #G = create_graph(os.path.join(state_dir, os.path.split(identity.filename)[-1]), opts=opts)
     G = create_graph(identity.filename, opts=opts)
     if 'name' in info_state:
         G.name = info_state['name']

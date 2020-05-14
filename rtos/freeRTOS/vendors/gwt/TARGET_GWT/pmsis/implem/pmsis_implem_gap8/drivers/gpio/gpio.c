@@ -28,6 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "pmsis/chips/gap8/gpio.h"
 #include "pmsis.h"
 
 /*******************************************************************************

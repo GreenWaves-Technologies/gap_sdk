@@ -58,14 +58,14 @@ static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned 
   plp_dma_cmd_push(cmd, loc, ext);
   if (!merge) copy->id = id;
 
+  copy->length = 0;
+
 #if MCHAN_VERSION >= 7
   eu_mutex_unlock_from_id(0);
 #else
   rt_irq_restore(irq);
 #endif
   
-  copy->length = 0;
-
 #ifdef __RT_USE_PROFILE
   gv_vcd_dump_trace(trace, 1);
 #endif

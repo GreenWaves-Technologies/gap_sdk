@@ -20,18 +20,19 @@ import os
 import pickle
 from functools import partial
 from itertools import chain
+import json
 
 import numpy as np
 from cmd2 import (Cmd, Cmd2ArgumentParser, CompletionItem, EmptyStatement,
                   with_argparser)
 from cmd2.utils import cast as cmd2_cast
 
-from execution.execute_graph import ExecutionProgress, execute
+from execution.execute_graph import ExecutionProgress, execute, execute_validation
 from execution.quantization_mode import QuantizationMode
 from generation.code_generator import (DEFAULT_GEN_OPTS,
                                        DEFAULT_GEN_OPTS_DESCRIPTIONS,
                                        CodeGenerator)
-from generation.default_template import default_template, dynamic_template
+from generation.default_template import default_template, dynamic_template, header_template
 from generation.naming_convension import DefaultNamingConvension
 from graph.matches.matches import get_fusion, get_fusions, get_std_match_group
 from graph.types.others import InputOutputParameters
@@ -62,6 +63,7 @@ from utils.intermediate_cache import IntermediateCache
 from utils.new_param_state import STATE_EXTENSION, dump_state, load_state
 from utils.stats_funcs import STATS_BITS, qsnr
 from utils.node_id import NodeId
+from utils.validation_utils import ValidateFromName, ValidateFromJSON
 
 from .shell_utils import (NNToolShellLogHandler, filter_dirs, find_choice,
                           format_dump_file, glob_input_files, input_options,
@@ -159,6 +161,8 @@ class NNToolShell(Cmd):
         self._graph_idx = 0
         self._tensor_store = {}
         self.py_locals['tensors'] = self._tensor_store
+
+        self.astats_collector = None
 
         # settings overide graph file
         graph_file = self.settings['graph_file']
@@ -916,18 +920,22 @@ channels and may improve quantization accuracy."""
         self._check_graph()
         self.execute_weight_equalization(args.threshold, args.relun)
 
-    # BALANCE_FILTER COMMAND
+    # BALANCE_FILTERS COMMAND
     parser_bf = Cmd2ArgumentParser()
-    parser_bf.add_argument('step',
+    parser_bf.add_argument('-s', '--step',
                            type=int, help='step to balance. should be a convolution')
+    parser_bf.add_argument('-t', '--threshold',
+                           default=0.20,
+                           type=float, help='precision threshold of weights below which a layer should be balanced')
 
     @with_argparser(parser_bf)
-    def do_balance_filter(self, args: argparse.Namespace):
+    def do_balance_filters(self, args: argparse.Namespace):
         """
 Balance filter weights. THis will reduce variance in weights and will result in
 a more balanced quantization at the expense of a multiplicative bias calculation."""
         self._check_graph()
-        self.G.balance_filter(args.step)
+        self.G.balance_filters(step_idx=args.step, precision_threshold=args.threshold)
+        self.G.quantization = None
 
     # ASTATS COMMAND
     parser_astats = Cmd2ArgumentParser()
@@ -968,7 +976,7 @@ Calculate activation statistics on one or more imput files."""
         tab = ActivationReporter(do_totals=(fmt != "csv"),
                                  threshold=args.qsnr,
                                  yield_fusions=args.detail or isinstance(step_idx, tuple)).report(self.G,
-                                                            stats_collector.reduce_stats())
+                                                                                                  stats_collector.reduce_stats())
         output_table(tab, args)
 
     # FQUANT COMMAND
@@ -1009,6 +1017,8 @@ weights and input data are avalaible."""
                                      choices=STATS_BITS, type=int, help='force all layers to this width')
     parser_aquant.add_argument('-a', '--adjust_relun',
                                action='store_true', help='Adjust relu N activations to match dynamic in test data.')
+    parser_aquant.add_argument('-i', '--init',
+                               action='store_true', help='Initialize activations statistics')
     parser_aquant.add_argument('-r', '--relun_threshold',
                                type=int, default=1, help='Threshold above floored max value to adjust relun\'s to.')
     table_options(parser_aquant, default_width=140)
@@ -1021,16 +1031,18 @@ Attempt to calculate quantization for graph using one or more sample imput files
         self._check_graph()
         input_args = self._get_input_args(args)
         processed_input = False
-        stats_collector = ActivationStatsCollector()
+        if self.astats_collector is None or args.init:
+            self.astats_collector = ActivationStatsCollector()
+
         for input_file in glob_input_files(args.input_files):
             LOG.info("input file %s", input_file)
             processed_input = True
             data = import_data(input_file, **input_args)
-            stats_collector.collect_stats(self.G, [data])
+            self.astats_collector.collect_stats(self.G, [data])
         if not processed_input:
             self.perror("No imput files found")
             return
-        astats = stats_collector.reduce_stats()
+        astats = self.astats_collector.reduce_stats()
         if args.adjust_relun:
             adjust_relun(self.G, astats, threshold=args.relun_threshold)
         stats_collector = FilterStatsCollector()
@@ -1130,6 +1142,121 @@ specific step of the graph."""
 
         if self._in_py:
             self.last_result = pickles
+
+    # VAL COMMAND
+    parser_val = Cmd2ArgumentParser()
+    parser_val.add_argument('-q', '--quantize', action='store_true',
+                             help='quantize the graph (must have already set quantization)')
+    parser_val.add_argument('-s', '--silent', action='store_true',
+                             help='do not print progress for each input')
+    parser_val.add_argument('-P', '--pickle',
+                             completer_method=Cmd.path_complete,
+                             help='pickle all the outputed tensors to this file')
+    parser_val.add_argument('-S', '--save',
+                             help='save the tensor to the tensors list')
+    parser_val.add_argument('--dataset_dir',
+                             completer_method=Cmd.path_complete,
+                             help='path to the directory of samples for test')
+    parser_val.add_argument('--label_json',
+                             default=None,
+                             completer_method=Cmd.path_complete,
+                             help='path to the .json object containing labels annotation \
+                             { "filename0" : label0, "filename1": label1, ... }')
+    #parser_val.add_argument('--num_classes',
+    #                         default=None,
+    #                         type=int,
+    #                         help='number of classes of the dataset')
+    #parser_val.add_argument('-E', '--emulation_mode',
+    #                         action='store_true',
+    #                         help='do the validation with the GAP emulator running on host')
+    #parser_val.add_argument('--AT_model_file',
+    #                         completer_method=Cmd.path_complete,
+    #                         help='path to the AT model to compile and run if emulation mode is on')
+    #parser_val.add_argument('--extra_flags',
+    #                         default='',
+    #                         help='extra flag for AT_model compiler')
+    #parser_val.add_argument('--AT_exe',
+    #                         default='Gentile',
+    #                         help='name of the autotiler executable file generated after model compile')
+    #parser_val.add_argument('--gen_files_dir',
+    #                         completer_method=Cmd.path_complete,
+    #                         default='./',
+    #                         help='path to the directory to store AT generated files')
+    input_options(parser_val)
+
+    @with_argparser(parser_val)
+    def do_validate(self, args: argparse.Namespace):
+        """
+Validate the model (quantized [-q] or not) in terms of prediction accuracy rate on a given dataset (images 
+folder). Ground truth labels can be embedded in files names ("filename_03.[png, ppm, pgm]", the number of 
+digits must be coherent with the number of networks outputs: e.g. in a 1000 classes problem the last digits 
+must be 3, "file_45.png" will raise an error) or can be written in a .json object (example: {'file0':label0,
+'file1':label1, ...}) and given to the function with --label_json
+"""
+        self._check_graph()
+        if args.quantize:
+            self._check_quantized()
+            qmode = QuantizationMode.all()
+        else:
+            qmode = QuantizationMode.none()
+
+        LOG.info("quantization mode - %s", qmode)
+        input_args = self._get_input_args(args)
+
+        # TODO - compile and run ATmodel (ok)
+        #      - generate mainfile for validation or use AT generated functions in .so 
+        #      - compile and run mainfile for the validation
+        #if args.emulation_mode:
+        #   assert args.AT_model_file is not None
+        #   compile_and_run_AT_model(model=args.AT_model_file, output_exe=args.AT_exe,
+        #                            output_dir=args.gen_files_dir, extra_flags=args.extra_flags)
+        #   test_dataset = test_dataset_4_eval(folder_path=args.dataset_dir, num_classes=args.num_classes)
+        #   write_test_main_template(self.G, test_dataset, (238,208,3), args.gen_files_dir+'/validation_main.c')
+        #   compile_and_run_test_main(model_name=self.G.name, mainfile=args.gen_files_dir+'/validation_main.c', 
+        #                               output_exe=self.G.name+'_emul',
+        #                               output_dir=args.gen_files_dir, extra_flags=args.extra_flags)
+        #    return
+
+        good_predictions = []
+
+        input_dir_paths = []
+        for path in args.input_files:   
+            input_dir_paths.append(os.path.split(path)[0])
+
+        number_samples = 0
+        for input_dir_path in input_dir_paths:
+            number_samples += len([name for name in os.listdir(input_dir_path) if os.path.isfile(input_dir_path + '/' + name)])
+
+        if args.label_json:
+            validation = ValidateFromJSON(args.label_json)
+        else:
+            validation = ValidateFromName()
+
+        ExecutionProgress.start()
+        for i,input_file in enumerate(glob_input_files(args.input_files)):
+            if not args.silent:
+                LOG.info("input file %s", input_file)
+
+            data = import_data(input_file, **input_args)
+            outputs = execute_validation(self.G, [data], qrecs=self.G.quantization,
+                              qmode=qmode, validation=True, silent=args.silent)
+
+            good_prediction, label = validation.validate(input_file, np.asarray(outputs[-1]))
+            good_predictions.append(good_prediction)
+
+            if not args.silent:
+                LOG.info('Prediction is %s', good_prediction)
+            if not i % 100 and i > 0:
+                LOG.info('ACCURACY: %.3f %%', 100*sum(good_predictions)/len(good_predictions))
+
+            ExecutionProgress.progress(i, number_samples)
+        ExecutionProgress.end()
+
+        self.py_locals['labels'] = validation.labels
+        self.py_locals['predictions'] = validation.predictions
+        accuracy_rate = 100*sum(good_predictions)/len(good_predictions)
+        LOG.info('ACCURACY: %.3f %%', accuracy_rate)
+        
 
     # TENSORS_COMMAND
     parser_tensors = Cmd2ArgumentParser()
@@ -1411,6 +1538,9 @@ Extracts a single step out of a graph and forms a new graph with inputs and outp
     parser_gen.add_argument('-c', '--checksums',
                             completer_method=Cmd.path_complete,
                             help='generate checksum tests in code for the given file')
+    parser_gen.add_argument('--header_file', 
+                            action='store_true',
+                            help='generate header file with quantization information for each layer')
 
     @with_argparser(parser_gen)
     def do_gen(self, args):
@@ -1448,6 +1578,13 @@ settings related to code generation."""
             self.ppaged(code_template(self.G, code_generator=code_gen))
         if args.output_tensors:
             code_gen.write_constants()
+
+        if args.header_file:
+            if args.model_file:
+                with open(os.path.join(self.settings['model_directory'], os.path.splitext(args.model_file)[0]+'.h'), "w") as output_fp:
+                    output_fp.write(header_template(self.G, code_generator=code_gen))
+            else:
+                self.ppaged(header_template(self.G, code_generator=code_gen))
 
     # SAVE_STATE COMMAND
     parser_save_state = Cmd2ArgumentParser()
