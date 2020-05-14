@@ -37,14 +37,6 @@
  * Definitions
  ******************************************************************************/
 
-#if defined(TRACE_DMACPY)
-#define DMACPY_TRACE(...) PI_LOG_DBG(__func__, __VA_ARGS__)
-#define DMACPY_TRACE_ERR(...) PI_LOG_ERR(__func__, __VA_ARGS__)
-#else
-#define DMACPY_TRACE(...) ((void) 0)
-#define DMACPY_TRACE_ERR(...) ((void) 0)
-#endif  /* TRACE_DMACPY */
-
 struct dmacpy_driver_fifo_s
 {
     /* Best to use only one queue since both RX & TX can be used at the same time. */
@@ -56,11 +48,13 @@ struct dmacpy_driver_fifo_s
 
 /*
  * pi_task:
- * data[0] = src
- * data[1] = dst
- * data[2] = size
- * data[3] = dir
- * data[4] = repeat_size
+ * data[0] = l2_buf_0
+ * data[1] = l2_buf_1
+ * data[2] = cpy_src
+ * data[3] = cpy_dst
+ * data[4] = size
+ * data[5] = dir
+ * data[6] = ?
  */
 
 /*******************************************************************************

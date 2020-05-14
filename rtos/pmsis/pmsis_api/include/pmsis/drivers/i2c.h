@@ -59,6 +59,7 @@ typedef struct pi_i2c_conf
     int8_t cs;               /*!< i2c slave address (7 bits on MSB), the
       runtime will take care of the LSB of read and write. */
     int8_t is_slave;
+    uint16_t wait_cycles;
     uint16_t slave_addr;
     uint16_t gap_slave_addr0;
     uint16_t gap_slave_addr1;
@@ -84,6 +85,9 @@ typedef enum {
     beginning of the transfer. */
 } pi_i2c_xfer_flags_e;
 
+
+
+
 /** \enum pi_i2c_ioctl_e
  * \brief Commands for pi_i2c_control.
  *
@@ -103,6 +107,21 @@ typedef enum {
  * \param conf A pointer to the I2C configuration.
  */
 void pi_i2c_conf_init(pi_i2c_conf_t *conf);
+
+
+/** \brief set slave addr in conf.
+ *
+ * \param conf A pointer to the I2C configuration.
+ * \param slave_addr Addr of the slave
+ */
+void pi_i2c_conf_set_slave_addr(struct pi_i2c_conf *conf, uint16_t slave_addr);
+
+/** \brief set wait_cycles in conf.
+ *
+ * \param conf A pointer to the I2C configuration.
+ * \param wait_cycles Number of wait cycles applied at the end of transfer
+ */
+void pi_i2c_conf_set_wait_cycles(struct pi_i2c_conf *conf, uint16_t wait_cycles);
 
 /** \brief Open an I2C device.
  *

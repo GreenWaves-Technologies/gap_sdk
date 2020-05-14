@@ -88,6 +88,7 @@ namespace vp {
 
     inline void sync(int sck, int ws, int sd)
     {
+      if (next) next->sync(sck, ws, sd);
       slave_sync_meth(this->get_remote_context(), sck, ws, sd);
     }
 
@@ -113,6 +114,8 @@ namespace vp {
     vp::component *comp_mux;
     int sync_mux;
     int mux_id;
+    i2s_master *master_port = NULL;
+    i2s_slave *next = NULL;
 
   };
 
@@ -172,22 +175,35 @@ namespace vp {
 
   inline void i2s_slave::bind_to(vp::port *_port, vp::config *config)
   {
-    slave_port::bind_to(_port, config);
     i2s_master *port = (i2s_master *)_port;
-    port->slave_port = this;
-    if (port->slave_sync_mux == NULL)
+
+    if (this->master_port != NULL)
     {
-      this->slave_sync_meth = port->slave_sync;
-      this->set_remote_context(port->get_context());
+      i2s_slave *slave = new i2s_slave;
+      port->slave_port = slave;
+      slave->bind_to(_port, config);
+      slave->next = this->next;
+      this->next = slave;
     }
     else
     {
-      this->slave_sync_meth_mux = port->slave_sync_mux;
-      this->slave_sync_meth = (i2s_sync_meth_t *)&i2s_slave::sync_muxed_stub;
+      slave_port::bind_to(_port, config);
+      this->master_port = port;
+      port->slave_port = this;
+      if (port->slave_sync_mux == NULL)
+      {
+        this->slave_sync_meth = port->slave_sync;
+        this->set_remote_context(port->get_context());
+      }
+      else
+      {
+        this->slave_sync_meth_mux = port->slave_sync_mux;
+        this->slave_sync_meth = (i2s_sync_meth_t *)&i2s_slave::sync_muxed_stub;
 
-      set_remote_context(this);
-      comp_mux = (vp::component *)port->get_context();
-      sync_mux = port->mux_id;
+        set_remote_context(this);
+        comp_mux = (vp::component *)port->get_context();
+        sync_mux = port->mux_id;
+      }
     }
   }
 

@@ -38,8 +38,9 @@
  * Driver data
  *****************************************************************************/
 
-/* One I2S periph with two distinct devices inside. */
 struct dmacpy_driver_fifo_s *g_dmacpy_driver_fifo[UDMA_NB_DMACPY] = {NULL};
+
+static uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
 
 /*******************************************************************************
  * Function declaration
@@ -89,7 +90,7 @@ static void __pi_dmacpy_handler(void *arg)
     struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[periph_id];
     struct pi_task *task = fifo->fifo_head;
     /* Pending data on current transfer. */
-    if ((task->data[3] == PI_DMACPY_L2_L2) && (channel == TX_CHANNEL))
+    if ((task->data[5]) && (channel == TX_CHANNEL))
     {
         DMACPY_TRACE("Current transfer is L2 to L2, received TX event, do nothing, continue.\n");
         return;
@@ -97,11 +98,6 @@ static void __pi_dmacpy_handler(void *arg)
     if (task->data[4] != 0)
     {
         DMACPY_TRACE("Reenqueue pending data on current transfer.\n");
-        uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
-        task->data[0] += max_size;
-        task->data[1] += max_size;
-        task->data[2] -= max_size;
-        //task->data[3]
         __pi_dmacpy_copy_exec(fifo, task);
     }
     else
@@ -167,67 +163,58 @@ static struct pi_task *__pi_dmacpy_task_fifo_pop(struct dmacpy_driver_fifo_s *fi
 static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
                                   struct pi_task *task)
 {
-    uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
-    uint32_t l2_buf_1 = 0, l2_buf_2 = 0;
-    uint32_t src = task->data[0];
-    uint32_t dst = task->data[1];
-    uint32_t size = task->data[2];
-    uint32_t dir = task->data[3];
-    udma_channel_e channel = RX_CHANNEL;
-    if (task->data[2] > max_size)
+    uint32_t l2_buf_0 = task->data[0]; /* RX_SADDR for FC->L2 or L2->L2. */
+    uint32_t l2_buf_1 = task->data[1]; /* TX_SADDR for L2->FC or L2->L2. */
+    uint32_t cpy_src  = task->data[2]; /* SRC for FC->L2. */
+    uint32_t cpy_dst  = task->data[3]; /* DST for L2->FC. */
+    uint32_t cpy_size = task->data[4]; /* Size. */
+    uint32_t dir      = task->data[5]; /* Copy from/to TCDM? */
+
+    if (task->data[4] > max_size)
     {
-        task->data[4] = task->data[2] - max_size;
-        size = max_size;
+        cpy_size = max_size;
     }
-    switch (task->data[3])
+    task->data[4] -= cpy_size;
+    DMACPY_TRACE("DMACPY(%ld): remaining size: %ld\n", fifo->device_id, task->data[4]);
+    if (dir)
     {
-    case PI_DMACPY_FC_L1_L2 :
-        l2_buf_1 = dst;
-        channel = RX_CHANNEL;
-        dir = 0;
-        dst = 0;
+        task->data[0] += cpy_size;
+        task->data[1] += cpy_size;
         DMACPY_TRACE("DMACPY(%ld): enqueue FC to L2 l2_buf=%lx src=%lx dst=%lx "
                      "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_1, src, dst, size, dir, channel);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, size, 0, src, dst, dir, channel);
-        break;
-
-    case PI_DMACPY_L2_FC_L1 :
-        l2_buf_1 = src;
-        channel = TX_CHANNEL;
-        src = 0;
-        dir = 0;
+                     fifo->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size, dir, RX_CHANNEL);
+        hal_dmacpy_enqueue(fifo->device_id, l2_buf_0, cpy_size, 0,
+                           cpy_src, cpy_dst, dir, RX_CHANNEL);
         DMACPY_TRACE("DMACPY(%ld): enqueue L2 to FC l2_buf=%lx src=%lx dst=%lx "
                      "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_1, src, dst, size, dir, channel);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, size, 0, src, dst, dir, channel);
-        break;
-
-    case PI_DMACPY_L2_L2 :
-        l2_buf_1 = dst;
-        l2_buf_2 = src;
-        channel = RX_CHANNEL;
-        src = 0;
-        dst = 0;
-        dir = 1;
-        DMACPY_TRACE("DMACPY(%ld): enqueue FC to L2 l2_buf=%lx src=%lx dst=%lx "
-                     "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_1, src, dst, size, dir, channel);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, size, 0, src, dst, dir, channel);
-        //l2_buf_2 = src;
-        channel = TX_CHANNEL;
-        src = 0;
-        dst = 0;
-        dir = 1;
-        DMACPY_TRACE("DMACPY(%ld): enqueue L2 to FC l2_buf=%lx src=%lx dst=%lx "
-                     "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_2, src, dst, size, dir, channel);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_2, size, 0, src, dst, dir, channel);
-        break;
-
-    default :
-        DMACPY_TRACE_ERR("Wrong param for direction !\n");
-        return;
+                     fifo->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size, dir, TX_CHANNEL);
+        hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, cpy_size, 0,
+                           cpy_src, cpy_dst, dir, TX_CHANNEL);
+    }
+    else
+    {
+        if (cpy_src)
+        {
+            task->data[0] += cpy_size;
+            task->data[2] += cpy_size;
+            DMACPY_TRACE("DMACPY(%ld): enqueue FC to L2 l2_buf=%lx src=%lx dst=%lx "
+                         "size=%ld mem_sel=%ld channel=%ld\n",
+                         fifo->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size,
+                         dir, RX_CHANNEL);
+            hal_dmacpy_enqueue(fifo->device_id, l2_buf_0, cpy_size, 0,
+                               cpy_src, cpy_dst, dir, RX_CHANNEL);
+        }
+        else
+        {
+            task->data[1] += cpy_size;
+            task->data[3] += cpy_size;
+            DMACPY_TRACE("DMACPY(%ld): enqueue L2 to FC l2_buf=%lx src=%lx dst=%lx "
+                         "size=%ld mem_sel=%ld channel=%ld\n",
+                         fifo->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size,
+                         dir, TX_CHANNEL);
+            hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, cpy_size, 0,
+                               cpy_src, cpy_dst, dir, TX_CHANNEL);
+        }
     }
     DMACPY_TRACE("Enqueue DMACPY(%d): %x %x %x %x %x %x %x %x %x\n",
                  fifo->device_id,
@@ -342,11 +329,39 @@ int32_t __pi_dmacpy_copy(uint32_t device_id, void *src, void *dst,
     {
         return -13;
     }
-    task->data[0] = (uint32_t) src;
-    task->data[1] = (uint32_t) dst;
-    task->data[2] = size;
-    task->data[3] = dir;
-    task->data[4] = 0;
+
+    task->data[0] = 0;
+    task->data[1] = 0;
+    task->data[2] = (uint32_t) src;
+    task->data[3] = (uint32_t) dst;
+    task->data[4] = size;
+    task->data[5] = 0;
+
+    switch (dir)
+    {
+    case PI_DMACPY_FC_L1_L2 :
+        task->data[0] = (uint32_t) dst;
+        task->data[3] = 0;
+        break;
+
+    case PI_DMACPY_L2_FC_L1 :
+        task->data[1] = (uint32_t) src;
+        task->data[2] = 0;
+        break;
+
+    case PI_DMACPY_L2_L2 :
+        task->data[0] = (uint32_t) dst;
+        task->data[1] = (uint32_t) src;
+        task->data[2] = 0;
+        task->data[3] = 0;
+        task->data[5] = 1;
+        break;
+
+    default :
+        DMACPY_TRACE_ERR("Wrong param for direction !\n");
+        return -14;
+    }
+
     uint32_t irq = disable_irq();
     struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[device_id];
     uint8_t head = __pi_dmacpy_task_fifo_enqueue(fifo, task);

@@ -231,14 +231,6 @@ static inline void plp_dma_counter_free(int counter);
   */
 static inline unsigned int plp_dma_getCmd(int ext2loc, unsigned int size, int is2D, int trigEvt, int trigIrq, int broadcast);
 
-/** Generate the stride command for 2D transfers. 
- * 
-  \param   stride    The stride of the 2D transfer, i.e. the number of bytes between the beginning of 2 lines of the tile. Must fit 16 bits, i.e. must be inferior to 65536.
-  \param   len       The length of the 2D transfer, i.e. the number of bytes transfered after which the DMA should switch to the new line. Must fit 16 bits, i.e. must be inferior to 65536.
-  \return            The generated command.
-  */
-static inline unsigned int plp_dma_getStrides(unsigned short stride, unsigned short len);
-
 /** Push a transfer to the DMA
  * 
   \param      locAddr    The address of the transfer for the cluster memory

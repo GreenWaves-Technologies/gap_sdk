@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 GreenWaves Technologies, SAS
+ * Copyright (C) 2018 GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+#ifndef __I2S_AUDIO_REC__
+#define __I2S_AUDIO_REC_
 
-#ifndef __IMG_IO_H__
-#define __IMG_IO_H__
+#define WAV_HEADER_SIZE 44 //bytes
 
+void dump_wav_open(char *filename, int width, int sampling_rate, int nb_channels, int size);
+void dump_wav_write(void *data, int size);
+void dump_wav_close();
 
-unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int *H, unsigned char *InBuffer, unsigned int BuffSize);
-int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *InBuffer);
-#endif //__IMG_IO_H__
-
+#endif

@@ -19,6 +19,9 @@
         "mic0": {
           "@includes@": ["devices/microphone.json"]
         },
+        "sink0": {
+          "@includes@": ["devices/speaker.json"]
+        },
         "uart": {
           "@includes@": ["devices/uart_checker.json"]
         }
@@ -26,7 +29,8 @@
     
       "bindings": [
         [ "chip.uart0", "uart.input" ],
-        [ "mic0.i2s", "chip.i2s0" ]
+        [ "mic0.i2s", "chip.i2s0" ],
+        [ "sink0.i2s", "chip.i2s0" ]
       ],
     
       "chip": {

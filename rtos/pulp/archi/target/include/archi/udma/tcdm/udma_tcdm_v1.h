@@ -19,5 +19,6 @@
 
 #define TCDM_T_DST_SADDR                (0x0)
 #define TCDM_T_SRC_SADDR                (0x4)
+#define TCDM_MEM_SEL                    (0x8)
 
 #endif

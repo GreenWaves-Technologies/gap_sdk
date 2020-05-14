@@ -79,7 +79,6 @@ $(INSTALL_BIN_DIR) $(TARGET_INSTALL_DIR) $(INSTALL_DIR):
 	$(MKDIR) -p $@
 
 install_others: | $(INSTALL_BIN_DIR)
-	$(CP) $(GAP_SDK_HOME)/tools/runner $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/bin/* $(INSTALL_DIR)/bin
 	$(CP) $(GAP_SDK_HOME)/tools/ld $(INSTALL_DIR)
 	$(CP) $(GAP_SDK_HOME)/tools/rules $(INSTALL_DIR)
@@ -115,6 +114,11 @@ openocd:
 	cd tools/gap8-openocd && ./bootstrap
 	cd tools/gap8-openocd && ./configure --prefix=$(INSTALL_DIR)
 	cd tools/gap8-openocd && make install
+	mkdir -p $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
+	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins
+
+openocd_scripts:
 	mkdir -p $(INSTALL_DIR)/share/openocd/scripts/tcl
 	cd tools/gap8-openocd-tools && cp -r tcl/* $(INSTALL_DIR)/share/openocd/scripts/tcl
 	cd tools/gap8-openocd-tools && mkdir -p $(INSTALL_DIR)/share/openocd/gap_bins && cp -r gap_bins/* $(INSTALL_DIR)/share/openocd/gap_bins

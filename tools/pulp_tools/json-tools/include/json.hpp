@@ -37,7 +37,7 @@ namespace js {
 
   public:
 
-    virtual std::string get_str() { return "NC"; }
+    virtual std::string get_str() { return ""; }
     virtual long long int get_int() { return 0; }
     virtual long long int get_int(std::string name)
     {

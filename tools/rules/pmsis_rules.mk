@@ -114,9 +114,11 @@ PULP_APP_SRCS += $(APP_SRCS)
 PULP_CFLAGS  += $(foreach d, $(APP_INC), -I$d) $(APP_CFLAGS) $(COMMON_CFLAGS)
 PULP_LDFLAGS += $(APP_LDFLAGS) $(COMMON_LDFLAGS)
 
+BUILDDIR      = $(CURDIR)/BUILD/$(TARGET_CHIP)/GCC_RISCV/$(build_dir_ext)
+TARGET_BUILD_DIR = $(BUILDDIR)
+
 include $(PULPOS_HOME)/rules/pulpos.mk
 
-BUILDDIR      = $(TARGET_BUILD_DIR)
 BIN           = $(TARGETS)
 
 else

@@ -17,7 +17,7 @@
     "mic": {
         "name": "I2S microphone",
 
-        "vp_component": "devices.microphone.i2s_microphone",
+        "vp_component": "devices.sound.i2s_microphone",
 
         "verbose": false,
         "width": 16,

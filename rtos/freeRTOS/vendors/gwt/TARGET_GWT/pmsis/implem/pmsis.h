@@ -47,6 +47,7 @@
 #include "pmsis/backend/implementation_specific_defines.h"
 #include "pmsis/targets/target.h"
 /* pmsis_api includes. */
+#include "pmsis/errno.h"
 #include "pmsis/device.h"
 #include "pmsis/task.h"
 #include "pmsis_types.h"

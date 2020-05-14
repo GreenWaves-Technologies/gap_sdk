@@ -686,6 +686,8 @@ void exit(int status)
 
 void exit(int status)
 {
+  __rt_deinit();
+
   apb_soc_status_set(status);
   
   if (rt_iodev() == RT_IODEV_HOST)
