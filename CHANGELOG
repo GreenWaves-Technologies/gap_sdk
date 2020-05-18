@@ -15,6 +15,9 @@ Bug fixes:
 	- Compilation on gap8 v2 and v3 were done with v1 config
 	- "make flash" is now flashing binary and FS to flash
 
+- FreeRTOS
+	- Cluster DMA: Better transfer ID affectation. In IRQ handler, when a transfer was done, next transfer was not popped out.
+
 3.3
 
 Highlights of this release:

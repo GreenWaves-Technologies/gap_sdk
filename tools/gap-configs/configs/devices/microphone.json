@@ -37,6 +37,7 @@
         "frequency": 0,
         "channel": "right",
         "ws-delay": 1,
-        "sample-rate": 44100
+        "sample-rate": 44100,
+        "enabled": false
     }
 }

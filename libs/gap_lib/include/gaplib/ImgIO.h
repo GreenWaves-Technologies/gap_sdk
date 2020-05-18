@@ -20,7 +20,14 @@
 
 #define PPM_HEADER                          40
 
+enum {
+    BYPASS_IO = 0,
+    GRAY_SCALE_IO = 1,
+    RGB565_IO = 2,
+    RGB888_IO = 3
+};
+
 unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int *H, unsigned char *InBuffer, unsigned int BuffSize);
-int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *InBuffer, unsigned char PixelSize);
+int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned char *OutBuffer, unsigned char imgFormat);
 #endif //__IMG_IO_H__
 

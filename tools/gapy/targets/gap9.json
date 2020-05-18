@@ -21,6 +21,13 @@
         }
     },
 
+    "openocd": {
+        "cable": "interface/jlink.cfg",
+        "@eval@": {
+            "script": "os.environ.get('GAP_SDK_HOME') + '/tools/gap8-openocd-tools/tcl/gap9reva.tcl'"
+        }
+    },
+
     "runner": {
         "flash_devices": [
           "target/board/devices/flash"

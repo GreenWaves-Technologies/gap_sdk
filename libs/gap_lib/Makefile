@@ -1,6 +1,6 @@
 SRC = \
-  jpeg/dct.c jpeg/jpeg_constants.c jpeg/jpeg_encoder.c jpeg/cluster.c
-
+  jpeg/dct.c jpeg/jpeg_constants.c jpeg/jpeg_encoder.c jpeg/cluster.c \
+  img_io/ImgIO.c
 
 ifdef GAP_SDK_HOME
 include $(CURDIR)/rules/gap_sdk.mk

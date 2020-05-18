@@ -280,6 +280,8 @@ struct pi_i2s_conf
         PI_I2S_FMT_* constants. */
     uint8_t word_size;          /*!< Number of bits representing one data
         word. */
+    int8_t mem_word_size;       /*!< Number of bits representing one data word
+        in memory. If it is -1, this is equal to word_size. */
     uint8_t channels;           /*!< Number of words per frame. */
     uint8_t itf;                /*!< I2S device ID. */
     pi_i2s_opt_t options;       /*!< Configuration options as defined by

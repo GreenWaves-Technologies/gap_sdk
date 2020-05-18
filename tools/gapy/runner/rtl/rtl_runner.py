@@ -96,7 +96,10 @@ class Runner(runner.default_runner.Runner):
             gv.gvsoc.prepare_exec(self.config, full_config)
             gv.gvsoc.dump_config(full_config, gvsoc_config_path)
         
-            self.set_arg('-gDPI_CONFIG_FILE=%s' % gvsoc_config_path)
+            if self.platform_tool == 'vsim':
+                self.set_arg('+DPI_CONFIG_FILE=%s' % gvsoc_config_path)
+            else:
+                self.set_cmd_arg('+DPI_CONFIG_FILE=%s' % gvsoc_config_path)
 
         else:
             if self.platform_tool == 'vsim':
@@ -153,7 +156,7 @@ class Runner(runner.default_runner.Runner):
 
         with open('rtl_config.json', 'w') as file:
             file.write(self.full_config.dump_to_string())
-
+        
         print ('Launching simulator with command:')
         print (command)
 

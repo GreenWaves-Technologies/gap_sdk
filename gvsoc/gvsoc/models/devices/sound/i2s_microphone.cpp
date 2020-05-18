@@ -75,6 +75,7 @@ protected:
     Stim_txt *stim;         // Pointer to the stim generator
     int ws_in;
     bool lower_ws_out;
+    bool enabled;
 
     vp::trace trace;
 
@@ -297,6 +298,7 @@ int Microphone::build()
     this->ws_delay = this->get_js_config()->get_int("ws-delay");
     this->width = this->get_js_config()->get_int("width");
     this->frequency = this->get_js_config()->get_int("frequency");
+    this->enabled = this->get_js_config()->get_child_bool("enabled");
     this->pdm = this->get_js_config()->get_int("pdm");
     this->stim_incr = false;
     this->stim = NULL;
@@ -432,12 +434,28 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
 {
     Microphone *_this = (Microphone *)__this;
 
+    if (!_this->enabled)
+        return;
+
     if (_this->ws_in_itf.is_bound())
         ws = _this->ws_in;
 
     _this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d %d)\n", sck, ws, sd, _this->ws_in_itf.is_bound());
 
     if (sck)
+    {
+        if (_this->pending_bits == 1 && _this->ws_out_itf.is_bound())
+        {
+            _this->ws_out_itf.sync(0, 1, 0);
+            _this->lower_ws_out = true;
+        }
+        else if ( _this->lower_ws_out)
+        {
+            _this->ws_out_itf.sync(0, 0, 0);
+            _this->lower_ws_out = false;
+        }
+    }
+    else
     {
         // The channel is the one of this microphone
         if (_this->prev_ws != ws && ws == _this->channel_ws)
@@ -450,7 +468,7 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
             _this->is_active = true;
 
             // If the WS just changed, apply the delay before starting sending
-            _this->current_ws_delay = _this->ws_delay;
+            _this->current_ws_delay = _this->ws_delay + 1;
             if (_this->current_ws_delay == 0)
             {
                 _this->is_active = true;
@@ -495,19 +513,7 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
         }
 
         _this->prev_ws = ws;
-    }
-    else
-    {
-        if (_this->pending_bits == 0 && _this->ws_out_itf.is_bound())
-        {
-            _this->ws_out_itf.sync(0, 1, 0);
-            _this->lower_ws_out = true;
-        }
-        else if ( _this->lower_ws_out)
-        {
-            _this->ws_out_itf.sync(0, 0, 0);
-            _this->lower_ws_out = false;
-        }
+
 
     }
 }

@@ -711,7 +711,7 @@ void canny_edge_detector()
     char imgName[50];
     sprintf(imgName, "../../../img_OUT.ppm");
     printf("imgName: %s\n", imgName);
-    WriteImageToFile(imgName, COL, LINE, (ImageOut_L2), sizeof(unsigned char));
+    WriteImageToFile(imgName, COL, LINE, 1, (ImageOut_L2), sizeof(unsigned char));
 
     pi_cluster_close(&cluster_dev);
     

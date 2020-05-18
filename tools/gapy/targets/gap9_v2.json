@@ -31,8 +31,10 @@
 
     "gvsoc": {
         "runner_module": "gv.chips.gap9_v2",
-        "@os.environ.get('GAPY_PLATFORM') == 'rtl'@": {
-            "sv-mode": true
+        "@cond@": {
+            "@os.environ.get('GAPY_PLATFORM') == 'rtl'@": {
+                "sv-mode": true
+            }
         }
     },
 

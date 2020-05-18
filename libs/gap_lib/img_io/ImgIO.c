@@ -1,7 +1,6 @@
 /*
  * Copyright 2019 GreenWaves Technologies, SAS
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -33,6 +32,8 @@
 #define CHUNK_SIZE 8192
 
 #define PRINTF printf
+
+unsigned char *img_rgb888;
 
 static void progress_bar(char * OutString, int n, int tot)
 {
@@ -275,13 +276,20 @@ Fail:
     return 0;
 }
 
-static void WritePPMHeader(void *FD, unsigned int W, unsigned int H)
+static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned char imgFormat)
 {
+    // BYPASS mode, no need any header
+    if (imgFormat == BYPASS_IO)
+        return ;
+
     unsigned int Ind = 0, x, i, L;
     unsigned char *Buffer = (unsigned char *) pmsis_l2_malloc(PPM_HEADER * sizeof(unsigned char));
 
     /* P5<cr>* */
-    Buffer[Ind++] = 0x50; Buffer[Ind++] = 0x35; Buffer[Ind++] = 0xA;
+    Buffer[Ind++] = 0x50;                                   // P
+    if (imgFormat == GRAY_SCALE_IO) Buffer[Ind++] = 0x35;   // 5
+    else Buffer[Ind++] = 0x36;                              // 6
+    Buffer[Ind++] = 0xA;                                    // <cr>
 
     /* W <space> */
     x = W; L=0;
@@ -331,7 +339,27 @@ static void WritePPMHeader(void *FD, unsigned int W, unsigned int H)
     pmsis_l2_malloc_free(Buffer, PPM_HEADER * sizeof(unsigned char));
 }
 
-int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char *OutBuffer, unsigned char PixelSize)
+static void rgb565_to_rgb888 (unsigned char *input, unsigned int input_size, unsigned char *output )
+{
+    unsigned char red, green, blue; // 8-bits each
+    unsigned short pixel;
+    unsigned int ind = 0;
+
+    // Just a simplest implementation, need to be optimized the performance
+    for (int i = 0; i < input_size; i+=2) {
+        pixel = *(unsigned short *) (input + i);
+        red = (unsigned short)((pixel & 0xF800) >> 11);  // 5
+        green = (unsigned short)((pixel & 0x07E0) >> 5); // 6
+        blue = (unsigned short)(pixel & 0x001F);         // 5
+
+        output[ind] = red << 3;  /* red */
+        output[ind+1] = green << 2;  /* green */
+        output[ind+2] = blue << 3;  /* blue */
+        ind += 3;
+    }
+}
+
+int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned char *OutBuffer, unsigned char imgFormat)
 {
     struct pi_fs_conf conf;
     pi_fs_conf_init(&conf);
@@ -347,16 +375,40 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
     void *File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_WRITE);
 
     int ret = 0;
-    WritePPMHeader(File,W,H);
+    WritePPMHeader(File,W,H, imgFormat);
 
-	int steps = (W*H*PixelSize) / CHUNK_SIZE;
+    if(imgFormat == RGB565_IO)
+    {
+        unsigned int rgb888_size = (CHUNK_SIZE/2)*3;     // size of 888 image in byte
+        img_rgb888 = (unsigned char *) pmsis_l2_malloc(rgb888_size);
 
-    for(int i=0;i<steps;i++){
-        progress_bar("Writing image ",i,steps);
-        ret+=pi_fs_write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
+        int steps = (W*H*PixelSize) / CHUNK_SIZE;             // convert and fs write times
+
+        for(int i=0;i<steps;i++){
+            progress_bar("Writing image ",i,steps);
+            rgb565_to_rgb888(OutBuffer+(CHUNK_SIZE*i), CHUNK_SIZE, img_rgb888);
+            ret+=pi_fs_write(File, img_rgb888, rgb888_size);
+        }
+        if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
+        {
+            rgb888_size = ((W*H*PixelSize) % CHUNK_SIZE)/2*3;
+            rgb565_to_rgb888((OutBuffer+(CHUNK_SIZE*steps)),((W*H*PixelSize) % CHUNK_SIZE) ,img_rgb888);
+            ret+=pi_fs_write(File, img_rgb888, rgb888_size);
+        }
+
+        pmsis_l2_malloc_free(img_rgb888, (CHUNK_SIZE/2)*3);
     }
-    if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
-		ret+=pi_fs_write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
+    else
+    {
+        int steps = (W*H*PixelSize) / CHUNK_SIZE;
+
+        for(int i=0;i<steps;i++){
+            progress_bar("Writing image ",i,steps);
+            ret+=pi_fs_write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
+        }
+        if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
+            ret+=pi_fs_write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
+    }
 
     pi_fs_close(File);
     pi_fs_unmount(&fs);

@@ -273,6 +273,14 @@ void Speaker::sync(void *__this, int sck, int ws, int sd)
 
     if (sck)
     {
+        if (_this->is_active)
+        {
+            _this->push_data(sd);
+        }
+    }
+    else
+    {
+
         // The channel is the one of this microphone
         if (_this->prev_ws != ws && ws == 1)
         {
@@ -282,16 +290,11 @@ void Speaker::sync(void *__this, int sck, int ws, int sd)
             }
 
             // If the WS just changed, apply the delay before starting sending
-            _this->current_ws_delay = _this->ws_delay;
+            _this->current_ws_delay = _this->ws_delay + 1;
             if (_this->current_ws_delay == 0)
             {
                 _this->is_active = true;
             }
-        }
-
-        if (_this->is_active)
-        {
-            _this->push_data(sd);
         }
 
         // If there is a delay, decrease it
@@ -307,10 +310,6 @@ void Speaker::sync(void *__this, int sck, int ws, int sd)
         }
 
         _this->prev_ws = ws;
-    }
-    else
-    {
-
     }
 }
 
