@@ -24,6 +24,9 @@ typedef struct pi_uart_s {
   struct pi_uart_conf conf;
   rt_udma_channel_t rx_channel;
   rt_udma_channel_t tx_channel;
+  #if defined(UART_FLOW_CONTROL_EMU)
+  struct pi_device pwm;
+  #endif  /* UART_FLOW_CONTROL_EMU */
 } pi_uart_t;
 
 #endif

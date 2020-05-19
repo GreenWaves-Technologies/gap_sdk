@@ -23,7 +23,7 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          MatrixAddParameters, MatScaleFusionParameters,
                          OutputParameters, PoolingParameters,
                          ReshapeParameters, SoftMaxParameters,
-                         TransposeParameters)
+                         TransposeParameters, MultiplicativeBiasParameters)
 from utils.node_id import NodeId
 
 from .bindings import (TT_TENSOR_TYPES, CommentBindingList,
@@ -374,6 +374,23 @@ class CodeGenerator():
                                 code_block,
                                 const_info=const_info)
                 num_globals += 1
+
+                if isinstance(anode, MultiplicativeBiasParameters) and anode.has_mul_bias:
+                    mul_biases_q = qrec.mul_biases_q
+
+                    cname = self.naming_convension.get_global_name(pnode.name, step_idx,
+                                                                   pnode, "mul_biases")
+                    c_entry['mul_biases'] = cname
+                    if num_globals != 0:
+                        code_block.append_last(',')
+                    const_info = gen_const_info(os.path.join(self.opts['tensor_directory'],
+                                                             cname+".tensor"), mul_biases_q)
+                    gen_global_decl(cname, mul_biases_q,
+                                    self.opts['default_global_home_location'],
+                                    self.opts['default_global_exec_location'],
+                                    code_block,
+                                    const_info=const_info)
+                    num_globals += 1
             elif isinstance(anode, ConstantInputParameters):
                 qrec = self.G.quantization[NodeId(pnode, fnode)]
                 # the name cache will be updated when all the edges are analysed by local_generator
@@ -381,9 +398,9 @@ class CodeGenerator():
                 out_edge = self.G.out_edges(pnode.name)[0]
                 eparams = out_edge.params
                 cname = self.naming_convension.get_edge_name(eparams.creating_node.name,
-                                                            eparams.creating_step,
-                                                            eparams.edge_type,
-                                                            eparams.edge_order)
+                                                             eparams.creating_step,
+                                                             eparams.edge_type,
+                                                             eparams.edge_order)
                 if num_globals != 0:
                     code_block.append_last(',')
                 const_info = gen_const_info(os.path.join(self.opts['tensor_directory'],
@@ -705,10 +722,16 @@ class CodeGenerator():
                                conv_q.in_qs[0].q, conv_q.weights_q.q, out_q.out_qs[0].q, conv_q.biases_q.q)
         )
         if self.opts['at_ver'] > 2:
-            self.bindings.append(
-                NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, 'weights'),
-                                GNodeArgNode(params, 'biases'),
-                                GNodeArgEdge(out_eparams[0], "GNA_OUT")))
+            if params.has_mul_bias:
+                self.bindings.append(
+                    NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, 'weights'),
+                                    GNodeArgNode(params, 'biases'), GNodeArgNode(params, 'mul_biases'),
+                                    GNodeArgEdge(out_eparams[0], "GNA_OUT")))
+            else:
+                self.bindings.append(
+                    NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, 'weights'),
+                                    GNodeArgNode(params, 'biases'),
+                                    GNodeArgEdge(out_eparams[0], "GNA_OUT")))
         else:
             norm = conv_q.in_qs[0].q + conv_q.weights_q.q - out_q.out_qs[0].q
             normbias = conv_q.in_qs[0].q + conv_q.weights_q.q - \
@@ -748,3 +771,17 @@ class CodeGenerator():
 
     def write_constants(self):
         write_constants(self.G, self.naming_convension, self.opts['tensor_directory'])
+
+    def header_generator(self, indent=0):
+        code_block = CodeBlock(starting_indent=indent)
+        for step_idx, node, _, fnode in self.G.nodes_iterator():
+            if fnode:
+                continue
+            if not isinstance(node, InputParameters) and not isinstance(node, OutputParameters):
+                continue
+            name = node.name
+            cname = self.naming_convension.get_node_name(name, step_idx, node)
+            qrec = self.G.quantization[NodeId(node)]
+            for i, out_q in enumerate(qrec.out_qs):
+                code_block.write("#define {}_Q\t{}".format(cname, out_q.q))
+        return str(code_block)

@@ -1,0 +1,43 @@
+{
+    "vp_comps": [
+        "mic", "clock"
+    ],
+
+    "vp_ports": [
+        "ws_in",
+        "i2s",
+        "ws_out"
+    ],
+
+    "vp_bindings": [
+        ["mic->i2s", "self->i2s"],
+        ["mic->ws_out", "self->ws_out"],
+        ["self->ws_in", "mic->ws_in"],
+        ["clock->out", "mic->clock"],
+        ["mic->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "mic": {
+        "name": "I2S microphone",
+
+        "vp_component": "devices.sound.i2s_microphone",
+
+        "verbose": false,
+        "width": 16,
+        "pdm": true,
+        "stim_mode": "file",
+        "stim_incr_start": "0x55555555",
+        "stim_incr_value": "1",
+        "stim": null,
+        "frequency": 0,
+        "channel": "right",
+        "ws-delay": 1,
+        "sample-rate": 44100,
+        "enabled": false
+    }
+}

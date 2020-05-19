@@ -55,10 +55,12 @@ export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
 export TILER_CNN_KERNEL_PATH=$TILER_PATH/generators/CNN
 export TILER_CNN_GENERATOR_PATH=$TILER_PATH/generators/CNN
+export TILER_CNN_KERNEL_PATH_SQ8=$TILER_PATH/CNN_Libraries_SQ8
+export TILER_CNN_GENERATOR_PATH_SQ8=$TILER_PATH/CNN_Generators_SQ8
 
 
 # OpenOCD
-export GAP_OPENOCD_TOOLS=$INSTALL_DIR/share/openocd
+export GAP_OPENOCD_TOOLS=$GAP_SDK_HOME/tools/gap8-openocd-tools
 export GAP_USE_OPENOCD=1
 
 # Zephyr
@@ -81,7 +83,11 @@ then
 else
     # For NEW SDK rtl test
     PROJECT_PATH=$(dirname $(dirname $GAP_SDK_HOME))
-    export VSIM_PATH=$PROJECT_PATH/sim/vsim
-    export XCSIM_PATH=$PROJECT_PATH/sim/xcsim
-    export XCSIM_PLATFORM=$XCSIM_PATH
+    if [ -z "$VSIM_PATH" ]; then
+        export VSIM_PATH=$PROJECT_PATH/sim/vsim
+    fi
+    if [ -z "$XCSIM_PATH" ]; then
+        export XCSIM_PATH=$PROJECT_PATH/sim/xcsim
+        export XCSIM_PLATFORM=$XCSIM_PATH
+    fi
 fi

@@ -18,6 +18,7 @@ from utils.tabular import Tabular, TabularColumn
 from graph.types import FilterParameters
 from utils.node_id import NodeId
 from quantization.qtype import QType
+from quantization.quantization_record import FilterQuantizationRecord
 from importer.tflite.tflite_qtype import TfliteQType
 
 from .reporter import Reporter
@@ -26,7 +27,7 @@ DEFAULT_ACC_BITS = 32
 
 def emit_q(qtype):
     if qtype is None:
-        return "None"
+        return ""
     if isinstance(qtype, TfliteQType):
         return ', '.join(map(str, ["{} = {}".format(x, y) for x,y \
                 in zip(qtype.report_columns(), qtype.to_report())]))
@@ -49,6 +50,7 @@ class QuantizationReporter(Reporter):
             TabularColumn("Out"),
             TabularColumn("Weights"),
             TabularColumn("Bias"),
+            TabularColumn("Mulbias"),
             TabularColumn("Calc"),
             TabularColumn("Acc"),
         ])
@@ -63,10 +65,10 @@ class QuantizationReporter(Reporter):
             step_idx = node.step_idx
             node = fnode or node
             row = [step_idx, node.name, emit_qs(qrec.in_qs), emit_qs(qrec.out_qs)]
-            if isinstance(node, FilterParameters):
-                for i in ["weights", "biases", "calc", "acc"]:
+            if isinstance(qrec, FilterQuantizationRecord):
+                for i in ["weights", "biases", "mul_biases", "calc", "acc"]:
                     row.append(emit_q(getattr(qrec, i+'_q')))
             else:
-                row += ["", "", "", ""]
+                row += ["", "", "", "", ""]
             table.add_row(row)
         return table

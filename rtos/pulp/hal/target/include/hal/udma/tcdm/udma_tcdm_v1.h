@@ -35,15 +35,26 @@ static inline void plp_tcdm_setSrc(unsigned int addr)
   pulp_write32(ARCHI_UDMA_ADDR + UDMA_TCDM_OFFSET + UDMA_CHANNEL_CUSTOM_OFFSET + TCDM_T_SRC_SADDR, addr);
 }
 
-static inline void plp_udma_enqueue_toTcdm(unsigned int l2Addr, unsigned int fcTcdmAddr, unsigned int size, unsigned int cfg)
+static inline void plp_tcdm_setMemSel(unsigned int dir)
+{
+  pulp_write32(ARCHI_UDMA_ADDR + UDMA_TCDM_OFFSET + UDMA_CHANNEL_CUSTOM_OFFSET + TCDM_MEM_SEL, dir);
+}
+
+static inline void plp_udma_enqueue_toTcdm(unsigned int l2Addr, unsigned int fcTcdmAddr,
+                                           unsigned int tcdm_cpy, unsigned int size,
+                                           unsigned int cfg)
 {
   plp_tcdm_setDst(fcTcdmAddr);
+  plp_tcdm_setMemSel(tcdm_cpy);
   plp_udma_enqueue(UDMA_TCDM_TX_ADDR, l2Addr, size, cfg);
 }
 
-static inline void plp_udma_enqueue_fromTcdm(unsigned int l2Addr, unsigned int fcTcdmAddr, unsigned int size, unsigned int cfg)
+static inline void plp_udma_enqueue_fromTcdm(unsigned int l2Addr, unsigned int fcTcdmAddr,
+                                             unsigned int tcdm_cpy, unsigned int size,
+                                             unsigned int cfg)
 {
   plp_tcdm_setSrc(fcTcdmAddr);
+  plp_tcdm_setMemSel(tcdm_cpy);
   plp_udma_enqueue(UDMA_TCDM_RX_ADDR, l2Addr, size, cfg);
 }
 

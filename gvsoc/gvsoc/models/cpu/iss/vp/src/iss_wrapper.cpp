@@ -28,6 +28,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#ifndef O_BINARY
+# define O_BINARY 0
+#endif
+
 #define HALT_CAUSE_EBREAK    0
 #define HALT_CAUSE_ECALL     1
 #define HALT_CAUSE_ILLEGAL   2
@@ -544,6 +548,20 @@ std::string iss_wrapper::read_user_string(iss_addr_t addr, int size)
   return str;
 }
 
+static const int open_modeflags[12] = {
+        O_RDONLY,
+        O_RDONLY | O_BINARY,
+        O_RDWR,
+        O_RDWR | O_BINARY,
+        O_WRONLY | O_CREAT | O_TRUNC,
+        O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+        O_RDWR | O_CREAT | O_TRUNC,
+        O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
+        O_WRONLY | O_CREAT | O_APPEND,
+        O_WRONLY | O_CREAT | O_APPEND | O_BINARY,
+        O_RDWR | O_CREAT | O_APPEND,
+        O_RDWR | O_CREAT | O_APPEND | O_BINARY
+};
 
 void iss_wrapper::handle_riscv_ebreak()
 {
@@ -567,7 +585,7 @@ void iss_wrapper::handle_riscv_ebreak()
 
     unsigned int mode = args[1];
 
-    this->cpu.regfile.regs[10] = open(path.c_str(), mode, 0644);
+    this->cpu.regfile.regs[10] = open(path.c_str(), open_modeflags[mode], 0644);
 
     if (this->cpu.regfile.regs[10] == -1)
       this->warning.force_warning("Caught error during semi-hosted call (name: open, path: %s, mode: 0x%x, error: %s)\n", path.c_str(), mode, strerror(errno));

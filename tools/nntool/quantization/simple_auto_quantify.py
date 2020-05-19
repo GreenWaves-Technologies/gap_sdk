@@ -154,7 +154,7 @@ class SimpleQuantizer(Quantizer, JsonSerializable):
             b_q.q = acc_q.q
 
         if isinstance(node, MultiplicativeBiasParameters) and node.has_mul_bias:
-            mb_q = self.get_quantization(fstats['mul_biases'], None, o_q.bits)
+            mb_q = self.get_quantization(fstats['mul_biases'], min_qsnr, force_width)
         else:
             mb_q = None
 

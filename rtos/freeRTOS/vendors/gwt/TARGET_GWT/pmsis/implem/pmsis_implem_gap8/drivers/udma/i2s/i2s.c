@@ -38,16 +38,13 @@
  * Driver data
  *****************************************************************************/
 
-extern uint32_t g_i2s_flags;
-extern struct i2s_driver_fifo_s *__global_i2s_driver_fifo[];
-
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
 
 void pi_i2s_setup(uint32_t flags)
 {
-    g_i2s_flags = flags;
+    __pi_i2s_setup(flags);
 }
 
 void pi_i2s_conf_init(struct pi_i2s_conf *conf)
@@ -57,34 +54,31 @@ void pi_i2s_conf_init(struct pi_i2s_conf *conf)
 
 int pi_i2s_open(struct pi_device *device)
 {
+    int32_t status = -1;
     struct pi_i2s_conf *conf = (struct pi_i2s_conf *) device->config;
-    if (__global_i2s_driver_fifo[conf->itf] == NULL)
-    {
-        __pi_i2s_open(conf);
-        device->data = (void *) __global_i2s_driver_fifo[conf->itf];
-    }
-    else
-    {
-        __global_i2s_driver_fifo[conf->itf]->nb_open++;
-    }
-    return 0;
+    I2S_TRACE("Open device id=%d\n", conf->itf);
+    status = __pi_i2s_open(conf, (struct i2s_itf_data_s **) &(device->data));
+    I2S_TRACE("Open status : %d, driver data: %p\n",
+              status, (struct i2s_itf_data_s *) &device->data);
+    return status;
 }
 
 void pi_i2s_close(struct pi_device *device)
 {
-    struct i2s_driver_fifo_s *fifo = (struct i2s_driver_fifo_s *) device->data;
-    fifo->nb_open--;
-    if (fifo->nb_open == 0)
+    struct i2s_itf_data_s *itf_data = (struct i2s_itf_data_s *) device->data;
+    I2S_TRACE("Close device id=%d\n", itf_data->device_id);
+    if (itf_data != NULL)
     {
-        __pi_i2s_close(fifo->i2s_id);
+        __pi_i2s_close(itf_data);
+        device->data = NULL;
     }
 }
 
 int pi_i2s_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
 {
-    struct i2s_driver_fifo_s *fifo = (struct i2s_driver_fifo_s *) device->data;
-    __pi_i2s_ioctl(fifo->i2s_id, cmd, arg);
-    return 0;
+    struct i2s_itf_data_s *itf_data = (struct i2s_itf_data_s *) device->data;
+    I2S_TRACE("Ioctl command : %lx, arg %p\n", cmd, arg);
+    return __pi_i2s_ioctl(itf_data, cmd, arg);
 }
 
 int pi_i2s_read(struct pi_device *device, void **mem_block, size_t *size)
@@ -98,8 +92,8 @@ int pi_i2s_read(struct pi_device *device, void **mem_block, size_t *size)
 
 int pi_i2s_read_async(struct pi_device *device, pi_task_t *task)
 {
-    struct i2s_driver_fifo_s *fifo = (struct i2s_driver_fifo_s *) device->data;
-    __pi_i2s_read_async(fifo->i2s_id, task);
+    struct i2s_itf_data_s *itf_data = (struct i2s_itf_data_s *) device->data;
+    __pi_i2s_read_async(itf_data, task);
     return 0;
 }
 

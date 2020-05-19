@@ -1,0 +1,21 @@
+{
+  "version": 2,
+
+  "hal_files" : [ "hal/apb_soc/apb_soc_v2.h" ],
+
+  "regmap": {
+  
+    "power": {
+      "bypass": {
+        "offset": "0x70",
+        "content": {
+          "dbg1": {
+            "bit": 14
+          }
+        }
+      }
+
+    }
+  }
+
+}

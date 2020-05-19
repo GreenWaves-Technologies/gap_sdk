@@ -38,10 +38,10 @@ typedef unsigned int rt_pointerT;
 #define gap_freeL1(x, y) free((x))
 #define gap_freeL2(x, y) free((x))
 #else
-#define gap_allocL1(x)     rt_alloc( RT_ALLOC_CL_DATA, (x) )
-#define gap_allocL2(x)     rt_alloc( RT_ALLOC_L2_CL_DATA, (x) )
-#define gap_freeL1(x, y)   rt_free(RT_ALLOC_CL_DATA, (x), (y))
-#define gap_freeL2(x, y)   rt_free(RT_ALLOC_L2_CL_DATA, (x), (y))
+#define gap_allocL1(x)     pi_l1_malloc( (x) )
+#define gap_allocL2(x)     pi_l2_malloc( (x) )
+#define gap_freeL1(x, y)   pi_l1_free( (x), (y))
+#define gap_freeL2(x, y)   pi_l2_free( (x), (y))
 #endif
 
 /* Cluster id, Core Id */

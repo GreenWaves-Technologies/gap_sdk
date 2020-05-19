@@ -18,7 +18,7 @@
 
 class Testset(object):
 
-  def __init__(self, name, files=[], parent=None, restrict=None, tags=[], description=None, parallel=True):
+  def __init__(self, name, files=[], tests=[], testsets=[], parent=None, restrict=None, tags=[], description=None, parallel=True):
     self.name = name
     self.files = files
     self.parent = parent
@@ -26,6 +26,8 @@ class Testset(object):
     self.tags = tags
     self.description = description
     self.parallel = parallel
+    self.tests = tests
+    self.testsets = testsets
 
 
 

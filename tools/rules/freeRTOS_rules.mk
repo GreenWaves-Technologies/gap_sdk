@@ -56,7 +56,7 @@ FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
 # Main stack size in Bytes.
-MAIN_STACK_SIZE     ?= 1024
+MAIN_STACK_SIZE     ?= 2048
 MAIN_APP_STACK_SIZE  = $(MAIN_STACK_SIZE)
 
 # Option to use cluster features

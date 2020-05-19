@@ -1,0 +1,27 @@
+{
+  "runner": {
+    "boot_from_flash": true,
+    "boot-mode": "rom"
+  },
+  
+  "loader": {
+    "boot": {
+      "mode": "rom"
+    }
+  },
+
+  "vsim": {
+    "boot-mode": "jtag"
+  },
+  
+  "system_tree": {
+    "debug_bridge": {
+      "adv_dbg_unit": {
+        "retry_count": 10,
+        "check_errors": true
+      }
+    }
+  }
+
+}
+

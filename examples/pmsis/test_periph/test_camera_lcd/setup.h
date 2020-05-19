@@ -8,11 +8,7 @@
 #define PRINTF printf
 #endif  /* DEBUG */
 
-#if defined(USE_BRIDGE)
-#include "bridge_stubs.h"
-#else
-#define HAVE_DISPLAY
-#endif  /* USE_BRIDGE */
+//#define DISPLAY
 
 #define QVGA 1
 //#define QQVGA 1

@@ -134,13 +134,18 @@ static inline void hal_cl_dma_flush()
 }
 
 /* Wait end of one transfer, then free the slot. */
+/* Disabling/re-enabling IRQ is needed to synchronize transfer IDs. */
 static inline void hal_cl_dma_wait(uint8_t tid)
 {
+    uint32_t irq = __disable_irq();
     while (cl_dma_status_get() & (1 << tid))
     {
+        __restore_irq(irq);
         hal_eu_evt_mask_wait(1 << CL_EVENT_DMA0);
+        irq = __disable_irq();
     }
     hal_cl_dma_tid_free(tid);
+    __restore_irq(irq);
 }
 
 #endif  /* __PI_HAL_CL_DMA_H__ */

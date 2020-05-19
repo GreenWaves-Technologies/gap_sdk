@@ -117,6 +117,13 @@ int main(int argc, char **argv)
 
 '''
 
+@stringfunction
+# pylint: disable=unused-argument
+def generator_template_header(G, gen):
+    '''
+${gen.header_generator(indent=0)}
+'''
+
 def execute_template(template_function, G, naming_convension=None, code_generator=None):
     if code_generator is None:
         if naming_convension is None:
@@ -129,6 +136,9 @@ def default_template(G, naming_convension=None, code_generator=None):
         return execute_template(generator_template, G, naming_convension, code_generator)
 
     return execute_template(generator_template_v3, G, naming_convension, code_generator)
+
+def header_template(G, naming_convension=None, code_generator=None):
+    return execute_template(generator_template_header, G, naming_convension, code_generator)
 
 def dynamic_template(template_file):
     with open(template_file) as fp:

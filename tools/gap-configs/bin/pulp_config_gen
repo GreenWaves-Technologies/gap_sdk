@@ -1,0 +1,86 @@
+#!/usr/bin/env python3.6
+
+# Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+
+ 
+import json_tools as js
+import argparse
+import os
+import os.path
+
+parser = argparse.ArgumentParser(
+  description='Generate configuration for Pulp soc',
+  formatter_class=argparse.RawDescriptionHelpFormatter
+)
+
+parser.add_argument("--template", dest="template", default=None, help="Specify the soc template")
+parser.add_argument("--configs", dest="configs", default=[], action="append", help="Specify path to configurations")
+parser.add_argument("--prop", dest="props", default=[], action="append", help="Specify property")
+parser.add_argument("--output", dest="output", default=None, help="Specify path to output configuration")
+parser.add_argument("--graph", dest="graph", default=None, help="Specify path to output graph")
+parser.add_argument("--output-dir", dest="output_dir", default=None, help="Specify directory for temporary files")
+parser.add_argument("--usecase", dest="usecases", action="append", default=[], help="Specify the JSON usecase file")
+
+args = parser.parse_args()
+
+
+if args.template is None:
+  print ('The path to the template configuration must be given through option --template')
+  exit(-1)
+
+
+os.environ['PULP_CONFIGS_PATH'] = ':'.join(args.configs + os.environ.get('PULP_CONFIGS_PATH').split(':'))
+
+
+
+tp = js.import_config_from_file(args.template, find=True)
+
+full_output_dir = args.output_dir
+if full_output_dir is None:
+  full_output_dir = os.getcwd()
+
+template_file = args.template
+if len(args.props) != 0:
+  template_file = '%s/template.json' % full_output_dir
+
+  for prop in args.props:
+    key, value = prop.split('=')
+    tp.set(key, value)
+
+  with open(template_file, 'w') as file:
+    file.write(tp.dump_to_string())
+
+if tp.get('cluster') is not None:
+  for cid in range(0, tp.get_child_int('cluster/nb_cluster')):
+    cmd = 'pulp_cluster_gen --template=%s --output=%s/cluster_%d.json --cluster-id=%d' % (template_file, full_output_dir, cid, cid)
+    #print (cmd)
+    if os.system(cmd) != 0:
+      exit(-1)
+
+cmd = 'pulp_soc_gen    --template=%s --output=%s/soc.json' % (template_file, full_output_dir)
+#print (cmd)
+if os.system(cmd) != 0:
+  exit(-1)
+
+cmd = 'pulp_chip_gen --template=%s --chip=%s --output=%s/chip.json' % (template_file, tp.get_child_str('chip'), full_output_dir)
+#print (cmd)
+if os.system(cmd) != 0:
+  exit(-1)
+
+cmd = 'pulp_system_gen --template=%s --chip=%s --output=%s/system.json' % (template_file, tp.get_child_str('chip'), full_output_dir)
+#print (cmd)
+if os.system(cmd) != 0:
+  exit(-1)
+
+top_gen_opt = ''
+if args.graph is not None:
+  top_gen_opt += ' --graph=%s' % args.graph
+
+usecase_opt = ''
+for usecase in args.usecases:
+  usecase_opt += ' --usecase=%s' % usecase
+
+cmd = 'pulp_top_gen    --template=%s --system=%s --system-file=%s/system.json%s --output=%s %s' % (template_file, tp.get_child_str('chip'), full_output_dir, usecase_opt, args.output, top_gen_opt)
+#print (cmd)
+if os.system(cmd) != 0:
+  exit(-1)

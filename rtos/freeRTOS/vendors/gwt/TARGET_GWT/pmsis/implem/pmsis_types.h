@@ -33,6 +33,30 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifndef IMPLEM_MUTEX_OBJECT_TYPE
+#define IMPLEM_MUTEX_OBJECT_TYPE \
+    void* mutex_object;
+#endif
+
+struct pi_mutex
+{
+    IMPLEM_MUTEX_OBJECT_TYPE
+    __pmsis_mutex_func take;
+    __pmsis_mutex_func release;
+};
+
+#ifndef IMPLEM_SEM_OBJECT_TYPE
+#define IMPLEM_SEM_OBJECT_TYPE \
+    void* sem_object;
+#endif
+
+struct pi_sem
+{
+    IMPLEM_SEM_OBJECT_TYPE
+    __pi_sem_func take;
+    __pi_sem_func give;
+};
+
 #ifndef PI_TASK_IMPLEM
 #define PI_TASK_IMPLEM \
     int8_t destroy;

@@ -36,9 +36,11 @@ void pi_cl_dma_2d_handler()
 {
     pi_cl_dma_cmd_t *copy = fifo_first;
     hal_compiler_barrier();
+    hal_cl_dma_tid_free(copy->tid);
     if (!copy->size)
     {
-        copy = copy->next;
+        fifo_first = fifo_first->next;
+        hal_compiler_barrier();
         hal_eu_cluster_evt_trig_set(DMA_SW_IRQN, 0);
     }
     hal_compiler_barrier();
@@ -50,13 +52,14 @@ void pi_cl_dma_2d_handler()
         uint32_t dma_cmd = copy->cmd | (iter_length << DMAMCHAN_CMD_LEN_Pos);
         uint32_t loc = copy->loc;
         uint32_t ext = copy->ext;
+        hal_compiler_barrier();
         copy->loc = loc + iter_length;
         copy->ext = ext + copy->stride;
         copy->size = copy->size - iter_length;
+        copy->tid = hal_cl_dma_tid_get();
         hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
     }
     hal_compiler_barrier();
 }
 
 #endif  /* FEATURE_CLUSTER */
-

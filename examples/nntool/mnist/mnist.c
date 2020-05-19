@@ -42,10 +42,6 @@ L2_MEM short int *ResOut;
 #define AT_INPUT_SIZE (AT_INPUT_WIDTH*AT_INPUT_HEIGHT*AT_INPUT_COLORS)
 #define AT_INPUT_SIZE_BYTES (AT_INPUT_SIZE*sizeof(image_in_t))
 
-#ifdef PERF
-L2_MEM rt_perf_t *cluster_perf;
-#endif
-
 L2_MEM image_in_t *ImageIn;
 
 char *ImageName = NULL;

@@ -253,15 +253,29 @@ int pi_i2s_open(struct pi_device *device)
 
         mode |= I2S_CHMODE_CH_LSBFIRST_DIS(sub_periph_id);
 
-        if (__pos_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK)
+        if (conf->options & PI_I2S_OPT_EXT_CLK)
         {
-            mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,0);
+            if (conf->options & PI_I2S_OPT_EXT_WS)
+            {
+                mode |= I2S_CHMODE_CH_MODE_CLK(0, 3) | I2S_CHMODE_CH_MODE_CLK(1, 3);
+            }
+            else
+            {
+                mode |= I2S_CHMODE_CH_MODE_CLK(0, 2) | I2S_CHMODE_CH_MODE_CLK(1, 2);
+            }
         }
         else
         {
-            // Configure each channel on a different clock generator to avoid activating a channel
-            // when the other is first activated
-            mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,1);
+            if (__pos_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK)
+            {
+                mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,0);
+            }
+            else
+            {
+                // Configure each channel on a different clock generator to avoid activating a channel
+                // when the other is first activated
+                mode |= I2S_CHMODE_CH_MODE_CLK(0,0) | I2S_CHMODE_CH_MODE_CLK(1,1);
+            }
         }
 
         hal_i2s_chmode_set(itf_id, mode);
@@ -344,12 +358,21 @@ static inline void __pos_i2s_resume(pos_i2s_t *i2s)
     pos_i2s_enqueue(i2s);
     pos_i2s_enqueue(i2s);
 
-    unsigned int conf = 
-        UDMA_I2S_CFG_CLKGEN0_BITS_WORD(i2s->conf.word_size - 1) | 
-        UDMA_I2S_CFG_CLKGEN0_CLK_EN(1) |
-        UDMA_I2S_CFG_CLKGEN0_CLK_DIV(((div>>1)-1));
-
-    hal_i2s_cfg_clkgen_set(i2s->conf.itf, i2s->clk, conf);
+    if (i2s->conf.options & PI_I2S_OPT_EXT_CLK)
+    {
+        udma_i2s_cfg_ext_set(UDMA_I2S_CUSTOM_ADDR(i2s->conf.itf),
+            UDMA_I2S_CFG_EXT_EXT_BITS_WORD(i2s->conf.word_size - 1)
+        );
+    }
+    else
+    {
+        unsigned int conf = 
+            UDMA_I2S_CFG_CLKGEN0_BITS_WORD(i2s->conf.word_size - 1) | 
+            UDMA_I2S_CFG_CLKGEN0_CLK_EN(1) |
+            UDMA_I2S_CFG_CLKGEN0_CLK_DIV(((div>>1)-1));
+    
+        hal_i2s_cfg_clkgen_set(i2s->conf.itf, i2s->clk, conf);
+    }
 }
 
 

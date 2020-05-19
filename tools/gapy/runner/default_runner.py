@@ -77,7 +77,7 @@ class Runner(object):
                 raise errors.InputError('Invalid flash device: ' + flash_path)
 
             gen_image = False
-            flash_image = False
+            flash_image = self.args.force
 
             # The flash can contain the boot binary and several partitions for FS
             if flash_config.get('content/boot-loader') is not None:

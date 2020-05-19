@@ -1,0 +1,19 @@
+{
+  "version": 1,
+
+  "archi_host_files": [
+    "archi-host/pgtable_hwdef.h",
+    "archi-host/phys_addr.h",
+    "archi-host/virt_addr.h",
+    "archi-host/arm/phys_addr.h",
+    "archi-host/arm/pgtable_hwdef.h",
+    "archi-host/arm64/phys_addr.h",
+    "archi-host/arm64/pgtable_dbg.h",
+    "archi-host/arm64/pgtable_hwdef.h"
+  ],
+
+  "archi_host_src_files": [
+    "src/phys_addr.c",
+    "src/virt_addr.c"
+  ]
+}

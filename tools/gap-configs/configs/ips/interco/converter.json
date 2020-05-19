@@ -1,0 +1,6 @@
+{
+  "vp_class": "interco/converter",
+  "vp_component": "interco.converter_impl",
+  "output_width": 4,
+  "output_align": 4
+}

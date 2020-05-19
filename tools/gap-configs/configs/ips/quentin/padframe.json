@@ -1,0 +1,630 @@
+{
+  "nb_alternate": 4,
+
+  "version": 1,
+
+  "default_profile": "default",
+
+  "profiles": {
+    "default": {
+      "alternates": [ 0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0]
+    },
+    "hyper": {
+      "alternates": [ 0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 1, 1, 1, 1,
+                      1, 1, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 1,
+                      1, 1, 1, 0, 2, 2, 0, 0,
+                      3, 3, 3, 3, 3, 3, 3, 3,
+                      3, 3, 3, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0]
+    }
+  },
+
+  "groups": {
+    "rf": {},
+    "spim0": {},
+    "spim1": {},
+    "i2c0": {},
+    "i2c1": {},
+    "i2s0": {},
+    "i2s1": {},
+    "spis": {},
+    "cpi": {},
+    "reset": {},
+    "jtag": {},
+    "hyper": {},
+    "timer0": {},
+    "timer1": {},
+    "timer2": {},
+    "timer3": {},
+    "xtal": {}
+  },
+
+  "pads": {
+
+    "pad_rf_txd_p": {
+      "id": 0,
+      "alternates": [ 
+        { "name": "rf_txd_p", "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_txd_n": {
+      "id": 1,
+      "alternates": [
+        { "name": "rf_txd_n", "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_txclk_p": {
+      "id": 2,
+      "alternates": [
+        { "name": "rf_txclk_p", "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_txclk_n": {
+      "id": 3,
+      "alternates": [
+        { "name": "rf_txclk_n" , "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_rxd_p": {
+      "id": 4,
+      "alternates": [
+        { "name": "rf_rxd_p" , "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_rxd_n": {
+      "id": 5,
+      "alternates": [
+        { "name": "rf_rxd_n" , "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_rxclk_p": {
+      "id": 6,
+      "alternates": [
+        { "name": "rf_rxclk_p" , "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_rxclk_n": {
+      "id": 7,
+      "alternates": [
+        { "name": "rf_rxclk_n" , "groups": [ "rf" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_rf_miso": {
+      "id": 8,
+      "alternates": [
+        { "name": "spim1_miso" , "groups": [ "spim1" ] },
+        { "name": "gpioA0"     , "groups": [ "gpio0" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_rf_mosi": {
+      "id": 9,
+      "alternates": [
+        { "name": "spim1_mosi"  , "groups": [ "spim1" ] },
+        { "name": "gpioA1"      , "groups": [ "gpio1" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_rf_csn": {
+      "id": 10,
+      "alternates": [
+        { "name": "spim1_cs0" , "groups": [ "spim1" ] },
+        { "name": "gpioA2"    , "groups": [ "gpio2" ] },
+        { "name": "i2c1_sda"  , "groups": [ "i2c1"  ] },
+        {}
+      ]
+    },
+    "pad_rf_sck": {
+      "id": 11,
+      "alternates": [
+        { "name": "spim1_sck" , "groups": [ "spim1" ] },
+        { "name": "gpioA3"    , "groups": [ "gpio3" ] },
+        { "name": "i2c1_scl"  , "groups": [ "i2c1"  ] },
+        {}
+      ]
+    },
+    "pad_rf_pactrl0": {
+      "id": 12,
+      "alternates": [
+        { "name": "orca_txsync" , "groups": [ "orca"  ] },
+        { "name": "gpioA0"      , "groups": [ "gpio0" ] },
+        { "name": "spim1_cs0"   , "groups": [ "spim1" ] },
+        {}
+      ]
+    },
+    "pad_rf_pactrl1": {
+      "id": 13,
+      "alternates": [
+        { "name": "orca_rxsync" , "groups": [ "orca"  ] },
+        { "name": "gpioA1"      , "groups": [ "gpio1" ] },
+        { "name": "spim1_cs1"   , "groups": [ "spim1" ] },
+        {}
+      ]
+    },
+    "pad_rf_pactrl2": {
+      "id": 14,
+      "alternates": [
+        { "name": "orca_txi" , "groups": [ "orca"  ] },
+        { "name": "gpioA2"   , "groups": [ "gpio2" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_rf_pactrl3": {
+      "id": 15,
+      "alternates": [
+        { "name": "orca_txq" , "groups": [ "orca"  ] },
+        { "name": "gpioA3"   , "groups": [ "gpio3" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_rf_pactrl4": {
+      "id": 16,
+      "alternates": [
+        { "name": "orca_rxi"    , "groups": [ "orca"  ] },
+        { "name": "gpioA4"      , "groups": [ "gpio4" ] },
+        { "name": "spis0_sdio0" , "groups": [ "spis"  ] },
+        { "name": "spis0_sdio2" , "groups": [ "spis"  ] }
+      ]
+    },
+    "pad_rf_pactrl5": {
+      "id": 17,
+      "alternates": [
+        { "name": "orca_rxq"    , "groups": [ "orca"  ] },
+        { "name": "gpioA5"      , "groups": [ "gpio5" ] },
+        { "name": "spis0_sdio1" , "groups": [ "spis"  ] },
+        { "name": "spis0_sdio3" , "groups": [ "spis"  ] }
+      ]
+    },
+    "pad_cam_pclk": {
+      "id": 18,
+      "alternates": [
+        { "name": "cam_pclk"   , "groups": [ "cpi"    ] },
+        { "name": "gpioA4"     , "groups": [ "gpio4"  ] },
+        { "name": "timer1_ch0" , "groups": [ "timer1" ] },
+        {}
+      ]
+    },
+    "pad_cam_hsync": {
+      "id": 19,
+      "alternates": [
+        { "name": "cam_hsync"  , "groups": [ "cpi"   ] },
+        { "name": "gpioA5"     , "groups": [ "gpio5" ] },
+        { "name": "timer1_ch1" , "groups": [ "timer1"] },
+        {}
+      ]
+    },
+    "pad_cam_data0": {
+      "id": 20,
+      "alternates": [
+        { "name": "cam_data0"  , "groups": [ "cpi"   ] },
+        { "name": "gpioA6"     , "groups": [ "gpio6" ] },
+        { "name": "timer1_ch2" , "groups": [ "timer1"] },
+        {}
+      ]
+    },
+    "pad_cam_data1": {
+      "id": 21,
+      "alternates": [
+        { "name": "cam_data1"  , "groups": [ "cpi"   ] },
+        { "name": "gpioA7"     , "groups": [ "gpio7" ] },
+        { "name": "timer1_ch3" , "groups": [ "timer1"] },
+        {}
+      ]
+    },
+    "pad_cam_data2": {
+      "id": 22,
+      "alternates": [
+        { "name": "cam_data2"  , "groups": [ "cpi"   ] },
+        { "name": "gpioA8"     , "groups": [ "gpio8" ] },
+        { "name": "timer2_ch0" , "groups": [ "timer2"] },
+        {}
+      ]
+    },
+    "pad_cam_data3": {
+      "id": 23,
+      "alternates": [
+        { "name": "cam_data3"  , "groups": [ "cpi"   ] },
+        { "name": "gpioA9"     , "groups": [ "gpio9" ] },
+        { "name": "timer2_ch1" , "groups": [ "timer2"] },
+        {}
+      ]
+    },
+    "pad_cam_data4": {
+      "id": 24,
+      "alternates": [
+        { "name": "cam_data4"  , "groups": [ "cpi"    ] },
+        { "name": "gpioA10"    , "groups": [ "gpio10" ] },
+        { "name": "timer2_ch2" , "groups": [ "timer2" ] },
+        {}
+      ]
+    },
+    "pad_cam_data5": {
+      "id": 25,
+      "alternates": [
+        { "name": "cam_data5"  , "groups": [ "cpi"    ] },
+        { "name": "gpioA11"    , "groups": [ "gpio11" ] },
+        { "name": "timer2_ch3" , "groups": [ "timer2" ] },
+        {}
+      ]
+    },
+    "pad_cam_data6": {
+      "id": 26,
+      "alternates": [ 
+        { "name": "cam_data6"  , "groups": [ "cpi"    ] },
+        { "name": "gpioA12"    , "groups": [ "gpio12" ] },
+        { "name": "timer3_ch0" , "groups": [ "timer3" ] },
+        {}
+      ]
+    },
+    "pad_cam_data7": {
+      "id": 27,
+      "alternates": [ 
+        { "name": "cam_data7"  , "groups": [ "cpi"    ] },
+        { "name": "gpioA13"    , "groups": [ "gpio13" ] },
+        { "name": "timer3_ch1" , "groups": [ "timer3" ] },
+        {}
+      ]
+    },
+    "pad_cam_vsync": {
+      "id": 28,
+      "alternates": [ 
+        { "name": "cam_vsync"  , "groups": [ "cpi"    ] },
+        { "name": "gpioA14"    , "groups": [ "gpio14" ] },
+        { "name": "timer3_ch2" , "groups": [ "timer3" ] },
+        {}
+      ]
+    },
+    "pad_cam_sda": {
+      "id": 29,
+      "alternates": [ 
+        { "name": "i2c1_sda"   , "groups": [ "i2c1"   ] },
+        { "name": "gpioA15"    , "groups": [ "gpio15" ] },
+        { "name": "timer3_ch3" , "groups": [ "timer3" ] },
+        {}
+      ]
+    },
+    "pad_cam_scl": {
+      "id": 30,
+      "alternates": [ 
+        { "name": "i2c1_scl" , "groups": [ "i2c1"   ] },
+        { "name": "gpioA16"  , "groups": [ "gpio16" ] },
+        { "name": "orca_clk" , "groups": [ "orca"   ] },
+        {}
+      ]
+    },
+    "pad_timer0_ch0": {
+      "id": 31,
+      "alternates": [ 
+        { "name": "timer0_ch0" , "groups": [ "timer0" ] },
+        { "name": "gpioA17"    , "groups": [ "gpio17" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_timer0_ch1": {
+      "id": 32,
+      "alternates": [ 
+        { "name": "timer0_ch1" , "groups": [ "timer0" ] },
+        { "name": "gpioA18"    , "groups": [ "gpio18" ] },
+        { "name": "timer1_ch0" , "groups": [ "timer1" ] },
+        {}
+      ]
+    },
+    "pad_timer0_ch2": {
+      "id": 33,
+      "alternates": [ 
+        { "name": "timer0_ch2" , "groups": [ "timer0" ] },
+        { "name": "gpioA19"    , "groups": [ "gpio19" ] },
+        { "name": "timer2_ch0" , "groups": [ "timer2" ] },
+        {}
+      ]
+    },
+    "pad_timer0_ch3": {
+      "id": 34,
+      "alternates": [ 
+        { "name": "timer0_ch3" , "groups": [ "timer0" ] },
+        { "name": "gpioA20"    , "groups": [ "gpio20" ] },
+        { "name": "timer3_ch0" , "groups": [ "timer3" ] },
+        {}
+      ]
+    },
+    "pad_i2s1_sck": {
+      "id": 35,
+      "alternates": [ 
+        { "name": "i2s1_sck"  , "groups": [ "i2s1"   ] },
+        { "name": "gpioA21"   , "groups": [ "gpio21" ] },
+        { "name": "spis0_sck" , "groups": [ "spis"   ] },
+        { "name": "i2s1_sdi"  , "groups": [ "i2s1"   ] }
+      ]
+    },
+    "pad_i2s1_ws": {
+      "id": 36,
+      "alternates": [ 
+        { "name": "i2s1_ws"   , "groups": [ "i2s1"   ] },
+        { "name": "gpioA22"   , "groups": [ "gpio22" ] },
+        { "name": "spis0_cs"  , "groups": [ "spis"   ] },
+        { "name": "hyper_ckn" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_i2s1_sdi": {
+      "id": 37,
+      "alternates": [ 
+        { "name": "i2s1_sdi"    , "groups": [ "i2s1"   ] },
+        { "name": "gpioA23"     , "groups": [ "gpio23" ] },
+        { "name": "spis0_sdio2" , "groups": [ "spis0"  ] },
+        { "name": "hyper_ck"    , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_uart_rx": {
+      "id": 38,
+      "alternates": [ 
+        { "name": "uart_rx" , "groups": [ "uart"   ] },
+        { "name": "gpioA24" , "groups": [ "gpio24" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_uart_tx": {
+      "id": 39,
+      "alternates": [ 
+        { "name": "uart_tx"     , "groups": [ "uart"   ] },
+        { "name": "gpioA25"     , "groups": [ "gpio25" ] },
+        {},
+        {}
+      ]
+    },
+    "pad_spim0_sdio0 (mosi)": {
+      "id": 40,
+      "alternates": [ 
+        { "name": "spim0_sdio0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        { "name": "hyper_dq[0]" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spim0_sdio1 (miso)": {
+      "id": 41,
+      "alternates": [ 
+        { "name": "spim0_sdio1" , "groups": [ "spim0" ] },
+        {},
+        {},
+        { "name": "hyper_dq[1]" , "groups": [ "hyper" ] }
+      ]
+    },
+    "pad_spim0_sdio2": {
+      "id": 42,
+      "alternates": [ 
+        { "name": "spim0_sdio2" , "groups": [ "spim0"  ] },
+        { "name": "gpioA26"     , "groups": [ "gpio26" ] },
+        { "name": "i2c1_sda"    , "groups": [ "i2c1"   ] },
+        { "name": "hyper_dq[2]" , "groups": [ "hyper"] }
+      ]
+    },
+    "pad_spim0_sdio3": {
+      "id": 43,
+      "alternates": [ 
+        { "name": "spim0_sdio3" , "groups": [ "spim0"  ] },
+        { "name": "gpioA27"     , "groups": [ "gpio27" ] },
+        { "name": "i2c1_scl"    , "groups": [ "i2c1"   ] },
+        { "name": "hyper_dq[3]" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spim0_csn0": {
+      "id": 44,
+      "alternates": [ 
+        { "name": "spim0_cs0" , "groups": [ "spim0" ] },
+        {},
+        {},
+        { "name": "hyper_dq[4]" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spim0_csn1": {
+      "id": 45,
+      "alternates": [ 
+        { "name": "spim0_cs1"   , "groups": [ "spim0"  ] },
+        { "name": "gpioA28"     , "groups": [ "gpio28" ] },
+        { "name": "spis0_sdio3" , "groups": [ "spis"   ] },
+        { "name": "hyper_dq[5]" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spim0_sck": {
+      "id": 46,
+      "alternates": [
+        { "name": "spim0_sck"   , "groups": [ "spim0" ] },
+        {},
+        {},
+        { "name": "hyper_dq[6]" , "groups": [ "hyper" ] }
+      ]
+    },
+    "pad_spis0_csn": {
+      "id": 47,
+      "alternates": [ 
+        { "name": "spis0_cs"    , "groups": [ "spis"   ] },
+        { "name": "gpioA29"     , "groups": [ "gpio29" ] },
+        { "name": "spim1_cs0"   , "groups": [ "spim1"  ] },
+        { "name": "hyper_dq[7]" , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spis0_miso": {
+      "id": 48,
+      "alternates": [ 
+        { "name": "spis0_sdio0" , "groups": [ "spis"   ] },
+        { "name": "gpioA30"     , "groups": [ "gpio30" ] },
+        { "name": "spim1_cs1"   , "groups": [ "spim1"  ] },
+        { "name": "hyper_csn0"  , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spis0_mosi": {
+      "id": 49,
+      "alternates": [ 
+        { "name": "spis0_sdio1" , "groups": [ "spis"   ] },
+        { "name": "gpioA31"     , "groups": [ "gpio31" ] },
+        {},
+        { "name": "hyper_csn1"  , "groups": [ "hyper"  ] }
+      ]
+    },
+    "pad_spis0_sck": {
+      "id": 50,
+      "alternates": [ 
+        { "name": "spis0_sck"  , "groups": [ "spis"  ] },
+        {},
+        {},
+        { "name": "hyper_rwds" , "groups": [ "hyper" ] }
+      ]
+    },
+    "pad_xtal_in": {
+      "id": 51,
+      "alternates": [ 
+        { "groups": [ "xtal" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_xtal_out": {
+      "id": 52,
+      "alternates": [ 
+        { "groups": [ "xtal" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_i2c0_sda": {
+      "id": 53,
+      "alternates": [ 
+        { "name": "i2c0_sda" , "groups": [ "i2c0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_i2c0_scl": {
+      "id": 54,
+      "alternates": [ 
+        { "name": "i2c0_scl" , "groups": [ "i2c0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_i2s0_sck": {
+      "id": 55,
+      "alternates": [ 
+        { "name": "i2s0_sck" , "groups": [ "i2s0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_i2s0_ws": {
+      "id": 56,
+      "alternates": [ 
+        { "name": "i2s0_ws" , "groups": [ "i2s0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_i2s0_sdi": {
+      "id": 57,
+      "alternates": [ 
+        { "name": "i2s0_sdi" , "groups": [ "i2s0" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_reset_n": {
+      "id": 58,
+      "alternates": [ 
+        { "name": "reset_n" , "groups": [ "reset" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_jtag_tck": {
+      "id": 59,
+      "alternates": [ 
+        { "name": "jtag_tck" , "groups": [ "jtag" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_jtag_tdi": {
+      "id": 60,
+      "alternates": [ 
+        { "name": "jtag_tdi" , "groups": [ "jtag" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_jtag_tdo": {
+      "id": 61,
+      "alternates": [ 
+        { "name": "jtag_tdo" , "groups": [ "jtag" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_jtag_tms": {
+      "id": 62,
+      "alternates": [
+        { "name": "jtag_tms" , "groups": [ "jtag" ] },
+        {},
+        {},
+        {}
+      ]
+    },
+    "pad_jtag_trst": {
+      "id": 63,
+      "alternates": [ 
+        { "name": "jtag_trst" , "groups": [ "jtag" ] },
+        {},
+        {},
+        {}
+      ]
+    }
+  }
+}

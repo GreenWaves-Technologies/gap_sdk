@@ -62,7 +62,11 @@ else
 TARGET_CHIP_VERSION=1
 endif
 
+ifeq ($(TARGET_CHIP_FAMILY), GAP8)
 PULP_ARCH_CFLAGS ?= -mchip=gap8 -mPE=8 -mFC=1
+else
+PULP_ARCH_CFLAGS ?= -mchip=gap9 -mPE=8 -mFC=1
+endif
 PULP_ARCH_LDFLAGS ?= 
 
 ifdef PULP_FC_ARCH_CFLAGS
@@ -130,7 +134,15 @@ OBJECTS       = $(T_OBJECTS_C)
 OBJECTS   += $(BUILDDIR)/pulp-os/conf.o
 
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
+ifeq '$(TARGET_CHIP)' 'GAP8'
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap/config.h
+endif
+ifeq '$(TARGET_CHIP)' 'GAP8_V2'
+INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap_rev1/config.h
+endif
+ifeq '$(TARGET_CHIP)' 'GAP8_V3'
+INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/gap8_revc/config.h
+endif
 else
 INC_DEFINE    = -include $(TARGET_INSTALL_DIR)/include/rt/chips/$(TARGET_NAME)/config.h
 endif
@@ -146,7 +158,7 @@ INC_PATH      = $(foreach d, $(INC), -I$d)  $(INC_DEFINE)
 
 build: $(OBJECTS) $(BIN) disdump | $(BUILDDIR)
 
-all:: build image flash
+all:: build image flash_fs
 
 $(BUILDDIR):
 	mkdir -p $@
@@ -179,6 +191,9 @@ override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS
 endif
 
 flash:
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --force --binary=$(BIN) $(runner_args)
+
+flash_fs:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
 
 image:

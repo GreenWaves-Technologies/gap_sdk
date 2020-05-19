@@ -31,5 +31,35 @@
                 }
             }
         }
+    },
+
+    "xcelium": {
+        "profiles": {
+            "rtl": {
+                "commands": {
+                    "shell": {
+                        "executable": "xmsim",
+                        "args_eval": [
+                            "\"tb -64bit -licqueue -messages -xceligen seed_only_rand,process_alternate_rng,ignore_worklib_name -lps_real_nocorrupt -assert_logging_error_off\"",
+                            "\"+VSIM_PATH=\" + os.environ.get(\"XCSIM_PATH\") +  \" +UVM_TESTNAME=csi2_rx_pkt_raw8 +UVM_VERBOSITY=UVM_LOW +phy_sel=dphy +lane=2lane +data_width=8bit\"",
+                            "\"+frame_mode=Gen -nowarn RNDXCELON -sv_lib\"",
+                            "os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/lib/64bit/libuvmdpi.so\"",
+                            "\"-INPUT \\\"@source \" + os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/files/tcl/uvm_sim.tcl\\\"\"",
+                            "\"-input \" + os.environ.get(\"XCSIM_PATH\") + \"/tcl_files/run_and_exit.tcl\""
+                        ]
+                    },
+                    "gui": {
+                        "executable": "xmsim",
+                        "args_eval": [
+                            "\"tb -64bit -gui -licqueue -messages -xceligen seed_only_rand,process_alternate_rng,ignore_worklib_name -lps_real_nocorrupt -assert_logging_error_off\"",
+                            "\"+VSIM_PATH=\" + os.environ.get(\"XCSIM_PATH\") +  \" +UVM_TESTNAME=csi2_rx_pkt_raw8 +UVM_VERBOSITY=UVM_LOW +phy_sel=dphy +lane=2lane +data_width=8bit\"",
+                            "\"+frame_mode=Gen -nowarn RNDXCELON -sv_lib\"",
+                            "os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/lib/64bit/libuvmdpi.so\"",
+                            "\"-INPUT \\\"@source \" + os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/files/tcl/uvm_sim.tcl\\\"\""
+                        ]
+                    }
+                }
+            }
+        }
     }
 }

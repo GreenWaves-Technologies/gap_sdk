@@ -236,24 +236,24 @@ SECTIONS
 
   .l2_data MAX(0x1c010000,ALIGN(8)) :
   {
-    . = ALIGN(4);
+    . = ALIGN(8);
     __cluster_text_start = .;
     *(.cluster.text)
     *(.cluster.text.*)
-    . = ALIGN(4);
+    . = ALIGN(8);
     __cluster_text_end = .;
     *(.l2_data)
     *(.l2_data.*)
     *(.data_fc_shared)
     *(.data_fc_shared.*)
-    . = ALIGN(4);
+    . = ALIGN(8);
   } > L2
 
 
   /* Following sections are keeping the cluster data
    * in L2 until the cluster is powered up */
 
-  _l1_preload_start_inL2 = ALIGN(8);
+  _l1_preload_start_inL2 = .;
 
   .data_tiny_l1 :
   {

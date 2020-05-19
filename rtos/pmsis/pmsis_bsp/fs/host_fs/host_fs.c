@@ -45,7 +45,8 @@ static pi_fs_file_t *__pi_host_fs_open(struct pi_device *device, const char *fil
 
   file->header.fs = device;
 
-  file->fd = semihost_open(file_name, flags == PI_FS_FLAGS_WRITE ? 0x40 | 0x2 : 0);
+  // The possible values are specified in openocd in src/target/semihosting_common.c
+  file->fd = semihost_open(file_name, flags == PI_FS_FLAGS_WRITE ? 6 : 0);
   if (file->fd == -1)
     return NULL;
 

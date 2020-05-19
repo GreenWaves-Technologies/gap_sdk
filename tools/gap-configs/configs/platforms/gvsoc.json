@@ -1,0 +1,42 @@
+{
+    "runner": {
+      "platform_class": "vp_runner"
+    },
+
+    "gvsoc": {
+
+        "runner_module": "gv.gvsoc",
+
+        "cycles_to_seconds": "int(max(cycles * nb_cores / 5000000, 600))",
+
+        "verbose": true,
+        "debug-mode": false,
+
+        "launchers": {
+            "default": "gvsoc_launcher",
+            "debug": "gvsoc_launcher_debug"
+        },
+  
+        "traces": {
+            "level": "debug",
+            "enabled": false,
+            "include_regex": [],
+            "exclude_regex": []
+        },
+
+        "events": {
+            "enabled": false,
+            "include_regex": [],
+            "exclude_regex": [],
+            "format": "fst",
+            "active": false,
+            "all": true,
+            "gtkw": false,
+            "gen_gtkw": true,
+            "files": [ ],
+            "traces": {},
+            "tags" : [ "overview" ],
+            "gtkw": false
+        }
+    }
+}

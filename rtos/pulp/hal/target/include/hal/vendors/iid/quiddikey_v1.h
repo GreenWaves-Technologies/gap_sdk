@@ -317,7 +317,7 @@ static inline void halQuiddikeyDataInputSet (halQuiddikeyHandle_t * const handle
     handle->dir = data;
 }
 
-static inline uint32_t halQuiddikeyDataOuputGet (halQuiddikeyHandle_t * const handle) {
+static inline uint32_t halQuiddikeyDataOutputGet (halQuiddikeyHandle_t * const handle) {
     return handle->dor;
 }
 

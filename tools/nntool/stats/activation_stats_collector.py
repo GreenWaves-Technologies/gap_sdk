@@ -17,7 +17,7 @@ from collections import OrderedDict
 from typing import Mapping, Sequence
 
 from execution.execute_graph import execute_iterator
-from graph.types import FilterParameters, InputParameters
+from graph.types import FilterParameters, InputParameters, MultiplicativeBiasParameters
 from utils.node_id import NodeId
 from utils.stats_funcs import astats, calculate_qsnrs
 
@@ -30,11 +30,15 @@ def gather_stats(activation, force_ideal=False, channel_dim=None, channel_detail
     return stat
 
 class ActivationStatsCollector(ReductionStatsCollector):
+    def __init__(self, graph_execution=None):
+        super(ActivationStatsCollector, self).__init__()
+        self._graph_execution = execute_iterator if graph_execution is None else graph_execution
+
     def _collect(self, G, input_tensors, step_idx):
         stats = OrderedDict()
         limit = step_idx[0] if isinstance(step_idx, tuple) else step_idx
         for _, _, node, output, _, fusion_node, details in\
-                execute_iterator(G, input_tensors, disable_cache=True, limit=limit):
+                self._graph_execution(G, input_tensors, disable_cache=True, limit=limit):
             if not self.matches_step(step_idx, node, fusion_node):
                 continue
             key = NodeId(node, fusion_node)
@@ -50,6 +54,10 @@ class ActivationStatsCollector(ReductionStatsCollector):
             if isinstance(node, FilterParameters) and details:
                 stat['min_acc'] = details['min_acc']
                 stat['max_acc'] = details['max_acc']
+                if isinstance(node, MultiplicativeBiasParameters) and node.has_mul_bias:
+                    stat['pre_mul_bias_min'] = details['pre_mul_bias_min']
+                    stat['pre_mul_bias_max'] = details['pre_mul_bias_max']
+
             stats[key] = stat
 
         return stats
@@ -57,32 +65,38 @@ class ActivationStatsCollector(ReductionStatsCollector):
     def _reduce_prepare(self, all_stats: Sequence[Mapping]):
         stats = all_stats.pop()
         for stat in stats.values():
-            for field in ['mean', 'std']:
-                stat[field] = [stat[field]]
+            for field in ['mean', 'std', 'avg_prec']:
+                if field in stat:
+                    stat[field] = [stat[field]]
+                else:
+                    stat[field] = []
                 if 'channel_stats' in stat:
                     for cstat in stat['channel_stats']:
-                        cstat[field] = [cstat[field]]
+                        if field in cstat:
+                            cstat[field] = [cstat[field]]
+                        else:
+                            cstat[field] = []
         return stats
 
     @staticmethod
     def reduce_elem(base, stat):
-        if 'min_prec' in stat:
-            if 'min_prec' in base:
-                base['min_prec'] = min(stat['min_prec'], base['min_prec'])
-            else:
-                base['min_prec'] = stat['min_prec']
         if stat['ibits'] > base['ibits']:
             base['qstats'] = stat['qstats']
             base['ibits'] = stat['ibits']
             base['size'] = stat['size']
         base['max'] = max(base['max'], stat['max'])
         base['min'] = min(base['min'], stat['min'])
-        for field in ['mean', 'std']:
-            base[field].append(stat[field])
+        for field in ['mean', 'std', 'avg_prec']:
+            if field in stat:
+                base[field].append(stat[field])
 
         if 'min_acc' in stat:
             base['min_acc'] = min(stat['min_acc'], base['min_acc'])
             base['max_acc'] = max(stat['max_acc'], base['max_acc'])
+
+        if 'pre_mul_bias_min' in stat:
+            stat['pre_mul_bias_min'] = min(stat['pre_mul_bias_min'], base['pre_mul_bias_min'])
+            stat['pre_mul_bias_max'] = max(stat['pre_mul_bias_max'], base['pre_mul_bias_min'])
 
     def _reduce(self, _, base: Mapping, stat: Mapping):
         self.reduce_elem(base, stat)
@@ -93,9 +107,15 @@ class ActivationStatsCollector(ReductionStatsCollector):
 
     def _reduce_finalize(self, stats: Mapping):
         for stat in stats.values():
-            for field in ['mean', 'std']:
-                stat[field] = sum(stat[field]) / len(stat[field])
+            for field in ['mean', 'std', 'avg_prec']:
+                if len(stat[field]) > 0:
+                    stat[field] = sum(stat[field]) / len(stat[field])
+                else:
+                    stat[field] = None
                 if 'channel_stats' in stat:
                     for cstat in stat['channel_stats']:
-                        cstat[field] = sum(cstat[field]) / len(cstat[field])
+                        if len(cstat[field]) > 0:
+                            cstat[field] = sum(cstat[field]) / len(cstat[field])
+                        else:
+                            cstat[field] = None
         return stats

@@ -173,8 +173,8 @@ static inline int pi_cluster_send_task(struct pi_device *device,
  * \param end_task        The task used to notify the end of execution.
  */
 static inline int pi_cluster_send_task_async(struct pi_device *device,
-        struct pi_cluster_task *task,
-        pi_task_t *end_task);
+        struct pi_cluster_task *cluster_task,
+        pi_task_t *task);
 
 //!@}
 

@@ -44,13 +44,21 @@ void test_uart_input(void)
     pi_uart_conf_init(&conf);
     conf.enable_tx = 1;
     conf.enable_rx = 1;
-    conf.baudrate_bps = 115200;
+    //conf.baudrate_bps = 115200;
+    conf.baudrate_bps = 600000;
     pi_open_from_conf(&uart, &conf);
     if (pi_uart_open(&uart))
     {
         printf("Uart open failed !\n");
         pmsis_exit(-1);
     }
+
+    #if defined(UART_FLOW_CONTROL_EMU)
+    {
+        pi_uart_ioctl(&uart, PI_UART_IOCTL_ENABLE_FLOW_CONTROL, NULL);
+        printf("Flow control enable\n");
+    }
+    #endif  /* UART_FLOW_CONTROL_EMU */
 
     /* Write on uart then wait for data from uart. */
     #if (ASYNC)

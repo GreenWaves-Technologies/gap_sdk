@@ -28,6 +28,8 @@ VISUAL_GRAPH = 'tests/graph/visual_wake.tflite'
 CONCAT_TEST_GRAPH = 'tests/graph/concat_test.tflite'
 QVISUAL_GRAPH = 'tests/graph/model_quantized.tflite'
 MN3_GRAPH = 'tests/graph/v3-large_224_1.0_float.tflite'
+MN3Q_GRAPH = 'tests/graph/v3-large_224_1.0_uint8.tflite'
+MN3Q2_GRAPH = 'tests/graph/mn3_large_quant_tf2_no_train.tflite'
 
 MNIST_IMAGES = glob('tests/images/*.pgm')
 VWW_IMAGES = glob('tests/vwwimages/*.png')
@@ -152,6 +154,14 @@ def concat_test_graph():
 @pytest.fixture(scope="session")
 def mn3_graph():
     yield MN3_GRAPH
+
+@pytest.fixture(scope="session")
+def mn3q_graph():
+    yield MN3Q_GRAPH
+
+@pytest.fixture(scope="session")
+def mn3q2_graph():
+    yield MN3Q2_GRAPH
 
 @pytest.fixture(scope="session")
 def ir_images():

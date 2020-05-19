@@ -79,6 +79,14 @@ static void __pi_uart_tx_abort(struct uart_itf_data_s *data);
 /* Enable channel. */
 static inline void __pi_uart_channel_enable(struct uart_itf_data_s *data,
                                             udma_channel_e channel);
+
+/* Enable flow control. */
+static int32_t __pi_uart_flow_control_enable(struct uart_itf_data_s *data);
+
+/* Execute a transfer with flow control enabled. */
+static void __pi_uart_copy_exec_flow_control(struct uart_itf_data_s *data,
+                                             struct pi_task *task);
+
 /*******************************************************************************
  * Internal functions
  ******************************************************************************/
@@ -108,14 +116,19 @@ static void __pi_uart_handler(void *arg)
 
     struct uart_itf_data_s *data = g_uart_itf_data[periph_id];
     struct pi_task *task = data->fifo_head[channel];
-    /* Pending data on current transfer. */
+
     if (task->data[3] != 0)
     {
-        UART_TRACE("Reenqueue pending data on current transfer.\n");
-        uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
-        task->data[0] += max_size;
-        task->data[1] -= max_size;
-        __pi_uart_copy_exec(data, task);
+        if (data->flow_ctrl_ena)
+        {
+            UART_TRACE("Reenqueue pending data on current transfer(flow control enabled).\n");
+            __pi_uart_copy_exec_flow_control(data, task);
+        }
+        else
+        {
+            UART_TRACE("Reenqueue pending data on current transfer.\n");
+            __pi_uart_copy_exec(data, task);
+        }
     }
     else
     {
@@ -126,7 +139,14 @@ static void __pi_uart_handler(void *arg)
         task = data->fifo_head[channel];
         if (task != NULL)
         {
-            __pi_uart_copy_exec(data, task);
+            if (data->flow_ctrl_ena)
+            {
+                __pi_uart_copy_exec_flow_control(data, task);
+            }
+            else
+            {
+                __pi_uart_copy_exec(data, task);
+            }
         }
     }
 }
@@ -256,6 +276,92 @@ static inline void __pi_uart_channel_enable(struct uart_itf_data_s *data,
     }
 }
 
+#if defined(UART_FLOW_CONTROL_EMU)
+static int32_t __pi_uart_flow_control_enable(struct uart_itf_data_s *data)
+{
+    int32_t status = 0;
+    struct pi_device *pwm = &(data->pwm);
+    struct pi_pwm_conf pwm_conf = {0};
+    pi_pwm_conf_init(&pwm_conf);
+    pwm_conf.pwm_id = 0;
+    pwm_conf.ch_id = PI_PWM_CHANNEL2;
+    pwm_conf.timer_conf = PI_PWM_EVT_FALL | PI_PWM_CLKSEL_FLL | PI_PWM_UPDOWNSEL_ALT;
+    pi_open_from_conf(pwm, &pwm_conf);
+    status = pi_pwm_open(pwm);
+    if (status)
+    {
+        UART_TRACE_ERR("Error opening PWM device : %ld\n", status);
+        return -11;
+    }
+    /* No IRQ. */
+    /* Clear handler. */
+    pi_fc_event_handler_clear(SOC_EVENT_PWM(pwm_conf.pwm_id));
+    /* Disable SOC event propagation to FC. */
+    hal_soc_eu_clear_fc_mask(SOC_EVENT_PWM(pwm_conf.pwm_id));
+    /* Timer threshold. */
+    pi_pwm_ioctl(pwm, PI_PWM_TIMER_THRESH, 0x0);
+    /* Channel mode and threshold. */
+    struct pi_pwm_ioctl_ch_config ch_conf = {0};
+    ch_conf.ch_threshold = 0xFFFF;
+    ch_conf.config = PI_PWM_SET;
+    ch_conf.channel = pwm_conf.ch_id;
+    pi_pwm_ioctl(pwm, PI_PWM_CH_CONFIG, &ch_conf);
+    /* CMD : update, arm and start. */
+    pi_pwm_ioctl(pwm, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_UPDATE);
+    pi_pwm_ioctl(pwm, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_ARM);
+    pi_pwm_ioctl(pwm, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
+
+    pi_pad_set_function(PI_PAD_33_B12_TIMER0_CH2, PI_PAD_FUNC0);  // SET B12 TIM0CH2 (RTS)
+    pi_gpio_pin_configure(NULL, PI_GPIO_A1_PAD_9_B3, PI_GPIO_INPUT);  // GPIO1 ON B3 AS INPUT (CTS)
+    pi_gpio_pin_configure(NULL, PI_GPIO_A0_PAD_8_A4, PI_GPIO_INPUT);  //GPIO0 ON A4 AS INPUT (UARRT_RX DETECT)
+    data->flow_ctrl_ena = 1;
+    UART_TRACE("Flow control enabled !\n");
+    return status;
+}
+
+static void __pi_uart_copy_exec_flow_control(struct uart_itf_data_s *data,
+                                             struct pi_task *task)
+{
+    uint32_t device_id = data->device_id;
+    uint32_t l2_buf = task->data[0] + task->data[4];
+    uint32_t size = 1;
+    udma_channel_e channel = task->data[2];
+    hal_compiler_barrier();
+    task->data[4]++;            /* Buffer pointer. */
+    task->data[3]--;            /* Size. */
+    if (channel == TX_CHANNEL)
+    {
+        /* Wait for CTS. */
+        uint32_t value = 0;
+        value = pi_gpio_pin_read(NULL, PI_GPIO_A1_PAD_9_B3, &value);
+        while (value == 1)
+        {
+            value = pi_gpio_pin_read(NULL, PI_GPIO_A1_PAD_9_B3, &value);
+        }
+    }
+    UART_TRACE("FC UART(%ld): Execute %s transfer l2_buf=%lx size=%ld\n",
+               device_id, ((channel == RX_CHANNEL) ? "RX" : "TX"), l2_buf, size);
+    hal_uart_enqueue(device_id, l2_buf, size, 0, channel);
+    if (channel == RX_CHANNEL)
+    {
+        /* Send RTS. */
+        pi_pwm_ioctl(&(data->pwm), PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_STOP);
+        pi_pwm_ioctl(&(data->pwm), PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
+    }
+}
+#else
+static int32_t __pi_uart_flow_control_enable(struct uart_itf_data_s *data)
+{
+    return -12;
+}
+
+static void __pi_uart_copy_exec_flow_control(struct uart_itf_data_s *data,
+                                             struct pi_task *task)
+{
+    return;
+}
+#endif  /* UART_FLOW_CONTROL_EMU */
+
 /* Execute transfer. */
 static void __pi_uart_copy_exec(struct uart_itf_data_s *data,
                                 struct pi_task *task)
@@ -265,11 +371,14 @@ static void __pi_uart_copy_exec(struct uart_itf_data_s *data,
     uint32_t size = task->data[1];
     udma_channel_e channel = task->data[2];
     uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
-    if (task->data[1] > max_size)
+    if (size > max_size)
     {
-        task->data[3] = task->data[1] - max_size;
         size = max_size;
     }
+    hal_compiler_barrier();
+    task->data[0] += size;
+    task->data[3] = task->data[1] - size;
+    task->data[1] = task->data[3];
     UART_TRACE("UART(%ld): Execute %s transfer l2_buf=%lx size=%ld\n",
                device_id, ((channel == RX_CHANNEL) ? "RX" : "TX"), l2_buf, size);
     hal_uart_enqueue(device_id, l2_buf, size, 0, channel);
@@ -288,6 +397,7 @@ void __pi_uart_conf_init(struct pi_uart_conf *conf)
     conf->enable_rx = 0;                          /* Disable RX. */
     conf->enable_tx = 0;                          /* Disable TX. */
     conf->uart_id = 0;                            /* Device ID. */
+    conf->use_ctrl_flow = 0;                      /* Flow control. */
 }
 
 int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
@@ -306,6 +416,7 @@ int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
         memset((void *) data, 0, sizeof(struct uart_itf_data_s));
         data->device_id = conf->uart_id;
         data->nb_open = 1;
+        data->flow_ctrl_ena = 0;
 
         UART_TRACE("Device id=%ld opened for first time\n", data->device_id);
         UART_TRACE("uart(%ld) %p\n", data->device_id, uart(data->device_id));
@@ -328,6 +439,19 @@ int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
 
         /* Configure UART. */
         __pi_uart_conf_set(data, conf);
+
+        /* Control flow. */
+        #if defined(UART_FLOW_CONTROL_EMU)
+        if (conf->use_ctrl_flow)
+        {
+            data->flow_ctrl_ena = conf->use_ctrl_flow;
+            if (__pi_uart_flow_control_enable(data))
+            {
+                UART_TRACE_ERR("UART flow control enable error !\n");
+                return -12;
+            }
+        }
+        #endif  /* UART_FLOW_CONTROL_EMU */
 
         g_uart_itf_data[data->device_id] = data;
         *device_data = g_uart_itf_data[data->device_id];
@@ -400,6 +524,9 @@ int32_t __pi_uart_ioctl(struct uart_itf_data_s *data, uint32_t cmd, void *arg)
         __pi_uart_channel_enable(data, TX_CHANNEL);
         break;
 
+    case PI_UART_IOCTL_ENABLE_FLOW_CONTROL :
+        return __pi_uart_flow_control_enable(data);
+
     default :
         return -1;
     }
@@ -424,9 +551,10 @@ int32_t __pi_uart_copy(struct uart_itf_data_s *data, uint32_t l2_buf,
     }
 
     task->data[0] = l2_buf;
-    task->data[1] = size;
+    task->data[1] = data->flow_ctrl_ena ? 1 : size;
     task->data[2] = channel;
-    task->data[3] = 0;          /* Repeat size ? */
+    task->data[3] = data->flow_ctrl_ena ? size : 0; /* Repeat size ? */
+    task->data[4] = 0;
     task->next    = NULL;
     uint8_t head = __pi_uart_task_fifo_enqueue(data, task, channel);
     if (head == 0)
@@ -435,7 +563,14 @@ int32_t __pi_uart_copy(struct uart_itf_data_s *data, uint32_t l2_buf,
         UART_TRACE("UART(%ld): Execute %s transfer l2_buf=%lx size=%ld\n",
                    data->device_id, ((task->data[2] == RX_CHANNEL) ? "RX" : "TX"),
                    task->data[0], task->data[1]);
-        __pi_uart_copy_exec(data, task);
+        if (data->flow_ctrl_ena)
+        {
+            __pi_uart_copy_exec_flow_control(data, task);
+        }
+        else
+        {
+            __pi_uart_copy_exec(data, task);
+        }
     }
     restore_irq(irq);
     return 0;

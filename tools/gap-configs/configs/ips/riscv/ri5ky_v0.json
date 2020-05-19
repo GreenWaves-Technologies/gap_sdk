@@ -1,0 +1,14 @@
+{
+  "version"       : "ri5cy",
+  "archi"         : "riscv",
+  "implementation": "ri5cy",
+  "gv_isa"        : ["--pulpv1", "--pulp", "--rv32m", "--itc-external-wire"],
+  "isa"           : "RV32IXpulpv0",
+  "priv_version"  : 1.7,
+  "features"      : [ ],
+  "hal_files"     : [ "hal/riscv/riscv_v3.h" ],
+  "archi_files"   : [ "archi/riscv/priv_1_7.h", "archi/riscv/builtins_v2_emu.h", "archi/riscv/pcer_v1.h" ],
+  "debug_binaries": [],
+  "defines"       : [ "ARCHI_CORE_HAS_PULPV1",  "CORE_PULP_BUILTINS" ],
+  "iss_class": "iss_riscy"
+}

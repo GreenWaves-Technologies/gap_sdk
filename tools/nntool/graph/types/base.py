@@ -23,17 +23,22 @@ from generation.kernel_parameters import GenCtrl, CTRL_FEATURES
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
 class ParameterError(Exception):
     pass
 
+
 class CantPromoteQError(ParameterError):
     pass
+
 
 class NodeOptions(OptionList):
     def __init__(self, *args, **kwargs):
         super(NodeOptions, self).__init__(*args, **kwargs)
 
 # pylint: disable=too-many-instance-attributes
+
+
 class Parameters(Node):
     op_name = "unknown"
 
@@ -94,8 +99,8 @@ class Parameters(Node):
 
     @property
     def hints_str(self):
-        return 'in: {} out: {}'.format(*[self.format_hints_str(hints)\
-            for hints in [self._in_dims_hint, self._out_dims_hint]])
+        return 'in: {} out: {}'.format(*[self.format_hints_str(hints)
+                                         for hints in [self._in_dims_hint, self._out_dims_hint]])
 
     @property
     def step_idx(self):
@@ -177,14 +182,18 @@ class Parameters(Node):
     def __str__(self):
         pass
 
+
 class SingleInputAndOutput():
     '''Mixin that indicates that node has a single input and output'''
+
 
 class SensitiveToOrder():
     '''Mixin that indicates that the node must receive channel first input'''
 
+
 class SameNumberOfDimensionsForInputs():
     '''Mixin that indicates that the node has multiple inputs that have the same dimension length'''
+
 
 class NoSizeChangeParameters(Parameters):
 
@@ -200,6 +209,8 @@ class NoSizeChangeParameters(Parameters):
         pass
 
 #pylint: disable=abstract-method
+
+
 class FilterLikeParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def __init__(self, *args, stride=None, padding=None,
                  pad_type="zero", **kwargs):
@@ -219,6 +230,7 @@ class FilterLikeParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     @property
     def can_equalize(self):
         return True
+
 
 class Transposable(Parameters):
 
@@ -260,34 +272,16 @@ class Transposable(Parameters):
         return bool(self.transpose_in or self.transpose_out)
 
     def __str__(self):
-        trans = [','.join([str(el) for el in t])\
-            if t else '' for t in [self.transpose_in, self.transpose_out]]
+        trans = [','.join([str(el) for el in t])
+                 if t else '' for t in [self.transpose_in, self.transpose_out]]
         return "t_in:{} t_out:{}".format(
             trans[0],
             trans[1]
         )
 
-class MultiplicativeBiasParameters(Parameters):
-    def __init__(self, *args, **kwargs):
-        super(MultiplicativeBiasParameters, self).__init__(*args, **kwargs)
-        self.has_mul_bias = False
-        self._mul_biases = None
-
-    @property
-    def mul_biases(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 3)
-        else:
-            return self._mul_biases
-
-    @mul_biases.setter
-    def mul_biases(self, val):
-        if self._constant_store:
-            self._constant_store.set(self, 3, val)
-        else:
-            self._mul_biases = val
-
 #pylint: disable=abstract-method
+
+
 class FilterParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     def __init__(self, *args, filt=None, has_bias=False, **kwargs):
@@ -335,6 +329,39 @@ class FilterParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def set_parameters(self, val):
         self.weights = val['weights']
         self.biases = val['biases']
+
+
+class MultiplicativeBiasParameters(FilterParameters):
+    def __init__(self, *args, **kwargs):
+        super(MultiplicativeBiasParameters, self).__init__(*args, **kwargs)
+        self.has_mul_bias = False
+        self._mul_biases = None
+
+    @property
+    def mul_biases(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 3)
+        else:
+            return self._mul_biases
+
+    @mul_biases.setter
+    def mul_biases(self, val):
+        if self._constant_store:
+            self._constant_store.set(self, 3, val)
+        else:
+            self._mul_biases = val
+
+    def get_parameters(self):
+        res = super().get_parameters()
+        if self.has_mul_bias:
+            res['mul_biases'] = self.mul_biases
+        return res
+
+    def set_parameters(self, val):
+        super().set_parameters(val)
+        if 'mul_biases' in val:
+            self.mul_biases = val['mul_biases']
+
 
 class EdgeParameters():
     # edge types are in, out or in_out
@@ -412,6 +439,7 @@ class EdgeParameters():
     @edge_order.setter
     def edge_order(self, val):
         self._edge_order = val
+
 
 class NNEdge(Edge):
     def __init__(self, from_node: Union[str, Node], to_node: Union[str, Node],

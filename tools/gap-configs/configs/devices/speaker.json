@@ -1,0 +1,28 @@
+{
+    "vp_comps": [
+        "sink", "clock"
+    ],
+
+    "vp_bindings": [
+        ["sink->i2s", "self->i2s"],
+        ["clock->out", "sink->clock"],
+        ["sink->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "sink": {
+        "name": "I2S speaker",
+
+        "vp_component": "devices.sound.i2s_speaker",
+
+        "verbose": false,
+        "ws-delay": 1,
+        "width": 16,
+        "out_mode": "file",
+        "outfile": null
+    }
+}

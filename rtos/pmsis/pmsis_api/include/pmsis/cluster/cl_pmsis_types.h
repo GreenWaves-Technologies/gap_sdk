@@ -92,6 +92,7 @@ typedef struct cluster_driver_api {
     void (*wait_free_async)(struct pi_device *device, struct pi_task *async_task);
 } cluster_driver_api_t;
 
+#if defined(PMSIS_DRIVERS)
 // object for cluster driver specific data
 struct cluster_driver_data {
     // prepare a small fifo so that FC can pipeline tasks
@@ -108,6 +109,7 @@ struct cluster_driver_data {
     void *heap_start;
     uint32_t heap_size;
 };
+#endif
 
 /// @endcond
 

@@ -41,6 +41,14 @@
 #define CPI_TRACE_ERR(...)         ((void) 0)
 #endif  /* TRACE_CPI */
 
+#if defined(TRACE_DMACPY)
+#define DMACPY_TRACE(...) PI_LOG_DBG(__func__, __VA_ARGS__)
+#define DMACPY_TRACE_ERR(...) PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define DMACPY_TRACE(...) ((void) 0)
+#define DMACPY_TRACE_ERR(...) ((void) 0)
+#endif  /* TRACE_DMACPY */
+
 #if defined(TRACE_HYPERBUS)
 #define HYPER_TRACE(...)           PI_LOG_DBG(__func__, __VA_ARGS__)
 #define HYPER_TRACE_ERR(...)       PI_LOG_ERR(__func__, __VA_ARGS__)

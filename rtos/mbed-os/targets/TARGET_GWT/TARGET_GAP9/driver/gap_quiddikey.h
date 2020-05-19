@@ -43,12 +43,12 @@
 
 /*! @name Driver version */
 /*@{*/
-/*! @brief QUIDDIKEY driver version 1.0.0. */
-#define GAP_QUIDDIKEY_DRIVER_VERSION (MAKE_VERSION(1, 0, 0))
+/*! @brief QUIDDIKEY driver version 3.6.3. */
+#define GAP_QUIDDIKEY_DRIVER_VERSION (MAKE_VERSION(3, 6, 3))
 /*@}*/
 
-/*! @brief QUIDDIKEY Active code length 864 bytes */
-#define GAP_QUIDDIKEY_AC_BYTES 864
+/*! @brief QUIDDIKEY Active code length 996 bytes */
+#define GAP_QUIDDIKEY_AC_BYTES 996
 
 /*! @brief QUIDDIKEY Key code length table in bytes */
 extern uint16_t key_code_length_0[];
@@ -69,7 +69,7 @@ typedef enum _quiddikey_state
 typedef enum _quiddikey_destination
 {
     uQUIDDIKEY_DOR        = 0U,   /*!< Destination to data output. */
-    uQUIDDIKEY_KO         = 1U,   /*!< Destination to key out interface. */
+    uQUIDDIKEY_SO         = 1U,   /*!< Destination to key out interface. */
 } quiddikey_destination_t;
 
 /*! @brief Key operation scope in FSM type selection */
@@ -117,14 +117,14 @@ typedef struct _quiddikey_context
                                     is in the Started state:
                                     bit 8: Key can be made available via the
                                     QK_DOR register
-                                    bit 9: Key can be made available via the KO in-
+                                    bit 9: Key can be made available via the SO in-
                                     terface
                                     Others: Reserved */
     uint8_t  key_scope_enrolled;  /*!< Defines the allowed key destinations, when QuiddiKey
                                     is in the Enrolled state:
                                     bit 0: Key can be made available via the
                                     QK_DOR register
-                                    bit 1: Key can be made available via the KO in-
+                                    bit 1: Key can be made available via the SO in-
                                     terface
                                     Others: Reserved */
 } quiddikey_context_t;

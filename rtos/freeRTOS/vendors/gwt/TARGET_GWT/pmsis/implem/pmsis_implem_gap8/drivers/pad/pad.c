@@ -28,6 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "pmsis/chips/gap8/pad.h"
 #include "pmsis/drivers/pad.h"
 #include "pmsis.h"
 #include "pmsis/implem/hal/hal.h"

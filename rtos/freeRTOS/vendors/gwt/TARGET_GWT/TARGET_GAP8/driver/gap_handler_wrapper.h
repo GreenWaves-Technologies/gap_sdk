@@ -32,7 +32,6 @@
 #define _GAP_HANDLER_HELPER_H_
 
 #include "pmsis/targets/target.h"
-#include "gap_util.h"
 
 /*!
  * @addtogroup handler_wrapper

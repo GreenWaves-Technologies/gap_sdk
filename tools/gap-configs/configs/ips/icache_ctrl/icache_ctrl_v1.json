@@ -1,0 +1,6 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/icache/icache_ctrl_v1.h" ]
+
+}

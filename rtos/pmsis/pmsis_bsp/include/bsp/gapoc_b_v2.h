@@ -22,6 +22,7 @@
 #define CONFIG_HYPERRAM
 #define CONFIG_NINA_B112
 #define CONFIG_THERMEYE
+#define CONFIG_OV5640
 #define CONFIG_SPIRAM
 #define CONFIG_SPIFLASH
 
@@ -61,6 +62,9 @@
 #define CONFIG_THERMEYE_PWM_CH         ( 2 )
 #define CONFIG_THERMEYE_GPIO_POWER     ( GPIO_IR_PWRON )
 #define CONFIG_THERMEYE_GPIO_RESET     ( GPIO_IR_NRST )
+
+#define CONFIG_OV5640_CPI_ID         ( 0 )
+#define CONFIG_OV5640_I2C_ID         ( 1 )
 
 #define CONFIG_NINA_B112_UART_ID       ( 0 )
 

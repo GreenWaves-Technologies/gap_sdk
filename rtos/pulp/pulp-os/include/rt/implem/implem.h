@@ -31,6 +31,9 @@
 #include "rt/implem/gap9.h"
 #endif
 
+
+void __rt_deinit();
+
 extern void __pi_yield();
 
 static inline struct pi_task *pi_task_block(struct pi_task *task)

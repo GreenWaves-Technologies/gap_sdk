@@ -27,6 +27,7 @@
 #include "bsp/ble/nina_b112.h"
 #include "bsp/ble/nina_b112/nina_b112_old.h"
 #include "bsp/camera/thermeye.h"
+#include "bsp/camera/ov5640.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -174,10 +175,23 @@ int bsp_thermeye_open(struct pi_thermeye_conf *conf)
     return 0;
 }
 
+void bsp_ov5640_conf_init(struct pi_ov5640_conf *conf)
+{
+    __bsp_init_pads();
+    conf->i2c_itf = CONFIG_OV5640_I2C_ID;
+    conf->cpi_itf = CONFIG_OV5640_CPI_ID;
+}
+
+int bsp_ov5640_open(struct pi_ov5640_conf *conf)
+{
+    __bsp_init_pads();
+    return 0;
+}
+
 
 void bsp_init()
 {
-  __bsp_init_pads();
+    __bsp_init_pads();
 }
 
 

@@ -1,0 +1,6 @@
+{
+  "type": "dpi",
+  "model": "himax",
+  "module": "camera.so",
+  "color-mode": "gray"
+}

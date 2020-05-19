@@ -17,7 +17,7 @@ RM=rm -f
 APP_SRCS   += main.c $(GAP_LIB_PATH)/img_io/ImgIO.c $(MODEL_GEN_C) $(GEN_KER_PATH)/IntegralImgBasicKernels.c
 APP_INC     = $(GAP_LIB_PATH)/include
 
-APP_CFLAGS += -DNO_BRIDGE -O3 -mno-memcpy -fno-tree-loop-distribute-patterns $(JENKINS_FLAGS)
+APP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns $(JENKINS_FLAGS)
 APP_CFLAGS += -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_KER_PATH)
 
 #moved to new openocd bridge

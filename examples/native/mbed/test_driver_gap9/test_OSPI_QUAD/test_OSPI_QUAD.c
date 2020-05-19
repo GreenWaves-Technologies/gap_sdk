@@ -19,44 +19,105 @@
 uint8_t tx_buffer[BUFFER_SIZE];
 uint8_t rx_buffer[BUFFER_SIZE];
 
+
+typedef struct {
+    __IO  uint32_t RX_DEST;
+    __IO  uint32_t TX_DEST;
+    __IO  uint32_t TRANS_AUTO;
+    __IO  uint32_t TRANS_ADDR;
+    __IO  uint32_t TRANS_SIZE;
+    __IO  uint32_t TRANS_CFG;
+    __IO  uint32_t reserved0;
+    __IO  uint32_t reserved1;
+    __IO  uint32_t EXT_ADDR;                 /**< HYPERBUS Memory access address register, offset: 0x20 */
+    __IO  uint32_t TIMING_CFG;               /**< HYPERBUS Timing Configuration register, offset: 0x24 */
+    __IO  uint32_t MBR0;                     /**< HYPERBUS Memory base address 0 register, offset: 0x28 */
+    __IO  uint32_t MBR1;                     /**< HYPERBUS Memory base address 1 register, offset: 0x2C */
+    __IO  uint32_t DEVICE_TYPE;              /**< HYPERBUS device type register, offset: 0x30 */
+    __IO  uint32_t OSPI_CMD;                 /**< HYPERBUS Octo SPI command register, offset: 0x34 */
+    __IO  uint32_t OSPI_ALTER;               /**< HYPERBUS Octo SPI address register, offset: 0x38 */
+    __IO  uint32_t OSPI_CFG;                 /**< HYPERBUS Octo SPI cofiguration register, offset: 0x3C */
+    __IO  uint32_t OSPI_CSN;                 /**< HYPERBUS Octo SPI chip select register, offset: 0x40 */
+    __IO  uint32_t OSPI_JEDEC_RESET;         /**< HYPERBUS Octo SPI cofiguration register, offset: 0x44 */
+    __IO  uint32_t reserved2;
+    __IO  uint32_t reserved3;
+    __IO  uint32_t BURST_SIZE;               /**< HYPERBUS Octo SPI burst size register, offset: 0x50 */
+    __IO  uint32_t LINE_2D;                  /**< HYPERBUS Octo SPI burst size register, offset: 0x54 */
+    __IO  uint32_t STRIDE_2D;                /**< HYPERBUS Octo SPI burst size register, offset: 0x58 */
+    __IO  uint32_t BURST_ENABLE;             /**< HYPERBUS Octo SPI burst enable register, offset: 0x5C */
+    __IO  uint32_t IRQ_EN;                   /**< HYPERBUS Octo SPI interrupt enable, offset: 0x60 */
+    __IO  uint32_t CLK_DIV;                  /**< HYPERBUS Clock devider register, offset: 0x64 */
+    __IO  uint32_t STATUS;                   /**< HYPERBUS Status register, offset: 0x68 */
+} HYPERBUS_Type0;
+
+
+
+#define TEST_HYPERBUS                        ((HYPERBUS_Type0 *)(0x1A102080 + PER_ID_HYPERBUS * 0x80))
+
 void ospi_write(uint32_t l2_addr, int size)
 {
+    if (size)
+        TEST_HYPERBUS->TRANS_AUTO  = 1;
+    else
+        TEST_HYPERBUS->TRANS_AUTO  = 0;
+
     /* Disable UDMA IRQ */
     int irq = EU_DisableUDMAIRQ();
 
-    HYPERBUS0->UDMA_HYPERBUS.TX_SADDR = l2_addr;
-    HYPERBUS0->UDMA_HYPERBUS.TX_SIZE  = size;
-    HYPERBUS0->UDMA_HYPERBUS.TX_CFG   = UDMA_CFG_EN(1);
+    TEST_HYPERBUS->TX_DEST     = 1;
+    TEST_HYPERBUS->RX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = l2_addr;
+    TEST_HYPERBUS->TRANS_SIZE  = size;
+    TEST_HYPERBUS->TRANS_CFG   = 2;
 
     ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
 
     /* Restore IRQ */
     EU_RestoreUDMAIRQ(irq);
+
+    if (TEST_HYPERBUS->STATUS & 0x1)
+    {
+        TEST_HYPERBUS->STATUS = 0x1;
+        printf("TX ERROR\n");
+    }
 }
 
 void ospi_read(uint32_t l2_addr, int size)
 {
+    if (size)
+        TEST_HYPERBUS->TRANS_AUTO  = 1;
+    else
+        TEST_HYPERBUS->TRANS_AUTO  = 0;
+
     /* Disable UDMA IRQ */
     int irq = EU_DisableUDMAIRQ();
 
-    HYPERBUS0->UDMA_HYPERBUS.RX_SADDR = l2_addr;
-    HYPERBUS0->UDMA_HYPERBUS.RX_SIZE  = size;
-    HYPERBUS0->UDMA_HYPERBUS.RX_CFG   = UDMA_CFG_EN(1);
+    TEST_HYPERBUS->RX_DEST     = 1;
+    TEST_HYPERBUS->TX_DEST     = 0x7F;
+    TEST_HYPERBUS->TRANS_ADDR  = l2_addr;
+    TEST_HYPERBUS->TRANS_SIZE  = size;
+    TEST_HYPERBUS->TRANS_CFG   = 3;
 
     ITC_WaitEvent_NOIRQ(FC_SOC_EVENT_IRQn);
 
     /* Restore IRQ */
     EU_RestoreUDMAIRQ(irq);
+
+    if (TEST_HYPERBUS->STATUS & 0x2)
+    {
+        TEST_HYPERBUS->STATUS = 0x2;
+        printf("RX ERROR\n");
+    }
 }
 
 static uint32_t read_register(uint8_t cmd, int size)
 {
     uint32_t reg = 0;
 
-    HYPERBUS0->OSPI_CMD    = (cmd << 8);
-    HYPERBUS0->OSPI_ADDR   = 0x0;
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x0 << 4) | 1;
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CMD    = (cmd << 8);
+    TEST_HYPERBUS->EXT_ADDR    = 0x0;
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x0 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_read((uint32_t)&reg, size);
 
     return reg;
@@ -64,10 +125,10 @@ static uint32_t read_register(uint8_t cmd, int size)
 
 static void write_enable(int spi_type)
 {
-    HYPERBUS0->OSPI_CMD    = (0x06 << 8);
-    HYPERBUS0->OSPI_ADDR   = 0x0;
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( spi_type << 8) | (0x0 << 4) | 1;
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CMD    = (0x06 << 8);
+    TEST_HYPERBUS->EXT_ADDR    = 0x0;
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( spi_type << 8) | (0x0 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_write((uint32_t)NULL, 0);
 }
 
@@ -79,10 +140,10 @@ static void conf_flash()
     // Set dummy cycles    :  CR2V[3:0] = DUMMY
     // Address length of 24:  CR2V[7] = 0
     // Address length of 32:  CR2V[7] = 1
-    HYPERBUS0->OSPI_CMD    = (0x71 << 8);
-    HYPERBUS0->OSPI_ADDR   = (0x80000300 | (0x40 | DUMMY));
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( SINGLE_SPI << 8) | (0x4 << 4) | 1;
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CMD    = (0x71 << 8);
+    TEST_HYPERBUS->EXT_ADDR    = (0x80000300 | (0x40 | DUMMY));
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( SINGLE_SPI << 8) | (0x4 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_write((uint32_t)NULL, 0);
 }
 
@@ -90,10 +151,10 @@ static void erase_page_in_flash(uint32_t flash_addr)
 {
     write_enable(QUAD_SPI);
 
-    HYPERBUS0->OSPI_CMD    = (0x20 << 8);
-    HYPERBUS0->OSPI_ADDR   = (flash_addr << 8);
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x3 << 4) | 1;
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CMD    = (0x20 << 8);
+    TEST_HYPERBUS->EXT_ADDR    = (flash_addr << 8);
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x3 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_write((uint32_t)NULL, 0);
 }
 
@@ -102,34 +163,34 @@ static void write_page_in_flash(uint32_t flash_addr)
     write_enable(QUAD_SPI);
 
     //p4pp age program
-    HYPERBUS0->OSPI_CMD    = (0x02 << 8);
-    HYPERBUS0->OSPI_ADDR   = (flash_addr << 8);
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x3 << 4) | 1;
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CMD    = (0x02 << 8);
+    TEST_HYPERBUS->EXT_ADDR    = (flash_addr << 8);
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x3 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_write((uint32_t)tx_buffer, BUFFER_SIZE);
 }
 
 static void read_page_from_flash(uint32_t flash_addr)
 {
     /* Fast read - 133 MHz, Normal read - 50 MHz */
-    HYPERBUS0->TIMING_CFG  = (665 << 18) | (0 << 17) | (1 << 14) | (6 << 10) | DUMMY;
+    TEST_HYPERBUS->TIMING_CFG  = (665 << 18) | (0 << 17) | (1 << 14) | (6 << 10) | DUMMY;
 
     #ifdef USE_0xEC
     /* Temporary solution, 2 bytes command with 2 bytes alternative for specific device for OSPI_CMD
-     * The address size OSPI_ADDR is always 4.
-     * As a result, if address_size <=4, always only OSPI_ADDR bytes are written.
-     *              if 4 < address_size <=6, 4 bytes OSPI_ADDR are written firstly, then 1-2 bytes ALternative bytes are written.
-     *              Other size has no sense. 
+     * The address size EXT_ADDR is always 4.
+     * As a result, if address_size <=4, always only EXT_ADDR bytes are written.
+     *              if 4 < address_size <=6, 4 bytes EXT_ADDR are written firstly, then 1-2 bytes ALternative bytes are written.
+     *              Other size has no sense.
      */
-    HYPERBUS0->OSPI_CMD    = 0x0A << 24 | (0xEC << 8);
-    HYPERBUS0->OSPI_ADDR   = (flash_addr);
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( 1 << 10) | ( QUAD_SPI << 8) | (0x5 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CMD    = 0x0A << 24 | (0xEC << 8);
+    TEST_HYPERBUS->EXT_ADDR    = (flash_addr);
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( 1 << 10) | ( QUAD_SPI << 8) | (0x5 << 4) | 1;
     #else
-    HYPERBUS0->OSPI_CMD    = (0xEB << 8);
-    HYPERBUS0->OSPI_ADDR   = (flash_addr << 8) | 0x0A;
-    HYPERBUS0->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x4 << 4) | 1;
+    TEST_HYPERBUS->OSPI_CMD    = (0xEB << 8);
+    TEST_HYPERBUS->EXT_ADDR    = (flash_addr << 8) | 0x0A;
+    TEST_HYPERBUS->OSPI_CFG    = ( 0x7 << 12 ) | ( QUAD_SPI << 8) | (0x4 << 4) | 1;
     #endif
-    HYPERBUS0->OSPI_CSN    = (0x0 << 4) | 0;
+    TEST_HYPERBUS->OSPI_CSN    = (0x0 << 4) | 0;
     ospi_read((uint32_t)rx_buffer, BUFFER_SIZE);
 }
 
@@ -158,15 +219,17 @@ int test_octo_spi(int frequency)
 {
     /* Clock gating enable */
     UDMA_GC->CG |= (1 << PER_ID_HYPERBUS);
+    UDMA_GC->RST |= (1 << PER_ID_HYPERBUS);
 
     /* Attach event unit for end interrupt */
-    SOC_EU_SetFCMask((PER_ID_HYPERBUS << 2) + 3);
-    /* Enable IRQ */
-    HYPERBUS0->IRQ_EN  = 1;
+    SOC_EU_SetFCMask(40 + 31);
 
-    HYPERBUS0->TIMING_CFG  = (665 << 18) | (0 << 17) | (1 << 14) | (6 << 10) | 0;
-    HYPERBUS0->DEVICE_TYPE = (0 << 2) | (0 << 1) | 0;
-    HYPERBUS0->CLK_DIV     = 25000000/frequency - 1;
+    /* Enable IRQ */
+    TEST_HYPERBUS->IRQ_EN      = HYPERBUS_IRQ_EN(1);
+
+    TEST_HYPERBUS->TIMING_CFG  = (665 << 18) | (0 << 17) | (1 << 14) | (6 << 10) | 0;
+    TEST_HYPERBUS->DEVICE_TYPE = (0 << 2) | (0 << 1) | 0;
+    TEST_HYPERBUS->CLK_DIV     = 25000000/frequency - 1;
 
     // Flash Configuration
     conf_flash();
@@ -219,5 +282,5 @@ int main()
     else
         printf("Test success\n");
 
-    return 0;
+    return error;
 }

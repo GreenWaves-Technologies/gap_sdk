@@ -1,0 +1,11 @@
+{
+  "version"       : "ariane",
+  "archi"         : "riscv",
+  "implementation": "ariane",
+  "isa"           : "rv64imc",
+  "priv_version"  : 1.10,
+  "features"      : [ ],
+  "gv_class"      : "cpu.or1k.ariane.Riscvfsim",
+  "debug_binaries": [],
+  "hal_files"     : [ "hal/ariane.h" ]
+}

@@ -49,5 +49,22 @@ struct hyper_cb_args_s
     struct hyper_transfer_s transfer;
 };
 
+static inline void __pi_irq_handle_end_of_task(pi_task_t *task)
+{
+    switch (task->id)
+    {
+    case PI_TASK_NONE_ID :
+        pi_task_release(task);
+        break;
+
+    case PI_TASK_CALLBACK_ID :
+        pi_task_push(task);
+        break;
+
+    default :
+        return;
+    }
+}
+
 
 #endif  /* __PI_DRIVER_DATA_H__ */

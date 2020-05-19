@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
+ *          Sivarajah Sivapiriyan, GreenWaves Technologies (sivarajah.sivapiriyan@greenwaves-technologies.com)
  */
 
 #include "pmsis.h"
 
+#define UDMA_MEMCPY_MAX_SIZE 0x1FFFF
 
-typedef struct 
+typedef struct
 {
     pi_task_t *pending_copy;
     pi_task_t *waiting_first;
@@ -33,11 +35,16 @@ typedef struct
 
 static pos_dmacpy_t pos_dmacpy_dev[ARCHI_UDMA_NB_TCDM];
 
+static uint32_t max_size = (uint32_t) UDMA_MEMCPY_MAX_SIZE - 4;
 
-void pos_dmacpy_handle_copy_asm();
-static inline void pos_dmacpy(pos_dmacpy_t *dev, uint32_t l2_addr, uint32_t tcdm_addr, int size, int to_tcdm);
+/*
+ * Dmacpy IRQ handler, written in ASM.
+ * This function will call pi_uart_handle_copy(), with event num and pos_dmacpy_t arg.
+ */
+extern void pos_dmacpy_handle_copy_asm();
+void pos_dmacpy_handle_copy(int event, void *arg);
 
-
+static inline void pos_dmacpy(pos_dmacpy_t *dev, struct pi_task *task);
 
 void pi_dmacpy_conf_init(struct pi_dmacpy_conf *conf)
 {
@@ -45,22 +52,32 @@ void pi_dmacpy_conf_init(struct pi_dmacpy_conf *conf)
 }
 
 
-void pos_dmacpy_handle_copy(void *arg)
+void pos_dmacpy_handle_copy(int event, void *arg)
 {
     pos_dmacpy_t *dev = (pos_dmacpy_t *)arg;
+    int channel = event & 0x1;
 
     pi_task_t *task = dev->pending_copy;
-    dev->pending_copy = NULL;
-
-    __rt_event_handle_end_of_task(task);
-
-    task = dev->waiting_first;
-    if (task)
+    /* Pending data on current transfer. */
+    if (task->implem.data[5] && channel)
     {
-        dev->waiting_first = task->implem.next;
-        dev->pending_copy = task;
-
-        pos_dmacpy(dev, task->implem.data[0], task->implem.data[1], task->implem.data[2], task->implem.data[3]);
+        return;
+    }
+    if (task->implem.data[4] != 0)
+    {
+        pos_dmacpy(dev, task);
+    }
+    else
+    {
+        dev->pending_copy = NULL;
+        __rt_event_handle_end_of_task(task);
+        task = dev->waiting_first;
+        if (task)
+        {
+            dev->waiting_first = task->implem.next;
+            dev->pending_copy = task;
+            pos_dmacpy(dev, task);
+        }
     }
 }
 
@@ -119,27 +136,50 @@ void pi_dmacpy_close(struct pi_device *device)
 }
 
 
-static inline void pos_dmacpy(pos_dmacpy_t *dev, uint32_t l2_addr, uint32_t tcdm_addr, int size, int to_tcdm)
+static inline void pos_dmacpy(pos_dmacpy_t *dev, struct pi_task *task)
 {
-    if (to_tcdm)
+    uint32_t l2_buf_0 = task->implem.data[0]; /* RX_SADDR for FC->L2 or L2->L2. */
+    uint32_t l2_buf_1 = task->implem.data[1]; /* TX_SADDR for L2->FC or L2->L2. */
+    uint32_t cpy_src  = task->implem.data[2]; /* SRC for FC->L2. */
+    uint32_t cpy_dst  = task->implem.data[3]; /* DST for L2->FC. */
+    int cpy_size      = task->implem.data[4]; /* Size. */
+    int tcdm_cpy      = task->implem.data[5]; /* Copy from/to TCDM? */
+
+    if (task->implem.data[4] > max_size)
     {
-        plp_udma_enqueue_toTcdm(l2_addr, tcdm_addr, size, UDMA_CHANNEL_CFG_EN);
+        cpy_size = max_size;
+    }
+    task->implem.data[4] -= cpy_size;
+
+    /* Actually copy from L2 to L2. */
+    if (tcdm_cpy)
+    {
+        task->implem.data[0] += cpy_size;
+        task->implem.data[1] += cpy_size;
+        plp_udma_enqueue_fromTcdm(l2_buf_0, cpy_src, tcdm_cpy, cpy_size, UDMA_CHANNEL_CFG_EN);
+        plp_udma_enqueue_toTcdm(l2_buf_1, cpy_dst, tcdm_cpy, cpy_size, UDMA_CHANNEL_CFG_EN);
     }
     else
     {
-        plp_udma_enqueue_fromTcdm(l2_addr, tcdm_addr, size, UDMA_CHANNEL_CFG_EN);
+        if (cpy_src)
+        {
+            task->implem.data[0] += cpy_size;
+            task->implem.data[2] += cpy_size;
+            plp_udma_enqueue_fromTcdm(l2_buf_0, cpy_src, tcdm_cpy, cpy_size, UDMA_CHANNEL_CFG_EN);
+        }
+        else
+        {
+            task->implem.data[1] += cpy_size;
+            task->implem.data[3] += cpy_size;
+            plp_udma_enqueue_toTcdm(l2_buf_1, cpy_dst, tcdm_cpy, cpy_size, UDMA_CHANNEL_CFG_EN);
+        }
     }
 }
 
 
 static inline __attribute__((always_inline)) void pos_dmacpy_enqueue_pending_copy(
-    pos_dmacpy_t *dev, pi_task_t *task, uint32_t arg0, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+    pos_dmacpy_t *dev, pi_task_t *task)
 {
-    task->implem.data[0] = arg0;
-    task->implem.data[1] = arg1;
-    task->implem.data[2] = arg2;
-    task->implem.data[3] = arg3;
-
     if (dev->waiting_first)
         dev->waiting_last->implem.next = task;
     else
@@ -153,43 +193,70 @@ static inline __attribute__((always_inline)) void pos_dmacpy_enqueue_pending_cop
 int pi_dmacpy_copy_async(struct pi_device *device, void *src, void *dst,
                          uint32_t size, pi_dmacpy_dir_e dir, struct pi_task *task)
 {
-    pos_dmacpy_t *dev = (pos_dmacpy_t *)device->data;
-    uint32_t l2_addr;
-    uint32_t tcdm_addr;
-    int to_tcdm;
+    /* Src address not aligned on 4 bytes. */
+    if (((uint32_t) src % 4) != 0)
+    {
+        return -11;
+    }
+    /* Dst address not aligned on 4 bytes. */
+    if (((uint32_t) dst % 4) != 0)
+    {
+        return -12;
+    }
+    /* Size not a multiple of 4 bytes. */
+    if (((uint32_t) size % 4) != 0)
+    {
+        return -13;
+    }
 
-    if (dir == PI_DMACPY_FC_L1_L2)
+    task->implem.data[0] = 0;
+    task->implem.data[1] = 0;
+    task->implem.data[2] = (uint32_t) src;
+    task->implem.data[3] = (uint32_t) dst;
+    task->implem.data[4] = size;
+    task->implem.data[5] = 0;
+
+    switch (dir)
     {
-        l2_addr = (uint32_t)dst;
-        tcdm_addr = (uint32_t)src;
-        to_tcdm = 0;
+    case PI_DMACPY_FC_L1_L2 :
+        task->implem.data[0] = (uint32_t) dst;
+        task->implem.data[3] = 0;
+        break;
+
+    case PI_DMACPY_L2_FC_L1 :
+        task->implem.data[1] = (uint32_t) src;
+        task->implem.data[2] = 0;
+        break;
+
+    case PI_DMACPY_L2_L2 :
+        task->implem.data[0] = (uint32_t) dst;
+        task->implem.data[1] = (uint32_t) src;
+        task->implem.data[2] = 0;
+        task->implem.data[3] = 0;
+        task->implem.data[5] = 1;
+        break;
+
+    default :
+        printf("Wrong param for direction !\n");
+        return -14;
     }
-    else
-    {
-        l2_addr = (uint32_t)src;
-        tcdm_addr = (uint32_t)dst;
-        to_tcdm = 1;
-    }
-    
+
     int irq = hal_irq_disable();
-
-    printf("%s %d\n", __FILE__, __LINE__);
+    pos_dmacpy_t *dev = (pos_dmacpy_t *)device->data;
 
     if (likely(!dev->pending_copy))
     {
-    printf("%s %d\n", __FILE__, __LINE__);
-
         dev->pending_copy = task;
 
         hal_irq_restore(irq);
 
-        pos_dmacpy(dev, l2_addr, tcdm_addr, size, to_tcdm);
+        pos_dmacpy(dev, task);
 
         return 0;
     }
-   
-    pos_dmacpy_enqueue_pending_copy(dev, task, l2_addr, tcdm_addr, size, to_tcdm);
- 
+
+    pos_dmacpy_enqueue_pending_copy(dev, task);
+
     hal_irq_restore(irq);
 
     return 0;
@@ -199,10 +266,14 @@ int pi_dmacpy_copy_async(struct pi_device *device, void *src, void *dst,
 int pi_dmacpy_copy(struct pi_device *device, void *src, void *dst,
                    uint32_t size, pi_dmacpy_dir_e dir)
 {
+    int status = 0;
     pi_task_t task;
-    pi_dmacpy_copy_async(device, src, dst, size, dir, pi_task_block(&task));
-    pi_task_wait_on(&task);
-    return 0;
+    status = pi_dmacpy_copy_async(device, src, dst, size, dir, pi_task_block(&task));
+    if (status == 0)
+    {
+        pi_task_wait_on(&task);
+    }
+    return status;
 }
 
 

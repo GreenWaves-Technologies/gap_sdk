@@ -21,11 +21,14 @@
 #include "pmsis/drivers/pad.h"
 #include "bsp/gapuino.h"
 #include "bsp/camera/himax.h"
+#include "bsp/camera/ov7670.h"
+#include "bsp/camera/gc0308.h"
 #include "bsp/display/ili9341.h"
 #include "bsp/flash/hyperflash.h"
 #include "bsp/ram/hyperram.h"
 #include "bsp/ram/spiram.h"
 #include "bsp/transport/nina_w10.h"
+#include "bsp/camera/ov5640.h"
 
 
 static int __bsp_init_pads_done = 0;
@@ -119,6 +122,46 @@ int bsp_himax_open(struct pi_himax_conf *conf)
 }
 
 
+void bsp_ov7670_conf_init(struct pi_ov7670_conf *conf)
+{
+  __bsp_init_pads();
+  conf->i2c_itf = CONFIG_OV7670_I2C_ITF;
+  conf->cpi_itf = CONFIG_OV7670_CPI_ITF;
+}
+
+int bsp_ov7670_open(struct pi_ov7670_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
+}
+
+void bsp_gc0308_conf_init(struct pi_gc0308_conf *conf)
+{
+  __bsp_init_pads();
+  conf->i2c_itf = CONFIG_HIMAX_I2C_ITF;
+  conf->cpi_itf = CONFIG_HIMAX_CPI_ITF;
+  conf->reset_gpio = PI_GPIO_A17_PAD_31_B11;
+}
+
+int bsp_gc0308_open(struct pi_gc0308_conf *conf)
+{
+  __bsp_init_pads();
+  pi_pad_set_function(PI_PAD_31_B11_TIMER0_CH0, PI_PAD_31_B11_GPIO_A17_FUNC1);
+  return 0;
+}
+
+void bsp_ov5640_conf_init(struct pi_ov5640_conf *conf)
+{
+    __bsp_init_pads();
+    conf->i2c_itf = CONFIG_OV5640_I2C_ID;
+    conf->cpi_itf = CONFIG_OV5640_CPI_ID;
+}
+
+int bsp_ov5640_open(struct pi_ov5640_conf *conf)
+{
+    __bsp_init_pads();
+    return 0;
+}
 
 void bsp_ili9341_conf_init(struct pi_ili9341_conf *conf)
 {
@@ -139,8 +182,6 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 
   return 0;
 }
-
-
 
 
 void pi_bsp_init_profile(int profile)

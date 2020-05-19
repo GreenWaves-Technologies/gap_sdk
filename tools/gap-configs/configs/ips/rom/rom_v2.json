@@ -1,0 +1,6 @@
+{
+  "version": 2,
+
+  "hal_files" : [ "hal/rom/rom_v2.h" ]
+
+}

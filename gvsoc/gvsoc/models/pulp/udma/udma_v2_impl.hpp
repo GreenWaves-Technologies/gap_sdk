@@ -128,6 +128,9 @@ public:
   Udma_transfer *current_cmd;
   Udma_queue<vp::io_req> *ready_reqs;
 
+  uint32_t saddr;
+  uint32_t size;
+  
 protected:
   vp::trace     trace;
   udma *top;
@@ -142,9 +145,6 @@ private:
   virtual void handle_ready_req(vp::io_req *req);
   virtual void handle_ready_reqs();
 
-  uint32_t saddr;
-  uint32_t size;
-  
   int transfer_size;
   bool continuous_mode;
 
@@ -593,10 +593,10 @@ private:
 class Tcdm_periph_v1;
 
 
-class Tcdm_channel : public Udma_tx_channel
+class Tcdm_tx_channel : public Udma_tx_channel
 {
 public:
-  Tcdm_channel(udma *top, Tcdm_periph_v1 *periph, int id, string name);
+  Tcdm_tx_channel(udma *top, Tcdm_periph_v1 *periph, int id, string name);
   void handle_ready_reqs();
 
 private:
@@ -609,9 +609,22 @@ private:
 };
 
 
+class Tcdm_rx_channel : public Udma_rx_channel
+{
+public:
+  Tcdm_rx_channel(udma *top, Tcdm_periph_v1 *periph, int id, string name);
+  void handle_ready();
+
+private:
+
+  Tcdm_periph_v1 *periph;
+};
+
+
 class Tcdm_periph_v1 : public Udma_periph
 {
-  friend class Tcdm_channel;
+  friend class Tcdm_tx_channel;
+  friend class Tcdm_rx_channel;
 
 public:
   Tcdm_periph_v1(udma *top, int id, int itf_id);
@@ -634,6 +647,8 @@ private:
   Udma_queue<vp::io_req> *out_waiting_reqs;
 
   vp::clock_event *pending_reqs_event;
+
+  int read_size;
 
   vp::trace     trace;
 };

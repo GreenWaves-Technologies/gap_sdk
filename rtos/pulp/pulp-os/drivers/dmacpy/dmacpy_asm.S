@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
+ *          Sivarajah Sivapiriyan, GreenWaves Technologies (sivarajah.sivapiriyan@greenwaves-technologies.com)
  */
 
 #include "rt/rt_data.h"
 #include "archi/pulp.h"
 
   // x8: callback arg, x9: channel, x10:event, x11,x12:temp
+  // call pos_dmacpy_handle_copy(x10:event, x11:callback arg)
   .global pos_dmacpy_handle_copy_asm
 pos_dmacpy_handle_copy_asm:
 
-  mv        x10, x8
+  mv        x11, x8
   la        x12, pos_dmacpy_handle_copy
   la        x9, udma_event_handler_end
   j         __rt_call_external_c_function
-
-	

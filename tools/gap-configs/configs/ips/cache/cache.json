@@ -1,0 +1,9 @@
+{
+  "vp_class": "cache/cache",
+  "vp_component": "cache.cache_impl",
+
+  "nb_ports" : 1,
+  "nb_sets_bits": 4,
+  "nb_ways_bits": 2,
+  "line_size_bits": 4
+}

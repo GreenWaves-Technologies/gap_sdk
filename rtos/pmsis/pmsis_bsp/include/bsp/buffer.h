@@ -29,7 +29,8 @@ typedef enum {
 
 
 typedef enum {
-  PI_BUFFER_FORMAT_GRAY
+  PI_BUFFER_FORMAT_GRAY,
+  PI_BUFFER_FORMAT_RGB565
 } pi_buffer_format_e;
 
 typedef struct {

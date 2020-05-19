@@ -1,7 +1,7 @@
 {
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/home/osboxes/anaconda3/bin/python",
+    "python.pythonPath": "/home/marco-gwt/anaconda3/bin/python",
     "python.testing.pytestArgs": [
         "tests"
     ],

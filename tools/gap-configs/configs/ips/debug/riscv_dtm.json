@@ -1,0 +1,4 @@
+{
+  "vp_class": "pulp/adv_dbg_unit/riscv_dtm",
+  "vp_component":  "pulp.adv_dbg_unit.riscv_dtm_impl"
+}

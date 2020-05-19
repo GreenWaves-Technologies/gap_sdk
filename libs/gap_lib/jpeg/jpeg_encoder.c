@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Eric Flamand, GreenWaves Technologies (eric.flamand@greenwaves-technologies.com)
  *          Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
@@ -276,7 +276,7 @@ int process_du(
         }
         Pos = i + 1;
     }
-    
+
     dump_du("after quantization", DU2);
 
     return BitStreamIndex - BitStreamIndex_param;
@@ -561,8 +561,6 @@ int32_t jpeg_encoder_header(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream,
 
   return 0;
 }
-
-
 
 int32_t jpeg_encoder_footer(jpeg_encoder_t *enc, pi_buffer_t *encoded_bitstream, uint32_t *encoded_size)
 {

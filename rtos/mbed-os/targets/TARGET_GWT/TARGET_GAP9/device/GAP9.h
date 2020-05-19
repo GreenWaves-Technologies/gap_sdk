@@ -614,16 +614,27 @@ typedef struct {
 #define    PER_ID_UART0      4
 #define    PER_ID_UART1      5
 #define    PER_ID_UART2      6
-#define    PER_ID_I2C0       7
-#define    PER_ID_HYPERBUS   8
-#define    PER_ID_JTAG       9
-#define    PER_ID_SDIO       10
-#define    PER_ID_I2S        11
-#define    PER_ID_CPI        12
-#define    PER_ID_CSI2       13
-#define    PER_ID_MRAM       14
-#define    PER_ID_FILTER     15
-#define    PER_ID_TIMESTAMP  16
+#define    PER_ID_UART3      7
+#define    PER_ID_UART4      8
+#define    PER_ID_I2C0       9
+#define    PER_ID_I2C1       10
+#define    PER_ID_I2C2       11
+#define    PER_ID_I2C3       12
+#define    PER_ID_HYPERBUS   13
+#define    PER_ID_HYPERBUS0  13
+#define    PER_ID_HYPERBUS1  14
+#define    PER_ID_JTAG       15
+#define    PER_ID_SDIO       16
+#define    PER_ID_I2S        17
+#define    PER_ID_I2S0       18
+#define    PER_ID_I2S1       19
+#define    PER_ID_I2S2       20
+#define    PER_ID_CPI        21
+#define    PER_ID_CSI2       22
+#define    PER_ID_MRAM       23
+#define    PER_ID_FILTER     24
+#define    PER_ID_TIMESTAMP  25
+#define    PER_ID_AES        26
 
 /*!
  * @}
@@ -636,7 +647,7 @@ typedef struct {
 /** Peripheral UDMA events number */
 #define UDMA_EVENTS_NUM                          128
 /** Peripheral UDMA channel number */
-#define UDMA_CHANNEL_NUM                         17
+#define UDMA_CHANNEL_NUM                         25
 
 /*!
  * @}
@@ -657,8 +668,12 @@ typedef struct {
 /** UDMA Global configuration - Register Layout Typedef */
 typedef struct {
   __IO uint32_t CG;                          /**< UDMA_GC clock gating register, offset: 0x0 */
-  __IO uint32_t EVTIN;                       /**< UDMA_GC input event register, offset: 0x04 */
-  __IO uint32_t RST;                         /**< UDMA_GC reset register, offset: 0x08 */
+  __IO uint32_t CG_SET;                      /**< UDMA_GC clock gating set register, offset: 0x4 */
+  __IO uint32_t CG_CLR;                      /**< UDMA_GC clock gating clean register, offset: 0x8 */
+  __IO uint32_t RST;                         /**< UDMA_GC reset register, offset: 0x0C */
+  __IO uint32_t RST_SET;                     /**< UDMA_GC reset set register, offset: 0x10 */
+  __IO uint32_t RST_CLR;                     /**< UDMA_GC reset clean register, offset: 0x14 */
+  __IO uint32_t EVTIN;                       /**< UDMA_GC input event register, offset: 0x018 */
 } UDMA_GC_Type;
 
 /* ----------------------------------------------------------------------------
@@ -2278,33 +2293,25 @@ typedef struct {
   __IO  uint32_t FC_BOOT_ADDR;        /**< SOC_CTRL FC Boot Address register, offset: 0x04 */
   __O   uint32_t FC_FETCH_EN;         /**< SOC_CTRL FC Fetch Enable register, offset: 0x08 */
   __IO  uint32_t CLUSTER_ISO;         /**< SOC_CTRL Cluster Isolate register, offset: 0x0C */
-  __IO  uint32_t _reserved0[23];      /**< reserved, offset: 0x10 */
-  __IO  uint32_t CLUSTER_BUSY;        /**< SOC_CTRL Busy register, offset: 0x6C */
-  __IO  uint32_t CLUSTER_BYPASS;      /**< SOC_CTRL Cluster PMU bypass register, offset: 0x70 */
-  __IO  uint32_t JTAG;                /**< SOC_CTRL Jtag register, offset: 0x74 */
-  __IO  uint32_t L2_SLEEP;            /**< SOC_CTRL L2 memory sleep register, offset: 0x78 */
-  __IO  uint32_t SLEEP_CTRL;          /**< SOC_CTRL Sleep control register, offset: 0x7C */
-  __IO  uint32_t I3C_CTRL;            /**< SOC_CTRL I3C clock gating and frequecy devide control register, offset: 0x80 */
-  __IO  uint32_t _reserved1[7];       /**< reserved, offset: 0x84 */
-  __IO  uint32_t CORE_STATUS;         /**< SOC_CTRL Sleep control register, offset: 0xA0 */
-  __IO  uint32_t _reserved2[7];       /**< reserved, offset: 0xA4 */
-  __I   uint32_t CORE_STATUS_EOC;     /**< SOC_CTRL Core Status EOC register, offset: 0xC0 */
+  __IO  uint32_t _reserved0[40];      /**< reserved, offset: 0x10 */
+  __IO  uint32_t CLUSTER_BUSY;        /**< SOC_CTRL Busy register, offset: 0xB0 */
+  __IO  uint32_t JTAG;                /**< SOC_CTRL Jtag register, offset: 0xB4 */
+  __IO  uint32_t SLEEP_CTRL;          /**< SOC_CTRL Sleep control register, offset: 0xB8 */
+  __IO  uint32_t _reserved1;          /**< reserved, offset: 0xBC */
+  __IO  uint32_t CORE_STATUS;         /**< SOC_CTRL Sleep control register, offset: 0xC0 */
   __IO  uint32_t BOOT_SEL;            /**< SOC_CTRL Boot select register, offset: 0xC4 */
   __IO  uint32_t WD_RST;              /**< SOC_CTRL Watch dog reset, offset: 0xC8 */
-  __IO  uint32_t _reserved3[1];       /**< reserved, offset: 0xCC */
+  __IO  uint32_t _reserved2;          /**< reserved, offset: 0xCC */
   __IO  uint32_t CLK_SEL;             /**< SOC_CTRL Clock select register, offset: 0xD0 */
   __IO  uint32_t CLK_DIV_SOC;         /**< SOC_CTRL Clock SOC divider register, offset: 0xD4 */
   __IO  uint32_t CLK_DIV_CLU;         /**< SOC_CTRL Clock Cluster divider register, offset: 0xD8 */
   __IO  uint32_t CLK_DIV_PER;         /**< SOC_CTRL Clock Peripheral divider register, offset: 0xDC */
   __IO  uint32_t SUPERVISOR_DBG;      /**< SOC_CTRL Sleep control register, offset: 0xE0 */
-  __IO  uint32_t RWM_GRP0_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 7:0, offset: 0xE4 */
-  __IO  uint32_t RWM_GRP1_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 15:8, offset: 0xE8*/
-  __IO  uint32_t RWM_GRP2_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 23:16, offset: 0xEC */
-  __IO  uint32_t RWM_GRP3_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 31:24, offset: 0xF0 */
-  __IO  uint32_t RWM_GRP4_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 39:32, offset: 0xF4 */
-  __IO  uint32_t RWM_GRP5_DBG;        /**< SOC_CTRL RWM for L2 Interlevead memories 47:40, offset: 0xF8 */
-  __IO  uint32_t RWM_GRP6_DBG;        /**< SOC_CTRL RWM for L2 Private memories 3:0, offset: 0xFC */
-
+  __IO  uint32_t REG_RWM_INTL;        /**< SOC_CTRL RWM for L2 Interlevead, offset: 0xE4 */
+  __IO  uint32_t REG_RWM_PRI;         /**< SOC_CTRL RWM for L2 Private memories 3:0, offset: 0xE8*/
+  __IO  uint32_t _reserved3;          /**< reserved, offset: 0xEC */
+  __IO  uint32_t CLK_DIV_I3C;         /**< SOC_CTRL I3C clock divider, offset: 0xF0*/
+  __IO  uint32_t CLK_EN_QUIDDIKEY;    /**< SOC_CTRL QUIDDIKEY clock enable, offset: 0xF4*/
 } SOC_CTRL_Type;
 
 /* ----------------------------------------------------------------------------
@@ -2486,8 +2493,8 @@ typedef struct {
 
 /** PORT - Register Layout Typedef */
 typedef struct {
-  __IO  uint32_t PADFUN[4];                       /**< PORT pad function register 0, offset: 0x00 */
-  __IO  uint32_t PADCFG[16];                       /**< PORT pad configuration register 0, offset: 0x08 */
+  __IO  uint32_t PADFUN[8];                       /**< PORT pad function register 0, offset: 0x00 */
+  __IO  uint32_t PADCFG[32];                       /**< PORT pad configuration register 0, offset: 0x08 */
 
 } PORT_Type;
 
@@ -2548,7 +2555,9 @@ typedef struct {
 typedef struct {
   __IO uint32_t RAR_DCDC;                     /**< PMU CTRL control register, offset: 0x000 */
   __IO uint32_t SLEEP_CTRL;                   /**< PMU CTRL sleep control register, offset: 0x004 */
-
+  __IO uint32_t _reserved;                    /**< reserved, offset: 0x008 */
+  __IO uint32_t PG_CFG;                       /**< PMU power gating configuration register, offset: 0x00C */
+  __IO uint32_t WD;                           /**< PMU power watch dog register, offset: 0x010 */
 } PMU_CTRL_Type;
 
 
@@ -2666,11 +2675,14 @@ typedef struct {
 
 /** PAD_SLEEP - Register Layout Typedef */
 typedef struct {
-  __IO  uint32_t SLEEP_PADCFG[4];                 /**< PAD_SLEEP sleep pad configuration register 0, offset: 0x010 */
-  __IO  uint32_t PAD_SLEEP_EN;                    /**< PAD_SLEEP pad sleep enable register, offset: 0x020 */
-  __IO  uint32_t _reserved0[3];                   /**< reserved, offset: 0x024 */
-  __IO  uint32_t GPREG;                           /**< PAD_SLEEP greneral register, offset: 0x030 */
-
+  __IO  uint32_t SLEEP_PADCFG[4];                 /**< PAD_SLEEP sleep pad configuration register 0, offset: 0x000 */
+  __IO  uint32_t PAD_SLEEP_EN;                    /**< PAD_SLEEP pad sleep enable register, offset: 0x010 */
+  __IO  uint32_t NEVA_CFG;                        /**< reserved, offset: 0x014 */
+  __IO  uint32_t TRC_CFG;                         /**< reserved, offset: 0x018 */
+  __IO  uint32_t BBGEN_CFG;                       /**< reserved, offset: 0x01C */
+  __IO  uint32_t GPREG;                           /**< PAD_SLEEP greneral register, offset: 0x020 */
+  __IO  uint32_t L2_PRI;                          /**< L2 private bank register, offset: 0x024 */
+  __IO  uint32_t FLL3_CFG;                        /**< FLL3 configuration register, offset: 0x028 */
 } PAD_SLEEP_Type;
 
 /* ----------------------------------------------------------------------------
@@ -4098,7 +4110,7 @@ typedef struct {
   __IO  uint32_t IMR;              /**< QUIDDIKEY Interrupt Mask register, offset: 0x014 */
   __IO  uint32_t ISR;              /**< QUIDDIKEY Interrupt Status register, offset: 0x018 */
   __IO  uint32_t _reserved1;       /**< reserved, offset: 0x01C */
-  __IO  uint32_t KEY_DEST;         /**< QUIDDIKEY Key Destination register, offset: 0x020 */
+  __IO  uint32_t DATA_DEST;         /**< QUIDDIKEY Key Destination register, offset: 0x020 */
   __IO  uint32_t _reserved2[31];     /**< reserved, offset: 0x024 */
   __O   uint32_t DIR;              /**< QUIDDIKEY Data Input register, offset: 0x0A0 */
   __IO  uint32_t _reserved3;       /**< reserved, offset: 0x0A4 */
@@ -4270,13 +4282,13 @@ typedef struct {
 #define QUIDDIKEY_ISR_INT_DO_REQUEST(x)           (((uint32_t)(((uint32_t)(x)) << QUIDDIKEY_ISR_INT_DO_REQUEST_SHIFT)) & QUIDDIKEY_ISR_INT_DO_REQUEST_MASK)
 #define READ_QUIDDIKEY_ISR_INT_DO_REQUEST(x)      (((uint32_t)(((uint32_t)(x)) & QUIDDIKEY_ISR_INT_DO_REQUEST_MASK)) >> QUIDDIKEY_ISR_INT_DO_REQUEST_SHIFT)
 
-/*! @name KEY_DEST - QUIDDIKEY  register */
-#define QUIDDIKEY_KEY_DEST_REG_MASK               (0x01U)
-#define QUIDDIKEY_KEY_DEST_REG_SHIFT              (0U)
-#define QUIDDIKEY_KEY_DEST_REG(x)                 (((uint32_t)(((uint32_t)(x)) /* << QUIDDIKEY_KEY_DEST_REG_SHIFT */)) & QUIDDIKEY_KEY_DEST_REG_MASK)
-#define QUIDDIKEY_KEY_DEST_KO_MASK                (0x02U)
-#define QUIDDIKEY_KEY_DEST_KO_SHIFT               (1U)
-#define QUIDDIKEY_KEY_DEST_KO(x)                  (((uint32_t)(((uint32_t)(x)) << QUIDDIKEY_KEY_DEST_KO_SHIFT )) & QUIDDIKEY_KEY_DEST_KO_MASK)
+/*! @name DATA_DEST - QUIDDIKEY  register */
+#define QUIDDIKEY_DATA_DEST_DOR_MASK               (0x01U)
+#define QUIDDIKEY_DATA_DEST_DOR_SHIFT              (0U)
+#define QUIDDIKEY_DATA_DEST_DOR(x)                 (((uint32_t)(((uint32_t)(x)) /* << QUIDDIKEY_DATA_DEST_DOR_SHIFT */)) & QUIDDIKEY_DATA_DEST_DOR_MASK)
+#define QUIDDIKEY_DATA_DEST_SO_MASK                (0x02U)
+#define QUIDDIKEY_DATA_DEST_SO_SHIFT               (1U)
+#define QUIDDIKEY_DATA_DEST_SO(x)                  (((uint32_t)(((uint32_t)(x)) << QUIDDIKEY_DATA_DEST_SO_SHIFT )) & QUIDDIKEY_DATA_DEST_SO_MASK)
 
 /*! @name DIR - QUIDDIKEY  register */
 /*! @name DOR - QUIDDIKEY  register */

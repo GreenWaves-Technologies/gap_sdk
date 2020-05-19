@@ -675,11 +675,11 @@ int semihosting_common(struct target *target)
 				uint32_t mode = semihosting_get_field(target, 1, fields);
 				size_t len = semihosting_get_field(target, 2, fields);
 
-				//if (mode > 11) {
-				//	semihosting->result = -1;
-				//	semihosting->sys_errno = EINVAL;
-				//	break;
-				//}
+				if (mode > 11) {
+					semihosting->result = -1;
+					semihosting->sys_errno = EINVAL;
+					break;
+				}
 				uint8_t *fn = malloc(len+1);
 				if (!fn) {
 					semihosting->result = -1;
@@ -744,7 +744,7 @@ int semihosting_common(struct target *target)
 							 * otherwise it will fail to reopen a previously
 							 * written file */
 							semihosting->result = open((char *)fn,
-									mode,
+									open_modeflags[mode],
 									0644);
 							semihosting->sys_errno = errno;
 							LOG_DEBUG("open('%s')=%d", fn,
@@ -1130,9 +1130,7 @@ int semihosting_common(struct target *target)
 			 */
 			retval = semihosting_read_fields(target, 3, fields);
 			if (retval != ERROR_OK)
-			{
 				return retval;
-			}
 			else {
 				int fd = semihosting_get_field(target, 0, fields);
 				uint64_t addr = semihosting_get_field(target, 1, fields);
@@ -1238,8 +1236,7 @@ int semihosting_common(struct target *target)
 				uint64_t addr = semihosting->param;
 				do {
 					unsigned char c;
-					retval = target_read_memory(target, addr, 1, 1, &c);
-					addr +=1;
+					retval = target_read_memory(target, addr++, 1, 1, &c);
 					if (retval != ERROR_OK)
 						return retval;
 					if (!c)

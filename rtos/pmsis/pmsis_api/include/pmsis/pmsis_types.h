@@ -118,37 +118,20 @@ typedef struct pi_device_api
     void *specific_api;
 } pi_device_api_t;
 
-#ifndef IMPLEM_MUTEX_OBJECT_TYPE
-#define IMPLEM_MUTEX_OBJECT_TYPE \
-    void* mutex_object;
-#endif
-
 /** Memory slab allocator */
 typedef struct pi_mem_slab pi_mem_slab_t;
 
 /** Task types **/
 typedef void (*__pmsis_mutex_func)(void *mutex_object);
 
-typedef struct pmsis_mutex {
-    IMPLEM_MUTEX_OBJECT_TYPE
-    __pmsis_mutex_func take;
-    __pmsis_mutex_func release;
-} pmsis_mutex_t, pi_mutex_t;
-
-
-#ifndef IMPLEM_SEM_OBJECT_TYPE
-#define IMPLEM_SEM_OBJECT_TYPE \
-    void* sem_object;
-#endif
+typedef struct pi_mutex pi_mutex_t;
+// legacy code support
+typedef struct pi_mutex pmsis_mutex_t;
 
 /** Task types **/
 typedef void (*__pi_sem_func)(void *sem_object);
 
-typedef struct pi_sem {
-    IMPLEM_SEM_OBJECT_TYPE
-    __pi_sem_func take;
-    __pi_sem_func give;
-} pi_sem_t;
+typedef struct pi_sem pi_sem_t;
 
 typedef struct pmsis_spinlock {
     uint32_t lock;

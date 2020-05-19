@@ -41,12 +41,12 @@ typedef void (*irq_handler)();
 static irq_handler quiddikey_irq_handler;
 
 /*! @brief QUIDDIKEY Key Code length table in bytes */
-uint16_t key_code_length_0[] = {56,  64,  72,  80,
-                                88,  96,  120, 128,
-                                136, 144, 152, 160,
-                                184, 192, 200, 208};
+uint16_t key_code_length_0[] = {60,  68,  76,  84,
+                                92,  100,  124, 132,
+                                140, 148, 156, 164,
+                                188, 196, 204, 212};
 
-uint16_t key_code_length_1[] = {384, 544, 720};
+uint16_t key_code_length_1[] = {388, 548, 724};
 
 /*******************************************************************************
 * Prototypes
@@ -287,8 +287,8 @@ int QUIDDIKEY_GetKey(QUIDDIKEY_Type *base, uint32_t *key, quiddikey_context_t *c
         0
     };
 
-    /* 1. Set QK_KEY_DEST.qk_dest_reg = 1 */
-    base->KEY_DEST = QUIDDIKEY_KEY_DEST_REG(1);
+    /* 1. Set QK_DATA_DEST.qk_dest_dor = 1 */
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(1);
 
     /* Allow Get Key command */
     uint32_t allow_get_key = READ_QUIDDIKEY_AR_ALLOW_GET_KEY(base->AR);
@@ -322,7 +322,7 @@ int QUIDDIKEY_GetKey(QUIDDIKEY_Type *base, uint32_t *key, quiddikey_context_t *c
     /* 5. Wait Busy to zero */
     QUIDDIKEY_WaitBusyFinish(base);
 
-    base->KEY_DEST = QUIDDIKEY_KEY_DEST_REG(0);
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(0);
 
     /* 6. Evalute result QK_SR */
     return QUIDDIKEY_EvaluateResult(base);
@@ -472,8 +472,8 @@ int QUIDDIKEY_UnWrap(QUIDDIKEY_Type *base, uint32_t *key_code, uint32_t *key, qu
         0
     };
 
-    /* 1. Set QK_KEY_DEST.qk_dest_reg = 1 */
-    base->KEY_DEST = QUIDDIKEY_KEY_DEST_REG(1);
+    /* 1. Set QK_DATA_DEST.qk_dest_dor = 1 */
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(1);
 
     /* Allow Unwrap command */
     uint32_t allow_unwrap = READ_QUIDDIKEY_AR_ALLOW_UNWRAP(base->AR);
@@ -517,7 +517,7 @@ int QUIDDIKEY_UnWrap(QUIDDIKEY_Type *base, uint32_t *key_code, uint32_t *key, qu
     /* 4. Wait Busy to zero */
     QUIDDIKEY_WaitBusyFinish(base);
 
-    base->KEY_DEST = QUIDDIKEY_KEY_DEST_REG(0);
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(0);
 
     /* 5. Evalute result QK_SR */
     return QUIDDIKEY_EvaluateResult(base);
@@ -534,6 +534,8 @@ int QUIDDIKEY_GenerateRandom(QUIDDIKEY_Type *base, uint32_t *random_data, quiddi
         QUIDDIKEY_CONTEXT_TYPE(0x0000) |
         QUIDDIKEY_CONTEXT_DATA_LENGTH(context->data_length);
 
+    /* 1. Set QK_DATA_DEST.qk_dest_dor = 1 */
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(1);
 
     /* Allow Generate Random command */
     uint32_t allow_generate_random = READ_QUIDDIKEY_AR_ALLOW_GENERATED_RANDOM(base->AR);
@@ -565,6 +567,8 @@ int QUIDDIKEY_GenerateRandom(QUIDDIKEY_Type *base, uint32_t *random_data, quiddi
 
     /* 4. Wait Busy to zero */
     QUIDDIKEY_WaitBusyFinish(base);
+
+    base->DATA_DEST = QUIDDIKEY_DATA_DEST_DOR(0);
 
     /* 5. Evalute result QK_SR */
     return QUIDDIKEY_EvaluateResult(base);
