@@ -1,12 +1,18 @@
-Current
+3.4
 
 Highlights of this release:
 
-- FreeRTOS
+- PMSIS
 	- Uart driver: SW flow control support has been added with GPIOs
+	- I2S driver: Added support for external clock
+	- FC stack size can now be customized
+	- Added driver for L2 to L2 and L2 to FC TCDM transfers
 
-- PulpOS
-	- Uart driver: SW flow control support has been added with GPIOs
+- BSP
+	- Added support for SPI RAM and SPI flash.
+
+- OpenOCD
+	- Now used by default
 
 Bug fixes:
 
