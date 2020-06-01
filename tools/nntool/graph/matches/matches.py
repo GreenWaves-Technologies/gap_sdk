@@ -13,24 +13,43 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .remove_unused_concats import RemoveUnusedConcats
-from .match_gap_conv import MatchAllGapConv
-from .fuse_pad import MatchFusePad
+from .equalize_sym_mult_concats import \
+    EqualizeSymmetricMultiplicativeQuantivedConcats
 from .expand_transposes import ExpandTransposesMatcher
-from .move_activation import MoveActivationsMatcher
+from .find_missing_quantization import FindMissingQuantization
+from .fuse_pad import MatchFusePad
+from .match_external_bias import MatchExternalBias, MatchExternalBiasSQ8
+from .match_gap_conv import MatchAllGapConv
 from .match_gap_linear import MatchGapLinear
 from .match_gap_pool import MatchGapPool
-from .match_external_bias import MatchExternalBias
-from .matscale import FuseMatScalePair, FuseMatScale
-
 from .matcher import MatchGroup
+from .matscale import FuseMatScale, FuseMatScalePair
+from .move_activation import MoveActivationsMatcherScale8, MoveActivationsMatcherPow2
+from .propagate_softmax_sym_mult_qrec import PropagateSoftmaxSymQrec
+from .remove_noops import RemoveNoOPs
+from .remove_unused_concats import RemoveUnusedConcats
+from .find_asymmetric_quantization import FindAsymmetricQuantization
+from .match_op_activation import MatchOpActivationPow2Kernels, MatchOpActivationScaleKernels
+from .find_hsigmoid import MatchCloseHSigmoid, MatchFarHSigmoid
+from .remove_relus import RemoveRelusMatch
 
-ALL_MATCH_CLASSES = [MatchExternalBias, MatchFusePad, RemoveUnusedConcats,
-                     MoveActivationsMatcher, MatchAllGapConv, MatchGapPool,
-                     MatchGapLinear, ExpandTransposesMatcher, FuseMatScalePair, FuseMatScale]
-STD_MATCH_CLASSES = [MatchExternalBias, MatchFusePad, RemoveUnusedConcats,
-                     MoveActivationsMatcher, MatchAllGapConv, ExpandTransposesMatcher,
+ALL_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad, RemoveUnusedConcats,
+                     FindMissingQuantization, MatchFarHSigmoid, MatchCloseHSigmoid, MoveActivationsMatcherScale8,
+                     MoveActivationsMatcherPow2,
+                     EqualizeSymmetricMultiplicativeQuantivedConcats,
+                     MatchAllGapConv, MatchGapPool, MatchOpActivationScaleKernels,
+                     MatchOpActivationPow2Kernels,
+                     MatchGapLinear, ExpandTransposesMatcher, FindAsymmetricQuantization,
                      FuseMatScalePair, FuseMatScale]
+POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad,
+                      RemoveUnusedConcats, FindMissingQuantization, MatchCloseHSigmoid,
+                      MoveActivationsMatcherPow2, ExpandTransposesMatcher, MatchAllGapConv, MatchGapLinear,
+                      EqualizeSymmetricMultiplicativeQuantivedConcats]
+SCALE8_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBiasSQ8, MatchFusePad,
+                        RemoveUnusedConcats, FindMissingQuantization,
+                        MatchFarHSigmoid, MatchCloseHSigmoid, MoveActivationsMatcherScale8, ExpandTransposesMatcher,
+                        MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels, PropagateSoftmaxSymQrec,
+                        EqualizeSymmetricMultiplicativeQuantivedConcats]
 
 FUSION_LIST = [((match_class.NAME, match_class.DESCRIPTION), match_class())
                for match_class in ALL_MATCH_CLASSES]
@@ -40,16 +59,25 @@ def get_fusions():
     return [(match_class.NAME, match_class.DESCRIPTION) for match_class in ALL_MATCH_CLASSES]
 
 
-def get_std_match_group():
+def get_pow2_match_group():
     return MatchGroup(
-        *[match_class() for match_class in STD_MATCH_CLASSES],
+        *[match_class() for match_class in POW2_MATCH_CLASSES],
+        identity="pow2_match_group"
+    )
+
+
+def get_scale8_match_group():
+    return MatchGroup(
+        *[match_class() for match_class in SCALE8_MATCH_CLASSES],
         identity="std_match_group"
     )
 
 
 def get_fusion(name):
-    if name == "std_match_group":
-        return get_std_match_group()
+    if name in ["pow2_match_group"]:
+        return get_pow2_match_group()
+    if name in ["std_match_group", "scale8_match_group"]:
+        return get_scale8_match_group()
     match_class = next((match_class for match_class in ALL_MATCH_CLASSES
                         if match_class.NAME == name), None)
     if match_class is not None:

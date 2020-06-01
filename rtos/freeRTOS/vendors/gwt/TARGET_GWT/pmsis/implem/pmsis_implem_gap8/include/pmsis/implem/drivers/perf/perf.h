@@ -74,6 +74,19 @@ static inline void pi_perf_reset()
     }
 }
 
+static inline void pi_perf_fc_reset()
+{
+    __pi_perf_fc_reset();
+}
+
+static inline void pi_perf_cl_reset()
+{
+    /* Reset all performance counters to 0. */
+    #if (FEATURE_CLUSTER == 1)
+    __pi_perf_cl_reset();
+    #endif  /* FEATURE_CLUSTER */
+}
+
 static inline void pi_perf_start()
 {
     /* Initialize timer if needed and start counters. */
@@ -87,6 +100,19 @@ static inline void pi_perf_start()
     {
         __pi_perf_fc_start();
     }
+}
+
+static inline void pi_perf_fc_start()
+{
+    __pi_perf_fc_start();
+}
+
+static inline void pi_perf_cl_start()
+{
+    /* Initialize timer if needed and start counters. */
+    #if (FEATURE_CLUSTER == 1)
+    __pi_perf_cl_start();
+    #endif  /* FEATURE_CLUSTER */
 }
 
 static inline void pi_perf_stop()
@@ -116,6 +142,18 @@ static inline unsigned int pi_perf_read(int id)
     {
         return __pi_perf_fc_read(id);
     }
+}
+
+static inline unsigned int pi_perf_fc_read(int id)
+{
+    return __pi_perf_fc_read(id);
+}
+
+static inline unsigned int pi_perf_cl_read(int id)
+{
+    #if (FEATURE_CLUSTER == 1)
+    return __pi_perf_cl_read(id);
+    #endif  /* FEATURE_CLUSTER */
 }
 
 #endif  /* __PI_PERF_H__ */

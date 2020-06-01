@@ -27,7 +27,7 @@ def create_parser():
     parser = argparse.ArgumentParser(prog='nntool')
 
     parser.add_argument('graph_file',
-                        help='graph file - Darknet .cfg file, TFLite file or JSON state file',
+                        help='graph file - TFLite file or JSON state file',
                         metavar="INPUT_GRAPH or STATE_FILE",
                         nargs=argparse.OPTIONAL,
                         default="")
@@ -45,6 +45,8 @@ def create_parser():
     parser.add_argument('-s', '--script_file',
                         help='run script and exit',
                         metavar="SCRIPT_FILE")
+    parser.add_argument('-H', '--header_file',
+                        help='write graph information to header file')
     parser.add_argument('-m', '--model_file',
                         help='override model file in state file')
     parser.add_argument('-M', '--model_directory',
@@ -62,6 +64,9 @@ def create_parser():
     parser.add_argument('-q', '--tf_quant',
                         action='store_true',
                         help='load tflite quantization parameters')
+    parser.add_argument('--dequant_tf',
+                        action='store_true',
+                        help='dequantize the tflite quantizated parameters')
 
     return parser
 

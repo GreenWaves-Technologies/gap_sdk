@@ -1,5 +1,4 @@
 adjust
-fusions
-aquant -f 16 images/* -D 128 -O0
-qtune 2 dp
+fusions --scale
+aquant -s SQ8 images/* -D 128 -O0
 save_state

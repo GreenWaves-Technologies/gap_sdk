@@ -15,17 +15,26 @@
 
 import logging
 
-from graph.types import  Conv2DParameters, ConvFusionParameters, PoolingParameters, ActivationParameters
-from utils.graph import MatchNode, GraphView, Edge
+from graph.types import (ActivationParameters, Conv2DParameters,
+                         ConvFusionParameters, PoolingParameters)
+from quantization.symmetric.symmetric_quantization import (
+    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
+from quantization.multiplicative.mult_quantization import (
+    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.float32.float32_quantization import (
+    Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
+from utils.graph import Edge, GraphView, MatchNode
+from utils.node_id import NodeId
 
-from .matcher import DefaultMatcher, MatchGroup, DontReplaceError
+from .matcher import DefaultMatcher, DontReplaceError, MatchGroup
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
 class MatchGapConv(DefaultMatcher):
 
-    def __init__(self, match_activation=True, match_pool=False, pool_after_activation=False):
+    def __init__(self, *args, match_activation=True, match_pool=False, pool_after_activation=False, **kwargs):
+        super(MatchGapConv, self).__init__(*args, **kwargs)
         assert match_activation or match_pool, "not very interesting to just match conv"
         self.match_activation = match_activation
         self.match_pool = match_pool
@@ -118,7 +127,21 @@ class MatchGapConv(DefaultMatcher):
         LOG.debug("fused nodes %s", ",".join((node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
-        return ConvFusionParameters(conv_name, self.fusion_type, subgraph)
+        pnode = ConvFusionParameters(conv_name, self.fusion_type, subgraph)
+        if G.quantization:
+            qrecs = G.quantization.get_all(subgraph.nodes())
+            if qrecs:
+                if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
+                    prec = SymmetricQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                    prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
+                    prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                for node in subgraph.nodes():
+                    G.quantization.move_to_fusion(node, pnode)
+                G.quantization[NodeId(pnode)] = prec
+        return pnode
+
 
 class MatchAllGapConv(MatchGroup):
     NAME = 'fuse_gap_convs'

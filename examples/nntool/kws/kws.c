@@ -30,9 +30,9 @@
 #endif
 #endif
 
-L2_MEM short int in_img_txt[] = { 
+/*L2_MEM short int in_img_txt[] = { 
 #include "./in_feat.txt"
-  };
+  };*/
   
 #define STACK_SIZE      1024
 
@@ -52,20 +52,16 @@ AT_HYPERFLASH_FS_EXT_ADDR_TYPE kws_L3_Flash = 0;
 
 // Softmax always outputs Q15 short int even from 8 bit input
 L2_MEM short int *ResOut;
-//#ifdef KWS_16BIT
+#ifdef KWS_16BIT
   typedef short int KWS_IMAGE_IN_T;
-/*
 #else
   #ifdef KWS_8BIT
   typedef signed char KWS_IMAGE_IN_T;
   #endif
 #endif
-*/
 
-//L2_MEM KWS_IMAGE_IN_T *ImageIn;
-L2_MEM KWS_IMAGE_IN_T ImageIn[] = { 
-#include "./in_feat.txt"
-  };
+
+L2_MEM KWS_IMAGE_IN_T *ImageIn;
   
 char *ImageName = NULL;
 
@@ -89,11 +85,13 @@ static void Runkws()
   //Checki Results
   int rec_digit = 0;
   short int highest = ResOut[0];
+  printf("Results: \n");
   for(int i = 1; i < 12; i++) {
     if(ResOut[i] > highest) {
       highest = ResOut[i];
       rec_digit = i;
     }
+    printf("class %d: %d\n", i, ResOut[i]);
   }
   printf("\n");
 
@@ -119,7 +117,6 @@ void test_kws(void)
     #endif  /* NO_IMAGE && LINK_IMAGE_HEADER */
     #endif  /* __EMUL__ */
 
-#if 0
     unsigned char *ImageInChar = (unsigned char *) pi_l2_malloc(sizeof(KWS_IMAGE_IN_T) * W * H);
     printf("=====>imageinchar %p\n",ImageInChar);
     if (ImageInChar == NULL)
@@ -128,7 +125,6 @@ void test_kws(void)
         pmsis_exit(-1);
     }
 
-    #if !defined(NO_IMAGE)
     printf("Reading image\n");
     //Reading Image from Bridge
     if ((ReadImageFromFile(ImageName, &Wi, &Hi, ImageInChar, W*H*sizeof(short int))==0) || (Wi!=W) || (Hi!=H))
@@ -137,25 +133,21 @@ void test_kws(void)
         pmsis_exit(-2);
     }
     printf("Finished reading image\n");
-    #endif  /* NO_IMAGE */
 
-    //#if defined(PRINT_IMAGE)
+    #if defined(PRINT_IMAGE)
     for (int i=0; i<H; i++)
     {
       printf("%d:\t",i*W);
         for (int j=0; j<W; j++)
         {
-	  printf("%04d, ", ((short int*)ImageInChar)[W*i + j]<<6);
+	        printf("%04d, ", ((short int*)ImageInChar)[W*i + j]<<6);
         }
         printf("\n");
     }
-    //#endif  /* PRINT_IMAGE */
-
+    #endif  /* PRINT_IMAGE */
 
     ImageIn = (KWS_IMAGE_IN_T *) ImageInChar;
-#endif
 
-    while(1) {  
 
     ResOut = (short int *) pi_l2_malloc(12 * sizeof(short int));
     if (ResOut == NULL)
@@ -163,8 +155,7 @@ void test_kws(void)
         printf("Failed to allocate Memory for Result (%d bytes)\n", 10*sizeof(short int));
         pmsis_exit(-3);
     }
- 
-#if 0    
+
     #if defined(KWS_8BIT)
     printf("Preprocess 8 bit\n");
     for (int i=W*H-1; i>=0; i--)
@@ -182,7 +173,6 @@ void test_kws(void)
     #error No bit size selected
     #endif  /* KWS_16BIT */
     #endif  /* KWS_8BIT */
-#endif
     
     #if !defined(__EMUL__)
     /* Configure And open cluster. */
@@ -220,7 +210,7 @@ void test_kws(void)
     
     kwsCNN_Destruct();
     pi_l2_free(ResOut,12*sizeof(short int));
-    }
+    
     #if defined(PERF)
     {
         unsigned int TotalCycles = 0, TotalOper = 0;
@@ -238,12 +228,11 @@ void test_kws(void)
 
 #ifndef __EMUL__    
     // Close the cluster
-    struct pi_device cluster_dev;
     pi_cluster_close(&cluster_dev);
 #endif
     
 #if defined(__EMUL__)
-    dt_close_dump_file();
+
 #else
 #if !defined(NO_IMAGE) && !defined(LINK_IMAGE_HEADER)
     BRIDGE_Disconnect(NULL);
@@ -265,11 +254,6 @@ int main(int argc, char *argv[])
         exit(-1);
     }
     ImageName = argv[1];
-    if (dt_open_dump_file(TENSOR_DUMP_FILE))
-    {
-        printf("Failed to open tensor dump file %s.\n", TENSOR_DUMP_FILE);
-        exit(-2);
-    }
     printf("\n\n\t *** NNTOOL KWS Example ***\n\n");
     test_kws();
 }
@@ -281,7 +265,7 @@ int main()
   //    #define __STRING(__s) __STRING1(__s)
     ImageName = __STRING(LINK_IMAGE_NAME);
     #else
-    ImageName = "../../../images/feature_0_1.pgm";
+    ImageName = "./images/feature_0_1.pgm";
     #endif  /* LINK_IMAGE_NAME */
     printf("\n\n\t *** NNTOOL KWS Example ***\n\n");
     return pmsis_kickoff((void *) test_kws);

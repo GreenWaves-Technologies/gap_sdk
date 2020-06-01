@@ -316,7 +316,7 @@ void KerSetBias_fpd(KerSetBias_fpd_T *Arg)
 
 	// int Bias = AT_LSHIFT(*Arg->Bias, NormBias);
 	int Bias = *Arg->Bias;
-	for (i=0; i<(Iter); i++) Out[i] = Bias;
+	for (i=0; i<(Iter); i++) Out[First+i] = Bias;
 	gap_waitbarrier(0);
 }
 
@@ -388,7 +388,7 @@ void KerSetBias_fpd_fp(KerSetBias_fpd_fp_T *Arg)
 
 	// int Bias = AT_LSHIFT(*Arg->Bias, NormBias);
 	int Bias = *Arg->Bias;
-	for (i=0; i<(Iter); i++) Out[i] = Bias;
+	for (i=0; i<(Iter); i++) Out[First+i] = Bias;
 	gap_waitbarrier(0);
 }
 
@@ -410,7 +410,7 @@ void KerSetBias_fpd_fps(KerSetBias_fpd_fps_T *Arg)
 
 	// int Bias = AT_LSHIFT(*Arg->Bias, NormBias);
 	int Bias = *Arg->Bias;
-	for (i=0; i<(Iter); i++) Out[i] = Bias;
+	for (i=0; i<(Iter); i++) Out[First+i] = Bias;
 	gap_waitbarrier(0);
 }
 
@@ -456,7 +456,7 @@ void KerSetBias_DP_fp(KerSetBias_fpd_fp_T *Arg)
 	int i;
 
 	int Bias = AT_LSHIFT(*Arg->Bias, NormBias);
-	for (i=0; i<(Iter); i++) Out[i] = Bias;
+	for (i=0; i<(Iter); i++) Out[First+i] = Bias;
 	gap_waitbarrier(0);
 }
 
@@ -477,7 +477,7 @@ void KerSetBias_DP_fps(KerSetBias_fpd_fps_T *Arg)
 	int i;
 
 	int Bias = AT_LSHIFT(*Arg->Bias, NormBias);
-	for (i=0; i<(Iter); i++) Out[i] = Bias;
+	for (i=0; i<(Iter); i++) Out[First+i] = Bias;
 	gap_waitbarrier(0);
 }
 
@@ -675,61 +675,14 @@ void KerParReLU_fps(KerReLUPool_fps_T *Arg)
 	unsigned int OutFeatures = Arg->OutFeatures;
 	signed char * __restrict__ Out = Arg->Out;
 	int LB = Arg->LB;
-	int UB = Arg->UB;
+	char *UB = (char *) Arg->UB;
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(OutFeatures);
 	unsigned int First = Chunk*CoreId;
 	unsigned int Last = Min(First+Chunk, OutFeatures);
 
-	for (unsigned int of=First; of<Last; of++) KerParDoReLU_fps(In+of*W*H, W, H, Out+of*Wo*Ho, LB, UB);
-
-	gap_waitbarrier(0);
-}
-
-void KerParReLUN_Vector_fp(KerReLUPool_fp_T *Arg)
-
-{
-	/* LB, UB are assumed to FP o */
-	short int * __restrict__ In = Arg->In;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo = W;
-	unsigned int Ho = H;
-	unsigned int OutFeatures = Arg->OutFeatures;
-	short int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-    int UB = Arg->UB;
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int Chunk = ChunkSize(OutFeatures);
-	unsigned int First = Chunk*CoreId;
-	unsigned int Last = Min(First+Chunk, OutFeatures);
-
-	for (unsigned int of=First; of<Last; of++) KerParDoReLU_fp(In+of*W*H, W, H, Out+of*Wo*Ho, LB, UB);
-
-	gap_waitbarrier(0);
-}
-
-void KerParReLUN_Vector_fps(KerReLUPool_fps_T *Arg)
-
-{
-	/* LB, UB are assumed to FP o */
-	signed char * __restrict__ In = Arg->In;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo = W;
-	unsigned int Ho = H;
-	unsigned int OutFeatures = Arg->OutFeatures;
-	signed char * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB, UB = Arg->UB;
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int Chunk = ChunkSize(OutFeatures);
-	unsigned int First = Chunk*CoreId;
-	unsigned int Last = Min(First+Chunk, OutFeatures);
-
-	for (unsigned int of=First; of<Last; of++) KerParDoReLU_fps(In+of*W*H, W, H, Out+of*Wo*Ho, LB, UB);
+	for (unsigned int of=First; of<Last; of++) KerParDoReLU_fps(In+of*W*H, W, H, Out+of*Wo*Ho, LB, UB[of]);
 
 	gap_waitbarrier(0);
 }
@@ -870,52 +823,6 @@ void KerReLU_fps(KerReLUPool_fps_T *Arg)
 	int H = Arg->H;
 	signed char * __restrict__ Out = Arg->Out;
 	int LB = Arg->LB, UB = Arg->UB;
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize((W*H)/4);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Minu(First+ChunkCell, (W*H)/4);
-	v4s * VectIn  = (v4s *) In;
-	v4s * VectOut = (v4s *) Out;
-	int i, j;
-
-	for (i=First; i<Last; i++) VectOut[i] = gap_min4(gap_max4(VectIn[i], ((v4s) {LB, LB, LB, LB})), ((v4s) {UB, UB, UB, UB}));
-	for (i=((W*H)/4)*4; i<(W*H); i++) Out[i] = Min(Max(In[i], LB), UB);
-	gap_waitbarrier(0);
-}
-
-void KerReLUN_Vector_fp(KerReLUPool_fp_T *Arg)
-
-{
-	/* LB, UB are in FP o */
-	short int * __restrict__ In = Arg->In;
-	int W = Arg->W;
-	int H = Arg->H;
-	short int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB, UB = *((char *) Arg->UB);
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize((W*H)/2);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Minu(First+ChunkCell, (W*H)/2);
-	v2s * VectIn  = (v2s *) In;
-	v2s * VectOut = (v2s *) Out;
-	int i, j;
-
-	for (i=First; i<Last; i++) VectOut[i] = gap_min2(gap_max2(VectIn[i], ((v2s) {LB, LB})), ((v2s) {UB, UB}));
-	if ((W*H)&0x1) Out[W*H-1] = Min(Max(In[W*H-1], LB), UB);
-	gap_waitbarrier(0);
-}
-
-void KerReLUN_Vector_fps(KerReLUPool_fps_T *Arg)
-
-{
-	/* LB, UB are in FP o */
-	signed char * __restrict__ In = Arg->In;
-	int W = Arg->W;
-	int H = Arg->H;
-	signed char * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB, UB = *((char *) Arg->UB);
 
 	unsigned int CoreId = gap_coreid();
 	unsigned int ChunkCell = ChunkSize((W*H)/4);
@@ -1152,229 +1059,6 @@ void KerLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
        	gap_waitbarrier(0);
 }
 
-void KerLinearLayerReLUN_Vector_fp(KerLinearLayerReLU_fp_T *Arg)
-
-{
-	/* Bias in DP context due to reduction: Bias point position is i+w, shift by i+w-b. Usually << but could be >> eventhough should have bias in max i+w bits. Report an error?
-	   Norm = i+w-o
-	   NormBias = i+w-b
-	   LB, UB: o
-	*/
-	short int * __restrict__ In = Arg->In;
-	int InSize = Arg->InSize;
-	const short int * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int OutSize = Arg->OutSize;
-	int LB = Arg->LB;
-       	char *UB = (char *)Arg->UB;
-	static L1_CL_MEM int Reduct[8];
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(InSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, InSize);
-	int Iter = Max(0, Last-First);
-
-	for (int i=0; i<OutSize; i++) {
-		v2s * __restrict__ Filt = (v2s *) (&Filter[i*InSize+First]);
-		v2s * __restrict__ VectIn = (v2s *) (&In[First]);
-		int Acc = 0;
-		for (int j=0; j<(Iter/2); j++) Acc = gap_sumdotp2(VectIn[j], Filt[j], Acc);
-		if (Iter%2) Acc += In[Last-1]*Filter[i*InSize+Last-1];
-		Reduct[CoreId] = Acc;
-		gap_waitbarrier(0);
-		if (CoreId==0) {
-			Acc = AT_LSHIFT(Bias[i], NormBias);
-			for (int j=0;j<gap_ncore();j++) Acc += Reduct[j];
-			Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-		}
-		gap_waitbarrier(0);
-	}
-       	gap_waitbarrier(0);
-}
-
-void KerLinearLayerReLUN_Vector_fps(KerLinearLayerReLU_fps_T *Arg)
-
-{
-	/* Bias in DP context due to reduction: Bias point position is i+w, shift by i+w-b. Usually << but could be >> eventhough should have bias in max i+w bits. Report an error?
-	   Norm = i+w-o
-	   Bias = i+w-b
-	   LB, UB: o
-	*/
-	signed char * __restrict__ In = Arg->In;
-	int InSize = Arg->InSize;
-	const signed char * __restrict__ Filter = Arg->Filter;
-	const signed char * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	signed char * __restrict__ Out = Arg->Out;
-	int OutSize = Arg->OutSize;
-	int LB = Arg->LB;
-       	char *UB = (char *)Arg->UB;
-	static L1_CL_MEM int Reduct[8];
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(InSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, InSize);
-	int Iter = Max(0, Last-First);
-
-	for (int i=0; i<OutSize; i++) {
-		v4s * __restrict__ Filt = (v4s *) (&Filter[i*InSize+First]);
-		v4s * __restrict__ VectIn = (v4s *) (&In[First]);
-		int Acc = 0;
-		for (int j=0; j<(Iter/4); j++) Acc = gap_sumdotp4(VectIn[j], Filt[j], Acc);
-		for (int j=4*(Iter/4); j<Iter; j++) Acc += In[First+j]*Filter[i*InSize+First+j];
-		Reduct[CoreId] = Acc;
-		gap_waitbarrier(0);
-		if (CoreId==0) {
-			Acc = AT_LSHIFT(Bias[i], NormBias);
-			for (int j=0;j<gap_ncore();j++) Acc += Reduct[j];
-			Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-		}
-		gap_waitbarrier(0);
-	}
-       	gap_waitbarrier(0);
-}
-
-void KerLinearLayerReLUN_Vector_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg)
-
-{
-	/* Bias in DP context due to reduction: Bias point position is i+w, shift by i+w-b. Usually << but could be >> eventhough should have bias in max i+w bits. Report an error?
-	   Norm = i+w-o
-	   Bias = i+w-b
-	   LB, UB: o
-	*/
-	short int * __restrict__ In = Arg->In;
-	int InSize = Arg->InSize;
-	const signed char * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int OutSize = Arg->OutSize;
-	int LB = Arg->LB;
-       	char *UB = (char *)Arg->UB;
-	static L1_CL_MEM int Reduct[8];
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(InSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, InSize);
-	int Iter = Max(0, Last-First);
-
-	for (int i=0; i<OutSize; i++) {
-		v2s * __restrict__ VectIn = (v2s *) (&In[First]);
-		int Acc = 0;
-		for (int j=0; j<(Iter/2); j++) {
-			v2s F = gap_pack2(Filter[i*InSize+First+2*j], Filter[i*InSize+First+2*j+1]);
-			Acc = gap_sumdotp2(VectIn[j], F, Acc);
-		}
-		if (Iter%2) Acc += In[Last-1]*Filter[i*InSize+Last-1];
-		Reduct[CoreId] = Acc;
-		gap_waitbarrier(0);
-		if (CoreId==0) {
-			Acc = AT_LSHIFT(Bias[i], NormBias);
-			for (int j=0;j<gap_ncore();j++) Acc += Reduct[j];
-			Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-		}
-		gap_waitbarrier(0);
-	}
-       	gap_waitbarrier(0);
-}
-
-void KerLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg)
-
-{
-	/* Bias in DP context due to reduction: Bias point position is i+w, shift by i+w-b. Usually << but could be >> eventhough should have bias in max i+w bits. Report an error?
-	   Norm = i+w-o
-	   Bias = i+w-b
-	   LB, UB: o
-	*/
-	signed char * __restrict__ In = Arg->In;
-	int InSize = Arg->InSize;
-	const signed char * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int OutSize = Arg->OutSize;
-	int LB = Arg->LB;
-       	char *UB = (char *)Arg->UB;
-	static L1_CL_MEM int Reduct[8];
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(InSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, InSize);
-	int Iter = Max(0, Last-First);
-
-	for (int i=0; i<OutSize; i++) {
-		v4s * __restrict__ Filt = (v4s *) (&Filter[i*InSize+First]);
-		v4s * __restrict__ VectIn = (v4s *) (&In[First]);
-		int Acc = 0;
-		for (int j=0; j<(Iter/4); j++) Acc = gap_sumdotp4(VectIn[j], Filt[j], Acc);
-		for (int j=4*(Iter/4); j<Iter; j++) Acc += In[First+j]*Filter[i*InSize+First+j];
-		Reduct[CoreId] = Acc;
-		gap_waitbarrier(0);
-		if (CoreId==0) {
-			Acc = AT_LSHIFT(Bias[i], NormBias);
-			for (int j=0;j<gap_ncore();j++) Acc += Reduct[j];
-			Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-		}
-		gap_waitbarrier(0);
-
-	}
-	gap_waitbarrier(0);
-}
-
-void KerLinearLayerReLUN_Vector_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
-
-{
-	/* Bias in DP context due to reduction: Bias point position is i+w, shift by i+w-b. Usually << but could be >> eventhough should have bias in max i+w bits. Report an error?
-	   Norm = i+w-o
-	   Bias = i+w-b
-	   LB, UB: o
-	*/
-	short int * __restrict__ In = Arg->In;
-	int InSize = Arg->InSize;
-	const short int * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	int * __restrict__ Out = Arg->Out;
-	int OutSize = Arg->OutSize;
-	int LB = Arg->LB;
-       	char *UB = (char *)Arg->UB;
-	static L1_CL_MEM int Reduct[8];
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(InSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, InSize);
-	int Iter = Max(0, Last-First);
-
-	for (int i=0; i<OutSize; i++) {
-		v2s * __restrict__ Filt = (v2s *) (&Filter[i*InSize+First]);
-		v2s * __restrict__ VectIn = (v2s *) (&In[First]);
-		int Acc = 0;
-		for (int j=0; j<(Iter/2); j++) Acc = gap_sumdotp2(VectIn[j], Filt[j], Acc);
-		if (Iter%2) Acc += In[Last-1]*Filter[i*InSize+Last-1];
-		Reduct[CoreId] = Acc;
-		gap_waitbarrier(0);
-		if (CoreId==0) {
-			Acc = AT_LSHIFT(Bias[i], NormBias);
-			for (int j=0;j<gap_ncore();j++) Acc += Reduct[j];
-			Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-		}
-		gap_waitbarrier(0);
-	}
-       	gap_waitbarrier(0);
-}
-
 /* Double precision Linear Layer */
 void KerDPLinearLayer_fp(KerDPLinearLayer_fp_T *Arg)
 
@@ -1447,7 +1131,6 @@ typedef enum {
         KACT_NONE = 0,
         KACT_RELU,
         KACT_RELUN,
-        KACT_RELUN_VECTOR,
         KACT_HSIGMOID,
         KACT_HSWISH,
         KACT_LEAKY,
@@ -1489,9 +1172,6 @@ void KerDPLinearLayerReduct_fp(KerDPLinearLayerReduct_fp_T *Arg)
 				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
 				Acc = gap_clip(Neg*Input1+Pos*Input, 15);
 			}
-			break;
-		case KACT_RELUN_VECTOR:
-			Acc = Min(Max(AT_NORM(Acc, Norm), Arg->LB), *((char *)Arg->UB));
 			break;
 		default:
 			/* No Activation LB=-32768, UB=32767, ReLU: LB=0,UB=32767, ReLUN: LB=0,UB=N<<Norm */
@@ -1565,9 +1245,6 @@ void KerDPLinearLayerReduct_fps(KerDPLinearLayerReduct_fps_T *Arg)
 				Acc = gap_clip(Neg*Input1+Pos*Input, 7);
 			}
 			break;
-		case KACT_RELUN_VECTOR:
-			Acc = Min(Max(AT_NORM(Acc, Norm), Arg->LB), *((char *)Arg->UB));
-			break;
 		default:
 			/* No Activation LB=-128, UB=127, ReLU: LB=0,UB=127, ReLUN: LB=0,UB=N<<Norm */
 			Acc = Min(Max(AT_NORM(Acc, Norm), Arg->LB), Arg->UB);
@@ -1617,48 +1294,6 @@ void KerParLinearLayerReLU_fp(KerLinearLayerReLU_fp_T *Arg)
 		if (InSize&0x2) Acc = gap_sumdotp2(VectIn[InSize/2], Filt[InSize/2], Acc);
 		if (InSize&0x1) Acc += In[InSize-1]*Filter[i*InSize+InSize-1];
 		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
-void KerParLinearLayerReLUN_Vector_fp(KerLinearLayerReLU_fp_T *Arg)
-
-{
-	/*
-	 	NormBias: w+i-b
-	 	Norm: w+i-o
-		LB, UB: in o format
-	*/
-	short int * __restrict__ In = Arg->In;
-	int TotalInSize = Arg->TotalInSize;
-	int InSize = Arg->InSize;
-	const short int * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-	char *UB = (char *) Arg->UB;
-
-	int OutSize = Arg->OutSize;
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(OutSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, OutSize);
-	int i,j;
-	v2s * __restrict__ VectIn = (v2s *) In;
-
-	/* Don't use this kernel for partial evaluation of an output */
-	for (i=First; i<Last; i++) {
-		v2s * __restrict__ Filt = (v2s *) (&Filter[i*TotalInSize]);
-		int Acc = AT_LSHIFT(Bias[i], NormBias);
-		for (j = 0; j<(InSize/(2*2)); j++) {
-			Acc = gap_sumdotp2(VectIn[2*j], Filt[2*j], Acc);
-			Acc = gap_sumdotp2(VectIn[2*j+1], Filt[2*j+1], Acc);
-		}
-		if (InSize&0x2) Acc = gap_sumdotp2(VectIn[InSize/2], Filt[InSize/2], Acc);
-		if (InSize&0x1) Acc += In[InSize-1]*Filter[i*InSize+InSize-1];
-		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
 	}
 	gap_waitbarrier(0);
 }
@@ -1797,47 +1432,6 @@ void KerParLinearLayerReLU_fps(KerLinearLayerReLU_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParLinearLayerReLUN_Vector_fps(KerLinearLayerReLU_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   Bias is in b, NormBias: w+i-b
-	   LB, UB: in o format
-	*/
-	signed char * __restrict__ In = Arg->In;
-	int TotalInSize = Arg->TotalInSize;
-	int InSize = Arg->InSize;
-	const signed char * __restrict__ Filter = Arg->Filter;
-	const signed char * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	signed char * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-	char *UB = (char *) Arg->UB;
-
-	int OutSize = Arg->OutSize;
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(OutSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, OutSize);
-	int i,j;
-	v4s * __restrict__ VectIn = (v4s *) In;
-
-	/* Don't use this kernel for partial evaluation of an output */
-	for (i=First; i<Last; i++) {
-		v4s * __restrict__ Filt = (v4s *) (&Filter[i*TotalInSize]);
-		int Acc = Bias[i]<<NormBias;
-		for (j=0; j<(InSize/(4*2)); j++) {
-			Acc = gap_sumdotp4(VectIn[2*j], Filt[2*j], Acc);
-			Acc = gap_sumdotp4(VectIn[2*j+1], Filt[2*j+1], Acc);
-		}
-		if (InSize&0x4) Acc = gap_sumdotp4(VectIn[InSize/4-1], Filt[InSize/4-1], Acc);
-		for (j=4*(InSize/4); j<InSize; j++) Acc += In[j]*Filter[i*TotalInSize+j];
-		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-	}
-	gap_waitbarrier(0);
-}
-
 void KerParLinearLayerHswish_fps(KerLinearLayerReLU_fps_T *Arg)
 
 {
@@ -1966,7 +1560,7 @@ void KerParLinearLayerReLU_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg)
+void KerParLinearLayerReLU_fps_fps_fpd(KerLinearLayerReLU_fps_fps_fpd_T *Arg)
 
 {
 	/* Norm: w+i-o
@@ -1977,12 +1571,11 @@ void KerParLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *A
 	int TotalInSize = Arg->TotalInSize;
 	int InSize = Arg->InSize;
 	const signed char * __restrict__ Filter = Arg->Filter;
-	short int * __restrict__ Bias = Arg->Bias;
+	const signed char * __restrict__ Bias = Arg->Bias;
 	unsigned int Norm = Arg->Norm;
 	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-	char *UB = (char *) Arg->UB;
+	int * __restrict__ Out = Arg->Out;
+	int LB = Arg->LB, UB = Arg->UB;
 
 	int OutSize = Arg->OutSize;
 	unsigned int CoreId = gap_coreid();
@@ -2001,7 +1594,7 @@ void KerParLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *A
 		}
 		if (InSize&0x4) Acc = gap_sumdotp4(VectIn[InSize/4-1], VectFilter[InSize/4-1], Acc);
 		for (j=((InSize/4)*4); j<InSize; j++) Acc += In[j]*Filter[j];
-		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
+		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB);
 	}
 	gap_waitbarrier(0);
 }
@@ -2043,44 +1636,6 @@ void KerParLinearLayerReLU_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerParLinearLayerReLUN_Vector_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   Bias is in b, NormBias: w+i-b
-	   LB, UB: in o format
-	*/
-	short int * __restrict__ In = Arg->In;
-	int TotalInSize = Arg->TotalInSize;
-	int InSize = Arg->InSize;
-	const signed char * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	short int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-	char *UB = (char *) Arg->UB;
-
-	int OutSize = Arg->OutSize;
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(OutSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, OutSize);
-	int i,j;
-	v2s * __restrict__ VectIn = (v2s *) In;
-
-	for (i=First; i<Last; i++) {
-		int Acc = Bias[i]<<NormBias;
-		for (j=0; j<(InSize/2); j++) {
-			v2s F = gap_pack2(Filter[i*TotalInSize+2*j], Filter[i*TotalInSize+2*j+1]);
-			Acc = gap_sumdotp2(VectIn[j], F, Acc);
-		}
-		if (InSize%2) Acc += In[InSize-1]*Filter[i*InSize+InSize-1];
-		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
-	}
-	gap_waitbarrier(0);
-}
-
 void KerParLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
 
 {
@@ -2112,42 +1667,6 @@ void KerParLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
 		for (j = 0; j<(InSize/2); j++) Acc = gap_sumdotp2(VectIn[j], Filt[j], Acc);
 		if (InSize%2) Acc += In[InSize-1]*Filter[i*InSize+InSize-1];
 		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
-void KerParLinearLayerReLUN_Vector_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   Bias is in b, NormBias: w+i-b
-	   LB, UB: in o format
-	*/
-	short int * __restrict__ In = Arg->In;
-	int TotalInSize = Arg->TotalInSize;
-	int InSize = Arg->InSize;
-	const short int * __restrict__ Filter = Arg->Filter;
-	const short int * __restrict__ Bias = Arg->Bias;
-	unsigned int Norm = Arg->Norm;
-	int NormBias = Arg->NormBias;
-	int * __restrict__ Out = Arg->Out;
-	int LB = Arg->LB;
-	char *UB = (char *) Arg->UB;
-
-	int OutSize = Arg->OutSize;
-	unsigned int CoreId = gap_coreid();
-	unsigned int ChunkCell = ChunkSize(OutSize);
-	unsigned int First = CoreId*ChunkCell;
-	unsigned int Last  = Min(First+ChunkCell, OutSize);
-	int i,j;
-	v2s * __restrict__ VectIn = (v2s *) In;
-
-	for (i=First; i<Last; i++) {
-		v2s * __restrict__ Filt = (v2s *) (&Filter[i*TotalInSize]);
-		int Acc = Bias[i]<<NormBias;
-		for (j = 0; j<(InSize/2); j++) Acc = gap_sumdotp2(VectIn[j], Filt[j], Acc);
-		if (InSize%2) Acc += In[InSize-1]*Filter[i*InSize+InSize-1];
-		Out[i] = Min(Max(AT_NORM(Acc, Norm), LB), UB[i]);
 	}
 	gap_waitbarrier(0);
 }
@@ -2186,38 +1705,6 @@ void KerDP_fp(KerDP_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerDP_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	unsigned int Norm = Arg->Norm;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-
-	for (int f=First; f<Last; f++) {
-		int * __restrict__ I = &In[S*f];
-		v2s * __restrict__ O = (v2s *)(&Out[S*f]);
-		int UB = pUB[f];
-		for (int i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(Acc0, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1, Norm), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) Out[S*f+S-1] = Min(Max(AT_NORM(In[S*f+S-1], Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
 void KerDPMulBiasScalar_fp(KerDP_fp_T *Arg)
 
 {
@@ -2249,42 +1736,6 @@ void KerDPMulBiasScalar_fp(KerDP_fp_T *Arg)
 		O[i] = gap_pack2(Acc0, Acc1);
 	}
 	if (Size&0x1) Out[Last-1] = Min(Max(AT_NORM(AT_NORM(In[Last-1], Norm)*M, NormBias), LB), UB);
-	gap_waitbarrier(0);
-}
-
-void KerDPMulBiasScalar_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	unsigned int Norm = Arg->Norm;
-	unsigned int NormBias = Arg->NormBias;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	int M = *Arg->MulBias;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-
-	for (int f=First; f<Last; f++) {
-		int * __restrict__ I = &In[S*f];
-		v2s * __restrict__ O = (v2s *)(&Out[S*f]);
-		int UB = pUB[f];
-		for (int i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(AT_NORM(Acc0, Norm)*M, NormBias), LB), UB);
-			Acc1 = Min(Max(AT_NORM(AT_NORM(Acc1, Norm)*M, NormBias), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) Out[S*f+S-1] = Min(Max(AT_NORM(AT_NORM(In[S*f+S-1], Norm)*M, NormBias), LB), UB);
-	}
 	gap_waitbarrier(0);
 }
 
@@ -2320,43 +1771,6 @@ void KerDPMulBias_fp(KerDP_fp_T *Arg)
 			O[i] = gap_pack2(Acc0, Acc1);
 		}
 		if (Size&0x1) Out[Size*j+Size-1] = Min(Max(AT_NORM(AT_NORM(I[Size-1], Norm)*M, NormBias), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
-void KerDPMulBias_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int Feat = Arg->InFeatures;
-	int S = Arg->W*Arg->H;
-	unsigned int Norm = Arg->Norm;
-	unsigned int NormBias = Arg->NormBias;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	short int * __restrict__ MB = Arg->MulBias;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-
-	for (int f=First; f<Last; f++) {
-		int * __restrict__ I = &In[S*f];
-		v2s * __restrict__ O = (v2s *)(&Out[S*f]);
-		int M = MB[f];
-		int UB = pUB[f];
-		for (int i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(AT_NORM(Acc0, Norm)*M, NormBias), LB), UB);
-			Acc1 = Min(Max(AT_NORM(AT_NORM(Acc1, Norm)*M, NormBias), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) Out[S*f+S-1] = Min(Max(AT_NORM(AT_NORM(I[S-1], Norm)*M, NormBias), LB), UB);
 	}
 	gap_waitbarrier(0);
 }
@@ -2504,63 +1918,6 @@ void KerDP_IO_fp(KerDP_fp_T *Arg)
 	if (Size&0x1) ((short int *)I)[Size-1] = Min(Max(AT_NORM(I[Size-1], Norm), LB), UB);
 	gap_waitbarrier(0);
 	/* Now this is the reduction phase */
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			short int *__restrict__ OOs = ((short int *)In+(A*CoreId+B)*ChunkCell);
-			short int *__restrict__ IIs = ((short int *)In+(2*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<(Size/4);i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/4)*4); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
-void KerDP_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-        char *pUB = (char *) Arg->UB;
-	unsigned int Norm = Arg->Norm;
-	int i,j,k,U,A,B,Log2Core;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		int * __restrict__ I = &In[S*f];
-		v2s * __restrict__ O = (v2s *)(&Out[S*f]);
-		int UB = pUB[f];
-		for (int i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(Acc0, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1, Norm), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) ((short int *)I)[S-1] = Min(Max(AT_NORM(I[S-1], Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-	/* Now this is the reduction phase */
-	ChunkCell *= S;
 	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
 	for (k=0; k<Log2Core; k++) {
 		if (CoreId<U) {
@@ -2809,66 +2166,6 @@ void KerDPMulBiasScalar_IO_fp(KerDP_fp_T *Arg)
 	}
 }
 
-void KerDPMulBiasScalar_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int Feat = Arg->InFeatures;
-	int S = Arg->W*Arg->H;
-	int LB = Arg->LB;
-       	char *pUB = (char *) Arg->UB;
-	int M = *Arg->MulBias;
-	unsigned int Norm = Arg->Norm;
-	unsigned int NormBias = Arg->NormBias;
-	int i,j,k,U,A,B,Log2Core;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		int * __restrict__ I = &In[S*f];
-		v2s * __restrict__ O = (v2s *)(&Out[S*f]);
-		int UB = pUB[f];
-		for (int i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(AT_NORM(Acc0, Norm)*M, NormBias), LB), UB);
-			Acc1 = Min(Max(AT_NORM(AT_NORM(Acc1, Norm)*M, NormBias), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) ((short int *)I)[S-1] = Min(Max(AT_NORM(AT_NORM(I[S-1], Norm)*M, NormBias), LB), UB);
-	}
-	gap_waitbarrier(0);
-	/* Now this is the reduction phase */
-	ChunkCell *= S;
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			short int *__restrict__ OOs = ((short int *)In+(A*CoreId+B)*ChunkCell);
-			short int *__restrict__ IIs = ((short int *)In+(2*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<(Size/4);i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/4)*4); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
 void KerDPMulBias_IO_fp(KerDP_fp_T *Arg)
 
 {
@@ -2928,67 +2225,6 @@ void KerDPMulBias_IO_fp(KerDP_fp_T *Arg)
 	}
 }
 
-void KerDPMulBias_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	int * __restrict__ In = Arg->In;
-	short int * __restrict__ Out = Arg->Out;
-	int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	short int * __restrict__ MB = Arg->MulBias;
-	unsigned int Norm = Arg->Norm;
-	unsigned int NormBias = Arg->NormBias;
-	int i,j,k,U,A,B,Log2Core;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		int *I = &In[S*f];
-		v2s *O = (v2s *)(&In[S*f]);
-		int M = MB[f];
-		int UB = pUB[f];
-		for (i=0; i<(S/2); i++) {
-			int Acc0 = I[2*i], Acc1 = I[2*i+1];
-			Acc0 = Min(Max(AT_NORM(AT_NORM(Acc0, Norm)*M, NormBias), LB), UB);
-			Acc1 = Min(Max(AT_NORM(AT_NORM(Acc1, Norm)*M, NormBias), LB), UB);
-			O[i] = gap_pack2(Acc0, Acc1);
-		}
-		if (S&0x1) ((short int *)I)[S-1] = Min(Max(AT_NORM(AT_NORM(I[S-1], Norm)*M, NormBias), LB), UB);
-	}
-	gap_waitbarrier(0);
-	/* Now this is the reduction phase */
-	ChunkCell *= S;
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			short int *__restrict__ OOs = ((short int *)In+(A*CoreId+B)*ChunkCell);
-			short int *__restrict__ IIs = ((short int *)In+(2*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<(Size/4);i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/4)*4); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
 void KerDP_fps(KerDP_fps_T *Arg)
 
 {
@@ -3019,40 +2255,6 @@ void KerDP_fps(KerDP_fps_T *Arg)
 	}
 	for (i=((Size/4)*4); i<Size; i++) Os[i] = Min(Max(AT_NORM(I[i], Norm), LB), UB);
 
-	gap_waitbarrier(0);
-}
-
-void KerDP_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	unsigned int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	unsigned int Norm = Arg->Norm;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-
-	for (int f=First; f<Last; f++) {
-		DP_fps_T * __restrict__ I = &In[S*f];
-		v4s * __restrict__ O = (v4s *)(&Out[S*f]);
-		signed char *__restrict__ Os = &Out[S*f];
-		int UB = pUB[f];
-		for (int i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i  ], Acc1 = I[4*i+1], Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (int i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i], Norm), LB), UB);
-	}
 	gap_waitbarrier(0);
 }
 
@@ -3174,45 +2376,6 @@ void KerDPMulBiasScalar_fps(KerDP_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
-void KerDPMulBiasScalar_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	unsigned int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *)Arg->UB;
-	int M = *Arg->MulBias;
-	unsigned int Norm = Arg->Norm+Arg->NormBias;
-	int i, j;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	for (int f=First; f<Last; f++) {
-		DP_fps_T * __restrict__ I = &In[S*f];
-		v4s * __restrict__ O = (v4s *)(&Out[S*f]);
-		signed char *__restrict__ Os = &Out[S*f];
-		int UB = pUB[f];
-		for (i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i  ], Acc1 = I[4*i+1],
-			    Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0*M, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1*M, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2*M, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3*M, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i]*M, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
 void KerDPMulBias_fps(KerDP_fps_T *Arg)
 
 {
@@ -3239,46 +2402,6 @@ void KerDPMulBias_fps(KerDP_fps_T *Arg)
 		v4s * __restrict__ O = (v4s *)(&Out[S*f]);
 		signed char *__restrict__ Os = &Out[S*f];
 		int M = MB[f];
-		for (i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i  ], Acc1 = I[4*i+1],
-			    Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0*M, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1*M, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2*M, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3*M, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i]*M, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-}
-
-void KerDPMulBias_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	unsigned int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	signed char * __restrict__ MB = Arg->MulBias;
-	unsigned int Norm = Arg->Norm+Arg->NormBias;
-	int i, j;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	for (int f=First; f<Last; f++) {
-		DP_fps_T * __restrict__ I = &In[S*f];
-		v4s * __restrict__ O = (v4s *)(&Out[S*f]);
-		signed char *__restrict__ Os = &Out[S*f];
-		int M = MB[f];
-		int UB = pUB[f];
 		for (i=0; i<(S/4); i++) {
 			int Acc0 = I[4*i  ], Acc1 = I[4*i+1],
 			    Acc2 = I[4*i+2], Acc3 = I[4*i+3];
@@ -3358,64 +2481,6 @@ void KerDP_IO_fps(KerDP_fps_T *Arg)
 	for (i=((Size/4)*4); i<Size; i++) Os[i] = Min(Max(AT_NORM(I[i], Norm), LB), UB);
 	gap_waitbarrier(0);
 
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			signed char *__restrict__ OOs = ((signed char *)In+(A*CoreId+B)*ChunkCell);
-			signed char *__restrict__ IIs = ((signed char *)In+((sizeof(DP_fps_T)/sizeof(signed char))*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<Size/8;i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/8)*8); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
-void KerDP_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	unsigned int S = Arg->W*Arg->H;
-	int Feat = Arg->InFeatures;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	int i,j,k,U,A,B,Log2Core;
-	unsigned int Norm = Arg->Norm;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		DP_fps_T * __restrict__ I = &In[S*f];
-		v4s * __restrict__ O = (v4s *)(&Out[S*f]);
-		signed char *__restrict__ Os = &Out[S*f];
-		int UB = pUB[f];
-		for (int i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i  ], Acc1 = I[4*i+1], Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (int i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i], Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-
-	ChunkCell *= S;
 	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
 	for (k=0; k<Log2Core; k++) {
 		if (CoreId<U) {
@@ -3670,68 +2735,6 @@ void KerDPMulBiasScalar_IO_fps(KerDP_fps_T *Arg)
 	}
 }
 
-void KerDPMulBiasScalar_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	int Feat = Arg->InFeatures;
-	int S = Arg->W*Arg->H;
-	unsigned int Norm = Arg->Norm+Arg->NormBias;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	int M = *Arg->MulBias;
-	int i,j,k,U,A,B,Log2Core;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		DP_fps_T *I = &In[S*f];
-		v4s *O = (v4s *)(&In[S*f]);
-		signed char *Os = (signed char *) (In + S*f);
-		int UB = pUB[f];
-		for (i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i], Acc1 = I[4*i+1],
-		    	    Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0*M, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1*M, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2*M, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3*M, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i]*M, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-
-	ChunkCell *= S;
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			signed char *__restrict__ OOs = ((signed char *)In+(A*CoreId+B)*ChunkCell);
-			signed char *__restrict__ IIs = ((signed char *)In+((sizeof(DP_fps_T)/sizeof(signed char))*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<Size/8;i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/8)*8); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
 void KerDPMulBias_IO_fps(KerDP_fps_T *Arg)
 
 {
@@ -3775,69 +2778,6 @@ void KerDPMulBias_IO_fps(KerDP_fps_T *Arg)
 	gap_waitbarrier(0);
 
 	ChunkCell *= Size;
-	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
-	for (k=0; k<Log2Core; k++) {
-		if (CoreId<U) {
-			signed char *__restrict__ OOs = ((signed char *)In+(A*CoreId+B)*ChunkCell);
-			signed char *__restrict__ IIs = ((signed char *)In+((sizeof(DP_fps_T)/sizeof(signed char))*(A*CoreId+B))*ChunkCell);
-			int *__restrict__ II = (int *) IIs;
-			int *__restrict__ OO = (int *) OOs;
-			for (i=0;i<Size/8;i++) {
-				int V0 = II[2*i], V1 = II[2*i+1];
-				OO[2*i] = V0; OO[2*i+1] = V1;
-			}
-			for (i=((Size/8)*8); i<Size; i++) OOs[i] = IIs[i];
-		}
-		U = U/2; A = A*2; B = B*2;
-		gap_waitbarrier(0);
-	}
-}
-
-void KerDPMulBias_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg)
-
-{
-	/* Norm: w+i-o
-	   NormBias: m
-	   LB, UB: in o format
-	*/
-	DP_fps_T * __restrict__ In = Arg->In;
-	signed char * __restrict__ Out = Arg->Out;
-	int Feat = Arg->InFeatures;
-	int S = Arg->W*Arg->H;
-	unsigned int Norm = Arg->Norm+Arg->NormBias;
-	int LB = Arg->LB;
-	char *pUB = (char *) Arg->UB;
-	signed char * __restrict__ MB = Arg->MulBias;
-	int i,j,k,U,A,B,Log2Core;
-       	unsigned int CoreId = gap_coreid();
-       	unsigned int ChunkCell = ChunkSize(Feat);
-       	unsigned int First = CoreId*ChunkCell;
-       	unsigned int Last  = Min(First+ChunkCell, Feat);
-	int Size = S*Max(0, Last-First);
-
-
-	/* First normalize In, each parallel chunk overwrites it's own input
-	   After we are done In contains groups of contiguous normalized values
-	   each group beeing followed by an empty group of exactly the same size, these
-	   one need to be supressed, second step is taking care of this reduction */
-	for (int f=First; f<Last; f++) {
-		DP_fps_T *I = &In[S*f];
-		v4s *O = (v4s *)(&In[S*f]);
-		signed char *Os = (signed char *) (In + S*f);
-		int M = MB[f];
-		int UB = pUB[f];
-		for (i=0; i<(S/4); i++) {
-			int Acc0 = I[4*i], Acc1 = I[4*i+1],
-		    	    Acc2 = I[4*i+2], Acc3 = I[4*i+3];
-			Acc0 = Min(Max(AT_NORM(Acc0*M, Norm), LB), UB); Acc1 = Min(Max(AT_NORM(Acc1*M, Norm), LB), UB);
-			Acc2 = Min(Max(AT_NORM(Acc2*M, Norm), LB), UB); Acc3 = Min(Max(AT_NORM(Acc3*M, Norm), LB), UB);
-			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
-		}
-		for (i=((S/4)*4); i<S; i++) Os[i] = Min(Max(AT_NORM(I[i]*M, Norm), LB), UB);
-	}
-	gap_waitbarrier(0);
-
-	ChunkCell *= S;
 	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
 	for (k=0; k<Log2Core; k++) {
 		if (CoreId<U) {

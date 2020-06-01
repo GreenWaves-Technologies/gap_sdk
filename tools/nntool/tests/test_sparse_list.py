@@ -16,17 +16,17 @@
 from utils.sparse_list import SparseList
 
 def test1():
-    sl = SparseList()
-    sl[2] = True
-    assert sl[1] is None
-    assert len(sl) == 3
-    assert sl[2] == True
-    sl[5] = False
-    assert len(sl) == 6
-    assert sl[5] == False
-    del sl[2]
-    assert len(sl) == 5
-    assert sl[2] is None
-    assert sl[4] == False
-    tl = [v for v in sl]
-    assert tl == [None, None, None, None, False]
+    sparse_list = SparseList()
+    sparse_list[2] = True
+    assert sparse_list[1] is None
+    assert len(sparse_list) == 3
+    assert sparse_list[2]
+    sparse_list[5] = False
+    assert len(sparse_list) == 6
+    assert not sparse_list[5]
+    del sparse_list[2]
+    assert len(sparse_list) == 5
+    assert sparse_list[2] is None
+    assert not sparse_list[4]
+    iter_sparse_list = [v for v in sparse_list]
+    assert iter_sparse_list == [None, None, None, None, False]

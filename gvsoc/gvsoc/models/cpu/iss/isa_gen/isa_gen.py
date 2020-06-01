@@ -261,6 +261,10 @@ class OutFReg(OutReg):
     def genExtract(self, isaFile, level):
         dump(isaFile, level, '  pc->outReg[%d] = %s + NB_REGS;\n' % (self.id, self.ranges.gen()))
 
+class OutReg64(OutReg):
+    def __init__(self, id, ranges, dumpName=True):
+        super(OutReg64, self).__init__(id=id, ranges=ranges, dumpName=dumpName, flags=['ISS_DECODER_ARG_FLAG_REG64'])
+
 class OutRegComp(OutReg):
     def __init__(self, id, ranges, dumpName=True):
         super(OutRegComp, self).__init__(id=id, ranges=ranges, dumpName=dumpName, flags=['ISS_DECODER_ARG_FLAG_COMPRESSED'])
@@ -312,6 +316,10 @@ class InFReg(InReg):
 
     def genExtract(self, isaFile, level):
         dump(isaFile, level, '  pc->inReg[%d] = %s + NB_REGS;\n' % (self.id, self.ranges.gen()))
+
+class InReg64(InReg):
+    def __init__(self, id, ranges, dumpName=True):
+        super(InReg64, self).__init__(id=id, ranges=ranges, dumpName=dumpName, flags=['ISS_DECODER_ARG_FLAG_REG64'])
 
 class InRegComp(InReg):
     def __init__(self, id, ranges, dumpName=True):

@@ -102,13 +102,11 @@ endif
 
 # GPIO
 
-ifeq '$(pulp_chip_family)' 'gap'
 ifeq '$(CONFIG_GPIO_ENABLED)' '1'
 PULP_FC_CFLAGS += -DRT_CONFIG_GPIO_ENABLED
 ifneq '$(gpio/version)' ''
 PULP_LIB_FC_SRCS_rt += drivers/gpio/gpio-v$(gpio/version).c
 #PULP_LIB_FC_ASM_SRCS_rt += drivers/gpio/gpio-v$(gpio/version)_asm.S
-endif
 endif
 endif
 

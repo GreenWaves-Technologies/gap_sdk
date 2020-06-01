@@ -34,6 +34,7 @@ typedef enum {
 	/* Primitive operations */
 	KOP_SETBIAS,
 	KOP_SETBIAS_DP,
+        KOP_CONV_HWCE,
         KOP_CONV,
         KOP_CONV_DP,
         KOP_CONV_DW,
@@ -52,7 +53,6 @@ typedef enum {
         KOP_GLOBAL_AVGPOOL_REDUCT,
         KOP_RELU,
 	KOP_RELUN,
-	KOP_RELUN_VECTOR,
 	KOP_HSIGMOID,
 	KOP_HSWISH,
 	KOP_LEAKYRELU,
@@ -70,6 +70,7 @@ typedef enum {
 	KOP_MATSCALE_VECTOR,
 	KOP_MATSCALE_SCALAR,
 	KOP_MATSCALE_VECTOR_SCALAR,
+	KOP_MATVECTMUL,
 	KOP_MATTRANSP,
 	KOP_MATPERM_CHW2CWH,
 	KOP_MATPERM_CHW2HWC,
@@ -77,6 +78,8 @@ typedef enum {
 	KOP_MATPERM_CHW2WCH,
 	KOP_MATPERM_CHW2HCW,
         KOP_SOFTMAX,
+	KOP_EXPAND,
+	KOP_COLLAPSE,
 
 	/* Grouped operations */
         KOP_CONV_RELU,
@@ -130,15 +133,16 @@ typedef enum {
 
 } KernelOper_T;
 
+#if 0
 typedef enum {
         KACT_NONE = 0,
         KACT_RELU,
         KACT_RELUN,
-	KACT_RELUN_VECTOR,
         KACT_HSIGMOID,
         KACT_HSWISH,
         KACT_LEAKY,
 } CNN_ActivationOper_T;
+#endif
 
 typedef enum {
 	PAD_LEFT, 		/* All padding elements are inserted on the left/top */
@@ -268,30 +272,6 @@ typedef enum {
 
 extern KernelCallLocationT IterCallLocation[][CALL_LAST];
 
-#define LOC_INNER_LOOP			0
-#define LOC_INNER_LOOP_PROLOG		1
-#define LOC_INNER_LOOP_EPILOG		2
-
-#define LOC_INNER_LOOP1			3
-#define LOC_INNER_LOOP1_PROLOG		4
-#define LOC_INNER_LOOP1_EPILOG		5
-
-#define LOC_INNER_LOOP2			6
-#define LOC_INNER_LOOP2_PROLOG		7
-#define LOC_INNER_LOOP2_EPILOG		8
-
-#define LOC_IN_PLANE			9
-#define LOC_IN_PLANE_PROLOG		10
-#define LOC_IN_PLANE_EPILOG		11
-
-#define LOC_OUT_PLANE			12
-#define LOC_OUT_PLANE_PROLOG		13
-#define LOC_OUT_PLANE_EPILOG		14
-
-#define LOC_IN_OUT_PLANE		15
-#define LOC_IN_OUT_PLANE_PROLOG		16
-#define LOC_IN_OUT_PLANE_EPILOG		17
-
 /**
 @brief User kernel tiling orientation
 
@@ -309,20 +289,17 @@ typedef enum {
 /**
 @brief User kernel argument constraints
 
-User kernel argument constraints
+User kernel argument constraints. Max 16 of them
 */
 typedef enum {
 	OBJ_CONSTRAINTS_NONE = 0,		/**< No constraints on this user kernel argument */
-	OBJ_CONSTRAINTS_EVEN = (1<<1),		/**< Variable tile size generated for this user kernel should be even */
-	OBJ_CONSTRAINTS_ODD = (1<<2),		/**< Variable tile size generated for this user kernel should be odd */
-	OBJ_CONSTRAINTS_ONEPREFTILE = (1<<3),	/**< This user kernel argument has a prefered tile variable size, use only a single tile for it */
-	OBJ_CONSTRAINTS_TILE_HOR = (1<<4),	/**< Force this kernel argument to be tiled horizontaly */
-	OBJ_CONSTRAINTS_TILE_VER = (1<<5),	/**< Force this kernel argument to be tiled verticaly */
-	OBJ_CONSTRAINTS_PAD_REM = (1<<6),	/**< When argument has non integer dim ratio use last tile to recover missing elements if possible */
-	OBJ_CONSTRAINTS_DROP_REM = (1<<7),	/**< When argument has non integer dim ratio simply drop them */
-	OBJ_CONSTRAINTS_DYNAMIC = (1<<8),	/**< When argument has non integer dim ratio dynamically evaluate tile size using DimRatio */
-	OBJ_CONSTRAINTS_2D = (1<<9),		/**< Argument is 2D strided */
-	OBJ_CONSTRAINTS_3D = (1<<10),
+	OBJ_CONSTRAINTS_ONEPREFTILE = (1<<0),	/**< This user kernel argument has a prefered tile variable size, use only a single tile for it */
+	OBJ_CONSTRAINTS_TILE_HOR = (1<<1),	/**< Force this kernel argument to be tiled horizontaly */
+	OBJ_CONSTRAINTS_TILE_VER = (1<<2),	/**< Force this kernel argument to be tiled verticaly */
+	OBJ_CONSTRAINTS_PAD_REM = (1<<3),	/**< When argument has non integer dim ratio use last tile to recover missing elements if possible */
+	OBJ_CONSTRAINTS_DROP_REM = (1<<4),	/**< When argument has non integer dim ratio simply drop them */
+	OBJ_CONSTRAINTS_DYNAMIC = (1<<5),	/**< When argument has non integer dim ratio dynamically evaluate tile size using DimRatio */
+	OBJ_CONSTRAINTS_2D = (1<<6),		/**< Argument is 2D strided */
 } KernelArgConstraints_T;
 
 /**
@@ -346,23 +323,25 @@ typedef enum {
 	KER_ARG_W = 12,			/**< User kernel argument width */
 	KER_ARG_H = 13,			/**< User kernel argument height */
 	KER_ARG_NTILES = 14,		/**< Number of tiles for related user kernel argument */
-	KER_ARG_TILEINDEX = 15,		/**< Current tile index for related user kernel argument, starts at 0 */
-	KER_ARG_TILE_BASE = 16,		/**< Current tile base in line or column unit, when argument is dynamic it is computed at runtime */
-	KER_ARG_IT_INDEX = 17,		/**< Actual value of iterator attached to ItSpace */
-	KER_ARG_PAD = 18,		/**< Actual padding of a feature space associated to arg (left,right,top,bottom) as a v4s */
-	KER_ARG_TILE_PAD = 19,		/**< Actual padding of tile associated to arg (left,right,top,bottom) as a v4s */
-	KER_ARG_PARTILE_DIM = 20,	/**< Actual dimension of a parametric space */
-	KER_ARG_PARTILE_SIZE = 21,	/**< Size of a tile from a parametric space */
-	KER_ARG_LOADEDPARTILE_SIZE = 22,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
-	KER_IT_INDEX = 23,		/**< Actual value of a given kernel iterator */
+	KER_ARG_TILEFIRST = 15,		/**< Predicate, != 0 if if current tile is the first one */
+	KER_ARG_TILELAST = 16,		/**< Predicate, != 0 if current tile is the last one */
+	KER_ARG_TILEINDEX = 17,		/**< Current tile index for related user kernel argument, starts at 0 */
+	KER_ARG_TILE_BASE = 18,		/**< Current tile base in line or column unit, when argument is dynamic it is computed at runtime */
+	KER_ARG_IT_INDEX = 19,		/**< Actual value of iterator attached to ItSpace */
+	KER_ARG_PAD = 20,		/**< Actual padding of a feature space associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_TILE_PAD = 21,		/**< Actual padding of tile associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_PARTILE_DIM = 22,	/**< Actual dimension of a parametric space */
+	KER_ARG_PARTILE_SIZE = 23,	/**< Size of a tile from a parametric space */
+	KER_ARG_LOADEDPARTILE_SIZE = 24,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
+	KER_IT_INDEX = 25,		/**< Actual value of a given kernel iterator */
 
-	TC_ARG = 24,			/**< A C argument */
-	TC_IMM = 25,			/**< An immediate int value */
-	TC_USYMB = 26,			/**< A user defined symbol */
-	TC_KDIM = 27,			/**< One of the user Kernel Dimensions */
-	TC_ARG_IND = 28,		/**< An indirection on a C argument */
-	TC_ARG_IND_IT_INDEX = 29, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
-	TC_ARG_PLUS_IT_INDEX = 30, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
+	TC_ARG = 26,			/**< A C argument */
+	TC_IMM = 27,			/**< An immediate int value */
+	TC_USYMB = 28,			/**< A user defined symbol */
+	TC_KDIM = 29,			/**< One of the user Kernel Dimensions */
+	TC_ARG_IND = 30,		/**< An indirection on a C argument */
+	TC_ARG_IND_IT_INDEX = 31, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
+	TC_ARG_PLUS_IT_INDEX = 32, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
 
 
 	/* Deprecated */
@@ -529,7 +508,8 @@ typedef enum {
 	BIND_OP_MOD=6,
 	BIND_OP_LSHIFT=7,
 	BIND_OP_RSHIFT=8,
-	BIND_OP_LAST=7,
+	BIND_OP_AT_INDEX=9,
+	BIND_OP_LAST=10,
 } ArgBindingOper;
 
 /* Internal tiler data structures */
@@ -689,6 +669,8 @@ typedef struct {
 	ConstInit_T *Init;		/* How to initialize in case Kernel argument is a constant */
 	Kernel_Arg_T *KerArg;		/* In case C arg is referenced into a Ker Arg gives a straight access to this kernel arguement */
 	GraphEdgeWeb_T *GraphSymbol;	/* Pointer to related CNN graph argument */
+	NameT *ExportSymbolName;	/* For Graph CArg allocated by the autotiler external name to be used to export CArg address to outside world */
+	NameT *ExportSymbolLoc;		/* For Graph CArg allocated by the autotiler external name to be used to export CArg mem location to outside world */
 } CArg_Descriptor_T;
 
 #define HAS_ARG_INFO(Arg)	((Arg) && (Arg)->CArg && (Arg)->CArg->ArgInfo)
@@ -706,6 +688,7 @@ typedef struct {
 	NameT *ValueKernelArg;		/* When a second C arg is needed */
 	KernelIteratorT ItSpace;	/* In case an iterator name is needed */
 	CArg_Descriptor_T *ArgInfo;
+	NameT *KerArgAccessType;
 } CKernel_Arg_T;
 
 typedef enum {GNA_UNDEF, GNA_IN, GNA_OUT, GNA_INOUT} GraghNodeArgT;
@@ -724,6 +707,7 @@ typedef struct {
 	CKernel_Arg_T *AliasTargetArgDescr;
 	CKernel_Arg_T *SourceArgDescr;
 	KernelIteratorT ItSpace;	/* In case an iterator name is needed */
+	NameT *KerArgAccessType;
 } ArgBindingDescr_T;
 
 typedef struct {
@@ -751,6 +735,8 @@ typedef struct {
 	char UsedLength[2*CG_MAX_PIPE_DEPTH+1];		/* To tack 2D length of tiles (if arg is 2D) for proper variable declaration */
 	int ArgNDim;					/* Number of dimensions of this argumentt */
 	int *ArgDim;					/* Space dimension from outer to inner, most inner dim is item size */
+	unsigned int TileLineInterleave;		/* In case related arg is 2D parametric and constant interleave tile lines by group of TileLineInterleave lines,
+							   remainder is kept non interleaved */
 } KerArgInfos_T;
 #define TILE_PTR(PipeOff)	((PipeOff) + CG_MAX_PIPE_DEPTH)
 
@@ -778,8 +764,9 @@ typedef struct A_Kernel_Arg_T {
 	unsigned int Height;
 	unsigned int UsedHeight;
 	unsigned int UsedH;
-	int Overlap;
+	int TileOverlap;		/* By how much 2 adjacent tiles should overlap, can be negative in case of non unit stride */
 	unsigned int DimRatio;
+	float        FDimRatio;
 	unsigned int DimOff;
 	unsigned int DimRem;
 	unsigned int Constraints;
@@ -788,6 +775,7 @@ typedef struct A_Kernel_Arg_T {
 	unsigned int Pad[4];
 	unsigned int ArgPad[4];
 	int ItemSize;
+	int RawItemSize;
 	unsigned int MoveSize[4];	/* [D1][D0] or [D0][T] or [T] D1,D0 parameteric spaces, T tileable space. D1/D0/T=0 Std tile, D1/D0/T=1 Last Tile */
 	unsigned int MoveStride;
 	unsigned int MoveStride1D[2];
@@ -827,8 +815,10 @@ typedef struct A_Object_T {
 	unsigned int ArgStride;
 	unsigned int BottomBuffer;
 	unsigned int TopBuffer;
+	unsigned int TileWPadAlign; 	/* Number of points to be added to the width of the tile, object should be O_TILED */
 	int ItemSize;
-	int Overlap;
+	int RawItemSize;
+	int TileOverlap;		/* By how much 2 adjacent tiles should overlap, can be negative in case of non unit stride */
 	unsigned int Alignment;
 	unsigned int PreferedTileSize;
 	unsigned int PrefRem;		/* Tile size should be Ts = PrefRem + K * PreferedTileSize */
@@ -923,14 +913,20 @@ typedef struct A_Kernel_T {
 } Kernel_T;
 
 typedef struct {
-	int TileOrientation;	/* Set Tiling orientation TILE_HOR TILE_VER */
-	int ParallelFeatures;	/* Parallelize along channels */
-	int ForceDPconv;	/* Forces double precision convolution*/
-	int UseHwCE;		/* Enable HW CE */
+	char TileOrientation;	/* Set Tiling orientation TILE_HOR TILE_VER */
+	char ParallelFeatures;	/* Parallelize along channels */
+	char ForceDPconv;	/* Forces double precision convolution*/
+	char UseHwCE;		/* Enable HW CE */
 	AT_PadType PadType;	/* Control padding strategy */
-	int EnableIm2Col;	/* Enable mat mul based convolution when feasible */
+	char EnableIm2Col;	/* Enable mat mul based convolution when feasible */
 	int ReluN;		/* if != -1 Overides 6 as a default value for ReLUN */
-	int MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
+	char MulBiasScalar;	/* if != -1 Overides default non scalar for MulBias convolutions */
+	char In_L3;		/* if != 0 In (or In1) forced to be in L3 memory */
+	char Filter_L3;		/* if != 0 Filter (or In2)  forced to be in L3 memory */
+	char Bias_L3;		/* if != 0 Bias forced to be in L3 memory */
+	char Out_L3;		/* if != 0 Out forced to be in L3 memory */
+	char Scale_L3;		/* if != 0 Scale forced to be in L3 memory */
+	char ScaleN_L3;		/* if != 0 ScaleN forced to be in L3 memory */
 } CNN_GenControl_T;
 
 typedef struct {
@@ -1144,8 +1140,12 @@ typedef struct {
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))
 #define MultRndu(x,y, scale)    ((unsigned int)(((x)*(y)) + (1<<((scale)-1)))>>(scale))
+#ifndef Max
 #define Max(a, b)               (((a)>(b))?(a):(b))
+#endif
+#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
+#endif
 
 /* Return aligned value, alignment is 2^Size */
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))

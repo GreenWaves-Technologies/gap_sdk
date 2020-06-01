@@ -20,7 +20,7 @@ from cmd2 import ansi
 
 from generation.code_generator import CodeGenerator
 from generation.naming_convension import DefaultNamingConvension
-from generation.default_template import default_template, dynamic_template
+from generation.default_template import default_template, dynamic_template, header_template
 
 from utils.new_param_state import load_state
 
@@ -72,6 +72,9 @@ def generate_code(args):
         sys.exit(1)
     with open(model_path, "w") as output_fp:
         output_fp.write(model)
+    if args.header_file:
+        with open(os.path.join(opts['model_directory'], args.header_file), "w") as output_fp:
+            output_fp.write(header_template(G, code_generator=code_gen))
     if not args.dont_dump_tensors:
         LOG.info("Writing constants to %s", opts['model_directory'])
         code_gen.write_constants()

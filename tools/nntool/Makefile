@@ -6,7 +6,7 @@ PACKAGES=build/packages
 FLAT_SRC=$(PACKAGES)/flatbuffers
 FLAT_BUILD=$(FLAT_SRC)/build
 TFLITE_DIR=importer/tflite
-FLAT_TAG=3c964e10ab4f97e2a3602a8d0a8f4c402806ef89
+FLAT_TAG=de89bd193370c8b33686f1f33edd63593e48cd3f
 
 all: flatbuffers tflite req
 

@@ -103,7 +103,7 @@ static void *AT_TensorGetNextPage(
 			break;
 #if 0
 		case AT_MEM_L3_OSPIFLASH:
-			AT_OSPIFLASH_FS_CL_COPY((AT_OSPIFLASH_FS_T *) L3_Device, (AT_OSPIFLASH_FS_EXT_ADDR_TYPE) (Addr+Offset), (AT_OSPIFLASH_FS_CL_WAIT) L2_BufferAddr, Size, 1, L3_Event);
+			AT_OSPIFLASH_FS_CL_COPY((AT_OSPIFLASH_FS_T *) L3_Device, (AT_OSPIFLASH_FS_EXT_ADDR_TYPE) (Addr+Offset), (AT_OSPIFLASH_FS_INT_ADDR_TYPE) L2_BufferAddr, Size, 1, L3_Event);
 			AT_OSPIFLASH_FS_CL_WAIT((AT_OSPIFLASH_FS_T *) L3_Device, L3_Event);
 			break;
 		case AT_MEM_L3_MRAMFLASH:

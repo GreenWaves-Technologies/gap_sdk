@@ -15,8 +15,17 @@
 
 import logging
 
-from graph.types import FcParameters, ActivationParameters, ConvFusionParameters
-from utils.graph import MatchNode, GraphView, Edge
+from graph.nngraph import NNGraph
+from graph.types import (ActivationParameters, ConvFusionParameters,
+                         FcParameters)
+from quantization.symmetric.symmetric_quantization import (
+    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
+from quantization.multiplicative.mult_quantization import (
+    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.float32.float32_quantization import (
+    Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
+from utils.graph import Edge, GraphView, MatchNode
+from utils.node_id import NodeId
 
 from .matcher import DefaultMatcher
 
@@ -49,7 +58,7 @@ class MatchGapLinear(DefaultMatcher):
         sub.add_edge(Edge('0', '1'))
         return G.match_fragment(sub)
 
-    def replace_function(self, G: GraphView, subgraph: GraphView):
+    def replace_function(self, G: NNGraph, subgraph: GraphView):
         step = 0
         for node in subgraph.nodes():
             node.step_idx = step
@@ -61,4 +70,18 @@ class MatchGapLinear(DefaultMatcher):
             (node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
-        return ConvFusionParameters(linear_name, "linear_active", subgraph)
+        pnode = ConvFusionParameters(linear_name, "linear_active", subgraph)
+        if G.quantization:
+            qrecs = G.quantization.get_all(subgraph.nodes())
+            if qrecs:
+                if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
+                    prec = SymmetricQuantizationRecord(
+                        in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                    prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
+                    prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                for node in subgraph.nodes():
+                    G.quantization.move_to_fusion(node, pnode)
+                G.quantization[NodeId(pnode)] = prec
+        return pnode

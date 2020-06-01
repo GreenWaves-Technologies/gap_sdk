@@ -173,6 +173,8 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_bitinsert_r(dst, src, size, off) 		__builtin_pulp_binsert_r((dst), (src), ExtInsMaskFast((size), (off)))
 #define gap_bitinsert_r_safe(dst, src, size, off) 	__builtin_pulp_binsert_r((dst), (src), ExtInsMaskSafe((size), (off)))
 
+/* Bit clear */
+/* Bit set */
 /* 1 bit rotation to the right, 32 bits input */
 #define gap_rotr(x)				__builtin_pulp_rotr((x))
 

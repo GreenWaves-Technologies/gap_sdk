@@ -73,7 +73,7 @@ extern void LoadCNNLibrary();
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
  \param    Signature:      Name(In, Filter, Bias, Out)
  \param                    Name(In, Filter, Bias, ReLUN, Out)
@@ -176,7 +176,7 @@ extern int CNN_ConvolutionPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
  \param    Signature:      Name(In, Filter, Bias, MulBias, Out)
  \param                    Name(In, Filter, Bias, MulBias, ReLUN, Out)
@@ -281,7 +281,7 @@ extern int CNN_ConvolutionMulBiasPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
  \param    Signature:      Name(In, Filter, Bias, Out)
  \param                    Name(In, Filter, Bias, ReLUN, Out)
@@ -389,7 +389,7 @@ extern int CNN_GroupedConvolutionPoolReLU(
  \param    Spy:            Pooling filter stride y dimension
  \param    PoolPad:        0: No padding, 1: Zero padding
 
- \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+ \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
  \param    Signature:      Name(In, Filter, Bias, MulBias, Out)
  \param                    Name(In, Filter, Bias, MulBias, ReLUN, Out)
@@ -485,9 +485,9 @@ extern int CNN_GroupedConvolutionMulBiasPoolReLU(
 
   \param     PoolPad:        0: No padding, 1: Zero padding
   \param     ReLUOper:       Optional activation function: if (PoolOper!=KOP_NONE) KOP_RELU or KOP_NONE
-  \param                     else Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+  \param                     else Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
-  \param     ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+  \param     ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
   \param     Signature:      Name(In, Out)
   \param                     Name(In, ReLUN, Out)
@@ -608,7 +608,7 @@ extern int CNN_GlobalPool(
     \param    OutDim:         Number of outputs
 
     \param    LinearOper:     Should always be KOP_LINEAR
-    \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+    \param    ReLUOper:       Optional activation function: KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
     \param    Signature:      Name(In, Filter, Bias, Out)
     \param                    Name(In, Filter, Bias, ReLUN, Out)
@@ -717,28 +717,54 @@ extern int CNN_SoftMax(
 */
 
 extern int CNN_MatAdd(
-        char *Name,
+	char *Name,
 
 	CNN_GenControl_T *Ctrl,
 
-        int In1_DataSize,
-        int In2_DataSize,
-        int Out_DataSize,
+	int In1_DataSize,
+	int In2_DataSize,
+	int Out_DataSize,
 
 	int In1_Q,
 	int In2_Q,
 	int Out_Q,
 
-        int In1_InL3,
-        int In2_InL3,
-        int Out_InL3,
+	int In1_InL3,
+	int In2_InL3,
+	int Out_InL3,
 
-        int InFeat,
-        int OutFeat,
-        int Width,
-        int Height,
+	int InFeat,
+	int OutFeat,
+	int Width,
+	int Height,
 
-        KernelOper_T AddMatOper
+	KernelOper_T AddMatOper);
+
+
+extern int CNN_MatAddRelu(
+        char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+    int In1_DataSize,
+    int In2_DataSize,
+    int Out_DataSize,
+
+	int In1_Q,
+	int In2_Q,
+	int Out_Q,
+
+    int In1_InL3,
+    int In2_InL3,
+    int Out_InL3,
+
+    int InFeat,
+    int OutFeat,
+    int Width,
+    int Height,
+
+    KernelOper_T AddMatOper,
+	KernelOper_T ReLUOper
 	);
 
 /** \brief CNN_MatAddDynAdjust
@@ -832,7 +858,7 @@ extern int CNN_MatAddDynAdjust(
     \param    Height:         Height of a given feature
 
     \param    ScaleOper       Should always be KOP_MATSCALE_VECTOR, KOP_MATSCALE_SCALAR or KOP_MATSCALE_VECTOR_SCALAR
-    \param    ReLUOper        Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN or KOP_RELUN_VECTOR
+    \param    ReLUOper        Optional activation, should be KOP_NONE, KOP_RELU, KOP_RELUN
 
     \param    Signature:      Name(In, Scalar, Out)
     \param                    Name(In, Scalar, Out, ReLUN)
@@ -915,7 +941,7 @@ extern int CNN_MatScale(
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
     \param    MatMulOper:     Should always be KOP_MATMUL
-    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
     \param    Signature:      Name(In2, In1, Bias, Out)
     \param                    Name(In2, In1, Bias, ReLUN, Out)
@@ -1001,7 +1027,7 @@ extern int CNN_MatMul(
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
     \param    MatMulOper:     Should always be KOP_MATMUL
-    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
     \param    Signature:      Name(In2, In1, Bias, Out)
     \param                    Name(In2, In1, Bias, ReLUN, Out)
@@ -1091,7 +1117,7 @@ extern int CNN_MatMulSmallM1(
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
     \param    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
-    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
     \param    Signature:      Name(In2, In1, Bias, Out)
     \param                    Name(In2, In1, Bias, ReLUN, Out)
@@ -1184,7 +1210,7 @@ extern int CNN_MatMulScale(
     \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
     \param    MatMulOper      Should always be KOP_MATMUL_SCALE_SCALAR or KOP_MATMUL_SCALE_SCALAR
-    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_RELUN_VECTOR, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
+    \param    ReLUOper        Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
     \param    Signature:      Name(In2, In1, Bias, Out)
     \param                    Name(In2, In1, Bias, ReLUN, Out)
@@ -1320,6 +1346,40 @@ int CNN_3DTensorPermute(
 	int Height,
  	KernelOper_T MatPermOper
 );
+
+int CNN_ConvNxN_HWCE(
+        char *Name,
+        CNN_GenControl_T *Ctrl,
+
+        int In_DataSize,
+        int Filter_DataSize,
+        int Bias_DataSize,
+        int Out_DataSize,
+
+        int In_Q,
+        int Filter_Q,
+        int Bias_Q,
+        int Out_Q,
+
+        int In_InL3,
+        int Filter_InL3,
+        int Bias_InL3,
+        int Out_InL3,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad
+        );
 
 /** @} */
 #endif

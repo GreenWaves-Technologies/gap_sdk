@@ -21,27 +21,45 @@ from graph.types import (Conv2DParameters, FcParameters,
                          MultiplicativeBiasParameters)
 from utils.node_id import NodeId
 from utils.stats_funcs import astats, calculate_qsnrs
+from quantization.multiplicative.mult_quantization import MultScalableFilterQuantizationRecord
 
 from .ranges import Ranges
 from .stats_collector import StatsCollector
 
 LOG = logging.getLogger("nntool." + __name__)
 
-def filter_stats(pnode, fnode, anode, channel_details=None):
+
+def filter_stats(pnode, fnode, anode, channel_details=None, qrec=None):
     stats = {}
-    if isinstance(anode, MultiplicativeBiasParameters) and anode.has_mul_bias:
-        stats['mul_biases'] = mul_biases = astats(anode.mul_biases)
-        mul_biases['qstats'] = calculate_qsnrs(anode.mul_biases,
-                                               mul_biases['ibits'],
-                                               force_ideal=False)
+    if isinstance(anode, MultiplicativeBiasParameters):
+        if anode.has_mul_bias:
+            stats['mul_biases'] = mul_biases = astats(anode.mul_biases)
+            mul_biases['qstats'] = calculate_qsnrs(anode.mul_biases,
+                                                   mul_biases['ibits'],
+                                                   force_ideal=False)
+        elif isinstance(qrec, MultScalableFilterQuantizationRecord):
+            stats['mul_biases'] = mul_biases = astats(qrec.mul_biases_fps)
+            mul_biases['qstats'] = calculate_qsnrs(qrec.mul_biases_fps,
+                                                   mul_biases['ibits'],
+                                                   force_ideal=False)
     if anode.has_bias:
-        stats['biases'] = biases = astats(anode.biases)
-        biases['qstats'] = calculate_qsnrs(anode.biases,
+        if qrec:
+            qbiases = qrec.prepare_biases(anode, anode.biases, anode.weights, ktype="float32")
+        else:
+            qbiases = anode.biases
+
+        stats['biases'] = biases = astats(qbiases)
+        biases['qstats'] = calculate_qsnrs(qbiases,
                                            biases['ibits'],
                                            force_ideal=False)
+    if qrec:
+        qweights = qrec.prepare_weights(anode, anode.weights, ktype="float32")
+    else:
+        qweights = anode.weights
+
     stats['weights'] = weights = astats(
-        anode.weights, channel_dim=anode.filter.get_order_idx('out_c'), channel_details=channel_details)
-    weights['qstats'] = calculate_qsnrs(anode.weights, weights['ibits'],
+        qweights, channel_dim=anode.filter.get_order_idx('out_c'), channel_details=channel_details)
+    weights['qstats'] = calculate_qsnrs(qweights, weights['ibits'],
                                         force_ideal=False)
     # store the statistics into the graph for later use
     anode.stats = stats
@@ -65,11 +83,17 @@ class FilterStatsCollector(StatsCollector):
             if not self.matches_step(step_idx, pnode, fnode):
                 continue
 
-            key = NodeId(pnode, fnode)
+            nid = NodeId(pnode, fnode)
+            if G.quantization and G.has_quantized_parameters:
+                qrec = G.quantization[nid]
+            else:
+                qrec = None
+
             anode = pnode if fnode is None else fnode
             LOG.debug("collecting stats for %s step %s", anode.name, pnode.step_idx)
             if anode.__class__ in STATS_FUNCTIONS:
-                stats[key] = STATS_FUNCTIONS[anode.__class__](pnode, fnode, anode, channel_details=step_idx is not None)
+                stats[nid] = STATS_FUNCTIONS[anode.__class__](
+                    pnode, fnode, anode, channel_details=step_idx is not None, qrec=qrec)
         return stats
 
 

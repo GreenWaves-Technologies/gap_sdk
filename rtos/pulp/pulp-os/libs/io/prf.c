@@ -12,64 +12,60 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-
-#ifndef MAXFLD
-#define	MAXFLD	200
-#endif
+#include <limits.h>
+#include <sys/types.h>
 
 #ifndef EOF
 #define EOF  -1
 #endif
 
+#define CONFIG_MINIMAL_LIBC_LL_PRINTF 1
+
+#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+#define VALTYPE long long
+#else
+#define VALTYPE long
+#endif
+
 static void _uc(char *buf)
 {
-	for (/**/; *buf; buf++) {
+	do {
 		if (*buf >= 'a' && *buf <= 'z') {
 			*buf += 'A' - 'a';
 		}
-	}
+	} while (*buf++);
 }
 
-/* Convention note: "end" as passed in is the standard "byte after
- * last character" style, but...
+/*
+ * Writes the specified number into the buffer in the given base,
+ * using the digit characters 0-9a-z (i.e. base>36 will start writing
+ * odd bytes).
  */
-static int _reverse_and_pad(char *start, char *end, int minlen)
+static int _to_x(char *buf, unsigned VALTYPE n, unsigned int base)
 {
+	char *start = buf;
 	int len;
 
-	while (end - start < minlen) {
-		*end++ = '0';
-	}
-
-	*end = 0;
-	len = end - start;
-	for (end--; end > start; end--, start++) {
-		char tmp = *end;
-		*end = *start;
-		*start = tmp;
-	}
-	return len;
-}
-
-/* Writes the specified number into the buffer in the given base,
- * using the digit characters 0-9a-z (i.e. base>36 will start writing
- * odd bytes), padding with leading zeros up to the minimum length.
- */
-static int _to_x(char *buf, uint32_t n, int base, int minlen)
-{
-	char *buf0 = buf;
-
 	do {
-		int d = n % base;
+		unsigned int d = n % base;
 
 		n /= base;
 		*buf++ = '0' + d + (d > 9 ? ('a' - '0' - 10) : 0);
 	} while (n);
-	return _reverse_and_pad(buf0, buf, minlen);
+
+	*buf = 0;
+	len = buf - start;
+
+	for (buf--; buf > start; buf--, start++) {
+		char tmp = *buf;
+		*buf = *start;
+		*start = tmp;
+	}
+
+	return len;
 }
 
-static int _to_hex(char *buf, uint32_t value,
-		   int alt_form, int precision, int prefix)
+static int _to_hex(char *buf, unsigned VALTYPE value, bool alt_form, char prefix)
 {
 	int len;
 	char *buf0 = buf;
@@ -79,7 +75,7 @@ static int _to_hex(char *buf, uint32_t value,
 		*buf++ = 'x';
 	}
 
-	len = _to_x(buf, value, 16, precision);
+	len = _to_x(buf, value, 16);
 	if (prefix == 'X') {
 		_uc(buf0);
 	}
@@ -87,7 +83,7 @@ static int _to_hex(char *buf, uint32_t value,
 	return len + (buf - buf0);
 }
 
-static int _to_octal(char *buf, uint32_t value, int alt_form, int precision)
+static int _to_octal(char *buf, unsigned VALTYPE value, bool alt_form)
 {
 	char *buf0 = buf;
 
@@ -99,32 +95,28 @@ static int _to_octal(char *buf, uint32_t value, int alt_form, int precision)
 			return 1;
 		}
 	}
-	return (buf - buf0) + _to_x(buf, value, 8, precision);
+	return (buf - buf0) + _to_x(buf, value, 8);
 }
 
-static int _to_udec(char *buf, uint32_t value, int precision)
+static int _to_udec(char *buf, unsigned VALTYPE value)
 {
-	return _to_x(buf, value, 10, precision);
+	return _to_x(buf, value, 10);
 }
 
-static int _to_dec(char *buf, int32_t value, int fplus, int fspace, int precision)
+static int _to_dec(char *buf, VALTYPE value, bool fplus, bool fspace)
 {
 	char *start = buf;
 
-#if (MAXFLD < 10)
-  #error buffer size MAXFLD is too small
-#endif
-
 	if (value < 0) {
 		*buf++ = '-';
-		if (value != (int32_t)0x80000000)
-			value = -value;
-	} else if (fplus)
+		value = -value;
+	} else if (fplus) {
 		*buf++ = '+';
-	else if (fspace)
+	} else if (fspace) {
 		*buf++ = ' ';
+	}
 
-	return (buf + _to_udec(buf, (uint32_t) value, precision)) - start;
+	return (buf + _to_udec(buf, value)) - start;
 }
 
 static	void _rlrshift(uint64_t *v)
@@ -132,7 +124,8 @@ static	void _rlrshift(uint64_t *v)
 	*v = (*v & 1) + (*v >> 1);
 }
 
-/* Tiny integer divide-by-five routine.  The full 64 bit division
+/*
+ * Tiny integer divide-by-five routine.  The full 64 bit division
  * implementations in libgcc are very large on some architectures, and
  * currently nothing in Zephyr pulls it into the link.  So it makes
  * sense to define this much smaller special case here to avoid
@@ -149,19 +142,22 @@ static	void _rlrshift(uint64_t *v)
  */
 static void _ldiv5(uint64_t *v)
 {
-	uint32_t i, hi;
-	uint64_t rem = *v, quot = 0, q;
+	uint32_t hi;
+	uint64_t rem = *v, quot = 0U, q;
+	int i;
+
 	static const char shifts[] = { 32, 3, 0 };
 
-	/* Usage in this file wants rounded behavior, not truncation.  So add
+	/*
+	 * Usage in this file wants rounded behavior, not truncation.  So add
 	 * two to get the threshold right.
 	 */
-	rem += 2;
+	rem += 2U;
 
 	for (i = 0; i < 3; i++) {
 		hi = rem >> shifts[i];
-		q = (uint64_t)(hi / 5) << shifts[i];
-		rem -= q * 5;
+		q = (uint64_t)(hi / 5U) << shifts[i];
+		rem -= q * 5U;
 		quot += q;
 	}
 
@@ -170,16 +166,18 @@ static void _ldiv5(uint64_t *v)
 
 static	char _get_digit(uint64_t *fr, int *digit_count)
 {
-	int		rval;
+	char rval;
 
 	if (*digit_count > 0) {
 		*digit_count -= 1;
-		*fr = *fr * 10;
+		*fr = *fr * 10U;
 		rval = ((*fr >> 60) & 0xF) + '0';
 		*fr &= 0x0FFFFFFFFFFFFFFFull;
-	} else
+	} else {
 		rval = '0';
-	return (char) (rval);
+	}
+
+	return rval;
 }
 
 /*
@@ -195,6 +193,7 @@ static	char _get_digit(uint64_t *fr, int *digit_count)
  *		"fplus"		TRUE if "+" conversion flag in effect.
  *		"fspace"	TRUE if " " conversion flag in effect.
  *		"precision"	Desired precision (negative if undefined).
+ *		"zeropad"	To store padding info to be inserted later
  */
 
 /*
@@ -207,27 +206,34 @@ static	char _get_digit(uint64_t *fr, int *digit_count)
 #define	MAXFP1	0xFFFFFFFF	/* Largest # if first fp format */
 #define HIGHBIT64 (1ull<<63)
 
-static int _to_float(char *buf, uint64_t double_temp, int c,
-					 int falt, int fplus, int fspace, int precision)
+struct zero_padding { int predot, postdot, trail; };
+
+static int _to_float(char *buf, uint64_t double_temp, char c,
+		     bool falt, bool fplus, bool fspace, int precision,
+		     struct zero_padding *zp)
 {
-	register int    decexp;
-	register int    exp;
-	int             sign;
-	int             digit_count;
-	uint64_t        fract;
-	uint64_t        ltemp;
-	int             prune_zero;
-	char           *start = buf;
+	int decexp;
+	int exp;
+	bool sign;
+	int digit_count;
+	uint64_t fract;
+	uint64_t ltemp;
+	bool prune_zero;
+	char *start = buf;
 
 	exp = double_temp >> 52 & 0x7ff;
 	fract = (double_temp << 11) & ~HIGHBIT64;
 	sign = !!(double_temp & HIGHBIT64);
 
+	if (sign) {
+		*buf++ = '-';
+	} else if (fplus) {
+		*buf++ = '+';
+	} else if (fspace) {
+		*buf++ = ' ';
+	}
 
 	if (exp == 0x7ff) {
-		if (sign) {
-			*buf++ = '-';
-		}
 		if (!fract) {
 			if (isupper(c)) {
 				*buf++ = 'I';
@@ -258,18 +264,14 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 	}
 
 	if ((exp | fract) != 0) {
+		if (exp == 0) {
+			/* this is a denormal */
+			while (((fract <<= 1) & HIGHBIT64) == 0) {
+				exp--;
+			}
+		}
 		exp -= (1023 - 1);	/* +1 since .1 vs 1. */
 		fract |= HIGHBIT64;
-		decexp = true;		/* Wasn't zero */
-	} else
-		decexp = false;		/* It was zero */
-
-	if (decexp && sign) {
-		*buf++ = '-';
-	} else if (fplus) {
-		*buf++ = '+';
-	} else if (fspace) {
-		*buf++ = ' ';
 	}
 
 	decexp = 0;
@@ -278,7 +280,7 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 			_rlrshift(&fract);
 			exp++;
 		}
-		fract *= 5;
+		fract *= 5U;
 		exp++;
 		decexp--;
 
@@ -303,30 +305,38 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 		exp++;
 	}
 
-	if (precision < 0)
+	if (precision < 0) {
 		precision = 6;		/* Default precision if none given */
+	}
+
 	prune_zero = false;		/* Assume trailing 0's allowed     */
 	if ((c == 'g') || (c == 'G')) {
-		if (!falt && (precision > 0))
-			prune_zero = true;
-		if ((decexp < (-4 + 1)) || (decexp > (precision + 1))) {
-			if (c == 'g')
-				c = 'e';
-			else
-				c = 'E';
-		} else
+		if (decexp < (-4 + 1) || decexp > precision) {
+			c += 'e' - 'g';
+			if (precision > 0) {
+				precision--;
+			}
+		} else {
 			c = 'f';
+			precision -= decexp;
+		}
+		if (!falt && (precision > 0)) {
+			prune_zero = true;
+		}
 	}
 
 	if (c == 'f') {
 		exp = precision + decexp;
-		if (exp < 0)
+		if (exp < 0) {
 			exp = 0;
-	} else
+		}
+	} else {
 		exp = precision + 1;
+	}
 	digit_count = 16;
-	if (exp > 16)
+	if (exp > 16) {
 		exp = 16;
+	}
 
 	ltemp = 0x0800000000000000;
 	while (exp--) {
@@ -343,111 +353,118 @@ static int _to_float(char *buf, uint64_t double_temp, int c,
 
 	if (c == 'f') {
 		if (decexp > 0) {
-			while (decexp > 0) {
+			while (decexp > 0 && digit_count > 0) {
 				*buf++ = _get_digit(&fract, &digit_count);
 				decexp--;
 			}
-		} else
+			zp->predot = decexp;
+			decexp = 0;
+		} else {
 			*buf++ = '0';
-		if (falt || (precision > 0))
-			*buf++ = '.';
-		while (precision-- > 0) {
-			if (decexp < 0) {
-				*buf++ = '0';
-				decexp++;
-			} else
-				*buf++ = _get_digit(&fract, &digit_count);
 		}
+		if (falt || (precision > 0)) {
+			*buf++ = '.';
+		}
+		if (decexp < 0 && precision > 0) {
+			zp->postdot = -decexp;
+			if (zp->postdot > precision) {
+				zp->postdot = precision;
+			}
+			precision -= zp->postdot;
+		}
+		while (precision > 0 && digit_count > 0) {
+			*buf++ = _get_digit(&fract, &digit_count);
+			precision--;
+		}
+		zp->trail = precision;
 	} else {
 		*buf = _get_digit(&fract, &digit_count);
-		if (*buf++ != '0')
+		if (*buf++ != '0') {
 			decexp--;
-		if (falt || (precision > 0))
+		}
+		if (falt || (precision > 0)) {
 			*buf++ = '.';
-		while (precision-- > 0)
+		}
+		while (precision > 0 && digit_count > 0) {
 			*buf++ = _get_digit(&fract, &digit_count);
+			precision--;
+		}
+		zp->trail = precision;
 	}
 
 	if (prune_zero) {
+		zp->trail = 0;
 		while (*--buf == '0')
 			;
-		if (*buf != '.')
+		if (*buf != '.') {
 			buf++;
+		}
 	}
 
 	if ((c == 'e') || (c == 'E')) {
-		*buf++ = (char) c;
+		*buf++ = c;
 		if (decexp < 0) {
 			decexp = -decexp;
 			*buf++ = '-';
-		} else
+		} else {
 			*buf++ = '+';
-		*buf++ = (char) ((decexp / 10) + '0');
+		}
+		if (decexp >= 100) {
+			*buf++ = (decexp / 100) + '0';
+			decexp %= 100;
+		}
+		*buf++ = (decexp / 10) + '0';
 		decexp %= 10;
-		*buf++ = (char) (decexp + '0');
+		*buf++ = decexp + '0';
 	}
 	*buf = 0;
 
 	return buf - start;
 }
 
-static int _atoi(char **sptr)
+static int _atoi(const char **sptr)
 {
-	register char *p;
-	register int   i;
+	const char *p = *sptr - 1;
+	int i = 0;
 
-	i = 0;
-	p = *sptr;
-	p--;
-	while (isdigit(((int) *p)))
+	while (isdigit(*p)) {
 		i = 10 * i + *p++ - '0';
+	}
 	*sptr = p;
 	return i;
 }
 
-int _prf(int (*func)(), void *dest, char *format, va_list vargs)
+int _prf(int (*func)(), void *dest, const char *format, va_list vargs)
 {
 	/*
-	 * Due the fact that buffer is passed to functions in this file,
-	 * they assume that it's size if MAXFLD + 1. In need of change
-	 * the buffer size, either MAXFLD should be changed or the change
-	 * has to be propagated across the file
+	 * The work buffer has to accommodate for the largest data length.
+	 * The max range octal length is one prefix + 3 bits per digit
+	 * meaning 12 bytes on 32-bit and 23 bytes on 64-bit.
+	 * The float code may extract up to 16 digits, plus a prefix,
+	 * a leading 0, a dot, and an exponent in the form e+xxx for
+	 * a total of 24. Add a trailing NULL so it is 25.
 	 */
-	char			buf[MAXFLD + 1];
-	register int	c;
-	int				count;
-	register char	*cptr;
-	int				falt;
-	int				fminus;
-	int				fplus;
-	int				fspace;
-	register int	i;
-	int				need_justifying;
-	char			pad;
-	int				precision;
-	int				prefix;
-	int				width;
-	char			*cptr_temp;
-	int32_t			*int32ptr_temp;
-	int32_t			int32_temp;
-	uint32_t			uint32_temp;
-	uint64_t			double_temp;
+	char buf[25];
+	char c;
+	int count;
+	char *cptr;
+	bool falt, fminus, fplus, fspace, fzero;
+	int i;
+	int width, precision;
+	int clen, prefix, zero_head;
+	struct zero_padding zero;
+	VALTYPE val;
+
+#define PUTC(c)	do { if ((*func)(c, dest) == EOF) return EOF; } while (false)
 
 	count = 0;
 
 	while ((c = *format++)) {
 		if (c != '%') {
-			if ((*func) (c, dest) == EOF) {
-				return EOF;
-			}
-
+			PUTC(c);
 			count++;
-
 		} else {
-			fminus = fplus = fspace = falt = false;
-			pad = ' ';		/* Default pad character    */
-			precision = -1;	/* No precision specified   */
-
+			fminus = fplus = fspace = falt = fzero = false;
 			while (strchr("-+ #0", (c = *format++)) != NULL) {
 				switch (c) {
 				case '-':
@@ -467,7 +484,7 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 					break;
 
 				case '0':
-					pad = '0';
+					fzero = true;
 					break;
 
 				case '\0':
@@ -477,85 +494,88 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 
 			if (c == '*') {
 				/* Is the width a parameter? */
-				width = (int32_t) va_arg(vargs, int32_t);
+				width = va_arg(vargs, int);
 				if (width < 0) {
 					fminus = true;
 					width = -width;
 				}
 				c = *format++;
-			} else if (!isdigit(c))
+			} else if (!isdigit(c)) {
 				width = 0;
-			else {
+			} else {
 				width = _atoi(&format);	/* Find width */
 				c = *format++;
 			}
 
-			/*
-			 * If <width> is INT_MIN, then its absolute value can
-			 * not be expressed as a positive number using 32-bit
-			 * two's complement.  To cover that case, cast it to
-			 * an unsigned before comparing it against MAXFLD.
-			 */
-			if ((unsigned) width > MAXFLD) {
-				width = MAXFLD;
-			}
-
+			precision = -1;
 			if (c == '.') {
 				c = *format++;
 				if (c == '*') {
-					precision = (int32_t)
-					va_arg(vargs, int32_t);
-				} else
+					precision = va_arg(vargs, int);
+				} else {
 					precision = _atoi(&format);
+				}
 
-				if (precision > MAXFLD)
-					precision = -1;
 				c = *format++;
 			}
 
 			/*
-			 * This implementation only checks that the following format
-			 * specifiers are followed by an appropriate type:
+			 * This implementation only supports the following
+			 * length modifiers:
 			 *    h: short
+			 *   hh: char
 			 *    l: long
-			 *    L: long double
+			 *   ll: long long
 			 *    z: size_t or ssize_t
-			 * No further special processing is done for them.
 			 */
-
-			if (strchr("hlLz", c) != NULL) {
+			i = 0;
+			if (strchr("hlz", c) != NULL) {
 				i = c;
 				c = *format++;
-				/*
-				 * Here there was a switch() block
-				 * which was doing nothing useful, I
-				 * am still puzzled at why it was left
-				 * over. Maybe before it contained
-				 * stuff that was needed, but in its
-				 * current form, it was being
-				 * optimized out.
-				 */
+				if (i == 'l' && c == 'l') {
+					i = 'L';
+					c = *format++;
+				} else if (i == 'h' && c == 'h') {
+					i = 'H';
+					c = *format++;
+				}
 			}
 
-			need_justifying = false;
+			cptr = buf;
 			prefix = 0;
+			zero.predot = zero.postdot = zero.trail = 0;
+
 			switch (c) {
 			case 'c':
-				buf[0] = (char) ((int32_t) va_arg(vargs, int32_t));
-				buf[1] = '\0';
-				need_justifying = true;
-				c = 1;
+				buf[0] = va_arg(vargs, int);
+				clen = 1;
+				precision = 0;
 				break;
 
 			case 'd':
 			case 'i':
-				int32_temp = (int32_t) va_arg(vargs, int32_t);
-				c = _to_dec(buf, int32_temp, fplus, fspace, precision);
-				if (fplus || fspace || (int32_temp < 0))
+				switch (i) {
+				case 'l':
+					val = va_arg(vargs, long);
+					break;
+#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+				case 'L':
+					val = va_arg(vargs, long long);
+					break;
+#endif
+				case 'z':
+					val = va_arg(vargs, ssize_t);
+					break;
+				case 'h':
+				case 'H':
+				default:
+					val = va_arg(vargs, int);
+					break;
+				}
+				clen = _to_dec(buf, val, fplus, fspace);
+				if (fplus || fspace || val < 0) {
 					prefix = 1;
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
+				}
 				break;
 
 			case 'e':
@@ -564,120 +584,221 @@ int _prf(int (*func)(), void *dest, char *format, va_list vargs)
 			case 'F':
 			case 'g':
 			case 'G':
-				/* standard platforms which supports double */
 			{
+				uint64_t double_val;
+
+				/* standard platforms which supports double */
 				union {
 					double d;
 					uint64_t i;
 				} u;
 
-				u.d = (double) va_arg(vargs, double);
-				double_temp = u.i;
+				u.d = va_arg(vargs, double);
+				double_val = u.i;
+
+				clen = _to_float(buf, double_val, c, falt,
+						 fplus, fspace, precision,
+						 &zero);
+				if (fplus || fspace || (buf[0] == '-')) {
+					prefix = 1;
+				}
+				clen += zero.predot + zero.postdot + zero.trail;
+				if (!isdigit(buf[prefix])) {
+					/* inf or nan: no zero padding */
+					fzero = false;
+				}
+				precision = -1;
+				break;
 			}
 
-				c = _to_float(buf, double_temp, c, falt, fplus,
-					      fspace, precision);
-				if (fplus || fspace || (buf[0] == '-'))
-					prefix = 1;
-				need_justifying = true;
-				break;
-
 			case 'n':
-				int32ptr_temp = (int32_t *)va_arg(vargs, int32_t *);
-				*int32ptr_temp = count;
-				break;
-
-			case 'o':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_octal(buf, uint32_temp, falt, precision);
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
-				break;
+				switch (i) {
+				case 'h':
+					*va_arg(vargs, short *) = count;
+					break;
+				case 'H':
+					*va_arg(vargs, char *) = count;
+					break;
+				case 'l':
+					*va_arg(vargs, long *) = count;
+					break;
+#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+				case 'L':
+					*va_arg(vargs, long long *) = count;
+					break;
+#endif
+				case 'z':
+					*va_arg(vargs, ssize_t *) = count;
+					break;
+				default:
+					*va_arg(vargs, int *) = count;
+					break;
+				}
+				continue;
 
 			case 'p':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_hex(buf, uint32_temp, true, 8, (int) 'x');
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
+				val = (uintptr_t) va_arg(vargs, void *);
+				clen = _to_hex(buf, val, true, 'x');
+				prefix = 2;
 				break;
 
 			case 's':
-				cptr_temp = (char *) va_arg(vargs, char *);
+				cptr = va_arg(vargs, char *);
 				/* Get the string length */
-				for (c = 0; c < MAXFLD; c++) {
-					if (cptr_temp[c] == '\0') {
+				if (precision < 0) {
+					precision = INT_MAX;
+				}
+				for (clen = 0; clen < precision; clen++) {
+					if (cptr[clen] == '\0') {
 						break;
 					}
 				}
-				if ((precision >= 0) && (precision < c))
-					c = precision;
-				if (c > 0) {
-					memcpy(buf, cptr_temp, (size_t) c);
-					need_justifying = true;
-				}
+				precision = 0;
 				break;
 
+			case 'o':
 			case 'u':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_udec(buf, uint32_temp, precision);
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
-				break;
-
 			case 'x':
 			case 'X':
-				uint32_temp = (uint32_t) va_arg(vargs, uint32_t);
-				c = _to_hex(buf, uint32_temp, falt, precision, c);
-				if (falt)
-					prefix = 2;
-				need_justifying = true;
-				if (precision != -1)
-					pad = ' ';
+				switch (i) {
+				case 'l':
+					val = va_arg(vargs, unsigned long);
+					break;
+#ifdef CONFIG_MINIMAL_LIBC_LL_PRINTF
+				case 'L':
+					val = va_arg(vargs, unsigned long long);
+					break;
+#endif
+				case 'z':
+					val = va_arg(vargs, size_t);
+					break;
+				case 'h':
+				case 'H':
+				default:
+					val = va_arg(vargs, unsigned int);
+					break;
+				}
+				if (c == 'o') {
+					clen = _to_octal(buf, val, falt);
+				} else if (c == 'u') {
+					clen = _to_udec(buf, val);
+				} else {
+					clen = _to_hex(buf, val, falt, c);
+					if (falt) {
+						prefix = 2;
+					}
+				}
 				break;
 
 			case '%':
-				if ((*func)('%', dest) == EOF) {
-					return EOF;
-				}
-
+				PUTC('%');
 				count++;
-				break;
+				continue;
+
+			default:
+				PUTC('%');
+				PUTC(c);
+				count += 2;
+				continue;
 
 			case 0:
 				return count;
 			}
 
-			if (c >= MAXFLD + 1)
-				return EOF;
+			if (precision >= 0) {
+				zero_head = precision - clen + prefix;
+			} else if (fzero) {
+				zero_head = width - clen;
+			} else {
+				zero_head = 0;
+			}
+			if (zero_head < 0) {
+				zero_head = 0;
+			}
+			width -= clen + zero_head;
 
-			if (need_justifying) {
-				if (c < width) {
-					if (fminus)	{
-						/* Left justify? */
-						for (i = c; i < width; i++)
-							buf[i] = ' ';
-					} else {
-						/* Right justify */
-						(void) memmove((buf + (width - c)), buf, (size_t) (c
-										+ 1));
-						if (pad == ' ')
-							prefix = 0;
-						c = width - c + prefix;
-						for (i = prefix; i < c; i++)
-							buf[i] = pad;
-					}
-					c = width;
+			/* padding for right justification */
+			if (!fminus && width > 0) {
+				count += width;
+				while (width-- > 0) {
+					PUTC(' ');
 				}
+			}
 
-				for (cptr = buf; c > 0; c--, cptr++, count++) {
-					if ((*func)(*cptr, dest) == EOF)
-						return EOF;
+			/* data prefix */
+			clen -= prefix;
+			count += prefix;
+			while (prefix-- > 0) {
+				PUTC(*cptr++);
+			}
+
+			/* zero-padded head */
+			count += zero_head;
+			while (zero_head-- > 0) {
+				PUTC('0');
+			}
+
+			/*
+			 * main data:
+			 *
+			 * In the case of floats, 3 possible zero-padding
+			 * are included in the clen count, either with
+			 *	xxxxxx<zero.predot>.<zero.postdot>
+			 * or with
+			 *	x.<zero.postdot>xxxxxx<zero.trail>[e+xx]
+			 * In the non-float cases, those predot, postdot and
+			 * tail params are equal to 0.
+			 */
+			count += clen;
+			if (zero.predot) {
+				c = *cptr;
+				while (isdigit(c)) {
+					PUTC(c);
+					clen--;
+					c = *++cptr;
+				}
+				clen -= zero.predot;
+				while (zero.predot-- > 0) {
+					PUTC('0');
+				}
+			}
+			if (zero.postdot) {
+				do {
+					c = *cptr++;
+					PUTC(c);
+					clen--;
+				} while (c != '.');
+				clen -= zero.postdot;
+				while (zero.postdot-- > 0) {
+					PUTC('0');
+				}
+			}
+			if (zero.trail) {
+				c = *cptr;
+				while (isdigit(c) || c == '.') {
+					PUTC(c);
+					clen--;
+					c = *++cptr;
+				}
+				clen -= zero.trail;
+				while (zero.trail-- > 0) {
+					PUTC('0');
+				}
+			}
+			while (clen-- > 0) {
+				PUTC(*cptr++);
+			}
+
+			/* padding for left justification */
+			if (width > 0) {
+				count += width;
+				while (width-- > 0) {
+					PUTC(' ');
 				}
 			}
 		}
 	}
 	return count;
+
+#undef PUTC
 }

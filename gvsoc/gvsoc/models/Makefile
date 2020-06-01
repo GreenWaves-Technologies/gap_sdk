@@ -21,7 +21,8 @@ VP_DIRS=memory pulp pulp/fll pulp/stdout pulp/chips/pulpissimo cpu/iss \
   pulp/chips/multino pulp/efuse board pulp/chips/arnold \
   devices/hyperbus devices/spiflash vendor/dolphin pulp/chips/pulpissimo_v1 \
   pulp/rtc pulp/gpio pulp/chips/gap_rev1 pulp/chips/pulp_v1 pulp/chips/vivosoc3_1 \
-  pulp/mram pulp/hwce cache pulp/chips/gap8_revc pulp/hwacc devices/uart devices/sound
+  pulp/mram pulp/hwce cache pulp/chips/gap8_revc pulp/hwacc devices/uart devices/sound \
+  devices/testbench
 
 
 -include $(ROOT_VP_BUILD_DIR)/props.mk

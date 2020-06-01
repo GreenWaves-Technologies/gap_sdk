@@ -11,7 +11,7 @@ def generator_template(G, gen):
 #include <stdint.h>
 #include <stdio.h>
 #include "AutoTilerLib.h"
-#include "CNN_Generators.h"
+#include ${gen.cnn_generators()}
 ${gen.extra_includes_generator(indent=0)}
 
 void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory, unsigned int L3Flash)
@@ -21,13 +21,13 @@ void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsi
     // SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
     SetSymbolDynamics();
 
-    SetUsedFilesNames(0, 2, "CNN_BasicKernels.h", "${gen.project_name}.h");
+    SetUsedFilesNames(0, 3, ${gen.extra_includes_kernels(indent=0)}, ${gen.cnn_kernels()}, "${gen.project_name}.h");
     SetGeneratedFilesNames("${gen.project_name}Kernels.c", "${gen.project_name}Kernels.h");
 ${gen.options_generator(indent=1)}
 
 ${gen.memory_device_generator(indent=1)}
 
-    LoadCNNLibrary();
+${gen.load_basic_kernel_library(indent=1)}
 
 ${gen.kernel_generator(indent=1)}
 
@@ -67,7 +67,7 @@ def generator_template_v3(G, gen):
 #include <stdint.h>
 #include <stdio.h>
 #include "AutoTilerLib.h"
-#include "CNN_Generators.h"
+#include ${gen.cnn_generators()}
 ${gen.extra_includes_generator(indent=0)}
 
 void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory, unsigned int L3Flash)
@@ -77,13 +77,14 @@ void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsi
     // SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
     SetSymbolDynamics();
 
-    SetUsedFilesNames(0, 2, "CNN_BasicKernels.h", "${gen.project_name}.h");
+    SetUsedFilesNames(0, 3, ${gen.extra_includes_kernels(indent=0)}, ${gen.cnn_kernels()}, "${gen.project_name}.h");
     SetGeneratedFilesNames("${gen.project_name}Kernels.c", "${gen.project_name}Kernels.h");
 ${gen.options_generator(indent=1)}
 
 ${gen.memory_device_generator(indent=1)}
 
-    LoadCNNLibrary();
+${gen.load_basic_kernel_library(indent=1)}
+    LoadNNTools_Extra_Library();
 
 ${gen.kernel_generator(indent=1)}
 
@@ -121,7 +122,12 @@ int main(int argc, char **argv)
 # pylint: disable=unused-argument
 def generator_template_header(G, gen):
     '''
+#ifndef ${gen.project_name.upper()}_GRAPHINFO_H
+#define ${gen.project_name.upper()}_GRAPHINFO_H
+// Quantized scales can be used round_norm(val * QSCALE, QNORM) giving the real value in Q8
+
 ${gen.header_generator(indent=0)}
+#endif ${gen.project_name.upper()}_GRAPHINFO_H
 '''
 
 def execute_template(template_function, G, naming_convension=None, code_generator=None):

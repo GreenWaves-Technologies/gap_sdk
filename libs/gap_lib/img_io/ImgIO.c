@@ -1,28 +1,15 @@
 /*
- * Copyright 2019 GreenWaves Technologies, SAS
- * * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Copyright (C) 2017 GreenWaves Technologies
+ * All rights reserved.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This software may be modified and distributed under the terms
+ * of the BSD license.  See the LICENSE file for details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include "pmsis.h"
+#include "Gap.h"
 #include "gaplib/ImgIO.h"
-#include "bsp/bsp.h"
-#include "bsp/fs.h"
+#include "stdint.h"
 
-#define PPM_HEADER 40
 
 #define Max(a, b)               (((a)>(b))?(a):(b))
 #define Min(a, b)               (((a)<(b))?(a):(b))
@@ -31,249 +18,299 @@
 
 #define CHUNK_SIZE 8192
 
-#define PRINTF printf
-
 unsigned char *img_rgb888;
+
 
 static void progress_bar(char * OutString, int n, int tot)
 {
-    int tot_chars = 30;
-    PRINTF("%s",OutString);
-    PRINTF(" [");
-    int chars = (n*tot_chars)/tot;
+	int tot_chars = 30;
+	printf("%s",OutString);
+	printf(" [");
+	int chars = (n*tot_chars)/tot;
 
-    for (int i=0; i<tot_chars; i++)
-    {
-        if (i<=chars)
-        {
-            PRINTF("#");
-        }
-        else
-        {
-            PRINTF(" ");
-        }
-    }
-    PRINTF("]");
-    PRINTF("\n");
+	for(int i=0;i<tot_chars;i++){
+		if(i<=chars)
+			printf("#");
+		else printf(" ");
+	}
+	printf("]");
+	printf("\n");
+
 }
 
-static unsigned int SkipComment(unsigned char *Img, unsigned int Ind)
+void SkipCommentAndWhiteSpace(unsigned char *pImg, int buf_len, int *i)
 {
-    while (Img[Ind] == '#')
-    {
-        while (Img[Ind] != '\n')
-        {
-            PRINTF("%c", Img[Ind]);
-            Ind++;
-        }
-        Ind++;
-    }
-    return Ind;
+	int saw_nl = 1;
+	while (*i < buf_len && (pImg[*i] == '#'||pImg[*i] == ' '||pImg[*i] == '\t'||pImg[*i] == '\r'||pImg[*i] == '\n')) {
+		if (saw_nl && pImg[*i] == '#') {
+			while (*i < buf_len && pImg[*i] != '\n') {
+				printf("%c", pImg[*i]);
+				(*i)++;
+			}
+		}
+		saw_nl = (pImg[*i] == '\n');
+		(*i)++;
+	}
 }
 
-static unsigned int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigned int *H, unsigned int *IsRGB)
+unsigned int ReadValue(unsigned char *pImg, int buf_len, int *i)
 {
 #define IS_DIGIT(C) (((C) >= '0') && ((C) <= '9'))
-    unsigned int Val, Ind = 0;
-
-    if ((ImgIn[0] == 'P') && (ImgIn[1] == '5') && (ImgIn[2] == '\n'))
-    {
-        *IsRGB = 0;
-    }
-    else if ((ImgIn[0] == 'P') && (ImgIn[1] == '6') && (ImgIn[2] == '\n'))
-    {
-        *IsRGB = 1;
-    }
-    else
-    {
-        return 0;
-    }
-    Ind = 3;
-
-    Ind=SkipComment(ImgIn, Ind);
-    while (!IS_DIGIT(ImgIn[Ind]))
-    {
-        Ind++;
-    }
-    Val = 0;
-    while (IS_DIGIT(ImgIn[Ind]))
-    {
-        Val = Val*10 + (ImgIn[Ind] - 0x30);
-        Ind++;
-    }
-    *W = Val;
-    Ind=SkipComment(ImgIn, Ind);
-    while (!IS_DIGIT(ImgIn[Ind]))
-    {
-        Ind++;
-    }
-    Val = 0;
-    while (IS_DIGIT(ImgIn[Ind]))
-    {
-        Val = Val*10 + (ImgIn[Ind] - 0x30);
-        Ind++;
-    }
-    *H = Val;
-
-    Ind=SkipComment(ImgIn, Ind);
-    while (!IS_DIGIT(ImgIn[Ind]))
-    {
-        Ind++;
-    }
-    Val = 0;
-    while (IS_DIGIT(ImgIn[Ind]))
-    {
-        Val = Val*10 + (ImgIn[Ind] - 0x30);
-        Ind++;
-    }
-    if (Val != 255)
-    {
-        return 0;
-    }
-    while (ImgIn[Ind] != 0xA)
-    {
-        Ind++;
-    }
-
-    return (Ind+1);
+	unsigned int val = 0;
+	SkipCommentAndWhiteSpace(pImg, buf_len, i);
+	while (*i < buf_len && !IS_DIGIT(pImg[*i])) {
+		(*i)++;
+	}
+	while (*i < buf_len && IS_DIGIT(pImg[*i])) {
+		val = val * 10 + (pImg[*i] - 0x30);
+		(*i)++;
+	}
+	return val;
 #undef IS_DIGIT
 }
 
-static unsigned int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsigned int *IsRGB, unsigned int *HeaderSize)
+static int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderLen, int buf_len)
 {
-    struct pi_fs_conf conf;
-    pi_fs_conf_init(&conf);
-    struct pi_device fs;
+	*W = *H = *BytesPerPixel = *HeaderLen = 0;
 
-    conf.type = PI_FS_HOST;
+	if      (ImgIn[0] == 'P' && ImgIn[1] == '5' && ImgIn[2] == '\n') *BytesPerPixel = 1;
+	else if (ImgIn[0] == 'P' && ImgIn[1] == '6' && ImgIn[2] == '\n') *BytesPerPixel = 3;
+	else return 1;
 
-    pi_open_from_conf(&fs, &conf);
+	int i = 3;
 
-    if (pi_fs_mount(&fs))
-        return -2;
+	*W = ReadValue(ImgIn, buf_len, &i);
+	*H = ReadValue(ImgIn, buf_len, &i);
+	unsigned int Val = ReadValue(ImgIn, buf_len, &i);
 
-    static int Debug = 0;
-    void *File = pi_fs_open(&fs, Name, PI_FS_FLAGS_READ);
-    unsigned int Err = 0;
+	if (Val != 255) return 1;
 
-    *W = 0; *H = 0; *IsRGB = 0; *HeaderSize = 0;
-
-    if (Debug)
-    {
-        PRINTF("File: %s open: %s\n", Name, File?"Ok":"Failed");
-    }
-    if (File)
-    {
-        unsigned char *Header = (unsigned char *) pmsis_l2_malloc(256);
-        Err |= (Header == NULL);
-        if (Err)
-        {
-            return Err;
-        }
-        if (pi_fs_read(File,Header, 256) == 256)
-        {
-            unsigned int i;
-            *HeaderSize = ReadPPMHeader(Header, W, H, IsRGB);
-            if (Debug)
-            {
-                PRINTF("Image %s:  [W: %d, H: %d] %s, HeaderSize: %d\n", Name, *W, *H, *IsRGB?"Color":"Gray", *HeaderSize);
-                for (i=0; i<*HeaderSize; i++)
-                {
-                    PRINTF("%c", Header[i]);
-                }
-                PRINTF("\n");
-            }
-        }
-        else
-        {
-            Err = 2;
-        }
-        pmsis_l2_malloc_free(Header, 256);
-        pi_fs_close(File);
-        pi_fs_unmount(&fs);
-    }
-    return Err;
+	while (ImgIn[i++] != 0xA) {};
+	*HeaderLen = i;
+	return 0;
 }
 
-unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int *H, unsigned char *InBuffer, unsigned int BuffSize)
+static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderSize)
 {
-    void *File = NULL;
-    unsigned int IsRGB, HeaderSize, Size, AlignedSize, ReadSize=0;
-    unsigned char *ImagePtr = 0;
-    int Allocated = 0;
+	*W = 0; *H = 0; *BytesPerPixel = 0; *HeaderSize = 0;
+	switch_fs_t fs;
+	__FS_INIT(fs);
+	switch_file_t File = __OPEN_READ(fs, Name);
 
-    struct pi_fs_conf conf;
-    pi_fs_conf_init(&conf);
-    struct pi_device fs;
+	if (!File) {
+		printf("Unable to open file %s\n", Name);
+		return 1;
+	}
 
-    conf.type = PI_FS_HOST;
+	unsigned int Err = 0;
+	unsigned char *Header = (unsigned char *) gap_allocL2(256);
+	Err |= (Header == 0);
+	if (__READ(File, Header, 256) == 256) {
+		unsigned int i;
+		if (ReadPPMHeader(Header, W, H, BytesPerPixel, HeaderSize, 256)) {
+			printf("Unable to load header %s", Name);
+			Err = 1;
+		} else {
+			printf("Image %s:  [W: %d, H: %d] Bytes per pixel %d, HeaderSize: %d\n", Name, *W, *H, *BytesPerPixel, *HeaderSize);
+			for (i=0; i<*HeaderSize;i++) printf("%c", Header[i]);
+			printf("\n");
+		}
+	} else {
+		printf("Unable to read header %s", Name);
+		Err = 1;
+	}
+	gap_freeL2(Header, 256);
+	__CLOSE(File);
+	__FS_DEINIT(fs);
+	return Err;
+}
 
-    pi_open_from_conf(&fs, &conf);
+static int ReadMultiChannelImageRGB565(switch_file_t File, unsigned short * InBuffer, int W, int H)
+{
+	unsigned int RowSize = W*3;
+	unsigned char InputBuf[RowSize];
+	unsigned short * pInBuffer = InBuffer;
 
-    if (pi_fs_mount(&fs))
-        return NULL;
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize;
+		unsigned char *pInpBuf = InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int j=0, i=0; i < W; i++) {
+			pInBuffer[W * CurRow + i] = ((((uint16_t)InputBuf[j]&0xf8)<<8)|(((uint16_t)InputBuf[j+1]&0xfc)<<3)|(((uint16_t)InputBuf[j+2]&0xf8)>>3));
+            j+=3;
+		}
+	}
+	return 0;
+}
 
-    if (GetInputImageInfos(ImageName, W, H, &IsRGB, &HeaderSize))
-    {
-        PRINTF("Failed to get input images infos, %s\n", ImageName); goto Fail;
-    }
-    if (IsRGB)
-    {
-        PRINTF("Only Gray levels supported, found RGB\n"); goto Fail;
-    }
-    File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_READ);
-    if (File == 0)
-    {
-        PRINTF("Failed to open file, %s\n", ImageName); goto Fail;
-    }
-    Size = (*W)*(*H)*(IsRGB?3:1);
-    if (InBuffer && (BuffSize >= Size))
-    {
-        AlignedSize = Size;
-        ImagePtr = InBuffer;
-    }
-    else
-    {
-        Allocated = 1;
-        AlignedSize = ALIGN(Size, 2);
-        ImagePtr = (unsigned char *) pmsis_l2_malloc(AlignedSize);
-    }
-    if (ImagePtr == 0)
-    {
-        PRINTF("Failed to allocate %d bytes for input image\n", AlignedSize); goto Fail;
-    }
-    pi_fs_seek(File,HeaderSize);
-    {
-        unsigned char *TargetImg = ImagePtr;
-        unsigned int RemainSize = AlignedSize;
+static int ReadMultiChannelImageTranspose2CHW(switch_file_t File, signed char * InBuffer, int W, int H, int BytesPerPixel)
+{
+	unsigned int RowSize = W*BytesPerPixel, ChannelSize = W * H;
+	unsigned char InputBuf[RowSize];
+	signed char * pInBuffer = InBuffer;
 
-        while (RemainSize > 0)
-        {
-            unsigned int Chunk = Min(4096, RemainSize);
-            unsigned R = pi_fs_read(File,TargetImg, Chunk);
-            ReadSize+=R;
-            if (R!=Chunk) break;
-            TargetImg += Chunk; RemainSize -= Chunk;
-        }
-    }
-    if (AlignedSize!=ReadSize)
-    {
-        PRINTF("Error, expects %d bytes but got %d\n", AlignedSize, ReadSize); goto Fail;
-    }
-    pi_fs_close(File);
-    pi_fs_unmount(&fs);
-    PRINTF("Image %s, [W: %d, H: %d], Gray, Size: %d bytes, Loaded sucessfully\n", ImageName, *W, *H, AlignedSize);
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize;
+		unsigned char *pInpBuf = InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int i=0; i < W; i++) {
+			for (int j=0; j < BytesPerPixel; j++) {
+				pInBuffer[ChannelSize * j + W * CurRow + i] = InputBuf[i * BytesPerPixel + j];
+			}
+		}
+	}
+	return 0;
+}
 
-    return (ImagePtr);
+static int ReadMultiChannelImage(switch_file_t File, signed char * InBuffer, int W, int H, int BytesPerPixel)
+{
+	unsigned int RowSize = W*BytesPerPixel, ChannelSize = W * H;
+	unsigned char InputBuf[RowSize];
+	signed char * pInBuffer = InBuffer;
+
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize;
+		unsigned char *pInpBuf = InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int i=0; i < W; i++) {
+			for (int j=0; j < BytesPerPixel; j++) {
+				pInBuffer[RowSize * CurRow + i * BytesPerPixel + j] = InputBuf[i * BytesPerPixel + j];
+			}
+		}
+	}
+	return 0;
+}
+
+static int ReadMultiChannelImageShortTranspose2CHW(switch_file_t File, short int * InBuffer, int W, int H, int BytesPerPixel)
+{
+	unsigned int RowSize = W*BytesPerPixel, ChannelSize = W * H;
+	unsigned char InputBuf[RowSize];
+	short int * pInBuffer = InBuffer;
+
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize;
+		unsigned char *pInpBuf = InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int i=0; i < W; i++) {
+			for (int j=0; j < BytesPerPixel; j++) {
+				pInBuffer[ChannelSize * j + W * CurRow + i] = (short int) (InputBuf[i * BytesPerPixel + j]);
+			}
+		}
+	}
+	return 0;
+}
+
+static int ReadMultiChannelImageShort(switch_file_t File, short int * InBuffer, int W, int H, int BytesPerPixel)
+{
+	unsigned int RowSize = W*BytesPerPixel, ChannelSize = W * H;
+	unsigned char InputBuf[RowSize];
+	short int * pInBuffer = InBuffer;
+
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize;
+		unsigned char *pInpBuf = InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int i=0; i < W; i++) {
+			for (int j=0; j < BytesPerPixel; j++) {
+				pInBuffer[RowSize * CurRow + i * BytesPerPixel + j] = (short int) (InputBuf[i * BytesPerPixel + j]);
+			}
+		}
+	}
+	return 0;
+}
+
+int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int DesiredH, unsigned int DesiredBytesPerPixel, void *InBuffer, unsigned int BuffSize, img_io_out_t out_type, int Transpose2CHW) 
+{
+	switch_file_t File = (switch_file_t) 0;
+	unsigned int BytesPerPixel, W, H, HeaderSize, Size, ReadSize=0;
+
+	if (GetInputImageInfos(ImageName, &W, &H, &BytesPerPixel, &HeaderSize)) {
+		printf("Failed to get input images infos, %s\n", ImageName); goto Fail;
+	}
+	if (BytesPerPixel != DesiredBytesPerPixel) {
+		printf("Expecting %d bytes per pixel image, %s\n", BytesPerPixel, ImageName); goto Fail;
+	}
+	if (DesiredH != H || DesiredW != W) {
+		printf("Expecting [%dx%d] image, got [%dx%d] %s\n", DesiredW, DesiredH, W, H, ImageName); goto Fail;
+	}
+	switch_fs_t fs;
+	__FS_INIT(fs);
+	File = __OPEN_READ(fs, ImageName);
+	if (File == 0) {
+		printf("Failed to open file, %s\n", ImageName); goto Fail;
+	}
+
+	Size = W*H*BytesPerPixel;
+	if (out_type == IMGIO_OUTPUT_RGB565) {
+		if (BuffSize < W*H*2) {
+			printf("Buffer is too small, %s\n", ImageName); goto Fail;
+		}
+	} else {
+		if (BuffSize < Size) {
+			printf("Buffer is too small, %s\n", ImageName); goto Fail;
+		}
+	}
+	__SEEK(File, HeaderSize);
+	int res;
+	switch (out_type) {
+		case IMGIO_OUTPUT_CHAR:
+			if (Transpose2CHW){
+				res = ReadMultiChannelImageTranspose2CHW(File, (signed char *)InBuffer, W, H, BytesPerPixel);
+			} else {
+				res = ReadMultiChannelImage(File, (signed char *)InBuffer, W, H, BytesPerPixel);
+			}
+			break;
+		case IMGIO_OUTPUT_SHORT:
+			if (Transpose2CHW){
+				res = ReadMultiChannelImageShortTranspose2CHW(File, (short int *)InBuffer, W, H, BytesPerPixel);
+			} else {
+				res = ReadMultiChannelImageShort(File, (short int *)InBuffer, W, H, BytesPerPixel);
+			}
+			break;
+		case IMGIO_OUTPUT_RGB565:
+			res = ReadMultiChannelImageRGB565(File, (unsigned short *)InBuffer, W, H);
+			break;
+		default:
+			res = 1;
+	}
+	if (res) {
+		printf("Input ended unexpectedly or bad format, %s\n", ImageName); goto Fail;
+	}
+	__CLOSE(File);
+	__FS_DEINIT(fs);
+	printf("Image %s, [W: %d, H: %d], Bytes per pixel %d, Size: %d bytes, Loaded successfully\n", ImageName, W, H, BytesPerPixel, Size);
+
+	return 0;
 Fail:
-    if (ImagePtr && Allocated)
-    {
-        pmsis_l2_malloc_free(ImagePtr, AlignedSize);
-    }
-    pi_fs_close(File);
-    pi_fs_unmount(&fs);
-    PRINTF("Failed to load image %s from flash\n", ImageName);
-    return 0;
+	__CLOSE(File);
+	__FS_DEINIT(fs);
+	printf("Failed to load image %s from flash\n", ImageName);
+	return 1;
 }
 
 static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned char imgFormat)
@@ -283,7 +320,7 @@ static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned ch
         return ;
 
     unsigned int Ind = 0, x, i, L;
-    unsigned char *Buffer = (unsigned char *) pmsis_l2_malloc(PPM_HEADER * sizeof(unsigned char));
+    unsigned char *Buffer = (unsigned char *) gap_allocL2(PPM_HEADER * sizeof(unsigned char));
 
     /* P5<cr>* */
     Buffer[Ind++] = 0x50;                                   // P
@@ -333,10 +370,10 @@ static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned ch
 
     for (unsigned int a=0; a<Ind; a++)
     {
-        pi_fs_write(FD,&(Buffer[a]), sizeof(unsigned char));
+        __WRITE(FD,&(Buffer[a]), sizeof(unsigned char));
     }
 
-    pmsis_l2_malloc_free(Buffer, PPM_HEADER * sizeof(unsigned char));
+    gap_freeL2(Buffer, PPM_HEADER * sizeof(unsigned char));
 }
 
 static void rgb565_to_rgb888 (unsigned char *input, unsigned int input_size, unsigned char *output )
@@ -346,7 +383,7 @@ static void rgb565_to_rgb888 (unsigned char *input, unsigned int input_size, uns
     unsigned int ind = 0;
 
     // Just a simplest implementation, need to be optimized the performance
-    for (int i = 0; i < input_size; i+=2) {
+    for (unsigned int i = 0; i < input_size; i+=2) {
         pixel = *(unsigned short *) (input + i);
         red = (unsigned short)((pixel & 0xF800) >> 11);  // 5
         green = (unsigned short)((pixel & 0x07E0) >> 5); // 6
@@ -359,20 +396,14 @@ static void rgb565_to_rgb888 (unsigned char *input, unsigned int input_size, uns
     }
 }
 
+
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned char *OutBuffer, unsigned char imgFormat)
 {
-    struct pi_fs_conf conf;
-    pi_fs_conf_init(&conf);
-    struct pi_device fs;
 
-    conf.type = PI_FS_HOST;
+	switch_fs_t fs;
+	__FS_INIT(fs);
 
-    pi_open_from_conf(&fs, &conf);
-
-    if (pi_fs_mount(&fs))
-        return 0;
-
-    void *File = pi_fs_open(&fs, ImageName, PI_FS_FLAGS_WRITE);
+    void *File = __OPEN_WRITE(fs, ImageName);
 
     int ret = 0;
     WritePPMHeader(File,W,H, imgFormat);
@@ -380,23 +411,23 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
     if(imgFormat == RGB565_IO)
     {
         unsigned int rgb888_size = (CHUNK_SIZE/2)*3;     // size of 888 image in byte
-        img_rgb888 = (unsigned char *) pmsis_l2_malloc(rgb888_size);
+        img_rgb888 = (unsigned char *) gap_allocL2(rgb888_size);
 
         int steps = (W*H*PixelSize) / CHUNK_SIZE;             // convert and fs write times
 
         for(int i=0;i<steps;i++){
             progress_bar("Writing image ",i,steps);
             rgb565_to_rgb888(OutBuffer+(CHUNK_SIZE*i), CHUNK_SIZE, img_rgb888);
-            ret+=pi_fs_write(File, img_rgb888, rgb888_size);
+            ret+=__WRITE(File, img_rgb888, rgb888_size);
         }
         if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
         {
             rgb888_size = ((W*H*PixelSize) % CHUNK_SIZE)/2*3;
             rgb565_to_rgb888((OutBuffer+(CHUNK_SIZE*steps)),((W*H*PixelSize) % CHUNK_SIZE) ,img_rgb888);
-            ret+=pi_fs_write(File, img_rgb888, rgb888_size);
+            ret+=__WRITE(File, img_rgb888, rgb888_size);
         }
 
-        pmsis_l2_malloc_free(img_rgb888, (CHUNK_SIZE/2)*3);
+        gap_freeL2(img_rgb888, (CHUNK_SIZE/2)*3);
     }
     else
     {
@@ -404,14 +435,14 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
 
         for(int i=0;i<steps;i++){
             progress_bar("Writing image ",i,steps);
-            ret+=pi_fs_write(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
+            ret+=__WRITE(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
         }
         if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
-            ret+=pi_fs_write(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
+            ret+=__WRITE(File,OutBuffer+(CHUNK_SIZE*steps) , ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
     }
 
-    pi_fs_close(File);
-    pi_fs_unmount(&fs);
+    __CLOSE(File);
+    __FS_DEINIT(fs);
 
     return ret;
 }

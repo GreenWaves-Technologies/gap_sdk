@@ -133,7 +133,7 @@ we need extra padding before the input hence the NCoeefs, 0 part.
 the KER_ARG_TILE_NEXTDB property in the call sequence.
 */
 		Calls(1,
-			Call(KerFirName, LOC_INNER_LOOP,
+			Call(KerFirName, LOC_LOOP,
 				Bindings(7,
 					K_Arg("KerIn", KER_ARG_TILE),
 					K_Arg("KerIn", KER_ARG_TILE_NEXTDB),

@@ -152,11 +152,11 @@ void GeneratorFFT2D(char *Name, unsigned int Dim, int ForceRadix2, int Scalar)
 			TCArg("int16_t * __restrict__", "SwapTable")
 		),
 		Calls(3,
-			Call("Image2Complex", LOC_INNER_LOOP,
+			Call("Image2Complex", LOC_LOOP,
 				Bindings(4, K_Arg("In", KER_ARG_TILE), K_Arg("Out", KER_ARG_TILE), K_Arg("In", KER_ARG_TILE_W), K_Arg("In", KER_ARG_TILE_H))),
-			Call(KerHorizontal, LOC_INNER_LOOP,
+			Call(KerHorizontal, LOC_LOOP,
 				Bindings(4, K_Arg("Out", KER_ARG_TILE), C_Arg("Twiddles"), K_Arg("Out", KER_ARG_TILE_W), K_Arg("Out", KER_ARG_TILE_H))),
-			Call("SwapSamples_2D_Horizontal_Par", LOC_INNER_LOOP,
+			Call("SwapSamples_2D_Horizontal_Par", LOC_LOOP,
 				Bindings(4, K_Arg("Out", KER_ARG_TILE), C_Arg("SwapTable"), K_Arg("Out", KER_ARG_TILE_W), K_Arg("Out", KER_ARG_TILE_H)))
 		),
 		KerArgs(2,
@@ -174,9 +174,9 @@ void GeneratorFFT2D(char *Name, unsigned int Dim, int ForceRadix2, int Scalar)
 			TCArg("int16_t * __restrict__", "SwapTable")
 		),
 		Calls(2,
-			Call(KerVertical, LOC_INNER_LOOP,
+			Call(KerVertical, LOC_LOOP,
 				Bindings(4, K_Arg("InOut", KER_ARG_TILE), C_Arg("Twiddles"), K_Arg("InOut", KER_ARG_TILE_H), K_Arg("InOut", KER_ARG_TILE_W))),
-			Call("SwapSamples_2D_Vertical_Par", LOC_INNER_LOOP,
+			Call("SwapSamples_2D_Vertical_Par", LOC_LOOP,
 				Bindings(4, K_Arg("InOut", KER_ARG_TILE), C_Arg("SwapTable"), K_Arg("InOut", KER_ARG_TILE_H), K_Arg("InOut", KER_ARG_TILE_W)))
 		),
 		KerArgs(1,

@@ -194,9 +194,9 @@ typedef KerConv_fps_T KerConvDW_fps_T;		/* Alias to separate regular conv from d
 /* Double precision */
 typedef struct {
 	short int * __restrict__ In;    	/**< Pointer to input tile  */
-	unsigned short int W;	   	/**< Width of the input tile */
+	unsigned short int W;	 	  	/**< Width of the input tile */
 	unsigned short int UsedW;	   	/**< Part of the input width to be used */
-	unsigned short int H;	   	/**< Height of the input tile */
+	unsigned short int H;	   		/**< Height of the input tile */
 	unsigned short int UsedH;	   	/**< Part of the input height to be used */
 	unsigned short int InFeatures;		/**< Number of output features, used for channel parallel kernels */
 	unsigned short int OutFeatures;		/**< Number of output features, used for channel parallel kernels */
@@ -216,9 +216,9 @@ typedef struct {
 
 typedef struct {
 	signed char * __restrict__ In;    	/**< Pointer to input tile  */
-	unsigned short int W;	   	/**< Width of the input tile */
+	unsigned short int W;	   		/**< Width of the input tile */
 	unsigned short int UsedW;	   	/**< Part of the input width to be used */
-	unsigned short int H;	   	/**< Height of the input tile */
+	unsigned short int H;	   		/**< Height of the input tile */
 	unsigned short int UsedH;	   	/**< Part of the input height to be used */
 	unsigned short int InFeatures;		/**< Number of output features, used for channel parallel kernels */
 	unsigned short int OutFeatures;		/**< Number of output features, used for channel parallel kernels */
@@ -250,7 +250,7 @@ typedef struct {
 	signed char NormBias;			/**< Bias to ConvOut correction factor */
 	unsigned short int InFeatures;		/**< Number of channels, used only for channel parallel kernels */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	short int * __restrict__ MulBias;	/**< Output Multiplicative bias */
 } KerDP_fp_T;
 
@@ -263,7 +263,7 @@ typedef struct {
 	signed char NormBias;			/**< Precision of the multiplicative bias */
 	unsigned short int InFeatures;		/**< Number of channels, used only for channel parallel kernels */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	signed char * __restrict__ MulBias;	/**< Output Multiplicative bias */
 } KerDP_fps_T;
 
@@ -292,7 +292,7 @@ typedef struct {
 	unsigned char Sy;		/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;		/**< Dilation Dy, used only if Dx!=Dy */
 	int LB;				/**< Lower bound for the output */
-	int UB;				/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;				/**< Upper bound for the output */
 } KerReLUPool_fp_T;
 
 typedef struct {
@@ -342,7 +342,7 @@ typedef struct {
 	unsigned char Sy;		/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;		/**< Dilation Dy, used only if Dx!=Dy */
 	int LB;				/**< Lower bound for the output */
-	int UB;				/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;				/**< Upper bound for the output */
 } KerReLUPool_fps_T;
 
 typedef struct {
@@ -388,7 +388,7 @@ typedef struct {
 	unsigned char Norm;			/**< Normalization factor */
 	signed char NormBias;			/**< Bias Normalization factor */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_T;
 
 typedef struct {
@@ -402,7 +402,7 @@ typedef struct {
 	unsigned char Norm;			/**< Normalization factor */
 	signed char NormBias;			/**< Bias Normalization factor */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fps_T;
 
 typedef struct {
@@ -416,7 +416,7 @@ typedef struct {
 	unsigned char Norm;			/**< Normalization factor */
 	signed char NormBias;			/**< Normalization factor for the bias */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_fps_fp_T;
 
 typedef struct {
@@ -430,8 +430,22 @@ typedef struct {
 	unsigned char Norm;			/**< Normalization factor */
 	signed char NormBias;			/**< Normalization factor for the bias */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fps_fps_fp_T;
+
+typedef struct {
+	signed char * __restrict__ In;		/**< Pointer to input tile */
+	unsigned short int InSize;		/**< Size of the the tile */
+	unsigned short int TotalInSize;		/**< Total input size in case parallelization is performed on outputs */
+	unsigned short int OutSize;		/**< Size of the output tile */
+	signed char * __restrict__ Filter;	/**< Pointer to filter tile, width is TotalInSize */
+	signed char * __restrict__ Bias;	/**< Pointer to bias tile, size is OutSize */
+	int * __restrict__ Out;			/**< Pointer to output tile, size if OutSize */
+	unsigned char Norm;			/**< Normalization factor */
+	signed char NormBias;			/**< Normalization factor for the bias */
+	int LB;					/**< Lower bound for the output */
+	int UB;					/**< Upper bound for the output */
+} KerLinearLayerReLU_fps_fps_fpd_T;
 
 typedef struct {
 	short int * __restrict__ In;		/**< Pointer to input tile */
@@ -444,7 +458,7 @@ typedef struct {
 	unsigned char Norm;			/**< Normalization factor */
 	signed char NormBias;			/**< Normalization factor for the bias */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 } KerLinearLayerReLU_fp_fp_fpd_T;
 
 typedef struct {
@@ -476,7 +490,7 @@ typedef struct {
         short int * __restrict__ Bias;		/**< Pointer to Bias */
         short int * __restrict__ Out;		/**< Pointer to Out */
         int LB;					/**< Min output value */
-        int UB;					/**< Max output value or pointer to upper bound vector if RELUN_VECTOR */
+        int UB;					/**< Max output value */
         char Norm;				/**< Precision, input/output/filter */
         signed char NormBias;			/**< Bias precision */
         char Oper;				/**< Activation operation after linear layer, see CNN_Activation_Oper_T */
@@ -487,7 +501,7 @@ typedef struct {
         signed char * __restrict__ Bias;	/**< Pointer to Bias */
         signed char * __restrict__ Out;		/**< Pointer to Out */
         int LB;					/**< Min output value */
-        int UB;					/**< Max output value or pointer to upper bound vector if RELUN_VECTOR */
+        int UB;					/**< Max output value */
         char Norm;				/**< Precision, input/output/filter */
         signed char NormBias;			/**< Bias precision */
         char Oper;				/**< Activation operation after linear layer, see CNN_Activation_Oper_T */
@@ -505,7 +519,7 @@ typedef struct {
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of (input, input, output) */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 	unsigned char In1_Q;			/**< In1 quantization */
 	unsigned char In2_Q;			/**< In2 quantization */
 	unsigned char Out_Q;			/**< Out quantization */
@@ -519,7 +533,7 @@ typedef struct {
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of (input, input, output) */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 	unsigned char In1_Q;			/**< In1 quantization */
 	unsigned char In2_Q;			/**< In2 quantization */
 	unsigned char Out_Q;			/**< Out quantization */
@@ -533,7 +547,7 @@ typedef struct {
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of channels/features */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 	short int *__restrict__ ScaleScalar;	/**< Pointer to optional Scalar value to be applied to all channels */
 	unsigned char Scale_Q;			/**< Scalar fixed point format */
 	unsigned char Norm;			/**< Normalization factor to be applied to result */
@@ -547,7 +561,7 @@ typedef struct {
 	unsigned short int H;			/**< Input Height */
 	unsigned short int N;			/**< Number of channels/features */
 	int LB;					/**< Lower bound for the output */
-	int UB;					/**< Upper bound for the output or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< Upper bound for the output */
 	signed char *__restrict__ ScaleScalar;	/**< Pointer to optional Scalar value to be applied to all channels */
 	unsigned char Scale_Q;			/**< Scalar fixed point format */
 	unsigned char Norm;			/**< Normalization factor to be applied to result */
@@ -566,7 +580,7 @@ typedef struct {
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	short int * __restrict__ BufferColIn2;	/**< In case vectorization is used will be used to copy a column of In2 into a line */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
 	signed char NormBias;			/**< Precision of the bias */
 	unsigned char NormMulBias;		/**< Precision of the multiplicative bias */
@@ -590,7 +604,7 @@ typedef struct {
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	short int * __restrict__ BufferColIn2;	/**< In case vectorization is used will be used to copy a column of In2 into a line */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
 	signed char NormBias;			/**< Precision of the bias */
 	unsigned char NormMulBias;		/**< Precision of the multiplicative bias */
@@ -614,7 +628,7 @@ typedef struct {
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	signed char * __restrict__ BufferColIn2;/**< In case vectorization is used will be used to copy a column of In2 into a line */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
 	signed char NormBias;			/**< Precision of the bias */
 	unsigned char NormMulBias;		/**< Precision of the multiplicative bias */
@@ -638,7 +652,7 @@ typedef struct {
 	unsigned short int OutFirstCol;       	/**< Equal M2FirstCol */
 	signed char * __restrict__ BufferColIn2;/**< In case vectorization is used will be used to copy a column of In2 into a line */
 	int LB;					/**< If Out<LB then Out=LB */
-	int UB;					/**< If Out>UB then Out=UB or pointer to upper bound vector if RELUN_VECTOR */
+	int UB;					/**< If Out>UB then Out=UB */
 	unsigned char Norm;			/**< Fixed point format */
 	signed char NormBias;			/**< Precision of the bias */
 	unsigned char NormMulBias;		/**< Precision of the multiplicative bias */
@@ -1267,12 +1281,10 @@ extern void KerConvNxMDxDyStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg);
    Feature maps of bytes (_fps) or half words (_fp)
 */
 extern void KerParReLU_fp(KerReLUPool_fp_T *Arg);
-extern void KerParReLUN_Vector_fp(KerReLUPool_fp_T *Arg);
 extern void KerParHswish_fp(KerReLUPool_fp_T *Arg);
 extern void KerParHsigmoid_fp(KerReLUPool_fp_T *Arg);
 
 extern void KerParReLU_fps(KerReLUPool_fps_T *Arg);
-extern void KerParReLUN_Vector_fps(KerReLUPool_fps_T *Arg);
 extern void KerParHswish_fps(KerReLUPool_fps_T *Arg);
 extern void KerParHsigmoid_fps(KerReLUPool_fps_T *Arg);
 
@@ -1280,9 +1292,7 @@ extern void KerParHsigmoid_fps(KerReLUPool_fps_T *Arg);
    Feature maps of bytes (_fps) or half words (_fp)
 */
 extern void KerReLU_fp(KerReLUPool_fp_T *Arg);
-extern void KerReLUN_Vector_fp(KerReLUPool_fp_T *Arg);
 extern void KerReLU_fps(KerReLUPool_fps_T *Arg);
-extern void KerReLUN_Vector_fps(KerReLUPool_fps_T *Arg);
 
 /******************************************************************************************************************************/
 /**************** DOUBLE PRECISION TO SINGLE PRECISION REDUCTION **************************************************************/
@@ -1293,26 +1303,20 @@ extern void KerReLUN_Vector_fps(KerReLUPool_fps_T *Arg);
 
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints */
 extern void KerDP_fp(KerDP_fp_T *Arg);
-extern void KerDP_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location */
 extern void KerDP_IO_fp(KerDP_fp_T *Arg);
-extern void KerDP_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints,
    same MulBias applied to all out channels */
 extern void KerDPMulBiasScalar_fp(KerDP_fp_T *Arg);
-extern void KerDPMulBiasScalar_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location,
    same MulBias applied to all out channels */
 extern void KerDPMulBiasScalar_IO_fp(KerDP_fp_T *Arg);
-extern void KerDPMulBiasScalar_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints,
    each out channel has its own MulBias */
 extern void KerDPMulBias_fp(KerDP_fp_T *Arg);
-extern void KerDPMulBias_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to same location,
    each out channel has its own MulBias */
 extern void KerDPMulBias_IO_fp(KerDP_fp_T *Arg);
-extern void KerDPMulBias_IO_ReLUN_Vector_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints
    out is (in * ReLU6(in+3))/6 */
 extern void KerDP_hswish_fp(KerDP_fp_T *Arg);
@@ -1334,26 +1338,20 @@ extern void KerDP_IO_leakyrelu_fp(KerDP_fp_T *Arg);
 
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints */
 extern void KerDP_fps(KerDP_fps_T *Arg);
-extern void KerDP_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location */
 extern void KerDP_IO_fps(KerDP_fps_T *Arg);
-extern void KerDP_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints,
    same MulBias applied to all out channels */
 extern void KerDPMulBiasScalar_fps(KerDP_fps_T *Arg);
-extern void KerDPMulBiasScalar_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location,
    same MulBias applied to all out channels */
 extern void KerDPMulBiasScalar_IO_fps(KerDP_fps_T *Arg);
-extern void KerDPMulBiasScalar_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints,
    each out channel has its own MulBias */
 extern void KerDPMulBias_fps(KerDP_fps_T *Arg);
-extern void KerDPMulBias_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to same location,
    each out channel has its own MulBias */
 extern void KerDPMulBias_IO_fps(KerDP_fps_T *Arg);
-extern void KerDPMulBias_IO_ReLUN_Vector_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints
    out is (in * ReLU6(in+3))/6 */
 extern void KerDP_hswish_fps(KerDP_fps_T *Arg);
@@ -1441,15 +1439,10 @@ extern void KerPoolNxMStrideSxSy_fps(KerReLUPool_fps_T *Arg);
 
 /* A single output is evaluated in parallel on all cores */
 extern void KerLinearLayerReLU_fp(KerLinearLayerReLU_fp_T *Arg);
-extern void KerLinearLayerReLUN_Vector_fp(KerLinearLayerReLU_fp_T *Arg);
 extern void KerLinearLayerReLU_fps(KerLinearLayerReLU_fps_T *Arg);
-extern void KerLinearLayerReLUN_Vector_fps(KerLinearLayerReLU_fps_T *Arg);
 extern void KerLinearLayerReLU_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg);
-extern void KerLinearLayerReLUN_Vector_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg);
 extern void KerLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg);
-extern void KerLinearLayerReLUN_Vector_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg);
 extern void KerLinearLayerReLU_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg);
-extern void KerLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg);
 
 /* A single output is evaluated in parallel on all cores, double precision output, need reduction step after */
 extern void KerDPLinearLayer_fp(KerDPLinearLayer_fp_T *Arg);
@@ -1460,21 +1453,17 @@ extern void KerDPLinearLayerReduct_fps(KerDPLinearLayerReduct_fps_T *Arg);
 
 /* Several output are evaluated in parallel, one per core */
 extern void KerParLinearLayerReLU_fp(KerLinearLayerReLU_fp_T *Arg);
-extern void KerParLinearLayerReLUN_Vector_fp(KerLinearLayerReLU_fp_T *Arg);
 extern void KerParLinearLayerHswish_fp(KerLinearLayerReLU_fp_T *Arg);
 extern void KerParLinearLayerHsigmoid_fp(KerLinearLayerReLU_fp_T *Arg);
 
 extern void KerParLinearLayerReLU_fps(KerLinearLayerReLU_fps_T *Arg);
-extern void KerParLinearLayerReLUN_Vector_fps(KerLinearLayerReLU_fps_T *Arg);
 extern void KerParLinearLayerHswish_fps(KerLinearLayerReLU_fps_T *Arg);
 extern void KerParLinearLayerHsigmoid_fps(KerLinearLayerReLU_fps_T *Arg);
 
 extern void KerParLinearLayerReLU_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg);
-extern void KerParLinearLayerReLUN_Vector_fps_fps_fp(KerLinearLayerReLU_fps_fps_fp_T *Arg);
+extern void KerParLinearLayerReLU_fps_fps_fpd(KerLinearLayerReLU_fps_fps_fpd_T *Arg);
 extern void KerParLinearLayerReLU_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg);
-extern void KerParLinearLayerReLUN_Vector_fp_fps_fp(KerLinearLayerReLU_fp_fps_fp_T *Arg);
 extern void KerParLinearLayerReLU_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg);
-extern void KerParLinearLayerReLUN_Vector_fp_fp_fpd(KerLinearLayerReLU_fp_fp_fpd_T *Arg);
 
 
 /******************************************************************************************************************************/
@@ -1491,73 +1480,51 @@ extern void KerParMatAddReLU_fp(KerMat3_fp_T *Arg);
 extern void KerParMatAddReLU_fps(KerMat3_fps_T *Arg);
 
 extern void KerParMatMul_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMul_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulSxSy_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulSxSy_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMul_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMul_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMulSxSy_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulScaleScalar_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScaleScalar_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScaleScalarSxSy_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScaleScalarSxSy_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScaleScalar_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMulScaleScalar_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulScaleScalarSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMulScaleScalarSxSy_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulScale_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScale_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScaleSxSy_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScaleSxSy_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScale_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMulScale_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulScaleSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
-extern void KerParMatMulScaleSxSy_ReLUN_Vector_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMul_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMul_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulSxSy_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulSxSy_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMul_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMul_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulSxSy_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMulSxSy_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulScaleScalar_fps(KerMatMul_fps_T *Arg);
 extern void KerParMatMulScaleScalarSxSy_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulScaleScalar_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMulScaleScalar_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulScaleScalarSxSy_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMulScaleScalarSxSy_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulScale_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulScale_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulScaleSxSy_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulScaleSxSy_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulScale_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMulScale_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulScaleSxSy_fp_fps(KerMatMul_fp_fps_T *Arg);
-extern void KerParMatMulScaleSxSy_ReLUN_Vector_fp_fps(KerMatMul_fp_fps_T *Arg);
 
 extern void KerParMatMulHswish_fp(KerMatMul_fp_T *Arg);
 extern void KerParMatMulHswishSxSy_fp(KerMatMul_fp_T *Arg);
@@ -1575,48 +1542,36 @@ extern void KerParMatMulLeakyrelu_fps(KerMatMul_fps_T *Arg);
 extern void KerParMatMulLeakyreluSxSy_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulSmallFeat_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulSmallFeat_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulHswishSmallFeat_fp(KerMatMul_fp_T *Arg);
 extern void KerParMatMulHsigmoidSmallFeat_fp(KerMatMul_fp_T *Arg);
 extern void KerParMatMulLeakyreluSmallFeat_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScaleScalarSmallFeat_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScaleScalarSmallFeat_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulScaleSmallFeat_fp(KerMatMul_fp_T *Arg);
-extern void KerParMatMulScaleSmallFeat_ReLUN_Vector_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulSmallFeat_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulSmallFeat_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulHswishSmallFeat_fps(KerMatMul_fps_T *Arg);
 extern void KerParMatMulHsigmoidSmallFeat_fps(KerMatMul_fps_T *Arg);
 extern void KerParMatMulLeakyreluSmallFeat_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulScaleScalarSmallFeat_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulScaleScalarSmallFeat_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulScaleSmallFeat_fps(KerMatMul_fps_T *Arg);
-extern void KerParMatMulScaleSmallFeat_ReLUN_Vector_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatScaleVector_fp(KerMatScale_fp_T *Arg);
-extern void KerParMatScaleVector_ReLUN_Vector_fp(KerMatScale_fp_T *Arg);
 
 extern void KerParMatScaleVector_fps(KerMatScale_fps_T *Arg);
-extern void KerParMatScaleVector_ReLUN_Vector_fps(KerMatScale_fps_T *Arg);
 
 extern void KerParMatScaleScalar_fp(KerMatScale_fp_T *Arg);
-extern void KerParMatScaleScalar_ReLUN_Vector_fp(KerMatScale_fp_T *Arg);
 
 extern void KerParMatScaleScalar_fps(KerMatScale_fps_T *Arg);
-extern void KerParMatScaleScalar_ReLUN_Vector_fps(KerMatScale_fps_T *Arg);
 
 extern void KerParMatScaleVectorScalar_fp(KerMatScale_fp_T *Arg);
-extern void KerParMatScaleVectorScalar_ReLUN_Vector_fp(KerMatScale_fp_T *Arg);
 
 extern void KerParMatScaleVectorScalar_fps(KerMatScale_fps_T *Arg);
-extern void KerParMatScaleVectorScalar_ReLUN_Vector_fps(KerMatScale_fps_T *Arg);
 
 extern void CNN_ParTranspose_fps(KerMatTranspose_fps_T *Arg);
 extern void CNN_ParTransposeSxSy_fps(KerMatTranspose_fps_T *Arg);

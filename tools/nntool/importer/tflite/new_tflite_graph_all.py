@@ -32,6 +32,8 @@
 # };
 
 import logging
+import os
+from copy import deepcopy
 from functools import reduce
 
 import numpy as np
@@ -44,11 +46,25 @@ from graph.types import (ActivationParameters, ConcatParameters,
                          Conv2DParameters, FcParameters, GlobalPoolParameters,
                          MatrixAddParameters, MatrixDivParameters,
                          MatrixMulParameters, MatrixSubParameters, NNEdge,
-                         PadParameters, PoolingParameters, ReshapeParameters,
-                         SoftMaxParameters, UnconvertedOpParameters,
-                         UnknownOpParameters)
-from quantization.quantization_record import (FilterQuantizationRecord,
-                                              QuantizationRecord)
+                         NoOPParameters, PadParameters, PoolingParameters,
+                         ReshapeParameters, SoftMaxParameters,
+                         UnconvertedOpParameters, UnknownOpParameters)
+from quantization.multiplicative.asymmetric.asymmetric_mult_qtype import \
+    AsymmetricMultQType
+from quantization.multiplicative.mult_quantization import (
+    MultAddQuantizationRecord, MultConstantQuantizationRecord,
+    MultQuantizationRecord, MultQuantizationRecordBase,
+    MultScalableFilterQuantizationRecord)
+from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import \
+    MultMulBiasScaleQType
+from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
+    SymmetricMultBiasesQType
+from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
+    SymmetricMultQType
+from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import \
+    SymmetricMultQTypeWrapper
+from quantization.quantization_set import QuantizationSet
+from utils.add_sys_path import add_sys_path
 from utils.graph import Node
 from utils.node_id import NodeId
 from utils.sparse_list import SparseList
@@ -56,7 +72,6 @@ from utils.sparse_list import SparseList
 from ..importer_base import ImporterBase
 from . import utils
 from .propagate_hints import propagate_hints
-from .tflite_qtype import TfliteQType
 from .tflite_schema_head import (ActivationFunctionType, AddOptions,
                                  ConcatenationOptions, Conv2DOptions,
                                  DepthwiseConv2DOptions, DivOptions,
@@ -84,11 +99,17 @@ TF_ACTIVATIONS = {
 }
 
 TF_ACTIVATION_OPERATORS = {
-    "LOGISTIC": "sigmoid",
+    "LOGISTIC": "hsigmoid",
     "RELU": "relu",
     "RELU6": "relu6",
     "TANH": "tanh",
     "HARD_SWISH": "hswish"
+}
+
+UNDIGNED_TO_SIGNED = {
+    np.uint8: np.int8,
+    np.uint16: np.int16,
+    np.uint32: np.int32
 }
 
 
@@ -289,12 +310,12 @@ def get_fin_cput_size(subgraph, elem, idx):
 
 class TfliteTensorWrapper():
     TF_TO_NUMPY_TYPE = {
-        TensorType.TensorType.FLOAT32: np.dtype('<f4'),
-        TensorType.TensorType.FLOAT16: np.dtype('<f2'),
-        TensorType.TensorType.INT32: np.dtype('<i4'),
-        TensorType.TensorType.UINT8: np.dtype('<u1'),
-        TensorType.TensorType.INT8: np.dtype('<i1'),
-        TensorType.TensorType.INT64: np.dtype('<i8')
+        TensorType.TensorType.FLOAT32: np.float32,
+        TensorType.TensorType.FLOAT16: np.float16,
+        TensorType.TensorType.INT32: np.int32,
+        TensorType.TensorType.UINT8: np.uint8,
+        TensorType.TensorType.INT8: np.int8,
+        TensorType.TensorType.INT64: np.int64
     }
 
     def __init__(self, tensor):
@@ -353,23 +374,65 @@ class TfliteTensorWrapper():
         return self.TF_TO_NUMPY_TYPE[self._tensor.Type()]
 
     @property
+    def scale(self):
+        return self._tensor.Quantization().ScaleAsNumpy()
+
+    @property
+    def zero_point(self):
+        return self._tensor.Quantization().ZeroPointAsNumpy()
+
+    @property
+    def min_val(self):
+        return self._tensor.Quantization().MinAsNumpy()
+
+    @property
+    def max_val(self):
+        return self._tensor.Quantization().MaxAsNumpy()
+
+    @property
+    def is_uint_symmetric(self):
+        quant = self._tensor.Quantization()
+        if quant is not None:
+            return (self.dtype == np.uint8 or self.dtype == np.uint16 or self.dtype == np.uint32) and \
+                np.all(quant.ZeroPointAsNumpy() == 128)
+        return False
+
+    @property
     def qtype(self):
-        if self._tensor.Quantization() is not None:
-            return TfliteQType(self._tensor.Quantization(), self.dtype)
+        quant = self._tensor.Quantization()
+        if quant is not None:
+            if quant.ScaleLength() == 0 and quant.MinLength() == 0 and\
+                    quant.MaxLength() == 0 and quant.ZeroPointLength() == 0:
+                return None
+            if self.dtype == np.uint8 or self.dtype == np.uint16 or self.dtype == np.uint32:
+                if np.all(quant.ZeroPointAsNumpy() == 128):
+                    return SymmetricMultQType.from_tflite(quant, self.dtype)
+                return SymmetricMultQTypeWrapper(AsymmetricMultQType.from_tflite(quant,
+                                                                                 self.dtype))
+            elif self.dtype == np.int8 or self.dtype == np.int16 or self.dtype == np.int32:
+                if np.all(quant.ZeroPointAsNumpy() == 0):
+                    return SymmetricMultQType.from_tflite(quant, self.dtype)
+                return SymmetricMultQTypeWrapper(AsymmetricMultQType.from_tflite(quant,
+                                                                                 self.dtype))
+            return None
         return None
 
     def is_constant(self, model):
-        return self.buffer_idx == 0 or model.Buffers(self.buffer_idx).DataLength() != 0
+        return self.buffer_idx != 0 and model.Buffers(self.buffer_idx).DataLength() != 0
 
     def get_value(self, model):
         tf_buffer = model.Buffers(self.buffer_idx)
-        np_buffer = np.frombuffer(tf_buffer.DataAsNumpy(), dtype=self.dtype)
+        np_buffer = np.frombuffer(tf_buffer.DataAsNumpy(), dtype=self.dtype().newbyteorder('L'))
         np_buffer = np.resize(np_buffer, self.shape)
         return np_buffer
 
     def shape_as(self, order):
         assert len(order) == len(self.shape), "tensor does not have correct number of dimensions"
         return {k: v for k, v in zip(order, self.shape)}
+
+
+class NoQuantizationError(Exception):
+    pass
 
 
 class TfliteImporter(ImporterBase):
@@ -380,21 +443,44 @@ class TfliteImporter(ImporterBase):
         self.tensors = None
         self.load_quantization = False
         self.load_tensors = False
-        self.qrecs = {}
+        self.load_dequantized = False
+        self.qrecs = QuantizationSet()
+        self.rescale_perchannel = True
 
     def fuse_activation(self, tfl_opts, name: str, node: Node):
-        if tfl_opts.FusedActivationFunction() == ActivationFunctionType.ActivationFunctionType.NONE:
-            return add_node(self.G, node)
-
-        activation = TF_ACTIVATIONS[tfl_opts.FusedActivationFunction()]
-        anode = ActivationParameters(aname(name), activation)
-        if self.load_quantization:
+        if NodeId(node) in self.qrecs:
             node_qrec = self.qrecs[NodeId(node)]
-            self.qrecs[NodeId(anode)] = QuantizationRecord(
-                in_qs=[node_qrec.out_qs[0]], out_qs=[node_qrec.out_qs[0]])
+        else:
+            node_qrec = None
+        if tfl_opts.FusedActivationFunction() == ActivationFunctionType.ActivationFunctionType.NONE:
+            if node_qrec is not None and isinstance(node_qrec, MultQuantizationRecordBase):
+                # here we have no activation in an asymmetric qtype -> may be an omitted relu
+                if node_qrec.out_qs[0].min_val == 0:
+                    if np.all(np.round(node_qrec.out_qs[0].max_val) == 6):
+                        anode = ActivationParameters.get_activation('relu6', aname(name))
+                    else:
+                        anode = ActivationParameters.get_activation('relu', aname(name))
+                else:
+                    return add_node(self.G, node)
+            else:
+                return add_node(self.G, node)
+        else:
+            anode = ActivationParameters.get_activation(TF_ACTIVATIONS[tfl_opts.FusedActivationFunction()],
+                                                        aname(name))
+
+        if self.load_quantization:
+            # In between the fused operation and activation the
+            # transfer is in int32 representation
+            node_qrec = self.qrecs[NodeId(node)]
+            outa_qtype = deepcopy(node_qrec.out_qs[0])
+            #node_qrec.out_qs[0].dtype = np.int32
+            ina_qtype = deepcopy(node_qrec.out_qs[0])
+            self.qrecs[NodeId(anode)] = MultQuantizationRecord(
+                in_qs=[ina_qtype], out_qs=[outa_qtype])
         return add_node(self.G, node, anode=anode)
 
     def add_unconverted(self, name, subgraph, op_name, op):
+        LOG.warning("graph has unknown operator %s and cannot be properly processed", op_name)
         node = add_node(self.G,
                         UnconvertedOpParameters(
                             name,
@@ -408,6 +494,182 @@ class TfliteImporter(ImporterBase):
                             }
                         ))
         return node
+
+    def make_weights_symmetric(self, node, input_tensors):
+        biases_scales = input_tensors[2].scale if node.has_bias else np.array([1], dtype=np.int32)
+        # already symmetric or something we don't know
+        if input_tensors[1].dtype != np.uint8:
+            return input_tensors[1].scale, biases_scales, None, None
+        weights_scales = input_tensors[1].scale
+        # symmetric unsigned. just change zero point scale stays the same
+        if np.all(input_tensors[1].zero_point == 128):
+            node.weights = (node.weights.astype(np.int64) - 128).astype(np.int8)
+            return weights_scales, biases_scales, None, None
+        # asymmetric unsigned. change zero point and rescale
+        if self.rescale_perchannel:
+            return self.scale_weights_by_channel(node, weights_scales, biases_scales,
+                                                 input_tensors[0].qtype.scale,
+                                                 zero_point=input_tensors[1].zero_point)
+        else:
+            return self.scale_weights_by_tensor(node, weights_scales, biases_scales,
+                                                input_tensors[0].qtype.scale,
+                                                zero_point=input_tensors[1].zero_point)
+
+    def scale_weights_by_tensor(self, node, weights_scales, biases_scales, in_scale, zero_point=None):
+        if zero_point is None:
+            zero_point = np.array([0])
+        if node.has_bias:
+            dq_biases = node.biases * biases_scales
+        else:
+            dq_biases = np.array([0] * node.filter.out_c, dtype=np.float32)
+
+        if len(weights_scales) > 1:
+            raise ValueError('You should not rescale perchannel weights to pertensor format')
+
+        dq_weights = (node.weights.astype(np.float32) - zero_point) * weights_scales
+        w_min = min(np.min(dq_weights), 0)
+        w_max = max(np.max(dq_weights), 0)
+        w_max = w_max if w_min != w_max and w_max == 0 else 1
+
+        w_abs_max = max(w_max, np.abs(w_min))
+        new_weights_scale = w_abs_max / 127
+        int8_iinfo = np.iinfo(np.int8)
+        int32_iinfo = np.iinfo(np.int32)
+        new_biases_scale = new_weights_scale * in_scale
+        node.weights = np.clip(np.floor(dq_weights / new_weights_scale + 0.5),
+                               int8_iinfo.min,
+                               int8_iinfo.max).astype(np.int8)
+        node.biases = np.clip(np.floor(dq_biases / new_biases_scale + 0.5),
+                              int32_iinfo.min,
+                              int32_iinfo.max).astype(np.int32)
+        return np.array([new_weights_scale]), np.array([new_biases_scale]),\
+            np.array([w_min]), np.array([w_max])
+
+    def scale_weights_by_channel(self, node, weights_scales, biases_scales, in_scale, zero_point=None):
+        # scale weights by channel optionally correcting zero point
+        if zero_point is None:
+            zero_point = np.array([0])
+
+        out_idx = node.filter.get_order_idx('out_c')
+        actual_len = len(node.filter.actual_shape)
+        ones_shape = tuple(node.filter.out_c if idx == out_idx else 1 for idx in range(actual_len))
+        filter_axis = tuple(idx for idx in range(actual_len) if idx != out_idx)
+
+        if node.has_bias:
+            dq_biases = node.biases * biases_scales
+        else:
+            dq_biases = np.array([0] * node.filter.out_c, dtype=np.float32)
+
+        if len(weights_scales) > 1:
+            weights_scales = weights_scales.reshape(ones_shape)
+        if len(zero_point) > 1:
+            zero_point = zero_point.reshape(ones_shape)
+        dq_weights = (node.weights.astype(np.float32) - zero_point) * weights_scales
+
+        w_mins = np.minimum(np.min(dq_weights, axis=filter_axis), 0)
+        w_maxes = np.maximum(np.max(dq_weights, axis=filter_axis), 0)
+
+        w_zero_cond = np.logical_and(w_mins == w_maxes, w_maxes == 0)
+        w_maxes = np.where(w_zero_cond, 1, w_maxes)
+
+        w_abs_maxes = np.maximum(np.abs(w_mins), w_maxes)
+        new_weights_scales = w_abs_maxes / 127
+        int8_iinfo = np.iinfo(np.int8)
+        int32_iinfo = np.iinfo(np.int32)
+        new_biases_scales = new_weights_scales * in_scale
+        np.seterr(all='raise')
+        node.weights = np.clip(np.floor(dq_weights / new_weights_scales.reshape(ones_shape) + 0.5),
+                               int8_iinfo.min,
+                               int8_iinfo.max).astype(np.int8)
+        node.biases = np.clip(np.floor(dq_biases / new_biases_scales + 0.5),
+                              int32_iinfo.min,
+                              int32_iinfo.max).astype(np.int32)
+        return new_weights_scales, new_biases_scales, w_mins, w_maxes
+
+    def detect_small_scales(self, node, weights_scales, biases_scales, in_scale):
+        # at this point all tensors are in expected formats
+        # weights int8 biases int32 channel scaled
+        tiny_weight_scales = weights_scales < SymmetricMultQType.kNearZeroTolerance
+        if np.count_nonzero(tiny_weight_scales) == 0:
+            return weights_scales, biases_scales
+
+        out_idx = node.filter.get_order_idx('out_c')
+        shape = tuple(slice(None) if idx !=
+                      out_idx else tiny_weight_scales for idx in range(len(node.weights.shape)))
+
+        node.weights[shape] = 0
+        dq_biases = node.biases * biases_scales
+        weights_scales = np.where(tiny_weight_scales, 1, weights_scales)
+        biases_scales = in_scale * weights_scales
+        int32_iinfo = np.iinfo(np.int32)
+        node.biases = np.clip(np.floor(dq_biases / biases_scales + 0.5),
+                              int32_iinfo.min,
+                              int32_iinfo.max).astype(np.int32)
+        return weights_scales, biases_scales
+
+    def fix_weights_and_biases(self, node, input_tensors):
+        weights_scales, biases_scales, w_mins, w_maxes = self.make_weights_symmetric(
+            node, input_tensors)
+        if self.rescale_perchannel:
+            if len(weights_scales) != node.filter.out_c:
+                weights_scales, biases_scales, w_mins, w_maxes = self.scale_weights_by_channel(
+                    node, weights_scales, biases_scales, input_tensors[0].qtype.scale)
+            weights_scales, biases_scales = self.detect_small_scales(
+                node, weights_scales, biases_scales, input_tensors[0].scale)
+        if w_mins is None:
+            w_mins = input_tensors[1].min_val
+            w_maxes = input_tensors[1].max_val
+        return weights_scales, biases_scales, w_mins, w_maxes
+
+    def load_filter_parameters(self, node, input_tensors, output_tensors, converted_to_conv=False):
+        if self.load_tensors or self.load_quantization:
+            node.weights = input_tensors[1].get_value(self.model)
+            if converted_to_conv:
+                node.weights = node.weights.transpose(TF_LITE_DW_FILTER_TRANSPOSE)
+            if node.has_bias:
+                node.biases = input_tensors[2].get_value(self.model)
+
+        if self.load_quantization:
+            if input_tensors[0].qtype is None:
+                raise NoQuantizationError("quantization not present in tflite file")
+            weights_scales, biases_scales, w_mins, w_maxes = self.fix_weights_and_biases(
+                node, input_tensors)
+            biases_q = SymmetricMultBiasesQType(dtype=np.int32, scale=biases_scales)
+            weights_q = SymmetricMultQType(
+                dtype=np.int8, narrow_range=True, scale=weights_scales, min_val=w_mins, max_val=w_maxes)
+            in_q = input_tensors[0].qtype
+            out_q = output_tensors[0].qtype
+            mulbiases_q = MultMulBiasScaleQType.from_filter(in_q, weights_q, out_q, node)
+            qrec = MultScalableFilterQuantizationRecord(in_qs=[in_q],
+                                                        out_qs=[out_q],
+                                                        mul_biases_q=mulbiases_q,
+                                                        weights_q=weights_q,
+                                                        biases_q=biases_q)
+            self.qrecs[NodeId(node)] = qrec
+
+    def load_dequantized_filter_parameters(self, node, input_tensors, converted_to_conv=False, is_dw=False):
+        weights_scales = input_tensors[1].scale
+        in_scale = input_tensors[0].scale
+        weights_quant = input_tensors[1].get_value(self.model)
+        # save in the node the dequantized values
+        if len(weights_scales) > 1:  # tf2 conv and dw (fully connected should be per-tensor)
+            if is_dw:
+                # depthwise
+                shape_pc = tuple(size if idx == 3 else 1  # always along axis 3 from tflite quantization spec
+                                 for idx, size in enumerate(weights_quant.shape))
+            else:
+                # normal convolution
+                shape_pc = tuple(size if idx == 0 else 1  # always along axis 0 from tflite quantization spec
+                                 for idx, size in enumerate(weights_quant.shape))
+            node.weights = (weights_quant.astype(np.int64) - input_tensors[1].zero_point.reshape(shape_pc)) \
+                * weights_scales.reshape(shape_pc)
+        else:
+            node.weights = (weights_quant - input_tensors[1].zero_point) * weights_scales
+        if converted_to_conv:
+            node.weights = node.weights.transpose(TF_LITE_DW_FILTER_TRANSPOSE)
+        if node.has_bias:
+            biases_scales = weights_scales * in_scale
+            node.biases = input_tensors[2].get_value(self.model) * biases_scales
 
     def add_convolution(self, name, subgraph, _, op):
         del subgraph
@@ -441,17 +703,10 @@ class TfliteImporter(ImporterBase):
                                 out_dims_hint=SparseList([['h', 'w', 'c']]),
                                 constant_store=self.G.constant_store)
 
-        if self.load_quantization:
-            qrec = FilterQuantizationRecord(in_qs=[input_tensors[0].qtype],
-                                            out_qs=[output_tensors[0].qtype],
-                                            weights_q=input_tensors[1].qtype,
-                                            biases_q=input_tensors[2].qtype if len(input_tensors) > 2 else None)
-            self.qrecs[NodeId(node)] = qrec
-
-        if self.load_tensors:
-            node.weights = input_tensors[1].get_value(self.model)
-            if has_bias:
-                node.biases = input_tensors[2].get_value(self.model)
+        if self.load_dequantized:
+            self.load_dequantized_filter_parameters(node, input_tensors)
+        else:
+            self.load_filter_parameters(node, input_tensors, output_tensors)
 
         return self.fuse_activation(conv_opts, name, node)
 
@@ -515,19 +770,12 @@ class TfliteImporter(ImporterBase):
                                     out_dims_hint=SparseList([['h', 'w', 'c']]),
                                     constant_store=self.G.constant_store)
 
-        if self.load_quantization:
-            qrec = FilterQuantizationRecord(in_qs=[input_tensors[0].qtype],
-                                            out_qs=[output_tensors[0].qtype],
-                                            weights_q=input_tensors[1].qtype,
-                                            biases_q=input_tensors[2].qtype if len(input_tensors) > 2 else None)
-            self.qrecs[NodeId(node)] = qrec
-        if self.load_tensors:
-            node.weights = input_tensors[1].get_value(self.model)
-            # If we've converted to a normal conv then change the weight order
-            if convert_to_conv:
-                node.weights = node.weights.transpose(TF_LITE_DW_FILTER_TRANSPOSE)
-            if has_bias:
-                node.biases = input_tensors[2].get_value(self.model)
+        if self.load_dequantized:
+            self.load_dequantized_filter_parameters(
+                node, input_tensors, convert_to_conv, is_dw=True)
+        else:
+            self.load_filter_parameters(node, input_tensors, output_tensors,
+                                        converted_to_conv=convert_to_conv)
 
         return self.fuse_activation(conv_opts, name, node)
 
@@ -572,17 +820,10 @@ class TfliteImporter(ImporterBase):
                             out_dims_hint=SparseList([['c']]),
                             constant_store=self.G.constant_store)
 
-        if self.load_quantization:
-            qrec = FilterQuantizationRecord(in_qs=[input_tensors[0].qtype],
-                                            out_qs=[output_tensors[0].qtype],
-                                            weights_q=input_tensors[1].qtype,
-                                            biases_q=input_tensors[2].qtype if len(input_tensors) > 2 else None)
-            self.qrecs[NodeId(node)] = qrec
-
-        if self.load_tensors:
-            node.weights = input_tensors[1].get_value(self.model)
-            if has_bias:
-                node.biases = input_tensors[2].get_value(self.model)
+        if self.load_dequantized:
+            self.load_dequantized_filter_parameters(node, input_tensors)
+        else:
+            self.load_filter_parameters(node, input_tensors, output_tensors)
 
         return self.fuse_activation(fc_opts, name, node)
 
@@ -592,10 +833,12 @@ class TfliteImporter(ImporterBase):
         "MAX_POOL_2D": "max"
     }
 
-    def load_tf_quantization(self, input_tensors, output_tensors, node):
-        qrec = QuantizationRecord(in_qs=[tensor.qtype for tensor in input_tensors],
-                                  out_qs=[tensor.qtype for tensor in output_tensors])
-        self.qrecs[NodeId(node)] = qrec
+    def load_tf_quantization(self, input_tensors, output_tensors, qrec_class=None):
+        if qrec_class is None:
+            qrec_class = MultQuantizationRecord
+        qrec = qrec_class(in_qs=[tensor.qtype for tensor in input_tensors],
+                          out_qs=[tensor.qtype for tensor in output_tensors])
+        return qrec
 
     # pylint: disable=unused-argument
 
@@ -633,7 +876,8 @@ class TfliteImporter(ImporterBase):
                                      out_dims_hint=SparseList([['h', 'w', 'c']]))
 
         if self.load_quantization:
-            self.load_tf_quantization(input_tensors, get_output_tensors(self.tensors, op), node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(
+                input_tensors, get_output_tensors(self.tensors, op))
 
         return self.fuse_activation(pool_opts, name, node)
 
@@ -644,8 +888,21 @@ class TfliteImporter(ImporterBase):
         softmax_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
         node = SoftMaxParameters(name, softmax_opts.Beta())
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node)
+            input_tensors = get_input_tensors(self.tensors, op)
+            iqtype = input_tensors[0].qtype
+            iqtype.scale_to_pow2()
+            oqtype = SymmetricMultQType(min_val=-1, max_val=1, dtype=np.int16, scale=2**(-15))
+            qrec = MultQuantizationRecord(in_qs=[iqtype],
+                                          out_qs=[oqtype])
+            self.qrecs[NodeId(node)] = qrec
+
+        return add_node(self.G, node)
+
+    def add_noop(self, name, subgraph, op_name, op):
+        node = NoOPParameters(name, desc=op_name)
+        if self.load_quantization:
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                 get_output_tensors(self.tensors, op))
         return add_node(self.G, node)
 
     # pylint: disable=unused-argument
@@ -657,28 +914,44 @@ class TfliteImporter(ImporterBase):
         input_tensors = get_input_tensors(self.tensors, op)
         output_tensors = get_output_tensors(self.tensors, op)
 
+        buffer_idxes = [tensor.buffer_idx for tensor in input_tensors]
+        if len(set(buffer_idxes)) != len(buffer_idxes):
+            raise NotImplementedError("concats with multiple versions of the same input are not supported. This is normally a graph design problem.")
+
         axis_hint = None
+        axis = None
         # nasty hack to try to figure out how the axis relates to our
         # internal axis representation
         if concat_opts.Axis() == 0:
             if len(output_tensors[0].shape) == 2:
                 axis_hint = 'c'
+                axis = 0
             elif len(output_tensors[0].shape) == 4:
                 axis_hint = 'h'
+                axis = 0
         elif concat_opts.Axis() == 1:
             if len(output_tensors[0].shape) == 2:
                 axis_hint = 'c'
+                axis = 0
+            elif len(output_tensors[0].shape) == 3:
+                axis = 0
             elif len(output_tensors[0].shape) == 4:
                 axis_hint = 'h'
+                axis = 0
+        elif concat_opts.Axis() == 2:
+            if all(tensor.shape[1] == 1 for tensor in input_tensors):
+                axis_hint = 'w'
+                axis = 1
         elif concat_opts.Axis() == 3:
             if len(output_tensors[0].shape) == 4:
                 axis_hint = 'c'
-
-        node = ConcatParameters(name, axis=max(concat_opts.Axis() - 1, 0), axis_hint=axis_hint)
+                axis = 2
+        if axis is None:
+            axis = concat_opts.Axis() - 1
+        node = ConcatParameters(name, axis=axis, axis_hint=axis_hint)
         if self.load_quantization:
-            self.load_tf_quantization(input_tensors,
-                                      output_tensors,
-                                      node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(input_tensors,
+                                                                 output_tensors)
         return self.fuse_activation(concat_opts, name, node)
 
     # pylint: disable=unused-argument
@@ -703,7 +976,8 @@ class TfliteImporter(ImporterBase):
         new_shape = Dim.unnamed(remove_batch_dim(new_shape), is_ordered=True)
         node = ReshapeParameters(name, old_shape=old_shape, shape=new_shape)
         if self.load_quantization:
-            self.load_tf_quantization(input_tensors, get_output_tensors(self.tensors, op), node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(
+                [input_tensors[0]], get_output_tensors(self.tensors, op))
         return add_node(self.G, node)
 
     # pylint: disable=unused-argument
@@ -711,11 +985,10 @@ class TfliteImporter(ImporterBase):
     def add_activation(self, name, subgraph, op_name, op):
         check(op.InputsLength() == 1,
               "Very odd " + str(op.InputsAsNumpy()))
-        activation = TF_ACTIVATION_OPERATORS[op_name]
-        node = ActivationParameters(name, activation)
+        node = ActivationParameters.get_activation(TF_ACTIVATION_OPERATORS[op_name], name)
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                 get_output_tensors(self.tensors, op))
         return add_node(self.G, node)
 
     def add_pad(self, name, subgraph, op_name, op):
@@ -727,44 +1000,53 @@ class TfliteImporter(ImporterBase):
         node = PadParameters(name,
                              PadDim(*pad_dim))
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                 get_output_tensors(self.tensors, op))
         return add_node(self.G, node)
 
-    def add_broadcasted_op(self, name, subgraph, op_name, op, tf_opts, params):
+    def add_broadcasted_op(self, name, subgraph, op_name, op, tf_opts, params, qrec_class=None):
         tf_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
         inputs = get_all_const_broadcasted_inputs(
             self.G, self.model, self.tensors, subgraph, op, load_tensors=self.load_tensors)
         check(len(inputs) == 2,
-              "Very odd " + str(op.InputsAsNumpy()))
-        node_pair = self.fuse_activation(tf_opts, name, params)
+              "broadcasted ops should only have 2 inputs " + str(op.InputsAsNumpy()))
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node_pair[0])
+            self.qrecs[NodeId(params)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                   get_output_tensors(
+                                                                       self.tensors, op),
+                                                                   qrec_class=qrec_class)
+        node_pair = self.fuse_activation(tf_opts, name, params)
         for idx, input_node in enumerate(inputs):
             if input_node[1] is not None:
                 if self.load_quantization:
                     node_qrec = self.qrecs[NodeId(params)]
-                    self.qrecs[NodeId(input_node[1])] = QuantizationRecord(
-                        in_qs=[], out_qs=[node_qrec.in_qs[idx]])
+                    self.qrecs[NodeId(input_node[1])] = MultConstantQuantizationRecord(
+                        in_qs=[node_qrec.in_qs[idx]],
+                        out_qs=[node_qrec.in_qs[idx]])
                 self.G.add_edge(NNEdge(input_node[1], node_pair[0], to_idx=idx))
         return node_pair
 
     def add_add(self, name, subgraph, op_name, op):
         return self.add_broadcasted_op(name, subgraph, op_name, op,
-                                       AddOptions.AddOptions(), MatrixAddParameters(name))
+                                       AddOptions.AddOptions(),
+                                       MatrixAddParameters(name),
+                                       MultAddQuantizationRecord)
 
     def add_div(self, name, subgraph, op_name, op):
         return self.add_broadcasted_op(name, subgraph, op_name, op,
-                                       DivOptions.DivOptions(), MatrixDivParameters(name))
+                                       DivOptions.DivOptions(),
+                                       MatrixDivParameters(name))
 
     def add_mul(self, name, subgraph, op_name, op):
         return self.add_broadcasted_op(name, subgraph, op_name, op,
-                                       MulOptions.MulOptions(), MatrixMulParameters(name))
+                                       MulOptions.MulOptions(),
+                                       MatrixMulParameters(name))
 
     def add_sub(self, name, subgraph, op_name, op):
         return self.add_broadcasted_op(name, subgraph, op_name, op,
-                                       SubOptions.SubOptions(), MatrixSubParameters(name))
+                                       SubOptions.SubOptions(),
+                                       MatrixSubParameters(name),
+                                       MultAddQuantizationRecord)
 
     def add_mean(self, name, subgraph, op_name, op):
         check(op.InputsLength() == 2,
@@ -785,8 +1067,8 @@ class TfliteImporter(ImporterBase):
                                     in_dims_hint=SparseList([['h', 'w', 'c']]),
                                     out_dims_hint=SparseList([['h', 'w', 'c']]))
         if self.load_quantization:
-            self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                      get_output_tensors(self.tensors, op), node)
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                 get_output_tensors(self.tensors, op))
 
         return add_node(self.G, node)
 
@@ -817,11 +1099,13 @@ class TfliteImporter(ImporterBase):
         "MUL": add_mul,
         "SUB": add_sub,
         "DIV": add_div,
-        "MEAN": add_mean
+        "MEAN": add_mean,
+        "QUANTIZE": add_noop,
+        "DEQUANTIZE": add_noop
     }
 
-    for __op in TF_ACTIVATION_OPERATORS:
-        SWITCH_ADD_FUNCTIONS[__op] = add_activation
+    for operator in TF_ACTIVATION_OPERATORS:
+        SWITCH_ADD_FUNCTIONS[operator] = add_activation
 
     def add_operator(self, subgraph, subgraph_idx, op, op_idx):
         op_name, is_custom = utils.get_operator_name(self.model, op.OpcodeIndex())
@@ -848,15 +1132,16 @@ class TfliteImporter(ImporterBase):
             node = self.G.add_input(Dim.unnamed(remove_batch_dim(dims)))
             tensor = self.tensors[graph.Inputs(i)]
             tensor.output = node.name
-            if self.load_quantization:
-                self.qrecs[NodeId(node)] = QuantizationRecord(in_qs=[], out_qs=[tensor.qtype])
+            if self.load_quantization and tensor.qtype:
+                self.qrecs[NodeId(node)] = MultQuantizationRecord(in_qs=[], out_qs=[tensor.qtype])
 
         for i in range(graph.OutputsLength()):
             node = self.G.add_output()
             tensor = self.tensors[graph.Outputs(i)]
             tensor.inputs.append((node.name, 0))
-            if self.load_quantization:
-                self.qrecs[NodeId(node)] = QuantizationRecord(in_qs=[tensor.qtype], out_qs=[])
+            if self.load_quantization and tensor.qtype:
+                self.qrecs[NodeId(node)] = MultQuantizationRecord(
+                    in_qs=[tensor.qtype], out_qs=[tensor.qtype])
 
         for i in range(graph.OperatorsLength()):
             op = graph.Operators(i)
@@ -876,16 +1161,22 @@ class TfliteImporter(ImporterBase):
                 LOG.warning("unused tensors in graph")
 
     def create_graph(self, filename, opts):
+        add_sys_path(os.path.dirname(__file__))
         buf = open(filename, "rb").read()
         self.model = Model.Model.GetRootAsModel(buf, 0)
         self.load_quantization = opts.get('load_quantization')
         self.load_tensors = opts.get('load_tensors')
+        self.load_dequantized = opts.get('load_dequantized')
         LOG.info("Importing TFLITE model version %s", self.model.Version())
         check(self.model.Version() == 3, "Only support version 3 graphs at present")
         check(self.model.SubgraphsLength() == 1, "Only supports one subgraph at present")
         self.G = NNGraph(model=self.model, filename=filename, name=opts.get('name'),
-                         value_cache=opts.get('value_cache'), constant_store=ConstantStore())
+                         constant_store=ConstantStore())
         self.create_subgraph(0)
-        self.G.quantization = self.qrecs
+        if self.load_quantization:
+            self.G.quantization = self.qrecs
+            self.G.has_quantized_parameters = True
+            self.G.graph_identity.quantization_type = 'SQ8'
+
         propagate_hints(self.G)
         return self.G

@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import math
 from collections import OrderedDict
 from typing import Mapping
 
@@ -23,49 +22,43 @@ import numpy as np
 from utils.stats_funcs import qsnr
 from utils.node_id import NodeId
 
-from execution.execute_graph import execute, execute_iterator
+from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 
-from graph.types import FilterParameters
-
-from .stats_collector import ReductionStatsCollector
+from stats.stats_collector import ReductionStatsCollector
 
 LOG = logging.getLogger('nntool.' + __name__)
 
+
 class ErrorStatsCollector(ReductionStatsCollector):
-    def __init__(self, limit=None):
+    def __init__(self, limit=None, quant_compare=False):
         super().__init__()
         self._limit = limit
+        self._quant_compare = quant_compare
 
     def _prepare(self, G):
         pass
 
-
-    def _collect_execution(self, G, tensors, qrecs=None, qmode=None):
+    def _collect_execution(self, executer, tensors, qrecs, qmode=None):
+        del qrecs
         outputs = []
         fusion_outputs = []
-        for step_idx, step, node, output, fusion_op_name, fusion_node, details in\
-            execute_iterator(G, tensors, limit=self._limit, qrecs=qrecs, qmode=qmode):
-            if qrecs:
-                qrec = qrecs[NodeId(node, fusion_node)]
-                output = [qrec.out_qs[i].dequantize(out) for i, out in enumerate(output)]
-            else:
-                output = output.copy()
+        for step_idx, pnode, fnode, output, details in\
+                executer.execute_iterator(tensors, step_idx_limit=self._limit, qmode=qmode):
 
-            del step, fusion_op_name
-            if fusion_node:
+            if fnode:
                 fusion_outputs.append({
                     "name": "",
                     "step_idx": "{}_{}".format(step_idx, len(fusion_outputs)),
-                    "node": fusion_node,
+                    "node": fnode,
                     "output": output,
                     "details": details
                 })
             else:
                 stat = {
-                    "name": node.name,
+                    "name": pnode.name,
                     "step_idx": str(step_idx),
-                    "node": node,
+                    "node": pnode,
                     "output": output,
                     "details": details,
                     "fusion_outputs": []
@@ -77,17 +70,13 @@ class ErrorStatsCollector(ReductionStatsCollector):
         return outputs
 
     @staticmethod
-    def _collect_one(fstat, qstat):
-        fout = fstat['output']
-        qout = qstat['output']
-        error_ = np.abs(fout[0] - qout[0])
+    def _collect_one(fstat, qstat, qrec, quant_compare=False):
+        fout = fstat['output'][0]
+        if quant_compare:
+            fout = qrec.out_qs[0].dequantize(qrec.out_qs[0].quantize(fout))
+        qout = qstat['output'][0]
+        error_ = np.abs(fout - qout)
         node = fstat['node']
-        details = qstat['details']
-        if details:
-            overflow_dot = details['overflow_dot']
-            overflow_acc = details['overflow_acc']
-        else:
-            overflow_dot = overflow_acc = ""
 
         stat = {
             'name': fstat['name'],
@@ -96,28 +85,40 @@ class ErrorStatsCollector(ReductionStatsCollector):
             'av_err': np.mean(error_),
             'max_err': np.max(error_),
             'min_err': np.min(error_),
-            'qsnr': qsnr(fout[0], qout[0]),
-            'overflow_dot' : overflow_dot,
-            'overflow_acc' : overflow_acc,
+            'qsnr': qsnr(fout, qout),
         }
 
         return stat
 
     def _collect(self, G, input_tensors, step_idx) -> Mapping[NodeId, Mapping]:
         LOG.debug("gather quantization statistics")
-        foutputs = self._collect_execution(G, input_tensors)
-        qoutputs = self._collect_execution(G,
+        if G.has_quantized_parameters:
+            quantization = G.quantization
+        else:
+            quantization = None
+        executer = GraphExecuter(G, qrecs=quantization)
+        foutputs = self._collect_execution(executer, input_tensors, quantization)
+        executer = GraphExecuter(G, qrecs=G.quantization)
+        qoutputs = self._collect_execution(executer,
                                            input_tensors,
-                                           qrecs=G.quantization,
-                                           qmode=QuantizationMode.all())
+                                           G.quantization,
+                                           qmode=QuantizationMode.all_dequantize())
         stats = OrderedDict()
         for idx, fstat in enumerate(foutputs):
             qstat = qoutputs[idx]
             if fstat['fusion_outputs']:
                 for jdx, ffstat in enumerate(fstat['fusion_outputs']):
-                    stats[NodeId(fstat['node'], ffstat['node'])] =\
-                        self._collect_one(ffstat, qstat['fusion_outputs'][jdx])
-            stats[NodeId(fstat['node'], None)] = self._collect_one(fstat, qstat)
+                    nid = NodeId(fstat['node'], ffstat['node'])
+                    stats[nid] =\
+                        self._collect_one(ffstat,
+                                          qstat['fusion_outputs'][jdx],
+                                          G.quantization[nid],
+                                          quant_compare=self._quant_compare)
+            nid = NodeId(fstat['node'], None)
+            stats[nid] = self._collect_one(fstat,
+                                           qstat,
+                                           G.quantization[nid],
+                                           quant_compare=self._quant_compare)
 
         return stats
 
@@ -134,8 +135,6 @@ class ErrorStatsCollector(ReductionStatsCollector):
     def _reduce(self, _, base: Mapping, stat: Mapping):
         for k in ['av_err', 'qsnr']:
             base[k].append(stat[k])
-        for k in ['overflow_dot', 'overflow_acc']:
-            base[k] += stat[k]
         for k in [('max_err', 'max_err')]:
             base[k[0]] = max(base[k[0]], abs(stat[k[1]]))
         for k in [('min_err', 'min_err')]:

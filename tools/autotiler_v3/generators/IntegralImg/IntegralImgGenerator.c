@@ -49,13 +49,13 @@ void GenerateIntegralImage(char *Name,
             TCArg("unsigned int *  __restrict__", "IntegralImage")
         ),
         Calls(2,
-            Call("KerPrime", LOC_INNER_LOOP_PROLOG,
+            Call("KerPrime", LOC_LOOP_PROLOG,
                 Bindings(2,
                     K_Arg("KerBuffer",KER_ARG),
                     K_Arg("KerIn", KER_ARG_TILE_W)
                 )
             ),
-            Call("KerProcess", LOC_INNER_LOOP,
+            Call("KerProcess", LOC_LOOP,
                 Bindings(5,
                     K_Arg("KerIn", KER_ARG_TILE),
                     K_Arg("KerIn", KER_ARG_TILE_W),

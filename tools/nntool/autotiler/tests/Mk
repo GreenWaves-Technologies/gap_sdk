@@ -1,0 +1,78 @@
+BUILD_DIR ?= $(CURDIR)
+MF_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+#Code code of test runner and kernels generated code
+SRCS = testRun.c testKernels.c
+
+# C code of the Model
+SRCSG = testModel.c
+
+# Exec Name for the runner
+TARGET = $(BUILD_DIR)/Run
+# Exec Name for the generator
+TARGETG = $(BUILD_DIR)/Gen
+
+
+# Everything bellow is not application specific
+CC= gcc     
+INCL = -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(MF_DIR)/../generators -I$(MF_DIR)/../kernels -I$(BUILD_DIR)
+
+CFLAGS= -std=c99 -D__EMUL__ -g
+LFLAGS=-lSDL2 -lSDL2_ttf
+
+LIBS = $(TILER_LIB)
+
+
+SRCS += $(MF_DIR)/../kernels/norm_transpose.c
+
+OBJS = $(SRCS:%.c=$(BUILD_DIR)/%.o)
+
+test: $(TARGET)
+
+run:$(TARGET)
+	$(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) $(INCL) -o $(TARGET) $(OBJS) $(LIBS) $(LFLAGS)
+
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p `dirname $@`
+	$(CC) $(DFLAGS) $(CFLAGS) $(INCL) -c $<  -o $@
+
+$(BUILD_DIR)/%.o: $(BUILD_DIR)/%.c
+	@mkdir -p `dirname $@`
+	$(CC) $(DFLAGS) $(CFLAGS) $(INCL) -c $<  -o $@
+
+cleanbuild:
+	$(RM) $(TARGETG) $(OBJSG)
+
+cleanrun:
+	$(RM) $(TARGET) $(OBJS)
+
+INCLG = -I$(TILER_EMU_INC)/ -I$(MF_DIR)/../kernels -I$(MF_DIR)/../generators
+
+
+CFLAGSG= -std=c99 -D__EMUL__ -g
+LFLAGSG=-lSDL2 -lSDL2_ttf
+
+# GENFLAGS = --debug=CNNIO
+GENFLAGSDEB="--debug=CNNIO"
+GENFLAGSCHECK="--debug=CNNSQ8"
+
+SRCSG += $(MF_DIR)/../generators/nntool_extra_generators.c
+LIBSG = $(TILER_LIB)
+
+OBJSG = $(SRCSG:%.c=$(BUILD_DIR)/%.o)
+
+$(TARGETG): $(OBJSG)
+	$(CC) $(CFLAGSG) $(INCLG) -o $(TARGETG) $(OBJSG) $(LIBSG) $(LFLAGSG)
+
+build: $(TARGETG)
+	cd $(BUILD_DIR) && $(TARGETG) $(GENFLAGS)
+
+buildcheck: $(TARGETG)
+	cd $(BUILD_DIR) && $(TARGETG) $(GENFLAGSCHECK)
+
+builddeb: $(TARGETG)
+	cd $(BUILD_DIR) && $(TARGETG) $(GENFLAGSDEB)
+

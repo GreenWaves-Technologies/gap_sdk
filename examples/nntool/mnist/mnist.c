@@ -7,15 +7,17 @@
  *
  */
 
-#ifndef __EMUL__
+
+#define __XSTR(__s) __STR(__s)
+#define __STR(__s) #__s
 /* PMSIS includes. */
 #include "pmsis.h"
-#endif  /* __EMUL__ */
 
 /* Autotiler includes. */
 #include "mnist.h"
 #include "mnistKernels.h"
-#include "ImgIO.h"
+#include "gaplib/ImgIO.h"
+
 
 #define pmsis_exit(n) exit(n)
 
@@ -27,22 +29,13 @@ AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash = 0;
 
 // Softmax always outputs Q15 short int even from 8 bit input
 L2_MEM short int *ResOut;
-#ifdef QUANT_16BIT
-  typedef short int image_in_t;
-#else
-  #ifdef QUANT_8BIT
-  typedef signed char image_in_t;
-  #endif
-#endif
-
-#ifdef __EMUL__
-#undef PERF
-#endif
+//Image in is unsigned but the model is trained with -1:1 inputs
+//The preprocessing to scale the image is done in the CNN AT graph
+L2_MEM unsigned char *Img_In;
 
 #define AT_INPUT_SIZE (AT_INPUT_WIDTH*AT_INPUT_HEIGHT*AT_INPUT_COLORS)
-#define AT_INPUT_SIZE_BYTES (AT_INPUT_SIZE*sizeof(image_in_t))
-
-L2_MEM image_in_t *ImageIn;
+#define AT_INPUT_SIZE_BYTES (AT_INPUT_SIZE*sizeof(char))
+//#define PRINT_IMAGE
 
 char *ImageName = NULL;
 
@@ -54,14 +47,14 @@ static void cluster()
   gap_cl_starttimer();
   gap_cl_resethwtimer();
 #endif
-  mnistCNN(ImageIn, ResOut);
+  mnistCNN(Img_In, ResOut);
   printf("Runner completed\n");
 
-#ifndef NO_IMAGE
   //Checki Results
   int rec_digit = 0;
   short int highest = ResOut[0];
-  for(int i = 1; i < 10; i++) {
+  for(int i = 0; i < 10; i++) {
+    printf("class %d: %d \n", i, ResOut[i]);
     if(ResOut[i] > highest) {
       highest = ResOut[i];
       rec_digit = i;
@@ -70,51 +63,35 @@ static void cluster()
   printf("\n");
 
   printf("Recognized: %d\n", rec_digit);
-#else
-  printf("image loading disabled so no sensible result\n");
-#endif
 }
 
 int test_mnist(void)
 {
     printf("Entering main controller\n");
-#ifndef DONT_DUMP
-    if (dt_open_dump_file(TENSOR_DUMP_FILE))
-    {
-        printf("Failed to open tensor dump file %s.\n", TENSOR_DUMP_FILE);
-        exit(-2);
-    }
-#endif
-
-#if !defined(NO_IMAGE)
     printf("Reading image\n");
     //Reading Image from Bridge
-#ifdef QUANT_8BIT
-  #define SHIFT 1
-  #define SHORT 0
-#else
-  #define SHORT 1
-  #define SHIFT 0
-#endif
-    if (!(ImageIn = (image_in_t *) AT_L2_ALLOC(0, AT_INPUT_SIZE_BYTES))) {
-        printf("Failed to allocate %ld bytes for %s\n", AT_INPUT_SIZE_BYTES, ImageName);
-        pmsis_exit(-1);
-    }
+    /*------------------- Allocate Image Buffer ------------------------*/
+    printf("Going to alloc the image buffer!\n");
+    Img_In = (unsigned char *) AT_L2_ALLOC(0, AT_INPUT_SIZE_BYTES);
+    if(Img_In==NULL) {
+      printf("Image buffer alloc Error!\n");
+      pmsis_exit(-1);
+    } 
 
-    if (ReadImageFromFile(ImageName, AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS, ImageIn, AT_INPUT_SIZE_BYTES, SHIFT, SHORT))
+    char *ImageName = __XSTR(AT_IMAGE);
+
+    if (ReadImageFromFile(ImageName, AT_INPUT_WIDTH, AT_INPUT_HEIGHT, AT_INPUT_COLORS, Img_In, AT_INPUT_SIZE_BYTES, IMGIO_OUTPUT_CHAR, 0))
     {
         printf("Failed to load image %s\n", ImageName);
         pmsis_exit(-2);
     }
-    printf("Finished reading image\n");
-#endif  /* NO_IMAGE */
 
 #if defined(PRINT_IMAGE)
-    for (int i=0; i<H; i++)
+    for (int i=0; i<AT_INPUT_HEIGHT; i++)
     {
-        for (int j=0; j<W; j++)
+        for (int j=0; j<AT_INPUT_WIDTH; j++)
         {
-            printf("%03d, ", ImageInChar[W*i + j]);
+            printf("%03d, ", Img_In[AT_INPUT_WIDTH*i + j]);
         }
         printf("\n");
     }
@@ -127,7 +104,6 @@ int test_mnist(void)
         pmsis_exit(-3);
     }
 
-    #if !defined(__EMUL__)
     /* Configure And open cluster. */
     struct pi_device cluster_dev;
     struct pi_cluster_conf cl_conf;
@@ -138,7 +114,6 @@ int test_mnist(void)
         printf("Cluster open failed !\n");
         pmsis_exit(-4);
     }
-    #endif  /* __EMUL__ */
 
     printf("Constructor\n");
     // IMPORTANT - MUST BE CALLED AFTER THE CLUSTER IS SWITCHED ON!!!!
@@ -149,7 +124,6 @@ int test_mnist(void)
     }
 
     printf("Call cluster\n");
-    #if !defined(__EMUL__)
     struct pi_cluster_task task = {0};
     task.entry = cluster;
     task.arg = NULL;
@@ -157,9 +131,7 @@ int test_mnist(void)
     task.slave_stack_size = (unsigned int) SLAVE_STACK_SIZE;
 
     pi_cluster_send_task_to_cl(&cluster_dev, &task);
-    #else
-    cluster();
-    #endif
+
     mnistCNN_Destruct();
 
 #ifdef PERF
@@ -176,14 +148,10 @@ int test_mnist(void)
     }
 #endif
 
-#ifndef __EMUL__
     // Close the cluster
     pi_cluster_close(&cluster_dev);
-#endif  /* __EMUL__ */
-#ifndef DONT_DUMP
-    dt_close_dump_file();
-#endif
-    AT_L2_FREE(0, ImageIn, AT_INPUT_SIZE_BYTES);
+
+    AT_L2_FREE(0, Img_In, AT_INPUT_SIZE_BYTES);
     AT_L2_FREE(0, ResOut, 10 * sizeof(short int));
     printf("Ended\n");
 
@@ -191,30 +159,8 @@ int test_mnist(void)
     return 0;
 }
 
-#if defined(__EMUL__) && !defined(LINK_IMAGE_HEADER)
-int main(int argc, char *argv[])
-{
-    if (argc < 2)
-    {
-        printf("Usage: mnist [image_file]\n");
-        exit(-1);
-    }
-    ImageName = argv[1];
-    printf("\n\n\t *** NNTOOL Mnist Example ***\n\n");
-    test_mnist();
-    return 0;
-}
-#else
 int main()
 {
-    #if defined(LINK_IMAGE_NAME)
-    #define __STRING1(__s) #__s
-    #define __STRING(__s) __STRING1(__s)
-    ImageName = __STRING(LINK_IMAGE_NAME);
-    #else
-    ImageName = "../../../samples/5223_5.pgm";
-    #endif  /* LINK_IMAGE_NAME */
     printf("\n\n\t *** NNTOOL Mnist Example ***\n\n");
     return pmsis_kickoff((void *) test_mnist);
 }
-#endif  /* (__EMUL__) && (LINK_IMAGE_HEADER) */

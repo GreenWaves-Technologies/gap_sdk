@@ -250,6 +250,62 @@ static void __attribute__ ((noinline)) KerConv2x3from3x3Stride1_V_DP_fps(
 	}
 }
 
+static void __attribute__ ((noinline)) KerConv2x3from3x3Stride1_V_DP_2Out_fps(
+	signed char * __restrict__ In,
+	int W, int PadTOrg,
+	int Wo, int Ho, int Ho_F, int Ho_L,
+	DP_fps_T * __restrict__ Out,
+	signed char * __restrict__ Filter,
+	unsigned int NextFilter,
+	int FilterConf
+	)
+{
+	v4s V0, V1, V2;
+	v4s C00, C01, C02, C10, C11, C12;
+	signed char *PtIn;
+	DP_fps_T *PtOut0, *PtOut1;
+	int Bottom = Ho-Ho_L;
+
+	if (FilterConf) {
+		C00 = (v4s) (int) *((unsigned short *) (Filter + 0*3+0)); C01 = (v4s) (int) *((unsigned short *) (Filter + 1*3+0)); C02 = (v4s) (int) *((unsigned short *) (Filter + 2*3+0));
+		Filter += NextFilter;
+		C10 = (v4s) (int) *((unsigned short *) (Filter + 0*3+0)); C11 = (v4s) (int) *((unsigned short *) (Filter + 1*3+0)); C12 = (v4s) (int) *((unsigned short *) (Filter + 2*3+0));
+	} else {
+		C00 = (v4s) (int) *((unsigned short *) (Filter + 0*3+1)); C01 = (v4s) (int) *((unsigned short *) (Filter + 1*3+1)); C02 = (v4s) (int) *((unsigned short *) (Filter + 2*3+1));
+		Filter += NextFilter;
+		C10 = (v4s) (int) *((unsigned short *) (Filter + 0*3+1)); C11 = (v4s) (int) *((unsigned short *) (Filter + 1*3+1)); C12 = (v4s) (int) *((unsigned short *) (Filter + 2*3+1));
+	}
+	if (Ho_F==1) {
+		PtIn = In; PtOut0 = Out; Ho_F = 0;
+		V0 = (v4s){0,0,0,0};
+		V1 = *((v4s *) PtIn); PtIn += W;
+	} else  { // == 0
+		PtIn = In + (Ho_F*1-PadTOrg)*W; PtOut0 = Out+Ho_F*Wo;
+		V0 = *((v4s *) PtIn); PtIn += W;
+		V1 = *((v4s *) PtIn); PtIn += W;
+	}
+	PtOut1 = PtOut0+Wo*Ho;
+	for (unsigned int i=Ho_F; i<Ho_L; i++) {
+		int Acc0 = *PtOut0, Acc1 = *PtOut1;
+		V2 = *((v4s *) PtIn); PtIn += W;
+		Acc0 = gap_sumdotp4(V0, C00, Acc0); Acc0 = gap_sumdotp4(V1, C01, Acc0); Acc0 = gap_sumdotp4(V2, C02, Acc0);
+		Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1); Acc1 = gap_sumdotp4(V2, C12, Acc1);
+		*PtOut0 =  Acc0; PtOut0+=Wo;
+		*PtOut1 =  Acc1; PtOut1+=Wo;
+		V0 = V1; V1 = V2;
+	}
+	if (Bottom) {
+		int Acc0 = *PtOut0, Acc1 = *PtOut1;
+		PtIn -= 2*W;
+		V0 = *((v4s *) PtIn); PtIn += W;
+		V1 = *((v4s *) PtIn);
+		Acc0 = gap_sumdotp4(V0, C00, Acc0); Acc0 = gap_sumdotp4(V1, C01, Acc0);
+		Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1);
+		*PtOut0 =  Acc0;
+		*PtOut1 =  Acc1;
+	}
+}
+
 static void __attribute__ ((noinline)) KerConv2x3from3x3Stride2_V_DP_fps(
 	signed char * __restrict__ In,
 	int W, int PadTOrg,
@@ -365,6 +421,41 @@ static void __attribute__ ((noinline)) KerConv3x2from3x3Stride1_H_DP_fps(
 		V0 = *((v4s *) (PtIn+0*W+0)); V1 = *((v4s *) (PtIn+1*W+0)); PtIn++;
 		Acc = gap_sumdotp4(V0, C0, Acc); Acc = gap_sumdotp4(V1, C1, Acc);
 		*PtOut = Acc; PtOut++;
+	}
+}
+
+static void __attribute__ ((noinline)) KerConv3x2from3x3Stride1_H_DP_2Out_fps(
+	signed char * __restrict__ In,
+	int W, int PadL,
+	int Wo, int Ho, int Wo_F, int Wo_L,
+	DP_fps_T * __restrict__ Out,
+	signed char * __restrict__ Filter,
+	unsigned int NextFilter,
+	int FilterConf
+	)
+
+{
+	v4s V0, V1;
+	v4s C00, C01, C10, C11;
+	signed char *PtIn = In+Wo_F*1-PadL;
+	DP_fps_T *PtOut0 = Out, *PtOut1 = PtOut0 + Wo*Ho;
+
+	if (FilterConf) {
+		C00 = *((v4s *) &Filter[0*3+0]); C01 = *((v4s *) &Filter[1*3+0]); C00[3] = 0; C01[3] = 0;
+		Filter += NextFilter;
+		C10 = *((v4s *) &Filter[0*3+0]); C11 = *((v4s *) &Filter[1*3+0]); C10[3] = 0; C11[3] = 0;
+	} else {
+		C00 = *((v4s *) &Filter[1*3+0]); C01 = *((v4s *) &Filter[2*3+0]); C00[3] = 0; C01[3] = 0;
+		Filter += NextFilter;
+		C10 = *((v4s *) &Filter[1*3+0]); C11 = *((v4s *) &Filter[2*3+0]); C10[3] = 0; C11[3] = 0;
+	}
+	for (unsigned int i=Wo_F; i<Wo_L; i++) {
+		int Acc0 = *PtOut0, Acc1 = *PtOut1;
+		V0 = *((v4s *) (PtIn+0*W+0)); V1 = *((v4s *) (PtIn+1*W+0)); PtIn++;
+		Acc0 = gap_sumdotp4(V0, C00, Acc0); Acc0 = gap_sumdotp4(V1, C01, Acc0);
+		Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1);
+		*PtOut0 = Acc0; PtOut0++;
+		*PtOut1 = Acc1; PtOut1++;
 	}
 }
 
@@ -3120,6 +3211,34 @@ static void __attribute__ ((noinline)) KerConv3x3BorderStride1_DP_fps(
 	if (PadB) KerConv3x2from3x3Stride1_H_DP_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Wo_F, Wo_L, Out+Ho_L*Wo+Wo_F, Filter, 1);
 }
 
+static void __attribute__ ((noinline)) KerConv3x3BorderStride1_DP_2Out_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	unsigned int NextFilter,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh=3, Fw=3, Stride=1;
+	int PadLOrg = PadOrg[0], PadTOrg = PadOrg[2];
+	int PadL = Pad[0], PadR = Pad[1], PadT = Pad[2], PadB = Pad[3];
+
+	if (PadL) KerConv2x3from3x3Stride1_V_DP_2Out_fps(In, W, PadTOrg, Wo, Ho, Ho_F, Ho_L, Out, Filter, NextFilter, 0);
+	if (PadR) KerConv2x3from3x3Stride1_V_DP_2Out_fps(In+Wo_L*Stride-PadLOrg, W, PadTOrg, Wo, Ho, Ho_F, Ho_L, Out+Wo-1, Filter, NextFilter, 1);
+	if (PadT) KerConv3x2from3x3Stride1_H_DP_2Out_fps(In, W, PadLOrg, Wo, Ho, Wo_F, Wo_L, Out+Wo_F, Filter, NextFilter, 0);
+	if (PadB) KerConv3x2from3x3Stride1_H_DP_2Out_fps(In+(Ho_L*Stride-PadTOrg)*W, W, PadLOrg, Wo, Ho, Wo_F, Wo_L, Out+Ho_L*Wo+Wo_F, Filter, NextFilter, 1);
+}
+
 static void __attribute__ ((noinline)) KerConv3x3BorderStride2_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
@@ -3850,6 +3969,51 @@ static void __attribute__ ((noinline)) KerConv3x3Stride1_Body_DP_fps(
 	}
 }
 
+static void __attribute__ ((noinline)) KerConv3x3Stride1_Body_DP_2Out_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	unsigned int NextFilter,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	v4s Pad
+	)
+
+{
+	v4s C00 = *((v4s *) &Filter[0]), C01 = *((v4s *) &Filter[3]), C02 = *((v4s *) &Filter[6]);
+	v4s C10 = *((v4s *) &Filter[NextFilter+0]), C11 = *((v4s *) &Filter[NextFilter+3]), C12 = *((v4s *) &Filter[NextFilter+6]);
+	v4s V0, V1, V2;
+	unsigned short int StrideX = 1;
+	unsigned short int StrideY = 1;
+	unsigned short int PadL = Pad[0], PadT = Pad[2];
+	DP_fps_T *PtO0 = Out+Wo*Ho_F+Wo_F, *PtO1 = PtO0 + Wo*Ho;
+	C00[3]=0; C01[3]=0; C02[3]=0;
+	C10[3]=0; C11[3]=0; C12[3]=0;
+
+       	for (unsigned int w=Wo_F; w<Wo_L; w++) {
+		v4s *PtI = (v4s *) (In + (Ho_F*StrideY-PadT)*W + (w*StrideX-PadL));
+		DP_fps_T *PtO_0 = PtO0, *PtO_1 = PtO1;
+		V0 = *PtI; PtI = (v4s*) ((signed char *)PtI+W);
+		V1 = *PtI; PtI = (v4s*) ((signed char *)PtI+W);
+		for (unsigned int h=Ho_F; h<Ho_L; h++) {
+			int Acc0 = *PtO_0, Acc1 = *PtO_1;
+			V2 = *PtI; PtI = (v4s*) ((signed char *)PtI+W);
+			Acc0 = gap_sumdotp4(V0, C00, Acc0); Acc0 = gap_sumdotp4(V1, C01, Acc0); Acc0 = gap_sumdotp4(V2, C02, Acc0);
+			Acc1 = gap_sumdotp4(V0, C10, Acc1); Acc1 = gap_sumdotp4(V1, C11, Acc1); Acc1 = gap_sumdotp4(V2, C12, Acc1);
+			V0 = V1; V1 = V2;
+			*PtO_0 = Acc0; PtO_0+=Wo;
+			*PtO_1 = Acc1; PtO_1+=Wo;
+		}
+		PtO0++; PtO1++;
+	}
+}
+
 static void __attribute__ ((noinline)) KerConv3x3Stride2_Body_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
@@ -4276,6 +4440,7 @@ void __attribute__ ((noinline)) KerConv7x7StrideS_Body_DP_fps(
 	v4s V0, V1;
 	unsigned short int PadL = Pad[0], PadT = Pad[2];
 	int *PtO1 = Out+Wo*Ho_F+Wo_F;
+	int Off = (6 - Stride)*W;
 
 	for (unsigned int w=Wo_F; w<Wo_L; w++) {
 		v4s *__restrict__ PtI = (v4s *) (In + (Ho_F*Stride-PadT)*W + (w*Stride-PadL));
@@ -4295,7 +4460,7 @@ void __attribute__ ((noinline)) KerConv7x7StrideS_Body_DP_fps(
 			S = gap_sumdotp4(V0,  C0,  S); S = gap_sumdotp4(V1,  C1,  S);
 			V0 = *PtI++; V1 = *PtI; PtI = (v4s*) ((signed char *)PtI+W-4); C0 = *PtC++; C1 = *PtC; PtC = (v4s *) ((signed char *)PtC+3); C1[3] = 0;
 			S = gap_sumdotp4(V0,  C0,  S); S = gap_sumdotp4(V1,  C1,  S);
-			V0 = *PtI++; V1 = *PtI; PtI = (v4s*) ((signed char *)PtI+W-4); C0 = *PtC++; C1 = *PtC; PtC = (v4s *) ((signed char *)PtC+3); C1[3] = 0;
+                        V0 = *PtI++; V1 = *PtI; PtI = (v4s*) ((signed char *)PtI-Off-4); C0 = *PtC++; C1 = *PtC; PtC = (v4s *) ((signed char *)PtC+3-49); C1[3] = 0;
 			S = gap_sumdotp4(V0,  C0,  S); S = gap_sumdotp4(V1,  C1,  S);
 			*PtO = S; PtO+=Wo;
 		}
@@ -5218,6 +5383,7 @@ void __attribute__ ((noinline)) KerConv7x7StrideS_Body_DP_fp(
 	int V3;
 	unsigned short int PadL = Pad[0], PadT = Pad[2];
 	int *PtO1 = Out+Wo*Ho_F+Wo_F;
+	int Off = (6 - Stride)*W;
 
 	for (unsigned int w=Wo_F; w<Wo_L; w++) {
 		v2s *__restrict__ PtI = (v2s *) (In + (Ho_F*Stride-PadT)*W + (w*Stride-PadL));
@@ -5249,8 +5415,8 @@ void __attribute__ ((noinline)) KerConv7x7StrideS_Body_DP_fp(
 			C0 = *PtC++; C1 = *PtC++; C2 = *PtC++; C3 = *((short int *)PtC); PtC = (v2s*) ((short int *)PtC+1);
 			S = gap_sumdotp2(V0,  C0,  S); S = gap_sumdotp2(V1,  C1,  S); S = gap_sumdotp2(V2,  C2,  S); S = S + V3*C3;
 
-			V0 = *PtI++; V1 = *PtI++; V2 = *PtI++; V3 = *((short int *)PtI); PtI = (v2s*) ((short int *)PtI+W-6);
-			C0 = *PtC++; C1 = *PtC++; C2 = *PtC++; C3 = *((short int *)PtC); PtC = (v2s*) ((short int *)PtC+1);
+			V0 = *PtI++; V1 = *PtI++; V2 = *PtI++; V3 = *((short int *)PtI); PtI = (v2s*) ((short int *)PtI-Off-6);
+			C0 = *PtC++; C1 = *PtC++; C2 = *PtC++; C3 = *((short int *)PtC); PtC = (v2s*) ((short int *)PtC+1-49);
 			S = gap_sumdotp2(V0,  C0,  S); S = gap_sumdotp2(V1,  C1,  S); S = gap_sumdotp2(V2,  C2,  S); S = S + V3*C3;
 
 			*PtO = S; PtO+=Wo;
@@ -6549,7 +6715,7 @@ void KerParConv3x3Stride1_DP_fps(KerConv_DP_fps_T *Arg)
 	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
 
 	unsigned int InFeatures = Arg->InFeatures;
-		
+#ifdef OLD
 	for (unsigned int of=First; of<Last; of++) {
 		for (unsigned int If=0; If<InFeatures; If++) {
 			signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of + If);
@@ -6558,6 +6724,27 @@ void KerParConv3x3Stride1_DP_fps(KerConv_DP_fps_T *Arg)
 			if ((int)PadIn) KerConv3x3BorderStride1_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn);
 		}
 	}
+#else
+	unsigned int Iter = Max(0, Last-First);
+	for (unsigned int i=0; i<Iter/2; i++) {
+		unsigned int of = 2*i+First;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of + If);
+			DP_fps_T *out = Out+Wo*Ho*(of);
+			KerConv3x3Stride1_Body_DP_2Out_fps(in, out, filter, TotalInFeatures*FS*FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn);
+			if ((int)PadIn) KerConv3x3BorderStride1_DP_2Out_fps(in, out, filter, TotalInFeatures*FS*FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn);
+		}
+	}
+	if (Iter&0x1) {
+		unsigned int of = Last-1;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of + If);
+			DP_fps_T *out = Out+Wo*Ho*(of);
+			KerConv3x3Stride1_Body_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn);
+			if ((int)PadIn) KerConv3x3BorderStride1_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn);
+		}
+	}
+#endif
 	gap_waitbarrier(0);
 }
 

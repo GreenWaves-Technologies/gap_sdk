@@ -32,20 +32,18 @@
 PI_L2 unsigned char *buff[2];
 PI_L2 unsigned char *imgIO_buff;
 
+static struct pi_device ram;
+static uint32_t l3_buff;
 static struct pi_device camera;
 static pi_task_t ctrl_tasks[2];
-static pi_task_t ram_tasks[2];
+
 static int remaining_size;
 static int saved_size;
 static volatile int done;
 static int nb_transfers;
-static int nb_hyper_transfers;
-static int total_hyper_transfers;
 static unsigned char current_buff;
 static int current_size[2];
 static int current_task;
-static struct pi_device ram;
-static uint32_t l3_buff;
 
 static void handle_transfer_end(void *arg);
 static void handle_ram_end(void *arg);
@@ -58,17 +56,18 @@ static void enqueue_transfer()
     // at the same time)
     while (remaining_size > 0 && nb_transfers < 2)
     {
-        current_size[current_task] = ITER_SIZE;
-        if (remaining_size < ITER_SIZE)
-            current_size[current_task] = remaining_size;
+        int iter_size = ITER_SIZE;
+        if (remaining_size < iter_size)
+            iter_size = remaining_size;
 
         pi_task_t *task = &ctrl_tasks[current_task];
 
         // Enqueue a transfer. The callback will be called once the transfer is finished
         // so that  a new one is enqueued while another one is already running
-        pi_camera_capture_async(&camera, buff[current_task], current_size[current_task], pi_task_callback(task, handle_transfer_end, NULL));
+        pi_camera_capture_async(&camera, buff[current_task], iter_size, pi_task_callback(task, handle_transfer_end, (void *) current_task));
 
-        remaining_size -= current_size[current_task];
+        current_size[current_task] = iter_size;
+        remaining_size -= iter_size;
         nb_transfers++;
         current_task ^= 1;
     }
@@ -77,25 +76,20 @@ static void enqueue_transfer()
 static void handle_transfer_end(void *arg)
 {
     nb_transfers--;
-    current_buff = current_task;
+    current_buff = (unsigned char) arg;
 
     enqueue_transfer();
 
-    if (saved_size < BUFF_SIZE && nb_hyper_transfers < 2)
-    {
-        pi_task_t *task = &ram_tasks[current_task];
-        pi_ram_write_async(&ram, (l3_buff+saved_size), buff[current_buff], (uint32_t) current_size[current_buff], pi_task_callback(task, handle_ram_end, NULL));
-        saved_size += current_size[current_buff];
-        nb_hyper_transfers ++;
-    }
+    pi_task_t cb_tx;
+    pi_ram_write_async(&ram, (l3_buff+saved_size), buff[current_buff], (uint32_t) current_size[current_buff], pi_task_callback(&cb_tx, handle_ram_end, NULL));
+
+    saved_size += current_size[current_buff];
 }
 
 
 static void handle_ram_end(void *arg)
 {
-    total_hyper_transfers ++;
-    nb_hyper_transfers --;
-    if (nb_transfers == 0 && saved_size == BUFF_SIZE && nb_hyper_transfers == 0)
+    if (nb_transfers == 0 && saved_size == BUFF_SIZE)
         done = 1;
 }
 
@@ -197,12 +191,11 @@ static void ov5640_test_pattern(struct pi_device *device)
 
 static int test_entry()
 {
-    //printf("Entering main controller\n");
+    printf("Entering main controller\n");
     pi_freq_set(PI_FREQ_DOMAIN_FC, 250000000);
     pi_perf_conf(1 << PI_PERF_CYCLES | 1 << PI_PERF_ACTIVE_CYCLES);
-    pi_perf_reset();
-    uint32_t cycles = pi_perf_read(PI_PERF_ACTIVE_CYCLES);
-    uint32_t tim_cycles = pi_perf_read(PI_PERF_CYCLES);
+    uint32_t cycles, tim_cycles;
+    uint32_t start = pi_perf_read(PI_PERF_CYCLES);
 
     pi_perf_start();
 
@@ -257,7 +250,7 @@ static int test_entry()
 
 
     unsigned int cfg_glob = (*(volatile unsigned int *)(long)(0x1A1024A0));
-    cfg_glob |= ((0x4<<1)|0x1); // enable frame drop, and drop 1 image
+    cfg_glob |= ((0x5<<1)|0x1); // enable frame drop, and drop 1 image
     (*(volatile unsigned int *)(long)(0x1A1024A0)) = cfg_glob;
 
     //while (1)

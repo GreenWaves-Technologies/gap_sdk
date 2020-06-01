@@ -6,7 +6,7 @@ CFLAGS += -I$(INSTALL_DIR)/include -fPIC
 LDFLAGS += -L$(INSTALL_DIR)/lib -fPIC -shared -O3 -g -ljson
 
 DPI_CFLAGS += $(CFLAGS) -DUSE_DPI
-DPI_LDFLAGS += $(LDFLAGS) -lpulpvp-debug
+DPI_LDFLAGS += $(LDFLAGS) -lpulpvp-sv
 
 DPI_CFLAGS += -Iext/sv/include -Iext/nosv
 

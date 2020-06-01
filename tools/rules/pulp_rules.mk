@@ -108,7 +108,11 @@ BOOTFLAGS	  = -Os -g -DUSE_AES -fno-jump-tables -Wextra -Wall -Wno-unused-parame
 CFLAGS        = $(COMMON) -MMD -MP -c
 
 ifeq '$(platform)' 'board'
+ifeq '$(TARGET_CHIP)' 'GAP9'
+io ?= bridge
+else
 io ?= host
+endif
 endif
 
 ifeq '$(io)' 'host'
