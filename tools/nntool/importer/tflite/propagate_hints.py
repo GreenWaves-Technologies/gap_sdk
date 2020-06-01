@@ -20,7 +20,7 @@ from graph.dim import Dim
 from graph.types import (ConstantInputParameters,
                          MatrixBroadcastedLinearOpParameters,
                          ReshapeParameters,
-                         InputParameters)
+                         InputParameters, ConcatParameters)
 from utils.sparse_list import SparseList
 
 
@@ -31,8 +31,8 @@ def propagate_downwards(G: NNGraph):
 
         if node.in_dims_hint is not None:
             if isinstance(node, ReshapeParameters):
-                assert len(node.old_shape) == len(node.in_dims_hint[0]), "reshape doesn't match input"
-                node.old_shape.apply_naming_hints(node.in_dims_hint[0])
+                if len(node.old_shape) == len(node.in_dims_hint[0]):
+                    node.old_shape.apply_naming_hints(node.in_dims_hint[0])
             elif isinstance(node, MatrixBroadcastedLinearOpParameters):
                 max_hint = None
                 for hint in node.in_dims_hint:
@@ -40,6 +40,14 @@ def propagate_downwards(G: NNGraph):
                         max_hint = hint
                 if max_hint is not None:
                     node.out_dims_hint = [max_hint]
+            elif isinstance(node, ConcatParameters):
+                # if any incoming edge of the concat doesn't have a hint
+                # set it the same as the others
+                any_in_hint = next((hint for hint in node.in_dims_hint if hint is not None), None)
+                if any_in_hint:
+                    for edge in G.in_edges(node.name):
+                        if not node.in_dims_hint[edge.to_idx]:
+                            node.in_dims_hint[edge.to_idx] = any_in_hint
             else:
                 if node.out_dims_hint is None:
                     node.out_dims_hint = deepcopy(node.in_dims_hint)

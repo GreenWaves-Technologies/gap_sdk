@@ -163,7 +163,14 @@ enum pi_uart_ioctl_cmd
      *
      * This command disables flow control on UART device.
      */
-    PI_UART_IOCTL_DISABLE_FLOW_CONTROL = 6
+    PI_UART_IOCTL_DISABLE_FLOW_CONTROL = 6,
+
+    /**
+     * \brief Flush UART TX.
+     *
+     * This command will wait until all pending buffers are flushed outside
+     */
+    PI_UART_IOCTL_FLUSH = 7
 };
 
 /**

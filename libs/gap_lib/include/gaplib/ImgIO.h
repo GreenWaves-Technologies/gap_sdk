@@ -1,24 +1,22 @@
 /*
- * Copyright 2019 GreenWaves Technologies, SAS
+ * Copyright (C) 2017 GreenWaves Technologies
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This software may be modified and distributed under the terms
+ * of the BSD license.  See the LICENSE file for details.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
-
 
 #ifndef __IMG_IO_H__
 #define __IMG_IO_H__
 
-#define PPM_HEADER                          40
+#include "fs_switch.h"
+
+typedef enum {
+	IMGIO_OUTPUT_CHAR,
+	IMGIO_OUTPUT_SHORT,
+	IMGIO_OUTPUT_RGB565
+} img_io_out_t;
 
 enum {
     BYPASS_IO = 0,
@@ -27,7 +25,13 @@ enum {
     RGB888_IO = 3
 };
 
-unsigned char *ReadImageFromFile(char *ImageName, unsigned int *W, unsigned int *H, unsigned char *InBuffer, unsigned int BuffSize);
+typedef enum {
+	IMGIO_SHIFT = 1
+} img_io_post_process_t;
+
+int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int DesiredH, unsigned int DesiredBytesPerPixel, void *InBuffer, unsigned int BuffSize, img_io_out_t out_type, int Transpose2CHW);
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned char *OutBuffer, unsigned char imgFormat);
+
+
 #endif //__IMG_IO_H__
 

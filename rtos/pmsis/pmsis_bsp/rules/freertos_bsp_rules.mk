@@ -32,7 +32,7 @@ else ifeq ($(BOARD_NAME), gap9_v2)
 PMSIS_BSP_SRC = $(GAP9_SRC)
 endif
 
-EXCLUDE_FROM_SRCS= transport/transport.c transport/nina_w10/nina_w10.c flash/spiflash/spiflash.c
+EXCLUDE_FROM_SRCS= transport/transport.c transport/nina_w10/nina_w10.c
 
 PMSIS_BSP_SRCS := $(filter-out $(EXCLUDE_FROM_SRCS), $(PMSIS_BSP_SRC))
 PMSIS_BSP_SRCS := $(foreach f, $(PMSIS_BSP_SRCS), $(PMSIS_BSP_DIR)/$f)

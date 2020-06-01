@@ -51,9 +51,11 @@
 #define LCD_HEIGHT   240
 
 static unsigned char *imgBuff0;
+#if defined(USE_DISPLAY)
 static struct pi_device ili;
 static pi_buffer_t buffer;
 static pi_buffer_t buffer_out;
+#endif  /* USE_DISPLAY */
 static struct pi_device cam;
 
 L2_MEM unsigned char *ImageOut;
@@ -70,11 +72,9 @@ ArgCluster_T ClusterCall;
 void setCursor(struct pi_device *device,signed short x, signed short y);
 void writeFillRect(struct pi_device *device, unsigned short x, unsigned short y, unsigned short w, unsigned short h, unsigned short color);
 void writeText(struct pi_device *device,char* str,int fontsize);
-#endif  /* USE_DISPLAY */
 
 static int open_display(struct pi_device *device)
 {
-#if defined(USE_DISPLAY)
     struct pi_ili9341_conf ili_conf;
 
     pi_ili9341_conf_init(&ili_conf);
@@ -85,9 +85,9 @@ static int open_display(struct pi_device *device)
     {
         return -1;
     }
-#endif
     return 0;
 }
+#endif  /* USE_DISPLAY */
 
 #if defined(USE_CAMERA)
 #if defined(HIMAX)
@@ -166,15 +166,17 @@ void test_facedetection(void)
     {
         printf("Failed to allocate Memory for one or both Integral Images (%d bytes)\n", ImgSize*sizeof(unsigned int));
         pmsis_exit(-3);
-  }
+    }
     printf("malloc done\n");
 
+    #if defined(USE_DISPLAY)
     if (open_display(&ili))
     {
         printf("Failed to open display\n");
         pmsis_exit(-4);
     }
     printf("display done\n");
+    #endif  /* USE_DISPLAY */
 
     if (open_camera(&cam))
     {
@@ -183,6 +185,7 @@ void test_facedetection(void)
     }
     printf("Camera open success\n");
 
+    #if defined(USE_DISPLAY)
     #if defined(HIMAX)
     buffer.data = imgBuff0+CAM_WIDTH*2+2;
     buffer.stride = 4;
@@ -195,14 +198,13 @@ void test_facedetection(void)
     pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgBuff0);
     #endif  /* HIMAX */
 
-    #if defined(USE_DISPLAY)
     buffer_out.data = ImageOut;
     buffer_out.stride = 0;
     pi_buffer_init(&buffer_out, PI_BUFFER_TYPE_L2, ImageOut);
     pi_buffer_set_stride(&buffer_out, 0);
-    #endif /* USE_DISPLAY */
 
     pi_buffer_set_format(&buffer, CAM_WIDTH, CAM_HEIGHT, 1, PI_BUFFER_FORMAT_GRAY);
+    #endif /* USE_DISPLAY */
 
     ClusterCall.ImageIn              = imgBuff0;
     ClusterCall.Win                  = W;

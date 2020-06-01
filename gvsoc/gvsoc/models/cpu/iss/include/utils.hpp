@@ -38,4 +38,19 @@ static inline iss_opcode_t iss_get_zext_value(iss_opcode_t val, int bits)
   return ((unsigned int)val) << (ISS_REG_WIDTH-bits) >> (ISS_REG_WIDTH-bits);
 }
 
+static inline uint64_t iss_get_field64(iss_opcode_t val, int shift, int bits)
+{
+  return (val >> shift) & ((1<<bits) - 1);
+}
+
+static inline int64_t iss_get_signed_value64(iss_opcode_t val, int bits)
+{
+  return ((int64_t)val) << (ISS_REG_WIDTH-bits) >> (ISS_REG_WIDTH-bits);
+}
+
+static inline uint64_t iss_get_zext_value64(iss_opcode_t val, int bits)
+{
+  return ((uint64_t)val) << (ISS_REG_WIDTH-bits) >> (ISS_REG_WIDTH-bits);
+}
+
 #endif

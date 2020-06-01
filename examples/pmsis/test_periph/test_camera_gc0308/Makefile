@@ -1,6 +1,7 @@
 APP = test
-APP_SRCS += test.c ImgIO.c
+APP_SRCS += test.c
 APP_CFLAGS += -O3 -g
+APP_LDFLAGS += -lgaplib
 
 #APP_CFLAGS += -DHIMAX
 

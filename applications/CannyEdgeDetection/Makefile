@@ -26,10 +26,6 @@ APP_LDFLAGS +=  -flto -Wl,--gc-sections
 # in a clean way.
 APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef
 
-# Should be removed once openocd is the default bridge
-export GAP_USE_OPENOCD=1
-io=host
-
 clean::
 	rm -rf img_OUT.ppm
 

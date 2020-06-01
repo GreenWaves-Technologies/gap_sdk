@@ -185,3 +185,64 @@ proc fuse_spiflash_boot {gap_tools_path} {
 	# now close the flasher
 	gap_fuse_terminate 0x1c000190
 }
+
+
+proc dump_fuse_array {gap_tools_path} {
+    reset
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+    sleep 100
+	puts "${gap_tools_path}/gap_bins/gap_fuser@gapoc_a.elf"
+	gap_fuse_open 0x1c000190
+
+	array set fuse_array {
+		0 0x0
+		1 0
+		2 0
+		3 0
+		4 0
+		5 0
+		6 0
+		7 0
+		8 0
+		9 0
+		10 0
+		11 0
+		12 0
+		13 0
+		14 0
+		15 0
+		16 0
+		17 0
+		18 0
+		19 0
+		20 0
+		21 0
+		22 0
+		23 0
+		24 0
+		25 0
+		26 0
+		27 0
+		28 0
+		29 0
+		30 0
+		31 0x0
+	}
+
+	gap_fuse_once 0x1c000190 0x0 0 1024 0xf 32
+	
+    puts "dump array:"
+    puts "-------------------------"
+    set iter [expr 0x0]
+    while { [expr $iter != 32] } {
+		puts "|word\[$iter\] \t| [format 0x%x $fuse_array($iter)]\t|"
+        puts "-------------------------"
+        set iter  [expr $iter + 1]
+	}
+
+	# now close the flasher
+	gap_fuse_terminate 0x1c000190
+	puts "fuse done"
+}
+
+

@@ -64,9 +64,6 @@ int32_t pi_pwm_open(struct pi_device *device)
 
     device->data = (void *)timer;
 
-    pi_pad_set_function(PI_PAD_33_B12_TIMER0_CH2, PI_PAD_33_B12_TIMER0_CH2_FUNC0);
-
-
     timer->open_count++;
     if (timer->open_count == 1)
     {

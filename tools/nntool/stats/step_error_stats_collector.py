@@ -23,29 +23,28 @@ import numpy as np
 from utils.stats_funcs import qsnr
 from utils.node_id import NodeId
 
-from execution.execute_graph import execute_qnoq_iterator
-from execution.quantization_mode import QuantizationMode
-
-from graph.types import FilterParameters
+from execution.graph_executer import GraphExecuter
 
 from .stats_collector import ReductionStatsCollector
 
 LOG = logging.getLogger('nntool.' + __name__)
 
+
 class StepErrorStatsCollector(ReductionStatsCollector):
-    def __init__(self, limit=None):
+    def __init__(self, limit=None, quant_compare=False):
         super().__init__()
         self._limit = limit
+        self._quant_compare = quant_compare
 
     def _prepare(self, G):
         pass
 
-
     def _collect_execution(self, G, tensors, qrecs):
         outputs = []
         fusion_outputs = []
+        executer = GraphExecuter(G, qrecs)
         for step_idx, node, output, details, qoutput, qdetails, fusion_node in\
-            execute_qnoq_iterator(G, tensors, qrecs):
+                executer.execute_qnoq_iterator(tensors):
             output = [np.copy(out) for out in output]
             qoutput = [np.copy(out) for out in qoutput]
 
@@ -77,17 +76,14 @@ class StepErrorStatsCollector(ReductionStatsCollector):
         return outputs
 
     @staticmethod
-    def _collect_one(out):
-        fout = out['output']
-        qout = out['qoutput']
-        error_ = np.abs(fout[0] - qout[0])
+    def _collect_one(out, qrec, quant_compare=False):
+        fout = out['output'][0]
+        if quant_compare:
+            fout = qrec.out_qs[0].dequantize(qrec.out_qs[0].quantize(fout))
+        qout = out['qoutput'][0]
+
+        error_ = np.abs(fout - qout)
         node = out['node']
-        qdetails = out['qdetails']
-        if qdetails:
-            overflow_dot = qdetails['overflow_dot']
-            overflow_acc = qdetails['overflow_acc']
-        else:
-            overflow_dot = overflow_acc = ""
 
         stat = {
             'name': out['name'],
@@ -96,9 +92,7 @@ class StepErrorStatsCollector(ReductionStatsCollector):
             'av_err': np.mean(error_),
             'max_err': np.max(error_),
             'min_err': np.min(error_),
-            'qsnr': qsnr(fout[0], qout[0]),
-            'overflow_dot' : overflow_dot,
-            'overflow_acc' : overflow_acc,
+            'qsnr': qsnr(fout, qout),
             'chan_err': []
         }
 
@@ -108,7 +102,7 @@ class StepErrorStatsCollector(ReductionStatsCollector):
             dim = node.out_dims[0]
             for i in range(dim.c):
                 srange = dim.srange(c=i)
-                channel_error.append(np.average(fout[0][srange] - qout[0][srange]))
+                channel_error.append(np.average(fout[srange] - qout[srange]))
             stat['chan_err'] = channel_error
 
         return stat
@@ -122,9 +116,15 @@ class StepErrorStatsCollector(ReductionStatsCollector):
         for out in outputs:
             if out['fusion_outputs']:
                 for fout in out['fusion_outputs']:
-                    stats[NodeId(out['node'], fout['node'])] =\
-                        self._collect_one(fout)
-            stats[NodeId(out['node'], None)] = self._collect_one(out)
+                    nid = NodeId(out['node'], fout['node'])
+                    stats[nid] =\
+                        self._collect_one(fout,
+                                          G.quantization[nid],
+                                          quant_compare=self._quant_compare)
+            nid = NodeId(out['node'], None)
+            stats[nid] = self._collect_one(out,
+                                           G.quantization[nid],
+                                           quant_compare=self._quant_compare)
 
         return stats
 
@@ -141,8 +141,6 @@ class StepErrorStatsCollector(ReductionStatsCollector):
     def _reduce(self, _, base: Mapping, stat: Mapping):
         for k in ['av_err', 'qsnr', 'chan_err']:
             base[k].append(stat[k])
-        for k in ['overflow_dot', 'overflow_acc']:
-            base[k] += stat[k]
         for k in [('max_err', 'max_err')]:
             base[k[0]] = max(base[k[0]], abs(stat[k[1]]))
         for k in [('min_err', 'min_err')]:

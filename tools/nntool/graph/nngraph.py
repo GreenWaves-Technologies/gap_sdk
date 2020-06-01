@@ -17,39 +17,54 @@ import logging
 import os
 from typing import Generator, Sequence, Union
 
+from graph.dim import Dim
+from graph.dump_tensor import PrintDumper, dump_tensor
+from graph.graph_identity import GraphIdentity
+from graph.manipulations import (add_dimensions, adjust_order,
+                                 balance_all_filters, balance_filter,
+                                 calculate_liveness)
+from graph.types import (ConstantInputParameters, ConvFusionParameters,
+                         InputBaseParameters, InputParameters,
+                         MultiplicativeBiasParameters, OutputParameters)
+from quantization.quantization_set import QuantizationSet
 from utils.graph import Graph, Node
 from utils.json_serializable import JsonSerializable
 from utils.node_id import NodeId
-
-from .dim import Dim
-from .dump_tensor import PrintDumper, dump_tensor
-from .graph_identity import GraphIdentity
-from .manipulations import add_dimensions, adjust_order, calculate_liveness, balance_filter, balance_all_filters
-from .types import (ConstantInputParameters, FilterParameters,
-                    ConvFusionParameters, InputBaseParameters, InputParameters,
-                    OutputParameters, MultiplicativeBiasParameters)
+from interpreter.commands.imageformat import insert_formatter
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 class NNGraphError(Exception):
     pass
 
+
 class GraphStepsNotCalculatedError(NNGraphError):
     pass
 
-class NNGraphAttributeChanges(JsonSerializable):
+
+class NNGraphChanges(JsonSerializable):
     def __init__(self, init=None):
         if init is not None:
             self._changes = init['changes']
+            self._image_format = init.get('image_format') or {}
             return
         self._changes = []
+        self._image_format = {}
 
     def _encapsulate(self):
-        return {'changes': self._changes}
+        return {'changes': self._changes, 'image_format': self._image_format}
 
     @classmethod
     def _dencapsulate(cls, val):
         return cls(init=val)
+
+    def image_format(self, input_node_name, formatter, normalizer):
+        if formatter is None and normalizer is None:
+            if input_node_name in self._image_format:
+                del self._image_format[input_node_name]
+            return
+        self._image_format[input_node_name] = {"formatter": formatter, "normalizer": normalizer}
 
     def modify(self, node, attr, val, fnode=None):
         nid = NodeId(node, fnode)
@@ -66,6 +81,14 @@ class NNGraphAttributeChanges(JsonSerializable):
         for change in self._changes:
             node = change['nid'].get_node(G)
             setattr(node, change['attr'], change['val'])
+        graph_changed = False
+        for input_node_name, params in self._image_format.items():
+            graph_changed = True
+            out_edge = G.out_edges(input_node_name)[0]
+            insert_formatter(G, out_edge, params["formatter"], params["normalizer"])
+        if graph_changed:
+            G.add_dimensions()
+
 
 class NNGraphState():
     def __init__(self):
@@ -103,12 +126,13 @@ class NNGraphState():
     def has_quantization_info(self, val):
         self._state['quantization'] = val
 
+
 class NNGraph(Graph):
-    def __init__(self, model=None, name=None,
-                 filename=None, value_cache=None,
+    def __init__(self,
+                 model=None,
+                 name=None,
+                 filename=None,
                  constant_store=None):
-        # TODO - Value caching disabled
-        del value_cache
         super().__init__()
 
         self.model = model
@@ -122,14 +146,11 @@ class NNGraph(Graph):
 
         self.load_function = None
         self.graphname = name
-        # disable value cache for now
-#        self.value_cache = value_cache
-        self.value_cache = None
         self.constant_store = constant_store
         self.graph_identity = GraphIdentity(filename)
         self._info = {
             'quantization': None,
-            'changes': NNGraphAttributeChanges()
+            'changes': NNGraphChanges()
         }
 
     @property
@@ -141,12 +162,20 @@ class NNGraph(Graph):
         self._info = val
 
     @property
-    def quantization(self):
-        return self._info['quantization']
+    def quantization(self) -> QuantizationSet:
+        return self._info.get('quantization')
 
     @quantization.setter
-    def quantization(self, val):
+    def quantization(self, val: QuantizationSet):
         self._info['quantization'] = val
+
+    @property
+    def has_quantized_parameters(self) -> bool:
+        return self._info.get('has_quantized_parameters')
+
+    @has_quantized_parameters.setter
+    def has_quantized_parameters(self, val: bool):
+        self._info['has_quantized_parameters'] = val
 
     @property
     def changes(self):
@@ -244,8 +273,8 @@ class NNGraph(Graph):
             else:
                 yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True):
-        adjust_order(self, reshape_weights)
+    def adjust_order(self, reshape_weights=True, postprocess=True):
+        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess)
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 
@@ -263,14 +292,16 @@ class NNGraph(Graph):
             if isinstance(pnode, ConvFusionParameters):
                 fnode = pnode.contained_filters()
                 if len(fnode) > 1:
-                    raise NotImplementedError("fusions with more than one contained filter is not supported")
+                    raise NotImplementedError(
+                        "fusions with more than one contained filter is not supported")
                 fnode = fnode[0]
                 node = fnode
             else:
                 node = pnode
                 fnode = None
             if not isinstance(node, MultiplicativeBiasParameters):
-                raise ValueError("weights can only be balanced on nodes that support multiplicative bias")
+                raise ValueError(
+                    "weights can only be balanced on nodes that support multiplicative bias")
             balance_filter(pnode, fnode=fnode, G=self)
         else:
             balance_all_filters(self, precision_threshold=precision_threshold)
@@ -282,11 +313,12 @@ class NNGraph(Graph):
             print(node.name)
             for out_idx, out in enumerate(outs):
                 dims = node.out_dims[out_idx]
-                if order is not None and order != dims.order:
+                if order is not None and dims.is_named and order != dims.order and all(k in dims.order
+                                                                                       for k in order):
                     transpose = dims.transpose_to_order(order)
                     out = out.transpose(transpose)
                 if channel is not None:
-                    out = out[channel].reshape((1, dims.h, dims.w))
+                    out = out[channel:channel+1:1, ...]
                 dump_tensor(out, PrintDumper(out, width=width, precision=precision))
 
         if limit is not None:

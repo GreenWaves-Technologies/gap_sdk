@@ -1,8 +1,6 @@
 /* PMSIS includes */
 #include "pmsis.h"
-#if defined(PMSIS_DRIVERS)
-#include "pmsis_driver/pmsis_it.h"
-#endif  /* PMSIS_DRIVERS */
+#include "pmsis/implem/drivers/pmsis_it.h"
 
 #define NB_ITER          ( 5 )
 

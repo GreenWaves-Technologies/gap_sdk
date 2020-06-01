@@ -112,6 +112,10 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters):
             return 0
         return self.get_weights_count() + self.get_bias_count()
 
+    @property
+    def at_options(self):
+        return self._at_options
+
     def get_output_size(self, in_dims):
 
         assert len(in_dims) == 1,\
@@ -123,7 +127,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters):
             "The number of groups cannot be larger than the amount of input channels"
         self.filter.in_c = in_dims.c // self.groups
         if self.padding.is_same:
-            self.padding.calculate_same(in_dims, self.filter, self.stride)
+            self.padding.calculate_same(in_dims, self.filter, self.stride, dilation=self.dilation)
         filter_d = self.filter + (self.filter - 1) * (self.dilation - 1)
 
         pad = self.padding.height_width()

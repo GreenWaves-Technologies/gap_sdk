@@ -284,7 +284,7 @@ static int32_t __pi_i2s_conf_apply(struct i2s_itf_data_s *itf_data)
      * are used, so both i2s_0 and i2s_1 use i2s_0 internal clock.
      */
     itf_data->clk = (g_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK) ? 0 : itf_data->i2s_id;
-    if ((itf_data->clk == 0) && (itf_data->options & PI_I2S_OPT_EXT_CLK))
+    if ((g_i2s_flags & PI_I2S_SETUP_SINGLE_CLOCK) && (itf_data->options & PI_I2S_OPT_EXT_CLK))
     {
         I2S_TRACE_ERR("Error clock configuration : Single internal clock and "
                       "external clock are defined !\n");

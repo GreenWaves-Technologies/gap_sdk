@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from quantization.qtype import QType
-from quantization.simple_auto_quantify import SimpleQuantizer
+from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from utils.node_id import NodeId
 from utils.stats_funcs import STATS_BITS
 from graph.types import ConvFusionParameters
@@ -30,6 +30,7 @@ def get_qtype(qparam1, qparam2):
     return QType(STATS_BITS[bits_idx], qparam2, True)
 
 def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
+    del index
     step = G.graph_state.steps[step_num]
     node = step['node']
     if param == 'dp':
@@ -37,7 +38,7 @@ def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
 
     if param == "out":
         qtype = get_qtype(qparam1, qparam2)
-        SimpleQuantizer.propagate(G, qrecs, node, qtype)
+        SymmetricQuantizer.propagate(G, qrecs, node, qtype)
     else:
         if isinstance(node, ConvFusionParameters):
             for subnode in node.subgraph.nodes():
@@ -45,9 +46,9 @@ def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
                 if hasattr(qrec, param + '_q'):
                     setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
                     return
-            raise TuneError("parameter " + param + " not found")       
-        else:
-            qrec = qrecs[NodeId(node, None)]
-            if not hasattr(qrec, param + '_q'):
-                raise TuneError("parameter " + param + " not found")
-            setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
+            raise TuneError("parameter " + param + " not found")
+
+        qrec = qrecs[NodeId(node, None)]
+        if not hasattr(qrec, param + '_q'):
+            raise TuneError("parameter " + param + " not found")
+        setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))

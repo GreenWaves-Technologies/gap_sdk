@@ -15,8 +15,16 @@
 
 import logging
 
-from graph.types import PoolingParameters, ActivationParameters, ConvFusionParameters
-from utils.graph import MatchNode, GraphView, Edge
+from graph.types import (ActivationParameters, ConvFusionParameters,
+                         PoolingParameters)
+from quantization.symmetric.symmetric_quantization import (
+    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
+from quantization.multiplicative.mult_quantization import (
+    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.float32.float32_quantization import (
+    Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
+from utils.graph import Edge, GraphView, MatchNode
+from utils.node_id import NodeId
 
 from .matcher import DefaultMatcher
 
@@ -61,4 +69,18 @@ class MatchGapPool(DefaultMatcher):
             (node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
-        return ConvFusionParameters(pool_name, "pool_active", subgraph)
+        pnode = ConvFusionParameters(pool_name, "pool_active", subgraph)
+        if G.quantization:
+            qrecs = G.quantization.get_all(subgraph.nodes())
+            if qrecs:
+                if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
+                    prec = SymmetricQuantizationRecord(
+                        in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                    prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
+                    prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                for node in subgraph.nodes():
+                    G.quantization.move_to_fusion(node, pnode)
+                G.quantization[NodeId(pnode)] = prec
+        return pnode

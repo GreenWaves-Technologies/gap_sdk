@@ -44,6 +44,10 @@
 #error Unknown core version
 #endif
 
+typedef uint64_t iss_reg64_t;
+
+#define PRIxFULLREG64  "16.16" PRIx64
+
 #if defined(ISS_WORD_64)
 
 #define ISS_OPCODE_MAX_SIZE 8
@@ -124,6 +128,7 @@ typedef enum {
   ISS_DECODER_ARG_FLAG_PREINC = 2,
   ISS_DECODER_ARG_FLAG_COMPRESSED = 4,
   ISS_DECODER_ARG_FLAG_FREG = 8,
+  ISS_DECODER_ARG_FLAG_REG64 = 16,
 } iss_decoder_arg_flag_e;
 
 typedef struct iss_insn_arg_s {
@@ -134,6 +139,7 @@ typedef struct iss_insn_arg_s {
     struct {
       int index;
       iss_reg_t value;
+      iss_reg64_t value_64;
     } reg;
     struct {
       iss_sim_t value;

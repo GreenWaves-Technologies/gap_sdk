@@ -16,16 +16,15 @@
 import logging
 
 from ..dim import Dim
-from .base import FilterParameters, SingleInputAndOutput
+from .base import MultiplicativeBiasParameters, SingleInputAndOutput
 
 LOG = logging.getLogger("nntool." + __name__)
 
-class FcParameters(FilterParameters, SingleInputAndOutput):
+class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
     op_name = "linear"
-    def __init__(self, name, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        super(FcParameters, self).__init__(name,
-                                           **kwargs)
+        super(FcParameters, self).__init__(*args, **kwargs)
         LOG.debug("created LINEAR %s", str(self))
 
     def get_parameter_size(self):
@@ -55,7 +54,7 @@ class FcParameters(FilterParameters, SingleInputAndOutput):
         return FcParameters(name, filt=self.filter.clone(), has_bias=self.has_bias)
 
     def compute_load(self):
-        return self.in_dims[0].size() * self.filter.size()
+        return self.in_dims[0].size() * self.out_dims[0].c
 
     def __str__(self):
         return "F {} {}".format(self.filter, self.at_options or "")

@@ -18,7 +18,7 @@
 #include "bsp/camera.h"
 #include "bsp/camera/himax.h"
 #include "bsp/camera/ov7670.h"
-#include "ImgIO.h"
+#include "gaplib/ImgIO.h"
 
 #include "bsp/display.h"
 #include "bsp/display/ili9341.h"
@@ -245,7 +245,7 @@ static int test_entry()
 
     char name[25];
     int idx = 0;
-    //while (1)
+    while (1)
     {
         enqueue_transfer();
         pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
@@ -258,12 +258,12 @@ static int test_entry()
 #if defined(DISPLAY)
         pi_display_write(&lcd, &buffer, 0, 0, WIDTH, HEIGHT);
 #else
-#if defined(__FREERTOS__)
-        sprintf(name, "../../../output.raw", idx);
+        sprintf(name, "../../../output%d.raw", idx);
+#if defined (HIMAX)
+        WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, buff, GRAY_SCALE_IO);
 #else
-        sprintf(name, "../../../output.raw", idx);
-#endif  /* __FREERTOS__ */
-        WriteImageToFile(name, WIDTH, HEIGHT, buff, PIXEL_SIZE);
+        WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, buff, RGB565_IO);
+#endif
         idx++;
 #endif  /* 0 */
         done = 0;

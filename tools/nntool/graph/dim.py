@@ -21,32 +21,42 @@ from collections.abc import Iterable
 from functools import reduce
 from math import ceil, floor
 
+
 class DimError(Exception):
     pass
+
 
 class NoSizeError(DimError):
     pass
 
+
 class DimUnknownError(DimError):
     pass
+
 
 class DimHasNoOrderError(DimError):
     pass
 
+
 class DimHasNoNamesError(DimError):
     pass
+
 
 class DimMissingKeyError(DimError):
     pass
 
+
 class DimIncorrectKeyError(DimError):
     pass
+
 
 class MissMatchedInputsError(DimError):
     pass
 
+
 class MoreThanOneInputError(DimError):
     pass
+
 
 class Dim():
     def __init__(self, shape=None, names=None, is_ordered=False, is_unknown=False):
@@ -54,9 +64,9 @@ class Dim():
         super().__setattr__('_shape', set_shape)
         super().__setattr__('_names', names)
         super().__setattr__('_is_ordered', is_ordered)
-        super().__setattr__('_is_unknown', is_unknown or\
-            (shape is None) or\
-            any(elem is None for elem in set_shape))
+        super().__setattr__('_is_unknown', is_unknown or
+                            (shape is None) or
+                            any(elem is None for elem in set_shape))
         super().__setattr__('_is_named', names is not None)
 
     @classmethod
@@ -175,6 +185,11 @@ class Dim():
     def is_single_channel(self) -> bool:
         return self.is_named and self.has_key('c') and self.c == 1
 
+    @property
+    def layout_shape(self):
+        self._verify_is_ordered()
+        return tuple(sz for sz in self.shape if sz > 1)
+
     def transpose(self, order):
         '''transpose dimension in order which is a list of indexes or list of names'''
         self._verify_is_ordered()
@@ -189,11 +204,26 @@ class Dim():
             object.__setattr__(self, '_names', [self._names[i] for i in order])
         return self
 
+    def calc_transpose(self, order):
+        '''transpose dimension in order which is a list of indexes or list of names'''
+        self._verify_is_ordered()
+        if len(order) != len(self.shape):
+            raise MissMatchedInputsError()
+        # if the order is names then convert to indices
+        if isinstance(order[0], str):
+            self._verify_is_named()
+            order = [self.keys.index(k) for k in order]
+        res = self.clone()
+        object.__setattr__(res, '_shape', [self._shape[i] for i in order])
+        if self.is_named:
+            object.__setattr__(res, '_names', [self._names[i] for i in order])
+        return res
+
     def move_last_to_first(self):
         self._verify_is_ordered()
-        self._shape.append(self._shape.pop(0))
+        self._shape.insert(0, self._shape.pop())
         if self.is_named:
-            self._names.append(self._names.pop(0))
+            self._names.insert(0, self._names.pop())
 
     def apply_naming_hints(self, hint):
         self._verify_is_ordered()
@@ -342,8 +372,8 @@ class Dim():
             for i in range(1, len(dims)):
                 dim = dims[i]
                 if len(dim.shape) != len(base.shape) or\
-                    not all(dim.shape[j] == base.shape[j]\
-                        for j in range(len(base.shape)) if j != axis):
+                    not all(dim.shape[j] == base.shape[j]
+                            for j in range(len(base.shape)) if j != axis):
                     raise MissMatchedInputsError()
                 cnt += dim.shape[axis]
             base[axis] = cnt
@@ -493,16 +523,18 @@ class Dim():
             return "unknown"
         return 'x'.join([str(v) for v in self._shape])
 
+
 PAD_DIMS = ['t', 'b', 'l', 'r']
 PAD_VERT_DIMS = ['t', 'b']
 PAD_HORIZ_DIMS = ['l', 'r']
 
+
 class PadDim(Dim):
 
-    def __init__(self, *args, is_same=False):
+    def __init__(self, *args, same_type=None):
         if not args:
             super().__init__(names=PAD_DIMS.copy(), is_ordered=True, is_unknown=True)
-            object.__setattr__(self, '_same', is_same)
+            object.__setattr__(self, '_same_type', same_type)
         else:
             if not all(isinstance(i, int) for i in args):
                 raise TypeError("incorrect type for PadDim")
@@ -516,11 +548,22 @@ class PadDim(Dim):
                 super().__init__([args[0], args[1], args[2], args[3]], PAD_DIMS, is_ordered=True)
             else:
                 raise ValueError("incorrect pad argument length")
-            object.__setattr__(self, '_same', False)
+            object.__setattr__(self, '_same_type', same_type)
 
     def height_width(self) -> Dim:
         '''return a dim representing the width and height'''
         return Dim.named_ordered(h=self.h, w=self.w)
+
+    @property
+    def has_padding(self):
+        return self.t > 0 or self.b > 0 or self.l > 0 or self.r > 0
+
+    PadCompatibilityTypes = [
+        "left",
+        "right",
+        "balanced_left",
+        "balanced_right"
+    ]
 
     @classmethod
     def compute_pad_compatibility(cls, l, r):
@@ -563,7 +606,6 @@ class PadDim(Dim):
             return None
         return reduction
 
-
     @property
     def pad_compatibility(self):
         return self.pad_compatibility_reduce(
@@ -584,17 +626,21 @@ class PadDim(Dim):
         self._verify_is_known()
         return self.t + self.b
 
+    @property
+    def same_type(self):
+        return self._same_type
+
     def clone(self, keys=None):
         '''clone the paddim'''
         assert not keys
         if self.is_unknown:
-            return PadDim(is_same=self.is_same)
-        return PadDim(self.t, self.b, self.l, self.r, is_same=self.is_same)
+            return PadDim(same_type=self.same_type)
+        return PadDim(self.t, self.b, self.l, self.r, same_type=self.same_type)
 
     @classmethod
-    def same(cls) -> 'PadDim':
+    def same(cls, same_type="balanced_right") -> 'PadDim':
         '''return a same padding'''
-        return cls(is_same=True)
+        return cls(same_type=same_type)
 
     @classmethod
     def valid(cls) -> 'PadDim':
@@ -618,28 +664,62 @@ class PadDim(Dim):
     @property
     def is_same(self) -> bool:
         '''checks if PadDim is set same'''
-        return self._same
+        return self._same_type is not None
 
-    def calculate_same(self, in_dim, filt, stride) -> Dim:
+    def calculate_same(self, in_dim, filt, stride, dilation=None) -> Dim:
         '''calculates the actual padding from the input dimension'''
         out_height = ceil(float(in_dim.h) / float(stride.h))
         out_width = ceil(float(in_dim.w) / float(stride.w))
-
-        pad_along_height = max(
-            (out_height - 1) * stride.h + filt.h - in_dim.h,
-            0)
-        pad_along_width = max(
-            (out_width - 1) * stride.w + filt.w - in_dim.w,
-            0)
+        if dilation is None:
+            pad_along_height = max(
+                (out_height - 1) * stride.h + filt.h - in_dim.h,
+                0)
+            pad_along_width = max(
+                (out_width - 1) * stride.w + filt.w - in_dim.w,
+                0)
+        else:
+            pad_along_height = max(
+                (out_height - 1) * stride.h + filt.h + (filt.h - 1)*(dilation.h - 1) - in_dim.h,
+                0)
+            pad_along_width = max(
+                (out_width - 1) * stride.w + filt.w + (filt.w - 1)*(dilation.w - 1) - in_dim.w,
+                0)
+        if self._same_type == "left":
+            self.set(
+                t=pad_along_height,
+                b=0,
+                l=pad_along_width,
+                r=0
+            )
+            return self
+        elif self._same_type == "right":
+            self.set(
+                t=0,
+                b=pad_along_height,
+                l=0,
+                r=pad_along_width
+            )
+            return self
         pad_top = pad_along_height // 2
         pad_left = pad_along_width // 2
-        self.set(
-            t=pad_top,
-            b=pad_along_height - pad_top,
-            l=pad_left,
-            r=pad_along_width - pad_left
-        )
-        return self
+        if self._same_type == "balanced_right":
+            self.set(
+                t=pad_top,
+                b=pad_along_height - pad_top,
+                l=pad_left,
+                r=pad_along_width - pad_left
+            )
+            return self
+        elif self._same_type == "balanced_left":
+            self.set(
+                t=pad_along_height - pad_top,
+                b=pad_top,
+                l=pad_along_width - pad_left,
+                r=pad_left
+            )
+            return self
+        else:
+            raise ValueError("same padding is not set")
 
     @property
     def has_end_h_pad(self) -> bool:
@@ -655,11 +735,15 @@ class PadDim(Dim):
         '''checks if padding is compatible with autotiler'''
         if self.t == 0 and self.b == 0 and self.l == 0 and self.r == 0:
             return False
-        if self.has_end_h_pad and self.has_end_w_pad and self.t == self.l:
+        if self._same_type is not None:
             return True
-        raise AttributeError("Padding is probably not compatible with AutoTiler")
+        if any(pad_type for pad_type in self.pad_compatibility):
+            return True
+        raise AttributeError("Padding is not same so not compatible with AutoTiler")
+
 
 DEFAULT_CONVFILTER_DIMS = ['out_c', 'in_c', 'h', 'w']
+
 
 class Conv2DFilterDim(Dim):
 
@@ -676,7 +760,9 @@ class Conv2DFilterDim(Dim):
         assert not keys
         return Conv2DFilterDim(self.h, self.w, self.out_c, self.in_c, order=self.keys)
 
+
 DEFAULT_FCFILTER_DIMS = ['out_c', 'in_c', 'h', 'w']
+
 
 class FcFilterDim(Dim):
 
@@ -721,7 +807,9 @@ class FcFilterDim(Dim):
         assert not keys
         return FcFilterDim(self.h, self.w, self.out_c, self.in_c, order=self.keys)
 
+
 DEFAULT_2DDIMS = ['h', 'w']
+
 
 class Dim2D(Dim):
 
@@ -739,14 +827,18 @@ class Dim2D(Dim):
         assert not keys
         return self.__class__(self.h, self.w, order=self.keys)
 
+
 class StrideDim(Dim2D):
     pass
+
 
 class PoolFilterDim(Dim2D):
     pass
 
+
 class ScaleDim(Dim2D):
     pass
+
 
 class DilationDim(Dim2D):
     pass

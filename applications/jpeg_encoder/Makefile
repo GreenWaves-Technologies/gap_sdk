@@ -1,3 +1,6 @@
+# Only Pulp-Os for now.
+PMSIS_OS=pulpos
+
 APP = test
 APP_SRCS += test.c ImgIO.c
 APP_CFLAGS += -O3 -g -Werror

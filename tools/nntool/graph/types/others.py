@@ -15,12 +15,15 @@
 
 import logging
 import sys
-from functools import reduce
 
-from ..dim import Dim
-from .base import (FilterParameters, NodeOptions, NoSizeChangeParameters,
-                   Parameters, SameNumberOfDimensionsForInputs,
-                   SensitiveToOrder, SingleInputAndOutput, Transposable)
+import numpy as np
+
+from graph.dim import Dim
+from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
+
+from .base import (NoSizeChangeParameters, Parameters,
+                   SameNumberOfDimensionsForInputs, SensitiveToOrder,
+                   SingleInputAndOutput, Transposable)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -127,6 +130,105 @@ class InputParameters(InputBaseParameters):
     #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
     #     return True
 
+class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+    op_name = "image_format"
+    NORMALIZATIONS = NORMALIZATIONS
+    FORMAT_CHANGES = FORMAT_CHANGES
+
+    def __init__(self, *args, norm_func=None, format_change=None, **kwargs):
+        self._norm_func = None
+        self._format_change = None
+        super(ImageFormatParameters, self).__init__(*args, **kwargs)
+        self.norm_func = norm_func
+        self.format_change = format_change
+
+    @property
+    def input_channels(self):
+        if self.format_change in ("RGB565_RGB888", "BW8", "BW16"):
+            return 1
+        if self.format_change in ("RGB888", "RGB16"):
+            return 3
+        return None
+
+    @property
+    def input_dtype(self):
+        if self.format_change == "RGB565_RGB888":
+            return np.uint16
+        if self.format_change in ("RGB888", "BW8", "BW16", "RGB16"):
+            return np.uint8
+        return None
+
+    @property
+    def output_channels(self):
+        if self.format_change in ("RGB565_RGB888", "RGB888", "RGB16"):
+            return 3
+        if self.format_change in ("BW8", "BW16"):
+            return 1
+        return None
+
+    @property
+    def output_dtype(self):
+        if self.norm_func in ("SHIFT_INT8", "OFFSET_INT8"):
+            return np.int8
+        if self.norm_func in "OUT_INT16":
+            return np.int16
+        return None
+
+    @property
+    def format_change(self):
+        # RGB565_RGB888
+        return self._format_change
+
+    @format_change.setter
+    def format_change(self, val):
+        val = val and val.upper()
+        if val is not None and val not in self.FORMAT_CHANGES:
+            raise ValueError("format change is not valid")
+        self._format_change = val
+
+    @property
+    def norm_func(self):
+        # None, "shift", "offset"
+        return self._norm_func
+
+    @norm_func.setter
+    def norm_func(self, val):
+        val = val and val.upper()
+        if val is not None and val not in self.NORMALIZATIONS:
+            raise ValueError("normalization is not valid")
+        self._norm_func = val
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        assert len(in_dims) == 1
+        self.in_dims = self.clone_dim_with_hints(in_dims, hint_dir='in')
+        out_dim = self.clone_dim_with_hints(in_dims, hint_dir='out')[0]
+        if self.format_change == "RGB565_RGB888":
+            assert out_dim.is_named and out_dim.c == 1
+            out_dim.impose_order(self.out_dims_hint[0])
+            out_dim.c = 3
+        elif self.format_change in ("BW8", "BW16"):
+            assert out_dim.is_named and out_dim.c == 1
+            out_dim.impose_order(self.out_dims_hint[0])
+        elif self.format_change in ("RGB888", "RGB16"):
+            assert out_dim.is_named and out_dim.c == 3
+            out_dim.impose_order(self.out_dims_hint[0])
+        else:
+            raise ValueError("unknow format change")
+
+        return [out_dim]
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "FORMAT_CHANGE Fmt: {} Norm: {}".format(self.format_change, self.norm_func)
 
 class ConstantInputParameters(InputBaseParameters):
     op_name = "constant"
@@ -186,45 +288,6 @@ class OutputParameters(InputOutputParameters):
         raise NotImplementedError()
 
 
-class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
-
-    def __init__(self, name, activation="relu", activation_params=None):
-        super(ActivationParameters, self).__init__(name)
-        self.activation = activation
-        self.activation_params = activation_params
-
-    @property
-    def op_name(self):
-        return self.activation
-
-    def get_parameter_size(self):
-        return 0
-
-    def clone(self, name, groupn=None):
-        return ActivationParameters(name, self.activation, self.activation_params)
-
-    @property
-    def can_equalize(self):
-        # Is leaky usable? Looks like it.
-        return self.activation == "relu" or self.activation == "leaky"\
-            or self.activation == "relu6" or self.activation == "relun"
-
-    def compute_load(self):
-        # TODO - Be more accurate with different activation types
-        return self.out_dims[0].size()
-
-    def activation_to_string(self):
-        if self.activation == "relun":
-            return "relun({})".format(self.activation_params)
-        return self.activation
-
-    def __str__(self):
-        return "Activation {} {}".format(
-            self.activation_to_string(),
-            self.at_options
-        )
-
-
 class TransposeParameters(Transposable, SingleInputAndOutput):
     op_name = "transpose"
 
@@ -242,24 +305,13 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
     def can_equalize(self):
         return False
 
-    def transpose_elements(self):
-        tin = self.transpose_in
-        elems = []
-        cur = []
-        for i in tin:
-            if len(cur) == 0 or cur[-1] + 1 == i:
-                cur.append(i)
-            else:
-                elems.append(cur)
-                cur = [i]
-        if len(cur) > 0:
-            elems.append(cur)
-        return elems
-
-    @property
-    def transpose_size(self):
-        dim = self.in_dims[0].shape
-        return [reduce(lambda x, y: x * dim[y], telem, 1) for telem in self.transpose_elements()]
+    def real_shape(self):
+        input_shape = self.in_dims[0].shape
+        cond_input_idx = [i for i, sz in enumerate(self.in_dims[0].shape) if sz != 1]
+        real_transpose = [i for i in self.transpose_in if i in cond_input_idx]
+        cond_input_shape = [input_shape[i] for i in cond_input_idx]
+        cond_transpose = [cond_input_idx.index(i) for i in real_transpose]
+        return tuple(cond_input_shape), tuple(cond_transpose)
 
     @property
     def transpose_dimension(self):
@@ -276,7 +328,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
         self._transpose_in = val
 
     def get_output_size(self, in_dims):
-        self.in_dims = in_dims
+        self.in_dims = self.clone_dim_with_hints(in_dims)
         out_dim = in_dims[0].clone()
         if self.transpose_in:
             out_dim = out_dim.transpose(self.transpose_in)
@@ -318,7 +370,7 @@ class ConcatParameters(Transposable):
     def get_output_size(self, in_dims):
         if in_dims[0].is_named and self._axis_hint:
             self._axis = in_dims[0].get_order_idx(self._axis_hint)
-        self.in_dims = in_dims
+        self.in_dims = self.clone_dim_with_hints(in_dims)
         if self.transpose_in:
             in_dims = [in_dim.clone().transpose(self.transpose_in) for in_dim in in_dims]
         out_dim = Dim.combine([in_dim for in_dim in in_dims], self.axis)
@@ -335,103 +387,6 @@ class ConcatParameters(Transposable):
             Transposable.__str__(self),
             self.at_options
         )
-
-class FusionBase(Parameters):
-    fusion_op_name = "!!NOT SET!!"
-
-    def __init__(self, name, fusion_type, subgraph):
-        super(FusionBase, self).__init__(name)
-        self._subgraph = subgraph
-        nodes = self.contained_nodes()
-        self.in_dims_hint = nodes[0].in_dims_hint
-        self.out_dims_hint = nodes[-1].out_dims_hint
-        self.fusion_type = fusion_type
-
-    @property
-    def op_name(self):
-        return self.fusion_op_name + '_' + self.fusion_type
-
-    @property
-    def subgraph(self):
-        return self._subgraph
-
-    def contained_nodes(self):
-        return [node for node in self.subgraph.dfs()]
-
-    def get_contained_node(self, name):
-        return next((n for n in self.contained_nodes() if n.name == name), None)
-
-    @property
-    def can_equalize(self):
-        return all([param.can_equalize for param in self.contained_nodes()])
-
-    def clone(self, name, groupn=None):
-        return self.__class__(name, self.fusion_type, self._subgraph)
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-
-        out_dims = in_dims
-
-        for node in self.contained_nodes():
-            out_dims = node.get_output_size(out_dims)
-
-        return out_dims
-
-    def __str__(self):
-        return "{}".format(", ".join([str(node).strip() for node in self.contained_nodes()]))
-
-
-class MatScaleFusionParameters(FusionBase):
-    fusion_op_name = "matscale"        
-
-    def __init__(self, *args, activation=None, **kwargs):
-        self.activation = activation
-        super(MatScaleFusionParameters, self).__init__(*args, **kwargs)
-
-    def get_output_size(self, in_dims):
-        return [Dim.broadcast(in_dims)]
-
-class ConvFusionParameters(FusionBase, SingleInputAndOutput):
-    '''Fusion of operators. At present restricted to single input and output but
-    this could be removed perhaps'''
-
-    fusion_op_name = "conv_fusion"
-
-    def _init_at_options(self):
-        if self._at_options is None:
-            self._at_options = NodeOptions(None)
-        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
-
-    @property
-    def at_options(self):
-        self._init_at_options()
-        return self._at_options
-
-    @at_options.setter
-    def gen_ctrl(self, val):
-        self._init_at_options()
-        self._at_options = val
-
-    def contained_filters(self):
-        return [x for x in self.contained_nodes() if isinstance(x, FilterParameters)]
-
-    def get_parameter_size(self):
-        return sum([node.get_parameter_size() for node in self.contained_nodes()])
-
-    def __str__(self):
-        return "{} {}".format(", ".join([str(node).strip() for node in self.contained_nodes()]), self.gen_ctrl or "")
-
-    # # Needs to be refactored out
-    # @property
-    # def params(self):
-    #     return self._nodes
-
-    def compute_load(self):
-        return sum([load if load else 0 for load in [node.compute_load()
-                                                     for node in self.contained_nodes()]])
 
 
 class GroupParameters(Parameters, SensitiveToOrder):
@@ -450,8 +405,8 @@ class GroupParameters(Parameters, SensitiveToOrder):
 
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
-        self.in_dims = in_dims
-        in_dims = in_dims[0]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        in_dims = self.in_dims[0]
         assert in_dims.c % self.groups == 0
         out_edges = in_dims.c // self.groups
         out_c = in_dims.c // out_edges
@@ -482,6 +437,7 @@ class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
                                             in_dims_hint=in_dims_hint,
                                             out_dims_hint=out_dims_hint)
         self.padding = padding
+        self.pad_type = "zero"
 
     def get_parameter_size(self):
         return 0
@@ -555,7 +511,7 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def get_output_size(self, in_dims):
 
         assert len(in_dims) == 1
-        self.in_dims = in_dims
+        self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dims = in_dims[0]
 
         out_dim = in_dims.clone()
@@ -590,16 +546,17 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
         self._old_shape = old_shape
 
     def does_nothing(self):
-        return self.shape.shape == list(filter(lambda x: x != 1, self.old_shape.shape))
+        return self.shape.layout_shape == self.old_shape.layout_shape
 
     def get_parameter_size(self):
         return 0
 
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
-        self.in_dims = in_dims
-        in_dims = in_dims[0]
-        assert in_dims.size() == self.shape.size()
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        in_dim = in_dims[0]
+        self._old_shape = in_dim
+        assert in_dim.size() == self.shape.size(), "in shape does not match in size"
         out = self.shape.clone()
         if self.transpose_out:
             out.transpose(self.transpose_out)
@@ -677,8 +634,9 @@ class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForI
         return self.out_dims[0].size() * 2
 
     def get_output_size(self, in_dims):
-        max_idx, _ = max(enumerate(in_dims), key=lambda x: x[1].size())
-        return [in_dims[max_idx]]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        max_idx, _ = max(enumerate(self.in_dims), key=lambda x: x[1].size())
+        return [self.in_dims[max_idx]]
 
     def __str__(self):
         return "{} {}".format(self.op_name, self.at_options)
@@ -730,6 +688,32 @@ class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveT
 # pylint: disable=abstract-method
 
 
+class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput):
+    op_name = "noop"
+
+    def __init__(self, name, desc=""):
+        super(NoOPParameters, self).__init__(name)
+        self._desc = desc
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def compute_load(self):
+        return 0
+
+    def __str__(self):
+        return "NOOP {}".format(
+            self._desc
+        )
+
+
 class UnexecutableOpParameters(Parameters):
     pass
 
@@ -750,8 +734,9 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
     def get_output_size(self, in_dims):
         if self.indicated_outputs:
             return self.indicated_outputs
-        if len(in_dims) == 1:
-            return [in_dims[0]]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        if len(self.in_dims) == 1:
+            return [self.in_dims[0]]
         return [Dim.unknown()]
 
     @property
@@ -775,8 +760,9 @@ class UnknownOpParameters(UnexecutableOpParameters):
         self.info = info
 
     def get_output_size(self, in_dims):
-        if len(in_dims) == 1:
-            return [in_dims[0]]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        if len(self.in_dims) == 1:
+            return [self.in_dims[0]]
         return [Dim.unknown()]
 
     @property

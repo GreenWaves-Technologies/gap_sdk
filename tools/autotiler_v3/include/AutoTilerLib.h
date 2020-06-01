@@ -731,6 +731,21 @@ ArgBindingDescr_T *K_ArgPar(
 	);
 
 /**
+@brief Binds argument to kernel argument tile attribute predicate for a given sub space of this kernel argument.
+
+Binds argument to kernel argument tile attribute predicate for a given sub space of this kernel argument.
+
+Argument selection can be:
+	KER_ARG_TILEFIRST	True if current tile is the first according to ItSpace dimension
+	KER_ARG_TILELAST	True if current tile is the last according to ItSpace dimension
+*/
+ArgBindingDescr_T *K_ArgPred(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	KernelArgSelect_T ArgSelect,	/**< Select which user kernel argument property to be used */
+	KernelIteratorT ItSpace		/**< Which iteration space */
+	);
+
+/**
 @brief Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
 
 Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
@@ -741,6 +756,19 @@ ArgBindingDescr_T *K_ArgOper(
 	char *ArgName,			/**< A tiled user kernel argument name */
 	KernelIteratorT KerIter, 	/**< Select kernel iteration space */
 	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
+	int Value			/**< A signed immediate value */
+	);
+
+/**
+@brief Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
+
+Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
+
+*/
+ArgBindingDescr_T *K_TileOper(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	char *ArgAccessType,		/**< Which type should be usedd when accessing the tile */
+	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / % @ */
 	int Value			/**< A signed immediate value */
 	);
 
@@ -821,33 +849,59 @@ Object_T *_KerArgP(
 Creates one user kernel argument. Kernel argument Space is explicitely described
 */
 Object_T *KerArg(
-	char 	     *KerArgName,	/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,			/**< Kernel argument Data plane width */
-	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
-	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
-	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
+	char 	     *KerArgName,		/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
+	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+/**
+@brief Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described
+
+Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described
+*/
 Object_T *KerArgP(
-	char *KerArgName,
-	KernelArgDimDescrT *KerArgSpace,
-	Object_Type_T ObjType,
-	unsigned int W,
-	unsigned int H,
-	unsigned int UsedW,
-	unsigned int UsedH,
-	v4s PadTile,
-	v4s PadExec,
-	unsigned int ItemSize,
-        int TileOverlap,
-	KernelArgConstraints_T Constraint,
-        unsigned int PreferedTileSize,
-	char *CArgName);
+	char *KerArgName,			/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int UsedW,			/**< Used tile width after padding and striding */
+	unsigned int UsedH,			/**< Used tile height after padding and striding */
+	v4s PadTile,				/**< Left, Right, Top, Bottom amount of pad, for dimension ratio evaluation, may be > Pad Exec if several kernels are cascaded */
+	v4s PadExec,				/**< Left, Right, Top, Bottom amount of pad, actual pad to be used at kernel exec time */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+        int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
+        unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
+
+/**
+@brief Creates one user kernel argument, extra pad on variable dim for alignment sake. Kernel argument Space is explicitely described
+
+Creates one user kernel argument, extra pad on variable dim for alignment sake. Kernel argument Space is explicitely described
+*/
+Object_T *KerArgPadAlign(
+	char *KerArgName,			/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int TileWPadAlign,		/**< Add TilePadAlign to the width of the tile, use adjust tile alignment through tile expansion */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+	unsigned int RawItemSize,		/**< In case ItemSize has to be padded this is the ItemSize before padding */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
+	unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
 
 
 /**
@@ -998,6 +1052,27 @@ void AddKernelArgDim(
 	...			/**< List of space dimensions from outer to inner, most inner is the item size */
 	);
 
+/**
+@brief For 2D parametric const arg interleave each tile by group of TileLineInterleave Lines
+
+For 2D parametric const arg interleave each tile by group of TileLineInterleave Lines
+*/
+void SetKernelArgInterleave(
+	char *Name,				/**< Kernel Name */
+	char *ArgName,				/**< Argument Name */
+	unsigned int TileLineInterleave		/**< Number of lines of the interleaved group of lines */
+	);
+
+/**
+@brief Set L2DB (in L3) property to Kernel Name, Kernel Argument ArgName
+
+Set L2DB (in L3) property to Kernel Name, Kernel Argument ArgName
+*/
+void SetKerArgInL3(
+	char *Name,		/**< Kernel Name */
+	char *ArgName		/**< Argument Name */
+	);
+
 
 /**
 @brief Alter the behaviour of UserKernel processing
@@ -1092,6 +1167,11 @@ StackedTensors_T *AT_StackedTensors(
 	...
 	);
 
+void AddStackedTensors(
+	char *OutTensorName,
+	int Count,
+	...
+	);
 /**
 @brief Creates a list of stacked tensors
 
@@ -1246,6 +1326,18 @@ ArgBindingDescr_T *GNodeArgImmOper(
 	char Oper,			/**< Offset operation to be applied */
 	int Value			/**< Offset value */
 	);
+
+/**
+@brief Add a pair of symbols to a graph C arg to pass it's allocated address and memory location
+
+Add a pair of symbols to a graph C arg to pass it's allocated address and memory location
+*/
+void AddGraphArgExportSymbols(
+	char *GraphCArgName,		/**< Graph CArg name, should be CArg with scope=ARG_SCOPE_GLOBAL */
+	char *ExportAddrName,		/**< Legal C Name to store Graph CArg allocated address, type is unsigned int */
+	char *ExportLocName		/**< Legal C Name to store n which memort Graph CArg has been allocated, an int */
+	);
+
 
 /**
 @brief Binds a given Graph node arg, simplified form
@@ -1412,15 +1504,27 @@ char *CNN_FindMatchingKernel(
         );
 
 /**
-@brief Returns a C type for an argument given it's size in byte
+@brief Returns a signed C type for an argument given it's size in byte
 
-Returns a C type for an argument given it's size in byte
+Returns a signed C type for an argument given it's size in byte
 */
 char *CNN_ArgDataType(
 	int DataSize,		/**< Argument size in byte (1,2 or 4) */
 	int Pointer,		/**< Is this argument a pointer */
 	int Restrict		/**< In case this argument is a pointer can it be restricted? */
 	);
+
+/**
+@brief Returns an unsigned C type for an argument given it's size in byte
+
+Returns an unsigned C type for an argument given it's size in byte
+*/
+char *CNN_ArgDataTypeUns(
+	int DataSize,		/**< Argument size in byte (1,2 or 4) */
+	int Pointer,		/**< Is this argument a pointer */
+	int Restrict		/**< In case this argument is a pointer can it be restricted? */
+	);
+
 /**
 @brief For merged CNN layers retrieves composite Layer operation from individual operations.
 
@@ -1507,7 +1611,17 @@ extern void AT_PrepareForTest(char *Name,
                     KernelOper_T KerOper,
                     int Norm,
                     int NormBias);
+extern void AT_PrepareForTest_SQ8(
+        char *Name,
+        int InFeat, int OutFeat, int Width, int Height,
+        int BiasDataSize,
+        KernelOper_T OpC, int Fcx, int Fcy, int Dcx, int Dcy, int Scx, int Scy, v4s PadC,
+        KernelOper_T OpP, int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy, v4s PadP,
+        KernelOper_T OpA
+        );
+
 extern void AT_TestFinalize();
+extern void AT_TestFinalize_SQ8();
 
 extern void DecodeCNNOper(
 	KernelOper_T Oper,

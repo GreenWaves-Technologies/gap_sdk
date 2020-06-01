@@ -35,6 +35,7 @@
 #include "pulp_v2.hpp"
 #include "rvXgap8.hpp"
 #include "rvXgap9.hpp"
+#include "rvXint64.hpp"
 #include "rnnext.hpp"
 
 #endif

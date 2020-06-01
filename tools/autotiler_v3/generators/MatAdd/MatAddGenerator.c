@@ -46,7 +46,7 @@ void GenerateMatAddPar(char *UserKernelName, int W, int H)
         ),
         // Basic kernel we want to call on tiles, in this case MatSumPar
         Calls(1,
-            Call("MatSumPar", LOC_INNER_LOOP,
+            Call("MatSumPar", LOC_LOOP,
                 Bindings(5,
                     K_Arg("In1", KER_ARG_TILE),   // A tile from In1
                     K_Arg("In2", KER_ARG_TILE),   // A tile from In2

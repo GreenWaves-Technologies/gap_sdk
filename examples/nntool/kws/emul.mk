@@ -43,10 +43,10 @@ endif
 MODEL_GEN_EXTRA_FLAGS= -f $(MODEL_BUILD)
 CC = gcc
 CFLAGS += -g -O0 -D__EMUL__
-INCLUDES = -I. -Ii./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_PATH) -I$(MODEL_BUILD)
+INCLUDES = -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
 LFLAGS =
 LIBS =
-SRCS = kws.c ImgIO.c helpers/helpers.c $(MODEL_SRCS) ./model/layers.c
+SRCS = kws.c ImgIO.c $(MODEL_GEN_C) $(CNN_LIB) #./model/layers.c
 
 BUILD_DIR = BUILD_EMUL
 

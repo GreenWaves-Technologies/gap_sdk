@@ -19,9 +19,8 @@ from importer.tflite.new_tflite_graph_all import TfliteImporter
 from utils.graph import Edge, Graph, Node
 from utils.graph_matcher import (GraphMatcher, MatchEdgeByIdx,
                                  MatchEdgeInputsGroupFactory, MatchNodeByName,
-                                 MatchNodeByNameSet, NodeMatch, MatchNodeByClass)
-from graph.matches.matscale import MatScalePairMatchFactory, FuseMatScalePair, FuseMatScale, MatScaleNodeMatch
-from graph.types import MatrixMulParameters
+                                 NodeMatch)
+from graph.matches.matscale import MatScalePairMatchFactory, FuseMatScalePair, MatScaleNodeMatch
 
 
 def test_match1():

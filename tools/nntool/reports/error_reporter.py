@@ -43,10 +43,6 @@ def do_dheader(table, one_input, with_chan):
             TabularColumn("min QSNR", fmt=">.0f"),
         ])
 
-    header.extend([
-        TabularColumn("OverF dot", fmt=">d"),
-        TabularColumn("OverF acc", fmt=">d"),
-    ])
     table.add_row(header)
 
 def do_drow(table, stat, cols):
@@ -54,14 +50,13 @@ def do_drow(table, stat, cols):
 
 class ErrorReporter(Reporter):
     ONE_INPUT_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'qsnr', 'overflow_dot', 'overflow_acc']
+            'min_err', 'qsnr']
     ONE_INPUT_WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'max_chan_err', 'qsnr', 'overflow_dot', 'overflow_acc']
+            'min_err', 'max_chan_err', 'qsnr']
     COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'qsnr', 'max_qsnr', 'min_qsnr', 'overflow_dot', 'overflow_acc']
+            'min_err', 'qsnr', 'max_qsnr', 'min_qsnr']
     WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'max_chan_err', 'qsnr', 'max_qsnr', 'min_qsnr',\
-            'overflow_dot', 'overflow_acc']
+            'min_err', 'max_chan_err', 'qsnr', 'max_qsnr', 'min_qsnr']
 
     def __init__(self, do_totals=True, threshold=30.0, one_input=False, with_chan=False):
         print('with chan', with_chan, one_input)

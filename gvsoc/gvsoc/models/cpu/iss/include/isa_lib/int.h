@@ -54,6 +54,14 @@ static inline unsigned int lib_XOR(iss_cpu_state_t *s, unsigned int a, unsigned 
 static inline unsigned int lib_OR(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a | b; }
 static inline unsigned int lib_AND(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a & b; }
 
+static inline uint64_t lib_SLL_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a << b; }
+static inline uint64_t lib_SRL_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a >> b; }
+static inline uint64_t lib_SRA_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return ((int32_t)a) >> b; }
+static inline uint64_t lib_ROR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return (a >> b) | (a << (32 - b)); }
+static inline uint64_t lib_XOR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a ^ b; }
+static inline uint64_t lib_OR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a | b; }
+static inline uint64_t lib_AND_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a & b; }
+
 
 
 
@@ -84,10 +92,13 @@ static inline unsigned int lib_ADD_C(iss_cpu_state_t *s, unsigned int a, unsigne
 #endif
 
 static inline unsigned int lib_ADD(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a + b; }
+static inline uint64_t lib_ADD_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a + b; }
 #ifdef ISS_STATE_HAS_CARRY
 static inline unsigned int lib_ADDC_C(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return addWithCarry(s, a, b); }
 #endif
 static inline unsigned int lib_SUB(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a - b; }
+static inline uint64_t lib_SUB_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a - b; }
+
 
 #ifdef ISS_STATE_HAS_CARRY
 static inline unsigned int lib_SUB_C(iss_cpu_state_t *s, unsigned int a, unsigned int b) {
@@ -108,6 +119,12 @@ static inline unsigned int lib_MACC(iss_cpu_state_t *s, unsigned int a, unsigned
 #endif
 static inline unsigned int lib_MSU(iss_cpu_state_t *s, unsigned int a, unsigned int b, unsigned int c) { return a - b * c; }
 static inline unsigned int lib_MMUL(iss_cpu_state_t *s, unsigned int a, unsigned int b, unsigned int c) { return - b * c; }
+
+
+static inline uint64_t lib_MACS_64(iss_cpu_state_t *s, int64_t a, int64_t b, int64_t c) { return a + b * c; }
+static inline uint64_t lib_MSUS_64(iss_cpu_state_t *s, int64_t a, int64_t b, int64_t c) { return a - b * c; }
+static inline uint64_t lib_MACU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b, uint64_t c) { return a + b * c; }
+static inline uint64_t lib_MSUU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b, uint64_t c) { return a - b * c; }
 
 #define SL(val) ((int16_t)((val) & 0xffff))
 #define SH(val) ((int16_t)(((val)>>16) & 0xffff))
@@ -279,6 +296,8 @@ static inline unsigned int lib_MMUL_ZH_SH(iss_cpu_state_t *s, unsigned int b, un
 
 static inline unsigned int lib_MULS(iss_cpu_state_t *s, int a, int b) { return a * b; }
 static inline unsigned int lib_MULU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a * b; }
+static inline uint64_t lib_MULS_64(iss_cpu_state_t *s, int64_t a, int64_t b) { return a * b; }
+static inline uint64_t lib_MULU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a * b; }
 static inline unsigned int lib_DIVS(iss_cpu_state_t *s, int a, int b) { if (b == 0) return 0; else return a / b; }
 static inline unsigned int lib_DIVU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { if (b == 0) return 0; else return a / b; }
 static inline unsigned int lib_MINU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a < b ? a : b; }
@@ -289,6 +308,11 @@ static inline int lib_ABS(iss_cpu_state_t *s, int a) { return a >= 0 ? a : -a; }
 static inline unsigned int lib_AVGU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return (a + b) >> 1; }
 static inline int lib_AVGS(iss_cpu_state_t *s, int a, int b) { return (a + b) >> 1; }
 
+static inline uint64_t lib_MINU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a < b ? a : b; }
+static inline int64_t lib_MINS_64(iss_cpu_state_t *s, int a, int64_t b) { return a < b ? a : b; }
+static inline uint64_t lib_MAXU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a > b ? a : b; }
+static inline int64_t lib_MAXS_64(iss_cpu_state_t *s, int a, int64_t b) { return a > b ? a : b; }
+static inline int64_t lib_ABS_64(iss_cpu_state_t *s, int64_t a) { return a >= 0 ? a : -a; }
 
 
 
@@ -346,6 +370,17 @@ static inline unsigned int lib_CNT(iss_cpu_state_t *s, unsigned int t) {
   return __builtin_popcount(t);
 #else
   unsigned int v = cpu->regs[pc->inReg[0]];
+  v = v - ((v >> 1) & 0x55555555);
+  v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+  cpu->regs[pc->outReg[0]] = ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+#endif
+}
+
+static inline unsigned int lib_CNT_64(iss_cpu_state_t *s, uint64_t t) {
+#if 1
+  return __builtin_popcount(t);
+#else
+  uint64_t v = cpu->regs[pc->inReg[0]];
   v = v - ((v >> 1) & 0x55555555);
   v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
   cpu->regs[pc->outReg[0]] = ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;

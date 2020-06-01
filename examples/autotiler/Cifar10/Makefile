@@ -8,10 +8,26 @@ RM=rm -f
 CNN_AT_PATH = $(TILER_GENERATOR_PATH)/CNN
 
 APP = Cifar10
+
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_BiasReLULinear_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Conv_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Conv_DP_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Conv_DW_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Conv_DW_DP_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Pooling_BasicKernels.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_MatAlgebra.c
+MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_SoftMax.c
+MODEL_LIB_POW2 += $(NNTOOL_KERNELS_PATH)/norm_transpose.c
+MODEL_LIB_INCLUDE_POW2 = -I$(NNTOOL_KERNELS_PATH) -I$(TILER_CNN_KERNEL_PATH) -I$(NNTOOL_KERNELS_PATH)
+MODEL_GEN_POW2 += $(TILER_CNN_GENERATOR_PATH)/CNN_Generator_Util.c
+MODEL_GEN_POW2 += $(TILER_CNN_GENERATOR_PATH)/CNN_Generators.c
+MODEL_GEN_POW2 += $(NNTOOL_GENERATOR_PATH)/nntool_extra_generators.c
+MODEL_GEN_INCLUDE_POW2 = -I$(TILER_CNN_GENERATOR_PATH) -I$(NNTOOL_GENERATOR_PATH)
+
+
 APP_SRCS += Cifar10.c Cifar10Kernels.c \
-            $(CNN_AT_PATH)/CNN_BiasReLULinear_BasicKernels.c \
-            $(CNN_AT_PATH)/CNN_Conv_BasicKernels.c \
-            $(CNN_AT_PATH)/CNN_Pooling_BasicKernels.c
+			$(MODEL_LIB_POW2)
+            
 APP_INC += $(TILER_INC) $(CNN_AT_PATH)
 
 COEF_FLAG = -DCOEF_L2
@@ -57,7 +73,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(CNN_AT_PATH)/CNN_Generators.c $(TILER_LIB)
+	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(MODEL_GEN_POW2) $(TILER_LIB)
 
 # Run the code generator
 Cifar10Kernels.c: GenTile

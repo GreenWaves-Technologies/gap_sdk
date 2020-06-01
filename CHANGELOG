@@ -1,3 +1,22 @@
+3.5
+
+Highlights of this release:
+
+- NNTool
+	- Added new quantization scheme with scaling factors (tflite quantization-like)
+	- Support import tflite (1 or 2) quantized graphs (uint8)
+	- New adjust algorithm to support more general reshape/transpose layers
+	- Added Autotiler layer for input image formatting (HWC uint8 -> CHW int8/int16)
+	- Support multi-inputs network execution
+	- Support for new tensor dumping routines in AutoTiler
+	- Support for generation of model using SQ8 AutoTiler generators
+	- Bug fixes
+
+- Autotiler
+	- New SQ8 kernel set supporting scaled quantization
+	- Tensor dumping from any memory area
+	- Several bug fixes
+
 3.4
 
 Highlights of this release:

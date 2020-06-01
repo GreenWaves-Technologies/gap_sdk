@@ -236,4 +236,5 @@ void KerParSoftMax_fps(KerSoftMax_fps_T *Arg)
 	InvSum = ((FP2FIX(1.0, 15)<<15)/Sum);
 	for (int i=First; i<Last; i++) Out[i] = Abs(gap_roundnorm_reg(Out[i]*InvSum, 15));
 	gap_waitbarrier(0);
+
 }

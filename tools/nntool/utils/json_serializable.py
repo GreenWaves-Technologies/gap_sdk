@@ -51,6 +51,12 @@ class JsonSerializableStateEncoder(json.JSONEncoder):
             return int(o)
         if isinstance(o, np.floating):
             return float(o)
+        if isinstance(o, np.ndarray):
+            return {
+                '__type': 'numpy.ndarray',
+                '__contents': o.tolist(),
+                '__dtype': o.dtype.name
+            }
 
         # Let the base class default method raise the 
         try:
@@ -69,6 +75,8 @@ class JsonSerializableStateDecoder(json.JSONDecoder):
 # pylint: disable=no-self-use, method-hidden
     def object_hook(self, obj):
         if '__type' in obj:
+            if obj['__type'] == 'numpy.ndarray':
+                return np.array(obj['__contents'], dtype=np.dtype(obj['__dtype']))
             if obj['__type'] == 'JsonSerializable':
                 return JsonSerializable.from_dict(obj)
         return obj

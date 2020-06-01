@@ -15,7 +15,7 @@
 
 
 from importer.importer import create_graph
-from quantization.simple_auto_quantify import SimpleQuantizer
+from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from reports.activation_reporter import ActivationReporter
 from reports.error_reporter import ErrorReporter
 from reports.filter_reporter import (FilterDetailedStatsReporter,
@@ -61,8 +61,8 @@ def test_filter_detailed_report(mnist_graph):
     renderer = TextTableRenderer(maxwidth=200)
     print(report.render(renderer))
 
-def test_error_report(value_cache, mnist_unfused_8bit_state, mnist_images):
-    G = load_state(mnist_unfused_8bit_state, value_cache=value_cache)
+def test_error_report(mnist_unfused_8bit_state, mnist_images):
+    G = load_state(mnist_unfused_8bit_state)
     G.add_dimensions()
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
@@ -82,8 +82,8 @@ def test_temps_report(mnist_graph):
     renderer = TextTableRenderer(maxwidth=200)
     print(report.render(renderer))
 
-def test_temps_report_quantized(value_cache, mnist_unfused_8bit_state):
-    G = load_state(mnist_unfused_8bit_state, value_cache=value_cache)
+def test_temps_report_quantized(mnist_unfused_8bit_state):
+    G = load_state(mnist_unfused_8bit_state)
     G.add_dimensions()
     stats_collector = TempsStatsCollector(qrecs=G.quantization)
     stats = stats_collector.collect_stats(G)
@@ -108,7 +108,7 @@ def test_simple_quantization(mnist_graph, mnist_images):
     astats = stats_collector.reduce_stats()
     stats_collector = FilterStatsCollector()
     fstats = stats_collector.collect_stats(G)
-    quantizer = SimpleQuantizer(astats, fstats, force_width=8)
+    quantizer = SymmetricQuantizer(astats, fstats, force_width=8)
     qrecs = quantizer.quantize(G)
     assert len(qrecs) == 11 # One more for saved quantizer
     report = QuantizationReporter().report(G, qrecs)

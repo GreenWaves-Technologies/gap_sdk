@@ -39,7 +39,7 @@ static void cam_handler(void *arg)
     pi_display_write_async(&lcd, &buffer, 0, 0, LCD_WIDTH, LCD_HEIGHT, &task);
     #else
     sprintf(imgName, "../../../img_OUT_%ld.ppm", idx);
-    WriteImageToFile(imgName, CAMERA_WIDTH, CAMERA_HEIGHT, imgBuff0, sizeof(uint8_t));
+    WriteImageToFile(imgName, CAMERA_WIDTH, CAMERA_HEIGHT, sizeof(uint8_t), imgBuff0, GRAY_SCALE_IO);
     idx++;
     //lcd_handler(NULL);
     #endif  /* DISPLAY */
@@ -191,7 +191,7 @@ void test_camera_with_lcd(void)
         #else
         sprintf(imgName, "../../../img_OUT_%ld.ppm", idx);
         printf("Dumping image %s\n", imgName);
-        WriteImageToFile(imgName, CAMERA_WIDTH, CAMERA_HEIGHT, imgBuff0, sizeof(uint8_t));
+        WriteImageToFile(imgName, CAMERA_WIDTH, CAMERA_HEIGHT, sizeof(uint8_t), imgBuff0, GRAY_SCALE_IO);
         idx++;
         #endif  /* DISPLAY */
         #endif  /* ASYNC */

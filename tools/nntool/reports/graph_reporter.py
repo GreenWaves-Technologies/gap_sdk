@@ -95,7 +95,7 @@ class GraphReporter(Reporter):
         steps = G.graph_state.steps
         liveness = G.graph_state.liveness
         first_node = steps[0]['node']
-        active_order = "x".join(first_node.in_dims[0].order)
+        active_order = "x".join(first_node.out_dims[0].order)
         tab = Tabular()
         self.do_headers(active_order, tab)
 

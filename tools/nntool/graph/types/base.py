@@ -19,7 +19,7 @@ from abc import abstractmethod
 
 from utils.graph import Edge, Node
 from utils.option_list import OptionList
-from generation.kernel_parameters import GenCtrl, CTRL_FEATURES
+from generation.at_types.gen_ctrl import GenCtrl, CTRL_FEATURES
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -65,7 +65,7 @@ class Parameters(Node):
 
     @property
     def valid_at_options(self):
-        return self.valid_at_options
+        return self._valid_at_options
 
     @property
     def at_options(self):
@@ -148,6 +148,10 @@ class Parameters(Node):
     def get_parameter_size(self):
         pass
 
+    @abstractmethod
+    def get_output_size(self, in_dims):
+        pass
+
     @property
     @abstractmethod
     def can_equalize(self):
@@ -166,7 +170,7 @@ class Parameters(Node):
         assert hints is None or len(dims) == len(hints), "incorrect dimensions length"
         cloned_dims = []
         for dim_idx, dim in enumerate(dims):
-            if dim.is_named:
+            if dim.is_named and all(k in dim.keys for k in ['c', 'h', 'w']):
                 cloned_dims.append(dim.clone(['c', 'h', 'w']))
             else:
                 cloned_dim = dim.clone()
