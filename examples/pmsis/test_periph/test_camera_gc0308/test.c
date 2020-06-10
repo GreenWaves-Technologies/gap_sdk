@@ -21,13 +21,20 @@
 #include "bsp/ram/hyperram.h"
 
 #include "gaplib/ImgIO.h"
+#include "bsp/display/ili9341.h"
 
-#define WIDTH    640
-#define HEIGHT   480
-#define PIXEL_SIZE  1
+
+
+struct pi_device ili;
+struct pi_device device;
+static pi_buffer_t buffer;
+
+#define WIDTH    320
+#define HEIGHT   240
+#define PIXEL_SIZE  2
 
 #define BUFF_SIZE (WIDTH*HEIGHT*PIXEL_SIZE)
-#define ITER_SIZE  (0x1000)
+#define ITER_SIZE  (0x2000)
 
 PI_L2 unsigned char *buff[2];
 PI_L2 unsigned char *imgIO_buff;
@@ -56,20 +63,21 @@ static void enqueue_transfer()
     // at the same time)
     while (remaining_size > 0 && nb_transfers < 2)
     {
-        int iter_size = ITER_SIZE;
-        if (remaining_size < iter_size)
-            iter_size = remaining_size;
+            int iter_size = ITER_SIZE;
+            if (remaining_size < iter_size)
+                iter_size = remaining_size;
 
-        pi_task_t *task = &ctrl_tasks[current_task];
+            pi_task_t *task = &ctrl_tasks[current_task];
+            // Enqueue a transfer. The callback will be called once the transfer is finished
+            // so that  a new one is enqueued while another one is already running
+//            printf("%d\n", nb_transfers);
+            pi_camera_capture_async(&camera, buff[current_task], iter_size, pi_task_callback(task, handle_transfer_end, (void *) current_task));
 
-        // Enqueue a transfer. The callback will be called once the transfer is finished
-        // so that  a new one is enqueued while another one is already running
-        pi_camera_capture_async(&camera, buff[current_task], iter_size, pi_task_callback(task, handle_transfer_end, (void *) current_task));
-
-        current_size[current_task] = iter_size;
-        remaining_size -= iter_size;
-        nb_transfers++;
-        current_task ^= 1;
+            current_size[current_task] = iter_size;
+            remaining_size -= iter_size;
+            nb_transfers++;
+            current_task ^= 1;
+     
     }
 }
 
@@ -132,15 +140,61 @@ static void test_camera_i2c (struct pi_device *device)
     }
 }
 
+
+static int open_display(struct pi_device *device)
+{
+  struct pi_ili9341_conf ili_conf;
+
+  pi_ili9341_conf_init(&ili_conf);
+
+  pi_open_from_conf(device, &ili_conf);
+
+  if (pi_display_open(device))
+    return -1;
+
+  if (pi_display_ioctl(device, PI_ILI_IOCTL_ORIENTATION, (void *)PI_ILI_ORIENTATION_90))
+    return -1;
+
+  return 0;
+}
+
+
 static int test_entry()
 {
-    printf("Entering main controller\n");
 
+    printf("Entering main controller\n");
+    // prepare a full buffer for image IO
+    imgIO_buff = pmsis_l2_malloc(BUFF_SIZE);
+    pi_freq_set(PI_FREQ_DOMAIN_FC,250000000);
+
+    
     if (open_camera(&camera))
     {
         printf("Failed to open camera\n");
         goto error;
     }
+    pi_camera_set_crop(&camera,160,120,320,240);
+
+    
+    #ifdef OUT_TO_DISPLAY
+    if (open_display(&ili))
+    {
+        printf("Failed to open display\n");
+        pmsis_exit(-1);
+    }
+
+    writeFillRect(&ili, 0, 0, 320, 240, 0xFFFF);
+    writeText(&ili, "    GreenWaves", 3);
+    writeText(&ili, "\n   Technologies", 3);
+    buffer.data = imgIO_buff;
+    buffer.stride = 0;
+
+    pi_buffer_init(&buffer, PI_BUFFER_TYPE_L2, imgIO_buff);
+    pi_buffer_set_stride(&buffer, 0);
+    pi_buffer_set_format(&buffer, 320, 240, 2, PI_BUFFER_FORMAT_RGB565);
+    #endif
+
+    #ifdef STORE_IMG_TO_L3
 
     /* Init & open ram. */
     struct pi_hyperram_conf conf;
@@ -156,42 +210,58 @@ static int test_entry()
     {
         printf("Ram malloc failed !\n");
         pmsis_exit(-4);
-    }
-
+    }    
 
     // prepare 2 buffer for double buffering
     buff[0] = pmsis_l2_malloc(ITER_SIZE);
     buff[1] = pmsis_l2_malloc(ITER_SIZE);
-
-    // prepare a full buffer for image IO
-    imgIO_buff = pmsis_l2_malloc(BUFF_SIZE);
-
     if (buff[0] == NULL || buff[1] == NULL) goto error;
 
+    
     remaining_size = BUFF_SIZE;
     nb_transfers = 0;
     current_buff = 0;
     current_task = 0;
     saved_size = 0;
     done = 0;
+    #endif
 
     char name[25];
     int idx = 0;
-    //while (1)
-    {
-        printf("start to taking picture\n");
-        enqueue_transfer();
-        pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
-        while(!done)
-        {
-            pi_yield();
-        }
-        pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
 
-        pi_ram_read(&ram, l3_buff, imgIO_buff, (uint32_t) BUFF_SIZE);
-        sprintf(name, "../../../output_%d.ppm", idx);
-        //WriteImageToFile(name, 320, 240, PIXEL_SIZE, imgIO_buff, RGB565_IO);
-        WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, GRAY_SCALE_IO);
+    while (1)
+    {
+        printf("start taking picture\n");
+        #ifdef STORE_IMG_TO_L3 //This needs to be fixed
+
+            enqueue_transfer();
+            pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
+            while(!done) pi_yield();
+            pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+
+        #else
+
+            pi_task_t task_1;
+            pi_task_t task_2;
+            pi_camera_capture_async(&camera, imgIO_buff, BUFF_SIZE/2,pi_task_block(&task_1));
+            pi_camera_capture_async(&camera, imgIO_buff+(BUFF_SIZE/2), BUFF_SIZE/2,pi_task_block(&task_2));
+            pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
+            pi_task_wait_on(&task_1);
+            pi_task_wait_on(&task_2);
+            pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+
+        #endif
+
+        #ifndef OUT_TO_DISPLAY
+            printf("Saving Image to file...\n");
+            //pi_ram_read(&ram, l3_buff, imgIO_buff, (uint32_t) BUFF_SIZE);
+            sprintf(name, "../../../output_%d.ppm", idx);
+            WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, RGB565_IO);
+            //WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, GRAY_SCALE_IO);
+        #else
+            pi_display_write(&ili, &buffer, 0,0, 320, 240);   
+        #endif
+
         idx++;
 
         done = 0;

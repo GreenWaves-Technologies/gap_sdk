@@ -12,6 +12,8 @@ from .bindings.mult8.inout_infos_bindings_generator import \
     in_out_infos_bindings_generator
 from .bindings.mult8.matadd_bindings_generator import \
     matadd_bindings_generator as mult8_matadd_bindings_generator
+from .bindings.mult8.mat_vect_mult_bindings_generator import \
+    mat_vect_mul_bindings_generator as mult8_mat_vect_mul_bindings_generator
 from .bindings.pow2.conv_bindings_generator import \
     conv_bindings_generator as pow2_conv_bindings_generator
 from .bindings.pow2.fc_bindings_generator import \

@@ -28,4 +28,6 @@
 
 #define CLUSTER_TASK_IMPLEM
 
+#define PMSIS_APP_MAIN int main(int argc, char *argv[])
+
 #endif  /* __IMPLEMENTATION_SPECIFIC_DEFINES_H__ */

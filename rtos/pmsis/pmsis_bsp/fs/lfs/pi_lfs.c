@@ -320,6 +320,12 @@ static int32_t pi_lfs_read_async(pi_fs_file_t *file, void *buffer, uint32_t size
     lfs_file_t *lfs_file = file->data;
     
     rc = lfs_file_read(lfs, lfs_file, buffer, size);
+    #if defined(__PULP_OS__)
+    task->implem.data[0] = rc;
+    #else
+    task->data[0] = rc;
+    #endif  /* __PULP_OS__ */
+
     pi_task_push(task);
     return rc;
 }

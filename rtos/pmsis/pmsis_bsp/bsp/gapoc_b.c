@@ -26,7 +26,7 @@
 #include "bsp/ram/spiram.h"
 #include "bsp/ble/nina_b112.h"
 #include "bsp/ble/nina_b112/nina_b112_old.h"
-
+#include "bsp/camera/pixart.h"
 
 static int __bsp_init_pads_done = 0;
 
@@ -61,8 +61,7 @@ void bsp_hyperram_conf_init(struct pi_hyperram_conf *conf)
 }
 
 int bsp_hyperram_open(struct pi_hyperram_conf *conf)
-{
-  __bsp_init_pads();
+{  __bsp_init_pads();
   pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
   return 0;
 }
@@ -77,7 +76,7 @@ void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf)
 
 int bsp_hyperflash_open(struct pi_hyperflash_conf *conf)
 {
-  __bsp_init_pads();
+ __bsp_init_pads();
   pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
   return 0;
 }
@@ -150,6 +149,24 @@ int bsp_nina_b112_open_old()
 
     pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_UART_RX_PAD_FUNC);
     return 0;
+}
+
+void bsp_pixart_conf_init(struct pi_pixart_conf *conf)
+{
+  conf->cpi_itf = CONFIG_PIXART_CPI_ITF;
+  conf->spi_itf = CONFIG_PIXART_SPI_ITF;
+  conf->spi_cs = CONFIG_PIXART_SPI_CS;
+  conf->pwm_id = CONFIG_PIXART_PWM_ID;
+  conf->pwm_channel = CONFIG_PIXART_PWM_CH;
+  conf->gpio_ctl.gpio_power_4V = CONFIG_PIXART_GPIO_PWR_4V;
+  conf->gpio_ctl.gpio_power_2V5 = CONFIG_PIXART_GPIO_PWR_2V5;
+  conf->gpio_ctl.gpio_reset = CONFIG_PIXART_GPIO_RESET;
+}
+
+int bsp_pixart_open(struct pi_pixart_conf *conf)
+{
+  __bsp_init_pads();
+  return 0;
 }
 
 void bsp_init()

@@ -51,7 +51,8 @@ class Parameters(Node):
         self._out_dims_hint = out_dims_hint
         self._step_idx = -1
         self._constant_store = constant_store
-        self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int}
+        self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
+                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
         self._at_options = NodeOptions(self._valid_at_options)
 
     def get_parameters(self):

@@ -68,7 +68,9 @@ typedef enum {
  */
 typedef enum {
   PI_FS_FLAGS_READ     = 0,    /*!< File is opened for reading. */
-  PI_FS_FLAGS_WRITE    = 1     /*!< File is opened for writing. */
+  PI_FS_FLAGS_WRITE    = 1,     /*!< File is opened for writing. */
+  PI_FS_FLAGS_APPEND   = 2    /*!< File is opened for appending (writing at
+    end of file). */
 } pi_fs_flags_e;
 
 
@@ -428,6 +430,30 @@ int32_t pi_fs_copy_2d_async(pi_fs_file_t *file, uint32_t index, void *buffer,
  * \param req       The request structure used for termination.
  */
 void pi_cl_fs_read(pi_fs_file_t *file, void *buffer, uint32_t size,
+  pi_cl_fs_req_t *req);
+
+/** \brief Write data to a file from cluster side.
+ *
+ * This function implements the same feature as pi_fs_write but can be called
+ * from cluster side in order to expose the feature on the cluster.
+ * This function can be called to write data to an opened file. The data is
+ * written to the current position which is the beginning of the file when the
+ * file is opened. The current position is incremented by the number of
+ * bytes written by the call to this function.
+ * This functionmay not be supported by each file-system.
+ * The caller is blocked until the transfer is finished.
+ * Depending on the chip, there may be some restrictions on the memory which
+ * can be used. Check the chip-specific documentation for more details.
+ *
+ * \param file      The handle of the file where to write data.
+ * \param buffer    The memory location where the data to be written must be
+ *                  read.
+ * \param size      The size in bytes to write to the file.
+ * \param req       The request structure used for termination.
+ * \return          The number of bytes actually written to the file. This can
+ *   be smaller than the requested size if the end of file is reached.
+ */
+void pi_cl_fs_write(pi_fs_file_t *file, void *buffer, uint32_t size,
   pi_cl_fs_req_t *req);
 
 /** \brief Read data from a file with no intermediate cache from cluster side.

@@ -5,6 +5,7 @@
 
     "vp_bindings": [
         ["self->ctrl", "testbench->ctrl"],
+
         ["self->gpio0", "testbench->gpio0"],
         ["self->gpio1", "testbench->gpio1"],
         ["self->gpio2", "testbench->gpio2"],
@@ -95,6 +96,11 @@
         ["self->gpio87", "testbench->gpio87"],
         ["self->gpio88", "testbench->gpio88"],
         ["self->gpio89", "testbench->gpio89"],
+
+        ["self->i2c0", "testbench->i2c0"],
+        ["self->i2c1", "testbench->i2c1"],
+        ["self->i2c2", "testbench->i2c2"],
+
         ["clock->out", "testbench->clock"],
         ["testbench->clock_cfg", "clock->clock_in"]
     ],
@@ -112,6 +118,7 @@
         "verbose": false,
         "ctrl_type": "uart",
         "uart_baudrate": 115200,
-        "nb_gpio": 90
+        "nb_gpio": 90,
+        "nb_i2c": 3
     }
 }

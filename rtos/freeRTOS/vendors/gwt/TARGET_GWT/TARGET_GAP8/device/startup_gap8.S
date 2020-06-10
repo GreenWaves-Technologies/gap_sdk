@@ -158,4 +158,9 @@ _jump2main: /* Jump to main */
         /* Ecall Handler. */
         .org 0x88
         j ecall_handler
+
+        .org 0x90
+        .global __rt_debug_struct_ptr
+        __rt_debug_struct_ptr:
+        .word 0xdeadbeef
 /******************************************************************************/

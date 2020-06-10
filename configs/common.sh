@@ -2,6 +2,10 @@
 
 export PULP_SDK_HOME=$GAP_SDK_HOME
 
+if [ -n "$GAP_RISCV_GCC_TOOLCHAIN_BASE" ]; then
+    export GAP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN_BASE/1.2
+fi
+
 if [ -z "$GAP_RISCV_GCC_TOOLCHAIN" ]; then
     export GAP_RISCV_GCC_TOOLCHAIN=/usr/lib/gap_riscv_toolchain
 fi

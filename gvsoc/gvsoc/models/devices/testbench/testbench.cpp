@@ -22,6 +22,7 @@
 #include <vp/itf/io.hpp>
 #include <vp/itf/uart.hpp>
 #include <vp/itf/clock.hpp>
+#include <vp/itf/i2c.hpp>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -37,6 +38,9 @@
 #define PI_TESTBENCH_MAX_REQ_SIZE 256
 
 
+class Testbench;
+
+
 typedef struct {
     uint8_t input;
     uint8_t output;
@@ -49,6 +53,7 @@ typedef enum {
     STATE_WAITING_REQUEST
 } testbench_state_e;
 
+
 class Gpio
 {
 public:
@@ -56,6 +61,37 @@ public:
 
     int loopback = -1;
     uint32_t value;
+};
+
+
+
+typedef enum
+{
+  I2C_STATE_WAIT_START,
+  I2C_STATE_WAIT_ADDRESS,
+  I2C_STATE_GET_DATA,
+  I2C_STATE_ACK
+} I2c_state_e;
+
+
+class I2C
+{
+public:
+    void conf(Testbench *top, int id);
+    void sync(int scl, int sda);
+    void handle_byte();
+
+    vp::i2c_slave itf;
+
+    Testbench *top;
+    int id;
+    I2c_state_e state;
+    int prev_sda;
+    int pending_send_ack;
+    uint32_t address;
+    uint32_t pending_data;
+    int pending_bits;
+    int is_read;
 };
 
 
@@ -68,6 +104,8 @@ public:
 
     void uart_tx_sampling();
 
+    vp::trace trace;
+
 private:
 
     void uart_start_tx_sampling(int baudrate);
@@ -78,6 +116,7 @@ private:
 
     static void uart_sync(void *__this, int data);
     static void gpio_sync(void *__this, int value, int id);
+    static void i2c_sync(void *__this, int scl, int sda, int id);
 
     static void uart_sampling_handler(void *__this, vp::clock_event *event);
 
@@ -92,15 +131,15 @@ private:
     bool uart_sampling_tx = false;
     uint8_t uart_byte;
     int nb_gpio;
+    int nb_i2c;
     int req_size;
     int current_req_size;
     uint8_t req[PI_TESTBENCH_MAX_REQ_SIZE];
     uint8_t cmd;
 
     std::vector<Gpio> gpios;
+    std::vector<I2C> i2cs;
     vp::uart_slave uart_in;
-
-    vp::trace trace;
 
     vp::clock_event *uart_sampling_event;
     vp::clock_master clock_cfg;
@@ -120,6 +159,7 @@ int Testbench::build()
 
     this->ctrl_type = get_js_config()->get("ctrl_type")->get_str();
     this->nb_gpio = get_js_config()->get("nb_gpio")->get_int();
+    this->nb_i2c = get_js_config()->get("nb_i2c")->get_int();
 
     if (this->ctrl_type == "uart")
     {
@@ -135,6 +175,15 @@ int Testbench::build()
     {
         this->gpios[i].itf.set_sync_meth_muxed(&Testbench::gpio_sync, i);
         this->new_slave_port("gpio" + std::to_string(i), &this->gpios[i].itf);
+    }
+
+    this->i2cs.resize(this->nb_i2c);
+    
+    for (int i=0; i<this->nb_i2c; i++)
+    {
+        this->i2cs[i].conf(this, i);
+        this->i2cs[i].itf.set_sync_meth_muxed(&Testbench::i2c_sync, i);
+        this->new_slave_port("i2c" + std::to_string(i), &this->i2cs[i].itf);
     }
 
     this->state = STATE_WAITING_CMD;
@@ -219,6 +268,118 @@ void Testbench::gpio_sync(void *__this, int value, int id)
         _this->trace.msg(vp::trace::LEVEL_DEBUG, "Generating gpio on loopback (id: %d)\n", gpio->loopback);
         _this->gpios[gpio->loopback].itf.sync(value);
     }
+}
+
+
+void I2C::conf(Testbench *top, int id)
+{
+    this->top = top;
+    this->id = id;
+    this->state = I2C_STATE_WAIT_START;
+    this->prev_sda = 1;
+    this->pending_send_ack = false;
+}
+
+
+void I2C::handle_byte()
+{
+    this->top->trace.msg(vp::trace::LEVEL_DEBUG, "Received I2C byte (id: %d, value: 0x%x)\n", this->id, this->pending_data & 0xff);
+}
+
+
+void I2C::sync(int scl, int sda)
+{
+    this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received I2C sync (id: %d, scl: %d, sda: %d)\n", this->id, scl, sda);
+
+    if (scl == 1 && this->prev_sda != sda)
+    {
+        if (this->prev_sda == 1)
+        {
+            this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received I2C start bit (id: %d)\n", id);
+
+            this->state = I2C_STATE_WAIT_ADDRESS;
+            this->address = 0;
+            this->pending_bits = 8;
+        }
+        else
+        {
+            this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received I2C stop bit (id: %d)\n", id);
+            this->state = I2C_STATE_WAIT_START;
+        }
+    }
+    else
+    {
+        if (scl == 0)
+        {
+            if (this->pending_send_ack)
+            {
+                this->pending_send_ack = false;
+                this->itf.sync(1);
+            }
+        }
+        else
+        {
+            switch (this->state)
+            {
+                case I2C_STATE_WAIT_ADDRESS:
+                {
+                    if (this->pending_bits > 1)
+                    {
+                        this->address = (this->address << 1) | sda;
+                    }
+                    else
+                    {
+                        this->is_read = sda;
+                    }
+                    this->pending_bits--;
+                    if (this->pending_bits == 0)
+                    {
+                        this->state = I2C_STATE_ACK;
+                        this->pending_bits = 8;
+                    }
+                    break;
+                }
+
+                case I2C_STATE_GET_DATA:
+                {
+                    //if (sda_out)
+                    //{
+                    //    *sda_out = (this->pending_send_byte >> 7) & 1;
+                    //    this->pending_send_byte <<= 1;
+                    //}
+                    this->top->trace.msg(vp::trace::LEVEL_TRACE, "Got I2C data (id: %d, sda: %d)\n", id, this->pending_bits);
+                    this->pending_data = (this->pending_data << 1) | sda;
+                    this->pending_bits--;
+                    if (this->pending_bits == 0)
+                    {
+                        this->pending_bits = 8;
+                        this->handle_byte();
+                        this->state = I2C_STATE_ACK;
+                    }
+                    break;
+                }
+                
+                case I2C_STATE_ACK:
+                {
+                    this->top->trace.msg(vp::trace::LEVEL_TRACE, "Generate I2C ack (id: %d)\n", id);
+
+                    this->itf.sync(0);
+                    this->state = I2C_STATE_GET_DATA;
+                    break;
+                }
+            }
+        }
+    }
+
+    this->prev_sda = sda;
+}
+
+
+void Testbench::i2c_sync(void *__this, int scl, int sda, int id)
+{
+    Testbench *_this = (Testbench *)__this;
+
+    _this->i2cs[id].sync(scl, sda);
 }
 
 

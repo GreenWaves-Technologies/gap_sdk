@@ -167,7 +167,8 @@ def load_state(graph_file: str, return_extra=False):
     if 'name' in info_state:
         G.name = info_state['name']
     G.add_dimensions()
-    set_options(G, info_state['node_options'])
+    freeze_options = {k: v for k, v in info_state['node_options'].items() if 'FIXED_ORDER' in list(v.set_options)}
+    set_options(G, freeze_options)
     if identity.is_adjusted:
         # If weights were saved then don't reshaoe them since it was already done
         # before they were saved

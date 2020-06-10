@@ -16,7 +16,8 @@
 from utils.json_serializable import JsonSerializable
 
 OPTION_TYPES = {
-    'int': int
+    'int': int,
+    'str': str
 }
 
 

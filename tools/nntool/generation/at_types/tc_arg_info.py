@@ -124,10 +124,11 @@ class GlobalArgInfo(TCArgInfo):
 
 
 class LocalArgInfo(TCArgInfo):
-    def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None):
+    def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
+                 exec_location: Optional[str] = None):
         super(LocalArgInfo, self).__init__(arg_type, arg_name, "ARG_SCOPE_LOCAL",
                                            "ARG_DIR_INOUT", home_location=home_location,
-                                           exec_location=home_location)
+                                           exec_location=exec_location)
 
 
 class OutputArgInfo(TCArgInfo):

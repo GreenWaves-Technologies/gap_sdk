@@ -62,7 +62,7 @@ static void __ili_set_addr_window(ili_t *ili,uint16_t x, uint16_t y, uint16_t w,
 static void __ili_write_8(ili_t *ili, uint8_t  d);
 static void __ili_write_command(ili_t *ili,uint8_t cmd);
 static void __ili_gray8_to_rgb565(uint8_t *input,uint16_t *output,int width, int height);
-
+static void __ili_rgb565_to_rgb565(uint16_t *input,uint16_t *output,int width, int height);
 
 static void __ili9341_write_buffer_iter(void *arg)
 {
@@ -89,11 +89,16 @@ static void __ili9341_write_buffer_iter(void *arg)
     task = ili->current_task;
     flags = PI_SPI_CS_AUTO;
   }
+  if(ili->buffer->format==PI_BUFFER_FORMAT_RGB565){
+    __ili_rgb565_to_rgb565((uint16_t *)ili->current_data, (uint16_t *)ili->temp_buffer, size, 1);
+    ili->current_data += size*2;
+  }
+  else{
+    __ili_gray8_to_rgb565((uint8_t *)ili->current_data, (uint16_t *)ili->temp_buffer, size, 1);
+    ili->current_data += size;
+  }
 
-  __ili_gray8_to_rgb565((uint8_t *)ili->current_data, (uint16_t *)ili->temp_buffer, size, 1);
-
-  ili->current_data += size;
-
+  
   if (ili->buffer->stride != 0)
   {
       ili->current_line_len -= size;
@@ -416,6 +421,15 @@ static void __ili_gray8_to_rgb565(uint8_t *input,uint16_t *output,int width, int
   for(int i=0;i<width*height;i++)
   {
     output[i] = ((input[i] >> 3 ) << 3) | ((input[i] >> 5) ) | (((input[i] >> 2 ) << 13) )|   ((input[i] >> 3) <<8);
+  }
+}
+
+static void __ili_rgb565_to_rgb565(uint16_t *input,uint16_t *output,int width, int height)
+{
+  for(int i=0;i<width*height;i++)
+  {
+    //This is a workaround, might be possible to set in LCD display
+    output[i] = ((input[i] & 0xFF00) >> 8) | ((input[i] & 0x00FF) << 8);
   }
 }
 

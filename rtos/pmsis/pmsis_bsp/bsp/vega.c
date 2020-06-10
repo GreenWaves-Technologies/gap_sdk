@@ -24,6 +24,8 @@
 #include "bsp/ram/spiram.h"
 
 
+
+
 static int __bsp_init_pads_done = 0;
 
 static void __bsp_init_pads()

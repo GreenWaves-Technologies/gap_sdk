@@ -82,8 +82,10 @@ class CodeGenerator(RegisteredGeneratorsMixin):
 
     def memory_device_generator(self, indent=0):
         self.opts['memory_devices'].set_l2_ram_ext_managed(self.opts['l2_ram_ext_managed'])
-        self.opts['memory_devices'].set_l3_ram_ext_managed(self.opts['l3_ram_ext_managed'])
-        self.opts['memory_devices'].set_l3_flash_ext_managed(self.opts['l3_flash_ext_managed'])
+        self.opts['memory_devices'].set_l3_ram_ext_managed(self.opts['l3_ram_ext_managed'],
+                                                           self.opts['l3_ram_device'])
+        self.opts['memory_devices'].set_l3_flash_ext_managed(self.opts['l3_flash_ext_managed'],
+                                                             self.opts['l3_flash_device'])
 
         code_block = CodeBlock(starting_indent=indent)
         self.opts['memory_devices'].gen(self.G, code_block)
@@ -183,8 +185,12 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             self.name_cache.set(eparams, 'edge', cname)
             if eparams.edge_type != "in_out" or eparams.is_alias:
                 continue
-            self.locals.append(LocalArgInfo(out_q.ctype, eparams.name,
-                                            self.opts['default_local_location']))
+            home_location = eparams.creating_node.at_options.out_home_mem_loc if eparams.creating_node.at_options.out_home_mem_loc \
+                            is not None else self.opts['default_local_location']
+            exec_location = eparams.creating_node.at_options.out_exec_mem_loc if eparams.creating_node.at_options.out_exec_mem_loc \
+                            is not None else self.opts['default_local_location']
+
+            self.locals.append(LocalArgInfo(out_q.ctype, eparams.name, home_location, exec_location))
 
         code_block = CodeBlock(starting_indent=indent)
         code_block.write_start("CArgs({},", len(self.locals))
