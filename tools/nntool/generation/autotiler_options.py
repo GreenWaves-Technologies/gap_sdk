@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .memory_device_info import MemoryDeviceInfos
+from .memory_device_info import MemoryDeviceInfos, AT_L3_FLASH_DEVICES, AT_L3_RAM_DEVICES
 
 #pylint: disable=line-too-long
 
@@ -70,7 +70,15 @@ AUTO_TILER_OPTIONS = [
     {
         'name': 'GRAPH_DUMP_ONE_NODE', 'type': 'graph', 'var_type': str,
         'descr': 'Trace one specific graph node', 'default': None
-    }
+    },
+    {
+        'name': 'GRAPH_ARG2STRUCT', 'type': 'graph', 'var_type': bool,
+        'descr': 'Kernel C arguments are promoted to struct', 'default': False
+    },
+    {
+        'name': 'GRAPH_SIZE_OPT', 'type': 'graph', 'var_type': int,
+        'descr': '0: Default make opt, 1: O2 for all layers, Os for xtor,dxtor,runner, 2: Os for layers and  xtor,dxtor,runner', 'default': 0
+    },
 ]
 
 DEFAULT_GEN_OPTS = {
@@ -91,7 +99,9 @@ DEFAULT_GEN_OPTS = {
     'model_directory': '.',
     'model_file': 'model.c',
     'at_ver': 3,
-    'memory_devices': MemoryDeviceInfos.default()
+    'memory_devices': MemoryDeviceInfos.default(),
+    'l3_ram_device': 'AT_MEM_L3_HRAM',
+    'l3_flash_device': 'AT_MEM_L3_HFLASH'
 }
 
 DEFAULT_GEN_OPTS.update({(elem['name'].lower()): elem['default'] for elem in AUTO_TILER_OPTIONS})
@@ -112,6 +122,8 @@ DEFAULT_GEN_OPTS_DESCRIPTIONS = {
     'model_directory': {'type': str, 'descr': 'directory to dump model to'},
     'model_file': {'type': str, 'descr': 'filename for model'},
     'at_ver': {'type': int, 'descr': 'AutoTiler version'},
+    'l3_ram_device': {'type': str, 'descr': 'L3 RAM device', 'choices': AT_L3_RAM_DEVICES},
+    'l3_flash_device': {'type': str, 'descr': 'L3 FLASH device', 'choices': AT_L3_FLASH_DEVICES}
 }
 
 DEFAULT_GEN_OPTS_DESCRIPTIONS.update(

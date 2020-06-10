@@ -130,7 +130,8 @@ profiler:
 
 
 test:
-	plptest --max-timeout=$(TIMEOUT)
+	plptest --max-timeout=$(TIMEOUT) --bench-csv-file=results.csv
+	plptest --max-timeout=$(TIMEOUT) --bench-csv-file=results.csv score
 
 #
 # Littlefs

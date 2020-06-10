@@ -53,11 +53,21 @@ class Runner(runner.default_runner.Runner):
 
             if self.config.get_str('**/chip_family') == 'gap':
 
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; gap_flash_raw %s %d %s; exit;"' % (openocd, cable, script, image, image_size, gap_tools)
+                if flash.get_str('datasheet/type') == 'spi':
+                    flasher_script = 'gap_flash_raw_spi'
+                else:
+                    flasher_script = 'gap_flash_raw_hyper'
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
 
             else:
 
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; gap9_flash_raw_hyper %s %d %s; exit;"' % (openocd, cable, script, gap_tools, image, image_size, gap_tools)
+                if flash.get_str('datasheet/type') == 'spi':
+                    flasher_script = 'gap9_flash_raw_hyper'
+                else:
+                    flasher_script = 'gap9_flash_raw_spi'
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
 
             print ('Flashing image with command:')
             print (cmd)

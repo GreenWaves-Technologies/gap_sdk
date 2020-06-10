@@ -42,9 +42,11 @@ class NNToolShellSettings(Cmd):
     def __init__(self, *args, **kwargs):
         super(NNToolShellSettings, self).__init__(*args, **kwargs)
         for k, v in DEFAULT_OPT_DESCRIPTIONS.items():
-            self.add_settable(Settable(k, v['type'], v['descr']))
+            self.add_settable(Settable(k, v['type'], v['descr'],
+                                       choices=v['choices'] if 'choices' in v.keys() else None))
         for k, v in DEFAULT_GEN_OPTS_DESCRIPTIONS.items():
-            self.add_settable(Settable(k, v['type'], v['descr']))
+            self.add_settable(Settable(k, v['type'], v['descr'],
+                                       choices=v['choices'] if 'choices' in v.keys() else None))
         self.settings = {
             'load_quantization': False,
             'fusions': False,

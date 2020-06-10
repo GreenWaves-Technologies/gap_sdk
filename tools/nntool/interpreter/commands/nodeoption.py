@@ -15,6 +15,7 @@
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
+from generation.memory_device_info import AT_L3_FLASH_DEVICES, AT_L3_RAM_DEVICES
 from utils.node_id import NodeId
 
 def nodeoption_choices_method(self, arg_tokens):
@@ -28,9 +29,9 @@ def nodeoption_choices_method(self, arg_tokens):
     try:
         step_num = int(step_num)
         node = self.G.graph_state.steps[step_num]['node']
-        return node.at_options.valid_options.keys()
     except ValueError:
-        return []
+        node = self.G[step_num]
+    return node.at_options.valid_options.keys()
 
 def nodename_choices_method(self, arg_tokens):
     step_start = arg_tokens['step'][0]
@@ -40,13 +41,21 @@ def nodename_choices_method(self, arg_tokens):
     except ValueError:
         return [step['node'].name for step in self.G.graph_state.steps if step['node'].name.startswith(step_start)] + ["*"]
 
+def nodeoption_value_choices_method(arg_tokens):
+    parameter = arg_tokens['parameter'][0]
+    if parameter in ("OUT_HOME_MEM_LOC", "OUT_EXEC_MEM_LOC"):
+        return AT_L3_RAM_DEVICES + AT_L3_FLASH_DEVICES + ("AT_MEM_UNDEF", )
+    return []
+
 class NodeoptionCommand(NNToolShellBase):
     # nodeoption COMMAND
     parser_nodeoption = Cmd2ArgumentParser()
-    parser_nodeoption.add_argument('step', nargs=(0, 1), choices_method=nodename_choices_method, help='Set this step number or name')
-    parser_nodeoption.add_argument('parameter', nargs=(
-        0, 1), choices_method=nodeoption_choices_method, help='Set this parameter')
-    parser_nodeoption.add_argument('value', nargs=(0, 1), help='Set the parameter to this value')
+    parser_nodeoption.add_argument('step', nargs=(0, 1), choices_method=nodename_choices_method,
+                                   help='Set this step number or name')
+    parser_nodeoption.add_argument('parameter', nargs=(0, 1), choices_method=nodeoption_choices_method,
+                                   help='Set this parameter')
+    parser_nodeoption.add_argument('value', nargs=(0, 1), choices_function=nodeoption_value_choices_method,
+                                   help='Set the parameter to this value')
 
     @with_argparser(parser_nodeoption)
     def do_nodeoption(self, args):
@@ -68,7 +77,7 @@ can be set refer to the autotiler documentation."""
                     nodes = [self.G.graph_state.steps[step]['node']]
                 except ValueError:
                     nodes = [self.G[args.step]]
-            except (IndexError):
+            except IndexError:
                 self.perror("%s is not a valid step or node to set %s"%(args.step, args.parameter))
                 return
 
@@ -82,7 +91,10 @@ can be set refer to the autotiler documentation."""
         if args.value is None:
             val = None
         else:
-            val = int(args.value)
+            if args.parameter in ("OUT_HOME_MEM_LOC", "OUT_EXEC_MEM_LOC"):
+                val = str(args.value)
+            else:
+                val = int(args.value)
         for node in nodes:
             node_options = node.at_options
             setattr(node_options, args.parameter, val)

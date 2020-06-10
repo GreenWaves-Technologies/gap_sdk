@@ -22,7 +22,7 @@ from graph.types import ConvFusionParameters, FcParameters
 from utils.node_id import NodeId
 
 
-@generation_function("bindings", (FcParameters,), qrec_types=(QREC_POW2, ))
+@generation_function("bindings", (ConvFusionParameters, FcParameters), qrec_types=(QREC_POW2, ))
 def fc_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, FcParameters):

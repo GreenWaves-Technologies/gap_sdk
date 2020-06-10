@@ -149,7 +149,7 @@ It also handle the conversion between uint8 [0:255] values to int8 [-128:127] su
 - for 16 bits graphs only: out_int16: takes the uint8 input and converts to int16 output by applying a left shift of 7 bits (<< 7)
 
 The command to run to introduce the formatter into your graph is:
-	imageformat input_x [bw8 | bw16 | rgb888 | rgb565] [shift_int8 | offset_int8]
+	imageformat input_x [bw8 | bw16 | rgb888 | rgb565] [shift_int8 | offset_int8 | out_int16]
 
 NOTE: in case of multichannel input the image formmatter will automatically handle also the automatic transposition when you run the network in nntool (i.e. the -T option is no more needed)
 

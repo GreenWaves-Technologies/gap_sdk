@@ -1,3 +1,12 @@
+3.5.1
+
+Highlights of this release:
+
+- NNTool
+	- nodeoption support for the memory location of the locals parameters in the AutoTiler
+	- Update Documentation
+	- Bug fixes
+	
 3.5
 
 Highlights of this release:

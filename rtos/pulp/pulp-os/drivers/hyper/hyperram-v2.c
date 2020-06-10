@@ -283,11 +283,22 @@ int32_t pi_hyper_open(struct pi_device *device)
 
   hyper_clk_div_set(UDMA_HYPER_ADDR(0), __rt_get_div(conf->baudrate));
 
-  hyper_device_set(UDMA_HYPER_ADDR(0),
-    HYPER_DEVICE_DT1(1) |
-    HYPER_DEVICE_DT0(0) |
-    HYPER_DEVICE_TYPE(1)
-  );
+  if ((conf->type == PI_HYPER_TYPE_RAM && conf->cs == 0) || (conf->type == PI_HYPER_TYPE_FLASH && conf->cs == 1))
+  {
+    hyper_device_set(UDMA_HYPER_ADDR(0),
+      HYPER_DEVICE_DT1(1) |
+      HYPER_DEVICE_DT0(0) |
+      HYPER_DEVICE_TYPE(1)
+    );
+  }
+  else
+  {
+    hyper_device_set(UDMA_HYPER_ADDR(0),
+      HYPER_DEVICE_DT1(0) |
+      HYPER_DEVICE_DT0(1) |
+      HYPER_DEVICE_TYPE(1)
+    );
+  }
 
   hyper_mba0_set(UDMA_HYPER_ADDR(0), REG_MBR0);
   hyper_mba1_set(UDMA_HYPER_ADDR(0), REG_MBR1);

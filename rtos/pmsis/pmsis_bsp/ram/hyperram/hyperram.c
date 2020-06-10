@@ -24,6 +24,11 @@
 #include "pmsis/drivers/hyperbus.h"
 #include "../extern_alloc.h"
 
+#if defined(__PULPOS2__)
+#if defined(CONFIG_GAP9_V2)
+PI_L2 uint32_t reg_value;
+#endif
+#endif
 
 typedef struct
 {
@@ -82,6 +87,17 @@ static int hyperram_open(struct pi_device *device)
   {
       goto error2;
   }
+
+#if defined(__PULPOS2__)
+#if defined(CONFIG_GAP9_V2)
+  reg_value = 0;
+  pi_hyper_read(&hyperram->hyper_device, 0x80001000, &reg_value, 2);
+  reg_value &= ~(1 << 3);// Activate variable latency to avoid additionnal latency when there is no refresh
+  reg_value &= ~0xf0;  // Use 3 cycles of latency instead of the default 6 cycles
+  reg_value |= 0xe0;
+  pi_hyper_write(&hyperram->hyper_device, 0x80001000, &reg_value, 2);
+#endif
+#endif
 
   return 0;
 

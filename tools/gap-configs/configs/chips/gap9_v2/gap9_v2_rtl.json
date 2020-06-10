@@ -148,7 +148,11 @@
             [ "chip.gpio86", "testbench.gpio86" ],
             [ "chip.gpio87", "testbench.gpio87" ],
             [ "chip.gpio88", "testbench.gpio88" ],
-            [ "chip.gpio89", "testbench.gpio89" ]
+            [ "chip.gpio89", "testbench.gpio89" ],
+
+            [ "chip.i2c0", "testbench.i2c0" ],
+            [ "chip.i2c1", "testbench.i2c1" ],
+            [ "chip.i2c2", "testbench.i2c2" ]
           ]
         }
       },
@@ -186,6 +190,14 @@
             "is_master": true
             },
             "i2c0": {
+            "type": "i2c",
+            "is_master": true
+            },
+            "i2c1": {
+            "type": "i2c",
+            "is_master": true
+            },
+            "i2c2": {
             "type": "i2c",
             "is_master": true
             },

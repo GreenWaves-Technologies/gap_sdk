@@ -19,6 +19,9 @@ from utils.json_serializable import JsonSerializable
 
 from .code_block import CodeBlock, quote
 
+AT_L3_RAM_DEVICES = ('AT_MEM_L3_HRAM', 'AT_MEM_L3_QSPIRAM', 'AT_MEM_L3_OSPIRAM')
+AT_L3_FLASH_DEVICES = ('AT_MEM_L3_HFLASH', 'AT_MEM_L3_QSPIFLASH', 'AT_MEM_L3_OSPIFLASH', 'AT_MEM_L3_MRAMFLASH')
+
 # SetMemoryDeviceInfos(4,
 #         AT_MEM_L1, L1Memory, "Dronet_L1_Memory", 0, 0,
 #         AT_MEM_L2, L2Memory, "Dronet_L2_Memory", 0, 0,
@@ -87,14 +90,16 @@ class MemoryDeviceInfos(JsonSerializable):
             if info.memory_area == 'AT_MEM_L2':
                 info.ext_managed = ext_managed and 1 or 0
 
-    def set_l3_ram_ext_managed(self, ext_managed):
+    def set_l3_ram_ext_managed(self, ext_managed, l3_ram_device):
         for info in self.infos:
-            if info.memory_area == 'AT_MEM_L3_HRAM':
+            if info.memory_area in AT_L3_RAM_DEVICES:
+                info.memory_area = l3_ram_device
                 info.ext_managed = ext_managed and 1 or 0
 
-    def set_l3_flash_ext_managed(self, ext_managed):
+    def set_l3_flash_ext_managed(self, ext_managed, l3_flash_device):
         for info in self.infos:
-            if info.memory_area == 'AT_MEM_L3_HFLASH':
+            if info.memory_area in AT_L3_FLASH_DEVICES:
+                info.memory_area = l3_flash_device
                 info.ext_managed = ext_managed and 1 or 0
 
     def gen(self, G, code_block: CodeBlock):

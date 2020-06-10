@@ -36,7 +36,7 @@ typedef struct {
     struct pi_device cpi_device;
     struct pi_device i2c_device;
 
-    struct pi_device gc0308_reset;
+    struct pi_device gpio_port;
 
     i2c_req_t i2c_req;
     uint32_t i2c_read_value;
@@ -51,7 +51,6 @@ typedef i2c_req_t gc0308_reg_init_t;
 static gc0308_reg_init_t __gc0308_reg_init[] =
 {
     {0xfe,0x00},
-#if 1//MCK49.5Mz 10fps
     {0x01,0xcb},   //0x28
     {0x02,0x60},   //0x00
     {0x0f,0x18},	 //0x21
@@ -65,30 +64,18 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0xe9,0xE8},
     {0xea,0x09},
     {0xeb,0xC4},
-#else//MCK24MHz10fps
-    {0x0f,0x05},	 //0x00
-    {0x01,0xe1},   //0x6a
-    {0x02,0x70},   //0x70
-    {0xe2,0x00},
-    {0xe3,0x96},
-    {0xe4,0x02},
-    {0xe5,0x58},
-    {0xe6,0x02},
-    {0xe7,0x58},
-    {0xe8,0x02},
-    {0xe9,0x58},
-    {0xea,0x0e},
-    {0xeb,0xa6},
-#endif
     {0xec,0x20},
     {0x05,0x00},
     {0x06,0x00},
     {0x07,0x00},
     {0x08,0x00},
-    {0x09,0x01},
-    {0x0a,0xe8},
-    {0x0b,0x02},
-    {0x0c,0x88},
+    
+    //{0x09,0x00}, 
+    //{0x0a,0xF8},
+    
+    //{0x0b,0x01},
+    //{0x0c,0x48},
+
     {0x0d,0x02},
     {0x0e,0x02},
     {0x10,0x26},
@@ -110,9 +97,9 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x20,0x7f},
     {0x21,0xfa},
     {0x22,0x57},
-    {0x24,0xa2},	//YCbYCr
+    {0x24,0xa6},	//Only Y, can be changed to RGB or YUV
     {0x25,0x0f},
-    {0x26,0x03}, // 0x01
+    {0x26,0x02},    // Vsync Low active, Hsync High active
     {0x28,0x00},
     {0x2d,0x0a},
     {0x2f,0x01},
@@ -129,6 +116,7 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x3d,0x00},
     {0x3e,0x00},
     {0x3f,0x00},
+    
     {0x50,0x14}, // 0x14
     {0x52,0x41},
     {0x53,0x80},
@@ -295,8 +283,8 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x43,0xA7},
     {0x44,0xB8},
     {0x45,0xD6},
-    {0x46,0xEE},
-    {0x47,0x0d},
+ //   {0x46,0xEE},
+//    {0x47,0x0d},
     {0x62,0xf7},
     {0x63,0x68},
     {0x64,0xd3},
@@ -327,7 +315,7 @@ static inline int is_i2c_active()
 
 
 
-static void __gc0308_reg_write(gc0308_t *gc0308, unsigned int addr, uint8_t value)
+static void __gc0308_reg_write(gc0308_t *gc0308, uint8_t addr, uint8_t value)
 {
     if (is_i2c_active())
     {
@@ -339,37 +327,47 @@ static void __gc0308_reg_write(gc0308_t *gc0308, unsigned int addr, uint8_t valu
 
 
 
-static uint8_t __gc0308_reg_read(gc0308_t *gc0308, unsigned int addr)
+static uint8_t __gc0308_reg_read(gc0308_t *gc0308, uint8_t addr)
 {
+
     if (is_i2c_active())
     {
         gc0308->i2c_req.addr = (addr & 0xFF);
         pi_i2c_write(&gc0308->i2c_device, (uint8_t *)&gc0308->i2c_req.addr, 1, PI_I2C_XFER_NO_STOP);
-        pi_i2c_read(&gc0308->i2c_device, (uint8_t *)&gc0308->i2c_req.value, 1, PI_I2C_XFER_STOP);
-        return gc0308->i2c_req.value;
+        pi_i2c_read(&gc0308->i2c_device, (uint8_t *)&gc0308->i2c_read_value, 1, PI_I2C_XFER_STOP);
+        return *(volatile uint8_t *)&gc0308->i2c_read_value;
     }
     return 0;
 }
 
-
-
 static void __gc0308_init_regs(gc0308_t *gc0308)
 {
-    unsigned int i;
-    for(i=0; i<(sizeof(__gc0308_reg_init)/sizeof(gc0308_reg_init_t)); i++)
+    int32_t i;
+    for(i=0; i<(int32_t)(sizeof(__gc0308_reg_init)/sizeof(gc0308_reg_init_t)); i++)
     {
         __gc0308_reg_write(gc0308, __gc0308_reg_init[i].addr, __gc0308_reg_init[i].value);
     }
+
+#ifdef DEBUG
+    uint8_t reg_value = 0;
+    for(i=0; i<(sizeof(__gc0308_reg_init)/sizeof(gc0308_reg_init_t)); i++)
+    {
+        reg_value = __gc0308_reg_read(gc0308, __gc0308_reg_init[i].addr);
+        if (reg_value != __gc0308_reg_init[i].value)
+            printf("error reg: @%X = %X (expected: %X)\n", __gc0308_reg_init[i].addr, reg_value, __gc0308_reg_init[i].value);
+    }
+#endif
+
 }
 
 
 
 static void __gc0308_reset(gc0308_t *gc0308)
 {
-    pi_gpio_pin_write(&gc0308->gc0308_reset, gc0308->conf.reset_gpio, 0);
+    pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 0);
     pi_time_wait_us(10000);
-    pi_gpio_pin_write(&gc0308->gc0308_reset, gc0308->conf.reset_gpio, 1);
-    pi_time_wait_us(10000);
+    pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 1);
+    pi_time_wait_us(100000);
 }
 
 
@@ -412,6 +410,7 @@ int32_t __gc0308_open(struct pi_device *device)
     gc0308_t *gc0308 = (gc0308_t *)pmsis_l2_malloc(sizeof(gc0308_t));
     if (gc0308 == NULL) return -1;
 
+    memcpy(&gc0308->conf, conf, sizeof(*conf));
     device->data = (void *)gc0308;
 
     if (bsp_gc0308_open(conf))
@@ -419,11 +418,11 @@ int32_t __gc0308_open(struct pi_device *device)
 
     struct pi_gpio_conf gpio_reset_conf;
     pi_gpio_conf_init(&gpio_reset_conf);
-    pi_open_from_conf(&gc0308->gc0308_reset, &gpio_reset_conf);
-    if (pi_gpio_open(&gc0308->gc0308_reset))
+    pi_open_from_conf(&gc0308->gpio_port, &gpio_reset_conf);
+    if (pi_gpio_open(&gc0308->gpio_port))
         goto error;
 
-    pi_gpio_pin_configure(&gc0308->gc0308_reset, conf->reset_gpio, PI_GPIO_OUTPUT);
+    pi_gpio_pin_configure(&gc0308->gpio_port, conf->reset_gpio, PI_GPIO_OUTPUT);
 
     struct pi_cpi_conf cpi_conf;
     pi_cpi_conf_init(&cpi_conf);
@@ -437,30 +436,20 @@ int32_t __gc0308_open(struct pi_device *device)
     pi_i2c_conf_init(&i2c_conf);
     i2c_conf.cs = 0x42;
     i2c_conf.itf = conf->i2c_itf;
-    i2c_conf.max_baudrate = 400000;
+    i2c_conf.max_baudrate = 200000;
     pi_open_from_conf(&gc0308->i2c_device, &i2c_conf);
-    printf("i2c : %d\n", i2c_conf.itf);
 
     if (pi_i2c_open(&gc0308->i2c_device))
         goto error2;
 
-    // Workaround for FreeRTOS, TODO to be fixed
-#if defined(__FREERTOS__)
     pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_LITEND);
-#else
-    pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_BIGEND);
-#endif
 
     __gc0308_reset(gc0308);
-    __gc0308_init_regs(gc0308);
 
-    uint8_t cam_id;
-    cam_id = __gc0308_reg_read(gc0308, 0x00);
-    if(cam_id != 0x9b)
-    {
-        printf("camera open failed: cam_id 0x%X is wrong\n", cam_id );
-        goto error2;
-    }
+    uint8_t cam_id = __gc0308_reg_read(gc0308, 0x00);
+    if (cam_id != 0x9b) goto error2;
+
+    __gc0308_init_regs(gc0308);
 
     return 0;
 
@@ -540,7 +529,41 @@ int32_t __gc0308_reg_get(struct pi_device *device, uint32_t addr, uint8_t *value
     *value = __gc0308_reg_read(gc0308, addr);
     return 0;
 }
+/*
+    {0x46,0x80}, //Enable CROP 
+    {0x47,0x78}, //CROP Y0 for QVGA 120 
+    {0x48,0xA0}, //CROP X0 for QVGA 160 
+    
+    {0x49,0x01}, //CROP height for QVGA 240 - 
+    {0x4A,0xF0}, //CROP height for QVGA 240 - 0xF0
 
+    {0x4B,0x01}, //CROP width for QVGA 320 - 0x140
+    {0x4C,0x40}, //CROP width for QVGA 320 - 0x140
+*/
+void __gc0308_set_crop(struct pi_device *device, uint8_t offset_x, uint8_t offset_y,uint16_t width,uint16_t height)
+{
+    uint8_t reg8;
+
+    gc0308_t *gc0308 = (gc0308_t *)device->data;
+    //Enable Crop
+    __gc0308_reg_write(gc0308, 0x46, 0x80);
+    //set x offset
+    __gc0308_reg_write(gc0308, 0x48, offset_x);
+    //set y offset
+    __gc0308_reg_write(gc0308, 0x47, offset_y);
+    //set width
+    reg8 = ( width & 0x00ff);
+    __gc0308_reg_write(gc0308, 0x4C, reg8);
+    reg8 = ( width & 0x0300) >> 8;
+    __gc0308_reg_write(gc0308, 0x4B, reg8);
+    //set height
+    reg8 = ( height & 0x00ff);
+    __gc0308_reg_write(gc0308, 0x4A, reg8);
+    reg8 = ( height & 0x0100) >> 8;
+    __gc0308_reg_write(gc0308, 0x49, reg8);
+    
+    return;
+}
 
 
 static pi_camera_api_t gc0308_api =
@@ -550,7 +573,8 @@ static pi_camera_api_t gc0308_api =
     .control        = &__gc0308_control,
     .capture_async  = &__gc0308_capture_async,
     .reg_set        = &__gc0308_reg_set,
-    .reg_get        = &__gc0308_reg_get
+    .reg_get        = &__gc0308_reg_get,
+    .set_crop       = &__gc0308_set_crop,
 };
 
 

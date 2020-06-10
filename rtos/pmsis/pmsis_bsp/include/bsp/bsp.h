@@ -90,6 +90,12 @@ void bsp_mt9v034_conf_init(struct pi_mt9v034_conf *conf);
 int bsp_mt9v034_open(struct pi_mt9v034_conf *conf);
 #endif
 
+#if defined(CONFIG_PIXART)
+#include "bsp/camera/pixart.h"
+void bsp_pixart_conf_init(struct pi_pixart_conf *conf);
+int bsp_pixart_open(struct pi_pixart_conf *conf);
+#endif
+
 #if defined(CONFIG_ILI9341)
 #include "bsp/display/ili9341.h"
 void bsp_ili9341_conf_init(struct pi_ili9341_conf *conf);

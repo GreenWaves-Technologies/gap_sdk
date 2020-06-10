@@ -22,6 +22,7 @@
 #define CONFIG_NINA_B112
 #define CONFIG_SPIRAM
 #define CONFIG_SPIFLASH
+#define CONFIG_PIXART
 
 #define CONFIG_ILI9341_SPI_ITF         ( 1 )
 #define CONFIG_ILI9341_SPI_CS          ( 0 )
@@ -55,6 +56,15 @@
 
 #define CONFIG_NINA_B112_UART_ID       ( 0 )
 
+#define CONFIG_PIXART_CPI_ITF          ( 0 )
+#define CONFIG_PIXART_SPI_ITF          ( 1 )
+#define CONFIG_PIXART_SPI_CS           ( 0 )
+#define CONFIG_PIXART_PWM_ID           ( 0 )
+#define CONFIG_PIXART_PWM_CH           ( 2 )
+#define CONFIG_PIXART_GPIO_PWR_4V      ( GPIO_VANA_4V )
+#define CONFIG_PIXART_GPIO_PWR_2V5     ( GPIO_VSENSOR_2V5 )
+#define CONFIG_PIXART_GPIO_RESET       ( GPIO_SENSOR_NRST )
+
 #define GPIO_1V8_EN                    ( PI_GPIO_A4_PAD_16_A44 )
 #define GPIOA0_LED                     ( PI_GPIO_A1_PAD_13_B2 )
 #define GPIO_USER_LED                  ( PI_GPIO_A1_PAD_13_B2 )
@@ -62,4 +72,7 @@
 #define GPIO_NINA17_DSR                ( PI_GPIO_A21_PAD_35_B13 )
 #define GPIO_NINA_PWRON                ( PI_GPIO_A2_PAD_14_A2 )
 
+#define GPIO_VANA_4V                   ( PI_GPIO_A5_PAD_17_B40 )
+#define GPIO_VSENSOR_2V5               ( PI_GPIO_A16_PAD_30_D1 )
+#define GPIO_SENSOR_NRST               ( PI_GPIO_A2_PAD_14_A2 )
 #endif  /* __BSP_GAPOC_B_H__ */

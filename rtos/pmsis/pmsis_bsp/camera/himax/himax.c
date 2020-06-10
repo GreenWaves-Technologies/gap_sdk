@@ -44,7 +44,7 @@ typedef struct {
 
 
 typedef struct {
-    unsigned short addr;
+    uint16_t addr;
     uint8_t data;
 } himax_reg_init_t;
 
@@ -167,7 +167,7 @@ static inline int is_i2c_active()
 
 
 
-static void __himax_reg_write(himax_t *himax, unsigned int addr, uint8_t value)
+static void __himax_reg_write(himax_t *himax, uint16_t addr, uint8_t value)
 {
   if (is_i2c_active())
   {
@@ -179,7 +179,7 @@ static void __himax_reg_write(himax_t *himax, unsigned int addr, uint8_t value)
 
 
 
-static uint8_t __himax_reg_read(himax_t *himax, unsigned int addr)
+static uint8_t __himax_reg_read(himax_t *himax, uint16_t addr)
 {
   if (is_i2c_active())
   {
@@ -198,8 +198,8 @@ static uint8_t __himax_reg_read(himax_t *himax, unsigned int addr)
 
 static void __himax_init_regs(himax_t *himax)
 {
-  unsigned int i;
-  for(i=0; i<(sizeof(__himax_reg_init)/sizeof(himax_reg_init_t)); i++)
+  int32_t i;
+  for(i=0; i<(int32_t)(sizeof(__himax_reg_init)/sizeof(himax_reg_init_t)); i++)
   {
     __himax_reg_write(himax, __himax_reg_init[i].addr, __himax_reg_init[i].data);
   }

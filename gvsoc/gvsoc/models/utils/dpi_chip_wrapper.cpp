@@ -125,6 +125,21 @@ public:
 };
 
 
+class I2C_group : public Pad_group
+{
+public:
+    I2C_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
+    void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data);
+    void rx_edge(int data);
+    bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback);
+    vp::trace trace;
+    vp::i2c_master master;
+    Dpi_chip_wrapper_callback *rx_callback;
+    int scl;
+    int sda;
+};
+
+
 class Hyper_group : public Pad_group
 {
 public:
@@ -152,6 +167,8 @@ private:
     static void qspim_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
     static void uart_rx_edge(void *__this, int data, int id);
     static void uart_sync(void *__this, int data, int id);
+    static void i2c_rx_edge(void *__this, int sda, int id);
+    static void i2c_sync(void *__this, int scl, int sda, int id);
     static void hyper_sync_cycle(void *__this, int data, int id);
     static void i2s_slave_edge(void *__this, int sck, int ws, int sd, int id);
     static void gpio_rx_edge(void *__this, int data, int id);
@@ -260,6 +277,16 @@ int dpi_chip_wrapper::build()
                 traces.new_trace_event(name + "/rx", &group->rx_trace, 1);
                 nb_itf++;
             }
+            else if (type == "i2c")
+            {
+                I2C_group *group = new I2C_group(this, name);
+                new_master_port(name, &group->master);
+                traces.new_trace(name, &group->trace, vp::WARNING);
+
+                group->master.set_sync_meth_muxed(&dpi_chip_wrapper::i2c_rx_edge, nb_itf);
+                this->groups.push_back(group);
+                nb_itf++;
+            }
             else if (type == "gpio")
             {
                 Gpio_group *group = new Gpio_group(this, name);
@@ -315,6 +342,13 @@ void dpi_chip_wrapper::uart_rx_edge(void *__this, int data, int id)
     dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
     Uart_group *group = static_cast<Uart_group *>(_this->groups[id]);
     group->rx_edge(data);
+}
+
+
+void dpi_chip_wrapper::i2c_rx_edge(void *__this, int data, int id)
+{
+    dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
+    I2C_group *group = static_cast<I2C_group *>(_this->groups[id]);
 }
 
 
@@ -551,6 +585,43 @@ void Uart_group::rx_edge(int data)
 {
     this->rx_trace.event((uint8_t *)&data);
 
+    dpi_external_edge(this->rx_callback->handle, data);
+}
+
+
+/*
+ * I2C
+ */
+
+bool I2C_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
+{
+    if (pad_name == "scl")
+    {
+        callback->pad_value = &this->scl;
+        callback->is_sck = true;
+    }
+    else if (pad_name == "sda")
+    {
+        callback->pad_value = &this->sda;
+        this->rx_callback = callback;
+    }
+    return false;
+}
+
+void I2C_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data)
+{
+    this->trace.msg(vp::trace::LEVEL_TRACE, "I2C edge (timestamp: %ld, name: %s, value: %d)\n", timestamp, callback->name.c_str(), data);
+
+    *(callback->pad_value) = data;
+
+    if (this->master.is_bound())
+    {
+        this->master.sync(this->scl, this->sda);
+    }
+}
+
+void I2C_group::rx_edge(int data)
+{
     dpi_external_edge(this->rx_callback->handle, data);
 }
 

@@ -36,12 +36,8 @@ VEGA_SRC = \
 GAP9_SRC = \
   $(COMMON_SRC) \
   bsp/gap9.c \
-  camera/camera.c \
-  camera/himax/himax.c \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
-  $(BSP_SPIRAM_SRC) \
-  $(BSP_SPIFLASH_SRC) \
   $(BSP_RAM_SRC)
 
 WOLFE_SRC = \
@@ -115,7 +111,8 @@ GAPOC_B_SRC = \
   $(BSP_RAM_SRC) \
   ble/ble.c \
   ble/nina_b112/nina_b112.c \
-  ble/nina_b112/nina_b112_old.c
+  ble/nina_b112/nina_b112_old.c \
+  camera/pixart/pixart.c
 else
 GAPOC_B_SRC = \
   $(COMMON_SRC) \

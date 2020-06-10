@@ -45,16 +45,29 @@ TOTAL_STACK_SIZE=$(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZ
 MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
 MODEL_L2_MEMORY=250000
 MODEL_L3_MEMORY=8388608
-# hram - HyperBus RAM
-# qspiram - Quad SPI RAM
+
+RAM_TYPE ?= HYPERRAM
+
+#PMSIS_OS=freertos
+
+ifeq '$(RAM_TYPE)' 'HYPERRAM'
+APP_CFLAGS += -DUSE_HYPERRAM
 MODEL_L3_EXEC=hram
-# hflash - HyperBus Flash
-# qpsiflash - Quad SPI Flash
 MODEL_L3_CONST=hflash
+else
+APP_CFLAGS += -DUSE_SPIRAM
+CONFIG_SPIRAM = 1
+MODEL_L3_EXEC=qspiram
+MODEL_L3_CONST=qpsiflash
+endif
+
+
+
+
+
 
 pulpChip = GAP
 PULP_APP = mnist
-USE_PMSIS_BSP=1
 
 APP = mnist
 APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)

@@ -356,8 +356,8 @@ static uint8_t __ov5640_reg_read(ov5640_t *ov5640, uint16_t addr)
 
 static void __ov5640_init_regs(ov5640_t *ov5640)
 {
-    unsigned int i;
-    for(i=0; i<(sizeof(__ov5640_reg_init)/sizeof(ov5640_reg_init_t)); i++)
+    int32_t i;
+    for(i=0; i<(int32_t)(sizeof(__ov5640_reg_init)/sizeof(ov5640_reg_init_t)); i++)
     {
         __ov5640_reg_write(ov5640, __ov5640_reg_init[i].addr, __ov5640_reg_init[i].value);
     }

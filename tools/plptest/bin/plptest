@@ -132,7 +132,7 @@ parser.add_argument("--db", dest="db", action='store_true', default=False, help=
 parser.add_argument("--worker-pool", dest="worker_pool", default=None, help="Specify worker pool")
 parser.add_argument("--score-csv-file", dest="score_csv_file", default=None, help="Specify CSV file for scores")
 parser.add_argument("--bench-csv-file", dest="bench_csv_file", default=None, help="Specify CSV file for benchmark results")
-parser.add_argument("--bench-regexp", dest="bench_regexp", default='@BENCH@(.*)@DESC@(.*)@', help="Specify regexp for extracting benchmark results")
+parser.add_argument("--bench-regexp", dest="bench_regexp", default='.*@BENCH@(.*)@DESC@(.*)@', help="Specify regexp for extracting benchmark results")
 
 
 args = parser.parse_args()
