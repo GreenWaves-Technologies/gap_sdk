@@ -18,6 +18,7 @@
  * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
  */
 
+
 #include <stdint.h>
 #include <stdio.h>
 #include <gv/gvsoc.h>

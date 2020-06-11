@@ -25,6 +25,7 @@ import plptest as p
 import re
 from prettytable import PrettyTable
 import math
+import plptest_bench
 
 class Command(object):
 
@@ -211,6 +212,10 @@ class Testset(TestCommon):
         if nb_score > 0:
             score = score / nb_score
 
+        plot = plptest_bench.Jenkins_plot(self.getFullName() + '.score.csv')
+        plot.append('score', str(score))
+        plot.gen()
+
         return (score, 1)
 
     def run(self, config):
@@ -263,11 +268,12 @@ class Test(TestCommon):
 
     def score(self, table=None, file=None):
 
+        total_score = 0
+
         if len(self.scores) != 0:
 
             is_first = True
             nb_score = 0
-            total_score = 0
 
             #print (self.getFullName())
 
@@ -293,6 +299,11 @@ class Test(TestCommon):
 
             if nb_score > 0:
                 total_score = total_score / nb_score
+
+            plot = plptest_bench.Jenkins_plot(self.getFullName() + '.score.csv')
+            plot.append('score', str(total_score))
+            plot.gen()
+
 
         return (total_score, 1)
 

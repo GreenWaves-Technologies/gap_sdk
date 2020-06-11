@@ -1,5 +1,18 @@
 # NNTOOL
 
+## Table of contents
+- [Overview](#overview)
+- [Installation](#installation)
+- [Model Conversion](#model-conversion)
+- [Quantization](#quantization)
+- [Nntool Execution](#nntool-execution)
+- [Model Save](#model-save)
+- [Autotiler Model Generation](#autotiler-model-generation)
+- [Image Formatter](#image-formatter)
+- [Input Options](#input-options)
+
+## Overview
+
 NNTOOL helps to port NN graphs from various NN training packages to GAP8. It helps with:
 
 - Post training graph quantization
@@ -22,6 +35,8 @@ The tool has a command interpreter mode where it provides an interface to:
 The tool also has a command line mode which takes a saved state file and directly genenerates the model and
 saves a parameters file; the two elements necessary for a GAP project build.
 
+## Installation
+
 To set up the tool install the packages in the requirements file
 
 	python -m pip install -r requirements.txt
@@ -40,55 +55,61 @@ When everything is installed, the nntool command line can be accessed with:
 
 These steps will automatically be executed by the GAP SDK setup procedure
 
-## Visual-Wake-Words Example
 
-To show the **nntool** usage, we provide this detailed example of the 2019 Visual Wakeup Words Challenge Winner model porting on GAP8. 
+## Model Conversion
 
-### Model Loading
-
-The nntool takes as input network a non-quantized .tflite model. After downloading the model from the github repository (https://github.com/mit-han-lab/VWW) we can open the model into the nntool:
+The nntool takes as input network a float or quantized .tflite model. You can find bunch of trained tflite models online in both integer-only and floating-point version online ([TF hosted models](https://www.tensorflow.org/lite/guide/hosted_models)). To start nntool and open the target model:
 	
 	nntool
-	open /path/to/model.tflite
+	open /path/to/model.tflite [-q]
 
-TFLite format uses HxWxC activations and C<sub>out</sub>xHxWxC<sub>in</sub> weights while Autotiler uses CxHxW activations and C<sub>out</sub>xC<sub>in</sub>xHxW weights. Moreover to increase the efficiency of the kernels, the Autotiler uses fused layers (e.g. ConvReLUPool). To generate the compatible AT model, the nntool has to apply graph transformations and match the Autotiler features:
+The -q is required if the target model has already been quantized in the tflite conversion process (i.e. inference_type=QUANTIZED_UINT8).
+
+TFLite execution kernels use HxWxC order for the activations and C<sub>out</sub>xHxWxC<sub>in</sub> order for filters. On the other hand, the Autotiler, and therefore GAP execution kernels, use CxHxW activations and C<sub>out</sub>xC<sub>in</sub>xHxW filters. Moreover to increase the efficiency of the kernels, the Autotiler uses fused layers (e.g. Convolution followed by a pooling and a ReLU can be performed by a single AT layer: ConvPoolRelu). For these reasons, to generate the compatible AT model, the nntool has to apply graph transformations and match the Autotiler features:
 
 	adjust
-	fusions
+	fusions [--scale8 | --pow2]
+
+IMPORTANT: the _fusions_ type (scale8 vs pow2) must match the quantization scheme which will be performed (see next session).
 
 To see the current nntool model topology use:
 
 	show
 
-### Quantization
+## Quantization
 
-Now we quantize the model to either 8 or 16 bit. The aquant command quantizes the original floating point model to a fixed point one. For the constant parameters, i.e. weights and biases, the number of integer and decimal bits is computed from their actual values distributions. On the other hand, non-constant values, i.e. activations, need a representative dataset to collect their distributions. Whenever you feed the nntool model with some inputs data you can do manipulation on them:
+To run on GAP platforms the model must be quantized with one of the Autotiler supported scheme:
+- 8-bits quantization: similar to [tensorflow lite quantization](https://www.tensorflow.org/lite/performance/quantization_spec) but targets symmetric computational kernels (Autotiler). This scheme is automatically applied if the input tflite graph is already quantized: the quantization specs are simply translated to match the symmetric kernels.
+- 16-bits quantization: this scheme targets a PowerOf2 quantization, i.e. each tensor is interpreted as a signed 16bits Qm.n fixed-point vector with m integer bits and n decimal bits. This approach can lead to better accuracy results but is paid with 2x memory footprint and almost 2x latency increase.
 
-	aquant -f <NUM_BITS> /path/to/images/direcotry/* [input-options: -T, -D, -O, ...]
-	***IMPORTANT*** If the adjust command has been used and the input has more than one channel, the -T flag is necessary to match the new activations order 
+NOTE: the _fusions_ command above must meet the quantization scheme that you want to apply (--scale8 in case of 8-bits quantization and --pow2 in case of 16-bits quantization). If you want to change the scheme for any reason, you will need to reopen the original graph and perform the _fusions_ step again.
+NOTE2: the 16-bits quantization scheme is supported only if the input graph is not already quantized.
 
+If the imported tflite graph targets a floating point execution, nntool can perform the post-training quantization step providing the network a set of calibration data on which it can collect the min/max ranges statistic for the activations:
 
-We can evaluate the signal to noise ratio (QSNR) after the quantization step by processing one or more input data:
+	aquant -f [8 | 16] /path/to/images/direcotry/* [input-options: -T, -D, -O, ...]
+	***IMPORTANT*** If the adjust command has been used and the input has more than one channel, the -T (transpose) flag is necessary to match the new activations order (input image with HxWxC to CxHxW)
+
+nntool can execute the graph in both floating point and quantized precision, hence we can evaluate the signal to noise ratio (QSNR) after the quantization is set one or more input data by comparing the two results:
 
 	qerror /path/to/the/image.ppm [input-options: -T, -D, -O, -W, -H, ...] [-s]
 
-It computes the model in the original FP32 version and then in the quantized version and compare the outputs of each layer. With the -s flag the comparison is done individually for each layer. Their output is evaluated from the FP32 input quantized instead of the output result of the quantized computation.
+With the -s flag the comparison is done individually for each layer: their output is evaluated from the FP32 input quantized instead of the output result of the quantized computation.
 
-If for some layer a very low QSNR is reported, the user can change the bit precision with the qtune command.
+## Nntool Execution 
 
-#### Quantization Inspection 
-
-The nntool provides utilities to inspect the quantization performance in details for specific tensors by comparing them side by side, for a given sample data like below:
+The nntool provides utilities to inspect the output activation tensors which come from a specific input execution in details:
 
 	dump ./image.ppm -S tensors_1
 	dump ./image.ppm -S tensors_2 -q -d
 
 	Usage:
 	-S: store the tensors in the workspace with the given name
-	-q: compute the inference with the quantized graph
-	-d: export the dequantized version of the tensors to have the same format of the one computed with the FP32 graph
+	[-q]: compute the inference with the quantized graph (if not specified the network is run in floating point)
+	[-d]: beside -q export the dequantized version of the tensors to have the same format of the one computed with the FP32 graph
+	[-P file.npy]: save the list of activations tensors in a file
 
-To compare them:
+To compare them side by side or with QSNR (in this case tensors_1 come from the float execution while tensors_2 from the quantized one with dequantized (real numbers) values instead of the integer ones):
 	
 	tensors -t tensors_1 tensors_2 -s 2 -c 0 [-Q]
 
@@ -98,7 +119,7 @@ To compare them:
 	-c: layer channel
 	[-Q]: if present outputs the QSNR between the tensors, otherwise the tensors elements are displayed side by side
 
-### Saving the model
+## Model Save
 
 To save the nntool graph with all the quantization information and constant parameters tensors in the .json format:
 
@@ -108,14 +129,31 @@ To load back the saved model:
 
 	open /path/to/nntool_model_state.json 
 
-### Autotiler Model Generation
+## Autotiler Model Generation
 
 At this point the nntool graph is ready to be translated in an Autotiler Model format:
 	
 	nntool -g path/to/nntool_model_state.json -M /path/to/model/dir -m Autotiler_model_file.c -T path/to/tensors/dir 
 
+## Image Formatter
 
-## Input Images Options
+To handle different type of input images format you can add to your graph an input formatter which will generate the Autotiler optimized code for the proper conversion. It supports:
+- rgb565 HxWxC input to rgb888 CxHxW (rgb565)
+- rgb888 HxWxC input to rgb888 CxHxW (rgb888)
+- grayscale8 input to grayscale8 (bw8)
+- grayscale8 input to grayscale16 (bw16)
+
+It also handle the conversion between uint8 [0:255] values to int8 [-128:127] supported in the AT convolutional kernels. You will need to speify the desired technique:
+- shift_int8: will apply elemnt-wise a right shift of 1 bit (>> 1) so that the values do not overflow the max int8 [0:128] (more efficient)
+- offset_int8: will apply element-wise a -128 addition to output [-128:127] values ready for AT Convolutional kernels (more accurate)
+- for 16 bits graphs only: out_int16: takes the uint8 input and converts to int16 output by applying a left shift of 7 bits (<< 7)
+
+The command to run to introduce the formatter into your graph is:
+	imageformat input_x [bw8 | bw16 | rgb888 | rgb565] [shift_int8 | offset_int8 | out_int16]
+
+NOTE: in case of multichannel input the image formmatter will automatically handle also the automatic transposition when you run the network in nntool (i.e. the -T option is no more needed)
+
+## Input Options
 
 Whenever one or several images are given to the nntool (i.e. with commands like dump, aquant, qerror, ...) there are options you can set to perform preprocessing on them:
 

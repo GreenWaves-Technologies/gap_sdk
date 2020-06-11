@@ -13,21 +13,31 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .base import (EdgeParameters, FilterLikeParameters, FilterParameters,
-                   MultiplicativeBiasParameters, NNEdge, NodeOptions,
-                   Parameters, SameNumberOfDimensionsForInputs,
-                   SingleInputAndOutput)
-from .conv2d import Conv2DParameters
-from .linear import FcParameters
-from .others import (ActivationParameters, ConcatParameters,
-                     ConstantInputParameters, ConvFusionParameters, FusionBase,
-                     GlobalPoolParameters, GroupParameters,
-                     InputBaseParameters, InputParameters,
-                     MatScaleFusionParameters, MatrixAddParameters,
-                     MatrixBroadcastedLinearOpParameters, MatrixDivParameters,
-                     MatrixMulParameters, MatrixSubParameters,
-                     OutputParameters, PadParameters, ReshapeParameters,
-                     SoftMaxParameters, Transposable, TransposeParameters,
-                     UnconvertedOpParameters, UnexecutableOpParameters,
-                     UnknownOpParameters, UpsampleParameters, YoloParameters)
-from .pooling import PoolingParameters
+from graph.types.activations import (ActivationParameters,
+                                     HSigmoidActivationParameters,
+                                     HSwishActivationParameters,
+                                     LeakyActivationParameters,
+                                     ReluActivationParameters)
+from graph.types.base import (EdgeParameters, FilterLikeParameters,
+                              FilterParameters, MultiplicativeBiasParameters,
+                              NNEdge, NodeOptions, Parameters,
+                              SameNumberOfDimensionsForInputs,
+                              SingleInputAndOutput)
+from graph.types.conv2d import Conv2DParameters
+from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
+                                 FusionBase, MatScaleFusionParameters)
+from graph.types.linear import FcParameters
+from graph.types.others import (ConcatParameters, ConstantInputParameters,
+                                GlobalPoolParameters, GroupParameters,
+                                ImageFormatParameters, InputBaseParameters,
+                                InputParameters, MatrixAddParameters,
+                                MatrixBroadcastedLinearOpParameters,
+                                MatrixDivParameters, MatrixMulParameters,
+                                MatrixSubParameters, NoOPParameters,
+                                OutputParameters, PadParameters,
+                                ReshapeParameters, SoftMaxParameters,
+                                Transposable, TransposeParameters,
+                                UnconvertedOpParameters,
+                                UnexecutableOpParameters, UnknownOpParameters,
+                                UpsampleParameters, YoloParameters)
+from graph.types.pooling import PoolingParameters

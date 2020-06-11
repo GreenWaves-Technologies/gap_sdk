@@ -1,5 +1,9 @@
 adjust
-fusions
-set dump_tensors 0
-aquant -f 16 images/* -D 255 -O 0
+fusions --pow2
+aquant images/* -s POW2 -f 16
+imageformat input_1 bw16 out_int16
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
 save_state

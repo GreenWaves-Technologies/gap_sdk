@@ -16,7 +16,8 @@
 from abc import ABC, abstractmethod
 from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
                          SoftMaxParameters, ConvFusionParameters, PoolingParameters,
-                         ActivationParameters)
+                         ActivationParameters, MatrixAddParameters, ActivationFusion,
+                         MatrixMulParameters, GlobalPoolParameters)
 
 class NamingConvension(ABC):
 
@@ -46,7 +47,7 @@ class DefaultNamingConvension(NamingConvension):
         return self.G.name
 
     def get_global_name(self, name, step_idx, params, gtype):
-        return "Step{}{}".format(step_idx, gtype.capitalize())
+        return "S{}_{}".format(step_idx, gtype.capitalize())
 
 # pylint: disable=too-many-return-statements
     def get_node_name(self, node_name, step_idx, params):
@@ -81,10 +82,28 @@ class DefaultNamingConvension(NamingConvension):
         if isinstance(params, PoolingParameters):
             return "S{}_{}Pool_{}".format(step_idx, params.pool_type.capitalize(), params.filter)
         if isinstance(params, ActivationParameters):
-            return "S{}_{}".format(step_idx, params.activation.capitalize())
-        return node_name
+            return "S{}_Act_{}".format(step_idx, params.activation.capitalize())
+        if isinstance(params, MatrixAddParameters):
+            return "S{}_MatAdd_{}".format(step_idx, str(params.out_dims[0]))
+        if isinstance(params, MatrixMulParameters):
+            return "S{}_MatMul_{}".format(step_idx, str(params.out_dims[0]))
+        if isinstance(params, ActivationFusion):
+            nodes = params.contained_nodes()
+            if isinstance(nodes[0], MatrixAddParameters):
+                return "S{}_MatAdd_{}_{}".format(step_idx, str(nodes[0].out_dims[0]),
+                                              nodes[1].activation.capitalize())
+            if isinstance(nodes[0], (PoolingParameters)):
+                return "S{}_{}Pool_{}_{}".format(step_idx, nodes[0].pool_type.capitalize(),
+                                                 nodes[0].filter, nodes[1].activation.capitalize())
+            if isinstance(nodes[0], (GlobalPoolParameters)):
+                return "S{}_{}Pool_{}_{}".format(step_idx, nodes[0].pool_type.capitalize(),
+                                                 nodes[0].out_dims[0], nodes[1].activation.capitalize())
+            if isinstance(nodes[0], MatrixMulParameters):
+                return "S{}_MatMul_{}_{}".format(step_idx, str(nodes[0].out_dims[0]),
+                                              nodes[1].activation.capitalize())
+        return "S{}_Op_{}".format(step_idx, node_name)
 
-    def get_edge_name(self, node_name, step_idx, edge_type, edge_order=None):
+    def get_edge_name(self, node_name, step_idx, edge_type, edge_order=None, edge_params=None):
         if edge_type == "in":
             return node_name.capitalize()
         if edge_type == "out":
@@ -92,7 +111,7 @@ class DefaultNamingConvension(NamingConvension):
                 return self.G.out_edges(node_name)[0].to_node.name.capitalize()
             return node_name.capitalize()
         if edge_type == "in_out":
-            ename = "OutputStep{}".format(step_idx)
+            ename = "S{}_Output".format(step_idx)
             return ename
         assert False, "unknown edge type"
         return None

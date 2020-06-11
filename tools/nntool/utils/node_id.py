@@ -15,6 +15,7 @@
 
 from utils.json_serializable import JsonSerializable
 
+
 class NodeId(JsonSerializable):
     def __init__(self, node, fnode=None):
         if isinstance(node, list):
@@ -58,7 +59,6 @@ class NodeId(JsonSerializable):
             return "_".join(self._id)
         return self._id[0]
 
-from utils.node_id import NodeId
 
 def convert_node_id_to_str(nodeid):
     if isinstance(nodeid, NodeId):

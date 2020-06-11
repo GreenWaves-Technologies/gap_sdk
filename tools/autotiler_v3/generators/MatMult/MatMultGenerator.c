@@ -215,7 +215,7 @@ void ParMatMultGenerator(char *Name, unsigned int LineM1, unsigned int ColM1, un
                         TCArg(DataType, "Out")
                 ),
         Calls(1,
-            Call(MatKer, LOC_INNER_LOOP,
+            Call(MatKer, LOC_LOOP,
                 Bindings(NeedNorm?10:9,
                     K_Arg("M1",  KER_ARG_TILE), K_Arg("M1",  KER_ARG_TILE_W), K_Arg("M1",  KER_ARG_TILE_H),
                     K_Arg("M2",  KER_ARG_TILE), K_Arg("M2",  KER_ARG_TILE_W),
@@ -284,7 +284,7 @@ void ParVectMatMultGenerator(char *Name, unsigned int LineM1, unsigned int ColM1
                         TCArg(DataType, "Out")
                 ),
         Calls(1,
-            Call(MatKer, LOC_INNER_LOOP,
+            Call(MatKer, LOC_LOOP,
                 Bindings(NeedNorm?10:9,
                     K_Arg("M1",  KER_ARG_TILE),    K_Arg("M1",  KER_ARG_TILE_W), K_Arg("M1",  KER_ARG_TILE_H),
                     K_Arg("M2",  KER_ARG_TILE),    K_Arg("M2",  KER_ARG_TILE_W),

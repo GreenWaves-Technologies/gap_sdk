@@ -96,10 +96,16 @@ def output_table(table, args):
 def filter_dirs(path: str) -> bool:
     return os.path.isdir(path)
 
-def glob_input_files(input_files):
+def glob_input_files(input_files, graph_inputs=1):
+    input_files_list = []
     for file in input_files:
         for globbed_file in glob(file):
-            yield globbed_file
+            input_files_list.append(globbed_file)
+    if len(input_files_list) % graph_inputs:
+        return ValueError("input files number is not divisible for graph inputs {}".format(graph_inputs))
+    shard = int(len(input_files_list) / graph_inputs)
+    return [[input_files_list[i+j] for i in range(0, len(input_files_list), shard)] \
+                for j in range(shard)]
 
 def find_choice(choices, val):
     hits = [p for p in choices if p.startswith(val)]
@@ -121,7 +127,7 @@ class NNToolShellLogHandler(logging.Handler):
         else:
             self.__shell.pfeedback(ansi.style_success(output))
 
-def format_dump_file(G, outputs, quantized):
+def format_dump_file(G, outputs, quantized, dequantize):
     # simplify the output since we only have one for now and add weights
     foutputs = []
     for idx, out in enumerate(outputs):
@@ -131,19 +137,54 @@ def format_dump_file(G, outputs, quantized):
             for filt in node.contained_filters():
                 if quantized:
                     qrec = G.quantization[NodeId(node, filt)]
-                    tensors.append(qrec.weights_q.quantize(filt.weights))
-                    tensors.append(qrec.biases_q.quantize(filt.biases))
+                    if G.has_quantized_parameters:
+                        if dequantize:
+                            qrec = G.quantization[NodeId(node, filt)]
+                            tensors.append(qrec.weights_q.get_dequantized(filt.weights))
+                            tensors.append(qrec.biases_q.get_dequantized(filt.biases))
+                        else:
+                            tensors.append(np.copy(filt.weights))
+                            tensors.append(qrec.biases_q.get_quantized(filt.biases))
+                    else:
+                        if dequantize:
+                            tensors.append(np.copy(filt.weights))
+                            tensors.append(np.copy(filt.biases))
+                        else:
+                            tensors.append(qrec.weights_q.quantize(filt.weights))
+                            tensors.append(qrec.biases_q.quantize(filt.biases))
                 else:
-                    tensors.append(np.copy(filt.weights))
-                    tensors.append(np.copy(filt.biases))
+                    if G.has_quantized_parameters:
+                        qrec = G.quantization[NodeId(node, filt)]
+                        tensors.append(qrec.weights_q.get_dequantized(filt.weights))
+                        tensors.append(qrec.biases_q.get_dequantized(filt.biases))
+                    else:
+                        tensors.append(np.copy(filt.weights))
+                        tensors.append(np.copy(filt.biases))
         elif isinstance(node, FilterParameters):
             if quantized:
                 qrec = G.quantization[NodeId(node, None)]
-                tensors.append(qrec.weights_q.quantize(node.weights))
-                tensors.append(qrec.biases_q.quantize(node.biases))
+                if G.has_quantized_parameters:
+                    if dequantize:
+                        tensors.append(qrec.weights_q.get_dequantized(node.weights))
+                        tensors.append(qrec.biases_q.get_dequantized(node.biases))
+                    else:
+                        tensors.append(np.copy(node.weights))
+                        tensors.append(qrec.biases_q.get_quantized(node.biases))
+                else:
+                    if dequantize:
+                        tensors.append(np.copy(node.weights))
+                        tensors.append(np.copy(node.biases))
+                    else:
+                        tensors.append(qrec.weights_q.quantize(node.weights))
+                        tensors.append(qrec.biases_q.quantize(node.biases))
             else:
-                tensors.append(np.copy(node.weights))
-                tensors.append(np.copy(node.biases))
+                if G.has_quantized_parameters:
+                    qrec = G.quantization[NodeId(node, None)]
+                    tensors.append(qrec.weights_q.dequantize(node.weights))
+                    tensors.append(qrec.biases_q.dequantize(node.biases))
+                else:
+                    tensors.append(np.copy(node.weights))
+                    tensors.append(np.copy(node.biases))
         else:
             tensors.append(None)
             tensors.append(None)
@@ -158,7 +199,7 @@ def print_comparison(tensors):
     out = [[printt(t) for t in tensors[i]] for i in range(2)]
     max_len = max((len(l) for i in range(2) for o in out[i] for l in o))
     make_len = lambda a: a + " "*(max_len - len(a))
-    combine = lambda a, b: a if b is None else " "*max_len+1 + b if a is None\
+    combine = lambda a, b: a if b is None else " "*(max_len+1) + b if a is None\
         else make_len(a) + " " + b
     all_outs = [combine(l0, l1) for (o0, o1) in zip_longest(*out, fillvalue=[])\
         for (l0, l1) in zip_longest(o0, o1)]

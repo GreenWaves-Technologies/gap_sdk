@@ -83,10 +83,13 @@ static unsigned int __rt_fll_get_freq_from_mult_div(unsigned int mult, unsigned 
 
 unsigned int __rt_fll_set_freq(int fll, unsigned int frequency)
 {
+
   // Synchronize with bridge so that it does not try to access the chip
   // while we are changing the frequency
+#if PULP_CHIP != CHIP_VEGA
   if (fll == __RT_FLL_FC)
     __rt_bridge_req_shutdown();
+#endif
 
   unsigned int real_freq, mult, div;
   real_freq = __rt_fll_get_mult_div_from_freq(frequency, &mult, &div);
@@ -133,6 +136,7 @@ unsigned int __rt_fll_init(int fll)
   fll_reg_conf1_t reg1 = { .raw = hal_fll_conf_reg1_get(fll) };
 
   // Only lock the fll if it is not already done by the boot code
+
   if (reg1.mode == 0)
   {
     /* Set Clock Ref lock assert count */
@@ -165,6 +169,8 @@ unsigned int __rt_fll_init(int fll)
     hal_fll_conf_reg1_set(fll, reg1.raw);
   }
 
+  __rt_fll_is_on[fll] = 1;
+
   // In case the FLL frequency was set while it was off, update it immediately
   unsigned int freq = __rt_fll_freq[fll];
   if (freq) {
@@ -173,8 +179,6 @@ unsigned int __rt_fll_init(int fll)
     freq = __rt_fll_get_freq_from_mult_div(reg1.mult_factor, reg1.clock_out_divider);
     __rt_fll_freq[fll] = freq;
   }
-
-  __rt_fll_is_on[fll] = 1;
 
   rt_trace(RT_TRACE_INIT, "FLL is locked (fll: %d, freq: %d)\n", fll, freq);
 

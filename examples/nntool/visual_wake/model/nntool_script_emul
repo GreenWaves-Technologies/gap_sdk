@@ -1,0 +1,15 @@
+set debug true
+adjust
+fusions --scale8
+set input_norm_func "x: x/128-1"
+imageformat input_1 rgb888 offset_int8
+set l2_ram_ext_managed false
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash true
+set graph_dump_tensor 7
+set graph_trace_exec true
+save_state
+

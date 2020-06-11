@@ -40,6 +40,9 @@
 #define REG_SET(reg,val) iss_set_reg(iss, insn->out_regs[reg], val)
 #define IN_REG_SET(reg,val) iss_set_reg(iss, insn->in_regs[reg], val)
 
+#define REG64_GET(reg) iss_get_reg64(iss, insn->in_regs[reg])
+#define REG64_SET(reg,val) iss_set_reg64(iss, insn->out_regs[reg], val)
+
 #define SIM_GET(index) insn->sim[index]
 #define UIM_GET(index) insn->uim[index]
 

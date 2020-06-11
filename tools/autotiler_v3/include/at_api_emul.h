@@ -216,7 +216,7 @@ typedef int AT_HYPERFLASH_FS_CL_EVENT;
 #define AT_HYPERFLASH_FS_FC_COPY(file,ext,loc,size,dir,event) \
   __at_hyperflash_fs_copy(*(file), ext, loc, size, dir)
 
-#define AT_HYPERFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+#define AT_HYPERFLASH_FS_FC_COPY2D(file, ext,loc,size,stride,len,dir,event) \
   __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
 
 #define AT_HYPERFLASH_FS_FC_WAIT(file,event)
@@ -224,7 +224,7 @@ typedef int AT_HYPERFLASH_FS_CL_EVENT;
 #define AT_HYPERFLASH_FS_CL_COPY(file,ext,loc,size,dir,event) \
   __at_hyperflash_fs_copy(*(file), ext, loc, size, dir)
 
-#define AT_HYPERFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
+#define AT_HYPERFLASH_FS_CL_COPY2D(file, ext,loc,size,stride,len,dir,event) \
   __at_hyperflash_fs_copy_2d(*(file), ext, loc, size, stride, len, dir)
 
 #define AT_HYPERFLASH_FS_CL_WAIT(file,event)

@@ -37,33 +37,33 @@
 static inline void gap_fc_starttimer()
 {
   pi_perf_conf(1<<PI_PERF_CYCLES);
-  pi_perf_start();
+  pi_perf_fc_start();
 }
 
 static inline void gap_fc_resethwtimer()
 {
-  pi_perf_reset();
+  pi_perf_fc_reset();
 }
 
 static inline uint32_t gap_fc_readhwtimer()
 {
-  return pi_perf_read(PI_PERF_CYCLES);
+  return pi_perf_fc_read(PI_PERF_CYCLES);
 }
 
 static inline void gap_cl_starttimer()
 {
   pi_perf_conf(1<<PI_PERF_CYCLES);
-  pi_perf_start();
+  pi_perf_cl_start();
 }
 
 static inline void gap_cl_resethwtimer()
 {
-  pi_perf_reset();
+  pi_perf_cl_reset();
 }
 
 static inline uint32_t gap_cl_readhwtimer()
 {
-  return pi_perf_read(PI_PERF_CYCLES);
+  return pi_perf_cl_read(PI_PERF_CYCLES);
 }
 
 
@@ -203,8 +203,10 @@ static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, int is_writ
     return;
   }
   conf->flash = &file->hyperflash;
-  if (is_write)
+#ifdef __FLASH_FS_SEMIHOST__
+  printf("Open in semi host mode\n");
     conf->type = PI_FS_HOST;
+#endif
   pi_open_from_conf(&file->fs, conf);
   if (pi_fs_mount(&file->fs))
   {
@@ -254,8 +256,8 @@ static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
 #define AT_HYPERFLASH_FS_FC_COPY(fs,ext,loc,size,dir,event) \
   pi_fs_copy_async((fs)->file, ext, loc, size, !(dir), pi_task_block(event))
 
-#define AT_HYPERFLASH_FS_FC_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
-  pi_fs_copy_2d_async(file->file, ext, loc, size, stride, len, !(dir), pi_task_block(event))
+#define AT_HYPERFLASH_FS_FC_COPY2D(fs,ext,loc,size,stride,len,dir,event) \
+  pi_fs_copy_2d_async((fs)->file, ext, loc, size, stride, len, !(dir), pi_task_block(event))
 
 #define AT_HYPERFLASH_FS_FC_WAIT(file,event) \
   pi_task_wait_on(event)
@@ -263,8 +265,8 @@ static inline void __at_hyperflash_fs_close(AT_HYPERFLASH_FS_T *file)
 #define AT_HYPERFLASH_FS_CL_COPY(fs,ext,loc,size,dir,event) \
   pi_cl_fs_copy((fs)->file, ext, loc, size, !(dir), event)
 
-#define AT_HYPERFLASH_FS_CL_COPY2D(file, dev,ext,loc,size,stride,len,dir,event) \
-  pi_cl_fs_copy_2d(file->file, ext, loc, size, stride, len, !(dir), event)
+#define AT_HYPERFLASH_FS_CL_COPY2D(fs,ext,loc,size,stride,len,dir,event) \
+  pi_cl_fs_copy_2d((fs)->file, ext, loc, size, stride, len, !(dir), event)
 
 #define AT_HYPERFLASH_FS_CL_WAIT(file,event) \
   pi_cl_fs_wait(event)

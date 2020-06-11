@@ -44,6 +44,7 @@ typedef struct {
     unsigned int cache_addr;
     uint8_t *header;
     int header_size;
+    uint32_t first_read_size;
 } pi_read_fs_file_t;
 
 
@@ -538,6 +539,11 @@ static void __pi_read_fs_try_read(void *arg)
     
     if(file->pending_size == 0)
     {
+        #if defined(__PULP_OS__)
+        file->pending_event->implem.data[0] = file->first_read_size;
+        #else
+        file->pending_event->data[0] = file->first_read_size;
+        #endif  /* __PULP_OS__ */
         // In case there was a user event specified, enqueue it now that all
         // steps are done to notify the user
         pi_task_push(file->pending_event);
@@ -558,6 +564,11 @@ static void __pi_read_fs_try_read(void *arg)
     {
         if(file->pending_size == 0)
         {
+            #if defined(__PULP_OS__)
+            file->pending_event->implem.data[0] = file->first_read_size;
+            #else
+            file->pending_event->data[0] = file->first_read_size;
+            #endif  /* __PULP_OS__ */
             // In case there was a user event specified, enqueue it now that all
             // steps are done to notify the user
             pi_task_push(file->pending_event);
@@ -584,6 +595,7 @@ static int32_t __pi_read_fs_read_async(pi_fs_file_t *_file, void *buffer, uint32
     {
         real_size = file->fs_file.size - file->offset;
     }
+    file->first_read_size = real_size;
     
     //printf("[FS] File read (file: %p, buffer: %p, size: 0x%xx, real_size: 0x%x, offset: 0x%x, addr: 0x%x)\n", file, buffer, (int)size, real_size, file->offset, file->addr + file->offset);
     

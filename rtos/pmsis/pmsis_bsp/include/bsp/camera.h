@@ -63,7 +63,7 @@ typedef enum {
 
 /** \brief Open an image sensor device.
  *
- * This function must be called before the Camera device can be used. 
+ * This function must be called before the Camera device can be used.
  * It will do all the needed configuration to make it usable and initialize
  * the handle used to refer to this opened device when calling other functions.
  *
@@ -198,6 +198,7 @@ typedef struct {
   void (*capture_async)(struct pi_device *device, void *buffer, uint32_t bufferlen, pi_task_t *task);
   int32_t (*reg_get)(struct pi_device *device, uint32_t addr, uint8_t *value);
   int32_t (*reg_set)(struct pi_device *device, uint32_t addr, uint8_t *value);
+  void (*set_crop)(struct pi_device *device, uint8_t offset_x, uint8_t offset_y,uint16_t width,uint16_t height);
 } pi_camera_api_t;
 
 struct pi_camera_conf {
@@ -234,6 +235,13 @@ static inline int32_t pi_camera_reg_get(struct pi_device *device, uint32_t addr,
   pi_camera_api_t *api = (pi_camera_api_t *)device->api;
   return api->reg_get(device, addr, value);
 }
+
+static inline void pi_camera_set_crop(struct pi_device *device, uint8_t offset_x, uint8_t offset_y,uint16_t width,uint16_t height)
+{
+  pi_camera_api_t *api = (pi_camera_api_t *)device->api;
+  return api->set_crop(device, offset_x, offset_y,width,height);
+}
+
 
 void __camera_conf_init(struct pi_camera_conf *conf);
 

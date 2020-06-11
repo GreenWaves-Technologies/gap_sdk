@@ -94,6 +94,11 @@ class R5(Instr):
                             InReg (0, Range(15, 5)),
                             InReg (1, Range(20, 5)),
                             ]
+        elif format == 'R64':
+            self.args = [   OutReg64(0, Range(7,  5)),
+                            InReg64 (0, Range(15, 5)),
+                            InReg64 (1, Range(20, 5)),
+                            ]
         elif format == 'BITREV':
             self.args = [   OutReg(0, Range(7,  5)),
                             InReg (0, Range(15, 5)),
@@ -188,6 +193,12 @@ class R5(Instr):
                             InReg (0, Range(15, 5)),
                             InReg (1, Range(20, 5)),
                             ]
+        elif format == 'RRRR64':
+            self.args = [   OutReg64(0, Range(7,  5)),
+                            InReg64 (2, Range(7,  5), dumpName=False),
+                            InReg64 (0, Range(15, 5)),
+                            InReg64 (1, Range(20, 5)),
+                            ]
         elif format == 'RRRR2':
             self.args = [   OutReg(0, Range(7,  5)),
                             InReg (0, Range(7,  5), dumpName=False),
@@ -223,6 +234,10 @@ class R5(Instr):
             self.args = [   OutReg(0, Range(7,  5)),
                             InReg (0, Range(15, 5)),
                             ]
+        elif format == 'R1_64':
+            self.args = [   OutReg64(0, Range(7,  5)),
+                            InReg64 (0, Range(15, 5)),
+                            ]
         elif format == 'RRU':
             self.args = [   OutReg(0, Range(7,  5)),
                             InReg (0, Range(15, 5)),
@@ -252,6 +267,12 @@ class R5(Instr):
                             InReg (1, Range(20, 5)),
                             InReg (2, Range(25, 5)),
                         ]
+        elif format == 'RR64':
+            self.args = [   OutReg64(0, Range(7,  5)),
+                            InReg64 (0, Range(15, 5)),
+                            InReg64 (1, Range(20, 5)),
+                            InReg64 (2, Range(7, 5)),
+                        ]
         elif format == 'SR':
             self.args = [   InReg (1, Range(20, 5)),
                             Indirect(InReg (0, Range(15, 5)), InReg (2, Range(7, 5))),
@@ -264,6 +285,11 @@ class R5(Instr):
             self.args = [   OutReg(0, Range(7,  5)),
                             InReg (0, Range(15, 5)),
                             SignedImm(0, Range(20, 12)),
+                        ]
+        elif format == 'I64':
+            self.args = [   OutReg64(0, Range(7,  5)),
+                            InReg64 (0, Range(15, 5)),
+                            SignedImm(0, Range(20, 5)),
                         ]
         elif format == 'Z':
             self.args = [
@@ -1760,6 +1786,56 @@ gap9 = IsaSubset('gap9',
     R5('p.bitrev',          'BITREV',   '11000-- ----- ----- 101 ----- 0110011', mapTo="gap9_BITREV"),
 ])
 
+int64 = IsaSubset('int64',
+[
+    R5('add.d',      'R64',     '0010000 ----- ----- 000 ----- 0110011'),
+    R5('sub.d',      'R64',     '0110000 ----- ----- 000 ----- 0110011'),
+    R5('sll.d',      'R64',     '0010000 ----- ----- 001 ----- 0110011'),
+    R5('slt.d',      'R64',     '0011000 ----- ----- 010 ----- 0110011'),
+    R5('sltu.d',     'R64',     '0011000 ----- ----- 011 ----- 0110011'),
+    R5('xor.d',      'R64',     '0010000 ----- ----- 100 ----- 0110011'),
+    R5('srl.d',      'R64',     '0010000 ----- ----- 101 ----- 0110011'),
+    R5('sra.d',      'R64',     '0110000 ----- ----- 101 ----- 0110011'),
+    R5('or.d',       'R64',     '0110000 ----- ----- 110 ----- 0110011'),
+    R5('and.d',      'R64',     '0110000 ----- ----- 111 ----- 0110011'),
+
+    R5('slli.d',     'I64',    '0010000 ----- ----- 001 ----- 0010011'),
+    R5('srli.d',     'I64',    '0010010 ----- ----- 101 ----- 0010011'),
+    R5('srai.d',     'I64',    '0110010 ----- ----- 101 ----- 0010011'),
+    R5('addi.d',     'I64',    '0010001 ----- ----- 001 ----- 0010011'),
+
+    R5('slti.d',     'I64',    '0011000 ----- ----- 010 ----- 0011011'),
+    R5('sltiu.d',    'I64',    '0011000 ----- ----- 011 ----- 0011011'),
+    R5('xori.d',     'I64',    '0010000 ----- ----- 100 ----- 0011011'),
+    R5('ori.d',      'I64',    '0010000 ----- ----- 110 ----- 0011011'),
+    R5('andi.d',     'I64',    '0010000 ----- ----- 111 ----- 0011011'),
+
+    R5('p.abs.d',    'R1_64',     '0010010 00000 ----- 000 ----- 0110011'),
+    R5('p.seq.d',    'RRRR64',   '0011011 ----- ----- 010 ----- 0110011'),
+    R5('p.slet.d',   'RRRR64',   '0011010 ----- ----- 010 ----- 0110011'),
+    R5('p.sletu.d',  'RRRR64',   '0011010 ----- ----- 011 ----- 0110011'),
+    R5('p.sne.d',    'RRRR64',   '0011011 ----- ----- 011 ----- 0110011'),
+    R5('p.min.d',    'RRRR64',   '0010010 ----- ----- 100 ----- 0110011'),
+    R5('p.minu.d',   'RRRR64',   '0010010 ----- ----- 101 ----- 0110011'),
+    R5('p.max.d',    'RRRR64',   '0010010 ----- ----- 110 ----- 0110011'),
+    R5('p.maxu.d',   'RRRR64',   '0010010 ----- ----- 111 ----- 0110011'),
+    R5('p.cnt.d',    'R1_64',     '0011010 00000 ----- 001 ----- 0110011'),
+    R5('p.exths.d',  'R1_64',     '0110010 00000 ----- 000 ----- 0110011'),
+    R5('p.exthz.d',  'R1_64',     '0110010 00000 ----- 001 ----- 0110011'),
+    R5('p.extbs.d',  'R1_64',     '0110010 00000 ----- 011 ----- 0110011'),
+    R5('p.extbz.d',  'R1_64',     '0010010 00000 ----- 100 ----- 0110011'),
+    R5('p.extws.d',  'R1_64',     '0110010 00000 ----- 101 ----- 0110011'),
+    R5('p.extwz.d',  'R1_64',     '0110010 00000 ----- 110 ----- 0110011'),
+
+    R5('p.mac.d',    'RR64',   '0111001 ----- ----- 000 ----- 0110011'),
+    R5('p.msu.d',    'RR64',   '0111001 ----- ----- 001 ----- 0110011'),
+    R5('p.macu.d',   'RR64',   '0111001 ----- ----- 010 ----- 0110011'),
+    R5('p.msuu.d',   'RR64',   '0111001 ----- ----- 011 ----- 0110011'),
+    R5('p.muls.d',   'R64',      '0111001 ----- ----- 100 ----- 0110011'),
+    R5('p.mulu.d',   'R64',      '0111001 ----- ----- 101 ----- 0110011'),
+])
+
+
 parser = argparse.ArgumentParser(description='Generate ISA for RISCV')
 
 parser.add_argument("--version", dest="version", default=1, type=int, metavar="VALUE", help="Specify ISA version")
@@ -1801,6 +1877,7 @@ isa = Isa(
         IsaDecodeTree('sfloat', [Xf16, Xf16alt, Xf8, Xfvec, Xfaux]),
         IsaDecodeTree('gap8', [gap8]),
         IsaDecodeTree('gap9', [gap9]),
+        IsaDecodeTree('int64', [int64]),
         #IsaTree('fpud', rv32d),
         #IsaTree('gap8', gap8),
         #IsaTree('priv_pulp_v2', priv_pulp_v2),
@@ -1836,7 +1913,7 @@ with open(args.header_file, 'w') as isaFileHeader:
                 elif "mul" in insn.tags:
                     insn.get_out_reg(0).set_latency(2)
                 elif "mulh" in insn.tags:
-                    insn.get_out_reg(0).set_latency(3)
+                    insn.set_latency(5)
                 elif "div" in insn.tags:
                     insn.get_out_reg(0).set_latency(31)
 
@@ -1852,7 +1929,7 @@ with open(args.header_file, 'w') as isaFileHeader:
                 elif "mul" in insn.tags:
                     insn.get_out_reg(0).set_latency(3)
                 elif "mulh" in insn.tags:
-                    insn.get_out_reg(0).set_latency(3)
+                    insn.set_latency(5)
                 elif "div" in insn.tags:
                     insn.get_out_reg(0).set_latency(37)
 

@@ -28,7 +28,25 @@ from stats.scales import Scales
 
 LOG = logging.getLogger('nntool.'+__name__)
 
-def discover_groups(G, do_relun=False):
+
+def process_node(node, last_neuron, group, groups, neurons):
+    if not node.can_equalize:
+        group = add_group(group, groups, neurons)
+        return True, None, group
+
+    if isinstance(node, FilterParameters):
+        last_neuron = add_neuron(node.name, node, last_neuron, neurons, group)
+        return True, last_neuron, group
+
+    if isinstance(node, ActivationParameters) and\
+            last_neuron is not None and node.activation == 'relu':
+        assert 'activation' not in last_neuron, "weird 2 activations after conv"
+        last_neuron['activation'] = node
+        return True, last_neuron, group
+    return False, last_neuron, group
+
+
+def discover_groups(G):
     groups = []
     group = []
     neurons = []
@@ -40,40 +58,22 @@ def discover_groups(G, do_relun=False):
             last_neuron = None
             group = add_group(group, groups, neurons)
             continue
-        # can equalize indicates that the node can be included in the group
-        if not node.can_equalize:
-            last_neuron = None
-            group = add_group(group, groups, neurons)
-            continue
 
-        if isinstance(node, FilterParameters):
-            last_neuron = add_neuron(node.name, node, last_neuron, neurons, group)
-            continue
-
-        if isinstance(node, ActivationParameters) and\
-           last_neuron is not None and\
-           (node.activation == 'relu6' or node.activation == 'relun'):
-            # To implement for RELU6 requires a RELUN with a per channel N
-            # which doesn't have a generator as yet so this is just for testing
-            # at present
-            if not do_relun:
-                last_neuron = None
-                group = add_group(group, groups, neurons)
-                continue
-            assert 'activation' not in last_neuron, "weird 2 activations after conv"
-            last_neuron['activation'] = node
+        should_continue, last_neuron, group = process_node(node, last_neuron, group,
+                                                           groups, neurons)
+        if should_continue:
             continue
 
         if isinstance(node, ConvFusionParameters):
-            # TODO - Add reluN support for fusions
-            filters = node.contained_filters()
-            if len(filters) == 1:
-                last_neuron = add_neuron(node.name, filters[0], last_neuron, neurons, group)
+            for fnode in node.contained_nodes():
+                _, last_neuron, group = process_node(fnode, last_neuron, group,
+                                                     groups, neurons)
 
     if group:
         add_group(group, groups, neurons)
 
     return groups, neurons
+
 
 def add_group(group, groups, neurons):
     if group:
@@ -82,6 +82,7 @@ def add_group(group, groups, neurons):
         neurons.append(group[-1][1])
         group = []
     return group
+
 
 def add_neuron(node_name, node, last_neuron, neurons, group):
     new_neuron = {'name': node_name, 'node': node,
@@ -93,13 +94,16 @@ def add_neuron(node_name, node, last_neuron, neurons, group):
     last_neuron = new_neuron
     return last_neuron
 
+
 def calculate_s(range_1, range_2):
     assert len(range_1) == len(range_2)
     # note: the paper is wrong. It should be 1/range2 not 1/range1
     return [(1/range_2[i]) * math.sqrt(range_1[i] * range_2[i]) for i in range(len(range_1))]
 
+
 class QuantizationError(Exception):
     pass
+
 
 def calculate_precisions(step):
     nn_0 = step[0]
@@ -109,6 +113,7 @@ def calculate_precisions(step):
     prec_0 = ranges_0/max_0
     prec_1 = ranges_1/max_1
     return prec_0, prec_1
+
 
 def process_group(group, threshold):
     total_precision = 0
@@ -138,25 +143,17 @@ def process_group(group, threshold):
             ranges_0, _ = Ranges.range_output(nn_0['node'], weights=nn_0['weights'])
             ranges_1, _ = Ranges.range_input(nn_1['node'], weights=nn_1['weights'])
             scale = calculate_s(ranges_0, ranges_1)
-            if 'activation' in nn_0:
-                if 'relun' not in nn_0:
-                    if nn_0['activation'].activation == "relu6":
-                        nn_0['relun'] = [6.0] * len(scale)
-                    elif nn_0['activation'].activation == "relun":
-                        if isinstance(nn_0['activation'].activation_params, list):
-                            nn_0['relun'] = copy(nn_0['activation'].activation_params)
-                        else:
-                            nn_0['relun'] = [nn_0['activation'].activation_params] * len(scale)
-                nn_0['relun'] = [relun/s for relun, s in zip(nn_0['relun'], scale)]
             # now apply the scale to the output and input channels
             nn_0['weights'], nn_0['biases'] =\
                 Scales.scale_output(nn_0['node'], scale, nn_0['weights'], nn_0['biases'])
             nn_1['weights'] = Scales.scale_input(nn_1['node'], scale, nn_1['weights'])
 
+
 def process_groups(groups, threshold=0.01):
     for group in groups:
         LOG.info("processing group")
         process_group(group, float(threshold))
+
 
 def update_parameters(neurons):
     for neuron in neurons:
@@ -164,14 +161,10 @@ def update_parameters(neurons):
         params.weights = neuron['weights']
         if neuron['biases'] is not None:
             params.biases = neuron['biases']
-        if 'relun' in neuron:
-            act = neuron['activation']
-            act.activation = 'relun'
-            act.activation_params = neuron['relun']
 
-def weight_equalization(G, threshold=0.01, do_relun=False):
+def weight_equalization(G, threshold=0.01):
     LOG.info("discovering groups")
-    groups, neurons = discover_groups(G, do_relun=do_relun)
+    groups, neurons = discover_groups(G)
     if groups and neurons:
         LOG.info("found %d groups and %d neurons", len(groups), len(neurons))
         process_groups(groups, threshold)
@@ -179,6 +172,7 @@ def weight_equalization(G, threshold=0.01, do_relun=False):
         G.graph_identity.set_equalized(threshold)
     else:
         LOG.warning("no groups to equalize found")
+
 
 def adjust_biases(G, stats):
     for nid, stat in stats.items():

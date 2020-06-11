@@ -16,7 +16,8 @@
 from utils.json_serializable import JsonSerializable
 
 OPTION_TYPES = {
-    'int': int
+    'int': int,
+    'str': str
 }
 
 
@@ -38,7 +39,8 @@ class OptionList(JsonSerializable):
         upper_name = name.upper()
         if upper_name in self._valid_options:
             if value is None:
-                del self._options[upper_name]
+                if upper_name in self._options:
+                    del self._options[upper_name]
                 return
             elif not isinstance(value, self._valid_options[upper_name]):
                 value = self._valid_options[upper_name](value)

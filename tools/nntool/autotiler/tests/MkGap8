@@ -1,0 +1,20 @@
+PULP_APP = VSGap
+MF_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+PULP_APP_SRCS =  testRun.c testKernels.c
+PULP_APP_SRCS += $(MF_DIR)/../kernels/norm_transpose.c
+
+PULP_FC_ARCH_CFLAGS=-march=rv32imcxgap8 -mPE=8 -mFC=1
+PULP_CL_ARCH_CFLAGS=-march=rv32imcxgap8 -mPE=8 -mFC=1
+PULP_ARCH_LDFLAGS=-march=rv32imcxgap8 -mPE=8 -mFC=1
+
+PULP_CFLAGS = -O3 -g $(DFLAGS)
+
+PULP_CFLAGS += -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(MF_DIR)/../generators -I$(MF_DIR)/../kernels 
+
+PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
+PULP_LDFLAGS +=  -flto -Wl,--gc-sections
+
+
+include $(RULES_DIR)/pulp_rules.mk
+

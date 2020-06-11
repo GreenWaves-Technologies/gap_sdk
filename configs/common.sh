@@ -2,6 +2,10 @@
 
 export PULP_SDK_HOME=$GAP_SDK_HOME
 
+if [ -n "$GAP_RISCV_GCC_TOOLCHAIN_BASE" ]; then
+    export GAP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN_BASE/1.2
+fi
+
 if [ -z "$GAP_RISCV_GCC_TOOLCHAIN" ]; then
     export GAP_RISCV_GCC_TOOLCHAIN=/usr/lib/gap_riscv_toolchain
 fi
@@ -14,6 +18,9 @@ export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/tools/rules
 
 export NNTOOL_DIR=$GAP_SDK_HOME/tools/nntool
+export NNTOOL_PATH=$GAP_SDK_HOME/tools/nntool
+export NNTOOL_KERNELS_PATH=$NNTOOL_DIR/autotiler/kernels
+export NNTOOL_GENERATOR_PATH=$NNTOOL_DIR/autotiler/generators
 export PATH="$NNTOOL_DIR":$PATH
 
 # PulpOS 2
@@ -55,8 +62,8 @@ export TILER_EMU_INC=$TILER_PATH/include
 export TILER_GENERATOR_PATH=$TILER_PATH/generators
 export TILER_CNN_KERNEL_PATH=$TILER_PATH/generators/CNN
 export TILER_CNN_GENERATOR_PATH=$TILER_PATH/generators/CNN
-export TILER_CNN_KERNEL_PATH_SQ8=$TILER_PATH/CNN_Libraries_SQ8
-export TILER_CNN_GENERATOR_PATH_SQ8=$TILER_PATH/CNN_Generators_SQ8
+export TILER_CNN_KERNEL_PATH_SQ8=$TILER_PATH/generators/CNN
+export TILER_CNN_GENERATOR_PATH_SQ8=$TILER_PATH/generators/CNN
 
 
 # OpenOCD

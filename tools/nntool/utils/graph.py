@@ -199,13 +199,13 @@ class GraphView(Mapping):
         if edge_list is None:
             edge_list = []
             edges[edge.from_node.name] = edge_list
-        try:
-            edge_idx = edge_list.index(edge)
+        edge_idx = next((i for i, x in enumerate(edge_list) if x == edge), -1)
+        if edge_idx >= 0:
             if update:
                 edge_list[edge_idx] = edge
             else:
                 raise EdgeExistsError()
-        except ValueError:
+        else:
             edge_list.append(edge)
 
     def __add_out_edge(self, edge: Edge, update=False):
@@ -217,13 +217,13 @@ class GraphView(Mapping):
         if edge_list is None:
             edge_list = []
             edges[edge.to_node.name] = edge_list
-        try:
-            edge_idx = edge_list.index(edge)
+        edge_idx = next((i for i, x in enumerate(edge_list) if x == edge), -1)
+        if edge_idx >= 0:
             if update:
                 edge_list[edge_idx] = edge
             else:
                 raise EdgeExistsError()
-        except ValueError:
+        else:
             edge_list.append(edge)
 
     def verify_edges(self):
@@ -344,6 +344,15 @@ class GraphView(Mapping):
             return []
         return list(edge for edge_list in self._in_edges[node_name].values()
                     for edge in edge_list)
+
+    def in_edges_idx(self, node_name: str, to_idx: int) -> Edge:
+        '''Input edge at index to a node'''
+        if node_name not in self._in_edges:
+            return None
+
+        edges = list(edge for edge_list in self._in_edges[node_name].values()
+                     for edge in edge_list if edge.to_idx == to_idx)
+        return edges[0] if len(edges) == 1 else None
 
     @staticmethod
     def index_edges_by_from(edges):
@@ -757,6 +766,7 @@ class GraphView(Mapping):
 
     def __iter__(self):
         return self._nodes.__iter__()
+
 
 class Graph(GraphView):
     pass

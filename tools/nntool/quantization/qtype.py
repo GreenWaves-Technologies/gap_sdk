@@ -16,6 +16,7 @@
 import numpy as np
 
 from utils.json_serializable import JsonSerializable
+from utils.at_norm import at_norm
 
 from .qtype_base import QTypeBase
 
@@ -31,6 +32,16 @@ C_TYPES = {
         32: "unsigned int"
     }
 }
+
+DTYPES = {
+    np.uint8: (8, False),
+    np.uint16: (16, False),
+    np.uint32: (32, False),
+    np.int8: (8, True),
+    np.int16: (16, True),
+    np.int32: (32, True),
+}
+
 
 def get_dtype(length, signed):
     if signed:
@@ -51,10 +62,22 @@ def normalize(obj, n_bits):
         return obj
     if n_bits < 0:
         return obj << -n_bits
-    return obj >> n_bits
+    return at_norm(obj, n_bits)
+
+def calc_int_bits(arr, signed=True):
+    abs_num = np.floor(np.abs(arr))
+    # calculate number of bits to represent absolute number
+    if signed:
+        if abs_num == 0:
+            return 1
+        return np.ceil(np.log(abs_num) / np.log(2)) + 1
+    else:
+        if abs_num == 0:
+            return 0
+        return np.ceil(np.log(abs_num) / np.log(2))
 
 class QType(QTypeBase, JsonSerializable):
-    def __init__(self, *args, bits=None, q=None, signed=None):
+    def __init__(self, *args, bits=None, q=None, signed=None, dtype=None):
         if args:
             if isinstance(args[0], QType):
                 proto = args[0]
@@ -74,13 +97,19 @@ class QType(QTypeBase, JsonSerializable):
 
         if signed is not None:
             self._quant[2] = signed
+        
+        if dtype is not None:
+            self._quant[0], self._quant[2] = DTYPES[dtype]
 
     def _encapsulate(self):
         return self._quant
 
     @classmethod
     def _dencapsulate(cls, val):
-        return QType(*val)
+        try:
+            return QType(*val)
+        except Exception as ex:
+            x = 0
 
     def increase_precision(self):
         return QType(self.bits * 2, self.q, self.signed)
@@ -136,15 +165,16 @@ class QType(QTypeBase, JsonSerializable):
     def signed(self, val):
         self._quant[2] = val
 
+    @property
+    def pad_zero_point(self):
+        return 0
+
     def double_precision(self):
         return QType(self.bits * 2, self.q, self.signed)
 
     def quantize(self, arr):
         arr = np.floor((arr * 2.0 ** self.q) + 0.5)
-        max_value = 2**(self.bits - 1) - 1
-        min_value = -max_value - 1
-        arr = np.clip(arr, min_value, max_value)
-        return np.array(arr, copy=True, dtype=self.dtype)
+        return self.clip(arr)
 
     def dequantize(self, arr):
         return arr / (2.0**self.q)
@@ -153,26 +183,19 @@ class QType(QTypeBase, JsonSerializable):
         assert cur_qtype.length <= self.length, "must expand into something bigger"
         return normalize(arr.astype(self.dtype), cur_qtype.q - self.q)
 
-    def clip(self, arr: np.array, change_type=True):
-        min_v, max_v = max_min(self.bits, self.signed)
-        ret = np.clip(arr, min_v, max_v)
-        if change_type:
-            ret = ret.astype(self.dtype)
-        return ret
-
     def round_normalize(self, arr, cur_qtype: 'QType'):
         scale = cur_qtype.q - self.q
         # arr = arr + (1<<(scale - 1))
         arr = normalize(arr, scale)
         return arr
 
-    def round_normalize_clip(self, arr, from_qtype, change_type=True):
+    def round_normalize_clip(self, arr, from_qtype):
         to_qtype = self
         scale = from_qtype.q - to_qtype.q
         # if scale > 0:
         #     arr = arr + (1<<(scale - 1))
         arr = normalize(arr, scale)
-        arr = self.clip(arr, change_type)
+        arr = self.clip(arr)
         return arr
 
     def expand_from(self, arr, from_qtype):
@@ -185,8 +208,12 @@ class QType(QTypeBase, JsonSerializable):
         return QType(max(self.bits, other.bits), self.q + other.q, self.signed or other.signed)
 
     def __eq__(self, other):
-        return self.q == other.q and\
-            self.bits == other.bits and self.signed == other.signed
+        if isinstance(other, QType):
+            return self.q == other.q and\
+                self.bits == other.bits and self.signed == other.signed
+        return other.__eq__(self)
 
     def __str__(self):
+        if self.q > self.bits:
+            return "M{}>>{}".format(self.bits, self.q)
         return "Q{}.{}".format(self.bits - self.q, self.q)

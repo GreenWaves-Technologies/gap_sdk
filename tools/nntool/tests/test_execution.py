@@ -19,14 +19,14 @@ import tempfile
 
 import numpy as np
 
-from execution.execute_graph import execute, execute_iterator
+from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from generation.code_generator import CodeGenerator
 from generation.default_template import default_template
 from generation.naming_convension import DefaultNamingConvension
-from graph.matches.matches import get_std_match_group
+from graph.matches.matches import get_pow2_match_group
 from importer.importer import create_graph
-from quantization.simple_auto_quantify import SimpleQuantizer
+from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
 from stats.filter_stats_collector import FilterStatsCollector
 from utils.data_importer import import_data
@@ -41,88 +41,90 @@ def test_graph_calc(mnist_graph, mnist_images):
     normal_steps = 0
     fusion_steps = 0
     # pylint: disable=unused-variable
-    for step_idx, step, node, output, fusion_op_name, fusion_params, details in\
-        execute_iterator(G, [input_tensor]):
-        if fusion_op_name is not None:
+    executer = GraphExecuter(G)
+    for step_idx, pnode, fnode, output_tensors, details in\
+        executer.execute_iterator([input_tensor]):
+        if fnode is not None:
             fusion_steps += 1
         else:
             normal_steps += 1
     assert normal_steps == 10 and fusion_steps == 0
 
-def test_graph_calc_iterator_cached(value_cache, mnist_graph, mnist_images):
-    G = create_graph(mnist_graph, opts={"load_tensors":True})
-    G.add_dimensions()
-    input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
-    input_tensor = input_tensor.reshape((28, 28, 1))
-    normal_steps = 0
-    fusion_steps = 0
-    # pylint: disable=unused-variable
-    for step_idx, step, node, output, fusion_op_name, fusion_params, details in\
-        execute_iterator(G, [input_tensor], value_cache=value_cache):
-        if fusion_op_name is not None:
-            fusion_steps += 1
-        else:
-            normal_steps += 1
-    assert normal_steps == 10 and fusion_steps == 0
-
-def test_graph_calc_quantized16(value_cache, mnist_unfused_16bit_state, mnist_images):
-    G = load_state(mnist_unfused_16bit_state, value_cache=value_cache)
+def test_graph_calc_quantized16(mnist_unfused_16bit_state, mnist_images):
+    G = load_state(mnist_unfused_16bit_state)
     input_tensor = import_data(mnist_images[0], height=28, width=28, divisor=255, offset=0)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output1 = execute(G, [input_tensor], limit=7)
+    executer = GraphExecuter(G, qrecs=G.quantization)
+    output1 = executer.execute([input_tensor], step_idx_limit=7)
     input_tensor = import_data(mnist_images[0], height=28, width=28, divisor=255, offset=0)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output2 = execute(G, [input_tensor], qrecs=G.quantization, limit=7, dequantize=True)
+    output2 = executer.execute([input_tensor], qmode=QuantizationMode.all_dequantize(), step_idx_limit=7)
     diffs = []
     for i in range(8):
         diffs.append(output1[i][0] - output2[i][0])
     assert np.max(np.abs(diffs[7])) < 0.03
 
-def test_graph_calc_quantized8(value_cache, mnist_unfused_8bit_state, mnist_images):
-    G = load_state(mnist_unfused_8bit_state, value_cache=value_cache)
+def test_graph_calc_quantized8(mnist_unfused_8bit_state, mnist_images):
+    G = load_state(mnist_unfused_8bit_state)
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output1 = execute(G, [input_tensor], limit=7)
+    executer = GraphExecuter(G, qrecs=G.quantization)
+    output1 = executer.execute([input_tensor], step_idx_limit=7)
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output2 = execute(G, [input_tensor], qrecs=G.quantization, limit=7, dequantize=True)
+    output2 = executer.execute([input_tensor], qmode=QuantizationMode.all_dequantize(), step_idx_limit=7)
     diffs = []
     for i in range(8):
         diffs.append(output1[i][0] - output2[i][0])
     assert np.max(np.abs(diffs[7])) < 9
 
-def test_graph_calc_quantize_one(value_cache, mnist_unfused_16bit_state, mnist_images):
-    G = load_state(mnist_unfused_16bit_state, value_cache=value_cache)
+def test_graph_calc_quantize_one(mnist_unfused_16bit_state, mnist_images):
+    G = load_state(mnist_unfused_16bit_state)
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output1 = execute(G, [input_tensor])
+    executer = GraphExecuter(G, qrecs=G.quantization)
+    output1 = executer.execute([input_tensor])
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output2 = execute(G, [input_tensor], qmode=QuantizationMode.step(1), qrecs=G.quantization)
+    output2 = executer.execute([input_tensor], qmode=QuantizationMode.step(1))
     diffs = []
     for i, out1 in enumerate(output1):
         diffs.append(out1[0] - output2[i][0])
     assert np.min(diffs[7]) > -2 and np.max(diffs[7]) < 2
 
-def test_graph_calc_quantize_one_2(value_cache, mnist_unfused_16bit_state, mnist_images):
-    G = load_state(mnist_unfused_16bit_state, value_cache=value_cache)
+def test_graph_calc_quantize_one_2(mnist_unfused_16bit_state, mnist_images):
+    G = load_state(mnist_unfused_16bit_state)
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output1 = execute(G, [input_tensor])
+    executer = GraphExecuter(G, qrecs=G.quantization)
+    output1 = executer.execute([input_tensor])
     input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
     input_tensor = input_tensor.reshape((28, 28, 1))
-    output2 = execute(G, [input_tensor], qmode=QuantizationMode.step(4), qrecs=G.quantization)
+    output2 = executer.execute([input_tensor], qmode=QuantizationMode.step(4))
     diffs = []
     for i, out1 in enumerate(output1):
         diffs.append(out1[0] - output2[i][0])
     assert np.min(diffs[7]) > -2 and np.max(diffs[7]) < 2
+
+def test_graph_calc_quantized8_qnoq(mnist_unfused_8bit_state, mnist_images):
+    G = load_state(mnist_unfused_8bit_state)
+    input_tensor = import_data(mnist_images[0], height=28, width=28, offset=0, divisor=255)
+    input_tensor = input_tensor.reshape((28, 28, 1))
+    executer = GraphExecuter(G, qrecs=G.quantization)
+    diffs = []
+    for step_idx, pnode, output, details, qoutput, qdetails, fnode in\
+        executer.execute_qnoq_iterator([input_tensor]):
+        del step_idx, pnode, details, qdetails, fnode
+        diffs.append(output[0] - qoutput[0])
+    assert np.max(np.abs(diffs[7])) < 9
 
 def test_graph_execute_complex(ir_graph, ir_images):
     G = create_graph(ir_graph, opts={"load_tensors":True})
     G.add_dimensions()
     input_tensor = import_data(ir_images[0], offset=0, divisor=255)
     input_tensor = input_tensor.reshape((80, 80, 1))
-    execute(G, [input_tensor])
+    executer = GraphExecuter(G)
+    executer.execute([input_tensor])
 
 def test_graph_kws(kws_graph, kws_sounds):
     G = create_graph(kws_graph, opts={"load_tensors":True})
@@ -131,9 +133,10 @@ def test_graph_kws(kws_graph, kws_sounds):
     normal_steps = 0
     fusion_steps = 0
     # pylint: disable=unused-variable
-    for step_idx, step, node, output, fusion_op_name, fusion_params, details in\
-        execute_iterator(G, [input_tensor]):
-        if fusion_op_name is not None:
+    executer = GraphExecuter(G)
+    for step_idx, node, fnode, output_tensors, details in\
+        executer.execute_iterator([input_tensor]):
+        if fnode is not None:
             fusion_steps += 1
         else:
             normal_steps += 1
@@ -143,7 +146,7 @@ def test_graph_kws_auto_quant(kws_graph, kws_sounds):
     G = create_graph(kws_graph, opts={"load_tensors":True})
     G.add_dimensions()
     G.adjust_order()
-    get_std_match_group().match(G)
+    get_pow2_match_group().match(G)
     G.add_dimensions()
     stats_collector = ActivationStatsCollector()
     for input_file in kws_sounds:
@@ -152,15 +155,36 @@ def test_graph_kws_auto_quant(kws_graph, kws_sounds):
     astats = stats_collector.reduce_stats()
     stats_collector = FilterStatsCollector()
     fstats = stats_collector.collect_stats(G)
-    quantizer = SimpleQuantizer(astats, fstats, force_width=16)
+    quantizer = SymmetricQuantizer(astats, fstats, force_width=16)
     qrecs = quantizer.quantize(G)
     G.quantization = qrecs
+
+def test_graph_imu_auto_quant_and_execute_quant():
+    G = create_graph("tests/graph/imu.tflite", opts={"load_tensors":True})
+    G.add_dimensions()
+    G.adjust_order()
+    get_pow2_match_group().match(G)
+    G.add_dimensions()
+    stats_collector = ActivationStatsCollector()
+    for input_file in ['tests/images/imu0.pgm']:
+        input_tensor = import_data(input_file, offset=0, divisor=256, nptype='int16')
+        stats_collector.collect_stats(G, [input_tensor])
+    astats = stats_collector.reduce_stats()
+    stats_collector = FilterStatsCollector()
+    fstats = stats_collector.collect_stats(G)
+    quantizer = SymmetricQuantizer(astats, fstats, force_width=16)
+    qrecs = quantizer.quantize(G)
+    G.quantization = qrecs
+    executer = GraphExecuter(G, qrecs=qrecs)
+    for input_file in ['tests/images/imu0.pgm']:
+        input_tensor = import_data(input_file, offset=0, divisor=256, nptype='int16')
+        output_ = executer.execute([input_tensor], qmode=QuantizationMode.all())
 
 def test_fake_values_concat(concat_test_graph):
     G = create_graph(concat_test_graph, opts={"load_tensors":True})
     G.add_dimensions()
     G.adjust_order()
-    matcher = get_std_match_group()
+    matcher = get_pow2_match_group()
     matcher.match(G)
     G.add_dimensions()
     G.constant_store.fake = True
@@ -169,7 +193,7 @@ def test_fake_values_concat(concat_test_graph):
     astats = stats_collector.reduce_stats()
     stats_collector = FilterStatsCollector()
     fstats = stats_collector.collect_stats(G)
-    quantizer = SimpleQuantizer(astats, fstats, force_width=8)
+    quantizer = SymmetricQuantizer(astats, fstats, force_width=8)
     qrecs = quantizer.quantize(G)
     G.quantization = qrecs
     with tempfile.TemporaryDirectory() as tempdir:
@@ -177,7 +201,7 @@ def test_fake_values_concat(concat_test_graph):
             'default_input_location': 'ARG_LOC_L2',
             'default_output_location': 'ARG_LOC_L2',
             'default_global_location': 'ARG_LOC_L3_HFLASH',
-            'default_local_location': '0',
+            'default_local_location': 'AT_MEM_UNDEF',
             'at_ver': 3,
             'tensor_directory': tempdir
         }
@@ -185,8 +209,8 @@ def test_fake_values_concat(concat_test_graph):
         print(default_template(G, code_generator=code_gen))
         code_gen.write_constants()
 
-# This test requires make test_files to be run in the sample project
-# directory. With the 8 bit config
+# # This test requires make test_files to be run in the sample project
+# # directory. With the 8 bit config
 
 def test_equivalence(mnist_graph, mnist_images):
     G = create_graph(mnist_graph, opts={"load_tensors":True})
@@ -195,7 +219,8 @@ def test_equivalence(mnist_graph, mnist_images):
     G.add_dimensions()
     input_tensor = import_data(mnist_images[0], height=28, width=28,
                                divisor=255, offset=0, transpose=False)
-    output_ = execute(G, [input_tensor])
+    executer = GraphExecuter(G)
+    output_ = executer.execute([input_tensor])
     with open("tests/h5_pickles/weights.pickle", 'rb') as fp:
         verif_weights = pickle.load(fp)
     assert np.array_equal(verif_weights[0]['weights'], G.graph_state.steps[1]['node'].weights)

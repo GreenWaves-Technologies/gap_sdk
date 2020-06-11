@@ -16,7 +16,7 @@
 from collections import OrderedDict
 from typing import Mapping, Sequence
 
-from execution.execute_graph import execute_iterator
+from execution.graph_executer import GraphExecuter
 from graph.types import FilterParameters, InputParameters, MultiplicativeBiasParameters
 from utils.node_id import NodeId
 from utils.stats_funcs import astats, calculate_qsnrs
@@ -32,22 +32,32 @@ def gather_stats(activation, force_ideal=False, channel_dim=None, channel_detail
 class ActivationStatsCollector(ReductionStatsCollector):
     def __init__(self, graph_execution=None):
         super(ActivationStatsCollector, self).__init__()
-        self._graph_execution = execute_iterator if graph_execution is None else graph_execution
+        self._graph_execution = graph_execution
 
     def _collect(self, G, input_tensors, step_idx):
+        if self._graph_execution is None:
+            if G.has_quantized_parameters:
+                quantization = G.quantization
+            else:
+                quantization = None
+            graph_executor = GraphExecuter(G, qrecs=quantization)
+            graph_execution = graph_executor.execute_iterator
+        else:
+            graph_execution = self._graph_execution
+
         stats = OrderedDict()
         limit = step_idx[0] if isinstance(step_idx, tuple) else step_idx
-        for _, _, node, output, _, fusion_node, details in\
-                self._graph_execution(G, input_tensors, disable_cache=True, limit=limit):
-            if not self.matches_step(step_idx, node, fusion_node):
+        for _, node, fnode, output_tensors, details in\
+                graph_execution(input_tensors, step_idx_limit=limit, yield_fusions=True, yield_details=True):
+            if not self.matches_step(step_idx, node, fnode):
                 continue
-            key = NodeId(node, fusion_node)
-            node = (node if fusion_node is None else fusion_node)
+            key = NodeId(node, fnode)
+            node = (node if fnode is None else fnode)
             if node.out_dims[0].is_named and node.out_dims[0].has_key('c'):
                 channel_dim = node.out_dims[0].get_order_idx('c')
             else:
                 channel_dim = 0
-            stat = gather_stats(output[0],
+            stat = gather_stats(output_tensors[0],
                                 force_ideal=not isinstance(node, InputParameters),
                                 channel_dim=channel_dim,
                                 channel_details=step_idx is not None)

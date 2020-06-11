@@ -15,9 +15,6 @@
 
 from abc import ABC, abstractmethod
 
-from .code_generators import (gen_gnode_arg, gen_imm_arg, gen_at_bindings,
-                              gen_at_func_bindings, gen_g_node_c_arg)
-
 TT_TENSOR_TYPES = {
     'TT_INPUT': 0,
     'TT_OUTPUT': 1,
@@ -25,12 +22,44 @@ TT_TENSOR_TYPES = {
     'TT_BIASES': 3
 }
 
+def gen_gnode_arg(direction, name):
+    return 'GNodeArg({}, "{}", 0)'.format(direction, name)
+
+
+def gen_g_arg(name):
+    return 'GArg("{}")'.format(name)
+
+
+def gen_g_node_c_arg(name):
+    return 'GNodeCArg("{}")'.format(name)
+
+
+def gen_imm_arg(symbol):
+    return "Imm({})".format(symbol)
+
+
+def gen_at_bindings(name, binding_list, code_block):
+    code_block.write('AddNode("{0}", Bindings({1}, {2}));'
+                     .format(name, len(binding_list), ", ".join(binding_list)))
+
+
+def gen_at_func_bindings(name, func_name, where, binding_list, code_block):
+    code_block.write('AddCallToNode("{0}", {1}, "{2}", Bindings({3}, {4}));'
+                     .format(name, where, func_name, len(binding_list), ", ".join(binding_list)))
+
 class Binding(ABC):
     @abstractmethod
     def gen_binding(self, generator):
         pass
 
 # pylint: disable=abstract-method
+class InfoListName(Binding):
+    def __init__(self, cname):
+        self.cname = cname
+
+    def gen_binding(self, generator):
+        return "{}_infos".format(self.cname)
+
 class GNodeArg(Binding):
     def __init__(self, direction):
         self.direction = direction
@@ -79,6 +108,14 @@ class BindingList(ABC):
     def gen_bindings(self, generator, code_block):
         pass
 
+class InfosList(BindingList):
+    def __init__(self, cname, infos):
+        self.cname = cname
+        self.infos = infos
+
+    def gen_bindings(self, _, code_block):
+        code_block.write("char {}_infos[] = {{{}}};".format(self.cname, ", ".join(self.infos)))
+
 class CommentBindingList(BindingList):
     def __init__(self, fmt, *args, **kwargs):
         self.comment = fmt.format(*args, **kwargs)
@@ -108,5 +145,3 @@ class FunctionBindingList(NodeBindingList):
                              self.where,
                              [binding.gen_binding(generator) for binding in self.binding_list],
                              code_block)
-
-    

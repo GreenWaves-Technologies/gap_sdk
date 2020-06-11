@@ -53,11 +53,21 @@ class Runner(runner.default_runner.Runner):
 
             if self.config.get_str('**/chip_family') == 'gap':
 
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; gap_flash_raw %s %d %s; exit;"' % (openocd, cable, script, image, image_size, gap_tools)
+                if flash.get_str('datasheet/type') == 'spi':
+                    flasher_script = 'gap_flash_raw_spi'
+                else:
+                    flasher_script = 'gap_flash_raw_hyper'
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
 
             else:
 
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; gap9_flash_raw_hyper %s %d %s; exit;"' % (openocd, cable, script, gap_tools, image, image_size, gap_tools)
+                if flash.get_str('datasheet/type') == 'spi':
+                    flasher_script = 'gap9_flash_raw_hyper'
+                else:
+                    flasher_script = 'gap9_flash_raw_spi'
+
+                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
 
             print ('Flashing image with command:')
             print (cmd)
@@ -110,11 +120,16 @@ class Runner(runner.default_runner.Runner):
 
             chip_family = self.config.get_str('**/chip_family')
 
-            platform = self.config.get_str('runner/platform')
-            if chip_family == 'vega' or chip_family == 'gap9_v2':
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+            if chip_family == 'vega':
+                cmd = 'plpbridge --chip=vega --verbose 10 --cable=ftdi --binary %s reset load ioloop reqloop start wait' % (binary)
+
+
             else:
-                cmd = "%s -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
+                platform = self.config.get_str('runner/platform')
+                if chip_family == 'vega' or chip_family == 'gap9_v2':
+                    cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
+                else:
+                    cmd = "%s -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
 
             os.chdir(self.config.get_str('gapy/work_dir'))
 

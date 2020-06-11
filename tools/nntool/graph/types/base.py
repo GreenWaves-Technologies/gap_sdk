@@ -19,7 +19,7 @@ from abc import abstractmethod
 
 from utils.graph import Edge, Node
 from utils.option_list import OptionList
-from generation.kernel_parameters import GenCtrl, CTRL_FEATURES
+from generation.at_types.gen_ctrl import GenCtrl, CTRL_FEATURES
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -51,7 +51,8 @@ class Parameters(Node):
         self._out_dims_hint = out_dims_hint
         self._step_idx = -1
         self._constant_store = constant_store
-        self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int}
+        self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
+                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
         self._at_options = NodeOptions(self._valid_at_options)
 
     def get_parameters(self):
@@ -65,7 +66,7 @@ class Parameters(Node):
 
     @property
     def valid_at_options(self):
-        return self.valid_at_options
+        return self._valid_at_options
 
     @property
     def at_options(self):
@@ -148,6 +149,10 @@ class Parameters(Node):
     def get_parameter_size(self):
         pass
 
+    @abstractmethod
+    def get_output_size(self, in_dims):
+        pass
+
     @property
     @abstractmethod
     def can_equalize(self):
@@ -166,7 +171,7 @@ class Parameters(Node):
         assert hints is None or len(dims) == len(hints), "incorrect dimensions length"
         cloned_dims = []
         for dim_idx, dim in enumerate(dims):
-            if dim.is_named:
+            if dim.is_named and all(k in dim.keys for k in ['c', 'h', 'w']):
                 cloned_dims.append(dim.clone(['c', 'h', 'w']))
             else:
                 cloned_dim = dim.clone()

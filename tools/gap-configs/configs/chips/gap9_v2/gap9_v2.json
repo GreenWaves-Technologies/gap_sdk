@@ -70,7 +70,7 @@
     "base": "0x10000000",
     "alias": "0x00000000",
     "size": "0x00400000",
-    "core": "ri5ky_v2_6_sfloat_single_regfile",
+    "core": "ri5ky_v2_6_sfloat_single_regfile_int64",
     "version": 5,
     "json_file": "cluster_v6",
     "nb_cluster": 1,

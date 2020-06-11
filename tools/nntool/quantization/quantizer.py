@@ -15,12 +15,12 @@
 
 from abc import ABC, abstractmethod
 
-from typing import Mapping
 from graph.nngraph import NNGraph
-from graph.types import Parameters
-from .quantization_record import QuantizationRecord
+from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.quantization_set import QuantizationSet
+
 
 class Quantizer(ABC):
     @abstractmethod
-    def quantize(self, G: NNGraph) -> Mapping[Parameters, QuantizationRecord]:
+    def quantize(self, G: NNGraph) -> QuantizationSet:
         pass

@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+from subprocess import Popen, PIPE
+import re
+from prettytable import PrettyTable
+import collections
+
+
+class Insn(object):
+
+  def __init__(self, label):
+    self.label = label
+    self.nb = 0
+    self.min = -1
+    self.max = -1
+    self.total = 0
+
+  def add_instance(self, cycles):
+    self.nb += 1
+    self.total += cycles
+    if self.min == -1 or cycles < self.min:
+      self.min = cycles
+    if self.max == -1 or cycles > self.max:
+      self.max = cycles
+
+
+class Trace_line(object):
+
+  def __init__(self, time, cycles, path, debug, mode, pc, instr, label):
+    self.time = time
+    self.cycles = cycles
+    self.path = path
+    self.debug = debug
+    self.mode = mode
+    self.pc = pc
+    self.instr = instr
+    self.label = label
+    self.duration = 1
+
+  def set_duration(self, next_line_cycles):
+    self.duration = next_line_cycles - self.cycles
+
+
+
+class Trace_file(object):
+
+  def __init__(self, path):
+    self.insns = {}
+    self.lines = []
+
+
+    with open(path) as f:
+        prev_line = None
+        for line in f.readlines()[1:]:
+          try:
+            time, cycles, path, debug, mode, pc, instr = re.findall('([ \t]*\d+):([ \t]*\d+):([ \t]*\[.*\])[ \t]*([^ ^\t]*)[ \t]*([^ ^\t]*)[ \t]*([^ ^\t]*)[ \t]*(.*)', line)[0]
+          except:
+            time, cycles, pc, opcode, instr = re.findall('[ \t]*(\d+ns)[ \t]*(\d+)[ \t]*([^ ^\t]*)[ \t]*([^ ^\t]*)[ \t]*(.*)', line)[0]
+            debug = None
+            path = None
+            mode = None
+          
+          label = instr.split()[0]
+          cycles = int(cycles, 0)
+
+          if label.find("c.") == 0:
+            label = label.replace("c.", "")
+
+          if label == 'li':
+            label = 'add'
+          elif label == 'mv':
+            label = 'add'
+          elif label.find('add') == 0:
+            label = 'add'
+          elif label.find('jr') == 0:
+            label = 'jalr'
+          elif label.find('swsp') == 0:
+            label = 'sw'
+          elif label.find('lwsp') == 0:
+            label = 'lw'
+          elif label.find('p.extract') == 0:
+            label = 'p.extract'
+          elif label.find('p.bclr') == 0:
+            label = 'p.p.bclr'
+          elif label.find('beq') == 0:
+            label = 'beq'
+          elif label.find('pv.shuffle') == 0:
+            label = 'pv.shuffle'
+
+          line = Trace_line(time, cycles, path, debug, mode, pc, instr, label)
+          self.lines.append(line)
+
+          if prev_line is not None:
+            prev_line.set_duration(cycles)
+
+          prev_line = line
+
+
+    for line in self.lines:
+      if self.insns.get(line.label) is None:
+        self.insns[line.label] = Insn(line.label)
+
+      self.insns[line.label].add_instance(line.duration)
+
+
+  def dump(self):
+    for name, insn in self.insns.items():
+      print ('%s %d %f' % (name, insn.nb, float(insn.total) / insn.nb))
+    
+
+
+
+parser = argparse.ArgumentParser(description='Generate PC debug info')
+
+parser.add_argument("--trace", dest="traces", default=[], action="append", help="Specify trace input file")
+
+args = parser.parse_args()
+
+
+trace_files = collections.OrderedDict()
+
+for trace_file_path in args.traces:
+  trace_files[trace_file_path] = Trace_file(trace_file_path)
+
+
+insns = []
+
+for path, trace_file in trace_files.items():
+  for label, insn in trace_file.insns.items():
+    found_insn = None
+    for insn_stat in insns:
+      if insn_stat[0] == label:
+        found_insn = insn_stat
+        break
+    
+    if found_insn is None:
+      found_insn = [ label, insn.total]
+      insns.append(found_insn)
+
+
+
+rows = ['Instruction']
+
+for path, trace_file in trace_files.items():
+  rows.append('Occurences (%s)' % path)
+  rows.append('Duration (%s)' % path)
+
+if len(trace_files.values()) == 2:
+  rows.append('diff')
+
+
+table = PrettyTable(rows)
+
+table.float_format = ".2"
+table.align = "r"
+table.align['Instruction'] = 'l'
+
+total = 0
+
+for insn in insns:
+  row = [insn[0]]
+  trace_insns = []
+  for path, trace_file in trace_files.items():
+    trace_insn = trace_file.insns.get(insn[0])
+    if trace_insn is None:
+      duration = 0
+      nb = 0
+      trace_insns.append(None)
+    else:
+      duration = float(trace_insn.total) / trace_insn.nb
+      nb = trace_insn.nb
+      trace_insns.append(trace_insn)
+
+    row.append(nb)
+    row.append(duration)
+
+  if len(trace_files.values()) == 2:
+    if trace_insns[0] is None:
+      count0 = 0
+    else:
+      count0 = trace_insns[0].total
+    if trace_insns[1] is None:
+      count1 = 0
+    else:
+      count1 = trace_insns[1].total
+
+    row.append(count1 - count0)
+    total += count1 - count0
+
+  table.add_row(row)
+
+
+if len(trace_files.values()) == 2:
+  row = ['Total']
+
+  for path, trace_file in trace_files.items():
+    row.append('')
+    row.append('')
+
+  row.append(total)
+  table.add_row(row)
+
+print (table)

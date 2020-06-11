@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
+import os
 
 import xxhash
 
@@ -21,6 +22,8 @@ import xxhash
 # This class tracks any changes to the graph that render it incompatible with a value cache entry
 class GraphIdentity():
     def __init__(self, filename):
+        if filename is not None:
+            filename = os.path.abspath(filename)
         self._identity = {'filename': filename, 'fusions': []}
 
     @property
@@ -73,6 +76,22 @@ class GraphIdentity():
 
     def set_equalized(self, threshold):
         self._identity['equalization'] = threshold
+
+    @property
+    def tflite_quantization(self):
+        return self._identity.get('tflite_quantization')
+
+    @tflite_quantization.setter
+    def tflite_quantization(self, val: bool):
+        self._identity['tflite_quantization'] = val
+
+    @property
+    def quantization_type(self):
+        return self._identity.get('quantization_type')
+
+    @quantization_type.setter
+    def quantization_type(self, val: str):
+        self._identity['quantization_type'] = val
 
     @property
     def hexdigest(self):

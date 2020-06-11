@@ -97,7 +97,7 @@ void integral_image(int argc, char *argv[])
 
 	#ifndef NO_BRIDGE
 	//Reading Image from Hyperflash
-	if ((ReadImageFromFile(ImageName, &Wi, &Hi, ImageIn, W*H*sizeof(unsigned char))==0) || (Wi!=W) || (Hi!=H)) {
+	if (ReadImageFromFile(ImageName, W, H, 1, ImageIn, W*H*sizeof(unsigned char), 0, 0)) {
 		printf("Failed to load image %s or dimension mismatch Expects [%dx%d], Got [%dx%d]\n", ImageName, W, H, Wi, Hi);
 		pmsis_exit(-6);
 	}

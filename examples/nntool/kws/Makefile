@@ -29,11 +29,14 @@ $(info Building GAP8 mode with $(KWS_BITS) bit quantization)
 # 8 bit so the input to the model needs to be shifted 1 bit
 ifeq ($(KWS_BITS),8)
   $(info Configure 8 bit model)
+  MODEL_SQ8 = 1
   APP_CFLAGS += -DKWS_8BIT -DPRINT_IMAGE
   NNTOOL_SCRIPT=model/nntool_script8
   MODEL_SUFFIX = _8BIT
 else
   ifeq ($(KWS_BITS),16)
+    # use a custom template to switch on the performance checking
+    MODEL_GENFLAGS_EXTRA= -c "model/code_template.c"
     $(info Configure 16 bit model)
     APP_CFLAGS += -DKWS_16BIT
     NNTOOL_SCRIPT=model/nntool_script16
@@ -66,18 +69,15 @@ MODEL_L3_EXEC=hram
 # qpsiflash - Quad SPI Flash
 MODEL_L3_CONST=hflash
 
-# use a custom template to switch on the performance checking
-MODEL_GENFLAGS_EXTRA= -c "model/code_template.c"
-
 pulpChip = GAP
 PULP_APP = kws2
 USE_PMSIS_BSP=1
 
-APP_SRCS += kws.c ImgIO.c $(MODEL_SRCS) MFCC_Dump.c #./model/layers.c 
+APP_SRCS += kws.c ImgIO.c $(MODEL_GEN_C) $(CNN_LIB) #MFCC_Dump.c ./model/layers.c 
 
 APP_CFLAGS += -O3 -s -mno-memcpy -fno-tree-loop-distribute-patterns -Wno-sign-compare -Wno-maybe-uninitialized -Wno-type-limits
-APP_CFLAGS += -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) -I$(GEN_PATH) -I$(MODEL_BUILD)
-APP_CFLAGS += -DPERF
+APP_CFLAGS += -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
+APP_CFLAGS += #-DPERF
 
 ifneq ($(platform),gvsoc)
   $(info Platform is GAPUINO)
@@ -113,7 +113,7 @@ clean_all: clean clean_train
 
 .PHONY: clean_all
 
-PMSIS_OS = freertos
+#PMSIS_OS = freertos
 io = host
 include model_rules.mk
 include $(RULES_DIR)/pmsis_rules.mk

@@ -18,6 +18,7 @@ import logging
 
 import numpy as np
 from PIL import Image
+from utils.at_norm import at_norm
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -35,43 +36,18 @@ MODES = {
     'F': 1,     # (32-bit floating point pixels)
 }
 
-VALID_IMAGE_EXTENSIONS = ['.pgm', '.png', '.ppm']
+VALID_IMAGE_EXTENSIONS = ['.pgm', '.png', '.ppm', '.jpg', '.jpeg']
 VALID_SOUND_EXTENSIONS = ['.raw', '.pcm']
+VALID_DATA_IMPORT_EXTENSIONS = ['.npy']
 
-def import_image_data(filename, **kwargs):
-    img_in = Image.open(filename)
-    if 'width' not in kwargs or kwargs['width'] == -1:
-        width = img_in.width
-    else:
-        width = kwargs['width']
-
-    if 'height' not in kwargs or kwargs['height'] == -1:
-        height = img_in.height
-    else:
-        height = kwargs['height']
-
-    if width != img_in.width or height != img_in.height:
-        img_in = img_in.resize((width, height))
-
-    if 'mode' in kwargs:
-        img_in.convert(mode=kwargs['mode'])
-
-    if 'nptype' in kwargs:
-        nptype = getattr(np, kwargs['nptype'])
-    else:
-        nptype = np.uint8
-
-    channels = MODES[img_in.mode]
-    # TODO - this needs to be smarter for different image pixel types
-    img_in = np.array(img_in, dtype=nptype)
-
+def postprocess(img_in, h, w, c, **kwargs):
     if kwargs.get('transpose'):
-        if channels == 1:
-            img_in = img_in.transpose((1, 0)).reshape((channels, height, width))
+        if c == 1:
+            img_in = img_in.transpose((1, 0)).reshape((c, h, w))
         else:
             img_in = img_in.transpose((2, 0, 1)).copy()
-    elif channels == 1:
-        img_in = img_in.reshape((channels, width, height))
+    elif c == 1:
+        img_in = img_in.reshape((c, w, h))
 
     divisor = kwargs.get('divisor') or 1
     offset = kwargs.get('offset') or 0
@@ -79,7 +55,7 @@ def import_image_data(filename, **kwargs):
 
     if shift:
         if shift < 0:
-            img_in = img_in >> int(-shift)
+            img_in = at_norm(img_in, int(-shift))
         else:
             img_in = img_in << int(shift)
 
@@ -98,14 +74,51 @@ def import_image_data(filename, **kwargs):
 
     return img_in
 
+def import_image_data(filename, **kwargs):
+    img_in = Image.open(filename)
+    if 'width' not in kwargs or kwargs['width'] == -1:
+        width = img_in.width
+    else:
+        width = kwargs['width']
+
+    if 'height' not in kwargs or kwargs['height'] == -1:
+        height = img_in.height
+    else:
+        height = kwargs['height']
+
+    if width != img_in.width or height != img_in.height:
+        img_in = img_in.resize((width, height))
+
+    if 'mode' in kwargs:
+        img_in = img_in.convert(mode=kwargs['mode'])
+
+    if 'nptype' in kwargs:
+        nptype = getattr(np, kwargs['nptype'])
+    else:
+        nptype = np.uint8
+
+    channels = MODES[img_in.mode]
+    # TODO - this needs to be smarter for different image pixel types
+    img_in = np.array(img_in, dtype=nptype)
+    return postprocess(img_in, height, width, channels, **kwargs)
+
+def import_tensor_data(filename, **kwargs):
+    img_in = np.load(filename)
+    if len(img_in.shape) == 4 and img_in.shape[0] == 1:
+        img_in = img_in.reshape(img_in.shape[1:])
+    return postprocess(img_in, img_in.shape[0], img_in.shape[1], img_in.shape[2], **kwargs)
+
 def import_sound_data(filename, **kwargs):
     raise NotImplementedError()
 
 def import_data(filename, **kwargs):
     _, ext = os.path.splitext(filename)
+    ext = ext.lower()
     if ext in VALID_IMAGE_EXTENSIONS:
         return import_image_data(filename, **kwargs)
     if ext in VALID_SOUND_EXTENSIONS:
         return import_sound_data(filename, **kwargs)
+    if ext in VALID_DATA_IMPORT_EXTENSIONS:
+        return import_tensor_data(filename, **kwargs)
     LOG.debug("no import tool for file %s with extension %s", filename, ext)
     raise NotImplementedError('unknown file extension for import data')

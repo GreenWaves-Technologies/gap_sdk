@@ -120,8 +120,7 @@ def set_options(G, node_options, graph_node_options=None):
             graph_node_options[nodeid] = G.node(nodeid.node_name).at_options
 
 
-def load_state(graph_file: str, value_cache=None, return_extra=False):
-    #state_dir = os.path.dirname(os.path.abspath(graph_file))
+def load_state(graph_file: str, return_extra=False):
     graph_base, _ = os.path.splitext(graph_file)
     state_filename = graph_base + STATE_EXTENSION
     state_file = Path(state_filename)
@@ -150,20 +149,26 @@ def load_state(graph_file: str, value_cache=None, return_extra=False):
         parameters = None
 
     # Here load the orignal graph and replay the transforms that were done to it
-    opts = {
-        'load_tensors': False,
-    }
+    if info_state['info'].get('has_quantized_parameters'):
+        opts = {
+            'load_tensors': True,
+            'load_quantization': True
+        }
+    else:
+        opts = {
+            'load_tensors': False,
+        }
     # Retrieve the identity of the saved state
     identity = GraphIdentity(None)
     identity.identity = info_state['identity']
 
     LOG.info("loading graph from %s", identity.filename)
-    #G = create_graph(os.path.join(state_dir, os.path.split(identity.filename)[-1]), opts=opts)
     G = create_graph(identity.filename, opts=opts)
     if 'name' in info_state:
         G.name = info_state['name']
     G.add_dimensions()
-    set_options(G, info_state['node_options'])
+    freeze_options = {k: v for k, v in info_state['node_options'].items() if 'FIXED_ORDER' in list(v.set_options)}
+    set_options(G, freeze_options)
     if identity.is_adjusted:
         # If weights were saved then don't reshaoe them since it was already done
         # before they were saved
@@ -184,7 +189,6 @@ def load_state(graph_file: str, value_cache=None, return_extra=False):
     G.info = info_state['info']
     G.changes.replay(G)
     G.graph_identity = identity
-    G.value_cache = value_cache
     G.node_options = info_state['node_options']
     set_options(G, info_state['node_options'], info_state['node_options'])
 

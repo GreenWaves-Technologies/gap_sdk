@@ -14,17 +14,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from utils.graph import GraphView
+from utils.node_id import NodeId
+from graph.types.base import Transposable
+from graph.types.others import TransposeParameters
 
-from ..types.base import Transposable
-from ..types.others import TransposeParameters
-
-from .matcher import Matcher
+from graph.matches.matcher import Matcher
 
 
 def apply_reverse_transpose_to_hint(hint, transpose):
-    reverse_transpose = {transpose[i] : v for i, v in enumerate(hint)}
+    reverse_transpose = {transpose[i]: v for i, v in enumerate(hint)}
     reversed_hint = [reverse_transpose[idx] for idx in range(len(hint))]
     return reversed_hint
+
 
 class ExpandTransposesMatcher(Matcher):
     NAME = "expand_transposes"
@@ -33,8 +34,8 @@ class ExpandTransposesMatcher(Matcher):
     def match(self, G: GraphView, set_identity: bool = True):
         # get a list of all the nodes that are transposable but not transposes
         # Need to do this first to avoid mutating it when doing the modifications
-        tnodes = list(filter(lambda n: isinstance(n, Transposable) and\
-                                not isinstance(n, TransposeParameters),
+        tnodes = list(filter(lambda n: isinstance(n, Transposable) and
+                             not isinstance(n, TransposeParameters),
                              G.nodes()))
         for node in tnodes:
             if node.transpose_in:
@@ -47,6 +48,8 @@ class ExpandTransposesMatcher(Matcher):
                         in_params.in_dims_hint = [in_hint.copy()]
                         in_params.out_dims_hint = [out_hint.copy()]
                         node.in_dims_hint[edge.to_idx] = out_hint
+                    if G.quantization:
+                        G.quantization.copy_to_node(node, in_params)
                     G.insert_node(in_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx)
                 node.transpose_in = None
@@ -60,6 +63,8 @@ class ExpandTransposesMatcher(Matcher):
                         out_params.in_dims_hint = [in_hint.copy()]
                         out_params.out_dims_hint = [out_hint.copy()]
                         node.out_dims_hint[edge.from_idx] = in_hint
+                    if G.quantization:
+                        G.quantization.copy_to_node(node, out_params)
                     G.insert_node(out_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx)
                 node.transpose_out = None

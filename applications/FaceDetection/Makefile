@@ -28,7 +28,12 @@ override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
 
 APP_SRCS += $(FACE_DET_SRCS)
 APP_INC  += $(TILER_INC)
-APP_CFLAGS += -O3 -g -D__PMSIS__ -DUSE_CAMERA -DUSE_DISPLAY -DNB_FRAMES=$(NB_FRAMES)
+APP_CFLAGS += -O3 -g -D__PMSIS__ -DUSE_CAMERA -DNB_FRAMES=$(NB_FRAMES)
+
+display ?= 1
+ifeq ($(display), 1)
+APP_CFLAGS += -DUSE_DISPLAY
+endif
 
 BOARD_NAME ?= gapoc_a
 PMSIS_OS ?= freertos

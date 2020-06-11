@@ -134,7 +134,7 @@ class FilterStatsReporter(Reporter):
         return total
 
     def do_row(self, table, step_idx, node_name, stat, total, op_name="", by_channel=False):
-        for vartype in ['weights', 'biases']:
+        for vartype in ['weights', 'biases', 'mul_biases']:
             if vartype not in stat:
                 continue
             var = stat[vartype]

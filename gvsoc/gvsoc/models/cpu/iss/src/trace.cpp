@@ -154,7 +154,7 @@ static inline int iss_trace_dump_reg(iss_t *iss, iss_insn_t *insn, char *buff, u
   return sprintf(buff, "x%d", reg);
 }
 
-static char *iss_trace_dump_reg_value(iss_t *iss, iss_insn_t *insn, char *buff, bool is_out, int reg, unsigned int saved_value, iss_decoder_arg_t **prev_arg, bool is_long)
+static char *iss_trace_dump_reg_value(iss_t *iss, iss_insn_t *insn, char *buff, bool is_out, int reg, uint64_t saved_value, iss_decoder_arg_t *arg, iss_decoder_arg_t **prev_arg, bool is_long)
 {
   char regStr[16];
   iss_trace_dump_reg(iss, insn, regStr, reg);
@@ -163,7 +163,10 @@ static char *iss_trace_dump_reg_value(iss_t *iss, iss_insn_t *insn, char *buff, 
 
   if (is_out) buff += sprintf(buff,  "=");
   else buff += sprintf(buff,  ":");
-  buff += sprintf(buff,  "%8.8x ", saved_value); 
+  if (arg->flags & ISS_DECODER_ARG_FLAG_REG64)
+    buff += sprintf(buff,  "%" PRIxFULLREG64 " ", saved_value);
+  else
+    buff += sprintf(buff,  "%" PRIxFULLREG " ", (iss_reg_t)saved_value);
   return buff;
 }
 
@@ -173,17 +176,17 @@ static char *iss_trace_dump_arg_value(iss_t *iss, iss_insn_t *insn, char *buff, 
   {
     if ((dump_out && arg->type == ISS_DECODER_ARG_TYPE_OUT_REG) || (!dump_out && arg->type == ISS_DECODER_ARG_TYPE_IN_REG))
     {
-      buff = iss_trace_dump_reg_value(iss, insn, buff, arg->type == ISS_DECODER_ARG_TYPE_OUT_REG, insn_arg->u.reg.index, saved_arg->u.reg.value, prev_arg, is_long);
+      buff = iss_trace_dump_reg_value(iss, insn, buff, arg->type == ISS_DECODER_ARG_TYPE_OUT_REG, insn_arg->u.reg.index, arg->flags & ISS_DECODER_ARG_FLAG_REG64 ? saved_arg->u.reg.value_64 : saved_arg->u.reg.value, arg, prev_arg, is_long);
     }
   }
   else if (arg->type == ISS_DECODER_ARG_TYPE_INDIRECT_IMM)
   {
-    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_imm.reg_index, saved_arg->u.indirect_imm.reg_value, prev_arg, is_long);
+    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_imm.reg_index, saved_arg->u.indirect_imm.reg_value, arg, prev_arg, is_long);
     iss_addr_t addr;
     if (arg->flags & ISS_DECODER_ARG_FLAG_POSTINC)
     {
       addr = saved_arg->u.indirect_imm.reg_value;
-      if (dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 1, insn_arg->u.indirect_imm.reg_index, addr + insn_arg->u.indirect_imm.imm, prev_arg, is_long);
+      if (dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 1, insn_arg->u.indirect_imm.reg_index, addr + insn_arg->u.indirect_imm.imm, arg, prev_arg, is_long);
     }
     else
     {
@@ -193,13 +196,13 @@ static char *iss_trace_dump_arg_value(iss_t *iss, iss_insn_t *insn, char *buff, 
   }
   else if (arg->type == ISS_DECODER_ARG_TYPE_INDIRECT_REG)
   {
-    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_reg.offset_reg_index, saved_arg->u.indirect_reg.offset_reg_value, prev_arg, is_long);
-    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_reg.base_reg_index, saved_arg->u.indirect_reg.base_reg_value, prev_arg, is_long);
+    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_reg.offset_reg_index, saved_arg->u.indirect_reg.offset_reg_value, arg, prev_arg, is_long);
+    if (!dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 0, insn_arg->u.indirect_reg.base_reg_index, saved_arg->u.indirect_reg.base_reg_value, arg, prev_arg, is_long);
     iss_addr_t addr;
     if (arg->flags & ISS_DECODER_ARG_FLAG_POSTINC)
     {
       addr = saved_arg->u.indirect_reg.base_reg_value;
-      if (dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 1, insn_arg->u.indirect_reg.base_reg_index, addr + insn_arg->u.indirect_reg.offset_reg_value, prev_arg, is_long);
+      if (dump_out) buff = iss_trace_dump_reg_value(iss, insn, buff, 1, insn_arg->u.indirect_reg.base_reg_index, addr + insn_arg->u.indirect_reg.offset_reg_value, arg, prev_arg, is_long);
     }
     else
     {
@@ -374,7 +377,12 @@ static void iss_trace_save_arg(iss_t *iss, iss_insn_t *insn, iss_insn_arg_t *ins
     if (save_out && arg->type == ISS_DECODER_ARG_TYPE_OUT_REG ||
       !save_out && arg->type == ISS_DECODER_ARG_TYPE_IN_REG)
     {
-      saved_arg->u.reg.value = iss_get_reg_untimed(iss, insn_arg->u.reg.index);
+      if (arg->flags & ISS_DECODER_ARG_FLAG_REG64)
+      {
+        saved_arg->u.reg.value_64 = iss_get_reg64_untimed(iss, insn_arg->u.reg.index);
+      }
+      else
+        saved_arg->u.reg.value = iss_get_reg_untimed(iss, insn_arg->u.reg.index);
     }
 
   }

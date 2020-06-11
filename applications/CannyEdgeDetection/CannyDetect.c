@@ -667,11 +667,9 @@ void canny_edge_detector()
 	sprintf(imageName, "../../../%s", Imagefile);
 	ImageIn_L2 = (unsigned char *) pi_l2_malloc( COL*LINE*sizeof(unsigned char));
 
-    unsigned int Wi, Hi;
-
-    if ( (ReadImageFromFile(imageName, &Wi, &Hi, ImageIn_L2, LINE*COL*sizeof(unsigned char))==0) || (Wi!=COL) || (Hi!=LINE))
+    if (ReadImageFromFile(imageName, COL,LINE, 1, ImageIn_L2, LINE*COL*sizeof(unsigned char), 0, 0))
     {
-        printf("Failed to load image %s or dimension mismatch Expects [%dx%d], Got [%dx%d]\n", imageName, COL, LINE, Wi, Hi);
+        printf("Failed to load image %s\n", imageName);
         pmsis_exit(-1);
     }
 
