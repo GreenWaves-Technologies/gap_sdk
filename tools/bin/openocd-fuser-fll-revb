@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo "BE CAREFUL: This will permanently configure the board to boot from hyperflash and cannot be undo. Do you confirm (y/N) ?"
+read answer
+
+if [ "$answer" == "y" ]; then
+    echo Configuring board for revb fll assert cycles, please stop it when \"fuse_once is done\" is displayed.
+    echo
+    openocd -f $OPENOCD_CABLE -f $OPENOCD_CHIP_TARGET -f tcl/jtag_boot.tcl -f tcl/fuser.tcl -c 'fuse_fll_assert_cycles_revb '${GAP_OPENOCD_TOOLS}''
+else
+    echo Aborting
+fi

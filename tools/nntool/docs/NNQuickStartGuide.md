@@ -6,7 +6,7 @@ In this post we will guide you through the GAP*flow*, a set of easy-to-use tools
 
 Before starting with the tutorial let’s have a look at the components of GAP*flow*. GAP*flow* takes a component rather than black box approach to neural network conversion. This has all the benefits of a fully automated process however it allows you to see and understand each step so that if you have a problem you can quickly resolve it.
 
-![GAP*flow*](img_gapflow.png)
+![GAP*flow*](https://greenwaves-technologies.com/wp-content/uploads/2020/06/img_gapflow.png)
 
 The green boxes represent the tools that we use in our flow, the blue boxes represent the files generated automatically by the different tools and the orange boxes the input files that you need to provide.
 
@@ -63,7 +63,7 @@ To automate the steps described above, the user can provide a .txt file with all
 
 Now that we have the AutoTiler Model we have to compile and run it from the linux shell:
     
-    gcc -g -o Gentile -I. -I${TILER_INC} -I${TILER_EMU_INC} -I${TILER_CNN_GENERATOR_PATH} -I${TILER_CNN_GENERATOR_PATH_SQ8} -I${NNTOOL_GENERATOR_PATH} -I${TILER_CNN_KERNEL_PATH} -I${TILER_CNN_KERNEL_PATH_SQ8} -I${NNTOOL_KERNELS_PATH} ${TILER_LIB}
+    gcc ATModel.c -g -o Gentile -I. -I${TILER_INC} -I${TILER_EMU_INC} -I${TILER_CNN_GENERATOR_PATH} -I${TILER_CNN_GENERATOR_PATH_SQ8} -I${NNTOOL_GENERATOR_PATH} -I${TILER_CNN_KERNEL_PATH} -I${TILER_CNN_KERNEL_PATH_SQ8} -I${NNTOOL_KERNELS_PATH} ${TILER_LIB} ${TILER_CNN_GENERATOR_PATH}/CNN_Generator_Util.c ${TILER_CNN_GENERATOR_PATH_SQ8}/CNN_Generators_SQ8.c ${NNTOOL_GENERATOR_PATH}/nntool_extra_generators.c
 
 All the symbols are defined when the sdk is sourced. You can look at their values with:
     
@@ -95,7 +95,7 @@ To compile and run the model you will need all the PMSIS rules for the cluster e
 
 The AutoTiler functions also support another mode of execution called \_\_EMUL\_\_. In this flow all the GAP specific functions generated during the AutoTiler Model run are substituted with x86 sequential functions and the generated code can be run on a Linux machine. 
 
-![Emulation Mode](img_emul.png)
+![Emulation Mode](https://greenwaves-technologies.com/wp-content/uploads/2020/06/img_emul.png)
 
 In the nntool examples you can find the emul.mk and the main_emul.c which shows the basic usage of this mode. Following them you will end up with an executable file which can be simply run from the linux shell:
     
