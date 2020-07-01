@@ -35,6 +35,16 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: start nntool with lstm2",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/lstm2.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: start nntool with squeezenet",
             "type": "python",
             "request": "launch",
@@ -65,14 +75,15 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Python: start nntool with concat sample tflite",
+            "name": "Python: start nntool with vergesense sample tflite",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/nntool",
             "args": [
-                "BUILD_MODEL_8BIT_EMUL/vs.json"
+                "model/vs_ssd_mobv1_forNNtool.tflite",
+                "-q"
             ],
-            "cwd": "${workspaceFolder}/../customer_nntool_examples/vergesense",
+            "cwd": "${workspaceFolder}/../../vergesense/vergesense",
             "console": "integratedTerminal"
         },
         {
@@ -82,6 +93,18 @@
             "program": "${workspaceFolder}/nntool",
             "args": [
                 "tests/graph/model_quantized.tflite",
+                "-q"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with ssdlite tflite quantized",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/ssdlite_v2_quant_ocr_nopostprocess.tflite",
                 "-q"
             ],
             "cwd": "${workspaceFolder}",

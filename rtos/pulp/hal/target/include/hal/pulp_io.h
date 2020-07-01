@@ -74,6 +74,7 @@ static inline uint32_t pulp_read(uint32_t add)
 #if defined(__riscv__) && !defined(RV_ISA_RV32) && !defined(__LLVM__)
 #define IP_WRITE_VOL(base, offset, value) __builtin_pulp_write_base_off_v((value), (base), (offset))
 #define IP_WRITE(base, offset, value) __builtin_pulp_OffsetedWrite((value), (int *)(base), (offset))
+#define IP_WRITE_PTR(base, offset, value) __builtin_pulp_OffsetedWritePtr((int *)(value), (int *)(base), (offset))
 #define IP_READ(base, offset) __builtin_pulp_OffsetedRead((int *)(base), (offset))
 #else
 #define IP_WRITE_VOL(base, offset, value) pulp_write32((base) + (offset), (value))

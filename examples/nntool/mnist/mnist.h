@@ -13,8 +13,14 @@
 #include <fcntl.h>
 #include <sys/param.h>
 #include <string.h>
+extern AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash;
 #endif
 
+#if defined(USE_HYPER)
 extern AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash;
+#elif defined(USE_SPI)
+extern AT_QSPIFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash;
+#endif
+
 
 #endif

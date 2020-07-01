@@ -34,16 +34,8 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
 
         assert len(in_dims) == 1
         self.in_dims = in_dims
-        in_dims = in_dims[0]
 
-        for key in ['h', 'w', 'in_c']:
-            in_key = 'c' if key == 'in_c' else key
-            if self.filter.has_key(key):
-                assert getattr(self.filter, key) == getattr(in_dims, in_key)
-            else:
-                setattr(self.filter, key, getattr(in_dims, in_key))
-
-        out_dim = Dim.named(c=self.filter.out_c, w=1, h=1, order=in_dims.order)
+        out_dim = Dim.named(c=self.filter.out_c, order=True)
         return [out_dim]
 
     @property

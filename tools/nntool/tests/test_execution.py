@@ -24,13 +24,18 @@ from execution.quantization_mode import QuantizationMode
 from generation.code_generator import CodeGenerator
 from generation.default_template import default_template
 from generation.naming_convension import DefaultNamingConvension
-from graph.matches.matches import get_pow2_match_group
+from graph.matches.matches import get_pow2_match_group, get_scale8_match_group
+from graph.matches.match_rnn_unpack import MatchRnnUnpack
+from graph.types import InputParameters, OutputParameters, RNNParameters
 from importer.importer import create_graph
 from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
+from quantization.multiplicative.mult_quantizer import MultQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
+from stats.activation_ranges_collector import ActivationRangesCollector
 from stats.filter_stats_collector import FilterStatsCollector
 from utils.data_importer import import_data
 from utils.new_param_state import load_state
+from interpreter.commands.imageformat import insert_formatter
 
 
 def test_graph_calc(mnist_graph, mnist_images):
@@ -237,3 +242,83 @@ def test_equivalence(mnist_graph, mnist_images):
     # the layout for the output of the linear layer is a little different
     assert np.max(np.abs(verif[8][0] - output_[7][0].flatten())) < 0.00001
     assert np.array_equal(np.round(output_[-1][0].flatten()), [1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+def test_rnn_quantize():
+    G = create_graph("tests/graph/rnn.tflite", opts={"load_tensors":True})
+    G.add_dimensions()
+
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    
+    G.adjust_order()
+    input_node = G.inputs()[0]
+    out_edge = G.out_edges(input_node.name)[0]
+    G.changes.image_format(input_node.name, "bw8", "shift_int8")
+    insert_formatter(G, out_edge, "bw8", "shift_int8")
+    G.add_dimensions()
+    get_scale8_match_group().match(G)
+    G.add_dimensions()
+    stats_collector = ActivationRangesCollector()
+    for input_file in ['tests/images/1270_4.pgm']:
+        input_tensor = import_data(input_file)
+        res = stats_collector.collect_stats(G, [input_tensor])
+    quantizer = MultQuantizer(res, force_width=8, quantized_dimension='channel')
+    qrecs = G.quantization = quantizer.quantize(G)
+    executer = GraphExecuter(G, qrecs=qrecs)
+    for input_file in ['tests/images/1270_4.pgm']:
+        input_tensor = import_data(input_file)
+        output_ = executer.execute([input_tensor], qmode=QuantizationMode.all())
+
+    for node in [n for n in G.nodes() if isinstance(n, RNNParameters)]:
+        node.at_options.PARALLELFEATURES = 1
+    with tempfile.TemporaryDirectory() as tempdir:
+        opts = {
+            'default_input_location': 'ARG_LOC_L2',
+            'default_output_location': 'ARG_LOC_L2',
+            'default_global_location': 'ARG_LOC_L3_HFLASH',
+            'default_local_location': 'AT_MEM_UNDEF',
+            'at_ver': 3,
+            'tensor_directory': tempdir
+        }
+        code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+        print(default_template(G, code_generator=code_gen))
+        code_gen.write_constants()
+
+def test_lstm_quantize():
+    G = create_graph("tests/graph/lstm.tflite", opts={"load_tensors":True})
+    G.add_dimensions()
+
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    
+    G.adjust_order()
+    input_node = G.inputs()[0]
+    out_edge = G.out_edges(input_node.name)[0]
+    G.changes.image_format(input_node.name, "bw8", "shift_int8")
+    insert_formatter(G, out_edge, "bw8", "shift_int8")
+    G.add_dimensions()
+    get_scale8_match_group().match(G)
+    G.add_dimensions()
+    stats_collector = ActivationRangesCollector()
+    for input_file in ['tests/images/1270_4.pgm']:
+        input_tensor = import_data(input_file)
+        res = stats_collector.collect_stats(G, [input_tensor])
+    quantizer = MultQuantizer(res, force_width=8, quantized_dimension='channel')
+    qrecs = G.quantization = quantizer.quantize(G)
+    executer = GraphExecuter(G, qrecs=qrecs)
+    for input_file in ['tests/images/1270_4.pgm']:
+        input_tensor = import_data(input_file)
+        output_ = executer.execute([input_tensor], qmode=QuantizationMode.all())
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        opts = {
+            'default_input_location': 'ARG_LOC_L2',
+            'default_output_location': 'ARG_LOC_L2',
+            'default_global_location': 'ARG_LOC_L3_HFLASH',
+            'default_local_location': 'AT_MEM_UNDEF',
+            'at_ver': 3,
+            'tensor_directory': tempdir
+        }
+        code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+        print(default_template(G, code_generator=code_gen))
+        code_gen.write_constants()

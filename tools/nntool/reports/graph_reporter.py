@@ -43,7 +43,7 @@ def str_dim(node, dim_name, dim_idx):
     return str(dim)
 
 def str_dims(node, dim_name):
-    return "\n".join([str(dim) for dim in getattr(node, dim_name)])
+    return "\n".join([str(dim) for dim in getattr(node, dim_name) if dim is not None])
 
 def get_dim(dims, idx):
     if idx < len(dims):

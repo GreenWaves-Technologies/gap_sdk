@@ -36,7 +36,7 @@ else ifeq ($(BOARD_NAME), vega)
 COMMON_CFLAGS          += -DCONFIG_GAP9
 
 else ifeq ($(BOARD_NAME), gap9_v2)
-COMMON_CFLAGS          += -DCONFIG_GAP9
+COMMON_CFLAGS          += -DCONFIG_GAP9_V2
 endif				# BOARD_NAME
 endif
 

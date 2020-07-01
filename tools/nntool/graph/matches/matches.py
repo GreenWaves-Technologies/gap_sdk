@@ -17,6 +17,7 @@ from .equalize_sym_mult_concats import \
     EqualizeSymmetricMultiplicativeQuantivedConcats
 from .expand_transposes import ExpandTransposesMatcher
 from .find_missing_quantization import FindMissingQuantization
+from .filt_bigger_than_in import FilterBiggerThanInput
 from .fuse_pad import MatchFusePad
 from .match_external_bias import MatchExternalBias, MatchExternalBiasSQ8
 from .match_gap_conv import MatchAllGapConv
@@ -24,7 +25,7 @@ from .match_gap_linear import MatchGapLinear
 from .match_gap_pool import MatchGapPool
 from .matcher import MatchGroup
 from .matscale import FuseMatScale, FuseMatScalePair
-from .move_activation import MoveActivationsMatcherScale8, MoveActivationsMatcherPow2
+from .move_node_up import MoveActivationsMatcherScale8, MoveActivationsMatcherPow2, MoveMaxPoolMatcherScale8
 from .propagate_softmax_sym_mult_qrec import PropagateSoftmaxSymQrec
 from .remove_noops import RemoveNoOPs
 from .remove_unused_concats import RemoveUnusedConcats
@@ -32,24 +33,26 @@ from .find_asymmetric_quantization import FindAsymmetricQuantization
 from .match_op_activation import MatchOpActivationPow2Kernels, MatchOpActivationScaleKernels
 from .find_hsigmoid import MatchCloseHSigmoid, MatchFarHSigmoid
 from .remove_relus import RemoveRelusMatch
+from .match_rnn_unpack import MatchRnnUnpack
 
-ALL_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad, RemoveUnusedConcats,
-                     FindMissingQuantization, MatchFarHSigmoid, MatchCloseHSigmoid, MoveActivationsMatcherScale8,
-                     MoveActivationsMatcherPow2,
+ALL_MATCH_CLASSES = [MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad, RemoveUnusedConcats,
+                     FindMissingQuantization, MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8,
+                     MoveActivationsMatcherScale8, MoveActivationsMatcherPow2,
                      EqualizeSymmetricMultiplicativeQuantivedConcats,
                      MatchAllGapConv, MatchGapPool, MatchOpActivationScaleKernels,
-                     MatchOpActivationPow2Kernels,
+                     MatchOpActivationPow2Kernels, FilterBiggerThanInput,
                      MatchGapLinear, ExpandTransposesMatcher, FindAsymmetricQuantization,
                      FuseMatScalePair, FuseMatScale]
 POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad,
                       RemoveUnusedConcats, FindMissingQuantization, MatchCloseHSigmoid,
                       MoveActivationsMatcherPow2, ExpandTransposesMatcher, MatchAllGapConv, MatchGapLinear,
-                      EqualizeSymmetricMultiplicativeQuantivedConcats]
+                      EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput]
 SCALE8_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBiasSQ8, MatchFusePad,
                         RemoveUnusedConcats, FindMissingQuantization,
-                        MatchFarHSigmoid, MatchCloseHSigmoid, MoveActivationsMatcherScale8, ExpandTransposesMatcher,
+                        MatchRnnUnpack,
+                        MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8, MoveActivationsMatcherScale8, ExpandTransposesMatcher,
                         MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels, PropagateSoftmaxSymQrec,
-                        EqualizeSymmetricMultiplicativeQuantivedConcats]
+                        EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput]
 
 FUSION_LIST = [((match_class.NAME, match_class.DESCRIPTION), match_class())
                for match_class in ALL_MATCH_CLASSES]

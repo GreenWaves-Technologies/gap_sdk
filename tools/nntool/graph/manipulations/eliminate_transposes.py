@@ -16,113 +16,17 @@
 import logging
 
 from graph.types.base import SensitiveToOrder, Transposable
-from graph.types.others import ConcatParameters, ReshapeParameters
+from graph.types.others import (ConcatParameters, ReshapeParameters, SplitParameters,
+                                StridedSliceParameters)
+from utils.compatible_transposes import (find_combination,
+                                         find_compatible_transpose)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class Shape():
-    def __init__(self, shape):
-        self.shape = shape
-        self.idx = 0
-        self.inc = True
-        self.cur = 1
-
-
 def reverse_reshape(trans, from_shape, to_shape):
     """reverses the effect of this reshape on the transpose"""
-    # The reshape goes from shape -> to shape. Find the equivalent transpose
-    # that can be examined for things in to shape or return None if the transpose
-    # cannot be converted. from shape may have smaller larger or the same dimensions
-    # as to shape.
-    shapes = [Shape(to_shape.shape),
-              Shape(from_shape.shape)]
-    # Build a mask containing the indexes of the from_shape in the
-    # shape of to_shape. Here we are looking for continuous sequences of combinations
-    # of the two masks
-    trans_mask = [[] for _ in shapes[0].shape]
-    filling_shape = None
-    while all(shape.idx < len(shape.shape) for shape in shapes):
-        # multiply the shapes of the indexes that have incremented
-        for shape in shapes:
-            if shape.inc:
-                shape.cur *= shape.shape[shape.idx]
-                shape.inc = False
-
-        # add the transpose index to the mask
-        trans_mask[shapes[0].idx].append(trans[shapes[1].idx])
-        if shapes[0].cur == shapes[1].cur:
-            # the shapes match so increment both indexes
-            for shape in shapes:
-                shape.idx += 1
-                shape.cur = 1
-                shape.inc = True
-            filling_shape = None
-        elif shapes[0].cur < shapes[1].cur:
-            if filling_shape is None or filling_shape == 0:
-                # look for a combination of axes in the shape before the reshape
-                shapes[0].idx += 1
-                shapes[0].inc = True
-                filling_shape = 0
-            else:
-                return None
-        else:
-            if filling_shape is None or filling_shape == 1:
-                # look for a combination of axes in the shape after the reshape
-                shapes[1].idx += 1
-                shapes[1].inc = True
-                filling_shape = 1
-            else:
-                return None
-
-    # Either the mask will be complete or one of the two shapes will not have been
-    # consumed. Make sure that both shapes are fully used
-    for i in [0, 1]:
-        if shapes[i].idx < len(shapes[i].shape):
-            # can only add shapes that are 1 in length
-            if shapes[i].shape[shapes[i].idx] == 1:
-                idxes = [shape.idx if shape.idx < len(shape.shape) else -1 for shape in shapes]
-                trans_mask[idxes[0]].append(trans[idxes[1]])
-                shapes[i].idx += 1
-            else:
-                # no solution found transpose is modified by the reshape
-                return None
-    # Make sure the mask is in ascending order
-    trans_mask = [sorted(mask) for mask in trans_mask]
-
-    # now we have a mask of the form [[1], [0], [0]] or [[2], [0, 1]]
-    # turn this into [2, 0, 1] or [1, 0]
-    # old in this case is the shape after reshape
-    cur_old_idx = 0
-    mask_idx = 0
-    cur_new_idx = 0
-    new_trans = []
-    found_elem = False
-    while len(new_trans) < len(shapes[0].shape):
-        # if this mask element has not been consumed and its first element
-        # matches the index after reshape then consume it
-        if len(trans_mask[mask_idx]) > 0 and trans_mask[mask_idx][0] == cur_old_idx:
-            new_trans.append(mask_idx)
-            # the new old index is the last one in the mask
-            cur_old_idx = trans_mask[mask_idx][-1]
-            # consume the mask
-            trans_mask[mask_idx] = []
-            cur_new_idx += 1
-            # continue to loop
-            found_elem = True
-        mask_idx += 1
-        if mask_idx >= len(trans_mask):
-            # if we didn't find anything then the reshape modifies the transpose
-            mask_idx = 0
-            cur_old_idx += 1
-        if cur_old_idx >= len(shapes[1].shape):
-            if not found_elem:
-                return None
-            found_elem = False
-            cur_old_idx = 0
-
-
-    return new_trans
+    return find_compatible_transpose(find_combination(from_shape, to_shape), trans)
 
 
 def reverses_transpose(trans1, trans2, dim=None):
@@ -141,36 +45,54 @@ def reverses_transpose(trans1, trans2, dim=None):
 
 def search_up_for_reverse(G, visited_edges, node, out_idx, transpose, edge_list):
     """Search up the graph for transpose sequences"""
-    if len(G.out_edges(node.name)) > 1 or isinstance(node, SensitiveToOrder):
+    LOG.debug("looking up at %s", node.name)
+    if not isinstance(node, Transposable) and (len(G.out_edges(node.name)) > 1 or isinstance(node, SensitiveToOrder)):
+        LOG.debug("rejected %s - sensitive to order or multi output", node.name)
         return []
 
     if isinstance(node, Transposable) and node.transpose_out:
-        if reverses_transpose(node.transpose_out, transpose, node.out_dims[out_idx]):
-            return [(node, edge_list, 'out')]
+        if reverses_transpose(node.transpose_out[out_idx], transpose, node.out_dims[out_idx]):
+            LOG.debug("accepted %s - transpose out", node.name)
+            return [(node, edge_list, 'out', out_idx)]
         else:
+            LOG.debug("rejected %s - transpose out - does not reverse", node.name)
             return []
+
+    # if the node is a concat/split then we cannot proceed further since the
+    # concat/split must happen on axis 0 and the transposes were already set up for
+    # this to happen
+    if isinstance(node, (ConcatParameters, SplitParameters)):
+        LOG.debug("rejected %s - concat/split", node.name)
+        return []
 
     if isinstance(node, ReshapeParameters):
         new_transpose = reverse_reshape(transpose, node.shape, node.old_shape)
         if new_transpose is None:
+            LOG.debug("rejected %s - transpose in - does not reverse", node.name)
             return []
         transpose = new_transpose
-        if node.transpose_in and reverses_transpose(node.transpose_in, transpose):
-            return [(node, edge_list, "in")]
+        if node.transpose_in and reverses_transpose(node.transpose_in[0], transpose):
+            LOG.debug("accepted %s - transpose in", node.name)
+            return [(node, edge_list, "in", 0)]
 
     if isinstance(node, Transposable) and node.transpose_in:
+        LOG.debug("rejected %s - transposable", node.name)
         return []
 
     return search_up_edges(G, visited_edges, node, transpose, edge_list)
 
 
-def search_up_edges(G, visited_edges, node, transpose, edge_list):
+def search_up_edges(G, visited_edges, node, transpose, edge_list, start_edge=None):
     all_nodes = []
-    for edge in G.in_edges(node.name):
+    for edge in ([start_edge] if start_edge else G.variable_in_edges(node.name)):
         if edge in visited_edges:
             return []
         next_res = search_up_for_reverse(
-            G, visited_edges | {edge}, edge.from_node, edge.from_idx, transpose, edge_list + [edge])
+            G, visited_edges | {edge},
+            edge.from_node,
+            edge.from_idx,
+            transpose,
+            edge_list + [edge])
         if not next_res:
             return []
         all_nodes += next_res
@@ -179,22 +101,32 @@ def search_up_edges(G, visited_edges, node, transpose, edge_list):
 
 def search_down_for_reverse(G, visited_edges, node, in_idx, transpose, edge_list=None):
     """Search down the graph for transpose sequences"""
-    if len(G.in_edges(node.name)) > 1 or isinstance(node, SensitiveToOrder):
-        return []
+    LOG.debug("looking down at %s", node.name)
+    if not isinstance(node, (Transposable)):
+        if len(G.variable_in_edges(node.name)) > 1 or isinstance(node, SensitiveToOrder):
+            LOG.debug("rejected %s - sensitive to order or multi input", node.name)
+            return []
 
     if edge_list is None:
         edge_list = []
 
-    if isinstance(node, Transposable) and node.transpose_in:
-        if reverses_transpose(transpose, node.transpose_in, node.in_dims[in_idx]):
-            return [(node, edge_list, "in")]
-        else:
-            return []
+    if isinstance(node, Transposable):
+        if node.transpose_in:
+            if reverses_transpose(transpose, node.transpose_in[in_idx], node.in_dims[in_idx]):
+                LOG.debug("accepted %s - transpose in", node.name)
+                return [(node, edge_list, "in", in_idx)]
+            else:
+                LOG.debug("rejected %s - transpose in - does not reverse", node.name)
+                return []
+        elif len(transpose) == 1:
+            LOG.debug("accepted %s transpose length 1 - transpose in", node.name)
+            return [(node, edge_list, "in", in_idx)]
 
-    # if the node is a concat then we cannot proceed further since the
-    # concat must happen on axis 0 and the transposes were already set up for
+    # if the node is a concat/split then we cannot proceed further since the
+    # concat/split must happen on axis 0 and the transposes were already set up for
     # this to happen
-    if isinstance(node, ConcatParameters):
+    if isinstance(node, (ConcatParameters, SplitParameters)):
+        LOG.debug("rejected %s - concat/split", node.name)
         return []
 
     # if there is a reshape then the dimensionality of the transpose
@@ -203,20 +135,27 @@ def search_down_for_reverse(G, visited_edges, node, in_idx, transpose, edge_list
     if isinstance(node, ReshapeParameters):
         new_transpose = reverse_reshape(transpose, node.old_shape, node.shape)
         if new_transpose is None:
+            LOG.debug("rejected %s - transpose out - does not reverse", node.name)
             return []
         transpose = new_transpose
-        if node.transpose_out and reverses_transpose(transpose, node.transpose_out):
-            return [(node, edge_list, "out")]
+        if node.transpose_out:
+            if reverses_transpose(transpose, node.transpose_out[0]):
+                LOG.debug("accepted %s - transpose out", node.name)
+                return [(node, edge_list, "out", 0)]
+            elif len(transpose) == 1:
+                LOG.debug("accepted %s transpose length 1 - transpose out", node.name)
+                return [(node, edge_list, "out", 0)]
 
     if isinstance(node, Transposable) and node.transpose_out:
+        LOG.debug("rejected %s - transposable", node.name)
         return []
 
     return search_down_edges(G, visited_edges, node, transpose, edge_list)
 
 
-def search_down_edges(G, visited_edges, node, transpose, edge_list):
+def search_down_edges(G, visited_edges, node, transpose, edge_list, start_edge=None):
     all_nodes = []
-    for edge in G.out_edges(node.name):
+    for edge in ([start_edge] if start_edge else G.out_edges(node.name)):
         if edge in visited_edges:
             return []
         next_res = search_down_for_reverse(
@@ -236,19 +175,45 @@ def search_for_reverses(G):
         # respectively to see if another transpose reverses this one with nothing
         # inbetween that is transpose sensitive
         if transpose_node.transpose_in:
-            result = search_up_edges(G, visited_edges, transpose_node,
-                                     transpose_node.transpose_in, [])
-            for r in result:
-                visited_edges |= set(r[1])
-                results.append(((r[0], r[2]), (transpose_node, 'in'), r[1]
-                                [::-1], getattr(r[0], "transpose_" + r[2])))
+            for edge in G.in_edges(transpose_node.name):
+                # this can be true in the case where a node has constant inputs
+                # it probably should be eliminated and all nodes transposed uniformly
+                if edge.to_idx >= len(transpose_node.transpose_in):
+                    continue
+                trans = transpose_node.transpose_in[edge.to_idx]
+                if trans is None:
+                    continue
+                result = search_up_edges(G, visited_edges, transpose_node,
+                                         transpose_node.transpose_in[edge.to_idx], [], start_edge=edge)
+                for r in result:
+                    visited_edges |= set(r[1])
+                    # result is (from_node, from_transpose_dir, from_idx), (to_node, to_transpose_dir, to_idx),
+                    # edge list, transpose (from_node)
+                    results.append(
+                        (
+                            (r[0], r[2], r[3]),
+                            (transpose_node, 'in', edge.to_idx),
+                            r[1][::-1],
+                            getattr(r[0], "transpose_" + r[2])[r[3]]
+                        )
+                    )
         if transpose_node.transpose_out:
-            result = search_down_edges(G, visited_edges, transpose_node,
-                                       transpose_node.transpose_out, [])
-            for r in result:
-                visited_edges |= set(r[1])
-                results.append(
-                    ((transpose_node, 'out'), (r[0], r[2]), r[1], transpose_node.transpose_out))
+            for edge in G.out_edges(transpose_node.name):
+                trans = transpose_node.transpose_out[edge.from_idx]
+                if trans is None:
+                    continue
+                result = search_down_edges(G, visited_edges, transpose_node,
+                                           trans, [], start_edge=edge)
+                for r in result:
+                    visited_edges |= set(r[1])
+                    results.append(
+                        (
+                            (transpose_node, 'out', edge.from_idx),
+                            (r[0], r[2], r[3]),
+                            r[1],
+                            transpose_node.transpose_out[edge.from_idx]
+                        )
+                    )
     return results
 
 
@@ -263,9 +228,19 @@ def process_result(res):
             LOG.info("eliminating input transpose on %s", to_node.name)
             transpose = reverse_reshape(transpose, to_node.old_shape, to_node.shape)
             to_node.shape.transpose(transpose)
+        elif isinstance(to_node, StridedSliceParameters):
+            LOG.info("transpose strided slice %s", to_node.name)
+            to_node.act_slice = [to_node.act_slice[idx] for idx in transpose]
+            to_node.out_shape = [to_node.out_shape[idx] for idx in transpose]
 
-    for node, direction in [res[idx] for idx in range(2)]:
-        setattr(node, "transpose_"+direction, None)
+    for node, direction, edge_idx in [res[idx] for idx in range(2)]:
+        trans = getattr(node, "transpose_"+direction)
+        # This transpose node may have been selected because it only has
+        # one dimension in which case there may not actually be a transpose
+        if trans:
+            trans[edge_idx] = None
+            if all(elem is None for elem in trans):
+                setattr(node, "transpose_"+direction, None)
 
 
 def eliminate_transposes(G):

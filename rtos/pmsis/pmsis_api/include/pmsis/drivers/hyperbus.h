@@ -120,6 +120,32 @@ int32_t pi_hyper_open(struct pi_device *device);
  */
 void pi_hyper_close(struct pi_device *device);
 
+/** IOCTL command */
+enum pi_hyper_ioctl_cmd
+{
+    /** @brief Set the device latency.
+     *
+     * This command can be used when the interface has been opened to configure
+     * the latency suitable for the device.
+     */
+    PI_HYPER_IOCTL_SET_LATENCY,
+};
+
+/**
+ * \brief Dynamically change the device configuration.
+ *
+ * This function can be called to change part of the device configuration after
+ * it has been opened or to control it.
+ *
+ * \param device  A pointer to the structure describing the device.
+ * \param cmd      The command which specifies which parameters of the driver
+ *   to modify and for some of them also their values. The command must be one
+ *   of those defined in pi_spi_ioctl_e.
+ * \param arg       An additional value which is required for some parameters
+ *   when they are set.
+ */
+int pi_hyper_ioctl(struct pi_device *device, uint32_t cmd, void *arg);
+
 /** \brief Enqueue a read copy to the Hyperbus (from Hyperbus to processor).
  *
  * The copy will make a transfer between the Hyperbus and one of the processor

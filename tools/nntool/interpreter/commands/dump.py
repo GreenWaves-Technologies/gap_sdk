@@ -18,11 +18,12 @@ import logging
 import pickle
 
 import numpy as np
+from PIL import Image, ImageDraw
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
-from graph.types import ConvFusionParameters, FilterParameters
+from graph.types import ConvFusionParameters, FilterParameters, SSDDetectorParameters
 from interpreter.nntool_shell_base import NNToolShellBase
 from interpreter.shell_utils import (glob_input_files,
                                      input_options)
@@ -139,6 +140,8 @@ class DumpCommand(NNToolShellBase):
                              help='pickle all the outputed tensors to this file')
     parser_dump.add_argument('-S', '--save',
                              help='save the tensor to the tensors list')
+    parser_dump.add_argument('-v', '--visualize_detection',
+                             action='store_true', help='visualize input images and detection predictions')
     input_options(parser_dump)
 
     @with_argparser(parser_dump)
@@ -182,7 +185,7 @@ specific step of the graph."""
         pickles = []
 
         for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
-            LOG.info("input file %s", file_per_input)            
+            LOG.info("input file %s", file_per_input)
             data = [import_data(input_file, **input_args) for input_file in file_per_input]
             executer = GraphExecuter(self.G, qrecs=self.G.quantization)
             outputs = executer.execute(data, step_idx_limit=step,
@@ -195,6 +198,32 @@ specific step of the graph."""
                 self.G.print_intermediates(outputs, limit=step, width=args.number_width,
                                            precision=args.precision, channel=args.channel,
                                            order=['c', 'h', 'w'])
+
+            if args.visualize_detection:
+                img_in = Image.open(file_per_input[0])
+
+                bboxes, classes, scores, _ = [outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
+                height = img_in.size[0] if input_args['height'] == -1 else input_args['height']
+                width = img_in.size[1] if input_args['width'] == -1 else input_args['width']
+
+                img_in = img_in.resize((width, height))
+                draw = ImageDraw.Draw(img_in, 'RGBA')
+
+                for box, score, class_id in zip(bboxes, scores, classes):
+                    if args.quantize and not args.dequantize:
+                        ssd_node = [node for node in self.G.nodes() if isinstance(node, SSDDetectorParameters)][0]
+                        ssd_qrec = self.G.quantization[NodeId(ssd_node)]
+                        x0, x1 = int(box[1] * width * ssd_qrec.out_qs[0].scale), int(box[3] * width * ssd_qrec.out_qs[0].scale)
+                        y0, y1 = int(box[0] * height * ssd_qrec.out_qs[0].scale), int(box[2] * height * ssd_qrec.out_qs[0].scale)
+                        score = score * ssd_qrec.out_qs[2].scale
+                    else:
+                        x0, x1 = int(box[1] * width), int(box[3] * width)
+                        y0, y1 = int(box[0] * height), int(box[2] * height)
+                    rect_points = (x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)
+                    draw.line(rect_points, fill='red', width=2)
+                    txt = '{}@{}%'.format(class_id, int(score*100))
+                    draw.text([x0, y0-10], txt, fill=(0, 255, 0))
+                img_in.show()
 
         if args.pickle or args.save or self._in_py:
             if not pickles:

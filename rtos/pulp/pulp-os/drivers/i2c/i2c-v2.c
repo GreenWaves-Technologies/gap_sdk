@@ -19,6 +19,7 @@
  */
 
 #include "pmsis.h"
+#include "pmsis/errno.h"
 
 
 static L2_DATA pi_i2c_t __rt_i2c[ARCHI_UDMA_NB_I2C];
@@ -27,7 +28,7 @@ static L2_DATA pi_i2c_t __rt_i2c[ARCHI_UDMA_NB_I2C];
 #ifndef __RT_I2C_COPY_ASM
 
 void __rt_i2c_handle_tx_copy(int event, void *arg)
-{ 
+{
   pi_i2c_t *i2c = (pi_i2c_t *)arg;
 
   void (*cb)(pi_i2c_t *) = (void (*)(pi_i2c_t *))i2c->pending_step;
@@ -178,11 +179,12 @@ end:
   rt_irq_restore(irq);
 }
 
-void pi_i2c_write(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags)
+int pi_i2c_write(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags)
 {
   struct pi_task task;
   pi_i2c_write_async(device, data, length, flags, pi_task_block(&task));
   pi_task_wait_on(&task);
+  return PI_OK;
 }
 
 void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length, pi_i2c_xfer_flags_e flags, pi_task_t *task)
@@ -216,7 +218,7 @@ void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length, p
 
   if (!xfer_pending)
     i2c->udma_cmd[seq_index++] = I2C_CMD_STOP;
-    
+
   unsigned int base = hal_udma_channel_base(i2c->channel);
 
   plp_udma_enqueue(base + UDMA_CHANNEL_RX_OFFSET, (unsigned int)rx_buff, length, UDMA_CHANNEL_CFG_EN);
@@ -225,11 +227,12 @@ void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length, p
   rt_irq_restore(irq);
 }
 
-void pi_i2c_read(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags)
+int pi_i2c_read(struct pi_device *device, uint8_t *data, int length, pi_i2c_xfer_flags_e flags)
 {
   struct pi_task task;
   pi_i2c_read_async(device, data, length, flags, pi_task_block(&task));
   pi_task_wait_on(&task);
+  return PI_OK;
 }
 
 int pi_i2c_open(struct pi_device *device)

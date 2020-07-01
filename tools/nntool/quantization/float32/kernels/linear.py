@@ -42,9 +42,7 @@ def linear(params,
 
     if params.has_bias:
         biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="float32")
-        acc_tensor = np.ones((out_dims.c, out_dims.h, out_dims.w),
-                             dtype=np.float32) * biases.reshape((out_dims.c, out_dims.h, out_dims.w))
-        acc_tensor = acc_tensor.transpose(out_dims.transpose_from_order(('c', 'h', 'w')))
+        acc_tensor = np.ones(out_dims.shape, dtype=np.float32) * biases
     else:
         acc_tensor = np.zeros(out_dims.shape,
                               dtype=np.float32)
@@ -62,14 +60,13 @@ def linear(params,
             details['min_acc'] = min(np.sum(res[res < 0]), details['min_acc'])
             details['max_acc'] = min(np.sum(res[res > 0]), details['max_acc'])
 
-        acc_slice = acc_tensor[out_dims.srange(c=out_c, h=0, w=0)]
-        acc_slice += res
+        acc_tensor[out_c] += res
 
         if details is not None:
-            details['min_acc'] = min(np.min(acc_slice), details['min_acc'])
-            details['max_acc'] = max(np.max(acc_slice), details['max_acc'])
+            details['min_acc'] = min(np.min(acc_tensor[out_c]), details['min_acc'])
+            details['max_acc'] = max(np.max(acc_tensor[out_c]), details['max_acc'])
 
     acc_tensor = qrec.apply_multiplicative_bias(
-        params, acc_tensor, out_dims.get_order_idx('c'), ktype="float32")
+        params, acc_tensor, 0, ktype="float32")
 
     return qrec.get_outputs(params, [acc_tensor], ktype="float32")

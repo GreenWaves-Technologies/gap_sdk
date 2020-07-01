@@ -14,8 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # author: martin.croome@greenwaves-technologies.com
-
+import math
 import numpy as np
+from scipy.cluster.vq import vq, whiten
+from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 
 class ConstantStore:
     def __init__(self):
@@ -48,6 +50,24 @@ class ConstantStore:
             self._values[node] = node_vals
 
         node_vals[idx] = (shape, None)
+
+    def compress(self, node, idx, bits, sparse=True):
+        val = self.get(node, idx)
+        flattened_val = val.flatten()
+        bins = int(math.pow(2, bits) + 1 if sparse else 0)
+        kmeans = KMeans(n_clusters=bins)
+        bandwidth = estimate_bandwidth(flattened_val.reshape((-1, 1)), quantile=0.1)
+        meanshift = MeanShift(bandwidth)
+        meanshift.fit(flattened_val.reshape((-1, 1)))
+
+        kmeans.fit(flattened_val.reshape((-1, 1)))
+        codebook = kmeans.cluster_centers_
+        codes = vq(val.flatten(), codebook)
+        freqs = np.unique(codes, return_counts=True)
+        max_index = np.where(freqs[1] == freqs[1].max())[0][0]
+        sparse_val = freqs[0][max_index]
+        compressed_val = np.array([codebook[code] for code in codes[0]]).reshape(val.shape)
+        x = 1
 
     @property
     def fake(self):

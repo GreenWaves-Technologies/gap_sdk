@@ -32,9 +32,13 @@ LOG = logging.getLogger("nntool." + __name__)
 def matadd_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
     if qrec.in_qs[0].q == qrec.in_qs[1].q and qrec.in_qs[0].q == qrec.out_qs[0].q:
-        gen.kernels.append(MatrixAddKernel(cname, node, qrec, None, None, at_ver=gen.opts['at_ver']))
+        gen.kernels.append(MatrixAddKernel(cname, node, qrec, None, None,
+                                           gen_ctrl=node.get_gen_ctrl(),
+                                           at_ver=gen.opts['at_ver']))
     else:
-        gen.kernels.append(MatrixAddDynKernel(cname, node, qrec, None, None, at_ver=gen.opts['at_ver']))
+        gen.kernels.append(MatrixAddDynKernel(cname, node, qrec, None, None,
+                                              gen_ctrl=node.get_gen_ctrl(),
+                                              at_ver=gen.opts['at_ver']))
     return True
 
 
@@ -98,7 +102,8 @@ class MatrixAddDynKernel(AutotilerKernel):
         if gen_ctrl is None:
             self.gen_ctrl = GenCtrl(None, cname=cname)
         else:
-            self.gen_ctrl.cname = cname
+            gen_ctrl.cname = cname
+            self.gen_ctrl = gen_ctrl
 
         at_matrixadd_params = gen_matrixadddyn_at_params(matrixadd_params)
         in_dim = matrixadd_params.in_dims[0]

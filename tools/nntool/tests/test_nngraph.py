@@ -20,8 +20,8 @@ import numpy as np
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from graph.manipulations import add_dimensions, calculate_liveness
-from graph.matches.matches import get_fusion, get_pow2_match_group, get_scale8_match_group
-from graph.types import Parameters, Transposable
+from graph.matches.matches import get_fusion, get_pow2_match_group, get_scale8_match_group, MatchRnnUnpack
+from graph.types import Parameters, Transposable, InputParameters, OutputParameters
 from importer.tflite.new_tflite_graph_all import TfliteImporter
 from reports.graph_reporter import GraphReporter
 from utils.node_id import NodeId
@@ -112,6 +112,15 @@ def test_load12():
     G = tfi.create_graph("tests/graph/imu.tflite", {'load_tensors': True})
     steps = add_dimensions(G)
     verify_steps(steps, 8)
+    assert G
+
+
+def test_load13():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/vs_ssd_mobv1_forNNtool_with_detect.tflite",
+                         {'load_tensors': True, 'load_quantization': True})
+    steps = add_dimensions(G)
+    verify_steps(steps, 100)
     assert G
 
 
@@ -289,6 +298,7 @@ def test_adjust_new():
     G.add_dimensions()
     G.adjust_order()
 
+
 def test_adjust_new2():
     tfi = TfliteImporter()
     G = tfi.create_graph("tests/graph/ssdlite_v2_quant_ocr_nopostprocess.tflite",
@@ -297,6 +307,7 @@ def test_adjust_new2():
     G['output_1'].fixed_order = True
     G['output_2'].fixed_order = True
     G.adjust_order()
+
 
 def test_adjust7(concat_test_graph):
     tfi = TfliteImporter()
@@ -356,6 +367,82 @@ def test_adjust11():
     assert all([not (node.transpose_in or node.transpose_out)
                 for node in G.nodes() if isinstance(node, Transposable)]), "shouldn't have transposes"
 
+
+def test_adjust_lstm():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    G.adjust_order()
+    assert G
+
+def test_adjust_lstm2():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm2.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    G.adjust_order()
+    assert G
+
+def test_adjust_lstm3():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm3.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    G.adjust_order()
+    assert G
+
+def test_adjust_lstm4():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm4.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    G.adjust_order()
+    matcher = get_scale8_match_group()
+    matcher.match(G)
+    G.add_dimensions()
+    assert G
+
+def test_adjust_lstm5():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm5.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    G.adjust_order()
+    matcher = get_scale8_match_group()
+    matcher.match(G)
+    G.add_dimensions()
+    assert G
+
+def test_adjust_rnn():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/rnn.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    G.adjust_order()
+    MatchRnnUnpack().match(G)
+    G.add_dimensions()
+    assert G
+
+
+def test_adjust_rnn2():
+    tfi = TfliteImporter()
+    G = tfi.create_graph("tests/graph/lstm3.tflite", {'load_tensors': True})
+    G.add_dimensions()
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    G.adjust_order()
+    MatchRnnUnpack().match(G)
+    G.add_dimensions()
+    assert G
+
+def test_adjust_split_concat(split_concat_graph):
+    G = split_concat_graph
+    G.add_dimensions()
+    for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+        node.fixed_order = 1
+    G.adjust_order()
+    MatchRnnUnpack().match(G)
+    G.add_dimensions()
+    assert G
 
 def test_validate_mn1_float(mn1f_graph):
     tfi = TfliteImporter()

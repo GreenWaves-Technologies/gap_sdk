@@ -23,5 +23,6 @@ def outputs_output_generator(gen, node, qrec, edge) -> bool:
     gen.globals.append(OutputArgInfo(qrec.in_qs[edge.to_idx].ctype, eparams.name,
                                      gen.opts['default_output_home_location'],
                                      gen.opts['default_output_exec_location'],
-                                     allocate=node.at_options.allocate))
+                                     allocate=node.at_options.allocate,
+                                     extern_output_pointer=node.at_options.extern_output_pointer))
     return True

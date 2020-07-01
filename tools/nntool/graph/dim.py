@@ -20,7 +20,7 @@
 from collections.abc import Iterable
 from functools import reduce
 from math import ceil, floor
-
+import numpy as np
 
 class DimError(Exception):
     pass
@@ -56,7 +56,6 @@ class MissMatchedInputsError(DimError):
 
 class MoreThanOneInputError(DimError):
     pass
-
 
 class Dim():
     def __init__(self, shape=None, names=None, is_ordered=False, is_unknown=False):
@@ -177,7 +176,9 @@ class Dim():
 
     @property
     def order(self) -> list:
-        self._verify_is_named()
+        if not self.is_named:
+            return [str(idx) for idx in range(len(self.shape))]
+        # self._verify_is_named()
         self._verify_is_ordered()
         return self._names
 
@@ -231,7 +232,11 @@ class Dim():
 
         # pylint: disable=protected-access
         if len(self._shape) != len(hint):
-            raise MissMatchedInputsError()
+            if len(self.layout_shape) == 1 and 'c' in hint:
+                # project dimension onto channel
+                self._shape = [self.layout_shape[0] if elem == 'c' else 1 for elem in hint]
+            else:
+                raise MissMatchedInputsError()
         # pylint: disable=protected-access
         object.__setattr__(self, '_names', hint.copy())
         object.__setattr__(self, '_is_named', True)
@@ -412,6 +417,8 @@ class Dim():
     # SPECIAL METHODS
 
     def __getattr__(self, name):
+        if name.startswith('_'):
+            return super().__getattribute__(name)
         self._verify_is_named()
         try:
             idx = self._names.index(name)
@@ -420,6 +427,8 @@ class Dim():
             raise AttributeError("{} not found".format(name))
 
     def __setattr__(self, name, val):
+        if name.startswith('_'):
+            return super().__setattr__(name, val)
         self._verify_is_named()
         try:
             idx = self._names.index(name)
@@ -753,6 +762,10 @@ class Conv2DFilterDim(Dim):
             self.impose_order(order)
 
     @property
+    def sz(self):
+        return self.in_c * self.h * self.w
+
+    @property
     def actual_shape(self):
         return self.shape
 
@@ -761,19 +774,21 @@ class Conv2DFilterDim(Dim):
         return Conv2DFilterDim(self.h, self.w, self.out_c, self.in_c, order=self.keys)
 
 
-DEFAULT_FCFILTER_DIMS = ['out_c', 'in_c', 'h', 'w']
+DEFAULT_FCFILTER_DIMS = ['out_c', 'in_c']
 
 
 class FcFilterDim(Dim):
 
-    def __init__(self, h, w, out_c, in_c=None, order=None):
-        super().__init__([out_c, in_c, h, w], DEFAULT_FCFILTER_DIMS.copy(), is_ordered=True)
-        if order is not None and order != DEFAULT_FCFILTER_DIMS:
-            self.impose_order(order)
+    def __init__(self, *args, order=None):
+        if order is None:
+            order = [str(idx) for idx in range(len(args))]
+            order[0] = DEFAULT_FCFILTER_DIMS[0]
+            order[-1] = DEFAULT_FCFILTER_DIMS[1]
+        super().__init__(args, order, is_ordered=True)
 
     @property
     def sz(self):
-        return self.in_c * self.h * self.w
+        return np.prod([getattr(self, i) for i in self.keys if i != 'out_c'])
 
     @property
     def actual_shape(self):
@@ -783,7 +798,7 @@ class FcFilterDim(Dim):
     def actual_order(self):
         out_c_idx = self.order.index('out_c')
         out_c_first = out_c_idx == 0
-        assert out_c_first or out_c_idx == 3, "out_c should be first or last"
+        assert out_c_first or out_c_idx == (len(self.order) - 1), "out_c should be first or last"
         if out_c_first:
             return ['out_c', 'sz']
         else:
@@ -798,14 +813,14 @@ class FcFilterDim(Dim):
         self._verify_is_ordered()
         self._verify_is_named()
         out_c_idx = self.get_order_idx('out_c')
-        assert out_c_idx == 0 or out_c_idx == 3, "very strange shape for Linear filter"
+        assert out_c_idx == 0 or out_c_idx == (len(self.order) - 1), "very strange shape for Linear filter"
         if out_c_idx == 0:
-            return Dim.named_ordered(out_c=self.out_c, sz=self.h*self.w*self.in_c)
-        return Dim.named_ordered(sz=self.h*self.w*self.in_c, out_c=self.out_c)
+            return Dim.named_ordered(out_c=self.out_c, sz=self.in_c)
+        return Dim.named_ordered(sz=self.in_c, out_c=self.out_c)
 
     def clone(self, keys=None) -> 'FcFilterDim':
         assert not keys
-        return FcFilterDim(self.h, self.w, self.out_c, self.in_c, order=self.keys)
+        return FcFilterDim(self.out_c, self.in_c, order=self.keys)
 
 
 DEFAULT_2DDIMS = ['h', 'w']

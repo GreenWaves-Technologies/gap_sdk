@@ -15,10 +15,8 @@
 
 import logging
 
-from utils.graph import Edge
-
 from ..nngraph import NNGraph
-from ..types import Parameters, SingleInputAndOutput
+from ..types import Parameters, SingleInputAndOutput, NNEdge
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -33,8 +31,8 @@ def extract_node(G: NNGraph, keep_node: Parameters):
     if isinstance(keep_node, SingleInputAndOutput):
         input_node = G.add_input(keep_node.in_dims[0])
         output_node = G.add_output()
-        G.add_edge(Edge(input_node, keep_node))
-        G.add_edge(Edge(keep_node, output_node))
+        G.add_edge(NNEdge(input_node, keep_node))
+        G.add_edge(NNEdge(keep_node, output_node))
         G.add_dimensions()
     else:
         raise NotImplementedError()

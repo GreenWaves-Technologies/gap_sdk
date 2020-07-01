@@ -3202,8 +3202,10 @@ void KerParConvDW7x7StrideSB8_SQ8(KerConv_SQ8_T *Arg)
 
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
+	// int Wo_F = Min(Wo-1, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
 	int Ho = (Arg->UsedH-FS+PadIn[2]+PadIn[3])/S + 1;
 	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
+	// int Ho_F = Min(Ho-1, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho, LastDefinedOutput(Arg->UsedH, FS, PadIn[2], S));
 
        	for (unsigned int of=First; of<Last; of++) {
 		signed char *in = In+W*H*of, *filter = Filter+FS*FS*of; int *out = Out+Wo*Ho*of;

@@ -13,14 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
-                         MatrixAddParameters, MatrixDivParameters,
-                         MatrixMulParameters, ReluActivationParameters,
-                         ReshapeParameters, TransposeParameters, PoolingParameters,
-                         ConcatParameters)
-from utils.graph import Edge, GraphView
+from graph.types import (ConcatParameters, ConstantInputParameters,
+                         HSigmoidActivationParameters, MatrixAddParameters,
+                         MatrixDivParameters, MatrixMulParameters, NNEdge,
+                         PoolingParameters, ReluActivationParameters,
+                         ReshapeParameters, TransposeParameters)
+from utils.graph import GraphView
 from utils.node_id import NodeId
+
 from .matcher import Matcher
+
 
 def reduce_edges(in_edges, visited_edges):
     status = [None, None]
@@ -82,9 +84,11 @@ def find_redundant_relus(G, node, visited_edges):
         nodes_to_remove += find_redundant_relus(G, edge.to_node, visited_edges)
     return nodes_to_remove
 
+
 class RemoveRelusMatch(Matcher):
     NAME = 'remove_relus'
     DESCRIPTION = 'Finds redundant relus in graph'
+
     def match(self, G: GraphView, set_identity: bool = True):
         visited_edges = {}
         nodes_to_remove = []
@@ -114,8 +118,8 @@ class RemoveRelusMatch(Matcher):
             # Only relus so only one in edge
             in_edge = G.in_edges(node.name)[0]
             for edge in G.out_edges(node.name):
-                G.add_edge(Edge(from_node=in_edge.from_node,
-                                from_idx=in_edge.from_idx,
-                                to_node=edge.to_node,
-                                to_idx=edge.to_idx))
+                G.add_edge(NNEdge(from_node=in_edge.from_node,
+                                  from_idx=in_edge.from_idx,
+                                  to_node=edge.to_node,
+                                  to_idx=edge.to_idx))
             G.remove(node)

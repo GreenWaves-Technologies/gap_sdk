@@ -46,7 +46,7 @@ def gen_at_softmax(code_block, name, in_q, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
 
     code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {});',
                      GEN_SOFTMAX, name, gen_ctrl,

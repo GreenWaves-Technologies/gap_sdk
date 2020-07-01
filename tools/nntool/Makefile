@@ -59,6 +59,15 @@ endef
 # $(eval $(call schema,$(SCHEMA_V3),$(SCHEMA_V3)))
 $(eval $(call schema,$(SCHEMA_HEAD_NAME),$(SCHEMA_HEAD)))
 
+schema_ui:
+	mkdir schema_ui
+
+schema_ui/tflite_$(SCHEMA_HEAD_NAME): build/$(SCHEMA_HEAD_NAME)/$(SCHEMA_HEAD_NAME).fbs
+	$(FLAT_BUILD)/flatc --gen-object-api --no-includes --gen-all -p -o schema_ui $<
+
+schema_ui/__init__.py: schema_ui/tflite_$(SCHEMA_HEAD_NAME)
+	cat schema_ui/tflite_$(SCHEMA_HEAD_NAME)/*.py > $@
+
 req:
 	python3 -m pip install -r requirements.txt
 

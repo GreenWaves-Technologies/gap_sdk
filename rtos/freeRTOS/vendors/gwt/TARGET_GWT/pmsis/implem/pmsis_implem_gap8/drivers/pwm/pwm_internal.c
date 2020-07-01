@@ -106,7 +106,7 @@ void __pi_pwm_conf_init(struct pi_pwm_conf *conf)
     conf->ch_id = PI_PWM_CHANNEL0;
     conf->input_src = 0;
     conf->timer_conf = PI_PWM_EVT_EACH_CLK_CYCLE |
-                       PI_PWM_CLKSEL_REFCLK_32K |
+                       PI_PWM_CLKSEL_FLL |
                        PI_PWM_UPDOWNSEL_RESET;
     conf->prescaler = 0;
 }

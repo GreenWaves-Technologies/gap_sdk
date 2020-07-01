@@ -111,7 +111,7 @@ static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsi
 			printf("Unable to load header %s", Name);
 			Err = 1;
 		} else {
-			printf("Image %s:  [W: %d, H: %d] Bytes per pixel %d, HeaderSize: %d\n", Name, *W, *H, *BytesPerPixel, *HeaderSize);
+			PRINTF("Image %s:  [W: %d, H: %d] Bytes per pixel %d, HeaderSize: %d\n", Name, *W, *H, *BytesPerPixel, *HeaderSize);
 			for (i=0; i<*HeaderSize;i++) printf("%c", Header[i]);
 			printf("\n");
 		}
@@ -303,7 +303,7 @@ int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int Desir
 	}
 	__CLOSE(File);
 	__FS_DEINIT(fs);
-	printf("Image %s, [W: %d, H: %d], Bytes per pixel %d, Size: %d bytes, Loaded successfully\n", ImageName, W, H, BytesPerPixel, Size);
+	PRINTF("Image %s, [W: %d, H: %d], Bytes per pixel %d, Size: %d bytes, Loaded successfully\n", ImageName, W, H, BytesPerPixel, Size);
 
 	return 0;
 Fail:
@@ -416,7 +416,9 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
         int steps = (W*H*PixelSize) / CHUNK_SIZE;             // convert and fs write times
 
         for(int i=0;i<steps;i++){
-            progress_bar("Writing image ",i,steps);
+        	#ifndef SILENT
+	            progress_bar("Writing image ",i,steps);
+	        #endif
             rgb565_to_rgb888(OutBuffer+(CHUNK_SIZE*i), CHUNK_SIZE, img_rgb888);
             ret+=__WRITE(File, img_rgb888, rgb888_size);
         }
@@ -434,7 +436,9 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
         int steps = (W*H*PixelSize) / CHUNK_SIZE;
 
         for(int i=0;i<steps;i++){
-            progress_bar("Writing image ",i,steps);
+            #ifndef SILENT
+	            progress_bar("Writing image ",i,steps);
+	        #endif
             ret+=__WRITE(File,OutBuffer +(CHUNK_SIZE*i), CHUNK_SIZE);
         }
         if(((W*H*PixelSize) % CHUNK_SIZE) != 0)

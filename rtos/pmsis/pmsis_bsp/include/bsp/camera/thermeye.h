@@ -51,6 +51,7 @@ struct pi_thermeye_conf
     pi_gpio_e gpio_power;  /*!< GPIO pin used to power camera. */
     pi_gpio_e gpio_reset;  /*!< GPIO pin used to reset camera. */
     uint8_t skip_pads_config; /*!< Skip pads configuration if set to 1. */
+    pi_cpi_format_e cpi_format;
 };
 
 /**

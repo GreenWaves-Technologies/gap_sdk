@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
+from copy import deepcopy
 from ..dim import Dim
 from .base import (Parameters, NodeOptions, FilterParameters, SingleInputAndOutput)
 
@@ -60,7 +60,8 @@ class FusionBase(Parameters):
         out_dims = in_dims
 
         for node in self.contained_nodes():
-            out_dims = node.get_output_size(out_dims)
+            out_dims = node.get_output_size([out_dim.clone() for out_dim in out_dims])
+            node.out_dims = out_dims
 
         return out_dims
 

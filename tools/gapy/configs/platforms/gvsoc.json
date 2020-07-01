@@ -7,6 +7,7 @@
 
     "verbose": true,
     "debug-mode": false,
+    "sa-mode": true,
 
     "launchers": {
         "default": "gvsoc_launcher",

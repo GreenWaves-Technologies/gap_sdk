@@ -119,7 +119,7 @@ DoOffset    If true offset pixel by -128
 
 Signature:	Name(In, Out)
 
-CNN_NormRGB565
+Kop: NNTOOL_KOP_RGB16, NNTOOL_KOP_RGB565, NNTOOL_KOP_RGB888
 
  *********************************************************************************************************************************************************************/
 

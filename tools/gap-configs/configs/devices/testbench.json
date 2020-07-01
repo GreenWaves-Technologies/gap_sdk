@@ -1,11 +1,9 @@
 {
     "vp_comps": [
-        "testbench", "clock"
+        "testbench", "uart0_clock", "uart1_clock", "uart2_clock", "uart3_clock", "uart4_clock", "uart0_tx_clock", "uart1_tx_clock", "uart2_tx_clock", "uart3_tx_clock", "uart4_tx_clock"
     ],
 
     "vp_bindings": [
-        ["self->ctrl", "testbench->ctrl"],
-
         ["self->gpio0", "testbench->gpio0"],
         ["self->gpio1", "testbench->gpio1"],
         ["self->gpio2", "testbench->gpio2"],
@@ -101,11 +99,81 @@
         ["self->i2c1", "testbench->i2c1"],
         ["self->i2c2", "testbench->i2c2"],
 
-        ["clock->out", "testbench->clock"],
-        ["testbench->clock_cfg", "clock->clock_in"]
+        ["self->uart0", "testbench->uart0"],
+        ["self->uart1", "testbench->uart1"],
+        ["self->uart2", "testbench->uart2"],
+        ["self->uart3", "testbench->uart3"],
+        ["self->uart4", "testbench->uart4"],
+
+        ["uart0_clock->out", "testbench->uart0_clock"],
+        ["testbench->uart0_clock_cfg", "uart0_clock->clock_in"],
+        ["uart1_clock->out", "testbench->uart1_clock"],
+        ["testbench->uart1_clock_cfg", "uart1_clock->clock_in"],
+        ["uart2_clock->out", "testbench->uart2_clock"],
+        ["testbench->uart2_clock_cfg", "uart2_clock->clock_in"],
+        ["uart3_clock->out", "testbench->uart3_clock"],
+        ["testbench->uart3_clock_cfg", "uart3_clock->clock_in"],
+        ["uart4_clock->out", "testbench->uart4_clock"],
+        ["testbench->uart4_clock_cfg", "uart4_clock->clock_in"],
+
+        ["uart0_tx_clock->out", "testbench->uart0_tx_clock"],
+        ["testbench->uart0_tx_clock_cfg", "uart0_tx_clock->clock_in"],
+        ["uart1_tx_clock->out", "testbench->uart1_tx_clock"],
+        ["testbench->uart1_tx_clock_cfg", "uart1_tx_clock->clock_in"],
+        ["uart2_tx_clock->out", "testbench->uart2_tx_clock"],
+        ["testbench->uart2_tx_clock_cfg", "uart2_tx_clock->clock_in"],
+        ["uart3_tx_clock->out", "testbench->uart3_tx_clock"],
+        ["testbench->uart3_tx_clock_cfg", "uart3_tx_clock->clock_in"],
+        ["uart4_tx_clock->out", "testbench->uart4_tx_clock"],
+        ["testbench->uart4_tx_clock_cfg", "uart4_tx_clock->clock_in"]
     ],
 
-    "clock": {
+    "uart0_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart1_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart2_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart3_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart4_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart0_tx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart1_tx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart2_tx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart3_tx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "uart4_tx_clock": {
         "vp_component": "vp.clock_domain_impl",
         "frequency": "50000000"
     },
@@ -118,7 +186,9 @@
         "verbose": false,
         "ctrl_type": "uart",
         "uart_baudrate": 115200,
+        "uart_id": 0,
         "nb_gpio": 90,
+        "nb_uart": 5,
         "nb_i2c": 3
     }
 }

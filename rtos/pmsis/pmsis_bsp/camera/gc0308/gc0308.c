@@ -47,7 +47,6 @@ typedef struct {
 
 typedef i2c_req_t gc0308_reg_init_t;
 
-
 static gc0308_reg_init_t __gc0308_reg_init[] =
 {
     {0xfe,0x00},
@@ -72,7 +71,7 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     
     //{0x09,0x00}, 
     //{0x0a,0xF8},
-    
+    //
     //{0x0b,0x01},
     //{0x0c,0x48},
 
@@ -83,7 +82,9 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x12,0x2a},
     {0x13,0x00},
     {0x14,0x11},
-    {0x15,0x0a},
+    
+    //{0x15,0x4a},
+    
     {0x16,0x05},
     {0x17,0x01},
     {0x18,0x44},
@@ -117,10 +118,10 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x3e,0x00},
     {0x3f,0x00},
     
+    
     {0x50,0x14}, // 0x14
     {0x52,0x41},
     {0x53,0x80},
-    {0x54,0x80},
     {0x55,0x80},
     {0x56,0x80},
     {0x8b,0x20},
@@ -364,10 +365,8 @@ static void __gc0308_init_regs(gc0308_t *gc0308)
 
 static void __gc0308_reset(gc0308_t *gc0308)
 {
+    //set to 0 power down pin
     pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 0);
-    pi_time_wait_us(10000);
-    pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 1);
-    pi_time_wait_us(100000);
 }
 
 
@@ -400,6 +399,57 @@ static void __gc0308_standby(gc0308_t *gc0308)
         gc0308->is_awake = 0;
     }
 }
+
+static void __gc0308_set_qvga(gc0308_t *gc0308)
+{
+
+   // gc0308_t *gc0308 = (gc0308_t *)device->data;
+
+    __gc0308_reg_write(gc0308,0xfe,0x01);
+    __gc0308_reg_write(gc0308,0x54,0x22);  //1/2 subsample 
+    __gc0308_reg_write(gc0308,0x55,0x03); 
+    __gc0308_reg_write(gc0308,0x56,0x00); 
+    __gc0308_reg_write(gc0308,0x57,0x00); 
+    __gc0308_reg_write(gc0308,0x58,0x00); 
+    __gc0308_reg_write(gc0308,0x59,0x00); 
+    __gc0308_reg_write(gc0308,0xfe,0x00);
+    __gc0308_reg_write(gc0308,0x46,0x80);//enable crop window mode
+    __gc0308_reg_write(gc0308,0x47,0x00);  
+    __gc0308_reg_write(gc0308,0x48,0x00);  
+    __gc0308_reg_write(gc0308,0x49,0x00); 
+    __gc0308_reg_write(gc0308,0x4a,0xf0);//240
+    __gc0308_reg_write(gc0308,0x4b,0x01);  
+    __gc0308_reg_write(gc0308,0x4c,0x40); //320
+
+    return;
+}
+
+void __gc0308_set_crop(struct pi_device *device, uint8_t offset_x, uint8_t offset_y,uint16_t width,uint16_t height)
+{
+    uint8_t reg8;
+    gc0308_t *gc0308 = (gc0308_t *)device->data;
+
+    __gc0308_reg_write(gc0308,0xfe,0x00);
+    //Enable Crop
+    __gc0308_reg_write(gc0308, 0x46, 0x80);
+    //set x offset
+    __gc0308_reg_write(gc0308, 0x48, offset_x);
+    //set y offset
+    __gc0308_reg_write(gc0308, 0x47, offset_y);
+    //set width
+    reg8 = ( width & 0x00ff);
+    __gc0308_reg_write(gc0308, 0x4C, reg8);
+    reg8 = ( width & 0x0300) >> 8;
+    __gc0308_reg_write(gc0308, 0x4B, reg8);
+    //set height
+    reg8 = ( height & 0x00ff);
+    __gc0308_reg_write(gc0308, 0x4A, reg8);
+    reg8 = ( height & 0x0100) >> 8;
+    __gc0308_reg_write(gc0308, 0x49, reg8);
+    
+    return;   
+}
+
 
 
 
@@ -450,6 +500,10 @@ int32_t __gc0308_open(struct pi_device *device)
     if (cam_id != 0x9b) goto error2;
 
     __gc0308_init_regs(gc0308);
+
+    if(gc0308->conf.format==PI_CAMERA_QVGA){
+        __gc0308_set_qvga(gc0308);
+    }
 
     return 0;
 
@@ -512,8 +566,6 @@ void __gc0308_capture_async(struct pi_device *device, void *buffer, uint32_t buf
     pi_cpi_capture_async(&gc0308->cpi_device, buffer, bufferlen, task);
 }
 
-
-
 int32_t __gc0308_reg_set(struct pi_device *device, uint32_t addr, uint8_t *value)
 {
     gc0308_t *gc0308 = (gc0308_t *)device->data;
@@ -521,48 +573,11 @@ int32_t __gc0308_reg_set(struct pi_device *device, uint32_t addr, uint8_t *value
     return 0;
 }
 
-
-
 int32_t __gc0308_reg_get(struct pi_device *device, uint32_t addr, uint8_t *value)
 {
     gc0308_t *gc0308 = (gc0308_t *)device->data;
     *value = __gc0308_reg_read(gc0308, addr);
     return 0;
-}
-/*
-    {0x46,0x80}, //Enable CROP 
-    {0x47,0x78}, //CROP Y0 for QVGA 120 
-    {0x48,0xA0}, //CROP X0 for QVGA 160 
-    
-    {0x49,0x01}, //CROP height for QVGA 240 - 
-    {0x4A,0xF0}, //CROP height for QVGA 240 - 0xF0
-
-    {0x4B,0x01}, //CROP width for QVGA 320 - 0x140
-    {0x4C,0x40}, //CROP width for QVGA 320 - 0x140
-*/
-void __gc0308_set_crop(struct pi_device *device, uint8_t offset_x, uint8_t offset_y,uint16_t width,uint16_t height)
-{
-    uint8_t reg8;
-
-    gc0308_t *gc0308 = (gc0308_t *)device->data;
-    //Enable Crop
-    __gc0308_reg_write(gc0308, 0x46, 0x80);
-    //set x offset
-    __gc0308_reg_write(gc0308, 0x48, offset_x);
-    //set y offset
-    __gc0308_reg_write(gc0308, 0x47, offset_y);
-    //set width
-    reg8 = ( width & 0x00ff);
-    __gc0308_reg_write(gc0308, 0x4C, reg8);
-    reg8 = ( width & 0x0300) >> 8;
-    __gc0308_reg_write(gc0308, 0x4B, reg8);
-    //set height
-    reg8 = ( height & 0x00ff);
-    __gc0308_reg_write(gc0308, 0x4A, reg8);
-    reg8 = ( height & 0x0100) >> 8;
-    __gc0308_reg_write(gc0308, 0x49, reg8);
-    
-    return;
 }
 
 
@@ -576,7 +591,6 @@ static pi_camera_api_t gc0308_api =
     .reg_get        = &__gc0308_reg_get,
     .set_crop       = &__gc0308_set_crop,
 };
-
 
 
 void pi_gc0308_conf_init(struct pi_gc0308_conf *conf)

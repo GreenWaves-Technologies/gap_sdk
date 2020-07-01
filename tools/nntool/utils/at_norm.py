@@ -29,7 +29,7 @@ def at_norm(val, norm):
         if np.any(norm < 0):
             raise ValueError("negative normalization")
         if Rounding.DO_ROUNDING:
-            return (val + np.left_shift(1, norm - 1, dtype=val.dtype)) >> norm
+            return np.where(norm == 0, val, (val + np.left_shift(1, norm - 1, dtype=val.dtype)) >> norm)
             # broadcast = np.broadcast(val, norm)
             # res = np.empty(broadcast.shape, dtype=val.dtype)
             # res.flat = [(v + (1 << n - 1)) >> n if n > 0 else v for v, n in broadcast]
@@ -39,5 +39,5 @@ def at_norm(val, norm):
         if norm < 0:
             raise ValueError("negative normalization")
         if Rounding.DO_ROUNDING and norm > 0:
-            return (val + (1 << (norm - 1))) >> norm
+            return val if norm == 0 else (val + (1 << (norm - 1))) >> norm
         return val >> norm

@@ -18,7 +18,7 @@ import re
 
 import numpy as np
 from generation.generators.globals.global_names import BIASES, WEIGHTS
-from graph.types import InputParameters, OutputParameters
+from graph.types import InputParameters, OutputParameters, ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -29,8 +29,7 @@ def find_next_dim(shape, next_idx):
             return i
     return None
 
-
-def at_tensor_loader(filename):
+def at_tensor_loader(filename, exception_on_error=False):
     re_head = re.compile(
         r'^Node: (?P<node_name>[a-zA-Z_][a-zA-Z0-9_]*)'
         r', Argument: (?P<arg_name>[a-zA-Z_][a-zA-Z0-9_]*)'
@@ -44,6 +43,13 @@ def at_tensor_loader(filename):
         r' - D(?P<dim_last>\d+):(?P<dim_last_start>\d+)\.\.(?P<dim_last_end>\d+)$')
     re_last1 = re.compile(
         r'^D(?P<dim_last>\d+):(?P<dim_last_start>\d+)\.\.(?P<dim_last_end>\d+)$')
+
+    def do_warning(node_tensors, arg_name, mess, *args):
+        node_tensors[arg_name] = mess % tuple(args)
+        LOG.warning(node_tensors[arg_name])
+        if exception_on_error:
+            raise ValueError(node_tensors[arg_name])
+
     state = 'start'
     tensors = {}
     line_num = -1
@@ -74,15 +80,13 @@ def at_tensor_loader(filename):
             elif state == 'read_dims' and dims >= 2 and (dims - dims_read) == 2:
                 match = re_last2.search(line)
                 if not match:
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
                     state = 'start'
-                    node_tensors[arg_name] = '[%s] bad_tensor - expecting last dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
                     continue
                 header = [int(elem) for elem in match.group('dim_pen', 'dim_pen_start', 'dim_last',
                                                             'dim_last_start', 'dim_last_end')]
                 if header[0] != dims_read or header[2] != dims_read + 1:
-                    node_tensors[arg_name] = 'bad_tensor - wrong dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
                     state = 'start'
                     continue
                 next_idx[header[0]] = header[1] + 1
@@ -93,15 +97,13 @@ def at_tensor_loader(filename):
             elif state == 'read_dims' and dims == 1 and dims_read == 0:
                 match = re_last1.search(line)
                 if not match:
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
                     state = 'start'
-                    node_tensors[arg_name] = '[%s] bad_tensor - expecting last dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
                     continue
                 header = [int(elem) for elem in match.group(
                     'dim_last', 'dim_last_start', 'dim_last_end')]
                 if header[0] != dims_read:
-                    node_tensors[arg_name] = '[%s] bad_tensor - wrong dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
                     state = 'start'
                     continue
                 next_idx[header[0]] = header[2]
@@ -111,14 +113,12 @@ def at_tensor_loader(filename):
             elif state == 'read_dims':
                 match = re_cont.search(line)
                 if not match:
-                    node_tensors[arg_name] = '[%s] bad_tensor - expecting dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting dim', line_num)
                     state = 'start'
                     continue
                 header = [int(elem) for elem in match.group('dim', 'dim_idx')]
                 if header[0] != dims_read:
-                    node_tensors[arg_name] = '[%s] bad_tensor - wrong dim' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
                     state = 'start'
                     continue
                 next_idx[header[0]] = header[1] + 1
@@ -127,11 +127,10 @@ def at_tensor_loader(filename):
                 read = 0
                 try:
                     for i in line.split():
-                        value.append(i)
+                        value.append(int(i))
                         read += 1
                 except ValueError:
-                    node_tensors[arg_name] = '[%s] bad_tensor - read error' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - read error in state %s', line_num, state)
                     state = 'start'
                     continue
 
@@ -151,15 +150,26 @@ def at_tensor_loader(filename):
                     else:
                         state = 'read_dims'
                 elif cur_block_read > cur_block_len:
-                    node_tensors[arg_name] = '[%s] bad_tensor - too long' % line_num
-                    LOG.warning(node_tensors[arg_name])
+                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong number of elements in data block', line_num)
                     state = 'start'
                     continue
     return tensors
 
+def add_result(result, idx, val):
+    while len(result) < idx + 1:
+        result.append(None)
+    result[idx] = val
+
+def add_node_output(G, node, result, tensor):
+    for edge in G.out_edges(node.name):
+        add_result(result[edge.to_node.step_idx], edge.to_idx, tensor.reshape(node.out_dims[0].shape))
+    add_result(result[node.step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+
 def at_map_tensors(G, tensors):
     re_snum = re.compile(
         r'^S(?P<step>\d+)_')
+    re_snum_tname = re.compile(
+        r'^s(?P<step>[0-9]+)_(?P<name>.+)')
     steps = G.graph_state.steps
     result = [[None, None, None] for _ in steps]
     for cname, tset in tensors.items():
@@ -173,18 +183,41 @@ def at_map_tensors(G, tensors):
             if tname.startswith('input'):
                 for edge in G.in_edges(node.name):
                     if isinstance(edge.from_node, InputParameters):
-                        result[edge.from_node.step_idx][0] = tensor.reshape(node.in_dims[0].shape)
+                        add_result(result[edge.from_node.step_idx], 0, tensor.reshape(node.in_dims[0].shape))
                         break
             elif tname.startswith('output'):
                 for edge in G.out_edges(node.name):
                     if isinstance(edge.to_node, OutputParameters):
-                        result[edge.to_node.step_idx][0] = tensor.reshape(node.out_dims[0].shape)
+                        add_result(result[edge.to_node.step_idx], 0, tensor.reshape(node.out_dims[0].shape))
                         break
-                result[step_idx][0] = tensor.reshape(node.out_dims[0].shape)
+                add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
             elif tname == "s%s_output"%step_idx:
-                result[step_idx][0] = tensor.reshape(node.out_dims[0].shape)
+                add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
             elif tname.endswith(WEIGHTS):
-                result[step_idx][1] = tensor
+                add_result(result[step_idx], 1, tensor)
             elif tname.endswith(BIASES):
-                result[step_idx][2] = tensor
+                add_result(result[step_idx], 2, tensor)
+            else:
+                match_tname = re_snum_tname.search(tname)
+                if not match:
+                    continue
+                tname_step_idx = int(match_tname.group('step'))
+                tname_node = steps[tname_step_idx]['node']
+                if not isinstance(tname_node, ConstantInputParameters):
+                    continue
+                # tensor is a combination of multiple values Hstacked
+                if tname_node.concated_nodes:
+                    h_lens = [tname_node.out_dims[0].shape[-1]] + [n.out_dims[0].shape[-1] for n in tname_node.concated_nodes]
+                    tensor = tensor.reshape(tname_node.out_dims[0].shape[:-1] + [sum(h_lens)])
+                    elem_sum = 0
+                    for idx, elem in enumerate(h_lens):
+                        elem_sum += elem
+                        h_lens[idx] = elem_sum
+                    testit = np.hsplit(tensor, np.array(h_lens))
+                    nodes_to_add = zip([tname_node] + tname_node.concated_nodes, np.hsplit(tensor, np.array(h_lens)))
+                else:
+                    nodes_to_add = [(tname_node, tensor)]
+                for node_pair in nodes_to_add:
+                    add_node_output(G, node_pair[0], result, node_pair[1])
+
     return result

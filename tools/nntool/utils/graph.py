@@ -256,18 +256,21 @@ class GraphView(Mapping):
 
     def insert_node(self, node_to_insert, from_node_name,
                     to_node_name, from_idx=0, to_idx=0,
-                    node_input_idx=0, node_output_idx=0):
+                    node_input_idx=0, node_output_idx=0,
+                    edge_class=None):
         '''Inserts a node between two existing nodes'''
+        if edge_class is None:
+            edge_class = Edge
         if isinstance(from_node_name, Node):
             from_node_name = from_node_name.name
         if isinstance(to_node_name, Node):
             to_node_name = to_node_name.name
         existing_edge = self.edge(from_node_name, to_node_name, from_idx=from_idx, to_idx=to_idx)
         self.remove_edge(existing_edge)
-        self.add_edge(Edge(from_node_name, node_to_insert,
-                           from_idx=from_idx, to_idx=node_input_idx))
-        self.add_edge(Edge(node_to_insert, to_node_name,
-                           from_idx=node_output_idx, to_idx=to_idx))
+        self.add_edge(edge_class(from_node_name, node_to_insert,
+                                 from_idx=from_idx, to_idx=node_input_idx))
+        self.add_edge(edge_class(node_to_insert, to_node_name,
+                                 from_idx=node_output_idx, to_idx=to_idx))
 
     def edge(self, from_node_name: str, to_node_name: str, from_idx: int = 0, to_idx: int = 0):
         '''Finds first edge between two nodes - WARNING - probably not good in weird situation
@@ -356,10 +359,11 @@ class GraphView(Mapping):
 
     @staticmethod
     def index_edges_by_from(edges):
-        indexed_edges = []
+        if not edges:
+            return []
+        max_from_edge = max(edges, key=lambda x: x.from_idx)
+        indexed_edges = [[] for i in range(max_from_edge.from_idx + 1)]
         for edge in edges:
-            if edge.from_idx >= len(indexed_edges):
-                indexed_edges += [[]] * (edge.from_idx + 1 - len(indexed_edges))
             indexed_edges[edge.from_idx].append(edge)
         return indexed_edges
 

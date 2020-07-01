@@ -55,7 +55,8 @@ def gen_at_globalpool(code_block, name, in_q, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
+        #raise NotImplementedError("genctrl is not yet implemented")
 
     if at_ver < 3:
         code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {}, {});',

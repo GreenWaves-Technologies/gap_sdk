@@ -3,12 +3,8 @@
 #include "Gap.h"
 
 #ifdef __pulp__
-#ifndef Min
 #define Min(a, b)       __builtin_pulp_minsi((a), (b))
-#endif
-#ifndef Max
 #define Max(a, b)       __builtin_pulp_maxsi((a), (b))
-#endif
 #else
 #define Min(a, b)       (((a)<(b))?(a):(b))
 #define Max(a, b)       (((a)>(b))?(a):(b))
@@ -255,6 +251,154 @@ typedef struct {
 	short int *__restrict__ Out;            /**< Pointer to output tile */
 	signed char * __restrict__ Infos;	/**< Scaling and constants data */
 } KerSoftMax_SQ8_T;
+
+/******************************************************************************************************************
+ 	Recursive NN (RNN, LSTM, GRU)
+******************************************************************************************************************/
+
+#define RNN_F_INF              4
+#define RNN_F_OFF              0
+#define RNN_F_SCALE            0
+#define RNN_F_SCALEN           1
+#define RNN_F_A0               2
+#define RNN_F_B0               3
+
+#define RNN_CELL_INFOS (RNN_F_INF)
+
+typedef struct {
+	signed char *__restrict__ StateInOut;	/**< Pointer to In/Out state, Dim=DimState   */
+	signed char *__restrict__ State;	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
+	signed char *__restrict__ Xin;		/**< Pointer to In state, Dim=DimIn */
+	unsigned short int DimState;		/**< State dimension */
+	unsigned short int DimIn;		/**< Input dimension */
+	signed char *__restrict__ Wf;		/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bf;			/**< Pointer to Forget gate bias */
+	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;		/**< Number of output produced in StateInOut */
+	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
+	char FirstOut;				/**< 1 if first out of one cell to eval */
+	char FirstCell;				/**< 1 if first cell of a group of cell */
+	char Reset;				/**< 1 if RNN State has to be reset */
+} KerRNN_SQ8_T;
+
+#define LSTM_F_INF              2
+#define LSTM_F_OFF              0
+#define LSTM_F_SCALE            0
+#define LSTM_F_SCALEN           1
+
+#define LSTM_I_INF              2
+#define LSTM_I_OFF              (LSTM_F_OFF+LSTM_F_INF)
+#define LSTM_I_SCALE            (0 + LSTM_I_OFF)
+#define LSTM_I_SCALEN           (1 + LSTM_I_OFF)
+
+#define LSTM_G_INF              2
+#define LSTM_G_OFF              (LSTM_I_OFF+LSTM_I_INF)
+#define LSTM_G_SCALE            (0 + LSTM_G_OFF)
+#define LSTM_G_SCALEN           (1 + LSTM_G_OFF)
+
+#define LSTM_O_INF              2 
+#define LSTM_O_OFF              (LSTM_G_OFF+LSTM_G_INF)
+#define LSTM_O_SCALE            (0 + LSTM_O_OFF)
+#define LSTM_O_SCALEN           (1 + LSTM_O_OFF)
+
+#define LSTM_COUT_INF           6 
+#define LSTM_COUT_OFF           (LSTM_O_OFF+LSTM_O_INF)
+#define LSTM_CIN_SCALE          (0 + LSTM_COUT_OFF)
+#define LSTM_CIN_SCALEN         (1 + LSTM_COUT_OFF)
+#define LSTM_COUT_SCALE         (2 + LSTM_COUT_OFF)
+#define LSTM_COUT_SCALEN        (3 + LSTM_COUT_OFF)
+#define LSTM_OUT_SCALE          (4 + LSTM_COUT_OFF)
+#define LSTM_OUT_SCALEN         (5 + LSTM_COUT_OFF)
+
+#define LSTM_INT_INF            7
+#define LSTM_INT_OFF            (LSTM_COUT_OFF+LSTM_COUT_INF)
+#define LSTM_INT_Q              (0 + LSTM_INT_OFF)
+#define LSTM_INT_A0             (1 + LSTM_INT_OFF)
+#define LSTM_INT_B0             (3 + LSTM_INT_OFF)
+#define LSTM_INT_C0             (5 + LSTM_INT_OFF)
+
+#define LSTM_CELL_INFOS (LSTM_F_INF+LSTM_I_INF+LSTM_G_INF+LSTM_O_INF+LSTM_COUT_INF+LSTM_INT_INF)
+
+typedef struct {
+	signed char *__restrict__ StateInOut;	/**< Pointer to In/Out state, Dim=DimState   */
+	signed char *__restrict__ CInOut;	/**< Pointer to In/Out State C (LSTM), DimIn = DimOut = DimState */
+	signed char *__restrict__ State;	/**< Pointer to to a copy of state with extra space for in (2*DimState+DimIn)   */
+	signed char *__restrict__ Xin;		/**< Pointer to In state, Dim=DimIn */
+	unsigned short int DimState;		/**< State dimension */
+	unsigned short int DimIn;		/**< Input dimension */
+	signed char *__restrict__ Wf;		/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bf;			/**< Pointer to Forget gate bias */
+	signed char *__restrict__ Wi;		/**< Pointer to Input gate (whether to write cell) weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bi;			/**< Pointer to Input gate bias */
+	signed char *__restrict__ Wg;		/**< Pointer to Gate gate (how much to write to cell) weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bg;			/**< Pointer to Gate gate bias */
+	signed char *__restrict__ Wo;		/**< Pointer to Output gate (how much to reveal cell) weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bo;			/**< Pointer to Output gate bias */
+	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;		/**< Number of output produced in StateInOut and CInOut */
+	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
+	char FirstOut;				/**< 1 if first out of one cell to eval */
+	char FirstCell;				/**< 1 if first cell of a group of cell */
+	char Reset;				/**< If 1 LSTM State is reset */
+} KerLSTM_SQ8_T;
+
+
+#define GRU_R_INF              7
+#define GRU_R_OFF              0
+#define GRU_R_SCALE            0
+#define GRU_R_SCALEN           1
+#define GRU_R_A0               2
+#define GRU_R_B0               3
+#define GRU_R_C0               4
+#define GRU_R_ASCALE           5
+#define GRU_R_ASCALEN          6
+
+#define GRU_Z_INF              7
+#define GRU_Z_OFF              (GRU_R_OFF+GRU_R_INF)
+#define GRU_Z_SCALE            (0 + GRU_Z_OFF)
+#define GRU_Z_SCALEN           (1 + GRU_Z_OFF)
+#define GRU_Z_A0               (2 + GRU_Z_OFF)
+#define GRU_Z_B0               (3 + GRU_Z_OFF)
+#define GRU_Z_C0               (4 + GRU_Z_OFF)
+#define GRU_Z_ASCALE           (5 + GRU_Z_OFF)
+#define GRU_Z_ASCALEN          (6 + GRU_Z_OFF)
+
+#define GRU_HT_INF              4
+#define GRU_HT_OFF              (GRU_Z_OFF+GRU_Z_INF)
+#define GRU_HT_SCALE            (0 + GRU_HT_OFF)
+#define GRU_HT_SCALEN           (1 + GRU_HT_OFF)
+#define GRU_HT_A0               (2 + GRU_HT_OFF)
+#define GRU_HT_B0               (3 + GRU_HT_OFF)
+
+#define GRU_H_INF		3
+#define GRU_H_OFF		(GRU_HT_OFF+GRU_HT_INF)
+#define GRU_H_SCALE		(0 + GRU_HT_OFF)
+#define GRU_H_SCALEN		(1 + GRU_HT_OFF)
+#define GRU_H_A0		(2 + GRU_HT_OFF)
+
+#define GRU_CELL_INFOS (GRU_R_INF+GRU_Z_INF+GRU_HT_INF+GRU_H_INF)
+
+typedef struct {
+	signed char *__restrict__ StateInOut;	/**< Pointer to In/Out state, Dim=DimState   */
+	signed char *__restrict__ Xin;		/**< Pointer to In state, Dim=DimIn */
+	signed char *__restrict__ State;	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
+	unsigned short int DimState;		/**< State dimension */
+	unsigned short int DimIn;		/**< Input dimension */
+	signed char *__restrict__ Wr;		/**< Pointer to R gate weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Br;			/**< Pointer to R gate bias */
+	signed char *__restrict__ Wz;		/**< Pointer to Z gate weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bz;			/**< Pointer to Z gate bias */
+	signed char *__restrict__ Wh;		/**< Pointer to H gate weights, Dim=[DimState+DimIn,DimState] */
+	void * __restrict__ Bh;			/**< Pointer to H gate bias */
+	signed char *__restrict__ Sbuff;	/**< Pointer to Ht buffer, Dim=[DimState] */
+	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;		/**< Number of output produced in StateInOut */
+	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
+	char FirstOut;				/**< 1 if first out of one cell to eval */
+	char FirstCell;				/**< 1 if first cell of a group of cell */
+	char Reset;				/**< If 1 GRU State is reset */
+} KerGRU_SQ8_T;
+
 
 /******************************************************************************************************************
 	Bias setting for convolution and linear layers, output is 32b, input is 8,16 or 32b
@@ -708,6 +852,14 @@ void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg);
 *************************************************************************************************************************************************/
 
 void KerParSoftMax_SQ8(KerSoftMax_SQ8_T *Arg);
+
+/******************************************************************************************************************
+ 	Recursive NN (RNN, LSTM, GRU)
+******************************************************************************************************************/
+
+void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg);
+void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg);
+void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
 	AT book keeping functions

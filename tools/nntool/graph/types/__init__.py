@@ -27,17 +27,23 @@ from graph.types.conv2d import Conv2DParameters
 from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
                                  FusionBase, MatScaleFusionParameters)
 from graph.types.linear import FcParameters
-from graph.types.others import (ConcatParameters, ConstantInputParameters,
-                                GlobalPoolParameters, GroupParameters,
-                                ImageFormatParameters, InputBaseParameters,
-                                InputParameters, MatrixAddParameters,
+from graph.types.lstm import LSTMParameters
+from graph.types.others import (CastParameters, ConcatParameters,
+                                ConstantInputParameters, GlobalPoolParameters,
+                                GroupParameters, ImageFormatParameters,
+                                InputBaseParameters, InputParameters,
+                                MatrixAddParameters,
                                 MatrixBroadcastedLinearOpParameters,
                                 MatrixDivParameters, MatrixMulParameters,
                                 MatrixSubParameters, NoOPParameters,
                                 OutputParameters, PadParameters,
                                 ReshapeParameters, SoftMaxParameters,
+                                SSDDetectorParameters, StridedSliceParameters,
                                 Transposable, TransposeParameters,
-                                UnconvertedOpParameters,
+                                UnconvertedOpParameters, SplitParameters,
                                 UnexecutableOpParameters, UnknownOpParameters,
-                                UpsampleParameters, YoloParameters)
+                                UpsampleParameters,
+                                YoloParameters)
 from graph.types.pooling import PoolingParameters
+from graph.types.recurrent import RecurrentOutputParameters
+from graph.types.rnn import RNNBaseParameters, RNNParameters

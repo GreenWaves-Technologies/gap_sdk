@@ -13,6 +13,7 @@ from importer.tflite.new_tflite_graph_all import TfliteImporter
 from graph.matches.matches import get_fusion, get_scale8_match_group
 from quantization.multiplicative.mult_quantizer import MultQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
+from stats.activation_ranges_collector import ActivationRangesCollector
 
 # def test_conv_pool_relu_kernel_gen(mnist_unfused_8bit_state):
 #     G = load_state(mnist_unfused_8bit_state)
@@ -176,9 +177,8 @@ def test_activatiofusion(actfusion_graph):
     matcher = get_fusion('scale8_match_group')
     matcher.match(G)
     G.add_dimensions()
-    astat_col = ActivationStatsCollector()
+    astat_col = ActivationRangesCollector()
     astats = astat_col.collect_stats(G, [np.full([10, 10, 2], 1), np.full([10, 10, 2], 1)])
-    astats = astat_col.reduce_stats()
     quantizer = MultQuantizer(astats, force_width=8, quantized_dimension="channel")
     G.quantization = quantizer.quantize(G)
     with tempfile.TemporaryDirectory() as tempdir:

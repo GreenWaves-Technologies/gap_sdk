@@ -15,11 +15,12 @@
 
 import logging
 import sys
-
 import numpy as np
 
 from graph.dim import Dim
 from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
+from utils.ssd_postprocess_decoder import DecodeBboxes
+from utils.ssd_postprocess_nms import NonMaxSuppression
 
 from .base import (NoSizeChangeParameters, Parameters,
                    SameNumberOfDimensionsForInputs, SensitiveToOrder,
@@ -30,15 +31,20 @@ LOG = logging.getLogger("nntool." + __name__)
 
 class InputOutputParameters(Transposable):
 
-    def __init__(self, *args, dims=None, fixed_order=False, **kwargs):
+    def __init__(self, *args, dims=None, fixed_order=False, short_name=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._output_value = None
         self._index = None
+        self._short_name = short_name
         self.dims = dims
         self.fixed_order = fixed_order
         self.at_options.valid_options['ALLOCATE'] = int
         self.at_options.valid_options['FIXED_ORDER'] = int
         self.at_options.fixed_order = 0
+
+    @property
+    def short_name(self):
+        return self._short_name
 
     @property
     def fixed_order(self):
@@ -98,7 +104,7 @@ class InputBaseParameters(InputOutputParameters):
     def get_output_size(self, _):
         out_dim = self.dims.clone()
         if self.transpose_out:
-            out_dim.transpose(self.transpose_out)
+            out_dim.transpose(self.transpose_out[0])
         if self.out_dims_hint:
             out_dim.apply_naming_hints(self.out_dims_hint[0])
         return [out_dim]
@@ -106,6 +112,10 @@ class InputBaseParameters(InputOutputParameters):
 
 class InputParameters(InputBaseParameters):
     op_name = "input"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.at_options.valid_options['EXTERN_INPUT_POINTER'] = int
 
     def set_input(self, value):
         try:
@@ -129,6 +139,7 @@ class InputParameters(InputBaseParameters):
     #         raise ValueError("can't step further")
     #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
     #     return True
+
 
 class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     op_name = "image_format"
@@ -210,8 +221,7 @@ class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
             out_dim.impose_order(self.out_dims_hint[0])
             out_dim.c = 3
         elif self.format_change in ("BW8", "BW16"):
-            assert out_dim.is_named and out_dim.c == 1
-            out_dim.impose_order(self.out_dims_hint[0])
+            pass  # no dims change here
         elif self.format_change in ("RGB888", "RGB16"):
             assert out_dim.is_named and out_dim.c == 3
             out_dim.impose_order(self.out_dims_hint[0])
@@ -230,12 +240,81 @@ class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def __str__(self):
         return "FORMAT_CHANGE Fmt: {} Norm: {}".format(self.format_change, self.norm_func)
 
+
 class ConstantInputParameters(InputBaseParameters):
     op_name = "constant"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, adjust_transpose=None, is_mutated=False,
+                 is_intermediate=False, **kwargs):
         self.value = None
         super(ConstantInputParameters, self).__init__(*args, **kwargs)
+        del self.at_options.valid_options['FIXED_ORDER']
+        self.at_options.valid_options['RESET_NAME'] = str
+        self.at_options.valid_options['GENERATE_VALUE'] = bool
+        self._adjust_transpose = adjust_transpose
+        self._is_mutated = is_mutated
+        self._is_intermediate = is_intermediate
+        self._value_quantization = None
+        self._concated_nodes = []
+        self.generate_value = True
+        self._is_constant = True
+        self._is_global = True
+
+    @property
+    def concated_nodes(self):
+        return self._concated_nodes
+
+    @property
+    def reset_name(self):
+        return self.at_options.reset_name
+
+    @reset_name.setter
+    def reset_name(self, val):
+        self.at_options.reset_name = val
+
+    @property
+    def generate_value(self):
+        return self.at_options.generate_value
+
+    @generate_value.setter
+    def generate_value(self, val):
+        self.at_options.generate_value = val
+
+    @property
+    def value_quantization(self):
+        return self._value_quantization
+
+    @value_quantization.setter
+    def value_quantization(self, val):
+        self._value_quantization = val
+
+    @property
+    def adjust_transpose(self):
+        return self._adjust_transpose
+
+    @property
+    def is_constant(self):
+        return self._is_constant
+
+    @is_constant.setter
+    def is_constant(self, val):
+        self._is_constant = val
+
+    @property
+    def is_global(self):
+        return self._is_global
+
+    @is_global.setter
+    def is_global(self, val):
+        self._is_global = val
+
+    @property
+    def is_mutated(self):
+        return self._is_mutated
+
+    @property
+    def is_intermediate(self):
+        return self._is_intermediate
 
     def clone(self, name, groupn=None):
         raise NotImplementedError()
@@ -250,8 +329,10 @@ class ConstantInputParameters(InputBaseParameters):
         self.value = val['value']
 
     def __str__(self):
-        return "Const {} {} {}".format(
+        props = [param for param in ["is_mutated", "is_intermediate"] if getattr(self, param)]
+        return "Const {} {} {} {}".format(
             self.dims,
+            " ".join(props),
             Transposable.__str__(self),
             self.at_options
         )
@@ -262,11 +343,12 @@ class OutputParameters(InputOutputParameters):
 
     def __init__(self, *args, **kwargs):
         super(OutputParameters, self).__init__(*args, **kwargs)
+        self.at_options.valid_options['EXTERN_OUTPUT_POINTER'] = int
 
     def get_output_size(self, in_dims):
         out_dim = in_dims[0].clone()
         if self.transpose_in:
-            out_dim.transpose(self.transpose_in)
+            out_dim.transpose(self.transpose_in[0])
         return [out_dim]
 
     @property
@@ -293,13 +375,13 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     def __init__(self, *args, transpose=None, **kwargs):
         super(TransposeParameters, self).__init__(*args, **kwargs)
-        self.transpose_in = transpose
+        self.transpose_in = [transpose]
 
     def get_parameter_size(self):
         return 0
 
     def permute(self, val):
-        return [val[i] for i in self.transpose_in]
+        return [val[i] for i in self.transpose_in[0]]
 
     @property
     def can_equalize(self):
@@ -308,7 +390,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
     def real_shape(self):
         input_shape = self.in_dims[0].shape
         cond_input_idx = [i for i, sz in enumerate(self.in_dims[0].shape) if sz != 1]
-        real_transpose = [i for i in self.transpose_in if i in cond_input_idx]
+        real_transpose = [i for i in self.transpose_in[0] if i in cond_input_idx]
         cond_input_shape = [input_shape[i] for i in cond_input_idx]
         cond_transpose = [cond_input_idx.index(i) for i in real_transpose]
         return tuple(cond_input_shape), tuple(cond_transpose)
@@ -317,7 +399,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
     def transpose_dimension(self):
         if self._transpose_in is None:
             return 1
-        return len(self.transpose_in)
+        return len(self.transpose_in[0])
 
     @property
     def transpose_out(self):
@@ -331,7 +413,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
         self.in_dims = self.clone_dim_with_hints(in_dims)
         out_dim = in_dims[0].clone()
         if self.transpose_in:
-            out_dim = out_dim.transpose(self.transpose_in)
+            out_dim = out_dim.transpose(self.transpose_in[0])
         return [out_dim]
 
     def clone(self, name, groupn=None):
@@ -339,7 +421,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     def __str__(self):
         return "T {} {}".format(
-            self.transpose_in and ','.join([str(i) for i in self.transpose_in]) or "None",
+            self.transpose_in and ','.join([str(i) for i in self.transpose_in[0]]) or "None",
             self.at_options
         )
 
@@ -372,10 +454,12 @@ class ConcatParameters(Transposable):
             self._axis = in_dims[0].get_order_idx(self._axis_hint)
         self.in_dims = self.clone_dim_with_hints(in_dims)
         if self.transpose_in:
-            in_dims = [in_dim.clone().transpose(self.transpose_in) for in_dim in in_dims]
+            in_dims = [(in_dim.clone() if self.transpose_in[idx] is None
+                        else in_dim.clone().transpose(self.transpose_in[idx]))
+                       for idx, in_dim in enumerate(in_dims)]
         out_dim = Dim.combine([in_dim for in_dim in in_dims], self.axis)
         if self.transpose_out:
-            out_dim.transpose(self.transpose_out)
+            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     def clone(self, name, groupn=None):
@@ -387,6 +471,249 @@ class ConcatParameters(Transposable):
             Transposable.__str__(self),
             self.at_options
         )
+
+
+class SSDDetectorParameters(Transposable):
+    op_name = "ssd_detector"
+
+    INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
+
+    def __init__(self, *args, parameters=None, **kwargs):
+        super(SSDDetectorParameters, self).__init__(*args, **kwargs)
+        self._parameters = parameters
+        self.decoder_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
+                               'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
+                               'using_params': {'INCLUDE': True, 'params': self._parameters}}
+
+        self.nms_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
+                           'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
+                           'using_params': {'INCLUDE': True, 'params': self._parameters}}
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    @property
+    def x_scale(self):
+        return self._parameters['x_scale']
+
+    @property
+    def y_scale(self):
+        return self._parameters['y_scale']
+
+    @property
+    def w_scale(self):
+        return self._parameters['w_scale']
+
+    @property
+    def h_scale(self):
+        return self._parameters['h_scale']
+
+    @property
+    def nms_score_threshold(self):
+        return self._parameters['nms_score_threshold']
+
+    @nms_score_threshold.setter
+    def nms_score_threshold(self, val):
+        self._parameters['nms_score_threshold'] = val
+
+    @property
+    def nms_iou_threshold(self):
+        return self._parameters['nms_iou_threshold']
+
+    @property
+    def max_detections(self):
+        return self._parameters['max_detections']
+
+    def get_output_size(self, in_dims):
+        num_detected_boxes = self._parameters['max_detections'] * \
+            self._parameters['max_classes_per_detection']
+        return [
+            Dim(shape=[num_detected_boxes, 4], is_ordered=True),
+            Dim(shape=[num_detected_boxes], is_ordered=True),
+            Dim(shape=[num_detected_boxes], is_ordered=True),
+            Dim(shape=[num_detected_boxes], is_ordered=True),
+        ]
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "{} {}".format(
+            Transposable.__str__(self),
+            self.at_options
+        )
+
+
+class SplitParameters(Transposable):
+    op_name = "split"
+
+    def __init__(self, *args,
+                 act_slices=None,
+                 out_shapes=None,
+                 axis=None,
+                 **kwargs):
+
+        super(SplitParameters, self).__init__(*args, **kwargs)
+        self.act_slices = act_slices
+        self.out_shapes = out_shapes
+        self.axis = axis
+
+    def numpy_split(self, arr: np.ndarray):
+        slice_specs = [tuple([slice(elem[0], elem[1], elem[2])
+                              for elem in act_slice])
+                       for act_slice in self.act_slices]
+        return [arr[spec] for spec in slice_specs]
+
+    @staticmethod
+    def get_splits(in_shape, axis, batch_dim, splits=None, num_splits=None):
+        assert splits or num_splits, "no split parameters provided"
+        in_idx = 0
+        act_slices = []
+        out_shapes = []
+        if splits:
+            for sz in splits:
+                act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
+                                   for idx, shape in enumerate(in_shape)
+                                   if idx != batch_dim])
+                out_shapes.append([sz if idx == axis else shape
+                                   for idx, shape in enumerate(in_shape)
+                                   if idx != batch_dim])
+                in_idx += sz
+        elif num_splits:
+            assert in_shape[axis] % num_splits == 0, "dimension of split is not divisible by number of splits"
+            sz = in_shape[axis] // num_splits
+            while in_idx < in_shape[axis]:
+                act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
+                                   for idx, shape in enumerate(in_shape)
+                                   if idx != batch_dim])
+                out_shapes.append([sz if idx == axis else shape
+                                   for idx, shape in enumerate(in_shape)
+                                   if idx != batch_dim])
+                in_idx += sz
+
+        if axis > batch_dim:
+            axis -= 1
+        return act_slices, out_shapes, axis
+
+    @property
+    def num_splits(self):
+        return len(self.act_slices)
+
+    def transpose_params(self, order):
+        self.act_slices = [
+            [act_slice[idx] for idx in order] for act_slice in self.act_slices
+        ]
+        self.out_shapes = [
+            [shape[idx] for idx in order] for shape in self.out_shapes
+        ]
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        out_size = [Dim.unnamed(shape) for shape in self.out_shapes]
+        if self.transpose_out:
+            out_size = [dim if self.transpose_out[idx] is None else dim.transpose(self.transpose_out[idx])
+                        for idx, dim in enumerate(out_size)]
+        return out_size
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "A {} {} {}".format(
+            self.axis,
+            Transposable.__str__(self),
+            self.at_options
+        )
+
+
+class StridedSliceParameters(Parameters, SingleInputAndOutput):
+
+    op_name = "strided_slice"
+
+    def __init__(self, *args,
+                 act_slice=None,
+                 out_shape=None,
+                 **kwargs):
+
+        super(StridedSliceParameters, self).__init__(*args, **kwargs)
+        self.act_slice = act_slice
+        self.out_shape = out_shape
+
+    def numpy_slice(self, arr: np.ndarray):
+        slice_spec = [slice(elem[0], elem[1], elem[2]) for elem in self.act_slice if len(elem) == 3]
+        return arr[tuple(slice_spec)].reshape(self.out_shape)
+
+    @staticmethod
+    def get_slice(in_shape, spec, begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask):
+        masks = [begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask]
+        act_slice = []
+        out_shape = []
+        in_idx = 0
+        can_reshape = True
+        for idx, sz in enumerate(spec):
+            mask = [elem & 0x1 for elem in masks]
+            masks = [elem >> 1 for elem in masks]
+
+            if mask[2]:
+                for _ in range(len(in_shape) - (len(spec) - idx) + 1):
+                    act_slice.append((0, in_shape[in_idx], 1))
+                    out_shape.append(in_shape[in_idx])
+                    in_idx += 1
+                continue
+            if mask[4]:
+                if in_shape[in_idx] > 1:
+                    can_reshape = False
+                if sz[0] < 0:
+                    act_idx = in_shape[in_idx] + sz[0]
+                else:
+                    act_idx = sz[0]
+                act_slice.append((act_idx, act_idx + 1, 1))
+                in_idx += 1
+                continue
+            if mask[3]:
+                out_shape.append(1)
+                continue
+
+            beg = 0 if mask[0] else (sz[0] if sz[0] >= 0 else in_shape[in_idx] + sz[0])
+            end = in_shape[in_idx] if mask[1] else (
+                sz[1] if sz[1] >= 0 else in_shape[in_idx] + sz[1])
+
+            act_slice.append((
+                beg,
+                end,
+                sz[2]
+            ))
+            out_shape.append((end - beg)//abs(sz[2]))
+            if beg != 0 or end != in_shape[in_idx] or sz[2] != 1:
+                can_reshape = False
+            in_idx += 1
+        return act_slice[1:], out_shape[1:], can_reshape
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        return [Dim.unnamed(self.out_shape)]
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return ",".join("(%s,%s,%s)" % elem for elem in self.act_slice)
 
 
 class GroupParameters(Parameters, SensitiveToOrder):
@@ -426,6 +753,34 @@ class GroupParameters(Parameters, SensitiveToOrder):
         return "GRPS {}".format(
             self.groups
         )
+
+
+class CastParameters(Parameters, SingleInputAndOutput):
+    op_name = "cast"
+
+    def __init__(self, *args, in_dtype=None, out_dtype=None, **kwargs):
+        super(CastParameters, self).__init__(*args, **kwargs)
+        self.in_dtype = in_dtype
+        self.out_dtype = out_dtype
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        assert len(in_dims) == 1
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        out_dim = self.in_dims[0].clone()
+        return [out_dim]
+
+    @property
+    def can_equalize(self):
+        return True
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "%s -> %s" % (self.in_dtype, self.out_dtype)
 
 
 class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
@@ -556,10 +911,12 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
         self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dim = in_dims[0]
         self._old_shape = in_dim
-        assert in_dim.size() == self.shape.size(), "in shape does not match in size"
+        if in_dim.size() != self.shape.size():
+            raise NotImplementedError("bad reshape %s: in dim %s does not match reshape %s" %
+                                      (self.name, in_dim, self.shape))
         out = self.shape.clone()
         if self.transpose_out:
-            out.transpose(self.transpose_out)
+            out.transpose(self.transpose_out[0])
         return [out]
 
     @property
@@ -620,6 +977,11 @@ class YoloParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOr
 
 
 class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForInputs):
+    def __init__(self, name, *args, **kwargs):
+        super(MatrixBroadcastedLinearOpParameters, self).__init__(name, *args, **kwargs)
+        self.at_options.valid_options['PARALLELFEATURES'] = int
+        self.at_options.valid_options['TILEORIENTATION'] = int
+
     @property
     def can_equalize(self):
         return False
@@ -636,7 +998,7 @@ class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForI
     def get_output_size(self, in_dims):
         self.in_dims = self.clone_dim_with_hints(in_dims)
         max_idx, _ = max(enumerate(self.in_dims), key=lambda x: x[1].size())
-        return [self.in_dims[max_idx]]
+        return [self.in_dims[max_idx].clone()]
 
     def __str__(self):
         return "{} {}".format(self.op_name, self.at_options)
@@ -658,7 +1020,7 @@ class MatrixDivParameters(MatrixBroadcastedLinearOpParameters):
     op_name = "div"
 
 
-class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
+class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
 
     op_name = "softmax"
 

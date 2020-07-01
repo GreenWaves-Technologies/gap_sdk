@@ -25,7 +25,11 @@
 #define STACK_SIZE      1024
 #endif
 
-AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash = 0;
+#if defined(USE_HYPER)
+   AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash = 0;
+#elif defined(USE_SPI)
+   AT_QSPIFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash = 0;
+#endif
 
 // Softmax always outputs Q15 short int even from 8 bit input
 L2_MEM short int *ResOut;

@@ -46,21 +46,30 @@ static int test_entry()
 
     printf("Entering main controller\n");
 
-    // First prepare the flash for storing the samples
-    struct pi_device flash;
-    struct pi_hyperflash_conf flash_conf;
-    struct pi_flash_info flash_info;
-    
-    pi_hyperflash_conf_init(&flash_conf);
-    pi_open_from_conf(&flash, &flash_conf);
-
-    if (pi_flash_open(&flash))
-        return -1;
-
-    pi_flash_ioctl(&flash, PI_FLASH_IOCTL_INFO, (void *)&flash_info);
-    uint32_t flash_addr = ((flash_info.flash_start + flash_info.sector_size - 1) & ~(flash_info.sector_size - 1));
-
-    pi_flash_erase(&flash, flash_addr, WHOLE_SIZE);
+    struct pi_device ram;
+    struct pi_hyperram_conf ram_conf;
+    pi_hyperram_conf_init(&ram_conf);
+    pi_open_from_conf(&ram, &ram_conf);
+    if (pi_ram_open(&ram))
+    {
+        printf("Error ram open !\n");
+        pmsis_exit(-3);
+    }
+    uint32_t hyper_buff[NB_ACTIVE_CHANNELS] = {0};
+    uint32_t cur_addr[NB_ACTIVE_CHANNELS] = {0};
+    for (int i=0; i<(int) NB_ACTIVE_CHANNELS; i++)
+    {
+        if (pi_ram_alloc(&ram, &hyper_buff[i], (uint32_t) WHOLE_SIZE))
+        {
+            printf("Ram malloc failed !\n");
+            pmsis_exit(-4);
+        }
+        else
+        {
+            printf("Ram allocated : %lx %ld.\n", hyper_buff[i], (uint32_t) WHOLE_SIZE);
+            cur_addr[i] = hyper_buff[i];
+        }
+    }
 
     // Then prepare the I2S channel
     pi_bsp_init();
@@ -107,21 +116,22 @@ static int test_entry()
 
     uint16_t *chunk;
     uint32_t size;
-    uint32_t current_flash_addr = flash_addr;
-
     for (int j=0; j<WHOLE_SIZE; j++)
     {
         for (int i=0; i<(int) NB_ACTIVE_CHANNELS; i++)
         {
             // For each channel, wait for one buffer of sample and immediately
-            // send it to flash. ANother buffer is already being filled in the
+            // send it to flash. Another buffer is already being filled in the
             // meantime.
             pi_i2s_channel_read(&i2s, i, (void **)&chunk, (size_t *)&size);
-            pi_flash_program(&flash, current_flash_addr + i*WHOLE_SIZE, chunk, BUFF_SIZE);
+            pi_ram_write(&ram, cur_addr[i], chunk, size);
+            cur_addr[i] += size;
         }
-
         j += size;
-        current_flash_addr += size;
+    }
+    for (int i=0; i<(int) NB_ACTIVE_CHANNELS; i++)
+    {
+        cur_addr[i] = hyper_buff[i];
     }
 
     // Sampling is done, close everything
@@ -133,16 +143,16 @@ static int test_entry()
     // Finally, read back the samples from flash and send them to files
     // through JTAG
     uint16_t *temp_buff = (uint16_t *)ch_buff[0][0];
-    for (int chan=0; chan<(int) 1; chan++)
+    for (int chan=0; chan<(int) NB_ACTIVE_CHANNELS; chan++)
     {
-#ifdef DUMP_WAV
+        #ifdef DUMP_WAV
         char path[32];
         sprintf(path, "out_file_%d.wav", chan);
         dump_wav_open(path, i2s_conf.word_size, i2s_conf.frame_clk_freq,
                 1, WHOLE_SIZE);
-#endif
+        printf("Dumping chan=%d in %s\n", chan, path);
+        #endif  /* DUMP_WAV */
 
-        current_flash_addr = flash_addr + 2048;
         int whole_size = WHOLE_SIZE - 2048;
 
         while (whole_size > 0)
@@ -150,28 +160,29 @@ static int test_entry()
             int iter_size = BUFF_SIZE;
             if (iter_size > whole_size)
                 iter_size = whole_size;
-            
-            pi_flash_read(&flash, flash_addr, temp_buff, iter_size);
 
-#ifdef DUMP_SAMPLES
+            pi_ram_read(&ram, cur_addr[chan], temp_buff, iter_size);
+
+            #ifdef DUMP_SAMPLES
             printf("Interface %d / channel %d\n", i2s_conf.itf, chan);
             for (int i=0; i<4; i++)
             {
                 printf("  Sample %d: %lx\n", i, temp_buff[i]);
             }
-#endif
+            #endif  /* DUMP_SAMPLES */
 
-#ifdef DUMP_WAV
+            #ifdef DUMP_WAV
             dump_wav_write(temp_buff, iter_size);
-#endif
+            #endif  /* DUMP_WAV */
 
-            flash_addr += iter_size;
+            cur_addr[chan] += iter_size;
             whole_size -= iter_size;
         }
 
-#ifdef DUMP_WAV
+        #ifdef DUMP_WAV
         dump_wav_close();
-#endif
+        printf("Dump chan=%d in %s done\n", chan, path);
+        #endif  /* DUMP_WAV */
     }
 
     if (errors)

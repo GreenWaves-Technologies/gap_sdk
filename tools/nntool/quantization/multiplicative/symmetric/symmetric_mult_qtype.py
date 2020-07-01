@@ -79,18 +79,22 @@ class SymmetricMultQType(MultQTypeBase):
                                 quantized_dimension=quantized_dimension,
                                 narrow_range=narrow_range)
 
+    def recalculate_scale(self, min_val, max_val, narrow_range=False):
+        iinfo = np.iinfo(self.dtype)
+        self.min_val = self.init_array(min_val)
+        self.max_val = self.init_array(max_val)
+        if narrow_range:
+            ranges = iinfo.max - (iinfo.min + 1)
+        else:
+            ranges = iinfo.max - iinfo.min
+        self.scale = self.range / ranges
+
     @classmethod
     def from_min_max(cls, min_val, max_val, dtype=np.int8, quantized_dimension=None, narrow_range=False):
         val = cls(min_val=min_val, max_val=max_val,
                   quantized_dimension=quantized_dimension, dtype=dtype,
                   narrow_range=narrow_range)
-        iinfo = np.iinfo(dtype)
-
-        if narrow_range:
-            ranges = iinfo.max - (iinfo.min + 1)
-        else:
-            ranges = iinfo.max - iinfo.min
-        val.scale = val.range / ranges
+        val.recalculate_scale(min_val, max_val, narrow_range=narrow_range)
         return val
 
     def scale_to_pow2(self):
@@ -113,6 +117,7 @@ class SymmetricMultQType(MultQTypeBase):
             "min_val": val['min_val'],
             "max_val": val['max_val'],
             "scale": val['scale'],
+            "set_scale": val['set_scale'] if 'set_scale' in val else None,
             "quantized_dimension": val['dim'] if 'dim' in val else None,
             "narrow_range": val['narrow_range'],
             "dtype": getattr(np, val['dtype'])

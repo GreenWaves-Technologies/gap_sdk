@@ -67,7 +67,7 @@ def generator_template_v3(G, gen):
 #include <stdint.h>
 #include <stdio.h>
 #include "AutoTilerLib.h"
-#include ${gen.cnn_generators()}
+${gen.cnn_includes_generator()}
 ${gen.extra_includes_generator(indent=0)}
 
 void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory, unsigned int L3Flash)

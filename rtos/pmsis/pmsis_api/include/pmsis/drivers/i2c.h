@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 GreenWaves Technologies
+ * Copyright (C) 2020 GreenWaves Technologies
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,17 +73,19 @@ typedef struct pi_i2c_conf
  * I2C.
  */
 typedef enum {
-  PI_I2C_XFER_STOP     = 0<<0,   /*!< Generate a STOP bit at the end of the
+  PI_I2C_XFER_STOP       = 0<<0, /*!< Generate a STOP bit at the end of the
     transfer. */
-  PI_I2C_XFER_NO_STOP  = 1<<0,   /*!< Don't generate a STOP bit at the end of
+  PI_I2C_XFER_NO_STOP    = 1<<0, /*!< Don't generate a STOP bit at the end of
     the transfer. */
-  PI_I2C_XFER_START    = 0<<1,    /*!< Generate a START bit at the beginning of
+  PI_I2C_XFER_START      = 0<<1, /*!< Generate a START bit at the beginning of
     the transfer. */
-  PI_I2C_XFER_NO_START = 1<<1    /*!< Don't generate a START bit at the
+  PI_I2C_XFER_NO_START   = 1<<1, /*!< Don't generate a START bit at the
+    beginning of the transfer. */
+  PI_I2C_XFER_RESTART    = 1<<2, /*!< Generate a RESTART bit at the beginning of
+    the transfer. */
+  PI_I2C_XFER_NO_RESTART = 0<<2  /*!< Don't generate a RESTART bit at the
     beginning of the transfer. */
 } pi_i2c_xfer_flags_e;
-
-
 
 
 /** \enum pi_i2c_ioctl_e
@@ -92,7 +94,7 @@ typedef enum {
  * This is used to tell which command to execute through pi_i2c_control.
  */
 typedef enum {
-  PI_I2C_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_CTRL_SET_MAX_BAUDRATE_BIT, /*!< 
+  PI_I2C_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_CTRL_SET_MAX_BAUDRATE_BIT, /*!<
     Change maximum baudrate. */
 } pi_i2c_ioctl_e;
 
@@ -175,8 +177,11 @@ void pi_i2c_ioctl(struct pi_device *device, uint32_t cmd, void *arg);
  * \param length  The size in bytes of the copy.
  * \param flags  Specify additional transfer behaviors like start and stop bits
  *   management.
+ *
+ * \return          PI_OK if request is successful
+ *                  PI_ERR_I2C_NACK if a NACK was received during the request
  */
-void pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
+int pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
   pi_i2c_xfer_flags_e flags);
 
 /** \brief Enqueue a burst write copy to the I2C (from chip to I2C device).
@@ -193,9 +198,19 @@ void pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
  * \param length      The size in bytes of the copy.
  * \param flags  Specify additional transfer behaviors like start and stop bits
  *   management.
+ *
+ * \return          PI_OK if request is successful
+ *                  PI_ERR_I2C_NACK if a NACK was received during the request
  */
-void pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
+int pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
   pi_i2c_xfer_flags_e flags);
+
+
+void pi_i2c_write_read(struct pi_device *device, void *tx_buffer,
+        void *rx_buffer, uint32_t tx_size, uint32_t rx_size);
+
+void pi_i2c_write_dual(struct pi_device *device, void *tx_buffer0,
+        void *tx_buffer1, uint32_t tx_size0, uint32_t tx_size1);
 
 /** \brief Enqueue an asynchronous burst read copy from the I2C (from I2C
  * device to chip).
@@ -206,6 +221,8 @@ void pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
  * chip memory.
  * A task must be specified in order to specify how the caller should be
  * notified when the transfer is finished.
+ * The task will contain the request status (success or error). It should be
+ * retrieved using the pi_i2c_get_request_status function.
  * Depending on the chip, there may be some restrictions on the memory which
  * can be used. Check the chip-specific documentation for more details.
  *
@@ -228,6 +245,8 @@ void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length,
  * chip memory.
  * A task must be specified in order to specify how the caller should be
  * notified when the transfer is finished.
+ * The task will contain the request status (success or error). It should be
+ * retrieved using the pi_i2c_get_request_status function.
  * Depending on the chip, there may be some restrictions on the memory which
  * can be used. Check the chip-specific documentation for more details.
  *
@@ -241,6 +260,28 @@ void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length,
  */
 void pi_i2c_write_async(struct pi_device *device, uint8_t *tx_data, int length,
   pi_i2c_xfer_flags_e flags, pi_task_t *task);
+
+void pi_i2c_write_read_async(struct pi_device *device, void *tx_buffer,
+        void *rx_buffer, uint32_t tx_size, uint32_t rx_size, pi_task_t *callback);
+
+void pi_i2c_write_dual_async(struct pi_device *device, void *tx_buffer0,
+        void *tx_buffer1, uint32_t tx_size0, uint32_t tx_size1, pi_task_t *callback);
+/**
+ * \brief get the request status from a task
+ *
+ * This function can be used to retrieve the request status
+ * from a task.
+ *
+ * \param task the task to retrieve the status from
+ *
+ * \warning in order to be able to retrieve the request status
+ *          you need to pass a pointer to the task as the first
+ *          callback argument. You can use next arguments as you please.
+ *
+ * \return  PI_OK if the request was successful
+ *          PI_ERR_I2C_NACK if a NACK was received during the request
+ */
+int pi_i2c_get_request_status(pi_task_t* task);
 
 //!@}
 

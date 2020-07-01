@@ -70,5 +70,5 @@ clean: clean_model
 	$(RM) $(MAIN)
 
 .PHONY: depend clean
-
+include train_model.mk
 include ../common/model_rules.mk

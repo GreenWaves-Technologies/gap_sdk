@@ -81,6 +81,10 @@ typedef enum {
 	KOP_EXPAND,
 	KOP_COLLAPSE,
 
+	KOP_RNN,
+	KOP_LSTM,
+	KOP_GRU,
+
 	/* Grouped operations */
         KOP_CONV_RELU,
         KOP_CONV_RELUN,
@@ -184,6 +188,22 @@ typedef enum {
 	KER_ITER_D3=6,
 	KER_ITER_LAST=7		/**< Marker for last */
 } KernelIteratorT;
+
+#define ITER_SPACE_MASK			0x0FFFF
+#define ITER_PROP_MASK			0x0FFFF0000
+#define ITER_PROP_OFF			16
+
+#define	SPACE_PROP_ABS			0x00010000
+#define	SPACE_PROP_REVERT		0x00020000
+
+#define	RAW_SPACE(Space)		((Space) & ITER_SPACE_MASK)
+#define	PROP_SPACE(Space)		((Space)>>ITER_PROP_OFF)
+#define	SPACE_PROP(Space, Prop)		(((Space)&ITER_SPACE_MASK) | (Prop))
+
+#define	SPACE_PROP_IS(Space, Prop)	(((Space) & (Prop)) == (Prop))
+#define	SPACE_PROP_SET(Space, Prop)	((Space) = ((Space) | (Prop)))
+#define	SPACE_PROP_CLR(Space, Prop)	((Space) = ((Space) & ~(Prop)))
+
 /// @cond PrivateStuff
 #define MAX_ARG_DIM 5
 #define KER_ITER_TILE_MAX 3
@@ -327,21 +347,22 @@ typedef enum {
 	KER_ARG_TILELAST = 16,		/**< Predicate, != 0 if current tile is the last one */
 	KER_ARG_TILEINDEX = 17,		/**< Current tile index for related user kernel argument, starts at 0 */
 	KER_ARG_TILE_BASE = 18,		/**< Current tile base in line or column unit, when argument is dynamic it is computed at runtime */
-	KER_ARG_IT_INDEX = 19,		/**< Actual value of iterator attached to ItSpace */
-	KER_ARG_PAD = 20,		/**< Actual padding of a feature space associated to arg (left,right,top,bottom) as a v4s */
-	KER_ARG_TILE_PAD = 21,		/**< Actual padding of tile associated to arg (left,right,top,bottom) as a v4s */
-	KER_ARG_PARTILE_DIM = 22,	/**< Actual dimension of a parametric space */
-	KER_ARG_PARTILE_SIZE = 23,	/**< Size of a tile from a parametric space */
-	KER_ARG_LOADEDPARTILE_SIZE = 24,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
-	KER_IT_INDEX = 25,		/**< Actual value of a given kernel iterator */
+	KER_ARG_TILE_PRED_LIST = 19,	/**< List of tile predicate */
+	KER_ARG_IT_INDEX = 20,		/**< Actual value of iterator attached to ItSpace */
+	KER_ARG_PAD = 21,		/**< Actual padding of a feature space associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_TILE_PAD = 22,		/**< Actual padding of tile associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_PARTILE_DIM = 23,	/**< Actual dimension of a parametric space */
+	KER_ARG_PARTILE_SIZE = 24,	/**< Size of a tile from a parametric space */
+	KER_ARG_LOADEDPARTILE_SIZE = 25,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
+	KER_IT_INDEX = 26,		/**< Actual value of a given kernel iterator */
 
-	TC_ARG = 26,			/**< A C argument */
-	TC_IMM = 27,			/**< An immediate int value */
-	TC_USYMB = 28,			/**< A user defined symbol */
-	TC_KDIM = 29,			/**< One of the user Kernel Dimensions */
-	TC_ARG_IND = 30,		/**< An indirection on a C argument */
-	TC_ARG_IND_IT_INDEX = 31, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
-	TC_ARG_PLUS_IT_INDEX = 32, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
+	TC_ARG = 27,			/**< A C argument */
+	TC_IMM = 28,			/**< An immediate int value */
+	TC_USYMB = 29,			/**< A user defined symbol */
+	TC_KDIM = 30,			/**< One of the user Kernel Dimensions */
+	TC_ARG_IND = 31,		/**< An indirection on a C argument */
+	TC_ARG_IND_IT_INDEX = 32, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
+	TC_ARG_PLUS_IT_INDEX = 33, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
 
 
 	/* Deprecated */
@@ -395,6 +416,9 @@ typedef enum {
         O_NDYNTILE              = (1<<17),      /**< Argument tile size is not adjusted dynamically */
 	O_CONST			= (1<<18),	/**< Argument is constant, applies to input only */
 	O_NCONST		= (1<<19),	/**< Argument is not constant, applies to input only */
+	O_STACK_PRED		= (1<<20),	/**< Argument should be allocated without alignment padding between it and prev in declaration list */
+	O_NO_LOAD		= (1<<21),	/**< Argument has O_IN and O_BUFF attribute but load is not performed */
+	O_NO_STORE		= (1<<22),	/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
 
         O_TILE2                 = (1<<29),      /**< Argument traverses the 3rd level of iteration on the basic data plane */
         O_TILE1                 = (1<<30),      /**< Argument traverses the 2nd level of iteration on the basic data plane */
@@ -487,11 +511,13 @@ typedef enum {
 Argument binding selection
 */
 typedef enum {
-	BIND_K_ARG = 0,	/**< Binds to a user kernel argument */
-	BIND_C_ARG = 1,	/**< Binds to a C user kernel argument */
-	BIND_IMM = 2,	/**< Binds to an immediate value */
-	BIND_USYMB = 3,	/**< Binds to a user defined symbol */
-	BIND_KDIM = 4,	/**< Binds to one of the user kernel dimension */
+	BIND_K_ARG = 0,		/**< Binds to a user kernel argument */
+	BIND_C_ARG = 1,		/**< Binds to a C user kernel argument */
+	BIND_IMM = 2,		/**< Binds to an immediate value */
+	BIND_USYMB = 3,		/**< Binds to a user defined symbol */
+	BIND_KDIM = 4,		/**< Binds to one of the user kernel dimension */
+	BIND_PRED_AND = 5,	/**< Binds to a list of anded predicates */
+	BIND_PRED_OR = 6	/**< Binds to a list of ored predicates */
 } ArgBindingT;
 
 /**
@@ -509,7 +535,9 @@ typedef enum {
 	BIND_OP_LSHIFT=7,
 	BIND_OP_RSHIFT=8,
 	BIND_OP_AT_INDEX=9,
-	BIND_OP_LAST=10,
+	BIND_OP_AND=10,
+	BIND_OP_OR=11,
+	BIND_OP_LAST=12,
 } ArgBindingOper;
 
 /* Internal tiler data structures */
@@ -567,6 +595,7 @@ typedef struct {
 	char IsAbs;			/* If 1 this subspace is addressable through Base (relative or not) + subscript, if 0 it is relative */
 	char InL1;			/* If 1 this subspace is entirely in L1 addressable through Base (relative or not) + subscript */
 	char Promoted;			/* If 1 this subspace has been promoted to buffer */
+	char ReverseOrder;		/* If 1 this subspace will be traverse in reverse order */
 } KernelArgOneDimDescrT;
 
 typedef struct {
@@ -621,6 +650,7 @@ typedef struct {
 
 typedef struct A_Object_T Object_T;
 typedef struct A_Kernel_Arg_T Kernel_Arg_T;
+typedef struct A_NodeTypeTemplate_T NodeTypeTemplate_T;
 
 typedef enum {UNDEF_MEM=0, MEM_L3, MEM_L2, MEM_L1, MEM_LAST} MemHierarchy_T;
 
@@ -677,6 +707,8 @@ typedef struct {
 #define ARG_IN_L2(Arg)		(HAS_ARG_INFO((Arg)) && ((Arg)->CArg->ArgInfo->ExecLoc==AT_MEM_L2))
 #define ARG_IN_L3(Arg)		(HAS_ARG_INFO((Arg)) && ((Arg)->CArg->ArgInfo->ExecLoc>=AT_MEM_L3_HRAM) && ((Arg)->CArg->ArgInfo->ExecLoc<=AT_MEM_L3_MRAMFLASH))
 
+typedef struct AArgBindingDescr_T ArgBindingDescr_T;
+
 typedef struct {
 	NameT *Name;			/* The C Template Name */
 	NameT *Type;
@@ -689,11 +721,19 @@ typedef struct {
 	KernelIteratorT ItSpace;	/* In case an iterator name is needed */
 	CArg_Descriptor_T *ArgInfo;
 	NameT *KerArgAccessType;
+	ArgBindingDescr_T *List;
 } CKernel_Arg_T;
+
+typedef struct AGraphArgList_T GraphArgList_T;
+typedef struct AGraphArgList_T {
+	CKernel_Arg_T *Arg;
+	GraphArgList_T *Next;
+} GraphArgList_T;
+
 
 typedef enum {GNA_UNDEF, GNA_IN, GNA_OUT, GNA_INOUT} GraghNodeArgT;
 
-typedef struct {
+typedef struct AArgBindingDescr_T {
 	ArgBindingT BindType;
 	GraghNodeArgT GraphNodeType;
 	NameT *TargetArgName;
@@ -708,6 +748,7 @@ typedef struct {
 	CKernel_Arg_T *SourceArgDescr;
 	KernelIteratorT ItSpace;	/* In case an iterator name is needed */
 	NameT *KerArgAccessType;
+	ArgBindingDescr_T *List;
 } ArgBindingDescr_T;
 
 typedef struct {
@@ -847,6 +888,7 @@ typedef enum {
 typedef struct {
 	unsigned long long int Oper;
 	unsigned long long int Bandwidth;
+	float OperRatio;
 } KernelInfos_T;
 
 /* Stacked tensor:
@@ -880,6 +922,7 @@ typedef struct A_StackedTensors_T {
         int TensorInCount;
         NameT **InTensors;
         int *InTensorsSize;
+        int *InTensorsOffset;
         StackedTensors_T *Next;
 } StackedTensors_T;
 
@@ -899,6 +942,7 @@ typedef struct A_Kernel_T {
 	unsigned int ArgCount;
 	Kernel_Arg_T **Arg;
 	Kernel_Arg_T **RefArg;
+	short int *ArgOrder;
 	unsigned int CArgCount;
 	CKernel_Arg_T **CArg;
 	StackedTensors_T *StackedTensors;
@@ -910,6 +954,7 @@ typedef struct A_Kernel_T {
 	unsigned int UsedL1Memory;
 	unsigned int UsedL2Memory;
 	KernelInfos_T *KerInfos;
+	NodeTypeTemplate_T *NodeTypeTemplate;
 } Kernel_T;
 
 typedef struct {
@@ -968,6 +1013,28 @@ typedef struct A_MemChunk_T {
         MemChunk_T *Next;
 } MemChunk_T;
 
+typedef struct {
+        char *TypePrefix;
+        char *FunArgTypeSuffix;
+        char *FunArgName;
+	char *GraphAllFunName;
+} NodeTypeTemplateParameters_T;
+
+typedef struct A_ArgDecl_T ArgDecl_T;
+typedef struct A_ArgDecl_T {
+        NameT *ArgType;
+        NameT *ArgName;
+        ArgDecl_T *Next;
+} ArgDecl_T;
+
+typedef struct A_NodeTypeTemplate_T {
+        NameT *Name;
+	int NRefs;
+        int NArgs;
+        ArgDecl_T *Args;
+        NodeTypeTemplate_T *Next;
+} NodeTypeTemplate_T;
+
 typedef enum {NODE_ENTRY, NODE_USER_KER, NODE_USER_KER_GROUP, NODE_EXIT} NodeType_T;
 
 typedef struct AChannelNodeList_T {
@@ -1013,6 +1080,8 @@ typedef struct {
 	AT_MemLocation_T MemType;
 	unsigned int Address;
 	unsigned int Size;
+	int LiveFirst;
+	int LiveLast;
 } MemLoc_T;
 
 typedef struct ABufferList_T {
@@ -1045,6 +1114,7 @@ typedef struct AGraphEdgeWeb_T {
 	GraphEdgeWebList_T *Equiv;	/* List of equivalent symbols coming from GNA_INOUT propertiy */
 	GraphEdgeWeb_T *Next;		/* Next Symbol */
 	SymbolAlloc_T *Alloc;		/* Memory allocation infos */
+	int IsLocal;			/* 1 if this symbol is local to the graph */
 } GraphEdgeWeb_T;
 
 typedef struct AGraphNodeCalls_T GraphNodeCalls_T;
@@ -1079,6 +1149,8 @@ typedef struct AGraphNode_T {
 
 typedef struct {
 	NameT *Name;
+	NodeTypeTemplate_T *NodeTypeTemplate;	/* List of func type template used in this graph */
+	int NodeTypeTemplateCount;		/* Number of type template */
 	CKernel_Arg_T **CArgs;			/* The C arguments of the CNN graph as a callable function */
 	unsigned int CArgsCount;		/* Number of C args */
 	CKernel_Arg_T **Locals;			/* CNN graph C local arguments, will have to be dynamically allocated */
@@ -1112,6 +1184,8 @@ typedef enum {
 	AT_GRAPH_PREF_L3_HOME,			/* For constant symbols which L3 flash prefered memory, default is AT_MEM_L3_HFLASH */
 	AT_GRAPH_DUMP_TENSOR,			/* Trace selected tensors arguments at inference time, either all nodes or selected node */
 	AT_GRAPH_DUMP_ONE_NODE,			/* Trace one specific graph node */
+	AT_GRAPH_ARG2STRUCT,			/* Kernel C arguments are promoted to struct */
+	AT_GRAPH_SIZE_OPT,			/* Graph constructor, runner and destructor are compiled with -Os */
 } AT_GraphCtrl_T;
 /*
 #define AT_OPT_ON	((void *) 1)
@@ -1136,16 +1210,14 @@ typedef struct {
 	AT_MemLocation_T PreferedConstL3HomeLoc;/* For a constant symbol where to store it L3, default is AT_MEM_L3_HFLASH */
 	unsigned int DumpTensorFilter;		/* A bit vector of AT_DumpTensor_T */
 	NameT *DumpTensorNode;			/* Dump tensor defined by DumpTensorFilter for this specific node, if null dump all */
+	int PromoteArgsToStruct;		/* When 1 function calls arguments are promoted to structure */
+	int OptRunnerForSize;			/* When 1 forces CNN graph construct, runner and destruct to be compiled in Os */
 } GraphControl_T;
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))
 #define MultRndu(x,y, scale)    ((unsigned int)(((x)*(y)) + (1<<((scale)-1)))>>(scale))
-#ifndef Max
 #define Max(a, b)               (((a)>(b))?(a):(b))
-#endif
-#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
-#endif
 
 /* Return aligned value, alignment is 2^Size */
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))
@@ -1186,6 +1258,7 @@ extern int TopAllocatedMemory[];
 extern int AvailableMemory[];
 
 extern char *ConstDirName;
+extern NodeTypeTemplateParameters_T NodeTypeTemplateParameters;
 
 
 /// @endcond

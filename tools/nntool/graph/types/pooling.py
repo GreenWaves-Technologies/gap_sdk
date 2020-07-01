@@ -16,11 +16,11 @@
 import logging
 
 from ..dim import PoolFilterDim
-from .base import FilterLikeParameters
+from .base import FilterLikeParameters, SensitiveToOrder
 
 LOG = logging.getLogger("nntool." + __name__)
 
-class PoolingParameters(FilterLikeParameters):
+class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, name: str, filt=None, pool_type="max", **kwargs):

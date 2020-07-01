@@ -12,8 +12,10 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import numpy as np
 
 from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
+
 
 def image_format(params, in_tensors, qrec, details):
     del details
@@ -22,4 +24,13 @@ def image_format(params, in_tensors, qrec, details):
     res = in_tensors[0]
     res = FORMAT_CHANGES[params.format_change](res, in_dim, out_dim)
     res = NORMALIZATIONS[params.norm_func](res)
+    if not qrec:
+        iinfo = np.iinfo(res.dtype)
+        if res.dtype == np.int8:
+            res = res.astype(np.float32) / -iinfo.min
+        elif res.dtype == np.int16:
+            res = res.astype(np.float32) / -iinfo.min
+        else:
+            raise ValueError("unsure how to dequantize this output from imageformatter")
+        return [res]
     return [qrec.out_qs[0].dequantize(res)]

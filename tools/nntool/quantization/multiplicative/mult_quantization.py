@@ -15,12 +15,12 @@
 
 import math
 from functools import reduce
-from typing import Sequence
+from typing import Sequence, Tuple, Mapping
 
 import numpy as np
 
 from graph.types import (FilterParameters, MultiplicativeBiasParameters,
-                         Parameters)
+                         Parameters, ConstantInputParameters)
 from quantization.multiplicative.mult_qtype_base import (MultQTypeBase,
                                                          WrapperMixin)
 from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import (
@@ -30,7 +30,7 @@ from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
 from quantization.qtype import QType
 from quantization.quantization_record_base import (
     ConstantQuantizationRecordBase, InputOutputQuantizationRecordBase,
-    QuantizationRecordBase, ScalableFilterQuantizationRecordBase)
+    QuantizationRecordBase, ScalableFilterQuantizationRecordBase, HasConstantsBase)
 
 
 class MultQuantizationRecordBase(QuantizationRecordBase):
@@ -386,3 +386,291 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
                 self.mul_biases_q.pre_normalization = self.compute_prenorm(params)
             input_tensor = self.mul_biases_q.apply_scales(input_tensor, axis)
             return input_tensor.astype(np.int32)
+
+class MultSSDDetectorQuantizationRecord(MultQuantizationRecord):
+    def __init__(self, *args, scale_x_q=None, scale_x_anc_q=None, scale_y_q=None,
+                 scale_y_anc_q=None, scale_h_q=None, scale_w_q=None, scale_ao_q=None,
+                 info=None, **kwargs):
+        super(MultSSDDetectorQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            self._info['scale_x_q'] = scale_x_q
+            self._info['scale_y_q'] = scale_y_q
+            self._info['scale_x_anc_q'] = scale_x_anc_q
+            self._info['scale_y_anc_q'] = scale_y_anc_q
+            self._info['scale_h_q'] = scale_h_q
+            self._info['scale_w_q'] = scale_w_q
+            self._info['scale_ao_q'] = scale_ao_q
+
+    @property
+    def scale_x_q(self):
+        mul_biases_q = self._info.get('scale_x_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_x_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_x_q.setter
+    def scale_x_q(self, val):
+        self._info['scale_x_q'] = val
+
+    @property
+    def scale_x_anc_q(self):
+        mul_biases_q = self._info.get('scale_x_anc_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_x_anc_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_x_anc_q.setter
+    def scale_x_anc_q(self, val):
+        self._info['scale_x_anc_q'] = val
+
+    @property
+    def scale_y_q(self):
+        mul_biases_q = self._info.get('scale_y_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_y_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_y_q.setter
+    def scale_y_q(self, val):
+        self._info['scale_y_q'] = val
+
+    @property
+    def scale_y_anc_q(self):
+        mul_biases_q = self._info.get('scale_y_anc_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_y_anc_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_y_anc_q.setter
+    def scale_y_anc_q(self, val):
+        self._info['scale_y_anc_q'] = val
+
+    @property
+    def scale_h_q(self):
+        mul_biases_q = self._info.get('scale_h_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_h_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_h_q.setter
+    def scale_h_q(self, val):
+        self._info['scale_h_q'] = val
+
+    @property
+    def scale_w_q(self):
+        mul_biases_q = self._info.get('scale_w_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_w_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_w_q.setter
+    def scale_w_q(self, val):
+        self._info['scale_w_q'] = val
+
+    @property
+    def scale_ao_q(self):
+        mul_biases_q = self._info.get('scale_ao_q')
+        if mul_biases_q is None:
+            mul_biases_q = MultMulBiasScaleQType(dtype=np.uint8)
+            self.scale_ao_q = mul_biases_q
+        return mul_biases_q
+
+    @scale_ao_q.setter
+    def scale_ao_q(self, val):
+        self._info['scale_ao_q'] = val
+
+    def set_scales(self, params):
+        offset_q = self.in_qs[0]
+        anchors_q = self.in_qs[2]
+        out_boxes_q = self.out_qs[0]
+        self.scale_x_q.scale = (offset_q.scale * anchors_q.scale) / (out_boxes_q.scale * params.x_scale)
+        self.scale_x_anc_q.scale = params.x_scale / offset_q.scale
+        self.scale_y_q.scale = (offset_q.scale * anchors_q.scale) / (out_boxes_q.scale * params.y_scale)
+        self.scale_y_anc_q.scale = params.y_scale / offset_q.scale
+        self.scale_h_q.scale = offset_q.scale / params.h_scale
+        self.scale_w_q.scale = offset_q.scale / params.w_scale
+        self.scale_ao_q.scale = anchors_q.scale * 2**(-15) / out_boxes_q.scale
+
+class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
+                                        HasConstantsBase, InputOutputQuantizationRecordBase):
+    def __init__(self, *args,
+                 i_2_a_q: MultMulBiasQType = None,
+                 s_2_o_q: MultMulBiasQType = None,
+                 s_2_s_q: MultMulBiasQType = None,
+                 info=None,
+                 **kwargs):
+        super(MultScalableRnnQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            # scale applied to input after weights
+            self._info['i_2_a_q'] = i_2_a_q
+            # scale applied to state to give output
+            self._info['s_2_o_q'] = s_2_o_q
+            # scale applied to state to give recurrent state
+            self._info['s_2_s_q'] = s_2_s_q
+
+    @property
+    def i_2_a_q(self) -> MultMulBiasQType:
+        return self._info.get('i_2_a_q')
+
+    @i_2_a_q.setter
+    def i_2_a_q(self, val: MultMulBiasQType):
+        self._info['i_2_a_q'] = val
+
+    @property
+    def s_2_o_q(self) -> MultMulBiasQType:
+        return self._info.get('s_2_o_q')
+
+    @s_2_o_q.setter
+    def s_2_o_q(self, val: MultMulBiasQType):
+        self._info['s_2_o_q'] = val
+
+    @property
+    def s_2_s_q(self) -> MultMulBiasQType:
+        return self._info.get('s_2_s_q')
+
+    @s_2_s_q.setter
+    def s_2_s_q(self, val: MultMulBiasQType):
+        self._info['s_2_s_q'] = val
+
+    def scale_input(self,
+                    params: Parameters,
+                    weighted_input_tensor: np.ndarray,
+                    axis: int,
+                    consts_and_qtypes: Mapping[str,
+                                               Tuple[np.ndarray,
+                                                     MultMulBiasQType]],
+                    ktype: str = None):
+        del params, consts_and_qtypes
+        if ktype != "symmetric" or self.i_2_a_q is None:
+            return weighted_input_tensor
+        # For AT model creation this should not be set. This is just for simulation
+        # i.e. input scale == state scale == output scale
+        # scale input_scale * input_weights to state_scale * recurrent_weights_scale
+        weighted_input_tensor = weighted_input_tensor.astype(np.int32)
+        return self.i_2_a_q.apply_scales(weighted_input_tensor, axis)
+
+    def scale_output(self,
+                     params: Parameters,
+                     state_tensor: np.ndarray,
+                     axis: int,
+                     consts_and_qtypes: Mapping[str,
+                                                Tuple[np.ndarray,
+                                                      MultMulBiasQType]],
+                     ktype: str = None):
+        if ktype != "symmetric" or self.s_2_o_q is None:
+            return state_tensor
+        o_q = self.out_qs[0]
+        # scale state_scale to output_scale
+        return o_q.clip(self.s_2_o_q.apply_scales(state_tensor, axis))
+
+    def scale_state(self,
+                    params: Parameters,
+                    state_tensor: np.ndarray,
+                    axis: int,
+                    consts_and_qtypes: Mapping[str,
+                                               Tuple[np.ndarray,
+                                                     MultMulBiasQType]],
+                    ktype: str = None):
+        if ktype != "symmetric" or self.s_2_s_q is None:
+            return state_tensor
+        # scale state_scale * recurrent_weights_scale to output_scale
+        i_state_q = consts_and_qtypes['i_state'][1]
+        return i_state_q.clip(self.s_2_s_q.apply_scales(state_tensor, axis))
+
+
+class MultScalableLstmQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
+                                         HasConstantsBase, InputOutputQuantizationRecordBase):
+    def __init__(self, *args,
+                 i_2_o_q: MultMulBiasQType = None,
+                 i_2_f_q: MultMulBiasQType = None,
+                 i_2_c_q: MultMulBiasQType = None,
+                 i_2_i_q: MultMulBiasQType = None,
+                 r_2_o_q: MultMulBiasQType = None,
+                 r_2_f_q: MultMulBiasQType = None,
+                 r_2_c_q: MultMulBiasQType = None,
+                 r_2_i_q: MultMulBiasQType = None,
+                 cell_in_q: MultMulBiasQType = None,
+                 cell_out_q: MultMulBiasQType = None,
+                 state_out_q: MultMulBiasQType = None,
+                 i_qtype: QType = None,
+                 info=None,
+                 **kwargs):
+
+        super(MultScalableLstmQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            # scale applied to input after weights
+            self._info['i_2_o_q'] = i_2_o_q
+            self._info['i_2_f_q'] = i_2_f_q
+            self._info['i_2_c_q'] = i_2_c_q
+            self._info['i_2_i_q'] = i_2_i_q
+            # scale applied to input + state after weights
+            self._info['r_2_o_q'] = r_2_o_q
+            self._info['r_2_f_q'] = r_2_f_q
+            self._info['r_2_c_q'] = r_2_c_q
+            self._info['r_2_i_q'] = r_2_i_q
+            # Internal qtype * 1
+            self._info['i_qtype'] = i_qtype
+            # Cell scales
+            self._info['cell_in_q'] = cell_in_q
+            self._info['cell_out_q'] = cell_out_q
+            # state out scale
+            self._info['state_out_q'] = state_out_q
+        self.external_type = QType(bits=8, q=0, signed=True)
+
+    def __getattr__(self, attr):
+        if attr in self._info:
+            return self._info[attr]
+        raise AttributeError()
+
+    def scale_to(self,
+                 var,
+                 tensor: np.ndarray,
+                 axis: int,
+                 ktype: str = None):
+        if ktype != "symmetric" or getattr(self, var) is None:
+            return tensor
+        qtype = getattr(self, var)
+        return qtype.apply_scales(tensor, axis)
+
+    @property
+    def internal_qtype(self):
+        return self._info['i_qtype']
+
+    def scale_input_input(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('i_2_i_q', tensor, axis, ktype)
+
+    def scale_input_forget(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('i_2_f_q', tensor, axis, ktype)
+
+    def scale_input_cell(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('i_2_c_q', tensor, axis, ktype)
+
+    def scale_input_output(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('i_2_o_q', tensor, axis, ktype)
+
+    def scale_internal_input(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('r_2_i_q', tensor, axis, ktype)
+
+    def scale_internal_forget(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('r_2_f_q', tensor, axis, ktype)
+
+    def scale_internal_cell(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('r_2_c_q', tensor, axis, ktype)
+
+    def scale_internal_output(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('r_2_o_q', tensor, axis, ktype)
+
+    def scale_cellin(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.scale_to('cell_in_q', tensor, axis, ktype)
+
+    def scale_cellout(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.external_type.clip(self.scale_to('cell_out_q', tensor, axis, ktype))
+
+    def scale_output(self, tensor: np.ndarray, axis: int, ktype: str = None):
+        return self.external_type.clip(self.scale_to('state_out_q', tensor, axis, ktype))

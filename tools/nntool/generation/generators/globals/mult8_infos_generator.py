@@ -72,7 +72,7 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
                   extra3=qrec.scale_mul_biases_q.qbiases[0],
                   extra4=qrec.scale_mul_biases_q.qnorms[0])
     elif isinstance(pnode, MatrixMulParameters):
-        qrec.set_scale()
+        qrec.set_scale(in_idx=(0, 1), out_idx=0)
         act_infos(gen, pnode, pnode, None, None,
                   extra1=qrec.scale_mul_biases_q.qbiases[0],
                   extra2=qrec.scale_mul_biases_q.qnorms[0])
@@ -91,7 +91,7 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
                       extra3=quants[0].scale_mul_biases_q.qbiases[0],
                       extra4=quants[0].scale_mul_biases_q.qnorms[0])
         elif isinstance(cnodes[0], MatrixMulParameters):
-            qrec.set_scale()
+            qrec.set_scale(in_idx=(0, 1), out_idx=0)
             act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1],
                       extra1=qrec.scale_mul_biases_q.qbiases[0],
                       extra2=qrec.scale_mul_biases_q.qnorms[0])
@@ -148,7 +148,7 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
                               act_q.out_qs[0].scale[0],
                               act_q.scale_mul_biases_q.qbiases[0],
                               act_q.scale_mul_biases_q.qnorms[0],
-                              fac_1[0], upper_bound[0])
+                              upper_bound[0], fac_1[0])
     elif isinstance(act_params, HSwishActivationParameters):
         # currently combines all scaling factors into one scale and shift
         fac_1, upper_bound, _ = hswish_mult_gen_factors(act_q)
@@ -161,7 +161,7 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
                               act_q.out_qs[0].scale[0],
                               act_q.scale_mul_biases_q.qbiases[0],
                               act_q.scale_mul_biases_q.qnorms[0],
-                              fac_1[0], upper_bound[0])
+                              upper_bound[0], fac_1[0])
     elif isinstance(act_params, SoftMaxParameters):
         norm = 15 + np.ceil(np.log2(act_q.in_qs[0].scale))
         contents = np.array([norm, 0, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)

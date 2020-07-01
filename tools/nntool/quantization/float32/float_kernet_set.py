@@ -13,19 +13,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.float32.kernels.activations import relu, leaky, hsigmoid, hswish
+from quantization.float32.kernels.activations import (hsigmoid, hswish, leaky,
+                                                      relu)
 from quantization.float32.kernels.fast_conv import faster_conv
+from quantization.float32.kernels.image_format import image_format
 from quantization.float32.kernels.linear import linear
 from quantization.float32.kernels.matrix_operations import matscale, piecewise
 from quantization.float32.kernels.pad import pad
 from quantization.float32.kernels.pool import (av_global_pool, av_pool,
                                                max_global_pool, max_pool)
+from quantization.float32.kernels.rnn import rnn
 from quantization.float32.kernels.softmax import softmax
-from quantization.float32.kernels.tensor_functions import (concat,
+from quantization.float32.kernels.ssd_postprocess import ssd_postprocess
+from quantization.float32.kernels.tensor_functions import (cast, concat,
                                                            constant_input,
-                                                           graph_input, graph_output,
-                                                           reshape, transpose)
-from quantization.float32.kernels.image_format import image_format
+                                                           graph_input,
+                                                           graph_output,
+                                                           reshape,
+                                                           strided_slice, split,
+                                                           transpose)
 from quantization.kernels.kernel_function import (KernelFunction,
                                                   KernelFunctionSetBase)
 
@@ -126,3 +132,23 @@ class Float32KernelSet(KernelFunctionSetBase):
     @property
     def image_format(self) -> KernelFunction:
         return image_format
+
+    @property
+    def ssd_postprocess(self) -> KernelFunction:
+        return ssd_postprocess
+
+    @property
+    def rnn(self) -> KernelFunction:
+        return rnn
+
+    @property
+    def strided_slice(self) -> KernelFunction:
+        return strided_slice
+
+    @property
+    def cast(self) -> KernelFunction:
+        return cast
+
+    @property
+    def split(self) -> KernelFunction:
+        return split

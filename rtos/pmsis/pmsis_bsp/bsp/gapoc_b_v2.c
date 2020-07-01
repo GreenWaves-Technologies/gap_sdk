@@ -161,6 +161,7 @@ void bsp_thermeye_conf_init(struct pi_thermeye_conf *conf)
     conf->pwm_channel = (uint8_t) CONFIG_THERMEYE_PWM_CH;
     conf->gpio_power = (pi_gpio_e) CONFIG_THERMEYE_GPIO_POWER;
     conf->gpio_reset = (pi_gpio_e) CONFIG_THERMEYE_GPIO_RESET;
+    conf->cpi_format = (pi_cpi_format_e) PI_CPI_FORMAT_BYPASS_LITEND;
 }
 
 int bsp_thermeye_open(struct pi_thermeye_conf *conf)

@@ -746,6 +746,17 @@ ArgBindingDescr_T *K_ArgPred(
 	);
 
 /**
+@brief Binds to a list of anded/ored predicates
+
+Binds to a list of anded/ored predicates
+*/
+ArgBindingDescr_T *K_ArgPredList(
+	ArgBindingT Conj,		/**< Predicate conjonctor: BIND_PRED_AND or BIND_PRED_OR */
+	int N,				/**< Number of predicate */
+	...				/**< List of predicates produced by K_ArgPred */
+	);
+
+/**
 @brief Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
 
 Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper
@@ -861,6 +872,19 @@ Object_T *KerArg(
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+Object_T *KerArgAliased(
+	char 	     *KerArgName,		/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	unsigned int Alias,
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
+	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
 /**
 @brief Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described
 
@@ -1273,6 +1297,30 @@ CNNGraph_T *CreateGraph(
 	);
 
 /**
+@brief Declare a new CNN Graph CArg argument
+
+Declare a new CNN Graph CArg argument
+*/
+void AddGraphCArg(
+	CKernel_Arg_T *CArg
+	);
+
+
+/**
+@brief Declare a new CNN Graph Local argument
+
+Declare a new CNN Graph Local argument
+*/
+void AddGraphLocal(
+	CKernel_Arg_T *CArg
+	);
+
+/**
+@brief Commit to open CNN Graph AddGraphCArg and AddGraphLocal contributions
+*/
+void CommitGraphArgsAndLocals();
+
+/**
 @brief Add a layer to the opened CNN graph
 
 Add a layer to the opened CNN graph
@@ -1565,6 +1613,19 @@ char *AppendNames(
 	char *Name1,	/**< First name passed as a C string */
 	char *Name2	/**< Second name passed as a C string */
      );
+
+/**
+@brief Return the concatenation of 1 names and an index.
+
+Return the concatenation of 2 names.
+
+This is usefull to create names derivatives when writing generators.
+*/
+char *AppendIndex(
+	char *Name,		/**< Name prefix */
+	unsigned int Index	/**< Index to be appended */
+	);
+
 
 /**
 @brief Generates an error message and aborts execution

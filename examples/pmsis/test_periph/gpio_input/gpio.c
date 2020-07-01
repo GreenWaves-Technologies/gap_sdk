@@ -14,7 +14,8 @@ void __pi_cb_gpio(void *arg)
 {
     done++;
     pi_gpio_e gpio_pin = (pi_gpio_e) arg;
-    uint32_t val = pi_gpio_pin_read(&gpio, gpio_pin, &val);
+    uint32_t val = 0;
+    pi_gpio_pin_read(&gpio, gpio_pin, &val);
     printf("GPIO callback GPIO_A%d %d %d\n", gpio_pin & 0xFF, done, val);
 }
 
@@ -34,7 +35,7 @@ void test_gpio(void)
     pi_task_t cb_gpio = {0};
 
     pi_gpio_e gpio_in = PI_GPIO_A0_PAD_12_A3;
-    pi_gpio_notif_e irq_type = PI_GPIO_NOTIF_EDGE;
+    pi_gpio_notif_e irq_type = PI_GPIO_NOTIF_RISE;
     pi_gpio_flags_e cfg_flags = PI_GPIO_INPUT|PI_GPIO_PULL_DISABLE|PI_GPIO_DRIVE_STRENGTH_LOW;
 
     pi_task_callback(&cb_gpio, __pi_cb_gpio, (void *) gpio_in);
@@ -47,10 +48,10 @@ void test_gpio(void)
 
     while (1)
     {
-        value = pi_gpio_pin_read(&gpio, gpio_in, &value);
+        pi_gpio_pin_read(&gpio, gpio_in, &value);
         printf("GPIO %d in: %d\n", gpio_in & 0xFF, value);
         pi_time_wait_us(1000000);
-        value = pi_gpio_pin_read(&gpio, gpio_in, &value);
+        pi_gpio_pin_read(&gpio, gpio_in, &value);
         printf("GPIO %d in: %d\n", gpio_in & 0xFF, value);
         pi_time_wait_us(1000000);
     }

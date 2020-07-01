@@ -6,6 +6,8 @@ import hashlib
 from errors import FatalError
 import traces
 
+import os
+
 
 def align(offset, alignment):
     return (offset + alignment - 1) & ~(alignment - 1)
@@ -124,7 +126,7 @@ class App(Binary):
         header = BlockBuffer(blockSize = 8)
         header.appendInt(len(self.segments))
         header.appendInt(self.entry)
-        
+
         for area in self.segments:
             header.appendInt(area.offset)
             header.appendInt(area.base)
@@ -200,7 +202,12 @@ class SSBL(Binary):
         
         # First compute areas flash information
         flashOffset = 0
-        flashOffset += 4 + 4 + 4 + 4 + 16 * 4 * len(self.segments)
+
+
+        if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+            flashOffset += 4*11 + 16 * 4 * len(self.segments)
+        else:
+            flashOffset += 4 + 4 + 4 + 4 + 16 * 4 * len(self.segments)
         
         crcOffset = flashOffset
         flashOffset += 4
@@ -211,13 +218,23 @@ class SSBL(Binary):
             for segment in self.segments:
                 segment.size += 4
         
+        xip_flash_base = 0
+        xip_flash_size = 0
+        xip_page_size = 512
+
         index = 0
         for segment in self.segments:
+            if segment.base >= 0x20000000:
+                flashOffset = (flashOffset + xip_page_size - 1) & ~(xip_page_size - 1)
+                xip_flash_base = flashOffset
+                xip_flash_size = segment.size
+
             segment.nbBlocks = int((segment.size + self.blockSize - 1) / self.blockSize)
             segment.offset = flashOffset
             flashOffset += segment.nbBlocks * self.blockSize
             traces.info("  Area %d: offset: 0x%x, base: 0x%x, size: 0x%x, nbBlocks: %d" % (
                 index, segment.offset, segment.base, segment.size, segment.nbBlocks))
+                
             index += 1
         
         flashOffset = align(flashOffset, 8)
@@ -231,6 +248,23 @@ class SSBL(Binary):
         # Legacy bootAddr ROM  field, it is no longer used
         header.appendInt(0x1c000000)
         
+        xip_dev = 0
+        xip_vaddr = 0x20000000
+        xip_page_size_cmd = 0 # Page size: 0=512 bytes
+        xip_l2_addr = 0x1c190000 - 16*xip_page_size
+        xip_l2_nb_pages = 16
+        flash_nb_pages = int((xip_flash_size + xip_page_size-1) / xip_page_size)
+
+        if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+            # XIP config
+            header.appendInt(xip_dev) # Device
+            header.appendInt(xip_vaddr) # Virtual address
+            header.appendInt(xip_page_size_cmd) # Page size: 1=1Kbyte
+            header.appendInt(xip_flash_base) # Flash base
+            header.appendInt(flash_nb_pages) # Flash nb pages
+            header.appendInt(xip_l2_addr) # L2 address
+            header.appendInt(xip_l2_nb_pages) # L2 nb pages
+
         for area in self.segments:
             header.appendInt(area.offset)
             header.appendInt(area.base)

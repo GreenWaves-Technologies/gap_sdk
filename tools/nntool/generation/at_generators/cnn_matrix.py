@@ -36,7 +36,7 @@ def gen_at_matrixadd(code_block, name, in_q1, in_q2, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
 
     if at_ver < 3:
         code_block.write('{}("{}", {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
@@ -63,7 +63,7 @@ def gen_at_matrixadddyn(code_block, name, in_q1, in_q2, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
 
     code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, {}, {}, {}, {}, {});',
                      GEN_MATADDDYN, name, gen_ctrl,
@@ -99,7 +99,7 @@ def gen_at_matscale(code_block, name, other_q, vector_q, scalar_q, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
 
     code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {}, {}, {});',
                      GEN_MATSCALE, name, gen_ctrl,
