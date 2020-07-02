@@ -1,3 +1,11 @@
+3.6
+
+Highlights of this release:
+- NNTool       
+	- Support for TFLite RNN and LSTM layers (UnidirectionalSequenceLSTM)
+	- WIP: TFLite SSDPostProcess and StridedSlice Layers (not end to end support but execution working on nntool)
+	- Bug fixes
+
 3.5.1
 
 Highlights of this release:

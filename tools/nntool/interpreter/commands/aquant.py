@@ -25,6 +25,7 @@ from interpreter.shell_utils import (glob_input_files, input_options)
 from quantization.multiplicative.mult_quantizer import MultQuantizer
 from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
+from stats.activation_ranges_collector import ActivationRangesCollector
 from stats.filter_stats_collector import FilterStatsCollector
 from utils.data_importer import import_data
 from utils.stats_funcs import STATS_BITS
@@ -32,7 +33,10 @@ from utils.stats_funcs import STATS_BITS
 LOG = logging.getLogger('nntool.'+__name__)
 
 QUANTIZATION_SCHEMES = ['SQ8', 'POW2']
-
+ACTIVATION_STATS = {
+    'SQ8': ActivationRangesCollector,
+    'POW2': ActivationStatsCollector
+}
 class AquantCommand(NNToolShellBase):
     # AQUANT COMMAND
     parser_aquant = Cmd2ArgumentParser()
@@ -62,7 +66,7 @@ Attempt to calculate quantization for graph using one or more sample imput files
         self._check_graph()
         input_args = self._get_input_args(args)
         processed_input = False
-        stats_collector = ActivationStatsCollector()
+        stats_collector = ACTIVATION_STATS[args.scheme]()
         for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
             LOG.info("input file %s", file_per_input)
             processed_input = True
@@ -71,12 +75,13 @@ Attempt to calculate quantization for graph using one or more sample imput files
         if not processed_input:
             self.perror("No imput files found")
             return
-        astats = stats_collector.reduce_stats()
         if args.scheme == 'SQ8':
+            astats = stats_collector.stats
             quantizer = MultQuantizer(astats, 8,
                                       quantized_dimension=args.quant_dimension,
                                       narrow_weights=not args.no_narrow_weights)
         else:
+            astats = stats_collector.reduce_stats()
             stats_collector = FilterStatsCollector()
             fstats = stats_collector.collect_stats(self.G)
             quantizer = SymmetricQuantizer(astats, fstats,

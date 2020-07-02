@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
                          SoftMaxParameters, ConvFusionParameters, PoolingParameters,
                          ActivationParameters, MatrixAddParameters, ActivationFusion,
-                         MatrixMulParameters, GlobalPoolParameters)
+                         MatrixMulParameters, GlobalPoolParameters, ConstantInputParameters)
 
 class NamingConvension(ABC):
 
@@ -29,7 +29,7 @@ class NamingConvension(ABC):
         pass
 
     @abstractmethod
-    def get_edge_name(self, node_name, step_idx, edge_type, edge_order=None):
+    def get_edge_name(self, node, step_idx, edge_type, edge_order=None):
         pass
 
     @abstractmethod
@@ -87,6 +87,10 @@ class DefaultNamingConvension(NamingConvension):
             return "S{}_MatAdd_{}".format(step_idx, str(params.out_dims[0]))
         if isinstance(params, MatrixMulParameters):
             return "S{}_MatMul_{}".format(step_idx, str(params.out_dims[0]))
+        if isinstance(params, ConstantInputParameters):
+            if params.short_name:
+                return "S{}_{}".format(step_idx, params.short_name)
+            return "S{}_Op_{}".format(step_idx, node_name)
         if isinstance(params, ActivationFusion):
             nodes = params.contained_nodes()
             if isinstance(nodes[0], MatrixAddParameters):
@@ -103,7 +107,11 @@ class DefaultNamingConvension(NamingConvension):
                                               nodes[1].activation.capitalize())
         return "S{}_Op_{}".format(step_idx, node_name)
 
-    def get_edge_name(self, node_name, step_idx, edge_type, edge_order=None, edge_params=None):
+    def get_edge_name(self, node, step_idx, edge_type, edge_order=None):
+        node_name = node.name
+        if hasattr(node, 'short_name') and node.short_name:
+            ename = "S{}_{}".format(step_idx, node.short_name.capitalize())
+            return ename
         if edge_type == "in":
             return node_name.capitalize()
         if edge_type == "out":

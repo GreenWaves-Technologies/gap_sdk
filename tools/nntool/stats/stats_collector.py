@@ -42,7 +42,12 @@ class StatsCollector(ABC):
     def collect_stats(self, G, step_idx=None):
         return self._collect(G, step_idx)
 
-class ReductionStatsCollector(ABC):
+class GraphStatsCollector(ABC):
+    @abstractmethod
+    def collect_stats(self, G, input_tensors, step_idx=None):
+        pass
+
+class ReductionStatsCollector(GraphStatsCollector):
     def __init__(self):
         self._collected_stats = []
         self._fusion_cnt = None

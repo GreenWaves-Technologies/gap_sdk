@@ -1,21 +1,22 @@
 /*
- * Copyright (C) 2018 ETH Zurich and University of Bologna
+ * Copyright (C) 2020  GreenWaves Technologies, SAS
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* 
- * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+ * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
 #include <vp/vp.hpp>
@@ -134,6 +135,16 @@ static void *engine_routine(void *arg)
     set_sc_main_entry(&engine_routine_sc_stub, arg);
     sc_core::sc_elab_and_sim(0, NULL);
 #else
+    // Create the sigint thread so that we can properly close simulation
+    // in case ctrl C is hit.
+    sigset_t sigs_to_block;
+    sigemptyset(&sigs_to_block);
+    sigaddset(&sigs_to_block, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
+    pthread_create(&sigint_thread, NULL, signal_routine, (void *)engine);
+
+    signal(SIGINT, sigint_handler);
+
     engine->run_loop();
 #endif
     return NULL;
@@ -248,6 +259,7 @@ void engine_routine_sv_stub(void *arg)
 void vp::time_engine::start()
 {
     js::config *item_conf = this->get_js_config()->get("**/gvsoc/no_exit");
+    bool sa_mode = this->get_js_config()->get_child_bool("**/gvsoc/sa-mode");
     this->no_exit = item_conf != NULL && item_conf->get_bool();
 
     if (this->no_exit)
@@ -256,13 +268,17 @@ void vp::time_engine::start()
         // from exiting in case there is no more events.
         retain_count++;
     }
-#ifdef __VP_USE_SYSTEMV
-    this->retain_count++;
-    this->run_req = true;
-    dpi_create_task((void *)engine_routine_sv_stub, this);
-#else
-    pthread_create(&run_thread, NULL, engine_routine, (void *)this);
-#endif
+
+    if (sa_mode)
+    {
+    #ifdef __VP_USE_SYSTEMV
+        this->retain_count++;
+        this->run_req = true;
+        dpi_create_task((void *)engine_routine_sv_stub, this);
+    #else
+        pthread_create(&run_thread, NULL, engine_routine, (void *)this);
+    #endif
+    }
 }
 
 void vp::time_engine::wait_ready()
@@ -271,6 +287,63 @@ void vp::time_engine::wait_ready()
     {
     }
 }
+
+
+void vp::time_engine::step(int64_t timestamp)
+{
+    time_engine_client *current = first_client;
+
+    time_engine_client *client = first_client;
+
+    while (current && this->time <= timestamp)
+    {
+        current = first_client;
+        
+        vp_assert(first_client->next_event_time >= get_time(), NULL, "event time is before vp time\n");
+
+        first_client = current->next;
+        current->is_enqueued = false;
+
+        // Update the global engine time with the current event time
+        this->time = current->next_event_time;
+
+        current->running = true;
+
+        int64_t time = current->exec();
+
+        if (likely(time > 0))
+        {
+            time += this->time;
+        }
+
+        time_engine_client *next = first_client;
+
+        // Remove it, reenqueue it and continue with the next one.
+        // We can optimize a bit the operation as we already know
+        // who to schedule next.
+
+        if (time > 0)
+        {
+            current->next_event_time = time;
+            time_engine_client *client = first_client, *prev = NULL;
+            while (client && client->next_event_time < time)
+            {
+                prev = client;
+                client = client->next;
+            }
+            if (prev == NULL)
+                first_client = current;
+            else
+                prev->next = current;
+
+            current->next = client;
+            current->is_enqueued = true;
+        }
+
+        current->running = false;
+    }
+}
+
 
 void vp::time_engine::run_loop()
 {
@@ -296,16 +369,6 @@ void vp::time_engine::run_loop()
         {
             init = true;
             pthread_cond_broadcast(&cond);
-            // Now that the engine is starting, we can register the final sigint handler
-            // and create the sigint thread so that we can properly close simulation
-            // in case ctrl C is hit.
-            sigset_t sigs_to_block;
-            sigemptyset(&sigs_to_block);
-            sigaddset(&sigs_to_block, SIGINT);
-            pthread_sigmask(SIG_BLOCK, &sigs_to_block, NULL);
-            pthread_create(&sigint_thread, NULL, signal_routine, (void *)this);
-
-            signal(SIGINT, sigint_handler);
         }
 
         pthread_mutex_unlock(&mutex);
@@ -523,11 +586,5 @@ static void init_sigint_handler(int s)
 
 extern "C" vp::component *vp_constructor(js::config *config)
 {
-    // This should be the first C method called by python.
-    // As python is not catching SIGINT where we are in C world, we have to
-    // setup a temporary sigint handler to exit in case control+C is hit
-    // until the engine is started and we can better handle it.
-    signal(SIGINT, init_sigint_handler);
-
     return new time_domain(config);
 }

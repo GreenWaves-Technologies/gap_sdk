@@ -13,12 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from utils.graph import GraphView
-from utils.node_id import NodeId
-from graph.types.base import Transposable
-from graph.types.others import TransposeParameters
-
 from graph.matches.matcher import Matcher
+from graph.types import NNEdge, Transposable, TransposeParameters
+from utils.graph import GraphView
 
 
 def apply_reverse_transpose_to_hint(hint, transpose):
@@ -40,33 +37,45 @@ class ExpandTransposesMatcher(Matcher):
         for node in tnodes:
             if node.transpose_in:
                 for idx, edge in enumerate(G.in_edges(node.name)):
+                    if edge.to_idx >= len(node.transpose_in):
+                        continue
+                    trans = node.transpose_in[edge.to_idx]
+                    if trans is None:
+                        continue
                     in_params = TransposeParameters("%s_TIN_%s" % (node.name, idx),
-                                                    transpose=node.transpose_in)
+                                                    transpose=trans)
                     if node.in_dims_hint:
                         in_hint = node.in_dims_hint[edge.to_idx]
-                        out_hint = apply_reverse_transpose_to_hint(in_hint, node.transpose_in)
+                        out_hint = apply_reverse_transpose_to_hint(in_hint, trans)
                         in_params.in_dims_hint = [in_hint.copy()]
                         in_params.out_dims_hint = [out_hint.copy()]
                         node.in_dims_hint[edge.to_idx] = out_hint
                     if G.quantization:
                         G.quantization.copy_to_node(node, in_params)
                     G.insert_node(in_params, edge.from_node.name, edge.to_node.name,
-                                  from_idx=edge.from_idx, to_idx=edge.to_idx)
+                                  from_idx=edge.from_idx, to_idx=edge.to_idx,
+                                  edge_class=NNEdge)
                 node.transpose_in = None
             if node.transpose_out:
                 for idx, edge in enumerate(G.out_edges(node.name)):
+                    if edge.from_idx >= len(node.transpose_out):
+                        continue
+                    trans = node.transpose_out[edge.from_idx]
+                    if trans is None:
+                        continue
                     out_params = TransposeParameters("%s_TOUT_%s" % (node.name, idx),
-                                                     transpose=node.transpose_out)
+                                                     transpose=trans)
                     if node.out_dims_hint:
                         out_hint = node.out_dims_hint[edge.from_idx]
-                        in_hint = apply_reverse_transpose_to_hint(out_hint, node.transpose_out)
+                        in_hint = apply_reverse_transpose_to_hint(out_hint, trans)
                         out_params.in_dims_hint = [in_hint.copy()]
                         out_params.out_dims_hint = [out_hint.copy()]
                         node.out_dims_hint[edge.from_idx] = in_hint
                     if G.quantization:
                         G.quantization.copy_to_node(node, out_params)
                     G.insert_node(out_params, edge.from_node.name, edge.to_node.name,
-                                  from_idx=edge.from_idx, to_idx=edge.to_idx)
+                                  from_idx=edge.from_idx, to_idx=edge.to_idx,
+                                  edge_class=NNEdge)
                 node.transpose_out = None
         if set_identity:
             self.set_identity(G)

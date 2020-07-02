@@ -1,0 +1,13 @@
+set debug true
+freeze input_1 output_1
+adjust
+fusions --scale8
+set input_norm_func "x: x/255"
+aquant images/* -s SQ8
+imageformat input_1 bw8 shift_int8
+# set graph_dump_tensor 7
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+save_state

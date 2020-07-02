@@ -143,7 +143,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 rout_edge = self.real_down_connection(self.G, eparams)
                 if isinstance(rout_edge.to_node, OutputParameters):
                     rout_eparams = rout_edge.params
-                    cname = self.naming_convension.get_edge_name(rout_eparams.creating_node.name,
+                    cname = self.naming_convension.get_edge_name(rout_eparams.creating_node,
                                                                  rout_eparams.creating_step,
                                                                  rout_eparams.edge_type,
                                                                  rout_eparams.edge_order)
@@ -164,7 +164,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 if set_real:
                     # Code will not be generated for reshape or empty transpose so the input to the
                     # following node is the input to this node
-                    cname = self.naming_convension.get_edge_name(rin_eparams.creating_node.name,
+                    cname = self.naming_convension.get_edge_name(rin_eparams.creating_node,
                                                                  rin_eparams.creating_step,
                                                                  rin_eparams.edge_type,
                                                                  rin_eparams.edge_order)
@@ -175,7 +175,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                     self.name_cache.set(eparams, 'edge', cname)
                     continue
 
-            cname = self.naming_convension.get_edge_name(eparams.creating_node.name,
+            cname = self.naming_convension.get_edge_name(eparams.creating_node,
                                                          eparams.creating_step,
                                                          eparams.edge_type,
                                                          eparams.edge_order)
@@ -183,7 +183,11 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             out_q = self.G.quantization[NodeId(eparams.creating_node, None)]\
                 .out_qs[eparams.creating_node_idx]
             self.name_cache.set(eparams, 'edge', cname)
-            if eparams.edge_type != "in_out" or eparams.is_alias:
+            if isinstance(eparams.creating_node, ConstantInputParameters):
+                cnode = eparams.creating_node
+                if cnode.is_constant or cnode.is_global or not cnode.generate_value:
+                    continue
+            elif eparams.edge_type != "in_out" or eparams.is_alias:
                 continue
             home_location = eparams.creating_node.at_options.out_home_mem_loc if eparams.creating_node.at_options.out_home_mem_loc \
                             is not None else self.opts['default_local_location']
@@ -216,7 +220,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             node = eparams.creating_node
             cname_out = self.name_cache[eparams]['edge']
             in_edge_names = [self.name_cache[edge.params]['edge']
-                             for edge in self.G.in_edges(node.name)]
+                             for edge in self.G.indexed_in_edges(node.name)]
             self.stacked_tensors.append(TensorStack(cname_out, in_edge_names))
 
         code_block = CodeBlock(starting_indent=indent)
@@ -277,12 +281,14 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 inputs.add(eparams)
                 self.execute_phase("inputs", node, qrec, edge)
 
-    def cnn_generators(self):
+    def cnn_includes_generator(self):
         if self.G.graph_identity.quantization_type == 'SQ8':
-            return "\"CNN_Generators_SQ8.h\""
-        if self.G.graph_identity.quantization_type == 'POW2':
-            return "\"CNN_Generators.h\""
-        raise ValueError()
+            includes = ['"CNN_Generators_SQ8.h"', '"RNN_Generators_SQ8.h"']
+        elif self.G.graph_identity.quantization_type == 'POW2':
+            includes = ['"CNN_Generators.h"']
+        else:
+            raise ValueError()
+        return "".join(["#include %s\n"%include for include in includes])
 
     def cnn_kernels(self):
         if self.G.graph_identity.quantization_type == 'SQ8':
@@ -323,7 +329,11 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                         for a reshape that has a transpose.")
                     return ""
                 continue
-            elif isinstance(node, (InputParameters, OutputParameters, ConstantInputParameters)):
+            elif isinstance(node, (InputParameters, OutputParameters)):
+                continue
+            elif isinstance(node, ConstantInputParameters):
+                # constants that are initializers need to do a binding
+                self.execute_phase("bindings", node, qrec, in_eparams, out_eparams, cname)
                 continue
             elif not isinstance(node, (ConcatParameters)):
                 self.execute_phase("bindings", node, qrec, in_eparams, out_eparams, cname)
@@ -371,6 +381,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         code_block = CodeBlock(starting_indent=indent)
         if self.G.graph_identity.quantization_type == 'SQ8':
             code_block.write("LoadCNN_SQ8_Library();")
+            code_block.write("Load_RNN_SQ8_Library();")
             return str(code_block)
         if self.G.graph_identity.quantization_type == 'POW2':
             code_block.write("LoadCNNLibrary();")

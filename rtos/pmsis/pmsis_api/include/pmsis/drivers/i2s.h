@@ -33,16 +33,30 @@
  * @{
  */
 
+
 /*
  * The following #defines are used to configure the I2S controller.
  */
 
 typedef uint8_t pi_i2s_fmt_t;
 
-/** Data Format bit field position. */
-#define PI_I2S_FMT_DATA_FORMAT_SHIFT       0
-/** Data Format bit field mask. */
-#define PI_I2S_FMT_DATA_FORMAT_MASK        (0x7 << PI_I2S_FMT_DATA_FORMAT_SHIFT)
+/**
+ * \cond IMPLEM
+ */
+#define PI_I2S_FMT_DATA_FORMAT_SHIFT              ( 0 )
+#define PI_I2S_FMT_DATA_FORMAT_MASK               ( 1 << PI_I2S_FMT_DATA_FORMAT_SHIFT )
+
+#define PI_I2S_CH_FMT_DATA_ORDER_SHIFT            ( 3 )
+#define PI_I2S_CH_FMT_DATA_ORDER_MASK             ( 1 << PI_I2S_CH_FMT_DATA_ORDER_SHIFT )
+
+#define PI_I2S_CH_FMT_DATA_ALIGN_SHIFT            ( 4 )
+#define PI_I2S_CH_FMT_DATA_ALIGN_MASK             ( 1 << PI_I2S_CH_FMT_DATA_ALIGN_SHIFT )
+
+#define PI_I2S_CH_FMT_DATA_SIGN_SHIFT             ( 5 )
+#define PI_I2S_CH_FMT_DATA_SIGN_MASK              ( 1 << PI_I2S_CH_FMT_DATA_SIGN_SHIFT )
+/**
+ * \endcond IMPLEM
+ */
 
 /**
  * \brief Standard I2S Data Format.
@@ -62,7 +76,7 @@ typedef uint8_t pi_i2s_fmt_t;
  *        -'---'---'---'---'---'---'---'---'---'---'---'---'---'---'---'---'---'
  *             | Left channel                  | Right channel                 |
  */
-#define PI_I2S_FMT_DATA_FORMAT_I2S          (0 << PI_I2S_FMT_DATA_FORMAT_SHIFT)
+#define PI_I2S_FMT_DATA_FORMAT_I2S                ( 0 << PI_I2S_FMT_DATA_FORMAT_SHIFT )
 
 /**
  * \brief Pulse-Density Modulation Format.
@@ -75,54 +89,90 @@ typedef uint8_t pi_i2s_fmt_t;
  * chanel is transmitted on SCK rising edges and right channel on SCK falling
  * edges. Word Select (WS) is ignored.
  */
-#define PI_I2S_FMT_DATA_FORMAT_PDM           (1 << PI_I2S_FMT_DATA_FORMAT_SHIFT)
-
-/** Data order bit field position. */
-#define PI_I2S_CH_FMT_DATA_ORDER_SHIFT       0
-/** Data order bit field mask. */
-#define PI_I2S_CH_FMT_DATA_ORDER_MASK        (1 << 3)
-
-/** Data align bit field position. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_SHIFT       1
-/** Data align bit field mask. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_MASK        (1 << 4)
-
-/** Data align bit field position. */
-#define PI_I2S_CH_FMT_DATA_SIGN_SHIFT       2
-/** Data align bit field mask. */
-#define PI_I2S_CH_FMT_DATA_SIGN_MASK        (1 << 5)
-
-/** Send MSB first */
-#define PI_I2S_CH_FMT_DATA_ORDER_MSB              (0 << 3)
-/** Send LSB first */
-#define PI_I2S_CH_FMT_DATA_ORDER_LSB              (1 << 4)
-/** Left Justified Data Format. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_LEFT             (0 << 4)
-/** Right Justified Data Format. */
-#define PI_I2S_CH_FMT_DATA_ALIGN_RIGHT            (1 << 5)
-/** No sign extension. */
-#define PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND         (0 << 5)
-/** Sign extension. */
-#define PI_I2S_CH_FMT_DATA_SIGN_EXTEND            (1 << 5)
+#define PI_I2S_FMT_DATA_FORMAT_PDM                ( 1 << PI_I2S_FMT_DATA_FORMAT_SHIFT )
 
 
-typedef uint8_t pi_i2s_opt_t;
-
-/** @brief Mem slab mode
+/**
+ * \brief Data order MSB
  *
- * In mem slab mode TX output or RX sampling will keep alternating between a 
- * a set of buffers given by the user.
- * Memory slab pointed to by the mem_slab field has to be defined and
- * initialized by the user. For I2S driver to function correctly number of
- * memory blocks in a slab has to be at least 2 per queue. Size of the memory
- * block should be multiple of frame_size where frame_size = (channels *
- * word_size_bytes). As an example 16 bit word will occupy 2 bytes, 24 or 32
- * bit word will occupy 4 bytes.
+ * Data bits are transferred MSB first.
+ */
+#define PI_I2S_CH_FMT_DATA_ORDER_MSB              ( 0 <<  PI_I2S_CH_FMT_DATA_ORDER_SHIFT )
+
+/**
+ * \brief Data order LSB
+ *
+ * Data bits are transferred LSB first.
+ */
+#define PI_I2S_CH_FMT_DATA_ORDER_LSB              ( 1 <<  PI_I2S_CH_FMT_DATA_ORDER_SHIFT )
+
+
+/**
+ * \brief Data alignment left
+ *
+ * Left Justified.
+ */
+#define PI_I2S_CH_FMT_DATA_ALIGN_LEFT             ( 0 << PI_I2S_CH_FMT_DATA_ALIGN_SHIFT )
+
+/**
+ * \brief Data alignment right
+ *
+ * Right Justified.
+ */
+#define PI_I2S_CH_FMT_DATA_ALIGN_RIGHT            ( 1 << PI_I2S_CH_FMT_DATA_ALIGN_SHIFT )
+
+
+/**
+ * \brief Data sign extension disabled
+ *
+ * Data are not sign extended when I2S data size is inferior to memory data size.
+ */
+#define PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND         ( 0 << PI_I2S_CH_FMT_DATA_SIGN_SHIFT )
+
+/**
+ * \brief Data sign extension enabled
+ *
+ * Data are sign extended when I2S data size is inferior to memory data size.
+ * For example when I2S data are on 16 bits but are stored in a 32 bits word,
+ * MSB sign is extended.
+ */
+#define PI_I2S_CH_FMT_DATA_SIGN_EXTEND            ( 1 << PI_I2S_CH_FMT_DATA_SIGN_SHIFT )
+
+
+typedef uint16_t pi_i2s_opt_t;
+
+/**
+ * \cond IMPLEM
+ */
+#define PI_I2S_OPT_BUFFER_MODE_SHIFT              ( 0 )
+#define PI_I2S_OPT_BUFFER_MODE_MASK               ( 1 << PI_I2S_OPT_BUFFER_MODE_SHIFT )
+
+#define PI_I2S_OPT_FULL_DUPLEX_SHIFT              ( 1 )
+#define PI_I2S_OPT_FULL_DUPLEX_MASK               ( 1 << PI_I2S_OPT_FULL_DUPLEX_SHIFT )
+
+#define PI_I2S_OPT_CH_ENABLE_SHIFT                ( 2 )
+#define PI_I2S_OPT_CH_ENABLE_MASK                 ( 1 << PI_I2S_OPT_CH_ENABLE_SHIFT )
+
+#define PI_I2S_OPT_LOOPBACK_ENA_SHIFT             ( 3 )
+#define PI_I2S_OPT_LOOPBACK_ENA_MASK              ( 1 << PI_I2S_OPT_LOOPBACK_ENA_SHIFT )
+
+#define PI_I2S_OPT_RX_TX_SHIFT                    ( 4 )
+#define PI_I2S_OPT_RX_TX_MASK                     ( 1 << PI_I2S_OPT_RX_TX_SHIFT )
+
+#define PI_I2S_OPT_TDM_ENA_SHIFT                  ( 5 )
+#define PI_I2S_OPT_TDM_ENA_MASK                   ( 1 << PI_I2S_OPT_TDM_ENA_SHIFT )
+
+#define PI_I2S_OPT_CLK_SRC_SHIFT                  ( 6 )
+#define PI_I2S_OPT_CLK_SRC_MASK                   ( 1 << PI_I2S_OPT_CLK_SRC_SHIFT )
+
+#define PI_I2S_OPT_WS_SRC_SHIFT                   ( 7 )
+#define PI_I2S_OPT_WS_SRC_MASK                    ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
+/**
+ * \endcond IMPLEM
  */
 
-#define PI_I2S_OPT_MEM_SLAB                (1 << 0)
-
-/** @brief Ping pong mode
+/**
+ * \brief Ping pong mode
  *
  * In ping pong mode TX output or RX sampling will keep alternating between a
  * ping buffer and a pong buffer.
@@ -132,49 +182,74 @@ typedef uint8_t pi_i2s_opt_t;
  * must be given in the configuration when the driver is opened and kept alive
  * until the driver is closed.
  */
-#define PI_I2S_OPT_PINGPONG                (0 << 0)
+#define PI_I2S_OPT_PINGPONG                       ( 0 << PI_I2S_OPT_BUFFER_MODE_SHIFT )
 
-/** @brief Full duplex mode
+/**
+ * \brief Mem slab mode
+ *
+ * In mem slab mode TX output or RX sampling will keep alternating between a
+ * a set of buffers given by the user.
+ * Memory slab pointed to by the mem_slab field has to be defined and
+ * initialized by the user. For I2S driver to function correctly number of
+ * memory blocks in a slab has to be at least 2 per queue. Size of the memory
+ * block should be multiple of frame_size where frame_size = (channels *
+ * word_size_bytes).
+ * As an example 16 bit word will occupy 2 bytes, 24 or 32
+ * bit word will occupy 4 bytes.
+ */
+#define PI_I2S_OPT_MEM_SLAB                       ( 1 << PI_I2S_OPT_BUFFER_MODE_SHIFT )
+
+/**
+ * \brief Full duplex mode
  *
  * The normal and default mode is to use a single pin for both TX and RX.
- * In full duplex mode, RX and TX will use 2 different pins (called sdi and sdo
- * so that samples can be received and sent at the same time)
+ * In full duplex mode, RX and TX will use 2 different pins(called sdi and sdo
+ * so that samples can be received and sent at the same time).
  */
-#define PI_I2S_OPT_FULL_DUPLEX             (1 << 1)
+#define PI_I2S_OPT_FULL_DUPLEX                    ( 1 << PI_I2S_OPT_FULL_DUPLEX_SHIFT )
 
-/** @brief Configure RX channel
- *
- * If set, the configuration will apply to the RX channel and won't change
- * anything for what concerns the TX channel. Note that this does not prevent
- * from using the TX channel, they must just be configured separately.
- */
-#define PI_I2S_OPT_IS_RX                      (1 << 4)   // Receive to buffer
-
-/** @brief Configure TX channel
- *
- * If set, the configuration will apply to the TX channel and won't change
- * anything for what concerns the RX channel. Note that this does not prevent
- * from using the RX channel, they must just be configured separately.
- */
-#define PI_I2S_OPT_IS_TX                      (0 << 4)   // Receive to buffer
-
-/** @brief Enable the channel
- *
- * If set, this activates the channel being configured (either RX or TX).
- * Once the sampling is running, this will make sure this channel is receiving
- * or sending samples.
- */
-#define PI_I2S_OPT_ENABLED                    (1 << 2)
-
-/** @brief Disable the channel
+/**
+ * \brief Disable the channel
  *
  * If set, this desactivates the channel being configured (either RX or TX).
  * Once the sampling is running, this will make sure this channel is not
  * receiving or sending samples.
  */
-#define PI_I2S_OPT_DISABLED                   (0 << 2)
+#define PI_I2S_OPT_DISABLED                       ( 0 << PI_I2S_OPT_CH_ENABLE_SHIFT )
 
-/** @brief TX loopback
+/**
+ * \brief Enable the channel
+ *
+ * If set, this activates the channel being configured (either RX or TX).
+ * Once the sampling is running, this will make sure this channel is receiving
+ * or sending samples.
+ */
+#define PI_I2S_OPT_ENABLED                        ( 1 << PI_I2S_OPT_CH_ENABLE_SHIFT )
+
+/**
+ * \brief Configure TX channel
+ *
+ * If set, the configuration will apply to the TX channel and won't change
+ * anything for what concerns the RX channel. Note that this does not prevent
+ * from using the RX channel, they must just be configured separately.
+ *
+ * Setting this configuration allows to send data from memory to speakers.
+ */
+#define PI_I2S_OPT_IS_TX                          ( 0 << PI_I2S_OPT_RX_TX_SHIFT )
+
+/**
+ * \brief Configure RX channel
+ *
+ * If set, the configuration will apply to the RX channel and won't change
+ * anything for what concerns the TX channel. Note that this does not prevent
+ * from using the TX channel, they must just be configured separately.
+ *
+ * Setting this configuration allows to receive data from microphones to memory.
+ */
+#define PI_I2S_OPT_IS_RX                          ( 1 << PI_I2S_OPT_RX_TX_SHIFT )
+
+/**
+ * \brief TX loopback
  *
  * If set, this activates an internal loopback between the RX pin and TX
  * pin. All data received on the RX will be sent to the TX pin. Note that this
@@ -182,32 +257,53 @@ typedef uint8_t pi_i2s_opt_t;
  * both to a memory buffer (if RX channel is enabled) and to the TX (if the
  * loopback is enabled). The loopback must be applied on the TX channel.
  */
-#define PI_I2S_OPT_LOOPBACK                   (1 << 3)
+#define PI_I2S_OPT_LOOPBACK                       ( 1 << PI_I2S_OPT_LOOPBACK_ENA_SHIFT )
 
-/** @brief TDM mode
+/**
+ * \brief TDM mode
  *
  * In TDM mode, the same interface is time-multiplexed to transmit data
  * for multiple channels where each channel can have a specific
  * configuration. As for classic I2S mode, TX and RX channels are grouped
  * together within a slot. Each slot can send and receive 1 data per frame.
  * In this mode each slot must be configured separately
- * using the I2S configuration. Each slot can have an RX and a TX channel. 
+ * using the I2S configuration. Each slot can have an RX and a TX channel.
  */
-#define PI_I2S_OPT_TDM                        (1 << 5)
+#define PI_I2S_OPT_TDM                            ( 1 << PI_I2S_OPT_TDM_ENA_SHIFT )
 
-/** @brief Use external clock
+/**
+ * \brief Use internal clock
+ *
+ * Clock is generated internally from SOC's clock.
+ *
+ * This is default clock source.
+ */
+#define PI_I2S_OPT_INT_CLK                        ( 0 << PI_I2S_OPT_CLK_SRC_SHIFT )
+
+/**
+ * \brief Use external clock
  *
  * If this option is specified, no clock is generated and an external clock
  * is used.
  */
-#define PI_I2S_OPT_EXT_CLK                    (1 << 6)
+#define PI_I2S_OPT_EXT_CLK                        ( 1 << PI_I2S_OPT_CLK_SRC_SHIFT )
 
-/** @brief Use external word strobe
+/**
+ * \brief Use internal word strobe
+ *
+ * WS signal is generated internally from SCK signal.
+ *
+ * This is default WS source.
+ */
+#define PI_I2S_OPT_INT_WS                         ( 0 << PI_I2S_OPT_WS_SRC_SHIFT )
+
+/**
+ * \brief Use external word strobe
  *
  * If this option is specified, no word strobe is generated and an external
  * one is used.
  */
-#define PI_I2S_OPT_EXT_WS                     (1 << 7)
+#define PI_I2S_OPT_EXT_WS                         ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
 
 
 /** IOCTL command */
@@ -260,46 +356,44 @@ enum pi_i2s_ioctl_cmd
  */
 struct pi_i2s_conf
 {
-    uint32_t frame_clk_freq;    /*!< Frame clock (WS) frequency, this is
-        sampling rate. */
-    size_t block_size;          /*!< Size of one RX/TX memory block (buffer) in
-        bytes. On some chips, this size may have to be set under a maximum size,
-        check the chip-specific section. */
+    uint32_t frame_clk_freq;    /*!< Frame clock (WS) frequency, this is sampling rate. */
+    size_t block_size;          /*!< Size of one RX/TX memory block(buffer) in bytes.
+                                  On some chips, this size may have to be set under a
+                                  maximum size, check the chip-specific section. */
     pi_mem_slab_t *mem_slab;    /*!< memory slab to store RX/TX data. */
     void *pingpong_buffers[2];  /*!< Pair of buffers used in double-bufferin
-        mode to capture the incoming samples.  */
-    uint16_t pdm_decimation;    /*!< In PDM mode, this gives the decimation
-        factor to be used, e.g. the number of bits on which the filter is
-        applied. This factor is usually in the range between 48 and 128.
-        PDM_freq = sampling_rate * pdm_decimation.
-            - PDM_freq is the clock frequency of the microphone.
-            - sampling_rate is the audio sampling rate(22050kHz, 44100kHZ,
-                 48000kHZ,...).
-            - pdm_decimation is the decimation factor to apply. */
-    pi_i2s_fmt_t format;        /*!< Data stream format as defined by
-        PI_I2S_FMT_* constants. */
-    uint8_t word_size;          /*!< Number of bits representing one data
-        word. */
-    int8_t mem_word_size;       /*!< Number of bits representing one data word
-        in memory. If it is -1, this is equal to word_size. */
+                                  mode to capture the incoming samples.  */
+    uint16_t pdm_decimation;    /*!< In PDM mode, this gives the decimation factor
+                                  to be used, e.g. the number of bits on which
+                                  the filter is applied. This factor is
+                                  usually in the range between 48 and 128.
+                                  PDM_freq = sampling_rate * pdm_decimation.
+                                  - PDM_freq is the clock frequency of the microphone.
+                                  - sampling_rate is the audio sampling rate(22050kHz, 44100kHZ,
+                                  48000kHZ,...).
+                                  - pdm_decimation is the decimation factor to apply. */
+    pi_i2s_fmt_t format;        /*!< Data stream format as defined by PI_I2S_FMT_* constants. */
+    uint8_t word_size;          /*!< Number of bits representing one data word. */
+    int8_t mem_word_size;       /*!< Number of bits representing one data word in memory.
+                                  If it is -1, this is equal to word_size. */
     uint8_t channels;           /*!< Number of words per frame. */
     uint8_t itf;                /*!< I2S device ID. */
-    pi_i2s_opt_t options;       /*!< Configuration options as defined by
-        PI_I2S_OPT_* constants. */
+    pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
     int8_t pdm_shift;           /*!< In PDM mode, the shift value to shift data
-        when applying filter. */
+                                  when applying filter. */
     uint8_t pdm_filter_ena;     /*!< When using PDM mode, enable PDM filter. */
-    uint8_t channel_id;         /*!< Channel ID, from 0 to the number of
-        channels minus 1. In TDM mode this gives the ID of the slot to be
-        configured. The options field can be used to specify if the RX or TX
-        channel must be configured. */
-    int8_t asrc_channel;        /*!< If different from -1, this redirect the
-        specified stream (can be input or output) to/from the ASRC block with
-        the channel specified here. */
+    uint8_t channel_id;         /*!< Channel ID, from 0 to the number of channels minus 1.
+                                  In TDM mode this gives the ID of the slot to be configured.
+                                  The options field can be used to specify if the RX or TX
+                                  channel must be configured. */
+    int8_t asrc_channel;        /*!< If different from -1, this redirect the specified
+                                  stream(can be input or output) to/from the ASRC block with
+                                  the channel specified here. */
 };
 
 
-/** \brief Setup specific I2S aspects.
+/**
+ * \brief Setup specific I2S aspects.
  *
  * This function can be called to set specific I2S properties such as the
  * number of clock generator. This is typically used by the BSP to give
@@ -309,7 +403,8 @@ struct pi_i2s_conf
  */
 void pi_i2s_setup(uint32_t flags);
 
-/** \brief Initialize an I2S configuration with default values.
+/**
+ * \brief Initialize an I2S configuration with default values.
  *
  * This function can be called to get default values for all parameters before
  * setting some of them.
@@ -320,7 +415,8 @@ void pi_i2s_setup(uint32_t flags);
  */
 void pi_i2s_conf_init(struct pi_i2s_conf *conf);
 
-/** \brief Open an I2S device.
+/**
+ * \brief Open an I2S device.
  *
  * This function must be called before the I2S device can be used.
  * It will do all the needed configuration to make it usable and initialize
@@ -334,7 +430,8 @@ void pi_i2s_conf_init(struct pi_i2s_conf *conf);
  */
 int pi_i2s_open(struct pi_device *device);
 
-/** \brief Close an opened I2S device.
+/**
+ * \brief Close an opened I2S device.
  *
  * This function can be called to close an opened I2S device once it is not
  * needed anymore, in order to free all allocated resources. Once this function
@@ -346,7 +443,8 @@ int pi_i2s_open(struct pi_device *device);
  */
 void pi_i2s_close(struct pi_device *device);
 
-/** \brief Dynamically change the device configuration.
+/**
+ * \brief Dynamically change the device configuration.
  *
  * This function can be called to change part of the device configuration after
  * it has been opened or to control it.
@@ -422,15 +520,15 @@ int pi_i2s_read_async(struct pi_device *dev, pi_task_t *task);
 /**
  * @brief Write data to the TX queue of a channel.
  *
- * Data to be sent by the I2S interface is stored first in the TX queue 
+ * Data to be sent by the I2S interface is stored first in the TX queue
  * consisting of memory blocks preallocated by the user with either pingpong
- * buffers or a memory slab allocator. 
- * 
+ * buffers or a memory slab allocator.
+ *
  * In pingpong mode, the driver will automatically alternate between 2 buffers
  * and the user code is supposed to call this function to notify the driver
  * that the specified buffer is ready to be sent. This is used by the driver
  * to report when an underrun or an overrun occurs.
- * 
+ *
  * In memory slab allocator mode, the user has to allocate buffers from the
  * memory slab allocator and pass them to the driver by calling this function
  * when they are ready to be sent.
@@ -451,15 +549,15 @@ int pi_i2s_write(struct pi_device *dev, void *mem_block,
 /**
  * @brief Write data asynchronously to the TX queue of a channel.
  *
- * Data to be sent by the I2S interface is stored first in the TX queue 
+ * Data to be sent by the I2S interface is stored first in the TX queue
  * consisting of memory blocks preallocated by the user with either pingpong
- * buffers or a memory slab allocator. 
- * 
+ * buffers or a memory slab allocator.
+ *
  * In pingpong mode, the driver will automatically alternate between 2 buffers
  * and the user code is supposed to call this function to notify the driver
  * that the specified buffer is ready to be sent. This is used by the driver
  * to report when an underrun or an overrun occurs.
- * 
+ *
  * In memory slab allocator mode, the user has to allocate buffers from the
  * memory slab allocator and pass them to the driver by calling this function
  * when they are ready to be sent.
@@ -559,15 +657,15 @@ int pi_i2s_read_status(pi_task_t *task, void **mem_block, size_t *size);
 /**
  * @brief Write data to the TX queue of a channel in TDM mode.
  *
- * Data to be sent by the I2S interface is stored first in the TX queue 
+ * Data to be sent by the I2S interface is stored first in the TX queue
  * consisting of memory blocks preallocated by the user with either pingpong
- * buffers or a memory slab allocator. 
- * 
+ * buffers or a memory slab allocator.
+ *
  * In pingpong mode, the driver will automatically alternate between 2 buffers
  * and the user code is supposed to call this function to notify the driver
  * that the specified buffer is ready to be sent. This is used by the driver
  * to report when an underrun or an overrun occurs.
- * 
+ *
  * In memory slab allocator mode, the user has to allocate buffers from the
  * memory slab allocator and pass them to the driver by calling this function
  * when they are ready to be sent.
@@ -592,15 +690,15 @@ int pi_i2s_channel_write(struct pi_device *dev, int channel, void *mem_block,
 /**
  * @brief Write data asynchronously to the TX queue of a channel in TDM mode.
  *
- * Data to be sent by the I2S interface is stored first in the TX queue 
+ * Data to be sent by the I2S interface is stored first in the TX queue
  * consisting of memory blocks preallocated by the user with either pingpong
- * buffers or a memory slab allocator. 
- * 
+ * buffers or a memory slab allocator.
+ *
  * In pingpong mode, the driver will automatically alternate between 2 buffers
  * and the user code is supposed to call this function to notify the driver
  * that the specified buffer is ready to be sent. This is used by the driver
  * to report when an underrun or an overrun occurs.
- * 
+ *
  * In memory slab allocator mode, the user has to allocate buffers from the
  * memory slab allocator and pass them to the driver by calling this function
  * when they are ready to be sent.

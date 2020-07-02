@@ -56,7 +56,8 @@ def propagate_downwards(G: NNGraph):
         if node.out_dims_hint is not None:
             for edge in G.out_edges(node.name):
                 hint = node.out_dims_hint[edge.from_idx]
-                assert hint is not None
+                if hint is None:
+                    continue
                 if edge.to_node.in_dims_hint is None:
                     edge.to_node.in_dims_hint = SparseList()
                 if edge.to_node.in_dims_hint[edge.to_idx] is None:

@@ -1,24 +1,24 @@
 {
-  "@@includes@es@": [ "chips/gap_rev1/gap_rev1.json" ],
+  "@includes@": [ "chips/gap_rev1/gap_rev1.json" ],
 
   "board": {
     "name": "ai_deck",
     "devices": {
       "flash": {
-        "@includes@e" : "devices/hyperflash.json",
+        "@include@" : "devices/hyperflash.json",
         "cs": 1
       },
       "ram": {
-        "@includes@e" : "devices/hyperram.json",
+        "@include@" : "devices/hyperram.json",
         "cs": 0
       },
       "camera": {
-        "@includes@e": "devices/camera.json",
+        "@include@": "devices/camera.json",
         "interface": "cpi0",
         "ctrl_interface": "i2c0"
       },
       "wifi": {
-        "@includes@e": "devices/nina_w10.json",
+        "@include@": "devices/nina_w10.json",
         "interface": "spim1",
         "cs": 0,
         "gpio_ready": "gpio18"

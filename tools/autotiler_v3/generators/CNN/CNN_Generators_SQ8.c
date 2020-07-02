@@ -447,7 +447,7 @@ void LoadCNN_SQ8_Library()
 	LibKernel("KerParMatMulB8_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulB8_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMuSxSylB8_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB8_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB8_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB8_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 
@@ -456,7 +456,7 @@ void LoadCNN_SQ8_Library()
 	LibKernel("KerParMatMulB16_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulB16_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMuSxSylB16_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB16_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB16_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB16_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 
@@ -465,7 +465,7 @@ void LoadCNN_SQ8_Library()
 	LibKernel("KerParMatMulB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
-	LibKernel("KerParMatMuSxSylB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
+	LibKernel("KerParMatMulSxSyB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSxSyB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
 
@@ -2477,7 +2477,7 @@ int CNN_MatMulAct_SQ8(
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
-			Call(ActKerName, LOC_LOOP,
+			Call(ActKerName, LOC_LOOP_EPILOG,
 				Bindings(6,					/* Uses feature par form with W: Out.W, H: Out.H given the fact that H is feat and W is w*h */
 					K_Arg("Out", KER_ARG_TILE),		/* Input tile */
 					K_Arg("Out", KER_ARG_TILE),		/* Output tile */
@@ -2543,7 +2543,7 @@ int CNN_MatMulAct_SQ8(
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
-			Call(ActKerName, LOC_LOOP,
+			Call(ActKerName, LOC_LOOP_EPILOG,
 				Bindings(6,					/* Uses feature par form with W: Out.W, H: Out.H given the fact that H is feat and W is w*h */
 					K_Arg("Out", KER_ARG_TILE),		/* Input tile */
 					K_Arg("Out", KER_ARG_TILE),		/* Output tile */
@@ -2751,7 +2751,7 @@ int CNN_MatMulSmallM1Act_SQ8(
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
-			Call(ActKerName, LOC_LOOP,
+			Call(ActKerName, LOC_LOOP_EPILOG,
 				Bindings(6,
 					K_Arg("Out", KER_ARG_TILE),		/* Input tile */
 					K_Arg("Out", KER_ARG_TILE),		/* Output tile */

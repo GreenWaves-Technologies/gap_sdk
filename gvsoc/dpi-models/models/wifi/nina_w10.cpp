@@ -77,11 +77,11 @@ protected:
   void cs_edge(int64_t timestamp, int cs);
   void handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
   void handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
-
+  void start();
 
 private:
 
-  static void start(void *arg);
+  static void task_start(void *arg);
   Nina_qspi_itf *qspi0;
   int current_cs;
   void *trace;
@@ -121,14 +121,18 @@ Nina::Nina(js::config *config, void *handle) : Dpi_model(config, handle)
   this->buffer_index = 0;
   this->active = 0;
 
-  this->create_task((void *)&Nina::start, this);
 }
 
 
-void Nina::start(void *__this)
+void Nina::task_start(void *__this)
 {
   Nina *_this = (Nina *)__this;
   _this->gpio_ready->set_data(1);
+}
+
+void Nina::start()
+{
+  this->create_task((void *)&Nina::task_start, this);
 }
 
 

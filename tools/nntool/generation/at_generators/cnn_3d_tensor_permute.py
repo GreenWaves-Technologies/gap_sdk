@@ -39,7 +39,7 @@ def gen_at_3d_transpose(code_block, name, in_q, out_q,
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
+        gen_ctrl = gen_ctrl.ctrl_name
 
     code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {}, {}, {});',
                      GEN_3D_TRANSPOSE, name, gen_ctrl, at_bits(in_q), at_bits(out_q),

@@ -30,31 +30,34 @@
 #   kNHWC,     // TensorFlow activations
 #   kHWOI,     // TensorFlow back-prop conv weights
 # };
-
+import array
 import logging
 import os
 from copy import deepcopy
 from functools import reduce
 
 import numpy as np
+from flatbuffers.flexbuffers import GetRoot
 
 from graph.constant_store import ConstantStore
 from graph.dim import (Conv2DFilterDim, Dim, FcFilterDim, PadDim,
                        PoolFilterDim, StrideDim)
 from graph.nngraph import NNGraph
-from graph.types import (ActivationParameters, ConcatParameters,
+from graph.types import (ActivationParameters, ConcatParameters, CastParameters,
                          Conv2DParameters, FcParameters, GlobalPoolParameters,
-                         MatrixAddParameters, MatrixDivParameters,
-                         MatrixMulParameters, MatrixSubParameters, NNEdge,
-                         NoOPParameters, PadParameters, PoolingParameters,
-                         ReshapeParameters, SoftMaxParameters,
-                         UnconvertedOpParameters, UnknownOpParameters)
+                         LSTMParameters, MatrixAddParameters, StridedSliceParameters,
+                         MatrixDivParameters, MatrixMulParameters,
+                         MatrixSubParameters, NNEdge, NoOPParameters,
+                         PadParameters, PoolingParameters, ReshapeParameters,
+                         RNNParameters, SoftMaxParameters, SplitParameters,
+                         SSDDetectorParameters, UnconvertedOpParameters,
+                         UnknownOpParameters)
 from quantization.multiplicative.asymmetric.asymmetric_mult_qtype import \
     AsymmetricMultQType
 from quantization.multiplicative.mult_quantization import (
     MultAddQuantizationRecord, MultConstantQuantizationRecord,
     MultQuantizationRecord, MultQuantizationRecordBase,
-    MultScalableFilterQuantizationRecord)
+    MultScalableFilterQuantizationRecord, MultSSDDetectorQuantizationRecord)
 from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import \
     MultMulBiasScaleQType
 from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
@@ -64,6 +67,7 @@ from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
 from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import \
     SymmetricMultQTypeWrapper
 from quantization.quantization_set import QuantizationSet
+
 from utils.add_sys_path import add_sys_path
 from utils.graph import Node
 from utils.node_id import NodeId
@@ -72,12 +76,16 @@ from utils.sparse_list import SparseList
 from ..importer_base import ImporterBase
 from . import utils
 from .propagate_hints import propagate_hints
-from .tflite_schema_head import (ActivationFunctionType, AddOptions,
+from .fix_split_in_edges import fix_split_in_edges
+from .tflite_schema_head import (ActivationFunctionType, AddOptions, StridedSliceOptions,
                                  ConcatenationOptions, Conv2DOptions,
                                  DepthwiseConv2DOptions, DivOptions,
                                  FullyConnectedOptions, Model, MulOptions,
                                  Padding, Pool2DOptions, ReshapeOptions,
-                                 SoftmaxOptions, SubOptions, TensorType)
+                                 SequenceRNNOptions, SoftmaxOptions,
+                                 SubOptions, TensorType, CastOptions,
+                                 UnidirectionalSequenceLSTMOptions,
+                                 UnpackOptions, SplitVOptions, SplitOptions)
 
 
 class TFLiteImportException(Exception):
@@ -182,11 +190,6 @@ def get_shape(subgraph, tf_idx, order):
     return shape
 
 
-def remove_batch_dim(dim):
-    check(dim[0] == 1, "batch dimension should be 1")
-    return dim[1:]
-
-
 def get_input_size(tensors, subgraph, elem, idx, order=None):
     check(elem.InputsLength() >= idx + 1, "Not enough input tensors")
     tf_idx = elem.Inputs(idx)
@@ -272,25 +275,6 @@ def get_all_const_broadcasted_inputs(G, model, tensors, subgraph, elem, load_ten
     return list(zip(shapes, constant_nodes))
 
 
-def get_all_input_dims(subgraph, elem, order=None):
-    inputs = []
-    for idx in range(elem.InputsLength()):
-        tf_idx = elem.Inputs(idx)
-        shape = get_shape(subgraph, tf_idx, order)
-        if len(shape) == 0:
-            continue
-        inputs.append(Dim.unnamed(remove_batch_dim(shape)))
-    return inputs
-
-
-def get_all_output_dims(subgraph, elem, order=None):
-    outputs = []
-    for idx in range(elem.OutputsLength()):
-        tf_idx = elem.Outputs(idx)
-        outputs.append(Dim.unnamed(remove_batch_dim(get_shape(subgraph, tf_idx, order))))
-    return outputs
-
-
 def get_fin_cput_size(subgraph, elem, idx):
     shape = {}
     check(elem.InputsLength() >= idx + 1, "Not enough input tensors")
@@ -308,22 +292,14 @@ def get_fin_cput_size(subgraph, elem, idx):
     return shape
 
 
-class TfliteTensorWrapper():
-    TF_TO_NUMPY_TYPE = {
-        TensorType.TensorType.FLOAT32: np.float32,
-        TensorType.TensorType.FLOAT16: np.float16,
-        TensorType.TensorType.INT32: np.int32,
-        TensorType.TensorType.UINT8: np.uint8,
-        TensorType.TensorType.INT8: np.int8,
-        TensorType.TensorType.INT64: np.int64
-    }
-
-    def __init__(self, tensor):
-        self._tensor = tensor
-        self._name = tensor.Name().decode('ascii')
+class TensorBase():
+    def __init__(self, name):
+        self._name = name
         self._used = False
         self._inputs = []
         self._output = None
+        self._constant_node = None
+        self._dont_link = False
 
     @property
     def name(self):
@@ -352,6 +328,37 @@ class TfliteTensorWrapper():
     @output.setter
     def output(self, val):
         self._output = val
+
+    @property
+    def constant_node(self):
+        return self._constant_node
+
+    @constant_node.setter
+    def constant_node(self, val):
+        self._constant_node = val
+
+    @property
+    def dont_link(self):
+        return self._dont_link
+
+    @dont_link.setter
+    def dont_link(self, val):
+        self._dont_link = val
+
+
+class TfliteTensorWrapper(TensorBase):
+    TF_TO_NUMPY_TYPE = {
+        TensorType.TensorType.FLOAT32: np.float32,
+        TensorType.TensorType.FLOAT16: np.float16,
+        TensorType.TensorType.INT32: np.int32,
+        TensorType.TensorType.UINT8: np.uint8,
+        TensorType.TensorType.INT8: np.int8,
+        TensorType.TensorType.INT64: np.int64
+    }
+
+    def __init__(self, tensor):
+        super(TfliteTensorWrapper, self).__init__(tensor.Name().decode('ascii'))
+        self._tensor = tensor
 
     @property
     def buffer_idx(self):
@@ -421,9 +428,14 @@ class TfliteTensorWrapper():
         return self.buffer_idx != 0 and model.Buffers(self.buffer_idx).DataLength() != 0
 
     def get_value(self, model):
+        if self.buffer_idx == 0 or model.Buffers(self.buffer_idx).DataLength() == 0:
+            return np.zeros(self.shape, dtype=self.dtype().newbyteorder('L'))
         tf_buffer = model.Buffers(self.buffer_idx)
         np_buffer = np.frombuffer(tf_buffer.DataAsNumpy(), dtype=self.dtype().newbyteorder('L'))
-        np_buffer = np.resize(np_buffer, self.shape)
+        if len(self.shape) == 0:
+            np_buffer = np_buffer[0]
+        else:
+            np_buffer = np.resize(np_buffer, self.shape)
         return np_buffer
 
     def shape_as(self, order):
@@ -446,6 +458,32 @@ class TfliteImporter(ImporterBase):
         self.load_dequantized = False
         self.qrecs = QuantizationSet()
         self.rescale_perchannel = True
+        self.batch_dimension = 0
+        self.remove_batch_dimension = True
+
+    def remove_batch_dim(self, dim):
+        if self.remove_batch_dimension:
+            check(dim[self.batch_dimension] == 1, "batch dimension should be 1")
+            return np.array([elem for idx, elem in enumerate(dim) if idx != self.batch_dimension])
+        else:
+            return dim
+
+    def get_all_input_dims(self, subgraph, elem, order=None):
+        inputs = []
+        for idx in range(elem.InputsLength()):
+            tf_idx = elem.Inputs(idx)
+            shape = get_shape(subgraph, tf_idx, order)
+            if len(shape) == 0:
+                continue
+            inputs.append(Dim.unnamed(self.remove_batch_dim(shape)))
+        return inputs
+
+    def get_all_output_dims(self, subgraph, elem, order=None):
+        outputs = []
+        for idx in range(elem.OutputsLength()):
+            tf_idx = elem.Outputs(idx)
+            outputs.append(Dim.unnamed(self.remove_batch_dim(get_shape(subgraph, tf_idx, order))))
+        return outputs
 
     def fuse_activation(self, tfl_opts, name: str, node: Node):
         if NodeId(node) in self.qrecs:
@@ -485,8 +523,8 @@ class TfliteImporter(ImporterBase):
                         UnconvertedOpParameters(
                             name,
                             op_name,
-                            get_all_input_dims(subgraph, op),
-                            get_all_output_dims(subgraph, op),
+                            self.get_all_input_dims(subgraph, op),
+                            self.get_all_output_dims(subgraph, op),
                             {
                                 "tflite_op_name": op_name,
                                 "tflite_op": op,
@@ -619,6 +657,10 @@ class TfliteImporter(ImporterBase):
         if w_mins is None:
             w_mins = input_tensors[1].min_val
             w_maxes = input_tensors[1].max_val
+        if isinstance(w_mins, int):
+            w_mins = np.asarray([w_mins] * node.filter.out_c)
+        if isinstance(w_maxes, int):
+            w_maxes = np.asarray([w_maxes] * node.filter.out_c)
         return weights_scales, biases_scales, w_mins, w_maxes
 
     def load_filter_parameters(self, node, input_tensors, output_tensors, converted_to_conv=False):
@@ -680,8 +722,13 @@ class TfliteImporter(ImporterBase):
         output_tensors = get_output_tensors(self.tensors, op)
 
         # get filter dimensions
+        inp = input_tensors[0].shape_as(TF_LITE_IN_OUT_ORDER)
         filt = input_tensors[1].shape_as(TF_LITE_FILTER_ORDER)
         input_tensors[1].used = True
+        if filt['h'] > inp['h'] or filt['w'] > inp['w']:
+            LOG.warning("Filter %s of shape [%dx%d] is bigger than input of shape [%dx%d]",
+                        name, filt['h'], filt['w'], inp['h'], inp['w'])
+
         filt = Conv2DFilterDim(filt['h'], filt['w'],
                                filt['out_c'], in_c=filt['in_c'])
         filt = filt.impose_order(TF_LITE_FILTER_ORDER)
@@ -722,6 +769,10 @@ class TfliteImporter(ImporterBase):
         inp = input_tensors[0].shape_as(TF_LITE_IN_OUT_ORDER)
         filt = input_tensors[1].shape_as(TF_LITE_DW_FILTER_ORDER)
         input_tensors[1].used = True
+        if filt['h'] > inp['h'] or filt['w'] > inp['w']:
+            LOG.warning("Filter %s of shape [%dx%d] is bigger than input of shape [%dx%d]",
+                        name, filt['h'], filt['w'], inp['h'], inp['w'])
+
         filt = Conv2DFilterDim(filt['h'], filt['w'],
                                filt['out_c'], in_c=1)
 
@@ -780,7 +831,7 @@ class TfliteImporter(ImporterBase):
         return self.fuse_activation(conv_opts, name, node)
 
     TF_LITE_FC_ORDER = ['out_c', 'sz']
-    TF_LITE_FC_EXP_ORDER = ['out_c', 'h', 'w', 'in_c']
+    TF_LITE_FC_EXP_ORDER = ['out_c', 'in_c']
 
     def add_fully_connected(self, name, subgraph, _, op):
         del subgraph
@@ -793,22 +844,12 @@ class TfliteImporter(ImporterBase):
         inp = input_tensors[0].shape
         check(inp[0] == 1,
               "Multi batch not supported")
-
-        filt = input_tensors[1].shape_as(self.TF_LITE_FC_ORDER)
+        filt = input_tensors[1].shape
+        inp_sz = reduce(lambda i, j: i * j, inp, 1)
+        filt_dim = FcFilterDim(filt[0], *inp[1::])
+        in_hint = [str(i) for i in range(len(inp) - 2)] + ['c']
         input_tensors[1].used = True
-        check(filt['sz'] == reduce(lambda i, j: i * j, inp, 1), "filter doesn't match input size")
-        # in the case we get an input of 1 batch with everything flattened fill h and w with 1
-        if len(inp) == 2:
-            inp = {'h': 1, 'w': 1, 'c': inp[1]}
-        elif len(inp) == 3:
-            inp = {'h': 1, 'w': inp[1], 'c': inp[2]}
-        elif len(inp) == 4:
-            inp = {'h': inp[1], 'w': inp[2], 'c': inp[3]}
-        else:
-            raise NotImplementedError('FC input size not implemented')
-
-        filt_dim = FcFilterDim(inp['h'], inp['w'], filt['out_c'],
-                               in_c=inp['c'], order=self.TF_LITE_FC_EXP_ORDER)
+        check(filt_dim.sz == inp_sz, "filter doesn't match input size")
 
         # does it have biases
         has_bias = op.InputsLength() > 2
@@ -816,7 +857,7 @@ class TfliteImporter(ImporterBase):
             input_tensors[2].used = True
 
         node = FcParameters(name, filt=filt_dim, has_bias=has_bias,
-                            in_dims_hint=SparseList([['h', 'w', 'c']]),
+                            in_dims_hint=SparseList([in_hint]),
                             out_dims_hint=SparseList([['c']]),
                             constant_store=self.G.constant_store)
 
@@ -881,6 +922,164 @@ class TfliteImporter(ImporterBase):
 
         return self.fuse_activation(pool_opts, name, node)
 
+    def get_all_const_inputs(self, subgraph, op, node,
+                             exclude=None, names=None,
+                             short_names=None,
+                             adjust_transposes=None,
+                             load_quantization_if_present=False):
+        if exclude is None:
+            exclude = []
+        if names is None:
+            names = [None] * op.InputsLength()
+        if short_names is None:
+            short_names = [None] * op.InputsLength()
+        if adjust_transposes is None:
+            adjust_transposes = [None] * op.InputsLength()
+        constant_nodes = []
+
+        intermediates = [] if op.IntermediatesLength() == 0 else op.IntermediatesAsNumpy()
+        for idx in range(op.InputsLength()):
+            if idx in exclude or op.Inputs(idx) == -1:
+                constant_nodes.append(None)
+                continue
+            tf_idx = op.Inputs(idx)
+            tensor = self.tensors[tf_idx]
+            shape = get_shape(subgraph, tf_idx, None)
+            # if shape is empty then it is a scalar
+            if len(shape) == 0:
+                shape = [1]
+            tensor.used = True
+
+            constant_node = self.G.add_constant(
+                Dim.unnamed(shape),
+                name=names[idx],
+                adjust_transpose=adjust_transposes[idx],
+                is_mutated=op.MutatingVariableInputsLength() > 0 and op.MutatingVariableInputs(idx),
+                is_intermediate=idx in intermediates,
+                short_name=short_names[idx])
+            tensor.constant_node = constant_node
+            if self.load_tensors:
+                constant_node.value = np.reshape(get_tensor_at_subgraph_idx(
+                    self.model, self.tensors, op.Inputs(idx)), shape)
+
+            constant_nodes.append(constant_node)
+
+            if self.load_quantization:
+                self.qrecs[NodeId(constant_node)] = MultConstantQuantizationRecord(
+                    in_qs=[tensor.qtype],
+                    out_qs=[tensor.qtype])
+
+            if load_quantization_if_present and tensor.qtype:
+                constant_node.value_quantization = tensor.qtype
+
+            self.G.add_edge(NNEdge(constant_node, node, to_idx=idx))
+        return constant_nodes
+
+    def add_lstm(self, name, subgraph, _, op):
+        lstm_opts = UnidirectionalSequenceLSTMOptions.UnidirectionalSequenceLSTMOptions()
+        lstm_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+
+        input_tensors = get_input_tensors(self.tensors, op)
+
+        max_time = int(input_tensors[0].shape[0 if lstm_opts.TimeMajor() else 1])
+        n_cells = int(input_tensors[2].shape[0])
+        n_inputs = int(input_tensors[0].shape[2])
+        node = LSTMParameters(name,
+                              in_dims_hint=SparseList([['sz', 'c']]),
+                              out_dims_hint=SparseList([['sz', 'c']]),
+                              constant_store=self.G.constant_store,
+                              cell_clip=lstm_opts.CellClip(),
+                              proj_clip=lstm_opts.ProjClip(),
+                              n_input_cells=max_time,
+                              n_cells=max_time,  # TF says max_time - we say cells
+                              n_inputs=n_inputs,  # Input will be n_input_cells, n_inputs
+                              n_output_cells=max_time,  # Output will be n_output_cells, n_states
+                              n_states=n_cells,  # TF says cells - we say states
+                              activation=TF_ACTIVATIONS[lstm_opts.FusedActivationFunction()])
+        self.G.add_node(node)
+        constant_nodes = self.get_all_const_inputs(
+            subgraph,
+            op,
+            node,
+            exclude=[0],
+            names=["%s_%s" % (in_name, name)
+                   for in_name in LSTMParameters.INPUT_NAMES],
+            short_names=LSTMParameters.INPUT_NAMES,
+            adjust_transposes=[False]*op.InputsLength(),
+            load_quantization_if_present=True)
+
+        # trim batch dimension from state values
+        for state_node_name in ['i_state', 'c_state']:
+            state_node = constant_nodes[LSTMParameters.INPUT_NAMES.index(state_node_name)]
+            if self.load_tensors:
+                state_node.value = state_node.value[0]
+                state_node.dims = Dim(list(state_node.value.shape), is_ordered=True)
+            # set by default as allocated
+            state_node.at_options.allocate = True
+            state_node.is_constant = False
+            # add a single reset
+            state_node.reset_name = "Reset"
+
+        # Link the state weights to the input weights
+        # The autotiler expects the state and input weights to be
+        # concatenated. This tells the constant code generator to do this
+        for gate in ['i', 'o', 'c', 'f']:
+            i_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index('i_2_%s_w' % gate)]
+            r_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
+            r_w_node.concated_nodes.append(i_w_node)
+            i_w_node.generate_value = False
+
+        return (node, node)
+
+    def add_rnn(self, name, subgraph, _, op):
+        rnn_opts = SequenceRNNOptions.SequenceRNNOptions()
+        rnn_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        assert rnn_opts.TimeMajor(), "only time major is currently supported"
+
+        input_tensors = get_input_tensors(self.tensors, op)
+        max_time = int(input_tensors[0].shape[0])
+        n_cells = int(input_tensors[2].shape[0])
+        n_inputs = int(input_tensors[0].shape[2])
+        node = RNNParameters(name,
+                             in_dims_hint=SparseList([['sz', 'c']]),
+                             out_dims_hint=SparseList([['sz', 'c']]),
+                             constant_store=self.G.constant_store,
+                             n_input_cells=max_time,
+                             n_cells=max_time,  # TF says max_time - we say cells
+                             n_inputs=n_inputs,  # Input will be n_input_cells, n_inputs
+                             n_output_cells=max_time,  # Output will be n_output_cells, n_states
+                             n_states=n_cells,  # TF says cells - we say states
+                             activation=TF_ACTIVATIONS[rnn_opts.FusedActivationFunction()])
+        self.G.add_node(node)
+        constant_nodes = self.get_all_const_inputs(
+            subgraph,
+            op,
+            node,
+            exclude=[0],
+            names=["%s_%s" % (in_name, name)
+                   for in_name in RNNParameters.INPUT_NAMES],
+            short_names=RNNParameters.INPUT_NAMES,
+            adjust_transposes=[False]*op.InputsLength(),
+            load_quantization_if_present=True)
+        # trim batch dimension from state values
+        i_state_node = constant_nodes[RNNParameters.INPUT_NAMES.index('i_state')]
+        if self.load_tensors:
+            i_state_node.value = i_state_node.value[0]
+            i_state_node.dims = Dim(list(i_state_node.value.shape), is_ordered=True)
+        # set state as input and enable reset generation
+        i_state_node.is_constant = False
+        i_state_node.reset_name = "Reset"
+        # set by default as allocated
+        i_state_node.at_options.allocate = True
+        # Link the state weights to the input weights
+        # The autotiler expects the state and input weights to be
+        # concatenated. This tells the constant code generator to do this
+        i_2_i_w_node = constant_nodes[RNNParameters.INPUT_NAMES.index('i_2_i_w')]
+        r_2_i_w_node = constant_nodes[RNNParameters.INPUT_NAMES.index('r_2_i_w')]
+        r_2_i_w_node.concated_nodes.append(i_2_i_w_node)
+
+        return (node, node)
+
     # pylint: disable=unused-argument
 
     def add_softmax(self, name, subgraph, _, op):
@@ -916,7 +1115,8 @@ class TfliteImporter(ImporterBase):
 
         buffer_idxes = [tensor.buffer_idx for tensor in input_tensors]
         if len(set(buffer_idxes)) != len(buffer_idxes):
-            raise NotImplementedError("concats with multiple versions of the same input are not supported. This is normally a graph design problem.")
+            raise NotImplementedError(
+                "concats with multiple versions of the same input are not supported. This is normally a graph design problem.")
 
         axis_hint = None
         axis = None
@@ -957,23 +1157,36 @@ class TfliteImporter(ImporterBase):
     # pylint: disable=unused-argument
 
     def add_reshape(self, name, subgraph, _, op):
-        reshape_opts = ReshapeOptions.ReshapeOptions()
-        reshape_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        if op.BuiltinOptions():
+            reshape_opts = ReshapeOptions.ReshapeOptions()
+            reshape_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        else:
+            reshape_opts = None
 
         input_tensors = get_input_tensors(self.tensors, op)
 
         inp = input_tensors[0].shape
         set_shape_tensor = input_tensors[1]
         set_shape_tensor.used = True
-        # TODO - Which to use? Attribute or input? TFLITE seems to set both
-        new_shape = list(reshape_opts.NewShapeAsNumpy())
+        # TF2 seems to use the second input whereas TF1 uses the opts
+        new_shape = list(reshape_opts.NewShapeAsNumpy()
+                         if reshape_opts else set_shape_tensor.get_value(self.model))
         if -1 in new_shape:
             new_shape_size = reduce(lambda x, y: x * 1 if y == -1 else x * y, new_shape, 1)
             inp_size = reduce(lambda x, y: x * y, inp, 1)
             new_shape[new_shape.index(-1)] = inp_size // new_shape_size
 
-        old_shape = Dim.unnamed(remove_batch_dim(inp), is_ordered=True)
-        new_shape = Dim.unnamed(remove_batch_dim(new_shape), is_ordered=True)
+        # special case where reshape has affected batch dimension
+        if new_shape[self.batch_dimension] > 1:
+            assert inp[self.batch_dimension] == 1, "batch must be 1"
+            one_indexes = [idx for idx, val in enumerate(new_shape) if val == 1]
+            assert len(one_indexes) == 1, "unable to determine where batch dimension has moved to"
+            old_shape = Dim.unnamed(self.remove_batch_dim(inp), is_ordered=True)
+            self.batch_dimension = one_indexes[0]
+            new_shape = Dim.unnamed(self.remove_batch_dim(new_shape), is_ordered=True)
+        else:
+            old_shape = Dim.unnamed(self.remove_batch_dim(inp), is_ordered=True)
+            new_shape = Dim.unnamed(self.remove_batch_dim(new_shape), is_ordered=True)
         node = ReshapeParameters(name, old_shape=old_shape, shape=new_shape)
         if self.load_quantization:
             self.qrecs[NodeId(node)] = self.load_tf_quantization(
@@ -1072,9 +1285,143 @@ class TfliteImporter(ImporterBase):
 
         return add_node(self.G, node)
 
-    # pylint: disable=unused-argument
+    def add_cast(self, name, subgraph, op_name, op):
+        if op.BuiltinOptions():
+            opts = CastOptions.CastOptions()
+            opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+            in_dtype = TfliteTensorWrapper.TF_TO_NUMPY_TYPE[opts.InDataType()]
+            out_dtype = TfliteTensorWrapper.TF_TO_NUMPY_TYPE[opts.OutDataType()]
+        else:
+            in_dtype = out_dtype = None
+        node = CastParameters(name, in_dtype=in_dtype, out_dtype=out_dtype)
+        self.G.add_node(node)
+        return (node, node)
+
+    def add_split_internal(self, name, op, input_tensor, axis, splits=None, num_splits=None):
+        assert axis != self.batch_dimension, "can't split down batch axis"
+        act_slices, out_shapes, axis = SplitParameters.get_splits(
+            input_tensor.shape, axis, self.batch_dimension, splits=splits, num_splits=num_splits)
+        node = SplitParameters(name, act_slices=act_slices, out_shapes=out_shapes, axis=axis)
+        if self.load_quantization:
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(
+                [input_tensor], get_output_tensors(self.tensors, op))
+        self.G.add_node(node)
+        return (node, node)
+
+    def add_split_v(self, name, subgraph, op_name, op):
+        if op.BuiltinOptions():
+            opts = SplitVOptions.SplitVOptions()
+            opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        else:
+            opts = None
+        input_tensors = get_input_tensors(self.tensors, op)
+        splits = list(input_tensors[1].get_value(self.model))
+        axis = input_tensors[2].get_value(self.model)
+        for i in range(1, 3):
+            input_tensors[i].used = True
+        return self.add_split_internal(name, op, input_tensors[0], axis, splits=splits)
+
+    def add_split(self, name, subgraph, op_name, op):
+        opts = SplitOptions.SplitOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        input_tensors = get_input_tensors(self.tensors, op)
+        axis = input_tensors[0].get_value(self.model)
+        assert axis is not None, "can't switch axis dynamically"
+        num_splits = opts.NumSplits()
+        input_tensors[0].used = True
+        return self.add_split_internal(name, op, input_tensors[1], axis, num_splits=num_splits)
+
+    def add_unpack(self, name, subgraph, _, op):
+        del subgraph
+        unpack_opts = UnpackOptions.UnpackOptions()
+        unpack_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        axis = unpack_opts.Axis()
+        num_splits = unpack_opts.Num()
+        input_tensors = get_input_tensors(self.tensors, op)
+        return self.add_split_internal(name, op, input_tensors[0], axis, num_splits=num_splits)
+
+    def add_strided_slice(self, name, subgraph, op_name, op):
+        opts = StridedSliceOptions.StridedSliceOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+
+        input_tensors = get_input_tensors(self.tensors, op)
+        # begin end stride
+        vec_begin = input_tensors[1].get_value(self.model)
+        vec_end = input_tensors[2].get_value(self.model)
+        vec_stride = input_tensors[3].get_value(self.model)
+        for i in range(1, 4):
+            input_tensors[i].used = True
+        if any([vec is None for vec in [vec_begin, vec_end, vec_stride]]):
+            raise NotImplementedError(
+                "strided slice with variable begin end or stride is not supported")
+        spec = zip(vec_begin, vec_end, vec_stride)
+        begin_mask = opts.BeginMask()
+        ellipsis_mask = opts.EllipsisMask()
+        end_mask = opts.EndMask()
+        new_axis_mask = opts.NewAxisMask()
+        shrink_axis_mask = opts.ShrinkAxisMask()
+        in_shape = input_tensors[0].shape
+        act_slice, out_shape, can_reshape = StridedSliceParameters.get_slice(
+            input_tensors[0].shape, spec,
+            begin_mask,
+            end_mask, ellipsis_mask,
+            new_axis_mask, shrink_axis_mask)
+        if can_reshape:
+            LOG.info("converting strided slice %s to a reshape", name)
+            in_shape = Dim.unnamed(self.remove_batch_dim(in_shape), is_ordered=True)
+            out_shape = Dim.unnamed(out_shape, is_ordered=True)
+            node = ReshapeParameters(name, old_shape=in_shape, shape=out_shape)
+        else:
+            node = StridedSliceParameters(name, act_slice=act_slice, out_shape=out_shape)
+        if self.load_quantization:
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(
+                [input_tensors[0]], get_output_tensors(self.tensors, op))
+        self.G.add_node(node)
+        return (node, node)
+
+    def add_tflite_detection_postprocess(self, name, subgraph, op_name, op):
+        check(op.InputsLength() == 3,
+              "Detect node requires 3 inputs")
+        flex_buffer = GetRoot(array.array('B', op.CustomOptionsAsNumpy()).tostring()).AsMap
+        input_tensors = get_input_tensors(self.tensors, op)
+        # anchors_tensor = input_tensors[2]
+        # anchors_tensor.used = True
+        node = SSDDetectorParameters(name,
+                                     parameters=flex_buffer.Value)
+        self.G.add_node(node)
+        constant_nodes = self.get_all_const_inputs(subgraph,
+                                                   op,
+                                                   node,
+                                                   exclude=[0, 1],
+                                                   names=["%s_%s" % (in_name, name)
+                                                          for in_name in SSDDetectorParameters.INPUT_NAMES],
+                                                   short_names=SSDDetectorParameters.INPUT_NAMES,
+                                                   adjust_transposes=[False]*op.InputsLength(),
+                                                   load_quantization_if_present=True)
+
+        # anchor_node = constant_nodes[SSDDetectorParameters.INPUT_NAMES.index('anchors')]
+        # tflite sometimes does not create all the outputs. There must be 4
+        output_tensors = get_output_tensors(self.tensors, op)
+        for i in range(len(output_tensors), 4):
+            out_node = self.G.add_output()
+            out_tensor = TensorBase("Detect_%s" % i)
+            out_tensor.inputs.append((out_node.name, 0))
+            out_tensor.output = (name, i)
+            self.tensors.append(out_tensor)
+
+        if self.load_quantization:
+            o_boxes_qtype = SymmetricMultQType(
+                min_val=-2, max_val=2, dtype=np.int16, scale=2**(-14))
+            o_scores_qtype = input_tensors[1].qtype
+            o_class_qtype = SymmetricMultQType(scale=1, dtype=np.int8)
+            qrec = MultSSDDetectorQuantizationRecord(in_qs=[tensor.qtype for tensor in input_tensors],
+                                                     out_qs=[o_boxes_qtype, o_class_qtype, o_scores_qtype, o_class_qtype])
+            self.qrecs[NodeId(node)] = qrec
+        return (node, node)
 
     def add_custom(self, name, subgraph, op_name, op):
+        if op_name == 'TFLite_Detection_PostProcess':
+            return self.add_tflite_detection_postprocess(name, subgraph, op_name, op)
         return add_node(self.G,
                         UnknownOpParameters(
                             name,
@@ -1101,7 +1448,14 @@ class TfliteImporter(ImporterBase):
         "DIV": add_div,
         "MEAN": add_mean,
         "QUANTIZE": add_noop,
-        "DEQUANTIZE": add_noop
+        "DEQUANTIZE": add_noop,
+        "UNIDIRECTIONAL_SEQUENCE_LSTM": add_lstm,
+        "UNIDIRECTIONAL_SEQUENCE_RNN": add_rnn,
+        "UNPACK": add_unpack,
+        "STRIDED_SLICE": add_strided_slice,
+        "CAST": add_cast,
+        "SPLIT_V": add_split_v,
+        "SPLIT": add_split,
     }
 
     for operator in TF_ACTIVATION_OPERATORS:
@@ -1129,9 +1483,9 @@ class TfliteImporter(ImporterBase):
 
         for i in range(graph.InputsLength()):
             dims = get_input_size(None, graph, graph, i, order=None)
-            node = self.G.add_input(Dim.unnamed(remove_batch_dim(dims)))
+            node = self.G.add_input(Dim.unnamed(self.remove_batch_dim(dims)))
             tensor = self.tensors[graph.Inputs(i)]
-            tensor.output = node.name
+            tensor.output = (node.name, 0)
             if self.load_quantization and tensor.qtype:
                 self.qrecs[NodeId(node)] = MultQuantizationRecord(in_qs=[], out_qs=[tensor.qtype])
 
@@ -1149,14 +1503,29 @@ class TfliteImporter(ImporterBase):
                 self.add_operator(graph, graph_index, op, i)
             # keep track of which input the tensor is attached to
             for j in range(op.InputsLength()):
-                self.tensors[op.Inputs(j)].inputs.append((in_node.name, j))
+                if op.Inputs(j) > -1:
+                    self.tensors[op.Inputs(j)].inputs.append((in_node.name, j))
             for j in range(op.OutputsLength()):
-                self.tensors[op.Outputs(j)].output = out_node.name
+                self.tensors[op.Outputs(j)].output = (out_node.name, j)
 
         for tensor in self.tensors:
             if tensor.output is not None:
                 for in_rec in tensor.inputs:
-                    self.G.add_edge(NNEdge(tensor.output, in_rec[0], to_idx=in_rec[1]))
+                    if tensor.constant_node is not None:
+                        # if this output goes to a recurrent input
+                        # then add a recurrent output and bind to the constant input
+                        # This avoids cycles in the graph
+                        # MLIR TOCO may need this - not really used at present
+                        rout_node = self.G.add_routput(
+                            "%s_output_%s" % (tensor.output[0], tensor.output[1]),
+                            tensor.constant_node)
+                        self.G.add_edge(
+                            NNEdge(tensor.output[0], rout_node.name,
+                                   from_idx=tensor.output[1]))
+                    else:
+                        self.G.add_edge(
+                            NNEdge(tensor.output[0], in_rec[0],
+                                   to_idx=in_rec[1], from_idx=tensor.output[1]))
             elif self.load_tensors and not tensor.used:
                 LOG.warning("unused tensors in graph")
 
@@ -1169,7 +1538,8 @@ class TfliteImporter(ImporterBase):
         self.load_dequantized = opts.get('load_dequantized')
         LOG.info("Importing TFLITE model version %s", self.model.Version())
         check(self.model.Version() == 3, "Only support version 3 graphs at present")
-        check(self.model.SubgraphsLength() == 1, "Only supports one subgraph at present")
+        if self.model.SubgraphsLength() > 1:
+            LOG.warning("nntool only supports one subgraph. There may be errors loading this graph.")
         self.G = NNGraph(model=self.model, filename=filename, name=opts.get('name'),
                          constant_store=ConstantStore())
         self.create_subgraph(0)
@@ -1178,5 +1548,6 @@ class TfliteImporter(ImporterBase):
             self.G.has_quantized_parameters = True
             self.G.graph_identity.quantization_type = 'SQ8'
 
+        fix_split_in_edges(self.G)
         propagate_hints(self.G)
         return self.G

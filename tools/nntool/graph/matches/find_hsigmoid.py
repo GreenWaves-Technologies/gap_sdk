@@ -15,20 +15,22 @@
 
 import logging
 import math
-from graph.types import MatrixMulParameters, ConvFusionParameters, FcParameters, HSigmoidActivationParameters, ConstantInputParameters, FilterParameters, ReluActivationParameters, MatrixBroadcastedLinearOpParameters, MatrixAddParameters, MatrixSubParameters, MatrixDivParameters, MatrixMulParameters
 
-from utils.graph import GraphView, Edge, Node
-from utils.graph_matcher import NodeMatch, MatchNodeByClass, EdgeMatch, GraphMatcher, MatchFinishSuccess
-from utils.node_id import NodeId
-from quantization.multiplicative.mult_quantization import MultQuantizationRecordBase
-from .matcher import Matcher, MatchNode, DefaultMatcher
-from quantization.symmetric.symmetric_quantization import (
-    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
-from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import SymmetricMultQTypeWrapper
+from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
+                         MatrixAddParameters,
+                         MatrixBroadcastedLinearOpParameters,
+                         MatrixMulParameters, NNEdge, ReluActivationParameters)
+from quantization.float32.float32_quantization import Float32QuantizationRecord
 from quantization.multiplicative.mult_quantization import (
-    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
-from quantization.float32.float32_quantization import (
-    Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
+    MultQuantizationRecord, MultQuantizationRecordBase)
+from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import \
+    SymmetricMultQTypeWrapper
+from quantization.symmetric.symmetric_quantization import \
+    SymmetricQuantizationRecord
+from utils.graph import Edge, GraphView
+from utils.node_id import NodeId
+
+from .matcher import DefaultMatcher, Matcher, MatchNode
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -157,21 +159,21 @@ def process_rec(G, oprec):
         mulqrec.in_qs = oprec['relu1'][1].in_qs
         del G.quantization[NodeId(oprec['relu1'][0])]
         for edge in G.in_edges(oprec['relu1'][0].name):
-            G.add_edge(Edge(from_node=edge.from_node, from_idx=edge.from_idx, to_node=activation.name))
+            G.add_edge(NNEdge(from_node=edge.from_node, from_idx=edge.from_idx, to_node=activation.name))
         G.remove(oprec['relu1'][0])
     else:
         mulqrec.in_qs = oprec['add'][1].in_qs
         for edge in G.in_edges(oprec['add'][0].name):
-            G.add_edge(Edge(from_node=edge.from_node, from_idx=edge.from_idx, to_node=activation.name))
+            G.add_edge(NNEdge(from_node=edge.from_node, from_idx=edge.from_idx, to_node=activation.name))
     if oprec['relu3'] is not None:
         mulqrec.out_qs = oprec['relu3'][1].out_qs
         del G.quantization[NodeId(oprec['relu3'][0])]
         for edge in G.out_edges(oprec['relu3'][0].name):
-            G.add_edge(Edge(to_node=edge.to_node, to_idx=edge.to_idx, from_node=activation.name))
+            G.add_edge(NNEdge(to_node=edge.to_node, to_idx=edge.to_idx, from_node=activation.name))
         G.remove(oprec['relu3'][0])
     else:
         for edge in G.out_edges(oprec['mul'][0].name):
-            G.add_edge(Edge(to_node=edge.to_node, to_idx=edge.to_idx, from_node=activation.name))
+            G.add_edge(NNEdge(to_node=edge.to_node, to_idx=edge.to_idx, from_node=activation.name))
 
     del G.quantization[NodeId(oprec['relu2'][0])]
     G.remove(oprec['relu2'][0])

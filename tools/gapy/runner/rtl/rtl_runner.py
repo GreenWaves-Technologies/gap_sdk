@@ -16,6 +16,7 @@
 
 import runner.default_runner
 import os
+import os.path
 import errors
 import argparse
 import json_tools as js
@@ -102,10 +103,13 @@ class Runner(runner.default_runner.Runner):
                 self.set_cmd_arg('+DPI_CONFIG_FILE=%s' % gvsoc_config_path)
 
         else:
-            if self.platform_tool == 'vsim':
-                self.set_arg('-sv_lib %s/%s' % (self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper'))
-            else:
-                self.set_cmd_arg('-sv_lib %s/%s' % (self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper'))
+            if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
+                dpi_path = os.path.join(self.__get_platform_path(), 'ips_inputs/dpi/libchipwrapper')
+
+                if self.platform_tool == 'vsim':
+                    self.set_arg('-sv_lib %s' % dpi_path)
+                else:
+                    self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
 
 

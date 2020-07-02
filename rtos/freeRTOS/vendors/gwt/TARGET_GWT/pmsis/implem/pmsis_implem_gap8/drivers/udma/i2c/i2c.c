@@ -160,7 +160,7 @@ void pi_i2c_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
 }
 
 #define MUTEX 1
-void pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
+int pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
                  pi_i2c_xfer_flags_e flags)
 {
     pi_task_t task_block;
@@ -174,6 +174,7 @@ void pi_i2c_read(struct pi_device *device, uint8_t *rx_buff, int length,
     pi_i2c_read_async(device, rx_buff, length, flags, &task_block);
     pi_task_wait_on_no_mutex(&task_block);
     #endif
+    return PI_OK;
 }
 
 void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length,
@@ -191,7 +192,7 @@ void pi_i2c_read_async(struct pi_device *device, uint8_t *rx_buff, int length,
     __pi_i2c_copy((struct i2c_driver_fifo_s *) device->data, &transfer, task);
 }
 
-void pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
+int pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
                   pi_i2c_xfer_flags_e flags)
 {
     pi_task_t task_block;
@@ -205,6 +206,7 @@ void pi_i2c_write(struct pi_device *device, uint8_t *tx_data, int length,
     pi_i2c_write_async(device, tx_data, length, flags, &task_block);
     pi_task_wait_on_no_mutex(&task_block);
     #endif
+    return PI_OK;
 }
 
 void pi_i2c_write_async(struct pi_device *device, uint8_t *tx_data, int length,
@@ -220,4 +222,10 @@ void pi_i2c_write_async(struct pi_device *device, uint8_t *tx_data, int length,
     DEBUG_PRINTF("[%s] I2C(%d) TX Transfer : %x %d %x\n",
                  __func__, transfer.device_id, transfer.buffer, transfer.size, transfer.flags);
     __pi_i2c_copy((struct i2c_driver_fifo_s *) device->data, &transfer, task);
+}
+
+int pi_i2c_get_request_status(pi_task_t* task)
+{
+    (void) task;
+    return PI_OK;
 }

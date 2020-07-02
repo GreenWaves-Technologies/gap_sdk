@@ -152,6 +152,10 @@ class HasConstantsBase(OutputQuantizationRecordBase):
     def constants_are_quantized(self) -> bool:
         return self._info['constants_are_quantized']
 
+    @constants_are_quantized.setter
+    def constants_are_quantized(self, val: bool):
+        self._info['constants_are_quantized'] = val
+
 
 class ConstantQuantizationRecordBase(HasConstantsBase):
 

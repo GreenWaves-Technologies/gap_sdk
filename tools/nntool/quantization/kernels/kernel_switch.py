@@ -18,18 +18,20 @@ from typing import Sequence
 
 import numpy as np
 
-from graph.types import (ActivationParameters, ConcatParameters,
+from graph.types import (CastParameters, ConcatParameters,
                          ConstantInputParameters, Conv2DParameters,
-                         FcParameters, GlobalPoolParameters, InputParameters,
-                         MatrixAddParameters,
+                         FcParameters, GlobalPoolParameters,
+                         HSigmoidActivationParameters,
+                         HSwishActivationParameters, ImageFormatParameters,
+                         InputParameters, LeakyActivationParameters,
+                         LSTMParameters, MatrixAddParameters,
                          MatrixDivParameters, MatrixMulParameters,
                          MatrixSubParameters, MatScaleFusionParameters,
                          OutputParameters, PadParameters, Parameters,
-                         PoolingParameters, ReshapeParameters,
-                         SoftMaxParameters, TransposeParameters,
-                         ReluActivationParameters, LeakyActivationParameters,
-                         HSwishActivationParameters, HSigmoidActivationParameters,
-                         ImageFormatParameters)
+                         PoolingParameters, ReluActivationParameters,
+                         ReshapeParameters, RNNParameters, SoftMaxParameters,
+                         SSDDetectorParameters, StridedSliceParameters,
+                         TransposeParameters, SplitParameters)
 from quantization.quantization_record_base import QuantizationRecordBase
 
 
@@ -63,7 +65,13 @@ class DefaultKernelSwitch(KernelSwitchBase):
         ConstantInputParameters: "constant_input",
         MatScaleFusionParameters: "matscale",
         GlobalPoolParameters: "globalpool_switch",
-        ImageFormatParameters: "image_format"
+        ImageFormatParameters: "image_format",
+        SSDDetectorParameters: "ssd_postprocess",
+        LSTMParameters: "rnn",
+        RNNParameters: "rnn",
+        StridedSliceParameters: "strided_slice",
+        CastParameters: "cast",
+        SplitParameters: "split"
     }
 
     def __init__(self, kernel_functions):
@@ -80,7 +88,7 @@ class DefaultKernelSwitch(KernelSwitchBase):
                 return getattr(self._kernel_functions, func)(params, input_tensors,
                                                              qrec, details=details)
             raise NotImplementedError("Implementation for %s not found" % func)
-        raise NotImplementedError("Unknown parameter type %s" % params.__class__.name)
+        raise NotImplementedError("Unknown parameter type %s" % params.__class__.__name__)
 
     def pool_switch(self, params: Parameters, input_tensors: Sequence[np.ndarray],
                     qrec: QuantizationRecordBase, details: str = None) -> Sequence[np.ndarray]:

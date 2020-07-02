@@ -22,5 +22,6 @@ def inputs_input_generator(gen, node, qrec, edge) -> bool:
     gen.globals.append(InputArgInfo(qrec.out_qs[edge.from_idx].ctype, edge.params.name,
                                     gen.opts['default_input_home_location'],
                                     gen.opts['default_input_exec_location'],
-                                    allocate=node.at_options.allocate))
+                                    allocate=node.at_options.allocate,
+                                    extern_input_pointer=node.at_options.extern_input_pointer))
     return True

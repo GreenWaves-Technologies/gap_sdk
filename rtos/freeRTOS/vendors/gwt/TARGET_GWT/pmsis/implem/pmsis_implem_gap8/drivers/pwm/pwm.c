@@ -79,6 +79,11 @@ uint32_t pi_pwm_counter_get(struct pi_device *device)
 int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
                               uint32_t frequency, uint8_t duty_cycle)
 {
+    if ((0 < duty_cycle) && (duty_cycle > 100))
+    {
+        printf("Error duty cycle value. It should be 0 <= dc <= 100.\n");
+        return -1;
+    }
     uint8_t pwm_id = ((uint32_t) device->data) & 0xFFFF;
     pi_pwm_channel_e ch_id = (((uint32_t) device->data) >> 16) & 0xFFFF;
     uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency;
@@ -86,16 +91,23 @@ int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
     /* threshold holds frequency value. */
     uint32_t threshold = (th_hi << 16) | th_lo;
     /* th_channel holds duty cycle. */
-    uint16_t th_channel = (th_hi * duty_cycle) / 100;
+    uint16_t th_channel = th_hi;
+    if (duty_cycle == 0)
+    {
+        th_channel = 0;
+    }
+    else if (duty_cycle != 100)
+    {
+        th_channel = (th_hi * (100 - duty_cycle)) / 100;
+    }
 
     /* Set counter start, end. */
     __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_THRESH, (void *) threshold);
 
     /* Set channel threshold, mode. */
-    /* Channel config mode: toggle -> regular periods. Easier to setup duty cycle/pulse width. */
     struct pi_pwm_ioctl_ch_config ch_conf = {0};
     ch_conf.ch_threshold = th_channel;
-    ch_conf.config = PI_PWM_TOGGLE;
+    ch_conf.config = PI_PWM_SET_CLEAR;
     ch_conf.channel = ch_id;
     __pi_pwm_ioctl(pwm_id, PI_PWM_CH_CONFIG, (void *) &ch_conf);
     return 0;

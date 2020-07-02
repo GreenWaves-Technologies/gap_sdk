@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from graph.types import EdgeParameters
 
 TT_TENSOR_TYPES = {
     'TT_INPUT': 0,
@@ -22,7 +23,10 @@ TT_TENSOR_TYPES = {
     'TT_BIASES': 3
 }
 
-def gen_gnode_arg(direction, name):
+
+def gen_gnode_arg(direction, name, alias=None):
+    if direction == "GNA_INOUT":
+        return 'GNodeArg({}, "{}", "{}")'.format(direction, name, alias or name)
     return 'GNodeArg({}, "{}", 0)'.format(direction, name)
 
 
@@ -47,12 +51,15 @@ def gen_at_func_bindings(name, func_name, where, binding_list, code_block):
     code_block.write('AddCallToNode("{0}", {1}, "{2}", Bindings({3}, {4}));'
                      .format(name, where, func_name, len(binding_list), ", ".join(binding_list)))
 
+
 class Binding(ABC):
     @abstractmethod
     def gen_binding(self, generator):
         pass
 
 # pylint: disable=abstract-method
+
+
 class InfoListName(Binding):
     def __init__(self, cname):
         self.cname = cname
@@ -60,9 +67,11 @@ class InfoListName(Binding):
     def gen_binding(self, generator):
         return "{}_infos".format(self.cname)
 
+
 class GNodeArg(Binding):
     def __init__(self, direction):
         self.direction = direction
+
 
 class GArgEdge(Binding):
     def __init__(self, eparams):
@@ -70,6 +79,7 @@ class GArgEdge(Binding):
 
     def gen_binding(self, generator):
         return gen_g_node_c_arg(generator.get_edge_name(self.eparams))
+
 
 class GArgNode(Binding):
     def __init__(self, node, target):
@@ -79,13 +89,37 @@ class GArgNode(Binding):
     def gen_binding(self, generator):
         return gen_g_node_c_arg(generator.get_node_name(self.node, self.target))
 
-class GNodeArgEdge(GNodeArg):
-    def __init__(self, eparams, direction="GNA_IN"):
-        super().__init__(direction)
-        self.eparams = eparams
+class GArgName(Binding):
+    def __init__(self, ename):
+        self.ename = ename
 
     def gen_binding(self, generator):
-        return gen_gnode_arg(self.direction, generator.get_edge_name(self.eparams))
+        return gen_g_node_c_arg(self.ename)
+
+
+class GNodeArgEdge(GNodeArg):
+    def __init__(self, name, direction="GNA_IN", alias=None):
+        super().__init__(direction)
+        self.name = name
+        self.alias = alias
+
+    def gen_binding(self, generator):
+        if isinstance(self.name, EdgeParameters):
+            name = generator.get_edge_name(self.name)
+        else:
+            name = self.name
+        if self.alias:
+            if isinstance(self.alias, EdgeParameters):
+                alias = generator.get_edge_name(self.alias)
+            else:
+                alias = self.alias
+        else:
+            alias = None
+        return gen_gnode_arg(self.direction, name, alias=alias)
+
+class NoArg(Binding):
+    def gen_binding(self, generator):
+        return "AT_NO_ARG_BINDING"
 
 class GNodeArgNode(GNodeArg):
     def __init__(self, node, target, direction="GNA_IN"):
@@ -96,6 +130,16 @@ class GNodeArgNode(GNodeArg):
     def gen_binding(self, generator):
         return gen_gnode_arg(self.direction, generator.get_node_name(self.node, self.target))
 
+class GNodeArgNamed(GNodeArg):
+    def __init__(self, name, alias=None, direction="GNA_IN"):
+        super().__init__(direction)
+        self.name = name
+        self.alias = alias
+
+    def gen_binding(self, generator):
+        return gen_gnode_arg(self.direction, self.name, alias=self.alias)
+
+
 class Imm(Binding):
     def __init__(self, symbol):
         self.symbol = symbol
@@ -103,10 +147,12 @@ class Imm(Binding):
     def gen_binding(self, generator):
         return gen_imm_arg(self.symbol)
 
+
 class BindingList(ABC):
     @abstractmethod
     def gen_bindings(self, generator, code_block):
         pass
+
 
 class InfosList(BindingList):
     def __init__(self, cname, infos):
@@ -116,12 +162,14 @@ class InfosList(BindingList):
     def gen_bindings(self, _, code_block):
         code_block.write("char {}_infos[] = {{{}}};".format(self.cname, ", ".join(self.infos)))
 
+
 class CommentBindingList(BindingList):
     def __init__(self, fmt, *args, **kwargs):
         self.comment = fmt.format(*args, **kwargs)
 
     def gen_bindings(self, _, code_block):
         code_block.write("// {}".format(self.comment))
+
 
 class NodeBindingList(BindingList):
     def __init__(self, node, *binding_list):
@@ -132,6 +180,7 @@ class NodeBindingList(BindingList):
         gen_at_bindings(self.node,
                         [binding.gen_binding(generator) for binding in self.binding_list],
                         code_block)
+
 
 class FunctionBindingList(NodeBindingList):
     def __init__(self, node, func_name, *binding_list, before=False):

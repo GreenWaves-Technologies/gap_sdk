@@ -66,7 +66,7 @@ class MultMulBiasScaleQType(MultMulBiasQType):
     @classmethod
     def from_filter(cls, in_q, weights_q, out_q, params, dtype=np.uint8):
         available_bits = (
-            31 - (math.ceil(math.log2(params.filter.in_c * params.filter.h * params.filter.w)) + 7 + 7))
+            31 - (math.ceil(math.log2(params.filter.sz)) + 7 + 7))
         qtype = cls(dtype=dtype, available_bits=available_bits)
         qtype.scale = in_q.scale * weights_q.scale / out_q.scale
         return qtype
@@ -133,18 +133,31 @@ class MultMulBiasScaleQType(MultMulBiasQType):
         if not self.has_scale:
             return
         if self.dtype == np.int8:
-            bits = min(7, self._available_bits)
+            max_bits = min(7, self._available_bits)
         elif self.dtype == np.uint8:
-            bits = min(8, self._available_bits)
-        max_val = math.pow(2, bits)
+            max_bits = min(8, self._available_bits)
+        bits = np.full(self.scale.shape, max_bits)
         factors = np.array([math.frexp(scale) for scale in self.scale],
                            dtype=[("scale", "f4"), ("norm", "i1")])
-        qbiases = np.floor(factors['scale'] * max_val + 0.5)
-        qnorms = -(factors["norm"] - bits)
-        overflow = qbiases >= max_val
-        qnorms[overflow] -= 1
-        qbiases = np.where(overflow, qbiases // 2, qbiases)
-        self._info['qnorms'] = qnorms
+
+        max_val = np.power(2, max_bits)
+        while True:
+            qbiases = np.floor(factors['scale'] * np.power(2, bits) + 0.5)
+            qnorms = -(factors["norm"] - bits)
+            # overflow in conversion
+            max_exceeded = qbiases >= max_val
+            # shifting away bits
+            norms_too_high = qnorms > 32 - 8
+            # mult * pow 2 then shift
+            bias_pow2 = qbiases % 2 == 0
+            should_move = np.logical_or(max_exceeded, np.logical_or(norms_too_high, bias_pow2))
+            can_still_move = np.logical_and(qnorms > 0, bits > 0)
+            overflow = np.logical_and(should_move, can_still_move)
+            if not np.any(overflow):
+                break
+            bits[overflow] -= 1
+
+        self._info['qnorms'] = qnorms.astype(np.uint8)
         self._info['qbiases'] = qbiases.astype(self.dtype)
 
     def apply_scales(self, arr: np.ndarray, axis: int = None):

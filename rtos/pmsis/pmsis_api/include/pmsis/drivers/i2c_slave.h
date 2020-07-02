@@ -51,7 +51,7 @@ typedef struct pi_i2c_slave_args
     void *l2_buffer;
     uint32_t nb_bytes;
     void *handle;
-    void *new_buffer;
+    uint8_t itf_id;
 } pi_i2c_slave_args_t;
 
 typedef void (*pi_i2c_callback_t)(pi_i2c_slave_args_t *);
@@ -89,7 +89,7 @@ typedef struct pi_i2c_slave_conf
  * This is used to tell which command to execute through pi_i2c_control.
  */
 typedef enum {
-  PI_I2C_SLAVE_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_SLAVE_CTRL_SET_MAX_BAUDRATE_BIT, /*!< 
+  PI_I2C_SLAVE_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_SLAVE_CTRL_SET_MAX_BAUDRATE_BIT, /*!<
     Change maximum baudrate. */
 } pi_i2c_slave_ioctl_e;
 
@@ -164,7 +164,7 @@ void pi_i2c_slave_close(struct pi_device *device);
 
 /** \brief set rx channel registers for I2C slave
  *
- * \param handle A pointer to the low level handle passed by driver in slave 
+ * \param handle A pointer to the low level handle passed by driver in slave
  * irq context.
  * \param l2_addr L2 address for the rx buffer
  * \param size size of the rx buffer
@@ -174,7 +174,7 @@ void pi_i2c_slave_set_rx(void *handle,
 
 /** \brief set tx channel registers for I2C slave
  *
- * \param handle A pointer to the low level handle passed by driver in slave 
+ * \param handle A pointer to the low level handle passed by driver in slave
  * irq context.
  * \param l2_addr L2 address for the tx buffer
  * \param size size of the tx buffer
@@ -184,7 +184,7 @@ void pi_i2c_slave_set_tx(void *handle,
 
 /** \brief Flush & unlock I2C slave bus (need to stop transfers before)
  *
- * \param handle A pointer to the low level handle passed by driver in slave 
+ * \param handle A pointer to the low level handle passed by driver in slave
  * irq context.
  * \param is_rd if 1 flush for rx transfer, else for tx
  */
@@ -200,14 +200,14 @@ void pi_i2c_slave_ioctl(struct pi_device *device, uint32_t cmd, void *arg);
 
 /** \brief Stop transfer on I2C slave rx channel
  *
- * \param handle A pointer to the low level handle passed by driver in slave 
+ * \param handle A pointer to the low level handle passed by driver in slave
  * irq context.
  */
 void pi_i2c_slave_stop_rx(void *handle);
 
 /** \brief Stop transfer on I2C slave tx channel
  *
- * \param handle A pointer to the low level handle passed by driver in slave 
+ * \param handle A pointer to the low level handle passed by driver in slave
  * irq context.
  */
 void pi_i2c_slave_stop_tx(void *handle);

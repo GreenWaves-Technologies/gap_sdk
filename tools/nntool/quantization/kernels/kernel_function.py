@@ -127,3 +127,19 @@ class KernelFunctionSetBase(ABC):
     @abstractproperty
     def image_format(self) -> KernelFunction:
         pass
+
+    @abstractproperty
+    def rnn(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
+    def strided_slice(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
+    def cast(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
+    def split(self) -> KernelFunction:
+        pass

@@ -50,7 +50,7 @@ class SymmetricMultQTypeWrapper(WrapperMixin, SymmetricMultQType):
     def _encapsulate(self):
         #pylint: disable=protected-access
         return {
-            "wrapped": AsymmetricMultQType._encapsulate(self),
+            "wrapped": AsymmetricMultQType._encapsulate(self._wrapped),
             "scale": self.scale,
             "dtype": self.dtype.__name__ if self.dtype is not None else None
         }

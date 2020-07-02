@@ -30,6 +30,7 @@ from generation.at_types.constant_info import ConstantInfo
 
 class TCArgInfo():
     ARG_TYPES = {
+        "bool": "char",
         "uint8": "unsigned char * __restrict__",
         "int8": "signed char * __restrict__",
         "uint16": "unsigned short * __restrict__",
@@ -68,7 +69,8 @@ class TCArgInfo():
                  arg_dir: str, home_location: Optional[str] = None,
                  exec_location: Optional[str] = None,
                  const_info: Optional[ConstantInfo] = None,
-                 comment: Optional[str] = None):
+                 comment: Optional[str] = None,
+                 extern_pointer=None):
         assert arg_type in self.ARG_TYPES
         self._arg_type = arg_type
         self._arg_name = arg_name
@@ -82,6 +84,7 @@ class TCArgInfo():
         self._exec_location = exec_location
         self._const_info = const_info
         self._comment = comment
+        self._extern_pointer = extern_pointer
 
     @property
     def comment(self):
@@ -100,7 +103,9 @@ class TCArgInfo():
         return self._arg_name
 
     def __str__(self):
-        return str.format('TCArgInfo("{}", "{}", {}, {}, {}, {}, {})',
+        tcarg = "TCArgInfoA" if self._extern_pointer else "TCArgInfo"
+        return str.format('{}("{}", "{}", {}, {}, {}, {}, {})',
+                          tcarg,
                           self.ARG_TYPES[self._arg_type],
                           self._arg_name,
                           self._arg_scope,
@@ -110,40 +115,87 @@ class TCArgInfo():
                           self._const_info or "0")
 
 
+class GlobalResetArgInfo(TCArgInfo):
+
+    def __init__(self, arg_name: str, home_location: Optional[str] = None,
+                 exec_location: Optional[str] = None,
+                 comment=None):
+        super(GlobalResetArgInfo, self).__init__(
+            "bool", arg_name, "ARG_SCOPE_ARG",
+            "ARG_DIR_IN",
+            home_location=home_location,
+            exec_location=exec_location,
+            comment=comment)
+
+class GlobalInitializerArgInfo(TCArgInfo):
+
+    def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
+                 exec_location: Optional[str] = None,
+                 is_inout=False,
+                 comment=None):
+        super(GlobalInitializerArgInfo, self).__init__(
+            arg_type, arg_name, "ARG_SCOPE_GLOBAL",
+            "ARG_DIR_INOUT" if is_inout else "ARG_DIR_IN",
+            home_location=home_location,
+            exec_location=exec_location,
+            comment=comment)
+
+class LocalInitializerArgInfo(TCArgInfo):
+
+    def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
+                 exec_location: Optional[str] = None,
+                 is_inout=False,
+                 comment=None):
+        super(LocalInitializerArgInfo, self).__init__(
+            arg_type, arg_name, "ARG_SCOPE_LOCAL",
+            "ARG_DIR_INOUT" if is_inout else "ARG_DIR_IN",
+            home_location=home_location,
+            exec_location=exec_location,
+            comment=comment)
+
 class GlobalArgInfo(TCArgInfo):
 
     def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
                  exec_location: Optional[str] = None,
                  const_info: Optional[ConstantInfo] = None,
                  comment=None):
-        super(GlobalArgInfo, self).__init__(arg_type, arg_name, "ARG_SCOPE_GLOBAL",
-                                            "ARG_DIR_CONSTIN", home_location=home_location,
-                                            exec_location=exec_location,
-                                            const_info=const_info,
-                                            comment=comment)
+        super(GlobalArgInfo, self).__init__(
+            arg_type, arg_name, "ARG_SCOPE_GLOBAL",
+            "ARG_DIR_CONSTIN", home_location=home_location,
+            exec_location=exec_location,
+            const_info=const_info,
+            comment=comment)
 
 
 class LocalArgInfo(TCArgInfo):
     def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
                  exec_location: Optional[str] = None):
-        super(LocalArgInfo, self).__init__(arg_type, arg_name, "ARG_SCOPE_LOCAL",
-                                           "ARG_DIR_INOUT", home_location=home_location,
-                                           exec_location=exec_location)
+        super(LocalArgInfo, self).__init__(
+            arg_type, arg_name, "ARG_SCOPE_LOCAL",
+            "ARG_DIR_INOUT", home_location=home_location,
+            exec_location=exec_location)
 
 
 class OutputArgInfo(TCArgInfo):
     def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
-                 exec_location: Optional[str] = None, allocate=False):
+                 exec_location: Optional[str] = None, allocate=False,
+                 extern_output_pointer=None):
         scope = "ARG_SCOPE_ARG_ALLOC" if allocate else "ARG_SCOPE_ARG"
-        super(OutputArgInfo, self).__init__(arg_type, arg_name, scope,
-                                            "ARG_DIR_OUT", home_location=home_location,
-                                            exec_location=exec_location)
+        super(OutputArgInfo, self).__init__(
+            arg_type, arg_name, scope,
+            "ARG_DIR_OUT", home_location=home_location,
+            exec_location=exec_location,
+            extern_pointer=extern_output_pointer)
 
 
 class InputArgInfo(TCArgInfo):
     def __init__(self, arg_type: str, arg_name: str, home_location: Optional[str] = None,
-                 exec_location: Optional[str] = None, allocate=False):
+                 exec_location: Optional[str] = None, allocate=False, is_inout=False,
+                 extern_input_pointer=None):
         scope = "ARG_SCOPE_ARG_ALLOC" if allocate else "ARG_SCOPE_ARG"
-        super(InputArgInfo, self).__init__(arg_type, arg_name, scope,
-                                           "ARG_DIR_IN", home_location=home_location,
-                                           exec_location=exec_location)
+        direction = "ARG_DIR_INOUT" if is_inout else "ARG_DIR_IN"
+        super(InputArgInfo, self).__init__(
+            arg_type, arg_name, scope,
+            direction, home_location=home_location,
+            exec_location=exec_location,
+            extern_pointer=extern_input_pointer)

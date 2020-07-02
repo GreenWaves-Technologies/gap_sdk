@@ -3,39 +3,16 @@
 #include "bsp/bsp.h"
 #include "bsp/camera.h"
 
-//#define SAVE_TO_PC
 //#define ASYNC
 
 /* App includes. */
-#if defined(SAVE_TO_PC)
-#include "ImgIO.h"
-#endif  /* SAVE_TO_PC */
+#include "gaplib/ImgIO.h"
 
-#if defined(__PULP_OS__)
-#include "bridge_stubs.h"
 #define DEBUG_PRINTF(...) ((void) 0)
-#endif  /* __PULP_OS__ */
 
 #define IMG_WIDTH  ( 80 )
 #define IMG_HEIGHT ( 80 )
 #define IMG_SIZE   ( IMG_HEIGHT * IMG_WIDTH )
-
-#if defined(USE_BRIDGE)
-static uint64_t fb;
-
-static int32_t open_bridge()
-{
-    BRIDGE_Init();
-    BRIDGE_Connect(1, NULL);
-
-    fb = BRIDGE_FBOpen("Camera", IMG_WIDTH, IMG_HEIGHT, HAL_BRIDGE_REQ_FB_FORMAT_GRAY, NULL);
-    if (fb == 0)
-    {
-        return -1;
-    }
-    return 0;
-}
-#endif  /* USE_BRIDGE */
 
 static struct pi_device cam;
 
@@ -66,14 +43,6 @@ void test_therm_eye()
         printf("Thermal Eye camera open failed !\n");
         pmsis_exit(-1);
     }
-
-    #if defined(USE_BRIDGE)
-    if (open_bridge())
-    {
-        printf("Bridge init failed !\n");
-        pmsis_exit(-2);
-    }
-    #endif  /* USE_BRIDGE */
 
     pi_task_t cb = {0};
     pi_task_block(&cb);
@@ -165,24 +134,16 @@ void test_therm_eye()
             scaled_buff[i] = ((dif_buff[i] - min_diff) * 255) / min_max_swing;
         }
 
-        #if defined(USE_BRIDGE)
-        #if defined(SAVE_TO_PC)
         char string_buffer[50];
         sprintf(string_buffer, "../../../img_%ld.ppm", save_index);
-        WriteImageToFile(string_buffer, IMG_WIDTH, IMG_HEIGHT, scaled_buff);
+        WriteImageToFile(string_buffer, IMG_WIDTH, IMG_HEIGHT, 1, scaled_buff,GRAY_SCALE_IO);
         save_index++;
-        #endif  /* SAVE_TO_PC */
-        BRIDGE_FBUpdate(fb, (unsigned int) scaled_buff, 0, 0, IMG_WIDTH, IMG_HEIGHT, NULL);
-        #endif  /* USE_BRIDGE */
-
+ 
         loop++;
         pi_time_wait_us(1000);
     }
 
-    #if defined(USE_BRIDGE)
-    BRIDGE_Disconnect(NULL);
-    #endif  /* USE_BRIDGE */
-
+ 
     pi_camera_close(&cam);
 
     printf("Test exit ...\n");

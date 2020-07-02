@@ -37,12 +37,13 @@ def linear(params,
         details['max_acc'] = float("-Infinity")
 
     if params.has_bias:
-        biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="symmetric")
+        biases = qrec.prepare_biases(params,
+                                     params.biases,
+                                     params.weights,
+                                     ktype="symmetric")
+        acc_tensor = np.ones(biases.shape, dtype=qrec.acc_q.dtype) * biases
         if qrec.acc_q != qrec.biases_q:
-            biases = qrec.acc_q.expand_from(biases, qrec.biases_q)
-        acc_tensor = np.ones((out_dims.c, out_dims.h, out_dims.w),
-                             dtype=qrec.acc_q.dtype) * biases.reshape((out_dims.c, out_dims.h, out_dims.w))
-        acc_tensor = acc_tensor.transpose(out_dims.transpose_from_order(('c', 'h', 'w')))
+            acc_tensor = qrec.acc_q.expand_from(acc_tensor, qrec.biases_q)
     else:
         acc_tensor = np.zeros(out_dims.shape,
                               dtype=qrec.acc_q.dtype)
@@ -66,22 +67,23 @@ def linear(params,
             details['min_acc'] = min(np.sum(res[res < 0]), details['min_acc'])
             details['max_acc'] = min(np.sum(res[res > 0]), details['max_acc'])
 
-        acc_slice = acc_tensor[out_dims.srange(c=out_c, h=0, w=0)]
-        acc_slice += res
+        acc_tensor[out_c] += res
 
         if qrec.calc_q != qrec.acc_q:
             acc_tensor = qrec.acc_q.reduce_from(acc_tensor, qrec.calc_q)
 
         if details is not None:
-            details['min_acc'] = min(np.min(acc_slice), details['min_acc'])
-            details['max_acc'] = max(np.max(acc_slice), details['max_acc'])
+            details['min_acc'] = min(np.min(acc_tensor[out_c]), details['min_acc'])
+            details['max_acc'] = max(np.max(acc_tensor[out_c]), details['max_acc'])
 
     # details['acc_before'] = acc_tensor.copy()
     acc_tensor = qrec.apply_multiplicative_bias(
-        params, acc_tensor, out_dims.get_order_idx('c'), ktype="symmetric")
+        params, acc_tensor, 0, ktype="symmetric")
     # details['acc_after'] = acc_tensor.copy()
 
-    if qrec and qrec.out_qs[0] != qrec.acc_q:
-        acc_tensor = qrec.out_qs[0].reduce_from(acc_tensor, qrec.acc_q)
+    out_q = qrec.out_qs[0]
+
+    if qrec and out_q != qrec.acc_q:
+        acc_tensor = out_q.reduce_from(acc_tensor, qrec.acc_q)
 
     return qrec.get_outputs(params, [acc_tensor], ktype="symmetric")

@@ -88,13 +88,14 @@ can be set refer to the autotiler documentation."""
             else:
                 print("nothing set")
             return
+        if not nodes:
+            self.perror("No nodes selected")
+            return
         if args.value is None:
             val = None
         else:
-            if args.parameter in ("OUT_HOME_MEM_LOC", "OUT_EXEC_MEM_LOC"):
-                val = str(args.value)
-            else:
-                val = int(args.value)
+            option_type = nodes[0].at_options.valid_options[args.parameter]
+            val = option_type(args.value)
         for node in nodes:
             node_options = node.at_options
             setattr(node_options, args.parameter, val)

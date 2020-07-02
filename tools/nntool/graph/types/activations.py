@@ -35,6 +35,8 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
             return ReluActivationParameters(name, upper_bound=6)
         if activation_type == "hswish":
             return HSwishActivationParameters(name)
+        if activation_type == "tanh":
+            return TanHActivationParameters(name)
         raise ValueError("don't know how to create %s"%activation_type)
 
     @property
@@ -150,6 +152,18 @@ class HSwishActivationParameters(ActivationParameters):
 
     def clone(self, name, groupn=None):
         return HSwishActivationParameters(name)
+
+    @property
+    def can_equalize(self):
+        return False
+
+class TanHActivationParameters(ActivationParameters):
+    @property
+    def op_name(self):
+        return "tanh"
+
+    def clone(self, name, groupn=None):
+        return TanHActivationParameters(name)
 
     @property
     def can_equalize(self):

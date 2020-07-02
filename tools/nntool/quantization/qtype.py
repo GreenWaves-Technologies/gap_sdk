@@ -17,6 +17,8 @@ import numpy as np
 
 from utils.json_serializable import JsonSerializable
 from utils.at_norm import at_norm
+# from utils.stats_funcs import bits as min_max_to_bits
+
 
 from .qtype_base import QTypeBase
 
@@ -97,19 +99,22 @@ class QType(QTypeBase, JsonSerializable):
 
         if signed is not None:
             self._quant[2] = signed
-        
+
         if dtype is not None:
             self._quant[0], self._quant[2] = DTYPES[dtype]
+
+    # @classmethod
+    # def from_array(cls, arr: np.ndarray, bits, signed=True):
+    #     int_bits = min_max_to_bits(arr.max(), arr.min())
+    #     assert int_bits + (1 if signed else 0) <= bits, "number cannot be represented with this many bits"
+    #     return cls(bits=bits, q=bits - int_bits, signed=signed)
 
     def _encapsulate(self):
         return self._quant
 
     @classmethod
     def _dencapsulate(cls, val):
-        try:
-            return QType(*val)
-        except Exception as ex:
-            x = 0
+        return QType(*val)
 
     def increase_precision(self):
         return QType(self.bits * 2, self.q, self.signed)

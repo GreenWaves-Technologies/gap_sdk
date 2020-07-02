@@ -15,21 +15,26 @@
 
 from quantization.kernels.kernel_function import (KernelFunction,
                                                   KernelFunctionSetBase)
-from quantization.symmetric.kernels.activations import relu, hswish, hsigmoid, leaky
+from quantization.symmetric.kernels.activations import (hsigmoid, hswish,
+                                                        leaky, relu)
 from quantization.symmetric.kernels.fast_conv import faster_conv
+from quantization.symmetric.kernels.image_format import image_format
 from quantization.symmetric.kernels.linear import linear
 from quantization.symmetric.kernels.matrix_operations import (matscale,
                                                               piecewise)
 from quantization.symmetric.kernels.pad import pad
 from quantization.symmetric.kernels.pool import (av_global_pool, av_pool,
                                                  max_global_pool, max_pool)
+from quantization.symmetric.kernels.rnn import rnn
 from quantization.symmetric.kernels.softmax import softmax
-from quantization.symmetric.kernels.tensor_functions import (concat,
+from quantization.symmetric.kernels.ssd_postprocess import ssd_postprocess
+from quantization.symmetric.kernels.tensor_functions import (cast, concat,
                                                              constant_input,
-                                                             graph_input, graph_output,
-                                                             reshape,
+                                                             graph_input,
+                                                             graph_output,
+                                                             reshape, split,
+                                                             strided_slice,
                                                              transpose)
-from quantization.symmetric.kernels.image_format import image_format
 
 
 class SymmetricKernelSet(KernelFunctionSetBase):
@@ -128,3 +133,23 @@ class SymmetricKernelSet(KernelFunctionSetBase):
     @property
     def image_format(self) -> KernelFunction:
         return image_format
+
+    @property
+    def ssd_postprocess(self) -> KernelFunction:
+        return ssd_postprocess
+
+    @property
+    def rnn(self) -> KernelFunction:
+        return rnn
+
+    @property
+    def strided_slice(self) -> KernelFunction:
+        return strided_slice
+
+    @property
+    def cast(self) -> KernelFunction:
+        return cast
+
+    @property
+    def split(self) -> KernelFunction:
+        return split

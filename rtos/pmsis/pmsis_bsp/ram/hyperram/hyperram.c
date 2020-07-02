@@ -96,6 +96,9 @@ static int hyperram_open(struct pi_device *device)
   reg_value &= ~0xf0;  // Use 3 cycles of latency instead of the default 6 cycles
   reg_value |= 0xe0;
   pi_hyper_write(&hyperram->hyper_device, 0x80001000, &reg_value, 2);
+
+  pi_hyper_ioctl(&hyperram->hyper_device, PI_HYPER_IOCTL_SET_LATENCY, (void *)3);
+
 #endif
 #endif
 

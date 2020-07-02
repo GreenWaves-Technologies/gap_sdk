@@ -17,12 +17,12 @@ import logging
 
 
 from ..dim import DilationDim
-from .base import FilterLikeParameters, MultiplicativeBiasParameters
+from .base import FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters):
+class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder):
 
     op_name = "conv2d"
 

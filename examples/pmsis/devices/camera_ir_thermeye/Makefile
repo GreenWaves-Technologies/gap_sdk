@@ -2,18 +2,12 @@
 #------------------------------------
 
 APP              = test
-APP_SRCS        += test_thermeye.c ImgIO.c
+APP_SRCS        += test_thermeye.c 
 APP_INC	        += .
 APP_CFLAGS      +=
-APP_LDFLAGS     +=
+APP_LDFLAGS     += -lgaplib
 
 BOARD_NAME = gapoc_b
-
-BRIDGE = 1
-
-ifeq ($(BRIDGE), 1)
-APP_CFLAGS += -DUSE_BRIDGE
-PLPBRIDGE_FLAGS += -fileIO 2
-endif
+io=host
 
 include $(RULES_DIR)/pmsis_rules.mk

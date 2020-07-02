@@ -6,7 +6,7 @@
 #include "pmsis/rtos/malloc/l2_malloc.h"
 #include "pmsis/cluster/cluster_sync/cl_to_fc_delegate.h"
 
-void __pi_cl_delegate_uart_write(struct uart_itf_data *data, void *buffer,
+void __pi_cl_delegate_uart_write(struct uart_itf_data_s *data, void *buffer,
         uint32_t size, pi_task_t *block_callback);
 void __pi_cl_delegate_uart_write_req_callback(void *arg);
 
@@ -19,7 +19,7 @@ void __pi_cl_delegate_uart_write_req_callback(void *arg)
             cb_args->callback);
 }
 
-void __pi_cl_delegate_uart_write(struct uart_itf_data *data, void *buffer,
+void __pi_cl_delegate_uart_write(struct uart_itf_data_s *data, void *buffer,
         uint32_t size, pi_task_t *block_callback)
 {
     struct uart_callback_args args;

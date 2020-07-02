@@ -1,4 +1,4 @@
-TILER_VER=3.0.6
+TILER_VER=3.0.7
 export TILER_LIB=libtile.${TILER_VER}.a
 ifdef GAP_SDK_HOME
 export TILER_URL=$(GAP_SDK_HOME)/.tiler_url

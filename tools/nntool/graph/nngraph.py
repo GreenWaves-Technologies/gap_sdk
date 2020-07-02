@@ -25,7 +25,8 @@ from graph.manipulations import (add_dimensions, adjust_order,
                                  calculate_liveness)
 from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
-                         MultiplicativeBiasParameters, OutputParameters)
+                         MultiplicativeBiasParameters, OutputParameters,
+                         RecurrentOutputParameters)
 from quantization.quantization_set import QuantizationSet
 from utils.graph import Graph, Node
 from utils.json_serializable import JsonSerializable
@@ -141,6 +142,8 @@ class NNGraph(Graph):
         self.num_outputs = 0
         self.num_constants = 0
         self.node_options = {}
+        self.num_rinputs = 0
+        self.num_routputs = 0
 
         self.graph_state = NNGraphState()
 
@@ -209,13 +212,27 @@ class NNGraph(Graph):
 
     def get_in_params(self, name: str) -> set:
         in_edges = self.in_edges(name)
+        if not in_edges:
+            return in_edges
         in_edges.sort(key=lambda edge: edge.to_idx)
-        return [edge.params for edge in in_edges]
+        res = []
+        in_idx = 0
+        for real_idx in range(max(edge.to_idx for edge in in_edges) + 1):
+            if real_idx == in_edges[in_idx].to_idx:
+                res.append(in_edges[in_idx].params)
+                in_idx += 1
+            else:
+                res.append(None)
+
+        return res
 
     def get_out_params(self, name: str) -> set:
         out_edges = self.out_edges(name)
         out_edges.sort(key=lambda edge: edge.from_idx)
         return [edge.params for edge in out_edges]
+
+    def all_inputs(self) -> Generator[Node, None, None]:
+        return (node for node in self.nodes() if isinstance(node, (InputBaseParameters)))
 
     def inputs_and_constants(self) -> Generator[Node, None, None]:
         return (node for node in self.nodes() if isinstance(node, InputBaseParameters))
@@ -240,22 +257,40 @@ class NNGraph(Graph):
         self.num_inputs = 0
         self.num_outputs = 0
         self.num_constants = 0
+        self.num_rinputs = 0
+        self.num_routputs = 0
 
-    def add_input(self, dim: Dim) -> str:
+    def add_routput(self, name: str, rinput: ConstantInputParameters) -> RecurrentOutputParameters:
+        self.num_routputs += 1
+        node = RecurrentOutputParameters(name, input_node=rinput)
+        self.add_node(node)
+        return node
+
+    def add_input(self, dim: Dim) -> InputParameters:
         self.num_inputs += 1
         node_name = "input_"+str(self.num_inputs)
         node = InputParameters(node_name, dims=dim)
         self.add_node(node)
         return node
 
-    def add_constant(self, dim: Dim) -> str:
+    def add_constant(self, dim: Dim, name: str = None,
+                     adjust_transpose=None, is_mutated=False,
+                     is_intermediate=False, short_name=None) -> ConstantInputParameters:
         self.num_constants += 1
-        node_name = "constant_"+str(self.num_constants)
-        node = ConstantInputParameters(node_name, dims=dim)
+        node_name = name if name else "constant_"+str(self.num_constants)
+        node = ConstantInputParameters(node_name, dims=dim,
+                                       adjust_transpose=adjust_transpose,
+                                       is_intermediate=is_intermediate,
+                                       is_mutated=is_mutated,
+                                       short_name=short_name)
         self.add_node(node)
         return node
 
-    def add_output(self) -> str:
+    def variable_in_edges(self, node_name):
+        return list([edge for edge in self.in_edges(node_name)
+                     if not isinstance(edge.from_node, ConstantInputParameters)])
+
+    def add_output(self) -> OutputParameters:
         self.num_outputs += 1
         node_name = "output_"+str(self.num_outputs)
         node = OutputParameters(node_name)
@@ -326,3 +361,4 @@ class NNGraph(Graph):
         else:
             for idx, out in enumerate(outputs):
                 print_step(self.graph_state.steps[idx], out)
+        print()

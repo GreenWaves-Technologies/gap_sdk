@@ -22,19 +22,26 @@ from quantization.multiplicative.symmetric.symmetric_mult_qtype import Symmetric
 
 class SymmetricMultBiasesQType(SymmetricMultQType):
     def __init__(self, *args, init=None, **kwargs):
-        self._set_scale = None
         super(SymmetricMultBiasesQType, self).__init__(*args, init=init, **kwargs)
 
     def link(self, weights_q, in_q):
-        self._set_scale = weights_q.scale * in_q.scale
+        self.set_scale = weights_q.scale * in_q.scale
 
     @property
     def scale(self):
-        return self._set_scale if self._set_scale is not None else super().scale
+        return self.set_scale if self.set_scale is not None else super().scale
 
     @scale.setter
     def scale(self, val):
         self._info['scale'] = val
+
+    @property
+    def set_scale(self):
+        return self._info.get('set_scale')
+
+    @set_scale.setter
+    def set_scale(self, val):
+        self._info['set_scale'] = val
 
     def dequantize(self, arr):
         return self.dequantize_at_scale(arr, super().scale)
@@ -49,10 +56,33 @@ class SymmetricMultBiasesQType(SymmetricMultQType):
 
     def get_quantized(self, arr: np.array, container_is_quantized=True) -> np.array:
         if container_is_quantized:
-            if self._set_scale is not None and not np.array_equal(self._set_scale, super().scale):
-                return self.quantize_at_scale(self.dequantize_at_scale(arr, super().scale), self._set_scale)
+            if self.set_scale is not None and not np.array_equal(self.set_scale, super().scale):
+                return self.quantize_at_scale(self.dequantize_at_scale(arr, super().scale), self.set_scale)
             return arr
         else:
-            if self._set_scale is not None and not np.array_equal(self._set_scale, super().scale):
-                return self.quantize_at_scale(arr, self._set_scale)
+            if self.set_scale is not None and not np.array_equal(self.set_scale, super().scale):
+                return self.quantize_at_scale(arr, self.set_scale)
             return self.quantize_at_scale(arr, super().scale)
+
+    def _encapsulate(self):
+        return {
+            "min_val": self.min,
+            "max_val": self.max,
+            "scale": super().scale,
+            "set_scale": self.set_scale,
+            "dim": self.quantized_dimension,
+            "narrow_range": self.narrow_range,
+            "dtype": self.dtype.__name__
+        }
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        return cls(init={
+            "min_val": val['min_val'],
+            "max_val": val['max_val'],
+            "scale": val['scale'],
+            "set_scale": val['set_scale'] if 'set_scale' in val else None,
+            "quantized_dimension": val['dim'] if 'dim' in val else None,
+            "narrow_range": val['narrow_range'],
+            "dtype": getattr(np, val['dtype'])
+        })

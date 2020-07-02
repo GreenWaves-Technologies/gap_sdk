@@ -77,6 +77,10 @@ PULP_LIB_FC_ASM_SRCS_rt += drivers/pwm/pwm_asm.S
 has_pwm=1
 endif
 
+ifeq '$(pulp_chip_family)' 'vega'
+has_pwm=1
+endif
+
 ifeq '$(pulp_chip_family)' 'wolfe'
 has_pwm=1
 endif

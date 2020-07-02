@@ -31,5 +31,5 @@ def write_constants(global_recs, tensor_directory=None):
             continue
         const_info = global_rec.const_info
         with open(const_info.file_name, 'wb') as t_fp:
-            const_info.contents.astype(const_info.qtype.dtype, order='C', casting='no', copy=True)\
+            const_info.contents.astype(const_info.qtype.dtype, order='C', casting='unsafe', copy=True)\
                 .tofile(t_fp)

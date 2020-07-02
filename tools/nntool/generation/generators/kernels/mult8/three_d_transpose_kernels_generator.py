@@ -28,7 +28,7 @@ LOG = logging.getLogger("nntool." + __name__)
 def three_d_transpose_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
     LOG.info("generating for transpose in %s out %s trans %s",
-             node.in_dims[0], node.out_dims[0], node.transpose_in)
+             node.in_dims[0], node.out_dims[0], node.transpose_in[0])
     real_in_shape, real_transpose = node.real_shape()
     if len(real_transpose) <= 1:
         return True

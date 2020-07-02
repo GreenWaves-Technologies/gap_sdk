@@ -5,9 +5,6 @@ APP_LDFLAGS = -lgcc
 
 CONFIG_I2S=1
 
-recordWlf=YES
-vsimDo="-do ~/wave_pack/gap9_i2s0_wave.do"
-
 SAMPLING_FREQ = 44100
 WORD_SIZE = 16
 SIGNAL_FREQ = 4000

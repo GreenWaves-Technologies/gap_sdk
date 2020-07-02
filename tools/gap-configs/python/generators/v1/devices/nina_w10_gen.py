@@ -27,7 +27,10 @@ def gen_config(name, system_config, system, device_config, usecases=[]):
   cs = device_config.get_str('cs')
 
   system.system_tree.board.add_component(name, Tb_Component(
-    config=device_config.get('config')
+    config=device_config.get('config'),
+    properties=OrderedDict([
+      ('name', name)
+    ])
   ))
 
   gpio_ready = device_config.get_child_str('gpio_ready')

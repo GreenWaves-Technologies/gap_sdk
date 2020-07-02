@@ -41,33 +41,38 @@ class Runner(runner.default_runner.Runner):
         flash = self.get_boot_flash()
         if flash.get_bool('content/flash'):
 
-            if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
-                self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
-
-            openocd = self.config.get_str("openocd/path")
-            cable = self.config.get_str('openocd/cable')
-            script = self.config.get_str('openocd/script')
             image = flash.get_str('content/image')
-            image_size = os.path.getsize(image)
-            gap_tools = os.environ.get('GAP_OPENOCD_TOOLS')
 
-            if self.config.get_str('**/chip_family') == 'gap':
-
-                if flash.get_str('datasheet/type') == 'spi':
-                    flasher_script = 'gap_flash_raw_spi'
-                else:
-                    flasher_script = 'gap_flash_raw_hyper'
-
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
+            if os.environ.get('GAP_USE_PLPBRIDGE') is not None:
+                cmd = 'plpbridge --chip=%s --verbose 10 --cable=%s --flash-image=%s flash wait' % (os.environ.get('TARGET_NAME'), os.environ.get("PLPBRIDGE_CABLE"), image)
 
             else:
+                if os.environ.get('GAPY_OPENOCD_CABLE') is not None:
+                    self.config.set('openocd/cable', os.environ.get('GAPY_OPENOCD_CABLE'))
 
-                if flash.get_str('datasheet/type') == 'spi':
-                    flasher_script = 'gap9_flash_raw_hyper'
+                openocd = self.config.get_str("openocd/path")
+                cable = self.config.get_str('openocd/cable')
+                script = self.config.get_str('openocd/script')
+                image_size = os.path.getsize(image)
+                gap_tools = os.environ.get('GAP_OPENOCD_TOOLS')
+
+                if self.config.get_str('**/chip_family') == 'gap':
+
+                    if flash.get_str('datasheet/type') == 'spi':
+                        flasher_script = 'gap_flash_raw_spi'
+                    else:
+                        flasher_script = 'gap_flash_raw_hyper'
+
+                    cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script tcl/flash_image.tcl; script tcl/jtag_boot.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, flasher_script, image, image_size, gap_tools)
+
                 else:
-                    flasher_script = 'gap9_flash_raw_spi'
 
-                cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
+                    if flash.get_str('datasheet/type') == 'spi':
+                        flasher_script = 'gap9_flash_raw_hyper'
+                    else:
+                        flasher_script = 'gap9_flash_raw_spi'
+
+                    cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
 
             print ('Flashing image with command:')
             print (cmd)
@@ -120,8 +125,11 @@ class Runner(runner.default_runner.Runner):
 
             chip_family = self.config.get_str('**/chip_family')
 
-            if chip_family == 'vega':
+            if chip_family == 'vega' and os.environ.get('GAPY_USE_OPENOCD') is None:
                 cmd = 'plpbridge --chip=vega --verbose 10 --cable=ftdi --binary %s reset load ioloop reqloop start wait' % (binary)
+
+            elif os.environ.get('GAP_USE_PLPBRIDGE') is not None:
+                cmd = 'plpbridge --chip=%s --verbose 10 --cable=%s --binary %s reset load ioloop reqloop start wait' % (os.environ.get('TARGET_NAME'), os.environ.get("PLPBRIDGE_CABLE"), binary)
 
 
             else:

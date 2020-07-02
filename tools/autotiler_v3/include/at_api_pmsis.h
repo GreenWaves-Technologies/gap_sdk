@@ -203,10 +203,15 @@ static inline void __at_hyperflash_fs_open(AT_HYPERFLASH_FS_T *file, int is_writ
     return;
   }
   conf->flash = &file->hyperflash;
+
 #ifdef __FLASH_FS_SEMIHOST__
-  printf("Open in semi host mode\n");
-    conf->type = PI_FS_HOST;
+  conf->type = PI_FS_HOST;
 #endif
+
+  // Always force host FS for now in case we open for writing since readfs only supports reading
+  if (is_write)
+    conf->type = PI_FS_HOST;
+
   pi_open_from_conf(&file->fs, conf);
   if (pi_fs_mount(&file->fs))
   {

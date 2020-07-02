@@ -13,6 +13,10 @@ def from_hwc(input_tensor: np.ndarray, in_dim: Dim, out_dim: Dim):
     del in_dim
     return input_tensor.astype(np.uint8).transpose(out_dim.transpose_from_order(("h", "w", "c")))
 
+def no_change(input_tensor: np.ndarray, in_dim: Dim, out_dim: Dim):
+    del in_dim
+    return input_tensor.astype(np.uint8).reshape(out_dim.shape)
+
 def out_int16(input_tensor: np.ndarray):
     return input_tensor.astype(np.int16) << 7
 
@@ -26,8 +30,8 @@ FORMAT_CHANGES = {
     "RGB565_RGB888": rgb565_rgb888,
     "RGB888": from_hwc,
     "RGB16": from_hwc,
-    "BW8": from_hwc,
-    "BW16": from_hwc
+    "BW8": no_change,
+    "BW16": no_change
 }
 
 NORMALIZATIONS = {

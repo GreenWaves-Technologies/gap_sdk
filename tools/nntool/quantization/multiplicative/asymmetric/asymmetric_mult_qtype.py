@@ -48,10 +48,11 @@ SIGNED_DTYPES = [
 
 
 class AsymmetricMultQType(MultQTypeBase):
-    def __init__(self, *args, zero_point=0, init=None, **kwargs):
+    def __init__(self, *args, zero_point=0, scale=None, init=None, **kwargs):
         super(AsymmetricMultQType, self).__init__(*args, init=init, **kwargs)
         if init is None:
             self.zero_point = self.init_array(zero_point)
+            self.scale = self.init_array(scale)
 
     @classmethod
     def from_tflite(cls, tf_qps, dtype):

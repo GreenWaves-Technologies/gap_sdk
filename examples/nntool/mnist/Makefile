@@ -15,11 +15,31 @@ IMAGE=$(CURDIR)/samples/5223_5.pgm
 
 io=host
 
+
+RAM_FLASH_TYPE ?= HYPER
+#PMSIS_OS=freertos
+
+ifeq '$(RAM_FLASH_TYPE)' 'HYPER'
+APP_CFLAGS += -DUSE_HYPER
+MODEL_L3_EXEC=hram
+MODEL_L3_CONST=hflash
+else
+APP_CFLAGS += -DUSE_SPI
+CONFIG_SPIRAM = 1
+MODEL_L3_EXEC=qspiram
+MODEL_L3_CONST=qpsiflash
+endif
+
+
 QUANT_BITS?=8
 BUILD_DIR=BUILD
 ifeq ($(QUANT_BITS), 8)
 	MODEL_SQ8=1
-	NNTOOL_SCRIPT=model/nntool_script
+  ifeq '$(RAM_FLASH_TYPE)' 'HYPER'
+	   NNTOOL_SCRIPT=model/nntool_script
+  else
+    NNTOOL_SCRIPT=model/nntool_script_spi
+  endif
   	MODEL_SUFFIX = _SQ8BIT
 else
   ifeq ($(QUANT_BITS),16)
@@ -45,26 +65,6 @@ TOTAL_STACK_SIZE=$(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZ
 MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
 MODEL_L2_MEMORY=250000
 MODEL_L3_MEMORY=8388608
-
-RAM_TYPE ?= HYPERRAM
-
-#PMSIS_OS=freertos
-
-ifeq '$(RAM_TYPE)' 'HYPERRAM'
-APP_CFLAGS += -DUSE_HYPERRAM
-MODEL_L3_EXEC=hram
-MODEL_L3_CONST=hflash
-else
-APP_CFLAGS += -DUSE_SPIRAM
-CONFIG_SPIRAM = 1
-MODEL_L3_EXEC=qspiram
-MODEL_L3_CONST=qpsiflash
-endif
-
-
-
-
-
 
 pulpChip = GAP
 PULP_APP = mnist

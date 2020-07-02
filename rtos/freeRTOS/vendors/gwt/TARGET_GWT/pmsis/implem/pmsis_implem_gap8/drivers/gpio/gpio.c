@@ -196,7 +196,7 @@ int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value)
 {
     pin = (pin & PI_GPIO_NUM_MASK);
     *value = hal_gpio_pin_get_input_value(pin);
-    return *value;
+    return 0;
 }
 
 void pi_gpio_pin_notif_configure(struct pi_device *device, uint32_t pin, pi_gpio_notif_e irq_type)
@@ -247,7 +247,7 @@ int pi_gpio_mask_write(struct pi_device *device, uint32_t mask, uint32_t value)
 int pi_gpio_mask_read(struct pi_device *device, uint32_t mask, uint32_t *value)
 {
     *value = hal_gpio_get_input_value();
-    return *value;
+    return 0;
 }
 
 int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask,

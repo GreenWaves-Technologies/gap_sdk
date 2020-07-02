@@ -96,7 +96,7 @@ class Parameters(Node):
     def format_hints_str(hints):
         if not hints:
             return 'none'
-        return ','.join(['x'.join(hint) for hint in hints])
+        return ','.join(['x'.join(hint) if hint is not None else "U" for hint in hints])
 
     @property
     def hints_str(self):
@@ -216,7 +216,7 @@ class NoSizeChangeParameters(Parameters):
 #pylint: disable=abstract-method
 
 
-class FilterLikeParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+class FilterLikeParameters(Parameters, SingleInputAndOutput):
     def __init__(self, *args, stride=None, padding=None,
                  pad_type="zero", **kwargs):
         assert stride and padding
@@ -277,17 +277,17 @@ class Transposable(Parameters):
         return bool(self.transpose_in or self.transpose_out)
 
     def __str__(self):
-        trans = [','.join([str(el) for el in t])
-                 if t else '' for t in [self.transpose_in, self.transpose_out]]
-        return "t_in:{} t_out:{}".format(
-            trans[0],
-            trans[1]
-        )
+        trans = []
+        if self.transpose_in:
+            trans.append("t_in: %s"%",".join(str(trans) for trans in self.transpose_in))
+        if self.transpose_out:
+            trans.append("t_out: %s"%",".join(str(trans) for trans in self.transpose_out))
+        return ", ".join(trans)
 
 #pylint: disable=abstract-method
 
 
-class FilterParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+class FilterParameters(Parameters, SingleInputAndOutput):
 
     def __init__(self, *args, filt=None, has_bias=False, **kwargs):
         assert filt

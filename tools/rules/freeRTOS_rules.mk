@@ -95,6 +95,7 @@ io ?= host
 
 # RTL
 else ifeq ($(platform), rtl)
+GUI =
 FREERTOS_FLAGS  += -D__PLATFORM_RTL__
 FREERTOS_FLAGS  += -DPRINTF_RTL
 io = rtl
@@ -322,6 +323,10 @@ $(BIN).size: $(BIN)
 override config_args += $(foreach file, $(READFS_FILES), --config-opt=flash/content/partitions/readfs/files=$(file))
 override config_args += $(foreach file, $(HOSTFS_FILES), --config-opt=flash/content/partitions/hostfs/files=$(file))
 
+ifeq ($(GUI), 1)
+override runner_args += --gui
+endif				# GUI
+
 ifdef LFS_ROOT_DIR
 override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
 endif
@@ -335,18 +340,7 @@ image: $(BIN)
 run: $(BIN)
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
 
-# Format "vsim -do xxx.do xxx.wlf"
-debug:
-	@vsim -view $(BUILDDIR)/vsim.wlf "$(vsimDo)"
-
-# Format "simvision -input xxx.svcf xxx.trn"
-debug_xcelium:
-	@simvision "$(vsimDo)" $(BUILDDIR)/waves.shm/waves.trn
-
 disdump: $(OBJS_DUMP) $(BIN).s $(BIN).size
-
-version:
-	@$(GAP_SDK_HOME)/tools/version/record_version.sh
 
 clean:: clean_app
 	@rm -rf $(OBJS) $(DUMP)
@@ -357,4 +351,4 @@ clean:: clean_app
 clean_app::
 	@rm -rf $(APP_OBJ) $(BIN) $(OBJS_DUMP)
 
-.PHONY: clean dir all run gui debug version disdump gdbserver clean_app
+.PHONY: clean all run debug disdump clean_app

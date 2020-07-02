@@ -76,6 +76,7 @@ must be 3, "file_45.png" will raise an error) or can be written in a .json objec
 """
         self._check_graph()
         if args.quantize:
+            self._check_quantized()
             qmode = QuantizationMode.all_dequantize()
         else:
             qmode = QuantizationMode.none()

@@ -2863,8 +2863,8 @@ void KerParMatVectMul_SQ8(KerMat3_SQ8_T *Arg)
 	signed char * __restrict__ Out	= Arg->Out;
 	int W				= Arg->W;
 	int H				= Arg->H;
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
-	unsigned int ScaleN		= Arg->Infos[AT_INF_SCALEN];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
+	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
 
@@ -2905,8 +2905,8 @@ void KerParMatVectMul_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 	signed char * __restrict__ Out	= Arg->Out;
 	int W				= Arg->W;
 	int H				= Arg->H;
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
-	unsigned int ScaleN		= Arg->Infos[AT_INF_SCALEN];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
+	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
 
@@ -2948,7 +2948,7 @@ void KerParMatVectMul_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 	int W				= Arg->W;
 	int H				= Arg->H;
 	int A0				= Arg->Infos[AT_INF_A0];
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
@@ -2995,7 +2995,7 @@ void KerParMatVectMul_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 	int A0				= Arg->Infos[AT_INF_A0];
 	int B0				= Arg->Infos[AT_INF_B0];
 	int C0				= Arg->Infos[AT_INF_C0];
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
@@ -3046,7 +3046,7 @@ void KerParMatVectMul_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 	int A0				= Arg->Infos[AT_INF_A0];
 	int B0				= Arg->Infos[AT_INF_B0];
 	int C0				= Arg->Infos[AT_INF_C0];
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);
@@ -3097,7 +3097,7 @@ void KerParMatVectMul_LeakyReLU_SQ8(KerMat3_SQ8_T *Arg)
 	int A0				= Arg->Infos[AT_INF_A0];
 	int B0				= Arg->Infos[AT_INF_B0];
 	int C0				= Arg->Infos[AT_INF_C0];
-	unsigned int Scale		= Arg->Infos[AT_INF_SCALE];
+	unsigned int Scale		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALE];
 	unsigned int ScaleN		= ((unsigned char *)(Arg->Infos))[AT_INF_SCALEN];
 
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Arg->Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Arg->Feat);

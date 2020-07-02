@@ -10,7 +10,7 @@ from graph.dim import Conv2DFilterDim, Dim, PadDim, StrideDim
 from graph.matches.matches import get_pow2_match_group
 from graph.nngraph import NNGraph
 from graph.types import (Conv2DParameters, NNEdge, MatrixAddParameters,
-                         ReluActivationParameters)
+                         ReluActivationParameters, ConcatParameters, SplitParameters)
 from importer.importer import create_graph
 from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
@@ -42,13 +42,15 @@ MN1Q_GRAPH = 'tests/graph/mobv1_quant.tflite'
 MN1F_GRAPH = 'tests/graph/mobv1_float.tflite'
 LPRNET_Q_GRAPH = 'tests/graph/lprnet.tflite'
 SQUEEZE_GRAPH = 'tests/graph/squeezenet.tflite'
+QSSD_MBV1_GRAPH = 'tests/graph/ssd_mobv1_quant.tflite'
 
 MNIST_IMAGES = glob('tests/images/136.pgm')
 VWW_IMAGES = glob('tests/vwwimages/*.png')
 
+
 def save_state(temp_dir, width, fusions=False, adjust=False):
     file_name = os.path.join(temp_dir, "state_file")
-    G = create_graph(MNIST_GRAPH, opts={"load_tensors":True})
+    G = create_graph(MNIST_GRAPH, opts={"load_tensors": True})
     G.add_dimensions()
     if adjust:
         G.adjust_order()
@@ -69,6 +71,7 @@ def save_state(temp_dir, width, fusions=False, adjust=False):
     G.quantization = qrecs
     dump_state(G, include_parameters=True, state_path=file_name)
     return file_name
+
 
 @pytest.fixture()
 def two_conv_graph():
@@ -106,6 +109,7 @@ def two_conv_graph():
     G.add_edge(NNEdge(n2, to))
     G.add_dimensions()
     yield G
+
 
 @pytest.fixture()
 def actfusion_graph():
@@ -155,11 +159,45 @@ def actfusion_graph():
     G.add_dimensions()
     yield G
 
+
+@pytest.fixture()
+def split_concat_graph():
+    G = NNGraph(name='split_concat_graph')
+    inp1 = G.add_input(Dim.unnamed([12, 10, 10]))
+    split = SplitParameters(
+        "split1",
+        act_slices=[(0, 2, 1), (0, 10, 1), (0, 10, 1)],
+        out_shapes=[(2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10)],
+        axis=0
+    )
+    add1 = MatrixAddParameters("add1")
+    add2 = MatrixAddParameters("add2")
+    concat = ConcatParameters("concat1", axis=0)
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, split))
+    G.add_edge(NNEdge(split, add1, from_idx=0, to_idx=0))
+    G.add_edge(NNEdge(split, add1, from_idx=1, to_idx=1))
+    G.add_edge(NNEdge(split, concat, from_idx=2, to_idx=0))
+    G.add_edge(NNEdge(split, add2, from_idx=3, to_idx=0))
+    G.add_edge(NNEdge(split, add2, from_idx=4, to_idx=1))
+    G.add_edge(NNEdge(split, concat, from_idx=5, to_idx=2))
+
+    # in_idx=0 above from split idx 2
+    G.add_edge(NNEdge(add1, concat, to_idx=1))
+    # in_idx=2 above from split idx 5
+    G.add_edge(NNEdge(add2, concat, to_idx=3))
+
+    G.add_edge(NNEdge(concat, out1))
+    G.add_dimensions()
+    yield G
+
+
 @pytest.fixture(scope="session")
 def mnist_unfused_16bit_state():
     temp_dir = mkdtemp()
     yield save_state(temp_dir, 16)
     rmtree(temp_dir)
+
 
 @pytest.fixture(scope="session")
 def mnist_unfused_8bit_state():
@@ -167,79 +205,102 @@ def mnist_unfused_8bit_state():
     yield save_state(temp_dir, 8)
     rmtree(temp_dir)
 
+
 @pytest.fixture(scope="session")
 def mnist_fused_8bit_state():
     temp_dir = mkdtemp()
     yield save_state(temp_dir, 8, True, True)
     rmtree(temp_dir)
 
+
 @pytest.fixture(scope="session")
 def vww_graph():
     yield VISUAL_GRAPH
+
 
 @pytest.fixture(scope="session")
 def qvww_graph():
     yield QVISUAL_GRAPH
 
+
 @pytest.fixture(scope="session")
 def mobv2_symq_graph():
     yield MN2_VWW_SYM_Q_GRAPH
+
 
 @pytest.fixture(scope="session")
 def mnist_graph():
     yield MNIST_GRAPH
 
+
 @pytest.fixture(scope="session")
 def ir_graph():
     yield IR_GRAPH
+
 
 @pytest.fixture(scope="session")
 def ssd_graph():
     yield SSD_GRAPH
 
+
 @pytest.fixture(scope="session")
 def cifar10_graph():
     yield CIFAR10_GRAPH
+
 
 @pytest.fixture(scope="session")
 def kws_graph():
     yield KWS_GRAPH
 
+
 @pytest.fixture(scope="session")
 def concat_test_graph():
     yield CONCAT_TEST_GRAPH
+
 
 @pytest.fixture(scope="session")
 def mn3_graph():
     yield MN3_GRAPH
 
+
 @pytest.fixture(scope="session")
 def mn3q_graph():
     yield MN3Q_GRAPH
+
 
 @pytest.fixture(scope="session")
 def mn3q2_graph():
     yield MN3Q2_GRAPH
 
+
 @pytest.fixture(scope="session")
 def mn2_graph():
     yield MN2_GRAPH
+
 
 @pytest.fixture(scope="session")
 def mn1q_graph():
     yield MN1Q_GRAPH
 
+
 @pytest.fixture(scope="session")
 def mn1f_graph():
     yield MN1F_GRAPH
+
 
 @pytest.fixture(scope="session")
 def lprnet_graph():
     yield LPRNET_Q_GRAPH
 
+
 @pytest.fixture(scope="session")
 def squeezenet_graph():
     yield SQUEEZE_GRAPH
+
+
+@pytest.fixture(scope="session")
+def ssd_mobv1_quant_graph():
+    yield QSSD_MBV1_GRAPH
 
 @pytest.fixture(scope="session")
 def ir_images():
@@ -249,6 +310,7 @@ def ir_images():
         "tests/images/im3.png",
         "tests/images/im4.png",
     ]
+
 
 @pytest.fixture(scope="session")
 def kws_sounds():
@@ -261,9 +323,11 @@ def kws_sounds():
         "tests/sounds/feature.txt_9.pgm"
     ]
 
+
 @pytest.fixture(scope="session")
 def mnist_images():
     yield MNIST_IMAGES
+
 
 @pytest.fixture(scope="session")
 def vww_images():

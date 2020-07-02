@@ -212,7 +212,7 @@ class MultQTypeBase(QTypeBase, JsonSerializable):
     def str_fmt(val, extend=False):
         if val is None:
             return "unkn"
-        if isinstance(val, int) or isinstance(val, float) or isinstance(val, np.floating):
+        if isinstance(val, (int, float)) or isinstance(val, (np.floating, np.integer)):
             return val
         return "chan" if len(val) > 1 else ("{:0.2f}".format(val[0]) if not extend else "{:0.8f}".format(val[0]))
 

@@ -103,6 +103,19 @@ int bsp_ili9341_open(struct pi_ili9341_conf *conf);
 
 #endif
 
+#if defined(CONFIG_24XX1025)
+#include "bsp/eeprom/24xx1025.h"
+void bsp_24xx1025_conf_init(struct pi_24xx1025_conf *conf);
+int bsp_24xx1025_open(struct pi_24xx1025_conf *conf);
+#endif
+
+#if defined(CONFIG_VIRTUAL_EEPROM)
+#include "bsp/eeprom/virtual_eeprom.h"
+void bsp_virtual_eeprom_conf_init(struct pi_virtual_eeprom_conf *conf);
+int bsp_virtual_eeprom_open(struct pi_virtual_eeprom_conf *conf);
+#endif
+
+
 #if defined(CONFIG_HYPERFLASH)
 #include "bsp/flash/hyperflash.h"
 void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf);

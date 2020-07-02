@@ -29,9 +29,18 @@ struct pi_device ili;
 struct pi_device device;
 static pi_buffer_t buffer;
 
+#ifndef STORE_IMG_TO_L3
+#define WIDTH    640
+#define HEIGHT   480
+#define PIXEL_SIZE  2
+#else
 #define WIDTH    320
 #define HEIGHT   240
 #define PIXEL_SIZE  2
+
+#endif
+
+
 
 #define BUFF_SIZE (WIDTH*HEIGHT*PIXEL_SIZE)
 #define ITER_SIZE  (0x2000)
@@ -76,8 +85,7 @@ static void enqueue_transfer()
             current_size[current_task] = iter_size;
             remaining_size -= iter_size;
             nb_transfers++;
-            current_task ^= 1;
-     
+            current_task ^= 1;     
     }
 }
 
@@ -164,7 +172,9 @@ static int test_entry()
 
     printf("Entering main controller\n");
     // prepare a full buffer for image IO
+    #ifndef BUFF_SIZE
     imgIO_buff = pmsis_l2_malloc(BUFF_SIZE);
+    #endif
     pi_freq_set(PI_FREQ_DOMAIN_FC,250000000);
 
     
@@ -173,7 +183,7 @@ static int test_entry()
         printf("Failed to open camera\n");
         goto error;
     }
-    pi_camera_set_crop(&camera,160,120,320,240);
+    //pi_camera_set_crop(&camera,160,120,320,240);
 
     
     #ifdef OUT_TO_DISPLAY

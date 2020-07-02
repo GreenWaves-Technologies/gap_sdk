@@ -17,5 +17,8 @@ BIASES = "biases"
 MULSCALE = "mul_scale"
 MULSHIFT = "mul_shift"
 INFOS = "infos"
+ANCHORS = "anchors"
+SSD_SCALES = "ssd_scales"
+SSD_NORMS = "ssd_norms"
 
-__all__ = ['WEIGHTS', 'BIASES', 'MULSCALE', 'MULSHIFT', 'INFOS']
+__all__ = ['WEIGHTS', 'BIASES', 'MULSCALE', 'MULSHIFT', 'INFOS', 'ANCHORS', 'SSD_SCALES', 'SSD_NORMS']
