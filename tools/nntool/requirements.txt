@@ -10,3 +10,4 @@ Keras==2.3.1
 tensorflow==1.15.2
 numpy==1.16.2
 argcomplete==1.10.0
+scikit-image==0.17.2
