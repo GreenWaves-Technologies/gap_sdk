@@ -14,35 +14,40 @@
  * limitations under the License.
  */
 
-#ifndef __PI_DRIVERS_GPIO_H__
-#define __PI_DRIVERS_GPIO_H__
+#ifndef __PMSIS_DRIVERS_GPIO_H__
+#define __PMSIS_DRIVERS_GPIO_H__
 
 #include "pmsis/pmsis_types.h"
 #include "pmsis/drivers/pad.h"
 
+
 /**
  * @ingroup groupDrivers
- */
-
-
-
-/**
+ *
  * @defgroup GPIO GPIO
  *
- * The GPIO driver provides support for controlling GPIOs.
+ * \brief GPIO (General Peripheral Input/Output)
  *
- */
-
-/**
+ * The GPIO driver provides support for controlling GPIOs.
+ * The available GPIOs are listed in pmsis/chips folder.
+ *
  * @addtogroup GPIO
  * @{
  */
 
-/**@{*/
 
-#define PI_GPIO_PULL_OFFSET  0
-#define PI_GPIO_DRIVE_OFFSET 1
-#define PI_GPIO_MODE_OFFSET  2
+/**
+ * \cond IMPLEM
+ */
+#define PI_GPIO_PULL_OFFSET     ( 0 )
+#define PI_GPIO_DRIVE_OFFSET    ( 1 )
+#define PI_GPIO_MODE_OFFSET     ( 2 )
+
+#define PI_GPIO_IRQ_TYPE_OFFSET ( 0 )
+/**
+ * \endcond
+ */
+
 
 /**
  * \enum pi_gpio_flags_e
@@ -69,14 +74,18 @@ typedef enum
  */
 typedef enum
 {
-    PI_GPIO_NOTIF_FALL = 0x0, /*!< IRQ are sent on a falling edge on the GPIO value. */
-    PI_GPIO_NOTIF_RISE = 0x1, /*!< IRQ are sent on a rising edge on the GPIO value. */
-    PI_GPIO_NOTIF_EDGE = 0x2, /*!< IRQ are sent on a rising or a falling edge on the GPIO value. */
-    PI_GPIO_NOTIF_NONE = 0x3  /*!< No IRQ. */
+    PI_GPIO_NOTIF_FALL = (0 << PI_GPIO_IRQ_TYPE_OFFSET), /*!< IRQ are sent on a falling
+                                                           edge on the GPIO value. */
+    PI_GPIO_NOTIF_RISE = (1 << PI_GPIO_IRQ_TYPE_OFFSET), /*!< IRQ are sent on a rising
+                                                           edge on the GPIO value. */
+    PI_GPIO_NOTIF_EDGE = (2 << PI_GPIO_IRQ_TYPE_OFFSET), /*!< IRQ are sent on a rising
+                                                         or a falling edge on the GPIO value. */
+    PI_GPIO_NOTIF_NONE = (3 << PI_GPIO_IRQ_TYPE_OFFSET)  /*!< No IRQ. */
 } pi_gpio_notif_e;
 
 
-/** \struct pi_gpio_conf
+/**
+ * \struct pi_gpio_conf
  * \brief GPIO configuration structure.
  *
  * This structure is used to pass the desired GPIO configuration to the
@@ -88,7 +97,8 @@ struct pi_gpio_conf
     int32_t port;       /*!< GPIO port. Each port can contain up to 32 GPIOs. */
 };
 
-/** \brief Initialize a GPIO configuration with default values.
+/**
+ * \brief Initialize a GPIO configuration with default values.
  *
  * The structure containing the configuration must be kept alive until the
  * device is opened.
@@ -97,7 +107,8 @@ struct pi_gpio_conf
  */
 void pi_gpio_conf_init(struct pi_gpio_conf *conf);
 
-/** \brief Open a GPIO device.
+/**
+ * \brief Open a GPIO device.
  *
  * This function must be called before the GPIO device can be used.
  * It will do all the needed configuration to make it usable and initialize
@@ -107,30 +118,43 @@ void pi_gpio_conf_init(struct pi_gpio_conf *conf);
  *
  * \param device         A pointer to the device structure of the device to open.
  *
- * \note The device structure is allocated by the caller and must be kept alive
- * until the device is closed.
+ * \retval 0             If the operation is successfull,
+ * \retval ERRNO         An error code otherwise.
  *
- * \retval               0 if the operation is successfull,
- * \retval               ERROR_CODE if there was an error.
+ * \note The device structure is allocated by the caller and must be kept alive
+ *       until the device is closed.
  */
 int pi_gpio_open(struct pi_device *device);
 
-/** \brief Configure a GPIO.
+/**
+ * \brief Close an opened GPIO device.
+ *
+ * This function closes a GPIO device. If memory was allocated, it is freed.
+ *
+ * \param device         A pointer to the device structure of the device to open.
+ *
+ * \note Closing a GPIO device will disable all GPIOs.
+ */
+void pi_gpio_close(struct pi_device *device);
+
+/**
+ * \brief Configure a GPIO.
  *
  * This function can be used to configure several aspects of a GPIO, like
  * the direction.
  *
  * \param device         A pointer to the device structure this GPIO belongs to.
- * \param gpio           The GPIO number within the port (from 0 to 31).
+ * \param gpio           GPIO enumerate type or GPIO number within the port (from 0 to 31).
  * \param flags          A bitfield of flags specifying how to configure the GPIO.
  *
- * \retval               0 if the operation is successfull,
- * \retval               ERROR_CODE if there was an error.
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
  */
 int pi_gpio_pin_configure(struct pi_device *device, pi_gpio_e gpio,
                           pi_gpio_flags_e flags);
 
-/** \brief Set value of a single GPIO.
+/**
+ * \brief Set value of a single GPIO.
  *
  * This function can be used to change the value of a single GPIO.
  *
@@ -138,51 +162,68 @@ int pi_gpio_pin_configure(struct pi_device *device, pi_gpio_e gpio,
  * \param pin            The GPIO number within the port (from 0 to 31).
  * \param value          The value to be set. This can be either 0 or 1.
  *
- * \retval               0 if the operation is successfull,
- * \retval               ERROR_CODE if there was an error.
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
+ * \note This function is to be used on GPIO pins configured as \ref PI_GPIO_OUTPUT.
  */
 int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value);
 
-/** \brief Get value of a single GPIO.
+/**
+ * \brief Get value of a single GPIO.
  *
  * This function can be used to get the value of a single GPIO.
+ * It will store the current input value of a GPIO pin into a given buffer.
  *
  * \param device         A pointer to the device structure this GPIO belongs to.
- * \param pin            The GPIO number. Must be between 0 and 31.
+ * \param pin            The GPIO number within the port (from 0 to 31).
  * \param value          A pointer to the variable where the GPIO value should be
  *                       returned. The value will be either 0 or 1.
  *
- * \retval               0 if the operation is successfull,
- * \retval               ERROR_CODE if there was an error.
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
+ * \note This function should be used on GPIO pins configured as \ref PI_GPIO_INPUT.
+ *       Although this function can be used to retrieve current value set on a
+ *       GPIO pin configured as \ref PI_GPIO_OUTPUT.
  */
 int pi_gpio_pin_read(struct pi_device *device, uint32_t pin, uint32_t *value);
 
-/** \brief Configure notifications for a GPIO.
+/**
+ * \brief Configure notifications for a GPIO.
  *
  * This function can be used to configure how to be notified
  * by GPIO value modifications. By default, notifications will be buffered
  * and can be read and cleared.
  *
  * \param device         A pointer to the device structure this GPIO belongs to.
- * \param pin            The GPIO number. Must be between 0 and 31.
+ * \param pin            The GPIO number within the port (from 0 to 31).
  * \param flags          The flags to configure how the notification should be
- *   triggered.
+ *                       triggered.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
  */
 void pi_gpio_pin_notif_configure(struct pi_device *device, uint32_t pin,
                                  pi_gpio_notif_e flags);
 
-/** \brief Clear notification for a GPIO.
+/**
+ * \brief Clear notification for a GPIO.
  *
  * This function can be used to clear the notification of a GPIO. A GPIO
  * notification is buffered and ths function must be called to clear it so
  * that a new one can be seen.
  *
  * \param device         A pointer to the device structure this GPIO belongs to.
- * \param pin            The GPIO number. Must be between 0 and 31.
+ * \param pin            The GPIO number within the port (from 0 to 31).
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
  */
 void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin);
 
-/** \brief Get the value of a notification for a GPIO.
+/**
+ * \brief Get the value of a notification for a GPIO.
  *
  * This function can be used to get the value of a notification of a GPIO.
  * It returns 1 if at least one notification was received since the last time
@@ -190,24 +231,142 @@ void pi_gpio_pin_notif_clear(struct pi_device *device, uint32_t pin);
  * Reading the notification does not clear it.
  *
  * \param device         A pointer to the device structure this GPIO belongs to.
- * \param pin            The GPIO number. Must be between 0 and 31.
- * \return               1 if a notification was received, otherwise 0.
+ * \param pin            The GPIO number within the port (from 0 to 31).
  *
- * \retval               0 if the operation is successfull,
- * \retval               ERROR_CODE if there was an error.
+ * \retval 0             If a notification was received.
+ * \retval 1             Otherwise.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
  */
 int pi_gpio_pin_notif_get(struct pi_device *device, uint32_t pin);
 
-//!@}
+/**
+ * \brief Attach an event task callback to a GPIO pin.
+ *
+ * This function is used to attach a callback that will be called when a GPIO
+ * triggers an IRQ.
+ *
+ * This callback is executed by the event kernel.
+ *
+ * \param device         A pointer to the device structure this GPIO belongs to.
+ * \param pin            The GPIO number within the port (from 0 to 31).
+ * \param task           Event task executed when an IRQ is triggered.
+ * \param flags          The flags to configure how the notification should be
+ *                       triggered.
+ *
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
+ */
+int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin, pi_task_t *task,
+                         pi_gpio_notif_e flags);
+
+/**
+ * \brief Remove an event task callback attached to a GPIO pin.
+ *
+ * This function is used to remove an attached callback to a GPIO pin.
+ * If a IRQ is triggered on the given pin, after removal of the event task, no
+ * handler will executed.
+ *
+ * \param device         A pointer to the device structure this GPIO belongs to.
+ * \param pin            The GPIO number within the port (from 0 to 31).
+ *
+ * \retval 0             If the operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note The pin parameter can be a GPIO enumerate type \ref pi_gpio_e.
+ */
+int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin);
+
+
+/**
+ * \typedef pi_gpio_handler_t
+ *
+ * \brief GPIO handler callback type.
+ *
+ * This handler is executed when an IRQ is triggered on configured GPIO pins.
+ *
+ * \param args           User args to handler.
+ *
+ * \note Multiple handlers can be added for a given GPIO pin.
+ * \note This is executed in IRQ mode.
+ */
+typedef void (* pi_gpio_handler_t) (void *args);
+
+/**
+ * \struct pi_gpio_callback_t
+ *
+ * \brief GPIO callback struct.
+ *
+ * This structure is used by IRQ handler to replace regular GPIO IRQ handler.
+ */
+typedef struct pi_gpio_callback_s
+{
+    uint32_t pin_mask;               /*!< Mask of GPIO pins. */
+    void *args;                      /*!< Callback user args. */
+    pi_gpio_handler_t handler;       /*!< Callback handler. */
+    struct pi_gpio_callback_s *next; /*!< Next callback pointer. */
+    struct pi_gpio_callback_s *prev; /*!< Previous callback pointer. */
+} pi_gpio_callback_t;
+
+/**
+ * \brief Init GPIO callback.
+ *
+ * Intialize a GPIO callback with the handler to call and the user args.
+ *
+ * \param cb             Pointer to callback to initialize.
+ * \param pin_mask       Mask of GPIO pins.
+ * \param handler        Callback function.
+ * \param args           Callback function args.
+ */
+static inline void pi_gpio_callback_init(pi_gpio_callback_t *cb,
+                                         uint32_t pin_mask,
+                                         pi_gpio_handler_t handler,
+                                         void *args);
+
+/**
+ * \brief Attach a callback.
+ *
+ * Add an application callback to a GPIO device.
+ * Multiple callbacks can be attached to a device, and to a GPIO pin.
+ *
+ * \param device         Pointer to device struct.
+ * \param cb             Callback to add to the list.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ *
+ * \note The callback can initialized with pi_gpio_callback_init().
+ * \note Using callbacks is incompatible with event handling model(using event tasks
+ *       cf. pi_gpio_pin_task_add()).
+ * \note A callback is executed when a GPIO's corresponding bit is set in the
+ *       callbask mask.
+ */
+int pi_gpio_callback_add(struct pi_device *device, pi_gpio_callback_t *cb);
+
+/**
+ * \brief Remove a callback.
+ *
+ * Remove an application callback from a GPIO device.
+ *
+ * \param device         Pointer to device struct.
+ * \param cb             Callback to remove from the list.
+ *
+ * \retval 0             If operation is successfull.
+ * \retval ERRNO         An error code otherwise.
+ */
+int pi_gpio_callback_remove(struct pi_device *device, pi_gpio_callback_t *cb);
+
 
 /**
  * @} end of GPIO
  */
 
 
-
-/// @cond IMPLEM
-
+/**
+ * \cond IMPLEM
+ */
 int pi_gpio_mask_configure(struct pi_device *device, uint32_t mask,
                            pi_gpio_flags_e flags);
 
@@ -220,12 +379,21 @@ int pi_gpio_mask_task_add(struct pi_device *device, uint32_t mask,
 
 int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask);
 
-int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin, pi_task_t *task,
-                         pi_gpio_notif_e flags);
 
-int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin);
+static inline void pi_gpio_callback_init(pi_gpio_callback_t *cb,
+                                         uint32_t pin_mask,
+                                         pi_gpio_handler_t handler,
+                                         void *args)
+{
+    cb->pin_mask = pin_mask;
+    cb->handler = handler;
+    cb->args = args;
+    cb->next = NULL;
+    cb->prev = NULL;
+}
+/**
+ * \endcond
+ */
 
-/// @endcond
 
-
-#endif  /* __PI_DRIVERS_GPIO_H__ */
+#endif  /* __PMSIS_DRIVERS_GPIO_H__ */
