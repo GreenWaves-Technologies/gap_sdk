@@ -26,8 +26,18 @@
 
 #define PI_TASK_IMPLEM_NB_DATA 9
 
-#define CLUSTER_TASK_IMPLEM
+#define CLUSTER_TASK_IMPLEM                     \
+    uint32_t cluster_team_mask;
 
 #define PMSIS_APP_MAIN int main(int argc, char *argv[])
+
+#define PREEMPT_DISABLE\
+    uint32_t __xx_irq = disable_irq();
+
+#define PREEMPT_RESTORE\
+    restore_irq(__xx_irq);
+
+#define PREEMPT_ENABLE\
+    enable_irq();
 
 #endif  /* __IMPLEMENTATION_SPECIFIC_DEFINES_H__ */

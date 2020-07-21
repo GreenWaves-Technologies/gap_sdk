@@ -55,7 +55,7 @@ typedef uint8_t pi_i2s_fmt_t;
 #define PI_I2S_CH_FMT_DATA_SIGN_SHIFT             ( 5 )
 #define PI_I2S_CH_FMT_DATA_SIGN_MASK              ( 1 << PI_I2S_CH_FMT_DATA_SIGN_SHIFT )
 /**
- * \endcond IMPLEM
+ * \endcond
  */
 
 /**
@@ -168,7 +168,7 @@ typedef uint16_t pi_i2s_opt_t;
 #define PI_I2S_OPT_WS_SRC_SHIFT                   ( 7 )
 #define PI_I2S_OPT_WS_SRC_MASK                    ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
 /**
- * \endcond IMPLEM
+ * \endcond
  */
 
 /**

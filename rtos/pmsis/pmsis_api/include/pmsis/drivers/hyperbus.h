@@ -65,17 +65,18 @@ typedef enum
  * This structure is used to pass the desired Hyperbus configuration to the
  * runtime when opening the device.
  */
-struct pi_hyper_conf
+typedef struct pi_hyper_conf
 {
     pi_device_e device;  /*!< Interface type. */
     signed char id;      /*!< Hyperbus interface where the device is connected.
      */
+    uint8_t xip_en;      /*!< Specify whether xip is on */
     uint32_t cs;         /*!< Chip select where the device is connected. */
     pi_hyper_type_e type;/*!< Type of device connected on the hyperbus
     interface. */
     uint32_t baudrate;   /*!< Baudrate (in bytes/second). */
     int32_t burst_length; /*< Maximum burst length in ns. */
-};
+}pi_hyper_conf_t;
 
 /** \brief Hyperbus cluster request structure.
  *
