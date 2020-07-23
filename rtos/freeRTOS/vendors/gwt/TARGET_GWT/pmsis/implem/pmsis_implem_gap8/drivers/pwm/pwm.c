@@ -79,7 +79,7 @@ uint32_t pi_pwm_counter_get(struct pi_device *device)
 int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
                               uint32_t frequency, uint8_t duty_cycle)
 {
-    if ((0 < duty_cycle) && (duty_cycle > 100))
+    if ((100 < duty_cycle))
     {
         printf("Error duty cycle value. It should be 0 <= dc <= 100.\n");
         return -1;
