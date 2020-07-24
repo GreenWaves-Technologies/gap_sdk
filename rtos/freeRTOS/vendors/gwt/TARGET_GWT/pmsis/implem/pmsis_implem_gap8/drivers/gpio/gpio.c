@@ -505,10 +505,10 @@ int pi_gpio_mask_write(struct pi_device *device, uint32_t mask, uint32_t value)
     struct gpio_itf_data_s *data = (struct gpio_itf_data_s *) device->data;
     uint32_t device_id = data->device_id;
 
-    if ((data->input_mask & mask) != mask)
+    if ((data->output_mask & mask) != mask)
     {
-        GPIO_TRACE_ERR("Error some pins are not configured as input %lx - %lx!\n",
-                       data->input_mask, mask);
+        GPIO_TRACE_ERR("Error some pins are not configured as output %lx - %lx!\n",
+                       data->output_mask, mask);
         return -11;
     }
     hal_gpio_output_value_set(mask, value);

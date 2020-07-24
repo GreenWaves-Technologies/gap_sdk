@@ -160,7 +160,7 @@ int pi_gpio_pin_write(struct pi_device *device, uint32_t pin, uint32_t value)
   pi_gpio_t *gpio = (pi_gpio_t *) device->data;
   pin = (pin & PI_GPIO_NUM_MASK);
   uint32_t mask = (1 << pin);
-  if ((gpio->input_mask & mask) != mask)
+  if ((gpio->output_mask & mask) != mask)
   {
     return -11;
   }
@@ -301,7 +301,7 @@ int pi_gpio_mask_configure(struct pi_device *device, uint32_t mask, pi_gpio_flag
 int pi_gpio_mask_write(struct pi_device *device, uint32_t mask, uint32_t value)
 {
   pi_gpio_t *gpio = (pi_gpio_t *) device->data;
-  if ((gpio->input_mask & mask) != mask)
+  if ((gpio->output_mask & mask) != mask)
   {
     return -11;
   }
