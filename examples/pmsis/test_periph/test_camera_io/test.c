@@ -247,8 +247,8 @@ static int test_entry()
     int idx = 0;
     while (1)
     {
-        enqueue_transfer();
         pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
+        enqueue_transfer();
         while(!done)
         {
             pi_yield();
@@ -258,7 +258,7 @@ static int test_entry()
 #if defined(DISPLAY)
         pi_display_write(&lcd, &buffer, 0, 0, WIDTH, HEIGHT);
 #else
-        sprintf(name, "../../../output%d.raw", idx);
+        sprintf(name, "../../../output%d.ppm", idx);
 #if defined (HIMAX)
         WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, buff, GRAY_SCALE_IO);
 #else

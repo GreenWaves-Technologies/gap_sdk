@@ -83,7 +83,7 @@ static himax_reg_init_t __himax_reg_init[] =
   {0x100A, 0x60},             //  cluster cold pixel th
   {HIMAX_SINGLE_THR_HOT, 0x90},     //  single hot pixel th
   {HIMAX_SINGLE_THR_COLD, 0x40},    //  single cold pixel th
-  {0x1012, 0x00},             //  Sync. shift disable
+  {0x1012, 0x01},             //  Sync. shift disable
   {0x2000, 0x07},
   {0x2003, 0x00},
   {0x2004, 0x1C},
