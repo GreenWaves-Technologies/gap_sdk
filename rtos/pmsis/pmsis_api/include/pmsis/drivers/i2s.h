@@ -306,17 +306,23 @@ typedef uint16_t pi_i2s_opt_t;
 #define PI_I2S_OPT_EXT_WS                         ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
 
 
-/** IOCTL command */
-enum pi_i2s_ioctl_cmd
+/**
+ * \enum pi_i2s_ioctl_cmd_e
+ *
+ * \brief IOCTL command
+ */
+typedef enum
 {
-    /** @brief Start the transmission / reception of data.
+    /**
+     * \brief Start the transmission / reception of data.
      *
      * This command can be used when the interface has been opened or stopped
      * to start sampling.
      */
     PI_I2S_IOCTL_START,
 
-    /** @brief Stop the transmission / reception of data.
+    /**
+     * \brief Stop the transmission / reception of data.
      *
      * Stop the transmission / reception of data at the end of the current
      * memory block. This command can be used when the interface is sampling and
@@ -327,7 +333,8 @@ enum pi_i2s_ioctl_cmd
      */
     PI_I2S_IOCTL_STOP,
 
-    /** @brief Configure a channel in TDM mode.
+    /**
+     * \brief Configure a channel in TDM mode.
      *
      * In TDM mode, the same interface is time-multiplexed to transmit data
      * for multiple channels, and each channel can have a specific
@@ -337,7 +344,8 @@ enum pi_i2s_ioctl_cmd
      */
     PI_I2S_IOCTL_CONF_SET,
 
-    /** @brief Get the current configuration of a channel in TDM mode.
+    /**
+     * \brief Get the current configuration of a channel in TDM mode.
      *
      * In TDM mode, the same interface is time-multiplexed to transmit data
      * for multiple channels, and each channel can have a specific
@@ -347,7 +355,24 @@ enum pi_i2s_ioctl_cmd
      * stored.
      */
     PI_I2S_IOCTL_CONF_GET,
-};
+
+    /**
+     * \brief Enable clock
+     *
+     * Enable clock for the i2s interface.
+     * This command does not sample data, and does not save data. It allows
+     * the interface to receive clock signals from SoC and propgate it to slave
+     * devices on end line.
+     */
+    PI_I2S_IOCTL_CLOCK_ENABLE,
+
+    /**
+     * \brief Disable clock
+     *
+     * Disable clock for the i2s interface.
+     */
+    PI_I2S_IOCTL_CLOCK_DISABLE
+} pi_i2s_ioctl_cmd_e;
 
 /**
  * \struct pi_i2s_conf
