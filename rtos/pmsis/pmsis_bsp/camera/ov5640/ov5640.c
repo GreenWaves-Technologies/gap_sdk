@@ -31,11 +31,11 @@ typedef struct {
 
 
 typedef struct {
+  struct pi_ov5640_conf conf;
   struct pi_device cpi_device;
   struct pi_device i2c_device;
 
-  struct pi_device ov5640_reset;
-  struct pi_device ov5640_pwdn;
+  struct pi_device gpio_port;
 
   i2c_req_t i2c_req;
   uint32_t i2c_read_value;
@@ -382,6 +382,9 @@ static void __ov5640_reset(ov5640_t *ov5640)
     __ov5640_reg_write(ov5640, 0x3008, 0x82);
     // Datasheet: Wait 1ms after reset
     pi_time_wait_us(10000);
+#ifdef CUSTOM_BSP
+    pi_gpio_pin_write(&ov5640->gpio_port, ov5640->conf.reset_gpio, 1);
+#endif
 }
 
 
@@ -403,6 +406,13 @@ static void __ov5640_wakeup(ov5640_t *ov5640)
 {
   if (!ov5640->is_awake)
   {
+#ifdef CUSTOM_BSP
+    pi_gpio_pin_write(&ov5640->gpio_port, ov5640->conf.pwdn_gpio, 0);
+    pi_time_wait_us(10000);
+    pi_gpio_pin_write(&ov5640->gpio_port, ov5640->conf.reset_gpio, 1);
+    pi_time_wait_us(10000);
+#endif
+
     __ov5640_mode(ov5640, OV5640_STREAMING);
     ov5640->is_awake = 1;
   }
@@ -415,6 +425,11 @@ static void __ov5640_standby(ov5640_t *ov5640)
   if (ov5640->is_awake)
   {
     __ov5640_mode(ov5640, OV5640_STANDBY);
+
+#ifdef CUSTOM_BSP
+    pi_gpio_pin_write(&ov5640->gpio_port, ov5640->conf.pwdn_gpio, 1);
+#endif
+
     ov5640->is_awake = 0;
   }
 }
@@ -432,6 +447,22 @@ int32_t __ov5640_open(struct pi_device *device)
 
     if (bsp_ov5640_open(conf))
         goto error;
+
+#ifdef CUSTOM_BSP
+    struct pi_gpio_conf gpio_conf;
+    pi_gpio_conf_init(&gpio_conf);
+    pi_open_from_conf(&ov5640->gpio_port, &gpio_conf);
+    if (pi_gpio_open(&ov5640->gpio_port))
+        goto error;
+
+    pi_gpio_pin_configure(&ov5640->gpio_port, conf->reset_gpio, PI_GPIO_OUTPUT);
+    pi_gpio_pin_configure(&ov5640->gpio_port, conf->pwdn_gpio, PI_GPIO_OUTPUT);
+
+    pi_gpio_pin_write(&ov5640->gpio_port, conf->pwdn_gpio, 0);
+    pi_time_wait_us(1000);
+    pi_gpio_pin_write(&ov5640->gpio_port, ov5640->conf.reset_gpio, 0);
+    pi_time_wait_us(20000);
+#endif
 
     struct pi_cpi_conf cpi_conf;
     pi_cpi_conf_init(&cpi_conf);
@@ -462,7 +493,6 @@ int32_t __ov5640_open(struct pi_device *device)
         printf("camera open failed: cam_id 0x%X%X is wrong\n", cam_id[1], cam_id[0] );
         goto error2;
     }
-
 
     __ov5640_reset(ov5640);
     __ov5640_init_regs(ov5640);

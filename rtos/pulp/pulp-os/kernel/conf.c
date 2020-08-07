@@ -35,4 +35,4 @@ __attribute__((weak)) unsigned int __rt_iodev_uart_channel = 0;
 
 __attribute__((weak)) unsigned int __rt_fc_stack_size = RT_FC_STACK_SIZE;
 
-__attribute__((aligned(8))) unsigned char __rt_fc_stack[RT_FC_STACK_SIZE];
+__attribute__((aligned(8))) PI_FC_L1 unsigned char __rt_fc_stack[RT_FC_STACK_SIZE];

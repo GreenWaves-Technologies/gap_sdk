@@ -377,6 +377,16 @@ static inline void hal_hyper_udma_mbr1_set(unsigned char mbr1)
 }
 
 /*
+ * set hyper1 latency
+ */
+static inline void hal_hyper_udma_latency1_set(unsigned char latency1)
+{
+    hal_hyper_udma_mem_cfg4_set((hal_hyper_udma_mem_cfg4_get()
+                                 & HYPER_MEM_CFG4_LATENCY1_MASK_HB)
+                                | (latency1 << HYPER_MEM_CFG4_LATENCY1_OFFSET));
+}
+
+/*
  * set hyper1 wrap size
  */
 static inline void hal_hyper_udma_wrap_size1_set(unsigned char wrapsize)

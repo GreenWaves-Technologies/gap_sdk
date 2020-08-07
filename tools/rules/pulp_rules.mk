@@ -7,7 +7,9 @@ OBJDUMP       = riscv32-unknown-elf-objdump
 platform     ?= board
 
 # The linker options.
+ifeq ($(CUSTOM_BSP),)
 LIBS += -L$(TARGET_INSTALL_DIR)/lib/gap/$(BOARD_NAME) -lpibsp
+endif
 
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \

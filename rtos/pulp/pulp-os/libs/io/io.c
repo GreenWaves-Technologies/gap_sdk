@@ -303,7 +303,7 @@ void __rt_putc_debug_bridge(char c)
 
 static void __rt_putc_stdout(char c)
 {
-  *(uint32_t *)(long)(ARCHI_STDOUT_ADDR + STDOUT_PUTC_OFFSET + (rt_core_id()<<3) + (rt_cluster_id()<<7)) = c;
+  *(volatile uint32_t *)(long)(ARCHI_STDOUT_ADDR + STDOUT_PUTC_OFFSET + (rt_core_id()<<3) + (rt_cluster_id()<<7)) = c;
 }
 
 
@@ -452,8 +452,11 @@ static void __rt_putc_host_cluster_req(void *arg)
 {
   rt_putc_host_req_t *req = (rt_putc_host_req_t *)arg;
   __rt_do_putc_host(req->c);
+  int cid = req->cid;
+  __asm__ __volatile__ ("" : : : "memory");
   req->done = 1;
-  __rt_cluster_notif_req_done(req->cid);
+  __asm__ __volatile__ ("" : : : "memory");
+  __rt_cluster_notif_req_done(cid);
 }
 #endif
 

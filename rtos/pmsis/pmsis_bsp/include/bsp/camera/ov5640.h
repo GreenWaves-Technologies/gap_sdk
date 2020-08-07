@@ -47,6 +47,8 @@ struct pi_ov5640_conf
   int i2c_itf;                  /*!< I2C interface where the camera control
     interface is connected. */
   char skip_pads_config;        /*!< Skip pads configuration if set to 1. */
+  char reset_gpio;
+  char pwdn_gpio;
   pi_camera_format_e format;    /*!< Camera image resolution. */
 };
 

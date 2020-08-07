@@ -6,7 +6,6 @@
  * of the BSD license.  See the LICENSE file for details.
  *
  */
-#include "Gap.h"
 #include "gaplib/ImgIO.h"
 #include "stdint.h"
 
@@ -103,7 +102,7 @@ static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsi
 	}
 
 	unsigned int Err = 0;
-	unsigned char *Header = (unsigned char *) gap_allocL2(256);
+	unsigned char *Header = (unsigned char *) __ALLOC_L2(256);
 	Err |= (Header == 0);
 	if (__READ(File, Header, 256) == 256) {
 		unsigned int i;
@@ -112,14 +111,14 @@ static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsi
 			Err = 1;
 		} else {
 			PRINTF("Image %s:  [W: %d, H: %d] Bytes per pixel %d, HeaderSize: %d\n", Name, *W, *H, *BytesPerPixel, *HeaderSize);
-			for (i=0; i<*HeaderSize;i++) printf("%c", Header[i]);
-			printf("\n");
+			for (i=0; i<*HeaderSize;i++) PRINTF("%c", Header[i]);
+			PRINTF("\n");
 		}
 	} else {
 		printf("Unable to read header %s", Name);
 		Err = 1;
 	}
-	gap_freeL2(Header, 256);
+	__FREE_L2(Header, 256);
 	__CLOSE(File);
 	__FS_DEINIT(fs);
 	return Err;
@@ -320,7 +319,7 @@ static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned ch
         return ;
 
     unsigned int Ind = 0, x, i, L;
-    unsigned char *Buffer = (unsigned char *) gap_allocL2(PPM_HEADER * sizeof(unsigned char));
+    unsigned char *Buffer = (unsigned char *) __ALLOC_L2(PPM_HEADER * sizeof(unsigned char));
 
     /* P5<cr>* */
     Buffer[Ind++] = 0x50;                                   // P
@@ -373,7 +372,7 @@ static void WritePPMHeader(void *FD, unsigned int W, unsigned int H, unsigned ch
         __WRITE(FD,&(Buffer[a]), sizeof(unsigned char));
     }
 
-    gap_freeL2(Buffer, PPM_HEADER * sizeof(unsigned char));
+    __FREE_L2(Buffer, PPM_HEADER * sizeof(unsigned char));
 }
 
 static void rgb565_to_rgb888 (unsigned char *input, unsigned int input_size, unsigned char *output )
@@ -411,7 +410,7 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
     if(imgFormat == RGB565_IO)
     {
         unsigned int rgb888_size = (CHUNK_SIZE/2)*3;     // size of 888 image in byte
-        img_rgb888 = (unsigned char *) gap_allocL2(rgb888_size);
+        img_rgb888 = (unsigned char *) __ALLOC_L2(rgb888_size);
 
         int steps = (W*H*PixelSize) / CHUNK_SIZE;             // convert and fs write times
 
@@ -429,7 +428,7 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
             ret+=__WRITE(File, img_rgb888, rgb888_size);
         }
 
-        gap_freeL2(img_rgb888, (CHUNK_SIZE/2)*3);
+        __FREE_L2(img_rgb888, (CHUNK_SIZE/2)*3);
     }
     else
     {
