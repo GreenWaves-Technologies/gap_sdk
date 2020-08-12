@@ -98,6 +98,18 @@ void __pi_task_push(pi_task_t *task);
  */
 void __pi_task_destroy(pi_task_t *task);
 
+/**
+ * \brief Enqueue a delayed task.
+ *
+ * This function is used to pushed a delayed event task to event kernel.
+ *
+ * \param task           Pointer to event task.
+ * \param delay_us       Delay to wait for execution of the event task.
+ *
+ * \note This function is OS dependant.
+ */
+void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us);
+
 /*******************************************************************************
  * API implementation
  ******************************************************************************/

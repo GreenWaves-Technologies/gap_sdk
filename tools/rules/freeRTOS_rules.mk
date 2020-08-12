@@ -222,6 +222,7 @@ PMSIS_IMPLEM_DIR    = $(GWT_PMSIS_IMPLEM)
 PMSIS_BACKEND_SRC   = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")
 PMSIS_SRC           = $(PMSIS_IMPLEM_SRCS)
 PMSIS_SRC          += $(PMSIS_BSP_SRCS)
+PMSIS_ASM_SRC       = $(PMSIS_IMPLEM_ASM_SRCS)
 
 PMSIS_INC_PATH      = $(GWT_PMSIS) $(GWT_PMSIS_API)/include/
 PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)
@@ -246,6 +247,7 @@ BUILDDIR            = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISC
 # Objects
 PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
 CRT0_OBJ            = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
+PMSIS_ASM_OBJ       = $(patsubst %.S, $(BUILDDIR)/%.o, $(PMSIS_ASM_SRC))
 RTOS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
 PORT_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
 DEVICE_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
@@ -257,7 +259,7 @@ PMSIS_OBJ           = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_SRC))
 PMSIS_BACKEND_OBJ   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_BACKEND_SRC))
 APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
 
-ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ)
+ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ) $(PMSIS_ASM_OBJ)
 C_OBJS              = $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
                       $(DEVICE_OBJ) $(LIBS_OBJ) $(PRINTF_OBJ) \
                       $(API_OBJ) $(HAL_OBJ) $(PMSIS_OBJ) $(PMSIS_BACKEND_OBJ)

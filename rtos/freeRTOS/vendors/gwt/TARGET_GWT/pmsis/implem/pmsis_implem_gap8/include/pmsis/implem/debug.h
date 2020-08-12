@@ -65,6 +65,14 @@
 #define HYPER_TRACE_ERR(...)       ((void) 0)
 #endif  /* TRACE_HYPERBUS */
 
+#if defined(TRACE_I2C)
+#define I2C_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
+#define I2C_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define I2C_TRACE(...)             ((void) 0)
+#define I2C_TRACE_ERR(...)         ((void) 0)
+#endif  /* TRACE_I2C */
+
 #if defined(TRACE_I2S)
 #define I2S_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
 #define I2S_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
@@ -72,6 +80,14 @@
 #define I2S_TRACE(...)             ((void) 0)
 #define I2S_TRACE_ERR(...)         ((void) 0)
 #endif  /* TRACE_I2S */
+
+#if defined(TRACE_PWM)
+#define PWM_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
+#define PWM_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define PWM_TRACE(...)             ((void) 0)
+#define PWM_TRACE_ERR(...)         ((void) 0)
+#endif  /* TRACE_PWM */
 
 #if defined(TRACE_UART)
 #define UART_TRACE(...)            PI_LOG_DBG(__func__, __VA_ARGS__)

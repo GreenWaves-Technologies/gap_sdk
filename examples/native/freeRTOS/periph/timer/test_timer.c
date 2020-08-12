@@ -19,8 +19,8 @@ void test_timer(void)
     printf("Entering main controller\n");
     uint32_t errors = 0;
     uint32_t time_us = 200000;
-    NVIC_SetVector(FC_EVENT_TIMER1, (uint32_t) __handler_wrapper_light_timer_handler);
-    NVIC_EnableIRQ(FC_EVENT_TIMER1);
+    NVIC_SetVector(FC_IRQ_TIMER0_HI_EVT, (uint32_t) __handler_wrapper_light_timer_handler);
+    NVIC_EnableIRQ(FC_IRQ_TIMER0_HI_EVT);
     printf("Timer IRQ set every %dus.\n", time_us);
     pi_timer_irq_set(FC_TIMER_1, time_us, 0);
 

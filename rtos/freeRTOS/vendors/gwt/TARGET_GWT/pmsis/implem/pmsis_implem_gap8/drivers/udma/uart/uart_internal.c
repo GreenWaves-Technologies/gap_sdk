@@ -71,6 +71,10 @@ static void __pi_uart_copy_exec(struct uart_itf_data_s *data,
 static void __pi_uart_conf_set(struct uart_itf_data_s *data,
                                struct pi_uart_conf *conf);
 
+/* Enable RX or TX channel. */
+static inline void __pi_uart_channel_enable(struct uart_itf_data_s *data,
+                                            udma_channel_e channel);
+
 /* Abort current transfer and flush pending transfers. */
 static void __pi_uart_rx_abort(struct uart_itf_data_s *data);
 
@@ -86,6 +90,9 @@ static int32_t __pi_uart_flow_control_enable(struct uart_itf_data_s *data);
 /* Execute a transfer with flow control enabled. */
 static void __pi_uart_copy_exec_flow_control(struct uart_itf_data_s *data,
                                              struct pi_task *task);
+
+/* Update clock divider when FC/SoC frequency changes. */
+static void __pi_uart_freq_cb(void *args);
 
 /*******************************************************************************
  * Internal functions
@@ -254,11 +261,32 @@ static inline void __pi_uart_conf_set(struct uart_itf_data_s *data,
                device_id, conf->baudrate_bps, clk_div, conf->enable_rx,
                conf->enable_tx, conf->stop_bit_count + 1, 5 + conf->word_size,
                conf->parity_mode);
-
+    data->baudrate_bps = conf->baudrate_bps;
     hal_uart_setup_set(device_id, clk_div, conf->enable_rx, conf->enable_tx,
                        conf->stop_bit_count, conf->word_size, conf->parity_mode);
 
     UART_TRACE("UART(%ld) setup=%lx\n", device_id, uart(device_id)->setup);
+}
+
+static void __pi_uart_freq_cb(void *args)
+{
+    uint32_t irq = __disable_irq();
+    struct uart_itf_data_s *data = (struct uart_itf_data_s *) args;
+    /* Wait end of transfer. */
+    while ((hal_uart_rx_status_get(data->device_id)) ||
+           (hal_uart_tx_status_get(data->device_id)));
+    /* Disable RX and TX. */
+    hal_uart_rx_disable(data->device_id);
+    hal_uart_tx_disable(data->device_id);
+    /* Update clock divider. */
+    UART_TRACE("UART_SETUP = %lx\n", uart(data->device_id)->setup);
+    uint16_t clk_div = __pi_uart_clk_div(data->baudrate_bps);
+    hal_uart_clkdiv_set(data->device_id, clk_div);
+    UART_TRACE("UART_SETUP = %lx\n", uart(data->device_id)->setup);
+    /* Enable RX and TX. */
+    hal_uart_rx_enable(data->device_id);
+    hal_uart_tx_enable(data->device_id);
+    __restore_irq(irq);
 }
 
 /* Enable channel. */
@@ -401,7 +429,7 @@ void __pi_uart_conf_init(struct pi_uart_conf *conf)
 }
 
 int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
-        struct pi_uart_conf *conf)
+                       struct pi_uart_conf *conf)
 {
     struct uart_itf_data_s *data = g_uart_itf_data[conf->uart_id];
     if (data == NULL)
@@ -416,6 +444,7 @@ int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
         memset((void *) data, 0, sizeof(struct uart_itf_data_s));
         data->device_id = conf->uart_id;
         data->nb_open = 1;
+        data->baudrate_bps = conf->baudrate_bps;
         data->flow_ctrl_ena = 0;
 
         UART_TRACE("Device id=%ld opened for first time\n", data->device_id);
@@ -453,6 +482,10 @@ int32_t __pi_uart_open(struct uart_itf_data_s **device_data,
         }
         #endif  /* UART_FLOW_CONTROL_EMU */
 
+        /* Attach freq callback. */
+        pi_freq_callback_init(&(data->uart_freq_cb), __pi_uart_freq_cb, data);
+        pi_freq_callback_add(&(data->uart_freq_cb));
+
         g_uart_itf_data[data->device_id] = data;
         *device_data = g_uart_itf_data[data->device_id];
     }
@@ -475,6 +508,9 @@ void __pi_uart_close(struct uart_itf_data_s *data)
         /* Free device and structure opened. */
         if (data->nb_open == 0)
         {
+            /* Remove freq callback. */
+            pi_freq_callback_remove(&(data->uart_freq_cb));
+
             /* Make sure all bits are transferred. */
             while (hal_uart_tx_status_get(data->device_id));
 

@@ -69,6 +69,7 @@
 #include "udma/udma_uart.h"
 
 /* Cluster. */
+#include "pmsis/implem/hal/cluster/cluster_event_unit.h"
 /* DMA. */
 #include "dma/dma.h"
 

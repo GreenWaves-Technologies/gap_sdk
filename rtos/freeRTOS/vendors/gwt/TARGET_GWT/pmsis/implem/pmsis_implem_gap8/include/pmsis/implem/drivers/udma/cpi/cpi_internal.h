@@ -45,10 +45,13 @@
  * data[0] = l2_buf
  * data[1] = size
  * data[2] = repeat_size ?
+ * data[3] = skip current event handling
+ * data[4] = udma cfg
  */
 
 struct cpi_itf_data_s
 {
+    struct pi_task *hw_buffer[2]; /* 2 HW buffers for RX */
     struct pi_task *fifo_head;
     struct pi_task *fifo_tail;
     uint32_t device_id;

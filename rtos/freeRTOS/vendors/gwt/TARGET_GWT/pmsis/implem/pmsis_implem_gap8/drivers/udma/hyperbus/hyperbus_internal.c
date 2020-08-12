@@ -172,13 +172,26 @@ static void __pi_hyper_handle_end_of_task(struct pi_task *task)
     }
 }
 
+static uint32_t is_irq_mode(void)
+{
+    uint32_t mcause = 0;
+    uint32_t priv_lvl = 0;
+    uint32_t mstatus = 0;
+    priv_lvl = __get_CPRIV();
+    mcause = __get_MCAUSE();
+    mstatus = __get_MSTATUS();
+    printf("priv_lvl = %lx, mcause = %lx, mstatus=%lx\n", priv_lvl, mcause, mstatus);
+    return ((mcause & MCAUSE_IRQ_Msk) && ((mstatus & MSTATUS_MIE_Msk) == 0));
+    //return ((mcause & MCAUSE_IRQ_Msk) && (mstatus & MSTATUS_MIE_Msk));
+}
+
 void hyper_handler(void *arg)
 {
     uint32_t event = (uint32_t) arg;
     uint32_t channel = event & 0x1;
     uint32_t periph_id = (event >> UDMA_CHANNEL_NB_EVENTS_LOG2) - UDMA_HYPER_ID(0);
     HYPER_TRACE("Hyper IRQ %d %d\n", periph_id, event);
-
+    printf("IS_IRQ=%d\n", is_irq_mode());
     struct hyper_driver_fifo *fifo = __global_hyper_driver_fifo[periph_id];
     struct pi_task *task = fifo->fifo_head;
     if (task->data[7] != 0)

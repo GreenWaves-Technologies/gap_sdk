@@ -37,22 +37,73 @@ ENTRY(reset_handler)
 
 MEMORY
 {
+  FC_tcdm           : ORIGIN = 0x1B000000, LENGTH = 0x4000
   L2                : ORIGIN = 0x1C000000, LENGTH = 0x80000
   L1_sram           : ORIGIN = 0x10000000, LENGTH = 0x10000
-  FC_tcdm           : ORIGIN = 0x1B000000, LENGTH = 0x4000
 }
 
-__L1_STACK_SIZE      = 0x400;
-
-__FC_STACK_SIZE      = 0x1000;
-
-__IRQ_STACK_SIZE     = 0x400;
+/* Here are defined stack sizes for FC and cluster. */
+__STACK_FC_SIZE      = 0x1000;
+__STACK_IRQ_SIZE     = 0x400;
 
 /* We have to align each sector to word boundaries as our current s19->slm
  * conversion scripts are not able to handle non-word aligned sections. */
 
 SECTIONS
 {
+    .l1FcTiny :
+    {
+        . = ALIGN(4);
+        __l1FcShared_start = .;
+        *(.l1FcTiny)
+        *(.l1FcTiny.*)
+        . = ALIGN(4);
+        __l1FcShared_end = .;
+    } > FC_tcdm
+
+    __l1FcShared_size = __l1FcShared_end - __l1FcShared_start;
+
+     .fcTcdmTiny :
+     {
+       *(.fcTcdmTiny)
+       *(.fcTcdmTiny.*)
+     } > FC_tcdm
+
+     .fcTcdm :
+     {
+       *(.fcTcdm)
+       *(.fcTcdm.*)
+     } > FC_tcdm
+
+     .fcTcdm_g :
+     {
+       *(.fcTcdm_g)
+       *(.fcTcdm_g.*)
+     } > FC_tcdm
+
+    /* This section contains stack used by IRQ handler. */
+    .stack_irq :
+    {
+        . = ALIGN(4);
+        __stack_irq_end__ = .;
+        . += __STACK_IRQ_SIZE;
+        __stack_irq_start__ = .;
+     } > FC_tcdm
+
+    .heapfcram :
+    {
+        . = ALIGN(8);
+        *(.heapfcram)
+        *(.heapfcram.*)
+        . = ALIGN(8);
+        __heapfcram_start = .;
+        __stack_fc_end__ = .;
+        . += __STACK_FC_SIZE;
+        __stack_fc_start__ = .;
+    } > FC_tcdm
+
+     __heapfcram_size = ORIGIN(FC_tcdm) + LENGTH(FC_tcdm) - __heapfcram_start;
+
     /* This section holds IRQ vectors table. */
     .vectors_irq :
     {
@@ -208,64 +259,6 @@ SECTIONS
         __END_BSS = .;
     } > L2
     __l1_preload_start_inL2 = ALIGN(4);
-
-    .l1FcTiny (ORIGIN(FC_tcdm)) : AT(ORIGIN(FC_tcdm))
-    {
-        /* Due to limitations on FPGA loader, loadable sections must have base and size aligned on 4 bytes */
-        . = ALIGN(4);
-        __l1FcShared_start = .;
-        *(.l1FcTiny)
-        *(.l1FcTiny.*)
-        . = ALIGN(4);
-        __l1FcShared_end = .;
-    } > FC_tcdm
-
-    __l1FcShared_size = __l1FcShared_end - __l1FcShared_start;
-
-     .fcTcdmTiny (ORIGIN(FC_tcdm) + SIZEOF(.l1FcTiny)) : AT(ORIGIN(FC_tcdm) + SIZEOF(.l1FcTiny))
-     {
-       *(.fcTcdmTiny)
-       *(.fcTcdmTiny.*)
-     } > FC_tcdm
-
-     .fcTcdm (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny)) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny))
-     {
-       *(.fcTcdm)
-       *(.fcTcdm.*)
-     } > FC_tcdm
-
-     .fcTcdm_g (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny)) :
-     {
-       *(.fcTcdm_g)
-       *(.fcTcdm_g.*)
-     } > FC_tcdm
-
-    .fcbss (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny)) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny))
-    {
-        . = ALIGN(4);
-        __fc_bss_start__ = .;
-        *(.fcbss)
-        *(.fcbss.*)
-        __irq_stack_end__ = .;
-        __irq_stack_start__ = . + __IRQ_STACK_SIZE;
-        __fc_stack_end__ = . + __IRQ_STACK_SIZE;
-        __fc_stack_start__ = . + __IRQ_STACK_SIZE + __FC_STACK_SIZE;
-        __fc_bss_end__ = . + __IRQ_STACK_SIZE + __FC_STACK_SIZE;
-     } > FC_tcdm
-
-     __fc_bss_size__ = __fc_bss_end__ - __fc_bss_start__;
-     __irq_stack_size__ = __IRQ_STACK_SIZE;
-
-    .heapfcram (ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__ ) : AT(ORIGIN(FC_tcdm) + SIZEOF(.fcTcdm_g) + SIZEOF(.fcTcdm) + SIZEOF(.fcTcdmTiny) + SIZEOF(.l1FcTiny) + __fc_bss_size__)
-    {
-        . = ALIGN(8);
-        *(.heapfcram)
-
-        . = ALIGN(8);
-        __heapfcram_start = .;
-    } > FC_tcdm
-
-     __heapfcram_size = LENGTH(FC_tcdm) + ORIGIN(FC_tcdm) - __heapfcram_start;
 
     .l1clusterTiny (ORIGIN(L1_sram)) :
     {

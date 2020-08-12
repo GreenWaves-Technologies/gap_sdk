@@ -286,6 +286,12 @@ static inline void hal_eu_barrier_trigger(uint32_t mask)
     EU_BARRIER_DEMUX(0)->TRIGGER = mask;
 }
 
+static inline uint32_t hal_eu_barrier_team_get(void)
+{
+    return EU_BARRIER_DEMUX(0)->TRIGGER_MASK;
+}
+
+
 //!@}
 
 /** @name SoC events FIFO.

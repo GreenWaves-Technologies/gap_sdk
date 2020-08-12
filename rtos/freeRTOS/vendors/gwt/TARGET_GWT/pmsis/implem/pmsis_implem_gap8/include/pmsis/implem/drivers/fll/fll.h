@@ -33,11 +33,6 @@
 
 #include "pmsis/targets/target.h"
 
-/*!
- * @addtogroup fll
- * @{
- */
-
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -61,9 +56,6 @@ typedef enum _fll_type
 /*******************************************************************************
  * APIs
  ******************************************************************************/
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
 
 /*!
  * @brief Initialize one FLL.
@@ -138,10 +130,32 @@ static inline int pi_fll_cluster_max_freq_at_V(int voltage)
     return (FLL_CLUSTER_MIN_FREQUENCY + (voltage - DCDC_DEFAULT_LV) * FLL_CLUSTER_FV_SLOPE);
 }
 
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
+typedef void (* pi_freq_func_t) (void *arg);
 
-/* @} */
+typedef struct pi_freq_cb_s
+{
+    pi_freq_func_t function;
+    void *args;
+    struct pi_freq_cb_s *next;
+    struct pi_freq_cb_s *prev;
+} pi_freq_cb_t;
+
+static inline void pi_freq_callback_init(pi_freq_cb_t *cb, pi_freq_func_t func,
+                                         void *args);
+
+int pi_freq_callback_add(pi_freq_cb_t *cb);
+
+int pi_freq_callback_remove(pi_freq_cb_t *cb);
+
+void pi_freq_callback_exec(void);
+
+static inline void pi_freq_callback_init(pi_freq_cb_t *cb, pi_freq_func_t func,
+                                         void *args)
+{
+    cb->function = func;
+    cb->args = args;
+    cb->next = NULL;
+    cb->prev = NULL;
+}
 
 #endif /* __PI_FLL_H__ */

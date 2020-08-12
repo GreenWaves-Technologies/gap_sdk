@@ -38,18 +38,30 @@
  * Driver data
  ******************************************************************************/
 
-static pi_task_t *__cb_task_array[ARCHI_NB_PWM] = {NULL};
+static struct pwm_data_s *g_pwm_data[ARCHI_NB_PWM] = {NULL};
 
 /*******************************************************************************
  * Internal functions
  ******************************************************************************/
+
+static void __pi_pwm_handler(void *arg)
+{
+    uint32_t event = (uint32_t) arg;
+    uint32_t periph_id = event - SOC_EVENT_PWM(0);
+
+    struct pwm_data_s *driver_data = g_pwm_data[periph_id];
+    if (driver_data->event_task != NULL)
+    {
+        pi_task_push(driver_data->event_task);
+    }
+}
 
 static void __pi_pwm_timer_conf_set(uint8_t pwm_id, struct pi_pwm_conf *conf)
 {
     uint32_t config = (uint32_t) conf->timer_conf;
     config |= (conf->input_src << PI_PWM_CONFIG_INSEL_OFFSET);
     config |= (conf->prescaler << PI_PWM_CONFIG_PRESCALER_OFFSET);
-    hal_pwm_config_reg_set(pwm_id, config);
+    hal_pwm_config_mask_set(pwm_id, config);
 }
 
 static void __pi_pwm_threshold_set(uint8_t pwm_id, uint16_t counter_start,
@@ -74,9 +86,18 @@ static void __pi_pwm_output_event_clear(pi_pwm_evt_sel_e evt_sel)
     hal_pwm_ctrl_evt_cfg_disable(evt_sel);
 }
 
-static void __pi_pwm_user_cb_attach(uint8_t pwm_id, pi_task_t *cb)
+static int32_t __pi_pwm_user_cb_attach(uint8_t pwm_id, pi_task_t *cb)
 {
-    __cb_task_array[pwm_id] = cb;
+    struct pwm_data_s *driver_data = g_pwm_data[pwm_id];
+    if (driver_data == NULL)
+    {
+        PWM_TRACE_ERR("Error PWM(%d) device not opened !\n", driver_data->device_id);
+        return -11;
+    }
+    PWM_TRACE("PWM(%d) attaching event callback=%lx.\n", driver_data->device_id, cb);
+    driver_data->event_task = cb;
+    hal_soc_eu_set_fc_mask(SOC_EVENT_PWM(driver_data->device_id));
+    return 0;
 }
 
 static void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd)
@@ -84,20 +105,67 @@ static void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd)
     hal_pwm_cmd_set(pwm_id, cmd);
 }
 
+static void __pi_pwm_freq_cb(void *args)
+{
+    uint32_t irq = __disable_irq();
+    uint32_t pwm_ch = (uint32_t) args;
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
+    uint8_t ch_id = (uint8_t) PI_PWM_CHANNEL_ID(pwm_ch);
+    struct pwm_data_s *driver_data = g_pwm_data[pwm_id];
+
+    /* Counter start and end. */
+    uint32_t th_hi = 0;
+    uint16_t th_lo = 0;
+    /* th_channel holds duty cycle. */
+    uint16_t th_channel = th_hi;
+
+    /* Counter start and end. */
+    uint32_t periph_freq = pi_freq_get(PI_FREQ_DOMAIN_FC);
+    th_hi = periph_freq / driver_data->frequency;
+    th_lo = 1;
+    if (th_hi > 0xFFFF)
+    {
+        PWM_TRACE_ERR("PWM(%d) error : can not set frequency, SoC frequency is too high."
+                      "Use prescaler to slow down clock or lower SoC frequency."
+                      "SoC_freq=%ld, PWM_freq=%ld\n",
+                      driver_data->device_id, periph_freq, driver_data->frequency);
+        return;
+    }
+    PWM_TRACE("PWM(%d) updating timer threshold=%lx\n", driver_data->device_id, th_hi);
+    /* Set counter start, end. */
+    __pi_pwm_threshold_set(pwm_id, th_lo, th_hi);
+
+    /* th_channel holds duty cycle. */
+    th_channel = th_hi;
+
+    for (uint8_t i=0; i < (uint8_t) ARCHI_NB_CHANNEL_PER_PWM; i++)
+    {
+        uint8_t duty_cycle = driver_data->duty_cycle[i];
+        PWM_TRACE("PWM(%d) duty_cycle[%d]=%d\n", driver_data->device_id, i, duty_cycle);
+        if (duty_cycle != 0xFF)
+        {
+            if (duty_cycle == 0)
+            {
+                th_channel = 0;
+            }
+            else if (duty_cycle != 100)
+            {
+                th_channel = (th_hi * (100 - duty_cycle)) / 100;
+            }
+
+            PWM_TRACE("PWM(%d) setting channel=%d\n", driver_data->device_id, i);
+
+            /* Set channel threshold, mode. */
+            __pi_pwm_channel_config_set(pwm_id, ch_id, th_channel, PI_PWM_SET_CLEAR);
+        }
+    }
+    __restore_irq(irq);
+}
+
+
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
-
-void pwm_handler(void *arg)
-{
-    uint32_t event = (uint32_t) arg;
-    uint32_t periph_id = event - SOC_EVENT_PWM(0);
-
-    if (__cb_task_array[periph_id] != NULL)
-    {
-        pmsis_event_push(pmsis_event_get_default_scheduler(), __cb_task_array[periph_id]);
-    }
-}
 
 void __pi_pwm_conf_init(struct pi_pwm_conf *conf)
 {
@@ -111,38 +179,89 @@ void __pi_pwm_conf_init(struct pi_pwm_conf *conf)
     conf->prescaler = 0;
 }
 
-int32_t __pi_pwm_open(uint8_t pwm_id, struct pi_pwm_conf *conf)
+int32_t __pi_pwm_open(struct pi_pwm_conf *conf, uint32_t **device_data)
 {
-    /* Set handler. */
-    pi_fc_event_handler_set(SOC_EVENT_PWM(pwm_id), pwm_handler);
-    /* Enable SOC event propagation to FC. */
-    hal_soc_eu_set_fc_mask(SOC_EVENT_PWM(pwm_id));
+    if (((uint8_t) ARCHI_NB_PWM < conf->pwm_id) ||
+        ((uint8_t) ARCHI_NB_CHANNEL_PER_PWM < conf->ch_id))
+    {
+        PWM_TRACE_ERR("Wrong parameters : pwm_id=%d, ch_id=%d\n", conf->pwm_id, conf->ch_id);
+        return -11;
+    }
 
-    /* Disable PWM CG. */
-    hal_pwm_ctrl_cg_disable(pwm_id);
+    struct pwm_data_s *driver_data = g_pwm_data[(uint8_t) conf->pwm_id];
+    if (driver_data == NULL)
+    {
+        driver_data = (struct pwm_data_s *) pi_l2_malloc(sizeof(struct pwm_data_s));
+        if (driver_data == NULL)
+        {
+            PWM_TRACE_ERR("Error allocating PWM driver data.\n");
+            return -12;
+        }
+        driver_data->frequency = 0;
+        driver_data->nb_open = 0;
+        driver_data->device_id = conf->pwm_id;
+        driver_data->event_task = NULL;
+        driver_data->duty_cycle[0] = 0xFF;
+        driver_data->duty_cycle[1] = 0xFF;
+        driver_data->duty_cycle[2] = 0xFF;
+        driver_data->duty_cycle[3] = 0xFF;
+        g_pwm_data[conf->pwm_id] = driver_data;
 
-    /* Setup PWM timer. */
-    __pi_pwm_timer_conf_set(pwm_id, conf);
+        /* Set handler. */
+        pi_fc_event_handler_set(SOC_EVENT_PWM(driver_data->device_id), __pi_pwm_handler);
 
+        /* Enable SOC event propagation to FC. */
+        //hal_soc_eu_set_fc_mask(SOC_EVENT_PWM(driver_data->device_id));
+
+        /* Disable PWM CG. */
+        hal_pwm_ctrl_cg_disable(driver_data->device_id);
+
+        /* Setup PWM timer. */
+        __pi_pwm_timer_conf_set(driver_data->device_id, conf);
+
+        /* Attach freq callback. */
+        uint32_t pwm_id = conf->pwm_id;
+        pi_freq_callback_init(&(driver_data->pwm_freq_cb), __pi_pwm_freq_cb, (void *) pwm_id);
+        pi_freq_callback_add(&(driver_data->pwm_freq_cb));
+    }
+    driver_data->nb_open++;
+    PWM_TRACE("PWM(%d) opened %ld times\n", driver_data->device_id, driver_data->nb_open);
+
+    *device_data = (uint32_t *) ((((uint8_t) conf->ch_id) << PI_PWM_CHANNEL_ID_SHIFT) |
+                                 (((uint8_t) conf->pwm_id) << PI_PWM_TIMER_ID_SHIFT));
     return 0;
 }
 
-void __pi_pwm_close(uint8_t pwm_id)
+void __pi_pwm_close(uint32_t pwm_ch)
 {
-    /* Clear handler. */
-    pi_fc_event_handler_clear(SOC_EVENT_PWM(pwm_id));
-    /* Disable SOC event propagation to FC. */
-    hal_soc_eu_clear_fc_mask(SOC_EVENT_PWM(pwm_id));
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
+    struct pwm_data_s *driver_data = g_pwm_data[pwm_id];
+    driver_data->nb_open--;
+    PWM_TRACE("PWM(%d) opened %ld times.\n", driver_data->device_id, driver_data->nb_open);
+    if (driver_data->nb_open == 0)
+    {
+        PWM_TRACE("Closing and CG PWM(%d).\n", driver_data->device_id);
 
-    /* Enable PWM CG. */
-    hal_pwm_ctrl_cg_enable(pwm_id);
+        /* Remove freq callback. */
+        pi_freq_callback_remove(&(driver_data->pwm_freq_cb));
 
-    /* Clear any attached callback. */
-    __cb_task_array[pwm_id] = NULL;
+        /* Free allocated structure. */
+        pi_l2_free(g_pwm_data[pwm_id], sizeof(struct pwm_data_s));
+
+        /* Clear handler. */
+        pi_fc_event_handler_clear(SOC_EVENT_PWM(pwm_id));
+
+        /* Disable SOC event propagation to FC. */
+        hal_soc_eu_clear_fc_mask(SOC_EVENT_PWM(pwm_id));
+
+        /* Enable PWM CG. */
+        hal_pwm_ctrl_cg_enable(pwm_id);
+    }
 }
 
-int32_t __pi_pwm_ioctl(uint8_t pwm_id, pi_pwm_ioctl_cmd_e cmd, void *arg)
+int32_t __pi_pwm_ioctl(uint32_t pwm_ch, pi_pwm_ioctl_cmd_e cmd, void *arg)
 {
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
     pi_pwm_cmd_e timer_cmd = (pi_pwm_cmd_e) arg;
     struct pi_pwm_conf *conf = (struct pi_pwm_conf *) arg;
     uint32_t threshold = (uint32_t) arg;
@@ -178,13 +297,82 @@ int32_t __pi_pwm_ioctl(uint8_t pwm_id, pi_pwm_ioctl_cmd_e cmd, void *arg)
         return 0;
 
     case PI_PWM_ATTACH_CB :
-        __pi_pwm_user_cb_attach(pwm_id, cb_task);
+        return __pi_pwm_user_cb_attach(pwm_id, cb_task);
+
     default :
         return -1;
     }
 }
 
-uint32_t __pi_pwm_counter_get(uint8_t pwm_id)
+uint32_t __pi_pwm_counter_get(uint32_t pwm_ch)
 {
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
     return hal_pwm_counter_get(pwm_id);
+}
+
+int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq,
+                                uint8_t duty_cycle)
+{
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
+    uint8_t ch_id = (uint8_t) PI_PWM_CHANNEL_ID(pwm_ch);
+
+    struct pwm_data_s *driver_data = g_pwm_data[pwm_id];
+    if (driver_data == NULL)
+    {
+        PWM_TRACE_ERR("Error PWM(%d) device not opened !\n", driver_data->device_id);
+        return -11;
+    }
+    if ((100 < duty_cycle))
+    {
+        PWM_TRACE_ERR("Error duty cycle value. It should be 0 <= dc <= 100.\n");
+        return -12;
+    }
+
+    /* Counter start and end. */
+    uint32_t th_hi = 0;
+    uint16_t th_lo = 0;
+    /* th_channel holds duty cycle. */
+    uint16_t th_channel = th_hi;
+
+    if (driver_data->frequency == 0)
+    {
+        driver_data->frequency = pwm_freq;
+        uint32_t periph_freq = pi_freq_get(PI_FREQ_DOMAIN_FC);
+        /* Counter start and end. */
+        th_hi = periph_freq / pwm_freq;
+        th_lo = 1;
+        if (th_hi > 0xFFFF)
+        {
+            PWM_TRACE_ERR("PWM(%d) error : can not set frequency, SoC frequency is too high."
+                          "Use prescaler to slow down clock or lower SoC frequency."
+                          "SoC_freq=%ld, PWM_freq=%ld\n",
+                          driver_data->device_id, periph_freq, pwm_freq);
+            return -13;
+        }
+    }
+    if (driver_data->frequency != pwm_freq)
+    {
+        PWM_TRACE_ERR("PWM(%d) error : frequency in use is different, PWM_freq=%ld, freq=%ld\n",
+                      driver_data->device_id, driver_data->frequency, pwm_freq);
+        return -14;
+    }
+    driver_data->duty_cycle[ch_id] = duty_cycle;
+
+    /* th_channel holds duty cycle. */
+    th_channel = th_hi;
+    if (duty_cycle == 0)
+    {
+        th_channel = 0;
+    }
+    else if (duty_cycle != 100)
+    {
+        th_channel = (th_hi * (100 - duty_cycle)) / 100;
+    }
+
+    /* Set counter start, end. */
+    __pi_pwm_threshold_set(pwm_id, th_lo, th_hi);
+
+    /* Set channel threshold, mode. */
+    __pi_pwm_channel_config_set(pwm_id, ch_id, th_channel, PI_PWM_SET_CLEAR);
+    return 0;
 }

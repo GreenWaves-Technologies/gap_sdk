@@ -118,14 +118,14 @@ static inline uint32_t pi_is_fc()
     return __native_is_fc();
 }
 
-static inline uint32_t pi_nb_cluster_cores()
+static inline uint32_t pi_cl_cluster_nb_pe_cores(void)
 {
-    return (uint32_t) ARCHI_CLUSTER_NB_PE;
+    return __builtin_pulp_CoreCount();
 }
 
 static inline int pi_cl_cluster_nb_cores()
 {
-    return (int) ARCHI_CLUSTER_NB_PE;
+    return __builtin_pulp_CoreCount();
 }
 
 /*******************************************************************************

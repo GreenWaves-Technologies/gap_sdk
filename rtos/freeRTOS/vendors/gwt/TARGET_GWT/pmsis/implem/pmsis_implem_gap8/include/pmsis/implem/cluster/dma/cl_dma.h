@@ -67,7 +67,7 @@ extern pi_cl_dma_cmd_t *fifo_last;
  * Internal functions
  ******************************************************************************/
 
-static inline void __pi_cl_dma_copy(uint32_t ext, uint32_t loc, uint16_t len,
+static inline void __pi_cl_dma_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                     uint32_t stride, uint32_t length,
                                     uint8_t dir, uint8_t merge, uint32_t dma_cmd,
                                     pi_cl_dma_cmd_t *cmd)
@@ -106,7 +106,7 @@ static inline void __pi_cl_dma_copy(uint32_t ext, uint32_t loc, uint16_t len,
 }
 
 
-static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint16_t len,
+static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint32_t len,
                                        uint8_t dir, uint8_t merge, pi_cl_dma_cmd_t *cmd)
 {
     uint32_t irq = disable_irq();
@@ -118,10 +118,17 @@ static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint16_t len,
     if (len < max_len)
     {
         iter_length = len;
+        cmd->tid = -1;
+        if (!merge)
+        {
+            cmd->tid = hal_cl_dma_tid_get();
+        }
+        cmd->length = 0;
         dma_cmd = hal_cl_dma_cmd_make(iter_length, dir, DMA_INC, DMA_IS_1D,
                                       DMA_ELE_ENA, DMA_ILE_DIS, DMA_BLE_ENA);
-        cmd->cmd = hal_cl_dma_cmd_make(0, dir, DMA_INC, DMA_IS_1D,
-                                       DMA_ELE_ENA, DMA_ILE_DIS, DMA_BLE_ENA);
+        hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
+        /* cmd->cmd = hal_cl_dma_cmd_make(0, dir, DMA_INC, DMA_IS_1D, */
+        /*                                DMA_ELE_ENA, DMA_ILE_DIS, DMA_BLE_ENA); */
     }
     else
     {
@@ -132,8 +139,8 @@ static inline void __pi_cl_dma_1d_copy(uint32_t ext, uint32_t loc, uint16_t len,
                                       DMA_ELE_DIS, DMA_ILE_ENA, DMA_BLE_ENA);
         cmd->cmd = hal_cl_dma_cmd_make(0, dir, DMA_INC, DMA_IS_1D,
                                        DMA_ELE_DIS, DMA_ILE_ENA, DMA_BLE_ENA);
+        __pi_cl_dma_copy(ext, loc, len, stride, length, dir, merge, dma_cmd, cmd);
     }
-    __pi_cl_dma_copy(ext, loc, len, stride, length, dir, merge, dma_cmd, cmd);
     restore_irq(irq);
 }
 

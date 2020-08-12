@@ -59,6 +59,8 @@
  ******************************************************************************/
 static volatile uint32_t flls_frequency[FLL_NUM];
 
+static pi_freq_cb_t *g_freq_cb = NULL;
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -158,10 +160,13 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
         FLL_CTRL->SOC_CONF2 = val2;
     }
 
-    if (which_fll == FLL_SOC)
-        system_core_clock_update();
-
     flls_frequency[which_fll] = frequency;
+
+    if (which_fll == FLL_SOC)
+    {
+        system_core_clock_update();
+        pi_freq_callback_exec();
+    }
 
     __restore_irq(irq);
 
@@ -232,4 +237,83 @@ void FLL_Clear()
   {
     flls_frequency[i] = 0;
   }
+}
+
+int pi_freq_callback_add(pi_freq_cb_t *cb)
+{
+    if (cb == NULL)
+    {
+        //printf("Error : callback is NULL !\n");
+        return -1;
+    }
+
+    pi_freq_cb_t *temp_cb = g_freq_cb;
+    if (g_freq_cb == NULL)
+    {
+        g_freq_cb = cb;
+    }
+    else
+    {
+        while (temp_cb->next != NULL)
+        {
+            temp_cb = temp_cb->next;
+        }
+        temp_cb->next = cb;
+        cb->prev = temp_cb;
+    }
+    return 0;
+}
+
+int pi_freq_callback_remove(pi_freq_cb_t *cb)
+{
+    if (cb == NULL)
+    {
+        //printf("Error : callback is NULL !\n");
+        return -1;
+    }
+
+    if (g_freq_cb == NULL)
+    {
+        //printf("Error : callback list is NULL !\n");
+        return -2;
+    }
+
+    /* Callback at the head. */
+    if (g_freq_cb == cb)
+    {
+        g_freq_cb = g_freq_cb->next;
+        g_freq_cb->prev = NULL;
+        return 0;
+    }
+
+    /* Callback in list. */
+    pi_freq_cb_t *temp_cb = g_freq_cb;
+    while ((temp_cb != cb) && (temp_cb->next != NULL))
+    {
+        temp_cb = temp_cb->next;
+    }
+    if (temp_cb != cb)
+    {
+        //printf("Error : callback not found !\n");
+        return -3;
+    }
+    if (temp_cb->next != NULL)
+    {
+        temp_cb->next->prev = temp_cb->prev;
+    }
+    if (temp_cb->prev != NULL)
+    {
+        temp_cb->prev->next = temp_cb->next;
+    }
+    return 0;
+}
+
+void pi_freq_callback_exec(void)
+{
+    pi_freq_cb_t *temp_cb = g_freq_cb;
+    while (temp_cb  != NULL)
+    {
+        temp_cb->function(temp_cb->args);
+        temp_cb = temp_cb->next;
+    }
 }

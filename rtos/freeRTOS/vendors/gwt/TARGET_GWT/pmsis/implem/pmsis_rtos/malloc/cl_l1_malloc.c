@@ -22,13 +22,17 @@ pmsis_mutex_t __cl_l1_malloc_mutex;
 void *pi_cl_l1_malloc(struct pi_device *device, uint32_t size)
 {
     void *ret_ptr;
+    uint32_t irq = __disable_irq();
     ret_ptr = __malloc(&__cl_l1_malloc, size);
+    __restore_irq(irq);
     return ret_ptr;
 }
 
 void pi_cl_l1_free(struct pi_device *device, void *_chunk, int size)
 {
+    uint32_t irq = __disable_irq();
     __malloc_free(&__cl_l1_malloc, _chunk, size);
+    __restore_irq(irq);
 }
 
 void *pi_cl_l1_malloc_align(struct pi_device *device, int size, int align)

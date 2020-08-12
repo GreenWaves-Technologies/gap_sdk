@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, GreenWaves Technologies, Inc.
+ * Copyright (c) 2020, GreenWaves Technologies, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,43 +28,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if (FEATURE_CLUSTER == 1)
+#ifndef __ARCHI_CLUSTER_EVENT_UNIT_H__
+#define __ARCHI_CLUSTER_EVENT_UNIT_H__
 
-#include "pmsis/implem/cluster/dma/cl_dma.h"
 
-void pi_cl_dma_2d_handler()
-{
-    pi_cl_dma_cmd_t *copy = fifo_first;
-    hal_compiler_barrier();
-    hal_cl_dma_tid_free(copy->tid);
-    if (!copy->size)
-    {
-        fifo_first = fifo_first->next;
-        if (fifo_first == NULL)
-        {
-            fifo_last = NULL;
-        }
-        hal_compiler_barrier();
-        hal_eu_cluster_evt_trig_set(DMA_SW_IRQN, 0);
-        copy = fifo_first;
-    }
-    hal_compiler_barrier();
+#include "cluster_event_unit_offset.h"
+#include "cluster_event_unit_regmap.h"
 
-    hal_compiler_barrier();
-    if ((copy != NULL) && (copy->size))
-    {
-        uint32_t iter_length = (copy->size < copy->length) ? copy->size : copy->length;
-        uint32_t dma_cmd = copy->cmd | (iter_length << DMAMCHAN_CMD_LEN_Pos);
-        uint32_t loc = copy->loc;
-        uint32_t ext = copy->ext;
-        hal_compiler_barrier();
-        copy->loc = loc + iter_length;
-        copy->ext = ext + copy->stride;
-        copy->size = copy->size - iter_length;
-        copy->tid = hal_cl_dma_tid_get();
-        hal_cl_dma_1d_transfer_push(dma_cmd, loc, ext);
-    }
-    hal_compiler_barrier();
-}
-
-#endif  /* FEATURE_CLUSTER */
+#endif  /* __ARCHI_CLUSTER_EVENT_UNIT_H__ */

@@ -35,9 +35,9 @@
 /* Printf buffer size. */
 #define PRINTF_BUFFER_SIZE    ( 128 )
 /* TAS offset. GAP8 : TAS in cluster L1. */
-#define PRINTF_TAS_OFFSET     ( 1 << 20 )
+#define PRINTF_TAS_OFFSET     ( ARCHI_CL_L1_TS_OFFSET )
 /* IRQ used to wake up cores. */
-#define PRINTF_LOCK_IRQN      ( CL_EVENT_SW(6) )
+#define PRINTF_LOCK_IRQN      ( CL_IRQ_SW_EVT(6) )
 
 /*
  * This should be used in case of printf via uart before scheduler has started.

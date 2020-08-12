@@ -147,9 +147,9 @@ static inline void hal_pwm_config_set(uint8_t pwm_id, uint8_t insel, uint8_t mod
     pwm_config_set(pwm_id, config);
 }
 
-static inline void hal_pwm_config_reg_set(uint8_t pwm_id, uint32_t config)
+static inline void hal_pwm_config_mask_set(uint8_t pwm_id, uint32_t mask)
 {
-    pwm_config_set(pwm_id, config);
+    pwm_config_set(pwm_id, mask);
 }
 
 
