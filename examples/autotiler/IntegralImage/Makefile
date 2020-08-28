@@ -6,7 +6,7 @@
 pulpChip = GAP
 PULP_APP = IntegralImage
 
-GEN_KER_PATH = $(TILER_GENERATOR_PATH)/IntegralImg
+GEN_KER_PATH = $(TILER_INTEGRAL_GENERATOR_PATH)
 
 MODEL_SRC = IntegralImgModel.c
 MODEL_GEN = IntegralImgKernels

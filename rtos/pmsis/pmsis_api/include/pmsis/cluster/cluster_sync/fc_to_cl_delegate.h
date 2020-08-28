@@ -25,7 +25,7 @@
  */
 
 /**
- * @defgroup clusterDriver Cluster driver
+ * @defgroup clusterDriver Cluster
  *
  * The cluster driver provides support for offload code execution to the cluster
  * side.
@@ -200,7 +200,6 @@ static inline int pi_cluster_send_task_async(struct pi_device *device,
 #define WAIT_FREE_ASYNC_ID 5
 #define OPEN_ASYNC_ID 6
 #define CLOSE_ASYNC_ID 7
-
 
 int pi_cluster_send_task_to_cl(struct pi_device *device, struct pi_cluster_task *task);
 int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);

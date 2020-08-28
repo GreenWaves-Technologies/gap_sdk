@@ -42,15 +42,6 @@ def mult8_rnn_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         raise ValueError()
     return True
 
-# LSTM_F_SCALE 0
-# LSTM_F_SCALEN 1
-# LSTM_F_A0 2
-# LSTM_F_B0 3
-# LSTM_F_C0 4
-# LSTM_F_ASCALE 5
-# LSTM_F_ASCALEN
-
-
 def sigmoid_infos(gate_name, mult_qtype, qtype):
     scale = mult_qtype.qbiases[0]
     scale_n = mult_qtype.qnorms[0]
@@ -101,6 +92,42 @@ def highb(x):
 def lowb(x):
     return x & 0xff
 
+#define LSTM_F_INF              2
+#define LSTM_F_OFF              0
+#define LSTM_F_SCALE            0
+#define LSTM_F_SCALEN           1
+
+#define LSTM_I_INF              2
+#define LSTM_I_OFF              (LSTM_F_OFF+LSTM_F_INF)
+#define LSTM_I_SCALE            (0 + LSTM_I_OFF)
+#define LSTM_I_SCALEN           (1 + LSTM_I_OFF)
+
+#define LSTM_G_INF              2
+#define LSTM_G_OFF              (LSTM_I_OFF+LSTM_I_INF)
+#define LSTM_G_SCALE            (0 + LSTM_G_OFF)
+#define LSTM_G_SCALEN           (1 + LSTM_G_OFF)
+
+#define LSTM_O_INF              2 
+#define LSTM_O_OFF              (LSTM_G_OFF+LSTM_G_INF)
+#define LSTM_O_SCALE            (0 + LSTM_O_OFF)
+#define LSTM_O_SCALEN           (1 + LSTM_O_OFF)
+
+#define LSTM_COUT_INF           6 
+#define LSTM_COUT_OFF           (LSTM_O_OFF+LSTM_O_INF)
+#define LSTM_CIN_SCALE          (0 + LSTM_COUT_OFF)
+#define LSTM_CIN_SCALEN         (1 + LSTM_COUT_OFF)
+#define LSTM_COUT_SCALE         (2 + LSTM_COUT_OFF)
+#define LSTM_COUT_SCALEN        (3 + LSTM_COUT_OFF)
+#define LSTM_OUT_SCALE          (4 + LSTM_COUT_OFF)
+#define LSTM_OUT_SCALEN         (5 + LSTM_COUT_OFF)
+
+#define LSTM_INT_INF            7
+#define LSTM_INT_OFF            (LSTM_COUT_OFF+LSTM_COUT_INF)
+#define LSTM_INT_A0             (0 + LSTM_INT_OFF)
+#define LSTM_INT_B0             (2 + LSTM_INT_OFF)
+#define LSTM_INT_C0             (4 + LSTM_INT_OFF)
+#define LSTM_INT_Q              (6 + LSTM_INT_OFF)
+
 def lstm_infos(gen, node, qrec):
     internal_qtype = qrec.internal_qtype
     contents = []
@@ -129,9 +156,9 @@ def lstm_infos(gen, node, qrec):
 
     comments.append(str.format("int_q: {} A0: {} B0: {} C0: {}",
                                internal_qtype.q, six, three, sixth))
-    contents.append(np.array([internal_qtype.q, lowb(six), highb(six),
+    contents.append(np.array([lowb(six), highb(six),
                               lowb(three), highb(three),
-                              lowb(sixth), highb(sixth)],
+                              lowb(sixth), highb(sixth), internal_qtype.q],
                              dtype=np.int8))
 
     cname, file_name = gen_constant(gen, node, node, INFOS)
@@ -144,6 +171,12 @@ def lstm_infos(gen, node, qrec):
                                      const_info=const_info,
                                      comment=" ".join(comments)))
 
+#define RNN_F_INF              4
+#define RNN_F_OFF              0
+#define RNN_F_SCALE            0
+#define RNN_F_SCALEN           1
+#define RNN_F_A0               2
+#define RNN_F_B0               3
 
 def rnn_infos(gen, node, qrec):
     i_state_q = qrec.in_qs[node.INPUT_NAMES.index('i_state')]

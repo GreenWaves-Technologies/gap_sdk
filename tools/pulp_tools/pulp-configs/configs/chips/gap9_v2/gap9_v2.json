@@ -20,7 +20,8 @@
       },
       "ram": {
         "@include@" : "devices/hyperram.json",
-        "cs": 0
+        "cs": 0,
+        "size": "0x004000000"
       },
       "camera": {
         "@include@": "devices/camera.json",
@@ -30,23 +31,22 @@
       "jtag_proxy": {
         "@includes@": ["devices/jtag_proxy.json"]
       }
-    }
+    },
+
+    "components": {
+      "uart": {
+        "@includes@": ["devices/uart_checker.json"]
+      }
+    },
+  
+    "bindings": [
+      [ "chip.uart0", "uart.input" ]
+    ]
   },
-
-  "components": {
-    "uart": {
-      "@includes@": ["devices/uart_checker.json"]
-    }
-  },
-
-  "bindings": [
-    [ "chip.uart0", "uart.input" ]
-  ],
-
 
   "chip": "gap9_v2",
   "chip_family": "gap9_v2",
-    
+
   "rt": {
     "config": {
       "bsp": true
@@ -70,7 +70,7 @@
     "base": "0x10000000",
     "alias": "0x00000000",
     "size": "0x00400000",
-    "core": "ri5ky_v2_6_sfloat_single_regfile",
+    "core": "ri5ky_v2_6_sfloat_single_regfile_int64",
     "version": 5,
     "json_file": "cluster_v6",
     "nb_cluster": 1,
@@ -125,8 +125,16 @@
       },
 
       "event_unit": {
+        "version": "4",
         "base": "0x10200800",
-        "size": "0x00000800"
+        "size": "0x00000800",
+        "config": {
+          "properties": {
+            "barriers": {
+              "nb_barriers": 9
+            }
+          }
+        }
       },
 
       "hwce": {
@@ -160,10 +168,10 @@
 
       "event_unit": {
         "base": "0x10204000",
-        "size": "0x00000400"
+        "size": "0x00000800"
       },
       "dma": {
-        "base": "0x10204400",
+        "base": "0x10204800",
         "size": "0x00000400"
       }
     }
@@ -297,7 +305,7 @@
 
       "pmu": {
         "content"      : "chips/gap9_v2/pmu.json",
-        "version"      : 3,
+        "version"      : 4,
         "base"         : "0x1A107000",
         "size"         : "0x00000800"
       },

@@ -121,6 +121,10 @@ class KernelFunctionSetBase(ABC):
         pass
 
     @abstractproperty
+    def sum_global_pool(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
     def pad(self) -> KernelFunction:
         pass
 
@@ -142,4 +146,8 @@ class KernelFunctionSetBase(ABC):
 
     @abstractproperty
     def split(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
+    def copy(self) -> KernelFunction:
         pass

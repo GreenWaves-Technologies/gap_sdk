@@ -15,6 +15,8 @@ PMSIS_RTOS_DIR           ?= $(PMSIS_IMPLEM_DIR)/pmsis_rtos
 PMSIS_IMPLEM_SRCS        = $(PMSIS_RTOS_SRCS) \
                            $(PMSIS_IMPLEM_CHIP_SRCS)
 
+PMSIS_IMPLEM_ASM_SRCS    = $(PMSIS_IMPLEM_CHIP_ASM_SRCS)
+
 PMSIS_IMPLEM_INC         = $(PMSIS_IMPLEM_DIR) \
                            $(PMSIS_RTOS_INC) \
                            $(PMSIS_IMPLEM_CHIP_INC)

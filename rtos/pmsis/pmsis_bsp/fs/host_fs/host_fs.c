@@ -24,6 +24,8 @@
 #include <string.h>
 #include "semihost.h"
 
+static pi_fs_data_t bsp_fs_data;
+
 typedef struct {
   pi_fs_file_t header;
   int fd;
@@ -31,6 +33,7 @@ typedef struct {
 
 static int32_t __pi_host_fs_mount(struct pi_device *device)
 {
+  bsp_fs_data.cluster_reqs_first = NULL;
   return 0;
 }
 
@@ -53,6 +56,7 @@ static pi_fs_file_t *__pi_host_fs_open(struct pi_device *device, const char *fil
   file->header.api = (pi_fs_api_t *)device->api;
   file->header.data = file;
   file->header.fs = device;
+  file->header.fs_data = &bsp_fs_data;
 
   return (pi_fs_file_t *)file;
 

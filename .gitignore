@@ -10,3 +10,4 @@ BUILD/
 *.la
 *.dirstamp
 .sconsign.dblite
+/tools/nntool/tests/

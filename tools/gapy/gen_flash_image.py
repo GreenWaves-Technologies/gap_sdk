@@ -5,6 +5,7 @@ import sys
 import os
 import argcomplete
 import argparse
+import struct
 
 from errors import FatalError, NotSupportedError
 import common
@@ -35,6 +36,9 @@ def dumpWordToSlm(file, addr, value):
 def dumpLongToSlm(file, addr, value):
     file.write("@%08X %016X\n" % (addr, value))
 
+def dumpLongLongToSlm(file, addr, value):
+    file.write("@%08X %032X\n" % (addr, value))
+
 
 
 class FlashImage(object):
@@ -42,7 +46,7 @@ class FlashImage(object):
     def __init__(self, sectorSize, flashType):
         
         self.sectorSize = sectorSize
-        if flashType not in ('hyper', 'spi'):
+        if flashType not in ('hyper', 'spi', 'mram'):
             raise FatalError(
                 'Flash type %s not suported. ROM boot loader supports hyper and spi flash type' % flashType)
         self.flashType = flashType
@@ -58,6 +62,30 @@ class FlashImage(object):
     def getCurrentSize(self):
         return len(self.image)
     
+    def __appendInt(self, value, newBlock=False, buff=None):
+        if buff is None:
+            #if newBlock: self.__roundToNextBlock()
+            self.buff += struct.pack("I", value)
+        else:
+            buff += struct.pack("I", value)
+            return buff
+
+    def __appendLongInt(self, value, newBlock=False, buff=None):
+        if buff is None:
+            #if newBlock: self.__roundToNextBlock()
+            self.buff += struct.pack("Q", value)
+        else:
+            buff += struct.pack("Q", value)
+            return buff
+
+    def __appendByte(self, value, newBlock=False, buff=None):
+        if buff is None:
+            #if newBlock: self.__roundToNextBlock()
+            self.buff += struct.pack("B", value)
+        else:
+            buff += struct.pack("B", value)
+            return buff
+
     def appendBootloader(self, elf, encrypt = False, aesKey = None, aesIv = None):
         self.ssbl = binary.SSBL(flashType = self.flashType, elf = elf, encrypt = encrypt, aesKey = aesKey,
                                 aesIv = aesIv)
@@ -97,15 +125,19 @@ class FlashImage(object):
         with open(outputPath, 'w') as file:
             self.buff = self.image
             if self.flashType == 'mram':
-                last_bytes = len(self.buff) & 0x7
-                for i in range(0, 8 - last_bytes):
+                last_bytes = len(self.buff) & 0xF
+                for i in range(0, 16 - last_bytes):
                     self.__appendByte(0)
-                for i in range(0, len(self.buff) >> 3):
-                    value = (self.buff[i * 8 + 7] << 56) + (self.buff[i * 8 + 6] << 48) + (
-                            self.buff[i * 8 + 5] << 40) + (self.buff[i * 8 + 4] << 32) + (
-                                    self.buff[i * 8 + 3] << 24) + (self.buff[i * 8 + 2] << 16) + (
-                                    self.buff[i * 8 + 1] << 8) + self.buff[i * 8]
-                    dumpLongToSlm(file, i, value)
+                for i in range(0, len(self.buff) >> 4):
+                    value = (self.buff[i * 16 + 15] << 120) + (self.buff[i * 16 + 14] << 112) + \
+                            (self.buff[i * 16 + 13] << 104) + (self.buff[i * 16 + 12] << 96) + \
+                            (self.buff[i * 16 + 11] << 88)  + (self.buff[i * 16 + 10] << 80) + \
+                            (self.buff[i * 16 + 9]  << 72)  + (self.buff[i * 16 + 8]  << 64) + \
+                            (self.buff[i * 16 + 7]  << 56)  + (self.buff[i * 16 + 6]  << 48) + \
+                            (self.buff[i * 16 + 5]  << 40)  + (self.buff[i * 16 + 4]  << 32) + \
+                            (self.buff[i * 16 + 3]  << 24)  + (self.buff[i * 16 + 2]  << 16) + \
+                            (self.buff[i * 16 + 1]  << 8)   + (self.buff[i * 16])
+                    dumpLongLongToSlm(file, i, value)
             elif self.flashType == 'hyper':
                 if len(self.buff) & 1 != 0:
                     self.__appendByte(0)

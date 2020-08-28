@@ -25,14 +25,15 @@ LOG = logging.getLogger("nntool." + __name__)
 
 GEN_SSD = "CNN_SSD_PostProcess_SQ8"
 
-def gen_at_ssd_parameter(code_block, name, num_anchors, num_classes, out_boxes, gen_ctrl=None, at_ver=3):
+def gen_at_ssd_parameter(code_block, name, num_anchors, num_classes, out_boxes, max_bb_before_nms,
+                         gen_ctrl=None, at_ver=3):
     if gen_ctrl is None:
         gen_ctrl = "0"
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('{}("{}", {}, {}, {}, {});',
-                     GEN_SSD, name, gen_ctrl, num_anchors, num_classes, out_boxes)
+    code_block.write('{}("{}", {}, {}, {}, {}, {});',
+                     GEN_SSD, name, gen_ctrl, num_anchors, num_classes, out_boxes, max_bb_before_nms)
 
 
 @generation_function("kernels", (SSDDetectorParameters, ), qrec_types=(QREC_MULT8, ))
@@ -54,6 +55,7 @@ class SSDPostProcessKernel(AutotilerKernel):
         self.num_anchors = params.in_dims[0].shape[0] # num_boxes x 4
         self.num_classes = params.in_dims[1].shape[1] # num_boxes x num_classes
         self.out_boxes = params.out_dims[0].shape[0] # out_boxes x 4
+        self.max_bb_before_nms = params.max_bb_before_nms
         self.cname = cname
         self.node_name = params.name
         self.at_ver = at_ver
@@ -68,5 +70,6 @@ class SSDPostProcessKernel(AutotilerKernel):
             self.gen_ctrl.gen_ctrl_decl(code_block)
 
         gen_at_ssd_parameter(code_block, self.cname, self.num_anchors,
-                             self.num_classes, self.out_boxes, at_ver=self.at_ver)
+                             self.num_classes, self.out_boxes,
+                             self.max_bb_before_nms, at_ver=self.at_ver)
         return code_block

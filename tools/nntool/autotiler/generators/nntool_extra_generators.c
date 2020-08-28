@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 #include "AutoTilerLib.h"
 #include "nntool_extra_generators.h"
 #include "Gap.h"
@@ -103,6 +104,16 @@ void LoadNNTools_Extra_Library()
 				TCArg("unsigned short int", "H")
 			     ),
 			"KerNormBW_fp_T", NULL
+		 );
+
+	LibKernel("CNN_Copy_fps", CALL_PARALLEL,
+			CArgs(4,
+				TCArg("signed char *__restrict__", "In"),
+				TCArg("signed char *__restrict__", "Out"),
+				TCArg("unsigned int", "W"),
+				TCArg("unsigned int", "H")
+			     ),
+			"KerCopy_fps_T", NULL
 		 );
 }
 
@@ -276,5 +287,66 @@ int CNN_Norm(
 	}
 }
 
+// int largest_factor(int sz)
+// {
+// 	int limit = (int) floor(sqrt(sz));
+// 	for (int i=2; i<=limit; i++)
+//     {
+//         int c=0;
+//         for (int j=1; j<=i; j++)
+//         {
+//             if (i%j==0)
+//             {
+//                 c++;
+//             }
+//         }
+// 	    if (c==2 && sz%i==0) return sz/i;
+//     }
+// 	return 1;
+// }
 
+// int CNN_Copy_fps(
+// 		char *Name,
+// 		int Sz)
+// {
+// 	int Log = 1;
+// 	int Width = largest_factor(Sz);
+// 	int Height = Sz / Width;
+// 	unsigned long long int LayerOp = 0;
+// 	unsigned long long int LayerBandwidth = 0;
+
+// 	LayerBandwidth += Sz*2;
+
+// 	if (Log) {
+// 		printf("CNN_Copy: %s\n", Name);
+// 		printf("In  => Feat: 1 W: %4d, H: %4d\n", Width, Height);
+// 		printf("Out => Feat: 1, W: %4d, H: %4d\n", Width, Height);
+// 		printf("Nb Oper : %lld\n", LayerOp);
+// 	}
+
+// 	Object_T **PKerArgs = AllocateKerArgs(2);
+// 	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,  Width, Height, 1,  0, 0, 0, "In");
+// 	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width, Height, 1,  0, 0, 0, "Out");
+// 	UserKernel(Name,
+// 					KernelIterSpace(1, IterTiledSpace(T0)),
+// 					TILE_HOR,
+// 					CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
+// 					Calls(1,
+// 							Call(NormBWKerName, LOC_LOOP,
+// 									Bindings(4,
+// 											K_Arg("In", KER_ARG_TILE),      /* Input tile */
+// 											K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
+// 											K_Arg("In", KER_ARG_TILE_W),    /* Input tile width */
+// 											K_Arg("In", KER_ARG_TILE_H)     /* Input tile height */
+// 											)
+// 								)
+// 							),
+// 					PKerArgs
+// 				);
+// 	AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+// 	AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+// 	AddKernelArgDim(Name, "In", 4, 1, Height, Width, 1);
+// 	AddKernelArgDim(Name, "Out", 4, 1, Height, Width, 1);
+// 	return 0;
+// }
 

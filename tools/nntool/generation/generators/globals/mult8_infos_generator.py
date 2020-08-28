@@ -47,7 +47,8 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
             bias_q = qrec.biases_q.q
         act_infos(gen, pnode, pnode, None, None, extra1=bias_q)
     elif isinstance(pnode, (GlobalPoolParameters, PoolingParameters)):
-        act_infos(gen, pnode, pnode, None, None)
+        qrec.set_scale()
+        act_infos(gen, pnode, pnode, None, qrec)
     elif isinstance(pnode, ActivationParameters):
         act_infos(gen, pnode, pnode, pnode, gen.G.quantization[NodeId(pnode)])
     elif isinstance(pnode, ConvFusionParameters):
@@ -124,7 +125,7 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
     if act_params is None:
         contents = np.array([0, 0, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)
     elif isinstance(act_params, ReluActivationParameters):
-        if act_params.upper_bound is None or fnode is not None:
+        if act_params.upper_bound is None: # or fnode is not None:
             contents = np.array([0, 0, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)
             if len(comment) == 0:
                 comment = "all 0"
@@ -171,6 +172,15 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
                               int(norm[0]))
     else:
         raise NotImplementedError("activation tye not implemented")
+
+    if isinstance(pnode, (GlobalPoolParameters, PoolingParameters)):
+        contents = np.array([act_q.scale_mul_biases_q.qbiases[0],
+                             act_q.scale_mul_biases_q.qnorms[0],
+                             0, 0, 0, extra1, extra2, extra3, extra4],
+                            dtype=np.int8)
+        comment += str.format("in: {:05f} out: {:05f}",
+                              act_q.in_qs[0].scale[0],
+                              act_q.out_qs[0].scale[0])
 
     cname, file_name = gen_constant(gen, pnode, fnode, INFOS)
     const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True), contents=contents)

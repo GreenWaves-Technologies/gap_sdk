@@ -77,8 +77,9 @@ def concat(params,
         qrec = Float32QuantizationRecord()
     in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
     if params.transpose_in:
-        in_tensors = [np.transpose(qrec.in_tensor, params.transpose_in[0])
-                      for in_tensor in in_tensors]
+        in_tensors = [(np.transpose(in_tensor, params.transpose_in[idx])
+                       if params.transpose_in[idx] else in_tensor)
+                      for idx, in_tensor in enumerate(in_tensors)]
     out_tensor = np.concatenate(in_tensors, params.axis)
     if params.transpose_out:
         out_tensor = np.transpose(out_tensor, params.transpose_out[0])
@@ -148,5 +149,22 @@ def split(params,
         qrec = Float32QuantizationRecord()
     params = typing_cast(SplitParameters, params)
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    if params.transpose_in:
+        in_tensor = np.transpose(in_tensor, params.transpose_in[0])
     out_tensors = params.numpy_split(in_tensor)
+    if params.transpose_out:
+        out_tensors = [(np.transpose(out_tensor, params.transpose_in[idx])
+                        if params.transpose_in[idx] else out_tensor)
+                       for idx, out_tensor in enumerate(out_tensors)]
     return qrec.get_outputs(params, out_tensors, ktype="float32")
+
+
+def copy(params,
+         in_tensors,
+         qrec: QuantizationRecordBase,
+         details=None):
+    del details
+    if qrec is None:
+        qrec = Float32QuantizationRecord()
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    return qrec.get_outputs(params, [in_tensor], ktype="float32")

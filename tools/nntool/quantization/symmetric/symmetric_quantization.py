@@ -20,7 +20,7 @@ import numpy as np
 from graph.types import (Conv2DParameters, MatrixAddParameters,
                          MatrixDivParameters, MatrixMulParameters,
                          MatrixSubParameters, MultiplicativeBiasParameters,
-                         Parameters)
+                         Parameters, GlobalPoolParameters)
 from quantization.qtype import QType
 from quantization.quantization_record_base import (
     FilterQuantizationRecordBase, InputOutputQuantizationRecordBase,
@@ -78,6 +78,8 @@ class SymmetricQuantizationBase(InputOutputQuantizationRecordBase):
             elif isinstance(params, (MatrixMulParameters, MatrixDivParameters)):
                 q_calc = QType(bits=32, q=self.in_qs[0].q+self.in_qs[1].q, signed=True)
                 output_tensors = [self.out_qs[0].reduce_from(output_tensors[0], q_calc)]
+            elif isinstance(params, GlobalPoolParameters) and params.pool_type == "sum":
+                output_tensors = [self.out_qs[0].reduce_from(output_tensors[0], self.in_qs[0])]
             if self._auto_dequantize_outputs:
                 return [self.out_qs[idx].dequantize(output_tensor) for idx, output_tensor in enumerate(output_tensors)]
         return output_tensors

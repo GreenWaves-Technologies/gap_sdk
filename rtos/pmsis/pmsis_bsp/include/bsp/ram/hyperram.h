@@ -47,6 +47,7 @@ struct pi_hyperram_conf
       connected. */
     int hyper_cs;          /*!< Chip select where the RAM is connected. */
     char skip_pads_config; /*!< Skip pads configuration if set to 1. */
+    int xip_en;            /*!< enable xip mode if set to 1. */
     int ram_start;         /*!< Hyperram start address. */
     int ram_size;          /*!< Hyperram size. */
     uint32_t baudrate;     /*!< Baudrate (in bytes/second). */

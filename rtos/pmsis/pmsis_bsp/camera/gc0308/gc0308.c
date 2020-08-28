@@ -492,8 +492,6 @@ int32_t __gc0308_open(struct pi_device *device)
     if (pi_i2c_open(&gc0308->i2c_device))
         goto error2;
 
-    pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_LITEND);
-
     __gc0308_reset(gc0308);
 
     uint8_t cam_id = __gc0308_reg_read(gc0308, 0x00);
@@ -504,6 +502,15 @@ int32_t __gc0308_open(struct pi_device *device)
     if(gc0308->conf.format==PI_CAMERA_QVGA){
         __gc0308_set_qvga(gc0308);
     }
+
+    if(gc0308->conf.color_mode==PI_CAMERA_GRAY8){
+        pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_BIGEND);
+        __gc0308_reg_write(gc0308,0x24,0xb1); //set to YUV and get only Y
+    }else{
+        pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_LITEND);
+        //registers in this case are left by default to RGB565
+    }
+
 
     return 0;
 
@@ -599,4 +606,6 @@ void pi_gc0308_conf_init(struct pi_gc0308_conf *conf)
     conf->skip_pads_config = 0;
     bsp_gc0308_conf_init(conf);
     __camera_conf_init(&conf->camera);
+    conf->format = PI_CAMERA_QVGA;
+    conf->color_mode = PI_CAMERA_RGB565;
 }

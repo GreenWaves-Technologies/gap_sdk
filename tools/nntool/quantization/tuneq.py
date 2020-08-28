@@ -41,7 +41,7 @@ def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
         SymmetricQuantizer.propagate(G, qrecs, node, qtype)
     else:
         if isinstance(node, ConvFusionParameters):
-            for subnode in node.subgraph.nodes():
+            for subnode in node.contained_nodes():
                 qrec = qrecs[NodeId(node, subnode)]
                 if hasattr(qrec, param + '_q'):
                     setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))

@@ -68,9 +68,9 @@ class Runner(runner.default_runner.Runner):
                 else:
 
                     if flash.get_str('datasheet/type') == 'spi':
-                        flasher_script = 'gap9_flash_raw_hyper'
-                    else:
                         flasher_script = 'gap9_flash_raw_spi'
+                    else:
+                        flasher_script = 'gap9_flash_raw_hyper'
 
                     cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; script %s/tcl/flash_image.tcl; %s %s %d %s; exit;"' % (openocd, cable, script, gap_tools, flasher_script, image, image_size, gap_tools)
 

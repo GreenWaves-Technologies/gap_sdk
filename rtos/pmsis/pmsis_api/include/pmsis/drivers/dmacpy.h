@@ -30,7 +30,7 @@
  * The DMACPY allows memory copy between FC L1 memory and L2 memory.
  *
  * \addtogroup DMACPY
- * @{
+ * \{
  */
 
 /**
@@ -132,7 +132,7 @@ int pi_dmacpy_copy_async(struct pi_device *device, void *src, void *dst,
                          uint32_t size, pi_dmacpy_dir_e dir, struct pi_task *task);
 
 /**
- * @}
+ * \}
  */
 
 #endif  /* __PMSIS_DRIVERS_DMACPY_H__ */

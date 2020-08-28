@@ -52,7 +52,7 @@
 #define CONFIG_SPIFLASH_SECTOR_SIZE (1<<12)
 
 #define CONFIG_HYPERBUS_DATA6_PAD      ( PI_PAD_46_B7_SPIM0_SCK )
-// This is due to a HW bug, to be fixed in the future
+// This is due to a HW bug, to be fixed in gap8 V3
 #define CONFIG_UART_RX_PAD_FUNC        ( 0 )
 #define CONFIG_HYPERRAM_DATA6_PAD_FUNC ( 3 )
 
@@ -68,19 +68,17 @@
 
 #define CONFIG_NINA_B112_UART_ID       ( 0 )
 
-#define GPIOA0_LED                     ( PI_GPIO_A0_PAD_12_A3 )
-#define GPIO_USER_LED                  ( PI_GPIO_A0_PAD_12_A3 )
+#define GPIO_USER_LED                  ( PI_GPIO_A0_PAD_12_A3   )
 #define GPIO_BUTTON                    ( PI_GPIO_A18_PAD_32_A13 )
 /* BLE Nina. */
-#define GPIO_NINA17_DSR                ( PI_GPIO_A0_PAD_8_A4 )
+#define GPIO_NINA17_DSR                ( PI_GPIO_A0_PAD_8_A4  )
 #define GPIO_NINA_PWRON                ( PI_GPIO_A1_PAD_13_B2 )
 /* Camera */
-#define GPIO_1V8_EN                    ( PI_GPIO_A4_PAD_16_A44 )
-#define GPIOA3_CIS_EXP                 ( PI_GPIO_A3_PAD_15_B1 )
-#define GPIOA5_CIS_PWRON               ( PI_GPIO_A5_PAD_17_B40 )
-#define GPIO_IR_TRIG                   ( PI_GPIO_A3_PAD_15_B1 )
-#define GPIO_IR_PWRON                  ( PI_GPIO_A5_PAD_17_B40 )
-#define GPIO_IR_NRST                   ( PI_GPIO_A16_PAD_30_D1 )
-#define GPIO_PIR_OUT                   ( PI_GPIO_A2_PAD_14_A2 )
+#define GPIO_1V8_EN                    ( PI_GPIO_A4_PAD_16_A44  )
+#define GPIO_IR_TRIG                   ( PI_GPIO_A3_PAD_15_B1   )
+#define GPIO_IR_PWRON                  ( PI_GPIO_A5_PAD_17_B40  )
+#define GPIO_IR_NRST                   ( PI_GPIO_A16_PAD_30_D1  )
+#define GPIO_PIR_OUT                   ( PI_GPIO_A2_PAD_14_A2   )
+#define PWM_IR_CLK                     ( PI_GPIO_A19_PAD_33_B12 )
 
 #endif  /* __BSP_GAPOC_B_H__ */

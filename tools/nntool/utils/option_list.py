@@ -24,18 +24,20 @@ OPTION_TYPES = {
 class OptionList(JsonSerializable):
     def __init__(self, valid_options=None, init=None):
         if init:
-            self._options = init['options']
-            self._valid_options = {k.upper(): OPTION_TYPES[v] for k, v in init['valid_options'].items()}
+            super(OptionList, self).__setattr__('_options', init['options'])
+            super(OptionList, self).__setattr__('_valid_options', {
+                k.upper(): OPTION_TYPES[v] for k, v in init['valid_options'].items()
+            })
         else:
-            self._valid_options = {}
+            super(OptionList, self).__setattr__('_valid_options', {})
             if valid_options is not None:
                 self._valid_options.update({k.upper():v for k, v in valid_options.items()})
-            self._options = {}
+            super(OptionList, self).__setattr__('_options', {})
 
     def __setattr__(self, name, value):
-        if name == '_valid_options' or name == '_options':
-            super().__setattr__(name, value)
-            return
+        # if _option or _valid_options are not present then we are being deepcopied
+        if not hasattr(self, '_options') or not hasattr(self, '_valid_options'):
+            super(OptionList, self).__setattr__(name, value)
         upper_name = name.upper()
         if upper_name in self._valid_options:
             if value is None:
@@ -46,15 +48,16 @@ class OptionList(JsonSerializable):
                 value = self._valid_options[upper_name](value)
             self._options[upper_name] = value
         else:
-            super().__setattr__(name, value)
+            super(OptionList, self).__setattr__(name, value)
 
-    def __getattribute__(self, name):
-        if name == '_valid_options' or name == '_options':
-            return super().__getattribute__(name)
+    def __getattr__(self, name):
         upper_name = name.upper()
-        if upper_name in self._valid_options:
-            return self._options.get(upper_name)
-        return super().__getattribute__(name)
+        valid_options = super(OptionList, self).__getattribute__('_valid_options')
+        options = super(OptionList, self).__getattribute__('_options')
+        if upper_name in valid_options:
+            return options.get(upper_name)
+        else:
+            raise AttributeError()
 
     def __len__(self):
         return len(self._options)

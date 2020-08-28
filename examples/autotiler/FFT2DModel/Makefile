@@ -6,9 +6,9 @@
 
 pulpChip = GAP
 PULP_APP = 
-FFT2D_GEN_PATH = $(TILER_GENERATOR_PATH)/FFT2D
-FFT2D_KER_PATH = $(TILER_GENERATOR_PATH)/FFT2D
-FFT2D_TWIDDLES_PATH = $(TILER_GENERATOR_PATH)/FFT2D/twiddles_gen
+FFT2D_GEN_PATH = $(TILER_FFT2D_GENERATOR_PATH)
+FFT2D_KER_PATH = $(TILER_FFT2D_GENERATOR_PATH)
+FFT2D_TWIDDLES_PATH = $(TILER_FFT2D_TWIDDLE_PATH)
 
 APP_SRCS = TestFFT2D.c $(FFT2D_KER_PATH)/FFTBasicKernels.c $(FFT2D_KER_PATH)/FFTScalarBasicKernels.c TwiddlesDef.c SwapTablesDef.c FFT2DKernels.c 
 RM=rm -f
@@ -19,7 +19,7 @@ APP_LDFLAGS +=  -flto -Wl,--gc-sections
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
 APP_CFLAGS += -w -Wno-maybe-uninitialized -Wno-unused-but-set-variable
-APP_CFLAGS += -I$(TILER_INC) -I$(FFT2D_KER_PATH)
+APP_CFLAGS += -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(FFT2D_KER_PATH)
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step

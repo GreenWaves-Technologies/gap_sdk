@@ -56,11 +56,10 @@ typedef struct pi_i2c_conf
     pi_device_e device;  /* Device type. */
     uint8_t itf;            /*!< Specifies on which I2C interface the device is
       connected. */
-    int8_t cs;               /*!< i2c slave address (7 bits on MSB), the
+    uint16_t cs;               /*!< i2c slave address (7 or 10 bits), the
       runtime will take care of the LSB of read and write. */
     int8_t is_10_bits;
     uint16_t wait_cycles;
-    uint16_t slave_addr;
     uint32_t max_baudrate;   /*!< Maximum baudrate for the I2C bitstream which
       can be used with the opened device . */
 } pi_i2c_conf_t;

@@ -42,94 +42,90 @@ static void __gpio_init()
 
 static void __bsp_init_pads()
 {
-  if (!__bsp_init_pads_done)
-  {
-    __bsp_init_pads_done = 1;
-    uint32_t pads_value[] = {0x00055500, 0x0f450000, 0x003fffff, 0x00000000};
-    pi_pad_init(pads_value);
-    __gpio_init();
-  }
+    if (!__bsp_init_pads_done)
+    {
+        __bsp_init_pads_done = 1;
+        uint32_t pads_value[] = {0x00055500, 0x0f450000, 0x003fffff, 0x00000000};
+        pi_pad_init(pads_value);
+        __gpio_init();
+    }
 }
 
 void bsp_hyperram_conf_init(struct pi_hyperram_conf *conf)
 {
-  conf->ram_start = CONFIG_HYPERRAM_START;
-  conf->ram_size = CONFIG_HYPERRAM_SIZE;
-  conf->skip_pads_config = 0;
-  conf->hyper_itf = CONFIG_HYPERRAM_HYPER_ITF;
-  conf->hyper_cs = CONFIG_HYPERRAM_HYPER_CS;
+    conf->ram_start = CONFIG_HYPERRAM_START;
+    conf->ram_size = CONFIG_HYPERRAM_SIZE;
+    conf->skip_pads_config = 0;
+    conf->hyper_itf = CONFIG_HYPERRAM_HYPER_ITF;
+    conf->hyper_cs = CONFIG_HYPERRAM_HYPER_CS;
 }
 
 int bsp_hyperram_open(struct pi_hyperram_conf *conf)
-{  __bsp_init_pads();
-  pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
-  return 0;
+{
+    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
+    return 0;
 }
-
-
 
 void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf)
 {
-  conf->hyper_itf = CONFIG_HYPERFLASH_HYPER_ITF;
-  conf->hyper_cs = CONFIG_HYPERFLASH_HYPER_CS;
+    conf->hyper_itf = CONFIG_HYPERFLASH_HYPER_ITF;
+    conf->hyper_cs = CONFIG_HYPERFLASH_HYPER_CS;
 }
 
 int bsp_hyperflash_open(struct pi_hyperflash_conf *conf)
 {
- __bsp_init_pads();
-  pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
-  return 0;
+    pi_pad_set_function(CONFIG_HYPERBUS_DATA6_PAD, CONFIG_HYPERRAM_DATA6_PAD_FUNC);
+    return 0;
 }
 
 
 void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
 {
-  conf->size = CONFIG_SPIFLASH_SIZE;
-  // sector size is in number of KB
-  conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
-  conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
-  conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
+    conf->size = CONFIG_SPIFLASH_SIZE;
+    // sector size is in number of KB
+    conf->sector_size = CONFIG_SPIFLASH_SECTOR_SIZE;
+    conf->spi_itf = CONFIG_SPIFLASH_SPI_ITF;
+    conf->spi_cs = CONFIG_SPIFLASH_SPI_CS;
 }
 
 int bsp_spiflash_open(struct pi_spiflash_conf *conf)
 {
-  return 0;
+    return 0;
 }
-
 
 void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
 {
-  conf->ram_start = CONFIG_SPIRAM_START;
-  conf->ram_size = CONFIG_SPIRAM_SIZE;
-  conf->skip_pads_config = 0;
-  conf->spi_itf = CONFIG_SPIRAM_SPI_ITF;
-  conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
+    conf->ram_start = CONFIG_SPIRAM_START;
+    conf->ram_size = CONFIG_SPIRAM_SIZE;
+    conf->skip_pads_config = 0;
+    conf->spi_itf = CONFIG_SPIRAM_SPI_ITF;
+    conf->spi_cs = CONFIG_SPIRAM_SPI_CS;
 }
 
 int bsp_spiram_open(struct pi_spiram_conf *conf)
 {
-  __bsp_init_pads();
-  return 0;
+    __bsp_init_pads();
+    return 0;
 }
 
 void bsp_ili9341_conf_init(struct pi_ili9341_conf *conf)
 {
-  conf->gpio = CONFIG_ILI9341_GPIO;
-  conf->spi_itf = CONFIG_ILI9341_SPI_ITF;
-  conf->spi_cs = CONFIG_ILI9341_SPI_CS;
+    conf->gpio = CONFIG_ILI9341_GPIO;
+    conf->spi_itf = CONFIG_ILI9341_SPI_ITF;
+    conf->spi_cs = CONFIG_ILI9341_SPI_CS;
 
 }
 
 int bsp_ili9341_open(struct pi_ili9341_conf *conf)
 {
-  __bsp_init_pads();
+    __bsp_init_pads();
 
-  if (!conf->skip_pads_config)
-  {
-    pi_pad_set_function(CONFIG_ILI9341_GPIO_PAD, CONFIG_ILI9341_GPIO_PAD_FUNC);
-  }
+    if (!conf->skip_pads_config)
+    {
+        pi_pad_set_function(CONFIG_ILI9341_GPIO_PAD, CONFIG_ILI9341_GPIO_PAD_FUNC);
+    }
 
-  return 0;
+    return 0;
 }
 
 void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
@@ -153,25 +149,25 @@ int bsp_nina_b112_open_old()
 
 void bsp_pixart_conf_init(struct pi_pixart_conf *conf)
 {
-  conf->cpi_itf = CONFIG_PIXART_CPI_ITF;
-  conf->spi_itf = CONFIG_PIXART_SPI_ITF;
-  conf->spi_cs = CONFIG_PIXART_SPI_CS;
-  conf->pwm_id = CONFIG_PIXART_PWM_ID;
-  conf->pwm_channel = CONFIG_PIXART_PWM_CH;
-  conf->gpio_ctl.gpio_power_4V = CONFIG_PIXART_GPIO_PWR_4V;
-  conf->gpio_ctl.gpio_power_2V5 = CONFIG_PIXART_GPIO_PWR_2V5;
-  conf->gpio_ctl.gpio_reset = CONFIG_PIXART_GPIO_RESET;
+    conf->cpi_itf = CONFIG_PIXART_CPI_ITF;
+    conf->spi_itf = CONFIG_PIXART_SPI_ITF;
+    conf->spi_cs = CONFIG_PIXART_SPI_CS;
+    conf->pwm_id = CONFIG_PIXART_PWM_ID;
+    conf->pwm_channel = CONFIG_PIXART_PWM_CH;
+    conf->gpio_ctl.gpio_power_4V = CONFIG_PIXART_GPIO_PWR_4V;
+    conf->gpio_ctl.gpio_power_2V5 = CONFIG_PIXART_GPIO_PWR_2V5;
+    conf->gpio_ctl.gpio_reset = CONFIG_PIXART_GPIO_RESET;
 }
 
 int bsp_pixart_open(struct pi_pixart_conf *conf)
 {
-  __bsp_init_pads();
-  return 0;
+    __bsp_init_pads();
+    return 0;
 }
 
 void bsp_init()
 {
-  __bsp_init_pads();
+    __bsp_init_pads();
 }
 
 
@@ -183,5 +179,5 @@ void pi_bsp_init_profile(int profile)
 
 void pi_bsp_init()
 {
-  pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
+    pi_bsp_init_profile(PI_BSP_PROFILE_DEFAULT);
 }

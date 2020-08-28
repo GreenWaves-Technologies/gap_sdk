@@ -285,7 +285,7 @@ static inline rt_event_sched_t *__rt_event_get_current_sched()
 
 static inline void __rt_event_release(rt_event_t *event)
 {
-  event->implem.next = __rt_first_free;
+  event->next = __rt_first_free;
   __rt_first_free = event;  
 }
 
@@ -397,9 +397,9 @@ static inline rt_event_t *__rt_init_event(rt_event_t *event, rt_event_sched_t *s
 static inline void __rt_event_enqueue(rt_event_t *event)
 {
   rt_event_sched_t *sched = rt_event_internal_sched();
-  event->implem.next = NULL;
+  event->next = NULL;
   if (sched->first) {
-    sched->last->implem.next = event;
+    sched->last->next = event;
   } else {
     sched->first = event;
   }
@@ -416,11 +416,11 @@ static inline void rt_event_enqueue(rt_event_t *event) {
 
 static inline __attribute__((always_inline)) void __rt_enqueue_event_to_sched(rt_event_sched_t *sched, rt_event_t *event)
 {
-  event->implem.next = NULL;
+  event->next = NULL;
   if (sched->first == NULL) {
     sched->first = event;
   } else {
-    sched->last->implem.next = event;
+    sched->last->next = event;
   }
   sched->last = event;
 }

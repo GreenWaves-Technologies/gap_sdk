@@ -30,7 +30,7 @@ $(FLAT_BUILD)/Makefile: $(FLAT_BUILD)
 	(cd $(FLAT_BUILD); cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_BUILD_TESTS=OFF ..)
 
 $(FLAT_BUILD)/flatc: $(FLAT_BUILD)/Makefile
-	make -C $(FLAT_BUILD)
+	make -C $(FLAT_BUILD) -j
 
 flatbuffers/__init__.py: $(FLAT_BUILD)/flatc
 	cp -r $(FLAT_SRC)/python/flatbuffers .

@@ -7,6 +7,7 @@
 # author: martin.croome@greenwaves-technologies.com
 
 from graph.dim import Dim, PadDim, Conv2DFilterDim, StrideDim, DimHasNoOrderError
+from copy import deepcopy
 
 def test_creation1():
     dim1 = Dim()
@@ -192,3 +193,8 @@ def test_broadcast3():
     dim3 = Dim.named(['h', 'w', 'c'], h=4, w=2, c=6)
     res = Dim.broadcast((dim1, dim2, dim3))
     assert res.shape == [8, 2, 6] and res.is_named
+
+def test_candeepcopy():
+    dim1 = Dim.named(a=1, b=2, c=3, order=['c', 'b', 'a'])
+    dim2 = deepcopy(dim1)
+    assert dim1 == dim2

@@ -43,10 +43,8 @@
 typedef enum {
   PI_CAMERA_CMD_ON,    /*!< Power-up the camera. */
   PI_CAMERA_CMD_OFF,   /*!< Power-down the camera. */
-  PI_CAMERA_CMD_START, /*!< Start the camera, i.e. it will start sending data on
-    the interface. */
-  PI_CAMERA_CMD_STOP   /*!< Stop the camera, i.e. it will stop sending data on
-    the interface. */
+  PI_CAMERA_CMD_START, /*!< Start the camera, i.e. it will start sending data on the interface. */
+  PI_CAMERA_CMD_STOP   /*!< Stop the camera, i.e. it will stop sending data on the interface. */
 } pi_camera_cmd_e;     /*!< */
 
 
@@ -60,6 +58,19 @@ typedef enum {
   PI_CAMERA_QVGA, /*!< QVGA format (320 x 240). */
   PI_CAMERA_QQVGA /*!< QQVGA format (160 x 120). */
 } pi_camera_format_e;
+
+/** \enum pi_camera_color_mode_e
+ * \brief Camera color mode.
+ *
+ * This can be given within the camera configuration when it is opened.
+ */
+typedef enum {
+  PI_CAMERA_GRAY8,      /*!< 8 bit grayscale. */
+  PI_CAMERA_RGB565,     /*!< 16 bit RGB . */
+  PI_CAMERA_RGB888,     /*!< 24 bit RGB . */
+  PI_CAMERA_YUV         /*!< 24 bit YUV . */
+} pi_camera_color_mode_e;
+
 
 /** \brief Open an image sensor device.
  *

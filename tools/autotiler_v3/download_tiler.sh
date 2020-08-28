@@ -25,9 +25,9 @@ then
 	done
 fi
 
-echo ${TILER_LIB} | wget --no-use-server-timestamps --base=`cat $TILER_URL` --input-file=- -O lib/libtile.a
+echo ${TILER_LIB} | wget --no-use-server-timestamps --base=`cat $TILER_URL` --input-file=- -O Autotiler/LibTile.a
 if [ $? != 0 ]; then
 	rm $TILER_URL
-	rm -f lib/libtile.a
+	rm -f Autotiler/LibTile.a
 	exit 1
 fi

@@ -42,8 +42,9 @@
         .extern __data_start__
         .extern __bss_start__
         .extern __bss_end__
-        .extern __fc_bss_start__
-        .extern __fc_bss_end__
+        .extern __stack_fc_start__
+        .extern __stack_irq_start__
+        .extern __stack_irq_end__
 
         .extern cl_cluster_exec_loop
         .extern system_init
@@ -78,11 +79,14 @@
         .section .text.reset, "ax", @progbits
         DECLARE reset_handler
         csrr a0, 0xf14 /* Cluster ID */
+        andi a1, a0, 0x1f       /* Core ID */
         srli a0, a0, 5
 
 #if defined(FEATURE_CLUSTER)
-        li a1, 32 /* FC_Cluster ID */
-        bne a1, a0, cl_cluster_exec_loop
+        li a2, 32 /* FC_Cluster ID */
+        //bne a2, a0, cl_cluster_exec_loop
+        .extern cluster_exec_loop
+        bne a2, a0, cluster_exec_loop
 #endif /* FEATURE_CLUSTER */
 
         li a0, 0x1800 /* Set MSTATUS : Machine Mode */
@@ -93,22 +97,22 @@
 
         la gp, __data_start__ /* Set global pointer(global var) */
 
-        la sp, __fc_stack_start__ /* Set stack pointer in L1(FC) */
+        la sp, __stack_fc_start__ /* Set stack pointer in L1(FC) */
 
 _fill_zero: /* Init BSS section */
         la a0, __bss_start__
         la a1, __bss_end__
-.LC1:
+.LC1_zero_bss:
         sw    x0, (a0)
         addi  a0, a0, 4
-        bltu  a0, a1, .LC1
+        bltu  a0, a1, .LC1_zero_bss
 
-        la    a0, __fc_bss_start__
-        la    a1, __fc_bss_end__
-.LC2:
+        la    a0, __stack_irq_end__
+        la    a1, __stack_irq_start__
+.LC2_zero_stack_irq:
         sw    x0, (a0)
         addi  a0, a0, 4
-        bltu  a0, a1, .LC2
+        bltu  a0, a1, .LC2_zero_stack_irq
 
         jal ra, system_init
 

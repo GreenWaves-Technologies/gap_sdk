@@ -258,7 +258,7 @@ def get_config(tp):
 
     generator = device.get_child_str('generator')
     if generator is None:
-      raise Exception('No generator specified for device (name: %s)' % device_name)
+      continue
 
     file, path, descr = imp.find_module(generator, None)
     module = imp.load_module(generator, file, path, descr)

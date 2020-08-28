@@ -14,180 +14,52 @@
  * limitations under the License.
  */
 
-#ifndef __DRIVERS__PAD_H__
-#define __DRIVERS__PAD_H__
+#ifndef __PMSIS_DRIVERS_PAD_H__
+#define __PMSIS_DRIVERS_PAD_H__
 
 #include <stdint.h>
 
 /**
-* @ingroup groupDrivers
-*/
-
-
-
-/**
- * @defgroup Padframe Padframe
+ * \ingroup groupDrivers
+ *
+ * \defgroup Padframe Padframe
+ *
+ * \brief Padframe
  *
  * The padframe driver provides support for controlling PADs.
  *
+ * \addtogroup Padframe
+ * \{
  */
 
 /**
- * @addtogroup Padframe
- * @{
- */
-
-/**@{*/
-
-/** \enum pi_pad_func_e
+ * \enum pi_pad_func_e
+ *
  * \brief Pad functions.
  *
  * This is used to identify the function for each pad.
  */
-typedef enum {
-  PI_PAD_8_A4_RF_SPIM1_MISO_FUNC0  = 0,
-  PI_PAD_9_B3_RF_SPIM1_MOSI_FUNC0  = 0,
-  PI_PAD_10_A5_RF_SPIM1_CSN_FUNC0  = 0,
-  PI_PAD_11_B4_RF_SPIM1_SCK_FUNC0  = 0,
-  PI_PAD_12_A3_RF_PACTRL0_FUNC0    = 0,
-  PI_PAD_13_B2_RF_PACTRL1_FUNC0    = 0,
-  PI_PAD_14_A2_RF_PACTRL2_FUNC0    = 0,
-  PI_PAD_15_B1_RF_PACTRL3_FUNC0    = 0,
-  PI_PAD_16_A44_RF_PACTRL4_FUNC0   = 0,
-  PI_PAD_17_B40_RF_PACTRL5_FUNC0   = 0,
-  PI_PAD_18_A43_CAM_PCLK_FUNC0     = 0,
-  PI_PAD_19_A37_CAM_HSYNC_FUNC0    = 0,
-  PI_PAD_20_B39_CAM_DATA0_FUNC0    = 0,
-  PI_PAD_21_A42_CAM_DATA1_FUNC0    = 0,
-  PI_PAD_22_B38_CAM_DATA2_FUNC0    = 0,
-  PI_PAD_23_A41_CAM_DATA3_FUNC0    = 0,
-  PI_PAD_24_B37_CAM_DATA4_FUNC0    = 0,
-  PI_PAD_25_A40_CAM_DATA5_FUNC0    = 0,
-  PI_PAD_26_B36_CAM_DATA6_FUNC0    = 0,
-  PI_PAD_27_A38_CAM_DATA7_FUNC0    = 0,
-  PI_PAD_28_A36_CAM_VSYNC_FUNC0    = 0,
-  PI_PAD_29_B34_CAM_SDA_FUNC0      = 0,
-  PI_PAD_30_D1_CAM_SCL_FUNC0       = 0,
-  PI_PAD_31_B11_TIMER0_CH0_FUNC0   = 0,
-  PI_PAD_32_A13_TIMER0_CH1_FUNC0   = 0,
-  PI_PAD_33_B12_TIMER0_CH2_FUNC0   = 0,
-  PI_PAD_34_A14_TIMER0_CH3_FUNC0   = 0,
-  PI_PAD_35_B13_I2S1_SCK_FUNC0     = 0,
-  PI_PAD_36_A15_I2S1_WS_FUNC0      = 0,
-  PI_PAD_37_B14_I2S1_SDI_FUNC0     = 0,
-  PI_PAD_38_B6_UART_RX_FUNC0       = 0,
-  PI_PAD_39_A7_UART_TX_FUNC0       = 0,
-  PI_PAD_40_D2_SPIM0_SDIO0_FUNC0   = 0,
-  PI_PAD_41_A11_SPIM0_SDIO1_FUNC0  = 0,
-  PI_PAD_42_B10_SPIM0_SDIO2_FUNC0  = 0,
-  PI_PAD_43_A10_SPIM0_SDIO3_FUNC0  = 0,
-  PI_PAD_44_B8_SPIM0_CSN0_FUNC0    = 0,
-  PI_PAD_45_A8_SPIM0_CSN1_FUNC0    = 0,
-  PI_PAD_46_B7_SPIM0_SCK_FUNC0     = 0,
-  PI_PAD_47_A9_SPIS0_CSN_FUNC0     = 0,
-  PI_PAD_48_B15_SPIS0_MISO_FUNC0   = 0,
-  PI_PAD_49_A16_SPIS0_MOSI_FUNC0   = 0,
-  PI_PAD_50_B9_SPIS0_SCK_FUNC0     = 0,
-  PI_PAD_53_B22_I2C0_SDA_FUNC0     = 0,
-  PI_PAD_54_A25_I2C0_SCL_FUNC0     = 0,
-  PI_PAD_55_A24_I2S0_SCK_FUNC0     = 0,
-  PI_PAD_56_A26_I2S0_WS_FUNC0      = 0,
-  PI_PAD_57_B23_I2S0_SDI_FUNC0     = 0,
-  PI_PAD_FUNC0                     = 0,
-
-  PI_PAD_8_A4_GPIO_A0_FUNC1        = 1,
-  PI_PAD_9_B3_GPIO_A1_FUNC1        = 1,
-  PI_PAD_10_A5_GPIO_A2_FUNC1       = 1,
-  PI_PAD_11_B4_GPIO_A3_FUNC1       = 1,
-  PI_PAD_12_A3_GPIO_A0_FUNC1       = 1,
-  PI_PAD_13_B2_GPIO_A1_FUNC1       = 1,
-  PI_PAD_14_A2_GPIO_A2_FUNC1       = 1,
-  PI_PAD_15_B1_GPIO_A3_FUNC1       = 1,
-  PI_PAD_16_A44_GPIO_A4_FUNC1      = 1,
-  PI_PAD_17_B40_GPIO_A5_FUNC1      = 1,
-  PI_PAD_18_A43_GPIO_A4_FUNC1      = 1,
-  PI_PAD_19_A37_GPIO_A5_FUNC1      = 1,
-  PI_PAD_20_B39_GPIO_A6_FUNC1      = 1,
-  PI_PAD_21_A42_GPIO_A7_FUNC1      = 1,
-  PI_PAD_22_B38_GPIO_A8_FUNC1      = 1,
-  PI_PAD_23_A41_GPIO_A9_FUNC1      = 1,
-  PI_PAD_24_B37_GPIO_A10_FUNC1     = 1,
-  PI_PAD_25_A40_GPIO_A11_FUNC1     = 1,
-  PI_PAD_26_B36_GPIO_A12_FUNC1     = 1,
-  PI_PAD_27_A38_GPIO_A13_FUNC1     = 1,
-  PI_PAD_28_A36_GPIO_A14_FUNC1     = 1,
-  PI_PAD_29_B34_GPIO_A15_FUNC1     = 1,
-  PI_PAD_30_D1_GPIO_A16_FUNC1      = 1,
-  PI_PAD_31_B11_GPIO_A17_FUNC1     = 1,
-  PI_PAD_32_A13_GPIO_A18_FUNC1     = 1,
-  PI_PAD_33_B12_GPIO_A19_FUNC1     = 1,
-  PI_PAD_34_A14_GPIO_A20_FUNC1     = 1,
-  PI_PAD_35_B13_GPIO_A21_FUNC1     = 1,
-  PI_PAD_36_A15_GPIO_A22_FUNC1     = 1,
-  PI_PAD_37_B14_GPIO_A23_FUNC1     = 1,
-  PI_PAD_38_B6_GPIO_A24_FUNC1      = 1,
-  PI_PAD_39_A7_GPIO_A25_FUNC1      = 1,
-  PI_PAD_42_B10_GPIO_A26_FUNC1     = 1,
-  PI_PAD_43_A10_GPIO_A27_FUNC1     = 1,
-  PI_PAD_45_A8_GPIO_A28_FUNC1      = 1,
-  PI_PAD_47_A9_GPIO_A29_FUNC1      = 1,
-  PI_PAD_48_B15_GPIO_A30_FUNC1     = 1,
-  PI_PAD_49_A16_GPIO_A31_FUNC1     = 1,
-  PI_PAD_FUNC1                     = 1,
-
-  PI_PAD_10_A5_I2C1_SDA_FUNC2      = 2,
-  PI_PAD_11_B4_I2C1_SCL_FUNC2      = 2,
-  PI_PAD_12_A3_SPIM1_CS0_FUNC2     = 2,
-  PI_PAD_13_B2_SPIM1_CS1_FUNC2     = 2,
-  PI_PAD_16_A44_SPIS0_SDIO0_FUNC2  = 2,
-  PI_PAD_17_B40_SPIS0_SDIO1_FUNC2  = 2,
-  PI_PAD_18_A43_TIMER1_CH0_FUNC2   = 2,
-  PI_PAD_19_A37_TIMER1_CH1_FUNC2   = 2,
-  PI_PAD_20_B39_TIMER1_CH2_FUNC2   = 2,
-  PI_PAD_21_A42_TIMER1_CH3_FUNC2   = 2,
-  PI_PAD_22_B38_TIMER2_CH0_FUNC2   = 2,
-  PI_PAD_23_A41_TIMER2_CH1_FUNC2   = 2,
-  PI_PAD_24_B37_TIMER2_CH2_FUNC2   = 2,
-  PI_PAD_25_A40_TIMER2_CH3_FUNC2   = 2,
-  PI_PAD_26_B36_TIMER3_CH0_FUNC2   = 2,
-  PI_PAD_27_A38_TIMER3_CH1_FUNC2   = 2,
-  PI_PAD_28_A36_TIMER3_CH2_FUNC2   = 2,
-  PI_PAD_29_B34_TIMER3_CH3_FUNC2   = 2,
-  PI_PAD_30_D1_ORCA_CLK_FUNC2      = 2,
-  PI_PAD_32_A13_TIMER1_CH0_FUNC2   = 2,
-  PI_PAD_33_B12_TIMER2_CH0_FUNC2   = 2,
-  PI_PAD_34_A14_TIMER3_CH0_FUNC2   = 2,
-  PI_PAD_35_B13_SPIS0_SCK_FUNC2    = 2,
-  PI_PAD_36_A15_SPIS0_CS_FUNC2     = 2,
-  PI_PAD_37_B14_SPIS0_SDIO2_FUNC2  = 2,
-  PI_PAD_42_B10_I2C1_SDA_FUNC2     = 2,
-  PI_PAD_43_A10_I2C1_SCL_FUNC2     = 2,
-  PI_PAD_45_A8_SPIS0_SDIO3_FUNC2   = 2,
-  PI_PAD_47_A9_SPIM1_CS0_FUNC2     = 2,
-  PI_PAD_48_B15_SPIM1_CS1_FUNC2    = 2,
-  PI_PAD_FUNC2                     = 2,
-
-  PI_PAD_16_A44_SPIS0_SDIO2_FUNC3  = 3,
-  PI_PAD_17_B40_SPIS0_SDIO3_FUNC3  = 3,
-  PI_PAD_35_B13_I2S1_SDI_FUNC3     = 3,
-  PI_PAD_36_A15_HYPER_CKN_FUNC3    = 3,
-  PI_PAD_37_B14_HYPER_CK_FUNC3     = 3,
-  PI_PAD_40_D2_HYPER_DQ0_FUNC3     = 3,
-  PI_PAD_41_A11_HYPER_DQ1_FUNC3    = 3,
-  PI_PAD_42_B10_HYPER_DQ2_FUNC3    = 3,
-  PI_PAD_43_A10_HYPER_DQ3_FUNC3    = 3,
-  PI_PAD_44_B8_HYPER_DQ4_FUNC3     = 3,
-  PI_PAD_45_A8_HYPER_DQ5_FUNC3     = 3,
-  PI_PAD_46_B7_HYPER_DQ6_FUNC3     = 3,
-  PI_PAD_47_A9_HYPER_DQ7_FUNC3     = 3,
-  PI_PAD_48_B15_HYPER_CSN0_FUNC3   = 3,
-  PI_PAD_49_A16_HYPER_CSN1_FUNC3   = 3,
-  PI_PAD_50_B9_HYPER_RWDS_FUNC3    = 3,
-  PI_PAD_FUNC3                     = 3
+typedef enum
+{
+    PI_PAD_FUNC0                     = 0, /*!< Alternate func0, default func.*/
+    PI_PAD_FUNC1                     = 1, /*!< Alternate func1. */
+    PI_PAD_FUNC2                     = 2, /*!< Alternate func2, pads as GPIOs. */
+    PI_PAD_FUNC3                     = 3  /*!< Alternate func3. */
 } pi_pad_func_e;
 
-#define PI_PAD_PULL_OFFSET  0
-#define PI_PAD_DRIVE_OFFSET 1
+
+/**
+ * \cond IMPLEM
+ */
+#define PI_PAD_PULL_OFFSET           ( 0 )
+#define PI_PAD_DRIVE_OFFSET          ( 1 )
+#define PI_PAD_SLEEPCFG_DIR_OFFSET   ( 0 )
+#define PI_PAD_SLEEPCFG_STATE_OFFSET ( 1 )
+/**
+ * \endcond
+ */
+
+
 /**
  * \enum pi_pad_flags_e
  * \brief Pad configuration flags.
@@ -202,8 +74,23 @@ typedef enum
     PI_PAD_DS_HIGH      = (1 << PI_PAD_DRIVE_OFFSET)  /*!< High drive strength. */
 } pi_pad_flags_e;
 
+/**
+ * \enum pi_pad_sleepcfg_flags_e
+ *
+ * \brief Pad sleep configuration flags.
+ *
+ * Flags are used to configure pad : direction, active state.
+ */
+typedef enum
+{
+    PI_PAD_SLEEPCFG_INPUT       = (0 << PI_PAD_SLEEPCFG_DIR_OFFSET),   /*!< Pad is an input. */
+    PI_PAD_SLEEPCFG_OUTPUT      = (1 << PI_PAD_SLEEPCFG_DIR_OFFSET),   /*!< Pad is an output. */
+    PI_PAD_SLEEPCFG_ACTIVE_LOW  = (0 << PI_PAD_SLEEPCFG_STATE_OFFSET), /*!< Pad is active low. */
+    PI_PAD_SLEEPCFG_ACTIVE_HIGH = (1 << PI_PAD_SLEEPCFG_STATE_OFFSET)  /*!< Pad is active high. */
+} pi_pad_sleepcfg_flags_e;
 
-/** \brief Set the function of one pad.
+/**
+ * \brief Set the function of one pad.
  *
  * This function can be used to configure the function of the specified pad
  * in the case that it supports several functions.
@@ -214,7 +101,8 @@ typedef enum
  */
 void pi_pad_set_function(pi_pad_e pad, pi_pad_func_e function);
 
-/** \brief Set the function of all pads.
+/**
+ * \brief Set the function of all pads.
  *
  * This function can be used to configure the function of all the pads
  * in the case that they support several functions.
@@ -234,12 +122,29 @@ void pi_pad_init(uint32_t pad_values[]);
  */
 void pi_pad_set_configuration(pi_pad_e pad, pi_pad_flags_e cfg);
 
-//!@}
-
+/**
+ * \brief Set the sleep configuration for a set of pins.
+ *
+ * This function configures pads behaviour when microcontroller goes into sleep
+ * or deep sleep mode.
+ * The array sent to this function should be filled for available pads(cf \ref pi_pad_e),
+ * with 2 bits per pad(active state and direction).
+ *
+ * Ex : Pad 10 - PI_PAD_18_A43_CAM_PCLK
+ *
+ * uint32_t array[3] = {0};
+ *
+ * array[PI_PAD_18_A43_CAM_PCLK / 16] |= ((PI_PAD_SLEEPCFG_INPUT | PI_PAD_SLEEPCFG_ACTIVE_HIGH)
+ *                                         << PI_PAD_18_A43_CAM_PCLK);
+ *
+ * \param sleepcfg       Pads sleep configuration.
+ * \param sleep_ena      Enable/disable pad sleep mode.
+ */
+void pi_pad_sleepcfg_set(uint32_t sleepcfg[], uint8_t sleep_ena);
 
 
 /**
- * @}
+ * \} end of Padframe
  */
 
-#endif
+#endif  /* __PMSIS_DRIVERS_PAD_H__ */

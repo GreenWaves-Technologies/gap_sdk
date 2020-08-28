@@ -24,6 +24,26 @@
 
 /**@{*/
 
+/**
+ * \enum pi_cluster_flags_e
+ *
+ * \brief Cluster configuration flags
+ */
+typedef enum
+{
+    /**
+     * \brief Start the cluster with a fork-based execution model.
+     *
+     */
+    PI_CLUSTER_FLAGS_FORK_BASED=(0<<0),
+
+    /**
+     * \brief Start the cluster with a task-based execution model.
+     *
+     */
+    PI_CLUSTER_FLAGS_TASK_BASED=(1<<0)
+} pi_cluster_flags_e;
+
 /** \struct pi_cluster_conf
  * \brief Cluster configuration structure.
  *
@@ -38,6 +58,7 @@ struct pi_cluster_conf {
     uint32_t heap_size; /* Reserved for internal usage. */
     struct pmsis_event_kernel_wrap* event_kernel; /* Reserved for internal
       usage. */
+    pi_cluster_flags_e flags; /*< Additional flags. */
 };
 
 //!@}
@@ -92,24 +113,6 @@ typedef struct cluster_driver_api {
     void (*wait_free_async)(struct pi_device *device, struct pi_task *async_task);
 } cluster_driver_api_t;
 
-#if defined(PMSIS_DRIVERS)
-// object for cluster driver specific data
-struct cluster_driver_data {
-    // prepare a small fifo so that FC can pipeline tasks
-    // --> need to be first for inline access
-    struct pi_cluster_task *task_first;
-    struct pi_cluster_task *task_last;
-    // event kernel attached
-    struct pmsis_event_kernel_wrap* event_kernel;
-    // metadata
-    int cluster_is_on;
-    pmsis_mutex_t task_mutex;
-    pmsis_mutex_t powerstate_mutex;
-    spinlock_t fifo_access;
-    void *heap_start;
-    uint32_t heap_size;
-};
-#endif
 
 /// @endcond
 

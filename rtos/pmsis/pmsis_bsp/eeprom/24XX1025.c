@@ -56,7 +56,6 @@ int pi_24xx1025_open(struct pi_device *device)
     struct pi_i2c_conf i2c_conf;
     pi_i2c_conf_init(&i2c_conf);
     i2c_conf.cs = conf->i2c_addr;
-    i2c_conf.slave_addr = conf->i2c_addr;
     i2c_conf.itf = conf->i2c_itf;
     pi_open_from_conf(&eeprom->i2c_device, &i2c_conf);
 
@@ -162,7 +161,7 @@ static void bsp_24xx1025_enqueue_copy(eeprom_t *eeprom, uint32_t eeprom_addr, vo
         if (is_write)
         {
             // Write copies need to be cut into bursts.
-            // Remember the user task to prevent other copies to be handled before and 
+            // Remember the user task to prevent other copies to be handled before and
             // push the user task when the full transfer is done.
             eeprom->pending_task = task;
             eeprom->pending_write_addr = eeprom_addr;
@@ -191,7 +190,7 @@ static void bsp_24xx1025_enqueue_copy(eeprom_t *eeprom, uint32_t eeprom_addr, vo
             eeprom->waiting_last->next = task;
         else
             eeprom->waiting_first = task;
-    
+
         eeprom->waiting_last = task;
         task->next = NULL;
     }

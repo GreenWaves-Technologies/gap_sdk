@@ -149,6 +149,13 @@ enum pi_task_id {
     PI_TASK_NONE_ID,
 };
 
+typedef struct pi_callback_s {
+  struct pi_task *next;
+  void (*entry)(void *);
+  void *arg;
+} pi_callback_t;
+
+
 
 /// @endcond
 #endif

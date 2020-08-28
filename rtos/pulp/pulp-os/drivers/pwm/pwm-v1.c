@@ -142,25 +142,39 @@ int32_t pi_pwm_duty_cycle_set(struct pi_device *device, uint32_t frequency, uint
 {
     int irq = rt_irq_disable();
 
+    if ((100 < duty_cycle))
+    {
+        printf("Error duty cycle value. It should be 0 <= dc <= 100.\n");
+        return -1;
+    }
+
     pos_pwm_timer_t *timer = (pos_pwm_timer_t *)device->data;
 
     uint8_t pwm_id = timer->pwm->id;
-    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency / 2;
+    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency;
     uint16_t th_lo = 1;
     /* threshold holds frequency value. */
     uint32_t threshold = (th_hi << PWM_T0_THRESHOLD_TH_HI_BIT) | th_lo;
     /* th_timer holds duty cycle. */
-    uint16_t th_timer = (th_hi * duty_cycle) / 100;
+    uint16_t th_timer = th_hi;
+    if (duty_cycle == 0)
+    {
+        th_timer = 0;
+    }
+    else if (duty_cycle != 100)
+    {
+        th_timer = (th_hi * (100 - duty_cycle)) / 100;
+    }
 
     /* Set counter start, end. */
     ARCHI_WRITE(timer->base, PWM_T0_THRESHOLD_OFFSET - PWM_T0_CMD_OFFSET, threshold);
 
     /* Set timer threshold, mode. */
     /* timer config mode: toggle -> regular periods. Easier to setup duty cycle/pulse width. */
-    ARCHI_WRITE(timer->base, PWM_T0_TH_CHANNEL0_OFFSET - PWM_T0_CMD_OFFSET + (timer->channel_id)*4,
-        (PI_PWM_TOGGLE << PWM_T3_TH_CHANNEL0_MODE_BIT) |
-        (th_timer << PWM_T0_TH_CHANNEL0_TH_BIT)
-    );
+    ARCHI_WRITE(timer->base,
+                PWM_T0_TH_CHANNEL0_OFFSET - PWM_T0_CMD_OFFSET + (timer->channel_id)*4,
+                (PI_PWM_SET_CLEAR << PWM_T3_TH_CHANNEL0_MODE_BIT) |
+                (th_timer << PWM_T0_TH_CHANNEL0_TH_BIT));
 
     rt_irq_restore(irq);
 

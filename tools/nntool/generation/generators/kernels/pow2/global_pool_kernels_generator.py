@@ -13,16 +13,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from collections import namedtuple
+from functools import reduce
 
-from generation.at_generators import (gen_globalpool_at_params, gen_at_globalpool)
+from generation.at_generators.utils import at_bits
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generators.generator_decorators import (QREC_POW2,
+                                                        generation_function)
 from graph.types import GlobalPoolParameters
+from utils.largest_factor import balanced_divisors
 
 from ..autotiler_kernel import AutotilerKernel
 
+GEN_GLOBALPOOL = "CNN_GlobalPool"
 LOG = logging.getLogger("nntool." + __name__)
+
+POOL_OPERS = {
+    "average": "KOP_GLOBAL_AVGPOOL",
+    "max": "KOP_GLOBAL_MAXPOOL",
+}
 
 
 @generation_function("kernels",
@@ -33,6 +43,37 @@ def global_pool_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
     gen.kernels.append(GlobalPoolKernel(node.name, cname, node, qrec, at_ver=gen.opts['at_ver']))
     return True
 
+GlobalPoolATParam = namedtuple('GlobalPoolATParam', [
+    "GlobalPoolOper"
+])
+
+def gen_globalpool_at_params(params):
+    oper = POOL_OPERS.get(params.pool_type)
+    if not oper:
+        raise NotImplementedError("generation for %s reduction is not implemented")
+    return GlobalPoolATParam(
+        GlobalPoolOper=oper
+    )
+
+def gen_at_globalpool(code_block, name, in_q, out_q,
+                      c, h, w, at_globalpool, gen_ctrl=None, at_ver=3):
+    if gen_ctrl is None:
+        gen_ctrl = "0"
+    else:
+        gen_ctrl = gen_ctrl.ctrl_name
+        #raise NotImplementedError("genctrl is not yet implemented")
+
+    if at_ver < 3:
+        code_block.write('{}("{}", {}, {}, {}, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_GLOBALPOOL, name, gen_ctrl,
+                         at_bits(in_q), at_bits(out_q), c, c,
+                         h, w, at_globalpool.GlobalPoolOper)
+    else:
+        code_block.write('{}("{}", {}, {}, {}, {}, {}, 1, 1, {}, {}, {}, {}, {});',
+                         GEN_GLOBALPOOL, name, gen_ctrl,
+                         at_bits(in_q), at_bits(
+                             out_q), in_q.q, out_q.q, c, c,
+                         h, w, at_globalpool.GlobalPoolOper)
 
 class GlobalPoolKernel(AutotilerKernel):
     def __init__(self, node_name, cname, params, qrec, gen_ctrl=None, at_ver=3):
@@ -43,8 +84,12 @@ class GlobalPoolKernel(AutotilerKernel):
             self.gen_ctrl = gen_ctrl
 
         self.at_globalpool_params = gen_globalpool_at_params(params)
-        self.in_dim = params.in_dims[0]
-        self.out_dim = params.out_dims[0]
+        in_dim = params.in_dims[0]
+        reduce_sz = reduce(lambda x, y: x * y, (sz for idx, sz in enumerate(in_dim.shape)
+                                                if idx not in params.axis))
+        #self.c = in_dim.size()/reduce_sz
+        self.c = reduce_sz
+        (self.h, self.w) = balanced_divisors(in_dim.size()/reduce_sz)
         self.in_q = qrec.in_qs[0]
         self.out_q = qrec.out_qs[0]
         self.cname = cname
@@ -61,6 +106,6 @@ class GlobalPoolKernel(AutotilerKernel):
             self.gen_ctrl.gen_ctrl_decl(code_block)
 
         gen_at_globalpool(code_block, self.cname, self.in_q, self.out_q,
-                          self.in_dim, self.out_dim, self.at_globalpool_params,
+                          self.c, self.h, self.w, self.at_globalpool_params,
                           at_ver=self.at_ver)
         return code_block

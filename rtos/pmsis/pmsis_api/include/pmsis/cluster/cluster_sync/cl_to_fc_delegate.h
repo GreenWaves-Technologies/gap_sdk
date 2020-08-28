@@ -46,6 +46,10 @@ void pi_cl_send_task_to_fc(pi_task_t *task);
 
 /// @cond IMPLEM
 
+
+static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback);
+
+
 /** \brief Create an opaque task structure for FC
  * create a task ready to launch on the fc (os dependant implementation)
  *

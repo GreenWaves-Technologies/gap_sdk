@@ -34,6 +34,7 @@ __rt_gpio_handler:
 #endif
 
 
+#ifdef GPIO_ASM_HANDLER
   // Read interrupt status from gpio HW reg (this tells which gpio has changed)
   // do an OR with current SW status and update it
   li  x10, ARCHI_GPIO_ADDR + GPIO_INTSTATUS_OFFSET
@@ -73,6 +74,12 @@ __rt_gpio_ff1_loop:
   bnez     x8, __rt_gpio_ff1_loop
 #endif
 
+#else
+  .extern __pi_gpio_handler
+  sw  ra, 20(sp)
+  jal ra, __pi_gpio_handler
+  lw  ra, 20(sp)
+#endif
 
 
 __rt_gpio_handler_end:

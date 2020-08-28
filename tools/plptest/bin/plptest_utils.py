@@ -206,17 +206,25 @@ class Testset(TestCommon):
         nb_score = 0
         for child in self.childs:
             (child_score, child_nb_score) = child.score(table=table, file=file)
+
+            if child_nb_score == 0:
+                continue
+
             score += child_score
             nb_score += child_nb_score
 
         if nb_score > 0:
             score = score / nb_score
 
-        plot = plptest_bench.Jenkins_plot(self.getFullName() + '.score.csv')
-        plot.append('score', str(score))
-        plot.gen()
+            plot = plptest_bench.Jenkins_plot(self.getFullName() + '.score.csv')
+            plot.append('score', str(score))
+            plot.gen()
 
-        return (score, 1)
+            return (score, 1)
+
+        else:
+
+            return (None, 0)
 
     def run(self, config):
         if not self.isActiveForConfig(config):
@@ -280,17 +288,21 @@ class Test(TestCommon):
             for score in self.scores:
 
                 if self.runner.bench_csv_file.get(score.name) is None:
-                    raise Exception("Unknown benchmark item: " + score.name)
+                    value = 0
+                    score_value = 0.0
+                else:
+                    value, desc = self.runner.bench_csv_file.get(score.name)
+                    value = float(value)
 
-                value, desc = self.runner.bench_csv_file.get(score.name)
-                value = float(value)
+                    try:
+                        score_value = eval(score.score)
+                    except:
+                        score_value = 0.0
 
-                score_value = eval(score.score)
+                    name = self.getFullName() if is_first else ""
+                    is_first = False
 
-                name = self.getFullName() if is_first else ""
-                is_first = False
-
-                table.add_row([name, score.name, desc, value, score_value])
+                    table.add_row([name, score.name, desc, value, score_value])
 
                 #print ('\t%s\t%f' % (score.name, score_value))
 
@@ -305,7 +317,11 @@ class Test(TestCommon):
             plot.gen()
 
 
-        return (total_score, 1)
+            return (total_score, 1)
+
+        else:
+
+            return (None, 0)
 
     def get_testrun(self, config):
         if not self.isActiveForConfig(config):
@@ -472,6 +488,7 @@ class TestRun(protocol.ProcessProtocol):
 
         if self.timeout_call_id is not None:
             self.timeout_call_id.cancel()
+            self.timeout_call_id = None
 
         if len(self.commands) == 0:
             self.status = True
