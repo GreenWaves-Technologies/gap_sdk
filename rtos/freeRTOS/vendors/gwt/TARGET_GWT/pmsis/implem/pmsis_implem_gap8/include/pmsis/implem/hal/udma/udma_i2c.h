@@ -69,35 +69,34 @@ static inline uint32_t i2c_setup_get(uint32_t device_id)
 
 /*! STATUS. */
 /* i2c busy check. */
-static inline uint32_t i2c_busy_get(uint32_t device_id)
+static inline uint32_t hal_i2c_busy_get(uint32_t device_id)
 {
-    return i2c_status_get(device_id) & ~I2C_STATUS_BUSY_MASK;
+    return (i2c_status_get(device_id) & I2C_STATUS_BUSY_MASK);
 }
 
 /* Enable arbitration lost error. */
-static inline void i2c_arbitration_set(uint32_t device_id, uint8_t value)
+static inline void hal_i2c_arbitration_set(uint32_t device_id, uint8_t value)
 {
     i2c_status_set(device_id,
                    (i2c_status_get(device_id) & ~I2C_STATUS_ARB_LOST_MASK)
                    | I2C_STATUS_ARB_LOST(value));
 }
 
-static inline uint32_t i2c_arbitration_get(uint32_t device_id)
+static inline uint32_t hal_i2c_arbitration_get(uint32_t device_id)
 {
-    return i2c_status_get(device_id) & ~I2C_STATUS_ARB_LOST_MASK;
+    uint32_t status = i2c_status_get(device_id);
+    return  ((status & I2C_STATUS_ARB_LOST_MASK) >> I2C_STATUS_ARB_LOST_SHIFT);
 }
 
 
 /*! SETUP. */
 /* Abort/Reset on-going transfer & clear busy & arbitration flags. */
-static inline void i2c_do_reset_set(uint32_t device_id, uint8_t value)
+static inline void hal_i2c_reset_set(uint32_t device_id, uint8_t value)
 {
-    i2c_setup_set(device_id,
-                  (i2c_setup_get(device_id) & ~I2C_SETUP_DO_RST_MASK)
-                  | I2C_SETUP_DO_RST(value));
+    i2c_setup_set(device_id, I2C_SETUP_DO_RST(value));
 }
 
-static inline uint32_t i2c_do_reset_get(uint32_t device_id)
+static inline uint32_t hal_i2c_do_reset_get(uint32_t device_id)
 {
     return i2c_setup_get(device_id) & ~I2C_SETUP_DO_RST_MASK;
 }

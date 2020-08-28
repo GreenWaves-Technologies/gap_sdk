@@ -31,7 +31,7 @@ extern struct rtos_type FreeRTOS_rtos;
 extern struct rtos_type ThreadX_rtos;
 extern struct rtos_type eCos_rtos;
 extern struct rtos_type Linux_os;
-extern struct rtos_type ChibiOS_rtos;
+extern struct rtos_type chibios_rtos;
 extern struct rtos_type chromium_ec_rtos;
 extern struct rtos_type embKernel_rtos;
 extern struct rtos_type mqx_rtos;
@@ -45,7 +45,7 @@ static struct rtos_type *rtos_types[] = {
 	&FreeRTOS_rtos,
 	&eCos_rtos,
 	&Linux_os,
-	&ChibiOS_rtos,
+	&chibios_rtos,
 	&chromium_ec_rtos,
 	&embKernel_rtos,
 	&mqx_rtos,
@@ -124,7 +124,7 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 {
 	int x;
 	const char *cp;
-	struct Jim_Obj *res;
+	Jim_Obj *res;
 	int e;
 
 	if (!goi->isconfigure && goi->argc != 0) {
@@ -160,6 +160,11 @@ int rtos_create(Jim_GetOptInfo *goi, struct target *target)
 	Jim_AppendStrings(goi->interp, res, " or auto", NULL);
 
 	return JIM_ERR;
+}
+
+void rtos_destroy(struct target *target)
+{
+	os_free(target);
 }
 
 int gdb_thread_packet(struct connection *connection, char const *packet, int packet_size)
@@ -679,4 +684,20 @@ bool rtos_needs_fake_step(struct target *target, int64_t thread_id)
 	if (target->rtos->type->needs_fake_step)
 		return target->rtos->type->needs_fake_step(target, thread_id);
 	return target->rtos->current_thread != thread_id;
+}
+
+int rtos_read_buffer(struct target *target, target_addr_t address,
+		uint32_t size, uint8_t *buffer)
+{
+	if (target->rtos->type->read_buffer)
+		return target->rtos->type->read_buffer(target->rtos, address, size, buffer);
+	return ERROR_NOT_IMPLEMENTED;
+}
+
+int rtos_write_buffer(struct target *target, target_addr_t address,
+		uint32_t size, const uint8_t *buffer)
+{
+	if (target->rtos->type->write_buffer)
+		return target->rtos->type->write_buffer(target->rtos, address, size, buffer);
+	return ERROR_NOT_IMPLEMENTED;
 }

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __MEMORY_MAP_H__
-#define __MEMORY_MAP_H__
+#ifndef __PMSIS_TARGETS_MEMORY_MAP_H__
+#define __PMSIS_TARGETS_MEMORY_MAP_H__
 
 #include "properties.h"
 /* Memories */
@@ -31,26 +31,10 @@
 #define L2_SHARED_ADDR_ALIAS                        (0x00000000)
 #endif  /* ARCHI_HAS_L2_ALIAS */
 
-/* L1 cluster memory */
-#define CL_L1_ADDR                                  (0x10000000)
-#if (ARCHI_HAS_CL_L1_ALIAS)
-#define CL_L1_ADDR_ALIAS                            (0x00000000)
-#endif  /* ARCHI_HAS_CL_L1_ALIAS */
-
-/* L1 cluster TS */
-#if (ARCHI_HAS_CL_L1_TS)
-#define L2_PRIV0_TS_ADDR                            (0x10100000)
-#endif  /* ARCHI_HAS_CL_L1_TS */
-
 /* ROM memory */
 #define ROM_ADDR                                    (0x1A000000)
 
 /* Peripherals */
-/* Cluster */
-#define ARCHI_CLUSTER_ADDR                          (0x00000000)
-#define ARCHI_CLUSTER_SIZE                          (0x00400000)
-#define ARCHI_CLUSTER_GLOBAL_ADDR(cid)              (0x10000000 + (cid)*ARCHI_CLUSTER_SIZE)
-
 /* SoC peripherals */
 #define SOC_PERIPHERALS_ADDR                        (0x1A100000)
 
@@ -77,4 +61,51 @@
 #define UDMA_I2S(id)                                (UDMA_PERIPH_BASE_ADDR + (UDMA_I2S_ID(id) << UDMA_PERIPH_SIZE_LOG2))
 #define UDMA_CPI(id)                                (UDMA_PERIPH_BASE_ADDR + (UDMA_CPI_ID(id) << UDMA_PERIPH_SIZE_LOG2))
 
-#endif  /* __MEMORY_MAP_H__ */
+
+/**
+ * Cluster.
+ */
+/* Cluster base address. */
+#define ARCHI_CLUSTER_BASE_ADDR                     (0x00000000)
+#define ARCHI_CLUSTER_GLOBAL_ADDR(cid)              (0x10000000 + (cid) * ARCHI_CLUSTER_SIZE)
+
+/* Memories. */
+/* L1 cluster memory */
+#define CL_L1_ADDR                                  (0x10000000)
+#if (ARCHI_HAS_CL_L1_ALIAS)
+#define CL_L1_ADDR_ALIAS                            (0x00000000)
+#endif  /* ARCHI_HAS_CL_L1_ALIAS */
+
+/* L1 cluster TS */
+#if (ARCHI_HAS_CL_L1_TS)
+#define CL_L1_TS_ADDR                               (CL_L1_ADDR + ARCHI_CL_L1_TS_OFFSET)
+#endif  /* ARCHI_HAS_CL_L1_TS */
+
+
+/* Cluster peripherals. */
+#define CL_PERIPHERALS_ADDR                         (0x00200000)
+#define ARCHI_CL_PERIPHERALS_ADDR                   (ARCHI_CLUSTER_BASE_ADDR + CL_PERIPHERALS_ADDR)
+#define ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid)       (ARCHI_CLUSTER_GLOBAL_ADDR(cid) + CL_PERIPHERALS_ADDR)
+
+#define CL_CTRL_ADDR                                (ARCHI_CL_PERIPHERALS_ADDR + CL_CTRL_OFFSET)
+#define CL_CTRL_GLOB_ADDR(cid)                      (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_CTRL_OFFSET)
+#define CL_TIMER_ADDR                               (ARCHI_CL_PERIPHERALS_ADDR + CL_TIMER_OFFSET)
+#define CL_GLOB_EU_CORE_ADDR(cid)                   (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_GLOB_EU_CORE_OFFSET)
+#define CL_GLOB_EU_BARRIER_ADDR(cid)                (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_GLOB_EU_BARRIER_OFFSET)
+#define CL_GLOB_EU_SW_EVENT_ADDR(cid)               (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_GLOB_EU_SW_EVENT_OFFSET)
+#define CL_GLOB_EU_SOC_EVENT_ADDR(cid)              (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_GLOB_EU_SOC_EVENT_OFFSET)
+#define CL_GLOB_EU_DISPATCH_ADDR(cid)               (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_GLOB_EU_DISPATCH_OFFSET)
+#define CL_GLOB_ICACHE_ADDR(cid)                    (ARCHI_CL_PERIPHERALS_GLOBAL_ADDR(cid) + CL_ICACHE_CTRL_OFFSET)
+#define CL_ICACHE_ADDR                              (ARCHI_CL_PERIPHERALS_ADDR + CL_ICACHE_CTRL_OFFSET)
+#define CL_DMA_ADDR                                 (ARCHI_CL_PERIPHERALS_ADDR + CL_DMA_OFFSET)
+
+/* Demux peripherals. */
+#define CL_DEMUX_EU_CORE_ADDR                       (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_CORE_OFFSET)
+#define CL_DEMUX_EU_LOOP_ADDR                       (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_LOOP_OFFSET)
+#define CL_DEMUX_EU_DISPATCH_ADDR                   (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_DISPATCH_OFFSET)
+#define CL_DEMUX_EU_MUTEX_ADDR                      (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_MUTEX_OFFSET)
+#define CL_DEMUX_EU_SW_EVENT_ADDR                   (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_SW_EVENT_OFFSET)
+#define CL_DEMUX_EU_BARRIER_ADDR                    (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_EU_BARRIER_OFFSET)
+#define CL_DEMUX_DMA_ADDR                           (ARCHI_CL_PERIPHERALS_ADDR + CL_DEMUX_DMA_OFFSET)
+
+#endif  /* __PMSIS_TARGETS_MEMORY_MAP_H__ */

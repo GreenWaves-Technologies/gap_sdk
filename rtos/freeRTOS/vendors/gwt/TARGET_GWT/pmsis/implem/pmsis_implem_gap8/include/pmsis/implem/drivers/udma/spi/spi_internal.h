@@ -74,6 +74,7 @@ struct spim_driver_data {
     uint32_t first_byte_shift;
     uint32_t last_byte_shift;
 
+    pi_freq_cb_t spi_freq_cb;                     /* Callback associated to frequency changes. */
 
     uint8_t device_id;
 };
@@ -241,5 +242,7 @@ static inline void __pi_spim_cs_data_add(struct spim_driver_data *drv_data,
     cs_data->next = drv_data->cs_list;
     drv_data->cs_list = cs_data->next;
 }
+
+void __pi_spi_freq_cb(void *args);
 
 #endif

@@ -38,8 +38,6 @@
  * Driver data
  *****************************************************************************/
 
-extern struct dmacpy_driver_fifo_s *g_dmacpy_driver_fifo[];
-
 /*******************************************************************************
  * API implementation
  ******************************************************************************/
@@ -54,14 +52,14 @@ int pi_dmacpy_open(struct pi_device *device)
     int32_t status = -1;
     struct pi_dmacpy_conf *conf = (struct pi_dmacpy_conf *) device->config;
     DMACPY_TRACE("Open device id=%d\n", conf->id);
-    status = __pi_dmacpy_open(conf, (struct dmacpy_driver_fifo_s **) &(device->data));
+    status = __pi_dmacpy_open(conf, (struct dmacpy_itf_data_s **) &(device->data));
     DMACPY_TRACE("Open status : %d\n", status);
     return status;
 }
 
 void pi_dmacpy_close(struct pi_device *device)
 {
-    struct dmacpy_driver_fifo_s *fifo = (struct dmacpy_driver_fifo_s *) device->data;
+    struct dmacpy_itf_data_s *fifo = (struct dmacpy_itf_data_s *) device->data;
     if (fifo != NULL)
     {
         DMACPY_TRACE("Close device id=%d\n", fifo->device_id);
@@ -91,7 +89,7 @@ int pi_dmacpy_copy(struct pi_device *device, void *src, void *dst,
 int pi_dmacpy_copy_async(struct pi_device *device, void *src, void *dst,
                          uint32_t size, pi_dmacpy_dir_e dir, struct pi_task *task)
 {
-    struct dmacpy_driver_fifo_s *fifo = (struct dmacpy_driver_fifo_s *) device->data;
+    struct dmacpy_itf_data_s *fifo = (struct dmacpy_itf_data_s *) device->data;
     DMACPY_TRACE("DMA Memcpy(%ld): %lx %lx %ld %ld\n",
                  fifo->device_id, (uint32_t) src, (uint32_t) dst, size, dir);
     return __pi_dmacpy_copy(fifo->device_id, src, dst, size, dir, task);

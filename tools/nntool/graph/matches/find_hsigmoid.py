@@ -101,7 +101,7 @@ class MatchCloseHSigmoid(DefaultMatcher):
             else:
                 raise NotImplementedError()
             G.quantization[NodeId(activation)] = pqrec
-        return activation
+        return activation, None, None
 
 
 def look_back(G, node, state=None):
@@ -198,13 +198,17 @@ class MatchFarHSigmoid(Matcher):
         oprecs = [oprec for oprec in (look_back(G, op)
                                       for op in const_ops)
                   if oprec is not None]
+        has_modified_graph = False
         for oprec in oprecs:
             mul_edge = G.out_edges(oprec['mul'][0].name)
             if len(mul_edge) == 1:
                 mul_edge = mul_edge[0]
                 if isinstance(mul_edge.to_node, ReluActivationParameters):
                     oprec['relu3'] = (mul_edge.to_node, G.quantization[NodeId(mul_edge.to_node)])
+            has_modified_graph = True
             process_rec(G, oprec)
 
         if set_identity:
             self.set_identity(G)
+
+        return has_modified_graph

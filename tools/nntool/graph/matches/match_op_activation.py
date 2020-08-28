@@ -52,13 +52,19 @@ class MatchOpActivation(DefaultMatcher):
 
     def replace_function(self, G: NNGraph, subgraph: GraphView):
         nodes = list(subgraph.nodes())
-        pnode = ActivationFusion(nodes[0].name + "fusion", nodes[0].op_name + "_active", subgraph)
+        # map all inputs of first node to first node
+        input_mapping = [[(nodes[0], idx)] for idx in range(len(G.in_edges(nodes[0].name)))]
+        pnode = ActivationFusion(nodes[0].name + "fusion",
+                                 fusion_type=nodes[0].op_name + "_active",
+                                 subgraph=subgraph,
+                                 input_mapping=input_mapping
+                                 )
         nodes[0].step_idx = 0
         nodes[1].step_idx = 1
         LOG.debug("fused nodes %s", ",".join(
             (node.name for node in nodes)))
         if G.quantization:
-            qrecs = G.quantization.get_all(subgraph.nodes())
+            qrecs = G.quantization.get_all(pnode.contained_nodes())
             if qrecs:
                 if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
                     prec = SymmetricQuantizationRecord(
@@ -67,10 +73,10 @@ class MatchOpActivation(DefaultMatcher):
                     prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
                 elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
                     prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                for node in subgraph.nodes():
+                for node in pnode.contained_nodes():
                     G.quantization.move_to_fusion(node, pnode)
                 G.quantization[NodeId(pnode)] = prec
-        return pnode
+        return pnode, None, None
 
 
 class MatchOpActivationScaleKernels(MatchOpActivation):

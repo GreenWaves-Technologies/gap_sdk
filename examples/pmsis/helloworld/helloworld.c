@@ -23,6 +23,7 @@ void cluster_delegate(void *arg)
 void helloworld(void)
 {
     printf("Entering main controller\n");
+
     uint32_t errors = 0;
     uint32_t core_id = pi_core_id(), cluster_id = pi_cluster_id();
     printf("[%d %d] Hello World!\n", cluster_id, core_id);

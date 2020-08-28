@@ -96,10 +96,9 @@ void cl_cluster_exec_loop(void)
     SCBC->ICACHE_ENABLE = 0xFFFFFFFF;
 
     /* Initialization for the task dispatch loop */
-    hal_eu_evt_mask_set((1 << EU_DISPATCH_EVENT) |
-                        (1 << EU_MUTEX_EVENT) |
-                        (1 << EU_HW_BARRIER_EVENT) |
-                        (1 << EU_LOOP_EVENT));
+    hal_eu_evt_mask_set((1 << CL_IRQ_DISPATCH_EVT) |
+                        (1 << CL_IRQ_HW_MUTEX_EVT) |
+                        (1 << CL_IRQ_BARRIER_EVT));
 
     asm volatile ("add    s1,  x0,  %0" :: "r" (CORE_EU_DISPATCH_DEMUX_BASE));
     asm volatile ("add    s2,  x0,  %0" :: "r" (CORE_EU_BARRIER_DEMUX_BASE));
@@ -128,7 +127,7 @@ void cl_cluster_exec_loop(void)
          * Core 0 will wait for tasks from FC side
          */
         /* Enable IRQ for DMA on Core 0. */
-        hal_eu_irq_mask_set(1 << CL_EVENT_DMA1);
+        hal_eu_irq_mask_set(1 << CL_IRQ_DMA1);
         __enable_irq();
 
         asm volatile("add   s4,  x0,  %0\n\t"
@@ -190,12 +189,6 @@ static void cl_set_core_stack(void *arg)
         /* Update sp */
         asm ("add  sp, x0, %0" :: "r" (core_stack_ptr) );
     }
-    else
-    {
-        // master
-        /* Cluster calls FC */
-        hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
-    }
 }
 
 /*!
@@ -232,9 +225,6 @@ void cl_task_finish(void)
     // clean up finished cluster task
     cl_pop_cluster_task(data);
     //PRINTF("cl_task_finish: data=%p\n",data);
-
-    // Notify FC that current task is done
-    hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_EVENT, 0);
 }
 
 /**
@@ -439,9 +429,10 @@ static inline void __cluster_start(struct pi_device *device)
     // --- critical zone start ---
     if(!data->cluster_is_on)
     {
-        // call pmu through os for now, TODO: add the driver in PMSIS
-        pi_pmu_cluster_poweron();
+        /* Turn cluster power on. */
+        __pi_pmu_cluster_power_on();
         PRINTF("poweron is done\n");
+
         for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
         {
             extern uint8_t __irq_vector_base_m__;
@@ -481,7 +472,9 @@ static inline int __cluster_stop(struct pi_device *device)
     {
         // wait for potential remaining tasks
         //__cluster_wait_termination(device);
-        pi_pmu_cluster_poweroff();
+
+        /* Turn cluster power off. */
+        __pi_pmu_cluster_power_off();
     }
     pmsis_mutex_release(&data->powerstate_mutex);
     return data->cluster_is_on;
@@ -567,7 +560,12 @@ static inline int __pi_send_task_to_cl(struct pi_device *device, struct pi_clust
 
     /* If Cluster has not finished previous task, wait */
 
-    task->nb_cores = task->nb_cores ? task->nb_cores : ARCHI_CLUSTER_NB_PE;
+    if (task->nb_cores == 0)
+    {
+        task->nb_cores = (uint32_t) pi_cl_cluster_nb_pe_cores();
+    }
+    task->cluster_team_mask = ((1 << task->nb_cores) - 1);
+    //task->nb_cores = task->nb_cores ? task->nb_cores : ARCHI_CLUSTER_NB_PE;
 
     PRINTF("task->nb_cores:%lx\n", task->nb_cores);
 

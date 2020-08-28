@@ -168,3 +168,30 @@ class TanHActivationParameters(ActivationParameters):
     @property
     def can_equalize(self):
         return False
+
+class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
+
+    op_name = "softmax"
+
+    def __init__(self, name, beta):
+        super(SoftMaxParameters, self).__init__(name)
+        self.beta = beta
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def compute_load(self):
+        return self.in_dims[0].size() * 2
+
+    def __str__(self):
+        return "BETA {} {}".format(
+            self.beta,
+            self.at_options
+        )

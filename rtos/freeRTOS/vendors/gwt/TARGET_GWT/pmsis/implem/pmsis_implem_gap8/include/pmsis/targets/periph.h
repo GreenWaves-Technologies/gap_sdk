@@ -58,49 +58,8 @@
 
 #ifndef _PMSIS_PERIPH_GAP8_H_
 #define _PMSIS_PERIPH_GAP8_H_                        /**< Symbol preventing repeated inclusion */
-/* ----------------------------------------------------------------------------
-   -- Interrupt vector numbers
-   ---------------------------------------------------------------------------- */
 
-/*!
- * @addtogroup Interrupt_vector_numbers Interrupt vector numbers
- * @{
- */
-/** Interrupt Number Definitions */
-#define NUMBER_OF_INT_VECTORS  32                  /**< Number of interrupts in the Vector table */
-
-typedef enum IRQn {
-  FC_NOTIFY_CLUSTER_EVENT      = 0,                /**< Software event interrupt */
-  CLUSTER_NOTIFY_FC_EVENT      = 1,                /**< Software event interrupt */
-  FC_SW_NOTIFY_BRIDGE_EVENT    = 2,                /**< Software event interrupt */
-  FC_SW_NOTIFY_EVENT           = 3,                /**< Software event interrupt */
-  CLUSTER_NOTIFY_FC_IRQN       = 4,                /**< Software event interrupt */
-  DMA_SW_IRQN                  = 6,
-  PENDSV_IRQN                  = 7,                /**< Software event U -> M PendSV interrupt */
-
-  /* Device specific interrupts */
-  DMA_EVT_IRQN                 = 8,                /**< DMA event interrupt */
-  DMA_IRQN                     = 9,                /**< DMA interrupt */
-  FC_TIMER0_IRQN               = 10,               /**< FC timer0 event interrupt */
-  SYSTICK_IRQN                 = 10,               /**< GAP8 U -> M System Tick Interrupt */
-  FC_TIMER1_IRQN               = 11,               /**< FC timer1 interrupt */
-
-  EU_HWCE_EVENT                = 12,              /**< GAP8 HWCE SW Event */
-  EU_HW_BARRIER_EVENT          = 16,              /**< GAP8 Hardware Barrier SW Event */
-  EU_MUTEX_EVENT               = 17,              /**< GAP8 Mutex SW Event */
-  EU_DISPATCH_EVENT            = 18,              /**< GAP8 Dispatch SW Event */
-  EU_LOOP_EVENT                = 19,              /**< GAP8 Loop SW Event */
-
-  /* Fault interrupts */
-  FC_SOC_EVENT_IRQN            = 27,              /**< GAP8 SoC Event Interrupt */
-  MPU_ERROR_IRQN               = 28,              /**< GAP8 MPU Error Interrupt */
-  ERR_EVENT_IRQN               = 29,              /**< GAP8 Event Error Interrupt */
-
-  /* Core interrupts */
-  RST_HANDLER_IRQN             = 32,              /**< GAP8 Reset handler Interrupt */
-  ILL_INS_IRQN                 = 33,              /**< GAP8 Usage Fault Interrupt */
-  SVCALL_IRQN                  = 34               /**< GAP8 SV Call Interrupt */
-} IRQn_Type;
+#define IRQn_Type uint32_t
 
 /*!
  * @}
@@ -862,6 +821,9 @@ typedef struct {
    -- PMU DLC Access Layer
    ---------------------------------------------------------------------------- */
 
+#include "periph/pmu_dlc_periph.h"
+#define pmu_dlc ((pmu_dlc_t *) DLC_ADDR)
+
 /*!
  * @addtogroup PMU_DLC_Peripheral_Access_Layer PMU_DLC Peripheral Access_Layer
  * @{
@@ -976,6 +938,7 @@ typedef struct {
 #define  PICL_WIU_ADDR         0x00
 #define  PICL_ICU_ADDR         0x01
 
+#if 0
 /* REG_ADDR[4:0]*/
 #define  WIU_ISPMR_0           (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_WIU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x00))
 #define  WIU_ISPMR_1           (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_WIU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x01))
@@ -1004,7 +967,7 @@ typedef struct {
 #define  ICU_ISMR              (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x02))
 #define  ICU_DMR_0             (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x03))
 #define  ICU_DMA_1             (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x04))
-
+#endif
 /*!
  * @}
  */ /* end of group PMU_DLC_Register_Masks */
@@ -1193,6 +1156,27 @@ typedef struct {
 
 
 #ifdef FEATURE_CLUSTER
+
+/* ----------------------------------------------------------------------------
+   -- CLUSTER_DEMUX_EVENT_UNIT Peripheral Access Layer
+   ---------------------------------------------------------------------------- */
+#include "periph/cluster_event_unit/cluster_event_unit.h"
+#define cl_demux_eu_core(id)     ((cluster_eu_core_demux_t *) CL_DEMUX_EU_CORE_ADDR)
+#define cl_demux_eu_loop(id)     ((cluster_eu_loop_demux_t *) CL_DEMUX_EU_LOOP_ADDR)
+#define cl_demux_eu_dispatch(id) ((cluster_eu_dispatch_demux_t *) CL_DEMUX_EU_DISPATCH_ADDR)
+#define cl_demux_eu_mutex(id)    ((cluster_eu_mutex_demux_t *) CL_DEMUX_EU_MUTEX_ADDR)
+#define cl_demux_eu_sw_evt(id)   ((cluster_eu_sw_evt_demux_t *) CL_DEMUX_EU_SW_EVENT_ADDR)
+#define cl_demux_eu_barrier(id)  ((cluster_eu_barrier_demux_t *) (CL_DEMUX_EU_BARRIER_ADDR + (id * sizeof(cluster_eu_barrier_demux_t))))
+
+/* ----------------------------------------------------------------------------
+   -- CLUSTER_EVENT_UNIT Peripheral Access Layer
+   ---------------------------------------------------------------------------- */
+#include "periph/cluster_event_unit/cluster_event_unit.h"
+#define cl_glob_eu_core(cid)     ((cluster_eu_core_demux_t *) CL_GLOB_EU_CORE_ADDR(cid))
+#define cl_glob_eu_dispatch(cid) ((cluster_eu_dispatch_demux_t *) CL_GLOB_EU_DISPATCH_ADDR(cid))
+#define cl_glob_eu_sw_evt(cid)   ((cluster_eu_sw_evt_demux_t *) CL_GLOB_EU_SW_EVENT_ADDR(cid))
+
+
 /* ----------------------------------------------------------------------------
    -- CLUSTER_STDOUT Peripheral Access Layer
    ---------------------------------------------------------------------------- */

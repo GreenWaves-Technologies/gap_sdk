@@ -1,8 +1,24 @@
-#PMSIS example repository
+# PMSIS examples
 
-## To contribute, please follow a few simple rules:
-### First, adopt pmsis coding style, which is basically gnu-c style with 4 character wide expanded tabs
-### Second, follow freertos like hierachy for tests, mainly test_os/DDD for 0S tets, test_features for specific gap features (see freertos repository for details)
-### Third, all tests and directory names must be in lower case with words separated by underscores, and the "int main(...)" function must reside in a c file with the same
-name as the directory
-### Finally, all test names must be of the form test_XXX.c where XXX describes what the test is actually testing
+## Description
+
+This repository contains various examples demonstrating the capabilities of GAP chips and boards
+using the PMSIS API.
+
+Examples are divided in folders corresponding to categories.
+Main categories are:
+- `helloworld`: classic helloworld program
+- `features`: examples showing GAP features
+- `periph`: examples showing how to use GAP internal peripherals
+- `bsp`: examples showing how to use the PMSIS BSP to control external devices
+
+## How to contribute
+
+An example should:
+- be in the right category
+- have a `README.md` file that explains what it is doing, its requirements and limitations.
+- be as simple as possible
+- present only one feature
+- contain useful code comments
+
+To add an example, write it in a branch and then submit a merge/pull request.

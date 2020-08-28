@@ -49,66 +49,38 @@ void pi_pwm_conf_init(struct pi_pwm_conf *conf)
 
 int32_t pi_pwm_open(struct pi_device *device)
 {
+    int32_t status = -1;
     struct pi_pwm_conf *conf = (struct pi_pwm_conf *) device->config;
-    /* Data will contain PWM ID, no special actions. */
-    uint32_t pwm_ch = ((((uint8_t) conf->ch_id) << 16) | ((uint8_t) conf->pwm_id));
-    device->data = (void *) ((uint32_t) pwm_ch);
-
-    return __pi_pwm_open(conf->pwm_id, conf);
+    /* Data will contain PWM ID and channel ID. */
+    status = __pi_pwm_open(conf, (uint32_t **) &(device->data));
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    uint8_t pwm_id = (uint8_t) PI_PWM_TIMER_ID(pwm_ch);
+    PWM_TRACE("PWM(%d) open status %ld, data = %lx.\n",
+              pwm_id, status, pwm_ch);
+    return status;
 }
 
 void pi_pwm_close(struct pi_device *device)
 {
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_close(pwm_id);
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    __pi_pwm_close(pwm_ch);
 }
 
 int32_t pi_pwm_ioctl(struct pi_device *device, pi_pwm_ioctl_cmd_e cmd, void *arg)
 {
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    return __pi_pwm_ioctl(pwm_id, cmd, arg);
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    return __pi_pwm_ioctl(pwm_ch, cmd, arg);
 }
 
 uint32_t pi_pwm_counter_get(struct pi_device *device)
 {
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    return __pi_pwm_counter_get(pwm_id);
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    return __pi_pwm_counter_get(pwm_ch);
 }
 
-
-int32_t pi_pwm_duty_cycle_set(struct pi_device *device,
-                              uint32_t frequency, uint8_t duty_cycle)
+int32_t pi_pwm_duty_cycle_set(struct pi_device *device, uint32_t frequency,
+                              uint8_t duty_cycle)
 {
-    if ((0 < duty_cycle) && (duty_cycle > 100))
-    {
-        printf("Error duty cycle value. It should be 0 <= dc <= 100.\n");
-        return -1;
-    }
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFFFF;
-    pi_pwm_channel_e ch_id = (((uint32_t) device->data) >> 16) & 0xFFFF;
-    uint16_t th_hi = pi_freq_get(PI_FREQ_DOMAIN_FC) / frequency;
-    uint16_t th_lo = 1;
-    /* threshold holds frequency value. */
-    uint32_t threshold = (th_hi << 16) | th_lo;
-    /* th_channel holds duty cycle. */
-    uint16_t th_channel = th_hi;
-    if (duty_cycle == 0)
-    {
-        th_channel = 0;
-    }
-    else if (duty_cycle != 100)
-    {
-        th_channel = (th_hi * (100 - duty_cycle)) / 100;
-    }
-
-    /* Set counter start, end. */
-    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_THRESH, (void *) threshold);
-
-    /* Set channel threshold, mode. */
-    struct pi_pwm_ioctl_ch_config ch_conf = {0};
-    ch_conf.ch_threshold = th_channel;
-    ch_conf.config = PI_PWM_SET_CLEAR;
-    ch_conf.channel = ch_id;
-    __pi_pwm_ioctl(pwm_id, PI_PWM_CH_CONFIG, (void *) &ch_conf);
-    return 0;
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    return __pi_pwm_duty_cycle_set(pwm_ch, frequency, duty_cycle);
 }

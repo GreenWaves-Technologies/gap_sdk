@@ -17,7 +17,8 @@ from graph.types.activations import (ActivationParameters,
                                      HSigmoidActivationParameters,
                                      HSwishActivationParameters,
                                      LeakyActivationParameters,
-                                     ReluActivationParameters)
+                                     ReluActivationParameters,
+                                     SoftMaxParameters)
 from graph.types.base import (EdgeParameters, FilterLikeParameters,
                               FilterParameters, MultiplicativeBiasParameters,
                               NNEdge, NodeOptions, Parameters,
@@ -25,25 +26,30 @@ from graph.types.base import (EdgeParameters, FilterLikeParameters,
                               SingleInputAndOutput)
 from graph.types.conv2d import Conv2DParameters
 from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
-                                 FusionBase, MatScaleFusionParameters)
+                                 FusionBase, FusionInputParameters,
+                                 FusionOutputParameters,
+                                 MatScaleFusionParameters)
+from graph.types.image_formatter import ImageFormatParameters
+from graph.types.input_output import (ConstantInputParameters,
+                                      InputBaseParameters,
+                                      InputOutputParameters, InputParameters,
+                                      OutputParameters)
 from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
 from graph.types.others import (CastParameters, ConcatParameters,
-                                ConstantInputParameters, GlobalPoolParameters,
-                                GroupParameters, ImageFormatParameters,
-                                InputBaseParameters, InputParameters,
-                                MatrixAddParameters,
-                                MatrixBroadcastedLinearOpParameters,
-                                MatrixDivParameters, MatrixMulParameters,
-                                MatrixSubParameters, NoOPParameters,
-                                OutputParameters, PadParameters,
-                                ReshapeParameters, SoftMaxParameters,
-                                SSDDetectorParameters, StridedSliceParameters,
-                                Transposable, TransposeParameters,
-                                UnconvertedOpParameters, SplitParameters,
+                                CopyParameters, GlobalPoolParameters,
+                                GroupParameters, NoOPParameters, PadParameters,
+                                ReshapeParameters, SplitParameters,
+                                StridedSliceParameters, Transposable,
+                                TransposeParameters, UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters,
-                                UpsampleParameters,
-                                YoloParameters)
+                                UpsampleParameters)
 from graph.types.pooling import PoolingParameters
 from graph.types.recurrent import RecurrentOutputParameters
 from graph.types.rnn import RNNBaseParameters, RNNParameters
+from graph.types.ssd import SSDDetectorParameters
+from graph.types.tensor_arithmetic import (MatrixAddParameters,
+                                           MatrixBroadcastedLinearOpParameters,
+                                           MatrixDivParameters,
+                                           MatrixMulParameters,
+                                           MatrixSubParameters)

@@ -68,6 +68,24 @@ static inline void udma_channel_clear(udma_core_t *udma, udma_channel_e channel)
     }
 }
 
+static inline uint32_t udma_channel_busy_get(udma_core_t *udma, udma_channel_e channel)
+{
+    uint32_t cfg = 0;
+    switch (channel)
+    {
+    case RX_CHANNEL :
+        cfg = hal_read32(&(udma->rx_cfg));
+        return ((cfg & UDMA_CORE_RX_CFG_PENDING_MASK) >> UDMA_CORE_RX_CFG_PENDING_SHIFT);
+
+    case TX_CHANNEL :
+        cfg = hal_read32(&(udma->tx_cfg));
+        return ((cfg & UDMA_CORE_TX_CFG_PENDING_MASK) >> UDMA_CORE_TX_CFG_PENDING_SHIFT);
+
+    default :
+        return 0xFFFFFFFF;
+    }
+}
+
 static inline void udma_deinit_device(uint32_t device_id)
 {
     // enable clock gating for device with device_id

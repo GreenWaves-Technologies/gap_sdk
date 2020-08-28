@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __EVENTS_H__
-#define __EVENTS_H__
+#ifndef __PMSIS_TARGETS_EVENTS_H__
+#define __PMSIS_TARGETS_EVENTS_H__
 
 #include "properties.h"
 
@@ -30,22 +30,31 @@
 /* Number of SW events. */
 #define NB_SW_EVENTS                    (8)
 
-/*! @brief FC events */
-#define FC_EVENT_SW(id)                 (id & (NB_SW_EVENTS - 1))
-#define FC_EVENT_DMA_EVT                (8)
-#define FC_EVENT_DMA                    (9)
-#define FC_EVENT_TIMER0                 (10) /* Timer low.  */
-#define SYSTICK_IRQN                    (10)
-#define FC_EVENT_TIMER1                 (11) /* Timer high. */
-#define FC_EVENT_EU_HWCE                (12)
+/**
+ * \brief FC IRQ
+ *
+ * Below are listed HW IRQ FC core can receive.
+ */
+#define FC_IRQ_SW_EVT(id)               (id & (NB_SW_EVENTS - 1))
+#define FC_IRQ_DMA_EVT                  (8)
+#define FC_IRQ_DMA                      (9)
+#define FC_IRQ_TIMER0_LO_EVT            (10)
+#define FC_IRQ_TIMER0_HI_EVT            (11)
+#define FC_IRQ_EU_HWCE                  (12)
 
-#define FC_EVENT_SOC_EVENT              (27)
-#define FC_EVENT_MPU_ERROR              (28)
-#define FC_EVENT_FC_QUEUE_ERROR         (29)
-#define FC_EVENT_HP0                    (30)
-#define FC_EVENT_HP1                    (31)
+#define FC_IRQ_SOC_EVENT_FIFO_EVT       (27)
+#define FC_IRQ_MPU_ERROR                (28)
+#define FC_IRQ_FC_QUEUE_ERROR_EVT       (29)
+#define FC_IRQ_HP_0                     (30)
+#define FC_IRQ_HP_1                     (31)
 
-/*! @name SoC events  */
+
+/**
+ * \brief SoC events
+ *
+ * Below are listed SoC peripheral events.
+ */
+
 /*! @brief Number of FC_Events. */
 #define SOC_EU_NB_FC_EVENTS             (57)
 
@@ -88,21 +97,58 @@
 #define SOC_EVENT_SW(id)                (48 + (id & (NB_SW_EVENTS - 1)))
 #define SOC_EVENT_REF32K_CLK_RISE       (56)
 
-/* @brief Cluster events */
-#define CL_EVENT_SW(id)                 (id & (NB_SW_EVENTS - 1))
-#define CL_EVENT_DMA0                   (8)
-#define CL_EVENT_DMA1                   (9)
-#define CL_EVENT_TIMER0_LO              (10)
-#define CL_EVENT_TIMER0_HI              (11)
-#define CL_EVENT_ACC0                   (12)
-#define CL_EVENT_ACC1                   (13)
-#define CL_EVENT_ACC2                   (14)
-#define CL_EVENT_ACC3                   (15)
-#define CL_EVENT_BAR                    (16)
-#define CL_EVENT_MUTEX                  (17)
-#define CL_EVENT_DISPATCH               (18)
-#define CL_EVENT_CLUSTER0               (22)
-#define CL_EVENT_CLUSTER1               (23)
-#define CL_EVENT_SOC_EVT                (27)
 
-#endif  /* __EVENTS_H__ */
+/**
+ * \brief Cluster IRQ
+ *
+ * Below are listed cluster IRQ.
+ */
+#define CL_IRQ_SW_EVT(id)               (id & (NB_SW_EVENTS - 1))
+#define CL_IRQ_DMA0                     (8)
+#define CL_IRQ_DMA1                     (9)
+#define CL_IRQ_TIMER0_LO                (10)
+#define CL_IRQ_TIMER0_HI                (11)
+#define CL_IRQ_ACC_EVT_0                (12) /* HW Acc. */
+#define CL_IRQ_ACC_EVT_1                (13) /* HW Acc. */
+#define CL_IRQ_ACC_EVT_2                (14) /* HW Acc. */
+#define CL_IRQ_ACC_EVT_3                (15) /* HW Acc. */
+#define CL_IRQ_BARRIER_EVT              (16)
+#define CL_IRQ_HW_MUTEX_EVT             (17)
+#define CL_IRQ_DISPATCH_EVT             (18)
+#define CL_IRQ_CLUSTER_EVT_0            (22)
+#define CL_IRQ_CLUSTER_EVT_1            (23)
+#define CL_IRQ_SOC_FIFO_EVT             (27)
+
+
+/* SW IRQ used. */
+/* PendSV */
+#define PENDSV_IRQN                     FC_IRQ_SW_EVT(7) /*!< Pending Supervisor Call/SysCall. */
+#define SYSTICK_IRQN                    FC_IRQ_TIMER0_LO_EVT /*!< SysTick IRQ. */
+#define FC_SOC_EVENT_NOTIFY_IRQ         FC_IRQ_SW_EVT(3)
+
+
+/* IRQ used for FC and Cluster synchronisation. */
+/* FC_IRQ_SW_EVT(0)/CL_IRQ_SW_EVT(0) is not used. */
+#define FC_TO_CLUSTER_NOTIFY_EVENT      CL_IRQ_SW_EVT(1) /*!< Event sent by FC to cluster.
+                                                          *   A cluster core is waiting for this
+                                                          *   event.
+                                                          *   Synchronous.
+                                                          */
+#define DMA_SW_IRQN                     CL_IRQ_SW_EVT(5) /*!< Event used when emulating 2D DMA
+                                                          *   transfers or large 1D ttransfers.
+                                                          *   Master core waits for this SW event,
+                                                          *   triggered by CL_IRQ_DMA1 handler.
+                                                          */
+
+#define CLUSTER_TO_FC_NOTIFY_IRQN       FC_IRQ_SW_EVT(4) /*!< IRQ sent by cluster to FC.
+                                                          *   IRQ handler is needed.
+                                                          *   Asynchronous.
+                                                          */
+
+#define FC_NOTIFY_CLUSTER_EVENT         FC_TO_CLUSTER_NOTIFY_EVENT
+
+#define FC_SOC_EVENT_IRQN               FC_IRQ_SOC_EVENT_FIFO_EVT
+
+#define FC_SW_NOTIFY_EVENT              FC_SOC_EVENT_NOTIFY_IRQ
+
+#endif  /* __PMSIS_TARGETS_EVENTS_H__ */

@@ -36,6 +36,7 @@
 #include "pmsis/chips/gap8/perf.h"
 #include "pmsis/chips/gap8/pad.h"
 #include "pmsis/chips/gap8/gpio.h"
+#include "pmsis/chips/gap8/pmu.h"
 
 /* Drivers. */
 #include "pmsis/drivers/cpi.h"
@@ -46,6 +47,7 @@
 #include "pmsis/drivers/i2s.h"
 #include "pmsis/drivers/pad.h"
 #include "pmsis/drivers/perf.h"
+#include "pmsis/drivers/pmu.h"
 #include "pmsis/drivers/pwm.h"
 #include "pmsis/drivers/rtc.h"
 #include "pmsis/drivers/spi.h"
@@ -55,7 +57,7 @@
 #include "pmsis/implem/drivers/fc_event/fc_event.h"
 #include "pmsis/implem/drivers/fll/fll.h"
 #include "pmsis/implem/drivers/perf/perf.h"
-#include "pmsis/implem/drivers/pmu/pmu.h"
+#include "pmsis/implem/drivers/pmu/pmu_internal.h"
 #include "pmsis/implem/drivers/pwm/pwm_internal.h"
 #include "pmsis/implem/drivers/rtc/rtc_internal.h"
 #include "pmsis/implem/drivers/timer/timer.h"

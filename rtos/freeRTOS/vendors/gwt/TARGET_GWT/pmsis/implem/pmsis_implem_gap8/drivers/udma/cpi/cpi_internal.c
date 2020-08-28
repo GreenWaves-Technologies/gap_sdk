@@ -55,32 +55,33 @@ static void __pi_cpi_handle_end_of_task(struct pi_task *task);
 /* IRQ handler. */
 static void __pi_cpi_handler(void *arg);
 
+/* Check if a HW UDMA slot is free. */
+static int32_t __pi_cpi_hw_fifo_empty(struct cpi_itf_data_s *driver_data);
+
+/* Enqueue a new task in HW fifo for callback. */
+static void __pi_cpi_hw_fifo_task_enqueue(struct cpi_itf_data_s *driver_data,
+                                          struct pi_task *task, uint8_t hw_buff_idx);
+
+/* Switch HW fifo buffers. */
+static void __pi_cpi_hw_fifo_task_switch(struct cpi_itf_data_s *driver_data);
+
+/* Pop a task from HW fifo. */
+static struct pi_task *__pi_cpi_hw_fifo_task_pop(struct cpi_itf_data_s *driver_data);
+
 /* Enqueue a new transfer in SW fifo. */
-static uint32_t __pi_cpi_task_fifo_enqueue(struct cpi_itf_data_s *driver_data,
-                                           struct pi_task *task);
+static void __pi_cpi_sw_fifo_task_enqueue(struct cpi_itf_data_s *driver_data,
+                                       struct pi_task *task);
 
 /* Pop a transfer from SW fifo. */
-static struct pi_task *__pi_cpi_task_fifo_pop(struct cpi_itf_data_s *driver_data);
+static struct pi_task *__pi_cpi_sw_fifo_task_pop(struct cpi_itf_data_s *driver_data);
 
 /* Enqueue a transfer in UDMA. */
 static void __pi_cpi_copy_exec(struct cpi_itf_data_s *driver_data,
-                               struct pi_task *task);
+                               struct pi_task *task, uint8_t hw_buff_idx);
 
 /*******************************************************************************
  * Internal function implementation
  ******************************************************************************/
-
-static void __pi_cpi_handle_end_of_task(struct pi_task *task)
-{
-    if (task->id == PI_TASK_NONE_ID)
-    {
-        pi_task_release(task);
-    }
-    else
-    {
-        pi_task_push(task);
-    }
-}
 
 static void __pi_cpi_handler(void *arg)
 {
@@ -91,68 +92,143 @@ static void __pi_cpi_handler(void *arg)
 
     struct cpi_itf_data_s *driver_data = g_cpi_itf_data[periph_id];
     struct pi_task *task = NULL;
-    task = driver_data->fifo_head;
+    task = driver_data->hw_buffer[0];
     /* Pending data on current transfer ? */
-    if (task->data[2] != 0)
+    if (task->data[1] != 0)
     {
-        CPI_TRACE("Reenqueue pending transfer.\n");
-        task->data[0] += task->data[1]; /* Buffer + repeat_size. */
-        task->data[2] -= task->data[1]; /* Size - repeat_size. */
-        uint32_t iter_size = task->data[1];
-        if (task->data[2] <= task->data[1])
+        CPI_TRACE("CPI(%ld) : reenqueue pending transfer.\n", driver_data->device_id);
+        uint32_t cfg = task->data[4];
+        //uint32_t buff_0 = 0, iter_0 = 0;
+        uint32_t buff_0 = 0, buff_1 = 0;
+        uint32_t iter_0 = 0, iter_1 = 0;
+        uint32_t max_size = (uint32_t) UDMA_DATA_MAX_SIZE;
+        buff_0 = task->data[0];
+        iter_0 = task->data[1];
+
+        if (iter_0 > max_size)
         {
-            iter_size = task->data[2];
-            task->data[2] = 0;
+            iter_0 = max_size;
+            task->data[0] += iter_0; /* Buffer + iter_size. */
+            task->data[1] -= iter_0; /* Size - iter_size. */
+            if ((task->data[0] != 0) &&
+                (__pi_cpi_hw_fifo_empty(driver_data) != -1))
+            {
+                buff_1 = task->data[0];
+                iter_1 = task->data[1];
+                if (iter_1 > max_size)
+                {
+                    iter_1 = max_size;
+                }
+                task->data[0] += iter_1;
+                task->data[1] -= iter_1;
+                __pi_cpi_hw_fifo_task_enqueue(driver_data, task, 1);
+                CPI_TRACE("CPI(%ld) : enqueue double transfer 0) %lx %ld %lx  1) %lx %ld %lx\n",
+                          driver_data->device_id, buff_0, iter_0, cfg, buff_1 , iter_1, cfg);
+            }
+            else
+            {
+                __pi_cpi_hw_fifo_task_switch(driver_data);
+                CPI_TRACE("CPI(%ld) : enqueue single transfer %lx %ld %lx\n",
+                          driver_data->device_id, buff_0, iter_0, cfg);
+            }
         }
-        uint32_t cfg = (UDMA_CORE_RX_CFG_DATASIZE(16 >> 4) | UDMA_CORE_RX_CFG_EN(1));
-        hal_cpi_enqueue(driver_data->device_id, RX_CHANNEL, task->data[0],
-                        iter_size, cfg);
+        else
+        {
+            task->data[1] -= iter_0;
+            CPI_TRACE("CPI(%ld) : enqueue single transfer %lx %ld %lx\n",
+                      driver_data->device_id, buff_0, iter_0, cfg);
+        }
+        hal_cpi_enqueue(driver_data->device_id, RX_CHANNEL, buff_0, iter_0, cfg);
+        if (iter_1 != 0)
+        {
+            hal_cpi_enqueue(driver_data->device_id, RX_CHANNEL, buff_1, iter_1, cfg);
+        }
     }
     else
     {
         if (task->data[3])
         {
+            CPI_TRACE("CPI(%ld) : pending transfer ongoing, return.\n", driver_data->device_id);
             task->data[3] = 0;
+            __pi_cpi_hw_fifo_task_pop(driver_data);
             return;
         }
-        CPI_TRACE("No pending transfer, pop current task and handle it.\n");
-        task = __pi_cpi_task_fifo_pop(driver_data);
-        __pi_cpi_handle_end_of_task(task);
-        task = driver_data->fifo_head;
+        CPI_TRACE("CPI(%ld) : no pending transfer, pop current task and handle it.\n",
+                  driver_data->device_id);
+        task = __pi_cpi_hw_fifo_task_pop(driver_data);
+        __pi_irq_handle_end_of_task(task);
+
+        CPI_TRACE("CPI(%ld) : pop new task from SW fifo and handle it.\n", driver_data->device_id);
+        task = __pi_cpi_sw_fifo_task_pop(driver_data);
         if (task != NULL)
         {
-            __pi_cpi_copy_exec(driver_data, task);
+            int32_t hw_buff_idx = __pi_cpi_hw_fifo_empty(driver_data);
+            __pi_cpi_copy_exec(driver_data, task, hw_buff_idx);
         }
     }
 }
 
-/* Enqueue a task in fifo. */
-static uint32_t __pi_cpi_task_fifo_enqueue(struct cpi_itf_data_s *driver_data,
-                                           struct pi_task *task)
+static int32_t __pi_cpi_hw_fifo_empty(struct cpi_itf_data_s *driver_data)
 {
-    uint8_t head = 0;
-    uint32_t irq = __disable_irq();
-    if (driver_data->fifo_head == NULL)
+    if (driver_data->hw_buffer[0] == NULL)
     {
-        /* Transfer on going, enqueue this one to the list. */
-        /* Empty fifo. */
-        driver_data->fifo_head = task;
-        driver_data->fifo_tail = driver_data->fifo_head;
-        head = 0;
+        return 0;
+    }
+    else if (driver_data->hw_buffer[1] == NULL)
+    {
+        return 1;
     }
     else
     {
-        /* Execute the transfer. */
-        driver_data->fifo_tail->next = task;
-        driver_data->fifo_tail = driver_data->fifo_tail->next;
-        head = 1;
+        return -1;
     }
-    __restore_irq(irq);
-    return head;
 }
 
-/* Pop a task from fifo. */
-static struct pi_task *__pi_cpi_task_fifo_pop(struct cpi_itf_data_s *driver_data)
+static void __pi_cpi_hw_fifo_task_enqueue(struct cpi_itf_data_s *driver_data,
+                                          struct pi_task *task, uint8_t hw_buff_idx)
+{
+    uint32_t irq = __disable_irq();
+    driver_data->hw_buffer[hw_buff_idx] = task;
+    __restore_irq(irq);
+}
+
+static struct pi_task *__pi_cpi_hw_fifo_task_pop(struct cpi_itf_data_s *driver_data)
+{
+    uint32_t irq = __disable_irq();
+    struct pi_task *task_return = NULL;
+    task_return = driver_data->hw_buffer[0];
+    /* When popping from HW buffer, second buffer takes first place. */
+    driver_data->hw_buffer[0] = driver_data->hw_buffer[1];
+    driver_data->hw_buffer[1] = NULL;
+    __restore_irq(irq);
+    return task_return;
+}
+
+static void __pi_cpi_hw_fifo_task_switch(struct cpi_itf_data_s *driver_data)
+{
+    struct pi_task *tmp_task = NULL;
+    tmp_task = driver_data->hw_buffer[0];
+    driver_data->hw_buffer[0] = driver_data->hw_buffer[1];
+    driver_data->hw_buffer[1] = tmp_task;
+}
+
+static void __pi_cpi_sw_fifo_task_enqueue(struct cpi_itf_data_s *driver_data,
+                                          struct pi_task *task)
+{
+    uint32_t irq = __disable_irq();
+    if (driver_data->fifo_head == NULL)
+    {
+        driver_data->fifo_head = task;
+    }
+    else
+    {
+        driver_data->fifo_tail->next = task;
+    }
+    driver_data->fifo_tail = task;
+    __restore_irq(irq);
+}
+
+static struct pi_task *__pi_cpi_sw_fifo_task_pop(struct cpi_itf_data_s *driver_data)
 {
     uint32_t irq = __disable_irq();
     struct pi_task *task_to_return = NULL;
@@ -169,46 +245,57 @@ static struct pi_task *__pi_cpi_task_fifo_pop(struct cpi_itf_data_s *driver_data
     return task_to_return;
 }
 
-/* Enqueue a transfer in UDMA. */
 static void __pi_cpi_copy_exec(struct cpi_itf_data_s *driver_data,
-                               struct pi_task *task)
+                               struct pi_task *task, uint8_t hw_buff_idx)
 {
     uint32_t device_id = driver_data->device_id;
-    uint32_t buffer = task->data[0];
-    uint32_t iter_size = task->data[1];
-    uint32_t cfg = (UDMA_CORE_RX_CFG_DATASIZE(16 >> 4) | UDMA_CORE_RX_CFG_EN(1));
+    uint32_t cfg = task->data[4];
+    uint32_t buff_0 = 0, buff_1 = 0;
+    uint32_t iter_0 = 0, iter_1 = 0;
     uint32_t max_size = (uint32_t) UDMA_DATA_MAX_SIZE;
+    buff_0 = task->data[0];
+    iter_0 = task->data[1];
 
-    if (iter_size > max_size)
+    if (iter_0 > max_size)
     {
-        iter_size = max_size;
-        uint32_t sec_iter_size = task->data[1] - max_size;
-        if (sec_iter_size > max_size)
+        iter_0 = max_size;
+        task->data[0] += iter_0;
+        task->data[1] -= iter_0;
+        if (hw_buff_idx == 0)
         {
-            sec_iter_size = max_size;
+            buff_1 = task->data[0];
+            iter_1 = task->data[1];
+            if (iter_1 > max_size)
+            {
+                iter_1 = max_size;
+            }
+            task->data[0] += iter_1;
+            task->data[1] -= iter_1;
+            task->data[3] = 1;
         }
-        uint32_t sec_iter_buffer = task->data[0] + max_size;
-        task->data[0] += (max_size /* + sec_iter_size */); /* Buffer + max_size for second iter. */
-        task->data[2] = task->data[1] - (max_size + sec_iter_size); /* Remaining size. */
-        if ((int32_t)task->data[2] < 0 )
-        {
-            task->data[2] = 0;
-        }
-        task->data[1] = max_size; /* Size of each slice. */
-        task->data[3] = 1;
-
-        CPI_TRACE("CPI(%ld) enqueue double transfer 1) %lx %ld %lx  1) %lx %ld %lx\n",
-                  device_id, buffer, iter_size, cfg,
-                  sec_iter_buffer , sec_iter_size, cfg);
-        hal_cpi_enqueue(device_id, RX_CHANNEL, buffer, iter_size, cfg);
-        hal_cpi_enqueue(device_id, RX_CHANNEL, sec_iter_buffer, sec_iter_size, cfg);
     }
     else
     {
-        CPI_TRACE("CPI(%ld) enqueue one transfer %lx %ld %lx\n",
-                  device_id, buffer, iter_size, cfg);
-        hal_cpi_enqueue(device_id, RX_CHANNEL, buffer, iter_size, cfg);
+        task->data[1] -= iter_0;
     }
+
+    if ((iter_1 != 0) && (hw_buff_idx == 0))
+    {
+        __pi_cpi_hw_fifo_task_enqueue(driver_data, task, 0);
+        __pi_cpi_hw_fifo_task_enqueue(driver_data, task, 1);
+        hal_cpi_enqueue(device_id, RX_CHANNEL, buff_0, iter_0, cfg);
+        hal_cpi_enqueue(device_id, RX_CHANNEL, buff_1, iter_1, cfg);
+        CPI_TRACE("CPI(%ld) : enqueue double transfer 0) %lx %ld %lx  1) %lx %ld %lx\n",
+                  device_id, buff_0, iter_0, cfg, buff_1 , iter_1, cfg);
+    }
+    else
+    {
+        __pi_cpi_hw_fifo_task_enqueue(driver_data, task, hw_buff_idx);
+        hal_cpi_enqueue(device_id, RX_CHANNEL, buff_0, iter_0, cfg);
+        CPI_TRACE("CPI(%ld) : enqueue single transfer %lx %ld %lx\n",
+                  device_id, buff_0, iter_0, cfg);
+    }
+    CPI_TRACE("CPI(%ld) : remaining %lx %ld\n", device_id, task->data[0], task->data[1]);
 }
 
 /*******************************************************************************
@@ -234,6 +321,8 @@ int32_t __pi_cpi_open(struct pi_cpi_conf *conf, struct cpi_itf_data_s **device_d
             CPI_TRACE_ERR("Driver data alloc failed !\n");
             return -11;
         }
+        driver_data->hw_buffer[0] = NULL;
+        driver_data->hw_buffer[1] = NULL;
         driver_data->fifo_head = NULL;
         driver_data->fifo_tail = NULL;
         driver_data->device_id = conf->itf;
@@ -293,13 +382,23 @@ void __pi_cpi_copy(struct cpi_itf_data_s *device_data, void *l2_buf,
     task->data[1] = size;              /* size. */
     task->data[2] = 0;                 /* pending ? */
     task->data[3] = 0;                 /* resume ? */
+    task->data[4] = (UDMA_CORE_RX_CFG_DATASIZE(16 >> 4) | UDMA_CORE_RX_CFG_EN(1)); /* udma cfg. */
     task->next    = NULL;
-    uint32_t head = __pi_cpi_task_fifo_enqueue(device_data, task);
-    if (head == 0)
+    int32_t slot_free = __pi_cpi_hw_fifo_empty(device_data);
+    /* Both HW buffers in use. */
+    if (slot_free == -1)
     {
-        /* Execute the transfer. */
-        CPI_TRACE("CPI(%ld) execute transfer now\n", device_data->device_id);
-        __pi_cpi_copy_exec(device_data, task);
+        CPI_TRACE("CPI(%ld) : both HW buffers in use, enqueue in SW fifo. "
+                  "Task=%lx, l2_buf=%lx, size=%ld.\n",
+                  device_data->device_id, task, task->data[0], task->data[1]);
+        __pi_cpi_sw_fifo_task_enqueue(device_data, task);
+    }
+    /* Enqueue the transfer. */
+    else
+    {
+        CPI_TRACE("CPI(%ld) : enqueue in HW buffer task=%lx, l2_buf=%lx, size=%ld.\n",
+                  device_data->device_id, task, task->data[0], task->data[1]);
+        __pi_cpi_copy_exec(device_data, task, slot_free);
     }
     __restore_irq(irq);
 }
