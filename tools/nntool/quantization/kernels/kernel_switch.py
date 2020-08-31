@@ -20,7 +20,8 @@ import numpy as np
 
 from graph.types import (CastParameters, ConcatParameters,
                          ConstantInputParameters, Conv2DParameters,
-                         FcParameters, GlobalPoolParameters,
+                         CopyParameters, FcParameters, FusionInputParameters,
+                         FusionOutputParameters, GlobalPoolParameters,
                          HSigmoidActivationParameters,
                          HSwishActivationParameters, ImageFormatParameters,
                          InputParameters, LeakyActivationParameters,
@@ -30,8 +31,8 @@ from graph.types import (CastParameters, ConcatParameters,
                          OutputParameters, PadParameters, Parameters,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, RNNParameters, SoftMaxParameters,
-                         SSDDetectorParameters, StridedSliceParameters,
-                         TransposeParameters, SplitParameters)
+                         SplitParameters, SSDDetectorParameters,
+                         StridedSliceParameters, TransposeParameters)
 from quantization.quantization_record_base import QuantizationRecordBase
 
 
@@ -71,7 +72,10 @@ class DefaultKernelSwitch(KernelSwitchBase):
         RNNParameters: "rnn",
         StridedSliceParameters: "strided_slice",
         CastParameters: "cast",
-        SplitParameters: "split"
+        SplitParameters: "split",
+        CopyParameters: "copy",
+        FusionInputParameters: "fusion_noop",
+        FusionOutputParameters: "fusion_noop"
     }
 
     def __init__(self, kernel_functions):
@@ -104,4 +108,10 @@ class DefaultKernelSwitch(KernelSwitchBase):
             return self._kernel_functions.av_global_pool(params, input_tensors, qrec, details=details)
         if params.pool_type == "max":
             return self._kernel_functions.max_global_pool(params, input_tensors, qrec, details=details)
+        if params.pool_type == "sum":
+            return self._kernel_functions.sum_global_pool(params, input_tensors, qrec, details=details)
         raise NotImplementedError("unknown pool type %s" % params.pool_type)
+
+    def fusion_noop(self, params: Parameters, input_tensors: Sequence[np.ndarray],
+                     qrec: QuantizationRecordBase, details: str = None) -> Sequence[np.ndarray]:
+        return input_tensors

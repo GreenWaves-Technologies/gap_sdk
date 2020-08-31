@@ -14,18 +14,19 @@ VALID_LOG_LEVELS = [
 ]
 
 DEFAULT_OPT_DESCRIPTIONS = {
-    'log_level': {'type': str, 'descr': 'set logging level (one of {} or number)'.format(", ".join(VALID_LOG_LEVELS))},
-    'load_quantization': {'type': bool, 'descr': 'load TFLITE quantization information'},
-    'load_dequantized': {'type': bool, 'descr': 'load the dequantized constant values from tflite quantized graph'},
-    'fusions': {'type': bool, 'descr': 'run standard graph fusions on graph load'},
+    'log_level': {'type': str, 'descr': 'set logging level', 'choices': VALID_LOG_LEVELS},
+    'load_quantization': {'type': bool, 'descr': 'load TFLITE quantization information', 'choices': [True, False]},
+    'load_dequantized': {'type': bool, 'descr': 'load the dequantized constant values from tflite quantized graph',
+                         'choices': [True, False]},
+    'fusions': {'type': bool, 'descr': 'run standard graph fusions on graph load', 'choices': [True, False]},
     'adjust_order': {'type': bool, 'descr': 'adjust activation and parameter dimension order\
-         to match autotiler on graph load'},
-    'weight_equalization': {'type': bool, 'descr': 'equalize weights on graph load'},
+         to match autotiler on graph load', 'choices': [True, False]},
+    'weight_equalization': {'type': bool, 'descr': 'equalize weights on graph load', 'choices': [True, False]},
     'equalization_threshold': {'type': float, 'descr': 'threshold for weight equalization convergence'},
-    'adjust_image': {'type': bool, 'descr': 'adjust image input size and channels'},
+    'adjust_image': {'type': bool, 'descr': 'adjust image input size and channels', 'choices': [True, False]},
     'image_width': {'type': int, 'descr': 'input image width'},
     'image_height': {'type': int, 'descr': 'input image height'},
-    'image_mode': {'type': str, 'descr': 'input image mode (one of {})'.format(", ".join(MODES.keys()))},
+    'image_mode': {'type': str, 'descr': 'input image mode', 'choices': MODES.keys()},
     'input_divisor': {'type': float, 'descr': 'divide input tensor values by this value'},
     'input_offset': {'type': float, 'descr': 'add this value to input tensor values'},
     'input_norm_func': {'type': str, 'descr': 'lambda function in the form x: fn(x) where x is any input'},
@@ -267,6 +268,9 @@ class NNToolShellSettings(Cmd):
                 else args.transpose
             res['norm_func'] = self.settings['input_norm_func'] if args.norm_func is None\
                 else args.norm_func
+
+            if args.rgb888_rgb565:
+                res['rgb888_rgb565'] = True
         else:
             #            res['shift'] = self.settings['input_shift']
             res['divisor'] = self.settings['input_divisor']

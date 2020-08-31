@@ -125,8 +125,16 @@
       },
 
       "event_unit": {
+        "version": "4",
         "base": "0x10200800",
-        "size": "0x00000800"
+        "size": "0x00000800",
+        "config": {
+          "properties": {
+            "barriers": {
+              "nb_barriers": 9
+            }
+          }
+        }
       },
 
       "hwce": {
@@ -160,10 +168,10 @@
 
       "event_unit": {
         "base": "0x10204000",
-        "size": "0x00000400"
+        "size": "0x00000800"
       },
       "dma": {
-        "base": "0x10204400",
+        "base": "0x10204800",
         "size": "0x00000400"
       }
     }
@@ -297,7 +305,7 @@
 
       "pmu": {
         "content"      : "chips/gap9_v2/pmu.json",
-        "version"      : 3,
+        "version"      : 4,
         "base"         : "0x1A107000",
         "size"         : "0x00000800"
       },

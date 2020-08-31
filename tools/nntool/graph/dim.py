@@ -250,6 +250,17 @@ class Dim():
         object.__setattr__(self, '_is_ordered', True)
         return self
 
+    def insert_axis(self, axis):
+        self._verify_is_ordered()
+        assert axis <= len(self._shape)
+        self._shape.insert(axis, 1)
+        if self.is_named:
+            new_name = 0
+            while str(new_name) in self._names:
+                new_name += 1
+            self._names.insert(axis, str(new_name))
+        return self
+
     def transpose_from_order(self, current) -> list:
         '''returns a transform order from current -> dim'''
         self._verify_is_ordered()

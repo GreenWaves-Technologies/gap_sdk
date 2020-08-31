@@ -16,6 +16,7 @@
 import math
 
 import numpy as np
+import scipy.spatial.distance as dis
 
 from quantization.qtype import QType
 
@@ -119,6 +120,14 @@ def qsnr(orig, quant):
         return int(round(10 * math.log10(sum_orig/sum_err), 0))
     # Means no error
     return math.inf
+
+def cos_similarity(x, y):
+    x = x.flatten()
+    y = y.flatten()
+    if np.sum(np.abs(x)) == 0 or np.sum(np.abs(y)) == 0:
+        x = np.add(x, 1e-5)
+        y = np.add(y, 1e-5)
+    return 1 - dis.cosine(x, y)
 
 def calculate_qsnr(npa, bit_size, frac_bits):
     """Calculate the QSNR when a tensor is quantized

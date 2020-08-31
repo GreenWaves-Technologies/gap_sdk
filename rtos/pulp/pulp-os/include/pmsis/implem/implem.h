@@ -84,4 +84,13 @@ struct pi_task *pi_task_callback(struct pi_task *task, void (*callback)(void*), 
   return task;
 }
 
+static inline pi_callback_t *pi_callback(pi_callback_t *callback,
+                                          void (*entry)(void*), void *arg)
+{
+  callback->entry = entry;
+  callback->arg = arg;
+  return callback;
+}
+
+
 #endif

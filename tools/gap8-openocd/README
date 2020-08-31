@@ -118,7 +118,7 @@ Debug targets
 
 ARM11, ARM7, ARM9, AVR32, Cortex-A, Cortex-R, Cortex-M, LS102x-SAP,
 Feroceon/Dragonite, DSP563xx, DSP5680xx, EnSilica eSi-RISC, FA526, MIPS
-EJTAG, NDS32, XScale, Intel Quark.
+EJTAG, NDS32, RISC-V, XScale, Intel Quark.
 
 Flash drivers
 -------------
@@ -277,7 +277,7 @@ e.g. for cross-building for Windows 32-bit with MinGW on Debian:
 To make pkg-config work nicely for cross-compiling, you might need an
 additional wrapper script as described at
 
-  http://www.flameeyes.eu/autotools-mythbuster/pkgconfig/cross-compiling.html
+  https://autotools.io/pkgconfig/cross-compiling.html
 
 This is needed to tell pkg-config where to look for the target
 libraries that OpenOCD depends on. Alternatively, you can specify

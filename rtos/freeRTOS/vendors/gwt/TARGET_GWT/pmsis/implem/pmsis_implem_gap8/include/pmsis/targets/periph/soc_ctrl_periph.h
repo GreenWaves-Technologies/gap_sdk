@@ -793,9 +793,11 @@ typedef union
         - 1'b0; external wake-up disabled
         - 1'b1: external wake-up enabled */
         uint32_t extwake_en:1;
-        uint32_t reserved_0:1;
-        /* - */
+        /* Power state to restore after warm boot:
+        - 1'b0: SoC_LV
+        - 1'b1: SoC_HV */
         uint32_t wakestate:1;
+        uint32_t reserved_0:1;
         /* Warm bootmode:
         - 1'b0: Boot from ROM
         - 1'b1: Boot from L2 */

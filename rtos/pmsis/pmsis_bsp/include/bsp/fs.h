@@ -586,11 +586,18 @@ extern pi_fs_api_t __pi_read_fs_api;
 extern pi_fs_api_t __pi_host_fs_api;
 extern pi_fs_api_t pi_lfs_api;
 
+typedef struct {
+  pi_cl_fs_req_t *cluster_reqs_first;
+  pi_cl_fs_req_t *cluster_reqs_last;
+  pi_task_t cl_req_task;
+} pi_fs_data_t;
+
 typedef struct pi_fs_file_s {
   struct pi_device *fs;
   pi_fs_api_t *api;
   void *data;
   unsigned int size;
+  pi_fs_data_t *fs_data;
 } pi_fs_file_t;
 
 typedef enum {
@@ -599,27 +606,43 @@ typedef enum {
 } pi_fs_error_e;
 
 
+
 typedef struct pi_cl_fs_req_s
 {
   pi_fs_file_t *file;
-  uint32_t index;
-  void *buffer;
-  uint32_t size;
-  uint32_t stride;
-  uint32_t length;
-  uint32_t ext2loc;
+  pi_callback_t callback;
+#if defined(PMSIS_DRIVERS)
   pi_task_t task;
-  uint8_t done;
-  int result;
-  unsigned char cid;
-  unsigned char direct;
-  unsigned int offset;
+#endif
+  union {
+    struct {
+      uint8_t done;
+      char result;
+      unsigned char cid;
+      unsigned char direct;
+      unsigned char write;
+      void *buffer;
+      uint32_t size;
+      uint32_t offset;
+    } rw;
+    struct {
+      uint8_t done;
+      char result;
+      unsigned char cid;
+      unsigned char ext2loc;
+      void *buffer;
+      uint32_t size;
+      uint32_t index;
+      uint32_t stride;
+      uint32_t length;
+    } copy;
+  };
 } pi_cl_fs_req_t;
 
 static inline __attribute__((always_inline)) int32_t pi_cl_fs_wait(pi_cl_fs_req_t *req)
 {
-    cl_wait_task(&(req->done));
-    return req->result;
+    cl_wait_task(&(req->rw.done));
+    return req->rw.result;
 }
 
 /// @endcond

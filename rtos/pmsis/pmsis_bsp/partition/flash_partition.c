@@ -89,23 +89,20 @@ pi_err_t flash_partition_table_verify(const flash_partition_table_t *table)
     for (uint8_t num_parts = 0; num_parts < header->nbr_of_entries; num_parts++)
     {
         part = partition_table + num_parts;
-        if(part->magic_bytes != PI_PARTITION_MAGIC)
+        if (part->magic_bytes != PI_PARTITION_MAGIC)
+        {
             return PI_ERR_INVALID_STATE;
+        }
     }
 
-    // Check if last entry is empty
-    part = partition_table + header->nbr_of_entries;
-    if(part->magic_bytes == PI_PARTITION_MAGIC)
-        return PI_ERR_INVALID_STATE;
-
-    if(header->crc_flags)
+    if (header->crc_flags)
     {
         MD5_Init(&context);
         MD5_Update(&context, (unsigned char *) partition_table,
                    header->nbr_of_entries * sizeof(flash_partition_info_t));
         MD5_Final(digest, &context);
 
-        if(strncmp((const char *) header->md5, (const char *) digest, sizeof(digest)))
+        if (strncmp((const char *) header->md5, (const char *) digest, sizeof(digest)))
         {
             return PI_ERR_INVALID_CRC;
         }
@@ -113,7 +110,6 @@ pi_err_t flash_partition_table_verify(const flash_partition_table_t *table)
 
     return PI_OK;
 }
-
 
 pi_err_t flash_partition_table_load(pi_device_t *flash, const flash_partition_table_t **partition_table,
                                     uint8_t *nbr_of_entries)

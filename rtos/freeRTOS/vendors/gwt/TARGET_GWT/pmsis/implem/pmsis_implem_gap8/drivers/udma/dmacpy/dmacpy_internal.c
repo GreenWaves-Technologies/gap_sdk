@@ -38,7 +38,7 @@
  * Driver data
  *****************************************************************************/
 
-struct dmacpy_driver_fifo_s *g_dmacpy_driver_fifo[UDMA_NB_DMACPY] = {NULL};
+struct dmacpy_itf_data_s *g_dmacpy_itf_data[UDMA_NB_DMACPY] = {NULL};
 
 static uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
 
@@ -46,40 +46,24 @@ static uint32_t max_size = (uint32_t) UDMA_MAX_SIZE - 4;
  * Function declaration
  ******************************************************************************/
 
-static void __pi_dmacpy_handle_end_of_task(struct pi_task *task);
-
+/* IRQ handler. */
 static void __pi_dmacpy_handler(void *arg);
 
 /* Enqueue a task in fifo. */
-static uint8_t __pi_dmacpy_task_fifo_enqueue(struct dmacpy_driver_fifo_s *fifo,
+static uint8_t __pi_dmacpy_task_fifo_enqueue(struct dmacpy_itf_data_s *fifo,
                                              struct pi_task *task);
 
 /* Pop a task from fifo. */
-static struct pi_task *__pi_dmacpy_task_fifo_pop(struct dmacpy_driver_fifo_s *fifo);
+static struct pi_task *__pi_dmacpy_task_fifo_pop(struct dmacpy_itf_data_s *fifo);
 
-static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
+/* Execute transfer. */
+static void __pi_dmacpy_copy_exec(struct dmacpy_itf_data_s *fifo,
                                   struct pi_task *task);
 
 /*******************************************************************************
-
  * Internal functions
  ******************************************************************************/
-
-static void __pi_dmacpy_handle_end_of_task(struct pi_task *task)
-{
-    if (task->id == PI_TASK_NONE_ID)
-    {
-        pi_task_release(task);
-    }
-    else
-    {
-        if (task->id == PI_TASK_CALLBACK_ID)
-        {
-            pi_task_push(task);
-        }
-    }
-}
-
+/* IRQ handler. */
 static void __pi_dmacpy_handler(void *arg)
 {
     uint32_t event = (uint32_t) arg;
@@ -87,8 +71,8 @@ static void __pi_dmacpy_handler(void *arg)
     uint32_t periph_id = (event >> UDMA_CHANNEL_NB_EVENTS_LOG2) - UDMA_DMACPY_ID(0);
     DMACPY_TRACE("DMACPY(%d) IRQ %d.\n", periph_id, event);
 
-    struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[periph_id];
-    struct pi_task *task = fifo->fifo_head;
+    struct dmacpy_itf_data_s *driver_data = g_dmacpy_itf_data[periph_id];
+    struct pi_task *task = driver_data->fifo_head;
     /* Pending data on current transfer. */
     if ((task->data[5]) && (channel == TX_CHANNEL))
     {
@@ -98,42 +82,42 @@ static void __pi_dmacpy_handler(void *arg)
     if (task->data[4] != 0)
     {
         DMACPY_TRACE("Reenqueue pending data on current transfer.\n");
-        __pi_dmacpy_copy_exec(fifo, task);
+        __pi_dmacpy_copy_exec(driver_data, task);
     }
     else
     {
         DMACPY_TRACE("No pending data on current transfer.\n Handle end of "
                      "current transfer and pop and start a new transfer if there is.\n");
-        task = __pi_dmacpy_task_fifo_pop(fifo);
-        __pi_dmacpy_handle_end_of_task(task);
-        task = fifo->fifo_head;
+        task = __pi_dmacpy_task_fifo_pop(driver_data);
+        __pi_irq_handle_end_of_task(task);
+        task = driver_data->fifo_head;
         if (task != NULL)
         {
-            __pi_dmacpy_copy_exec(fifo, task);
+            __pi_dmacpy_copy_exec(driver_data, task);
         }
     }
 }
 
 /* Enqueue a task in fifo. */
-static uint8_t __pi_dmacpy_task_fifo_enqueue(struct dmacpy_driver_fifo_s *fifo,
+static uint8_t __pi_dmacpy_task_fifo_enqueue(struct dmacpy_itf_data_s *driver_data,
                                              struct pi_task *task)
 {
     uint8_t head = 0;
     uint32_t irq = __disable_irq();
-    if (fifo->fifo_head == NULL)
+    if (driver_data->fifo_head == NULL)
     {
         /* Transfer on going, enqueue this one to the list. */
         /* Empty fifo. */
-        fifo->fifo_head = task;
-        fifo->fifo_tail = fifo->fifo_head;
+        driver_data->fifo_head = task;
+        driver_data->fifo_tail = driver_data->fifo_head;
         head = 0;
         DMACPY_TRACE("Enqueue task to head.\n");
     }
     else
     {
         /* Enqueue the transfer to list of pending transfers. */
-        fifo->fifo_tail->next = task;
-        fifo->fifo_tail = fifo->fifo_tail->next;
+        driver_data->fifo_tail->next = task;
+        driver_data->fifo_tail = driver_data->fifo_tail->next;
         head = 1;
         DMACPY_TRACE("Enqueue task to tail.\n");
     }
@@ -142,25 +126,26 @@ static uint8_t __pi_dmacpy_task_fifo_enqueue(struct dmacpy_driver_fifo_s *fifo,
 }
 
 /* Pop a task from fifo. */
-static struct pi_task *__pi_dmacpy_task_fifo_pop(struct dmacpy_driver_fifo_s *fifo)
+static struct pi_task *__pi_dmacpy_task_fifo_pop(struct dmacpy_itf_data_s *driver_data)
 {
     uint32_t irq = __disable_irq();
     struct pi_task *task_to_return = NULL;
     /* Pop the first task and return the next transfer if there are any. */
-    if (fifo->fifo_head != NULL)
+    if (driver_data->fifo_head != NULL)
     {
-        task_to_return = fifo->fifo_head;
-        fifo->fifo_head = fifo->fifo_head->next;
-        if (fifo->fifo_head == NULL)
+        task_to_return = driver_data->fifo_head;
+        driver_data->fifo_head = driver_data->fifo_head->next;
+        if (driver_data->fifo_head == NULL)
         {
-            fifo->fifo_tail = NULL;
+            driver_data->fifo_tail = NULL;
         }
     }
     __restore_irq(irq);
     return task_to_return;
 }
 
-static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
+/* Execute transfer. */
+static void __pi_dmacpy_copy_exec(struct dmacpy_itf_data_s *driver_data,
                                   struct pi_task *task)
 {
     uint32_t l2_buf_0 = task->data[0]; /* RX_SADDR for FC->L2 or L2->L2. */
@@ -175,20 +160,20 @@ static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
         cpy_size = max_size;
     }
     task->data[4] -= cpy_size;
-    DMACPY_TRACE("DMACPY(%ld): remaining size: %ld\n", fifo->device_id, task->data[4]);
+    DMACPY_TRACE("DMACPY(%ld): remaining size: %ld\n", driver_data->device_id, task->data[4]);
     if (dir)
     {
         task->data[0] += cpy_size;
         task->data[1] += cpy_size;
         DMACPY_TRACE("DMACPY(%ld): enqueue FC to L2 l2_buf=%lx src=%lx dst=%lx "
                      "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size, dir, RX_CHANNEL);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_0, cpy_size, 0,
+                     driver_data->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size, dir, RX_CHANNEL);
+        hal_dmacpy_enqueue(driver_data->device_id, l2_buf_0, cpy_size, 0,
                            cpy_src, cpy_dst, dir, RX_CHANNEL);
         DMACPY_TRACE("DMACPY(%ld): enqueue L2 to FC l2_buf=%lx src=%lx dst=%lx "
                      "size=%ld mem_sel=%ld channel=%ld\n",
-                     fifo->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size, dir, TX_CHANNEL);
-        hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, cpy_size, 0,
+                     driver_data->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size, dir, TX_CHANNEL);
+        hal_dmacpy_enqueue(driver_data->device_id, l2_buf_1, cpy_size, 0,
                            cpy_src, cpy_dst, dir, TX_CHANNEL);
     }
     else
@@ -199,9 +184,9 @@ static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
             task->data[2] += cpy_size;
             DMACPY_TRACE("DMACPY(%ld): enqueue FC to L2 l2_buf=%lx src=%lx dst=%lx "
                          "size=%ld mem_sel=%ld channel=%ld\n",
-                         fifo->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size,
+                         driver_data->device_id, l2_buf_0, cpy_src, cpy_dst, cpy_size,
                          dir, RX_CHANNEL);
-            hal_dmacpy_enqueue(fifo->device_id, l2_buf_0, cpy_size, 0,
+            hal_dmacpy_enqueue(driver_data->device_id, l2_buf_0, cpy_size, 0,
                                cpy_src, cpy_dst, dir, RX_CHANNEL);
         }
         else
@@ -210,23 +195,23 @@ static void __pi_dmacpy_copy_exec(struct dmacpy_driver_fifo_s *fifo,
             task->data[3] += cpy_size;
             DMACPY_TRACE("DMACPY(%ld): enqueue L2 to FC l2_buf=%lx src=%lx dst=%lx "
                          "size=%ld mem_sel=%ld channel=%ld\n",
-                         fifo->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size,
+                         driver_data->device_id, l2_buf_1, cpy_src, cpy_dst, cpy_size,
                          dir, TX_CHANNEL);
-            hal_dmacpy_enqueue(fifo->device_id, l2_buf_1, cpy_size, 0,
+            hal_dmacpy_enqueue(driver_data->device_id, l2_buf_1, cpy_size, 0,
                                cpy_src, cpy_dst, dir, TX_CHANNEL);
         }
     }
     DMACPY_TRACE("Enqueue DMACPY(%d): %x %x %x %x %x %x %x %x %x\n",
-                 fifo->device_id,
-                 dmacpy(fifo->device_id)->udma.rx_saddr,
-                 dmacpy(fifo->device_id)->udma.rx_size,
-                 dmacpy(fifo->device_id)->udma.rx_cfg,
-                 dmacpy(fifo->device_id)->udma.tx_saddr,
-                 dmacpy(fifo->device_id)->udma.tx_size,
-                 dmacpy(fifo->device_id)->udma.tx_cfg,
-                 dmacpy(fifo->device_id)->dst_addr,
-                 dmacpy(fifo->device_id)->src_addr,
-                 dmacpy(fifo->device_id)->mem_sel);
+                 driver_data->device_id,
+                 dmacpy(driver_data->device_id)->udma.rx_saddr,
+                 dmacpy(driver_data->device_id)->udma.rx_size,
+                 dmacpy(driver_data->device_id)->udma.rx_cfg,
+                 dmacpy(driver_data->device_id)->udma.tx_saddr,
+                 dmacpy(driver_data->device_id)->udma.tx_size,
+                 dmacpy(driver_data->device_id)->udma.tx_cfg,
+                 dmacpy(driver_data->device_id)->dst_addr,
+                 dmacpy(driver_data->device_id)->src_addr,
+                 dmacpy(driver_data->device_id)->mem_sel);
 }
 
 /*******************************************************************************
@@ -239,74 +224,76 @@ void __pi_dmacpy_conf_init(struct pi_dmacpy_conf *conf)
 }
 
 int32_t __pi_dmacpy_open(struct pi_dmacpy_conf *conf,
-                         struct dmacpy_driver_fifo_s **device_data)
+                         struct dmacpy_itf_data_s **device_data)
 {
-    struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[conf->id];
-    if (fifo == NULL)
+    struct dmacpy_itf_data_s *driver_data = g_dmacpy_itf_data[conf->id];
+    if (driver_data == NULL)
     {
-        fifo = (struct dmacpy_driver_fifo_s *) pi_l2_malloc(sizeof(struct dmacpy_driver_fifo_s));
-        if (fifo == NULL)
+        driver_data = (struct dmacpy_itf_data_s *) pi_l2_malloc(sizeof(struct dmacpy_itf_data_s));
+        if (driver_data == NULL)
         {
             DMACPY_TRACE_ERR("Driver fifo alloc failed !\n");
             return -11;
         }
-        memset((void *) fifo, 0, sizeof(struct dmacpy_driver_fifo_s));
-        fifo->fifo_head = NULL;
-        fifo->fifo_tail = NULL;
-        fifo->device_id = conf->id;
-        fifo->nb_open   = 1;
-        g_dmacpy_driver_fifo[fifo->device_id] = fifo;
+        driver_data->fifo_head = NULL;
+        driver_data->fifo_tail = NULL;
+        driver_data->device_id = conf->id;
+        driver_data->nb_open   = 1;
 
         /* Open device for first time. */
-        DMACPY_TRACE("Device id=%ld opened for first time\n", fifo->device_id);
-        DMACPY_TRACE("dmacpy(%ld) %p\n", fifo->device_id, dmacpy(fifo->device_id));
+        DMACPY_TRACE("Device id=%ld opened for first time\n", driver_data->device_id);
+        DMACPY_TRACE("dmacpy(%ld) %p\n", driver_data->device_id, dmacpy(driver_data->device_id));
 
         DMACPY_TRACE("Enable SoC events and set handlers : RX : %d -> %p | TX: %d -> %p\n",
-                     SOC_EVENT_UDMA_DMACPY_RX(fifo->device_id), __pi_dmacpy_handler,
-                     SOC_EVENT_UDMA_DMACPY_TX(fifo->device_id), __pi_dmacpy_handler);
+                     SOC_EVENT_UDMA_DMACPY_RX(driver_data->device_id), __pi_dmacpy_handler,
+                     SOC_EVENT_UDMA_DMACPY_TX(driver_data->device_id), __pi_dmacpy_handler);
         /* Set handlers. */
-        pi_fc_event_handler_set(SOC_EVENT_UDMA_DMACPY_RX(fifo->device_id), __pi_dmacpy_handler);
-        pi_fc_event_handler_set(SOC_EVENT_UDMA_DMACPY_TX(fifo->device_id), __pi_dmacpy_handler);
+        pi_fc_event_handler_set(SOC_EVENT_UDMA_DMACPY_RX(driver_data->device_id), __pi_dmacpy_handler);
+        pi_fc_event_handler_set(SOC_EVENT_UDMA_DMACPY_TX(driver_data->device_id), __pi_dmacpy_handler);
         /* Enable SOC events propagation to FC. */
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_DMACPY_RX(fifo->device_id));
-        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_DMACPY_TX(fifo->device_id));
+        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_DMACPY_RX(driver_data->device_id));
+        hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_DMACPY_TX(driver_data->device_id));
 
         /* Disable UDMA CG and reset periph. */
-        udma_ctrl_cg_disable(UDMA_DMACPY_ID(fifo->device_id));
+        udma_ctrl_cg_disable(UDMA_DMACPY_ID(driver_data->device_id));
         DMACPY_TRACE("Disable CG for dmacpy(%ld): %ld %p %lx\n",
-                     fifo->device_id, UDMA_DMACPY_ID(fifo->device_id),
+                     driver_data->device_id, UDMA_DMACPY_ID(driver_data->device_id),
                      &UDMA_GC->CG, UDMA_GC->CG);
+
+        /* Attach device data info to data. */
+        g_dmacpy_itf_data[driver_data->device_id] = driver_data;
+        *device_data = g_dmacpy_itf_data[driver_data->device_id];
     }
     else
     {
-        fifo->nb_open++;
+        driver_data->nb_open++;
         DMACPY_TRACE("Device id=%x already opened, now open=%d\n",
-                     fifo->device_id, fifo->nb_open);
+                     driver_data->device_id, driver_data->nb_open);
     }
     return 0;
 }
 
 void __pi_dmacpy_close(uint32_t device_id)
 {
-    struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[device_id];
-    if (fifo != NULL)
+    struct dmacpy_itf_data_s *driver_data = g_dmacpy_itf_data[device_id];
+    if (driver_data != NULL)
     {
         /* Decrement number of devices opened. */
-        fifo->nb_open--;
+        driver_data->nb_open--;
         /* Free device and structure opened. */
-        if (fifo->nb_open == 0)
+        if (driver_data->nb_open == 0)
         {
             /* Clear handlers. */
-            pi_fc_event_handler_clear(SOC_EVENT_UDMA_DMACPY_RX(fifo->device_id));
-            pi_fc_event_handler_clear(SOC_EVENT_UDMA_DMACPY_TX(fifo->device_id));
+            pi_fc_event_handler_clear(SOC_EVENT_UDMA_DMACPY_RX(driver_data->device_id));
+            pi_fc_event_handler_clear(SOC_EVENT_UDMA_DMACPY_TX(driver_data->device_id));
             /* Disable SOC events propagation to FC. */
-            hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_DMACPY_RX(fifo->device_id));
-            hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_DMACPY_TX(fifo->device_id));
+            hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_DMACPY_RX(driver_data->device_id));
+            hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_DMACPY_TX(driver_data->device_id));
 
             /* Free allocated fifo. */
-            pi_l2_free(g_dmacpy_driver_fifo[device_id],
-                       sizeof(struct dmacpy_driver_fifo_s));
-            g_dmacpy_driver_fifo[device_id] = NULL;
+            pi_l2_free(g_dmacpy_itf_data[device_id],
+                       sizeof(struct dmacpy_itf_data_s));
+            g_dmacpy_itf_data[device_id] = NULL;
         }
     }
 }
@@ -317,16 +304,19 @@ int32_t __pi_dmacpy_copy(uint32_t device_id, void *src, void *dst,
     /* Src address not aligned on 4 bytes. */
     if (((uint32_t) src % 4) != 0)
     {
+        DMACPY_TRACE_ERR("Error : src must be aligned on 4 bytes : %lx !\n", (uint32_t) src);
         return -11;
     }
     /* Dst address not aligned on 4 bytes. */
     if (((uint32_t) dst % 4) != 0)
     {
+        DMACPY_TRACE_ERR("Error : dst must be aligned on 4 bytes : %lx !\n", (uint32_t) dst);
         return -12;
     }
     /* Size not a multiple of 4 bytes. */
     if (((uint32_t) size % 4) != 0)
     {
+        DMACPY_TRACE_ERR("Error : size must be aligned on 4 bytes : %lx !\n", size);
         return -13;
     }
 
@@ -363,13 +353,13 @@ int32_t __pi_dmacpy_copy(uint32_t device_id, void *src, void *dst,
     }
 
     uint32_t irq = disable_irq();
-    struct dmacpy_driver_fifo_s *fifo = g_dmacpy_driver_fifo[device_id];
-    uint8_t head = __pi_dmacpy_task_fifo_enqueue(fifo, task);
+    struct dmacpy_itf_data_s *driver_data = g_dmacpy_itf_data[device_id];
+    uint8_t head = __pi_dmacpy_task_fifo_enqueue(driver_data, task);
     if (head == 0)
     {
         /* Execute the transfer. */
         DMACPY_TRACE("Execute transfer now.\n");
-        __pi_dmacpy_copy_exec(fifo, task);
+        __pi_dmacpy_copy_exec(driver_data, task);
     }
     else
     {

@@ -92,6 +92,7 @@ class RemoveRelusMatch(Matcher):
     def match(self, G: GraphView, set_identity: bool = True):
         visited_edges = {}
         nodes_to_remove = []
+        has_modified_graph = False
         for node in G.inputs():
             # check if constantinput. if is then check if positive and check max value
             if isinstance(node, ConstantInputParameters):
@@ -115,6 +116,7 @@ class RemoveRelusMatch(Matcher):
                 visited_edges[edge] = status
                 nodes_to_remove += find_redundant_relus(G, edge.to_node, visited_edges)
         for node in nodes_to_remove:
+            has_modified_graph = True
             # Only relus so only one in edge
             in_edge = G.in_edges(node.name)[0]
             for edge in G.out_edges(node.name):
@@ -123,3 +125,8 @@ class RemoveRelusMatch(Matcher):
                                   to_node=edge.to_node,
                                   to_idx=edge.to_idx))
             G.remove(node)
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph

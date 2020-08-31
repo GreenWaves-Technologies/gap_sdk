@@ -44,13 +44,15 @@ GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
 endif				# GAP_SDK_HOME
 
 ifeq ($(chip), GAP8)
-RISCV_FLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1
+APP_ARCH_CFLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1
 else
-RISCV_FLAGS     ?= -mchip=gap9 -mPE=8 -mFC=1
+APP_ARCH_CFLAGS     ?= -mchip=gap9 -mPE=8 -mFC=1
 endif				# chip
+APP_ARCH_LDFLAGS    ?=
 
-FREERTOS_FLAGS     += -D__riscv__ -D__$(chip)__ \
-                   -D__RISCV_ARCH_GAP__=1 -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
+RISCV_FLAGS         ?= $(APP_ARCH_CFLAGS)
+FREERTOS_FLAGS      += -D__riscv__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 \
+                       -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 
 # Simulation related options
 export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
@@ -99,12 +101,20 @@ GUI =
 FREERTOS_FLAGS  += -D__PLATFORM_RTL__
 FREERTOS_FLAGS  += -DPRINTF_RTL
 io = rtl
+
+ifeq ($(GUI), 1)
+override runner_args += --gui
+endif				# GUI
+
 endif				# platform
 
-# Choose Simulator
-SIMULATOR           = vsim
-ifeq ($(sim), xcelium)
-SIMULATOR           = xcelium
+# Choose Simulator (use Xcelium unless specified otherwise)
+ifeq ($(sim), vsim)
+export GAPY_RTL_SIMULATOR = vsim
+RTL_SIMU_DEBUG            = vsim -view $(BUILDDIR)/vsim.wlf
+else
+export GAPY_RTL_SIMULATOR = xcelium
+RTL_SIMU_DEBUG            = simvision -waves $(BUILDDIR)/waves.shm
 endif				# sim
 
 export GAP_USE_OPENOCD=1
@@ -153,7 +163,7 @@ GCC_OPTIM_LEVEL     = -Os	# Optimize for size.
 # Enable log/traces. Often another flag should be set in order to print traces.
 DEBUG_FLAGS         = -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
-PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK -DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
+PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK #-DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
                       -DPRINTF_DISABLE_SUPPORT_FLOAT
 PRINTF_FLAGS       += $(IO)
 
@@ -222,11 +232,19 @@ PMSIS_IMPLEM_DIR    = $(GWT_PMSIS_IMPLEM)
 PMSIS_BACKEND_SRC   = $(shell find $(GWT_PMSIS_BACKEND) -iname "*.c")
 PMSIS_SRC           = $(PMSIS_IMPLEM_SRCS)
 PMSIS_SRC          += $(PMSIS_BSP_SRCS)
+PMSIS_ASM_SRC       = $(PMSIS_IMPLEM_ASM_SRCS)
 
 PMSIS_INC_PATH      = $(GWT_PMSIS) $(GWT_PMSIS_API)/include/
 PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)
 PMSIS_INC_PATH     += $(PMSIS_IMPLEM_INC)
 PMSIS_INC_PATH     += $(PMSIS_BSP_INC)
+
+# OpenMP sources
+ifeq '$(CONFIG_OPENMP)' '1'
+PMSIS_SRC          += $(OPENMP_SRCS)
+PMSIS_INC_PATH     += $(OPENMP_INC)
+APP_CFLAGS         += -fopenmp
+endif
 
 INCLUDES           += $(foreach f, $(INC_PATH) $(PMSIS_INC_PATH), -I$f)
 INCLUDES           += $(FEAT_INCLUDES)
@@ -246,6 +264,7 @@ BUILDDIR            = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISC
 # Objects
 PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
 CRT0_OBJ            = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
+PMSIS_ASM_OBJ       = $(patsubst %.S, $(BUILDDIR)/%.o, $(PMSIS_ASM_SRC))
 RTOS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
 PORT_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
 DEVICE_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
@@ -257,7 +276,7 @@ PMSIS_OBJ           = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_SRC))
 PMSIS_BACKEND_OBJ   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_BACKEND_SRC))
 APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
 
-ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ)
+ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ) $(PMSIS_ASM_OBJ)
 C_OBJS              = $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
                       $(DEVICE_OBJ) $(LIBS_OBJ) $(PRINTF_OBJ) \
                       $(API_OBJ) $(HAL_OBJ) $(PMSIS_OBJ) $(PMSIS_BACKEND_OBJ)
@@ -304,7 +323,7 @@ $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
-	$(TRC_MAKE)$(CC) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS) $(APP_LDFLAGS)
+	$(TRC_MAKE)$(CC) $(APP_ARCH_LDFLAGS) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS) $(APP_LDFLAGS)
 
 $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
@@ -323,10 +342,6 @@ $(BIN).size: $(BIN)
 override config_args += $(foreach file, $(READFS_FILES), --config-opt=flash/content/partitions/readfs/files=$(file))
 override config_args += $(foreach file, $(HOSTFS_FILES), --config-opt=flash/content/partitions/hostfs/files=$(file))
 
-ifeq ($(GUI), 1)
-override runner_args += --gui
-endif				# GUI
-
 ifdef LFS_ROOT_DIR
 override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
 endif
@@ -342,10 +357,13 @@ run: $(BIN)
 
 disdump: $(OBJS_DUMP) $(BIN).s $(BIN).size
 
+debug:
+	$(RTL_SIMU_DEBUG)
+
 clean:: clean_app
 	@rm -rf $(OBJS) $(DUMP)
-	@rm -rf *~ ./BUILD$(build_dir_ext) transcript *.wav __pycache__
-	@rm -rf $(GVSOC_FILES_CLEAN)
+	@rm -rf *~ BUILD$(build_dir_ext) transcript *.wav __pycache__
+	@rm -rf $(GVSOC_FILES_CLEAN) .simvision
 	@rm -rf version.log
 
 clean_app::

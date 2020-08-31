@@ -24,6 +24,9 @@
                     "@include@": "devices/flash/spiflash_s26ks512.json",
                     "interface": "spim1",
                     "cs": 0
+                },
+                "mram": {
+                    "@include@": "ips/mram/mram.json"
                 }
             }
         }
@@ -56,7 +59,8 @@
     "runner": {
         "flash_devices": [
           "target/board/devices/flash",
-          "target/board/devices/spiflash"
+          "target/board/devices/spiflash",
+          "target/board/devices/mram"
         ],
         "boot": {
             "mode": "flash",

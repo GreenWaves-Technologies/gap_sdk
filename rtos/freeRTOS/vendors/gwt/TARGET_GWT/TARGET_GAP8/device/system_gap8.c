@@ -32,7 +32,6 @@
 
 /* PMSIS includes. */
 #include "pmsis.h"
-#include "pmsis/implem/drivers/pmu/pmu.h"
 
 #include "../driver/semihost.h"
 
@@ -43,6 +42,8 @@ extern char __heapl2ram_start;
 extern char __heapl2ram_size;
 
 volatile uint32_t SystemCoreClock = (uint32_t) DEFAULT_SYSTEM_CLOCK;
+
+static volatile uint32_t tick_rate = 0;
 
 void system_init(void)
 {
@@ -60,7 +61,7 @@ void system_init(void)
     pi_fc_event_handler_init(FC_SOC_EVENT_IRQN);
 
     /* PMU Init */
-    pi_pmu_init();
+    __pi_pmu_init();
 
     /* Enable IRQ. */
     __enable_irq();
@@ -76,33 +77,34 @@ void system_init(void)
 
 void system_setup_systick(uint32_t tick_rate_hz)
 {
-    /* Systick timer configuration. */
-    SysTick->CFG_REG_LO = (   ( 1 << SysTick_CFG_REG_LOW_ENABLE_Pos )
-                            | ( 1 << SysTick_CFG_REG_LOW_RESET_Pos )
-                            | ( 1 << SysTick_CFG_REG_LOW_IRQE_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_IEM_Pos )
-                            | ( 1 << SysTick_CFG_REG_LOW_CMP_CLR_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_ONE_SHOT_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_PRESCALERE_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_CLKS_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_PRESCALER_Pos )
-                            | ( 0 << SysTick_CFG_REG_LOW_64BIT_Pos )
-        );
-    /* Start the timer by putting a CMP value. */
-    SysTick->CMP_LO = ( system_core_clock_get() / tick_rate_hz ) - 1ul;
-    SysTick->VALUE_LO = 0;
-    /* Enable IRQ from Systick timer. */
-    NVIC->MASK_IRQ_OR = (0x1 << SYSTICK_IRQN);
+    tick_rate = tick_rate_hz;
+    timer_cfg_u cfg = {0};
+    cfg.field.enable = 1;
+    cfg.field.reset = 1;
+    cfg.field.irq_en = 1;
+    cfg.field.mode = 1;
+    uint32_t cmp_val = ((SystemCoreClock / tick_rate) - 1);
+    pi_timer_init(SYS_TIMER, cfg, cmp_val);
+    NVIC_EnableIRQ(SYSTICK_IRQN);
 }
 
 void system_core_clock_update(void)
 {
+    //system_setup_systick(tick_rate);
     SystemCoreClock = pi_fll_get_frequency(FLL_SOC, 0);
+    pi_timer_stop(SYS_TIMER);
+    /* Systick timer configuration. */
+    timer_cfg_u cfg = {0};
+    cfg.field.enable = 1;
+    cfg.field.reset = 1;
+    cfg.field.irq_en = 1;
+    cfg.field.mode = 1;
+    uint32_t cmp_val = ((SystemCoreClock / tick_rate) - 1);
+    pi_timer_init(SYS_TIMER, cfg, cmp_val);
 }
 
 uint32_t system_core_clock_get(void)
 {
-    system_core_clock_update();
     return SystemCoreClock;
 }
 

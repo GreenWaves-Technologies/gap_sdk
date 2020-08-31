@@ -1,6 +1,6 @@
 {
   "@includes@": [
-    "ips/pmu/pmu_v3.json"
+    "ips/pmu/pmu_v4.json"
   ],
 
   "nb_interrupts": 16,

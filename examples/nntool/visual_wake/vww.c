@@ -69,8 +69,8 @@ int start()
 	pi_cluster_open(&cluster_dev);
 	pi_freq_set(PI_FREQ_DOMAIN_CL,175000000);
 	pi_freq_set(PI_FREQ_DOMAIN_FC,250000000);
-	PMU_set_voltage(1150,0);
-	PMU_set_voltage(1200,0);
+	//PMU_set_voltage(1150,0);
+	//PMU_set_voltage(1200,0);
 	task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
 	if (!task) {
 		printf("failed to allocate memory for task\n");

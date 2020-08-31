@@ -37,7 +37,7 @@
  * Definitions
  ******************************************************************************/
 
-struct dmacpy_driver_fifo_s
+struct dmacpy_itf_data_s
 {
     /* Best to use only one queue since both RX & TX can be used at the same time. */
     struct pi_task *fifo_head;  /*!< Head of SW fifo waiting transfers. */
@@ -68,7 +68,7 @@ struct dmacpy_driver_fifo_s
 void __pi_dmacpy_conf_init(struct pi_dmacpy_conf *conf);
 
 int32_t __pi_dmacpy_open(struct pi_dmacpy_conf *conf,
-                         struct dmacpy_driver_fifo_s **device_data);
+                         struct dmacpy_itf_data_s **device_data);
 
 void __pi_dmacpy_close(uint32_t device_id);
 

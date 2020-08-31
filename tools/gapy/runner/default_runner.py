@@ -84,18 +84,6 @@ class Runner(object):
 
                 gen_image = True
 
-                stim_format = flash_config.get_str("models/%s/stimuli/format" % self.args.platform)
-
-                if stim_format is not None:
-                    file_name = flash_config.get_str("models/%s/stimuli/file" % self.args.platform)
-                    if file_name is None:
-                        file_name = flash_path.replace('/', '.') + '.' + stim_format
-
-                    file_path = os.path.join(work_dir, file_name)
-                        
-                    flash_config.set("content/stimuli/format", stim_format)
-                    flash_config.set("content/stimuli/file", file_path)
-
 
             if flash_config.get('content/partitions') is not None:
 
@@ -117,6 +105,20 @@ class Runner(object):
                 img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.img')
                 flash_config.set('content/image', img_path)
                 flash_config.set('content/flash', flash_image)
+
+
+            stim_format = flash_config.get_str("models/%s/stimuli/format" % self.args.platform)
+
+            if stim_format is not None:
+                file_name = flash_config.get_str("models/%s/stimuli/file" % self.args.platform)
+                if file_name is None:
+                    file_name = flash_path.replace('/', '.') + '.' + stim_format
+
+                file_path = os.path.join(work_dir, file_name)
+                    
+                flash_config.set("content/stimuli/format", stim_format)
+                flash_config.set("content/stimuli/file", file_path)
+
 
 
     def image(self):

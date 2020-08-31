@@ -17,6 +17,7 @@
 import runner.chips.gap9_v2
 import runner.rtl.rtl_runner
 import os
+import os.path
 
 class Runner(runner.chips.gap9_v2.Runner, runner.rtl.rtl_runner.Runner):
 
@@ -27,6 +28,11 @@ class Runner(runner.chips.gap9_v2.Runner, runner.rtl.rtl_runner.Runner):
         #self.set_arg('-gSPI_FLASH_LOAD_MEM=3')
         self.set_arg('-gHYPER_FLASH_LOAD_MEM=1')
         self.set_arg('+VSIM_BOOTTYPE_CFG=TB_BOOT_FROM_HYPER_FLASH')
+
+        path = os.path.join(self.config.get_str('gapy/work_dir'), 'slm_files/mram_stim.slm')
+        if os.path.exists(path):
+            self.set_cmd_arg('+PRELOAD_MRAM=1')
+
         #self.set_arg('-gCONFIG_FILE=rtl_config.json')
         #self.set_arg('-sv_lib %s' % (os.path.join(os.environ.get('INSTALL_DIR'), 'lib', 'libpulpdpi')))
 

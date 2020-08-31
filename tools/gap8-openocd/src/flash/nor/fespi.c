@@ -136,7 +136,8 @@ struct fespi_target {
 /* TODO !!! What is the right naming convention here? */
 static const struct fespi_target target_devices[] = {
 	/* name,   tap_idcode, ctrl_base */
-	{ "Freedom E300 SPI Flash",  0x10e31913 , 0x10014000 },
+	{ "Freedom E310-G000 SPI Flash",  0x10e31913 , 0x10014000 },
+	{ "Freedom E310-G002 SPI Flash",  0x20000913 , 0x10014000 },
 	{ NULL,    0,           0          }
 };
 
@@ -182,7 +183,7 @@ static int fespi_read_reg(struct flash_bank *bank, uint32_t *value, target_addr_
 }
 
 static int fespi_write_reg(struct flash_bank *bank, target_addr_t address, uint32_t value)
-{								\
+{
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
 
@@ -495,7 +496,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 {
 	struct target *target = bank->target;
 	struct fespi_flash_bank *fespi_info = bank->driver_priv;
-	uint32_t cur_count, page_size, page_offset;
+	uint32_t cur_count, page_size;
 	int sector;
 	int retval = ERROR_OK;
 
@@ -547,21 +548,22 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 					algorithm_wa->address, retval);
 			target_free_working_area(target, algorithm_wa);
 			algorithm_wa = NULL;
-		}
 
-		data_wa_size = MIN(target->working_area_size - algorithm_wa->size, count);
-		while (1) {
-			if (data_wa_size < 128) {
-				LOG_WARNING("Couldn't allocate data working area.");
-				target_free_working_area(target, algorithm_wa);
-				algorithm_wa = NULL;
-			}
-			if (target_alloc_working_area_try(target, data_wa_size, &data_wa) ==
-					ERROR_OK) {
-				break;
-			}
+		} else {
+			data_wa_size = MIN(target->working_area_size - algorithm_wa->size, count);
+			while (1) {
+				if (data_wa_size < 128) {
+					LOG_WARNING("Couldn't allocate data working area.");
+					target_free_working_area(target, algorithm_wa);
+					algorithm_wa = NULL;
+				}
+				if (target_alloc_working_area_try(target, data_wa_size, &data_wa) ==
+						ERROR_OK) {
+					break;
+				}
 
-			data_wa_size = data_wa_size * 3 / 4;
+				data_wa_size = data_wa_size * 3 / 4;
+			}
 		}
 	} else {
 		LOG_WARNING("Couldn't allocate %zd-byte working area.", bin_size);
@@ -620,7 +622,6 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 				goto err;
 			}
 
-			page_offset = 0;
 			buffer += cur_count;
 			offset += cur_count;
 			count -= cur_count;
@@ -641,7 +642,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		if (retval != ERROR_OK)
 			goto err;
 
-		page_offset = offset % page_size;
+		uint32_t page_offset = offset % page_size;
 		/* central part, aligned words */
 		while (count > 0) {
 			/* clip block at page boundary */

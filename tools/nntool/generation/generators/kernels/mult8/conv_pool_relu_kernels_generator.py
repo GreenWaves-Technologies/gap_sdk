@@ -41,7 +41,7 @@ def conv_pool_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, c
     if isinstance(node, Conv2DParameters):
         gen.kernels.append(ConvPoolReluKernel(node.name, cname, node, qrec, None,
                                               None, None, None, at_ver=gen.opts['at_ver'],
-                                              gen_ctrl=node.get_gen_ctrl()))
+                                              gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
     # We want to match the pool_act generator for PoolingParameters
     # elif isinstance(node, PoolingParameters):
     #     gen.kernels.append(ConvPoolReluKernel(node.name, cname, None, None,
@@ -51,25 +51,26 @@ def conv_pool_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, c
         # self.set_in_out_bindings(in_eparams, out_eparams, cname, node, qrec)
         gen.kernels.append(ConvPoolReluKernel(node.name, cname, None, None,
                                               None, None, node, qrec, at_ver=gen.opts['at_ver'],
-                                              gen_ctrl=node.get_gen_ctrl()))
+                                              gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
     elif isinstance(node, ConvFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         if node.fusion_type == "conv_active_pool":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[2], quants[2],
                                                   cnodes[1], quants[1], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl()))
+                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
         elif node.fusion_type == "conv_pool_active":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[1], quants[1],
                                                   cnodes[2], quants[2], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl()))
+                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
         elif node.fusion_type == "conv_active":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], None, None, cnodes[1],
                                                   quants[1], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl()))
+                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
         elif node.fusion_type == "conv_pool":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[1], quants[1], None,
-                                                  None, at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl()))
+                                                  None, at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(),
+                                                  force_relu=gen.force_relu))
         else:
             return False
     else:
@@ -128,7 +129,8 @@ def gen_cnn_grp_conv_pool_act_qs8(code_block, cname,
 
 class ConvPoolReluKernel(AutotilerKernel):
     def __init__(self, node_name, cname, conv_params, conv_q,
-                 pool_params, pool_q, act_params, act_q, at_ver=3, gen_ctrl=None):
+                 pool_params, pool_q, act_params, act_q, at_ver=3,
+                 gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:
             self.gen_ctrl = gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -166,7 +168,7 @@ class ConvPoolReluKernel(AutotilerKernel):
             at_pool_params = NO_POOL
 
         if act_params is not None:
-            at_act_params = gen_active_at_params(act_params, force_relu=True)
+            at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
             if in_dim is None:
                 in_dim = act_params.in_dims[0]
             if out_dim is None:

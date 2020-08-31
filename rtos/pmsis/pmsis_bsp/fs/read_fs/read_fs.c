@@ -69,6 +69,7 @@ typedef struct pi_fs_s {
     int error;
     uint32_t free_flash_area;
     pi_read_fs_file_t *last_created_file;
+    pi_fs_data_t fs_data;
 } pi_read_fs_t;
 
 
@@ -261,6 +262,7 @@ static int32_t __pi_read_fs_mount(struct pi_device *device)
     fs->pi_fs_l2 = NULL;
     fs->pi_fs_info = NULL;
     fs->flash = conf->flash;
+    fs->fs_data.cluster_reqs_first = NULL;
     
     fs->pi_fs_l2 = pmsis_l2_malloc(sizeof(pi_fs_l2_t));
     if(fs->pi_fs_l2 == NULL) goto error;
@@ -369,7 +371,8 @@ static pi_fs_file_t *__pi_read_fs_open(struct pi_device *device, const char *fil
     file->fs_file.api = (pi_fs_api_t *) device->api;
     file->fs_file.data = file;
     file->fs_file.fs = device;
-    
+    file->fs_file.fs_data = &fs->fs_data;
+
     return &file->fs_file;
     
     error1:
@@ -579,6 +582,7 @@ static void __pi_read_fs_try_read(void *arg)
     }
 }
 
+
 static int32_t __pi_read_fs_read_async(pi_fs_file_t *_file, void *buffer, uint32_t size, pi_task_t *event)
 {
     pi_read_fs_file_t *file = (pi_read_fs_file_t *) _file;
@@ -639,6 +643,7 @@ static int32_t __pi_read_fs_direct_read_async(pi_fs_file_t *_file, void *buffer,
     return real_size;
 }
 
+
 static int32_t
 __pi_read_fs_copy_async(pi_fs_file_t *_file, uint32_t index, void *buffer, uint32_t size, int32_t ext2loc,
                         pi_task_t *task)
@@ -656,6 +661,7 @@ __pi_read_fs_copy_2d_async(pi_fs_file_t *_file, uint32_t index, void *buffer, ui
     pi_read_fs_t *fs = (pi_read_fs_t *) file->fs_file.fs->data;
     return pi_flash_copy_2d_async(fs->flash, file->addr + index, buffer, size, stride, length, ext2loc, task);
 }
+
 
 
 pi_fs_api_t __pi_read_fs_api = {

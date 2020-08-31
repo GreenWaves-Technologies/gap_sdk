@@ -156,6 +156,8 @@ class SSBL(Binary):
             romBlockSize = 1024
         elif flashType == 'spi':
             romBlockSize = 4096
+        elif flashType == 'mram':
+            romBlockSize = 1024
         else:
             raise FatalError(
                 'Flash type %s not suported. ROM boot loader supports hyper and spi flash type' % flashType)

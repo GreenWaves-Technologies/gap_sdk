@@ -14,6 +14,8 @@ from graph.matches.matches import get_fusion, get_scale8_match_group
 from quantization.multiplicative.mult_quantizer import MultQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
 from stats.activation_ranges_collector import ActivationRangesCollector
+from graph.types import InputParameters, OutputParameters
+from importer.tflite.remove_concats import remove_concats
 
 # def test_conv_pool_relu_kernel_gen(mnist_unfused_8bit_state):
 #     G = load_state(mnist_unfused_8bit_state)
@@ -192,3 +194,60 @@ def test_activatiofusion(actfusion_graph):
         code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
         ATModel_code = default_template(G, code_generator=code_gen)
         #code_gen.write_constants()
+
+def test_gen_split_concat(split_concat_graph):
+    G = split_concat_graph
+    G.add_dimensions()
+    # for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+    #     node.fixed_order = 1
+    G.adjust_order()
+    matcher = get_fusion('scale8_match_group')
+    matcher.match(G)
+    G.add_dimensions()
+    astat_col = ActivationRangesCollector()
+    astats = astat_col.collect_stats(G, [np.full([12, 10, 10], 1.0)])
+    quantizer = MultQuantizer(astats, force_width=8, quantized_dimension="channel")
+    G.quantization = quantizer.quantize(G)
+    with tempfile.TemporaryDirectory() as tempdir:
+        opts = {
+            'default_input_location': 'ARG_LOC_L2',
+            'default_output_location': 'ARG_LOC_L2',
+            'default_global_location': 'ARG_LOC_L3_HFLASH',
+            'default_local_location': 'AT_MEM_UNDEF',
+            'tensor_directory': tempdir
+        }
+        code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+        ATModel_code = default_template(G, code_generator=code_gen)
+        X=0
+    assert G
+
+def test_gen_pack_stridedslice(pack_stridedslice, caplog):
+    caplog.set_level(logging.INFO)
+    G = pack_stridedslice
+    G.add_dimensions()
+    (strided_slices_removed, concats_removed) = remove_concats(G)
+    assert len(strided_slices_removed) == 2
+    assert len(concats_removed) == 1
+    # for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
+    #     node.fixed_order = 1
+    G.add_dimensions()
+    G.adjust_order()
+    matcher = get_fusion('scale8_match_group')
+    matcher.match(G)
+    G.add_dimensions()
+    astat_col = ActivationRangesCollector()
+    astats = astat_col.collect_stats(G, [np.full([10, 10], 1.0), np.full([10, 10], 1.0)])
+    quantizer = MultQuantizer(astats, force_width=8, quantized_dimension="channel")
+    G.quantization = quantizer.quantize(G)
+    with tempfile.TemporaryDirectory() as tempdir:
+        opts = {
+            'default_input_location': 'ARG_LOC_L2',
+            'default_output_location': 'ARG_LOC_L2',
+            'default_global_location': 'ARG_LOC_L3_HFLASH',
+            'default_local_location': 'AT_MEM_UNDEF',
+            'tensor_directory': tempdir
+        }
+        code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+        ATModel_code = default_template(G, code_generator=code_gen)
+        X=0
+    assert G

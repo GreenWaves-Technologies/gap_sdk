@@ -53,18 +53,18 @@ clean:
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v2/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v2 clean; fi
 	if [ -e $(GAP_SDK_HOME)/tools/autotiler_v3/Makefile ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/autotiler_v3 clean; fi
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools clean
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/nntool clean
 	$(MAKE) -C $(GAP_SDK_HOME)/docs clean
 	if [ -e tools/profiler ]; then $(MAKE) -C $(GAP_SDK_HOME)/tools/profiler clean; fi
 
 else
-sdk: all autotiler
+sdk: all autotiler nntool
 all: pulp-os gvsoc littlefs.build
 
 clean:
 	$(RM) $(TARGET_INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 endif
-
 
 # Rules for installing docs
 #------------------------------------------
@@ -95,10 +95,10 @@ pulp-os: install_pulp_tools | $(TARGET_INSTALL_DIR)
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api -f tools/export.mk build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pulp build
 	$(MAKE) -C $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp all
-	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all 
+	$(MAKE) -C $(GAP_SDK_HOME)/libs/gap_lib all
 
 gap_tools:
-	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_tools all 
+	$(MAKE) -C $(GAP_SDK_HOME)/tools/gap_tools all
 
 flasher: pulp-os
 	$(MAKE) -C $(GAP_SDK_HOME)/tools/pulp_tools/gap_flasher install
@@ -227,6 +227,11 @@ gvsoc.clean:
 
 gvsoc.all: gvsoc.checkout gvsoc.build
 
+
+openmp.checkout:
+	git submodule update --recursive --init rtos/openmp
+
+openmp.all: openmp.checkout
 
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

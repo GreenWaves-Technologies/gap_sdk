@@ -34,29 +34,37 @@ def do_dheader(table, one_input, with_chan):
         header.append(TabularColumn("max ch error", fmt=">.3f"))
     if one_input:
         header.extend([
-            TabularColumn("QSNR", fmt=">.0f")
+            TabularColumn("QSNR", fmt=">.0f"),
+            TabularColumn("COSS", fmt=">.2f")
         ])
     else:
         header.extend([
             TabularColumn("av QSNR", fmt=">.0f"),
             TabularColumn("max QSNR", fmt=">.0f"),
             TabularColumn("min QSNR", fmt=">.0f"),
+            TabularColumn("av COSS", fmt=">.2f"),
+            TabularColumn("max COSS", fmt=">.2f"),
+            TabularColumn("min COSS", fmt=">.2f"),
         ])
 
     table.add_row(header)
 
+
 def do_drow(table, stat, cols):
     table.add_row([stat[k] for k in cols])
 
+
 class ErrorReporter(Reporter):
-    ONE_INPUT_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'qsnr']
-    ONE_INPUT_WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'max_chan_err', 'qsnr']
-    COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'qsnr', 'max_qsnr', 'min_qsnr']
-    WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',\
-            'min_err', 'max_chan_err', 'qsnr', 'max_qsnr', 'min_qsnr']
+    ONE_INPUT_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',
+                      'min_err', 'qsnr', 'cos']
+    ONE_INPUT_WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',
+                            'min_err', 'max_chan_err', 'qsnr', 'cos']
+    COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',
+            'min_err', 'qsnr', 'max_qsnr', 'min_qsnr',
+            'cos', 'max_cos', 'min_cos']
+    WCHAN_COLS = ['name', 'op_name', 'step', 'av_err', 'max_err',
+                  'min_err', 'max_chan_err', 'qsnr', 'max_qsnr',
+                  'min_qsnr', 'cos', 'max_cos', 'min_cos']
 
     def __init__(self, do_totals=True, threshold=30.0, one_input=False, with_chan=False):
         print('with chan', with_chan, one_input)

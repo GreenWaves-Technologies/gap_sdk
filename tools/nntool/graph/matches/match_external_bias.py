@@ -64,7 +64,7 @@ class MatchExternalBias(DefaultMatcher):
             cnid = NodeId(constant_node)
             if fnid in G.quantization and cnid in G.quantization:
                 G.quantization[fnid].biases_q = G.quantization[cnid].out_qs[0]
-        return filter_node
+        return filter_node, None, None
 
 class MatchExternalBiasSQ8(DefaultMatcher):
     NAME = 'fuse_external_bias_sq8'
@@ -120,4 +120,4 @@ class MatchExternalBiasSQ8(DefaultMatcher):
                     filter_node.biases = flattened_constant
         else:
             raise DontReplaceError()
-        return filter_node
+        return filter_node, None, None

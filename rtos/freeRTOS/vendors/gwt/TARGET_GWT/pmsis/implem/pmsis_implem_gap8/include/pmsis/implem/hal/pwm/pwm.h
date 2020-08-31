@@ -147,9 +147,9 @@ static inline void hal_pwm_config_set(uint8_t pwm_id, uint8_t insel, uint8_t mod
     pwm_config_set(pwm_id, config);
 }
 
-static inline void hal_pwm_config_reg_set(uint8_t pwm_id, uint32_t config)
+static inline void hal_pwm_config_mask_set(uint8_t pwm_id, uint32_t mask)
 {
-    pwm_config_set(pwm_id, config);
+    pwm_config_set(pwm_id, mask);
 }
 
 
@@ -160,6 +160,11 @@ static inline void hal_pwm_threshold_set(uint8_t pwm_id, uint16_t th_lo,
 {
     pwm_threshold_set(pwm_id, PWM_THRESHOLD_TH_HI(th_hi) |
                               PWM_THRESHOLD_TH_LO(th_lo));
+}
+
+static inline uint32_t hal_pwm_threshold_get(uint8_t pwm_id)
+{
+    return pwm_threshold_get(pwm_id);
 }
 
 

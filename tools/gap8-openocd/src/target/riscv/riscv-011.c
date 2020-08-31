@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Support for RISC-V, debug version 0.11. This was never an officially adopted
  * spec, but SiFive made some silicon that uses it.
@@ -279,7 +281,7 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
-	uint8_t out_value[4];
+	uint8_t out_value[4] = { 0 };
 
 	buf_set_u32(out_value, 0, 32, out);
 
@@ -421,7 +423,7 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 {
 	riscv011_info_t *info = get_info(target);
 	uint8_t in[8] = {0};
-	uint8_t out[8];
+	uint8_t out[8] = {0};
 	struct scan_field field = {
 		.num_bits = info->addrbits + DBUS_OP_SIZE + DBUS_DATA_SIZE,
 		.out_value = out,
@@ -1011,7 +1013,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 	}
 }
 
-static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
+static int read_remote_csr(struct target *target, uint64_t *value, uint32_t csr)
 {
 	riscv011_info_t *info = get_info(target);
 	cache_set32(target, 0, csrr(S0, csr));
@@ -1033,7 +1035,7 @@ static int read_csr(struct target *target, uint64_t *value, uint32_t csr)
 	return ERROR_OK;
 }
 
-static int write_csr(struct target *target, uint32_t csr, uint64_t value)
+static int write_remote_csr(struct target *target, uint32_t csr, uint64_t value)
 {
 	LOG_DEBUG("csr 0x%x <- 0x%" PRIx64, csr, value);
 	cache_set_load(target, 0, S0, SLOT0);
@@ -1061,7 +1063,7 @@ static int maybe_read_tselect(struct target *target)
 	riscv011_info_t *info = get_info(target);
 
 	if (info->tselect_dirty) {
-		int result = read_csr(target, &info->tselect, CSR_TSELECT);
+		int result = read_remote_csr(target, &info->tselect, CSR_TSELECT);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = false;
@@ -1075,7 +1077,7 @@ static int maybe_write_tselect(struct target *target)
 	riscv011_info_t *info = get_info(target);
 
 	if (!info->tselect_dirty) {
-		int result = write_csr(target, CSR_TSELECT, info->tselect);
+		int result = write_remote_csr(target, CSR_TSELECT, info->tselect);
 		if (result != ERROR_OK)
 			return result;
 		info->tselect_dirty = true;
@@ -1257,7 +1259,7 @@ static int register_write(struct target *target, unsigned int number,
 
 	if (number == S0) {
 		cache_set_load(target, 0, S0, SLOT0);
-		cache_set32(target, 1, csrw(S0, CSR_DSCRATCH));
+		cache_set32(target, 1, csrw(S0, CSR_DSCRATCH0));
 		cache_set_jump(target, 2);
 	} else if (number == S1) {
 		cache_set_load(target, 0, S0, SLOT0);
@@ -1382,25 +1384,6 @@ static int halt(struct target *target)
 		LOG_ERROR("cache_write() failed.");
 		return ERROR_FAIL;
 	}
-
-	return ERROR_OK;
-}
-
-static int init_target(struct command_context *cmd_ctx,
-		struct target *target)
-{
-	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
-	generic_info->get_register = get_register;
-	generic_info->set_register = set_register;
-
-	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
-	if (!generic_info->version_specific)
-		return ERROR_FAIL;
-
-	/* Assume 32-bit until we discover the real value in examine(). */
-	generic_info->xlen[0] = 32;
-	riscv_init_registers(target);
 
 	return ERROR_OK;
 }
@@ -1565,11 +1548,11 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	if (read_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
+	if (read_remote_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
-		if (read_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
+		if (read_remote_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
 			/* Maybe this is an old core that still has $misa at the old
 			 * address. */
 			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
@@ -1629,7 +1612,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 	scans_add_read(scans, SLOT0, false);
 
 	/* Read S0 from dscratch */
-	unsigned int csr[] = {CSR_DSCRATCH, CSR_DPC, CSR_DCSR};
+	unsigned int csr[] = {CSR_DSCRATCH0, CSR_DPC, CSR_DCSR};
 	for (unsigned int i = 0; i < DIM(csr); i++) {
 		scans_add_write32(scans, 0, csrr(S0, csr[i]), true);
 		scans_add_read(scans, SLOT0, false);
@@ -1980,8 +1963,13 @@ static int deassert_reset(struct target *target)
 }
 
 static int read_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer)
+		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
+	if (increment != size) {
+		LOG_ERROR("read_memory with custom increment not implemented");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
@@ -2283,6 +2271,26 @@ static int arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+static int init_target(struct command_context *cmd_ctx,
+		struct target *target)
+{
+	LOG_DEBUG("init");
+	riscv_info_t *generic_info = (riscv_info_t *)target->arch_info;
+	generic_info->get_register = get_register;
+	generic_info->set_register = set_register;
+	generic_info->read_memory = read_memory;
+
+	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
+	if (!generic_info->version_specific)
+		return ERROR_FAIL;
+
+	/* Assume 32-bit until we discover the real value in examine(). */
+	generic_info->xlen[0] = 32;
+	riscv_init_registers(target);
+
+	return ERROR_OK;
+}
+
 struct target_type riscv011_target = {
 	.name = "riscv",
 
@@ -2300,7 +2308,6 @@ struct target_type riscv011_target = {
 	.assert_reset = assert_reset,
 	.deassert_reset = deassert_reset,
 
-	.read_memory = read_memory,
 	.write_memory = write_memory,
 
 	.arch_state = arch_state,

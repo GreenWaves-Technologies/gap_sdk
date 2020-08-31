@@ -21,7 +21,7 @@ PLPBRIDGE_FLAGS += -fileIO
 #io=host
 endif
 
-CNN_AT_PATH = $(TILER_GENERATOR_PATH)/CNN
+CNN_AT_PATH = $(TILER_CNN_GENERATOR_PATH)
 
 MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_BiasReLULinear_BasicKernels.c
 MODEL_LIB_POW2 += $(TILER_CNN_KERNEL_PATH)/CNN_Conv_BasicKernels.c
@@ -42,7 +42,7 @@ APP_SRCS += Mnist.c MnistKernels.c \
             $(MODEL_LIB_POW2) \
             ImgIO.c
 
-APP_INC += $(TILER_INC) $(CNN_AT_PATH)
+APP_INC += $(TILER_INC) $(TILER_EMU_INC) $(TILER_CNN_KERNEL_PATH)
 
 APP_CFLAGS += -w -O3 -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
 APP_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-but-set-variable 
@@ -59,7 +59,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenMnist -I$(TILER_INC) -I$(CNN_AT_PATH) MnistModel.c $(MODEL_GEN_POW2) $(TILER_LIB)
+	gcc -o GenMnist -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) MnistModel.c $(MODEL_GEN_POW2) $(TILER_LIB)
 
 # Run the code generator
 MnistKernels.c: GenTile

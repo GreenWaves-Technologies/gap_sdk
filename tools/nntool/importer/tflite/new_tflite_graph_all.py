@@ -77,11 +77,14 @@ from ..importer_base import ImporterBase
 from . import utils
 from .propagate_hints import propagate_hints
 from .fix_split_in_edges import fix_split_in_edges
+from .remove_concats import remove_concats
 from .tflite_schema_head import (ActivationFunctionType, AddOptions, StridedSliceOptions,
                                  ConcatenationOptions, Conv2DOptions,
                                  DepthwiseConv2DOptions, DivOptions,
                                  FullyConnectedOptions, Model, MulOptions,
                                  Padding, Pool2DOptions, ReshapeOptions,
+                                 SequenceRNNOptions, SoftmaxOptions, PackOptions,
+                                 ReducerOptions,
                                  SequenceRNNOptions, SoftmaxOptions,
                                  SubOptions, TensorType, CastOptions,
                                  UnidirectionalSequenceLSTMOptions,
@@ -228,6 +231,7 @@ def get_all_const_broadcasted_inputs(G, model, tensors, subgraph, elem, load_ten
     constant_nodes = []
     max_len = 0
     max_len_idx = -1
+
     for idx in range(elem.InputsLength()):
         tf_idx = elem.Inputs(idx)
         shape = get_shape(subgraph, tf_idx, None)
@@ -243,7 +247,9 @@ def get_all_const_broadcasted_inputs(G, model, tensors, subgraph, elem, load_ten
         if len(shape) > max_len:
             max_len = len(shape)
             max_len_idx = idx
+
     assert constant_nodes[max_len_idx] is None, "can't handle broadcasting to a constant node"
+
     largest = shapes[max_len_idx]
     if len(largest) == 4 and largest[0] == 1:
         largest = largest[1:]
@@ -268,8 +274,12 @@ def get_all_const_broadcasted_inputs(G, model, tensors, subgraph, elem, load_ten
         constant_node = G.add_constant(Dim.unnamed(shape))
         constant_nodes[idx] = constant_node
         if load_tensors:
-            constant_node.value = np.reshape(get_tensor_at_subgraph_idx(
-                model, tensors, elem.Inputs(idx)), shape)
+            constant_node.value = np.reshape(
+                get_tensor_at_subgraph_idx(
+                    model,
+                    tensors,
+                    elem.Inputs(idx)),
+                shape)
         shapes[idx] = shape
 
     return list(zip(shapes, constant_nodes))
@@ -903,6 +913,8 @@ class TfliteImporter(ImporterBase):
         if filter_matches_input and stride_is_one:
             node = GlobalPoolParameters(name,
                                         pool_type=pool_type,
+                                        axis=[0, 1],
+                                        keep_dims=True,
                                         in_dims_hint=SparseList([['h', 'w', 'c']]),
                                         out_dims_hint=SparseList([['h', 'w', 'c']]))
         else:
@@ -939,7 +951,7 @@ class TfliteImporter(ImporterBase):
 
         intermediates = [] if op.IntermediatesLength() == 0 else op.IntermediatesAsNumpy()
         for idx in range(op.InputsLength()):
-            if idx in exclude or op.Inputs(idx) == -1:
+            if idx in exclude or op.Inputs(idx) <= 0:
                 constant_nodes.append(None)
                 continue
             tf_idx = op.Inputs(idx)
@@ -1220,7 +1232,12 @@ class TfliteImporter(ImporterBase):
     def add_broadcasted_op(self, name, subgraph, op_name, op, tf_opts, params, qrec_class=None):
         tf_opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
         inputs = get_all_const_broadcasted_inputs(
-            self.G, self.model, self.tensors, subgraph, op, load_tensors=self.load_tensors)
+            self.G,
+            self.model,
+            self.tensors,
+            subgraph,
+            op,
+            load_tensors=self.load_tensors)
         check(len(inputs) == 2,
               "broadcasted ops should only have 2 inputs " + str(op.InputsAsNumpy()))
         if self.load_quantization:
@@ -1261,29 +1278,40 @@ class TfliteImporter(ImporterBase):
                                        MatrixSubParameters(name),
                                        MultAddQuantizationRecord)
 
-    def add_mean(self, name, subgraph, op_name, op):
-        check(op.InputsLength() == 2,
-              "Very odd " + str(op.InputsAsNumpy()))
-        mean_dims = get_tensor(self.model, self.tensors, op, 1)
-
-        if len(mean_dims) != 2 or mean_dims[0] != 1 or mean_dims[1] != 2:
-            LOG.warning("MEAN operator seen but can't convert to global average pool")
-            return self.add_unconverted(name, subgraph, op_name, op)
-
-        LOG.info("MEAN operator converted to global average pool")
-
-        inp = get_input_size(None, subgraph, op, 0, order=TF_LITE_IN_OUT_ORDER)
-        check(inp['n'] == 1,
-              "Multi batch not supported")
-
-        node = GlobalPoolParameters(name,
-                                    in_dims_hint=SparseList([['h', 'w', 'c']]),
-                                    out_dims_hint=SparseList([['h', 'w', 'c']]))
+    def add_reduction(self, name, subgraph, op_name, op, pool_type):
+        opts = ReducerOptions.ReducerOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        input_tensors = get_input_tensors(self.tensors, op)
+        input_tensor = input_tensors[0]
+        axis = input_tensors[1].get_value(self.model)
+        if len(axis.shape) == 0:
+            axis = list([int(axis)])
+        else:
+            axis = sorted(list(axis))
+        # convert all negative axis to their true value
+        axis = sorted([elem if elem >= 0 else len(input_tensor.shape) + elem
+                       for elem in axis])
+        input_tensors[1].used = True
+        if self.batch_dimension in axis:
+            axis.remove(self.batch_dimension)
+            if len(axis) == 0:
+                return add_node(self.G, NoOPParameters(name))
+        axis = [ax - 1 if ax > self.batch_dimension else ax for ax in axis]
+        node = GlobalPoolParameters(name, pool_type=pool_type, axis=axis, keep_dims=opts.KeepDims())
+        self.G.add_node(node)
         if self.load_quantization:
-            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
-                                                                 get_output_tensors(self.tensors, op))
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(
+                [input_tensors[0]], get_output_tensors(self.tensors, op))
+        return (node, node)
 
-        return add_node(self.G, node)
+    def add_reduce_max(self, name, subgraph, op_name, op):
+        return self.add_reduction(name, subgraph, op_name, op, "max")
+
+    def add_mean(self, name, subgraph, op_name, op):
+        return self.add_reduction(name, subgraph, op_name, op, "average")
+
+    def add_sum(self, name, subgraph, op_name, op):
+        return self.add_reduction(name, subgraph, op_name, op, "sum")
 
     def add_cast(self, name, subgraph, op_name, op):
         if op.BuiltinOptions():
@@ -1340,6 +1368,36 @@ class TfliteImporter(ImporterBase):
         input_tensors = get_input_tensors(self.tensors, op)
         return self.add_split_internal(name, op, input_tensors[0], axis, num_splits=num_splits)
 
+    def add_pack(self, name, subgraph, op_name, op):
+        opts = PackOptions.PackOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        values_count = opts.ValuesCount()
+        axis = max(opts.Axis(), 0)
+
+        input_tensors = get_input_tensors(self.tensors, op)
+        output_tensors = get_output_tensors(self.tensors, op)
+        assert values_count == len(
+            input_tensors), "values_count option should be the number of input tensors"
+
+        concat_node = ConcatParameters(name, axis=axis)
+        for idx, input_tensor in enumerate(input_tensors):
+            in_shape = Dim.unnamed(self.remove_batch_dim(input_tensor.shape), is_ordered=True)
+            out_shape = in_shape.clone().insert_axis(axis)
+            reshape_name = "%s_reshape_%s" % (name, idx)
+            reshape_node = ReshapeParameters(reshape_name, old_shape=in_shape, shape=out_shape)
+            self.G.add_edge(NNEdge(reshape_node, concat_node, to_idx=idx))
+            input_tensor.inputs.append((reshape_name, 0))
+            if self.load_quantization:
+                self.qrecs[NodeId(reshape_node)] = self.load_tf_quantization([input_tensors[idx]],
+                                                                             [input_tensors[idx]])
+
+        output_tensors[0].output = (name, 0)
+
+        if self.load_quantization:
+            self.qrecs[NodeId(concat_node)] = self.load_tf_quantization(input_tensors,
+                                                                        output_tensors)
+        return (concat_node, concat_node)
+
     def add_strided_slice(self, name, subgraph, op_name, op):
         opts = StridedSliceOptions.StridedSliceOptions()
         opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
@@ -1367,10 +1425,14 @@ class TfliteImporter(ImporterBase):
             end_mask, ellipsis_mask,
             new_axis_mask, shrink_axis_mask)
         if can_reshape:
-            LOG.info("converting strided slice %s to a reshape", name)
-            in_shape = Dim.unnamed(self.remove_batch_dim(in_shape), is_ordered=True)
-            out_shape = Dim.unnamed(out_shape, is_ordered=True)
-            node = ReshapeParameters(name, old_shape=in_shape, shape=out_shape)
+            if list(in_shape) == list(out_shape):
+                LOG.info("converting strided slice %s to a noop", name)
+                node = NoOPParameters(name)
+            else:
+                LOG.info("converting strided slice %s to a reshape", name)
+                in_shape = Dim.unnamed(self.remove_batch_dim(in_shape), is_ordered=True)
+                out_shape = Dim.unnamed(out_shape, is_ordered=True)
+                node = ReshapeParameters(name, old_shape=in_shape, shape=out_shape)
         else:
             node = StridedSliceParameters(name, act_slice=act_slice, out_shape=out_shape)
         if self.load_quantization:
@@ -1386,18 +1448,20 @@ class TfliteImporter(ImporterBase):
         input_tensors = get_input_tensors(self.tensors, op)
         # anchors_tensor = input_tensors[2]
         # anchors_tensor.used = True
+        parameters = flex_buffer.Value
+        parameters.update({'max_bb_before_nms': 300}) #default
         node = SSDDetectorParameters(name,
-                                     parameters=flex_buffer.Value)
+                                     parameters=parameters)
         self.G.add_node(node)
-        constant_nodes = self.get_all_const_inputs(subgraph,
-                                                   op,
-                                                   node,
-                                                   exclude=[0, 1],
-                                                   names=["%s_%s" % (in_name, name)
-                                                          for in_name in SSDDetectorParameters.INPUT_NAMES],
-                                                   short_names=SSDDetectorParameters.INPUT_NAMES,
-                                                   adjust_transposes=[False]*op.InputsLength(),
-                                                   load_quantization_if_present=True)
+        self.get_all_const_inputs(subgraph,
+                                  op,
+                                  node,
+                                  exclude=[0, 1],
+                                  names=["%s_%s" % (in_name, name)
+                                         for in_name in SSDDetectorParameters.INPUT_NAMES],
+                                  short_names=SSDDetectorParameters.INPUT_NAMES,
+                                  adjust_transposes=[False]*op.InputsLength(),
+                                  load_quantization_if_present=True)
 
         # anchor_node = constant_nodes[SSDDetectorParameters.INPUT_NAMES.index('anchors')]
         # tflite sometimes does not create all the outputs. There must be 4
@@ -1443,6 +1507,7 @@ class TfliteImporter(ImporterBase):
         "RESHAPE": add_reshape,
         "PAD": add_pad,
         "ADD": add_add,
+        "SUM": add_sum,
         "MUL": add_mul,
         "SUB": add_sub,
         "DIV": add_div,
@@ -1456,6 +1521,8 @@ class TfliteImporter(ImporterBase):
         "CAST": add_cast,
         "SPLIT_V": add_split_v,
         "SPLIT": add_split,
+        "PACK": add_pack,
+        "REDUCE_MAX": add_reduce_max,
     }
 
     for operator in TF_ACTIVATION_OPERATORS:
@@ -1467,12 +1534,20 @@ class TfliteImporter(ImporterBase):
         node_name = "{}_{}_{}".format(op_name, subgraph_idx, op_idx)
 
         if is_custom:
-            return self.add_custom(node_name, subgraph, op_name, op)
+            in_node, out_node = self.add_custom(node_name, subgraph, op_name, op)
+        elif op_name in self.SWITCH_ADD_FUNCTIONS:
+            in_node, out_node = self.SWITCH_ADD_FUNCTIONS[op_name](
+                self, node_name, subgraph, op_name, op)
+        else:
+            in_node, out_node = self.add_unconverted(node_name, subgraph, op_name, op)
+        return in_node, out_node, op != "PACK"
 
-        if op_name in self.SWITCH_ADD_FUNCTIONS:
-            return self.SWITCH_ADD_FUNCTIONS[op_name](self, node_name, subgraph, op_name, op)
-
-        return self.add_unconverted(node_name, subgraph, op_name, op)
+    def link_inputs_and_outputs(self, op, in_node, out_node):
+        for j in range(op.InputsLength()):
+            if op.Inputs(j) > -1:
+                self.tensors[op.Inputs(j)].inputs.append((in_node.name, j))
+        for j in range(op.OutputsLength()):
+            self.tensors[op.Outputs(j)].output = (out_node.name, j)
 
     def create_subgraph(self, graph_index):
         graph = self.model.Subgraphs(graph_index)
@@ -1499,14 +1574,11 @@ class TfliteImporter(ImporterBase):
 
         for i in range(graph.OperatorsLength()):
             op = graph.Operators(i)
-            in_node, out_node =\
+            in_node, out_node, do_link =\
                 self.add_operator(graph, graph_index, op, i)
             # keep track of which input the tensor is attached to
-            for j in range(op.InputsLength()):
-                if op.Inputs(j) > -1:
-                    self.tensors[op.Inputs(j)].inputs.append((in_node.name, j))
-            for j in range(op.OutputsLength()):
-                self.tensors[op.Outputs(j)].output = (out_node.name, j)
+            if do_link:
+                self.link_inputs_and_outputs(op, in_node, out_node)
 
         for tensor in self.tensors:
             if tensor.output is not None:
@@ -1550,4 +1622,7 @@ class TfliteImporter(ImporterBase):
 
         fix_split_in_edges(self.G)
         propagate_hints(self.G)
+        self.G.add_dimensions()
+        remove_concats(self.G)
+
         return self.G

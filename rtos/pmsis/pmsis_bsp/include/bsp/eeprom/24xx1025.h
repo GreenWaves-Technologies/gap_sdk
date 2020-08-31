@@ -43,7 +43,7 @@
 struct pi_24xx1025_conf
 {
     struct pi_eeprom_conf eeprom;   /*!< Generic EEPROM configuration. */
-    int i2c_addr;
+    uint16_t i2c_addr;
     int i2c_itf;
 };
 

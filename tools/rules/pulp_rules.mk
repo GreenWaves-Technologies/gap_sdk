@@ -3,11 +3,15 @@ CXX           = riscv32-unknown-elf-g++
 CC            = riscv32-unknown-elf-gcc
 AR            = riscv32-unknown-elf-ar
 OBJDUMP       = riscv32-unknown-elf-objdump
+NM          = riscv32-unknown-elf-nm
+SIZE        = riscv32-unknown-elf-size
 
 platform     ?= board
 
 # The linker options.
+ifeq ($(CUSTOM_BSP),)
 LIBS += -L$(TARGET_INSTALL_DIR)/lib/gap/$(BOARD_NAME) -lpibsp
+endif
 
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \
@@ -63,11 +67,14 @@ TARGET_CHIP_VERSION=1
 endif
 
 ifeq ($(TARGET_CHIP_FAMILY), GAP8)
-PULP_ARCH_CFLAGS ?= -mchip=gap8 -mPE=8 -mFC=1
+APP_ARCH_CFLAGS ?= -mchip=gap8 -mPE=8 -mFC=1
 else
-PULP_ARCH_CFLAGS ?= -mchip=gap9 -mPE=8 -mFC=1
+APP_ARCH_CFLAGS ?= -mchip=gap9 -mPE=8 -mFC=1
 endif
-PULP_ARCH_LDFLAGS ?= 
+APP_ARCH_LDFLAGS ?=
+
+PULP_ARCH_CFLAGS ?= $(APP_ARCH_CFLAGS)
+PULP_ARCH_LDFLAGS ?= $(APP_ARCH_LDFLAGS)
 
 ifdef PULP_FC_ARCH_CFLAGS
 PULP_ARCH_CFLAGS = $(PULP_FC_ARCH_CFLAGS)
@@ -123,6 +130,20 @@ PULP_CFLAGS += -D__RT_IODEV__=1
 endif
 
 TCFLAGS       = -fno-jump-tables -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections $(RISCV_FLAGS) $(GAP_FLAGS) -MMD -MP -c
+
+ifeq '$(CONFIG_OPENMP)' '1'
+PULP_APP_SRCS += $(OPENMP_DIR)/lib/omp.c $(OPENMP_DIR)/lib/omp_gcc.c
+PULP_CFLAGS += -fopenmp
+endif
+
+# Objdump options
+OBJDUMP_OPT         = -d -h -S -t -w --show-raw-insn
+
+# NM options.
+NM_OPT              = -a -A -l -S --size-sort --special-syms
+
+# Size options.
+SIZE_OPT            = -B -x --common
 
 # Final binary
 #------------------------------------------
@@ -209,7 +230,7 @@ run.prepare:
 run.exec:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) $(runner_args)
 
-run: 
+run:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
 
 
@@ -221,7 +242,9 @@ profiler:
 #$(INSTALL_DIR)/runner/run_gapuino.sh $(BUILDDIR) $(BIN) $(RAW_IMAGE_PLPBRIDGE_FLAGS)  $(PLPBRIDGE_FLAGS) $(PLPBRIDGE_EXTRA_FLAGS)
 
 $(BIN).s: $(BIN)
-	$(OBJDUMP) -D $< > $@
+	$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
+	$(SIZE) $(SIZE_OPT) $< > $(BIN).size
+	$(NM) $(NM_OPT) $< >> $(BIN).size
 
 disdump: $(BIN).s
 

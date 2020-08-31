@@ -28,6 +28,7 @@ LOG = logging.getLogger("nntool." + __name__)
 class MatchRnnUnpack(Matcher):
     NAME = 'rnn_unpack'
     DESCRIPTION = 'Merge unpack/slice of last output into RNN'
+    NEEDS_VALID_DIMENSION = True
 
     def find_unpack(self, G, node, first=True):
         if isinstance(node, (StridedSliceParameters, SplitParameters)):
@@ -46,19 +47,21 @@ class MatchRnnUnpack(Matcher):
 
     def match(self, G: GraphView, set_identity: bool = True):
         rnn_nodes = [self.find_unpack(G, node) for node in G.nodes() if isinstance(node, RNNBaseParameters)]
+        has_modified_graph = False
         for rnn_unpack in rnn_nodes:
             if not rnn_unpack:
                 continue
             unpack_node = rnn_unpack[-1]
             rnn_node = rnn_unpack[0]
+            time_axis = rnn_node.transpose_out[0].index(0) if rnn_node.transpose_out else 0
             if isinstance(unpack_node, StridedSliceParameters):
-                if unpack_node.act_slice[1][1] != rnn_node.n_cells:
+                if unpack_node.act_slice[time_axis][1] != rnn_node.n_cells:
                     LOG.debug("can't remove %s. Slice not equal to cells", unpack_node.name)
                     continue
-                if unpack_node.act_slice[1][2] != 1:
+                if unpack_node.act_slice[time_axis][2] != 1:
                     LOG.debug("can't remove %s. Slice not of length 1", unpack_node.name)
                     continue
-                if unpack_node.act_slice[1][0] != rnn_node.n_cells - 1:
+                if unpack_node.act_slice[time_axis][0] != rnn_node.n_cells - 1:
                     LOG.debug("can't remove %s. Slice isn't last cell", unpack_node.name)
                     continue
                 out_edge = G.out_edges(unpack_node.name)[0]
@@ -72,16 +75,17 @@ class MatchRnnUnpack(Matcher):
                     LOG.debug("can't remove %s. Not last output", unpack_node.name)
                     continue
                 act_slice = unpack_node.act_slices[-1]
-                if act_slice[1][1] != rnn_node.n_cells:
+                if act_slice[time_axis][1] != rnn_node.n_cells:
                     LOG.debug("can't remove %s. Slice not equal to cells", unpack_node.name)
                     continue
-                if act_slice[1][0] != rnn_node.n_cells - 1:
+                if act_slice[time_axis][0] != rnn_node.n_cells - 1:
                     LOG.debug("can't remove %s. Slice isn't last cell", unpack_node.name)
                     continue
                 out_edge = G.out_edges(unpack_node.name)[0]
             else:
                 continue
 
+            has_modified_graph = True
             for node in rnn_unpack[1::]:
                 LOG.info("Eliminating last cell unpack: %s", node.name)
                 if G.quantization:
@@ -92,3 +96,8 @@ class MatchRnnUnpack(Matcher):
             rnn_node.out_dims_hint = [unpack_node.out_dims_hint[out_edge.from_idx]]
             rnn_node.transpose_out = None
             G.add_edge(NNEdge(rnn_node, out_edge.to_node, to_idx=out_edge.to_idx))
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph

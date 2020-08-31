@@ -103,6 +103,7 @@ class MoveNodeUpMatcher(Matcher):
         target_nodes = filter(lambda n: not isinstance(
             G.in_edges(n.name)[0].from_node, self.ValidFusions), target_nodes)
         can_be_moved = []
+        has_modified_graph = False
         for node in target_nodes:
             try:
                 edges = list(self.find_home_for_node(G, node))
@@ -111,16 +112,20 @@ class MoveNodeUpMatcher(Matcher):
             except LocationNotFoundError:
                 LOG.info("Node %s cannot be moved", node.name)
         for move in can_be_moved:
+            has_modified_graph = True
             self.move_node(G, move['node'], move['edges'])
 
         if set_identity:
             self.set_identity(G)
+
+        return has_modified_graph
 
 
 class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
     NAME = "move_activations_scale8"
     DESCRIPTION = "Tries to move activations so they are after layers that they can be fused with. \
         Should be run before match_gap_* fusions. Compatible with AutoTiler SQ8 kernels."
+    NEEDS_VALID_DIMENSION = True
 
     ValidNodesToPass = (ReshapeParameters, TransposeParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters, PoolingParameters,
@@ -133,6 +138,7 @@ class MoveActivationsMatcherPow2(MoveNodeUpMatcher):
     NAME = "move_activations_pow2"
     DESCRIPTION = "Tries to move activations so they are after layers that they can be fused with. \
         Should be run before match_gap_* fusions. Compatible with AutoTiler POW2 kernels."
+    NEEDS_VALID_DIMENSION = True
 
     ValidNodesToPass = (ReshapeParameters, TransposeParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters)
@@ -143,6 +149,7 @@ class MoveMaxPoolMatcherScale8(MoveNodeUpMatcher):
     NAME = "move_pooling_scale8"
     DESCRIPTION = "Tries to move poolings so they are after layers that they can be fused with. \
         Should be run before match_gap_* fusions. Compatible with AutoTiler SQ8 kernels."
+    NEEDS_VALID_DIMENSION = True
 
     ValidNodesToPass = (ReshapeParameters, TransposeParameters,
                         ReluActivationParameters, ConcatParameters)

@@ -17,6 +17,7 @@
 #ifndef __BSP_CAMERA_OV5640_H__
 #define __BSP_CAMERA_OV5640_H__
 
+#include "pmsis.h"
 #include "bsp/camera.h"
 
 /**
@@ -47,6 +48,8 @@ struct pi_ov5640_conf
   int i2c_itf;                  /*!< I2C interface where the camera control
     interface is connected. */
   char skip_pads_config;        /*!< Skip pads configuration if set to 1. */
+  pi_gpio_e reset_gpio;
+  pi_gpio_e pwdn_gpio;
   pi_camera_format_e format;    /*!< Camera image resolution. */
 };
 

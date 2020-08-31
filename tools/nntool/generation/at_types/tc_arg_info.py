@@ -71,16 +71,18 @@ class TCArgInfo():
                  const_info: Optional[ConstantInfo] = None,
                  comment: Optional[str] = None,
                  extern_pointer=None):
-        assert arg_type in self.ARG_TYPES
+        assert arg_type in self.ARG_TYPES, "arg_type ({}) must be in {}".format(arg_type, self.ARG_TYPES)
         self._arg_type = arg_type
         self._arg_name = arg_name
-        assert arg_scope in self.ARG_SCOPES
+        assert arg_scope in self.ARG_SCOPES, "arg_scope ({}) must be in {}".format(arg_scope, self.ARG_SCOPES)
         self._arg_scope = arg_scope
-        assert arg_dir in self.ARG_DIRECTIONS
+        assert arg_dir in self.ARG_DIRECTIONS, "arg_dir ({}) must be in {}".format(arg_dir, self.ARG_DIRECTIONS)
         self._arg_dir = arg_dir
-        assert home_location is None or home_location in self.MEM_LOCATIONS
+        assert home_location is None or home_location in self.MEM_LOCATIONS, \
+            "home_location ({}) must be in {}".format(home_location, self.MEM_LOCATIONS)
         self._home_location = home_location
-        assert exec_location is None or exec_location in self.MEM_LOCATIONS
+        assert exec_location is None or exec_location in self.MEM_LOCATIONS, \
+            "exec_location ({}) must be in {}".format(exec_location, self.MEM_LOCATIONS)
         self._exec_location = exec_location
         self._const_info = const_info
         self._comment = comment

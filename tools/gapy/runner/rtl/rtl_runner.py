@@ -77,7 +77,6 @@ class Runner(runner.default_runner.Runner):
 
                 self.set_arg('-sv_lib %s' % dpi_path)
 
-
         #
         # Co-simulation with GVSOC
         #

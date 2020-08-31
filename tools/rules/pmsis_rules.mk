@@ -65,6 +65,8 @@ endif				# GAP_SDK_HOME
 
 include $(PMSIS_BSP_DIR)/rules/freertos_bsp_rules.mk
 
+include $(GAP_SDK_HOME)/rtos/openmp/rules/freertos_openmp_rules.mk
+
 # Special flag for FreeRTOS to use semihosting.
 ifeq ($(FS_TYPE), host)
 io = host

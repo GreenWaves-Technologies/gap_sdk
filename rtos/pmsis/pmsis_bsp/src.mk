@@ -14,6 +14,7 @@ BSP_BOOTLOADER_SRC = bootloader/bootloader_utility.c
 BSP_NINA_SRC = transport/transport.c transport/nina_w10/nina_w10.c
 BSP_24XX1025_SRC = eeprom/24XX1025.c
 BSP_VIRTUAL_EEPROM_SRC = eeprom/virtual_eeprom.c
+BSP_MRAM_SRC = flash/mram/mram-v2.c
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -40,6 +41,8 @@ GAP9_SRC = \
   eeprom/24XX1025.c \
   $(BSP_VIRTUAL_EEPROM_SRC)\
   bsp/gap9_v2.c \
+  camera/camera.c \
+  camera/himax/himax.c \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_RAM_SRC)
@@ -63,6 +66,7 @@ GAPUINO_SRC = \
   camera/ov7670/ov7670.c \
   camera/gc0308/gc0308.c \
   camera/ov5640/ov5640.c \
+  camera/pixart/pixart.c \
   display/display.c \
   display/ili9341/ili9341.c \
   $(BSP_HYPERFLASH_SRC) \

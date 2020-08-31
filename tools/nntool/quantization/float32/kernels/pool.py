@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
+from functools import reduce
 import numpy as np
 
 from quantization.quantization_record_base import QuantizationRecordBase
@@ -129,12 +129,11 @@ def av_global_pool(params,
         qrec = Float32QuantizationRecord()
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
-    sum_by_chan = np.sum(in_tensor, dtype=np.float32, axis=(
-        params.in_dims[0].get_order_idx('w'), params.in_dims[0].get_order_idx('h')))
+    sum_by_chan = np.sum(in_tensor, dtype=np.float32, axis=tuple(params.axis), keepdims=params.keep_dims)
+    sz = reduce(lambda x, y: x * y, [i for idx, i in enumerate(in_tensor.shape) if idx in params.axis])
 
     return qrec.get_outputs(params,
-                            [(sum_by_chan / (params.in_dims[0].h * params.in_dims[0].w)
-                              ).reshape(params.out_dims[0].shape)],
+                            [(sum_by_chan / sz).reshape(params.out_dims[0].shape)],
                             ktype="float32")
 
 
@@ -148,6 +147,18 @@ def max_global_pool(params,
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
     return qrec.get_outputs(params, [np.max(in_tensor,
-                                            axis=(params.in_dims[0].get_order_idx('w'),
-                                                  params.in_dims[0].get_order_idx('h')),
-                                            keepdims=True)], ktype="float32")
+                                            axis=tuple(params.axis),
+                                            keepdims=params.keep_dims)], ktype="float32")
+
+def sum_global_pool(params,
+                    in_tensors,
+                    qrec: QuantizationRecordBase,
+                    details=None):
+    del details
+    if qrec is None:
+        qrec = Float32QuantizationRecord()
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+
+    return qrec.get_outputs(params, [np.sum(in_tensor,
+                                            axis=tuple(params.axis),
+                                            keepdims=params.keep_dims)], ktype="float32")

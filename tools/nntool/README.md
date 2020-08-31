@@ -138,18 +138,19 @@ At this point the nntool graph is ready to be translated in an Autotiler Model f
 ## Image Formatter
 
 To handle different type of input images format you can add to your graph an input formatter which will generate the Autotiler optimized code for the proper conversion. It supports:
-- rgb565 HxWxC input to rgb888 CxHxW (rgb565)
-- rgb888 HxWxC input to rgb888 CxHxW (rgb888)
-- grayscale8 input to grayscale8 (bw8)
-- grayscale8 input to grayscale16 (bw16)
+- rgb565 HxWxC input to rgb888 CxHxW (*rgb565_rgb888*)
+- rgb888 HxWxC input to rgb888 CxHxW (*rgb888*)
+- rgb888 HxWxC input to rgb16 CxHxW (*rgb16*)
+- grayscale8 input to grayscale8 (*bw8*)
+- grayscale8 input to grayscale16 (*bw16*)
 
 It also handle the conversion between uint8 [0:255] values to int8 [-128:127] supported in the AT convolutional kernels. You will need to speify the desired technique:
-- shift_int8: will apply elemnt-wise a right shift of 1 bit (>> 1) so that the values do not overflow the max int8 [0:128] (more efficient)
-- offset_int8: will apply element-wise a -128 addition to output [-128:127] values ready for AT Convolutional kernels (more accurate)
-- for 16 bits graphs only: out_int16: takes the uint8 input and converts to int16 output by applying a left shift of 7 bits (<< 7)
+- *shift_int8*: will apply elemnt-wise a right shift of 1 bit (>> 1) so that the values do not overflow the max int8 [0:128] (more efficient)
+- *offset_int8*: will apply element-wise a -128 addition to output [-128:127] values ready for AT Convolutional kernels (more accurate)
+- (for 16 bits graphs only) *out_int16*: takes the uint8 input and converts to int16 output by applying a left shift of 7 bits (<< 7)
 
 The command to run to introduce the formatter into your graph is:
-	imageformat input_x [bw8 | bw16 | rgb888 | rgb565] [shift_int8 | offset_int8 | out_int16]
+	imageformat input_x [bw8 | bw16 | rgb888 | rgb565_rgb888 | rgb16] [shift_int8 | offset_int8 | out_int16]
 
 NOTE: in case of multichannel input the image formmatter will automatically handle also the automatic transposition when you run the network in nntool (i.e. the -T option is no more needed)
 

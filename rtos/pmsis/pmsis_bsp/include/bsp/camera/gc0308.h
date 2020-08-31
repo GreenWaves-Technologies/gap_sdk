@@ -50,6 +50,7 @@ struct pi_gc0308_conf
   pi_gpio_e reset_gpio;              /*!< GPIO number for reset the gc0308 camera */
   char skip_pads_config;        /*!< Skip pads configuration if set to 1. */
   pi_camera_format_e format;    /*!< Camera image resolution. */
+  pi_camera_color_mode_e color_mode;    /*!< Camera image resolution. */
 };
 
 /** \brief Initialize a camera configuration with default values.

@@ -1,4 +1,38 @@
 {
+  "name": "Mram",
+
+  "datasheet": {
+    "type": "mram",
+    "size": "2MB",
+    "block-size": "8KB"
+  },
+
+  "models": {
+    "rtl": {
+        "stimuli": {
+            "format": "slm",
+            "file": "slm_files/mram_stim.slm"
+        }
+    }
+  },
+
+  "content": {
+    "partitions": {
+        "readfs": {
+            "type": "readfs",
+            "files": []
+        },
+        "hostfs": {
+            "type": "hostfs",
+            "files": []
+        },
+        "lfs": {
+            "type": "lfs",
+            "root_dir": null
+        }
+    }
+  },
+
   "version": 1,
 
   "vp_class": "pulp/mram/mram_v1",

@@ -43,7 +43,7 @@
 struct pi_virtual_eeprom_conf
 {
     struct pi_eeprom_slave_conf eeprom_slave;   /*!< Generic EEPROM configuration. */
-    int i2c_addr;
+    uint16_t i2c_addr;
     int i2c_itf;
 };
 

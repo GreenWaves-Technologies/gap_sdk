@@ -60,6 +60,16 @@
 #define         HIMAX_SINGLE_THR_COLD     0x100C
 // VSYNC,HSYNC and pixel shift register
 #define         HIMAX_VSYNC_HSYNC_PIXEL_SHIFT_EN  0x1012
+// Statistic control and read only
+#define         HIMAX_STATISTIC_CTRL      0x2000
+#define         HIMAX_MD_LROI_X_START_H   0x2011
+#define         HIMAX_MD_LROI_X_START_L   0x2012
+#define         HIMAX_MD_LROI_Y_START_H   0x2013
+#define         HIMAX_MD_LROI_Y_START_L   0x2014
+#define         HIMAX_MD_LROI_X_END_H     0x2015
+#define         HIMAX_MD_LROI_X_END_L     0x2016
+#define         HIMAX_MD_LROI_Y_END_H     0x2017
+#define         HIMAX_MD_LROI_Y_END_L     0x2018
 // Automatic exposure gain control
 #define         HIMAX_AE_CTRL             0x2100
 #define         HIMAX_AE_TARGET_MEAN      0x2101

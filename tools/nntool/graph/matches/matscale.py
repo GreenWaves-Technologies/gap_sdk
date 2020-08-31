@@ -136,6 +136,7 @@ class MatScalePairMatchFactory():
                                                                      to_node=node_2))
         return fragment
 
+
 class MatScaleNodeMatch(NodeMatch):
     def __init__(self):
         self._has_matched = False
@@ -178,8 +179,12 @@ class FuseMatScalePair(Matcher):
     NAME = 'fuse_matscale_pair'
     DESCRIPTION = 'Finds pair of Matrix piecewise multiplies and checks if they are compatible ' + \
                   'with a MatScale kernel'
+    NEEDS_VALID_DIMENSION = True
+
     def match(self, G: GraphView, set_identity: bool = True):
         fac = MatScalePairMatchFactory()
+        has_modified_graph = False
+
         for frag, match in fac.get_matcher().match_graph(G):
             match_edges = [G.indexed_in_edges(node.name)[idx] for node, idx in match]
             first_node = frag.inputs()[0]
@@ -187,18 +192,32 @@ class FuseMatScalePair(Matcher):
             out_edges = G.out_edges(last_node.name)
             for node in frag.nodes():
                 G.remove(node)
-            fnode = MatScaleFusionParameters("{}_{}_fusion".format(first_node.name, last_node.name), "vec_scalar", frag)
+
+            input_mapping = MatScaleFusionParameters.get_mapping_from_edges(match_edges)
+
+            fnode = MatScaleFusionParameters(
+                "{}_{}_fusion".format(first_node.name, last_node.name),
+                fusion_type="vec_scalar", subgraph=frag,
+                input_mapping=MatScaleFusionParameters.convert_input_mapping(input_mapping))
+            has_modified_graph = True
             G.add_node(fnode)
             fnode.in_dims_hint = [None] * 3
+
             for idx, edge in enumerate(match_edges):
+                edge.to_idx = list(input_mapping[edge.to_node].keys())[0]
                 edge.to_node = fnode
-                edge.to_idx = idx
                 if edge.from_node.out_dims_hint:
                     fnode.in_dims_hint[idx] = edge.from_node.out_dims_hint[edge.from_idx]
                 G.add_edge(edge)
             for edge in out_edges:
                 edge.from_node = fnode
                 G.add_edge(edge)
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph
+
 
 class FuseMatScale(Matcher):
     NAME = 'fuse_matscale'
@@ -208,12 +227,16 @@ class FuseMatScale(Matcher):
     def match(self, G: GraphView, set_identity: bool = True):
         fragment = GraphMatcher(match_function=lambda state, frag: (frag, state['match']))
         fragment.add_node(MatScaleNodeMatch())
+        has_modified_graph = False
         for frag, match in fragment.match_graph(G):
             match_edges = [G.indexed_in_edges(node.name)[idx] for node, idx in match['inputs']]
             matched_node = list(frag.nodes())[0]
             out_edges = G.out_edges(matched_node.name)
+            has_modified_graph = True
             G.remove(matched_node)
-            fnode = MatScaleFusionParameters("{}_fusion".format(matched_node.name), match['type'], frag)
+            fnode = MatScaleFusionParameters("{}_fusion".format(
+                matched_node.name), fusion_type=match['type'], subgraph=frag,
+                input_mapping=[[(matched_node, 0)], [(matched_node, 1)]])
             G.add_node(fnode)
             for idx, edge in enumerate(match_edges):
                 edge.to_node = fnode
@@ -225,3 +248,5 @@ class FuseMatScale(Matcher):
 
         if set_identity:
             self.set_identity(G)
+
+        return has_modified_graph

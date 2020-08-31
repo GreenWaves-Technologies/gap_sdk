@@ -54,49 +54,24 @@ static himax_reg_init_t __himax_reg_init[] =
 {
   {HIMAX_BLC_TGT, 0x08},            //  BLC target :8  at 8 bit mode
   {HIMAX_BLC2_TGT, 0x08},           //  BLI target :8  at 8 bit mode
-  {0x3044, 0x0A},             //  Increase CDS time for settling
-  {0x3045, 0x00},             //  Make symetric for cds_tg and rst_tg
-  {0x3047, 0x0A},             //  Increase CDS time for settling
-  {0x3050, 0xC0},             //  Make negative offset up to 4x
-  {0x3051, 0x42},
-  {0x3052, 0x50},
-  {0x3053, 0x00},
-  {0x3054, 0x03},             //  tuning sf sig clamping as lowest
-  {0x3055, 0xF7},             //  tuning dsun
-  {0x3056, 0xF8},             //  increase adc nonoverlap clk
-  {0x3057, 0x29},             //  increase adc pwr for missing code
-  {0x3058, 0x1F},             //  turn on dsun
-  {0x3059, 0x1E},
-  {0x3064, 0x00},
-  {0x3065, 0x04},             //  pad pull 0
+  {HIMAX_BIT_CONTROL, 0x1E},
+  {HIMAX_ANA_Register_14, 0x00},
+  {HIMAX_OUTPUT_PIN_STATUS_CONTROL, 0x04},             //  pad pull 0
 
   {HIMAX_BLC_CFG, 0x43},            //  BLC_on, IIR
 
-  {0x1001, 0x43},             //  BLC dithering en
-  {0x1002, 0x43},             //  blc_darkpixel_thd
-  {0x0350, 0x00},             //  Dgain Control
   {HIMAX_BLI_EN, 0x01},             //  BLI enable
-  {0x1003, 0x00},             //  BLI Target [Def: 0x20]
+  {HIMAX_BLC_TGT, 0x00},             //  BLI Target [Def: 0x20]
 
   {HIMAX_DPC_CTRL, 0x01},           //  DPC option 0: DPC off   1 : mono   3 : bayer1   5 : bayer2
-  {0x1009, 0xA0},             //  cluster hot pixel th
-  {0x100A, 0x60},             //  cluster cold pixel th
   {HIMAX_SINGLE_THR_HOT, 0x90},     //  single hot pixel th
   {HIMAX_SINGLE_THR_COLD, 0x40},    //  single cold pixel th
-  {0x1012, 0x00},             //  Sync. shift disable
-  {0x2000, 0x07},
-  {0x2003, 0x00},
-  {0x2004, 0x1C},
-  {0x2007, 0x00},
-  {0x2008, 0x58},
-  {0x200B, 0x00},
-  {0x200C, 0x7A},
-  {0x200F, 0x00},
-  {0x2010, 0xB8},
-  {0x2013, 0x00},
-  {0x2014, 0x58},
-  {0x2017, 0x00},
-  {0x2018, 0x9B},
+
+  {HIMAX_STATISTIC_CTRL, 0x07},
+  {HIMAX_MD_LROI_Y_START_H, 0x00},
+  {HIMAX_MD_LROI_Y_START_L, 0x58},
+  {HIMAX_MD_LROI_Y_END_H, 0x00},
+  {HIMAX_MD_LROI_Y_END_L, 0x9B},
 
   {HIMAX_AE_CTRL,        0x01},      //Automatic Exposure Gain Control
   {HIMAX_AE_TARGET_MEAN, 0x3C},      //AE target mean [Def: 0x3C]
@@ -109,39 +84,39 @@ static himax_reg_init_t __himax_reg_init[] =
   {HIMAX_DIGITAL_GAIN_H, 0x01},      //Digital Gain High [Def: 0x01]
   {HIMAX_DIGITAL_GAIN_L, 0x00},      //Digital Gain Low [Def: 0x00]
 
-  {0x2103, 0x03},
+  {HIMAX_CONVERGE_IN_TH, 0x03},
+  {HIMAX_CONVERGE_OUT_TH, 0x05},
 
-  {0x2104, 0x05},
-  {0x2105, 0x01},
+  {HIMAX_MAX_INTG_H, 0x01},
+  {HIMAX_MAX_INTG_L, 0x54},
 
-  {0x2106, 0x54},
+  {HIMAX_MAX_AGAIN_FULL, 0x03},
+  {HIMAX_MAX_AGAIN_BIN2, 0x04},
 
-  {0x2108, 0x03},
-  {0x2109, 0x04},
+  {HIMAX_MAX_DGAIN, 0xC0},
+  {HIMAX_FS_CTRL, 0x00}, //Flicker Control
+  {HIMAX_FS_60HZ_H, 0x00},
+  {HIMAX_FS_60HZ_L, 0x3C},
+  {HIMAX_FS_50HZ_H, 0x00},
+  {HIMAX_FS_50HZ_L, 0x32},
 
-  {0x210B, 0xC0},
-  {0x210E, 0x00}, //Flicker Control
-  {0x210F, 0x00},
-  {0x2110, 0x3C},
-  {0x2111, 0x00},
-  {0x2112, 0x32},
-
-  {0x2150, 0x30},
-  {0x0340, 0x02},
-  {0x0341, 0x16},
-  {0x0342, 0x01},
-  {0x0343, 0x78},
-  {0x3010, 0x00},
-  {0x0383, 0x01},
-  {0x0387, 0x01},
-  {0x0390, 0x00},
-  {0x3011, 0x70},
-  {0x3059, 0x02},
-  {0x3060, 0x0B},
-//    {0x3060, 0x25}, //Clock gating and clock divisors
-  {0x3068, 0x20}, //PCLK0 polarity
+  {HIMAX_MD_CTRL, 0x30},
+  {HIMAX_FRAME_LEN_LINES_H, 0x02},
+  {HIMAX_FRAME_LEN_LINES_L, 0x16},
+  {HIMAX_LINE_LEN_PCK_H, 0x01},
+  {HIMAX_LINE_LEN_PCK_L, 0x78},
+  {HIMAX_QVGA_WIN_EN, 0x00},
+  {HIMAX_READOUT_X, 0x01},
+  {HIMAX_READOUT_Y, 0x01},
+  {HIMAX_BINNING_MODE, 0x00},
+  {HIMAX_SIX_BIT_MODE_EN, 0x70},
+  {HIMAX_BIT_CONTROL, 0x02},
+  {HIMAX_OSC_CLK_DIV, 0x0B},
+//    {HIMAX_OSC_CLK_DIV, 0x25}, //Clock gating and clock divisors
+  {HIMAX_PCLK_POLARITY, 0x20}, //PCLK0 polarity
   {HIMAX_IMG_ORIENTATION, 0x00}, // change the orientation
-  {0x0104, 0x01}
+  {HIMAX_GRP_PARAM_HOLD, 0x01}, // hold
+  {HIMAX_VSYNC_HSYNC_PIXEL_SHIFT_EN, 0x01}, // avoid 2 invalid pixel columns
 };
 
 

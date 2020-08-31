@@ -128,7 +128,7 @@ static inline void hal_cl_dma_flush()
 {
     while (cl_dma_status_get() & 0xFFFF)
     {
-        hal_eu_evt_mask_wait(1 << CL_EVENT_DMA0);
+        hal_eu_evt_mask_wait(1 << CL_IRQ_DMA0);
     }
     cl_dma_status_set(-1); /* -1 = 0xFFFFFFFFu */
 }
@@ -141,7 +141,7 @@ static inline void hal_cl_dma_wait(uint8_t tid)
     while (cl_dma_status_get() & (1 << tid))
     {
         __restore_irq(irq);
-        hal_eu_evt_mask_wait(1 << CL_EVENT_DMA0);
+        hal_eu_evt_mask_wait(1 << CL_IRQ_DMA0);
         irq = __disable_irq();
     }
     hal_cl_dma_tid_free(tid);

@@ -23,6 +23,7 @@
 #include "archi/utils.h"
 #include "vp/itf/hyper.hpp"
 
+
 using namespace std::placeholders;
 
 
@@ -228,9 +229,11 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
             _this->ca.address_space = _this->regmap.ext_addr.reg_access_get();
             _this->ca.read = _this->pending_rx ? 1 : 0;
 
-            if (_this->regmap.burst_enable.burst_enable_get())
+            bool burst_enable = cs == 0 ? _this->regmap.burst_enable.cs0_auto_burst_enable_get() : _this->regmap.burst_enable.cs1_auto_burst_enable_get();
+
+            if (burst_enable)
             {
-                _this->pending_burst = _this->regmap.burst_size.burst_size_get();
+                _this->pending_burst = _this->regmap.timing_cfg.cs_max_get();
             }
             else
             {
@@ -303,8 +306,8 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
                     _this->pending_burst--;
                     if (_this->pending_burst == 0)
                     {
-                        _this->regmap.ext_addr.saddr_set(_this->regmap.ext_addr.saddr_get() + _this->regmap.burst_size.burst_size_get());
-                        _this->pending_burst = _this->regmap.burst_size.burst_size_get();
+                        _this->regmap.ext_addr.saddr_set(_this->regmap.ext_addr.saddr_get() + _this->regmap.timing_cfg.cs_max_get());
+                        _this->pending_burst = _this->regmap.timing_cfg.cs_max_get();
                         _this->state = HYPER_STATE_CS_OFF;
                     }
                 }

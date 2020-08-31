@@ -20,8 +20,11 @@ import numpy as np
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from graph.manipulations import add_dimensions, calculate_liveness
-from graph.matches.matches import get_fusion, get_pow2_match_group, get_scale8_match_group, MatchRnnUnpack
-from graph.types import Parameters, Transposable, InputParameters, OutputParameters
+from graph.matches.matches import (MatchInsertCopies, MatchRnnUnpack,
+                                   get_fusion, get_pow2_match_group,
+                                   get_scale8_match_group)
+from graph.types import (InputParameters, OutputParameters, Parameters,
+                         Transposable)
 from importer.tflite.new_tflite_graph_all import TfliteImporter
 from reports.graph_reporter import GraphReporter
 from utils.node_id import NodeId
@@ -440,7 +443,7 @@ def test_adjust_split_concat(split_concat_graph):
     for node in [n for n in G.nodes() if isinstance(n, (InputParameters, OutputParameters))]:
         node.fixed_order = 1
     G.adjust_order()
-    MatchRnnUnpack().match(G)
+    MatchInsertCopies().match(G)
     G.add_dimensions()
     assert G
 

@@ -64,14 +64,13 @@ PULP_APP = mnist
 APP = mnist
 APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
 
-APP_CFLAGS += -g -O1 -mno-memcpy -fno-tree-loop-distribute-patterns 
+APP_CFLAGS += -g -O1 -mno-memcpy -fno-tree-loop-distribute-patterns
 APP_CFLAGS += -I. -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
 APP_CFLAGS += -DPERF -DAT_MODEL_PREFIX=$(MODEL_PREFIX) $(MODEL_SIZE_CFLAGS)
 APP_CFLAGS += -DSTACK_SIZE=$(CLUSTER_STACK_SIZE) -DSLAVE_STACK_SIZE=$(CLUSTER_SLAVE_STACK_SIZE)
 APP_CFLAGS += -DAT_IMAGE=$(IMAGE)
 
 READFS_FILES=$(abspath $(MODEL_TENSORS))
-PLPBRIDGE_FLAGS += -f
 
 # all depends on the model
 all:: model

@@ -26,6 +26,8 @@ def ssd_postprocess(params, in_tensors, qrec, details=None):
     offsets = in_tensors[0]
     scores = in_tensors[1]
     anchors = in_tensors[2]
+    # decoded_bboxes: Q14
+    # valid_scores: Q7
     decoded_bboxes, valid_scores = decoder(params, qrec, offsets, anchors, scores, anchors_type='centers')
     out_boxes, out_scores, out_classes = nms(params, qrec, decoded_bboxes, valid_scores)
     out_count = np.array([len(out_classes)])
@@ -50,10 +52,12 @@ def decoder(params, qrec, offsets, anchors, scores, anchors_type='centers'):
     valid_anchors = anchors_cnts[valid_indices]
 
     qrec.set_scales(params)
-    # xcnt = (So*O * Sa*A)/params.x_scale + Sa*A = So*Sa/params.x_scale (O*A + x_scale/So * A) =
-    #           (scale_x * (O*A + (scale_x_anc*A)>>scale_x_ancNorm))<<scale_xNorm
+    #  xcnt, ycnt --> Q14
+    #  xcnt = (So*O * Sa*Aw)/params.x_scale + Sa*Ax = So*Sa/params.x_scale (O*Aw + x_scale/So * Ax) =
+    #           (scale_x * (O*Aw + (scale_x_anc*Ax)>>scale_x_ancNorm))>>scale_xNorm =
+    #           at_norm(scale_x*(O*Aw + at_norm(scale_x_anc*Ax, scale_x_ancNorm)), scale_xNorm)
     xcenter = qrec.scale_x_q.apply_scales(
-        np.multiply(valid_offsets[:, CNTX_IDX], valid_anchors[:, H_IDX], dtype=np.int32) + \
+        np.multiply(valid_offsets[:, CNTX_IDX], valid_anchors[:, W_IDX], dtype=np.int32) + \
             qrec.scale_x_anc_q.apply_scales(valid_anchors[:, CNTX_IDX])
     )
     ycenter = qrec.scale_y_q.apply_scales(
@@ -61,8 +65,10 @@ def decoder(params, qrec, offsets, anchors, scores, anchors_type='centers'):
             qrec.scale_y_anc_q.apply_scales(valid_anchors[:, CNTY_IDX])
     )
 
-    # half_h = exp(So*Off / params.h_scale) * Sa*A = Sa/So * exp(So/params.h_scale *O) * A =
-    #           (scale_ao * (A* exp17.15(scale_h*O<<15-scale_hNorm))<<scale_aoNorm)
+    #  half_h, half_w --> Q14
+    #  half_h = exp(So*Off / params.h_scale) * Sa*A = Sa/So * exp(So/params.h_scale *O) * A =
+    #           (scale_ao * (A* exp17.15(scale_h*O<<15-scale_hNorm))>>scale_aoNorm) =
+    #           at_norm(scale_ao*(A*exp17.15(scale_h*O<<15-scale_hNorm)), scale_aoNorm)
     norm_h = 15 - qrec.scale_h_q.qnorms
     norm_w = 15 - qrec.scale_w_q.qnorms
     exp_h = exp_fp_17_15(np.multiply(valid_offsets[:, H_IDX], int(qrec.scale_h_q.qbiases), dtype=np.int32) << norm_h)

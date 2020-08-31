@@ -31,10 +31,11 @@ def pool_act_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     if isinstance(node, ActivationFusion):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], PoolingParameters):
-            gen.kernels.append(PoolKernel(node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver']))
+            gen.kernels.append(PoolKernel(node.name, cname, cnodes[0], cnodes[1],
+                                          at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
             return True
         return False
-    gen.kernels.append(PoolKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver']))
+    gen.kernels.append(PoolKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
 
@@ -54,7 +55,7 @@ def gen_cnn_pool_act_sq8(code_block, cname, ctrl, feat, width, height, at_pool_p
 
 
 class PoolKernel(AutotilerKernel):
-    def __init__(self, node_name, cname, pool_params, act_params, gen_ctrl=None, at_ver=3):
+    def __init__(self, node_name, cname, pool_params, act_params, gen_ctrl=None, at_ver=3, force_relu=True):
         if gen_ctrl is None:
             self.gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -62,7 +63,7 @@ class PoolKernel(AutotilerKernel):
             self.gen_ctrl = gen_ctrl
 
         if act_params is not None:
-            self.at_act_params = gen_active_at_params(act_params, force_relu=True)
+            self.at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
         else:
             self.at_act_params = NO_ACTIVATION
 

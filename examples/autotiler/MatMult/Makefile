@@ -12,7 +12,7 @@ MATMULT_KER_PATH = $(TILER_GENERATOR_PATH)/MatMult
 APP_SRCS += MatMult.c
 APP_SRCS += MatMultKernels.c $(MATMULT_KER_PATH)/MatMultBasicKernels.c
 
-APP_INC += . $(TILER_INC) $(MATMULT_KER_PATH)
+APP_INC += . $(TILER_INC) $(TILER_EMU_INC) $(MATMULT_KER_PATH)
 
 APP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
 APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable
@@ -28,7 +28,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenTile -I$(TILER_INC) -I$(MATMULT_GEN_PATH) $(MODEL_SRC) $(MATMULT_GEN_PATH)/MatMultGenerator.c $(TILER_LIB)
+	gcc -o GenTile -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(MATMULT_GEN_PATH) $(MODEL_SRC) $(MATMULT_GEN_PATH)/MatMultGenerator.c $(TILER_LIB)
 
 # Run the code generator
 $(MODEL_GEN_C): GenTile

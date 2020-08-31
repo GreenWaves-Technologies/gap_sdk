@@ -19,7 +19,7 @@ APP_INC  = $(GAP_LIB_PATH)/include
 APP_CFLAGS += -O3 -g -DFROM_FILE
 
 APP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns
-APP_CFLAGS += -I$(TILER_INC)
+APP_CFLAGS += -I$(TILER_EMU_INC) -I$(TILER_INC)
 APP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress

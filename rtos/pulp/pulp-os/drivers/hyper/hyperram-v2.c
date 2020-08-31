@@ -1016,7 +1016,6 @@ static void __pi_hyper_cluster_req_done(void *_req)
   req = __pi_hyper_cluster_reqs_first;
   if (req)
   {
-    __pi_hyper_cluster_reqs_first = req->next;
     __pi_hyper_cluster_req_exec(req);
   }
 }

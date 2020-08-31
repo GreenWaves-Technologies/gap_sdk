@@ -18,6 +18,7 @@ import math
 import numpy as np
 
 from quantization.multiplicative.mult_qtype_base import MultQTypeBase
+from quantization.multiplicative.mult_utils import compute_mul_bias
 
 VALID_DTYPES = [
     np.int8,
@@ -169,15 +170,8 @@ class SymmetricMultQType(MultQTypeBase):
         raise ValueError()
 
     def get_quantized_scale(self):
-        max_val = math.pow(2, 8)
-        factors = np.array([math.frexp(scale) for scale in self.scale],
-                           dtype=[("scale", "f4"), ("norm", "i1")])
-        qscales = np.floor(factors['scale'] * max_val + 0.5)
-        qnorms = -factors["norm"]
-        overflow = qscales >= max_val
-        qnorms[overflow] -= 1
-        qscales = np.where(overflow, qscales // 2, qscales)
-        return qscales.astype(np.uint8), qnorms
+        scales, norms = compute_mul_bias(self.scale)
+        return scales.astype(np.uint8), norms
 
     def dequantize_at_scale(self, arr: np.array, scale: np.array) -> np.array:
         arr = arr.astype(np.float32)
