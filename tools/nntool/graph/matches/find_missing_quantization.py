@@ -96,3 +96,5 @@ class FindMissingQuantization(Matcher):
 
         if set_identity:
             self.set_identity(G)
+
+        return False

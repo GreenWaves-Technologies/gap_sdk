@@ -16,7 +16,7 @@ from generation.bindings import (CommentBindingList, GNodeArgEdge, GNodeArgNode,
                                  NodeBindingList)
 from generation.generators.generator_decorators import generation_function, QREC_MULT8
 from graph.types import SSDDetectorParameters
-from generation.generators.globals.global_names import (SSD_SCALES, SSD_NORMS)
+from generation.generators.globals.global_names import (SSD_SCALES, SSD_NORMS, INFOS)
 
 @generation_function("bindings", (SSDDetectorParameters, ), qrec_types=(QREC_MULT8, ))
 def ssd_postprocess_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
@@ -38,4 +38,5 @@ def set_ssd_postprocess_bindings(gen, in_eparams, out_eparams, cname, node, node
                         GNodeArgEdge(in_eparams[2]),
                         GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                         GNodeArgNode(node, SSD_SCALES),
-                        GNodeArgNode(node, SSD_NORMS)))
+                        GNodeArgNode(node, SSD_NORMS),
+                        GNodeArgNode(node, INFOS)))

@@ -41,12 +41,13 @@
 *******************************************************************************/
 	.extern _ecall_vector
         .extern pxCurrentTCB
-        .extern __irq_stack_start__
+        .extern __stack_irq_start__
 
         .extern cl_notify_fc_event_handler
         .extern fc_soc_event_handler
         .extern pi_cl_dma_2d_handler
         .extern uTaskCheckQuantum
+        .extern pi_task_delayed_increment_push
 /******************************************************************************/
 
 
@@ -281,7 +282,7 @@
         sw sp, 0*0(tp)
 
         /* ISR Stack. */
-        la sp, __irq_stack_start__
+        la sp, __stack_irq_start__
 
 	/* Search ecall :  a7 contains ecall number. */
 	andi t0, a7, 0xf
@@ -327,7 +328,7 @@
         sw sp, 0*0(tp)
 
         /* ISR Stack. */
-        la sp, __irq_stack_start__
+        la sp, __stack_irq_start__
         jal ra, cl_notify_fc_event_handler
 
         /* Restore current context. */
@@ -349,7 +350,7 @@
         sw sp, 0*0(tp)
 
         /* ISR Stack. */
-        la sp, __irq_stack_start__
+        la sp, __stack_irq_start__
         jal ra, vTaskSwitchContext
         lw a0, pxCurrentTCB
         beq tp, a0, _no_switch_pendsv
@@ -402,8 +403,9 @@ _no_switch_pendsv:
         sw sp, 0*0(tp)
 
         /* ISR Stack. */
-        la sp, __irq_stack_start__
+        la sp, __stack_irq_start__
         jal ra, xTaskIncrementTick
+        jal ra, pi_task_delayed_increment_push
 #ifdef PREEMPTION
         //jal ra, uTaskCheckQuantum
         beq a0, zero, _no_switch
@@ -434,7 +436,7 @@ _no_switch:
         .endfunc
 
 
-        /* Fc SOC event Handler. */
+        /* FC SOC event Handler. */
         DECLARE fc_event_handler
         /* Save current context. */
         addi sp, sp, -(portGAP8_MINIMAL_CONTEXT_SIZE * portWORD_SIZE)
@@ -444,7 +446,7 @@ _no_switch:
         sw sp, 0*0(tp)
 
         /* ISR Stack. */
-        la sp, __irq_stack_start__
+        la sp, __stack_irq_start__
         jal ra, fc_soc_event_handler
 
         /* Restore current context. */

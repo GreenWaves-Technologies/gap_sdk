@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #ifndef RISCV_H
 #define RISCV_H
 
@@ -40,6 +42,7 @@ enum riscv_halt_reason {
 	RISCV_HALT_SINGLESTEP,
 	RISCV_HALT_TRIGGER,
 	RISCV_HALT_UNKNOWN,
+	RISCV_HALT_GROUP,
 	RISCV_HALT_ERROR
 };
 
@@ -75,6 +78,7 @@ typedef struct {
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen[RISCV_MAX_HARTS];
 	riscv_reg_t misa[RISCV_MAX_HARTS];
+	/* Cached value of vlenb. 0 if vlenb is not readable for some reason. */
 	unsigned vlenb[RISCV_MAX_HARTS];
 
 	/* The number of triggers per hart. */
@@ -115,7 +119,7 @@ typedef struct {
 	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
 	int (*set_register_buf)(struct target *target, int regno,
 			const uint8_t *buf);
-	int (*select_current_hart)(struct target *);
+	int (*select_current_hart)(struct target *target);
 	bool (*is_halted)(struct target *target);
 	/* Resume this target, as well as every other prepped target that can be
 	 * resumed near-simultaneously. Clear the prepped flag on any target that
@@ -150,6 +154,9 @@ typedef struct {
 
 	int (*test_compliance)(struct target *target);
 
+	int (*read_memory)(struct target *target, target_addr_t address,
+			uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
+
 	/* How many harts are attached to the DM that this target is attached to? */
 	int (*hart_count)(struct target *target);
 	unsigned (*data_bits)(struct target *target);
@@ -168,6 +175,10 @@ typedef struct {
 	struct reg_data_type_union_field vector_fields[5];
 	struct reg_data_type_union vector_union;
 	struct reg_data_type type_vector;
+
+	/* Set when trigger registers are changed by the user. This indicates we eed
+	 * to beware that we may hit a trigger that we didn't realize had been set. */
+	bool manual_hwbp_set;
 } riscv_info_t;
 
 typedef struct {
@@ -176,7 +187,9 @@ typedef struct {
 } riscv_bscan_tunneled_scan_context_t;
 
 typedef struct {
+	const char *name;
 	int level;
+	unsigned va_bits;
 	unsigned pte_shift;
 	unsigned vpn_shift[PG_MAX_LEVEL];
 	unsigned vpn_mask[PG_MAX_LEVEL];
@@ -235,7 +248,8 @@ int riscv_resume(
 	int current,
 	target_addr_t address,
 	int handle_breakpoints,
-	int debug_execution
+	int debug_execution,
+	bool single_hart
 );
 
 int riscv_openocd_step(
@@ -285,12 +299,14 @@ int riscv_count_harts(struct target *target);
 /* Returns TRUE if the target has the given register on the given hart.  */
 bool riscv_has_register(struct target *target, int hartid, int regid);
 
-/* Returns the value of the given register on the given hart.  32-bit registers
- * are zero extended to 64 bits.  */
+/** Set register, updating the cache. */
 int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
+/** Set register, updating the cache. */
 int riscv_set_register_on_hart(struct target *target, int hid, enum gdb_regno rid, uint64_t v);
+/** Get register, from the cache if it's in there. */
 int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno r);
+/** Get register, from the cache if it's in there. */
 int riscv_get_register_on_hart(struct target *target, riscv_reg_t *value,
 		int hartid, enum gdb_regno regid);
 
@@ -331,7 +347,13 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_wp_addre
 int riscv_init_registers(struct target *target);
 
 void riscv_semihosting_init(struct target *target);
-int riscv_semihosting(struct target *target, int *retval);
+typedef enum {
+	SEMI_NONE,		/* Not halted for a semihosting call. */
+	SEMI_HANDLED,	/* Call handled, and target was resumed. */
+	SEMI_WAITING,	/* Call handled, target is halted waiting until we can resume. */
+	SEMI_ERROR		/* Something went wrong. */
+} semihosting_result_t;
+semihosting_result_t riscv_semihosting(struct target *target, int *retval);
 
 void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
 		riscv_bscan_tunneled_scan_context_t *ctxt);

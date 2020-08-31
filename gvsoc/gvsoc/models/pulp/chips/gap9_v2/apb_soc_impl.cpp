@@ -316,16 +316,16 @@ vp::io_req_status_e apb_soc_ctrl::sleep_ctrl_req(int reg_offset, int size, bool 
 
   if (is_write)
   {
-    this->trace.msg("Modified SLEEP_CTRL (reboot: %d, smartwake_en: %d, rtcwake_en: %d, extwake_type: %d, extwake_en: %d, mram_wakestate: %d, cluster_wakestate: %d, ret_mem: 0x%4.4x)\n",
-      this->r_sleep_ctrl.reboot_get(),
-      this->r_sleep_ctrl.smartwake_en_get(),
-      this->r_sleep_ctrl.rtcwake_en_get(),
-      this->r_sleep_ctrl.extwake_type_get(),
-      this->r_sleep_ctrl.extwake_en_get(),
-      this->r_sleep_ctrl.mram_wakestate_get(),
-      this->r_sleep_ctrl.cluster_wakestate_get(),
-      this->r_sleep_ctrl.ret_mem_get()
-    );
+    // this->trace.msg("Modified SLEEP_CTRL (reboot: %d, smartwake_en: %d, rtcwake_en: %d, extwake_type: %d, extwake_en: %d, mram_wakestate: %d, cluster_wakestate: %d, ret_mem: 0x%4.4x)\n",
+    //   this->r_sleep_ctrl.reboot_get(),
+    //   this->r_sleep_ctrl.smartwake_en_get(),
+    //   this->r_sleep_ctrl.rtcwake_en_get(),
+    //   this->r_sleep_ctrl.extwake_type_get(),
+    //   this->r_sleep_ctrl.extwake_en_get(),
+    //   this->r_sleep_ctrl.mram_wakestate_get(),
+    //   this->r_sleep_ctrl.cluster_wakestate_get(),
+    //   this->r_sleep_ctrl.ret_mem_get()
+    // );
   }
   else
   { 
@@ -534,6 +534,7 @@ void apb_soc_ctrl::bootsel_sync(void *__this, int value)
 
 void apb_soc_ctrl::wakeup_gpio_sync(void *__this, int value, int gpio)
 {
+  #if 0
   apb_soc_ctrl *_this = (apb_soc_ctrl *)__this;
   if (_this->r_sleep_ctrl.extwake_en_get())
   {
@@ -565,16 +566,19 @@ void apb_soc_ctrl::wakeup_gpio_sync(void *__this, int value, int gpio)
       }
     }
   }
+  #endif
 }
 
 void apb_soc_ctrl::wakeup_rtc_sync(void *__this, bool wakeup)
 {
+#if 0
   apb_soc_ctrl *_this = (apb_soc_ctrl *)__this;
   if (wakeup && _this->r_sleep_ctrl.rtcwake_en_get())
   {
     _this->trace.msg("Received RTC wakeup\n");
     _this->set_wakeup(1);
   }
+#endif
 }
 
 void apb_soc_ctrl::confreg_ext_sync(void *__this, uint32_t value)

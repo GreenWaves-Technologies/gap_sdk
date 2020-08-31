@@ -80,6 +80,9 @@ def input_options(parser):
     parser.add_argument('-N', '--norm_func',
                         choices=MODES.keys(), default=None,
                         help="lambda function to apply on input in the form x: fn(x)")
+    parser.add_argument('--rgb888_rgb565',
+                        action="store_true",
+                        help="convert 3 channel 8bits input into 1 channel 16bit rgb565")
 
 def output_table(table, args):
     fmt = ('tab' if args.output is None else args.output['fmt'])

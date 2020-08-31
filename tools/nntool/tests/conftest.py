@@ -10,7 +10,8 @@ from graph.dim import Conv2DFilterDim, Dim, PadDim, StrideDim
 from graph.matches.matches import get_pow2_match_group
 from graph.nngraph import NNGraph
 from graph.types import (Conv2DParameters, NNEdge, MatrixAddParameters,
-                         ReluActivationParameters, ConcatParameters, SplitParameters)
+                         ReluActivationParameters, ConcatParameters, SplitParameters,
+                         ReshapeParameters, StridedSliceParameters)
 from importer.importer import create_graph
 from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
@@ -43,6 +44,7 @@ MN1F_GRAPH = 'tests/graph/mobv1_float.tflite'
 LPRNET_Q_GRAPH = 'tests/graph/lprnet.tflite'
 SQUEEZE_GRAPH = 'tests/graph/squeezenet.tflite'
 QSSD_MBV1_GRAPH = 'tests/graph/ssd_mobv1_quant.tflite'
+CONV1D_GRAPH = "tests/graph/conv1d.tflite"
 
 MNIST_IMAGES = glob('tests/images/136.pgm')
 VWW_IMAGES = glob('tests/vwwimages/*.png')
@@ -166,7 +168,12 @@ def split_concat_graph():
     inp1 = G.add_input(Dim.unnamed([12, 10, 10]))
     split = SplitParameters(
         "split1",
-        act_slices=[(0, 2, 1), (0, 10, 1), (0, 10, 1)],
+        act_slices=[[(0, 2, 1), (0, 10, 1), (0, 10, 1)],
+                    [(2, 4, 1), (0, 10, 1), (0, 10, 1)],
+                    [(4, 6, 1), (0, 10, 1), (0, 10, 1)],
+                    [(6, 8, 1), (0, 10, 1), (0, 10, 1)],
+                    [(8, 10, 1), (0, 10, 1), (0, 10, 1)],
+                    [(10, 12, 1), (0, 10, 1), (0, 10, 1)]],
         out_shapes=[(2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10), (2, 10, 10)],
         axis=0
     )
@@ -188,6 +195,30 @@ def split_concat_graph():
     G.add_edge(NNEdge(add2, concat, to_idx=3))
 
     G.add_edge(NNEdge(concat, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def pack_stridedslice():
+    G = NNGraph(name='crazy_graph')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    res1 = ReshapeParameters("res1", old_shape=[10, 10], shape=[1, 10, 10])
+    res2 = ReshapeParameters("res2", old_shape=[10, 10], shape=[1, 10, 10])
+    pack1 = ConcatParameters("pack1", axis=0)
+    slice1 = StridedSliceParameters("slice1", act_slice=[(0, 1, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
+    slice2 = StridedSliceParameters("slice2", act_slice=[(1, 2, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
+    add1 = MatrixAddParameters("add1")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, res1))
+    G.add_edge(NNEdge(inp2, res2))
+    G.add_edge(NNEdge(res1, pack1))
+    G.add_edge(NNEdge(res2, pack1, to_idx=1))
+    G.add_edge(NNEdge(pack1, slice1))
+    G.add_edge(NNEdge(pack1, slice2))
+    G.add_edge(NNEdge(slice1, add1, from_idx=0, to_idx=0))
+    G.add_edge(NNEdge(slice2, add1, from_idx=0, to_idx=1))
+    G.add_edge(NNEdge(add1, out1))
     G.add_dimensions()
     yield G
 
@@ -301,6 +332,11 @@ def squeezenet_graph():
 @pytest.fixture(scope="session")
 def ssd_mobv1_quant_graph():
     yield QSSD_MBV1_GRAPH
+
+
+@pytest.fixture(scope="session")
+def conv1d_graph():
+    yield CONV1D_GRAPH
 
 @pytest.fixture(scope="session")
 def ir_images():

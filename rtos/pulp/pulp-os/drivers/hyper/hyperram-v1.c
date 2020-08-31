@@ -159,6 +159,41 @@ static inline void *l2_memcpy(void *dst0, const void *src0, size_t len0);
 // transfers between hyper and L2
 static char __pi_hyper_temp_buffer[__PI_HYPER_TEMP_BUFFER_SIZE];
 
+#define __PI_HYPER_NB_PADS          (13)
+
+static pi_pad_e __hyper_pad[__PI_HYPER_NB_PADS] = {
+    PI_PAD_36_A15_I2S1_WS,      /* HYPER_CKN. */
+    PI_PAD_37_B14_I2S1_SDI,     /* HYPER_CK. */
+    PI_PAD_40_D2_SPIM0_SDIO0,   /* HYPER_DQ[0]. */
+    PI_PAD_41_A11_SPIM0_SDIO1,  /* HYPER_DQ[1]. */
+    PI_PAD_42_B10_SPIM0_SDIO2,  /* HYPER_DQ[2]. */
+    PI_PAD_43_A10_SPIM0_SDIO3,  /* HYPER_DQ[3]. */
+    PI_PAD_44_B8_SPIM0_CSN0,    /* HYEPR_DQ[4]. */
+    PI_PAD_45_A8_SPIM0_CSN1,    /* HYPER_DQ[5]. */
+    PI_PAD_46_B7_SPIM0_SCK,     /* HYPER_DQ[6]. */
+    PI_PAD_47_A9_SPIS0_CSN,     /* HYPER_DQ[7]. */
+    PI_PAD_48_B15_SPIS0_MISO,   /* HYPER_CSN0. */
+    PI_PAD_49_A16_SPIS0_MOSI,   /* HYPER_CSN1. */
+    PI_PAD_50_B9_SPIS0_SCK      /* HYPER_RWDS. */
+};
+
+/* Pin settings. */
+void __pi_hyper_pin_settings()
+{
+    for (uint32_t i=0; i<(uint32_t) __PI_HYPER_NB_PADS; i++)
+    {
+        pi_pad_set_function(__hyper_pad[i], PI_PAD_FUNC3);
+    }
+}
+
+void __pi_hyper_pin_reset_settings()
+{
+    for (uint32_t i=0; i<(uint32_t) __PI_HYPER_NB_PADS; i++)
+    {
+        pi_pad_set_function(__hyper_pad[i], PI_PAD_FUNC0);
+    }
+}
+
 
 
 
@@ -267,6 +302,9 @@ int32_t pi_hyper_open(struct pi_device *device)
     __rt_udma_register_channel_callback(channel+1, __rt_hyper_handle_copy, NULL);
 
     __rt_hyper_udma_handle = __rt_hyper_handle_copy;
+
+    /* Set pads to Hyperbus func. */
+    __pi_hyper_pin_settings();
   }
 
   int dt_val = conf->type == PI_HYPER_TYPE_RAM ? 1 : 0;
@@ -275,12 +313,14 @@ int32_t pi_hyper_open(struct pi_device *device)
     hal_hyper_udma_dt0_set(dt_val);
     hal_hyper_udma_mbr0_set(REG_MBR0);
     hal_hyper_udma_crt0_set(MEM_ACCESS);
+    hal_hyper_udma_latency0_set(7);
   }
   else
   {
     hal_hyper_udma_dt1_set(dt_val);
     hal_hyper_udma_mbr1_set(REG_MBR1>>24);
     hal_hyper_udma_crt1_set(MEM_ACCESS);
+    hal_hyper_udma_latency1_set(7);
   }
 
   device->data = (void *)hyper;
@@ -310,6 +350,9 @@ void pi_hyper_close(struct pi_device *device)
 
     // Reactivate clock-gating
     plp_udma_cg_set(plp_udma_cg_get() & ~(1<<periph_id));
+
+    /* Reset pads to default func. */
+    __pi_hyper_pin_reset_settings();
   }
 
   __pi_hyper_free(hyper);

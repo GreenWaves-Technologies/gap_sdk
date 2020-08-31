@@ -210,7 +210,7 @@ void iss_wrapper::bootaddr_sync(void *__this, uint32_t value)
   iss_t *_this = (iss_t *)__this;
   _this->trace.msg("Setting boot address (value: 0x%x)\n", value);
   _this->bootaddr_reg.set(value);
-  iss_irq_set_vector_table(_this, _this->bootaddr_reg.get());
+  iss_irq_set_vector_table(_this, _this->bootaddr_reg.get() & ~((1<<8) - 1));
 }
 
 void iss_wrapper::gen_ipc_stat(bool pulse)
@@ -1172,7 +1172,7 @@ void iss_wrapper::reset(bool active)
     this->misaligned_req_event.event((uint8_t *)&zero);
 
     iss_pc_set(this, this->bootaddr_reg.get() + this->bootaddr_offset);
-    iss_irq_set_vector_table(this, this->bootaddr_reg.get());
+    iss_irq_set_vector_table(this, this->bootaddr_reg.get() & ~((1<<8) - 1));
 
     check_state();
   }

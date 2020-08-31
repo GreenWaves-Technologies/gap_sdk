@@ -447,37 +447,65 @@ class GraphView(Mapping):
             edge._link[2] = new_node
             self.add_edge(edge)
 
-    def replace_fragment(self, frag: 'Graph', new_node: Node):
+    def replace_fragment(self,
+                         frag: 'Graph',
+                         new_node: Node,
+                         frag_in_edges=None,
+                         frag_out_edges=None,
+                         edge_in_mapping=None,
+                         edge_out_mapping=None,
+                         edge_class=None
+                         ):
         '''Replaces a fragment with a single node connecting all the in and out
-        edges to it'''
-        frag_in_edges = [in_edge for input_node in frag.inputs()
-                         for in_edge in self.in_edges(input_node.name)]
-        frag_out_edges = [out_edge for output_node in frag.outputs()
-                          for out_edge in self.out_edges(output_node.name)]
+        edges to it. If fragment in and out edges are provided then they are used as
+        the boundary of the fragment. The edge in mapping is a list but input index
+        of the incoming edges to the new node in the form (from node, from_idx). The edge_out_mapping
+        is a list of lists of outgoing edges in the from (to_node, to_idx)'''
+        if edge_class is None:
+            edge_class = Edge
+        if frag_in_edges is None:
+            frag_in_edges = [in_edge for input_node in frag.inputs()
+                            for in_edge in self.in_edges(input_node.name)]
+        if frag_out_edges is None:
+            frag_out_edges = [out_edge for output_node in frag.outputs()
+                            for out_edge in self.out_edges(output_node.name)]
 
         for node in frag.nodes():
-            self.remove(node)
+            if self.contains(node):
+                self.remove(node)
 
         self.add_node(new_node)
-        connections = set()
-        for edge in frag_in_edges:
-            if edge.from_pair in connections:
-                continue
-            connections.add(edge.from_pair)
-            edge._link[2] = new_node
-            self.add_edge(edge)
-        connections = set()
-        for edge in frag_out_edges:
-            if edge.to_pair in connections:
-                continue
-            connections.add(edge.to_pair)
-            edge._link[0] = new_node
-            self.add_edge(edge)
+        if edge_in_mapping:
+            for to_idx, (from_node, from_idx) in enumerate(edge_in_mapping):
+                self.add_edge(edge_class(from_node, new_node, from_idx=from_idx, to_idx=to_idx))
+        else:
+            connections = set()
+            for edge in frag_in_edges:
+                if edge.from_pair in connections:
+                    continue
+                connections.add(edge.from_pair)
+                edge._link[2] = new_node
+                self.add_edge(edge)
+        if edge_out_mapping:
+            for from_idx, edge_bundle in enumerate(edge_out_mapping):
+                for (to_node, to_idx) in edge_bundle:
+                    self.add_edge(edge_class(new_node, to_node, from_idx=from_idx, to_idx=to_idx))
+        else:
+            connections = set()
+            for edge in frag_out_edges:
+                if edge.to_pair in connections:
+                    continue
+                connections.add(edge.to_pair)
+                edge._link[0] = new_node
+                self.add_edge(edge)
 
     def remove_fragment(self, frag: 'Graph'):
         '''Removes a fragment and then connects all the input edges that have
         a single from node to all the outputs'''
-        frag_in_edges = set(in_edge for input_node in frag.inputs()
+        nodes_not_in_graph = [node_name for node_name in frag if node_name not in self]
+        # find the edges in the self graph that point to input nodes that have not been added in
+        # the fragment
+        frag_in_edges = set(in_edge for input_node in frag.inputs(ignore_names=nodes_not_in_graph)
                             for in_edge in self.in_edges(input_node.name))
         in_nodes = set()
         unique_frag_in_edges = set()
@@ -487,7 +515,7 @@ class GraphView(Mapping):
                 in_nodes.add(edge.from_node)
         del frag_in_edges, in_nodes
 
-        frag_out_nodes = set(edge.to_node for frag_out_node in frag.outputs()
+        frag_out_nodes = set((edge.to_node, edge.to_idx) for frag_out_node in frag.outputs(ignore_names=nodes_not_in_graph)
                              for edge in self.out_edges(frag_out_node.name))
         assert len(frag_out_nodes) == 1, "doesn't work if more than one output"
         frag_out_node = list(frag_out_nodes)[0]
@@ -496,7 +524,8 @@ class GraphView(Mapping):
             self.remove(node)
 
         for edge in unique_frag_in_edges:
-            edge._link[2] = frag_out_node
+            edge._link[2] = frag_out_node[0]
+            edge._link[3] = frag_out_node[1]
             self.add_edge(edge)
 
     def add_node(self, node: Node):
@@ -504,13 +533,19 @@ class GraphView(Mapping):
             raise ValueError("node already in graph")
         self._nodes[node.name] = node
 
-    def inputs(self):
+    def inputs(self, ignore_names=None):
+        if ignore_names is None:
+            ignore_names = []
         return [self._nodes[node_name] for node_name in self._nodes
-                if node_name not in self._in_edges]
+                if node_name not in self._in_edges or all(input_name in ignore_names
+                                                          for input_name in self._in_edges[node_name])]
 
-    def outputs(self):
+    def outputs(self, ignore_names=None):
+        if ignore_names is None:
+            ignore_names = []
         return [self._nodes[node_name] for node_name in self._nodes
-                if node_name not in self._out_edges]
+                if node_name not in self._out_edges or all(output_name in ignore_names
+                                                           for output_name in self._out_edges[node_name])]
 
     def __revdfs(self, node, condition, visited_nodes, visited_edges, from_node, from_edge):
         if not node:

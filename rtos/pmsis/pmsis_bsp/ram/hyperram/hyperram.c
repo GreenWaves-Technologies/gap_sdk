@@ -75,6 +75,7 @@ static int hyperram_open(struct pi_device *device)
   hyper_conf.id = conf->hyper_itf;
   hyper_conf.cs = conf->hyper_cs;
   hyper_conf.type = PI_HYPER_TYPE_RAM;
+  hyper_conf.xip_en = conf->xip_en;
   if (conf->baudrate)
   {
       hyper_conf.baudrate = conf->baudrate;
@@ -229,6 +230,7 @@ void pi_hyperram_conf_init(struct pi_hyperram_conf *conf)
 {
   conf->ram.api = &hyperram_api;
   conf->baudrate = 0;
+  conf->xip_en = 0;
   conf->reserve_addr_0 = 1;
   bsp_hyperram_conf_init(conf);
 }

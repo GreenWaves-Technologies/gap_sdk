@@ -70,9 +70,9 @@ class MatchGapLinear(DefaultMatcher):
             (node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
-        pnode = ConvFusionParameters(linear_name, "linear_active", subgraph)
+        pnode = ConvFusionParameters(linear_name, fusion_type="linear_active", subgraph=subgraph)
         if G.quantization:
-            qrecs = G.quantization.get_all(subgraph.nodes())
+            qrecs = G.quantization.get_all(pnode.contained_nodes())
             if qrecs:
                 if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
                     prec = SymmetricQuantizationRecord(
@@ -81,7 +81,7 @@ class MatchGapLinear(DefaultMatcher):
                     prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
                 elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
                     prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                for node in subgraph.nodes():
+                for node in pnode.contained_nodes():
                     G.quantization.move_to_fusion(node, pnode)
                 G.quantization[NodeId(pnode)] = prec
-        return pnode
+        return pnode, None, None

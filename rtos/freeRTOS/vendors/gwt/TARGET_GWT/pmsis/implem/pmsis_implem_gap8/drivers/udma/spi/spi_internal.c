@@ -2,6 +2,7 @@
 #include "pmsis/implem/drivers/udma/spi/spi_internal.h"
 #include "pmsis/rtos/event_kernel/event_kernel.h"
 
+//#define DEBUG
 #ifndef DEBUG
 #define PRINTF( ... ) ((void)0)
 #else
@@ -152,7 +153,6 @@ static inline void __spim_handle_end_of_transfer(pi_task_t *task)
                     __LINE__,
                     task,
                     default_sched);
-            PRINTF("%s:%d periph id:%x\n",__func__,__LINE__,periph_id);
             pmsis_event_push(default_sched,task);
             PRINTF("%s:%d\n",__func__,__LINE__);
         }
@@ -354,6 +354,10 @@ int __pi_spi_open(struct spim_cs_data **cs_data, struct pi_spi_conf *conf)
             return -1;
         }
         drv_data->device_id = conf->itf;
+
+        /* Attach freq callback. */
+        pi_freq_callback_init(&(drv_data->spi_freq_cb), __pi_spi_freq_cb, drv_data);
+        pi_freq_callback_add(&(drv_data->spi_freq_cb));
     }
     drv_data->nb_open++;
 
@@ -375,6 +379,7 @@ int __pi_spi_open(struct spim_cs_data **cs_data, struct pi_spi_conf *conf)
                        __func__, clk_div);
             return -3;
         }
+
         memset(_cs_data, 0, sizeof(struct spim_cs_data));
         _cs_data->max_baudrate  = conf->max_baudrate;
         _cs_data->polarity      = conf->polarity;
@@ -420,6 +425,9 @@ int __pi_spi_close(struct spim_cs_data *cs_data)
     drv_data->nb_open--;
     if(drv_data->nb_open == 0)
     {
+        /* Remove freq callback. */
+        pi_freq_callback_remove(&(drv_data->spi_freq_cb));
+
         // disable clock gating for said device
         udma_ctrl_cg_enable(UDMA_SPIM_ID(drv_data->device_id));
         hal_soc_eu_clear_fc_mask(SOC_EVENT_UDMA_SPIM_EOT(drv_data->device_id));
@@ -431,6 +439,26 @@ int __pi_spi_close(struct spim_cs_data *cs_data)
     }
     pi_data_free(cs_data, sizeof(cs_data));
     return drv_data->nb_open;
+}
+
+void __pi_spi_freq_cb(void *args)
+{
+    uint32_t irq = __disable_irq();
+    struct spim_driver_data *drv_data = (struct spim_driver_data *) args;
+    struct spim_cs_data *cs_data = NULL;
+    uint32_t clk_div = 0;
+    /* Wait until current transfer is done. */
+    while ((udma_channel_busy_get(&(((spi_t *) SPIM(drv_data->device_id))->udma), RX_CHANNEL)) ||
+           (udma_channel_busy_get(&(((spi_t *) SPIM(drv_data->device_id))->udma), TX_CHANNEL)));
+    /* Update all clock div. */
+    cs_data = drv_data->cs_list;
+    while (cs_data != NULL)
+    {
+        clk_div = __pi_spi_clk_div_get(cs_data->max_baudrate);
+        cs_data->cfg = SPI_CMD_CFG(clk_div, cs_data->phase, cs_data->polarity);
+        cs_data = cs_data->next;
+    }
+    __restore_irq(irq);
 }
 
 void __pi_spi_receive_async(struct spim_cs_data *cs_data, void *data, size_t len,
@@ -494,9 +522,6 @@ void __pi_spi_receive_async_with_ucode(struct spim_cs_data *cs_data, void *data,
     int cs_mode = (flags >> 0) & 0x3;
 
     int device_id = drv_data->device_id;
-    PRINTF("%s:%d: core clock:%d, baudrate:%d, div=%d,  byte_align =%lx, cfg= %lx, qspi=%lx\n",
-            __func__,__LINE__,system_core_clock_get(),cs_data->max_baudrate,
-            system_core_clock_get() / cs_data->max_baudrate,byte_align,cfg,qspi);
     int size = (len + 7) >> 3;
 
     int irq = __disable_irq();
@@ -898,6 +923,7 @@ void __ucode_patch(struct spim_cs_data *cs_data, uint32_t addr, int is_rx)
     {
         ucode_patch[i] = (addr >> (i*8)) & 0xFF;
     }
+    PRINTF("ucode = %x\n",*(uint32_t*)ucode_patch);
 }
 
 /**
@@ -914,6 +940,7 @@ static inline void __spi_cpy_read_aligned(struct spim_cs_data *cs_data,
     int quad    = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2) & 0x3);
     int cs_mode = (flags >> 0) & 0x3;
     size_t chunk_size = cs_data->chunk_size_rx;
+    PRINTF("chunk_size_rx = %x\n",chunk_size);
 
     int device_id = drv_data->device_id;
     uint32_t cfg = cs_data->cfg;
@@ -971,11 +998,15 @@ static inline void __spi_cpy_read_aligned(struct spim_cs_data *cs_data,
             len = chunk_size*8;
         }
         uint32_t* ucode = (uint32_t*)&cs_data->ucode_rx[cs_data->ucode_rx_pos];
+        PRINTF("len = %x quad = %x byte_align = %x\n",len,quad,byte_align);
         ucode[ucode_id++] = SPI_CMD_RX_DATA(len,quad,byte_align);
         ucode[ucode_id++] = SPI_CMD_EOT(1);
         int ucode_size = cs_data->ucode_rx_pos + ucode_id;
+        PRINTF("ucode = %x ucode_size = %x\n",ucode,ucode_size);
+        PRINTF("enqueue transfer\n");
+        PRINTF("size = %x\n",size);
         spim_enqueue_channel(SPIM(device_id),
-                (uint32_t)data, size, UDMA_CORE_RX_CFG_EN(1), RX_CHANNEL);
+                (uint32_t)data, size, UDMA_CORE_RX_CFG_EN(1) | (2<<1), RX_CHANNEL);
         spim_enqueue_channel(SPIM(device_id),
                 (uint32_t)&cs_data->ucode_rx[0], ucode_size*(sizeof(uint32_t)),
                 UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
@@ -1042,7 +1073,7 @@ static inline void __spi_cpy_read_misaligned(struct spim_cs_data *cs_data,
             spim_enqueue_channel(SPIM(device_id),
                     (uint32_t)&drv_data->tmp_buf[RD_TMP_BUF_F],
                     size,
-                    UDMA_CORE_RX_CFG_EN(1), RX_CHANNEL);
+                    UDMA_CORE_RX_CFG_EN(1) | (2<<1), RX_CHANNEL);
             spim_enqueue_channel(SPIM(device_id),
                     (uint32_t)&cs_data->ucode_rx[0], ucode_size*(sizeof(uint32_t)),
                     UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
@@ -1103,7 +1134,7 @@ static inline void __spi_cpy_read_misaligned(struct spim_cs_data *cs_data,
             spim_enqueue_channel(SPIM(device_id),
                     (uint32_t)&drv_data->tmp_buf[RD_TMP_BUF_F],
                     f_size,
-                    UDMA_CORE_RX_CFG_EN(1), RX_CHANNEL);
+                    UDMA_CORE_RX_CFG_EN(1) | (2<<1), RX_CHANNEL);
             spim_enqueue_channel(SPIM(device_id),
                     (uint32_t)&cs_data->ucode_rx[0], ucode_size*(sizeof(uint32_t)),
                     UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
@@ -1153,6 +1184,7 @@ static inline void __spi_cpy_send_aligned(struct spim_cs_data *cs_data,
     struct spim_driver_data *drv_data = SPIM_CS_DATA_GET_DRV_DATA(cs_data);
     int quad    = ((flags >> 2) & 0x3) == ((PI_SPI_LINES_QUAD>>2) & 0x3);
     size_t chunk_size = cs_data->chunk_size_tx;
+    PRINTF("chunk_size_tx = %x\n",chunk_size);
 
     int device_id = drv_data->device_id;
     uint32_t cfg = cs_data->cfg;

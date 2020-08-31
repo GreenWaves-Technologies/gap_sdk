@@ -1564,7 +1564,8 @@ static inline iss_insn_t *p_bclri_exec(iss_t *iss, iss_insn_t *insn)
 {
   int width = UIM_GET(0) + 1;
   int shift = UIM_GET(1);
-  REG_SET(0, LIB_CALL2(lib_BCLR, REG_GET(0), ((1<<width)-1) << shift));
+  REG_SET(0, LIB_CALL2(lib_BCLR, REG_GET(0), ((1ULL<<width)-1) << shift));
+
   return insn->next;
 }
 
@@ -1574,7 +1575,7 @@ static inline iss_insn_t *p_bclr_exec(iss_t *iss, iss_insn_t *insn)
 {
   int width = ((REG_GET(1) >> 5) & 0x1f) + 1;
   int shift = REG_GET(1) & 0x1f;
-  REG_SET(0, LIB_CALL2(lib_BCLR, REG_GET(0), ((1<<width)-1) << shift));
+  REG_SET(0, LIB_CALL2(lib_BCLR, REG_GET(0), ((1ULL<<width)-1) << shift));
   return insn->next;
 }
 

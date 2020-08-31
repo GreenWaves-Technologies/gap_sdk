@@ -43,6 +43,7 @@ from .kernels.general.imageformat_kernels_generator import \
     imageformat_kernels_generator
 from .kernels.mult8.conv_pool_relu_kernels_generator import \
     conv_pool_relu_kernels_generator as mult8_conv_pool_relu_kernels_generator
+from .kernels.mult8.copy_kernels_generator import copy_kernel_generator
 from .kernels.mult8.global_pool_kernels_generator import \
     global_pool_kernels_generator as mult8_global_pool_kernels_generator
 from .kernels.mult8.linear_relu_kernels_generator import \
@@ -55,11 +56,11 @@ from .kernels.mult8.pool_relu_kernels_generator import \
 from .kernels.mult8.rnn_kernels_generator import rnn_kernels_generator
 from .kernels.mult8.softmax_kernels_generator import \
     softmax_kernels_generator as mult8_softmax_kernels_generator
+from .kernels.mult8.ssd_postprocess_kernels_generator import \
+    ssdpostprocess_kernels_generator
 from .kernels.mult8.three_d_transpose_kernels_generator import \
     three_d_transpose_kernels_generator as \
     mult8_three_d_transpose_kernels_generator
-from .kernels.mult8.ssd_postprocess_kernels_generator import \
-    ssdpostprocess_kernels_generator
 from .kernels.pow2.conv_pool_relu_kernels_generator import \
     conv_pool_relu_kernels_generator as pow2_conv_pool_relu_kernels_generator
 from .kernels.pow2.global_pool_kernels_generator import \

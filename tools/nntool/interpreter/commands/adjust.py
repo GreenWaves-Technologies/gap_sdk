@@ -13,13 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
 
 class AdjustCommand(NNToolShellBase):
     # ADJUST COMMAND
-    # parser_adjust = Cmd2ArgumentParser("display statistics on globals")
+    parser_adjust = Cmd2ArgumentParser()
 
-    # @with_argparser(parser_adjust)
+    @with_argparser(parser_adjust)
     def do_adjust(self, _):
         """
 Adjust activation and parameter tensors to match AutoTiler order.

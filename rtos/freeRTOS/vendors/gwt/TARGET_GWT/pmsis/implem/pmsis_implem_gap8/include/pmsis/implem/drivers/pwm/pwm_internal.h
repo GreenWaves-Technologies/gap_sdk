@@ -28,14 +28,33 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PWM_INTERNAL_H__
-#define __PWM_INTERNAL_H__
+#ifndef __PMSIS_IMPLEM_DRIVERS_PWM_PWM_INTERNAL_H__
+#define __PMSIS_IMPLEM_DRIVERS_PWM_PWM_INTERNAL_H__
 
 #include "pmsis.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
+
+/* PWM and channeld ID masks. */
+#define PI_PWM_TIMER_ID_SHIFT   ( 0 )
+#define PI_PWM_TIMER_ID_MASK    ( 0xFF )
+#define PI_PWM_TIMER_ID(data)   ( ((data >> PI_PWM_TIMER_ID_SHIFT) & PI_PWM_TIMER_ID_MASK) )
+
+#define PI_PWM_CHANNEL_ID_SHIFT ( 16 )
+#define PI_PWM_CHANNEL_ID_MASK  ( 0xFF )
+#define PI_PWM_CHANNEL_ID(data) ( ((data >> PI_PWM_CHANNEL_ID_SHIFT) & PI_PWM_CHANNEL_ID_MASK) )
+
+struct pwm_data_s
+{
+    uint32_t frequency;                           /*!< Frequency set for the timer. */
+    uint32_t nb_open;                             /*!< Number of open. */
+    pi_task_t *event_task;                        /*!< Event task attached. */
+    pi_freq_cb_t pwm_freq_cb;                     /*!< Callback associated to frequency changes. */
+    uint8_t device_id;                            /*!< PWM timer ID. */
+    uint8_t duty_cycle[ARCHI_NB_CHANNEL_PER_PWM]; /*!< Duty cycles. */
+};
 
 /*******************************************************************************
  * Driver data
@@ -47,14 +66,15 @@
 
 void __pi_pwm_conf_init(struct pi_pwm_conf *conf);
 
-int32_t __pi_pwm_open(uint8_t pwm_id, struct pi_pwm_conf *conf);
+int32_t __pi_pwm_open(struct pi_pwm_conf *conf, uint32_t **device_data);
 
-void __pi_pwm_close(uint8_t pwm_id);
+void __pi_pwm_close(uint32_t pwm_ch);
 
-int32_t __pi_pwm_ioctl(uint8_t pwm_id, pi_pwm_ioctl_cmd_e cmd, void *arg);
+int32_t __pi_pwm_ioctl(uint32_t pwm_ch, pi_pwm_ioctl_cmd_e cmd, void *arg);
 
-uint32_t __pi_pwm_counter_get(uint8_t pwm_id);
+uint32_t __pi_pwm_counter_get(uint32_t pwm_ch);
 
+int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq, uint8_t duty_cycle);
 
 /*******************************************************************************
  * API implementation
@@ -62,14 +82,14 @@ uint32_t __pi_pwm_counter_get(uint8_t pwm_id);
 
 static inline void pi_pwm_timer_start(struct pi_device *device)
 {
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    __pi_pwm_ioctl(pwm_ch, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_START);
 }
 
 static inline void pi_pwm_timer_stop(struct pi_device *device)
 {
-    uint8_t pwm_id = ((uint32_t) device->data) & 0xFF;
-    __pi_pwm_ioctl(pwm_id, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_STOP);
+    uint32_t pwm_ch = ((uint32_t) device->data);
+    __pi_pwm_ioctl(pwm_ch, PI_PWM_TIMER_COMMAND, (void *) PI_PWM_CMD_STOP);
 }
 
-#endif  /* __PWM_INTERNAL_H__ */
+#endif  /* __PMSIS_IMPLEM_DRIVERS_PWM_PWM_INTERNAL_H__ */

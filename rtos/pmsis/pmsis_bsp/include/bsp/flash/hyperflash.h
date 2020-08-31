@@ -49,6 +49,7 @@ struct pi_hyperflash_conf
   int hyper_itf;            /*!< Hyperbus interface where the flash is
       connected. */
   int hyper_cs;             /*!< Chip select where the flash is connected. */
+  int xip_en;
   char skip_pads_config;    /*!< Skip pads configuration if set to 1. */
 };
 

@@ -23,7 +23,7 @@ from generation.naming_convension import (DefaultNamingConvension,
 from ..dim import Dim, MoreThanOneInputError
 from ..types import (ConcatParameters, EdgeParameters, InputParameters,
                      OutputParameters, Parameters, SingleInputAndOutput,
-                     ReshapeParameters, ConstantInputParameters)
+                     ReshapeParameters, ConstantInputParameters, SplitParameters)
 
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -74,7 +74,7 @@ def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
             edge.params = eparams
             if connected_to_concat(G, edge.to_node):
                 any_concat = True
-        eparams.is_alias = any_concat
+        eparams.is_alias = any_concat or isinstance(node, SplitParameters)
         LOG.debug("%s %s is alias %s", node.name, ename, any_concat)
 
 

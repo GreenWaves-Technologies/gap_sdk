@@ -91,12 +91,20 @@ can be set refer to the autotiler documentation."""
         if not nodes:
             self.perror("No nodes selected")
             return
-        if args.value is None:
-            val = None
-        else:
-            option_type = nodes[0].at_options.valid_options[args.parameter]
-            val = option_type(args.value)
+
         for node in nodes:
             node_options = node.at_options
-            setattr(node_options, args.parameter, val)
-            self.G.node_options[NodeId(node)] = node_options
+            if args.value is None:
+                val = None
+            else:
+                try:
+                    option_type = node_options.valid_options[args.parameter]
+                except:
+                    self.perror("%s is not a valid parameter for node %s"%(args.parameter, node.name))
+                    continue
+                val = option_type(args.value)
+            try:
+                setattr(node_options, args.parameter, val)
+                self.G.node_options[NodeId(node)] = node_options
+            except:
+                self.perror("%s is not a valid parameter for node %s"%(args.parameter, node.name))

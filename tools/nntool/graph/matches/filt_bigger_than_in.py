@@ -71,9 +71,7 @@ class FilterBiggerThanInput(Matcher):
             filt_node.weights = filt_node.weights[tuple(new_w_idxs)]
             something_changed = True
 
-        if something_changed:
-            G.add_dimensions()
-
         if set_identity:
             self.set_identity(G)
-       
+
+        return something_changed

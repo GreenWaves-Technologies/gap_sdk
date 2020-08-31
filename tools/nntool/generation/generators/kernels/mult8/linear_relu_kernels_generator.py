@@ -32,13 +32,14 @@ def linear_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
     del in_eparams, out_eparams
     if isinstance(node, FcParameters):
         gen.kernels.append(LinearReluKernel(node.name, cname, node, qrec, None, None,
-                                            at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl()))
+                                            at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(),
+                                            force_relu=gen.force_relu))
     elif isinstance(node, ConvFusionParameters) and node.fusion_type == "linear_active":
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         gen.kernels.append(LinearReluKernel(node.name, cname, cnodes[0], quants[0],
                                             cnodes[1], quants[1], at_ver=gen.opts['at_ver'],
-                                            gen_ctrl=node.get_gen_ctrl()))
+                                            gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
     else:
         return False
     return True
@@ -58,7 +59,7 @@ def gen_at_linear_relu(code_block, cname, biases_ds, mulbiases_ds,
 
 
 class LinearReluKernel(AutotilerKernel):
-    def __init__(self, node_name, cname, linear_params, linear_q, act_params, act_q, at_ver=3, gen_ctrl=None):
+    def __init__(self, node_name, cname, linear_params, linear_q, act_params, act_q, at_ver=3, gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:
             self.gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -76,7 +77,7 @@ class LinearReluKernel(AutotilerKernel):
         mulbiases_q = linear_q.mul_biases_q
 
         if act_params is not None:
-            at_act_params = gen_active_at_params(act_params, force_relu=True)
+            at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
             if in_dim is None:
                 in_dim = act_params.in_dims[0]
             if out_dim is None:

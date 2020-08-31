@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 import os
 import pickle
 import tempfile
@@ -243,7 +244,8 @@ def test_equivalence(mnist_graph, mnist_images):
     assert np.max(np.abs(verif[8][0] - output_[7][0].flatten())) < 0.00001
     assert np.array_equal(np.round(output_[-1][0].flatten()), [1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-def test_rnn_quantize():
+def test_rnn_quantize(caplog):
+    caplog.set_level(logging.INFO)
     G = create_graph("tests/graph/rnn.tflite", opts={"load_tensors":True})
     G.add_dimensions()
 

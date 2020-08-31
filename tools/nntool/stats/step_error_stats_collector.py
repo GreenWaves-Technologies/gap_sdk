@@ -20,7 +20,7 @@ from typing import Mapping
 
 import numpy as np
 
-from utils.stats_funcs import qsnr
+from utils.stats_funcs import qsnr, cos_similarity
 from utils.node_id import NodeId
 
 from execution.graph_executer import GraphExecuter
@@ -93,6 +93,7 @@ class StepErrorStatsCollector(ReductionStatsCollector):
             'max_err': np.max(error_),
             'min_err': np.min(error_),
             'qsnr': qsnr(fout, qout),
+            'cos': cos_similarity(fout, qout),
             'chan_err': []
         }
 
@@ -133,21 +134,23 @@ class StepErrorStatsCollector(ReductionStatsCollector):
         for stat in stats.values():
             stat['min_qsnr'] = stat['qsnr']
             stat['max_qsnr'] = stat['qsnr']
-            for field in ['av_err', 'qsnr', 'chan_err']:
+            stat['min_cos'] = stat['cos']
+            stat['max_cos'] = stat['cos']
+            for field in ['av_err', 'qsnr', 'chan_err', 'cos']:
                 stat[field] = [stat[field]]
 
         return stats
 
     def _reduce(self, _, base: Mapping, stat: Mapping):
-        for k in ['av_err', 'qsnr', 'chan_err']:
+        for k in ['av_err', 'qsnr', 'chan_err', 'cos']:
             base[k].append(stat[k])
         for k in [('max_err', 'max_err')]:
             base[k[0]] = max(base[k[0]], abs(stat[k[1]]))
         for k in [('min_err', 'min_err')]:
             base[k[0]] = min(base[k[0]], abs(stat[k[1]]))
-        for k in [('max_qsnr', 'qsnr')]:
+        for k in [('max_qsnr', 'qsnr'), ('max_cos', 'cos')]:
             base[k[0]] = max(base[k[0]], stat[k[1]])
-        for k in [('min_qsnr', 'qsnr')]:
+        for k in [('min_qsnr', 'qsnr'), ('min_cos', 'cos')]:
             base[k[0]] = min(base[k[0]], stat[k[1]])
 
     @staticmethod
@@ -161,7 +164,7 @@ class StepErrorStatsCollector(ReductionStatsCollector):
 
     def _reduce_finalize(self, stats: Mapping) -> Mapping:
         for stat in stats.values():
-            for field in ['av_err', 'qsnr']:
+            for field in ['av_err', 'qsnr', 'cos']:
                 stat[field] = sum(stat[field]) / len(stat[field])
             stat['chan_err'] = [sum(i) for i in zip(*stat['chan_err'])]
             stat['max_chan_err'] = self._max_abs(stat['chan_err'])

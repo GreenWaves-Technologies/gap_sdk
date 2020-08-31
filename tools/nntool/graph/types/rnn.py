@@ -17,7 +17,7 @@ import logging
 
 from graph.dim import Dim
 from graph.types.base import Transposable, SingleInputAndOutput
-from graph.types.others import ConstantInputParameters
+from graph.types.input_output import ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 

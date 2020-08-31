@@ -66,3 +66,50 @@ void pi_time_wait_us(int time_us)
         vTaskDelay((time_us/1000)/portTICK_PERIOD_MS);
     }
 }
+
+struct pi_task_delayed_s
+{
+    struct pi_task *fifo_head;
+    struct pi_task *fifo_tail;
+};
+
+struct pi_task_delayed_s delayed_task = {0};
+
+void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
+{
+    task->data[8] = (delay_us/1000);
+    task->next = NULL;
+    if (delayed_task.fifo_head == NULL)
+    {
+        delayed_task.fifo_head = task;
+    }
+    else
+    {
+        delayed_task.fifo_tail->next = task;
+    }
+    delayed_task.fifo_tail = task;
+}
+
+void pi_task_delayed_increment_push(void)
+{
+    struct pi_task *task = delayed_task.fifo_head;
+    struct pi_task *prev_task = delayed_task.fifo_head;
+    while (task != NULL)
+    {
+        task->data[8]--;
+        if ((int32_t) task->data[8] <= 0)
+        {
+            if (task == delayed_task.fifo_head)
+            {
+                delayed_task.fifo_head = task->next;
+            }
+            else
+            {
+                prev_task->next = task->next;
+            }
+            pi_task_push(task);
+        }
+        prev_task = task;
+        task = task->next;
+    }
+}

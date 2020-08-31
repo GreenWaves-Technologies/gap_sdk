@@ -155,29 +155,72 @@ int32_t pi_fs_seek(pi_fs_file_t *file, unsigned int offset)
 }
 
 
+#if !defined(PMSIS_DRIVERS)
+
+void __pi_cl_fs_req_exec(void *req);
+
 void __pi_cl_fs_req_done(void *_req)
 {
+  pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+  pi_fs_file_t *file = req->file;
+  pi_fs_data_t *fs = req->file->fs_data;
+  pi_task_t *task = &fs->cl_req_task;
+  #if defined(__PULP_OS__)
+  req->rw.result = task->implem.data[0];
+  #else
+  req->rw.result = task->data[0];
+  #endif  /* __PULP_OS__ */
+  cl_notify_task_done(&(req->rw.done), req->rw.cid);
+
+  fs->cluster_reqs_first = (void *)req->callback.next;
+  req = fs->cluster_reqs_first;
+  if (req)
+  {
+    __pi_cl_fs_req_exec(req);
+  }
+}
+
+void __pi_cl_fs_req_exec(void *_req)
+{
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    #if defined(__PULP_OS__)
-    req->result = req->task.implem.data[0];
-    #else
-    req->result = req->task.data[0];
-    #endif  /* __PULP_OS__ */
-    cl_notify_task_done(&(req->done), req->cid);
+    pi_fs_file_t *file = req->file;
+    pi_fs_data_t *fs = req->file->fs_data;
+    if (req->rw.write)
+    {
+        req->rw.result = pi_fs_write_async(file, req->rw.buffer, req->rw.size, pi_task_callback(&fs->cl_req_task, __pi_cl_fs_req_done, (void *)req));
+    }
+    else
+    {
+      if (req->rw.direct)
+      {
+          req->rw.result = pi_fs_direct_read_async(file, req->rw.buffer, req->rw.size, pi_task_callback(&fs->cl_req_task, __pi_cl_fs_req_done, (void *)req));
+      }
+      else
+      {
+          req->rw.result = pi_fs_read_async(file, req->rw.buffer, req->rw.size, pi_task_callback(&fs->cl_req_task, __pi_cl_fs_req_done, (void *)req));
+      }
+    }
 }
 
 
 void __pi_cl_fs_req(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    pi_fs_file_t *file = req->file;
-    if (req->direct)
-    {
-        req->result = pi_fs_direct_read_async(file, req->buffer, req->size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
-    }
+    pi_fs_data_t *fs = req->file->fs_data;
+
+    int is_first = fs->cluster_reqs_first == NULL;
+
+    if (is_first)
+      fs->cluster_reqs_first = req;
     else
+      fs->cluster_reqs_last->callback.next = (void *)req;
+
+    fs->cluster_reqs_last = req;
+    req->callback.next = NULL;
+
+    if (is_first)
     {
-        req->result = pi_fs_read_async(req->file, req->buffer, req->size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
+      pi_task_push(pi_task_callback(&fs->cl_req_task, __pi_cl_fs_req_exec, _req));
     }
 }
 
@@ -185,12 +228,224 @@ void __pi_cl_fs_req(void *_req)
 void pi_cl_fs_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req_t *req)
 {
     req->file = file;
-    req->buffer = buffer;
-    req->size = size;
-    req->cid = pi_cluster_id();
-    req->done = 0;
-    req->direct = 0;
-    req->result = -1;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.write = 0;
+    req->rw.direct = 0;
+    req->rw.result = -1;
+
+    pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_req, (void *)req));
+}
+
+
+void pi_cl_fs_write(pi_fs_file_t *file, void *buffer, uint32_t size,
+  pi_cl_fs_req_t *req)
+{
+    req->file = file;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.direct = 0;
+    req->rw.write = 1;
+
+    pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_req, (void *)req));
+}
+
+
+void pi_cl_fs_direct_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req_t *req)
+{
+    req->file = file;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.direct = 1;
+    req->rw.result = -1;
+    req->rw.write = 0;
+
+    pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_req, (void *)req));
+}
+
+void __pi_cl_fs_seek_req_exec(void *_req)
+{
+    pi_cl_fs_req_t *req = _req;
+    pi_fs_file_t *file = req->file;
+    pi_fs_data_t *fs = req->file->fs_data;
+    req->rw.result = pi_fs_seek(req->file, req->rw.offset);
+    cl_notify_task_done(&(req->rw.done), req->rw.cid);
+
+    fs->cluster_reqs_first = (void *)req->callback.next;
+    req = fs->cluster_reqs_first;
+    if (req)
+    {
+      __pi_cl_fs_seek_req_exec(_req);
+    }
+}
+
+void __pi_cl_fs_seek_req(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_fs_data_t *fs = req->file->fs_data;
+
+    int is_first = fs->cluster_reqs_first == NULL;
+
+    if (is_first)
+      fs->cluster_reqs_first = req;
+    else
+      fs->cluster_reqs_last->callback.next = (void *)req;
+
+    fs->cluster_reqs_last = req;
+    req->callback.next = NULL;
+
+    if (is_first)
+    {
+      pi_task_push(pi_task_callback(&fs->cl_req_task, __pi_cl_fs_seek_req_exec, _req));
+    }
+}
+
+
+void pi_cl_fs_seek(pi_fs_file_t *file, uint32_t offset, pi_cl_fs_req_t *req)
+{
+    req->file = file;
+    req->rw.offset = offset;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+
+    pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_seek_req, (void *)req));
+}
+
+
+void __pi_cl_fs_copy_req_exec(void *_req);
+
+
+void __pi_cl_fs_copy_req_done(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_fs_file_t *file = req->file;
+    pi_fs_data_t *fs = req->file->fs_data;
+    pi_task_t *task = &fs->cl_req_task;
+
+    cl_notify_task_done(&(req->copy.done), req->copy.cid);
+
+    int irq = hal_irq_disable();
+
+    fs->cluster_reqs_first = (void *)req->callback.next;
+    req = fs->cluster_reqs_first;
+    hal_irq_restore(irq);
+    if (req)
+    {
+      __pi_cl_fs_copy_req_exec(req);
+    }
+}
+
+void __pi_cl_fs_copy_req_exec(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_fs_file_t *file = req->file;
+    pi_fs_data_t *fs = req->file->fs_data;
+
+    if (req->copy.length)
+      req->copy.result = pi_fs_copy_2d_async(req->file, req->copy.index, req->copy.buffer, req->copy.size, req->copy.stride, req->copy.length, req->copy.ext2loc, pi_task_callback(&fs->cl_req_task, __pi_cl_fs_copy_req_done, (void *)req));
+    else
+      req->copy.result = pi_fs_copy_async(req->file, req->copy.index, req->copy.buffer, req->copy.size, req->copy.ext2loc, pi_task_callback(&fs->cl_req_task, __pi_cl_fs_copy_req_done, (void *)req));
+
+    if (req->copy.result)
+      __pi_cl_fs_copy_req_done(_req);
+}
+
+
+void __pi_cl_fs_copy_req(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_fs_data_t *fs = req->file->fs_data;
+
+    int is_first = fs->cluster_reqs_first == NULL;
+
+    if (is_first)
+      fs->cluster_reqs_first = req;
+    else
+      fs->cluster_reqs_last->callback.next = (void *)req;
+
+    fs->cluster_reqs_last = req;
+    req->callback.next = NULL;
+
+    if (is_first)
+    {
+      pi_task_push(pi_task_callback(&fs->cl_req_task, __pi_cl_fs_copy_req_exec, _req));
+    }
+}
+
+
+void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, int32_t ext2loc, pi_cl_fs_req_t *req)
+{
+  req->file = file;
+  req->copy.index = index;
+  req->copy.buffer = buffer;
+  req->copy.size = size;
+  req->copy.ext2loc = ext2loc;
+  req->copy.length = 0;
+  req->copy.done = 0;
+  req->copy.cid = pi_cluster_id();
+
+  pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_copy_req, (void *)req));
+}
+
+void pi_cl_fs_copy_2d(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, uint32_t stride, uint32_t length, int32_t ext2loc, pi_cl_fs_req_t *req)
+{
+  req->file = file;
+  req->copy.index = index;
+  req->copy.buffer = buffer;
+  req->copy.size = size;
+  req->copy.stride = stride;
+  req->copy.length = length;
+  req->copy.ext2loc = ext2loc;
+  req->copy.done = 0;
+  req->copy.cid = pi_cluster_id();
+
+  pi_cl_send_callback_to_fc(pi_callback(&(req->callback), __pi_cl_fs_copy_req, (void *)req));
+}
+
+#else
+
+void __pi_cl_fs_req_done(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    #if defined(__PULP_OS__)
+    req->rw.result = req->task.implem.data[0];
+    #else
+    req->rw.result = req->task.data[0];
+    #endif  /* __PULP_OS__ */
+    cl_notify_task_done(&(req->rw.done), req->rw.cid);
+}
+
+
+void __pi_cl_fs_req(void *_req)
+{
+    pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
+    pi_fs_file_t *file = req->file;
+    if (req->rw.direct)
+    {
+        req->rw.result = pi_fs_direct_read_async(file, req->rw.buffer, req->rw.size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
+    }
+    else
+    {
+        req->rw.result = pi_fs_read_async(req->file, req->rw.buffer, req->rw.size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
+    }
+}
+
+
+void pi_cl_fs_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req_t *req)
+{
+    req->file = file;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.direct = 0;
+    req->rw.result = -1;
 
     pi_task_callback(&req->task, __pi_cl_fs_req, (void *) req);
     pi_cl_send_task_to_fc(&(req->task));
@@ -202,7 +457,7 @@ void __pi_cl_fs_req_write(void *_req)
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
     pi_fs_file_t *file = req->file;
 
-    req->result = pi_fs_write_async(file, req->buffer, req->size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
+    req->rw.result = pi_fs_write_async(file, req->rw.buffer, req->rw.size, pi_task_callback(&req->task, __pi_cl_fs_req_done, (void *)req));
 }
 
 
@@ -210,11 +465,11 @@ void pi_cl_fs_write(pi_fs_file_t *file, void *buffer, uint32_t size,
   pi_cl_fs_req_t *req)
 {
     req->file = file;
-    req->buffer = buffer;
-    req->size = size;
-    req->cid = pi_cluster_id();
-    req->done = 0;
-    req->direct = 0;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.direct = 0;
 
     pi_task_callback(&req->task, __pi_cl_fs_req_write, (void *) req);
     pi_cl_send_task_to_fc(&(req->task));
@@ -224,12 +479,12 @@ void pi_cl_fs_write(pi_fs_file_t *file, void *buffer, uint32_t size,
 void pi_cl_fs_direct_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl_fs_req_t *req)
 {
     req->file = file;
-    req->buffer = buffer;
-    req->size = size;
-    req->cid = pi_cluster_id();
-    req->done = 0;
-    req->direct = 1;
-    req->result = -1;
+    req->rw.buffer = buffer;
+    req->rw.size = size;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
+    req->rw.direct = 1;
+    req->rw.result = -1;
 
     pi_task_callback(&req->task, __pi_cl_fs_req, (void *) req);
     pi_cl_send_task_to_fc(&(req->task));
@@ -238,16 +493,16 @@ void pi_cl_fs_direct_read(pi_fs_file_t *file, void *buffer, uint32_t size, pi_cl
 void __pi_cl_fs_seek_req(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    req->result = pi_fs_seek(req->file, req->offset);
-    cl_notify_task_done(&(req->done), req->cid);
+    req->rw.result = pi_fs_seek(req->file, req->rw.offset);
+    cl_notify_task_done(&(req->rw.done), req->rw.cid);
 }
 
 void pi_cl_fs_seek(pi_fs_file_t *file, uint32_t offset, pi_cl_fs_req_t *req)
 {
     req->file = file;
-    req->offset = offset;
-    req->cid = pi_cluster_id();
-    req->done = 0;
+    req->rw.offset = offset;
+    req->rw.cid = pi_cluster_id();
+    req->rw.done = 0;
 
     pi_task_callback(&req->task, __pi_cl_fs_seek_req, (void *) req);
     pi_cl_send_task_to_fc(&(req->task));
@@ -256,18 +511,18 @@ void pi_cl_fs_seek(pi_fs_file_t *file, uint32_t offset, pi_cl_fs_req_t *req)
 void __pi_cl_fs_copy_req_done(void *_req)
 {
     pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-    cl_notify_task_done(&(req->done), req->cid);
+    cl_notify_task_done(&(req->copy.done), req->copy.cid);
 }
 
 void __pi_cl_fs_copy_req(void *_req)
 {
   pi_cl_fs_req_t *req = (pi_cl_fs_req_t *)_req;
-  if (req->length)
-    req->result = pi_fs_copy_2d_async(req->file, req->index, req->buffer, req->size, req->stride, req->length, req->ext2loc, pi_task_callback(&req->task, __pi_cl_fs_copy_req_done, (void *)req));
+  if (req->copy.length)
+    req->copy.result = pi_fs_copy_2d_async(req->file, req->copy.index, req->copy.buffer, req->copy.size, req->copy.stride, req->copy.length, req->copy.ext2loc, pi_task_callback(&req->task, __pi_cl_fs_copy_req_done, (void *)req));
   else
-    req->result = pi_fs_copy_async(req->file, req->index, req->buffer, req->size, req->ext2loc, pi_task_callback(&req->task, __pi_cl_fs_copy_req_done, (void *)req));
+    req->copy.result = pi_fs_copy_async(req->file, req->copy.index, req->copy.buffer, req->copy.size, req->copy.ext2loc, pi_task_callback(&req->task, __pi_cl_fs_copy_req_done, (void *)req));
 
-  if (req->result)
+  if (req->copy.result)
     __pi_cl_fs_copy_req_done(_req);
 }
 
@@ -275,13 +530,13 @@ void __pi_cl_fs_copy_req(void *_req)
 void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, int32_t ext2loc, pi_cl_fs_req_t *req)
 {
   req->file = file;
-  req->index = index;
-  req->buffer = buffer;
-  req->size = size;
-  req->ext2loc = ext2loc;
-  req->length = 0;
-  req->done = 0;
-  req->cid = pi_cluster_id();
+  req->copy.index = index;
+  req->copy.buffer = buffer;
+  req->copy.size = size;
+  req->copy.ext2loc = ext2loc;
+  req->copy.length = 0;
+  req->copy.done = 0;
+  req->copy.cid = pi_cluster_id();
   pi_task_callback(&req->task, __pi_cl_fs_copy_req, (void *) req);
   pi_cl_send_task_to_fc(&(req->task));
 }
@@ -289,14 +544,17 @@ void pi_cl_fs_copy(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t si
 void pi_cl_fs_copy_2d(pi_fs_file_t *file, uint32_t index, void *buffer, uint32_t size, uint32_t stride, uint32_t length, int32_t ext2loc, pi_cl_fs_req_t *req)
 {
   req->file = file;
-  req->index = index;
-  req->buffer = buffer;
-  req->size = size;
-  req->stride = stride;
-  req->length = length;
-  req->ext2loc = ext2loc;
-  req->done = 0;
-  req->cid = pi_cluster_id();
+  req->copy.index = index;
+  req->copy.buffer = buffer;
+  req->copy.size = size;
+  req->copy.stride = stride;
+  req->copy.length = length;
+  req->copy.ext2loc = ext2loc;
+  req->copy.done = 0;
+  req->copy.cid = pi_cluster_id();
   pi_task_callback(&req->task, __pi_cl_fs_copy_req, (void *) req);
   pi_cl_send_task_to_fc(&(req->task));
 }
+
+
+#endif

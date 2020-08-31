@@ -30,4 +30,4 @@ class RemoveNoOPs(DefaultMatcher):
         return G.match_fragment(sub)
 
     def replace_function(self, G: GraphView, subgraph: GraphView):
-        return None
+        return None, None, None

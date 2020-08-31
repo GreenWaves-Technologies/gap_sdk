@@ -1,136 +1,139 @@
 /*
- * Copyright (C) 2018 ETH Zurich, University of Bologna and GreenWaves Technologies
+ * Copyright (c) 2020, GreenWaves Technologies, Inc.
+ * All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * o Redistributions of source code must retain the above copyright notice, this list
+ *   of conditions and the following disclaimer.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * o Redistributions in binary form must reproduce the above copyright notice, this
+ *   list of conditions and the following disclaimer in the documentation and/or
+ *   other materials provided with the distribution.
+ *
+ * o Neither the name of GreenWaves Technologies, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived from this
+ *   software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "pmsis.h"
 #include "pmsis/cluster/cluster_team/cl_team.h"
 #include "pmsis/cluster/cluster_sync/fc_to_cl_delegate.h"
-#include "pmsis/implem/hal/hal.h"
-/**
- * @ingroup groupCluster
- */
 
-/**
- * @defgroup Team Team synchronization primitives
- *
- * Once a cluster entry point has been entered, after it has been enqueued by the fabric controller, all the following primitives can be used
- * to do multi-core processing, in a fork-join manner (like OMP parallel primitive).
- *
- * The execution can first be forked in order to activate more cores, and then synchronized together using barriers.
- */
+/*******************************************************************************
+ * Definitions
+ ******************************************************************************/
 
-/**
- * @addtogroup Team
- * @{
- */
+/*******************************************************************************
+ * Driver data
+ ******************************************************************************/
 
-/**@{*/
+extern struct cluster_driver_data *__per_cluster_data[];
 
-static uint32_t team_nb_cores = 0;
+/*******************************************************************************
+ * API implementation
+ ******************************************************************************/
 
-/** \brief Fork the execution of the calling core.
- *
- * Calling this function will create a team of workers and call the specified entry point
- * to start multi-core processing.
- * The team parameters (number of cores and stacks) are by default the ones
- * configured when calling
- * the cluster entry point from the fabric controller. It is possible to use
- * different parameters
- * when doing a new fork. If this is done the new parameters will become the
- * new default ones.
- * If the number of cores is not provided (i.e. is zero), the number of cores
- * of the previous
- * fork will be reused. Doing this has less runtime overhead.
- *
- * \param        cores_mask The mask of cores which will enter the entry point.
- * If it is zero, this will reuse the cores_mask of the previous fork or the default.
- * \param        entry The function entry point to be executed by all cores of the team.
- * \param        arg    The argument of the function entry point.
- */
 void pi_cl_team_fork(int nb_cores, void (*entry)(void *), void *arg)
 {
-    uint32_t core_mask = 0;
-    if (!nb_cores || ((uint32_t) nb_cores == team_nb_cores))
+    uint32_t team_core_mask = 0;
+    uint32_t master_core_mask = (1 << ARCHI_CLUSTER_MASTER_CORE);
+    uint32_t master_worker_mask = 0;
+    if (nb_cores == 0)
     {
-        if (!team_nb_cores)
-        {
-            team_nb_cores = (uint32_t) ARCHI_CLUSTER_NB_PE;
-            core_mask = ((1 << team_nb_cores)-1);
-            hal_eu_dispatch_team_config(core_mask & GAP_CLUSTER_WITHOUT_CORE0_MASK);
-        }
-        else
-        {
-            core_mask = ((1 << team_nb_cores)-1);
-        }
+        team_core_mask = __per_cluster_data[0]->task_first->cluster_team_mask;
     }
     else
     {
-        team_nb_cores = (uint32_t) nb_cores;
-        core_mask = ((1 << team_nb_cores)-1);
-        hal_eu_dispatch_team_config(core_mask & GAP_CLUSTER_WITHOUT_CORE0_MASK);
+        team_core_mask = ((1 << (uint32_t) nb_cores) - 1);
     }
-    hal_eu_barrier_setup(core_mask);
-    hal_eu_dispatch_push((uint32_t) entry);
-    hal_eu_dispatch_push((uint32_t) arg);
-    entry(arg);
-    hal_eu_barrier_trigger_wait_clear();
+
+    /* Set barriers for workers sync(application barrier), then workers + master. */
+    hal_cl_eu_barrier_setup(0, team_core_mask);
+    master_worker_mask = (team_core_mask | master_core_mask);
+    hal_cl_eu_barrier_setup((uint32_t) ARCHI_CLUSTER_SYNC_BARR_ID, master_worker_mask);
+
+    /* Reset team config. */
+    /* Remove master core from dispatcher. */
+    hal_cl_eu_dispatch_team_config(team_core_mask ^ master_core_mask);
+    hal_cl_eu_dispatch_fifo_push((uint32_t) entry);
+    hal_cl_eu_dispatch_fifo_push((uint32_t) arg);
+
+    /* Is master core involved? */
+    if (team_core_mask & master_core_mask)
+    {
+        entry(arg);
+    }
+    hal_cl_eu_barrier_trigger_wait_clear((uint32_t) ARCHI_CLUSTER_SYNC_BARR_ID);
 }
 
-
-/** \brief Execute a barrier between all cores of the team.
- *
- * This will block the execution of each calling core until all cores have reached the barrier.
- * The set of cores participating in the barrier is the one created with the last fork.
- * Each core of the team must execute the barrier exactly once for all cores to be able to go through the barrier.
- */
-void pi_cl_team_barrier(int barrier_id)
+void pi_cl_team_prepare_fork(int nb_cores)
 {
-    hal_evt_read32((uint32_t)&EU_BARRIER_DEMUX(0)->TRIGGER_WAIT_CLEAR, 0);
+    uint32_t team_core_mask = 0;
+    uint32_t master_core_mask = (1 << ARCHI_CLUSTER_MASTER_CORE);
+    uint32_t master_worker_mask = 0;
+    if (nb_cores == 0)
+    {
+        team_core_mask = __per_cluster_data[0]->task_first->cluster_team_mask;
+    }
+    else
+    {
+        team_core_mask = ((1 << (uint32_t) nb_cores) - 1);
+    }
+
+    /* Set barriers for workers sync(application barrier), then workers + master. */
+    hal_cl_eu_barrier_setup(0, team_core_mask);
+    master_worker_mask = (team_core_mask | master_core_mask);
+    hal_cl_eu_barrier_setup((uint32_t) ARCHI_CLUSTER_SYNC_BARR_ID, master_worker_mask);
+
+    /* Reset team config. */
+    hal_cl_eu_dispatch_team_config(team_core_mask ^ master_core_mask);
 }
 
+void pi_cl_team_preset_fork(void (*entry)(void *), void *arg)
+{
+    uint32_t master_core_mask = (1 << ARCHI_CLUSTER_MASTER_CORE);
+    hal_cl_eu_dispatch_fifo_push((uint32_t) entry);
+    hal_cl_eu_dispatch_fifo_push((uint32_t) arg);
+    if (hal_cl_eu_barrier_team_get(0) & master_core_mask)
+    {
+        entry(arg);
+    }
+    hal_cl_eu_barrier_trigger_wait_clear((uint32_t) ARCHI_CLUSTER_SYNC_BARR_ID);
+}
 
+void pi_cl_team_barrier()
+{
+    hal_cl_eu_barrier_trigger_wait_clear(0);
+}
 
-/** \brief Enter a critical section.
- *
- * This will block the execution of the calling core until it can execute the following section of code alone.
- * This will also prevent all other cores of the team to execute the following code until
- * rt_team_critical_exit is called.
- */
 void pi_cl_team_critical_enter()
 {
     hal_eu_mutex_lock(0);
 }
 
-
-
-/** \brief Exit a critical section.
- *
- * This will exit the critical code and let other cores executing it..
- */
 void pi_cl_team_critical_exit()
 {
     hal_eu_mutex_unlock(0);
 }
 
+/* Barrier(0) used to sync team. */
 int pi_cl_team_nb_cores()
 {
+    uint32_t barrier_team = hal_cl_eu_barrier_team_get(0);
+    uint32_t team_nb_cores = 0;
+    asm volatile("p.cnt %0, %1" : "=r"(team_nb_cores) : "r"(barrier_team));
     return team_nb_cores;
 }
-
-//!@}
-
-/**
- * @} end of Team group
- */

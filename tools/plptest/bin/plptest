@@ -82,8 +82,9 @@ def score(tests):
   for testset in tests:
     (test_score, test_nb_score) = testset.score(table=table)
 
-    score += test_score
-    nb_score += test_nb_score
+    if test_nb_score > 0:
+      score += test_score
+      nb_score += test_nb_score
 
   if nb_score > 0:
       score = score / nb_score

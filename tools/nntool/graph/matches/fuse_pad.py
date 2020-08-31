@@ -53,4 +53,4 @@ class MatchFusePad(DefaultMatcher):
         filter_like_node.pad_type = "zero"
         if G.quantization:
             G.quantization.remove_node(pad_node)
-        return filter_like_node
+        return filter_like_node, None, None

@@ -27,6 +27,7 @@
 #define CONFIG_HYPERRAM
 #define CONFIG_SPIRAM
 #define CONFIG_SPIFLASH
+#define CONFIG_PIXART
 
 #define CONFIG_HIMAX_CPI_ITF 0
 #define CONFIG_HIMAX_I2C_ITF 1
@@ -73,6 +74,19 @@
 #define CONFIG_SPIFLASH_START       0
 #define CONFIG_SPIFLASH_SIZE        (1<<24)
 #define CONFIG_SPIFLASH_SECTOR_SIZE (1<<12)
+
+#define CONFIG_PIXART_CPI_ITF          ( 0 )
+#define CONFIG_PIXART_SPI_ITF          ( 1 )
+#define CONFIG_PIXART_SPI_CS           ( 0 )
+#define CONFIG_PIXART_PWM_ID           ( 0 )
+#define CONFIG_PIXART_PWM_CH           ( 2 )
+#define CONFIG_PIXART_GPIO_PWR_4V      ( GPIO_VANA_4V )
+#define CONFIG_PIXART_GPIO_PWR_2V5     ( GPIO_VSENSOR_2V5 )
+#define CONFIG_PIXART_GPIO_RESET       ( GPIO_SENSOR_NRST )
+
+#define GPIO_VANA_4V                   ( PI_GPIO_A5_PAD_17_B40 )
+#define GPIO_VSENSOR_2V5               ( PI_GPIO_A16_PAD_30_D1 )
+#define GPIO_SENSOR_NRST               ( PI_GPIO_A2_PAD_14_A2 )
 
 #if defined(CHIP_VERSION)
 #if (CHIP_VERSION == 2)

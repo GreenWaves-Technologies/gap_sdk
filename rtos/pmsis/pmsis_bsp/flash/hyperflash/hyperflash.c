@@ -137,12 +137,13 @@ static int hyperflash_open(struct pi_device *device)
     goto error;
   }
 
-  struct pi_hyper_conf hyper_conf;
+  struct pi_hyper_conf hyper_conf = {0};
   pi_hyper_conf_init(&hyper_conf);
 
   hyper_conf.id = (unsigned char) conf->hyper_itf;
   hyper_conf.cs = conf->hyper_cs;
   hyper_conf.type = PI_HYPER_TYPE_FLASH;
+  hyper_conf.xip_en = conf->xip_en;
 
   pi_open_from_conf(&hyperflash->hyper_device, &hyper_conf);
 
@@ -605,8 +606,8 @@ static void hyperflash_erase_sector_async(struct pi_device *device, uint32_t add
   hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
   hyperflash_set_reg_exec(hyperflash, addr, 0x30);
 
-  // Typical sector erase time is 930ms
-  pi_task_push_delayed_us(pi_task_callback(&hyperflash->task, hyperflash_check_erase, device), 100000);
+  // Typical sector erase time is 930ms but keep it short as this time is shorter or some platform
+  pi_task_push_delayed_us(pi_task_callback(&hyperflash->task, hyperflash_check_erase, device), 10000);
 }
 
 
@@ -747,7 +748,7 @@ static inline int hyperflash_copy_2d(struct pi_device *device, uint32_t pi_flash
 {
   pi_task_t task;
   pi_task_block(&task);
-  if (hyperflash_copy_2d_async(device, pi_flash_addr, buffer, size, ext2loc, stride, length, &task))
+  if (hyperflash_copy_2d_async(device, pi_flash_addr, buffer, size, stride, length, ext2loc, &task))
     return -1;
   pi_task_wait_on(&task);
   return 0;
@@ -784,4 +785,5 @@ void pi_hyperflash_conf_init(struct pi_hyperflash_conf *conf)
   conf->flash.api = &hyperflash_api;
   bsp_hyperflash_conf_init(conf);
   __flash_conf_init(&conf->flash);
+  conf->xip_en = 0;
 }

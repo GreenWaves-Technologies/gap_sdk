@@ -40,9 +40,7 @@ static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
 {
   unsigned int value;
   #if !defined(__LLVM__) && ((defined(OR1K_VERSION) && OR1K_VERSION >= 5) || (defined(RISCV_VERSION) && RISCV_VERSION >= 4))
-  __asm__ __volatile__ ("" : : : "memory");
-  value = __builtin_pulp_event_unit_read((int *)base, offset);
-  __asm__ __volatile__ ("" : : : "memory");
+  value = __builtin_pulp_event_unit_read_fenced((int *)base, offset);
   #else
   __asm__ __volatile__ ("" : : : "memory");
   value = pulp_read32(base + offset);
@@ -54,9 +52,7 @@ static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
 #define evt_read32(base,offset) \
   ({ \
     unsigned int value; \
-    __asm__ __volatile__ ("" : : : "memory"); \
-    value = __builtin_pulp_event_unit_read((int *)base, offset); \
-    __asm__ __volatile__ ("" : : : "memory"); \
+    value = __builtin_pulp_event_unit_read_fenced((int *)base, offset); \
     value; \
   })
 #endif

@@ -70,7 +70,7 @@ void pi_cl_send_task_to_fc(pi_task_t *task)
         hal_compiler_barrier();
     }
     g_task = (uint32_t)task;
-    hal_eu_fc_evt_trig_set(CLUSTER_NOTIFY_FC_IRQN, 0);
+    hal_eu_fc_evt_trig_set(CLUSTER_TO_FC_NOTIFY_IRQN, 0);
     hal_eu_mutex_unlock(0);
 }
 
@@ -78,7 +78,7 @@ void mc_fc_delegate_init(void *arg)
 {
     g_task = 0xdeadbeefUL;
     /* Activate interrupt handler for FC when cluster want to push a task to FC */
-    NVIC_EnableIRQ(CLUSTER_NOTIFY_FC_IRQN);
+    NVIC_EnableIRQ(CLUSTER_TO_FC_NOTIFY_IRQN);
     return;
 }
 

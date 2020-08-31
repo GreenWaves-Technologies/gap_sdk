@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import reduce
 import logging
 
 import numpy as np
@@ -132,14 +133,14 @@ def av_global_pool_mult(params,
 
     # Prepare the quantization levels
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-    in_dims = params.in_dims[0]
     out_dims = params.out_dims[0]
     qrec.set_scale(in_idx=0, out_idx=0)
 
-    sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=(
-        in_dims.get_order_idx('w'), in_dims.get_order_idx('h')))
-
-    res = at_norm((sum_by_chan << 7) // (in_dims.h * in_dims.w), 7)
+    sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=tuple(
+        params.axis), keepdims=params.keep_dims)
+    sz = reduce(lambda x, y: x * y, [i for idx,
+                                     i in enumerate(in_tensor.shape) if idx in params.axis])
+    res = at_norm((sum_by_chan << 7) // sz, 7)
     res = out_tensor = qrec.scale_mul_biases_q.apply_scales(res)
     return qrec.get_outputs(params,
                             [out_tensor.reshape(out_dims.shape)],
@@ -156,15 +157,16 @@ def av_global_pool(params,
 
     # Prepare the quantization levels
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-    in_dims = params.in_dims[0]
     out_dims = params.out_dims[0]
 
-    sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=(
-        in_dims.get_order_idx('w'), in_dims.get_order_idx('h')))
+    sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=tuple(
+        params.axis), keepdims=params.keep_dims)
 
-    norm = (np.array([31], dtype=np.int32) - gap_clb(sum_by_chan)).astype(np.int32)
-    inv_wh = (1 << norm) // (in_dims.h * in_dims.w)
-    out_tensor = at_norm((inv_wh * sum_by_chan), norm)
+    norm = (np.array([31], dtype=np.int32) - gap_clb(sum_by_chan.flatten())).astype(np.int32)
+    sz = reduce(lambda x, y: x * y, [i for idx,
+                                     i in enumerate(in_tensor.shape) if idx in params.axis])
+    inv_wh = ((1 << norm) // sz).reshape(sum_by_chan.shape)
+    out_tensor = at_norm((inv_wh * sum_by_chan), norm.reshape(sum_by_chan.shape))
     return qrec.get_outputs(params,
                             [qrec.out_qs[0].clip(out_tensor).reshape(out_dims.shape)],
                             ktype="symmetric")
@@ -181,8 +183,23 @@ def max_global_pool(params,
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
     if isinstance(qrec, MultQuantizationRecord):
         qrec.set_scale(in_idx=0, out_idx=0)
-    in_dims = params.in_dims[0]
     return qrec.get_outputs(params, [np.max(in_tensor,
-                                            axis=(in_dims.get_order_idx('w'),
-                                                  in_dims.get_order_idx('h')),
-                                            keepdims=True)], ktype="symmetric")
+                                            axis=tuple(params.axis),
+                                            keepdims=params.keep_dims)], ktype="symmetric")
+
+
+def sum_global_pool(params,
+                    in_tensors,
+                    qrec: QuantizationRecordBase,
+                    details=None):
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+    if isinstance(qrec, MultQuantizationRecord):
+        qrec.set_scale(in_idx=0, out_idx=0)
+    res = np.sum(in_tensor,
+                 axis=tuple(params.axis),
+                 keepdims=params.keep_dims,
+                 dtype=np.int32)
+
+    if isinstance(qrec, MultQuantizationRecord):
+        res = qrec.scale_mul_biases_q.apply_scales(res)
+    return qrec.get_outputs(params, [res], ktype="symmetric")

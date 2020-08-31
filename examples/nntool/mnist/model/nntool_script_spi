@@ -8,4 +8,6 @@ set graph_produce_node_names true
 set graph_produce_operinfos true
 set graph_monitor_cycles true
 set default_global_home_location "AT_MEM_L3_QSPIFLASH"
+set l3_flash_device AT_MEM_L3_QSPIFLASH
+set l3_ram_device AT_MEM_L3_QSPIRAM
 save_state

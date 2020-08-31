@@ -27,13 +27,14 @@ def apply_reverse_transpose_to_hint(hint, transpose):
 class ExpandTransposesMatcher(Matcher):
     NAME = "expand_transposes"
     DESCRIPTION = "Extract transposes from Transposable nodes for model generation"
-
+    MODIFIES_DIMENSIONS = True
     def match(self, G: GraphView, set_identity: bool = True):
         # get a list of all the nodes that are transposable but not transposes
         # Need to do this first to avoid mutating it when doing the modifications
         tnodes = list(filter(lambda n: isinstance(n, Transposable) and
                              not isinstance(n, TransposeParameters),
                              G.nodes()))
+        has_modified_graph = False
         for node in tnodes:
             if node.transpose_in:
                 for idx, edge in enumerate(G.in_edges(node.name)):
@@ -42,9 +43,10 @@ class ExpandTransposesMatcher(Matcher):
                     trans = node.transpose_in[edge.to_idx]
                     if trans is None:
                         continue
+                    has_modified_graph = True
                     in_params = TransposeParameters("%s_TIN_%s" % (node.name, idx),
                                                     transpose=trans)
-                    if node.in_dims_hint:
+                    if node.in_dims_hint and node.in_dims_hint[edge.to_idx]:
                         in_hint = node.in_dims_hint[edge.to_idx]
                         out_hint = apply_reverse_transpose_to_hint(in_hint, trans)
                         in_params.in_dims_hint = [in_hint.copy()]
@@ -63,6 +65,7 @@ class ExpandTransposesMatcher(Matcher):
                     trans = node.transpose_out[edge.from_idx]
                     if trans is None:
                         continue
+                    has_modified_graph = True
                     out_params = TransposeParameters("%s_TOUT_%s" % (node.name, idx),
                                                      transpose=trans)
                     if node.out_dims_hint:
@@ -79,3 +82,4 @@ class ExpandTransposesMatcher(Matcher):
                 node.transpose_out = None
         if set_identity:
             self.set_identity(G)
+        return has_modified_graph

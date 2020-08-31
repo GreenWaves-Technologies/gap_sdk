@@ -33,7 +33,19 @@
 
 #include "pmsis/targets/target.h"
 
-#define ARCHI_GPIO_NB_PADCFG_REG       (0x8)
+#define ARCHI_GPIO_NB_DEVICE               ( 0x1 )
+#define ARCHI_GPIO_DEVICE_SIZE             ( 0x40 )
+//#define ARCHI_GPIO_NB_GPIO_PER_DEVICE      ( ARCHI_NB_GPIO / ARCHI_GPIO_NB_DEVICE )
+#define ARCHI_GPIO_NB_GPIO_PER_DEVICE      ( 0x20 )
+#define ARCHI_GPIO_NB_GPIO_PER_DEVICE_MASK ( ARCHI_GPIO_NB_GPIO_PER_DEVICE - 1 )
+
+#define ARCHI_GPIO_NB_PADCFG_REG           ( 0x8 )
+#define ARCHI_GPIO_NB_PADCFG_REG_LOG2      ( 0x3 )
+#define ARCHI_GPIO_NB_GPIO_PER_PADCFG      ( ARCHI_GPIO_NB_GPIO_PER_DEVICE >> ARCHI_GPIO_NB_PADCFG_REG_LOG2 )
+#define ARCHI_GPIO_PADCFG_REG_OFFSET(gpio) ( (gpio) / ARCHI_GPIO_NB_GPIO_PER_PADCFG )
+#define ARCHI_GPIO_PADCFG_POS_OFFSET(gpio) ( (gpio) % ARCHI_GPIO_NB_GPIO_PER_PADCFG )
+
+
 
 /* Paddir register. */
 static inline void gpio_paddir_set(uint32_t value)
@@ -136,7 +148,7 @@ static inline uint32_t gpio_padcfg_get(uint8_t int_reg)
  * Set direction mode of a GPIO pad.
  * 0 = Input | 1 = Output.
  */
-static inline void hal_gpio_pin_set_direction(uint8_t gpio_pin, uint8_t dir)
+static inline void hal_gpio_pin_direction_set(uint8_t gpio_pin, uint8_t dir)
 {
     uint32_t mask = 0x1, shift = gpio_pin;
     uint32_t val = gpio_paddir_get();
@@ -144,7 +156,7 @@ static inline void hal_gpio_pin_set_direction(uint8_t gpio_pin, uint8_t dir)
     gpio_paddir_set(val);
 }
 
-static inline void hal_gpio_set_direction(uint32_t gpio_mask, uint8_t dir)
+static inline void hal_gpio_direction_set(uint32_t gpio_mask, uint8_t dir)
 {
     uint32_t val = gpio_paddir_get();
     if (dir)
@@ -161,7 +173,7 @@ static inline void hal_gpio_set_direction(uint32_t gpio_mask, uint8_t dir)
 
 /*! Padin. */
 /* GPIO pad input value. */
-static inline uint32_t hal_gpio_pin_get_input_value(uint8_t gpio_pin)
+static inline uint32_t hal_gpio_pin_input_value_get(uint8_t gpio_pin)
 {
     uint32_t mask = 0x1, shift = gpio_pin;
     uint32_t val = gpio_padin_get();
@@ -169,7 +181,7 @@ static inline uint32_t hal_gpio_pin_get_input_value(uint8_t gpio_pin)
     return val;
 }
 
-static inline uint32_t hal_gpio_get_input_value()
+static inline uint32_t hal_gpio_input_value_get()
 {
     return gpio_padin_get();
 }
@@ -177,7 +189,7 @@ static inline uint32_t hal_gpio_get_input_value()
 
 /*! Padout. */
 /* GPIO pad output value. */
-static inline void hal_gpio_pin_set_output_value(uint8_t gpio_pin, uint8_t value)
+static inline void hal_gpio_pin_output_value_set(uint8_t gpio_pin, uint8_t value)
 {
     uint32_t mask = 0x1, shift = gpio_pin;
     uint32_t val = gpio_padout_get();
@@ -185,15 +197,9 @@ static inline void hal_gpio_pin_set_output_value(uint8_t gpio_pin, uint8_t value
     gpio_padout_set(val);
 }
 
-static inline void hal_gpio_set_output_value(uint32_t gpio_mask, uint8_t value)
+static inline void hal_gpio_output_value_set(uint32_t gpio_mask, uint8_t value)
 {
     uint32_t val = gpio_padout_get();
-    /*
-      Test which one is better ?
-      uint32_t set_mask = 0;
-      value && (set_mask = gpio_mask);
-      val = ((val & ~gpio_mask) | set_mask);
-    */
     if (value)
     {
         val |= gpio_mask;
@@ -205,10 +211,25 @@ static inline void hal_gpio_set_output_value(uint32_t gpio_mask, uint8_t value)
     gpio_padout_set(val);
 }
 
+static inline uint32_t hal_gpio_pin_output_value_get(uint8_t gpio_pin)
+{
+    uint32_t mask = 0x1, shift = gpio_pin;
+    uint32_t val = gpio_padout_get();
+    val = ((val >> shift) & mask);
+    return val;
+}
+
+static inline uint32_t hal_gpio_output_value_get(uint32_t gpio_mask)
+{
+    uint32_t val = gpio_padout_get();
+    val = (val & gpio_mask);
+    return val;
+}
+
 
 /*! Inten. */
 /* Enable GPIO pad interruption. */
-static inline void hal_gpio_pin_set_irq(uint8_t gpio_pin, uint8_t enable)
+static inline void hal_gpio_pin_irq_set(uint8_t gpio_pin, uint8_t enable)
 {
     uint32_t mask = 0x1, shift = gpio_pin;
     uint32_t val = gpio_inten_get();
@@ -216,7 +237,7 @@ static inline void hal_gpio_pin_set_irq(uint8_t gpio_pin, uint8_t enable)
     gpio_inten_set(val);
 }
 
-static inline void hal_gpio_set_irq(uint32_t gpio_mask, uint8_t enable)
+static inline void hal_gpio_irq_set(uint32_t gpio_mask, uint8_t enable)
 {
     uint32_t val = gpio_inten_get();
     if (enable)
@@ -233,7 +254,7 @@ static inline void hal_gpio_set_irq(uint32_t gpio_mask, uint8_t enable)
 
 /*! Inttype. */
 /* GPIO pad interruption type configuration. */
-static inline void hal_gpio_pin_set_irq_type(uint8_t gpio_pin, uint8_t irq_type)
+static inline void hal_gpio_pin_irq_type_set(uint8_t gpio_pin, uint8_t irq_type)
 {
     uint8_t gpio_reg = (gpio_pin >> 4), gpio_pos = (gpio_pin & 0x0F);
     uint32_t mask = 0x3, shift = (gpio_pos << 1);
@@ -245,7 +266,7 @@ static inline void hal_gpio_pin_set_irq_type(uint8_t gpio_pin, uint8_t irq_type)
 
 /*! Intstatus. */
 /* GPIO interruption status. */
-static inline uint32_t hal_gpio_pin_get_irq_status(uint8_t gpio_pin)
+static inline uint32_t hal_gpio_pin_irq_status_get(uint8_t gpio_pin)
 {
     uint32_t mask = 0x1, shift = gpio_pin;
     uint32_t val = gpio_intstatus_get();
@@ -253,7 +274,7 @@ static inline uint32_t hal_gpio_pin_get_irq_status(uint8_t gpio_pin)
     return val;
 }
 
-static inline uint32_t hal_gpio_get_irq_status()
+static inline uint32_t hal_gpio_irq_status_get()
 {
     return gpio_intstatus_get();
 }
@@ -286,7 +307,7 @@ static inline void hal_gpio_enable(uint32_t gpio_mask, uint8_t enable)
 
 /*! Padcfg. */
 /* Enable GPIO pad pull. */
-static inline void hal_gpio_pin_enable_pull(uint8_t gpio_pin, uint8_t pe)
+static inline void hal_gpio_pin_pull_enable(uint8_t gpio_pin, uint8_t pe)
 {
     uint8_t gpio_reg = (gpio_pin >> 2), gpio_pos = (gpio_pin & 0x03);
     uint32_t mask = 0x1, shift = (gpio_pos << 3);
@@ -296,7 +317,7 @@ static inline void hal_gpio_pin_enable_pull(uint8_t gpio_pin, uint8_t pe)
 }
 
 /* Set GPIO pad drive strength. */
-static inline void hal_gpio_pin_set_drive_strength(uint8_t gpio_pin, uint8_t ds)
+static inline void hal_gpio_pin_drive_strength_set(uint8_t gpio_pin, uint8_t ds)
 {
     uint8_t gpio_reg = (gpio_pin >> 2), gpio_pos = (gpio_pin & 0x03);
     uint32_t mask = 0x2, shift = (gpio_pos << 3);
@@ -306,7 +327,7 @@ static inline void hal_gpio_pin_set_drive_strength(uint8_t gpio_pin, uint8_t ds)
 }
 
 /* GPIO pad pull activation & GPIO pad drive strength. */
-static inline void hal_gpio_pin_configuration(uint8_t gpio_pin, uint8_t pe, uint8_t ds)
+static inline void hal_gpio_pin_config_set(uint8_t gpio_pin, uint8_t pe, uint8_t ds)
 {
     uint8_t gpio_reg = (gpio_pin >> 2), gpio_pos = (gpio_pin & 0x03);
     uint32_t mask = 0x3, shift = (gpio_pos << 3);
@@ -315,14 +336,14 @@ static inline void hal_gpio_pin_configuration(uint8_t gpio_pin, uint8_t pe, uint
     gpio_padcfg_set(gpio_reg, val);
 }
 
-static inline void hal_gpio_configuration(uint32_t gpio_mask, uint8_t pe, uint8_t ds)
+static inline void hal_gpio_config_set(uint32_t gpio_mask, uint8_t pe, uint8_t ds)
 {
     uint32_t mask = gpio_mask, pin = 0;
     while (mask)
     {
         if (mask & 0x1)
         {
-            hal_gpio_pin_configuration(pin, pe, ds);
+            hal_gpio_pin_config_set(pin, pe, ds);
         }
         mask = mask >> 1;
         pin++;

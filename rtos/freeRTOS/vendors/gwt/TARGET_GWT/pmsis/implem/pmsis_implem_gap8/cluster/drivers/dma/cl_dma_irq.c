@@ -40,8 +40,13 @@ void pi_cl_dma_2d_handler()
     if (!copy->size)
     {
         fifo_first = fifo_first->next;
+        if (fifo_first == NULL)
+        {
+            fifo_last = NULL;
+        }
         hal_compiler_barrier();
         hal_eu_cluster_evt_trig_set(DMA_SW_IRQN, 0);
+        copy = fifo_first;
     }
     hal_compiler_barrier();
 

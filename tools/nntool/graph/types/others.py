@@ -14,360 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import sys
 import numpy as np
 
 from graph.dim import Dim
-from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
-from utils.ssd_postprocess_decoder import DecodeBboxes
-from utils.ssd_postprocess_nms import NonMaxSuppression
 
 from .base import (NoSizeChangeParameters, Parameters,
-                   SameNumberOfDimensionsForInputs, SensitiveToOrder,
+                   SensitiveToOrder,
                    SingleInputAndOutput, Transposable)
 
 LOG = logging.getLogger("nntool." + __name__)
-
-
-class InputOutputParameters(Transposable):
-
-    def __init__(self, *args, dims=None, fixed_order=False, short_name=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._output_value = None
-        self._index = None
-        self._short_name = short_name
-        self.dims = dims
-        self.fixed_order = fixed_order
-        self.at_options.valid_options['ALLOCATE'] = int
-        self.at_options.valid_options['FIXED_ORDER'] = int
-        self.at_options.fixed_order = 0
-
-    @property
-    def short_name(self):
-        return self._short_name
-
-    @property
-    def fixed_order(self):
-        return self.at_options.fixed_order == 1
-
-    @fixed_order.setter
-    def fixed_order(self, val):
-        self.at_options.fixed_order = 1 if val else 0
-
-    @property
-    def output_value(self):
-        return self._output_value
-
-    @output_value.setter
-    def output_value(self, value):
-        self._output_value = value
-
-    @property
-    def index(self):
-        return self._index
-
-    @index.setter
-    def index(self, value):
-        self._index = value
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def get_parameter_size(self):
-        return 0
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-
-class InputBaseParameters(InputOutputParameters):
-
-    @property
-    def in_dims(self):
-        dim = self.dims.clone()
-        if self.in_dims_hint:
-            dim.apply_naming_hints(self.in_dims_hint[0])
-        return [dim]
-
-    @in_dims.setter
-    def in_dims(self, val):
-        pass
-
-    def __str__(self):
-        return "I {} {} {}".format(
-            self.dims,
-            Transposable.__str__(self),
-            self.at_options
-        )
-
-    def get_output_size(self, _):
-        out_dim = self.dims.clone()
-        if self.transpose_out:
-            out_dim.transpose(self.transpose_out[0])
-        if self.out_dims_hint:
-            out_dim.apply_naming_hints(self.out_dims_hint[0])
-        return [out_dim]
-
-
-class InputParameters(InputBaseParameters):
-    op_name = "input"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.at_options.valid_options['EXTERN_INPUT_POINTER'] = int
-
-    def set_input(self, value):
-        try:
-            value = value.reshape(self.dims.shape)
-        except ValueError as ex:
-            trace_back = sys.exc_info()[2]
-            raise ValueError(
-                "Input data dimensions are not compatible with graph input: {!s}".format(ex)
-            ).with_traceback(trace_back)
-        self.output_value = value
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    # @property
-    # def can_promoteq(self):
-    #     return self.out_q.bits < STATS_BITS[-1]
-
-    # def promoteq(self):
-    #     if self.out_q.bits == STATS_BITS[-1]:
-    #         raise ValueError("can't step further")
-    #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
-    #     return True
-
-
-class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
-    op_name = "image_format"
-    NORMALIZATIONS = NORMALIZATIONS
-    FORMAT_CHANGES = FORMAT_CHANGES
-
-    def __init__(self, *args, norm_func=None, format_change=None, **kwargs):
-        self._norm_func = None
-        self._format_change = None
-        super(ImageFormatParameters, self).__init__(*args, **kwargs)
-        self.norm_func = norm_func
-        self.format_change = format_change
-
-    @property
-    def input_channels(self):
-        if self.format_change in ("RGB565_RGB888", "BW8", "BW16"):
-            return 1
-        if self.format_change in ("RGB888", "RGB16"):
-            return 3
-        return None
-
-    @property
-    def input_dtype(self):
-        if self.format_change == "RGB565_RGB888":
-            return np.uint16
-        if self.format_change in ("RGB888", "BW8", "BW16", "RGB16"):
-            return np.uint8
-        return None
-
-    @property
-    def output_channels(self):
-        if self.format_change in ("RGB565_RGB888", "RGB888", "RGB16"):
-            return 3
-        if self.format_change in ("BW8", "BW16"):
-            return 1
-        return None
-
-    @property
-    def output_dtype(self):
-        if self.norm_func in ("SHIFT_INT8", "OFFSET_INT8"):
-            return np.int8
-        if self.norm_func in "OUT_INT16":
-            return np.int16
-        return None
-
-    @property
-    def format_change(self):
-        # RGB565_RGB888
-        return self._format_change
-
-    @format_change.setter
-    def format_change(self, val):
-        val = val and val.upper()
-        if val is not None and val not in self.FORMAT_CHANGES:
-            raise ValueError("format change is not valid")
-        self._format_change = val
-
-    @property
-    def norm_func(self):
-        # None, "shift", "offset"
-        return self._norm_func
-
-    @norm_func.setter
-    def norm_func(self, val):
-        val = val and val.upper()
-        if val is not None and val not in self.NORMALIZATIONS:
-            raise ValueError("normalization is not valid")
-        self._norm_func = val
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-        assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims, hint_dir='in')
-        out_dim = self.clone_dim_with_hints(in_dims, hint_dir='out')[0]
-        if self.format_change == "RGB565_RGB888":
-            assert out_dim.is_named and out_dim.c == 1
-            out_dim.impose_order(self.out_dims_hint[0])
-            out_dim.c = 3
-        elif self.format_change in ("BW8", "BW16"):
-            pass  # no dims change here
-        elif self.format_change in ("RGB888", "RGB16"):
-            assert out_dim.is_named and out_dim.c == 3
-            out_dim.impose_order(self.out_dims_hint[0])
-        else:
-            raise ValueError("unknow format change")
-
-        return [out_dim]
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "FORMAT_CHANGE Fmt: {} Norm: {}".format(self.format_change, self.norm_func)
-
-
-class ConstantInputParameters(InputBaseParameters):
-    op_name = "constant"
-
-    def __init__(self, *args, adjust_transpose=None, is_mutated=False,
-                 is_intermediate=False, **kwargs):
-        self.value = None
-        super(ConstantInputParameters, self).__init__(*args, **kwargs)
-        del self.at_options.valid_options['FIXED_ORDER']
-        self.at_options.valid_options['RESET_NAME'] = str
-        self.at_options.valid_options['GENERATE_VALUE'] = bool
-        self._adjust_transpose = adjust_transpose
-        self._is_mutated = is_mutated
-        self._is_intermediate = is_intermediate
-        self._value_quantization = None
-        self._concated_nodes = []
-        self.generate_value = True
-        self._is_constant = True
-        self._is_global = True
-
-    @property
-    def concated_nodes(self):
-        return self._concated_nodes
-
-    @property
-    def reset_name(self):
-        return self.at_options.reset_name
-
-    @reset_name.setter
-    def reset_name(self, val):
-        self.at_options.reset_name = val
-
-    @property
-    def generate_value(self):
-        return self.at_options.generate_value
-
-    @generate_value.setter
-    def generate_value(self, val):
-        self.at_options.generate_value = val
-
-    @property
-    def value_quantization(self):
-        return self._value_quantization
-
-    @value_quantization.setter
-    def value_quantization(self, val):
-        self._value_quantization = val
-
-    @property
-    def adjust_transpose(self):
-        return self._adjust_transpose
-
-    @property
-    def is_constant(self):
-        return self._is_constant
-
-    @is_constant.setter
-    def is_constant(self, val):
-        self._is_constant = val
-
-    @property
-    def is_global(self):
-        return self._is_global
-
-    @is_global.setter
-    def is_global(self, val):
-        self._is_global = val
-
-    @property
-    def is_mutated(self):
-        return self._is_mutated
-
-    @property
-    def is_intermediate(self):
-        return self._is_intermediate
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def get_parameter_size(self):
-        return self.dims.size()
-
-    def get_parameters(self):
-        return {'value': self.value}
-
-    def set_parameters(self, val):
-        self.value = val['value']
-
-    def __str__(self):
-        props = [param for param in ["is_mutated", "is_intermediate"] if getattr(self, param)]
-        return "Const {} {} {} {}".format(
-            self.dims,
-            " ".join(props),
-            Transposable.__str__(self),
-            self.at_options
-        )
-
-
-class OutputParameters(InputOutputParameters):
-    op_name = "output"
-
-    def __init__(self, *args, **kwargs):
-        super(OutputParameters, self).__init__(*args, **kwargs)
-        self.at_options.valid_options['EXTERN_OUTPUT_POINTER'] = int
-
-    def get_output_size(self, in_dims):
-        out_dim = in_dims[0].clone()
-        if self.transpose_in:
-            out_dim.transpose(self.transpose_in[0])
-        return [out_dim]
-
-    @property
-    def out_dims(self):
-        return [self.dims]
-
-    @out_dims.setter
-    def out_dims(self, val):
-        self.dims = val[0]
-
-    def __str__(self):
-        return "O {} {} {}".format(
-            self.dims,
-            Transposable.__str__(self),
-            self.at_options
-        )
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
 
 class TransposeParameters(Transposable, SingleInputAndOutput):
@@ -389,8 +44,10 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     def real_shape(self):
         input_shape = self.in_dims[0].shape
-        cond_input_idx = [i for i, sz in enumerate(self.in_dims[0].shape) if sz != 1]
-        real_transpose = [i for i in self.transpose_in[0] if i in cond_input_idx]
+        cond_input_idx = [i for i, sz in enumerate(
+            self.in_dims[0].shape) if sz != 1]
+        real_transpose = [
+            i for i in self.transpose_in[0] if i in cond_input_idx]
         cond_input_shape = [input_shape[i] for i in cond_input_idx]
         cond_transpose = [cond_input_idx.index(i) for i in real_transpose]
         return tuple(cond_input_shape), tuple(cond_transpose)
@@ -421,9 +78,33 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     def __str__(self):
         return "T {} {}".format(
-            self.transpose_in and ','.join([str(i) for i in self.transpose_in[0]]) or "None",
+            self.transpose_in and ','.join(
+                [str(i) for i in self.transpose_in[0]]) or "None",
             self.at_options
         )
+
+
+class CopyParameters(Parameters):
+    op_name = "copy"
+
+    def __init__(self, *args, **kwargs):
+        super(CopyParameters, self).__init__(*args, **kwargs)
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        return [in_dims[0].clone()]
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return ""
 
 
 class ConcatParameters(Transposable):
@@ -468,81 +149,6 @@ class ConcatParameters(Transposable):
     def __str__(self):
         return "A {} {} {}".format(
             self.axis,
-            Transposable.__str__(self),
-            self.at_options
-        )
-
-
-class SSDDetectorParameters(Transposable):
-    op_name = "ssd_detector"
-
-    INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
-
-    def __init__(self, *args, parameters=None, **kwargs):
-        super(SSDDetectorParameters, self).__init__(*args, **kwargs)
-        self._parameters = parameters
-        self.decoder_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
-                               'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
-                               'using_params': {'INCLUDE': True, 'params': self._parameters}}
-
-        self.nms_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
-                           'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
-                           'using_params': {'INCLUDE': True, 'params': self._parameters}}
-
-    def get_parameter_size(self):
-        return 0
-
-    @property
-    def can_equalize(self):
-        return False
-
-    @property
-    def x_scale(self):
-        return self._parameters['x_scale']
-
-    @property
-    def y_scale(self):
-        return self._parameters['y_scale']
-
-    @property
-    def w_scale(self):
-        return self._parameters['w_scale']
-
-    @property
-    def h_scale(self):
-        return self._parameters['h_scale']
-
-    @property
-    def nms_score_threshold(self):
-        return self._parameters['nms_score_threshold']
-
-    @nms_score_threshold.setter
-    def nms_score_threshold(self, val):
-        self._parameters['nms_score_threshold'] = val
-
-    @property
-    def nms_iou_threshold(self):
-        return self._parameters['nms_iou_threshold']
-
-    @property
-    def max_detections(self):
-        return self._parameters['max_detections']
-
-    def get_output_size(self, in_dims):
-        num_detected_boxes = self._parameters['max_detections'] * \
-            self._parameters['max_classes_per_detection']
-        return [
-            Dim(shape=[num_detected_boxes, 4], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
-            Dim(shape=[num_detected_boxes], is_ordered=True),
-        ]
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "{} {}".format(
             Transposable.__str__(self),
             self.at_options
         )
@@ -650,11 +256,30 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
         self.out_shape = out_shape
 
     def numpy_slice(self, arr: np.ndarray):
-        slice_spec = [slice(elem[0], elem[1], elem[2]) for elem in self.act_slice if len(elem) == 3]
+        slice_spec = [slice(elem[0], elem[1], elem[2])
+                      for elem in self.act_slice if len(elem) == 3]
         return arr[tuple(slice_spec)].reshape(self.out_shape)
+
+    def only_slices_axis(self, axis):
+        """check if there is a slice on only one axis"""
+        in_shape = self.in_dims[0].shape
+        return all(sl[0] == 0 and sl[1] == in_shape[idx] and sl[2] == 1
+                   for idx, sl in enumerate(self.act_slice) if idx != axis)
+
+    def is_unit_slice(self, axis):
+        """check if the slice on one axis returns shape of 1"""
+        sl = self.act_slice[axis]
+        if sl[1] > sl[0]:
+            return sl[1] - sl[0] == 1 and sl[2] == 1
+        else:
+            return sl[0] - sl[1] == 2 and sl[2] == -1
 
     @staticmethod
     def get_slice(in_shape, spec, begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask):
+        # reduces the TFLITE specs and masks down to regularized slice list without any
+        # elipsises and an output reshape. If only the reshape is necessary returns a boolean
+        # indicating this. If can_reshape is true and inshape == outshape then its a noop
+
         masks = [begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask]
         act_slice = []
         out_shape = []
@@ -684,7 +309,8 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
                 out_shape.append(1)
                 continue
 
-            beg = 0 if mask[0] else (sz[0] if sz[0] >= 0 else in_shape[in_idx] + sz[0])
+            beg = 0 if mask[0] else (
+                sz[0] if sz[0] >= 0 else in_shape[in_idx] + sz[0])
             end = in_shape[in_idx] if mask[1] else (
                 sz[1] if sz[1] >= 0 else in_shape[in_idx] + sz[1])
 
@@ -815,39 +441,6 @@ class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def __str__(self):
         return "PAD {}".format(self.padding)
 
-
-class GlobalPoolParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
-    op_name = "global"
-
-    def __init__(self, name, pool_type="average", in_dims_hint=None, out_dims_hint=None):
-
-        super(GlobalPoolParameters, self).__init__(name,
-                                                   in_dims_hint=in_dims_hint,
-                                                   out_dims_hint=out_dims_hint)
-        self.pool_type = pool_type
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-        assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        out_dim = self.in_dims[0].clone()
-        out_dim.w = 1
-        out_dim.h = 1
-        return [out_dim]
-
-    @property
-    def can_equalize(self):
-        return True
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "GLOBAL {}".format(self.pool_type)
-
-
 class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     op_name = "upsample"
@@ -885,6 +478,68 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
         return "A {} factor {}".format(
             self.algo,
             self.factor
+        )
+
+class GlobalPoolParameters(Transposable, SingleInputAndOutput):
+    op_name = "global"
+
+    def __init__(self, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
+        super(GlobalPoolParameters, self).__init__(*args, **kwargs)
+        self._pool_type = pool_type
+        self._axis = axis
+        self._keep_dims = keep_dims
+
+    @property
+    def axis(self):
+        return self._axis
+
+    @property
+    def keep_dims(self):
+        return self._keep_dims
+
+    @property
+    def pool_type(self):
+        return self._pool_type
+
+    @axis.setter
+    def axis(self, val):
+        self._axis = val
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        out_dim = in_dims[0].clone()
+        if self.transpose_in:
+            out_dim.transpose(self.transpose_in[0])
+        if self.keep_dims:
+            names = out_dim.keys if out_dim.is_named else None
+            out_dim = Dim(shape=[1 if idx in self._axis else dim
+                                 for idx, dim in enumerate(out_dim.shape)],
+                          names=names, is_ordered=True)
+            if self.transpose_out:
+                out_dim.transpose(self.transpose_out[0])
+        else:
+            out_dim = Dim(shape=[dim for idx, dim in enumerate(out_dim.shape)
+                                 if idx not in self._axis],
+                          is_ordered=True)
+
+        return [out_dim]
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "{} A {}{} {} {}".format(
+            self._pool_type,
+            self._axis,
+            " keep_dims " if self._keep_dims else "",
+            Transposable.__str__(self),
+            self.at_options
         )
 
 
@@ -948,104 +603,6 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
             Transposable.__str__(self)
         )
 
-
-class YoloParameters(NoSizeChangeParameters, SingleInputAndOutput, SensitiveToOrder):
-
-    op_name = "yolo"
-
-    def __init__(self, name, classes, total, mask, max_boxes):
-        super(YoloParameters, self).__init__(name)
-        self.classes = classes
-        self.total = total
-        self.mask = mask
-        self.max_boxes = max_boxes
-
-    def get_parameter_size(self):
-        return 0
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "C {} T {} MSK {} MAX {}".format(
-            self.classes, self.total, self.mask, self.max_boxes
-        )
-
-
-class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForInputs):
-    def __init__(self, name, *args, **kwargs):
-        super(MatrixBroadcastedLinearOpParameters, self).__init__(name, *args, **kwargs)
-        self.at_options.valid_options['PARALLELFEATURES'] = int
-        self.at_options.valid_options['TILEORIENTATION'] = int
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def get_parameter_size(self):
-        return 0
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def compute_load(self):
-        return self.out_dims[0].size() * 2
-
-    def get_output_size(self, in_dims):
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        max_idx, _ = max(enumerate(self.in_dims), key=lambda x: x[1].size())
-        return [self.in_dims[max_idx].clone()]
-
-    def __str__(self):
-        return "{} {}".format(self.op_name, self.at_options)
-
-
-class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):
-    op_name = "add"
-
-
-class MatrixMulParameters(MatrixBroadcastedLinearOpParameters):
-    op_name = "mul"
-
-
-class MatrixSubParameters(MatrixBroadcastedLinearOpParameters):
-    op_name = "sub"
-
-
-class MatrixDivParameters(MatrixBroadcastedLinearOpParameters):
-    op_name = "div"
-
-
-class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
-
-    op_name = "softmax"
-
-    def __init__(self, name, beta):
-        super(SoftMaxParameters, self).__init__(name)
-        self.beta = beta
-
-    def get_parameter_size(self):
-        return 0
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def compute_load(self):
-        return self.in_dims[0].size() * 2
-
-    def __str__(self):
-        return "BETA {} {}".format(
-            self.beta,
-            self.at_options
-        )
 
 # pylint: disable=abstract-method
 

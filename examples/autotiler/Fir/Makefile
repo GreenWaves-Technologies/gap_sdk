@@ -6,10 +6,6 @@
 
 pulpChip = GAP
 PULP_APP = TestFIR
-TILER_PATH = $(GAP_SDK_HOME)/tools/autotiler_v3
-TILER_LIB = $(TILER_PATH)/lib/libtile.a
-TILER_INC = $(TILER_PATH)/include
-TILER_GENERATOR_PATH = $(TILER_PATH)/generators
 FIR_GEN_PATH = $(TILER_GENERATOR_PATH)/Fir
 #FIR_KER_PATH = $(TILER_GENERATOR_PATH)/Fir
 
@@ -24,7 +20,7 @@ APP_SRCS = main.c $(MODEL_GEN_C) $(FIR_GEN_PATH)/FirBasicKernels.c
 APP_CFLAGS += -O3
 APP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef 
 #PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-APP_CFLAGS += -I$(TILER_INC) -I$(FIR_GEN_PATH)
+APP_CFLAGS += -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(FIR_GEN_PATH)
 APP_LDFLAGS +=  -flto -Wl,--gc-sections
 
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress

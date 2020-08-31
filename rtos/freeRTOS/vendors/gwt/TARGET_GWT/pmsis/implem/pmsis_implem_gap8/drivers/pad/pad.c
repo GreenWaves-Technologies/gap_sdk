@@ -42,48 +42,73 @@
  *****************************************************************************/
 
 /*******************************************************************************
+ * Function declaration
+ ******************************************************************************/
+
+#if defined(TRACE_PAD)
+/* Print pad info. */
+void pi_pad_print();
+#endif  /* TRACE_PAD */
+
+/*******************************************************************************
+ * Internal functions
+ ******************************************************************************/
+
+#if defined(TRACE_PAD)
+void pi_pad_print()
+{
+    printf("\nPadfun :\n");
+    for (uint32_t i=0; i<(uint32_t) ARCHI_PAD_NB_PADFUNC_REG; i+=4)
+    {
+        printf("%x %x %x %x\n",
+               soc_ctrl_safe_padfun_get(i + 0), soc_ctrl_safe_padfun_get(i + 1),
+               soc_ctrl_safe_padfun_get(i + 2), soc_ctrl_safe_padfun_get(i + 3));
+    }
+    printf("Padcfg :\n");
+    for (uint32_t i=0; i<(uint32_t) ARCHI_PAD_NB_PADCFG_REG; i+=4)
+    {
+        printf("%x %x %x %x\n",
+               soc_ctrl_safe_padcfg_get(i + 0), soc_ctrl_safe_padcfg_get(i + 1),
+               soc_ctrl_safe_padcfg_get(i + 2), soc_ctrl_safe_padcfg_get(i + 3));
+    }
+}
+#endif  /* TRACE_PAD */
+
+/*******************************************************************************
  * API implementation
  ******************************************************************************/
 
-void pi_pad_print()
-{
-    DEBUG_PRINTF("\nPadfun :\n");
-    for (uint32_t i=0; i<(uint32_t) ARCHI_PAD_NB_PADFUNC_REG; i+=4)
-    {
-        DEBUG_PRINTF("%x %x %x %x\n",
-                     soc_ctrl_safe_padfun_get(i + 0), soc_ctrl_safe_padfun_get(i + 1),
-                     soc_ctrl_safe_padfun_get(i + 2), soc_ctrl_safe_padfun_get(i + 3));
-    }
-    DEBUG_PRINTF("Padcfg :\n");
-    for (uint32_t i=0; i<(uint32_t) ARCHI_PAD_NB_PADCFG_REG; i+=4)
-    {
-        DEBUG_PRINTF("%x %x %x %x\n",
-                     soc_ctrl_safe_padcfg_get(i + 0), soc_ctrl_safe_padcfg_get(i + 1),
-                     soc_ctrl_safe_padcfg_get(i + 2), soc_ctrl_safe_padcfg_get(i + 3));
-    }
-}
-
 void pi_pad_set_function(pi_pad_e pad, pi_pad_func_e function)
 {
-    hal_pad_set_function(pad, function);
-    #ifdef DEBUG
-    DEBUG_PRINTF("Pad: %d func: %d\n", pad, function);
-    pi_pad_print();
-    #endif
+    PAD_TRACE("Setting pad=%d func=%d\n", pad, function);
+    hal_pad_function_set(pad, function);
 }
 
 void pi_pad_init(uint32_t pad_values[])
 {
     for (uint32_t pad_reg = 0; pad_reg < (uint32_t) ARCHI_PAD_NB_PADFUNC_REG; pad_reg++)
     {
-        hal_pad_set_padfunc(pad_reg, pad_values[pad_reg]);
+        PAD_TRACE("Setting padfunc_%d=%lx\n", pad_reg, pad_values[pad_reg]);
+        hal_pad_padfunc_set(pad_reg, pad_values[pad_reg]);
     }
-    #ifdef DEBUG
-    pi_pad_print();
-    #endif
 }
 
 void pi_pad_set_configuration(pi_pad_e pad, pi_pad_flags_e cfg)
 {
-    hal_padcfg_set_configuration(pad, (cfg >> PI_PAD_PULL_OFFSET), (cfg >> PI_PAD_DRIVE_OFFSET));
+    PAD_TRACE("Setting config pad=%d, pull=%d, drive=%d\n",
+              pad, (cfg >> PI_PAD_PULL_OFFSET), (cfg >> PI_PAD_DRIVE_OFFSET));
+    hal_pad_padcfg_configuration_set(pad,
+                                     (cfg >> PI_PAD_PULL_OFFSET),
+                                     (cfg >> PI_PAD_DRIVE_OFFSET));
+}
+
+void pi_pad_sleepcfg_set(uint32_t sleepcfg[], uint8_t sleep_ena)
+{
+    for (uint32_t pad_reg = 0; pad_reg < (uint32_t) ARCHI_PAD_NB_SLEEPPADCFG_REG; pad_reg++)
+    {
+        PAD_TRACE("Setting pad sleepcfg_%d=%lx\n", pad_reg, sleepcfg[pad_reg]);
+        hal_pad_sleeppadcfg_set(pad_reg, sleepcfg[pad_reg]);
+    }
+    PAD_TRACE("Pad sleep enable=%d\n", sleep_ena);
+    hal_pad_padsleep_enable(sleep_ena);
 }

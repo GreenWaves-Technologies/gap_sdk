@@ -56,8 +56,8 @@ enqueue_end:
 __rt_handle_special_event:
   li      x10, ~0x3
   and     x11, x11, x10
-  lw      x12, RT_EVENT_T_CALLBACK(x11)
-  lw      x10, RT_EVENT_T_ARG(x11)
+  lw      x12, PI_CALLBACK_T_ENTRY(x11)
+  lw      x10, PI_CALLBACK_T_ARG(x11)
   j       __rt_call_external_c_function
 
 

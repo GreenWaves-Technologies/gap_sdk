@@ -118,8 +118,11 @@ void vp::trace::dump_header()
   int64_t cycles = -1;
   if (comp->get_clock())
   {
-    time = comp->get_clock()->get_time();
     cycles = comp->get_clock()->get_cycles();
+  }
+  if (comp->get_time_engine())
+  {
+    time = comp->get_time_engine()->get_time();
   }
 
   int max_trace_len = comp->traces.get_trace_manager()->get_max_path_len();

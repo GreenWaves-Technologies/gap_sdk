@@ -77,7 +77,7 @@ void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsi
     // SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
     SetSymbolDynamics();
 
-    SetUsedFilesNames(0, 3, ${gen.extra_includes_kernels(indent=0)}, ${gen.cnn_kernels()}, "${gen.project_name}.h");
+${gen.used_filenames()}
     SetGeneratedFilesNames("${gen.project_name}Kernels.c", "${gen.project_name}Kernels.h");
 ${gen.options_generator(indent=1)}
 
@@ -127,7 +127,7 @@ def generator_template_header(G, gen):
 // Quantized scales can be used round_norm(val * QSCALE, QNORM) giving the real value in Q8
 
 ${gen.header_generator(indent=0)}
-#endif ${gen.project_name.upper()}_GRAPHINFO_H
+#endif //${gen.project_name.upper()}_GRAPHINFO_H
 '''
 
 def execute_template(template_function, G, naming_convension=None, code_generator=None):

@@ -65,17 +65,26 @@ typedef enum
  * This structure is used to pass the desired Hyperbus configuration to the
  * runtime when opening the device.
  */
-struct pi_hyper_conf
+typedef struct pi_hyper_conf
 {
     pi_device_e device;  /*!< Interface type. */
     signed char id;      /*!< Hyperbus interface where the device is connected.
      */
+    uint8_t xip_en;      /*!< Specify whether xip is on */
     uint32_t cs;         /*!< Chip select where the device is connected. */
     pi_hyper_type_e type;/*!< Type of device connected on the hyperbus
     interface. */
     uint32_t baudrate;   /*!< Baudrate (in bytes/second). */
     int32_t burst_length; /*< Maximum burst length in ns. */
-};
+    int8_t is_spi;        /*< Set to 1 if the RAM or flash is using SPI instead
+    of hyperbus. */
+    int latency;          /*< Number of latency cycles during read and write
+    requests. */
+    uint32_t spi_cmd;     /*< SPI command used to enqueue read and write
+    commands. */
+    uint32_t reg_spi_cmd; /*< SPI command used to enqueue read and write
+    commands. */
+}pi_hyper_conf_t;
 
 /** \brief Hyperbus cluster request structure.
  *
@@ -319,6 +328,12 @@ PI_INLINE_HYPER_LVL_0 void pi_hyper_write_2d(struct pi_device *device,
 PI_INLINE_HYPER_LVL_0 void pi_hyper_write_2d_async(struct pi_device *device,
   uint32_t hyper_addr, void *addr, uint32_t size, uint32_t stride,
   uint32_t length, struct pi_task *task);
+
+void pi_hyper_reg_get(struct pi_device *device, uint32_t reg_addr,
+    uint8_t *value);
+
+void pi_hyper_reg_set(struct pi_device *device, uint32_t reg_addr,
+    uint8_t *value);
 
 /** \brief Enqueue a read copy to the Hyperbus from cluster side (from Hyperbus
  * to processor).

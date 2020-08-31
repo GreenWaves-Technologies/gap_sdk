@@ -33,6 +33,7 @@ typedef struct pi_lfs_t {
     pi_device_t *flash;
     uint32_t partition_offset;
     size_t partition_size;
+    pi_fs_data_t fs_data;
 } pi_lfs_t;
 
 pi_fs_api_t pi_lfs_api;
@@ -175,6 +176,8 @@ static int32_t pi_lfs_mount(struct pi_device *device)
     
     init_lfs_config(&pi_lfs->config, pi_lfs, flash_info.sector_size);
     
+    pi_lfs->fs_data.cluster_reqs_first = NULL;
+
     // Little FS buffers allocation
     pi_lfs->config.read_buffer = pi_l2_malloc(pi_lfs->config.cache_size);
     pi_lfs->config.prog_buffer = pi_l2_malloc(pi_lfs->config.cache_size);
@@ -291,6 +294,7 @@ static pi_fs_file_t *pi_lfs_open(struct pi_device *device, const char *file, int
     pi_file->fs = device;
     pi_file->api = &pi_lfs_api;
     pi_file->size = lfs_file_size(lfs, lfs_file);
+    pi_file->fs_data = &pi_lfs->fs_data;
     
     return pi_file;
     

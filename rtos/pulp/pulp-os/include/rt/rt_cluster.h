@@ -233,6 +233,12 @@ static inline void __rt_cluster_push_fc_irq_event(rt_event_t *event)
   __rt_cluster_push_fc_event((rt_event_t *)(((unsigned int)event) | 0x1));
 }
 
+
+static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback)
+{
+  __rt_cluster_push_fc_event((rt_event_t *)(((unsigned int)callback) | 0x1));
+}
+
 static inline void __rt_cluster_notif_req_done(int cid)
 {
   eu_evt_trig(eu_evt_trig_cluster_addr(cid, RT_CLUSTER_CALL_EVT), 0);

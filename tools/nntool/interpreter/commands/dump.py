@@ -200,11 +200,11 @@ specific step of the graph."""
                                            order=['c', 'h', 'w'])
 
             if args.visualize_detection:
-                img_in = Image.open(file_per_input[0])
+                img_in = Image.open(file_per_input[0]).convert('RGBA')
 
                 bboxes, classes, scores, _ = [outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
-                height = img_in.size[0] if input_args['height'] == -1 else input_args['height']
-                width = img_in.size[1] if input_args['width'] == -1 else input_args['width']
+                height = img_in.size[1] if input_args['height'] == -1 else input_args['height']
+                width = img_in.size[0] if input_args['width'] == -1 else input_args['width']
 
                 img_in = img_in.resize((width, height))
                 draw = ImageDraw.Draw(img_in, 'RGBA')

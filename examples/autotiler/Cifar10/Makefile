@@ -5,7 +5,7 @@
 # of the BSD license.  See the LICENSE file for details.
 
 RM=rm -f
-CNN_AT_PATH = $(TILER_GENERATOR_PATH)/CNN
+CNN_AT_PATH = $(TILER_CNN_GENERATOR_PATH)
 
 APP = Cifar10
 
@@ -28,7 +28,7 @@ MODEL_GEN_INCLUDE_POW2 = -I$(TILER_CNN_GENERATOR_PATH) -I$(NNTOOL_GENERATOR_PATH
 APP_SRCS += Cifar10.c Cifar10Kernels.c \
 			$(MODEL_LIB_POW2)
             
-APP_INC += $(TILER_INC) $(CNN_AT_PATH)
+APP_INC += $(TILER_INC) $(TILER_EMU_INC) $(TILER_CNN_KERNEL_PATH)
 
 COEF_FLAG = -DCOEF_L2
 
@@ -73,7 +73,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(MODEL_GEN_POW2) $(TILER_LIB)
+	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(MODEL_GEN_POW2) $(TILER_LIB)
 
 # Run the code generator
 Cifar10Kernels.c: GenTile

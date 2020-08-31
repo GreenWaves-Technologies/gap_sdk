@@ -35,9 +35,9 @@
 /* Printf buffer size. */
 #define PRINTF_BUFFER_SIZE    ( 128 )
 /* TAS offset. GAP8 : TAS in cluster L1. */
-#define PRINTF_TAS_OFFSET     ( 1 << 20 )
+#define PRINTF_TAS_OFFSET     ( ARCHI_CL_L1_TS_OFFSET )
 /* IRQ used to wake up cores. */
-#define PRINTF_LOCK_IRQN      ( CL_EVENT_SW(6) )
+#define PRINTF_LOCK_IRQN      ( CL_IRQ_SW_EVT(6) )
 
 /*
  * This should be used in case of printf via uart before scheduler has started.
@@ -91,7 +91,7 @@ static void __semihost_putc(char c)
 {
     g_printf_semihost_buffer[g_printf_semihost_index] = c;
     g_printf_semihost_index++;
-    if ((g_printf_semihost_index == (uint32_t) PRINTF_BUFFER_SIZE) ||
+    if ((g_printf_semihost_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
         (c == '\n'))
     {
         #if defined(FEATURE_CLUSTER)
@@ -130,6 +130,7 @@ static void __semihost_printf_flush(char c)
 #endif  /* PRINTF_SEMIHOST */
 
 #if defined(PRINTF_UART)
+
 static uint8_t g_printf_uart_index = 0;
 static char g_printf_uart_buffer[PRINTF_BUFFER_SIZE];
 
@@ -184,7 +185,7 @@ static void __uart_putc(char c)
 {
     g_printf_uart_buffer[g_printf_uart_index] = c;
     g_printf_uart_index++;
-    if ((g_printf_uart_index == (uint32_t) PRINTF_BUFFER_SIZE) ||
+    if ((g_printf_uart_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
         (c == '\n'))
     {
         #if defined(FEATURE_CLUSTER)
@@ -205,7 +206,6 @@ static void __uart_putc(char c)
             __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
         }
         g_printf_uart_index = 0;
-        //memset(g_printf_uart_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
     }
 }
 
@@ -218,9 +218,9 @@ static void __uart_printf_flush(char c)
         __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
     }
 }
+#endif  /* PRINTF_UART */
 
-#endif
-#if defined(PRINTF_RTL)       /* PRINTF_UART */
+#if defined(PRINTF_RTL)
 
 static void __stdout_putc(char c)
 {

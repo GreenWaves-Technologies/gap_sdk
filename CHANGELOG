@@ -1,3 +1,10 @@
+3.7
+Highlights of this release:
+- NNTool
+	- Support TFLite SSD Detection PostProcess layer
+	- Bug fixes
+
+
 3.6
 
 Highlights of this release:

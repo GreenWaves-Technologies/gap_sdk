@@ -20,17 +20,17 @@ from quantization.float32.kernels.image_format import image_format
 from quantization.float32.kernels.linear import linear
 from quantization.float32.kernels.matrix_operations import matscale, piecewise
 from quantization.float32.kernels.pad import pad
-from quantization.float32.kernels.pool import (av_global_pool, av_pool,
+from quantization.float32.kernels.pool import (av_global_pool, av_pool, sum_global_pool,
                                                max_global_pool, max_pool)
 from quantization.float32.kernels.rnn import rnn
 from quantization.float32.kernels.softmax import softmax
 from quantization.float32.kernels.ssd_postprocess import ssd_postprocess
 from quantization.float32.kernels.tensor_functions import (cast, concat,
                                                            constant_input,
-                                                           graph_input,
+                                                           copy, graph_input,
                                                            graph_output,
-                                                           reshape,
-                                                           strided_slice, split,
+                                                           reshape, split,
+                                                           strided_slice,
                                                            transpose)
 from quantization.kernels.kernel_function import (KernelFunction,
                                                   KernelFunctionSetBase)
@@ -118,6 +118,10 @@ class Float32KernelSet(KernelFunctionSetBase):
         return av_global_pool
 
     @property
+    def sum_global_pool(self) -> KernelFunction:
+        return sum_global_pool
+
+    @property
     def max_pool(self) -> KernelFunction:
         return max_pool
 
@@ -152,3 +156,7 @@ class Float32KernelSet(KernelFunctionSetBase):
     @property
     def split(self) -> KernelFunction:
         return split
+
+    @property
+    def copy(self) -> KernelFunction:
+        return copy

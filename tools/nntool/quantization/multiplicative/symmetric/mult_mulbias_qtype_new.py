@@ -131,6 +131,8 @@ class MultMulBiasScaleQType(MultMulBiasQType):
 
     def compute_scales(self):
         if not self.has_scale:
+            self._info['qnorms'] = np.array([1], dtype=np.uint8)
+            self._info['qbiases'] = np.array([0], dtype=np.uint8)
             return
         if self.dtype == np.int8:
             max_bits = min(7, self._available_bits)

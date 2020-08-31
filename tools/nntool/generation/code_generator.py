@@ -17,9 +17,9 @@ import logging
 
 from generation.generators import RegisteredGeneratorsMixin
 from generation.name_cache import NameCache
-from graph.types import (ConcatParameters, ConstantInputParameters,
+from graph.types import (ConcatParameters, ConstantInputParameters, SplitParameters,
                          FilterParameters, InputParameters, OutputParameters,
-                         ReshapeParameters, TransposeParameters)
+                         ReshapeParameters, TransposeParameters, SSDDetectorParameters)
 from utils.node_id import NodeId
 
 from .at_types.gen_ctrl import gen_graph_ctrl, gen_kernel_ctrl
@@ -73,6 +73,10 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         if self.G.graph_identity.quantization_type == 'POW2':
             return "CNN_BasicKernels.h"
         return ValueError("Quantization type not known %s", self.G.graph_identity.quantization_type)
+
+    @property
+    def force_relu(self):
+        return self.opts['AT_force_relu']
 
     def get_edge_name(self, eparams):
         return self.name_cache[eparams]['edge']
@@ -223,6 +227,14 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                              for edge in self.G.indexed_in_edges(node.name)]
             self.stacked_tensors.append(TensorStack(cname_out, in_edge_names))
 
+        split_nodes = [node for node in self.G.nodes() if isinstance(node, SplitParameters)]
+        for split_node in split_nodes:
+            eparams_in = self.G.in_edges(split_node.name)[0].params
+            eparams_out = [edge_bundle[0].params for edge_bundle in self.G.indexed_out_edges(split_node.name)]
+            cname_in = self.name_cache[eparams_in]['edge']
+            cnames_out = [self.name_cache[eparams]['edge'] for eparams in eparams_out]
+            self.stacked_tensors.append(TensorStack(cname_in, cnames_out))
+
         code_block = CodeBlock(starting_indent=indent)
         if len(self.stacked_tensors) == 0:
             code_block.comment("no concats in graph so not stacked tensors created")
@@ -254,15 +266,19 @@ class CodeGenerator(RegisteredGeneratorsMixin):
 
     def generate_outputs(self):
         outputs = set()
+        count_outputs = 0
         for node in self.G.output_nodes():
             qrec = self.G.quantization[NodeId(node)]
             for edge in self.G.in_edges(node.name):
+                if isinstance(edge.from_node, SSDDetectorParameters) and count_outputs:
+                    continue
                 eparams, _ = self.real_up_connection(self.G, edge.params)
                 if eparams in outputs:
                     continue
                 eparams.edge_type = "out"
                 outputs.add(eparams)
                 self.execute_phase("outputs", node, qrec, edge)
+                count_outputs += 1
 
     def generate_constants(self):
         for _, pnode, _, fnode in self.G.nodes_iterator():
@@ -299,8 +315,16 @@ class CodeGenerator(RegisteredGeneratorsMixin):
 
     def extra_includes_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
+        if self.G.has_ssd_postprocess:
+            code_block.write("#include \"SSD_Generators.h\"")
         code_block.write("#include \"nntool_extra_generators.h\"")
         return str(code_block)
+
+    def used_filenames(self):
+        kernels = ["\"nntool_extra_kernels.h\"", self.cnn_kernels(), "\"" + self.project_name + ".h\""] # default
+        if self.G.has_ssd_postprocess:
+            kernels.append("\"SSD_BasicKernels.h\"")
+        return "\tSetUsedFilesNames(0, {}, {});".format(len(kernels), str(', '.join(kernels)))
 
     def extra_includes_kernels(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
@@ -335,7 +359,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 # constants that are initializers need to do a binding
                 self.execute_phase("bindings", node, qrec, in_eparams, out_eparams, cname)
                 continue
-            elif not isinstance(node, (ConcatParameters)):
+            elif not isinstance(node, (ConcatParameters, SplitParameters)):
                 self.execute_phase("bindings", node, qrec, in_eparams, out_eparams, cname)
                 if not self.execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname):
                     raise NotImplementedError(("Don't know how to generate kernel for parameter type %s %s. " +
@@ -382,6 +406,8 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         if self.G.graph_identity.quantization_type == 'SQ8':
             code_block.write("LoadCNN_SQ8_Library();")
             code_block.write("Load_RNN_SQ8_Library();")
+            if self.G.has_ssd_postprocess:
+                code_block.write("LoadSSDLibrary();")
             return str(code_block)
         if self.G.graph_identity.quantization_type == 'POW2':
             code_block.write("LoadCNNLibrary();")

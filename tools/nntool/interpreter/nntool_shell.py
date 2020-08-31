@@ -37,6 +37,7 @@ from .commands.range_equalization import (
 from .commands.qshow import QshowCommand
 from .commands.astats import AstatsCommand
 from .commands.temps import TempsCommand
+from .commands.ssd_setter import SSDSetterCommand
 
 LOG = logging.getLogger("nntool")
 
@@ -70,7 +71,8 @@ COMMANDS = [
     TempsCommand,
     RoundingCommand,
     QtuneCommand,
-    ImageFormatCommand
+    ImageFormatCommand,
+    SSDSetterCommand
 ]
 
 

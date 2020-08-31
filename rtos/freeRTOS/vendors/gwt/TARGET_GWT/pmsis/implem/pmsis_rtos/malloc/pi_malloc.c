@@ -195,8 +195,14 @@ void pi_free(void *_chunk)
                 /* Node is elsewhere in list. */
                 else
                 {
-                    tmp->prev->next = tmp->next;
-                    tmp->next->prev = tmp->prev;
+                    if (tmp->prev != NULL)
+                    {
+                        tmp->prev->next = tmp->next;
+                    }
+                    if (tmp->next != NULL)
+                    {
+                        tmp->next->prev = tmp->prev;
+                    }
                 }
                 /* Free MemBloc_t struct. */
                 #if defined(__GAP8__)

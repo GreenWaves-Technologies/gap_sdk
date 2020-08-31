@@ -298,7 +298,6 @@ struct pi_mem_slab {
         uint32_t num_used;
 };
 
-
 struct pi_task_implem
 {
   struct pi_task *next;
@@ -325,6 +324,7 @@ struct pi_task_implem
 #define PI_TASK_IMPLEM struct pi_task_implem implem
 
 typedef struct pi_task{
+    struct pi_task *next;
     // Warning, might be accessed inline in asm, and thus can not be moved
     uintptr_t arg[4];
     int8_t done;
@@ -753,9 +753,7 @@ extern RT_FC_TINY_DATA void *__rt_hyper_udma_handle;
 
 #endif
 
-#define RT_EVENT_T_CALLBACK   0
-#define RT_EVENT_T_ARG        4
-#define RT_EVENT_T_NEXT       24
+#define RT_EVENT_T_NEXT       0
 
 #define RT_SCHED_T_FIRST      0
 #define RT_SCHED_T_LAST       4
@@ -872,28 +870,32 @@ extern RT_FC_TINY_DATA void *__rt_hyper_udma_handle;
 #define RT_CLUSTER_CALL_POOL_T_FIRST_CALL_FC           (1*4)
 #define RT_CLUSTER_CALL_POOL_T_FIRST_LAST_FC           (2*4)
 
+#define PI_CALLBACK_T_NEXT       (0*4)
+#define PI_CALLBACK_T_ENTRY      (1*4)
+#define PI_CALLBACK_T_ARG        (2*4)
 
-#define PI_TASK_T_ARG_0          (0*4)
-#define PI_TASK_T_ARG_1          (1*4)
-#define PI_TASK_T_ARG_2          (2*4)
-#define PI_TASK_T_ARG_3          (3*4)
-#define PI_TASK_T_DONE           (4*4)
-#define PI_TASK_T_ID             (5*4)
-#define PI_TASK_T_NEXT           (6*4)
-#define PI_TASK_T_THREAD         (7*4)
-#define PI_TASK_T_PENDING        (8*4)
-#define PI_TASK_T_KEEP           (9*4)
-#define PI_TASK_T_SAVED_CALLBACK (10*4)
-#define PI_TASK_T_SAVED_ARG      (11*4)
-#define PI_TASK_T_SAVED_PENDING  (12*4)
-#define PI_TASK_T_DATA_0         (13*4)
-#define PI_TASK_T_DATA_1         (14*4)
-#define PI_TASK_T_DATA_2         (15*4)
-#define PI_TASK_T_DATA_3         (16*4)
-#define PI_TASK_T_DATA_4         (17*4)
-#define PI_TASK_T_DATA_5         (18*4)
-#define PI_TASK_T_DATA_6         (19*4)
-#define PI_TASK_T_DATA_7         (20*4)
+#define PI_TASK_T_NEXT_NEW       (0*4)
+#define PI_TASK_T_ARG_0          (1*4)
+#define PI_TASK_T_ARG_1          (2*4)
+#define PI_TASK_T_ARG_2          (3*4)
+#define PI_TASK_T_ARG_3          (4*4)
+#define PI_TASK_T_DONE           (5*4)
+#define PI_TASK_T_ID             (6*4)
+#define PI_TASK_T_NEXT           (7*4)
+#define PI_TASK_T_THREAD         (8*4)
+#define PI_TASK_T_PENDING        (9*4)
+#define PI_TASK_T_KEEP           (10*4)
+#define PI_TASK_T_SAVED_CALLBACK (11*4)
+#define PI_TASK_T_SAVED_ARG      (12*4)
+#define PI_TASK_T_SAVED_PENDING  (13*4)
+#define PI_TASK_T_DATA_0         (14*4)
+#define PI_TASK_T_DATA_1         (15*4)
+#define PI_TASK_T_DATA_2         (16*4)
+#define PI_TASK_T_DATA_3         (17*4)
+#define PI_TASK_T_DATA_4         (18*4)
+#define PI_TASK_T_DATA_5         (19*4)
+#define PI_TASK_T_DATA_6         (20*4)
+#define PI_TASK_T_DATA_7         (21*4)
 
 #define CL_DMA_CMD_T_ID          (0*4)
 #define CL_DMA_CMD_T_CMD         (1*4)

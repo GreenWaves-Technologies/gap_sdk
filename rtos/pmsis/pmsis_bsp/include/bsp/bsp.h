@@ -122,6 +122,10 @@ void bsp_hyperflash_conf_init(struct pi_hyperflash_conf *conf);
 int bsp_hyperflash_open(struct pi_hyperflash_conf *conf);
 #endif
 
+#if defined(CONFIG_MRAM)
+#include "bsp/flash/mram.h"
+#endif
+
 #if defined(CONFIG_SPIFLASH)
 #include "bsp/flash/spiflash.h"
 void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf);
@@ -138,6 +142,12 @@ int bsp_hyperram_open(struct pi_hyperram_conf *conf);
 #include "bsp/ram/spiram.h"
 void bsp_spiram_conf_init(struct pi_spiram_conf *conf);
 int bsp_spiram_open(struct pi_spiram_conf *conf);
+#endif
+
+#if defined(CONFIG_APS25XXXN)
+#include "bsp/ram/aps25xxxn.h"
+void bsp_aps25xxxn_conf_init(struct pi_aps25xxxn_conf *conf);
+int bsp_aps25xxxn_open(struct pi_aps25xxxn_conf *conf);
 #endif
 
 #if defined(CONFIG_NINA_W10)

@@ -79,6 +79,21 @@ int bsp_spiram_open(struct pi_spiram_conf *conf)
   return 0;
 }
 
+
+void bsp_aps25xxxn_conf_init(struct pi_aps25xxxn_conf *conf)
+{
+    conf->ram_start = CONFIG_APS25XXXN_START;
+    conf->ram_size = CONFIG_APS25XXXN_SIZE;
+    conf->spi_itf = CONFIG_APS25XXXN_SPI_ITF;
+    conf->spi_cs = CONFIG_APS25XXXN_SPI_CS;
+}
+
+int bsp_aps25xxxn_open(struct pi_aps25xxxn_conf *conf)
+{
+    return 0;
+}
+
+
 void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
 {
   conf->size = CONFIG_SPIFLASH_SIZE;

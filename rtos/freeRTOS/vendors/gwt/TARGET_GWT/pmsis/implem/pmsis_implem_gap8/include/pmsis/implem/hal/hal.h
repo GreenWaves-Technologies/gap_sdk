@@ -52,7 +52,11 @@
 #include "rtc/rtc.h"
 
 /* Soc_ctrl. */
+#include "soc_ctrl/pmu_ctrl.h"
 #include "soc_ctrl/soc_ctrl_pad.h"
+
+/* PMU. */
+#include "pmu/pmu_dlc.h"
 
 /* Soc events generator. */
 #include "soc_eu/soc_eu.h"
@@ -69,6 +73,7 @@
 #include "udma/udma_uart.h"
 
 /* Cluster. */
+#include "pmsis/implem/hal/cluster/cluster_event_unit.h"
 /* DMA. */
 #include "dma/dma.h"
 

@@ -14,20 +14,22 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
-from typing import Optional, Sequence, Mapping
+from typing import Mapping, Optional, Sequence
 
 import numpy as np
 
+from execution.execution_progress import ExecutionProgress
+from execution.quantization_mode import QuantizationMode
+from graph.types import (ActivationFusion, ConstantInputParameters,
+                         ConvFusionParameters, FusionInputParameters,
+                         FusionOutputParameters, InputParameters, Parameters)
+from quantization.float32.float_kernet_set import Float32KernelSet
+from quantization.kernels.kernel_switch import (DefaultKernelSwitch,
+                                                KernelSwitchBase)
+from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.symmetric.symmetric_kernet_set import SymmetricKernelSet
 from utils.graph import Graph
 from utils.node_id import NodeId
-from graph.types import ConvFusionParameters, ActivationFusion, InputParameters, ConstantInputParameters, Parameters
-from quantization.quantization_record_base import QuantizationRecordBase
-from quantization.kernels.kernel_switch import KernelSwitchBase, DefaultKernelSwitch
-from quantization.float32.float_kernet_set import Float32KernelSet
-from quantization.symmetric.symmetric_kernet_set import SymmetricKernelSet
-from execution.quantization_mode import QuantizationMode
-from execution.execution_progress import ExecutionProgress
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -45,60 +47,78 @@ class GraphExecuter():
         self._quantized_kernel_switch = DefaultKernelSwitch(
             SymmetricKernelSet()) if quantized_kernel_switch is None else quantized_kernel_switch
 
-    def collect_outputs(self, saved_outputs, node):
+    @staticmethod
+    def collect_outputs(G, saved_outputs, node):
         # collect outputs from previous nodes
         # InputNode is already set above
-        if isinstance(node, InputParameters):
-            output = None
+        if isinstance(node, (InputParameters, FusionInputParameters)):
+            inputs = None
         else:
-            output = [None]*len(node.in_dims)
-            for edge in self._G.in_edges(node.name):
-                output[edge.to_idx] = saved_outputs[edge.from_node][edge.from_idx]
-        return output
+            inputs = [None]*len(node.in_dims)
+            for edge in G.in_edges(node.name):
+                inputs[edge.to_idx] = saved_outputs[edge.from_node][edge.from_idx]
+        return inputs
 
     @staticmethod
     def save_output(saved_outputs, node, outputs):
         saved_outputs[node] = outputs
 
-    def execute_qnoq_iterator(self, in_tensors, step_idx_limit=None, silent=False, yield_fusions=True):
+    def execute_qnoq_iterator(self,
+                              in_tensors,
+                              step_idx_limit=None,
+                              silent=False,
+                              yield_fusions=True,
+                              parent_node=None,
+                              parent_step_idx=None,
+                              saved_outputs=None,
+                              G=None):
 
         if not silent:
             LOG.info("execute quantization comparison")
             ExecutionProgress.start()
-        saved_outputs = {}
-        for step_idx, step in enumerate(self._G.graph_state.steps):
+        if G is None:
+            G = self._G
+            saved_outputs = {}
 
+        for node in G.dfs():
+            step_idx = node.step_idx
             if step_idx_limit is not None and step_idx > step_idx_limit:
                 break
-
-            node = step['node']
 
             if not silent:
                 ExecutionProgress.progress(step_idx, node.name)
 
-            output = self.collect_outputs(saved_outputs, node)
-            nid = NodeId(node, None)
-            qrec = self._qrecs[nid]
+            output = self.collect_outputs(G, saved_outputs, node)
+            if parent_node:
+                nid = NodeId(parent_node, node)
+            else:
+                nid = NodeId(node, None)
+
+            if isinstance(node, (FusionInputParameters, FusionOutputParameters)):
+                qrec = None
+            else:
+                qrec = self._qrecs[nid]
 
             if isinstance(node, (ConvFusionParameters, ActivationFusion)):
-                for fusion_node in node.contained_nodes():
-                    fnid = NodeId(node, fusion_node)
-                    fqrec = self._qrecs[fnid]
+                for f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node in self.execute_qnoq_iterator(
+                        output,
+                        yield_fusions=yield_fusions,
+                        silent=silent,
+                        parent_node=node,
+                        parent_step_idx=step_idx,
+                        saved_outputs=saved_outputs,
+                        G=node.subgraph
+                ):
+                    if yield_fusions and not isinstance(f_node, (FusionInputParameters, FusionOutputParameters)):
+                        yield f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node
 
-                    qoutput = []
-                    for val_idx, val in enumerate(output):
-                        qoutput.append(fqrec.in_qs[val_idx].quantize(val))
+                f_outputs = node.subgraph.outputs()
+                num_outputs = max(f_out.idx for f_out in f_outputs) + 1
 
-                    details = {}
-                    output = self._kernel_switch.execute(fusion_node, output,
-                                                         fqrec if self._G.has_quantized_parameters else None,
-                                                         details=details)
-                    qdetails = {}
-                    qoutput = self._quantized_kernel_switch.execute(
-                        fusion_node, qoutput, fqrec, details=qdetails)
-                    qoutput = [fqrec.out_qs[i].dequantize(out) for i, out in enumerate(qoutput)]
-                    if yield_fusions:
-                        yield step_idx, node, output, details, qoutput, qdetails, fusion_node
+                output = [None]*num_outputs
+                for f_out in f_outputs:
+                    output[f_out.idx] = saved_outputs[f_out][0]
+                qoutput = []
             else:
                 if isinstance(node, (InputParameters, ConstantInputParameters)):
                     details = {}
@@ -137,97 +157,112 @@ class GraphExecuter():
                          yield_details=True,
                          only_yield_step=False,
                          record_inputs: Optional[Mapping] = None,
-                         silent=False):
+                         silent=False,
+                         parent_node=None,
+                         parent_step_idx=None,
+                         saved_outputs=None,
+                         G=None):
         if qmode is None:
             qmode = QuantizationMode.none()
 
-        saved_outputs = {}
+        if G is None:
+            G = self._G
+            saved_outputs = {}
 
         if not silent:
             LOG.info("execute uncached: quantization mode %s", qmode)
             ExecutionProgress.start()
-        for step_idx, step in enumerate(self._G.graph_state.steps):
-
+        for node in G.dfs():
+            step_idx = node.step_idx
             if step_idx_limit is not None and step_idx > step_idx_limit:
                 break
-
-            node = step['node']
 
             if start_node and start_node != node:
                 continue
 
             # collect outputs from previous nodes
             # InputNode is already set above
-            output_tensors = self.collect_outputs(saved_outputs, node)
+            output_tensors = self.collect_outputs(G, saved_outputs, node)
 
             if not silent:
                 ExecutionProgress.progress(step_idx, node.name)
-            nid = NodeId(node, None)
+            if parent_node:
+                nid = NodeId(parent_node, node)
+            else:
+                nid = NodeId(node, None)
             if record_inputs is not None:
                 if output_tensors is None:
                     record_inputs[nid] = output_tensors
                 else:
                     record_inputs[nid] = [np.copy(output_tensor)
                                           for output_tensor in output_tensors]
-
-            qrec = self._qrecs[nid] if self._qrecs is not None else None
-            if qmode.get_quantized(node, step_idx):
-                switch = self._quantized_kernel_switch
-                if qmode.is_step and output_tensors:
-                    output_tensors = [qrec.in_qs[i].quantize(
-                        output_tensor) for i, output_tensor in enumerate(output_tensors)]
-            else:
+            if isinstance(node, (FusionInputParameters, FusionOutputParameters)):
+                qrec = None
                 switch = self._kernel_switch
+            else:
+                qrec = self._qrecs[nid] if self._qrecs is not None else None
+                if qmode.get_quantized(node, step_idx):
+                    switch = self._quantized_kernel_switch
+                    if qmode.is_step and output_tensors:
+                        output_tensors = [qrec.in_qs[i].quantize(
+                            output_tensor) for i, output_tensor in enumerate(output_tensors)]
+                else:
+                    switch = self._kernel_switch
 
             details = {} if yield_details and (
                 not only_yield_step or step_idx == step_idx_limit) else None
             if isinstance(node, (ConvFusionParameters, ActivationFusion)):
-                for fusion_node in node.contained_nodes():
-                    fnid = NodeId(node, fusion_node)
-                    fqrec = None if not qrec else self._qrecs[fnid]
-                    if record_inputs is not None:
-                        record_inputs[nid] = [np.copy(output_tensor)
-                                              for output_tensor in output_tensors]
-                    details = {} if yield_fusions and yield_details else None
-                    output_tensors = switch.execute(fusion_node, output_tensors, fqrec, details)
-                    if yield_fusions:
-                        if qmode.dequantize:
-                            qoutput_tensors = [fqrec.out_qs[i].dequantize(output_tensor)
-                                               for i, output_tensor
-                                               in enumerate(output_tensors)]
-                            yield step_idx, node, fusion_node, qoutput_tensors, details
-                        elif qmode.is_float_q_deq:
-                            qoutput_tensors = [fqrec.out_qs[i].dequantize(fqrec.out_qs[i].quantize(output_tensor))
-                                               for i, output_tensor
-                                               in enumerate(output_tensors)]
-                            yield step_idx, node, fusion_node, qoutput_tensors, details
-                        else:
-                            yield step_idx, node, fusion_node, output_tensors, details
-            elif isinstance(node, InputParameters):
+
+                for f_step_idx, f_pnode, f_node, f_output_tensors, f_details in self.execute_iterator(
+                        output_tensors,
+                        qmode=qmode,
+                        yield_fusions=yield_fusions,
+                        yield_details=yield_details,
+                        silent=True,
+                        parent_node=node,
+                        parent_step_idx=step_idx,
+                        saved_outputs=saved_outputs,
+                        G=node.subgraph
+                ):
+                    if yield_fusions and not isinstance(f_node, (FusionInputParameters, FusionOutputParameters)):
+                        yield f_step_idx, f_pnode, f_node, f_output_tensors, f_details
+                f_outputs = node.subgraph.outputs()
+                num_outputs = max(f_output.idx for f_output in f_outputs) + 1
+                output_tensors = [None]*num_outputs
+                for f_output in f_outputs:
+                    output_tensors[f_output.idx] = saved_outputs[f_output][0]
+
+            elif isinstance(node, (InputParameters, FusionInputParameters)):
                 output_tensors = switch.execute(node, in_tensors, qrec, details)
             else:
                 output_tensors = switch.execute(node, output_tensors, qrec, details)
 
-            if qmode.dequantize:
+            if qmode.dequantize and qrec:
                 qoutput_tensors = [qrec.out_qs[i].dequantize(
                     output_tensor) for i, output_tensor in enumerate(output_tensors)]
-                if not only_yield_step or step_idx == step_idx_limit:
+                if parent_node:
+                    yield parent_step_idx, parent_node, node, qoutput_tensors, details
+                elif not only_yield_step or step_idx == step_idx_limit:
                     yield step_idx, node, None, qoutput_tensors, details
                 if qmode.is_step and qmode.get_quantized(node, step_idx):
                     output_tensors = qoutput_tensors
-            elif qmode.is_float_q_deq:
+            elif qmode.is_float_q_deq and qrec:
                 if qmode.is_step and qmode.get_quantized(node, step_idx):
                     output_tensors = [qrec.out_qs[i].dequantize(
                         output_tensor) for i, output_tensor in enumerate(output_tensors)]
                 qoutput_tensors = [qrec.out_qs[i].dequantize(qrec.out_qs[i].quantize(
                     output_tensor)) for i, output_tensor in enumerate(output_tensors)]
-                if not only_yield_step or step_idx == step_idx_limit:
+                if parent_node:
+                    yield parent_step_idx, parent_node, node, qoutput_tensors, details
+                elif not only_yield_step or step_idx == step_idx_limit:
                     yield step_idx, node, None, qoutput_tensors, details
             else:
-                if qmode.is_step and qmode.get_quantized(node, step_idx):
+                if qmode.is_step and qmode.get_quantized(node, step_idx) and qrec:
                     output_tensors = [qrec.out_qs[i].dequantize(
                         output_tensor) for i, output_tensor in enumerate(output_tensors)]
-                if not only_yield_step or step_idx == step_idx_limit:
+                if parent_node:
+                    yield parent_step_idx, parent_node, node, output_tensors, details
+                elif not only_yield_step or step_idx == step_idx_limit:
                     yield step_idx, node, None, output_tensors, details
 
             self.save_output(saved_outputs, node, output_tensors)

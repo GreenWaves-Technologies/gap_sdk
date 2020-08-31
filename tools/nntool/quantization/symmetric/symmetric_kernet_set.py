@@ -24,13 +24,13 @@ from quantization.symmetric.kernels.matrix_operations import (matscale,
                                                               piecewise)
 from quantization.symmetric.kernels.pad import pad
 from quantization.symmetric.kernels.pool import (av_global_pool, av_pool,
-                                                 max_global_pool, max_pool)
+                                                 max_global_pool, max_pool, sum_global_pool)
 from quantization.symmetric.kernels.rnn import rnn
 from quantization.symmetric.kernels.softmax import softmax
 from quantization.symmetric.kernels.ssd_postprocess import ssd_postprocess
 from quantization.symmetric.kernels.tensor_functions import (cast, concat,
                                                              constant_input,
-                                                             graph_input,
+                                                             copy, graph_input,
                                                              graph_output,
                                                              reshape, split,
                                                              strided_slice,
@@ -119,6 +119,10 @@ class SymmetricKernelSet(KernelFunctionSetBase):
         return av_global_pool
 
     @property
+    def sum_global_pool(self) -> KernelFunction:
+        return sum_global_pool
+
+    @property
     def max_pool(self) -> KernelFunction:
         return max_pool
 
@@ -153,3 +157,7 @@ class SymmetricKernelSet(KernelFunctionSetBase):
     @property
     def split(self) -> KernelFunction:
         return split
+
+    @property
+    def copy(self) -> KernelFunction:
+        return copy

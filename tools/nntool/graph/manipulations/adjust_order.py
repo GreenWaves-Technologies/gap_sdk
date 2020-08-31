@@ -21,7 +21,7 @@ import numpy as np
 from ..types import (ConcatParameters, ConstantInputParameters,
                      Conv2DParameters, FcParameters, ImageFormatParameters,
                      InputBaseParameters, OutputParameters, ReshapeParameters,
-                     RNNBaseParameters, SSDDetectorParameters,
+                     GlobalPoolParameters, RNNBaseParameters, SSDDetectorParameters,
                      StridedSliceParameters, UnconvertedOpParameters,
                      SplitParameters)
 from .dimensions import add_dimensions
@@ -120,24 +120,49 @@ def adjust_order(G, reshape_weights=True, postprocess=True):
             # node.in_dims[0].impose_order(AT_ACTIVATION_ORD)
             continue
         elif isinstance(node, StridedSliceParameters):
+            # reorder the slice parameters to bring the channel dim first
             node.act_slice = [node.act_slice[-1]] + node.act_slice[:-1:]
-            node.out_shape = [node.out_shape[-1]] + node.out_shape[:-1:]
+            node.out_shape = [node.out_shape[-1]] + list(node.out_shape)[:-1:]
         elif isinstance(node, SplitParameters):
-            # if axis is last it will become first so this concat is valid without change
+            if node.axis != 0:
+                # reorganize all the splits to be axis = 0
+                transpose_to_shape = [node.axis] + \
+                    [i for i in range(len(node.in_dims[0])) if i != node.axis]
+                node.transpose_params(transpose_to_shape)
+
             if node.axis != len(node.in_dims[0]) - 1:
                 # real axis will be one more since last axis will move to first
                 node.axis += 1
                 trans_length = len(node.in_dims[0])
-                # move concat axis first
+                # move split axis first
                 node.transpose_in = [[node.axis] + [i for i in range(trans_length)
-                                                   if i != node.axis]]
-                node.transpose_params(node.transpose_in[0])
-                # move concat axis back into original position
-                node.transpose_out = [node.transpose_in[0].copy() for _ in range(len(node.out_dims))]
-            else:
-                node.transpose_params([len(node.out_dims[0]) - 1] + list(range(1, len(node.out_dims[0]))))
+                                                    if i != node.axis]]
+                # move split axis back into original position
+                node.transpose_out = [node.transpose_in[0].copy() if len(
+                    dim) > 1 else None for dim in node.out_dims]
             # axis is 0 in all cases
             node.axis = 0
+        elif isinstance(node, GlobalPoolParameters):
+            # make sure that node.axis axes are at the RHS of the tensor
+            in_dim_len = len(node.in_dims[0].shape)
+            # move them to the position they will be at after the adjust
+            axis = [0 if i == in_dim_len - 1 else i + 1 for i in node.axis]
+            # how many dimensions of the tensor do we keep after reduction
+            dim_keep = in_dim_len - len(axis)
+            # check that none of the reduction dimensions are in the first dim_keep
+            # dimensions
+            if not all(red_axis not in range(dim_keep) for red_axis in axis):
+                # we need a transpose [all not in axis] + axis
+                transpose = [i for i in range(in_dim_len) if i not in axis] + axis
+                node.transpose_in = [transpose]
+                # if we keep dimensions then we need to transpose on output
+                # this will be reduced to a reshape by eliminate transposes so no code
+                # will be generated. But dimension calculation will fail without it.
+                if node.keep_dims:
+                    node.transpose_out = [transpose]
+                # move axis onto new home
+                axis = [transpose.index(i) for i in axis]
+            node.axis = axis
         elif isinstance(node, ConcatParameters):
             # if axis is last it will become first so this concat is valid without change
             if node.axis != len(node.out_dims[0]) - 1:
@@ -146,7 +171,7 @@ def adjust_order(G, reshape_weights=True, postprocess=True):
                 trans_length = len(node.out_dims[0])
                 # move concat axis first
                 node.transpose_in = [[node.axis] + [i for i in range(trans_length)
-                                                   if i != node.axis] for _ in range(len(node.in_dims))]
+                                                    if i != node.axis] for _ in range(len(node.in_dims))]
                 # move concat axis back into original position
                 node.transpose_out = [node.transpose_in[0].copy()]
             # axis is 0 in all cases

@@ -92,6 +92,7 @@ def get_config(tp, cluster_id):
 
   demux_eu_mapping = tp.get_child_dict("cluster/demux_peripherals/event_unit")
   demux_eu_mapping['base'] = '0x%x' % (int(demux_eu_mapping['base'], 0) - tp.get_child_int("cluster/demux_peripherals/base"))
+
   cluster.demux_periph_ico = Component(properties=OrderedDict([
       ('@includes@', ["ips/interco/router.json"]),
       ('mappings', OrderedDict([
@@ -266,10 +267,16 @@ def get_config(tp, cluster_id):
     ('nb_core', nb_pe)
   ]))
 
-  cluster.event_unit = Component(properties=OrderedDict([
-    ('@includes@', ["ips/event_unit/eu_v3.json"]),
-    ('nb_core', nb_pe)
-  ]))
+  eu_config = tp.get("cluster/peripherals/event_unit")
+  eu_version = eu_config.get_int('version')
+  if eu_version is None:
+    eu_version = 3
+  comp_config = OrderedDict([('@includes@', [ "ips/event_unit/eu_v%d.json" % eu_version ])])
+  comp_config['nb_core'] = nb_pe
+  if eu_config.get('config') is not None:
+    comp_config.update(eu_config.get('config').get_dict())
+
+  cluster.event_unit = Component(properties=comp_config)
 
   cluster.timer = Component(properties=OrderedDict([
     ('@includes@', ["ips/timer/timer_v2.json"])

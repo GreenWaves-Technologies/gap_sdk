@@ -42,7 +42,7 @@ void __rt_event_init(rt_event_t *event, rt_event_sched_t *sched)
 rt_event_t *__rt_wait_event_prepare_blocking()
 {
   rt_event_t *event = __rt_first_free;
-  __rt_first_free = event->implem.next;
+  __rt_first_free = event->next;
   __rt_event_min_init(event);
   event->implem.pending = 1;
   event->arg[0] = 0;
@@ -64,7 +64,7 @@ int rt_event_alloc(rt_event_sched_t *sched, int nb_events)
 
   for (int i=0; i<nb_events; i++) {
     __rt_event_init(event, sched);
-    event->implem.next = __rt_first_free;
+    event->next = __rt_first_free;
     __rt_first_free = event;
     event++;
   }
@@ -86,7 +86,7 @@ void rt_event_free(rt_event_sched_t *sched, int nb_events)
   for (int i=0; i<nb_events; i++)
   {
     rt_event_t *event = __rt_first_free;
-    __rt_first_free = event->implem.next;
+    __rt_first_free = event->next;
     __rt_event_free(event);
   }
 }
@@ -96,7 +96,7 @@ static inline __attribute__((always_inline)) rt_event_t *__rt_get_event(rt_event
   // Get event from scheduler and initialize it
   rt_event_t *event = __rt_first_free;
   if (event == NULL) return NULL;
-  __rt_first_free = event->implem.next;
+  __rt_first_free = event->next;
   event->arg[0] = (intptr_t)callback;
   event->arg[1] = (intptr_t)arg;
   return event;
@@ -166,15 +166,15 @@ void __rt_sched_event_cancel(rt_event_t *event)
   while (current && current != event)
   {
     prev = current;
-    current = current->implem.next;
+    current = current->next;
   }
 
   if (current)
   {
     if (prev)
-      prev->implem.next = current->implem.next;
+      prev->next = current->next;
     else
-      sched->first = current->implem.next;
+      sched->first = current->next;
   }
 }
 
@@ -214,7 +214,7 @@ void __rt_event_execute(rt_event_sched_t *sched, int wait)
   }
 
   do {
-    sched->first = event->implem.next;
+    sched->first = event->next;
 
     // Read event information and put it back in the scheduler
 
@@ -250,7 +250,7 @@ void __rt_wait_event(rt_event_t *event)
     __rt_event_execute(NULL, 1);
   }
 
-  event->implem.next = __rt_first_free;
+  event->next = __rt_first_free;
   __rt_first_free = event;
 }
 

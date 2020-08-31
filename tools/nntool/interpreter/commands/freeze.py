@@ -19,7 +19,7 @@ from itertools import chain
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from utils.node_id import NodeId
 from interpreter.nntool_shell_base import NNToolShellBase
-from graph.types.others import InputOutputParameters
+from graph.types import InputOutputParameters
 
 
 LOG = logging.getLogger("nntool")

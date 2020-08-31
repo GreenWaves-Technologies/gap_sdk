@@ -32,10 +32,11 @@ def matadd_kernel_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     if isinstance(node, ActivationFusion):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], MatrixAddParameters):
-            gen.kernels.append(MatAddKernel(node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver']))
+            gen.kernels.append(MatAddKernel(node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver'],
+                                            force_relu=gen.force_relu))
             return True
         return False
-    gen.kernels.append(MatAddKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver']))
+    gen.kernels.append(MatAddKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
 def gen_mat_add_sq8(code_block, cname, ctrl, feat, width, height, act_oper):
@@ -46,7 +47,7 @@ def gen_mat_add_sq8(code_block, cname, ctrl, feat, width, height, act_oper):
                                                                                act_oper))
 
 class MatAddKernel(AutotilerKernel):
-    def __init__(self, node_name, cname, matrixadd_params, act_params, at_ver=3, gen_ctrl=None):
+    def __init__(self, node_name, cname, matrixadd_params, act_params, at_ver=3, gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:
             self.gen_ctrl = gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -58,7 +59,7 @@ class MatAddKernel(AutotilerKernel):
         self.at_ver = at_ver
 
         if act_params is not None:
-            self.at_act_params = gen_active_at_params(act_params, force_relu=True)
+            self.at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
         else:
             self.at_act_params = NO_ACTIVATION
 

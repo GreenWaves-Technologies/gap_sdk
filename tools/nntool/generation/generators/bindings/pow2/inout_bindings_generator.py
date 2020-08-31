@@ -14,18 +14,21 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generators.generator_decorators import (QREC_POW2,
+                                                        generation_function)
 from graph.types import (ActivationParameters, ConvFusionParameters,
-                         GlobalPoolParameters, PoolingParameters, TransposeParameters, ImageFormatParameters)
+                         CopyParameters, GlobalPoolParameters,
+                         ImageFormatParameters, PoolingParameters,
+                         TransposeParameters)
 from utils.node_id import NodeId
 
 
 @generation_function("bindings", (PoolingParameters,
                                   ConvFusionParameters,
-                                  ActivationParameters,
+                                  ActivationParameters, CopyParameters,
                                   GlobalPoolParameters, TransposeParameters, ImageFormatParameters), qrec_types=(QREC_POW2, ))
 def in_out_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-    if isinstance(node, (PoolingParameters, ActivationParameters, GlobalPoolParameters, TransposeParameters, ImageFormatParameters)):
+    if isinstance(node, (PoolingParameters, ActivationParameters, GlobalPoolParameters, CopyParameters, TransposeParameters, ImageFormatParameters)):
         set_in_out_bindings(gen, in_eparams, out_eparams, cname, node, qrec)
     elif isinstance(node, ConvFusionParameters) and node.fusion_type == "pool_active":
         cnodes = node.contained_nodes()

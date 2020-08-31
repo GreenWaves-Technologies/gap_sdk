@@ -26,7 +26,7 @@ from graph.manipulations import (add_dimensions, adjust_order,
 from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
-                         RecurrentOutputParameters)
+                         RecurrentOutputParameters, SSDDetectorParameters)
 from quantization.quantization_set import QuantizationSet
 from utils.graph import Graph, Node
 from utils.json_serializable import JsonSerializable
@@ -202,6 +202,13 @@ class NNGraph(Graph):
     @name.setter
     def name(self, val):
         self.graphname = val
+
+    @property
+    def has_ssd_postprocess(self):
+        for node in self.nodes():
+            if isinstance(node, SSDDetectorParameters):
+                return True
+        return False
 
     def set_load_function(self, func):
         self.load_function = func
