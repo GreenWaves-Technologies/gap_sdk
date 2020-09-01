@@ -29,8 +29,8 @@
  */
 
 #include <stdlib.h>
+#include "pmsis.h"
 #include "pmsis/implem/drivers/fll/fll.h"
-#include "pmsis/implem/drivers/pmu/pmu.h"
 
 /*******************************************************************************
  * Definitions
@@ -88,6 +88,7 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
 
     int irq =  __disable_irq();
 
+    #if 0
     if (check)
     {
         uint32_t curr_voltage = DCDC_TO_mV(pmu_state.DCDC_Settings[READ_PMU_REGULATOR_STATE(pmu_state.State)]);
@@ -109,10 +110,12 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
             }
         }
     }
+    #endif
 
     /* Frequency calculation from theory */
     fll_get_mult_div_from_frequency(frequency, &mult, &div);
 
+    #if defined(CHIP_VERSION) && (CHIP_VERSION == 1)
     /* Gain : 2-1 - 2-10 (0x2-0xB) */
     /* Return to close loop mode and give gain to feedback loop */
     val2 = FLL_CTRL_CONF2_LOOPGAIN(0x7)         |
@@ -159,6 +162,18 @@ int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
     } else {
         FLL_CTRL->SOC_CONF2 = val2;
     }
+    #else
+    /* Configure register 1 */
+    val1 = FLL_CTRL_CONF1_MODE(1)            |
+           FLL_CTRL_CONF1_MULTI_FACTOR(mult) |
+           FLL_CTRL_CONF1_CLK_OUT_DIV(div);
+
+    if (which_fll) {
+        FLL_CTRL->CLUSTER_CONF1 = val1;
+    } else {
+        FLL_CTRL->SOC_CONF1 = val1;
+    }
+    #endif  /* CHIP_VERSION && (CHIP_VERSION == 1) */
 
     flls_frequency[which_fll] = frequency;
 
@@ -221,7 +236,7 @@ int pi_fll_get_frequency(fll_type_t which_fll, uint8_t real)
         }
         /* Update Frequency */
         flls_frequency[which_fll] = real_freq;
-        pmu_state.frequency[which_fll] = real_freq;
+        //pmu_state.frequency[which_fll] = real_freq;
     }
     return flls_frequency[which_fll];
 }

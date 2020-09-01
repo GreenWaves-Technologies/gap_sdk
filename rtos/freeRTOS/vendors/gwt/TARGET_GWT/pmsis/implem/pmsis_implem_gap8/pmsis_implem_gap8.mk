@@ -15,6 +15,7 @@ PMSIS_DRIVER_SRC              = drivers/fc_event/fc_event.c \
                                 drivers/gpio/gpio.c \
                                 drivers/pad/pad.c \
                                 drivers/pmu/pmu.c \
+                                drivers/pmu/pmu_internal.c \
                                 drivers/pwm/pwm.c \
                                 drivers/pwm/pwm_internal.c \
                                 drivers/rtc/rtc.c \
