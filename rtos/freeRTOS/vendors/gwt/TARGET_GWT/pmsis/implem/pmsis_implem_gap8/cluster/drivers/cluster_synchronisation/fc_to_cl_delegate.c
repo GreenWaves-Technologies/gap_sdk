@@ -439,9 +439,10 @@ static inline void __cluster_start(struct pi_device *device)
     // --- critical zone start ---
     if(!data->cluster_is_on)
     {
-        // call pmu through os for now, TODO: add the driver in PMSIS
-        pi_pmu_cluster_poweron();
+        /* Turn cluster power on. */
+        __pi_pmu_cluster_power_on();
         PRINTF("poweron is done\n");
+
         for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
         {
             extern uint8_t __irq_vector_base_m__;
@@ -481,7 +482,9 @@ static inline int __cluster_stop(struct pi_device *device)
     {
         // wait for potential remaining tasks
         //__cluster_wait_termination(device);
-        pi_pmu_cluster_poweroff();
+
+        /* Turn cluster power off. */
+        __pi_pmu_cluster_power_off();
     }
     pmsis_mutex_release(&data->powerstate_mutex);
     return data->cluster_is_on;

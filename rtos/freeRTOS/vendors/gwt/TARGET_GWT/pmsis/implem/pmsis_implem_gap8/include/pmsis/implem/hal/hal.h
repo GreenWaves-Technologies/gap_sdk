@@ -52,7 +52,11 @@
 #include "rtc/rtc.h"
 
 /* Soc_ctrl. */
+#include "soc_ctrl/pmu_ctrl.h"
 #include "soc_ctrl/soc_ctrl_pad.h"
+
+/* PMU. */
+#include "pmu/pmu_dlc.h"
 
 /* Soc events generator. */
 #include "soc_eu/soc_eu.h"

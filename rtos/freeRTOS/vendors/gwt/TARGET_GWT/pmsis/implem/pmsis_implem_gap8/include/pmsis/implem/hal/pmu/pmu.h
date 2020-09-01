@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, GreenWaves Technologies, Inc.
+ * Copyright (c) 2020, GreenWaves Technologies, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -28,44 +28,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PMSIS_DRIVERS_INCLUDES_H__
-#define __PMSIS_DRIVERS_INCLUDES_H__
+#ifndef __PMSIS_IMPLEM_HAL_PMU_PMU_H__
 
-/* PMSIS api includes. */
-/* Chips specifics. */
-#include "pmsis/chips/gap8/perf.h"
-#include "pmsis/chips/gap8/pad.h"
-#include "pmsis/chips/gap8/gpio.h"
-#include "pmsis/chips/gap8/pmu.h"
+/*! @brief Voltage regulator and power states. */
+#define PI_PMU_DCDC_OPER_POINTS    (4)
 
-/* Drivers. */
-#include "pmsis/drivers/cpi.h"
-#include "pmsis/drivers/dmacpy.h"
-#include "pmsis/drivers/gpio.h"
-#include "pmsis/drivers/hyperbus.h"
-#include "pmsis/drivers/i2c.h"
-#include "pmsis/drivers/i2s.h"
-#include "pmsis/drivers/pad.h"
-#include "pmsis/drivers/perf.h"
-#include "pmsis/drivers/pmu.h"
-#include "pmsis/drivers/pwm.h"
-#include "pmsis/drivers/rtc.h"
-#include "pmsis/drivers/spi.h"
-#include "pmsis/drivers/uart.h"
+#define PI_PMU_DCDC_DEFAULT_NV     (1200)
+#define PI_PMU_DCDC_DEFAULT_MV     (1200)
+#define PI_PMU_DCDC_DEFAULT_LV     (1000)
+#define PI_PMU_DCDC_DEFAULT_RET    (800)
+#define PI_PMU_DCDC_RANGE          (5)
+#define PI_PMU_DCDC_RANGE_MASK     (0x1F)
+#define PI_PMU_DCDC_BASE_VALUE     (550)
+#define PI_PMU_DCDC_STEP           (50)
 
-/* PMSIS drivers includes. */
-#include "pmsis/implem/drivers/fc_event/fc_event.h"
-#include "pmsis/implem/drivers/fll/fll.h"
-#include "pmsis/implem/drivers/perf/perf.h"
-#include "pmsis/implem/drivers/pmu/pmu_internal.h"
-#include "pmsis/implem/drivers/pwm/pwm_internal.h"
-#include "pmsis/implem/drivers/rtc/rtc_internal.h"
-#include "pmsis/implem/drivers/timer/timer.h"
-#include "pmsis/implem/drivers/udma/cpi/cpi_internal.h"
-#include "pmsis/implem/drivers/udma/dmacpy/dmacpy_internal.h"
-#include "pmsis/implem/drivers/udma/hyperbus/hyperbus_internal.h"
-#include "pmsis/implem/drivers/udma/i2c/i2c_internal.h"
-#include "pmsis/implem/drivers/udma/i2s/i2s_internal.h"
-#include "pmsis/implem/drivers/udma/uart/uart_internal.h"
-
-#endif  /* __PMSIS_DRIVERS_INCLUDES_H__ */
+#define PI_PMU_MAX_DCDC_VARIATION  ((int32_t) (0.1*32767))

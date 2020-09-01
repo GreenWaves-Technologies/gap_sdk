@@ -74,7 +74,7 @@ static void __pi_gpio_callback_fire(struct gpio_itf_data_s *data,
                                     pi_gpio_callback_t *cb);
 
 /*******************************************************************************
- * Inner functions.
+ * Internal functions
  ******************************************************************************/
 
 #if defined(TRACE_GPIO)

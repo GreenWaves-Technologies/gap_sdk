@@ -8,31 +8,34 @@ PMSIS_CLUSTER_SRC        = cluster/malloc/cl_malloc.c \
                            cluster/drivers/dma/cl_dma_irq.c
 
 # Drivers sources.
-PMSIS_DRIVER_SRC         = drivers/fc_event/fc_event.c \
-                           drivers/fll/fll.c \
-                           drivers/gpio/gpio.c \
-                           drivers/pad/pad.c \
-                           drivers/pmu/pmu.c \
-                           drivers/pwm/pwm.c \
-                           drivers/pwm/pwm_internal.c \
-                           drivers/rtc/rtc.c \
-                           drivers/rtc/rtc_internal.c \
-                           drivers/timer/timer.c \
-                           drivers/udma/hyperbus/hyperbus.c \
-                           drivers/udma/hyperbus/hyperbus_internal.c \
-                           drivers/udma/cpi/cpi.c \
-                           drivers/udma/cpi/cpi_internal.c \
-                           drivers/udma/dmacpy/dmacpy.c \
-                           drivers/udma/dmacpy/dmacpy_internal.c \
-                           drivers/udma/i2c/i2c.c \
-                           drivers/udma/i2c/i2c_internal.c \
-                           drivers/udma/i2s/i2s.c \
-                           drivers/udma/i2s/i2s_internal.c \
-                           drivers/udma/spi/spi.c \
-                           drivers/udma/spi/spi_internal.c \
-                           drivers/udma/uart/uart.c \
-                           drivers/udma/uart/uart_internal.c \
-                           drivers/perf/perf_internal.c
+PMSIS_DRIVER_SRC              = drivers/fc_event/fc_event.c \
+                                drivers/fll/fll.c \
+                                drivers/gpio/gpio.c \
+                                drivers/pad/pad.c \
+                                drivers/pmu/pmu.c \
+                                drivers/pmu/pmu_internal.c \
+                                drivers/pwm/pwm.c \
+                                drivers/pwm/pwm_internal.c \
+                                drivers/rtc/rtc.c \
+                                drivers/rtc/rtc_internal.c \
+                                drivers/timer/timer.c \
+                                drivers/udma/hyperbus/hyperbus.c \
+                                drivers/udma/hyperbus/hyperbus_internal.c \
+                                drivers/udma/cpi/cpi.c \
+                                drivers/udma/cpi/cpi_internal.c \
+                                drivers/udma/dmacpy/dmacpy.c \
+                                drivers/udma/dmacpy/dmacpy_internal.c \
+                                drivers/udma/i2c/i2c.c \
+                                drivers/udma/i2c/i2c_internal.c \
+                                drivers/udma/i2s/i2s.c \
+                                drivers/udma/i2s/i2s_internal.c \
+                                drivers/udma/spi/spi.c \
+                                drivers/udma/spi/spi_internal.c \
+                                drivers/udma/uart/uart.c \
+                                drivers/udma/uart/uart_internal.c \
+                                drivers/perf/perf_internal.c
+
+PMSIS_DRIVER_ASM_SRC          =
 
 
 #$(info #### PMSIS IMPLEM GAP8 PATH : $(PMSIS_IMPLEM_GAP8_DIR))

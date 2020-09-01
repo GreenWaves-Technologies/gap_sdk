@@ -32,7 +32,6 @@
 
 /* PMSIS includes. */
 #include "pmsis.h"
-#include "pmsis/implem/drivers/pmu/pmu.h"
 
 #include "../driver/semihost.h"
 
@@ -60,7 +59,7 @@ void system_init(void)
     pi_fc_event_handler_init(FC_SOC_EVENT_IRQN);
 
     /* PMU Init */
-    pi_pmu_init();
+    __pi_pmu_init();
 
     /* Enable IRQ. */
     __enable_irq();

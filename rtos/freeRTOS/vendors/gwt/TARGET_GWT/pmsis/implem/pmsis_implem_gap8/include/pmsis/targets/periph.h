@@ -862,6 +862,9 @@ typedef struct {
    -- PMU DLC Access Layer
    ---------------------------------------------------------------------------- */
 
+#include "periph/pmu_dlc_periph.h"
+#define pmu_dlc ((pmu_dlc_t *) DLC_ADDR)
+
 /*!
  * @addtogroup PMU_DLC_Peripheral_Access_Layer PMU_DLC Peripheral Access_Layer
  * @{
@@ -976,6 +979,7 @@ typedef struct {
 #define  PICL_WIU_ADDR         0x00
 #define  PICL_ICU_ADDR         0x01
 
+#if 0
 /* REG_ADDR[4:0]*/
 #define  WIU_ISPMR_0           (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_WIU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x00))
 #define  WIU_ISPMR_1           (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_WIU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x01))
@@ -1004,7 +1008,7 @@ typedef struct {
 #define  ICU_ISMR              (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x02))
 #define  ICU_DMR_0             (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x03))
 #define  ICU_DMA_1             (PMU_DLC_PICL_CHIP_SEL_ADDR(PICL_ICU_ADDR) | PMU_DLC_PICL_REG_ADDR(0x04))
-
+#endif
 /*!
  * @}
  */ /* end of group PMU_DLC_Register_Masks */

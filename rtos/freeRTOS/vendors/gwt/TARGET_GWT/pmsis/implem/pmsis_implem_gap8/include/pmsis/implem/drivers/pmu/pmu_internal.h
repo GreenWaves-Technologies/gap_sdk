@@ -28,9 +28,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef __PMSIS_IMPLEM_DRIVERS_PMU_PMU_API_H__
+#define __PMSIS_IMPLEM_DRIVERS_PMU_PMU_API_H__
+
 #include "pmsis.h"
-#include "pmsis/implem/drivers/fc_event/fc_event.h"
 #include "pmsis/implem/hal/hal.h"
+//#include "pmsis/implem/drivers/pmu/pmu.h"
 
 /*******************************************************************************
  * Definitions
@@ -40,46 +43,70 @@
  * Driver data
  ******************************************************************************/
 
+typedef enum
+{
+    PI_PMU_STATE_HV  = 0,       /*!< High voltage : 1.1V - 1.3V. */
+    PI_PMU_STATE_LV  = 1,       /*!< Low voltage : 0.9V - 1.1V. */
+    PI_PMU_STATE_RET = 2        /*!< Sleep mode 0.8V. */
+//    PI_PMU_STATE_OFF = 3
+} pi_pmu_state_e;
+
+struct pmu_data_s
+{
+    struct pi_task *fifo_head;
+    struct pi_task *fifo_tail;
+    soc_ctrl_safe_pmu_rar_t dcdc_regulator;
+    soc_ctrl_safe_pmu_sleepctrl_t sleepctrl;
+    soc_ctrl_safe_pmu_sleepctrl_t sleepcfg;
+    uint32_t cur_voltage;
+    pi_pmu_state_e pmu_state;
+    pi_pmu_domain_state_e cluster_state;
+    pi_pmu_sleep_mode_e sleep_state;
+};
+
+/* Maestro internal events */
+#define PI_PMU_MAESTRO_EVENT_ICU_OK              ( 1 << 0 )
+#define PI_PMU_MAESTRO_EVENT_ICU_DELAYED         ( 1 << 1 )
+#define PI_PMU_MAESTRO_EVENT_MODE_CHANGED        ( 1 << 2 )
+#define PI_PMU_MAESTRO_EVENT_PICL_OK             ( 1 << 3 )
+#define PI_PMU_MAESTRO_EVENT_SCU_OK              ( 1 << 4 )
+
+/**
+ * Default RAR = 0x0509090d
+ * Regulator setting :
+ * V[4:0] = 0x05 + ((Vr - 800) / 50)
+ * Vr = ((V[4:0] - 0x05) * 50) + 800
+ */
+#define PI_PMU_DCDC_DEFAULT_NV      ( 1200 )
+#define PI_PMU_DCDC_DEFAULT_MV      ( 1000 )
+#define PI_PMU_DCDC_DEFAULT_LV      ( 1000 )
+#define PI_PMU_DCDC_DEFAULT_RET     ( 800 )
+#define PI_PMU_DCDC_RANGE           ( 5 )
+#define PI_PMU_DCDC_RANGE_MASK      ( 0x1F )
+#define PI_PMU_DCDC_LOW_DCDC_VALUE  ( 0x05 )
+#define PI_PMU_DCDC_LOW_MV_VALUE    ( 800 )
+#define PI_PMU_DCDC_STEP_MV         ( 50 )
+
 /*******************************************************************************
- * API implementation
+ * Function declaration
  ******************************************************************************/
 
-int pi_pmu_voltage_set(pi_pmu_domain_e domain, uint32_t voltage)
-{
-    int32_t status = -1;
-    PMU_TRACE("Power domain id=%d, setting voltage=%ld\n", domain, voltage);
-    status = __pi_pmu_voltage_set(domain, voltage);
-    return status;
-}
+void __pi_pmu_init(void);
 
-int pi_pmu_state_get(pi_pmu_domain_e domain)
-{
-    int32_t status = -1;
-    status = __pi_pmu_state_get(domain);
-    PMU_TRACE("Power domain id=%d state=%d\n", domain, status);
-    return status;
-}
+int __pi_pmu_voltage_set(pi_pmu_domain_e domain, uint32_t voltage);
 
-int pi_pmu_boot_state_get(pi_pmu_domain_e domain)
-{
-    int32_t status = -1;
-    status = __pi_pmu_boot_state_get(domain);
-    PMU_TRACE("Power domain id=%d state=%x\n", domain, status);
-    return status;
-}
+int __pi_pmu_state_get(pi_pmu_domain_e domain);
 
-int pi_pmu_sleep_mode_set(pi_pmu_domain_e domain, struct pi_pmu_sleep_conf_s *conf)
-{
-    int32_t status = -1;
-    PMU_TRACE("Power domain id=%d, setting sleep mode\n", domain);
-    status = __pi_pmu_sleep_mode_set(domain, conf);
-    return status;
-}
+int __pi_pmu_boot_state_get(pi_pmu_domain_e domain);
 
-int pi_pmu_sleep_mode_enable(pi_pmu_domain_e domain)
-{
-    int32_t status = -1;
-    PMU_TRACE("Power doman id=%d, enable sleep mode\n", domain);
-    status = __pi_pmu_sleep_mode_enable(domain);
-    return status;
-}
+int __pi_pmu_sleep_mode_set(pi_pmu_domain_e domain, struct pi_pmu_sleep_conf_s *conf);
+
+int __pi_pmu_sleep_mode_enable(pi_pmu_domain_e domain);
+
+#if defined(FEATURE_CLUSTER)
+void __pi_pmu_cluster_power_on(void);
+
+void __pi_pmu_cluster_power_off(void);
+#endif  /* FEATURE_CLUSTER */
+
+#endif  /* __PMSIS_IMPLEM_DRIVERS_PMU_PMU_API_H__ */

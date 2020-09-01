@@ -81,6 +81,22 @@
 #define I2S_TRACE_ERR(...)         ((void) 0)
 #endif  /* TRACE_I2S */
 
+#if defined(TRACE_PAD)
+#define PAD_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
+#define PAD_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define PAD_TRACE(...)             ((void) 0)
+#define PAD_TRACE_ERR(...)         ((void) 0)
+#endif  /* TRACE_PAD */
+
+#if defined(TRACE_PMU)
+#define PMU_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
+#define PMU_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
+#else
+#define PMU_TRACE(...)             ((void) 0)
+#define PMU_TRACE_ERR(...)         ((void) 0)
+#endif  /* TRACE_PMU */
+
 #if defined(TRACE_PWM)
 #define PWM_TRACE(...)             PI_LOG_DBG(__func__, __VA_ARGS__)
 #define PWM_TRACE_ERR(...)         PI_LOG_ERR(__func__, __VA_ARGS__)
