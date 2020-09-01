@@ -162,6 +162,11 @@ static inline void hal_pwm_threshold_set(uint8_t pwm_id, uint16_t th_lo,
                               PWM_THRESHOLD_TH_LO(th_lo));
 }
 
+static inline uint32_t hal_pwm_threshold_get(uint8_t pwm_id)
+{
+    return pwm_threshold_get(pwm_id);
+}
+
 
 /*! Ch_threshold. */
 /* Channel threshold setting. */

@@ -119,6 +119,9 @@ static void __pi_pwm_freq_cb(void *args)
     /* th_channel holds duty cycle. */
     uint16_t th_channel = th_hi;
 
+    /* Stop PWM first. */
+    __pi_pwm_command_set(pwm_id, PI_PWM_CMD_STOP);
+
     /* Counter start and end. */
     uint32_t periph_freq = pi_freq_get(PI_FREQ_DOMAIN_FC);
     th_hi = periph_freq / driver_data->frequency;
@@ -159,6 +162,8 @@ static void __pi_pwm_freq_cb(void *args)
             __pi_pwm_channel_config_set(pwm_id, ch_id, th_channel, PI_PWM_SET_CLEAR);
         }
     }
+    /* Restart PWM after update. */
+    __pi_pwm_command_set(pwm_id, PI_PWM_CMD_START);
     __restore_irq(irq);
 }
 
@@ -330,7 +335,7 @@ int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq,
 
     /* Counter start and end. */
     uint32_t th_hi = 0;
-    uint16_t th_lo = 0;
+    uint16_t th_lo = 1;
     /* th_channel holds duty cycle. */
     uint16_t th_channel = th_hi;
 
@@ -349,6 +354,15 @@ int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq,
                           driver_data->device_id, periph_freq, pwm_freq);
             return -13;
         }
+        /* Set counter start, end. */
+        __pi_pwm_threshold_set(pwm_id, th_lo, th_hi);
+
+    }
+    else
+    {
+        th_hi = hal_pwm_threshold_get(pwm_id);
+        //th_lo = 1;
+        th_hi = th_hi >> 16;
     }
     if (driver_data->frequency != pwm_freq)
     {
@@ -368,9 +382,6 @@ int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq,
     {
         th_channel = (th_hi * (100 - duty_cycle)) / 100;
     }
-
-    /* Set counter start, end. */
-    __pi_pwm_threshold_set(pwm_id, th_lo, th_hi);
 
     /* Set channel threshold, mode. */
     __pi_pwm_channel_config_set(pwm_id, ch_id, th_channel, PI_PWM_SET_CLEAR);
