@@ -283,6 +283,22 @@ void pi_i2c_write_dual_async(struct pi_device *device, void *tx_buffer0,
  */
 int pi_i2c_get_request_status(pi_task_t* task);
 
+/**
+ * \brief Scan i2c bus to detect a dev
+ *
+ * This function can be used to detect if a device is connected to the i2c bus.
+ * The \struct pi_i2c_conf structure is used to pass the address of the device
+ * to look for, with different baudrate if needed.
+ *
+ * \param device         Pointer to device structure.
+ * \param conf           Conf struct holding address and baudrate.
+ * \param rx_data        Pointer to 1 Byte buffer to store data.
+ *
+ * \retval 0x00          If a device has been detected at given address.
+ * \retval 0xFF          Otherwise.
+ */
+int pi_i2c_detect(struct pi_device *device, struct pi_i2c_conf *conf, uint8_t *rx_data);
+
 //!@}
 
 /**
