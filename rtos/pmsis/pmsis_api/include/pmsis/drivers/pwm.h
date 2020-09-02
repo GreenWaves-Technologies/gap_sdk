@@ -179,7 +179,10 @@ typedef enum
     PI_PWM_CH_CONFIG     = 3, /*!< PWM channel config command. */
     PI_PWM_EVENT_SET     = 4, /*!< PWM output event set command.  */
     PI_PWM_EVENT_CLEAR   = 5, /*!< PWM output event clear command.  */
-    PI_PWM_ATTACH_CB     = 6  /*!< Attach user callback to an IRQ. */
+    PI_PWM_RESET_FREQ    = 6, /*!< Stop PWM timer and zero frequency. This is to
+                                be used when reconfiguring timer frequency that has
+                                been set with pi_pwm_duty_cycle_set(). */
+    PI_PWM_ATTACH_CB     = 7  /*!< Attach user callback to an IRQ. */
 } pi_pwm_ioctl_cmd_e;
 
 /**
