@@ -2,9 +2,9 @@
 #------------------------------------
 
 APP              = test
-APP_SRCS        += helloworld.c
+APP_SRCS        += deep_sleep.c
 APP_INC	        +=
-APP_CFLAGS      += #-DTRACE_PMU
+APP_CFLAGS      +=
 
 # Output via UART
 io=uart

@@ -92,10 +92,13 @@ static inline void soc_ctrl_safe_pmu_sleepctrl_set(uint32_t value)
 
 static inline uint32_t soc_ctrl_safe_pmu_sleepctrl_get(void)
 {
-    //return hal_read32(&(soc_ctrl->safe_pmu_sleepctrl));
-    return hal_read32(&(soc_ctrl->sleep_ctrl));
+    return hal_read32(&(soc_ctrl->safe_pmu_sleepctrl));
 }
 
+static inline uint32_t soc_ctrl_fast_pmu_sleepctrl_get(void)
+{
+    return hal_read32(&(soc_ctrl->sleep_ctrl));
+}
 
 /* FORCE register, L2 memory banks power/retentive configuration. */
 static inline void soc_ctrl_safe_pmu_force_set(uint32_t value)
@@ -287,6 +290,11 @@ static inline void hal_soc_ctrl_pmu_nom_volt_set(uint8_t nom_volt)
 static inline uint32_t hal_soc_ctrl_pmu_sleepctrl_get(void)
 {
     return soc_ctrl_safe_pmu_sleepctrl_get();
+}
+
+static inline uint32_t hal_soc_ctrl_fast_pmu_sleepctrl_get(void)
+{
+    return soc_ctrl_fast_pmu_sleepctrl_get();
 }
 
 static inline void hal_soc_ctrl_pmu_sleepctrl_mask_set(uint32_t sleepctrl_mask)

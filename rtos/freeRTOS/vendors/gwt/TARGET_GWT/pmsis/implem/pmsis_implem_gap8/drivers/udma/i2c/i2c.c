@@ -143,3 +143,18 @@ int pi_i2c_get_request_status(pi_task_t* task)
     (void) task;
     return PI_OK;
 }
+
+int pi_i2c_detect(struct pi_device *device, struct pi_i2c_conf *conf, uint8_t *rx_data)
+{
+    int32_t status = -1;
+    struct i2c_cs_data_s *cs_data = (struct i2c_cs_data_s *) device->data;
+    pi_task_t task_block;
+    pi_task_block(&task_block);
+    I2C_TRACE("Search device at cs=%x\n", conf->cs);
+    __pi_i2c_detect(cs_data, conf, rx_data, &task_block);
+    pi_task_wait_on(&task_block);
+    pi_task_destroy(&task_block);
+    status = (*rx_data == 0x00) ? 0 : -1;
+    I2C_TRACE("Search device at cs=%x result=%x\n", conf->cs, status);
+    return status;
+}

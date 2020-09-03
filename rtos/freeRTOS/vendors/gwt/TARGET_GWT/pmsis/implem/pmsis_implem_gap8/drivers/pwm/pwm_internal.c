@@ -105,6 +105,16 @@ static void __pi_pwm_command_set(uint8_t pwm_id, pi_pwm_cmd_e cmd)
     hal_pwm_cmd_set(pwm_id, cmd);
 }
 
+static void __pi_pwm_timer_freq_reset(uint8_t pwm_id)
+{
+    struct pwm_data_s *driver_data = g_pwm_data[pwm_id];
+
+    /* Stop the PWM timer first. */
+    PWM_TRACE("Stop PWM(%d) timer and reset frequency to 0.\n", pwm_id);
+    __pi_pwm_command_set(pwm_id, PI_PWM_CMD_STOP);
+    driver_data->frequency = 0;
+}
+
 static void __pi_pwm_freq_cb(void *args)
 {
     uint32_t irq = __disable_irq();
@@ -166,7 +176,6 @@ static void __pi_pwm_freq_cb(void *args)
     __pi_pwm_command_set(pwm_id, PI_PWM_CMD_START);
     __restore_irq(irq);
 }
-
 
 /*******************************************************************************
  * API implementation
@@ -301,6 +310,10 @@ int32_t __pi_pwm_ioctl(uint32_t pwm_ch, pi_pwm_ioctl_cmd_e cmd, void *arg)
         __pi_pwm_output_event_clear(evt->evt_sel);
         return 0;
 
+    case PI_PWM_RESET_FREQ :
+        __pi_pwm_timer_freq_reset(pwm_id);
+        return 0;
+
     case PI_PWM_ATTACH_CB :
         return __pi_pwm_user_cb_attach(pwm_id, cb_task);
 
@@ -383,6 +396,8 @@ int32_t __pi_pwm_duty_cycle_set(uint32_t pwm_ch, uint32_t pwm_freq,
         th_channel = (th_hi * (100 - duty_cycle)) / 100;
     }
 
+    PWM_TRACE("Setting PWM(%d)->CH_%d : freq=%ld, duty_cycle=%d\n",
+              pwm_id, ch_id, pwm_freq, duty_cycle);
     /* Set channel threshold, mode. */
     __pi_pwm_channel_config_set(pwm_id, ch_id, th_channel, PI_PWM_SET_CLEAR);
     return 0;

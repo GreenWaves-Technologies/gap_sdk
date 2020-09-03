@@ -2,9 +2,12 @@
 #include "pmsis.h"
 #include "bsp/bsp.h"
 
-static struct pi_device rtc;
+#define WAKEUP_RTC 1
 
-int32_t rtc_setup(void)
+static struct pi_device wakeup_dev;
+
+#if (WAKEUP_RTC == 1)
+int32_t setup_rtc(void)
 {
     int32_t errors = 0;
     /* Init & open RTC. */
@@ -24,9 +27,9 @@ int32_t rtc_setup(void)
     rtc_conf.alarm.tm_mday = 1;
     rtc_conf.alarm.tm_hour = 0;
     rtc_conf.alarm.tm_min  = 0;
-    rtc_conf.alarm.tm_sec  = 5;
-    pi_open_from_conf(&rtc, &rtc_conf);
-    errors = pi_rtc_open(&rtc);
+    rtc_conf.alarm.tm_sec  = 15;
+    pi_open_from_conf(&wakeup_dev, &rtc_conf);
+    errors = pi_rtc_open(&wakeup_dev);
     if (errors)
     {
         printf("Error rtc open %d\n", errors);
@@ -36,24 +39,51 @@ int32_t rtc_setup(void)
     struct tm time = {0}, time_now = {0};
 
     /* Initial date & time. */
-    pi_rtc_datetime_get(&rtc, &time_now);
+    pi_rtc_datetime_get(&wakeup_dev, &time_now);
     printf ("Initial date & time %d/%d/%d %d:%d:%d\n",
             time_now.tm_mday, time_now.tm_mon, time_now.tm_year,
             time_now.tm_hour, time_now.tm_min, time_now.tm_sec);
 
     /* Alarm date & time. */
-    pi_rtc_alarm_get(&rtc, &time_now);
+    pi_rtc_alarm_get(&wakeup_dev, &time_now);
     printf ("Alarm set %d/%d/%d %d:%d:%d\n",
             time_now.tm_mday, time_now.tm_mon, time_now.tm_year,
             time_now.tm_hour, time_now.tm_min, time_now.tm_sec);
 
     /* Start calendar. */
-    pi_rtc_ioctl(&rtc, PI_RTC_CALENDAR_START, NULL);
+    pi_rtc_ioctl(&wakeup_dev, PI_RTC_CALENDAR_START, NULL);
 
     /* Start alarm. */
-    pi_rtc_ioctl(&rtc, PI_RTC_ALARM_START, (void *) PI_RTC_ALARM_RPT_NONE);
-    return 0;
+    pi_rtc_ioctl(&wakeup_dev, PI_RTC_ALARM_START, (void *) PI_RTC_ALARM_RPT_NONE);
+
+    return errors;
 }
+#else
+int32_t setup_gpio(struct pi_pmu_sleep_conf_s *sleep_conf)
+{
+    int32_t errors = 0;
+    struct pi_gpio_conf gpio_conf = {0};
+    pi_gpio_conf_init(&gpio_conf);
+    pi_open_from_conf(&wakeup_dev, &gpio_conf);
+    errors = pi_gpio_open(&wakeup_dev);
+    if (errors)
+    {
+        printf("Error opening GPIO %d\n", errors);
+        pmsis_exit(errors);
+    }
+
+    pi_gpio_e gpio_in = PI_GPIO_A0_PAD_12_A3;
+    pi_gpio_flags_e cfg_flags = PI_GPIO_INPUT|PI_GPIO_PULL_DISABLE|PI_GPIO_DRIVE_STRENGTH_LOW;
+
+    sleep_conf->gpio_pin = (gpio_in & PI_GPIO_NUM_MASK);
+    sleep_conf->gpio_notif = PI_PMU_GPIO_RISE;
+    /* Configure gpio input. */
+    printf("Configuring GPIO_%d\n", sleep_conf->gpio_pin);
+    pi_gpio_pin_configure(&wakeup_dev, gpio_in, cfg_flags);
+
+    return errors;
+}
+#endif  /* (WAKEUP_RTC == 1) */
 
 void helloworld(void)
 {
@@ -70,17 +100,31 @@ void helloworld(void)
         struct pi_pmu_sleep_conf_s sleep_conf = {0};
         sleep_conf.pmu_cluster_state = PI_PMU_DOMAIN_STATE_OFF;
         sleep_conf.power_state = PI_PMU_WAKEUP_STATE_POWER_HIGH;
-        sleep_conf.wakeup = PI_PMU_WAKEUP_RTC;
         sleep_conf.sleep_mode = PI_PMU_MODE_RET_DEEP_SLEEP;
-        pi_pmu_sleep_mode_set(PI_PMU_DOMAIN_FC, &sleep_conf);
 
+        #if (WAKEUP_RTC == 1)
         printf("Setup RTC alarm\n");
-        errors = rtc_setup();
+        sleep_conf.wakeup = PI_PMU_WAKEUP_RTC;
+
+        errors = setup_rtc();
         if (errors)
         {
             printf("Error setting RTC alarm !\n");
             pmsis_exit(errors);
         }
+        #else
+        printf("Setup GPIO\n");
+        sleep_conf.wakeup = PI_PMU_WAKEUP_GPIO;
+
+        errors = setup_gpio(&sleep_conf);
+        if (errors)
+        {
+            printf("Error setting GPIO !\n");
+            pmsis_exit(errors);
+        }
+        #endif  /* (WAKEUP_RTC == 1) */
+
+        pi_pmu_sleep_mode_set(PI_PMU_DOMAIN_FC, &sleep_conf);
         pi_pmu_sleep_mode_enable(PI_PMU_DOMAIN_FC);
     }
     else if (bootstate == PI_PMU_BOOT_DEEP_SLEEP)

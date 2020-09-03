@@ -239,14 +239,25 @@ PMSIS_INC_PATH     += $(GWT_PMSIS_BACKEND)
 PMSIS_INC_PATH     += $(PMSIS_IMPLEM_INC)
 PMSIS_INC_PATH     += $(PMSIS_BSP_INC)
 
+
+# GAP_LIB sources
+ifeq '$(CONFIG_GAP_LIB)' '1'
+GAP_LIB_PATH        = $(GAP_SDK_HOME)/libs/gap_lib
+GAP_LIB_SRC        += $(GAP_LIB_PATH)/img_io/ImgIO.c
+GAP_LIB_INC_PATH   += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
+endif				# GAP_LIB
+
+
 # OpenMP sources
 ifeq '$(CONFIG_OPENMP)' '1'
-PMSIS_SRC          += $(OPENMP_SRCS)
-PMSIS_INC_PATH     += $(OPENMP_INC)
-APP_CFLAGS         += -fopenmp
-endif
+OPENMP_SRC          = $(OPENMP_SRCS)
+OPENMP_INC_PATH     = $(OPENMP_INC)
+CFLAGS             += -fopenmp
+endif				# OpenMP
 
-INCLUDES           += $(foreach f, $(INC_PATH) $(PMSIS_INC_PATH), -I$f)
+
+INCLUDES            = $(foreach f, $(INC_PATH) $(PMSIS_INC_PATH), -I$f)
+INCLUDES           += $(foreach f, $(GAP_LIB_INC_PATH) $(OPENMP_INC_PATH), -I$f)
 INCLUDES           += $(FEAT_INCLUDES)
 
 # App sources
@@ -262,24 +273,26 @@ APP_LDFLAGS        +=
 BUILDDIR            = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
 
 # Objects
-PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
 CRT0_OBJ            = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
 PMSIS_ASM_OBJ       = $(patsubst %.S, $(BUILDDIR)/%.o, $(PMSIS_ASM_SRC))
-RTOS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
-PORT_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
+PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
+
+APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
 DEVICE_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
 DRIVER_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DRIVER_SRC))
+GAP_LIB_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(GAP_LIB_SRC))
 LIBS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(LIBS_SRC))
-PRINTF_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(PRINTF_SRC))
-DEMO_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEMO_SRC))
+OPENMP_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(OPENMP_SRC))
 PMSIS_OBJ           = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_SRC))
 PMSIS_BACKEND_OBJ   = $(patsubst %.c, $(BUILDDIR)/%.o, $(PMSIS_BACKEND_SRC))
-APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
+PORT_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(PORT_SRC))
+PRINTF_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(PRINTF_SRC))
+RTOS_OBJ            = $(patsubst %.c, $(BUILDDIR)/%.o, $(RTOS_SRC))
 
-ASM_OBJS            = $(PORT_ASM_OBJ) $(CRT0_OBJ) $(PMSIS_ASM_OBJ)
-C_OBJS              = $(DEMO_OBJ) $(RTOS_OBJ) $(PORT_OBJ) $(DRIVER_OBJ) \
-                      $(DEVICE_OBJ) $(LIBS_OBJ) $(PRINTF_OBJ) \
-                      $(API_OBJ) $(HAL_OBJ) $(PMSIS_OBJ) $(PMSIS_BACKEND_OBJ)
+ASM_OBJS            = $(CRT0_OBJ) $(PMSIS_ASM_OBJ) $(PORT_ASM_OBJ)
+C_OBJS              = $(API_OBJ) $(DEVICE_OBJ) $(DRIVER_OBJ) $(GAP_LIB_OBJ) \
+                      $(LIBS_OBJ) $(OPENMP_OBJ) $(PMSIS_OBJ) \
+                      $(PMSIS_BACKEND_OBJ) $(PORT_OBJ) $(PRINTF_OBJ) $(RTOS_OBJ)
 
 # Objects to build.
 BUILDING_OBJS       = $(APP_OBJ) $(ASM_OBJS) $(C_OBJS)

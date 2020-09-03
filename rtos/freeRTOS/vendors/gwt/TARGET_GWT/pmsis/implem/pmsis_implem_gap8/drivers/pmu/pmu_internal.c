@@ -393,6 +393,7 @@ int __pi_pmu_sleep_mode_enable(pi_pmu_domain_e domain)
 {
     soc_ctrl_safe_pmu_sleepctrl_t sleepcfg = g_pmu_data.sleepcfg;
     hal_soc_ctrl_pmu_sleepctrl_mask_set(sleepcfg.word);
+    hal_soc_ctrl_pmu_sleepctrl_get();
     PMU_TRACE("Set sleep mode : sleepcfg=%lx:\n", hal_soc_ctrl_pmu_sleepctrl_get());
     pi_pmu_scu_seq_e scu_seq = PI_PMU_SCU_SEQ_DEEP_SLEEP;
     if (g_pmu_data.sleep_state == PI_PMU_MODE_RET_DEEP_SLEEP)
