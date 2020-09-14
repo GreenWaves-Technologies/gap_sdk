@@ -393,7 +393,7 @@ static int32_t __pi_i2s_conf_set(struct i2s_itf_data_s *itf_data,
     itf_data->pingpong_buffers[0] = conf->pingpong_buffers[0];
     itf_data->pingpong_buffers[1] = conf->pingpong_buffers[1];
     itf_data->mem_slab            = conf->mem_slab;
-    return 0;
+    return __pi_i2s_conf_apply(itf_data);
 }
 
 static void __pi_i2s_conf_get(struct i2s_itf_data_s *itf_data,
