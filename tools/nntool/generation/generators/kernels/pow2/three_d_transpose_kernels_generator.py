@@ -53,7 +53,7 @@ def gen_at_2d_transpose(code_block, name, in_q, out_q,
     else:
         raise NotImplementedError("genctrl is not yet implemented")
 
-    code_block.write('CNN_MatTranspose("{}", {}, {}, {}, {}, {}, 1, 1, 1, {}, {}, KOP_MATTRANSP);',
+    code_block.write('CNN_MatTranspose("{}", {}, {}, {}, {}, {}, 1, 1, 1, {}, {});',
                      name, gen_ctrl, at_bits(in_q), at_bits(out_q),
                      in_q.q, out_q.q, in_shape[1], in_shape[0])
 
