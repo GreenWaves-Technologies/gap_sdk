@@ -77,28 +77,28 @@ static inline void hal_cl_eu_evt_mask_set(uint32_t mask)
 {
     //cl_demux_eu_core(0)->event_mask_or = mask;
     uint32_t base = (uint32_t) cl_demux_eu_core(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_CORE_EVENT_MASK_OR, mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_CORE_EVENT_MASK_OR), mask);
 }
 
 static inline void hal_cl_eu_evt_mask_clear(uint32_t mask)
 {
     //cl_demux_eu_core(0)->event_mask_and = mask;
     uint32_t base = (uint32_t) cl_demux_eu_core(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_CORE_EVENT_MASK_AND, mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_CORE_EVENT_MASK_AND), mask);
 }
 
 static inline void hal_cl_eu_irq_mask_set(uint32_t mask)
 {
     //cl_demux_eu_core(0)->irq_mask_or = mask;
     uint32_t base = (uint32_t) cl_demux_eu_core(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_CORE_IRQ_MASK_OR, mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_CORE_IRQ_MASK_OR), mask);
 }
 
 static inline void hal_cl_eu_irq_mask_clear(uint32_t mask)
 {
     //cl_demux_eu_core(0)->irq_mask_and = mask;
     uint32_t base = (uint32_t) cl_demux_eu_core(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_CORE_IRQ_MASK_AND, mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_CORE_IRQ_MASK_AND), mask);
 }
 
 /**
@@ -162,7 +162,7 @@ static inline uint32_t hal_cl_eu_irq_status(void)
 static inline void hal_cl_eu_evt_clear(uint32_t mask)
 {
     uint32_t base = (uint32_t) cl_demux_eu_core(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_CORE_BUFFER_CLEAR, mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_CORE_BUFFER_CLEAR), mask);
 }
 
 /**
@@ -233,21 +233,21 @@ static inline void hal_cl_eu_dispatch_fifo_push(uint32_t message)
 {
     //cl_demux_eu_dispatch(0)->fifo_access = elem;
     uint32_t base = (uint32_t) cl_demux_eu_dispatch(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_DISPATCH_FIFO_ACCESS, message);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_DISPATCH_FIFO_ACCESS), message);
 }
 
 static inline uint32_t hal_cl_eu_dispatch_fifo_pop(void)
 {
     //cl_demux_eu_dispatch(0)->fifo_access = elem;
     uint32_t base = (uint32_t) cl_demux_eu_dispatch(0);
-    return hal_read32((volatile void *) base + CL_DEMUX_EU_DISPATCH_FIFO_ACCESS);
+    return hal_read32((volatile void *) (base + CL_DEMUX_EU_DISPATCH_FIFO_ACCESS));
 }
 
 static inline void hal_cl_eu_dispatch_team_config(uint32_t team_mask)
 {
     //cl_demux_eu_dispatch(0)->team_config = team_mask;
     uint32_t base = (uint32_t) cl_demux_eu_dispatch(0);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_DISPATCH_TEAM_CONFIG, team_mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_DISPATCH_TEAM_CONFIG), team_mask);
 }
 
 
@@ -264,7 +264,7 @@ static inline void hal_cl_eu_mutex_init(uint32_t mutex_id)
 {
     uint32_t base = (uint32_t) cl_demux_eu_mutex(mutex_id);
     hal_compiler_barrier();
-    hal_write32((volatile void *) base + CL_DEMUX_EU_MUTEX_MUTEX, 0);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_MUTEX_MUTEX), 0);
     hal_compiler_barrier();
 }
 
@@ -278,7 +278,7 @@ static inline void hal_cl_eu_mutex_unlock(uint32_t mutex_id)
 {
     uint32_t base = (uint32_t) cl_demux_eu_mutex(mutex_id);
     hal_compiler_barrier();
-    hal_write32((volatile void *) base + CL_DEMUX_EU_MUTEX_MUTEX, 0);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_MUTEX_MUTEX), 0);
     hal_compiler_barrier();
 }
 
@@ -294,7 +294,8 @@ static inline void hal_cl_eu_glob_sw_trig(uint32_t cluster_id, uint32_t sw_event
                                           uint32_t core_mask)
 {
     uint32_t base = (uint32_t) cl_glob_eu_sw_evt(cluster_id);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_SW_EVT_TRIGGER + (sw_event << 2), core_mask);
+    uint32_t offset = (CL_DEMUX_EU_SW_EVT_TRIGGER + (sw_event << 2));
+    hal_write32((volatile void *) (base + offset), core_mask);
 }
 
 
@@ -313,14 +314,14 @@ static inline void hal_cl_eu_glob_sw_trig(uint32_t cluster_id, uint32_t sw_event
 static inline void hal_cl_eu_barrier_setup(uint32_t barrier_id, uint32_t core_mask)
 {
     uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK, core_mask);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_HW_BARRIER_TARGET_MASK, core_mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK), core_mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TARGET_MASK), core_mask);
 }
 
 static inline uint32_t hal_cl_eu_barrier_team_get(uint32_t barrier_id)
 {
     uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    uint32_t team_mask = hal_read32((volatile void *) base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK);
+    uint32_t team_mask = hal_read32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK));
     return team_mask;
 }
 
@@ -333,7 +334,7 @@ static inline uint32_t hal_cl_eu_barrier_status(uint32_t barrier_id)
 static inline void hal_cl_eu_barrier_trigger(uint32_t barrier_id, uint32_t core_mask)
 {
     uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    hal_write32((volatile void *) base + CL_DEMUX_EU_HW_BARRIER_TRIGGER, core_mask);
+    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER), core_mask);
 }
 
 static inline uint32_t hal_cl_eu_barrier_trigger_self(uint32_t barrier_id)

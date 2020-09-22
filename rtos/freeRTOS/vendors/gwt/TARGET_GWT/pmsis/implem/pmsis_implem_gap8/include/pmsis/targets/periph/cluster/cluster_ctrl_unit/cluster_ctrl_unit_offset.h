@@ -28,49 +28,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PMSIS_IMPLEM_CLUSTER_CLUSTER_DATA_H__
-#define __PMSIS_IMPLEM_CLUSTER_CLUSTER_DATA_H__
+#ifndef __ARCHI_CLUSTER_CTRL_UNIT_OFFSET_H__
+#define __ARCHI_CLUSTER_CTRL_UNIT_OFFSET_H__
 
-#if !(defined(LANGUAGE_ASSEMBLY) || defined(__ASSEMBLER__))
+#if !defined(LANGUAGE_ASSEMBLY) && !defined(__ASSEMBLER__)
 
 #include <stdint.h>
 
-struct cluster_driver_data
-{
-    // prepare a small fifo so that FC can pipeline tasks
-    // --> need to be first for inline access
-    struct pi_cluster_task *task_first;
-    struct pi_cluster_task *task_last;
-    // event kernel attached
-    struct pmsis_event_kernel_wrap* event_kernel;
-    // metadata
-    uint32_t cluster_is_on;
-    pmsis_mutex_t task_mutex;
-    pmsis_mutex_t powerstate_mutex;
-    spinlock_t fifo_access;
-    void *heap_start;
-    uint32_t heap_size;
-    pi_task_t *task_to_fc;
-};
-
-static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback)
-{
-    pi_cl_send_task_to_fc((pi_task_t *) ((uint32_t) callback | 0x1));
-}
-
-#endif  /* LANGUAGE_ASSEMBLY || __ASSEMBLER__ */
-
-#define PI_CLUSTER_TASK_FUNCTION_OFFSET       ( 0x00 )
-#define PI_CLUSTER_TASK_FUNC_ARGS_OFFSET      ( 0x04 )
-#define PI_CLUSTER_TASK_STACK_PTR_OFFSET      ( 0x08 )
-#define PI_CLUSTER_TASK_STACK_MST_SIZE_OFFSET ( 0x0C )
-#define PI_CLUSTER_TASK_STACK_SLV_SIZE_OFFSET ( 0x10 )
-#define PI_CLUSTER_TASK_TEAM_CORES_OFFSET     ( 0x14 )
-#define PI_CLUSTER_TASK_CALLBACK_OFFSET       ( 0x18 )
-#define PI_CLUSTER_TASK_STACK_ALLOC_OFFSET    ( 0x1C )
-#define PI_CLUSTER_TASK_NEXT_TASK_OFFSET      ( 0x20 )
-/* Implem specific */
-#define PI_CLUSTER_TASK_TEAM_MASK_OFFSET      ( 0x24 )
+#endif
 
 
-#endif  /* __PMSIS_IMPLEM_CLUSTER_CLUSTER_DATA_H__ */
+/*! Cluster_ctrl_unit */
+#define CL_CTRL_UNIT_EOC         ( 0x00 )
+#define CL_CTRL_UNIT_FETCH_EN    ( 0x08 )
+#define CL_CTRL_UNIT_CLOCK_GATE  ( 0x20 )
+#define CL_CTRL_UNIT_BOOT_ADDR_0 ( 0x40 )
+
+
+
+#endif  /* __ARCHI_CLUSTER_CTRL_UNIT_OFFSET_H__ */

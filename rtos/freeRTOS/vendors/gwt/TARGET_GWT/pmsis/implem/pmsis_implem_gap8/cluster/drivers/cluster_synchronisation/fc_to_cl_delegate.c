@@ -249,7 +249,7 @@ int pi_cluster_open(struct pi_device *device)
     device->data = __per_cluster_data[_conf->id];
     PRINTF("OPEN---precheck: device->data=%p\n",device->data);
     // if device data has not yet been populated
-    if(device->data == NULL)
+    if (device->data == NULL)
     {
         device->data = pi_default_malloc(sizeof(struct cluster_driver_data));
         PRINTF("OPEN--post-check: device->data=%p\n",device->data);
@@ -257,6 +257,7 @@ int pi_cluster_open(struct pi_device *device)
         memset(_data, 0, sizeof(struct cluster_driver_data));
         pmsis_mutex_init(&_data->task_mutex);
         pmsis_mutex_init(&_data->powerstate_mutex);
+        _data->task_to_fc = NULL;
         // fill the per cluster data ptr
         __per_cluster_data[_conf->id] = _data;
         PRINTF("per cluster data[%lx]=%lx\n",_conf->id,__per_cluster_data[_conf->id]);
@@ -304,7 +305,7 @@ int pi_cluster_open_async(struct pi_device *device,
 int pi_cluster_close(struct pi_device *device)
 {
     int ret = __cluster_stop(device);
-    if(!ret)
+    if (!ret)
     {
         struct cluster_driver_data *_data = (struct cluster_driver_data *) device->data;
         // if no task has an active handle on device
@@ -433,12 +434,14 @@ static inline void __cluster_start(struct pi_device *device)
         __pi_pmu_cluster_power_on();
         PRINTF("poweron is done\n");
 
-        for (uint32_t i = 0; i < (uint32_t) ARCHI_CLUSTER_NB_PE; i++)
+        uint32_t nb_cl_cores = pi_cl_cluster_nb_cores();
+        for (uint32_t core_id = 0; core_id < nb_cl_cores; core_id++)
         {
             extern uint8_t __irq_vector_base_m__;
-            SCB->BOOT_ADDR[i] = (uint32_t) &__irq_vector_base_m__;
+            hal_cl_ctrl_boot_addr_set(ARCHI_CL_CID(0), core_id, (uint32_t) &__irq_vector_base_m__);
         }
-        SCB->FETCH_EN = 0xFFFFFFFF;
+        hal_cl_ctrl_fetch_enable(ARCHI_CL_CID(0), nb_cl_cores);
+        hal_cl_icache_enable(ARCHI_CL_CID(0));
 
         /* In case the chip does not support L1 preloading, the initial L1 data are in L2, we need to copy them to L1 */
         memcpy((char *)GAP_CLUSTER_TINY_DATA(0, (int)&__l1_preload_start), &__l1_preload_start_inL2, (size_t)&__l1_preload_size);

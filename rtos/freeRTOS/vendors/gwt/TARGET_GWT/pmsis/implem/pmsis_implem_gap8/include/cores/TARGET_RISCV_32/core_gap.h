@@ -103,13 +103,13 @@
 #ifdef __cplusplus
   #define   __I     volatile             /*!< Defines 'read only' permissions */
 #else
-  #define   __I     volatile const       /*!< Defines 'read only' permissions */
+  #define   __I     volatile             /*!< Defines 'read only' permissions */
 #endif
 #define     __O     volatile             /*!< Defines 'write only' permissions */
 #define     __IO    volatile             /*!< Defines 'read / write' permissions */
 
 /* following defines should be used for structure members */
-#define     __IM     volatile const      /*! Defines 'read only' structure member permissions */
+#define     __IM     volatile            /*! Defines 'read only' structure member permissions */
 #define     __OM     volatile            /*! Defines 'write only' structure member permissions */
 #define     __IOM    volatile            /*! Defines 'read / write' structure member permissions */
 
@@ -1153,7 +1153,7 @@ typedef struct {
 #endif
 
 #define EU_SW_EVENTS         ((EU_SW_EVENTS_DEMUX_Type   *)  CORE_EU_SW_EVENTS_BASE)          /*!< EU_SW_EVENTS_DEMUX configuration struct */
-#define EU_SOC_EVENTS        ((EU_SOC_EVENTS_Type   *)      CORE_EU_SOC_EVENTS_BASE)          /*!< EU_SW_EVENTS_DEMUX configuration struct */
+#define EU_SOC_EVENTS        ((volatile EU_SOC_EVENTS_Type   *)      CORE_EU_SOC_EVENTS_BASE)          /*!< EU_SW_EVENTS_DEMUX configuration struct */
 
 
 #define NVIC                ((NVIC_Type   *)      NVIC_BASE)                       /*!< NVIC configuration struct */
@@ -1237,6 +1237,7 @@ __STATIC_INLINE void __NVIC_EnableIRQ(IRQn_Type IRQn)
 {
   /* U mode does not has the right */
   NVIC->MASK_IRQ_OR = (1UL << IRQn);
+  NVIC->MASK_OR = (1UL << IRQn);
 }
 
 /**
@@ -1264,6 +1265,7 @@ __STATIC_INLINE void __NVIC_DisableIRQ(IRQn_Type IRQn)
 {
   /* U mode does not has the right */
   NVIC->MASK_IRQ_AND = (1UL << IRQn);
+  NVIC->MASK_AND = (1UL << IRQn);
 }
 
 

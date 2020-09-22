@@ -798,7 +798,7 @@ typedef struct {
 /** Peripheral SOCEU base address */
 #define SOCEU_BASE                               (SOC_PERI_BASE + 0x06000u)
 /** Peripheral SOCEU base pointer */
-#define SOCEU                                    ((SOCEU_Type *)SOCEU_BASE)
+#define SOCEU                                    ((volatile SOCEU_Type *)SOCEU_BASE)
 /** Array initializer of SOCEU base addresses */
 #define SOCEU_BASE_ADDRS                         { SOCEU_BASE }
 /** Array initializer of SOCEU base pointers */
@@ -1158,9 +1158,23 @@ typedef struct {
 #ifdef FEATURE_CLUSTER
 
 /* ----------------------------------------------------------------------------
+   -- CLUSTER_CTRL_UNIT Peripheral Access Layer
+   ---------------------------------------------------------------------------- */
+#include "periph/cluster/cluster_ctrl_unit/cluster_ctrl_unit.h"
+#define cl_ctrl_unit(id)         ((cluster_ctrl_unit_t *) CL_CTRL_ADDR)
+#define cl_glob_ctrl_unit(cid)   ((cluster_ctrl_unit_t *) CL_GLOB_CTRL_ADDR(cid))
+
+/* ----------------------------------------------------------------------------
+   -- CLUSTER_ICACHE_CTRL Peripheral Access Layer
+   ---------------------------------------------------------------------------- */
+#include "periph/cluster/cluster_icache_ctrl/cluster_icache_ctrl.h"
+#define cl_icache_ctrl(id)       ((cluster_icache_ctrl_t *) CL_ICACHE_ADDR)
+#define cl_glob_icache_ctrl(cid) ((cluster_icache_ctrl_t *) CL_GLOB_ICACHE_ADDR(cid))
+
+/* ----------------------------------------------------------------------------
    -- CLUSTER_DEMUX_EVENT_UNIT Peripheral Access Layer
    ---------------------------------------------------------------------------- */
-#include "periph/cluster_event_unit/cluster_event_unit.h"
+#include "periph/cluster/cluster_event_unit/cluster_event_unit.h"
 #define cl_demux_eu_core(id)     ((cluster_eu_core_demux_t *) CL_DEMUX_EU_CORE_ADDR)
 #define cl_demux_eu_loop(id)     ((cluster_eu_loop_demux_t *) CL_DEMUX_EU_LOOP_ADDR)
 #define cl_demux_eu_dispatch(id) ((cluster_eu_dispatch_demux_t *) CL_DEMUX_EU_DISPATCH_ADDR)
@@ -1171,7 +1185,7 @@ typedef struct {
 /* ----------------------------------------------------------------------------
    -- CLUSTER_EVENT_UNIT Peripheral Access Layer
    ---------------------------------------------------------------------------- */
-#include "periph/cluster_event_unit/cluster_event_unit.h"
+#include "periph/cluster/cluster_event_unit/cluster_event_unit.h"
 #define cl_glob_eu_core(cid)     ((cluster_eu_core_demux_t *) CL_GLOB_EU_CORE_ADDR(cid))
 #define cl_glob_eu_dispatch(cid) ((cluster_eu_dispatch_demux_t *) CL_GLOB_EU_DISPATCH_ADDR(cid))
 #define cl_glob_eu_sw_evt(cid)   ((cluster_eu_sw_evt_demux_t *) CL_GLOB_EU_SW_EVENT_ADDR(cid))
