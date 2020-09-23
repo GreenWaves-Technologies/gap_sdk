@@ -24,10 +24,11 @@ from graph.types import (ConvFusionParameters, FilterParameters,
                          GlobalPoolParameters, HSigmoidActivationParameters,
                          HSwishActivationParameters, PoolingParameters,
                          SoftMaxParameters, ActivationFusion, MatrixMulParameters,
-                         ReluActivationParameters, MatrixAddParameters, ActivationParameters)
+                         ReluActivationParameters, MatrixAddParameters, ActivationParameters,
+                         LeakyActivationParameters)
 from quantization.qtype import QType
 from quantization.symmetric.kernels.activations import (
-    hsigmoid_mult_gen_factors, hswish_mult_gen_factors)
+    hsigmoid_mult_gen_factors, hswish_mult_gen_factors, leak_mult_gen_factor_q7)
 from utils.node_id import NodeId
 from .global_names import *
 
@@ -170,6 +171,19 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
                               act_q.in_qs[0].scale[0],
                               act_q.out_qs[0].scale[0],
                               int(norm[0]))
+    elif isinstance(act_params, LeakyActivationParameters):
+        act_q.set_scale()
+        leak_factor_quant = leak_mult_gen_factor_q7(act_params)
+        contents = np.array([act_q.scale_mul_biases_q.qbiases[0],
+                             act_q.scale_mul_biases_q.qnorms[0],
+                             leak_factor_quant, 0, 0, extra1, extra2, extra3, extra4],
+                            dtype=np.int8)
+        comment += str.format("in: {:05f} out: {:05f} qbias: {} qnorm: {} A0: {} B0: x C0: x",
+                              act_q.in_qs[0].scale[0],
+                              act_q.out_qs[0].scale[0],
+                              act_q.scale_mul_biases_q.qbiases[0],
+                              act_q.scale_mul_biases_q.qnorms[0],
+                              leak_factor_quant)
     else:
         raise NotImplementedError("activation tye not implemented")
 

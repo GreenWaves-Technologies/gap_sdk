@@ -129,3 +129,17 @@ def matscale(params,
     else:
         output_tensor = matscale2(in_tensors, qrec)
     return qrec.get_outputs(params, [output_tensor], ktype="symmetric")
+
+
+def expression(params,
+               in_tensors,
+               qrec: QuantizationRecordBase,
+               details=None):
+    in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(params, in_tensors, ktype="symmetric")]
+    out_tensors = params.execute(in_tensors,
+                                 input_symbols=qrec.inputs,
+                                 expr_inter=qrec.intermediate_exprs,
+                                 expr_outputs=qrec.output_exprs,
+                                 details=details)
+    out_tensors = [out_tensor.astype(np.int8) for out_tensor in out_tensors]
+    return qrec.get_outputs(params, out_tensors, ktype="symmetric")

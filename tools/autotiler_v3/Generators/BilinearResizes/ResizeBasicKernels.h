@@ -26,5 +26,17 @@ typedef struct {
 	unsigned int FirstLineIndex;
 } KerResizeBilinear_ArgT;
 
+typedef struct {
+	unsigned char * __restrict__ In;
+	unsigned int Win;
+	unsigned int Hin;
+	unsigned char * __restrict__ Out;
+	unsigned int Wout;
+	unsigned int Hout;
+	unsigned int HTileOut;
+	unsigned int FirstLineIndex;
+} KerResizeNearestNeighbor_ArgT;
+
 void KerResizeBilinear(KerResizeBilinear_ArgT *Arg);
+void KerResizeNearestNeighbor(KerResizeNearestNeighbor_ArgT *Arg);
 #endif //__IIBASICKERNELS_H__

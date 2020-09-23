@@ -237,18 +237,12 @@ static void pmsis_event_kernel_exec_event(struct pmsis_event_kernel *kernel,
     {
         case PI_TASK_CALLBACK_ID :
             {
-                // release event before exec, to match pulpos behaviour
-                // This should however not be abused.
-                // In particular the user must ensure the potential waiting thread is using an OS
-                // provided mechanism to synchronize (mutex/semaphore/signals) and avoid "yield loops"
-                pmsis_event_release(event);
-                event->done = 1;
                 callback_t callback_func = (callback_t)event->arg[0];
                 callback_func((void*)event->arg[1]);
+                event->done = 1;
             }
             break;
-        default: // unimplemented or mutex only -- just release the event
-            pmsis_event_release(event);
+        default: // unimplemented or mutex only
             break;
     }
 }
@@ -273,6 +267,7 @@ void pmsis_event_kernel_main(void *arg)
         if(event)
         {
             pmsis_event_kernel_exec_event(event_kernel,event);
+            pmsis_event_release(event);
         }
     }
 }

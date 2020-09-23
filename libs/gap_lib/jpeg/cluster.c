@@ -27,6 +27,12 @@
 #include "bsp/buffer.h"
 #include "gaplib/jpeg_encoder.h"
 
+#ifdef PMSIS_DRIVERS
+    #define RT_USER_EVENT (CL_USER_EVENT)
+    #define eu_evt_trig_from_id(x,y) (hal_eu_cluster_evt_trig_set(x,y))
+    #define eu_evt_maskWaitAndClr(x) (hal_cl_eu_evt_mask_wait_clear(x))
+#endif
+
 static inline void queue_init(block_queue_t *queue)
 {
   queue->first = NULL;

@@ -567,6 +567,7 @@ def get_config(tp):
 
     soc.fc_icache_ctrl.enable = soc.fc_icache.enable
     soc.fc_icache_ctrl.flush = soc.fc_icache.flush
+    soc.fc_icache_ctrl.flush = soc.fc.flush_cache
     soc.fc_icache_ctrl.flush_line = soc.fc_icache.flush_line
     soc.fc_icache_ctrl.flush_line_addr = soc.fc_icache.flush_line_addr
 

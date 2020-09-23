@@ -38,23 +38,23 @@ class ValidationCommand(NNToolShellBase):
                             help='quantize the graph (must have already set quantization)')
     parser_val.add_argument('-s', '--silent', action='store_true',
                             help='do not print progress for each input')
-    parser_val.add_argument('--dataset_dir',
-                            completer_method=Cmd.path_complete,
+    parser_val.add_argument('--dataset_dir', completer_method=Cmd.path_complete,
                             help='path to the directory of samples for test')
+    parser_val.add_argument('--class_thr', default=0, type=float,
+                            help='Threshold to consider a valid classification')
+    parser_val.add_argument('--progress_every', default=100, type=int,
+                            help='print accuracy every n computed predictions')
+    parser_val.add_argument('--binary_classification', action='store_true',
+                            help='output is one dimensional')
+    parser_val.add_argument('--prediction_step_idx', default=-1, type=int,
+                            help='graph step index for the predicted value,\
+                                  default is the last layer of the network')
     parser_val_group = parser_val.add_mutually_exclusive_group(required=False)
-    parser_val_group.add_argument('--label_json',
-                                  default=None,
-                                  completer_method=Cmd.path_complete,
+    parser_val_group.add_argument('--label_json', default=None, completer_method=Cmd.path_complete,
                                   help='path to the .json object containing labels annotation \
                                         { "filename0" : label0, "filename1": label1, ... }')
-    parser_val_group.add_argument('--class_number',
-                                  default=None,
-                                  type=int,
+    parser_val_group.add_argument('--class_number', default=None, type=int,
                                   help='Number of a single class that all should match')
-    parser_val.add_argument('--progress_every',
-                            default=100,
-                            type=int,
-                            help='print accuracy every n computed predictions')
     parser_val_group.add_argument('--vww_instances_file',
                                   default=None,
                                   completer_method=Cmd.path_complete,
@@ -91,13 +91,20 @@ must be 3, "file_45.png" will raise an error) or can be written in a .json objec
         number_samples = sum(1 for _ in glob_input_files(args.input_files))
 
         if args.vww_instances_file:
-            validation = ValidateFromVWWInstances(args.vww_instances_file)
+            validation = ValidateFromVWWInstances(args.vww_instances_file,
+                                                  class_thr=args.class_thr,
+                                                  binary_classification=args.binary_classification)
         elif args.label_json:
-            validation = ValidateFromJSON(args.label_json)
+            validation = ValidateFromJSON(args.label_json,
+                                          class_thr=args.class_thr,
+                                          binary_classification=args.binary_classification)
         elif args.class_number is not None:
-            validation = ValidateFromClass(args.class_number)
+            validation = ValidateFromClass(args.class_number,
+                                           class_thr=args.class_thr,
+                                           binary_classification=args.binary_classification)
         else:
-            validation = ValidateFromName()
+            validation = ValidateFromName(class_thr=args.class_thr,
+                                          binary_classification=args.binary_classification)
 
         try:
             ExecutionProgress.start()
@@ -109,8 +116,9 @@ must be 3, "file_45.png" will raise an error) or can be written in a .json objec
                 executer = GraphExecuter(self.G, qrecs=self.G.quantization)
                 outputs = executer.execute(data, qmode=qmode, silent=args.silent)
 
+                predicted_values = np.asarray(outputs[args.prediction_step_idx])
                 good_prediction, class_predicted, real_class, margin = validation.validate(
-                    file_per_input[0], np.asarray(outputs[-1]))
+                    file_per_input[0], predicted_values)
                 good_predictions.append(good_prediction)
                 if good_prediction:
                     good_margin += margin

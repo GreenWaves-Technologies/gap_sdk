@@ -231,6 +231,7 @@ void test_mnist(void)
     }
 
     struct pi_cluster_task *task = pmsis_l2_malloc(sizeof(struct pi_cluster_task));
+
     memset(task, 0, sizeof(struct pi_cluster_task));
     task->entry = RunMnist;
     task->arg = (void *) &rec_digit;

@@ -151,3 +151,12 @@ class KernelFunctionSetBase(ABC):
     @abstractproperty
     def copy(self) -> KernelFunction:
         pass
+
+    @abstractproperty
+    def resize_nearest_neighbor(self) -> KernelFunction:
+        pass
+
+    @abstractproperty
+    def expression(self) -> KernelFunction:
+        pass
+

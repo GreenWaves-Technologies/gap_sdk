@@ -60,7 +60,10 @@ HeapRegion_t xHeapRegions[] =
 #if configUSE_IDLE_HOOK == 1
 void vApplicationIdleHook( void )
 {
-    asm volatile("wfi");
+    //asm volatile("wfi");
+    int irq = disable_irq();
+    hal_eu_evt_wait();
+    restore_irq(irq);
 }
 #endif //configUSE_IDLE_HOOK
 /*-----------------------------------------------------------*/
@@ -114,6 +117,8 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 /*-----------------------------------------------------------*/
 
 #if configSUPPORT_STATIC_ALLOCATION == 1
+PI_FC_L1 static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+PI_FC_L1 static StaticTask_t xIdleTaskTCB;
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
 				    StackType_t **ppxIdleTaskStackBuffer,
 				    uint32_t *pulIdleTaskStackSize )
@@ -123,8 +128,6 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer,
       function then they must be declared static - otherwise they will be allocated on
       the stack and so not exists after this function exits.
     */
-    static StaticTask_t xIdleTaskTCB;
-    static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
 
     /*
       Pass out a pointer to the StaticTask_t structure in which the Idle task's

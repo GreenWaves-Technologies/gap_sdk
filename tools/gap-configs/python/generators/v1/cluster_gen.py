@@ -368,6 +368,9 @@ def get_config(tp, cluster_id):
       cluster.hwacc.irq = cluster.event_unit.new_itf('in_event_%d_pe_%d' % (hwacc_irq, i))
 
   for i in range(0, nb_pe):
+    cluster.icache_ctrl.flush = cluster.get('pe%d' % i).flush_cache
+
+  for i in range(0, nb_pe):
     cluster.periph_ico.set('dbg_unit_%d' % i, cluster.get('pe%d' % i).dbg_unit)
 
   for i in range(0, nb_pe):

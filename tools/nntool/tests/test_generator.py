@@ -12,9 +12,7 @@ from utils.new_param_state import load_state
 from importer.tflite.new_tflite_graph_all import TfliteImporter
 from graph.matches.matches import get_fusion, get_scale8_match_group
 from quantization.multiplicative.mult_quantizer import MultQuantizer
-from stats.activation_stats_collector import ActivationStatsCollector
 from stats.activation_ranges_collector import ActivationRangesCollector
-from graph.types import InputParameters, OutputParameters
 from importer.tflite.remove_concats import remove_concats
 
 # def test_conv_pool_relu_kernel_gen(mnist_unfused_8bit_state):

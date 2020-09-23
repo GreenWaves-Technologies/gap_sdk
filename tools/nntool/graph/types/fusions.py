@@ -73,9 +73,9 @@ class FusionBase(Parameters):
                 input_mapping = [[(nodes[0], 0)]]
 
             for from_idx, node_list in enumerate(input_mapping):
-                for inp_idx, (node, to_idx) in enumerate(node_list):
-                    input_node = FusionInputParameters("%s_in_%s_%s" % (name, from_idx, inp_idx),
-                                                       idx=from_idx)
+                input_node = FusionInputParameters("%s_in_%s" % (name, from_idx),
+                                                    idx=from_idx)
+                for node, to_idx in node_list:
                     subgraph.add_edge(NNEdge(input_node, node, to_idx=to_idx))
 
             if output_mapping is None:
@@ -124,7 +124,9 @@ class FusionBase(Parameters):
 
     @property
     def op_name(self):
-        return self.fusion_op_name + '_' + self.fusion_type
+        if self.fusion_type:
+            return self.fusion_op_name + '_' + self.fusion_type
+        return self.fusion_op_name
 
     @property
     def subgraph(self):
@@ -169,6 +171,7 @@ class FusionBase(Parameters):
         return 0
 
     def get_output_size(self, in_dims):
+        self.in_dims = in_dims
         node_out_dims = []
         for node in self.subgraph.dfs():
             if isinstance(node, FusionInputParameters):
@@ -182,7 +185,7 @@ class FusionBase(Parameters):
             node.out_dims = out_dims
             if isinstance(node, FusionOutputParameters):
                 insert_ext(node_out_dims, out_dims[0], node.idx)
-
+        self.out_dims = node_out_dims
         return node_out_dims
 
     def __str__(self):

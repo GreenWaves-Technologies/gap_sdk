@@ -47,8 +47,10 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         # a depthwise convolution
         if groups is None:
             self.groups = 1
+            self.cannot_be_dw = True
         else:
             self.groups = groups
+            self.cannot_be_dw = False
 
         self.multiplier = multiplier
         assert self.multiplier == 1 or self.tf_depthwise,\
@@ -99,7 +101,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         # this does not cope with TFLITE DW convs with a multiplier but the
         # generator is going to need to split those up into multiple per channel
         # normal convolutions
-        return self.groups == self.filter.out_c and self.multiplier == 1
+        return self.groups == self.filter.out_c and self.multiplier == 1 and not self.cannot_be_dw
 
     def get_weights_count(self):
         return self.filter.size() * self.multiplier // self.groups

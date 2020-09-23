@@ -113,12 +113,10 @@ extern "C" {
 #endif /* __cplusplus */
 
 static inline void hal_soc_eu_set_fc_mask(int evt) {
-    hal_compiler_barrier();
   if (evt >= 32)
     SOCEU->FC_MASK_MSB &= ~(1 << (evt-32));
   else
     SOCEU->FC_MASK_LSB &= ~(1 << evt);
-    hal_compiler_barrier();
 }
 
 static inline void hal_soc_eu_set_pr_mask(int evt) {
@@ -136,12 +134,10 @@ static inline void hal_soc_eu_set_cl_mask(int clusterId, int evt) {
 }
 
 static inline void hal_soc_eu_clear_fc_mask(int evt) {
-    hal_compiler_barrier();
   if (evt >= 32)
     SOCEU->FC_MASK_MSB |= (1 << (evt-32));
   else
     SOCEU->FC_MASK_LSB |= (1 << evt);
-    hal_compiler_barrier();
 }
 
 static inline void hal_soc_eu_clear_pr_mask(int evt) {

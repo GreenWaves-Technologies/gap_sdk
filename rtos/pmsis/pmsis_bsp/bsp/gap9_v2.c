@@ -94,6 +94,18 @@ int bsp_aps25xxxn_open(struct pi_aps25xxxn_conf *conf)
 }
 
 
+void bsp_atxp032_conf_init(struct pi_atxp032_conf *conf)
+{
+    conf->spi_itf = CONFIG_ATXP032_SPI_ITF;
+    conf->spi_cs = CONFIG_ATXP032_SPI_CS;
+}
+
+int bsp_atxp032_open(struct pi_atxp032_conf *conf)
+{
+    return 0;
+}
+
+
 void bsp_spiflash_conf_init(struct pi_spiflash_conf *conf)
 {
   conf->size = CONFIG_SPIFLASH_SIZE;

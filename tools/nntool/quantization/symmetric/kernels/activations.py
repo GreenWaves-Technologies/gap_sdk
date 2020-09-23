@@ -21,14 +21,43 @@ from quantization.qtype import QType
 from quantization.quantization_record_base import QuantizationRecordBase
 from utils.at_norm import at_norm
 
-FORCE_RELU = False
+class NNForceRelu:
+    FORCE_RELU = True
+
+def set_force_relu(force_relu: bool):
+    NNForceRelu.FORCE_RELU = force_relu
+
+def get_force_relu():
+    return NNForceRelu.FORCE_RELU
+
+def leak_mult_gen_factor_q7(params):
+    leak_factor = np.array([params.leak_factor])
+    leak_factor = (leak_factor * 2**7).astype(np.int8)
+    return leak_factor
 
 def leaky(params,
           in_tensors,
           qrec: QuantizationRecordBase,
           details=None):
+    if isinstance(qrec, MultQuantizationRecord):
+        return leaky_mult(params, in_tensors, qrec, details=details)
     raise NotImplementedError()
 
+def leaky_mult(params,
+               in_tensors,
+               qrec: QuantizationRecordBase,
+               details=None):
+    del details
+
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+    qrec.set_scale()
+    neg_in = at_norm(in_tensor * leak_mult_gen_factor_q7(params), 7)
+    in_tensor = in_tensor * (in_tensor > 0) + neg_in * (in_tensor < 0)
+
+    in_tensor = qrec.scale_mul_biases_q.apply_scales(in_tensor)
+    if qrec.out_qs[0] != qrec.in_qs[0]:
+        return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, qrec.in_qs[0])], ktype="symmetric")
+    return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
 
 def sigmoid(params,
             in_tensors,
@@ -52,7 +81,7 @@ def relu_mult(params,
     qrec.set_scale()
     relu_lb = qrec.in_qs[0].quantize(params.lower_bound)
     in_tensor = np.maximum(in_tensor, relu_lb)
-    if params.upper_bound is not None and not FORCE_RELU:
+    if params.upper_bound is not None and not NNForceRelu.FORCE_RELU:
         relu_ub = qrec.in_qs[0].quantize(params.upper_bound)
         in_tensor = np.minimum(in_tensor, relu_ub)
     in_tensor = qrec.scale_mul_biases_q.apply_scales(in_tensor)

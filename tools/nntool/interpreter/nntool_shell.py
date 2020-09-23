@@ -34,10 +34,12 @@ from .commands.qerror import QerrorCommand
 from .commands.qtune import QtuneCommand
 from .commands.range_equalization import (
     BalanceFiltersCommand, BcorrCommand, WeightEqualizationCommand)
+from .commands.resizer import InputResizerCommand
 from .commands.qshow import QshowCommand
 from .commands.astats import AstatsCommand
 from .commands.temps import TempsCommand
 from .commands.ssd_setter import SSDSetterCommand
+from .commands.nntool_force_relu import NntoolForceReluCommand
 
 LOG = logging.getLogger("nntool")
 
@@ -72,7 +74,9 @@ COMMANDS = [
     RoundingCommand,
     QtuneCommand,
     ImageFormatCommand,
-    SSDSetterCommand
+    SSDSetterCommand,
+    InputResizerCommand,
+    NntoolForceReluCommand
 ]
 
 

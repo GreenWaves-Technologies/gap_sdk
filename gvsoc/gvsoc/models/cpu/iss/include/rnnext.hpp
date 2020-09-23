@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2018 ETH Zurich and University of Bologna
+ * Copyright (C) 2020 GreenWaves Technologies, SAS, ETH Zurich and
+ *                    University of Bologna
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  */
 
 /* 
- * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
+ * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
 #ifndef __CPU_ISS_RNNEXT_HPP

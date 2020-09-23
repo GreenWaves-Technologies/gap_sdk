@@ -14,13 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
-from abc import abstractmethod, abstractclassmethod
+from abc import abstractclassmethod, abstractmethod
 
 import numpy as np
 
 from graph.types import FilterParameters
 from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
     SymmetricMultQType
+from quantization.multiplicative.symmetric.utils.scale import (apply_scales,
+                                                               compute_scales)
 from quantization.qtype import QType
 from utils.at_norm import at_norm
 
@@ -55,6 +57,7 @@ class MultMulBiasQType(SymmetricMultQType):
     @abstractclassmethod
     def from_filter(cls, in_q, weights_q, out_q, params, dtype=None):
         pass
+
 
 class MultMulBiasScaleQType(MultMulBiasQType):
     def __init__(self, *args, dtype=np.uint8, available_bits=8, init=None, **kwargs):
@@ -134,49 +137,19 @@ class MultMulBiasScaleQType(MultMulBiasQType):
             self._info['qnorms'] = np.array([1], dtype=np.uint8)
             self._info['qbiases'] = np.array([0], dtype=np.uint8)
             return
-        if self.dtype == np.int8:
-            max_bits = min(7, self._available_bits)
-        elif self.dtype == np.uint8:
-            max_bits = min(8, self._available_bits)
-        bits = np.full(self.scale.shape, max_bits)
-        factors = np.array([math.frexp(scale) for scale in self.scale],
-                           dtype=[("scale", "f4"), ("norm", "i1")])
-
-        max_val = np.power(2, max_bits)
-        while True:
-            qbiases = np.floor(factors['scale'] * np.power(2, bits) + 0.5)
-            qnorms = -(factors["norm"] - bits)
-            # overflow in conversion
-            max_exceeded = qbiases >= max_val
-            # shifting away bits
-            norms_too_high = qnorms > 32 - 8
-            # mult * pow 2 then shift
-            bias_pow2 = qbiases % 2 == 0
-            should_move = np.logical_or(max_exceeded, np.logical_or(norms_too_high, bias_pow2))
-            can_still_move = np.logical_and(qnorms > 0, bits > 0)
-            overflow = np.logical_and(should_move, can_still_move)
-            if not np.any(overflow):
-                break
-            bits[overflow] -= 1
-
-        self._info['qnorms'] = qnorms.astype(np.uint8)
-        self._info['qbiases'] = qbiases.astype(self.dtype)
+        self._info['qbiases'], self._info['qnorms'] = compute_scales(self.scale,
+                                                                     available_bits=self._available_bits,
+                                                                     dtype=self.dtype)
 
     def apply_scales(self, arr: np.ndarray, axis: int = None):
         if self.pre_normalization > 0:
             arr = at_norm(arr, self.pre_normalization)
         if not self.has_scale:
             return arr
-        if axis is None:
-            mul_biases = self.qbiases
-            mul_biases_norm = self.qnorms
-            assert len(mul_biases) == 1 and len(
-                mul_biases_norm) == 1, "no axis set. should have single scale"
-        else:
-            shape = [len(self.qbiases) if idx == axis else 1 for idx in range(len(arr.shape))]
-            mul_biases = self.qbiases.reshape(shape)
-            mul_biases_norm = self.qnorms.reshape(shape)
-        return at_norm(np.multiply(arr, mul_biases, dtype=np.int32), mul_biases_norm)
+        return apply_scales(self.qbiases,
+                            self.qnorms,
+                            arr,
+                            axis=axis)
 
     def str_by_chan(self, chan: int):
         return "{}b>>{} {:0.3f}".format(self.bits, self.qnorms[chan], self.qbiases[chan])

@@ -132,17 +132,7 @@ static inline void pi_task_wait_on(pi_task_t *task)
 
 static inline void pi_task_push(pi_task_t *task)
 {
-    switch (task->id)
-    {
-        case PI_TASK_NONE_ID :
-            pi_task_release(task);
-            break;
-        case PI_TASK_CALLBACK_ID :
-            __pi_task_push(task);
-            break;
-        default :
-            return;
-    }
+    __pi_task_push(task);
 }
 
 static inline void pi_task_destroy(pi_task_t *task)

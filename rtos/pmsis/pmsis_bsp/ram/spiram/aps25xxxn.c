@@ -24,25 +24,32 @@
 #include "pmsis.h"
 #include "bsp/bsp.h"
 #include "bsp/ram/aps25xxxn.h"
-#include "pmsis/drivers/hyperbus.h"
+#include "pmsis/drivers/octospi.h"
 #include "../extern_alloc.h"
 
 // Max time in nanoseconds where chip select can stay active
 #define APS25XXXN_CS_LOW_WIDTH 2000
 
 #define APS25XXXN_DEFAULT_LATENCY 5
+#define APS25XXXN_SET_REG_LATENCY 1
+
+#define APS25XXXN_OP_FLAGS (PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_ADDR_SIZE_4 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_ADDR_DTR | PI_OCTOSPI_FLAG_DATA_DTR)
+
 
 // Use linear bursts, commands are 0x20 for read and 0xA0 for writes
 // but last R/W bit is automatically added and 1 byte command must be shifter left by 1 byte
-#define APS25XXXN_SPI_CMD 0x2000
+#define APS25XXXN_SPI_CMD (0x20 | PI_OCTOSPI_CMD_AUTO_RW_BIT_EN | PI_OCTOSPI_CMD_ADDR_EVEN)
 
 #define APS25XXXN_REG_SPI_CMD 0x4000
 
 typedef struct
 {
-  struct pi_device hyper_device;
+  struct pi_device octospi_device;
   extern_alloc_t alloc;
 } aps25xxxn_t;
+
+
+static pi_octospi_op_conf_t aps25xxxn_default_op = { .cmd=APS25XXXN_SPI_CMD, .latency=APS25XXXN_DEFAULT_LATENCY, .flags=APS25XXXN_OP_FLAGS };
 
 
 static int aps25xxxn_open(struct pi_device *device)
@@ -76,35 +83,37 @@ static int aps25xxxn_open(struct pi_device *device)
       goto error2;
   }
 
-  struct pi_hyper_conf hyper_conf;
-  pi_hyper_conf_init(&hyper_conf);
+  struct pi_octospi_conf octospi_conf;
+  pi_octospi_conf_init(&octospi_conf);
 
-  hyper_conf.burst_length = APS25XXXN_CS_LOW_WIDTH;
-  hyper_conf.id = conf->spi_itf;
-  hyper_conf.cs = conf->spi_cs;
-  hyper_conf.type = PI_HYPER_TYPE_RAM;
-  hyper_conf.is_spi = 1;
-  hyper_conf.xip_en = conf->xip_en;
-  hyper_conf.latency = APS25XXXN_DEFAULT_LATENCY;
-  hyper_conf.spi_cmd = APS25XXXN_SPI_CMD;
-  hyper_conf.reg_spi_cmd = APS25XXXN_REG_SPI_CMD;
+  octospi_conf.burst_length = APS25XXXN_CS_LOW_WIDTH;
+  octospi_conf.id = conf->spi_itf;
+  octospi_conf.cs = conf->spi_cs;
+  octospi_conf.type = PI_OCTOSPI_TYPE_RAM;
+  octospi_conf.xip_en = conf->xip_en;
   if (conf->baudrate)
   {
-      hyper_conf.baudrate = conf->baudrate;
+      octospi_conf.baudrate = conf->baudrate;
   }
 
-  pi_open_from_conf(&aps25xxxn->hyper_device, &hyper_conf);
+  pi_open_from_conf(&aps25xxxn->octospi_device, &octospi_conf);
 
-  int32_t error = pi_hyper_open(&aps25xxxn->hyper_device);
+  int32_t error = pi_octospi_open(&aps25xxxn->octospi_device);
   if (error)
   {
       goto error2;
   }
 
   uint16_t reg = 0;
-  pi_hyper_reg_get(&aps25xxxn->hyper_device, 8, (uint8_t *)&reg);
+  pi_octospi_op_conf_t op1 = { .cmd=APS25XXXN_REG_SPI_CMD, .latency=APS25XXXN_DEFAULT_LATENCY, .flags=APS25XXXN_OP_FLAGS };
+  pi_octospi_read(&aps25xxxn->octospi_device, 8, &reg, 1, &op1);
+
   reg |= 1 << 3;
-  pi_hyper_reg_set(&aps25xxxn->hyper_device, 8, (uint8_t *)&reg);
+
+  pi_octospi_op_conf_t op2 = { .cmd=APS25XXXN_REG_SPI_CMD, .latency=APS25XXXN_SET_REG_LATENCY, .flags=APS25XXXN_OP_FLAGS };
+  pi_octospi_write(&aps25xxxn->octospi_device, 8, &reg, 1, &op2);
+
+  pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_SET_OP, (void *)&aps25xxxn_default_op);
 
   return 0;
 
@@ -120,7 +129,7 @@ error:
 static void aps25xxxn_close(struct pi_device *device)
 {
   aps25xxxn_t *aps25xxxn = (aps25xxxn_t *)device->data;
-  pi_hyper_close(&aps25xxxn->hyper_device);
+  pi_octospi_close(&aps25xxxn->octospi_device);
   extern_alloc_deinit(&aps25xxxn->alloc);
   pmsis_l2_malloc_free(aps25xxxn, sizeof(aps25xxxn_t));
 }
@@ -132,9 +141,9 @@ static void aps25xxxn_copy_async(struct pi_device *device, uint32_t addr, void *
   aps25xxxn_t *aps25xxxn = (aps25xxxn_t *)device->data;
 
   if (ext2loc)
-    pi_hyper_read_async(&aps25xxxn->hyper_device, addr, data, size, task);
+    pi_octospi_read_async(&aps25xxxn->octospi_device, addr, data, size, NULL, task);
   else
-    pi_hyper_write_async(&aps25xxxn->hyper_device, addr, data, size, task);
+    pi_octospi_write_async(&aps25xxxn->octospi_device, addr, data, size, NULL, task);
 }
 
 
@@ -144,9 +153,9 @@ static void aps25xxxn_copy_2d_async(struct pi_device *device, uint32_t addr, voi
   aps25xxxn_t *aps25xxxn = (aps25xxxn_t *)device->data;
 
   if (ext2loc)
-    pi_hyper_read_2d_async(&aps25xxxn->hyper_device, addr, data, size, stride, length, task);
+    pi_octospi_read_2d_async(&aps25xxxn->octospi_device, addr, data, size, stride, length, NULL, task);
   else
-    pi_hyper_write_2d_async(&aps25xxxn->hyper_device, addr, data, size, stride, length, task);
+    pi_octospi_write_2d_async(&aps25xxxn->octospi_device, addr, data, size, stride, length, NULL, task);
 }
 
 

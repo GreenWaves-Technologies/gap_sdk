@@ -289,11 +289,12 @@ class Transposable(Parameters):
 
 class FilterParameters(Parameters, SingleInputAndOutput):
 
-    def __init__(self, *args, filt=None, has_bias=False, **kwargs):
+    def __init__(self, *args, filt=None, has_bias=False, use_compressed=False, **kwargs):
         assert filt
         super(FilterParameters, self).__init__(*args, **kwargs)
         self.has_bias = has_bias
         self.filter = filt
+        self._use_compressed = use_compressed
         self.stats = None
         self._weights = None
         self._biases = None
@@ -303,7 +304,7 @@ class FilterParameters(Parameters, SingleInputAndOutput):
     @property
     def weights(self):
         if self._constant_store:
-            return self._constant_store.get(self, 1)
+            return self._constant_store.get(self, 1, get_compressed=self._use_compressed)
         else:
             return self._weights
 
@@ -314,10 +315,16 @@ class FilterParameters(Parameters, SingleInputAndOutput):
         else:
             self._weights = val
 
+    def get_uncompressed_weights(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 1, get_compressed=False)
+        else:
+            return self._weights
+
     @property
     def biases(self):
         if self._constant_store:
-            return self._constant_store.get(self, 2)
+            return self._constant_store.get(self, 2, get_compressed=self._use_compressed)
         else:
             return self._biases
 
@@ -327,6 +334,20 @@ class FilterParameters(Parameters, SingleInputAndOutput):
             self._constant_store.set(self, 2, val)
         else:
             self._biases = val
+
+    def get_uncompressed_biases(self):
+        if self._constant_store:
+            return self._constant_store.get(self, 2, get_compressed=False)
+        else:
+            return self._biases
+
+    @property
+    def use_compressed(self):
+        return self._use_compressed
+
+    @use_compressed.setter
+    def use_compressed(self, val):
+        self._use_compressed = val
 
     def get_parameters(self):
         return {'weights': self.weights, 'biases': self.biases}

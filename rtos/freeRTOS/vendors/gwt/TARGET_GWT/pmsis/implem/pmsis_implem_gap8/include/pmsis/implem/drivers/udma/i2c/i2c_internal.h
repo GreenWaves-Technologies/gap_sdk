@@ -119,8 +119,4 @@ void __pi_i2c_copy(struct i2c_cs_data_s *cs_data, uint32_t l2_buff, uint32_t len
                    pi_i2c_xfer_flags_e flags, udma_channel_e channel,
                    struct pi_task *task);
 
-/* Scan i2c bus to detect connected devices. */
-int32_t __pi_i2c_detect(struct i2c_cs_data_s *cs_data, struct pi_i2c_conf *conf,
-                        uint8_t *rx_data, struct pi_task *task);
-
 #endif  /* __I2C_INTERNAL_H__ */

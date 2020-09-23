@@ -67,6 +67,12 @@ def create_parser():
     parser.add_argument('--dequant_tf',
                         action='store_true',
                         help='dequantize the tflite quantizated parameters')
+    parser.add_argument('--basic_kernel_header_file',
+                        default='Expression_Kernels.h',
+                        help='filename for basic kernel headers - defaults to Expression_Kernels.h')
+    parser.add_argument('--basic_kernel_source_file',
+                        default='Expression_Kernels.c',
+                        help='filename for basic kernel headers - defaults to Expression_Kernels.c')
 
     return parser
 

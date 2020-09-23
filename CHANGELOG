@@ -1,3 +1,28 @@
+3.7.1
+
+Highlights of this release:
+- NNTool
+	- Expressions: fuse sequences of piecewise TFLite operators into a single Autotiler layer call
+	- Resizer: insert an image resizer in front of the network (algorithms: Bilinear or Nearest Neighbor)
+	- Support for Nearest Neighbor tflite node
+	- Support for LeakyReLU tflite node
+	- Bug fixes
+
+- Autotiler
+	- Nearest Neighbor algorithm for resizer
+
+- PulpOS
+	- Fixed issue with GPIO callbacks, some registers were corrupted after the execution of the callback
+
+- GVSOC
+	- Cache flushing is now implemented
+
+- FreeRTOS
+	- SPI copy API fixes for SPIRAM
+	- Important optimizations for Freertos
+	- Freertos Directory tree reorganisation
+
+
 3.7
 Highlights of this release:
 - NNTool

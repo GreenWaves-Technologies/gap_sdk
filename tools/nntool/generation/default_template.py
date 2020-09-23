@@ -70,6 +70,10 @@ def generator_template_v3(G, gen):
 ${gen.cnn_includes_generator()}
 ${gen.extra_includes_generator(indent=0)}
 
+${gen.expressions_kernel_load_generator(indent=0)}
+
+${gen.expressions_user_kernel_source_generator(indent=0)}
+
 void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory, unsigned int L3Flash)
 {
     KernelOper_T Cop = KOP_CONV;
@@ -77,13 +81,14 @@ void ${gen.project_name}Model(unsigned int L1Memory, unsigned int L2Memory, unsi
     // SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
     SetSymbolDynamics();
 
-${gen.used_filenames()}
+${gen.used_filenames(indent=1)}
     SetGeneratedFilesNames("${gen.project_name}Kernels.c", "${gen.project_name}Kernels.h");
 ${gen.options_generator(indent=1)}
 
 ${gen.memory_device_generator(indent=1)}
 
 ${gen.load_basic_kernel_library(indent=1)}
+${gen.load_expressions_library(indent=1)}
     LoadNNTools_Extra_Library();
 
 ${gen.kernel_generator(indent=1)}
@@ -130,6 +135,50 @@ ${gen.header_generator(indent=0)}
 #endif //${gen.project_name.upper()}_GRAPHINFO_H
 '''
 
+@stringfunction
+def generator_expressions_basic_kernel_header(G, gen):
+    '''
+#ifndef ${gen.project_name.upper()}_BASIC_KERNELS_H
+#define ${gen.project_name.upper()}_BASIC_KERNELS_H
+#include "Gap.h"
+#include "math_funcs.h"
+
+${gen.expressions_kernel_types_generator()}
+
+${gen.expressions_kernel_prototypes_generator()}
+
+#endif // ${gen.project_name.upper()}_BASIC_KERNELS_H
+'''
+
+@stringfunction
+def generator_expressions_basic_kernel_source(G, gen):
+    '''
+${gen.expressions_kernel_header_includes_generator(indent=0)}
+
+static int CoreCountDynamic = 1;
+static int ActiveCore = gap_ncore();
+
+static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
+
+{
+	unsigned int NCore;
+	unsigned int Log2Core;
+	unsigned int Chunk;
+
+	if (CoreCountDynamic) NCore = ActiveCore; else NCore = gap_ncore();
+	Log2Core = gap_fl1(NCore);
+	Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
+	return Chunk;
+}
+
+#ifndef AT_NORM
+#define AT_NORM(x, n)   gap_roundnorm_reg((x), (n))
+#endif
+#define ATLShift(x, n)  ((x) << (n))
+
+${gen.expressions_kernel_source_generator()}
+'''
+
 def execute_template(template_function, G, naming_convension=None, code_generator=None):
     if code_generator is None:
         if naming_convension is None:
@@ -145,6 +194,12 @@ def default_template(G, naming_convension=None, code_generator=None):
 
 def header_template(G, naming_convension=None, code_generator=None):
     return execute_template(generator_template_header, G, naming_convension, code_generator)
+
+def basic_kernel_source_template(G, naming_convension=None, code_generator=None):
+    return execute_template(generator_expressions_basic_kernel_source, G, naming_convension, code_generator)
+
+def basic_kernel_header_template(G, naming_convension=None, code_generator=None):
+    return execute_template(generator_expressions_basic_kernel_header, G, naming_convension, code_generator)
 
 def dynamic_template(template_file):
     with open(template_file) as fp:

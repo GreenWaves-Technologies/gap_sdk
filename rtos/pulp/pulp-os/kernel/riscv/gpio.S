@@ -76,9 +76,10 @@ __rt_gpio_ff1_loop:
 
 #else
   .extern __pi_gpio_handler
-  sw  ra, 20(sp)
-  jal ra, __pi_gpio_handler
-  lw  ra, 20(sp)
+  mv        x11, x8
+  la        x12, __pi_gpio_handler
+  la        x9, __rt_gpio_handler_end
+  j         __rt_call_external_c_function
 #endif
 
 

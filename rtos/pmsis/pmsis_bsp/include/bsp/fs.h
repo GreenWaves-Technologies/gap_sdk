@@ -611,9 +611,6 @@ typedef struct pi_cl_fs_req_s
 {
   pi_fs_file_t *file;
   pi_callback_t callback;
-#if defined(PMSIS_DRIVERS)
-  pi_task_t task;
-#endif
   union {
     struct {
       uint8_t done;

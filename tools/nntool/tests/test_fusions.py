@@ -7,6 +7,7 @@ from graph.matches.match_gap_conv import MatchAllGapConv
 from graph.matches.matches import get_pow2_match_group, get_scale8_match_group
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
+from quantization.symmetric.kernels.activations import set_force_relu
 
 def test_fusions1(mnist_graph):
     tfi = TfliteImporter()
@@ -42,6 +43,9 @@ def test_fusions4(ssd_graph):
     G.add_dimensions()
 
 def test_external_biases_sq8(qvww_graph):
+    # This model has ranges greater than [0:6] but with relus --> you cannot force the relu in execution
+    set_force_relu(False)
+
     # this model has at the end an external biases layer as constant add
     tfi = TfliteImporter()
     G = tfi.create_graph(qvww_graph, {"load_quantization": True, "load_tensors": True})

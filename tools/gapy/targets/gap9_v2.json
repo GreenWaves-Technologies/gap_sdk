@@ -21,7 +21,7 @@
                     "cs": 1
                 },
                 "spiflash": {
-                    "@include@": "devices/flash/spiflash_s26ks512.json",
+                    "@include@": "devices/flash/spiflash_atxp032.json",
                     "interface": "spim1",
                     "cs": 0
                 },

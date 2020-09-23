@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from elftools.elf.elffile import ELFFile
 import runner.default_runner
 import os
 import os.path
@@ -37,6 +38,11 @@ def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None
                         action="store_true",
                         help="Launch in gui mode")
 
+    parser.add_argument("--cov",
+                        dest="cov",
+                        action="store_true",
+                        help="Launch in coverage mode")
+
     try:
         gv.gvsoc.appendArgs(parser, runnerConfig)
     except:
@@ -55,6 +61,7 @@ class Runner(runner.default_runner.Runner):
         except:
             pass
 
+        self.areas = []
         self.cmd_args = []
         self.plt_args = []
         self.env = {}
@@ -110,6 +117,8 @@ class Runner(runner.default_runner.Runner):
                 else:
                     self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
+        if self.args.cov or os.environ.get('GAPY_RTL_COVERAGE') is not None:
+            self.set_cmd_arg('-covoverwrite -covworkdir %s/cov_work -covtest %s' % (os.environ.get('XCSIM_PATH'), os.environ.get('PLPTEST_NAME').replace(':', '.')))
 
 
         self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
@@ -163,7 +172,112 @@ class Runner(runner.default_runner.Runner):
         print ('Launching simulator with command:')
         print (command)
 
+        self.gen_stim_txt()
+
         return os.system(command)
+
+    def gen_stim_txt(self):
+
+        binary = self.config.get_str('runner/boot-loader')
+
+        self.gen_stim_slm_64('vectors/stim.txt', [binary])
+
+
+
+    def __gen_stim_slm(self, filename, width):
+
+        #self.dump('  Generating to file: ' + filename)
+
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except:
+            pass
+
+        with open(filename, 'w') as file:
+            for key in sorted(self.mem.keys()):
+                file.write('%X_%0*X\n' % (int(key), width*2, self.mem.get(key)))
+
+
+
+    def __add_mem_word(self, base, size, data, width):
+
+        aligned_base = base & ~(width - 1)
+
+        shift = base - aligned_base
+        iter_size = width - shift
+        if iter_size > size:
+            iter_size = size
+
+        value = self.mem.get(str(aligned_base))
+        if value is None:
+            value = 0
+
+        value &= ~(((1<<width) - 1) << (shift*8))
+        value |= int.from_bytes(data[0:iter_size], byteorder='little') << (shift*8)
+
+        self.mem[str(aligned_base)] = value
+
+        return iter_size
+
+
+    def __add_mem(self, base, size, data, width):
+
+        while size > 0:
+
+            iter_size = self.__add_mem_word(base, size, data, width)
+
+            size -= iter_size
+            base += iter_size
+            data = data[iter_size:]
+
+
+    def __parse_binaries(self, width, binaries):
+
+        self.mem = {}
+
+        for binary in binaries:
+
+            with open(binary, 'rb') as file:
+                elffile = ELFFile(file)
+
+                for segment in elffile.iter_segments():
+
+                    if segment['p_type'] == 'PT_LOAD':
+
+                        data = segment.data()
+                        addr = segment['p_paddr']
+                        size = len(data)
+
+                        load = True
+                        if len(self.areas) != 0:
+                            load = False
+                            for area in self.areas:
+                                if addr >= area[0] and addr + size <= area[1]:
+                                    load = True
+                                    break
+
+                        if load:
+
+                            #self.dump('  Handling section (base: 0x%x, size: 0x%x)' % (addr, size))
+
+                            self.__add_mem(addr, size, data, width)
+
+                            if segment['p_filesz'] < segment['p_memsz']:
+                                addr = segment['p_paddr'] + segment['p_filesz']
+                                size = segment['p_memsz'] - segment['p_filesz']
+                                #self.dump('  Init section to 0 (base: 0x%x, size: 0x%x)' % (addr, size))
+                                self.__add_mem(addr, size, [0] * size, width)
+
+                        else:
+                            pass
+                            #self.dump('  Bypassing section (base: 0x%x, size: 0x%x)' % (addr, size))
+
+
+    def gen_stim_slm_64(self, stim_file, binaries):
+
+        self.__parse_binaries(8, binaries)
+
+        self.__gen_stim_slm(stim_file, 8)
 
 
     def __process_args(self):

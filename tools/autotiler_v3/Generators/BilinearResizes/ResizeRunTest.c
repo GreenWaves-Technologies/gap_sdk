@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "ResizeKernels.h"
-#include "ImgIO.h"
+#include "gaplib/ImgIO.h"
 #include "Gap.h"
 
 #define STACK_SIZE      2048
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	if (rt_event_alloc(NULL, 8)) return -1;
 
 	//To use file IO system
-	rt_bridge_connect(NULL);
+	//rt_bridge_connect(NULL);
 
 	printf ("Start Resize example application\n");
 
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 
 
 	//Reading Image from Hyperflash
-	if ((ReadImageFromFile(ImageName, &Wi, &Hi, ImageIn, W*H*sizeof(unsigned char))==0) || (Wi!=W) || (Hi!=H)) {
+	if ((ReadImageFromFile(ImageName, &Wi, &Hi, 1, ImageIn, W*H*sizeof(unsigned char), IMGIO_OUTPUT_CHAR, 0)==0) || (Wi!=W) || (Hi!=H)) {
 		printf("Failed to load image %s or dimension mismatch Expects [%dx%d], Got [%dx%d]\n", ImageName, W, H, Wi, Hi);
 		return 1;
 	}
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	rt_cluster_call(NULL, CID, (void (*)(void *)) cluster_main, &ClusterCall, stacks, STACK_SIZE, STACK_SIZE, rt_nb_pe(), NULL);
 	// The FC arrives here when the Cluster finished its job.
 
-	WriteImageToFile("../../../resized_out.ppm",ClusterCall.Wout,ClusterCall.Hout,ImageOut);
+	WriteImageToFile("../../../resized_out.ppm",ClusterCall.Wout,ClusterCall.Hout,1,ImageOut,0);
 
 	// Close the cluster
 	rt_cluster_mount(UNMOUNT, CID, 0, NULL);

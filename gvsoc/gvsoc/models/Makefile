@@ -12,16 +12,10 @@ PULP_PROPERTIES += udma/version timer/version stdout/version soc_eu/version \
 properties := $(foreach prop,$(PULP_PROPERTIES), --property=$(prop))
 
 
-VP_DIRS=memory pulp pulp/fll pulp/stdout pulp/chips/pulpissimo cpu/iss \
-  interco utils pulp/itc pulp/hwpe/example pulp/timer pulp/soc_eu pulp/udma \
-  pulp/hwpe/xne pulp/icache_ctrl pulp/cluster pulp/event_unit \
-  pulp/chips/pulp pulp/mchan pulp/padframe pulp/adv_dbg_unit \
-  pulp/chips/oprecompkw pulp/chips/oprecompkw_sa pulp/chips/bigpulp \
-  pulp/chips/wolfe pulp/chips/vega pulp/chips/gap9 pulp/chips/gap9_v2 pulp/chips/usoc_v1 pulp/pmu pulp/chips/gap \
-  pulp/chips/multino pulp/efuse board pulp/chips/arnold \
-  devices/hyperbus devices/spiflash vendor/dolphin pulp/chips/pulpissimo_v1 \
-  pulp/rtc pulp/gpio pulp/chips/gap_rev1 pulp/chips/pulp_v1 pulp/chips/vivosoc3_1 \
-  pulp/mram pulp/hwce cache pulp/chips/gap8_revc pulp/hwacc devices/uart devices/sound \
+VP_DIRS=memory cpu/iss board \
+  interco utils \
+  devices/hyperbus devices/spiflash  \
+  cache devices/uart devices/sound \
   devices/testbench
 
 

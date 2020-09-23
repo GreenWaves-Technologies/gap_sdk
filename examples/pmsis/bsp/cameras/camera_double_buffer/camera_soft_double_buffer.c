@@ -22,13 +22,6 @@ static volatile int next_idx = 0;
 
 static struct pi_device cam;
 
-/* static functions */
-
-static void cam_handler(void *arg)
-{
-    pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
-}
-
 #if defined(HIMAX)
 static int32_t open_camera_himax(struct pi_device *device)
 {
@@ -94,7 +87,7 @@ static void test_camera_double_buffer(void)
     pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
 
     /* we first need to capture an image before launching double buffer loop */
-    pi_task_callback(&task, cam_handler, NULL);
+    pi_task_block(&task);
     pi_camera_capture_async(&cam, img_buffers[next_idx], CAMERA_WIDTH * CAMERA_HEIGHT, &task);
     pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);
     pi_task_wait_on(&task);
@@ -106,7 +99,8 @@ static void test_camera_double_buffer(void)
         current_idx = next_idx;
         next_idx ^= 1;
 
-        pi_task_callback(&task, cam_handler, NULL);
+        pi_task_block(&task);
+        pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
         /* launch the capture of the next image */
         pi_camera_capture_async(&cam, img_buffers[next_idx], CAMERA_WIDTH * CAMERA_HEIGHT, &task);
         pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);

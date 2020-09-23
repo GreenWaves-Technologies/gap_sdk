@@ -21,11 +21,12 @@ from interpreter.nntool_shell_base import NNToolShellBase
 from utils.data_importer import import_data
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
-from generation.default_template import default_template, dynamic_template, header_template
+from generation.default_template import basic_kernel_header_template, basic_kernel_source_template, default_template, dynamic_template, header_template
 from generation.naming_convension import DefaultNamingConvension
 from generation.code_generator import CodeGenerator
 
 LOG = logging.getLogger("nntool")
+
 
 class GenCommand(NNToolShellBase):
     # GEN COMMAND
@@ -53,6 +54,14 @@ class GenCommand(NNToolShellBase):
     parser_gen.add_argument('--header_file',
                             completer_method=Cmd.path_complete,
                             help='generate header file with layers information')
+    parser_gen.add_argument('--basic_kernel_source_file',
+                            completer_method=Cmd.path_complete,
+                            default="Expression_Kernels.c",
+                            help='file to write to, otherwise output to terminal')
+    parser_gen.add_argument('--basic_kernel_header_file',
+                            completer_method=Cmd.path_complete,
+                            default="Expression_Kernels.h",
+                            help='file to write to, otherwise output to terminal')
 
     @with_argparser(parser_gen)
     def do_gen(self, args):
@@ -76,6 +85,8 @@ settings related to code generation."""
             self.settings['tensor_directory'] = args.tensor_directory
         if args.model_directory:
             self.settings['model_directory'] = args.model_directory
+        self.settings['basic_kernel_source_file'] = args.basic_kernel_source_file
+        self.settings['basic_kernel_header_file'] = args.basic_kernel_header_file
         code_gen = CodeGenerator(self.G, DefaultNamingConvension(self.G), self.settings)
 
         if self.settings['template_file']:
@@ -87,8 +98,18 @@ settings related to code generation."""
             with open(os.path.join(self.settings['model_directory'],
                                    args.model_file), "w") as output_fp:
                 output_fp.write(code_template(self.G, code_generator=code_gen))
+            if self.G.has_expressions:
+                with open(os.path.join(self.settings['model_directory'],
+                                       args.basic_kernel_source_file), "w") as output_fp:
+                    output_fp.write(basic_kernel_source_template(self.G, code_generator=code_gen))
+                with open(os.path.join(self.settings['model_directory'],
+                                       args.basic_kernel_header_file), "w") as output_fp:
+                    output_fp.write(basic_kernel_header_template(self.G, code_generator=code_gen))
         else:
             self.ppaged(code_template(self.G, code_generator=code_gen))
+            if self.G.has_expressions:
+                self.ppaged(basic_kernel_source_template(self.G, code_generator=code_gen))
+                self.ppaged(basic_kernel_header_template(self.G, code_generator=code_gen))
         if args.output_tensors:
             code_gen.write_constants()
 

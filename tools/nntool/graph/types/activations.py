@@ -35,7 +35,7 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
             return ReluActivationParameters(name, upper_bound=6)
         if activation_type == "hswish":
             return HSwishActivationParameters(name)
-        if activation_type == "tanh":
+        if activation_type in ["tanh", "htanh"]:
             return TanHActivationParameters(name)
         raise ValueError("don't know how to create %s"%activation_type)
 

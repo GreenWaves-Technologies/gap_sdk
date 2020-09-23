@@ -1,0 +1,7 @@
+set debug true
+adjust
+fusions -a expression_matcher
+set input_norm_func 'x:x/128'
+aquant samples/input_0.dat samples/input_1.dat samples/input_2.dat samples/input_3.dat --nptype int8
+qshow
+gen MODEL_SRC -T TENSORS_DIR -M MODEL_BUILD -t

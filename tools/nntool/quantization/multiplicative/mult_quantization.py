@@ -15,12 +15,14 @@
 
 import math
 from functools import reduce
-from typing import Sequence, Tuple, Mapping
+from typing import Mapping, Sequence, Tuple
 
 import numpy as np
+from sympy import Symbol
 
-from graph.types import (FilterParameters, MultiplicativeBiasParameters,
-                         Parameters, ConstantInputParameters)
+from graph.types import (ConstantInputParameters, FilterParameters,
+                         MultiplicativeBiasParameters, Parameters)
+from graph.types.expressions.expr_state import ExprState
 from quantization.multiplicative.mult_qtype_base import (MultQTypeBase,
                                                          WrapperMixin)
 from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import (
@@ -29,8 +31,9 @@ from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
     SymmetricMultBiasesQType
 from quantization.qtype import QType
 from quantization.quantization_record_base import (
-    ConstantQuantizationRecordBase, InputOutputQuantizationRecordBase,
-    QuantizationRecordBase, ScalableFilterQuantizationRecordBase, HasConstantsBase)
+    ConstantQuantizationRecordBase, HasConstantsBase,
+    InputOutputQuantizationRecordBase, QuantizationRecordBase,
+    ScalableFilterQuantizationRecordBase)
 
 
 class MultQuantizationRecordBase(QuantizationRecordBase):
@@ -158,6 +161,40 @@ class OutputQuantizationMixin(MultQuantizationRecordBase):
                               for idx, output_tensor in enumerate(output_tensors)]
         return output_tensors
 
+class MultExpressionQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin, InputOutputQuantizationRecordBase):
+
+    def __init__(self, *args, inputs=None, output_exprs=None, intermediate_exprs=None, info=None, **kwargs):
+        super(MultExpressionQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            self._info['inputs'] = inputs
+            self._info['output_exprs'] = output_exprs
+            self._info['intermediate_exprs'] = intermediate_exprs
+
+    def _encapsulate(self):
+        rec = super(MultExpressionQuantizationRecord, self)._encapsulate()
+        rec['inputs'] = [sym.name for sym in self._info['inputs']]
+        return rec
+
+    @classmethod
+    def _dencapsulate(cls, val):
+        val['inputs'] = [Symbol(name) for name in val['inputs']]
+        return cls(info=val)
+
+    @property
+    def inputs(self):
+        return self._info['inputs']
+
+    @property
+    def outputs(self):
+        return self._info['outputs']
+
+    @property
+    def output_exprs(self):
+        return self._info['output_exprs']
+
+    @property
+    def intermediate_exprs(self):
+        return self._info['intermediate_exprs']
 
 class MultQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin, InputOutputQuantizationRecordBase):
     def __init__(self, *args, scale_mul_biases_q=None, info=None, **kwargs):

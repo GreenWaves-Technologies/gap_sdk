@@ -19,6 +19,10 @@
  *          Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
+// TODO should be moved to pmsis
+#define FIX2FP(Val, Precision)                      ((float) (Val) / (float) (1<<(Precision)))
+#define FP2FIXR(Val, Precision)                     ((int)((Val)*((1 << (Precision))-1) + 0.5))
+#define FP2FIX(Val, Precision)                      ((int)((Val)*((1 << (Precision))-1)))
 #include "jpeg_constants.h"
 #include "pmsis.h"
 

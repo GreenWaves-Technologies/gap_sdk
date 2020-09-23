@@ -4,9 +4,12 @@ PMSIS_OS=pulpos
 APP = test
 APP_SRCS += test.c ImgIO.c
 APP_CFLAGS += -O3 -g -Werror
-APP_LDFLAGS += -g -lgaplib
+APP_LDFLAGS +=
 
 IMAGE1=imgTest0.pgm
+
+# Include GAP_LIB/JPEG
+CONFIG_GAP_LIB_JPEG = 1
 
 export GAP_USE_OPENOCD=1
 

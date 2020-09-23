@@ -78,6 +78,8 @@ struct pi_cluster_conf {
 #define INLINE
 #endif
 
+#ifndef CLUSTER_TASK_CUSTOM
+
 struct pi_cluster_task {
     // entry function and its argument(s)
     void (*entry)(void*);
@@ -96,6 +98,8 @@ struct pi_cluster_task {
 
     CLUSTER_TASK_IMPLEM;
 };
+
+#endif
 
 struct pi_cl_team_task {
     void *stacks;

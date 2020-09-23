@@ -20,6 +20,20 @@
   },
 
   "content": {
+    "partitions": {
+        "readfs": {
+            "type": "readfs",
+            "files": []
+        },
+        "hostfs": {
+            "type": "hostfs",
+            "files": []
+        },
+        "lfs": {
+            "type": "lfs",
+            "root_dir": null
+        }
+    }
   },
 
   "doc_rst": "devices/spiflash.rst",

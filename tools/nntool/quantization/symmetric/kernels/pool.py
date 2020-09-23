@@ -140,7 +140,7 @@ def av_global_pool_mult(params,
         params.axis), keepdims=params.keep_dims)
     sz = reduce(lambda x, y: x * y, [i for idx,
                                      i in enumerate(in_tensor.shape) if idx in params.axis])
-    res = at_norm((sum_by_chan << 7) // sz, 7)
+    res = at_norm(((sum_by_chan << 7) / sz).astype(np.int32), 7)
     res = out_tensor = qrec.scale_mul_biases_q.apply_scales(res)
     return qrec.get_outputs(params,
                             [out_tensor.reshape(out_dims.shape)],

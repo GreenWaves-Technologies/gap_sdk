@@ -202,34 +202,35 @@ specific step of the graph."""
             if args.visualize_detection:
                 img_in = Image.open(file_per_input[0]).convert('RGBA')
 
-                bboxes, classes, scores, _ = [outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
                 height = img_in.size[1] if input_args['height'] == -1 else input_args['height']
                 width = img_in.size[0] if input_args['width'] == -1 else input_args['width']
-
                 img_in = img_in.resize((width, height))
-                draw = ImageDraw.Draw(img_in, 'RGBA')
 
-                for box, score, class_id in zip(bboxes, scores, classes):
-                    if args.quantize and not args.dequantize:
-                        ssd_node = [node for node in self.G.nodes() if isinstance(node, SSDDetectorParameters)][0]
-                        ssd_qrec = self.G.quantization[NodeId(ssd_node)]
-                        x0, x1 = int(box[1] * width * ssd_qrec.out_qs[0].scale), int(box[3] * width * ssd_qrec.out_qs[0].scale)
-                        y0, y1 = int(box[0] * height * ssd_qrec.out_qs[0].scale), int(box[2] * height * ssd_qrec.out_qs[0].scale)
-                        score = score * ssd_qrec.out_qs[2].scale
-                    else:
-                        x0, x1 = int(box[1] * width), int(box[3] * width)
-                        y0, y1 = int(box[0] * height), int(box[2] * height)
-                    rect_points = (x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)
-                    draw.line(rect_points, fill='red', width=2)
-                    txt = '{}@{}%'.format(class_id, int(score*100))
-                    draw.text([x0, y0-10], txt, fill=(0, 255, 0))
+                if self.G.has_ssd_postprocess:
+                    bboxes, classes, scores, _ = [outputs[graph_out.step_idx][0] for graph_out in self.G.outputs()]
+                    draw = ImageDraw.Draw(img_in, 'RGBA')
+
+                    for box, score, class_id in zip(bboxes, scores, classes):
+                        if args.quantize and not args.dequantize:
+                            ssd_node = [node for node in self.G.nodes() if isinstance(node, SSDDetectorParameters)][0]
+                            ssd_qrec = self.G.quantization[NodeId(ssd_node)]
+                            x0, x1 = int(box[1] * width * ssd_qrec.out_qs[0].scale), int(box[3] * width * ssd_qrec.out_qs[0].scale)
+                            y0, y1 = int(box[0] * height * ssd_qrec.out_qs[0].scale), int(box[2] * height * ssd_qrec.out_qs[0].scale)
+                            score = score * ssd_qrec.out_qs[2].scale
+                        else:
+                            x0, x1 = int(box[1] * width), int(box[3] * width)
+                            y0, y1 = int(box[0] * height), int(box[2] * height)
+                        rect_points = (x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)
+                        draw.line(rect_points, fill='red', width=2)
+                        txt = '{}@{}%'.format(class_id, int(score*100))
+                        draw.text([x0, y0-10], txt, fill=(0, 255, 0))
                 img_in.show()
 
         if args.pickle or args.save or self._in_py:
             if not pickles:
                 self.perror("no input files found")
                 return
-            if len(args.input_files) == 1:
+            if len(args.input_files) == self.G.num_inputs:
                 pickles = pickles[0]
             if args.pickle:
                 with open(args.pickle, 'wb') as pickle_fp:

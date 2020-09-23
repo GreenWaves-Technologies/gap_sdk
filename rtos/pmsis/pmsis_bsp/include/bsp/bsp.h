@@ -150,6 +150,12 @@ void bsp_aps25xxxn_conf_init(struct pi_aps25xxxn_conf *conf);
 int bsp_aps25xxxn_open(struct pi_aps25xxxn_conf *conf);
 #endif
 
+#if defined(CONFIG_ATXP032)
+#include "bsp/flash/atxp032.h"
+void bsp_atxp032_conf_init(struct pi_atxp032_conf *conf);
+int bsp_atxp032_open(struct pi_atxp032_conf *conf);
+#endif
+
 #if defined(CONFIG_NINA_W10)
 #include "bsp/transport/nina_w10.h"
 void bsp_nina_w10_conf_init(struct pi_nina_w10_conf *conf);

@@ -480,6 +480,70 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
             self.factor
         )
 
+class BinaryOpParameters(Parameters):
+    op_name = "binary"
+
+    def __init__(self, *args, op_type="maximum", **kwargs):
+        super(BinaryOpParameters, self).__init__(*args, **kwargs)
+        self._op_type= op_type
+
+    @property
+    def op_type(self):
+        return self._op_type
+
+    def get_output_size(self, in_dims):
+        assert len(in_dims) == 2
+        out_dim = in_dims[0].clone()
+        return [out_dim]
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "{} {}".format(
+            self._op_type,
+            self.at_options
+        )
+
+class UnaryOpParameters(Parameters):
+    op_name = "unary"
+
+    def __init__(self, *args, op_type=None, **kwargs):
+        super(UnaryOpParameters, self).__init__(*args, **kwargs)
+        self._op_type = op_type
+
+    @property
+    def op_type(self):
+        return self._op_type
+
+    def get_output_size(self, in_dims):
+        assert len(in_dims) == 1
+        out_dim = in_dims[0].clone()
+        return [out_dim]
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "{} {}".format(
+            self._op_type,
+            self.at_options
+        )
+
 class GlobalPoolParameters(Transposable, SingleInputAndOutput):
     op_name = "global"
 

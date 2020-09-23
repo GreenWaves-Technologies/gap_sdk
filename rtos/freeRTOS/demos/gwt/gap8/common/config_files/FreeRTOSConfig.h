@@ -59,8 +59,8 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
  */
 //#define malloc                                    ( pmsis_malloc )
 //#define free                                      ( pmsis_malloc_free )
-#define pvPortMalloc                              ( pi_malloc )
-#define vPortFree                                 ( pi_free )
+#define pvPortMalloc                                ( pi_malloc )
+#define vPortFree                                   ( pi_free )
 
 /* Thread local storage. */
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS   ( 0 )
@@ -96,19 +96,19 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #define configSTACK_DEPTH_TYPE                    uint32_t
 
 #define configMAX_TASK_NAME_LEN                   ( 16 )
-#define configUSE_TRACE_FACILITY                  ( 1 )
+#define configUSE_TRACE_FACILITY                  ( 0 )
 #define configUSE_16_BIT_TICKS                    ( 0 )
 
 #define configUSE_MUTEXES                         ( 1 )
 #define configQUEUE_REGISTRY_SIZE                 ( 8 )
-#define configCHECK_FOR_STACK_OVERFLOW            ( 2 )
+#define configCHECK_FOR_STACK_OVERFLOW            ( 0 )
 #define configUSE_RECURSIVE_MUTEXES               ( 1 )
 #define configUSE_MALLOC_FAILED_HOOK              ( 0 )
 #define configUSE_APPLICATION_TASK_TAG            ( 0 )
 #define configUSE_COUNTING_SEMAPHORES             ( 1 )
 #define configGENERATE_RUN_TIME_STATS             ( 0 )
 #define configOVERRIDE_DEFAULT_TICK_CONFIGURATION ( 1 )
-#define configRECORD_STACK_HIGH_ADDRESS           ( 1 )
+#define configRECORD_STACK_HIGH_ADDRESS           ( 0 )
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES                     ( 0 )
@@ -163,6 +163,8 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
  * See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY \
     ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << ( 8 - configPRIO_BITS ) )
+
+#define NDEBUG
 
 /* Normal assert() semantics without relying on the provision of an assert.h
  * header file. */

@@ -299,17 +299,16 @@ void async_cascade_stage_to_l1(single_cascade_t* cascade_l2, single_cascade_t* c
     pi_cl_dma_wait(Dma_Evt);
 
     cascade_l1->rect_num       = (unsigned  short*) addr;//rt_alloc( RT_ALLOC_CL_DATA, sizeof(unsigned short)*((cascade_l2->stage_size)+1));
-    addr+= sizeof(unsigned short)*((cascade_l1->stage_size)+1);
+    addr+= sizeof(unsigned short)*(cascade_l1->stage_size+1);
     __cl_dma_memcpy((unsigned int) cascade_l2->rect_num, (unsigned int) cascade_l1->rect_num, sizeof(unsigned short)*(cascade_l1->stage_size+1), PI_CL_DMA_DIR_EXT2LOC, 0, Dma_Evt);
     pi_cl_dma_wait(Dma_Evt);
 
     cascade_l1->weights    = (signed char*) addr;//rt_alloc( RT_ALLOC_CL_DATA, sizeof(signed char)*(cascade_l2->rectangles_size/4));
-    addr+=sizeof(signed char)*(cascade_l1->rectangles_size << 2);
+    addr+=sizeof(signed char)*(cascade_l1->rectangles_size / 4);
     __cl_dma_memcpy((unsigned int) cascade_l2->weights, (unsigned int) cascade_l1->weights, sizeof(signed char)*(cascade_l2->rectangles_size/4), PI_CL_DMA_DIR_EXT2LOC, 0, Dma_Evt);
     pi_cl_dma_wait(Dma_Evt);
 
     cascade_l1->rectangles = (char*) addr;//rt_alloc( RT_ALLOC_CL_DATA, sizeof(char)*cascade_l2->rectangles_size);
-    addr+=sizeof(signed char)*(cascade_l2->rectangles_size<<2);
     __cl_dma_memcpy((unsigned int) cascade_l2->rectangles, (unsigned int) cascade_l1->rectangles, sizeof(char)*cascade_l2->rectangles_size, PI_CL_DMA_DIR_EXT2LOC, 0, Dma_Evt);
     pi_cl_dma_wait(Dma_Evt);
 
@@ -361,7 +360,7 @@ static int windows_cascade_classifier(unsigned int* __restrict__ integralImage, 
                     //PRINTF("Here 1 %d\n",i);
                     Arg.cascade_stage = (cascade->buffers_l1[buffer%2]);
                     //If it is not last
-                if( i<cascade->stages_num-1)
+                    if(i < cascade->stages_num-1)
                         async_cascade_stage_to_l1((cascade->stages[i+1]), (cascade->buffers_l1[(++buffer)%2]), &Dma_Evt);
                     //PRINTF("Here 2 %d\n",i);
                 }
@@ -398,10 +397,7 @@ void KerEvaluateCascade(
             if((Line%DETECT_STRIDE) == 0 && (Col%DETECT_STRIDE) == 0)
                 CascadeReponse[Line*(W-WinW+1) + (Col)] = windows_cascade_classifier(IntegralImage, SquaredIntegralImage, model, WinW, WinH, W, Col, Line);
             else
-            CascadeReponse[Line*(W-WinW+1) + (Col)]=0;
+                CascadeReponse[Line*(W-WinW+1) + (Col)] = 0;
         }
     }
-
-    return;
 }
-

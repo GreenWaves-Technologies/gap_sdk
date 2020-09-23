@@ -50,13 +50,7 @@ struct cluster_driver_data
     spinlock_t fifo_access;
     void *heap_start;
     uint32_t heap_size;
-    pi_task_t *task_to_fc;
 };
-
-static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback)
-{
-    pi_cl_send_task_to_fc((pi_task_t *) ((uint32_t) callback | 0x1));
-}
 
 #endif  /* LANGUAGE_ASSEMBLY || __ASSEMBLER__ */
 

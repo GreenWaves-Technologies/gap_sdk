@@ -35,6 +35,8 @@ def gen_activation_op(activation, force_relu=False):
         aop = "KOP_HSIGMOID"
     elif activation == "swish" or activation == "hswish":
         aop = "KOP_HSWISH"
+    elif activation == "leaky":
+        aop = "KOP_LEAKYRELU"
     else:
         raise NotImplementedError("activation type %s not implemented" % activation)
     return aop

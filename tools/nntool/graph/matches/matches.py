@@ -38,6 +38,7 @@ from .propagate_softmax_sym_mult_qrec import PropagateSoftmaxSymQrec
 from .remove_noops import RemoveNoOPs
 from .remove_relus import RemoveRelusMatch
 from .remove_unused_concats import RemoveUnusedConcats
+from .expression_matcher import ExpressionMatcher
 
 ALL_MATCH_CLASSES = [MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExternalBias,
                      MatchFusePad, RemoveUnusedConcats,
@@ -47,7 +48,7 @@ ALL_MATCH_CLASSES = [MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExterna
                      MatchAllGapConv, MatchGapPool, MatchOpActivationScaleKernels,
                      MatchOpActivationPow2Kernels, FilterBiggerThanInput,
                      MatchGapLinear, ExpandTransposesMatcher, FindAsymmetricQuantization,
-                     FuseMatScalePair, FuseMatScale, MatchInsertCopies]
+                     FuseMatScalePair, FuseMatScale, MatchInsertCopies, ExpressionMatcher]
 POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad,
                       RemoveUnusedConcats, FindMissingQuantization, MatchCloseHSigmoid,
                       MoveActivationsMatcherPow2, ExpandTransposesMatcher, MatchAllGapConv, MatchGapLinear,

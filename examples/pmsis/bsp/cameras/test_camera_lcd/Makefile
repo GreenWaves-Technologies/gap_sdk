@@ -1,10 +1,14 @@
 # User Test
 #------------------------------------
-
 APP              = test
-APP_SRCS        += test_camera_lcd.c $(GAP_LIB_PATH)/img_io/ImgIO.c
-APP_INC         += . $(GAP_LIB_PATH)/include $(TILER_INC)
-APP_CFLAGS      += -O3 -g
+# App sources
+APP_SRCS         = test_camera_lcd.c
+# App includes
+APP_INC	         = .
+# Compiler flags
+APP_CFLAGS       = -O3 -g
+# Linker flags
+APP_LDFLAGS      =
 
 ifeq ($(ASYNC), 1)
 APP_CFLAGS      += -DASYNC
@@ -13,6 +17,9 @@ endif
 ifeq ($(BOARD_NAME), gapuino)
 APP_CFLAGS      += -DHIMAX
 endif
+
+# Include GAP_LIB/IMGIO
+CONFIG_GAP_LIB_IMGIO = 1
 
 override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
 override config_args += --config-opt=display/enabled=true
