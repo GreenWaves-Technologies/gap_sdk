@@ -203,6 +203,7 @@ static inline int pi_cluster_send_task_async(struct pi_device *device,
 
 int pi_cluster_send_task_to_cl(struct pi_device *device, struct pi_cluster_task *task);
 int pi_cluster_send_task_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);
+int pi_cluster_send_tasklet_to_cl_async(struct pi_device *device, struct pi_cluster_task *cluster_task, pi_task_t *task);
 
 static inline int pi_cluster_send_task(struct pi_device *device, struct pi_cluster_task *task)
 {
@@ -261,6 +262,9 @@ void pi_cluster_wait_free_async(struct pi_device *device, pi_task_t *async_task)
 int pi_cluster_open_async(struct pi_device *device,
         pi_task_t *async_task);
 
+
+#if defined(PMSIS_DRIVERS) || !defined(__PULPOS2__)
+
 static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *task, void (*entry)(void*), void *arg)
 {
     #if defined(PMSIS_DRIVERS)
@@ -273,6 +277,8 @@ static inline struct pi_cluster_task *pi_cluster_task(struct pi_cluster_task *ta
     task->nb_cores = 0;
     return task;
 }
+
+#endif
 
 /// @endcond
 

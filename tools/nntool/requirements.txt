@@ -11,3 +11,4 @@ numpy==1.16.2
 argcomplete==1.10.0
 scikit-image==0.15.0
 scikit-learn==0.21.3
+sympy==1.4

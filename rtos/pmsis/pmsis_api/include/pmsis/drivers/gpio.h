@@ -279,21 +279,6 @@ int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin, pi_task_t *task
  */
 int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin);
 
-
-/**
- * \typedef pi_gpio_handler_t
- *
- * \brief GPIO handler callback type.
- *
- * This handler is executed when an IRQ is triggered on configured GPIO pins.
- *
- * \param args           User args to handler.
- *
- * \note Multiple handlers can be added for a given GPIO pin.
- * \note This is executed in IRQ mode.
- */
-typedef void (* pi_gpio_handler_t) (void *args);
-
 /**
  * \struct pi_gpio_callback_t
  *
@@ -304,8 +289,8 @@ typedef void (* pi_gpio_handler_t) (void *args);
 typedef struct pi_gpio_callback_s
 {
     uint32_t pin_mask;               /*!< Mask of GPIO pins. */
+    pi_callback_func_t handler;      /*!< Callback handler. */
     void *args;                      /*!< Callback user args. */
-    pi_gpio_handler_t handler;       /*!< Callback handler. */
     struct pi_gpio_callback_s *next; /*!< Next callback pointer. */
     struct pi_gpio_callback_s *prev; /*!< Previous callback pointer. */
 } pi_gpio_callback_t;
@@ -318,12 +303,12 @@ typedef struct pi_gpio_callback_s
  * \param cb             Pointer to callback to initialize.
  * \param pin_mask       Mask of GPIO pins.
  * \param handler        Callback function.
- * \param args           Callback function args.
+ * \param arg            Callback function arg.
  */
 static inline void pi_gpio_callback_init(pi_gpio_callback_t *cb,
                                          uint32_t pin_mask,
-                                         pi_gpio_handler_t handler,
-                                         void *args);
+                                         pi_callback_func_t handler,
+                                         void *arg);
 
 /**
  * \brief Attach a callback.
@@ -382,7 +367,7 @@ int pi_gpio_mask_task_remove(struct pi_device *device, uint32_t mask);
 
 static inline void pi_gpio_callback_init(pi_gpio_callback_t *cb,
                                          uint32_t pin_mask,
-                                         pi_gpio_handler_t handler,
+                                         pi_callback_func_t handler,
                                          void *args)
 {
     cb->pin_mask = pin_mask;

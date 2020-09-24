@@ -10,6 +10,8 @@ from .bindings.mult8.mat_vect_mult_bindings_generator import \
     mat_vect_mul_bindings_generator as mult8_mat_vect_mul_bindings_generator
 from .bindings.mult8.matadd_bindings_generator import \
     matadd_bindings_generator as mult8_matadd_bindings_generator
+from .bindings.mult8.multi_inout_bindings_generator import \
+    multi_in_out_bindings_generator
 from .bindings.mult8.rnn_bindings_generator import rnn_bindings_generator
 from .bindings.mult8.softmax_bindings_generator import \
     softmax_bindings_generator as mult8_softmax_bindings_generator
@@ -41,9 +43,12 @@ from .globals.mult8_ssd_globals_generator import mult8_ssd_globals_generator
 from .globals.output_generator import outputs_output_generator
 from .kernels.general.imageformat_kernels_generator import \
     imageformat_kernels_generator
+from .kernels.general.resizer_kernel_generator import resize_kernels_generator
 from .kernels.mult8.conv_pool_relu_kernels_generator import \
     conv_pool_relu_kernels_generator as mult8_conv_pool_relu_kernels_generator
 from .kernels.mult8.copy_kernels_generator import copy_kernel_generator
+from .kernels.mult8.expressions_kernels_generator import \
+    expressions_kernels_generator
 from .kernels.mult8.global_pool_kernels_generator import \
     global_pool_kernels_generator as mult8_global_pool_kernels_generator
 from .kernels.mult8.linear_relu_kernels_generator import \

@@ -70,3 +70,42 @@ void KerResizeBilinear(KerResizeBilinear_ArgT *Arg)
         }
         gap_waitbarrier(0);
 }
+
+void KerResizeNearestNeighbor(KerResizeNearestNeighbor_ArgT *Arg)
+
+{
+        unsigned char * __restrict__ In  = Arg->In;
+        unsigned int Win                 = Arg->Win;
+        unsigned int Hin                 = Arg->Hin;
+        unsigned char * __restrict__ Out = Arg->Out;
+        unsigned int Wout                = Arg->Wout;
+        unsigned int Hout                = Arg->Hout;
+        unsigned int HTileOut            = Arg->HTileOut;
+        unsigned int FirstLineIndex      = Arg->FirstLineIndex;
+
+        unsigned int CoreId = gap_coreid();
+        unsigned int ChunkCell = ChunkSize(Wout);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(Wout, First+ChunkCell);
+
+        unsigned int WStep = ((Win-1)<<16)/(Wout-1);
+        unsigned int HStep = ((Hin-1)<<16)/(Hout-1);
+
+        unsigned int x, y;
+        unsigned int hCoeff = HStep*FirstLineIndex;
+        unsigned int BaseY = hCoeff;
+        for (y = 0 ; y < HTileOut ; y++) {
+                unsigned int h_rounded = gap_roundnormu(hCoeff - BaseY, 16);
+                // unsigned int wCoeff = 0;
+                unsigned int wCoeff = First*WStep;
+
+                // for (x = 0 ; x < Wout ; x++) {
+                for (x = First ; x < Last ; x++) {
+                        unsigned int w_rounded = gap_roundnormu(wCoeff, 16);
+
+                        Out[y*Wout + x] = In[h_rounded*Win + w_rounded];
+                        wCoeff += WStep;
+                }
+                hCoeff += HStep;
+        }
+        gap_waitbarrier(0);
+}

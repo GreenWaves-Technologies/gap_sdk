@@ -16,15 +16,17 @@
 import logging
 
 import numpy as np
+from sympy import Symbol
 
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from graph.manipulations import add_dimensions, calculate_liveness
-from graph.matches.matches import (MatchInsertCopies, MatchRnnUnpack,
-                                   get_fusion, get_pow2_match_group,
+from graph.matches.matches import (MatchInsertCopies,
+                                   MatchRnnUnpack, get_fusion,
+                                   get_pow2_match_group,
                                    get_scale8_match_group)
-from graph.types import (InputParameters, OutputParameters, Parameters,
-                         Transposable)
+from graph.types import (InputParameters,
+                         OutputParameters, Parameters, Transposable)
 from importer.tflite.new_tflite_graph_all import TfliteImporter
 from reports.graph_reporter import GraphReporter
 from utils.node_id import NodeId
@@ -378,6 +380,7 @@ def test_adjust_lstm():
     G.adjust_order()
     assert G
 
+
 def test_adjust_lstm2():
     tfi = TfliteImporter()
     G = tfi.create_graph("tests/graph/lstm2.tflite", {'load_tensors': True})
@@ -385,12 +388,14 @@ def test_adjust_lstm2():
     G.adjust_order()
     assert G
 
+
 def test_adjust_lstm3():
     tfi = TfliteImporter()
     G = tfi.create_graph("tests/graph/lstm3.tflite", {'load_tensors': True})
     G.add_dimensions()
     G.adjust_order()
     assert G
+
 
 def test_adjust_lstm4():
     tfi = TfliteImporter()
@@ -401,6 +406,7 @@ def test_adjust_lstm4():
     matcher.match(G)
     G.add_dimensions()
     assert G
+
 
 def test_adjust_lstm5():
     tfi = TfliteImporter()
@@ -413,6 +419,7 @@ def test_adjust_lstm5():
     matcher.match(G)
     G.add_dimensions()
     assert G
+
 
 def test_adjust_rnn():
     tfi = TfliteImporter()
@@ -437,6 +444,7 @@ def test_adjust_rnn2():
     G.add_dimensions()
     assert G
 
+
 def test_adjust_split_concat(split_concat_graph):
     G = split_concat_graph
     G.add_dimensions()
@@ -446,6 +454,7 @@ def test_adjust_split_concat(split_concat_graph):
     MatchInsertCopies().match(G)
     G.add_dimensions()
     assert G
+
 
 def test_validate_mn1_float(mn1f_graph):
     tfi = TfliteImporter()

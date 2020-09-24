@@ -142,32 +142,31 @@ static cascade_t *getFaceCascade(){
 }
 
 
-static int biggest_cascade_stage(cascade_t *cascade){
+static unsigned biggest_cascade_stage(const cascade_t *cascade){
 
 	//Calculate cascade bigger layer
-	int biggest_stage_size=0;
-	int cur_layer;
+	unsigned max_stage_size = 0;
 
-	for (int i=0; i<cascade->stages_num; i++) {
+	for (int i = 0; i < cascade->stages_num; i++) {
 
-		cur_layer = sizeof(cascade->stages[i]->stage_size) +
-					sizeof(cascade->stages[i]->rectangles_size) +
-					(cascade->stages[i]->stage_size*
-						(sizeof(cascade->stages[i]->thresholds) +
-						 sizeof(cascade->stages[i]->alpha1) +
-						 sizeof(cascade->stages[i]->alpha2) +
-						 sizeof(cascade->stages[i]->rect_num)
-						 )
-					) +
-					(cascade->stages[i]->rectangles_size*sizeof(cascade->stages[i]->rectangles)) +
-					((cascade->stages[i]->rectangles_size/4)*sizeof(cascade->stages[i]->weights));
+		single_cascade_t *stage = cascade->stages[i];
+		unsigned stage_size;
+		stage_size = sizeof(*stage) +
+			     stage->stage_size * (
+				 sizeof(*stage->thresholds) +
+				 sizeof(*stage->alpha1) +
+				 sizeof(*stage->alpha2) +
+				 sizeof(*stage->rect_num)
+			     ) + sizeof(*stage->rect_num) +
+			     stage->rectangles_size * sizeof(*stage->rectangles) +
+			     (stage->rectangles_size/4) * sizeof(*stage->weights);
 
-		if(cur_layer>biggest_stage_size)
-			biggest_stage_size=cur_layer;
-		//DEBUG_PRINTF ("Stage size: %d\n",cur_layer);
+		if (stage_size > max_stage_size)
+			max_stage_size = stage_size;
+		//DEBUG_PRINTF ("Stage size: %u\n", stage_size);
 	}
 
-	return biggest_stage_size;
+	return max_stage_size;
 }
 
 
@@ -299,8 +298,8 @@ void faceDet_cluster_init(ArgCluster_T *ArgC){
 	//Get Cascade Model
 	ArgC->model = getFaceCascade();
 
-	int max_cascade_size = biggest_cascade_stage(ArgC->model);
-	//DEBUG_PRINTF("Max cascade size:%d\n",max_cascade_size);
+	unsigned max_cascade_size = biggest_cascade_stage(ArgC->model);
+	//DEBUG_PRINTF("Max cascade size:%u\n",max_cascade_size);
 
 	for(int i=0;i<CASCADE_STAGES_L1;i++)
 		ArgC->model->stages[i] = sync_copy_cascade_stage_to_l1((ArgC->model->stages[i]));

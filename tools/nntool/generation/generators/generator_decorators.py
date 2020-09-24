@@ -91,7 +91,7 @@ def generation_match(phase_name, matcher):
         return func
     return phase_func
 
-def generation_function(phase_name, params, qrec_types=None):
+def generation_function(phase_name: str, params: tuple, qrec_types: tuple = None):
     def phase_func(func):
         gens = RegisteredGeneratorsMixin.Generators[phase_name]
         matcher = OldMatcher(params, qrec_types)

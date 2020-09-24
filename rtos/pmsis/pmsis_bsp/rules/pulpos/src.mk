@@ -84,6 +84,12 @@ PULP_SRCS += $(BSP_SPIFLASH_SRC)
 CONFIG_FLASH = 1
 endif
 
+ifeq '$(CONFIG_ATXP032)' '1'
+PULP_SRCS += flash/spiflash/atxp032.c
+CONFIG_FLASH = 1
+CONFIG_HYPER = 1
+endif
+
 ifeq '$(CONFIG_FLASH)' '1'
 PULP_SRCS += $(BSP_FLASH_SRC)
 CONFIG_BSP = 1

@@ -9,6 +9,8 @@ import importlib
 
 import argcomplete
 import numpy as np
+import tensorflow.keras.preprocessing.image as image
+import tensorflow.keras.datasets as datasets
 
 def create_parser():
     # create the top-level parser
@@ -27,12 +29,10 @@ def create_parser():
     return parser
 
 def write_image(directory, num, img_idx, sample):
-    image = importlib.import_module('keras.preprocessing.image')
     sample = np.expand_dims(sample, axis=-1)
     image.save_img(os.path.join(directory, "{}_{}.pgm".format(img_idx, num)), sample)
 
 def save_samples(per_number, directory, use_set='test'):
-    datasets = importlib.import_module('keras.datasets')
     (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
     (x, y) = (x_train, y_train) if use_set == 'train' else (x_test, y_test)
     index = {k: [] for k in range(10)}

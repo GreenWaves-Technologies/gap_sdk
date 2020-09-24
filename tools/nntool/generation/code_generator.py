@@ -16,10 +16,14 @@
 import logging
 
 from generation.generators import RegisteredGeneratorsMixin
+from generation.generators.globals.global_names import *
 from generation.name_cache import NameCache
-from graph.types import (ConcatParameters, ConstantInputParameters, SplitParameters,
-                         FilterParameters, InputParameters, OutputParameters,
-                         ReshapeParameters, TransposeParameters, SSDDetectorParameters)
+from graph.types import (ConcatParameters, ConstantInputParameters,
+                         InputParameters, OutputParameters, ReshapeParameters,
+                         SplitParameters, SSDDetectorParameters,
+                         TransposeParameters)
+from graph.types.expressions.kernel_codegen import BasicKernel
+from graph.types.fusions import FusionInputParameters, FusionOutputParameters
 from utils.node_id import NodeId
 
 from .at_types.gen_ctrl import gen_graph_ctrl, gen_kernel_ctrl
@@ -31,7 +35,6 @@ from .bindings import (TT_TENSOR_TYPES, FunctionBindingList, GArgEdge,
 from .checksums import calc_value_checksum, checksum_func
 from .code_block import CodeBlock
 from .write_constants import write_constants
-from generation.generators.globals.global_names import *
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -47,6 +50,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         self.stacked_tensors = []
         self.locals = []
         self.inputs_by_name = {}
+        self.expressions_kernel_cache = {}
         self.func_bindings = []
         self.include_files = ["CNN_Basic_Kernels.h"]
         self.opts = DEFAULT_GEN_OPTS.copy()
@@ -130,10 +134,11 @@ class CodeGenerator(RegisteredGeneratorsMixin):
 
     @staticmethod
     def real_down_connection(G, eparams):
-        oedge = G.out_edges(eparams.creating_node.name)[0]
+        oedge = G.out_edges(eparams.creating_node.name)[eparams.creating_node_idx]
         while isinstance(oedge.to_node, ReshapeParameters) or \
             (isinstance(oedge.to_node, TransposeParameters) and
              oedge.to_node.transpose_dimension == 1):
+            assert len(G.out_edges(oedge.to_node.name)) <= 1
             oedge = G.out_edges(oedge.to_node.name)[0]
         return oedge
 
@@ -201,7 +206,10 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             self.locals.append(LocalArgInfo(out_q.ctype, eparams.name, home_location, exec_location))
 
         code_block = CodeBlock(starting_indent=indent)
-        code_block.write_start("CArgs({},", len(self.locals))
+        if len(self.locals) > 0:
+            code_block.write_start("CArgs({},", len(self.locals))
+        else:
+            code_block.write_start("CArgs(0")
         code_block.indent()
         first = True
         for local_def in self.locals:
@@ -304,6 +312,8 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             includes = ['"CNN_Generators.h"']
         else:
             raise ValueError()
+        if self.G.has_resizer:
+            includes.append('"ResizeGenerator.h"')
         return "".join(["#include %s\n"%include for include in includes])
 
     def cnn_kernels(self):
@@ -320,22 +330,35 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         code_block.write("#include \"nntool_extra_generators.h\"")
         return str(code_block)
 
-    def used_filenames(self):
+    def used_filenames(self, indent=0):
+        code_block = CodeBlock(starting_indent=indent)
         kernels = ["\"nntool_extra_kernels.h\"", self.cnn_kernels(), "\"" + self.project_name + ".h\""] # default
         if self.G.has_ssd_postprocess:
             kernels.append("\"SSD_BasicKernels.h\"")
-        return "\tSetUsedFilesNames(0, {}, {});".format(len(kernels), str(', '.join(kernels)))
+        if self.G.has_resizer:
+            kernels.append("\"ResizeBasicKernels.h\"")
+        if self.G.has_expressions:
+            kernels.append("\"%s\""%self.opts['basic_kernel_header_file'])
+        code_block.write("SetUsedFilesNames(0, {}, {});", len(kernels), str(', '.join(kernels)))
+        return str(code_block)
 
     def extra_includes_kernels(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
         code_block.write("\"nntool_extra_kernels.h\"")
         return str(code_block)
 
+    def get_node_cname(self, node):
+        cname = self.name_cache.get(node, 'node')
+        if not cname:
+            cname = self.naming_convension.get_node_name(node.name, node.step_idx, node)
+            self.name_cache.set(node, 'node', cname)
+        return cname
+
     def kernel_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
         for step_idx, node, _, _ in self.G.nodes_iterator(yield_fusions=False):
             name = node.name
-            cname = self.naming_convension.get_node_name(name, step_idx, node)
+            cname = self.get_node_cname(node)
             if node.at_options.vcd_trace_on is not None:
                 self.add_vcd_trace_binding(cname, node.at_options.vcd_trace_on)
             self.name_cache.set(node, 'node', cname)
@@ -408,11 +431,13 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             code_block.write("Load_RNN_SQ8_Library();")
             if self.G.has_ssd_postprocess:
                 code_block.write("LoadSSDLibrary();")
-            return str(code_block)
-        if self.G.graph_identity.quantization_type == 'POW2':
+        elif self.G.graph_identity.quantization_type == 'POW2':
             code_block.write("LoadCNNLibrary();")
-            return str(code_block)
-        return ValueError("Quantization type not known %s", self.G.graph_identity.quantization_type)
+        else:
+            return ValueError("Quantization type not known %s", self.G.graph_identity.quantization_type)
+        if self.G.has_resizer:
+            code_block.write("LoadResizeLibrary();")
+        return str(code_block)
 
     def header_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
@@ -431,4 +456,80 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             elif self.G.graph_identity.quantization_type == 'POW2':
                 for out_q in qrec.out_qs:
                     code_block.write("#define {}_Q\t{}".format(cname, out_q.q))
+        return str(code_block)
+
+    def expressions_kernel_header_includes_generator(self, indent=0):
+        code_block = CodeBlock(starting_indent=indent)
+        code_block.write("#include \"{0}\"", self.opts['basic_kernel_header_file'])
+        return str(code_block)
+
+    def expressions_foreach_basic_kernel(self):
+        for node in self.G.all_expressions:
+            basic_kernel = self.expressions_kernel_cache.get(node)
+            if not basic_kernel:
+                qrec = self.G.quantization[NodeId(node)]
+                fusion_inputs = sorted([n for n in node.subgraph.inputs()
+                                        if isinstance(n, FusionInputParameters)], key=lambda x: x.idx)
+                fusion_outputs = sorted([n for n in node.subgraph.outputs()
+                                         if isinstance(n, FusionOutputParameters)], key=lambda x: x.idx)
+                shapes = {n.name: n.out_dims[0].shape for n in fusion_inputs}
+                basic_kernel = BasicKernel(fusion_inputs, fusion_outputs, qrec.intermediate_exprs + qrec.output_exprs,
+                                           shapes, node.constant_inputs)
+                self.expressions_kernel_cache[node] = basic_kernel
+            yield node, basic_kernel
+
+    def expressions_kernel_source_generator(self):
+        code_block = CodeBlock(starting_indent=0)
+        for node, basic_kernel in self.expressions_foreach_basic_kernel():
+            func_name, arg_name = self.expressions_get_names(node)
+            code_block.write("{}", basic_kernel.gen_function(func_name,
+                                                             arg_name))
+        return str(code_block)
+
+    def expressions_kernel_types_generator(self):
+        code_block = CodeBlock(starting_indent=0)
+        for node, basic_kernel in self.expressions_foreach_basic_kernel():
+            _, arg_name = self.expressions_get_names(node)
+            code_block.write("{}", basic_kernel.kernel_arg_type_codegen(arg_name))
+        return str(code_block)
+
+    def expressions_kernel_prototypes_generator(self, indent=0):
+        code_block = CodeBlock(starting_indent=indent)
+        for node in self.G.all_expressions:
+            func_name, arg_name = self.expressions_get_names(node)
+            code_block.write("void {}({} *Args);", func_name, arg_name)
+        return str(code_block)
+
+    @staticmethod
+    def expressions_get_names(node):
+        return "s%s_kernel" % node.step_idx, "s%s_kernel_args_t" % node.step_idx
+
+    def expressions_kernel_load_generator(self, indent=0):
+        if not self.G.has_expressions:
+            return ""
+        code_block = CodeBlock(starting_indent=indent)
+        code_block.write("{0}", "void load_expressions_kernels() {")
+        code_block.indent()
+        for node, basic_kernel in self.expressions_foreach_basic_kernel():
+            func_name, arg_name = self.expressions_get_names(node)
+            for line in basic_kernel.gen_kernel_model(func_name, arg_name).split('\n'):
+                code_block.write("{0}", line)
+        code_block.deindent()
+        code_block.write("{0}", "}\n\n")
+        return str(code_block)
+
+    def load_expressions_library(self, indent=0):
+        if not self.G.has_expressions:
+            return ""
+        code_block = CodeBlock(starting_indent=indent)
+        code_block.write("load_expressions_kernels();")
+        return str(code_block)
+
+    def expressions_user_kernel_source_generator(self, indent=0):
+        if not self.G.has_expressions:
+            return ""
+        code_block = CodeBlock(starting_indent=indent)
+        for node, basic_kernel in self.expressions_foreach_basic_kernel():
+            func_name, _ = self.expressions_get_names(node)
+            basic_kernel.gen_user_kernel(code_block, func_name+"_gen", func_name)
         return str(code_block)

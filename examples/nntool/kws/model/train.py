@@ -78,6 +78,8 @@ import sys
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
+if tf.__version__.startswith('2'):
+  raise TypeError("Tensorflow version must be 1.X, this is {}".format(tf.__version__))
 
 import input_data
 import models

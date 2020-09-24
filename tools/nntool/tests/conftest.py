@@ -9,22 +9,28 @@ import pytest
 from graph.dim import Conv2DFilterDim, Dim, PadDim, StrideDim
 from graph.matches.matches import get_pow2_match_group
 from graph.nngraph import NNGraph
-from graph.types import (Conv2DParameters, NNEdge, MatrixAddParameters,
-                         ReluActivationParameters, ConcatParameters, SplitParameters,
-                         ReshapeParameters, StridedSliceParameters)
+from graph.types import (ActivationParameters, BinaryOpParameters,
+                         ConcatParameters, ConstantInputParameters,
+                         Conv2DParameters, MatrixAddParameters,
+                         MatrixDivParameters, MatrixMulParameters,
+                         MatrixSubParameters, NNEdge, ReluActivationParameters,
+                         ReshapeParameters, SplitParameters,
+                         StridedSliceParameters, UnaryOpParameters)
 from importer.importer import create_graph
+from quantization.multiplicative.mult_quantization import (
+    MultAddQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
+    SymmetricMultBiasesQType
+from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
+    SymmetricMultQType
+from quantization.quantization_set import QuantizationSet
 from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
 from stats.activation_stats_collector import ActivationStatsCollector
 from stats.filter_stats_collector import FilterStatsCollector
 from utils.data_importer import import_data
 from utils.new_param_state import dump_state
-from utils.sparse_list import SparseList
 from utils.node_id import NodeId
-from quantization.quantization_set import QuantizationSet
-from quantization.multiplicative.mult_quantization import (MultScalableFilterQuantizationRecord,
-                                                           MultAddQuantizationRecord)
-from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import SymmetricMultBiasesQType
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import SymmetricMultQType
+from utils.sparse_list import SparseList
 
 MNIST_GRAPH = 'tests/graph/mnist_model.tflite'
 IR_GRAPH = 'tests/graph/ir_model.tflite'
@@ -198,6 +204,7 @@ def split_concat_graph():
     G.add_dimensions()
     yield G
 
+
 @pytest.fixture()
 def pack_stridedslice():
     G = NNGraph(name='crazy_graph')
@@ -206,8 +213,10 @@ def pack_stridedslice():
     res1 = ReshapeParameters("res1", old_shape=[10, 10], shape=[1, 10, 10])
     res2 = ReshapeParameters("res2", old_shape=[10, 10], shape=[1, 10, 10])
     pack1 = ConcatParameters("pack1", axis=0)
-    slice1 = StridedSliceParameters("slice1", act_slice=[(0, 1, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
-    slice2 = StridedSliceParameters("slice2", act_slice=[(1, 2, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
+    slice1 = StridedSliceParameters("slice1", act_slice=[(
+        0, 1, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
+    slice2 = StridedSliceParameters("slice2", act_slice=[(
+        1, 2, 1), (0, 10, 1), (0, 10, 1)], out_shape=(1, 10, 10))
     add1 = MatrixAddParameters("add1")
     out1 = G.add_output()
     G.add_edge(NNEdge(inp1, res1))
@@ -222,6 +231,276 @@ def pack_stridedslice():
     G.add_dimensions()
     yield G
 
+@pytest.fixture()
+def exp_graph():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10, 10]))
+    inp2 = G.add_input(Dim.unnamed([1, 10, 1]))
+    inp3 = G.add_constant(Dim.unnamed([1, 1, 10]), name="inp3")
+    inp3.value = np.full([10, 1, 1], 1.0)
+    inp4 = G.add_input(Dim.unnamed([10, 1, 1]))
+    inp5 = G.add_constant(Dim.unnamed([1, 1, 1]), name="inp5")
+    inp5.value = np.array([0.5]).reshape([1, 1, 1])
+    inp6 = G.add_input(Dim.unnamed([1, 1, 1]))
+    mul1 = MatrixMulParameters("mul1")
+    mul2 = MatrixMulParameters("mul2")
+    sqrt1 = UnaryOpParameters("sqrt1", op_type="sqrt")
+    add1 = MatrixAddParameters("add1")
+    add2 = MatrixAddParameters("add2")
+    add3 = MatrixAddParameters("add3")
+    out1 = G.add_output()
+    out2 = G.add_output()
+    G.add_edge(NNEdge(inp1, mul1))
+    G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+    G.add_edge(NNEdge(inp3, mul2))
+    G.add_edge(NNEdge(inp4, mul2, to_idx=1))
+    G.add_edge(NNEdge(mul1, add1))
+    G.add_edge(NNEdge(mul2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, sqrt1))
+    G.add_edge(NNEdge(sqrt1, add2))
+    G.add_edge(NNEdge(sqrt1, out1))
+    G.add_edge(NNEdge(inp5, add2, to_idx=1))
+    G.add_edge(NNEdge(add2, add3))
+    G.add_edge(NNEdge(inp6, add3, to_idx=1))
+    G.add_edge(NNEdge(add3, out2))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_add_mul():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    inp3 = G.add_input(Dim.unnamed([10, 10]))
+    inp4 = G.add_constant(Dim.unnamed([1]), name="inp4")
+    inp4.value = np.array([2])
+    mul1 = MatrixMulParameters("mul1")
+    mul2 = MatrixMulParameters("mul2")
+    add1 = MatrixAddParameters("add1")
+    add2 = MatrixAddParameters("add2")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, mul1))
+    G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+    G.add_edge(NNEdge(inp3, mul2))
+    G.add_edge(NNEdge(inp4, mul2, to_idx=1))
+    G.add_edge(NNEdge(mul1, add1))
+    G.add_edge(NNEdge(mul2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_add_two_out():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    inp3 = G.add_input(Dim.unnamed([10, 10]))
+    add1 = MatrixAddParameters("add1")
+    add2 = MatrixAddParameters("add2")
+    out1 = G.add_output()
+    out2 = G.add_output()
+    G.add_edge(NNEdge(inp1, add1))
+    G.add_edge(NNEdge(inp2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, out1))
+    G.add_edge(NNEdge(add1, add2))
+    G.add_edge(NNEdge(inp3, add2, to_idx=1))
+    G.add_edge(NNEdge(add2, out2))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_div_add_two_out():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    inp3 = G.add_input(Dim.unnamed([10, 10]))
+    div1 = MatrixDivParameters("div1")
+    add1 = MatrixAddParameters("add2")
+    out1 = G.add_output()
+    out2 = G.add_output()
+    G.add_edge(NNEdge(inp1, div1))
+    G.add_edge(NNEdge(inp2, div1, to_idx=1))
+    G.add_edge(NNEdge(div1, out1))
+    G.add_edge(NNEdge(div1, add1))
+    G.add_edge(NNEdge(inp3, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, out2))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_div():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([2, 2]))
+    inp2 = G.add_input(Dim.unnamed([2, 2]))
+    div1 = MatrixDivParameters("div1")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, div1))
+    G.add_edge(NNEdge(inp2, div1, to_idx=1))
+    G.add_edge(NNEdge(div1, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_sigmoid_add_two_out():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    act1 = ActivationParameters.get_activation("hsigmoid", "act1")
+    add1 = MatrixAddParameters("add1")
+    out1 = G.add_output()
+    out2 = G.add_output()
+    G.add_edge(NNEdge(inp1, act1))
+    G.add_edge(NNEdge(act1, out1))
+    G.add_edge(NNEdge(act1, add1))
+    G.add_edge(NNEdge(inp2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, out2))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_mul_comp():
+    def func(op_type):
+        G = NNGraph(name='expr_grap')
+        inp1 = G.add_input(Dim.unnamed([10, 10]))
+        inp2 = G.add_input(Dim.unnamed([10, 10]))
+        inp3 = G.add_input(Dim.unnamed([10, 10]))
+        inp4 = G.add_constant(Dim.unnamed([1]), name="inp4")
+        inp4.value = np.array([2])
+        mul1 = MatrixMulParameters("mul1")
+        mul2 = MatrixMulParameters("mul2")
+        minmax1 = BinaryOpParameters("min1", op_type=op_type)
+        out1 = G.add_output()
+        G.add_edge(NNEdge(inp1, mul1))
+        G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+        G.add_edge(NNEdge(inp3, mul2))
+        G.add_edge(NNEdge(inp4, mul2, to_idx=1))
+        G.add_edge(NNEdge(mul1, minmax1))
+        G.add_edge(NNEdge(mul2, minmax1, to_idx=1))
+        G.add_edge(NNEdge(minmax1, out1))
+        G.add_dimensions()
+        return G
+    yield func
+
+@pytest.fixture()
+def exp_graph_mul_unary():
+    def func(op_type, in_size=None):
+        if in_size is None:
+            in_size = [10, 10]
+        G = NNGraph(name='expr_grap')
+        inp1 = G.add_input(Dim.unnamed(in_size))
+        inp2 = G.add_input(Dim.unnamed(in_size))
+        mul1 = MatrixMulParameters("mul1")
+        sqrt1 = UnaryOpParameters("sqrt1", op_type=op_type)
+        out1 = G.add_output()
+        G.add_edge(NNEdge(inp1, mul1))
+        G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+        G.add_edge(NNEdge(mul1, sqrt1))
+        G.add_edge(NNEdge(sqrt1, out1))
+        G.add_dimensions()
+        return G
+    yield func
+
+@pytest.fixture()
+def exp_graph_mul_activation():
+    def func(act_type):
+        G = NNGraph(name='expr_grap')
+        inp1 = G.add_input(Dim.unnamed([10, 10]))
+        inp2 = G.add_input(Dim.unnamed([10, 10]))
+        mul1 = MatrixMulParameters("mul1")
+        act1 = ActivationParameters.get_activation(act_type, "act1")
+        out1 = G.add_output()
+        G.add_edge(NNEdge(inp1, mul1))
+        G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+        G.add_edge(NNEdge(mul1, act1))
+        G.add_edge(NNEdge(act1, out1))
+        G.add_dimensions()
+        return G
+    yield func
+
+@pytest.fixture()
+def exp_graph_mul():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    mul1 = MatrixMulParameters("mul1")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, mul1))
+    G.add_edge(NNEdge(inp2, mul1, to_idx=1))
+    G.add_edge(NNEdge(mul1, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_add():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    add1 = MatrixAddParameters("add1")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, add1))
+    G.add_edge(NNEdge(inp2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_pow():
+    G = NNGraph(name='expr_grap')
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_constant(Dim.unnamed([1]), name="inp2")
+    inp2.value = 0.3
+    pow1 = BinaryOpParameters("pow1", op_type="pow")
+    out1 = G.add_output()
+    G.add_edge(NNEdge(inp1, pow1))
+    G.add_edge(NNEdge(inp2, pow1, to_idx=1))
+    G.add_edge(NNEdge(pow1, out1))
+    G.add_dimensions()
+    yield G
+
+@pytest.fixture()
+def exp_graph_exp_frag():
+    G = NNGraph(name='expr_grap')
+    inpbis1 = G.add_input(Dim.unnamed([10, 10]))
+    inpbis2 = G.add_input(Dim.unnamed([10, 10]))
+    inp1 = G.add_input(Dim.unnamed([10, 10]))
+    inp2 = G.add_input(Dim.unnamed([10, 10]))
+    inp3 = G.add_constant(Dim.unnamed([1]), name="inp3")
+    inp3.value = np.array([5])
+    inp4 = G.add_constant(Dim.unnamed([1]), name="inp4")
+    inp4.value = np.array([10])
+    inp5 = G.add_constant(Dim.unnamed([1]), name="inp5")
+    inp5.value = np.array([6])
+    inp6 = G.add_constant(Dim.unnamed([1]), name="inp6")
+    inp6.value = np.array([0])
+    add1 = MatrixAddParameters("add1")
+    add2 = MatrixAddParameters("add2")
+    add3 = MatrixAddParameters("add3")
+    mul1 = MatrixMulParameters("mul1")
+    mul2 = MatrixMulParameters("mul2")
+    min1 = BinaryOpParameters("min1", op_type="minimum")
+    max1 = BinaryOpParameters("max1", op_type="maximum")
+    act1 = ActivationParameters.get_activation("htanh", "act1")
+    out1 = G.add_output()
+    out2 = G.add_output()
+    G.add_edge(NNEdge(inp1, add1))
+    G.add_edge(NNEdge(inp2, add1, to_idx=1))
+    G.add_edge(NNEdge(add1, mul1))
+    G.add_edge(NNEdge(inp3, mul1, to_idx=1))
+    G.add_edge(NNEdge(mul1, add2))
+    G.add_edge(NNEdge(inp4, add2, to_idx=1))
+    G.add_edge(NNEdge(add2, min1))
+    G.add_edge(NNEdge(inp5, min1, to_idx=1))
+    G.add_edge(NNEdge(min1, max1))
+    G.add_edge(NNEdge(inp6, max1, to_idx=1))
+    G.add_edge(NNEdge(max1, out1))
+    G.add_edge(NNEdge(inpbis1, add3))
+    G.add_edge(NNEdge(inpbis2, add3, to_idx=1))
+    # G.add_edge(NNEdge(add3, act1))
+    G.add_edge(NNEdge(max1, mul2))
+    G.add_edge(NNEdge(add3, mul2, to_idx=1))
+    G.add_edge(NNEdge(mul2, out2))
+    G.add_dimensions()
+    yield G
 
 @pytest.fixture(scope="session")
 def mnist_unfused_16bit_state():
@@ -337,6 +616,7 @@ def ssd_mobv1_quant_graph():
 @pytest.fixture(scope="session")
 def conv1d_graph():
     yield CONV1D_GRAPH
+
 
 @pytest.fixture(scope="session")
 def ir_images():

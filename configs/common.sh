@@ -14,6 +14,7 @@ export PATH="$GAP_RISCV_GCC_TOOLCHAIN/bin":"$GAP_SDK_HOME/tools/bin":$PATH
 
 export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/$TARGET_CHIP
 export INSTALL_DIR=$GAP_SDK_HOME/install/workstation
+export OPENOCD_SCRIPTS=$GAP_SDK_HOME/install/workstation/share/openocd/scripts
 export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/tools/rules
 
@@ -93,10 +94,11 @@ export PULP_CONFIGS_PATH=$GAP_SDK_HOME/tools/gap-configs/configs:$PULP_CONFIGS_P
 # GAP LIB
 export GAP_LIB_PATH=$GAP_SDK_HOME/libs/gap_lib
 
-if [ "$TARGET_CHIP" = "GAP8" ]
+if [ "$TARGET_CHIP_FAMILY" = "GAP8" ]
 then
     PROJECT_PATH=$(dirname $GAP_SDK_HOME)
     export VSIM_PATH=$PROJECT_PATH/fe/sim
+    export GAP_OPENOCD_PATH=gap8-openocd
 else
     # For NEW SDK rtl test
     PROJECT_PATH=$(dirname $(dirname $GAP_SDK_HOME))

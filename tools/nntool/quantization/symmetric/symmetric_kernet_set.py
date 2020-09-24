@@ -20,12 +20,15 @@ from quantization.symmetric.kernels.activations import (hsigmoid, hswish,
 from quantization.symmetric.kernels.fast_conv import faster_conv
 from quantization.symmetric.kernels.image_format import image_format
 from quantization.symmetric.kernels.linear import linear
-from quantization.symmetric.kernels.matrix_operations import (matscale,
+from quantization.symmetric.kernels.matrix_operations import (expression,
+                                                              matscale,
                                                               piecewise)
 from quantization.symmetric.kernels.pad import pad
 from quantization.symmetric.kernels.pool import (av_global_pool, av_pool,
-                                                 max_global_pool, max_pool, sum_global_pool)
+                                                 max_global_pool, max_pool,
+                                                 sum_global_pool)
 from quantization.symmetric.kernels.rnn import rnn
+from quantization.symmetric.kernels.resize import resize_nearest_neighbor
 from quantization.symmetric.kernels.softmax import softmax
 from quantization.symmetric.kernels.ssd_postprocess import ssd_postprocess
 from quantization.symmetric.kernels.tensor_functions import (cast, concat,
@@ -161,3 +164,11 @@ class SymmetricKernelSet(KernelFunctionSetBase):
     @property
     def copy(self) -> KernelFunction:
         return copy
+
+    @property
+    def resize_nearest_neighbor(self) -> KernelFunction:
+        return resize_nearest_neighbor
+
+    @property
+    def expression(self) -> KernelFunction:
+        return expression

@@ -61,7 +61,7 @@ def relu(params: ReluActivationParameters,
     if qrec is None:
         qrec = Float32QuantizationRecord()
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    if params.upper_bound == None:
+    if params.upper_bound is None:
         return qrec.get_outputs(params,
                                 [np.maximum(in_tensor,
                                             params.lower_bound)],
@@ -77,4 +77,9 @@ def leaky(params,
           in_tensors,
           qrec: QuantizationRecordBase,
           details=None):
-    raise NotImplementedError()
+    del details
+    if qrec is None:
+        qrec = Float32QuantizationRecord()
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    output = in_tensor * (in_tensor > 0) + in_tensor * params.leak_factor * (in_tensor < 0)
+    return qrec.get_outputs(params, [output], ktype="float32")

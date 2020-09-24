@@ -176,7 +176,7 @@ only for ports that are using the MPU. */
 #else /* portUSING_MPU_WRAPPERS */
 
 	#define PRIVILEGED_FUNCTION
-	#define PRIVILEGED_DATA
+	#define PRIVILEGED_DATA PI_FC_L1
 	#define FREERTOS_SYSTEM_CALL
 	#define portUSING_MPU_WRAPPERS 0
 

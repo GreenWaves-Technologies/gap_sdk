@@ -41,7 +41,6 @@
  * @{
  */
 
-/**@{*/
 
 /**
  * \brief Prepare a notification event.
@@ -71,9 +70,9 @@ static inline pi_task_t *pi_task_block(pi_task_t *task);
  * a certain action occurs, e.g. an end of transfer.
  *
  * \param task           Pointer to notification event.
- * \param callback       The callback which will be executed when the
- *                       notification is triggered.
- * \param arg            The argument to the callback.
+ * \param function       Callback function to execute when the notification is
+ *                       triggered.
+ * \param arg            Callback function argument.
  *
  * \return task          The notification event initialized.
  *
@@ -85,7 +84,7 @@ static inline pi_task_t *pi_task_block(pi_task_t *task);
  *       with pi_task_wait_on.
  */
 static inline pi_task_t *pi_task_callback(pi_task_t *task,
-                                          void (*callback)(void*), void *arg);
+                                          pi_callback_func_t function, void *arg);
 
 /**
  * \brief Wait until a notification event is triggered.
@@ -125,7 +124,18 @@ static inline void pi_task_push(pi_task_t *task);
  */
 void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay);
 
-//!@}
+/**
+ * \brief Init callback.
+ *
+ * Intialize a simple callback with the function to call and its arg.
+ *
+ * \param callback       Pointer to callback to initialize.
+ * \param function       Callback function.
+ * \param arg            Callback function arg.
+ */
+static inline pi_callback_t *pi_callback_init(pi_callback_t *callback,
+                                              pi_callback_func_t function,
+                                              void *arg);
 
 /**
  * @}
@@ -136,7 +146,7 @@ void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay);
 static inline void pi_task_destroy(pi_task_t *task);
 
 pi_task_t *pi_task_callback_no_mutex(pi_task_t *callback_task,
-                                     void (*func)(void *), void *arg);
+                                     pi_callback_func_t function, void *arg);
 
 void pi_task_wait_on_no_mutex(pi_task_t *task);
 
@@ -171,6 +181,17 @@ void pi_cl_pi_task_wait(pi_task_t *task);
  *
  */
 void pi_cl_pi_task_notify_done(pi_task_t *task);
+
+
+static inline pi_callback_t *pi_callback_init(pi_callback_t *callback,
+                                              pi_callback_func_t function,
+                                              void *arg)
+{
+    callback->entry = function;
+    callback->arg = arg;
+    callback->next = NULL;
+    return callback;
+}
 
 /// @endcond
 

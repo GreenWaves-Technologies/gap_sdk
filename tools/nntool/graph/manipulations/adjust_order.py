@@ -42,6 +42,12 @@ def maybe_transpose(cur, desired_order, tensor, reshape=None):
         tensor = tensor.reshape(reshape)
     return tensor
 
+def first_to_last(cur, tensor):
+    if len(cur) == 1:
+        return tensor
+    
+    tensor = tensor.transpose([len(cur) - 1] + list(range(len(cur) - 1)))
+    return tensor
 
 def adjust_dims(step_idx, node, dims, hint, direction="input"):
     for idx, dim in enumerate(dims):
@@ -56,6 +62,8 @@ def adjust_dims(step_idx, node, dims, hint, direction="input"):
                       step_idx, node.name, direction)
         else:
             dim.move_last_to_first()
+            if hint and hint[idx]:
+                hint[idx] = hint[idx][-1::] + hint[idx][:-1:]
 
 
 def adjust_order(G, reshape_weights=True, postprocess=True):
@@ -83,11 +91,12 @@ def adjust_order(G, reshape_weights=True, postprocess=True):
                         continue
                     elif node.adjust_transpose != False:
                         if node.value is not None and reshape_weights:
-                            node.value = maybe_transpose(node.dims, AT_ACTIVATION_ORD, node.value)
+                            node.value = first_to_last(node.dims, node.value)
                     else:
                         continue
                 adjust_dims(step_idx, node, node.out_dims, node.out_dims_hint, direction="output")
                 node.dims = node.out_dims[0]
+                node.in_dims_hint = node.out_dims_hint
             continue
         elif isinstance(node, OutputParameters):
             if node.fixed_order:

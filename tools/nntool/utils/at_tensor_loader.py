@@ -199,7 +199,7 @@ def at_map_tensors(G, tensors):
                 add_result(result[step_idx], 2, tensor)
             else:
                 match_tname = re_snum_tname.search(tname)
-                if not match:
+                if not match_tname:
                     continue
                 tname_step_idx = int(match_tname.group('step'))
                 tname_node = steps[tname_step_idx]['node']

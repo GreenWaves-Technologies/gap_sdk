@@ -59,7 +59,7 @@ typedef enum {
 
 typedef struct pi_task pi_task_t;
 
-typedef void (*callback_t)(void *arg);
+typedef void (* pi_callback_func_t)(void *arg);
 
 typedef struct spinlock {
     int32_t *lock_ptr; // with test and set mask
@@ -149,10 +149,11 @@ enum pi_task_id {
     PI_TASK_NONE_ID,
 };
 
-typedef struct pi_callback_s {
-  struct pi_task *next;
-  void (*entry)(void *);
-  void *arg;
+typedef struct pi_callback_s
+{
+    struct pi_task *next;
+    pi_callback_func_t entry;
+    void *arg;
 } pi_callback_t;
 
 

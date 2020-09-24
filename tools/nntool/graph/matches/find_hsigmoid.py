@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import math
+# import math
+import numpy as np
 
 from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
                          MatrixAddParameters,
@@ -34,7 +35,7 @@ from .matcher import DefaultMatcher, Matcher, MatchNode
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
+THRESHOLD = 1 / 127
 def check_equals(G, node, val):
     if node.value is None or len(node.value) != 1:
         return False
@@ -47,11 +48,11 @@ def check_equals(G, node, val):
             node_val = qrec.out_qs[0].dequantize(node.value)
     else:
         node_val = node.value
-    node_val = node_val.reshape((1,))[0]
+    node_val = node_val.flatten()
     if val < 0:
         node_val = 1.0/node_val
         val = 1.0/val
-    return math.floor(0.5 + node_val) == math.floor(0.5 + val)
+    return np.all(np.abs(node_val - val) < THRESHOLD)
 
 # Matches filter -> mul with 1/6th constant
 

@@ -38,14 +38,17 @@ from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
 from graph.types.others import (CastParameters, ConcatParameters,
                                 CopyParameters, GlobalPoolParameters,
-                                GroupParameters, NoOPParameters, PadParameters,
+                                GroupParameters, BinaryOpParameters,
+                                NoOPParameters, PadParameters,
                                 ReshapeParameters, SplitParameters,
                                 StridedSliceParameters, Transposable,
-                                TransposeParameters, UnconvertedOpParameters,
+                                TransposeParameters, UnaryOpParameters,
+                                UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters,
                                 UpsampleParameters)
 from graph.types.pooling import PoolingParameters
 from graph.types.recurrent import RecurrentOutputParameters
+from graph.types.resizers import ResizerParameters, NearestNeighborResizerParameters, BilinearResizerParameters
 from graph.types.rnn import RNNBaseParameters, RNNParameters
 from graph.types.ssd import SSDDetectorParameters
 from graph.types.tensor_arithmetic import (MatrixAddParameters,
@@ -53,3 +56,4 @@ from graph.types.tensor_arithmetic import (MatrixAddParameters,
                                            MatrixDivParameters,
                                            MatrixMulParameters,
                                            MatrixSubParameters)
+from graph.types.expression_fusion import ExpressionFusionParameters

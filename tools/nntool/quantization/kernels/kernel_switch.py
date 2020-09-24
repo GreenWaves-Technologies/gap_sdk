@@ -20,7 +20,8 @@ import numpy as np
 
 from graph.types import (CastParameters, ConcatParameters,
                          ConstantInputParameters, Conv2DParameters,
-                         CopyParameters, FcParameters, FusionInputParameters,
+                         CopyParameters, ExpressionFusionParameters,
+                         FcParameters, FusionInputParameters,
                          FusionOutputParameters, GlobalPoolParameters,
                          HSigmoidActivationParameters,
                          HSwishActivationParameters, ImageFormatParameters,
@@ -32,7 +33,8 @@ from graph.types import (CastParameters, ConcatParameters,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, RNNParameters, SoftMaxParameters,
                          SplitParameters, SSDDetectorParameters,
-                         StridedSliceParameters, TransposeParameters)
+                         StridedSliceParameters, TransposeParameters,
+                         NearestNeighborResizerParameters)
 from quantization.quantization_record_base import QuantizationRecordBase
 
 
@@ -75,7 +77,9 @@ class DefaultKernelSwitch(KernelSwitchBase):
         SplitParameters: "split",
         CopyParameters: "copy",
         FusionInputParameters: "fusion_noop",
-        FusionOutputParameters: "fusion_noop"
+        FusionOutputParameters: "fusion_noop",
+        NearestNeighborResizerParameters: "resize_nearest_neighbor",
+        ExpressionFusionParameters: "expression"
     }
 
     def __init__(self, kernel_functions):

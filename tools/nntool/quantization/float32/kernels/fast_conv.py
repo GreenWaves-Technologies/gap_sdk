@@ -33,7 +33,7 @@ def faster_conv(params,
         qrec = Float32ScalableFilterQuantizationRecord()
     in_dims = params.in_dims[0]
     out_dims = params.out_dims[0]
-    weights = qrec.prepare_weights(params, params.weights, ktype="float32")
+    weights = qrec.prepare_weights(params, params.get_uncompressed_weights(), ktype="float32")
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
     if details is not None:
@@ -79,7 +79,8 @@ def faster_conv(params,
     out_h = ((in_h - dillated_filter_h + pad_h)) // params.stride.h + 1
 
     if params.has_bias:
-        biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="float32")
+        biases = qrec.prepare_biases(params, params.get_uncompressed_biases(),
+                                     params.get_uncompressed_weights(), ktype="float32")
         result = np.ones((out_c, out_h, out_w),
                          dtype=np.float32) * biases.reshape(out_c, 1, 1)
     else:

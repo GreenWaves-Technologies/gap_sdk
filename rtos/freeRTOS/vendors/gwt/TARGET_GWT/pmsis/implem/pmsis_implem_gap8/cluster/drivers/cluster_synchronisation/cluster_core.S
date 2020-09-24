@@ -40,7 +40,7 @@
 
 #include "pmsis/targets/memory_map.h"
 #include "pmsis/targets/events.h"
-#include "pmsis/targets/periph/cluster/cluster_event_unit/cluster_event_unit_offset.h"
+#include "pmsis/targets/periph/cluster_event_unit/cluster_event_unit_offset.h"
 #include "pmsis/implem/cluster/cluster_data.h"
 
 /*******************************************************************************

@@ -248,12 +248,12 @@ static inline void hal_eu_cluster_evt_trig_set(int event_num, uint32_t value)
 
 static inline void hal_eu_fc_evt_trig_set(int event_num, uint32_t value)
 {
-    hal_write32(&FC_EU_SW_EVENTS->TRIGGER_SET[event_num],value);
+    FC_EU_SW_EVENTS->TRIGGER_SET[event_num] = value;
 }
 
 static inline void hal_eu_fc_evt_demux_trig_set(int event_num, uint32_t value)
 {
-    hal_write32(&EU_SW_EVENTS_DEMUX->TRIGGER_SET[event_num],value);
+    EU_SW_EVENTS_DEMUX->TRIGGER_SET[event_num] = value;
 }
 
 //!@}
@@ -301,24 +301,21 @@ static inline uint32_t hal_eu_barrier_team_get(void)
 
 static inline uint32_t hal_eu_soc_events_pop()
 {
-    return hal_read32(&EU_SOC_EVENTS->CURRENT_EVENT);
+    return EU_SOC_EVENTS->CURRENT_EVENT;
 }
 
 static inline uint32_t hal_fc_eu_soc_events_pop()
 {
-    hal_compiler_barrier();
-    return hal_read32(&EU_SOC_EVENTS->CURRENT_EVENT);
+    return EU_SOC_EVENTS->CURRENT_EVENT;
 }
 
 static inline int32_t hal_eu_soc_events_is_valid(uint32_t word)
 {
-    hal_compiler_barrier();
     return ((word & EU_CURRENT_VALID_BIT_MASK) >> EU_CURRENT_VALID_BIT_SHIFT);
 }
 
 static inline uint32_t hal_eu_soc_events_get_event(uint32_t word)
 {
-    hal_compiler_barrier();
     return word & EU_CURRENT_SOC_EVENT_MASK;
 }
 
@@ -343,9 +340,7 @@ static inline void hal_eu_mutex_unlock(uint32_t mutex_id)
 
 static inline void hal_eu_mutex_init(uint32_t mutex_id)
 {
-    __asm__ __volatile__ ("" : : : "memory");
     EU_MUTEX_DEMUX->MUTEX[mutex_id] = 0;
-    __asm__ __volatile__ ("" : : : "memory");
 }
 
 //!@}
@@ -364,12 +359,12 @@ static inline uint32_t hal_eu_dispatch_pop()
 
 static inline void hal_eu_dispatch_push(uint32_t value)
 {
-    hal_write32(&EU_DISPATCH_DEMUX->FIFO_ACCESS,value);
+    EU_DISPATCH_DEMUX->FIFO_ACCESS = value;
 }
 
 static inline void hal_eu_dispatch_team_config(uint32_t value)
 {
-    hal_write32(&EU_DISPATCH_DEMUX->TEAM_CONFIG,value);
+    EU_DISPATCH_DEMUX->TEAM_CONFIG = value;
 }
 
 #if 0

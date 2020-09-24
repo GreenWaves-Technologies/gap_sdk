@@ -14,6 +14,7 @@ PULP_CONFIG_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-configs
 DEBUG_BRIDGE_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-debug-bridge
 GVSOC_GLOBAL_PATH=$GAP_SDK_HOME/gvsoc
 GVSOC_PATH=$GVSOC_GLOBAL_PATH/gvsoc
+GVSOC_GAP_PATH=$GVSOC_GLOBAL_PATH/gvsoc_gap
 DPI_MODELS_PATH=$GVSOC_GLOBAL_PATH/dpi-models
 RUNNER_PATH=$GVSOC_GLOBAL_PATH/runner
 ARCHI_PATH=$GAP_SDK_HOME/rtos/pulp/archi_gap
@@ -30,5 +31,7 @@ make -C $PULP_CONFIG_PATH all_scons BUILD_DIR=$build_dir/pulp-configs INSTALL_DI
 make -C $DPI_MODELS_PATH build install BUILD_DIR=$build_dir/archi INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
 
 make -C $GVSOC_PATH build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+
+make -C $GVSOC_GAP_PATH build BUILD_DIR=$build_dir/gvsoc_gap INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
 
 make -C $RUNNER_PATH sdk.build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir

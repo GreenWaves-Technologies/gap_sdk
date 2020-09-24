@@ -41,7 +41,6 @@ static int32_t open_camera_pixart(struct pi_device *device)
 static int32_t open_camera(struct pi_device *device)
 {
     return open_camera_pixart(device);
-    return -1;
 }
 
 void test_camera_with_lcd(void)
@@ -68,22 +67,14 @@ void test_camera_with_lcd(void)
     while (1)
     {
         #if defined(ASYNC)
-        printf("ASYNC...\n");
-        printf("Camera stop.\n");
         pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
         pi_task_callback(&task, cam_handler, NULL);
-        printf("Image capture.\n");
         pi_camera_capture_async(&cam, imgBuff0, CAMERA_WIDTH * CAMERA_HEIGHT, &task);
-        printf("Camera start.\n");
         pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);
         pi_task_wait_on(&task);
         #else
-        printf("SYNC...\n");
-        printf("Camera start.\n");
         pi_camera_control(&cam, PI_CAMERA_CMD_START, 0);
-        printf("Image captured.\n");
         pi_camera_capture(&cam, imgBuff0, CAMERA_WIDTH * CAMERA_HEIGHT);
-        printf("Camera stop.\n");
         pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
         #endif
 

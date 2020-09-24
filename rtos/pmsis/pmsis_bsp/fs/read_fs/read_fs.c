@@ -169,12 +169,13 @@ static void __pi_fs_mount_step(void *arg)
             pi_partition_close(readfs_partition);
             pi_partition_table_free(partition_table);
             fs->mount_step++;
-        
+
+            fs->mount_step++;
             // Read the header size at the first header word
             pi_flash_read_async(fs->flash, fs->partition_offset, &fs->pi_fs_l2->pi_fs_size, 8,
                                 pi_task_callback(&fs->step_event, __pi_fs_mount_step, (void *) arg));
             break;
-        
+
         case 3:
         {
             // Allocate roon for the file-system header and read it
@@ -186,6 +187,7 @@ static void __pi_fs_mount_step(void *arg)
                 //__pi_fs_abort(fs->pending_event, FS_MOUNT_MEM_ERROR, (void *)fs);
                 goto error;
             }
+            fs->mount_step++;
             pi_flash_read_async(fs->flash, pi_fs_offset + 8, (void *) fs->pi_fs_info, pi_fs_size,
                                 pi_task_callback(&fs->step_event, __pi_fs_mount_step, (void *) arg));
         }
@@ -217,8 +219,6 @@ static void __pi_fs_mount_step(void *arg)
             pi_task_push(fs->pending_event);
         }
     }
-    
-    fs->mount_step++;
     
     return;
     
@@ -277,7 +277,7 @@ static int32_t __pi_read_fs_mount(struct pi_device *device)
     // This function will take care of either blocking the thread if we are in blocking mode
     // or will just execute it asynchronously
     __pi_fs_mount_step((void *) fs);
-    
+
     pi_task_wait_on(&task);
     
     if(fs->error)

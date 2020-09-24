@@ -1,11 +1,21 @@
-APP = test
-APP_SRCS += test.c
-APP_CFLAGS += -O3 -g
-APP_LDFLAGS += -lgaplib
+# User Test
+#------------------------------------
+APP              = test
+# App sources
+APP_SRCS         = test.c
+# App includes
+APP_INC	         =
+# Compiler flags
+APP_CFLAGS       = -O3 -g
+# Linker flags
+APP_LDFLAGS      =
 
 APP_CFLAGS += -DHIMAX
 
 #APP_CFLAGS += -DTRACE_CPI
+
+# Include GAP_LIB/IMGIO
+CONFIG_GAP_LIB_IMGIO = 1
 
 override config_args += --config-opt=camera/image-stream=$(CURDIR)/imgTest0.pgm
 override config_args += --config-opt=runner/peripherals=true

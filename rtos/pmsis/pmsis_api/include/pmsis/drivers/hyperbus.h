@@ -76,14 +76,8 @@ typedef struct pi_hyper_conf
     interface. */
     uint32_t baudrate;   /*!< Baudrate (in bytes/second). */
     int32_t burst_length; /*< Maximum burst length in ns. */
-    int8_t is_spi;        /*< Set to 1 if the RAM or flash is using SPI instead
-    of hyperbus. */
     int latency;          /*< Number of latency cycles during read and write
     requests. */
-    uint32_t spi_cmd;     /*< SPI command used to enqueue read and write
-    commands. */
-    uint32_t reg_spi_cmd; /*< SPI command used to enqueue read and write
-    commands. */
 }pi_hyper_conf_t;
 
 /** \brief Hyperbus cluster request structure.
@@ -137,7 +131,7 @@ enum pi_hyper_ioctl_cmd
      * This command can be used when the interface has been opened to configure
      * the latency suitable for the device.
      */
-    PI_HYPER_IOCTL_SET_LATENCY,
+    PI_HYPER_IOCTL_SET_LATENCY
 };
 
 /**
@@ -149,7 +143,7 @@ enum pi_hyper_ioctl_cmd
  * \param device  A pointer to the structure describing the device.
  * \param cmd      The command which specifies which parameters of the driver
  *   to modify and for some of them also their values. The command must be one
- *   of those defined in pi_spi_ioctl_e.
+ *   of those defined in pi_hyper_ioctl_e.
  * \param arg       An additional value which is required for some parameters
  *   when they are set.
  */
@@ -328,12 +322,6 @@ PI_INLINE_HYPER_LVL_0 void pi_hyper_write_2d(struct pi_device *device,
 PI_INLINE_HYPER_LVL_0 void pi_hyper_write_2d_async(struct pi_device *device,
   uint32_t hyper_addr, void *addr, uint32_t size, uint32_t stride,
   uint32_t length, struct pi_task *task);
-
-void pi_hyper_reg_get(struct pi_device *device, uint32_t reg_addr,
-    uint8_t *value);
-
-void pi_hyper_reg_set(struct pi_device *device, uint32_t reg_addr,
-    uint8_t *value);
 
 /** \brief Enqueue a read copy to the Hyperbus from cluster side (from Hyperbus
  * to processor).
@@ -517,11 +505,7 @@ static inline void pi_cl_hyper_copy_2d(struct pi_device *device,
  * @} end of Hyperbus
  */
 
-
-
 /// @cond IMPLEM
-
-
 
 /* DEPRECATED, don't use these API below */
 
@@ -555,5 +539,6 @@ void pi_hyper_flash_sync(struct pi_device *device);
 
 
 /// @endcond
+
 
 #endif  /* __PI_PMSIS_DRIVERS_HYPERBUS_H__ */

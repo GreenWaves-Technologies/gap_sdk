@@ -27,15 +27,27 @@
 
 /**@{*/
 
-/** \brief Enqueue a task to fabric-controller side.
+/**
+ * \brief Enqueue a task to fabric-controller side.
  *
  * This enqueues the specified task into the fabric-controller task scheduler for
  * execution. The task must have been initialized from fabric-controller
  * side.
  *
- * \param task Pointer to the fabric-controller task to be enqueued.
+ * \param task           Pointer to the fabric-controller task to be enqueued.
  */
 void pi_cl_send_task_to_fc(pi_task_t *task);
+
+/**
+ * \brief Send a callback to Fabric Controller.
+ *
+ * This function is used to send a simple callback to FC.
+ *
+ * \param callback       Pointer to callback(with function and arg).
+ *
+ * \note This is an alternative to pi_cl_send_task_to_fc().
+ */
+static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback);
 
 //!@}
 
@@ -45,9 +57,6 @@ void pi_cl_send_task_to_fc(pi_task_t *task);
 
 
 /// @cond IMPLEM
-
-
-static inline void pi_cl_send_callback_to_fc(pi_callback_t *callback);
 
 
 /** \brief Create an opaque task structure for FC

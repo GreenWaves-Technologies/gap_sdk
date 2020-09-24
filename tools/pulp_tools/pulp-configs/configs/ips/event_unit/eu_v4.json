@@ -1,0 +1,36 @@
+{
+    "version": 4,
+  
+    "nb_core": 0,
+  
+    "vp_component":  "pulp.event_unit.eu_v4_impl",
+  
+    "hal_files" : [ "hal/eu/eu_v4.h" ],
+    "archi_files" : [ "archi/eu/eu_v4.h" ],
+  
+    "properties": {
+      "dispatch": {
+        "size": 8
+      },
+      "mutex": {
+        "nb_mutexes": 1
+      },
+      "barriers": {
+        "nb_barriers": 8
+      },
+      "semaphores": {
+        "nb_semaphores": 16
+      },
+      "soc_event": {
+        "nb_fifo_events": 8,
+        "fifo_event": 27
+      },
+      "events": {
+        "barrier" : 16,
+        "mutex"   : 17,
+        "dispatch": 18,
+        "semaphore": 19
+      }
+    }
+  }
+  

@@ -52,3 +52,13 @@ def matscale(params,
     if len(params.in_dims) == 3:
         return qrec.get_outputs(params, [in_tensors[0] * in_tensors[1] * in_tensors[2]], ktype="float32")
     return qrec.get_outputs(params, [in_tensors[0] * in_tensors[1]], ktype="float32")
+
+
+def expression(params,
+               in_tensors,
+               qrec: QuantizationRecordBase,
+               details=None):
+    if qrec is None:
+        qrec = Float32QuantizationRecord()
+    in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
+    return qrec.get_outputs(params, params.execute(in_tensors, details=details), ktype="float32")

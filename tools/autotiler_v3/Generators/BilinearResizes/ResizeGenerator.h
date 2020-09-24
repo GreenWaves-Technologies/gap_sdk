@@ -31,6 +31,11 @@ void ResizeConfiguration(
 	unsigned int L1Memory
 	);
 
+typedef enum {
+	KOP_BILINEAR_RESIZE,
+	KOP_NEAREST_NEIGHBOR_RESIZE
+} resize_kop_t;
+
 /**
 @brief Generate Resizing for a given set of parameters
 
@@ -41,8 +46,11 @@ Generate Resizing for a given set of parameters
     \param    Hin :           Hight of the input
     \param    Wout:           Width of the output
     \param    Hout:           Hight of the output
+    \param 	  Type:			  Resizer Type
 */
-void GenerateResize(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout);
+void GenerateResizeNew(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, resize_kop_t Type);
+
+#define GenerateResize(Name, Win, Hin, Wout, Hout)  GenerateResizeNew(Name, Win, Hin, Wout, Hout, KOP_BILINEAR_RESIZE)
 
 /** @} */
 #endif //__RESIZE_GENERATOR_H__

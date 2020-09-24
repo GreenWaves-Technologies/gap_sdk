@@ -33,7 +33,7 @@ def linear(params,
 
     in_dims = params.in_dims[0]
     out_dims = params.out_dims[0]
-    weights = qrec.prepare_weights(params, params.weights, ktype="float32")
+    weights = qrec.prepare_weights(params, params.get_uncompressed_weights(), ktype="float32")
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
     if details is not None:
@@ -41,7 +41,8 @@ def linear(params,
         details['max_acc'] = float("-Infinity")
 
     if params.has_bias:
-        biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="float32")
+        biases = qrec.prepare_biases(params, params.get_uncompressed_biases(),
+                                     params.get_uncompressed_weights(), ktype="float32")
         acc_tensor = np.ones(out_dims.shape, dtype=np.float32) * biases
     else:
         acc_tensor = np.zeros(out_dims.shape,

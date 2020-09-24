@@ -21,26 +21,29 @@ import numpy as np
 
 from graph.nngraph import NNGraph
 from graph.types import (ActivationFusion, ConstantInputParameters,
-                         Conv2DParameters, ConvFusionParameters, FcParameters,
+                         Conv2DParameters, ConvFusionParameters,
+                         ExpressionFusionParameters, FcParameters,
+                         FusionInputParameters, FusionOutputParameters,
                          GlobalPoolParameters, InputParameters, LSTMParameters,
-                         MatrixAddParameters, SplitParameters,
+                         MatrixAddParameters,
                          MatrixBroadcastedLinearOpParameters,
                          MatrixSubParameters, MatScaleFusionParameters,
                          OutputParameters, PoolingParameters, RNNParameters,
-                         SoftMaxParameters)
+                         SoftMaxParameters, SplitParameters)
 from quantization.multiplicative.mult_quantization import (
     MultAddQuantizationRecord, MultConstantQuantizationRecord,
-    MultQuantizationRecord, MultScalableFilterQuantizationRecord,
-    MultScalableLstmQuantizationRecord, MultScalableRnnQuantizationRecord)
+    MultExpressionQuantizationRecord, MultQuantizationRecord,
+    MultScalableFilterQuantizationRecord, MultScalableLstmQuantizationRecord,
+    MultScalableRnnQuantizationRecord)
 from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import \
     MultMulBiasScaleQType
 from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
     SymmetricMultBiasesQType
 from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
     SymmetricMultQType
+from quantization.qtype import QType
 from quantization.quantization_set import QuantizationSet
 from quantization.quantizer import Quantizer
-from quantization.qtype import QType
 from utils.json_serializable import JsonSerializable
 from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
 from utils.stats_funcs import calc_bits
@@ -148,7 +151,29 @@ class MultQuantizer(Quantizer, JsonSerializable):
 
         if isinstance(node, (MatrixAddParameters, MatrixSubParameters)):
             qrec = MultAddQuantizationRecord(in_qs=in_qs, out_qs=[o_q])
+        elif isinstance(node, ExpressionFusionParameters):
+            o_qs = [SymmetricMultQType.from_min_max(min_val=orange['min'],
+                                                    max_val=orange['max'],
+                                                    dtype=out_dtype)
+                    for orange in astats['range_out']]
+            fusion_inputs = sorted([n for n in node.subgraph.inputs()
+                                    if isinstance(n, FusionInputParameters)],
+                                   key=lambda x: x.idx)
+            fusion_outputs = sorted([n for n in node.subgraph.outputs()
+                                     if isinstance(n, FusionOutputParameters)],
+                                    key=lambda x: x.idx)
 
+            node_scale_map = {fnode: in_qs[idx].scale
+                              for idx, fnode in enumerate(fusion_inputs)}
+            for idx, fnode in enumerate(fusion_outputs):
+                node_scale_map[fnode] = o_qs[idx].scale
+            inp, outp, expr = node.decompose(node_scale_map=node_scale_map)
+
+            qrec = MultExpressionQuantizationRecord(in_qs=in_qs,
+                                                    out_qs=o_qs,
+                                                    inputs=inp,
+                                                    output_exprs=outp,
+                                                    intermediate_exprs=expr)
         elif isinstance(node, (MatrixBroadcastedLinearOpParameters, MatScaleFusionParameters, GlobalPoolParameters)):
             qrec = MultQuantizationRecord(in_qs=in_qs, out_qs=[o_q])
 

@@ -1,5 +1,10 @@
 BOARD_NAME ?= gapuino
-PMSIS_OS ?= pulpos
+
+ifeq ($(TARGET_CHIP_FAMILY), GAP9)
+PMSIS_OS ?= freertos
+else
+PMSIS_OS ?=pulpos
+endif
 
 ifndef platform
 ifdef PMSIS_PLATFORM
@@ -14,7 +19,10 @@ endif
 endif
 
 ifndef USE_PULPOS
-ifeq ($(BOARD_NAME), gapoc_a)
+ifeq ($(BOARD_NAME), gapuino)
+COMMON_CFLAGS          += -DCONFIG_GAPUINO
+
+else ifeq ($(BOARD_NAME), gapoc_a)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_A
 PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
@@ -26,8 +34,9 @@ else ifeq ($(BOARD_NAME), gapoc_b)
 COMMON_CFLAGS          += -DCONFIG_GAPOC_B
 PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
-else ifeq ($(BOARD_NAME), gapuino)
-COMMON_CFLAGS          += -DCONFIG_GAPUINO
+else ifeq ($(BOARD_NAME), gapoc_b_revb)
+COMMON_CFLAGS          += -DCONFIG_GAPOC_B
+PLPBRIDGE_EXTRA_FLAGS        += -ftdi
 
 else ifeq ($(BOARD_NAME), ai_deck)
 COMMON_CFLAGS          += -DCONFIG_AI_DECK
@@ -47,6 +56,24 @@ endif
 ifdef runner_args
 export GVSOC_OPTIONS=$(runner_args)
 endif
+
+
+# GAP_LIB sources
+ifeq '$(CONFIG_GAP_LIB_IMGIO)' '1'
+GAP_LIB_PATH        = $(GAP_SDK_HOME)/libs/gap_lib
+APP_SRCS           += $(GAP_LIB_PATH)/img_io/ImgIO.c
+APP_INC            += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
+endif				# CONFIG_GAP_LIB_IMGIO
+
+ifeq '$(CONFIG_GAP_LIB_JPEG)' '1'
+GAP_LIB_PATH        = $(GAP_SDK_HOME)/libs/gap_lib
+APP_SRCS           += $(GAP_LIB_PATH)/jpeg/dct.c \
+                      $(GAP_LIB_PATH)/jpeg/jpeg_constants.c \
+                      $(GAP_LIB_PATH)/jpeg/jpeg_encoder.c \
+                      $(GAP_LIB_PATH)/jpeg/cluster.c
+APP_INC            += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
+endif				# CONFIG_GAP_LIB_JPEG
+
 
 ifeq '$(PMSIS_OS)' 'freertos'
 
@@ -89,7 +116,7 @@ FREERTOS_FLAGS          += -D__FC_MALLOC_NATIVE__=0 -D__L2_MALLOC_NATIVE__=0 \
 #$(info ## FreeRTOS flags : $(FREERTOS_FLAGS))
 #$(info ## FreeRTOS libsflags : $(APP_LIBSFLAGS))
 
-include $(GAP_SDK_HOME)/tools/rules/freeRTOS_rules.mk
+include $(GAP_SDK_HOME)/rtos/freeRTOS/vendors/gwt/rules/freeRTOS_rules.mk
 
 else
 
@@ -136,6 +163,10 @@ LIBS += $(APP_LDFLAGS) $(COMMON_LDFLAGS)
 ifdef USE_PMSIS_TOOLS
 PULP_LDFLAGS += -lpitools
 endif
+
+ifeq ($(CONFIG_GAP_LIB), 1)
+LIBS += -lgaplib
+endif				# CONFIG_GAP_LIB
 
 include $(GAP_SDK_HOME)/tools/rules/pulp_rules.mk
 

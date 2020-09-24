@@ -35,7 +35,7 @@ MEMORY
 {
   /* L2_priv 0 : FC private data. */
   L2_priv0          : ORIGIN = 0x1C000000, LENGTH = 0x10000
-  L2_priv0_aliased  : ORIGIN = 0x00000000, LENGTH = 0x8000
+  L2_priv0_aliased  : ORIGIN = 0x00000000, LENGTH = 0x10000
 
   /* Considering L2_PRIV0 and L2_PRIV1 as one unique memory. */
   /* L2_priv1 : FC code. */
@@ -91,8 +91,11 @@ SECTIONS
         . = ALIGN(16);
         *(.rodata)
         *(.rodata.*)
+        . = ALIGN(16);
         *(.srodata)
         *(.srodata.*)
+        *(.eh_frame*)
+        *(.eh_frame.*)
     } > L2_priv0
 
     .shbss :
@@ -184,20 +187,17 @@ SECTIONS
         _edata  =  .;
     } > L2_priv0
 
-    .stack :
+    .stack_irq :
     {
         . = ALIGN(16);
-        __fc_bss_start__ = .;
         __stack_irq_end__ = .;
-        __stack_irq_start__ = __stack_irq_end__ + __STACK_IRQ_SIZE;
-        __stack_fc_pointer__ = __stack_irq_start__ + 0x4;
-        __stack_fc_end__ = __stack_fc_pointer__;
-        __stack_fc_start__ = __stack_fc_end__ + __STACK_FC_SIZE;
-        /* __l2_priv0_end = __stack_fc_start__ + 0x4; */
-        __fc_bss_end__ = __stack_fc_start__;
+        . += __STACK_IRQ_SIZE;
+        __stack_irq_start__ = .;
+        . += 0x4;
+        __stack_fc_pointer__ = .;
     } > L2_priv0
 
-    .heap_l2_priv0 (__fc_bss_end__) :
+    .heap_l2_priv0 :
     {
         . = ALIGN(16);
         *(.heapfcram)
@@ -208,6 +208,9 @@ SECTIONS
         . = ALIGN(16);
         __heapfcram_start = .;
         __heap_l2_priv0_start = .;
+        __stack_fc_end__ = .;
+        . += __STACK_FC_SIZE;
+        __stack_fc_start__ = .;
     } > L2_priv0
 
     /* L2_priv0 heap size. */
@@ -227,6 +230,11 @@ SECTIONS
     {
     } > L2_shared*/
 
+
+    .cluster_vectors_irq :
+    {
+    } > L2_shared
+
     .guinea_pig_l2_section (ORIGIN(L2_priv0) + 0x40000) : 
     {
         . = ALIGN(16);
@@ -239,6 +247,9 @@ SECTIONS
         . = ALIGN(16);
         __irq_vector_base_m__ = .;
         KEEP(*(.vectors_irq))
+        . = ALIGN(0x100);
+        __irq_cluster_vector_base_m__ = .;
+        KEEP(*(.cluster_vectors_irq))
         . = ALIGN(16);
         _stext = .;
         *(.text.reset)
