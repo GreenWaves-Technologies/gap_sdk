@@ -2,6 +2,7 @@
 SCHEMA_V3=schema_v3
 SCHEMA_HEAD=schema
 SCHEMA_HEAD_NAME=schema_head
+SCHEMA_HEAD_TAG=6be604aaacd9d270de01c37ec6e9a9a077397848
 PACKAGES=build/packages
 FLAT_SRC=$(PACKAGES)/flatbuffers
 FLAT_BUILD=$(FLAT_SRC)/build
@@ -53,7 +54,7 @@ define schema
 	mkdir -p $$@
 
   build/schemas/$2.fbs: build/schemas
-	(cd $$<; wget https://raw.githubusercontent.com/tensorflow/tensorflow/master/tensorflow/lite/schema/$2.fbs)
+	(cd $$<; wget https://raw.githubusercontent.com/tensorflow/tensorflow/$(SCHEMA_HEAD_TAG)/tensorflow/lite/schema/$2.fbs)
 endef
 
 # $(eval $(call schema,$(SCHEMA_V3),$(SCHEMA_V3)))
