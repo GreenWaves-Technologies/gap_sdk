@@ -165,7 +165,7 @@ COMMON              = -c -g -fmessage-length=0 -fno-exceptions -fno-builtin \
 GCC_OPTIM_LEVEL     = -Os	# Optimize for size.
 
 # Enable log/traces. Often another flag should be set in order to print traces.
-DEBUG_FLAGS         = -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
+DEBUG_FLAGS         ?= -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
 PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK #-DPRINTF_DISABLE_SUPPORT_EXPONENTIAL #\
                       -DPRINTF_DISABLE_SUPPORT_FLOAT
