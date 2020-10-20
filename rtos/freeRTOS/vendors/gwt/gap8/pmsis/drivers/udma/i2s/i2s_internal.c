@@ -345,7 +345,7 @@ static int32_t __pi_i2s_conf_apply(struct i2s_itf_data_s *itf_data)
     {
         ddr = (itf_data->channels >> 1);
         /* PDM filter setup. */
-        itf_data->frequency *= itf_data->pdm_decimation;
+        itf_data->frequency = itf_data->frame_clk_freq * itf_data->pdm_decimation;
         if (itf_data->pdm_shift == -1)
         {
             shift = 4;
@@ -358,7 +358,7 @@ static int32_t __pi_i2s_conf_apply(struct i2s_itf_data_s *itf_data)
     }
     else
     {
-        itf_data->frequency *= itf_data->word_size * itf_data->channels;
+        itf_data->frequency = itf_data->frame_clk_freq * itf_data->word_size * itf_data->channels;
     }
     if (itf_data->i2s_id)
     {
