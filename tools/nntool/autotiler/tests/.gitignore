@@ -1,0 +1,6 @@
+*.o
+Run
+Gen
+home
+testKernels.*
+BUILD*

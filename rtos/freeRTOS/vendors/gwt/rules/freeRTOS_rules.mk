@@ -55,7 +55,7 @@ endif				# chip
 APP_ARCH_LDFLAGS    ?=
 
 RISCV_FLAGS         ?= $(APP_ARCH_CFLAGS)
-FREERTOS_FLAGS      += -D__riscv__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 \
+FREERTOS_FLAGS      += -D__riscv__ -D__GAP__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 \
                        -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 
 # Simulation related options
@@ -194,9 +194,13 @@ SIZE_OPT            = -B -x --common
 LIBS                = -lgcc
 STRIP               = -Wl,--gc-sections,-Map=$@.map,-static #,-s
 ifeq ($(LINK_SCRIPT),)
+ifeq '$(CONFIG_XIP)' '1'
+LINK_SCRIPT         = $(GWT_DEVICE)/ld/$(chip)_xip.ld
+else
 LINK_SCRIPT         = $(GWT_DEVICE)/ld/$(chip).ld
+endif
 endif				# LINK_SCRIPT
-LDFLAGS             = -nostartfiles -nostdlib -T$(LINK_SCRIPT) $(STRIP) $(LIBS)
+LDFLAGS             = -nostartfiles -nostdlib -T$(LINK_SCRIPT) $(STRIP) $(APP_LDFLAGS) $(LIBS)
 
 # libc/gcc CRT files.
 GCC_CRT             = $(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtbegin.o \
@@ -322,7 +326,9 @@ BIN                 = $(BUILDDIR)/$(APP)
 
 -include $(OBJS_DEP)
 
-all:: $(OBJS) $(BIN) image flash
+build: $(OBJS) $(BIN)
+
+all:: build image flash
 
 $(BUILDDIR):
 	mkdir -p $@
@@ -343,7 +349,7 @@ $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
-	$(TRC_MAKE)$(CC) $(APP_ARCH_LDFLAGS) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS) $(APP_LDFLAGS)
+	$(TRC_MAKE)$(CC) $(APP_ARCH_LDFLAGS) -MMD -MP -o $@ $(GCC_CRT) $(OBJS) $(LDFLAGS)
 
 $(OBJS_DUMP): $(BUILDDIR)/%.dump: $(BUILDDIR)/%.o
 	@$(OBJDUMP) $(OBJDUMP_OPT) $< > $@
@@ -389,4 +395,4 @@ clean:: clean_app
 clean_app::
 	@rm -rf $(APP_OBJ) $(BIN) $(OBJS_DUMP)
 
-.PHONY: clean all run debug disdump clean_app
+.PHONY: clean build all run debug disdump clean_app

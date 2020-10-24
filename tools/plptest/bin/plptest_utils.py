@@ -374,6 +374,7 @@ class TestRun(protocol.ProcessProtocol):
         self.log = ''
         self.outputLen = 0
         self.status = False
+        self.skip = None
         self.reachedMaxOutputSize = False
         self.closed = False
         self.id = runner.get_test_id()
@@ -426,6 +427,11 @@ class TestRun(protocol.ProcessProtocol):
 
         os.killpg(self.pid, signal.SIGKILL)
 
+    def terminate(self):
+        if self.callback is not None:
+            self.callback(*self.kargs, **self.kwargs)
+
+
     def handleEnd(self):
         self.closed = True
         endTime = datetime.now()
@@ -445,8 +451,7 @@ class TestRun(protocol.ProcessProtocol):
         if self.runner.safe_stdout:
             print (self.log)
 
-        if self.callback is not None:
-            self.callback(*self.kargs, **self.kwargs)
+        self.terminate()
 
     def handle_cmd_end(self):
         if not self.status or len(self.commands) == 0:
@@ -592,14 +597,6 @@ class TestRun(protocol.ProcessProtocol):
 
     def run(self, reactor, callback=None, commands=None, dry_run=False, *kargs, **kwargs):
 
-        if commands is None:
-            self.commands = self.test.commands.copy()
-        else:
-            self.commands = []
-            for test_command in self.test.commands:
-                if test_command.name in commands:
-                    self.commands.append(test_command)
-
         self.dry_run = dry_run
         self.callback = callback
         self.kargs = kargs
@@ -607,10 +604,26 @@ class TestRun(protocol.ProcessProtocol):
         self.reactor = reactor
         self.startTime = datetime.now()
 
-        self.appendOutput('Running: ' + self.test.getFullName() + ' / ' +
-                          self.config.get_config_name() + '\n')
+        if self.test.skip is not None:
 
-        self.timeout_call_id = None
+            self.duration = 0
+            self.skip = self.test.skip
+            self.terminate()
+
+        else:
+
+            if commands is None:
+                self.commands = self.test.commands.copy()
+            else:
+                self.commands = []
+                for test_command in self.test.commands:
+                    if test_command.name in commands:
+                        self.commands.append(test_command)
+
+            self.appendOutput('Running: ' + self.test.getFullName() + ' / ' +
+                            self.config.get_config_name() + '\n')
+
+            self.timeout_call_id = None
 
 
-        self.reactor.callLater(0, self.runCommand)
+            self.reactor.callLater(0, self.runCommand)

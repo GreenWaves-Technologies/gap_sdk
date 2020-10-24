@@ -116,7 +116,24 @@ static inline void *pmsis_task_create(void (*entry)(void*), void *arg,
  * \retval task_handler  Pointer to created task.
  * \retval NULL          If task has not been created.
  */
-void *pi_task_create(func_t func, void *arg, char *name, uint32_t stack_size,
+static inline void *pi_task_create(pi_task_entry_t func, void *arg, char *name, uint32_t stack_size,
+                     int priority);
+
+/**
+ * \brief Create a usermode task.
+ *
+ * This function creates a usermode task task.
+ *
+ * \param func           Task function.
+ * \param arg            Arguments to task's function.
+ * \param name           Name of the task.
+ * \param stack_size     Stack size given to the task.
+ * \param priority       Task priority.
+ *
+ * \retval task_handler  Pointer to created task.
+ * \retval NULL          If task has not been created.
+ */
+static inline void *pi_user_task_create(pi_task_entry_t func, void *arg, char *name, uint32_t stack_size,
                      int priority);
 
 /**

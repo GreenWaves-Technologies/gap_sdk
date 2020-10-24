@@ -113,6 +113,17 @@ vp::io_req_status_e Hyper_periph::custom_req(vp::io_req *req, uint64_t offset)
 {
     this->regmap.access(offset, req->get_size(), req->get_data(), req->get_is_write());
 
+    if (offset == UDMA_HYPER_RX_DEST_OFFSET)
+    {
+        if (req->get_is_write())
+            this->top->channel_register(*(uint32_t *)req->get_data(), this->channel0);
+    }
+    else if (offset == UDMA_HYPER_TX_DEST_OFFSET)
+    {
+        if (req->get_is_write())
+            this->top->channel_register(*(uint32_t *)req->get_data(), this->channel1);
+    }
+
     return vp::IO_REQ_OK;
 }
 

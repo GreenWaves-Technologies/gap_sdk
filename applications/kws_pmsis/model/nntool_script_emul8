@@ -1,0 +1,7 @@
+adjust
+fusions
+aquant -f 8 images/* -D 255 -O 0
+set dump_tensors 1
+qtune 1 dp
+qtune 2 dp
+save_state

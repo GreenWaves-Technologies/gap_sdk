@@ -16,7 +16,7 @@
 #include "CifarData.h"
 
 /* Variables used. */
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_PRINTF printf
@@ -30,16 +30,27 @@
 #include "bsp/bsp.h"
 #include "bsp/fs.h"
 #include "bsp/fs/readfs.h"
+
+#ifdef QSPI_BOARD
+#include "bsp/flash/spiflash.h"
+#else
 #include "bsp/flash/hyperflash.h"
+#endif
 
 #define  BUFFER_SIZE   (1024)
 
-struct pi_readfs_conf conf_fs;
+#ifdef QSPI_BOARD
+struct pi_device QspiRam;
+struct pi_spiflash_conf conf_flash;
+struct pi_spiram_conf conf_ram;
+#else
 struct pi_hyperflash_conf conf_flash;
 struct pi_hyperram_conf conf_ram;
+struct pi_device HyperRam;
+#endif
+struct pi_readfs_conf conf_fs;
 struct pi_device flash;
 struct pi_device fs;
-struct pi_device HyperRam;
 pi_fs_file_t *file;
 int16_t *buff;
 #endif  /* COEF_L2 */
@@ -115,7 +126,7 @@ void Check(char *Mess, short int *Planes, int NPlane, int W, int H)
 }
 
 #if !defined(COEF_L2)
-void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *hyper_buff, uint32_t *hyper_size)
+void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *_buff, uint32_t *_size)
 {
     DEBUG_PRINTF("Loading layer \"%s\" from FS to L3\n", file_name);
     file = pi_fs_open(fs, file_name, 0);
@@ -125,13 +136,17 @@ void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *hype
         pmsis_exit(-1);
     }
 
-    if (pi_ram_alloc(&HyperRam, hyper_buff, file->size))
+#ifdef QSPI_BOARD
+    if (pi_ram_alloc(&QspiRam, _buff, file->size))
+#else
+    if (pi_ram_alloc(&HyperRam, _buff, file->size))
+#endif
     {
         printf("Ram malloc failed !\n");
         pmsis_exit(-2);
     }
-    *hyper_size = file->size;
-    DEBUG_PRINTF("Hyperram alloc : %x %d\n", *hyper_buff, file->size);
+    *_size = file->size;
+    DEBUG_PRINTF("ram alloc : %x %d\n", *_buff, file->size);
 
     uint32_t size_total = 0;
     uint32_t size = 0;
@@ -143,11 +158,15 @@ void CopyFileFromFlashToL3(struct pi_device *fs, char *file_name, uint32_t *hype
         size = ((size + 3) & ~3);
         if (size)
         {
-            pi_ram_write(&HyperRam, (uint32_t) (*hyper_buff+size_total), buff, size);
+#ifdef QSPI_BOARD
+            pi_ram_write(&QspiRam, (uint32_t) (*_buff+size_total), buff, size);
+#else
+            pi_ram_write(&HyperRam, (uint32_t) (*_buff+size_total), buff, size);
+#endif
             size_total += size;
         }
     } while (size_total < file->size);
-    DEBUG_PRINTF("Loading layer \"%s\" from FS to L3, hyper %x size = %d\n", file_name, *hyper_buff, size_total);
+    DEBUG_PRINTF("Loading layer \"%s\" from FS to L3, ram %x size = %d\n", file_name, *_buff, size_total);
 
     pi_fs_seek(file, 0);
     pi_fs_close(file);
@@ -159,34 +178,35 @@ static void RunCifar10(void *arg)
     DEBUG_PRINTF("Cluster: Start to run Cifar10\n");
 
     Conv5x5MaxPool2x2_SW_0(ImageIn,
-                           Filter_Layer[0],
-                           Bias_Layer[0],
-                           Out_Layer[0]);
+        Filter_Layer[0],
+            Bias_Layer[0],
+            Out_Layer[0]);
 
     Conv5x5MaxPool2x2_SW_1(Out_Layer[0],
-                           Filter_Layer[1],
-                           Bias_Layer[1],
-                           Out_Layer[1]);
+            Filter_Layer[1],
+            Bias_Layer[1],
+            Out_Layer[1]);
 
     LinearLayerReLU_1(Out_Layer[1],
-                      Filter_Layer[2],
-                      Bias_Layer[2],
-                      Out_Layer[2]);
+            Filter_Layer[2],
+            Bias_Layer[2],
+            Out_Layer[2]);
 
     DEBUG_PRINTF("Cluster: End run Cifar10\n");
 }
 
 void test_cifar10(void)
 {
-    printf("Entering main controller\n");
-    uint8_t CheckResults = 1;
+    DEBUG_PRINTF("Entering main controller\n");
+    /* Check Results can works when only the output of Layer0 is in L2 */
+    uint8_t CheckResults = 0;
 
     /* Output result size. */
     Out_Layer_Size[0] = (14 * 14 * sizeof(int16_t) * 8);
     Out_Layer_Size[1] = (5 * 5 * sizeof(int16_t) * 12);
     Out_Layer_Size[2] = (1 * 1 * sizeof(int16_t) * 10);
 
-    #if !defined(COEF_L2)
+#if !defined(COEF_L2)
     buff = (int16_t *) pmsis_l2_malloc(BUFFER_SIZE);
     if (buff == NULL)
     {
@@ -194,6 +214,17 @@ void test_cifar10(void)
         pmsis_exit(-1);
     }
 
+    #ifdef QSPI_BOARD
+    pi_spiram_conf_init(&conf_ram);
+    pi_open_from_conf(&QspiRam, &conf_ram);
+    if (pi_ram_open(&QspiRam))
+    {
+        printf("Error ram open !\n");
+        pmsis_exit(-2);
+    }
+
+    pi_spiflash_conf_init(&conf_flash);
+    #else
     pi_hyperram_conf_init(&conf_ram);
     pi_open_from_conf(&HyperRam, &conf_ram);
     if (pi_ram_open(&HyperRam))
@@ -203,6 +234,8 @@ void test_cifar10(void)
     }
 
     pi_hyperflash_conf_init(&conf_flash);
+    #endif
+
     pi_open_from_conf(&flash, &conf_flash);
     if (pi_flash_open(&flash))
     {
@@ -220,7 +253,7 @@ void test_cifar10(void)
         printf("Error FS mounting : %d !\n", err);
         pmsis_exit(-4);
     }
-    printf("FS mounted.\n");
+    DEBUG_PRINTF("FS mounted.\n");
 
     CopyFileFromFlashToL3(&fs, "Cifar10_Filter0.dat", &Filter_Layer[0], &Filter_Layer_Size[0]);
     CopyFileFromFlashToL3(&fs, "Cifar10_Bias0.dat",   &Bias_Layer[0], &Bias_Layer_Size[0]);
@@ -230,15 +263,19 @@ void test_cifar10(void)
     CopyFileFromFlashToL3(&fs, "Cifar10_Bias2.dat",   &Bias_Layer[2], &Bias_Layer_Size[2]);
 
     pi_fs_unmount(&fs);
-    printf("FS unmounted.\n");
+    DEBUG_PRINTF("FS unmounted.\n");
     pi_flash_close(&flash);
 
+    #ifdef QSPI_BOARD
+    if (pi_ram_alloc(&QspiRam, (uint32_t *) &Out_Layer[0], Out_Layer_Size[0]))
+    #else
     if (pi_ram_alloc(&HyperRam, (uint32_t *) &Out_Layer[0], Out_Layer_Size[0]))
+    #endif
     {
         printf("Ram malloc failed !\n");
         pmsis_exit(-5);
     }
-    #else
+#else
     /* Bias & Filters. */
     Bias_Layer[0] = Bias_Layer0;
     Bias_Layer[1] = Bias_Layer1;
@@ -253,10 +290,10 @@ void test_cifar10(void)
         printf("Failed to allocated memory, giving up.\n");
         pmsis_exit(-5);
     }
-    #endif  /* COEF_L2 */
+#endif  /* COEF_L2 */
     else
     {
-        printf("Allocating %d: OK -> %x\n", Out_Layer_Size[0], Out_Layer[0]);
+        DEBUG_PRINTF("Allocating Out_Layer0 %d: OK -> %x\n", Out_Layer_Size[0], Out_Layer[0]);
     }
 
     Out_Layer[1] = (int16_t *) pmsis_l2_malloc(Out_Layer_Size[1]);
@@ -268,8 +305,8 @@ void test_cifar10(void)
     }
     else
     {
-        printf("Allocating %d: OK -> %x\n", Out_Layer_Size[1], Out_Layer[1]);
-        printf("Allocating %d: OK -> %x\n", Out_Layer_Size[2], Out_Layer[2]);
+        DEBUG_PRINTF("Allocating Out_Layer1 %d: OK -> %x\n", Out_Layer_Size[1], Out_Layer[1]);
+        DEBUG_PRINTF("Allocating Out_Layer2 %d: OK -> %x\n", Out_Layer_Size[2], Out_Layer[2]);
     }
 
     /* Configure And open cluster. */
@@ -302,7 +339,7 @@ void test_cifar10(void)
     memset(task, 0, sizeof(struct pi_cluster_task));
     task->entry = RunCifar10;
     task->arg = NULL;
-    task->stack_size = 2048*2;
+//    task->stack_size = 2048*2;
 
     pi_cluster_send_task_to_cl(&cluster_dev, task);
 
@@ -320,7 +357,17 @@ void test_cifar10(void)
         Check("SW   Layer2", Out_Layer[2], 10, 1, 1);
     }
 
-    #if !defined(COEF_L2)
+#if !defined(COEF_L2)
+#ifdef QSPI_BOARD
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        pi_ram_free(&QspiRam, Filter_Layer[i], Filter_Layer_Size[i]);
+        pi_ram_free(&QspiRam, Bias_Layer[i], Bias_Layer_Size[i]);
+    }
+    pi_ram_free(&QspiRam, (uint32_t) Out_Layer[0], Out_Layer_Size[0]);
+    pi_ram_close(&QspiRam);
+
+#else
     for (uint32_t i = 0; i < 3; i++)
     {
         pi_ram_free(&HyperRam, Filter_Layer[i], Filter_Layer_Size[i]);
@@ -328,10 +375,11 @@ void test_cifar10(void)
     }
     pi_ram_free(&HyperRam, (uint32_t) Out_Layer[0], Out_Layer_Size[0]);
     pi_ram_close(&HyperRam);
+#endif
     pmsis_l2_malloc_free(buff, BUFFER_SIZE);
-    #else
+#else
     pmsis_l2_malloc_free(Out_Layer[0], Out_Layer_Size[0]);
-    #endif  /* COEF_L2 */
+#endif  /* COEF_L2 */
     pmsis_l2_malloc_free(Out_Layer[1], Out_Layer_Size[1]);
     pmsis_l2_malloc_free(Out_Layer[2], Out_Layer_Size[2]);
 

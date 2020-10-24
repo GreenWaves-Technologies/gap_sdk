@@ -5,9 +5,6 @@ LAUNCHER_BUILD_DIR = $(ROOT_VP_BUILD_DIR)/launcher
 
 -include $(INSTALL_DIR)/rules/vp_models.mk
 
-
-CC = g++
-
 CFLAGS +=  -MMD -MP -O2 -g -fpic -std=c++11 -Werror -Wall -I$(INSTALL_DIR)/include
 LDFLAGS += -O2 -g -shared -Werror -Wall -L$(INSTALL_DIR)/lib -Wl,--whole-archive -ljson -Wl,--no-whole-archive
 
@@ -30,15 +27,15 @@ endef
 
 $(LAUNCHER_BUILD_DIR)/%.o: src/%.c
 	@mkdir -p $(basename $@)
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CXX) $(CFLAGS) -o $@ -c $<
 
 $(LAUNCHER_BUILD_DIR)/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CXX) $(CFLAGS) -o $@ -c $<
 
 $(LAUNCHER_BUILD_DIR)/libpulpvplauncher.so: $(LAUNCHER_OBJS)
 	@mkdir -p $(basename $@)
-	$(CC) $^ -o $@ $(LDFLAGS)
+	$(CXX) $^ -o $@ $(LDFLAGS)
 
 
 

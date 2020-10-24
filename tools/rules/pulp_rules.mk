@@ -13,12 +13,14 @@ ifeq ($(CUSTOM_BSP),)
 LIBS += -L$(TARGET_INSTALL_DIR)/lib/gap/$(BOARD_NAME) -lpibsp
 endif
 
+CONFIG_PULPRT_LIB ?= rt
+
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/gap \
-				-lrt -lrtio -lrt -lgcc
+				-l$(CONFIG_PULPRT_LIB) -lrtio -l$(CONFIG_PULPRT_LIB) -lgcc
 else
 LIBS          += -L$(TARGET_INSTALL_DIR)/lib/vega \
-				-lrt -lrtio -lrt -lgcc
+				-l$(CONFIG_PULPRT_LIB) -lrtio -l$(CONFIG_PULPRT_LIB) -lgcc
 endif
 
 
@@ -30,6 +32,8 @@ MAIN_STACK_SIZE ?= 2048
 PULP_CFLAGS  += -DRT_FC_STACK_SIZE=$(MAIN_STACK_SIZE)
 
 LIBSFLAGS     += -nostartfiles -nostdlib
+
+ifndef CONFIG_NO_LDSCRIPT
 
 # The options used in linking as well as in any direct use of ld.
 ifeq ($(TARGET_CHIP), GAP8)
@@ -45,12 +49,18 @@ endif
 
 ifeq ($(platform), gvsoc)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gvsoc.conf.ld
+PULP_CFLAGS += -D__PLATFORM_GVSOC__
 else ifeq ($(platform), fpga)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/fpga.conf.ld
+PULP_CFLAGS += -D__PLATFORM_FPGA__
 else ifeq ($(platform), rtl)
 LDFLAGS       += -T$(INSTALL_DIR)/ld/rtl.conf.ld
+PULP_CFLAGS += -D__PLATFORM_RTL__
 else
 LDFLAGS       += -T$(INSTALL_DIR)/ld/gapuino.conf.ld
+PULP_CFLAGS += -D__PLATFORM_BOARD__
+endif
+
 endif
 
 LDFLAGS += $(PULP_LDFLAGS)
@@ -85,7 +95,7 @@ PULP_ARCH_CFLAGS = $(PULP_CL_ARCH_CFLAGS)
 endif
 
 ifneq (,$(filter $(TARGET_CHIP), GAP8 GAP8_V2 GAP8_V3))
-RISCV_FLAGS   ?= $(PULP_ARCH_CFLAGS) -D__riscv__ -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
+RISCV_FLAGS   ?= $(PULP_ARCH_CFLAGS) -D__riscv__ -D__GAP__ -D__$(TARGET_CHIP_FAMILY)__ -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 GAP_FLAGS	 += -D__pulp__ -DCONFIG_GAP -D__PULP_OS__
 else
 RISCV_FLAGS   ?= $(PULP_ARCH_CFLAGS) -D__riscv__

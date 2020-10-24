@@ -60,8 +60,9 @@ class LSTMParameters(RNNBaseParameters):
         raise NotImplementedError()
 
     def __str__(self):
-        return "{} Cell {} Prj {} {} {}".format(
+        return "{}{} Cell {} Prj {} {} {}".format(
             Transposable.__str__(self),
+            ("Reversed " if self.revert else ""),
             self.cell_clip,
             self.proj_clip,
             self.activation,

@@ -35,6 +35,7 @@ def get_config(tp):
   has_fc            = tp.get('soc/fc') is not None
   nb_cluster        = tp.get_child_int('cluster/nb_cluster')
   has_fll           = tp.get('soc/peripherals/fll') is not None or tp.get('soc/peripherals/flls') is not None
+  has_fast_clock    = tp.get_child_bool('has_fast_clock')
   has_ddr = tp.get('ddr') is not None
   if chip_family is None:
     chip_family = chip_name
@@ -172,6 +173,8 @@ def get_config(tp):
     chip.soc_clock.out = chip.padframe.clock
     if has_fc:
       chip.padframe.ref_clock = chip.soc.ref_clock
+      if has_fast_clock:
+        chip.fast_clock = chip.soc.fast_clock
 
     if padframe_conf is not None:
       groups_conf = padframe_conf.get('groups')

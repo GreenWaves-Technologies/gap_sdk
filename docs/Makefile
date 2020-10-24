@@ -56,7 +56,6 @@ export HM_BASE=home
 export AT_BASE=autotiler
 export RT_BASE=pulp-os/runtime
 export APP_BASE=applications
-export MB_BASE=mbed-os
 export FR_BASE=freertos
 export VP_BASE=gvsoc
 export BM_BASE=benchmarks
@@ -66,7 +65,6 @@ export PMSIS_API_BASE=pmsis_api
 AT_MANUAL_NAME= autotiler.pdf
 HM_MANUAL_NAME= sdk_manual.pdf
 APP_MANUAL_NAME= applications.pdf
-MB_MANUAL_NAME= mbed-os.pdf
 FR_MANUAL_NAME= freertos.pdf
 VP_MANUAL_NAME= gvsoc.pdf
 BM_MANUAL_NAME= benchmarks.pdf
@@ -78,7 +76,7 @@ HM_MANUAL_BITS= $(HM_BASE)/header.md $(HM_BASE)/readme_extract.md $(HM_BASE)/foo
 APP_MANUAL_BITS= $(wildcard $(APP_BASE)/doc_*.md)
 RT_MANUAL_BITS= $(addprefix $(RT_BASE)/, doc_sdk_manual.md doc_optimization.md doc_optimization_example.md)
 
-ALL_TABS= HOME PULP-OS MBED-OS FREERTOS AUTOTILER APPLICATIONS GVSOC BENCHMARKS PMSIS_API PMSIS_BSP
+ALL_TABS= HOME PULP-OS FREERTOS AUTOTILER APPLICATIONS GVSOC BENCHMARKS PMSIS_API PMSIS_BSP
 ALL_PDFS= HOME_PDF AUTOTILER_PDF APPLICATIONS_PDF
 
 all: reference
@@ -146,7 +144,6 @@ $(eval $(call builddocs,HOME,HM))
 $(eval $(call builddocs,AUTOTILER,AT,$(AT_BASE)/groups.h))
 $(eval $(call builddocs,PULP-OS,RT,$(RT_BASE)/groups.h $(RT_BASE)/builtins.h $(GAP8_BUILTINS)))
 $(eval $(call builddocs,APPLICATIONS,APP))
-$(eval $(call builddocs,MBED-OS,MB,$(MB_BASE)/groups.h))
 $(eval $(call builddocs,FREERTOS,FR,$(FR_BASE)/groups.h))
 $(eval $(call builddocs,GVSOC,VP))
 $(eval $(call builddocs,BENCHMARKS,BM))

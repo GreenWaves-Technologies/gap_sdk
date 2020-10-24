@@ -95,6 +95,16 @@ PULP_SRCS += $(BSP_FLASH_SRC)
 CONFIG_BSP = 1
 endif
 
+ifeq '$(CONFIG_HIMAX)' '1'
+CONFIG_CAMERA = 1
+CONFIG_I2C = 1
+PULP_SRCS += $(BSP_HIMAX_SRC)
+endif
+
+ifeq '$(CONFIG_CAMERA)' '1'
+PULP_SRCS += $(BSP_CAMERA_SRC)
+endif
+
 ifeq '$(CONFIG_BSP)' '1'
 PULP_SRCS += bsp/$(PULPOS_BOARD).c
 endif

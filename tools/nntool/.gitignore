@@ -1,0 +1,11 @@
+build
+flatbuffers
+*.xlsx
+*.xls
+__pycache__
+.pytest_cache/
+.value_cache/
+.vscode/
+sample_project/version.log
+.orig
+TestKernels.*

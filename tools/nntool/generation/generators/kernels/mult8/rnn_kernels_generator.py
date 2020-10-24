@@ -56,12 +56,13 @@ def rnn_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
 #         )
 
 
-def gen_rnn_sq8(code_block, kname, cname, ctrl, ncells, k0, k1, dim_state, dim_in):
+def gen_rnn_sq8(code_block, kname, cname, ctrl, ncells, k0, k1, dim_state, dim_in, revert):
     code_block.write(
-        '{}("{}", {}, 4, 1, {}, {}, {}, {}, {}, 0, 0);'.format(kname, cname, ctrl,
-                                                               ncells, k0,
-                                                               k1, dim_state,
-                                                               dim_in))
+        '{}("{}", {}, 4, 1, {}, {}, {}, {}, {}, 0, {});'.format(kname, cname, ctrl,
+                                                                ncells, k0,
+                                                                k1, dim_state,
+                                                                dim_in,
+                                                                revert))
 
 
 class RNNKernel(AutotilerKernel):
@@ -83,6 +84,7 @@ class RNNKernel(AutotilerKernel):
         self.n_inputs = rnn_params.n_inputs
         self.n_input_cells = rnn_params.n_input_cells
         self.n_output_cells = rnn_params.n_output_cells
+        self.revert = rnn_params.revert
         self.cname = cname
         self.node_name = node_name
         self.at_ver = at_ver
@@ -102,5 +104,6 @@ class RNNKernel(AutotilerKernel):
         gen_rnn_sq8(code_block, self.kname, self.cname, gen_ctrl, self.n_cells,
                     self.n_input_cells, self.n_output_cells,
                     self.n_states,
-                    self.n_inputs)
+                    self.n_inputs,
+                    self.revert and "1" or "0")
         return code_block

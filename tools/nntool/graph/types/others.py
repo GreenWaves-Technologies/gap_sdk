@@ -106,6 +106,29 @@ class CopyParameters(Parameters):
     def __str__(self):
         return ""
 
+class ReverseParameters(Parameters):
+    op_name = "reverse"
+
+    def __init__(self, *args, axis=0, **kwargs):
+        super(ReverseParameters, self).__init__(*args, **kwargs)
+        self.axis = axis
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        return [in_dims[0].clone()]
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "A {}".format(self.axis)
+
 
 class ConcatParameters(Transposable):
     op_name = "concat"

@@ -48,6 +48,7 @@ struct pi_himax_conf
     interface is connected. */
   char skip_pads_config;        /*!< Skip pads configuration if set to 1. */
   pi_camera_format_e format;    /*!< Camera image resolution. */
+  pi_camera_slicing_conf_t roi;      /*!< ROI (region of interest) of an image. */
 };
 
 /** \brief Initialize a camera configuration with default values.

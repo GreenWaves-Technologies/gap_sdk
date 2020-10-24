@@ -538,33 +538,59 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fp(
         int Ho_F,
         int Ho_L,
         int Stride,
-		int ReVal)
+	int DoReLU)
 
 {
 	unsigned int PoolFactor = (1<<16)/(Fw*Fh);
-
-	if (Fw&0x1) {
-       	for ( int w=Wo_F; w<Wo_L; w++) {
-			for ( int h=Ho_F; h<Ho_L; h++) {
-            	int S = 0;
-				for ( int i=0; i<Fh; i++) {
-					v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
-                    	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
-					S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
-                }
-				Out[Wo*h+w] = Max(ReVal, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15));
-			}
-       	}
+	if (DoReLU) {
+		if (Fw&0x1) {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
+						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
+	                        	}
+	                        	Out[Wo*h+w] = Max(0, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15));
+	                	}
+	        	}
+		} else {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
+	                        	}
+	                        	Out[Wo*h+w] = Max(0, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15));
+	                	}
+	        	}
+		}
 	} else {
-		for ( int w=Wo_F; w<Wo_L; w++) {
-			for ( int h=Ho_F; h<Ho_L; h++) {
-				int S = 0;
-				for ( int i=0; i<Fh; i++) {
-					v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
-					for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
-				}
-				Out[Wo*h+w] = Max(ReVal, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15));
-			}
+		if (Fw&0x1) {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
+						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
+	                        	}
+	                        	Out[Wo*h+w] = gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15);
+	                	}
+	        	}
+		} else {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						v2s *Line = (v2s *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp2(Line[j], ((v2s) {1,1}), S);
+	                        	}
+	                        	Out[Wo*h+w] = gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 16), 15);
+	                	}
+	        	}
 		}
 	}
 }
@@ -1069,33 +1095,59 @@ static void __attribute__ ((noinline)) KerAvgPoolNxNStrideS_Body_fps(
         int Ho_F,
         int Ho_L,
         int Stride,
-		int ReVal)
+	int DoReLU)
 
 {
 	unsigned int PoolFactor = (1<<8)/(Fw*Fh);
-	
-	if (Fw&0x1) {
-		for ( int w=Wo_F; w<Wo_L; w++) {
-			for ( int h=Ho_F; h<Ho_L; h++) {
-				int S = 0;
-				for ( int i=0; i<Fh; i++) {
-					short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
-					for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
-					S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
-				}
-				Out[Wo*h+w] = Max(ReVal, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7));
-			}
+	if (DoReLU) {
+		if (Fw&0x1) {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
+						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
+	                        	}
+	                        	Out[Wo*h+w] = Max(0, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7));
+	                	}
+	        	}
+		} else {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
+	                        	}
+	                        	Out[Wo*h+w] = Max(0, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7));
+	                	}
+	        	}
 		}
 	} else {
-		for ( int w=Wo_F; w<Wo_L; w++) {
-			for ( int h=Ho_F; h<Ho_L; h++) {
-				int S = 0;
-				for ( int i=0; i<Fh; i++) {
-					short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
-					for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
-				}
-				Out[Wo*h+w] = Max(ReVal, gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7));
-			}
+		if (Fw&0x1) {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
+						S += In[(h*Stride-PadT+i)*W + (w*Stride-PadL) + Fw - 1];
+	                        	}
+	                        	Out[Wo*h+w] = gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7);
+	                	}
+	        	}
+		} else {
+	        	for ( int w=Wo_F; w<Wo_L; w++) {
+	                	for ( int h=Ho_F; h<Ho_L; h++) {
+	                        	int S = 0;
+	                        	for ( int i=0; i<Fh; i++) {
+						short int *Line = (short int *) &In[(h*Stride-PadT+i)*W + (w*Stride-PadL)];
+	                                	for ( int j=0; j<(Fw/2); j++) S = gap8_sumdotp4((v4s)(int)Line[j], ((v4s) {1,1,0,0}), S);
+	                        	}
+	                        	Out[Wo*h+w] = gap8_clip(gap8_roundnorm_reg(S*PoolFactor, 8), 7);
+	                	}
+	        	}
 		}
 	}
 }

@@ -261,11 +261,6 @@ int pi_cluster_open(struct pi_device *device)
         // fill the per cluster data ptr
         __per_cluster_data[_conf->id] = _data;
         PRINTF("per cluster data[%lx]=%lx\n",_conf->id,__per_cluster_data[_conf->id]);
-
-        // create an event task to manage cluster driver
-        struct pmsis_event_kernel_wrap *wrap = NULL;
-        pmsis_event_kernel_init(&wrap, pmsis_event_kernel_main);
-        _data->event_kernel = wrap;
     }
     PRINTF("near start: device->config=%p\n",device->config);
     PRINTF("near start: _conf:=%p, device->config->heap_start=%p\n",_conf, _conf->heap_start);
@@ -311,8 +306,6 @@ int pi_cluster_close(struct pi_device *device)
         // if no task has an active handle on device
         // --> clean up data as everything in L1 is going to be lost
         PRINTF("Cluster clean ups\n");
-        /* Suspend and destroy event kernel task. */
-        pmsis_event_kernel_destroy(&(_data->event_kernel));
         struct pi_cluster_conf *_conf = (struct pi_cluster_conf *) device->config;
         /* Clean used mutexes. */
         pmsis_mutex_deinit(&(_data->task_mutex));
@@ -455,7 +448,6 @@ static inline void __cluster_start(struct pi_device *device)
         int32_t *lock_addr = pmsis_l1_malloc(sizeof(int32_t));
         cl_sync_init_spinlock(&data->fifo_access, lock_addr);
         cl_sync_init_spinlock(&cluster_printf_spinlock, pmsis_l1_malloc(sizeof(uint32_t)));
-        //pmsis_event_lock_cl_to_fc_init(data->event_kernel);
     }
     data->cluster_is_on++;
     pmsis_mutex_release(&data->powerstate_mutex);

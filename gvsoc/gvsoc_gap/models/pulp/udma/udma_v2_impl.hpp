@@ -502,87 +502,6 @@ private:
 };
 
 
-/*
- * CPI
- */
-
-class Cpi_periph_v1;
-
-class Cpi_rx_channel : public Udma_rx_channel
-{
-public:
-  Cpi_rx_channel(udma *top, Cpi_periph_v1 *periph, int id, string name);
-
-private:
-  void reset(bool active);
-  Cpi_periph_v1 *periph;
-};
-
-class Cpi_periph_v1 : public Udma_periph
-{
-  friend class Cpi_rx_channel;
-
-public:
-  Cpi_periph_v1(udma *top, int id, int itf_id);
-  vp::io_req_status_e custom_req(vp::io_req *req, uint64_t offset);
-  void reset(bool active);
-  void handle_sof();
-
-protected:
-  vp::cpi_slave cpi_itf;
-
-private:
-  static void sync(void *__this, int pclk, int href, int vsync, int data);
-  static void sync_cycle(void *__this, int href, int vsync, int data);
-  vp::io_req_status_e handle_global_access(bool is_write, uint32_t *data);
-  vp::io_req_status_e handle_l1_access(bool is_write, uint32_t *data);
-  vp::io_req_status_e handle_ur_access(bool is_write, uint32_t *data);
-  vp::io_req_status_e handle_size_access(bool is_write, uint32_t *data);
-  vp::io_req_status_e handle_filter_access(bool is_write, uint32_t *data);
-  void push_pixel(uint32_t pixel);
-
-  vp::trace     trace;
-
-  int pending_byte;
-  bool has_pending_byte;
-  bool cmd_ready;
-
-  uint32_t glob;
-  uint32_t ll;
-  uint32_t ur;
-  uint32_t size;
-  uint32_t filter;
-
-  bool wroteGlob;
-  bool wroteLl;
-  bool wroteUr;
-  bool wroteSize;
-  bool wroteFilter;
-
-  unsigned int enabled;
-  unsigned int frameDrop;
-  unsigned int nbFrameDrop;
-  unsigned int frameSliceEn;
-  unsigned int format;
-  unsigned int shift;
-
-  unsigned int frameSliceLlx;
-  unsigned int frameSliceLly;
-  unsigned int frameSliceUrx;
-  unsigned int frameSliceUry;
-
-  unsigned int rowLen;
-
-  unsigned int bCoeff;
-  unsigned int gCoeff;
-  unsigned int rCoeff;
-
-  unsigned int frameDropCount;
-  unsigned int currentLine;
-  unsigned int currentRow;
-
-};
-
 
 
 #ifdef HAS_TCDM
@@ -955,5 +874,9 @@ private:
   vp::wire_master<int>    event_itf;
 };
 
+
+#ifdef HAS_CPI
+#include "cpi/udma_cpi_v1.hpp"
+#endif
 
 #endif

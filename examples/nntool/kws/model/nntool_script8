@@ -1,4 +1,14 @@
 adjust
 fusions --scale
-aquant -s SQ8 images/* -D 128 -O0
+aquant images/features_float_*.dat  --nptype float64 --scheme SQ8
+qshow
+
+############## PERF COUNTER #################
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+
+################# DEBUG ####################
+#set graph_dump_tensor 7
+
 save_state

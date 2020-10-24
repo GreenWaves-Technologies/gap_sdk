@@ -88,11 +88,14 @@ iss_insn_t *insn_cache_get(iss_t *iss, iss_addr_t pc)
 
   while (block)
   {
-    if (block->pc == pc_base)
+    if (block->is_init)
     {
-      return &block->insns[insn_id];
+      if (block->pc == pc_base)
+      {
+        return &block->insns[insn_id];
+      }
     }
-    if (!block->is_init)
+    else
     {
       first_free = block;
     }

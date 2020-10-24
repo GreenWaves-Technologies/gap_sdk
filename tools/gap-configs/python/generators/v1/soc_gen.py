@@ -53,6 +53,7 @@ def get_config(tp):
   has_hwme          = tp.get('soc/peripherals/hwme') is not None
   has_fc_icache     = tp.get('**/peripherals/fc_icache') is not None
   taps_conf         = tp.get('soc/taps')
+  has_fast_clock    = tp.get_child_bool('has_fast_clock')
 
   comps = {}
 
@@ -171,9 +172,7 @@ def get_config(tp):
 
   if has_fc:
 
-    latency = 0
-    if has_fc_ico:
-      latency = 5
+    latency = 5
 
     soc.soc_ico.fc_fetch_ico = Component(properties=OrderedDict([
       ('@includes@', [ "ips/interco/router.json" ]),
@@ -474,9 +473,14 @@ def get_config(tp):
           ('@includes@', ["ips/fll/fll_v%d.json" % (tp.get_child_int("soc/peripherals/fll/version"))])
       ]))
 
-      soc.ref_clock = soc.fll.ref_clock
-      soc.ref_clock = soc.fll1.ref_clock
-      soc.ref_clock = soc.fll2.ref_clock
+      if has_fast_clock:
+        soc.fast_clock = soc.fll.ref_clock
+        soc.fast_clock = soc.fll1.ref_clock
+        soc.fast_clock = soc.fll2.ref_clock
+      else:
+        soc.ref_clock = soc.fll.ref_clock
+        soc.ref_clock = soc.fll1.ref_clock
+        soc.ref_clock = soc.fll2.ref_clock
 
     else:
       for fll_name, fll_config in flls_config.get_items().items():
@@ -485,7 +489,10 @@ def get_config(tp):
             ('@includes@', ["ips/fll/fll_v%d.json" % (fll_config.get_child_int("version"))])
         ])))
 
-        soc.ref_clock = soc.get(fll_name).ref_clock
+        if has_fast_clock:
+          soc.fast_clock = soc.get(fll_name).ref_clock
+        else:
+          soc.ref_clock = soc.get(fll_name).ref_clock
 
 
     soc.fll_ctrl = Component(properties=OrderedDict([
@@ -561,9 +568,17 @@ def get_config(tp):
     soc.fc_icache_ctrl = Component(properties=OrderedDict([
         ('@includes@', ["ips/icache_ctrl/icache_ctrl_v%d.json" % tp.get_child_int("**/fc_icache/version")])
     ]))
-    soc.fc_icache = Component(properties=OrderedDict([
-        ('@includes@', ["ips/cache/cache.json"])
-    ]))
+
+    icache_config_dict = OrderedDict([
+      ('@includes@', ["ips/cache/cache.json"])
+    ])
+
+    icache_config = tp.get('**/fc_icache/config')
+
+    if icache_config is not None:
+      icache_config_dict.update(icache_config.get_dict())
+
+    soc.fc_icache = Component(properties=icache_config_dict)
 
     soc.fc_icache_ctrl.enable = soc.fc_icache.enable
     soc.fc_icache_ctrl.flush = soc.fc_icache.flush

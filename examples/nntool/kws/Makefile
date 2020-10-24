@@ -15,8 +15,7 @@ endif
 
 io=host
 
-LINK_IMAGE=images/features_0_1.pgm
-
+LINK_IMAGE=$(GAP_SDK_HOME)/examples/nntool/kws/images/features_q$(KWS_BITS)_1_7_0.pgm
 
 $(info Building GAP8 mode with $(KWS_BITS) bit quantization)
 
@@ -30,7 +29,7 @@ $(info Building GAP8 mode with $(KWS_BITS) bit quantization)
 ifeq ($(KWS_BITS),8)
   $(info Configure 8 bit model)
   MODEL_SQ8 = 1
-  APP_CFLAGS += -DKWS_8BIT -DPRINT_IMAGE
+  APP_CFLAGS += -DKWS_8BIT
   NNTOOL_SCRIPT=model/nntool_script8
   MODEL_SUFFIX = _8BIT
 else
@@ -49,11 +48,7 @@ endif
 include model_decl.mk
 
 ifdef LINK_IMAGE
-  LINK_IMAGE_HEADER=$(MODEL_BUILD)/image.h
-  LINK_IMAGE_NAME=$(subst .,_,$(subst /,_,$(LINK_IMAGE)))
-  APP_CFLAGS += -DLINK_IMAGE_HEADER="\"$(LINK_IMAGE_HEADER)\"" -DLINK_IMAGE_NAME="$(LINK_IMAGE_NAME)"
-else
-  LINK_IMAGE_HEADER=
+  APP_CFLAGS += -DLINK_IMAGE_NAME="$(LINK_IMAGE)"
 endif
 
 # Here we set the memory allocation for the generated kernels
@@ -73,43 +68,26 @@ pulpChip = GAP
 PULP_APP = kws2
 USE_PMSIS_BSP=1
 
-APP_SRCS += kws.c ImgIO.c $(MODEL_GEN_C) $(CNN_LIB) #MFCC_Dump.c ./model/layers.c 
+APP_SRCS += kws.c $(GAP_SDK_HOME)/libs/gap_lib/img_io/ImgIO.c $(MODEL_GEN_C) $(CNN_LIB)
 
 APP_CFLAGS += -O3 -s -mno-memcpy -fno-tree-loop-distribute-patterns -Wno-sign-compare -Wno-maybe-uninitialized -Wno-type-limits
-APP_CFLAGS += -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
-APP_CFLAGS += #-DPERF
-
-ifneq ($(platform),gvsoc)
-  $(info Platform is GAPUINO)
-  PLPBRIDGE_FLAGS = -f $(MODEL_TENSORS)
-endif
+APP_CFLAGS += -I. -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD) -I$(GAP_SDK_HOME)/libs/gap_lib/include
+APP_CFLAGS += -DPERF  #-DPRINT_IMAGE
 
 READFS_FILES = $(realpath $(MODEL_TENSORS))
 
 ifdef NO_IMAGE
   APP_CFLAGS += -DNO_IMAGE
-else
-  ifndef LINK_IMAGE
-    PLPBRIDGE_FLAGS += -fileIO 15
-  endif
 endif
 
-ifdef LINK_IMAGE
-# all depends on the model and the image header
-all:: model $(LINK_IMAGE_HEADER)
-
-$(LINK_IMAGE_HEADER): $(LINK_IMAGE)
-	xxd -i $< $@
-else
 # all depends on the model
 all:: model
-endif
 
 clean:: clean_model
 
 clean_all: clean clean_train
 	rm -rf BUILD*
-	rm kws_emul
+	rm -rf kws_emul
 
 .PHONY: clean_all
 
@@ -117,4 +95,3 @@ clean_all: clean clean_train
 io = host
 include model_rules.mk
 include $(RULES_DIR)/pmsis_rules.mk
-

@@ -116,9 +116,13 @@ namespace vp {
     inline void sync_full(int data, int sck, int rtr)
     {
       if (slave_sync_full_meth)
+      {
         slave_sync_full_meth(this->get_remote_context(), data, sck, rtr);
-
-      this->sync(data);
+      }
+      else
+      {
+        this->sync(data);
+      }
     }
 
     inline void set_sync_meth(uart_sync_meth_t *meth);
@@ -252,7 +256,10 @@ namespace vp {
       this->slave_sync_meth = (uart_sync_meth_t *)&uart_slave::sync_muxed_stub;
 
       this->slave_sync_full_meth_mux = port->slave_sync_full_mux;
-      this->slave_sync_full_meth = (uart_sync_full_meth_t *)&uart_slave::sync_full_muxed_stub;
+      if (port->slave_sync_full_mux == NULL)
+        this->slave_sync_full_meth = NULL;
+      else
+        this->slave_sync_full_meth = (uart_sync_full_meth_t *)&uart_slave::sync_full_muxed_stub;
 
       set_remote_context(this);
       comp_mux = (vp::component *)port->get_context();

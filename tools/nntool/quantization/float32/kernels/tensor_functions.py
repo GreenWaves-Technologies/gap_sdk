@@ -168,3 +168,14 @@ def copy(params,
         qrec = Float32QuantizationRecord()
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
     return qrec.get_outputs(params, [in_tensor], ktype="float32")
+
+
+def revert(params,
+           in_tensors,
+           qrec: QuantizationRecordBase,
+           details=None):
+    del details
+    if qrec is None:
+        qrec = Float32QuantizationRecord()
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    return qrec.get_outputs(params, [np.flip(in_tensor, axis=params.axis)], ktype="float32")

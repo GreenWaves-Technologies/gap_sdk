@@ -20,15 +20,15 @@ DPI_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/dpi/%.o,$(patsubst %.c,$(BUILD_DIR)/dpi
 
 $(BUILD_DIR)/dpi/%.o: %.cpp
 	@mkdir -p $(basename $@)
-	g++ $(DPI_CFLAGS) -o $@ -c $<
+	$(CXX) $(DPI_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/dpi/%.o: %.c
 	@mkdir -p $(basename $@)
-	g++ $(DPI_CFLAGS) -o $@ -c $<
+	$(CXX) $(DPI_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/libgvsocdpi.so: $(DPI_OBJS)
 	@mkdir -p $(basename $@)
-	g++ -o $@ $^ $(DPI_LDFLAGS)
+	$(CXX) -o $@ $^ $(DPI_LDFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)

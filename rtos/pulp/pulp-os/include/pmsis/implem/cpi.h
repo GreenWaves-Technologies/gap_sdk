@@ -47,6 +47,16 @@ static inline void pi_cpi_set_format(struct pi_device *device, pi_cpi_format_e f
   udma_cpi_cam_cfg_glob_set(cpi->base, reg.raw);
 }
 
+static inline void pi_cpi_set_rowlen(struct pi_device *device, uint16_t rowlen)
+{
+  rt_cpi_t *cpi = (rt_cpi_t *)device->data;
+  /* the rowlen should be the weidth of each frame devided by the channel size in byte */
+  udma_cpi_cam_cfg_size_set(cpi->base, UDMA_CPI_CAM_CFG_SIZE_ROWLEN(
+              rowlen/(cpi->datasize ? cpi->datasize : 1) - 1)
+    );
+
+}
+
 static inline void pi_cpi_set_frame_drop(struct pi_device *device, uint32_t nb_frame_dropped)
 {
   rt_cpi_t *cpi = (rt_cpi_t *)device->data;
@@ -89,20 +99,27 @@ static inline void pi_cpi_set_slice(struct pi_device *device, uint32_t x, uint32
   if (w)
   {
     udma_cpi_cam_cfg_ll_set(cpi->base,
-      UDMA_CPI_CAM_CFG_LL_FRAMESLICE_LLX(x) |
+      UDMA_CPI_CAM_CFG_LL_FRAMESLICE_LLX(x/(cpi->datasize ? cpi->datasize : 1)) |
       UDMA_CPI_CAM_CFG_LL_FRAMESLICE_LLY(y)
     );
 
     udma_cpi_cam_cfg_ur_set(cpi->base,
-      UDMA_CPI_CAM_CFG_UR_FRAMESLICE_URX(x + w - 1) |
+      UDMA_CPI_CAM_CFG_UR_FRAMESLICE_URX((x + w)/(cpi->datasize ? cpi->datasize : 1) - 1) |
       UDMA_CPI_CAM_CFG_UR_FRAMESLICE_URY(y + h - 1)
-    );
-
-    udma_cpi_cam_cfg_size_set(cpi->base,
-      UDMA_CPI_CAM_CFG_SIZE_ROWLEN(w - 1)
     );
   }
 }
+
+static inline void pi_cpi_set_rgb_sequence(struct pi_device *device, uint8_t rgb_seq)
+{
+
+}
+
+
+static inline void pi_cpi_set_sync_polarity(struct pi_device *device, uint8_t vsync_pol_ena, uint8_t hsync_pol_ena)
+{
+}
+
 
 #endif
 

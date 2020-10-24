@@ -20,6 +20,11 @@ pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_CPI
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/cpi/udma_cpi_v1.cpp
 endif
 
+ifeq '$(udma/cpi/version)' '2'
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_CPI
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/cpi/udma_cpi_v2.cpp
+endif
+
 ifeq '$(udma/hyper/version)' '1'
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_HYPER
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/hyper/udma_hyper_v1.cpp

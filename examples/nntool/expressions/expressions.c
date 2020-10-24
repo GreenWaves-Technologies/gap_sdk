@@ -140,6 +140,7 @@ int body(void){
     for (int i=0; i<AT_OUTPUT_SIZE; i++){
         printf("%d, ", Output_2[i]);
     }
+    printf("\n");
 
     __PREFIX(CNN_Destruct)();
 
@@ -156,6 +157,7 @@ int body(void){
     AT_L2_FREE(0, Output_2, AT_OUTPUT_SIZE);
     printf("Ended\n");
 
+    pmsis_exit(0);
     return 0;
 }
 

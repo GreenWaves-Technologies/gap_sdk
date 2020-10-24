@@ -1,0 +1,161 @@
+/*
+ * Copyright (C) 2020 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+#include "pmsis/pmsis_types.h"
+
+/**
+* @ingroup groupDrivers
+*/
+
+
+/**
+ * @defgroup FFC FFC
+ *
+ * The FFC (Fixed point/Floating point Converter) driver provides an
+ * interface to use the FFC IP.
+ */
+
+/**
+ * @addtogroup FFC
+ * @{
+ */
+
+/**@{*/
+
+/**
+ * \enum pi_ffc_float_type_e
+ */
+typedef enum {
+    PI_FFC_FLOAT_FP16  = 0,
+    PI_FFC_FLOAT_BFP16 = 1,
+    PI_FFC_FLOAT_FP32  = 3,
+} pi_ffc_float_type_e;
+
+/**
+ * \enum pi_ffc_fixed_type_e
+ */
+typedef enum {
+    PI_FFC_FIXED_8  = 0,
+    PI_FFC_FIXED_16 = 1,
+    PI_FFC_FIXED_24 = 2,
+    PI_FFC_FIXED_32 = 3,
+} pi_ffc_fixed_type_e;
+
+/**
+ * \enum pi_ffc_mode_e
+ */
+typedef enum {
+    PI_FFC_FLOAT_TO_FIXED = 0,
+    PI_FFC_FIXED_TO_FLOAT = 1,
+} pi_ffc_mode_e;
+
+/**
+ * \struct pi_ffc_conf_t
+ *
+ * \brief FFC configuration structure.
+ *
+ * This structure is used to pass the desired FFC configuration to the runtime
+ * when opening a device.
+ */
+typedef struct pi_ffc_conf
+{
+    int8_t itf;                     /*!< FFC device number */
+    pi_ffc_fixed_type_e fixed_type;
+    uint32_t fixed_scale;
+    uint32_t fixed_precision;
+    pi_ffc_float_type_e float_type;
+    pi_ffc_mode_e mode;
+} pi_ffc_conf_t;
+
+/**
+ * \enum pi_ffc_ioctl_e
+ *
+ * \brief Commands for pi_ffc_ioctl.
+ *
+ * This is used to tell which command to execute through pi_ffc_ioctl.
+ * Parameters are passed as pointers.
+ */
+typedef enum {
+    PI_FFC_GET_ID, /*!< type uint32_t: return the fifo id */
+} pi_ffc_ioctl_e;
+
+/**
+ * \brief Initialize an FFC configuration with default values.
+ *
+ * This function can be called to get default values for all parameters before
+ * setting some of them. The structure containing the configuration must be
+ * kept alive until the FFC device is opened.
+ *
+ * \param conf A pointer to the FFC configuration.
+ */
+void pi_ffc_conf_init(pi_ffc_conf_t *conf);
+
+/**
+ * \brief Open an FFC device.
+ *
+ * This function must be called before the FFC device can be used.
+ * It will do all the needed configuration to make it usable and initialize
+ * the handle used to refer to this opened device when calling other functions.
+ *
+ * \param device    A pointer to the device structure of the device to open.
+ *   This structure is allocated by the called and must be kept alive until the
+ *   device is closed.
+ * \return          0 if the operation is successfull, -1 if there was an error.
+ *
+ * \warning The fifo needs at least one UDMA peripheral enabled to be enabled.
+ *          Else configuration will not be set, and application will get stuck on
+ *          push/pop commands.
+ */
+int pi_ffc_open(pi_device_t *device);
+
+/**
+ * \brief Close an opened FFC device.
+ *
+ * This function can be called to close an opened FFC device once it is
+ * not needed anymore, in order to free all allocated resources. Once this
+ * function is called, the device is not accessible anymore and must be opened
+ * again before being used.
+ *
+ * \param device    The device structure of the device to close.
+ */
+void pi_ffc_close(pi_device_t *device);
+
+/**
+ * \brief FFC IOCTL function
+ *
+ * \param device A pi device structure pointing to FFC device
+ * \param cmd ioctl number
+ * \param arg argument to be passed to ioctl
+ */
+void pi_ffc_ioctl(pi_device_t *device, uint32_t cmd, void *arg);
+
+/**
+ * \brief TODO
+ */
+void pi_ffc_convert(pi_device_t *device, void* src, void* dst, uint16_t size);
+
+/**
+ * \brief TODO
+ */
+void pi_ffc_convert_async(pi_device_t *device, void* src, void* dst,
+                          uint16_t size, pi_task_t* task);
+
+//!@}
+
+/**
+ * @}
+ */

@@ -275,7 +275,7 @@ void rt_event_push_delayed(rt_event_t *event, int time_us);
 #include "rt/rt_alloc.h"
 
 extern RT_FC_TINY_DATA rt_event_t        *__rt_first_free;
-extern RT_FC_TINY_DATA rt_event_sched_t   __rt_sched;
+extern rt_event_sched_t   __rt_sched;
 
 
 static inline rt_event_sched_t *__rt_event_get_current_sched()

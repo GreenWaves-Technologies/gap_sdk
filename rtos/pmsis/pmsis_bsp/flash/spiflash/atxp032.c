@@ -227,6 +227,9 @@ static int atxp032_open(struct pi_device *device)
   pi_octospi_op_conf_t op3 = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_SPI, .flags=ATXP032_WRITE_STATUS_FLAGS_SPI };
   pi_octospi_write(&atxp032->octospi_device, 0, &data, 4, &op3);
 
+  // In the spec writing to volatile status register should take 200ns but RTL model take 10us to update it
+  pi_time_wait_us(20);
+
   pi_octospi_op_conf_t op4 = { .cmd=ATXP032_READ_STATUS_CMD, .latency=ATXP032_READ_STATUS_LATENCY_OCTO, .flags=ATXP032_READ_STATUS_FLAGS_OCTO };
   pi_octospi_read(&atxp032->octospi_device, 0, &data, 4, &op4);
 

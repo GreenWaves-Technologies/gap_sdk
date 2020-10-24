@@ -1,0 +1,5 @@
+data
+BUILD*
+*_emul
+*.dat
+!images/*.dat

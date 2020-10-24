@@ -7,6 +7,8 @@
 import logging
 import sys
 
+import numpy as np
+
 
 from .base import (Transposable, Parameters)
 
@@ -129,7 +131,7 @@ class ConstantInputParameters(InputBaseParameters):
     op_name = "constant"
 
     def __init__(self, *args, adjust_transpose=None, is_mutated=False,
-                 is_intermediate=False, **kwargs):
+                 is_intermediate=False, always_copy=False, **kwargs):
         self.value = None
         super(ConstantInputParameters, self).__init__(*args, **kwargs)
         del self.at_options.valid_options['FIXED_ORDER']
@@ -143,10 +145,29 @@ class ConstantInputParameters(InputBaseParameters):
         self.generate_value = True
         self._is_constant = True
         self._is_global = True
+        self._always_copy = always_copy
+
+    @property
+    def value(self):
+        if self._always_copy and isinstance(self._value, np.ndarray):
+            return self._value.copy()
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        self._value = val
 
     @property
     def concated_nodes(self):
         return self._concated_nodes
+
+    @property
+    def always_copy(self):
+        return self._always_copy
+
+    @always_copy.setter
+    def always_copy(self, val):
+        self._always_copy = val
 
     @property
     def reset_name(self):

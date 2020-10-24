@@ -98,6 +98,27 @@ public:
 };
 
 
+class Cpi_group : public Pad_group
+{
+public:
+    Cpi_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
+    bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback);
+    void edge(int pclk, int href, int vsync, int data);
+
+    vp::trace trace;
+    vp::cpi_slave slave;
+    Dpi_chip_wrapper_callback *data_callback[8];
+    Dpi_chip_wrapper_callback *hsync_callback;
+    Dpi_chip_wrapper_callback *pclk_callback;
+    Dpi_chip_wrapper_callback *vsync_callback;
+
+    int data;
+    int hsync;
+    int pclk;
+    int vsync;
+};
+
+
 class Gpio_group : public Pad_group
 {
 public:
@@ -114,7 +135,7 @@ public:
 class Uart_group : public Pad_group
 {
 public:
-    Uart_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
+    Uart_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name), rx_callback(NULL), sck_callback(NULL), cts_callback(NULL) {}
     void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data);
     void rx_edge(int data);
     void rx_edge_full(int data, int sck, int rtr);
@@ -179,6 +200,7 @@ private:
     static void i2c_sync(void *__this, int scl, int sda, int id);
     static void hyper_sync_cycle(void *__this, int data, int id);
     static void i2s_slave_edge(void *__this, int sck, int ws, int sd, int id);
+    static void cpi_edge(void *__this, int pclk, int href, int vsync, int data, int id);
     static void gpio_rx_edge(void *__this, int data, int id);
     static void gpio_sync(void *__this, int data, int id);
 
@@ -319,6 +341,16 @@ int dpi_chip_wrapper::build()
 
                 nb_itf++;
             }
+            else if (type == "cpi")
+            {
+                Cpi_group *group = new Cpi_group(this, name);
+                new_slave_port(name, &group->slave);
+                traces.new_trace(name, &group->trace, vp::WARNING);
+                group->slave.set_sync_meth_muxed(&dpi_chip_wrapper::cpi_edge, nb_itf);
+                this->groups.push_back(group);
+
+                nb_itf++;
+            }
         }
     }
 
@@ -382,6 +414,14 @@ void dpi_chip_wrapper::i2s_slave_edge(void *__this, int sck, int ws, int sd, int
     dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
     I2s_group *group = static_cast<I2s_group *>(_this->groups[id]);
     group->rx_edge(sck, ws, sd);
+}
+
+
+void dpi_chip_wrapper::cpi_edge(void *__this, int pclk, int href, int vsync, int data, int id)
+{
+    dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
+    Cpi_group *group = static_cast<Cpi_group *>(_this->groups[id]);
+    group->edge(pclk, href, vsync, data);
 }
 
 
@@ -575,6 +615,93 @@ void I2s_group::rx_edge(int sck, int ws, int sd)
     dpi_external_edge(this->sdi_callback->handle, sd);
 }
 
+
+/*
+ * CPI
+ */
+
+bool Cpi_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
+{
+    callback->pad_value = NULL;
+
+    if (pad_name == "data0")
+    {
+        this->data_callback[0] = callback;
+    }
+    else if (pad_name == "data1")
+    {
+        this->data_callback[1] = callback;
+    }
+    else if (pad_name == "data2")
+    {
+        this->data_callback[2] = callback;
+    }
+    else if (pad_name == "data3")
+    {
+        this->data_callback[3] = callback;
+    }
+    else if (pad_name == "data4")
+    {
+        this->data_callback[4] = callback;
+    }
+    else if (pad_name == "data5")
+    {
+        this->data_callback[5] = callback;
+    }
+    else if (pad_name == "data6")
+    {
+        this->data_callback[6] = callback;
+    }
+    else if (pad_name == "data7")
+    {
+        this->data_callback[7] = callback;
+    }
+    else if (pad_name == "pclk")
+    {
+        this->pclk_callback = callback;
+    }
+    else if (pad_name == "hsync")
+    {
+        this->hsync_callback = callback;
+    }
+    else if (pad_name == "vsync")
+    {
+        this->vsync_callback = callback;
+    }
+
+    return false;
+}
+
+void Cpi_group::edge(int pclk, int href, int vsync, int data)
+{
+    if (this->data_callback[0])
+        dpi_external_edge(this->data_callback[0]->handle, (data >> 0) & 1);
+    if (this->data_callback[1])
+        dpi_external_edge(this->data_callback[1]->handle, (data >> 1) & 1);
+    if (this->data_callback[2])
+        dpi_external_edge(this->data_callback[2]->handle, (data >> 2) & 1);
+    if (this->data_callback[3])
+        dpi_external_edge(this->data_callback[3]->handle, (data >> 3) & 1);
+    if (this->data_callback[4])
+        dpi_external_edge(this->data_callback[4]->handle, (data >> 4) & 1);
+    if (this->data_callback[5])
+        dpi_external_edge(this->data_callback[5]->handle, (data >> 5) & 1);
+    if (this->data_callback[6])
+        dpi_external_edge(this->data_callback[6]->handle, (data >> 6) & 1);
+    if (this->data_callback[7])
+        dpi_external_edge(this->data_callback[7]->handle, (data >> 7) & 1);
+
+    if (this->pclk_callback)
+        dpi_external_edge(this->pclk_callback->handle, pclk);
+
+    if (this->hsync_callback)
+        dpi_external_edge(this->hsync_callback->handle, href);
+
+    if (this->vsync_callback)
+        dpi_external_edge(this->vsync_callback->handle, vsync);
+}
+
+
 /*
  * UART
  */
@@ -688,6 +815,7 @@ bool Gpio_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
 }
 
 
+
 void Gpio_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data)
 {
     this->trace.msg(vp::trace::LEVEL_TRACE, "GPIO edge (timestamp: %ld, name: %s, value: %d)\n", timestamp, callback->name.c_str(), data);
@@ -697,6 +825,7 @@ void Gpio_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, in
         this->master.sync(data);
     }
 }
+
 
 
 void Gpio_group::rx_edge(int data)

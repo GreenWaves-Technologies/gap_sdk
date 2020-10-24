@@ -21,13 +21,11 @@ import numpy as np
 from sympy import Symbol
 from sympy.simplify import simplify
 
-from graph.types import FusionInputParameters, FusionOutputParameters
-
 from .expressions.compose_expression import compose_expression
 from .expressions.expr_state import ExprState
 from .expressions.expression import Expression
 from .expressions.sympy_types import ATClip, ATScale
-from .fusions import FusionBase
+from .fusions import FusionBase, FusionInputParameters, FusionOutputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 

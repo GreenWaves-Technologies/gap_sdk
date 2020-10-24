@@ -1,0 +1,6 @@
+!.gitignore
+*~
+*BUILD
+*.log
+*.swp
+tags

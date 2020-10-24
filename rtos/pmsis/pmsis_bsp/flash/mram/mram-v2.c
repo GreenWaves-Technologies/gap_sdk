@@ -294,6 +294,8 @@ static int mram_open(struct pi_device *device)
             UDMA_MRAM_MODE_RSTB(1)
         );
 
+        pi_time_wait_us(100);
+
         __rt_mram_do_trim(mram, trim_cfg_buffer);
     }
 

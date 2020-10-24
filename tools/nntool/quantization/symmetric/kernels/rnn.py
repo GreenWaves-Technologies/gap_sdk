@@ -252,6 +252,8 @@ def rnn(params: RNNBaseParameters,
             for idx in range(1, len(in_tensors))}
     if params.transpose_in:
         in_tensor = np.transpose(in_tensor, params.transpose_in[0])
+    if params.revert:
+        in_tensor = np.flip(in_tensor, axis=0)
     assert in_tensor.shape[0] == params.n_input_cells, "input shape incorrect - n_input_cells"
     assert in_tensor.shape[1] == params.n_inputs, "input shape incorrect - n_inputs"
     out_tensor = np.zeros([params.n_output_cells, params.n_states], dtype=qrec.out_qs[0].dtype)
@@ -264,6 +266,8 @@ def rnn(params: RNNBaseParameters,
             out_tensor[out_idx] = res
             out_idx += 1
 
+    if params.revert:
+        out_tensor = np.flip(out_tensor, axis=0)
     if params.transpose_out:
         out_tensor = np.transpose(out_tensor, params.transpose_out[0])
     return [out_tensor]

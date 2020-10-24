@@ -1,2 +1,0 @@
-#define ADDR_DEC_DATA    0x10000000
-#define ADDR_GOLD_DATA   0x10003000

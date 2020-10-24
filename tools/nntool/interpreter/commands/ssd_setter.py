@@ -24,7 +24,7 @@ class SSDSetterCommand(NNToolShellBase):
     parser_ssdsetter.add_argument('parameter',
                                   choices=('max_bb_before_nms', 'nms_score_threshold'),
                                   help='Set this parameter')
-    parser_ssdsetter.add_argument('value', type=int, default=None,
+    parser_ssdsetter.add_argument('value', type=float, default=None,
                                   help='Set to this value')
 
     @with_argparser(parser_ssdsetter)

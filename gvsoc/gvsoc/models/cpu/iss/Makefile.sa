@@ -14,7 +14,7 @@ $(BUILD_DIR)/riscy_decoder_gen.cpp: isa_gen/isa_riscv_gen.py isa_gen/isa_gen.py
 	isa_gen/isa_riscv_gen.py --source-file=$(BUILD_DIR)/riscy_decoder_gen.cpp --header-file=$(BUILD_DIR)/riscy_decoder_gen.hpp
 
 $(BUILD_DIR)/pulp_iss: $(SA_ISS_SRCS)
-	g++ -o $@ $^ $(SA_ISS_CFLAGS) $(SA_ISS_LDFLAGS)
+	$(CXX) -o $@ $^ $(SA_ISS_CFLAGS) $(SA_ISS_LDFLAGS)
 
 $(INSTALL_DIR)/bin/pulp_iss: $(BUILD_DIR)/pulp_iss
 

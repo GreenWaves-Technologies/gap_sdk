@@ -275,6 +275,23 @@ class Test(object):
             nbSuccess += test.getNbSuccess(config, build)
         return nbSuccess
 
+    def getNbSkipped(self, config=None, build=None):
+        nbSkipped = 0
+
+        if config is None:
+            runs = self.runs
+        else:
+            runs = self.runs_for_config.get(config)
+
+        if runs is not None:
+            for run in runs:
+                if (build is None or run.build == build) and run.skip is not None:
+                    nbSkipped += 1
+
+        for test in self.tests:
+            nbSkipped += test.getNbSkipped(config, build)
+        return nbSkipped
+
     def getDuration(self):
         duration = 0.0
         for run in self.runs:
@@ -299,26 +316,36 @@ class Test(object):
         table.append(row)
 
     def dumpToConsole(self, table):
-        nbTests = self.getNbTests()
+        nbSkipped = self.getNbSkipped()
+        nbTests = self.getNbTests() - nbSkipped
         nbSuccess = self.getNbSuccess()
+        nbFailed = nbTests - nbSuccess
 
         if len(self.tests) == 0:
             if len(self.runs) == 1:
                 table.add_row([
                     self.name, self.runs[0].config,
-                    self.runs[0].duration, '%d/%d' % (nbSuccess, nbTests)])
+                    self.runs[0].duration, '%d/%d' % (nbSuccess, nbTests),
+                    nbFailed, nbSkipped
+                ])
             else:
                 table.add_row([
                     self.name, '', '%.2f' % self.getDuration(),
-                    '%d/%d' % (nbSuccess, nbTests)])
+                    '%d/%d' % (nbSuccess, nbTests),
+                    nbFailed, nbSkipped
+                ])
                 for run in self.runs:
                     table.add_row([
                         '', run.config, '%.2f' % run.duration,
-                        '%d/%d' % (run.success, 1)])
+                        '%d/%d' % (run.success, 1),
+                        nbFailed, nbSkipped
+                    ])
         else:
             table.add_row([
                 self.name, '', '%.2f' % self.getDuration(),
-                '%d/%d' % (nbSuccess, nbTests)])
+                '%d/%d' % (nbSuccess, nbTests),
+                nbFailed, nbSkipped
+            ])
             for test in self.tests:
                 test.dumpToConsole(table)
 
@@ -339,9 +366,10 @@ class Test(object):
                 with open(fileName, 'w') as testFile:
                     nbTests = self.getNbTests()
                     nbSuccess = self.getNbSuccess()
+                    nbSkipped = self.getNbSkipped()
                     nbErrors = nbTests - nbSuccess
                     testFile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-                    testFile.write('<testsuite errors="%d" failures="%d" name="%s" tests="%d" time="%f">\n' % (nbErrors, nbErrors, name, nbTests, self.getDuration()))
+                    testFile.write('<testsuite skipped="%d" errors="%d" failures="%d" name="%s" tests="%d" time="%f">\n' % (nbSkipped, nbErrors, nbErrors, name, nbTests, self.getDuration()))
                     for testCase in self.tests:
                         testCase.dumpToJunit(reportPath, testFile, testcase_prefix)
                     testFile.write('</testsuite>\n')
@@ -358,20 +386,23 @@ class Test(object):
         for run in self.runs:
 
             testFile.write('  <testcase classname="%s" name="%s" time="%f">\n' % (run.config, test_prefix + ':' + name, run.duration))
-            if run.success:
-                testFile.write('    <success/>\n')
+            if run.skip is not None:
+                testFile.write('    <skipped message="%s"/>\n' % run.skip)
             else:
-                testFile.write('    <failure>\n')
-                for line in run.log:
-                    RE_XML_ILLEGAL = u'([\u0000-\u0008\u000b-\u000c\u000e-\u001f\ufffe-\uffff])' + \
-                                     u'|' + \
-                                     u'([%s-%s][^%s-%s])|([^%s-%s][%s-%s])|([%s-%s]$)|(^[%s-%s])' % \
-                                     (chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff),
-                                      chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff),
-                                      chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff))
-                    xmlLine = re.sub(RE_XML_ILLEGAL, "", escape(line))
-                    testFile.write(xmlLine)
-                testFile.write('</failure>\n')
+                if run.success:
+                    testFile.write('    <success/>\n')
+                else:
+                    testFile.write('    <failure>\n')
+                    for line in run.log:
+                        RE_XML_ILLEGAL = u'([\u0000-\u0008\u000b-\u000c\u000e-\u001f\ufffe-\uffff])' + \
+                                        u'|' + \
+                                        u'([%s-%s][^%s-%s])|([^%s-%s][%s-%s])|([%s-%s]$)|(^[%s-%s])' % \
+                                        (chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff),
+                                        chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff),
+                                        chr(0xd800),chr(0xdbff),chr(0xdc00),chr(0xdfff))
+                        xmlLine = re.sub(RE_XML_ILLEGAL, "", escape(line))
+                        testFile.write(xmlLine)
+                    testFile.write('</failure>\n')
             testFile.write('  </testcase>\n')
 
 class Config_reg_report(object):
@@ -400,7 +431,7 @@ class Reg_report(object):
 
 class TestRun(object):
     def __init__(self, pobj, test, success, duration, config, log, name=None,
-                 metrics='', build=None):
+                 metrics='', build=None, skip=None):
         commit = True
 
         if test is None:
@@ -417,6 +448,7 @@ class TestRun(object):
         self.log = log
         self.pobj = pobj
         self.status = 'success' if self.success else 'failure'
+        self.skip = skip
         self.metrics = metrics
         self.build = build
         if test is not None:
@@ -875,6 +907,12 @@ class PulpObjects(object):
             result += test.getNbSuccess()
         return result
 
+    def getNbSkipped(self):
+        result = 0
+        for test in self.topTests:
+            result += test.getNbSkipped()
+        return result
+
     def getTest(self, name):
         if self.tests.get(name) is None:
             nameList = name.split(':')
@@ -897,7 +935,7 @@ class PulpObjects(object):
         pass
 
     def dumpTestsToConsole(self):
-        x = PrettyTable(['test', 'config', 'time', 'passed/total'])
+        x = PrettyTable(['test', 'config', 'time', 'passed/total', 'failed', 'skipped'])
         x.align["test"] = "l"
         x.align["config"] = "l"
         for test in self.topTests:

@@ -46,7 +46,12 @@ __rt_fc_socevents_handler:
 
 #ifdef ARCHI_UDMA_HAS_HYPER
   // Due to a HW bug in the core on Gap, we have to load this value early
+#ifdef CONFIG_NO_FC_TINY
+  la    x12, __rt_hyper_udma_handle
+  lw    x12, 0(x12)
+#else
   lw    x12, %tiny(__rt_hyper_udma_handle)(x0)
+#endif
 #endif
 
   // Extract ID part
@@ -94,8 +99,15 @@ __rt_soc_evt_no_udma_channel:
 
   addi x8, x10, -ARCHI_SOC_EVENT_UDMA_FIRST_EXTRA_EVT
   slli x11, x8, 2
+#ifdef CONFIG_NO_FC_TINY
+  la   x12, __rt_udma_extra_callback
+  p.lw x12, x12(x11)
+  la   x9, __rt_udma_extra_callback_arg
+  p.lw x11, x9(x11)
+#else
   lw   x12, %tiny(__rt_udma_extra_callback)(x11)
   lw   x11, %tiny(__rt_udma_extra_callback_arg)(x11)
+#endif
 
   jr   x12
 

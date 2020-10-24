@@ -24,9 +24,10 @@
 #include "archi/udma/cpi/udma_cpi_v1_old.h"
 #include "archi/utils.h"
 #include "vp/itf/cpi.hpp"
+#include "udma_cpi_v1.hpp"
 
 
-Cpi_periph_v1::Cpi_periph_v1(udma *top, int id, int itf_id) : Udma_periph(top, id)
+Cpi_periph::Cpi_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
 {
   std::string itf_name = "cpi" + std::to_string(itf_id);
 
@@ -36,12 +37,12 @@ Cpi_periph_v1::Cpi_periph_v1(udma *top, int id, int itf_id) : Udma_periph(top, i
 
   top->new_slave_port(this, itf_name, &cpi_itf);
 
-  cpi_itf.set_sync_meth(&Cpi_periph_v1::sync);
-  cpi_itf.set_sync_cycle_meth(&Cpi_periph_v1::sync_cycle);
+  cpi_itf.set_sync_meth(&Cpi_periph::sync);
+  cpi_itf.set_sync_cycle_meth(&Cpi_periph::sync_cycle);
 }
  
 
-void Cpi_periph_v1::reset(bool active)
+void Cpi_periph::reset(bool active)
 {
   Udma_periph::reset(active);
 
@@ -50,7 +51,7 @@ void Cpi_periph_v1::reset(bool active)
 
 
 
-vp::io_req_status_e Cpi_periph_v1::handle_global_access(bool is_write, uint32_t *data) {
+vp::io_req_status_e Cpi_periph::handle_global_access(bool is_write, uint32_t *data) {
   if (!is_write) *data = this->glob;
   else {
     this->glob = *data;
@@ -59,7 +60,7 @@ vp::io_req_status_e Cpi_periph_v1::handle_global_access(bool is_write, uint32_t 
   return vp::IO_REQ_OK;
 }
 
-vp::io_req_status_e Cpi_periph_v1::handle_l1_access(bool is_write, uint32_t *data) {
+vp::io_req_status_e Cpi_periph::handle_l1_access(bool is_write, uint32_t *data) {
   if (!is_write) *data = this->ll;
   else {
     this->ll = *data;
@@ -68,7 +69,7 @@ vp::io_req_status_e Cpi_periph_v1::handle_l1_access(bool is_write, uint32_t *dat
   return vp::IO_REQ_OK;
 }
 
-vp::io_req_status_e Cpi_periph_v1::handle_ur_access(bool is_write, uint32_t *data) {
+vp::io_req_status_e Cpi_periph::handle_ur_access(bool is_write, uint32_t *data) {
   if (!is_write) *data = this->ur;
   else {
     this->ur = *data;
@@ -78,7 +79,7 @@ vp::io_req_status_e Cpi_periph_v1::handle_ur_access(bool is_write, uint32_t *dat
 }
 
 
-vp::io_req_status_e Cpi_periph_v1::handle_size_access(bool is_write, uint32_t *data) {
+vp::io_req_status_e Cpi_periph::handle_size_access(bool is_write, uint32_t *data) {
   if (!is_write) *data = this->size;
   else {
     this->size = *data;
@@ -87,7 +88,7 @@ vp::io_req_status_e Cpi_periph_v1::handle_size_access(bool is_write, uint32_t *d
   return vp::IO_REQ_OK;
 }
 
-vp::io_req_status_e Cpi_periph_v1::handle_filter_access(bool is_write, uint32_t *data) {
+vp::io_req_status_e Cpi_periph::handle_filter_access(bool is_write, uint32_t *data) {
   if (!is_write) *data = this->filter;
   else {
     this->filter = *data;
@@ -99,7 +100,7 @@ vp::io_req_status_e Cpi_periph_v1::handle_filter_access(bool is_write, uint32_t 
 
 
 
-vp::io_req_status_e Cpi_periph_v1::custom_req(vp::io_req *req, uint64_t offset)
+vp::io_req_status_e Cpi_periph::custom_req(vp::io_req *req, uint64_t offset)
 {
   bool is_write = req->get_is_write();
   uint32_t *data = (uint32_t *)req->get_data();
@@ -119,7 +120,7 @@ vp::io_req_status_e Cpi_periph_v1::custom_req(vp::io_req *req, uint64_t offset)
 }
 
 
-void Cpi_periph_v1::push_pixel(uint32_t pixel)
+void Cpi_periph::push_pixel(uint32_t pixel)
 {
   // Check frame slice
   if (this->frameSliceEn) {
@@ -184,14 +185,14 @@ void Cpi_periph_v1::push_pixel(uint32_t pixel)
 }
 
 
-void Cpi_periph_v1::sync(void *__this, int pclk, int href, int vsync, int data)
+void Cpi_periph::sync(void *__this, int pclk, int href, int vsync, int data)
 {
-  Cpi_periph_v1 *_this = (Cpi_periph_v1 *)__this;
+  Cpi_periph *_this = (Cpi_periph *)__this;
   _this->trace.msg("Sync (pclk: %d, href: %d, vsync: %d, data: %d)\n", pclk, href, vsync, data);
-  if (pclk) Cpi_periph_v1::sync_cycle(__this, href, vsync, data);
+  if (pclk) Cpi_periph::sync_cycle(__this, href, vsync, data);
 }
 
-void Cpi_periph_v1::handle_sof()
+void Cpi_periph::handle_sof()
 {
   this->trace.msg("Starting new frame\n");
 
@@ -260,9 +261,9 @@ void Cpi_periph_v1::handle_sof()
   }
 }
 
-void Cpi_periph_v1::sync_cycle(void *__this, int href, int vsync, int data)
+void Cpi_periph::sync_cycle(void *__this, int href, int vsync, int data)
 {
-  Cpi_periph_v1 *_this = (Cpi_periph_v1 *)__this;
+  Cpi_periph *_this = (Cpi_periph *)__this;
 
   if (vsync)
   {
@@ -293,7 +294,7 @@ void Cpi_periph_v1::sync_cycle(void *__this, int href, int vsync, int data)
 
 
 
-Cpi_rx_channel::Cpi_rx_channel(udma *top, Cpi_periph_v1 *periph, int id, string name) : Udma_rx_channel(top, id, name), periph(periph)
+Cpi_rx_channel::Cpi_rx_channel(udma *top, Cpi_periph *periph, int id, string name) : Udma_rx_channel(top, id, name), periph(periph)
 {
 }
 

@@ -102,11 +102,15 @@ int start()
 	printf("Call cluster\n");
 	
 	// Execute the function "RunNetwork" on the cluster.
+#ifdef __GAP8__
 	pi_pad_set_function(PI_PAD_33_B12_TIMER0_CH2, PI_PAD_33_B12_GPIO_A19_FUNC1);
     pi_gpio_pin_configure(NULL, LED, PI_GPIO_OUTPUT);
 	pi_gpio_pin_write(NULL, LED, 1);
+#endif
 	pi_cluster_send_task_to_cl(&cluster_dev, task);
+#ifdef __GAP8__
 	pi_gpio_pin_write(NULL, LED, 0);
+#endif
 
 	//Check Results
 	
@@ -134,8 +138,8 @@ int start()
 	}
 #endif
 
-	pmsis_exit(0);
 	printf("Ended\n");
+	pmsis_exit(0);
 	return 0;
 }
 

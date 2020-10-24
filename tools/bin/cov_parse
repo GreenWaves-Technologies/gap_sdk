@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+
+import argparse
+import re
+
+parser = argparse.ArgumentParser(
+    description='Parse coverage'
+)
+
+parser.add_argument("--silent", dest="silent", action="store_true", help="Just dump coverage silently")
+parser.add_argument("--input", dest="input", default=None, type=str, help="Coverage report")
+parser.add_argument("--plot", dest="plot", default=None, type=str, help="Dump to csv file")
+parser.add_argument("--depth", dest="depth", default=0, type=int, help="Depth of the hierarchy to dump")
+parser.add_argument("--name", dest="blocks", default=[], action="append", help="Specified block name to dump, will dump the top by default")
+
+args = parser.parse_args() 
+
+
+class Block(object):
+
+    def __init__(self, name, coverage, parent=None):
+        self.name = name
+        self.childs = []
+        self.parent = parent
+
+        if coverage == 'n/a':
+            self.coverage = None
+        else:
+            self.coverage = float(coverage.replace('%', ''))
+
+        if parent is not None:
+            parent.childs.append(self)
+
+    def get_coverage(self):
+        if self.coverage is None:
+            self.coverage = 0
+            for child in self.childs:
+                self.coverage += child.get_coverage()
+
+        return self.coverage
+
+    def dump(self, silent=False, depth=0, indent=''):
+        if silent:
+            print ('%s' % (self.get_coverage()))
+        else:
+            print ('%s %s' % (indent + self.name, self.get_coverage()))
+
+        if depth > 0:
+            for child in self.childs:
+                child.dump(depth=depth - 1, indent=indent + '    ', silent=silent)
+
+    def get(self, name):
+        results = []
+
+        #if re.compile(name).search(self.name):
+        if name == self.name:
+            results.append(self)
+        else:
+            for child in self.childs:
+                results += child.get(name)
+
+        return results
+
+
+
+blocks = []
+top_block = None
+
+with open(args.input) as report:
+    for line in report.read().splitlines():
+        if line.find('name                                     Overall Average      Overall Covered') == 0:
+            continue
+
+        if line.find('-----------------------------------------------------------------------------------') == 0:
+            continue
+
+        nb_items = 4 if line.find('n/a') == -1 else 3
+
+        results = line.split()
+        name = results[-nb_items]
+        coverage = results[-nb_items+2]
+        level = len(results) - nb_items
+
+        if name.find('|--') == 0:
+            level += 1
+            name = name.replace('|--', '')
+
+        if len(blocks) == 0:
+            top_block = Block(name, coverage)
+            blocks.append(top_block)
+        else:
+            if level > len(blocks) - 1:
+                blocks.append(Block(name, coverage, parent=blocks[-1]))
+            elif level < len(blocks) - 1:
+                blocks = blocks[0:level]
+                blocks.append(Block(name, coverage, parent=blocks[-1]))
+            else:
+                blocks[-1] = Block(name, coverage, parent=blocks[-2])
+
+if len(args.blocks) == 0:
+    top_blocks = [[[top_block], args.depth]]
+else:
+    top_blocks = []
+    for block in args.blocks:
+        block_array = block.split(':')
+        block_name = block_array[0]
+        block_depth = args.depth
+        if len(block_array) == 2:
+            block_depth = int(block_array[1])
+
+        top_blocks.append([top_block.get(block_name), block_depth])
+
+if args.plot is not None:
+    with open(args.plot, "w") as csv_file:
+        names = []
+        coverages = []
+        for block_desc in top_blocks:
+            block_list, block_depth = block_desc
+            for block in block_list:
+                names.append('"%s"' % block.name)
+                coverages.append(str(block.get_coverage()))
+
+        csv_file.write('%s\n' % ', '.join(names))
+        csv_file.write('%s\n' % ', '.join(coverages))
+else:
+    for block_desc in top_blocks:
+        block_list, block_depth = block_desc
+        for block in block_list:
+            block.dump(depth=block_depth, silent=args.silent)

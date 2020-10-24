@@ -20,7 +20,7 @@ We provide you with all the necessary tools and two different operating systems 
 *   Operating Systems
     -   PULP OS - The open source embedded RTOS produced by the PULP project
     -   FreeRTOS - FreeRTOS is an open source real time operating system. GreenWaves Technologies has ported it to GAP8
-    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it fro PULP OS and FreeRTOS, and it is used by our applications to be portable.
+    -   PMSIS - PMSIS is an open-source system layer which any operating system can implement to provide a common API to applications. We currently provide it for PULP OS and FreeRTOS, and it is used by our applications to be portable.
 
 ##  Getting started with the GAP SDK
 
@@ -34,7 +34,7 @@ The following packages needed to be installed:
 sudo apt-get install -y build-essential git libftdi-dev libftdi1 doxygen python3-pip libsdl2-dev curl cmake libusb-1.0-0-dev scons gtkwave libsndfile1-dev rsync autoconf automake texinfo libtool pkg-config libsdl2-ttf-dev
 ~~~~~
 
-An openocd build for gap8 should be clonned and installed:
+An openocd build for gap8 should be cloned and installed:
 
 ~~~~~shell
 git clone https://github.com/GreenWaves-Technologies/gap8_openocd.git
@@ -154,7 +154,7 @@ pip3 install -r requirements.txt
 
 Initialize and download all sub projects required to run pmsis_examples on a board (freertos, pmsis_api, gapy and bsp):
 
-First, use the following command tp configure the shell environment correctly for the GAP SDK. 
+First, use the following command to configure the shell environment correctly for the GAP SDK.
 It must be done for each terminal session**:
 
 ~~~~~shell
@@ -187,10 +187,10 @@ cd examples/pmsis/helloworld
 make clean && make PMSIS_OS=freertos platform=board io=host all -j && make platform=board io=host run
 ~~~~~
 
-In details: PMSIS_OS allows us to choose an OS (freertos/pulpos), platftorm allows to choose the runner
+In details: PMSIS_OS allows us to choose an OS (freertos/pulpos), platform allows to choose the runner
 (board/gvsoc) and io choose the default output for printf (host/uart).
 
-After the build you should see an output ressembling:
+After the build you should see an output resembling:
 ~~~~~
      *** PMSIS HelloWorld ***
 
@@ -228,13 +228,13 @@ make pulp-os
 
 And replace PMSIS_OS=freertos by PMSIS_OS=pulpos on your run command line.
 
-## Full Install 
+## Full Install
 
 ### Python requirements
 
 In order to use the Gap tools for neural networks (nntool), we strongly encourage to install the Anaconda distribution ( Python3 ). You can find more information here: https://www.anaconda.com/.
 
-Note that this is needed only if you want to use nntool, you can skip this steap otherwise. Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
+Note that this is needed only if you want to use nntool, you can skip this step otherwise. Once Anaconda is installed, you need to activate it and install python modules for this tool with this command:
 
 ~~~~~shell
 pip install -r tools/nntool/requirements.txt

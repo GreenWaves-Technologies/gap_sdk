@@ -13,23 +13,31 @@
 #include "AutoTilerLib.h"
 #include "CNN_Generators.h"
 
-void Cifar10Model(unsigned int L1Memory)
+void Cifar10Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory)
 {
+
+#ifdef QSPI_BOARD
+    int Flash = AT_MEM_L3_QSPIFLASH;
+    int L3_RAM = AT_MEM_L3_QSPIRAM;
+#else
+    int Flash = AT_MEM_L3_HFLASH;
+    int L3_RAM = AT_MEM_L3_HRAM;
+#endif
+
     SetInlineMode(ALWAYS_INLINE);
     SetSymbolDynamics();
-
-    SetSymbolNames("Cifar10_L1_Memory", "Cifar10_L2_Memory");
 
     SetUsedFilesNames(0, 2, "pmsis.h", "CNN_BasicKernels.h");
     SetGeneratedFilesNames("Cifar10Kernels.c", "Cifar10Kernels.h");
 
     //SetL1MemorySize(L1Memory);
 
-    int L3Memory=8*1024*1024;
-
-    SetMemoryDeviceInfos(1,
-        AT_MEM_L3_HRAM, L3Memory, "Cifar10_L3_Memory", 0, 1
-    );
+    SetMemoryDeviceInfos(4,
+            AT_MEM_L1, L1Memory, "Cifar10_L1_Memory", 0, 0,
+            AT_MEM_L2, L2Memory, "Cifar10_L2_Memory", 0, 0,
+            L3_RAM, L3Memory, "Cifar10_L3_Memory", 0, 1,
+            Flash, 20*1024*1024, "0", "Cnn_Flash_Const.dat", 0
+            );
 
     LoadCNNLibrary();
 
@@ -78,7 +86,7 @@ int main(int argc, char **argv)
         return 1;
     }
     // Set Auto Tiler configuration, given shared L1 memory is 51200
-    Cifar10Model(51200);
+    Cifar10Model(50000, 370*1024, 8*1024*1024);
     // Generate code
     GenerateTilingCode();
     return 0;

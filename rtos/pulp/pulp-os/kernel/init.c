@@ -247,6 +247,7 @@ static int __rt_check_cluster_start(int cid, rt_event_t *event)
 
     if (stacks == NULL) return -1;
 
+#ifndef CONFIG_NO_CLUSTER
 #if defined(EU_VERSION) && EU_VERSION >= 3
 #ifndef ARCHI_HAS_NO_DISPATCH
     eu_dispatch_team_config((1<<rt_nb_active_pe())-1);
@@ -259,6 +260,7 @@ static int __rt_check_cluster_start(int cid, rt_event_t *event)
     __rt_cluster_pe_init(stacks, 0x800);
     eoc_fetch_enable_remote(0, (1<<rt_nb_active_pe()) - 1);
 #else
+#endif
 #endif
 #endif
 

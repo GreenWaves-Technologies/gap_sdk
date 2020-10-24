@@ -30,6 +30,7 @@ KernelFunction = NewType('KernelFunction',
                              Iterable[np.ndarray]
                          ])
 
+
 class KernelFunctionSetBase(ABC):
 
     @abstractproperty
@@ -160,3 +161,6 @@ class KernelFunctionSetBase(ABC):
     def expression(self) -> KernelFunction:
         pass
 
+    @abstractproperty
+    def revert(self) -> KernelFunction:
+        pass

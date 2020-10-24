@@ -1537,9 +1537,8 @@ static inline iss_insn_t *p_clipi_exec(iss_t *iss, iss_insn_t *insn)
 
 static inline iss_insn_t *p_clipui_exec(iss_t *iss, iss_insn_t *insn)
 {
-  int low = 0;
   int high = (1 << MAX((int)UIM_GET(0)-1, 0)) - 1;
-  REG_SET(0, LIB_CALL3(lib_CLIPU, REG_GET(0), low, high));
+  REG_SET(0, LIB_CALL2(lib_CLIPU, REG_GET(0), high));
 
   return insn->next;
 }
@@ -1554,9 +1553,8 @@ static inline iss_insn_t *p_clip_exec(iss_t *iss, iss_insn_t *insn)
 
 static inline iss_insn_t *p_clipu_exec(iss_t *iss, iss_insn_t *insn)
 {
-  int low = 0;
   int high = REG_GET(1);
-  REG_SET(0, LIB_CALL3(lib_CLIPU, REG_GET(0), low, high));
+  REG_SET(0, LIB_CALL2(lib_CLIPU, REG_GET(0), high));
 
   return insn->next;
 }

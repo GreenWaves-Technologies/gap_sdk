@@ -56,6 +56,7 @@ struct cpi_itf_data_s
     struct pi_task *fifo_tail;
     uint32_t device_id;
     uint32_t nb_open;
+    uint8_t datasize;  /* the transfer datasize, should be 8/16/32 */
 };
 
 /*******************************************************************************
@@ -102,6 +103,15 @@ static inline void pi_cpi_set_format(struct pi_device *device,
     cpi_format_set(device_data->device_id, format);
 }
 
+static inline void pi_cpi_set_rowlen(struct pi_device *device, uint16_t rowlen)
+{
+    /* The rowlen is used only in slice mode
+     * It should be equal to the whole rowlen of each frame 
+     * devide by the transfer datasize in byte */
+    struct cpi_itf_data_s *device_data =  (struct cpi_itf_data_s *) device->data;
+    cpi_rowlen_set(device_data->device_id, (rowlen/(device_data->datasize/8) - 1));
+}
+
 static inline void pi_cpi_set_frame_drop(struct pi_device *device,
                                          uint32_t nb_frame_dropped)
 {
@@ -122,15 +132,13 @@ static inline void pi_cpi_set_slice(struct pi_device *device,
                                     uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
     struct cpi_itf_data_s *device_data =  (struct cpi_itf_data_s *) device->data;
-    cpi_frameslice_en_set(device_data->device_id, w);
+    cpi_frameslice_en_set(device_data->device_id, w?1:0);
     if (w)
     {
         /* Lower left. */
-        hal_cpi_frameslice_ll_set(device_data->device_id, x, y);
+        hal_cpi_frameslice_ll_set(device_data->device_id, (x/(device_data->datasize/8)), y);
         /* Upper right. */
-        hal_cpi_frameslice_ur_set(device_data->device_id, (x + w - 1),  (y + h - 1));
-        /* Size. */
-        cpi_rowlen_set(device_data->device_id, (w - 1));
+        hal_cpi_frameslice_ur_set(device_data->device_id, ((x + w)/(device_data->datasize/8) - 1),  (y + h - 1));
     }
 }
 

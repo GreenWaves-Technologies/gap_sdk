@@ -652,6 +652,8 @@ void __pi_spi_send_async(struct spim_cs_data *cs_data, void *data, size_t len,
             spim_enqueue_channel(SPIM(device_id), (uint32_t)cs_data->udma_cmd,
                     3*(sizeof(uint32_t)),
                     UDMA_CORE_TX_CFG_EN(1), TX_CHANNEL);
+            // wait until a slot is free
+            while((hal_read32((void*)&(SPIM(device_id)->udma.tx_cfg)) & (1<<5))>>5);
             // enqueue user data
             spim_enqueue_channel(SPIM(device_id), (uint32_t)data, size,
                     UDMA_CORE_TX_CFG_EN(1),

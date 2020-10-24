@@ -46,7 +46,7 @@ ifeq ($(TARGET_CHIP_FAMILY), GAP8)
 sdk: all autotiler nntool openocd
 all: pulp-os tools gvsoc flasher docs littlefs.build openocd_scripts
 
-clean:
+clean: littlefs.clean
 	$(RM) $(TARGET_INSTALL_DIR)
 	$(RM) $(INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
@@ -61,7 +61,7 @@ else
 sdk: all autotiler nntool
 all: pulp-os gvsoc littlefs.build
 
-clean:
+clean: littlefs.clean
 	$(RM) $(TARGET_INSTALL_DIR)
 	$(RM) $(BUILD_DIR)
 endif
@@ -171,6 +171,8 @@ littlefs.checkout:
 
 littlefs.all: littlefs.checkout littlefs.build
 
+littlefs.clean:
+	rm -rf $(LFS_BUILD_DIR)
 
 
 plptest.checkout:
@@ -254,7 +256,7 @@ openmp.all: openmp.checkout
 examples.checkout:
 	git submodule update --recursive --init examples
 
-	
+
 
 
 .PHONY: all install clean docs install_others install_pulp_tools tools pulp-os gvsoc flasher

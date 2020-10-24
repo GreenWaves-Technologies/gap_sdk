@@ -108,6 +108,20 @@ uint32_t system_core_clock_get(void)
     return SystemCoreClock;
 }
 
+void system_usermode_entry(void *arg)
+{
+    pi_user_task_arg_t *task_arg = (pi_user_task_arg_t*) arg;
+
+    void (*task_func)(void*) = task_arg->entry;
+    void *__arg = task_arg->arg;
+    pi_fc_l1_free(task_arg, sizeof(pi_user_task_arg_t));
+    hal_compiler_barrier();
+    /* Go to user mode - Drop our privileges */
+    // FIXME: syscall( ECALL_PRIV_DROP, 0, 0, 0, 0 );
+    hal_compiler_barrier();
+    task_func(__arg);
+}
+
 void system_exit(int32_t code)
 {
     if (pi_is_fc())

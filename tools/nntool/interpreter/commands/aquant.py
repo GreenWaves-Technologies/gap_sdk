@@ -62,7 +62,7 @@ class AquantCommand(NNToolShellBase):
     @with_argparser(parser_aquant)
     def do_aquant(self, args: argparse.Namespace):
         """
-Attempt to calculate quantization for graph using one or more sample imput files."""
+Attempt to calculate quantization for graph using one or more sample input files."""
         self._check_graph()
         input_args = self._get_input_args(args)
         processed_input = False
@@ -73,7 +73,7 @@ Attempt to calculate quantization for graph using one or more sample imput files
             data = [import_data(input_file, **input_args) for input_file in file_per_input]
             stats_collector.collect_stats(self.G, data)
         if not processed_input:
-            self.perror("No imput files found")
+            self.perror("No input files found")
             return
         if args.scheme == 'SQ8':
             astats = stats_collector.stats

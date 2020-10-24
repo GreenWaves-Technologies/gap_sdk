@@ -24,6 +24,7 @@ typedef struct {
   int open_count;
   uint32_t base;
   rt_udma_channel_t channel;
+  uint8_t datasize; /* the udma channel cfg size */ 
 } rt_cpi_t;
 
 #endif

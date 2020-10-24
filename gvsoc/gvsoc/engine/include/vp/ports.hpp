@@ -75,6 +75,9 @@ public:
     // implemented by final C++ IPs
     virtual void bind_to_virtual(port *port) {};
 
+    // Tell if the port is bound to another port
+    bool is_bound = false;
+
 protected:
     // Component owner of this port.
     // The port is considered in the same domains as the owner component.
@@ -92,9 +95,6 @@ protected:
     port *remote_port = NULL;
 
     void *itf = NULL;
-
-    // Tell if the port is bound to another port
-    bool is_bound = false;
 
     // Name of the port defined in the component, can used for debug purposes.
     std::string name = "";

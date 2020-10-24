@@ -55,12 +55,15 @@ def constant_input(params,
                    details=None):
     del in_tensors, details
     # returns an array with a property that contains the quantization
-    output_tensor = QuantizedNdarray(
-        qrec.out_qs[0].get_quantized(
+    # output_tensor = QuantizedNdarray(
+    #     qrec.out_qs[0].get_quantized(
+    #         params.value,
+    #         container_is_quantized=qrec.constants_are_quantized),
+    #     qtype=qrec.out_qs[0])
+    # return [output_tensor]
+    return [qrec.out_qs[0].get_quantized(
             params.value,
-            container_is_quantized=qrec.constants_are_quantized),
-        qtype=qrec.out_qs[0])
-    return [output_tensor]
+            container_is_quantized=qrec.constants_are_quantized)]
 
 
 def concat(params,
@@ -149,3 +152,12 @@ def copy(params,
     del details
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
     return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
+
+
+def revert(params,
+           in_tensors,
+           qrec: QuantizationRecordBase,
+           details=None):
+    del details
+    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+    return qrec.get_outputs(params, [np.flip(in_tensor, axis=params.axis)], ktype="symmetric")

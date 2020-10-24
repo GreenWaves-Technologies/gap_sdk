@@ -85,9 +85,9 @@ extern void vPrvAssertFailed( const char *filename, uint32_t line, const char *e
 #define configPREEMPTION_QUANTUM                  ( 50 )
 
 #define configIDLE_SHOULD_YIELD                   ( 1 )
-#define configUSE_IDLE_HOOK                       ( 1 )
+#define configUSE_IDLE_HOOK                       ( 0 )
 #define configUSE_TICK_HOOK                       ( 0 )
-#define configUSE_TICKLESS_IDLE                   ( 0 )
+#define configUSE_TICKLESS_IDLE                   ( 2 )
 #define configUSE_DAEMON_TASK_STARTUP_HOOK        ( 0 )
 #define configCPU_CLOCK_HZ                        ( SystemCoreClock )
 #define configTICK_RATE_HZ                        ( ( TickType_t ) 1000 )

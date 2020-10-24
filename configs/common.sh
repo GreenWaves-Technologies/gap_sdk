@@ -3,7 +3,7 @@
 export PULP_SDK_HOME=$GAP_SDK_HOME
 
 if [ -n "$GAP_RISCV_GCC_TOOLCHAIN_BASE" ]; then
-    export GAP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN_BASE/1.3
+    export GAP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN_BASE/1.4
 fi
 
 if [ -z "$GAP_RISCV_GCC_TOOLCHAIN" ]; then
@@ -61,7 +61,7 @@ source $GAP_SDK_HOME/gvsoc/setup_gvsoc.sh
 export AT_HOME=$GAP_SDK_HOME/tools/autotiler_v3
 export TILER_PATH=$GAP_SDK_HOME/tools/autotiler_v3
 export TILER_LIB=$TILER_PATH/Autotiler/LibTile.a
-export TILER_INC=$TILER_PATH/include
+export TILER_INC=$TILER_PATH/Autotiler
 export TILER_EMU_INC=$TILER_PATH/Emulation
 export TILER_GENERATOR_PATH=$TILER_PATH/Generators
 export TILER_BILINEAR_RESIZE_GENERATOR_PATH=$TILER_GENERATOR_PATH/BilinearResizes

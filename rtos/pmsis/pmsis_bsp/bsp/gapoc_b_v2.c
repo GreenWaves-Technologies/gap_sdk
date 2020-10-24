@@ -135,7 +135,7 @@ void bsp_nina_b112_conf_init(struct pi_nina_b112_conf *conf)
     conf->uart_itf = (uint8_t) CONFIG_NINA_B112_UART_ID;
 }
 
-int bsp_nina_b112_open(struct pi_nina_b112_conf *conf)
+int bsp_nina_b112_open()
 {
     //__gpio_init();
     return 0;

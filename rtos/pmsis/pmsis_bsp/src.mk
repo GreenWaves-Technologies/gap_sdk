@@ -15,6 +15,10 @@ BSP_NINA_SRC = transport/transport.c transport/nina_w10/nina_w10.c
 BSP_24XX1025_SRC = eeprom/24XX1025.c
 BSP_VIRTUAL_EEPROM_SRC = eeprom/virtual_eeprom.c
 BSP_MRAM_SRC = flash/mram/mram-v2.c
+BSP_OSPI_FLASH_SRC = flash/spiflash/atxp032.c
+BSP_OSPI_RAM_SRC = ram/spiram/aps25xxxn.c
+BSP_CAMERA_SRC = camera/camera.c
+BSP_HIMAX_SRC = camera/himax/himax.c
 
 COMMON_SRC = \
   $(BSP_FLASH_SRC) \
@@ -28,8 +32,8 @@ COMMON_SRC = \
 VEGA_SRC = \
   $(COMMON_SRC) \
   bsp/vega.c \
-  camera/camera.c \
-  camera/himax/himax.c \
+  $(BSP_CAMERA_SRC) \
+  $(BSP_HIMAX_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_SPIRAM_SRC) \
@@ -41,8 +45,8 @@ GAP9_SRC = \
   eeprom/24XX1025.c \
   $(BSP_VIRTUAL_EEPROM_SRC)\
   bsp/gap9_v2.c \
-  camera/camera.c \
-  camera/himax/himax.c \
+  $(BSP_CAMERA_SRC) \
+  $(BSP_HIMAX_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_RAM_SRC)
@@ -50,8 +54,8 @@ GAP9_SRC = \
 WOLFE_SRC = \
   $(COMMON_SRC) \
   bsp/wolfe.c \
-  camera/camera.c \
-  camera/himax/himax.c \
+  $(BSP_CAMERA_SRC) \
+  $(BSP_HIMAX_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_SPIRAM_SRC) \
@@ -61,8 +65,8 @@ WOLFE_SRC = \
 GAPUINO_SRC = \
   $(COMMON_SRC) \
   bsp/gapuino.c \
-  camera/camera.c \
-  camera/himax/himax.c \
+  $(BSP_CAMERA_SRC) \
+  $(BSP_HIMAX_SRC) \
   camera/ov7670/ov7670.c \
   camera/gc0308/gc0308.c \
   camera/ov5640/ov5640.c \
@@ -79,8 +83,8 @@ GAPUINO_SRC = \
 AI_DECK_SRC = \
   $(COMMON_SRC) \
   bsp/ai_deck.c \
-  camera/camera.c \
-  camera/himax/himax.c \
+  $(BSP_CAMERA_SRC) \
+  $(BSP_HIMAX_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   $(BSP_NINA_SRC) \
   $(BSP_HYPERRAM_SRC) \
@@ -91,7 +95,7 @@ AI_DECK_SRC = \
 GAPOC_A_SRC = \
   $(COMMON_SRC) \
   bsp/gapoc_a.c \
-  camera/camera.c \
+  $(BSP_CAMERA_SRC) \
   camera/mt9v034/mt9v034.c \
   $(BSP_HYPERFLASH_SRC) \
   transport/transport.c \
@@ -125,7 +129,7 @@ else
 GAPOC_B_SRC = \
   $(COMMON_SRC) \
   bsp/gapoc_b_v2.c \
-  camera/camera.c \
+  $(BSP_CAMERA_SRC) \
   $(BSP_HYPERFLASH_SRC) \
   transport/transport.c \
   display/display.c \

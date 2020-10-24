@@ -1,0 +1,6 @@
+*~
+build
+build.log
+.sconsign.dblite
+include/archi/chips/gap9/memory_map.h
+include/archi/chips/vega/memory_map.h

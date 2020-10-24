@@ -105,7 +105,9 @@ class SSDDetectorParameters(Transposable):
         raise NotImplementedError()
 
     def __str__(self):
-        return "{} {}".format(
+        return "{} {} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
             Transposable.__str__(self),
-            self.at_options
+            self.at_options,
+            self.nms_score_threshold,
+            self.nms_iou_threshold
         )

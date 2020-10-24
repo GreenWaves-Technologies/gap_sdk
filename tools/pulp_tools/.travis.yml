@@ -1,0 +1,30 @@
+dist: trusty
+language: cpp
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libusb-1.0-0-dev
+
+env:
+  matrix:
+    - WITH_FTDI=ON
+    - WITH_FTDI=OFF
+
+before_install:
+
+install:
+  - ./travis/install.sh
+  - export PATH=$PATH:$PWD/riscv-toolchain/bin
+    
+os: 
+  - linux
+  - osx
+
+script: 
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/_install -DWithFTDI=$WITH_FTDI -DWithFlasher=ON
+  - make all install

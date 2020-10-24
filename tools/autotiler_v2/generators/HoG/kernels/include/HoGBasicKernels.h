@@ -10,8 +10,8 @@
 #ifndef __HOGBASICKERNELS_H__
 #define __HOGBASICKERNELS_H__
 
-#include "Gap8.h"
 #include "HoGParameters.h"
+#include "Gap8.h"
 
 /** @addtogroup groupHOG
 @{ */
@@ -40,12 +40,8 @@
 #define From_Q(Val, Dyna)       ((float) (((float) (Val))/((float) (1<<Dyna))))
 #define To_Q(Val, Dyna)         ((int) ((float) Val * (float) (1<<Dyna)))
 
-#ifndef Max
 #define Max(a, b)               (((a)>(b))?(a):(b))
-#endif
-#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
-#endif
 
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))
 /// @endcond
@@ -57,56 +53,56 @@
 
 
 
-        Key parameters for HOG are defined in HoGParameters.h:
+        Key parameters for HOG are defined in HoGParameters.h:  
 
-        HOG_CELL_SIZE                           Size of the side of a square cell of pixels, total pixels in cells is HOG_CELL_SIZE^2
-        HOG_BLOCK_SIZE                          Size of the side of a square block of pixel cells, Total size in pixels is (HOG_BLOCK_SIZE^2*HOG_CELL_SIZE^2)
-        HOG_BLOCK_OVERLAP                       Overlapping factor between 2 adjacent blocks
-        HOG_ANGLE_STEP                          Number of degrees between 2 bins of the gradient histograms
-        HOG_NBINS = (180/HOG_ANGLE_STEP)        Total number of bins for 0..180 degree, we use unsigned orientations
+        HOG_CELL_SIZE                           Size of the side of a square cell of pixels, total pixels in cells is HOG_CELL_SIZE^2  
+        HOG_BLOCK_SIZE                          Size of the side of a square block of pixel cells, Total size in pixels is (HOG_BLOCK_SIZE^2*HOG_CELL_SIZE^2)  
+        HOG_BLOCK_OVERLAP                       Overlapping factor between 2 adjacent blocks  
+        HOG_ANGLE_STEP                          Number of degrees between 2 bins of the gradient histograms  
+        HOG_NBINS = (180/HOG_ANGLE_STEP)        Total number of bins for 0..180 degree, we use unsigned orientations  
 
 
-        This code operates on horizontal stripes. Each iteration produces a line of cells.
+        This code operates on horizontal stripes. Each iteration produces a line of cells.  
 
-        A cell contains the histogram of gradient over a patch of HOG_CELL_SIZE x HOG_CELL_SIZE pixels from input image.
+        A cell contains the histogram of gradient over a patch of HOG_CELL_SIZE x HOG_CELL_SIZE pixels from input image.  
 
-        Gradient is computed using a 2D Sobel filter. To obtain the gradient orientation from it's 2 vertical and horizontal
-        projections 2 variants of atan2() can be used. The first one, Atan2Order3(), is a 3rd order approximation and computes the angle with
-        max 1 degree of error. The second, Atan2Order1(), is a 1st order approximation and computes the angle with less than 7 degree of error.
-        Histogram is discretized on HOG_NBINS angular bins over [0 Deg .. 180 Deg], each B bin contains the
-        accumulated Magnitude of gradient having direction Angle(B), linear interpolation is performed between
-        the 2 bins surrounding the actual gradient. For magnitude we use the L1 norm (sum of abs())
+        Gradient is computed using a 2D Sobel filter. To obtain the gradient orientation from it's 2 vertical and horizontal  
+        projections 2 variants of atan2() can be used. The first one, Atan2Order3(), is a 3rd order approximation and computes the angle with  
+        max 1 degree of error. The second, Atan2Order1(), is a 1st order approximation and computes the angle with less than 7 degree of error.  
+        Histogram is discretized on HOG_NBINS angular bins over [0 Deg .. 180 Deg], each B bin contains the  
+        accumulated Magnitude of gradient having direction Angle(B), linear interpolation is performed between  
+        the 2 bins surrounding the actual gradient. For magnitude we use the L1 norm (sum of abs())  
 
-        A block of a cell is the concatenation of HOG_BLOCK_SIZE x HOG_BLOCK_SIZE Cells, normalization is perfomed
-        on this group of cells. This block of cells containing HOG_BLOCK_SIZE x HOG_BLOCK_SIZE x NBINS is also called a HOG Feature
+        A block of a cell is the concatenation of HOG_BLOCK_SIZE x HOG_BLOCK_SIZE Cells, normalization is perfomed  
+        on this group of cells. This block of cells containing HOG_BLOCK_SIZE x HOG_BLOCK_SIZE x NBINS is also called a HOG Feature  
 
-        The first phase primes the pipeline:
+        The first phase primes the pipeline:  
 
-                HOG_BLOCK_SIZE lines of cells are produced, each line goes into a buffer of cell lines.
-                Lines of cells are produced one by one by KerProcessCellLine() with Arg->CellLineCount = 1
+                HOG_BLOCK_SIZE lines of cells are produced, each line goes into a buffer of cell lines.  
+                Lines of cells are produced one by one by KerProcessCellLine() with Arg->CellLineCount = 1  
 
-                Once the HOG_BLOCK_SIZE lines of cells have been produced we can produce one line of HOG features.
+                Once the HOG_BLOCK_SIZE lines of cells have been produced we can produce one line of HOG features.  
+                One line of block is produced by KerProcessBlockLine()  
+                
+        The second phase is the pipeline body, at each iteration:  
+
+                HOG_BLOCK_SIZE - HOG_BLOCK_OVERLAP lines of cells are produced by KerProcessCellLine() with Arg->CellLineCount = HOG_BLOCK_SIZE - HOG_BLOCK_OVERLAP  
+                Each new line of cells is inserted at the top of the cell lines buffer after pushing down all the existing lines by one position.  
                 One line of block is produced by KerProcessBlockLine()
 
-        The second phase is the pipeline body, at each iteration:
-
-                HOG_BLOCK_SIZE - HOG_BLOCK_OVERLAP lines of cells are produced by KerProcessCellLine() with Arg->CellLineCount = HOG_BLOCK_SIZE - HOG_BLOCK_OVERLAP
-                Each new line of cells is inserted at the top of the cell lines buffer after pushing down all the existing lines by one position.
-                One line of block is produced by KerProcessBlockLine()
-
-        Both KerProcessCellLine() and KerProcessBlockLine() are vectorized and parallel implementations
+        Both KerProcessCellLine() and KerProcessBlockLine() are vectorized and parallel implementations  
 
         Sobel filter extends +/-1 around central point so we need to provision for it.
 
-        A line length, without padding, has to divisible by Cell Size and the padded line size needs to be disible by 4,
-        this last constraints comes from the fact that we access data as vectors of 4 pixels.
-        A column height without padding has be disible by Cell Size
+        A line length, without padding, has to divisible by Cell Size and the padded line size needs to be disible by 4,  
+        this last constraints comes from the fact that we access data as vectors of 4 pixels.  
+        A column height without padding has be disible by Cell Size  
 
-        On a typical image the cycle per pixel budget is approx 14 cycles running on 8 cores and using Atan2Order3().
+        On a typical image the cycle per pixel budget is approx 14 cycles running on 8 cores and using Atan2Order3().  
 
-        For a QVGA image (320x240) the number of cycles will be approx 1000000,
+        For a QVGA image (320x240) the number of cycles will be approx 1000000,  
 
-        in other words assuming 30 fps you will need to run the chip at at least 30MHz to sustain real time.
+        in other words assuming 30 fps you will need to run the chip at at least 30MHz to sustain real time.  
 
 @{ */
 

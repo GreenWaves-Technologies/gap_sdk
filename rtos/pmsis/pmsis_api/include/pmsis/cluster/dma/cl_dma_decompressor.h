@@ -61,7 +61,6 @@ typedef enum
     PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_LIN_LOC_LIN,
     PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_2D_LOC_LIN,
     PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_LIN_LOC_2D,
-    PI_CL_DMA_DECOMPRESSOR_TRANSF_EXT_2D_LOC_2D,
 } pi_cl_dma_decompressor_transfer_type_e;
 
 typedef struct pi_cl_dma_decompressor_2d_transfer

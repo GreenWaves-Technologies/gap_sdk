@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifndef PI_INLINE_CL_TEAM_0
+#define PI_INLINE_CL_TEAM_0
+#endif
+
 /**
  * \ingroup clusterDriver
  *
@@ -121,7 +125,7 @@ void pi_cl_team_fork_task(struct pi_cl_team_task *fork_task);
  * Each core of the team must execute the barrier exactly once for all cores
  * to be able to go through the barrier.
  */
-void pi_cl_team_barrier();
+PI_INLINE_CL_TEAM_0 void pi_cl_team_barrier();
 
 /**
  * \brief Enter a critical section.
@@ -134,14 +138,14 @@ void pi_cl_team_barrier();
  * \note No runtime functions should be called from within the critical section,
  *       only application code is allowed.
  */
-void pi_cl_team_critical_enter(void);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_critical_enter(void);
 
 /**
  * \brief Exit a critical section.
  *
  * This will exit the critical code and let other cores executing it.
  */
-void pi_cl_team_critical_exit(void);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_critical_exit(void);
 
 /**
  * \brief Return the number of cores in the team.

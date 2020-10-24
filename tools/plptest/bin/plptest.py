@@ -33,7 +33,7 @@ class Testset(object):
 
 class Test(object):
 
-    def __init__(self, name, commands=[], timeout=-1, parent=None, path=None, restrict=None, tags=[], params=[], description=None, scores=[]):
+    def __init__(self, name, commands=[], timeout=-1, parent=None, path=None, restrict=None, tags=[], params=[], description=None, scores=[], skip=None):
         self.name = name
         self.commands = commands
         self.timeout = timeout
@@ -44,6 +44,7 @@ class Test(object):
         self.params = params
         self.description = description
         self.scores = scores
+        self.skip = skip
 
 class Shell(object):
 

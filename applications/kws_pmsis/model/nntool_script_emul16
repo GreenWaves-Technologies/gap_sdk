@@ -1,0 +1,4 @@
+adjust
+aquant -f 16 images/* -D 255 -O 0
+set dump_tensors 1
+save_state

@@ -40,4 +40,9 @@
 #define PREEMPT_ENABLE\
     enable_irq();
 
+//#define PI_INLINE_OCTOSPI_LVL 1
+#if defined(PI_INLINE_OCTOSPI_LVL) && (PI_INLINE_OCTOSPI_LVL != 0)
+#define PI_INLINE_OCTOSPI_LVL_0 static inline
+#endif  /* PI_INLINE_OCTOSPI_LVL */
+
 #endif  /* __IMPLEMENTATION_SPECIFIC_DEFINES_H__ */

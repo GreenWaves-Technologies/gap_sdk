@@ -39,8 +39,9 @@ from .remove_noops import RemoveNoOPs
 from .remove_relus import RemoveRelusMatch
 from .remove_unused_concats import RemoveUnusedConcats
 from .expression_matcher import ExpressionMatcher
+from .match_reversed_rnn import MatchReversedRnn
 
-ALL_MATCH_CLASSES = [MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExternalBias,
+ALL_MATCH_CLASSES = [MatchReversedRnn, MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExternalBias,
                      MatchFusePad, RemoveUnusedConcats,
                      FindMissingQuantization, MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8,
                      MoveActivationsMatcherScale8, MoveActivationsMatcherPow2,
@@ -56,7 +57,7 @@ POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFus
                       MatchInsertCopies]
 SCALE8_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBiasSQ8, MatchFusePad,
                         RemoveUnusedConcats, FindMissingQuantization,
-                        MatchRnnUnpack,
+                        MatchReversedRnn, MatchRnnUnpack,
                         MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8,
                         MoveActivationsMatcherScale8, ExpandTransposesMatcher,
                         MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels, PropagateSoftmaxSymQrec,

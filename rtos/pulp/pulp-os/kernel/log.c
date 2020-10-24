@@ -22,6 +22,7 @@
 #include "pmsis/rtos/pi_log.h"
 
 
+
 // Global variables used by pi_log.h
 vprintf_like_t pi_log_vprint_func = &pi_log_default_vprintf;
 pi_log_level_t dynamic_log_level = PI_LOG_DEFAULT_DYNAMIC_LEVEL;
