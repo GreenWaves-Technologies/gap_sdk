@@ -382,4 +382,8 @@ private:
 #include "hyper/udma_hyper_v3.hpp"
 #endif
 
+#ifdef HAS_CPI
+#include "cpi/udma_cpi_v2.hpp"
+#endif
+
 #endif

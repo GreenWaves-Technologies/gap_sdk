@@ -699,10 +699,10 @@ class PadDim(Dim):
                 0)
         else:
             pad_along_height = max(
-                (out_height - 1) * stride.h + filt.h + (filt.h - 1)*(dilation.h - 1) - in_dim.h,
+                (out_height - 1) * stride.h + ((dilation.h - 1) * (filt.h - 1) + filt.h) - in_dim.h,
                 0)
             pad_along_width = max(
-                (out_width - 1) * stride.w + filt.w + (filt.w - 1)*(dilation.w - 1) - in_dim.w,
+                (out_width - 1) * stride.w + ((dilation.w - 1) * (filt.w - 1) + filt.w) - in_dim.w,
                 0)
         if self._same_type == "left":
             self.set(

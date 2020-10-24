@@ -82,4 +82,11 @@ typedef struct pi_task
     PI_TASK_IMPLEM;
 } pi_task_t;
 
+/* func with void arg returning void for task(threads) entry  */
+typedef void (*pi_task_entry_t)(void *arg);
+
+typedef struct pi_user_task_arg_s {
+    pi_task_entry_t entry;
+    void *arg;
+} pi_user_task_arg_t;
 #endif  /* __PMSIS_IMPLEM_PMSIS_TYPES_H__ */

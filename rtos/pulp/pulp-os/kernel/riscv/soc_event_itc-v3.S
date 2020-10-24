@@ -22,6 +22,8 @@
 #include "archi/pulp.h"
 #include "archi/itc/itc_v1.h"
 
+#error 1
+
   .global __rt_fc_socevents_handler
 __rt_fc_socevents_handler:
 

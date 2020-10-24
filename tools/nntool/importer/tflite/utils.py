@@ -100,7 +100,14 @@ def get_operator_index(model, op_name):
 
 def get_operator_name(model, index):
     op_code = model.OperatorCodes(index)
-    op_name = TFLITE_BUILTIN_OPERATOR_NAMES[op_code.BuiltinCode()]
+    if hasattr(op_code, "DeprecatedBuiltinCode"):
+        if op_code.BuiltinCode() > BuiltinOperator.PLACEHOLDER_FOR_GREATER_OP_CODES:
+            op_number = op_code.BuiltinCode()
+        else:
+            op_number = op_code.DeprecatedBuiltinCode()
+    else:
+        op_number = op_code.DeprecatedBuiltinCode()
+    op_name = TFLITE_BUILTIN_OPERATOR_NAMES[op_number]
     if op_name == "CUSTOM":
         return str(op_code.CustomCode(), 'utf-8'), True
 

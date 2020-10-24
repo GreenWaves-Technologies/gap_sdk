@@ -29,6 +29,7 @@ static rt_cpi_t __rt_cpi[ARCHI_UDMA_NB_CAM];
 void pi_cpi_conf_init(struct pi_cpi_conf *conf)
 {
   conf->itf = 0;
+  conf->datasize = UDMA_CHANNEL_CFG_SIZE_16;
 }
 
 
@@ -48,6 +49,7 @@ int pi_cpi_open(struct pi_device *device)
   cpi->channel_id = periph_id;
   cpi->open_count++;
   cpi->base = ARCHI_UDMA_ADDR + UDMA_PERIPH_OFFSET(periph_id);
+  cpi->datasize = conf->datasize; 
 
   if (cpi->open_count == 1)
   {
@@ -99,11 +101,12 @@ void pi_cpi_capture(struct pi_device *device, void *buffer, int32_t size)
 
 void pi_cpi_capture_async(struct pi_device *device, void *buffer, int32_t size, pi_task_t *task)
 {
+
   rt_cpi_t *cpi = (rt_cpi_t *)device->data;
   int irq = rt_irq_disable();
   __rt_task_init(task);
 
-  __rt_udma_copy_enqueue(task, UDMA_CHANNEL_ID(cpi->channel_id), &cpi->channel, (uint32_t)buffer, size, UDMA_CHANNEL_CFG_SIZE_16);
+  __rt_udma_copy_enqueue(task, UDMA_CHANNEL_ID(cpi->channel_id), &cpi->channel, (uint32_t)buffer, size, cpi->datasize);
   rt_irq_restore(irq);
 }
 

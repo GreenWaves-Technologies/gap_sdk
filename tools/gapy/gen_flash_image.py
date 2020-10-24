@@ -163,13 +163,17 @@ def appendArgs(parser: argparse.ArgumentParser, flashConfig: js.config) -> None:
                         help = """Boot loader or unic application in elf format.
 		                           In case of Gap boot from flash, this program will be loaded into memories and will be executed by the FC.""",
                         **kwargs)
-    
+
     # Partition table
+    kwargs = { }
+    if flashConfig:
+        kwargs['default'] = flashConfig.get_str("content/partition-table")
     parser.add_argument('--partition-table', '-t',
-                        default = None, type = argparse.FileType('rb'), required = False,
+                        type = argparse.FileType('rb'), required = False,
                         dest = 'partitionTable',
                         help = """Partition table in binary or csv format.
-	                    If the partition table is not mentioned, a typical partition table is generated with both filesystem partitions readfs and LittleFS.""")
+	                    If the partition table is not mentioned, a typical partition table is generated with both filesystem partitions readfs and LittleFS.""",
+                        **kwargs)
     
     # Partition images
     parser.add_argument('--partition', '-p', metavar = 'partition-name partition-image',
@@ -267,10 +271,37 @@ def operationFunc(args, flash_config=None):
     traces.info("Partition table offset: 0x%X" % partitionTableOffset)
   
     if flash_config and flash_config.get('content/partitions') is not None:
-        traces.info('Partition table was provided from configuration file.')
-        config_partitions = {}
-        table = gen_partition.PartitionTable(md5Sum = True)
-        offset = partitionTableOffset + partition.MAX_PARTITION_TABLE_SIZE
+
+        if args.partitionTable:
+            traces.infoWithoutNewLine('Open partition table: ')
+            tableInput = args.partitionTable.read()
+            if gen_partition.isBinaryPartitionTable(tableInput):
+                # Binary format
+                traces.info('Binary table format')
+                table = gen_partition.PartitionTable.from_binary(tableInput)
+            
+            else:
+                # CSV Format
+                traces.info('CSV table format')
+
+                try:
+                    tableInput = tableInput.decode()
+                except UnicodeDecodeError:
+                    raise InputError(
+                        '"%s" input file must be a CSV text file or partition table binary.' % args.partitionTable.name)
+                
+                traces.info('Parsing CSV input...')
+                table = gen_partition.PartitionTable.from_csv(tableInput, partitionTableOffset = partitionTableOffset,
+                                                            sectorSize = args.blockSize, md5Sum = True)
+
+            for part in table:
+                offset = part.offset + part.size
+
+        else:
+            traces.info('Partition table was provided from configuration file.')
+            config_partitions = {}
+            table = gen_partition.PartitionTable(md5Sum = True)
+            offset = partitionTableOffset + partition.MAX_PARTITION_TABLE_SIZE
 
         for name, partition_config in flash_config.get('content/partitions').get_items().items():
             if partition_config.get_bool('enabled'):
@@ -369,9 +400,13 @@ def operationFunc(args, flash_config=None):
 
     if flash_config and flash_config.get('content/partitions') is not None:
         for p in table:
-            if p.path:
+            path = p.path
+            if path is None:
+                path = flash_config.get_str('content/partitions/%s/image' % p.name)
+
+            if path:
                 flashImage.image.padToOffset(p.offset)
-                with open(p.path, 'rb') as p_file:
+                with open(path, 'rb') as p_file:
                     flashImage.image += p_file.read()
 
     else:

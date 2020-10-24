@@ -95,6 +95,11 @@ extern void vPortClear_Interrupt_Mask_From_ISR( uint32_t irqSet );
 
 #define portENTER_CRITICAL()                     ( vPortEnter_Critical() )
 #define portEXIT_CRITICAL()                      ( vPortExit_Critical() )
+/*-----------------------------------------------------------*/
+
+/* Tickless idle/low power functionality. */
+extern void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime );
+#define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime ) vPortSuppressTicksAndSleep( xExpectedIdleTime )
 
 /*-----------------------------------------------------------*/
 

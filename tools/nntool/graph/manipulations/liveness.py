@@ -25,7 +25,7 @@ def calculate_liveness(G, steps: Sequence[Mapping]) -> Mapping[str, Mapping]:
         # input nodes create tensors
         if G.is_input(node):
             edges = G.out_edges(node.name)
-            assert len(edges) == 1
+            assert all(edge.from_idx == 0 for edge in edges), "inputs should create a single tensor"
             eparams = edges[0].params
             liveness[eparams.name] = {
                 'start': i, 'end': i,

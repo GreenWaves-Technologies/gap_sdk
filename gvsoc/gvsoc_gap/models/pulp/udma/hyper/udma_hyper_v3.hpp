@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <vector>
+#include <udma_hyper/udma_hyper_regs.h>
 #include <udma_hyper/udma_hyper_regfields.h>
 #include <udma_hyper/udma_hyper_gvsoc.h>
 

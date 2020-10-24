@@ -11,8 +11,6 @@ ifndef VERBOSE
 V = @
 endif
 
-CC = g++
-
 CFLAGS +=  -MMD -MP -O2 -g -fpic -Isrc -std=c++11 -Werror -Wall -I$(INSTALL_DIR)/include
 
 LDFLAGS += -O2 -g -Werror -Wall -lz -L$(INSTALL_DIR)/lib -Wl,--whole-archive -ljson -Wl,--no-whole-archive
@@ -53,58 +51,58 @@ endef
 $(ENGINE_BUILD_DIR)/%.o: src/%.c
 	@echo "CXX $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/%.o: src/%.cpp
 	@echo "CXX $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/dbg/%.o: src/%.c
 	@echo "CXX DBG $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) $(CFLAGS_DBG) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) $(CFLAGS_DBG) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/dbg/%.o: src/%.cpp
 	@echo "CXX DBG $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) $(CFLAGS_DBG) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) $(CFLAGS_DBG) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/sv/%.o: src/%.c
 	@echo "CXX SV $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/sv/%.o: src/%.cpp
 	@echo "CXX SV $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
+	$(V)$(CXX) $(CFLAGS) $(CFLAGS_SV) -o $@ -c $<
 
 $(ENGINE_BUILD_DIR)/libpulpvp.so: $(VP_OBJS)
 	@echo "CXX $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $^ -o $@ $(LDFLAGS) -shared -ldl -lpthread
+	$(V)$(CXX) $^ -o $@ $(LDFLAGS) -shared -ldl -lpthread
 
 
 $(ENGINE_BUILD_DIR)/libpulpvp-debug.so: $(VP_DBG_OBJS)
 	@echo "CXX DBG $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
+	$(V)$(CXX) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
 
 $(ENGINE_BUILD_DIR)/libpulpvp-sv.so: $(VP_SV_OBJS)
 	@echo "CXX SV $<"
 	@mkdir -p $(basename $@)
-	$(V)$(CC) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
+	$(V)$(CXX) $^ -o $@ $(LDFLAGS) -shared  -ldl -lpthread
 
 $(ENGINE_BUILD_DIR)/gvsoc_launcher: $(ENGINE_BUILD_DIR)/main.o $(INSTALL_DIR)/lib/libpulpvp.so
 	@echo "CXX $<"
 	@mkdir -p `dirname $@`
-	$(V)$(CC) $(ENGINE_BUILD_DIR)/main.o -o $@ $(LDFLAGS) -lpthread -ldl -lpulpvp
+	$(V)$(CXX) $(ENGINE_BUILD_DIR)/main.o -o $@ $(LDFLAGS) -lpthread -ldl -lpulpvp
 
 $(ENGINE_BUILD_DIR)/gvsoc_launcher_debug: $(ENGINE_BUILD_DIR)/dbg/main.o $(INSTALL_DIR)/lib/libpulpvp-debug.so
 	@echo "CXX DBG $<"
 	@mkdir -p `dirname $@`
-	$(V)$(CC) $(ENGINE_BUILD_DIR)/dbg/main.o -o $@ $(LDFLAGS) -lpthread -ldl -lpulpvp-debug
+	$(V)$(CXX) $(ENGINE_BUILD_DIR)/dbg/main.o -o $@ $(LDFLAGS) -lpthread -ldl -lpulpvp-debug
 
 
 $(foreach file, $(VP_HEADERS), $(eval $(call declareInstallFile,$(file))))

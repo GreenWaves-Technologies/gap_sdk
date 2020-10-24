@@ -22,7 +22,7 @@ from ..types import (ConcatParameters, ConstantInputParameters,
                      Conv2DParameters, FcParameters, ImageFormatParameters,
                      InputBaseParameters, OutputParameters, ReshapeParameters,
                      GlobalPoolParameters, RNNBaseParameters, SSDDetectorParameters,
-                     StridedSliceParameters, UnconvertedOpParameters,
+                     StridedSliceParameters, UnconvertedOpParameters, ReverseParameters,
                      SplitParameters)
 from .dimensions import add_dimensions
 from .eliminate_transposes import eliminate_transposes
@@ -185,6 +185,12 @@ def adjust_order(G, reshape_weights=True, postprocess=True):
                 node.transpose_out = [node.transpose_in[0].copy()]
             # axis is 0 in all cases
             node.axis = 0
+        elif isinstance(node, ReverseParameters):
+            if node.axis == len(node.out_dims[0]) - 1:
+                node.axis = 0
+            else:
+                # real axis will be one more since last axis will move to first
+                node.axis += 1
         elif isinstance(node, RNNBaseParameters):
             node.transpose_in = [[1, 0]]
             node.transpose_out = [[1, 0]]

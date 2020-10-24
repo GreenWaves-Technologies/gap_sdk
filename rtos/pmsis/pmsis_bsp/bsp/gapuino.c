@@ -107,14 +107,14 @@ int bsp_spiram_open(struct pi_spiram_conf *conf)
 
 void bsp_himax_conf_init(struct pi_himax_conf *conf)
 {
-    __bsp_init_pads();
+    //__bsp_init_pads();
     conf->i2c_itf = CONFIG_HIMAX_I2C_ITF;
     conf->cpi_itf = CONFIG_HIMAX_CPI_ITF;
 }
 
 int bsp_himax_open(struct pi_himax_conf *conf)
 {
-    __bsp_init_pads();
+    //__bsp_init_pads();
     return 0;
 }
 

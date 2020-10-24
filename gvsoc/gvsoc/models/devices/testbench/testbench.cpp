@@ -34,13 +34,16 @@
 #include <iostream>
 #include <regex>
 
+extern "C" void dpi_set_status(int status);
+
 
 class Testbench;
 class Uart;
 
 
 #define PI_TESTBENCH_CMD_GPIO_LOOPBACK 1
-#define PI_TESTBENCH_CMD_UART_CHECKER 2
+#define PI_TESTBENCH_CMD_UART_CHECKER  2
+#define PI_TESTBENCH_CMD_SET_STATUS    3
 #define PI_TESTBENCH_MAX_REQ_SIZE 256
 
 
@@ -72,9 +75,15 @@ typedef struct {
 
 
 typedef struct {
+    uint32_t status;
+} pi_testbench_req_set_status_t;
+
+
+typedef struct {
     union {
         pi_testbench_req_gpio_checker_t gpio;
         pi_testbench_req_uart_checker_t uart;
+        pi_testbench_req_set_status_t set_status;
     };
 } pi_testbench_req_t;
 
@@ -131,7 +140,10 @@ private:
     int tx_start;
     int tx_incr;
     int tx_size;
+    int tx_iter_size;
+    int tx_iter_size_init;
     int tx_value;
+    int tx_value_init;
 
     int64_t rx_timestamp;
     int received_bytes;
@@ -277,6 +289,8 @@ private:
 
     void handle_uart_checker();
 
+    void handle_set_status();
+
     static void gpio_sync(void *__this, int value, int id);
     static void i2c_sync(void *__this, int scl, int sda, int id);
 
@@ -395,9 +409,12 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
             {
                 this->tx_start = std::stoi(words[1]);
                 this->tx_value = this->tx_start;
+                this->tx_value_init = this->tx_start;
                 this->tx_incr = std::stoi(words[2]);
                 this->tx_size = std::stoi(words[3]);
-                this->top->trace.msg(vp::trace::LEVEL_INFO, "UART flow control received traffic tx command (start: %d, incr: %d, size: %d)\n", this->tx_start, this->tx_incr, this->tx_size);
+                this->tx_iter_size = std::stoi(words[4]);
+                this->tx_iter_size_init = this->tx_iter_size;
+                this->top->trace.msg(vp::trace::LEVEL_INFO, "UART flow control received traffic tx command (start: %d, incr: %d, size: %d, iter_size: %d)\n", this->tx_start, this->tx_incr, this->tx_size, this->tx_iter_size);
             }
             else if (words[0] == "STATUS")
             {
@@ -423,7 +440,7 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
         {
             int64_t current_time = this->top->get_time();
 
-            if (byte != this->tx_value)
+            if (byte != (this->tx_value & 0xFF))
             {
                 this->status = 1;
             }
@@ -452,6 +469,12 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
             }
 
             this->tx_size--;
+            this->tx_iter_size--;
+            if (this->tx_iter_size == 0)
+            {
+                this->tx_value = this->tx_value_init;
+                this->tx_iter_size = this->tx_iter_size_init;
+            }
             this->check_end_of_command();
         }
     
@@ -651,9 +674,10 @@ void Uart::sync(void *__this, int data)
 
     _this->top->trace.msg(vp::trace::LEVEL_TRACE, "UART control sync (value: %d, waiting_start: %d)\n", data, _this->uart_tx_wait_start);
 
+    int prev_data = _this->uart_current_tx;
     _this->uart_current_tx = data;
 
-    if (_this->uart_tx_wait_start && data == 0)
+    if (_this->uart_tx_wait_start && prev_data == 1 && data == 0)
     {
         _this->top->trace.msg(vp::trace::LEVEL_TRACE, "Received start bit\n");
 
@@ -776,6 +800,7 @@ void Testbench::handle_received_byte(uint8_t byte)
         switch (byte) {
             case PI_TESTBENCH_CMD_GPIO_LOOPBACK:
             case PI_TESTBENCH_CMD_UART_CHECKER:
+            case PI_TESTBENCH_CMD_SET_STATUS:
                 this->state = STATE_WAITING_REQUEST;
                 this->req_size = sizeof(pi_testbench_req_t);
                 this->current_req_size = 0;
@@ -793,14 +818,15 @@ void Testbench::handle_received_byte(uint8_t byte)
                 case PI_TESTBENCH_CMD_GPIO_LOOPBACK:
                     this->handle_gpio_loopback();
                     break;
-            }
 
-            switch (this->cmd) {
                 case PI_TESTBENCH_CMD_UART_CHECKER:
                     this->handle_uart_checker();
                     break;
-            }
 
+                case PI_TESTBENCH_CMD_SET_STATUS:
+                    this->handle_set_status();
+                    break;
+            }
         }
     }
 }
@@ -943,11 +969,18 @@ void Testbench::handle_uart_checker()
     if (req->uart.enabled)
     {
         Uart *uart = this->uarts[req->uart.id];
-
-        uart->set_dev(new Uart_flow_control_checker(this, uart, req));
+        Uart_dev *dev = new Uart_flow_control_checker(this, uart, req); 
+        uart->set_dev(dev);
     }
 }
 
+
+void Testbench::handle_set_status()
+{
+    pi_testbench_req_t *req = (pi_testbench_req_t *)this->req;
+
+    dpi_set_status(req->set_status.status);
+}
 
 
 void Testbench::handle_gpio_loopback()

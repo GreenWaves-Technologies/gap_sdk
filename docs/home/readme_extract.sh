@@ -5,7 +5,7 @@
 heading()
 {
 	echo "\\\newpage
-# ${1}"
+## ${1}"
 }
 
 extract()

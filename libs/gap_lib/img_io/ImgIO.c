@@ -68,7 +68,7 @@ unsigned int ReadValue(unsigned char *pImg, int buf_len, int *i)
 #undef IS_DIGIT
 }
 
-static int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderLen, int buf_len)
+static int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderLen, int buf_len, unsigned int *InputShort)
 {
 	*W = *H = *BytesPerPixel = *HeaderLen = 0;
 
@@ -82,14 +82,16 @@ static int ReadPPMHeader(unsigned char *ImgIn, unsigned int *W, unsigned int *H,
 	*H = ReadValue(ImgIn, buf_len, &i);
 	unsigned int Val = ReadValue(ImgIn, buf_len, &i);
 
-	if (Val != 255) return 1;
+	if (Val != 255 && Val != 65535) return 1;
+	if (Val == 65535) *InputShort = 1;
+	else *InputShort = 0;
 
 	while (ImgIn[i++] != 0xA) {};
 	*HeaderLen = i;
 	return 0;
 }
 
-static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderSize)
+static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsigned int *BytesPerPixel, unsigned int *HeaderSize, unsigned int *InputShort)
 {
 	*W = 0; *H = 0; *BytesPerPixel = 0; *HeaderSize = 0;
 	switch_fs_t fs;
@@ -106,7 +108,7 @@ static int GetInputImageInfos(char *Name, unsigned int *W, unsigned int *H, unsi
 	Err |= (Header == 0);
 	if (__READ(File, Header, 256) == 256) {
 		unsigned int i;
-		if (ReadPPMHeader(Header, W, H, BytesPerPixel, HeaderSize, 256)) {
+		if (ReadPPMHeader(Header, W, H, BytesPerPixel, HeaderSize, 256, InputShort)) {
 			printf("Unable to load header %s", Name);
 			Err = 1;
 		} else {
@@ -243,12 +245,37 @@ static int ReadMultiChannelImageShort(switch_file_t File, short int * InBuffer, 
 	return 0;
 }
 
+static int ReadShortImage(switch_file_t File, short int * InBuffer, int W, int H, int BytesPerPixel)
+{
+	unsigned int RowSize = W*BytesPerPixel, ChannelSize = W * H;
+	short int InputBuf[RowSize];
+	short int * pInBuffer = InBuffer;
+
+	for (int CurRow=0; CurRow < H; CurRow++) {
+		int RemainBytes = RowSize*2;
+		unsigned char *pInpBuf = (unsigned char *) InputBuf;
+		while (RemainBytes > 0) {
+			__int_ssize_t len = __READ(File, pInpBuf, RemainBytes);
+			if (!len) return 1;
+			RemainBytes -= len;
+			pInpBuf += len;
+		}
+		for (int i=0; i < W; i++) {
+			for (int j=0; j < BytesPerPixel; j++) {
+				pInBuffer[RowSize * CurRow + i * BytesPerPixel + j] = (short int) (InputBuf[i * BytesPerPixel + j]);
+			}
+		}
+	}
+	return 0;
+}
+
 int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int DesiredH, unsigned int DesiredBytesPerPixel, void *InBuffer, unsigned int BuffSize, img_io_out_t out_type, int Transpose2CHW) 
 {
 	switch_file_t File = (switch_file_t) 0;
 	unsigned int BytesPerPixel, W, H, HeaderSize, Size, ReadSize=0;
+	unsigned int ImageShort;
 
-	if (GetInputImageInfos(ImageName, &W, &H, &BytesPerPixel, &HeaderSize)) {
+	if (GetInputImageInfos(ImageName, &W, &H, &BytesPerPixel, &HeaderSize, &ImageShort)) {
 		printf("Failed to get input images infos, %s\n", ImageName); goto Fail;
 	}
 	if (BytesPerPixel != DesiredBytesPerPixel) {
@@ -264,7 +291,7 @@ int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int Desir
 		printf("Failed to open file, %s\n", ImageName); goto Fail;
 	}
 
-	Size = W*H*BytesPerPixel;
+	Size = W*H*BytesPerPixel*(ImageShort?sizeof(short int):sizeof(unsigned char));
 	if (out_type == IMGIO_OUTPUT_RGB565) {
 		if (BuffSize < W*H*2) {
 			printf("Buffer is too small, %s\n", ImageName); goto Fail;
@@ -276,26 +303,31 @@ int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int Desir
 	}
 	__SEEK(File, HeaderSize);
 	int res;
-	switch (out_type) {
-		case IMGIO_OUTPUT_CHAR:
-			if (Transpose2CHW){
-				res = ReadMultiChannelImageTranspose2CHW(File, (signed char *)InBuffer, W, H, BytesPerPixel);
-			} else {
-				res = ReadMultiChannelImage(File, (signed char *)InBuffer, W, H, BytesPerPixel);
-			}
-			break;
-		case IMGIO_OUTPUT_SHORT:
-			if (Transpose2CHW){
-				res = ReadMultiChannelImageShortTranspose2CHW(File, (short int *)InBuffer, W, H, BytesPerPixel);
-			} else {
-				res = ReadMultiChannelImageShort(File, (short int *)InBuffer, W, H, BytesPerPixel);
-			}
-			break;
-		case IMGIO_OUTPUT_RGB565:
-			res = ReadMultiChannelImageRGB565(File, (unsigned short *)InBuffer, W, H);
-			break;
-		default:
-			res = 1;
+	if (ImageShort){
+		res = ReadShortImage(File, (short int *)InBuffer, W, H, BytesPerPixel);
+	}
+	else {
+		switch (out_type) {
+			case IMGIO_OUTPUT_CHAR:
+				if (Transpose2CHW){
+					res = ReadMultiChannelImageTranspose2CHW(File, (signed char *)InBuffer, W, H, BytesPerPixel);
+				} else {
+					res = ReadMultiChannelImage(File, (signed char *)InBuffer, W, H, BytesPerPixel);
+				}
+				break;
+			case IMGIO_OUTPUT_SHORT:
+				if (Transpose2CHW){
+					res = ReadMultiChannelImageShortTranspose2CHW(File, (short int *)InBuffer, W, H, BytesPerPixel);
+				} else {
+					res = ReadMultiChannelImageShort(File, (short int *)InBuffer, W, H, BytesPerPixel);
+				}
+				break;
+			case IMGIO_OUTPUT_RGB565:
+				res = ReadMultiChannelImageRGB565(File, (unsigned short *)InBuffer, W, H);
+				break;
+			default:
+				res = 1;
+		}
 	}
 	if (res) {
 		printf("Input ended unexpectedly or bad format, %s\n", ImageName); goto Fail;

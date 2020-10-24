@@ -1201,11 +1201,15 @@ static inline unsigned int lib_CLIP(iss_cpu_state_t *s, int a, int low, int high
   return result;
 }
 
-static inline unsigned int lib_CLIPU(iss_cpu_state_t *s, int a, unsigned int low, int unsigned high) {
+static inline unsigned int lib_CLIPU(iss_cpu_state_t *s, int a, unsigned int high) {
   unsigned int result;
-  if (a > high) result = high;
-  else if (a < low) result = low;
-  else result = a;
+
+  if (a <= 0)
+    result = 0;
+  else if (a > high)
+    result = high;
+  else
+    result = a;
 
   return result;
 }

@@ -34,19 +34,19 @@ static inline void HwCE_Trigger_Job()
 static inline void HwCE_SetOutTransfer_Size(unsigned int ColHeight, unsigned int LineProduced)
 
 {
-	hwce_y_trans_size_set((ColHeight*LineProduced)/PIX_S);	/* Writes ColHeight * LineProduced items, in words */
+	hwce_y_trans_size_set(HWCE_ADDR_BASE, (ColHeight*LineProduced)/PIX_S);	/* Writes ColHeight * LineProduced items, in words */
 }
 
 static inline void HwCE_SetInTransfer_Size(unsigned int ColHeight, unsigned int LineConsummed)
 
 {
-	hwce_x_trans_size_set((ColHeight*LineConsummed)/PIX_S);	/* Writes ColHeight * LineConsummed items, in words */
+	hwce_x_trans_size_set(HWCE_ADDR_BASE, (ColHeight*LineConsummed)/PIX_S);	/* Writes ColHeight * LineConsummed items, in words */
 }
 
 static inline void HwCE_SetOutLine_StrideAndLength(unsigned int LineSize, unsigned int LineProduced)
 
 {
-	hwce_y_line_stride_length_set(
+	hwce_y_line_stride_length_set(HWCE_ADDR_BASE, 
 			((LineSize*PIX_S)<<16) |	/* Output line stride in bytes */
 			(LineProduced/PIX_S)		/* Processed output line length in words */
 	);
@@ -65,7 +65,7 @@ static inline void HwCE_SetOutLine_Length(unsigned int LineProduced)
 static inline void HwCE_SetInLine_StrideAndLength(unsigned int LineSize, unsigned int LineConsummed)
 
 {
-	hwce_x_line_stride_length_set(
+	hwce_x_line_stride_length_set(HWCE_ADDR_BASE, 
 			((LineSize*PIX_S)<<16) |	/* Input line stride in bytes */
 			(LineConsummed/PIX_S)		/* Consummed input line length in words */
 	);
@@ -85,7 +85,7 @@ static inline void HwCE_SetInLine_Length(unsigned int LineConsummed)
 static inline void HwCE_SetOutFeature_StrideAndLength(unsigned int FeatureWidth, unsigned int FeatureHeight)
 
 {
-	hwce_y_feat_stride_length_set(
+	hwce_y_feat_stride_length_set(HWCE_ADDR_BASE, 
 			(((FeatureWidth*FeatureHeight)*PIX_S)<<16) |	/* Next ouput plane stride, in bytes */
                         FeatureHeight);					/* Number of rows for an output plane */
 }
@@ -93,7 +93,7 @@ static inline void HwCE_SetOutFeature_StrideAndLength(unsigned int FeatureWidth,
 static inline void HwCE_SetInFeature_StrideAndLength(unsigned int FeatureWidth, unsigned int FeatureHeight)
 
 {
-	hwce_x_feat_stride_length_set(
+	hwce_x_feat_stride_length_set(HWCE_ADDR_BASE, 
 			(((FeatureWidth*FeatureHeight)*PIX_S)<<16) |	/* Next input plane stride, in bytes */
                         FeatureHeight);					/* Number of rows for an input plane */
 }
@@ -199,7 +199,7 @@ void HWCE_GenericInit(unsigned int ConvType, unsigned int WStride, unsigned int 
 
 {
 	/* Bit 14 controls the rounding mode */
-	hwce_gen_config0_set(
+	hwce_gen_config0_set(HWCE_ADDR_BASE, 
 		hwce_gen_config0_value(
 			WStride,			/* WSTRIDE, Bytes but 4 byte aligned */
 			0,				/* Performs job copy */

@@ -21,11 +21,14 @@ import numpy as np
 from sympy import (Add, Float, Integer, Max, Min, Mul, Pow, UnevaluatedExpr,
                    factor, log, sqrt)
 
-from graph.types import (ActivationParameters, BinaryOpParameters,
-                         ConstantInputParameters, FusionInputParameters,
-                         FusionOutputParameters, MatrixAddParameters,
-                         MatrixDivParameters, MatrixMulParameters,
-                         MatrixSubParameters, UnaryOpParameters)
+from graph.types.activations import ActivationParameters
+from graph.types.fusions import FusionInputParameters, FusionOutputParameters
+from graph.types.input_output import ConstantInputParameters
+from graph.types.others import BinaryOpParameters, UnaryOpParameters
+from graph.types.tensor_arithmetic import (MatrixAddParameters,
+                                           MatrixDivParameters,
+                                           MatrixMulParameters,
+                                           MatrixSubParameters)
 from utils.stats_funcs import calc_bits
 
 from .expr_state import ExprState

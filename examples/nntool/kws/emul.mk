@@ -20,6 +20,7 @@ ifeq ($(KWS_BITS),8)
   CFLAGS += -DKWS_8BIT
   NNTOOL_SCRIPT=model/nntool_script_emul8
   MODEL_SUFFIX = _EMUL8BIT
+  MODEL_SQ8=1
 else
   ifeq ($(KWS_BITS),16)
     CFLAGS += -DKWS_16BIT
@@ -32,27 +33,19 @@ endif
 
 include model_decl.mk
 
-ifdef LINK_IMAGE
-  LINK_IMAGE_HEADER=$(MODEL_BUILD)/image.h
-  LINK_IMAGE_NAME=$(subst .,_,$(subst /,_,$(LINK_IMAGE)))
-  GAP_FLAGS += -DLINK_IMAGE_HEADER="\"$(LINK_IMAGE_HEADER)\"" -DLINK_IMAGE_NAME="$(LINK_IMAGE_NAME)"
-else
-  LINK_IMAGE_HEADER=
-endif
-
 MODEL_GEN_EXTRA_FLAGS= -f $(MODEL_BUILD)
 CC = gcc
 CFLAGS += -g -O0 -D__EMUL__
-INCLUDES = -I. -I./helpers -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
+INCLUDES = -I. -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD) -I$(GAP_SDK_HOME)/libs/gap_lib/include
+SRCS = kws.c $(GAP_SDK_HOME)/libs/gap_lib/img_io/ImgIO.c $(MODEL_GEN_C) $(CNN_LIB)
 LFLAGS =
 LIBS =
-SRCS = kws.c ImgIO.c $(MODEL_GEN_C) $(CNN_LIB) #./model/layers.c
 
 BUILD_DIR = BUILD_EMUL
 
 OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRCS))
 
-MAIN = kws_emul
+MAIN = kws$(KWS_BITS)_emul
 
 # Here we set the memory allocation for the generated kernels
 # REMEMBER THAT THE L1 MEMORY ALLOCATION MUST INCLUDE SPACE

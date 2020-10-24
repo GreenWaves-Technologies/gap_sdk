@@ -87,6 +87,15 @@ void system_core_clock_update(void);
 uint32_t system_core_clock_get(void);
 
 /**
+ * @brief Prologue for usermode thread.
+ *
+ * This function is called at the beginig of user threads.
+ * It harvest arguments to launch the user thread, free temp structs and drop privileges before
+ * executing the actual user thread.
+ */
+void system_usermode_entry(void *arg);
+
+/**
  * @brief Stop execution.
  *
  * This function is called to stop an execution and stop the microcontroller.

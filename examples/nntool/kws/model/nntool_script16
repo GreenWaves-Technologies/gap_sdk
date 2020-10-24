@@ -1,5 +1,14 @@
 adjust
 fusions --pow2
-aquant -s POW2 -f 16 images/* -F int16
-set graph_dump_tensor 7
+aquant images/features_float_*.dat  --nptype float64 --scheme POW2 
+qshow
+
+############## PERF COUNTER #################
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+
+################# DEBUG ####################
+#set graph_dump_tensor 7
+
 save_state

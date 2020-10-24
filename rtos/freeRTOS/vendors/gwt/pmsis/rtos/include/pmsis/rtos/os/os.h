@@ -62,7 +62,22 @@ static inline void *pmsis_task_create(void (*entry)(void*),
         char *name,
         int priority)
 {
-    return __os_native_api_create_task(entry, arg, name, priority);
+    return __os_native_api_create_task(entry, arg, name, 2*configMINIMAL_STACK_SIZE, priority);
+}
+
+static inline void *pi_task_create(pi_task_entry_t func, void *arg, char *name, uint32_t stack_size,
+        int priority)
+{
+    return __os_native_api_create_task(func, arg, name, stack_size, priority);
+}
+
+static inline void *pi_user_task_create(pi_task_entry_t func,
+        void *arg,
+        char *name,
+        uint32_t stack_size,
+        int priority)
+{
+    return __os_native_api_create_user_task(func, arg, name, stack_size, priority);
 }
 
 static inline void pmsis_task_suspend(void *task_handler)

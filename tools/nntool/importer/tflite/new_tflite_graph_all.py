@@ -31,6 +31,7 @@
 #   kHWOI,     // TensorFlow back-prop conv weights
 # };
 import array
+from graph.types.resizers import BilinearResizerParameters
 import logging
 import os
 from copy import deepcopy
@@ -41,19 +42,21 @@ from flatbuffers.flexbuffers import GetRoot
 
 from graph.constant_store import ConstantStore
 from graph.dim import (Conv2DFilterDim, Dim, FcFilterDim, PadDim,
-                       PoolFilterDim, StrideDim)
+                       PoolFilterDim, StrideDim, DilationDim)
 from graph.nngraph import NNGraph
-from graph.types import (ActivationParameters, ConcatParameters, CastParameters,
-                         Conv2DParameters, FcParameters, GlobalPoolParameters,
-                         LSTMParameters, MatrixAddParameters, StridedSliceParameters,
-                         MatrixDivParameters, MatrixMulParameters,
-                         MatrixSubParameters, NNEdge, NoOPParameters,
-                         PadParameters, PoolingParameters, ReshapeParameters,
-                         RNNParameters, SoftMaxParameters, SplitParameters,
-                         SSDDetectorParameters, UnconvertedOpParameters,
-                         UnknownOpParameters, LeakyActivationParameters,
-                         NearestNeighborResizerParameters, BinaryOpParameters,
-			 UnaryOpParameters)
+from graph.types import (ActivationParameters, BinaryOpParameters,
+                         CastParameters, ConcatParameters, Conv2DParameters,
+                         FcParameters, GlobalPoolParameters,
+                         LeakyActivationParameters, LSTMParameters,
+                         MatrixAddParameters, MatrixDivParameters,
+                         MatrixMulParameters, MatrixSubParameters,
+                         NearestNeighborResizerParameters, NNEdge,
+                         NoOPParameters, PadParameters, PoolingParameters,
+                         ReshapeParameters, ReverseParameters, RNNParameters,
+                         SoftMaxParameters, SplitParameters,
+                         SSDDetectorParameters, StridedSliceParameters,
+                         TransposeParameters, UnaryOpParameters, 
+			 UnconvertedOpParameters, UnknownOpParameters)
 from quantization.multiplicative.asymmetric.asymmetric_mult_qtype import \
     AsymmetricMultQType
 from quantization.multiplicative.mult_quantization import (
@@ -80,18 +83,19 @@ from . import utils
 from .propagate_hints import propagate_hints
 from .fix_split_in_edges import fix_split_in_edges
 from .remove_concats import remove_concats
-from .tflite_schema_head import (ActivationFunctionType, AddOptions, StridedSliceOptions,
-                                 ConcatenationOptions, Conv2DOptions,
-                                 DepthwiseConv2DOptions, DivOptions,
-                                 FullyConnectedOptions, Model, MulOptions,
-                                 Padding, Pool2DOptions, ReshapeOptions,
-                                 SequenceRNNOptions, SoftmaxOptions, PackOptions,
-                                 ReducerOptions, MaximumMinimumOptions,
+from .tflite_schema_head import (ActivationFunctionType, AddOptions,
+                                 CastOptions, ConcatenationOptions,
+                                 Conv2DOptions, DepthwiseConv2DOptions,
+                                 DivOptions, FullyConnectedOptions,
+                                 LeakyReluOptions, MaximumMinimumOptions,
+                                 Model, MulOptions, PackOptions, Padding,
+                                 Pool2DOptions, ReducerOptions, ReshapeOptions,
+                                 ResizeNearestNeighborOptions, ResizeBilinearOptions,
                                  SequenceRNNOptions, SoftmaxOptions,
-                                 SubOptions, TensorType, CastOptions,
-                                 UnidirectionalSequenceLSTMOptions,
-                                 UnpackOptions, SplitVOptions, SplitOptions,
-                                 LeakyReluOptions, ResizeNearestNeighborOptions)
+                                 SplitOptions, SplitVOptions,
+                                 StridedSliceOptions, SubOptions, TensorType,
+				 TransposeOptions, UnidirectionalSequenceLSTMOptions,
+                                 UnpackOptions)
 
 
 class TFLiteImportException(Exception):
@@ -774,6 +778,8 @@ class TfliteImporter(ImporterBase):
                                 filt=filt,
                                 stride=StrideDim(conv_opts.StrideH(),
                                                  conv_opts.StrideW()),
+                                dilation=DilationDim(conv_opts.DilationHFactor(),
+                                                     conv_opts.DilationWFactor()),
                                 padding=pad,
                                 has_bias=has_bias,
                                 in_dims_hint=SparseList([['h', 'w', 'c']]),
@@ -1054,6 +1060,8 @@ class TfliteImporter(ImporterBase):
             # set by default as allocated
             state_node.at_options.allocate = True
             state_node.is_constant = False
+            # reset state after each invocation
+            state_node.always_copy = True
             # add a single reset
             state_node.reset_name = "Reset"
 
@@ -1107,6 +1115,8 @@ class TfliteImporter(ImporterBase):
         # set state as input and enable reset generation
         i_state_node.is_constant = False
         i_state_node.reset_name = "Reset"
+        # reset state after each invocation
+        i_state_node.always_copy = True
         # set by default as allocated
         i_state_node.at_options.allocate = True
         # Link the state weights to the input weights
@@ -1485,6 +1495,21 @@ class TfliteImporter(ImporterBase):
         self.G.add_node(node)
         return (node, node)
 
+    def add_reverse(self, name, subgraph, op_name, op):
+        check(op.InputsLength() == 2,
+              "Reverse node requires 2 inputs")
+        input_tensors = get_input_tensors(self.tensors, op)
+        input_tensors[1].used = True
+        axis = input_tensors[1].get_value(self.model)[0]
+        if axis == self.batch_dimension:
+            node = NoOPParameters(name, desc="reversed batch dimension")
+        else:
+            if axis > self.batch_dimension:
+                axis -= 1
+            node = ReverseParameters(name, axis=axis)
+        self.G.add_node(node)
+        return (node, node)
+
     def add_tflite_detection_postprocess(self, name, subgraph, op_name, op):
         check(op.InputsLength() == 3,
               "Detect node requires 3 inputs")
@@ -1541,7 +1566,24 @@ class TfliteImporter(ImporterBase):
         input_tensors = get_input_tensors(self.tensors, op)
         new_shape = input_tensors[1].get_value(self.model)
         input_tensors[1].used = True
+        assert not opts.AlignCorners(), "align_corners = True not supported"
+        assert not opts.HalfPixelCenters(), "half_pixel_centers = True not supported"
         node = NearestNeighborResizerParameters(name, new_shape, opts.AlignCorners(), opts.HalfPixelCenters())
+        if self.load_quantization:
+            self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
+                                                                 get_output_tensors(self.tensors, op))
+        self.G.add_node(node)
+        return (node, node)
+
+    def add_resize_bilinear(self, name, subgraph, op_name, op):
+        opts = ResizeBilinearOptions.ResizeBilinearOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        input_tensors = get_input_tensors(self.tensors, op)
+        new_shape = input_tensors[1].get_value(self.model)
+        input_tensors[1].used = True
+        assert not opts.AlignCorners(), "align_corners = True not supported"
+        assert not opts.HalfPixelCenters(), "half_pixel_centers = True not supported"
+        node = BilinearResizerParameters(name, new_shape, opts.AlignCorners(), opts.HalfPixelCenters())
         if self.load_quantization:
             self.qrecs[NodeId(node)] = self.load_tf_quantization(get_input_tensors(self.tensors, op),
                                                                  get_output_tensors(self.tensors, op))
@@ -1567,6 +1609,16 @@ class TfliteImporter(ImporterBase):
                                 "tflite_subgraph": subgraph
                             }
                         ))
+
+    def add_transpose(self, name, subgraph, op_name, op):
+        opts = TransposeOptions.TransposeOptions()
+        opts.Init(op.BuiltinOptions().Bytes, op.BuiltinOptions().Pos)
+        input_tensors = get_input_tensors(self.tensors, op)
+        perm = input_tensors[1].get_value(self.model)
+        input_tensors[1].used = True
+        node = TransposeParameters(name, transpose=perm[1:] - 1)
+        self.G.add_node(node)
+        return (node, node)
 
     SWITCH_ADD_FUNCTIONS = {
         "CONV_2D": add_convolution,
@@ -1597,11 +1649,14 @@ class TfliteImporter(ImporterBase):
         "REDUCE_MAX": add_reduce_max,
         "LEAKY_RELU": add_leaky_relu,
         "RESIZE_NEAREST_NEIGHBOR": add_resize_nearest_neighbor,
+        "RESIZE_BILINEAR": add_resize_bilinear,
+        "REVERSE_V2": add_reverse,
         "SHAPE": add_shape,
         "SQRT": add_unary,
         "POW": add_binary,
         "MAXIMUM": add_binary,
         "MINIMUM": add_binary,
+        "TRANSPOSE": add_transpose,
     }
 
     for operator in TF_ACTIVATION_OPERATORS:

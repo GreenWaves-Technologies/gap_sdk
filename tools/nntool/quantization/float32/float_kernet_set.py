@@ -22,17 +22,19 @@ from quantization.float32.kernels.matrix_operations import (expression,
                                                             matscale,
                                                             piecewise)
 from quantization.float32.kernels.pad import pad
-from quantization.float32.kernels.pool import (av_global_pool, av_pool, sum_global_pool,
-                                               max_global_pool, max_pool)
-from quantization.float32.kernels.rnn import rnn
+from quantization.float32.kernels.pool import (av_global_pool, av_pool,
+                                               max_global_pool, max_pool,
+                                               sum_global_pool)
 from quantization.float32.kernels.resize import resize_nearest_neighbor
+from quantization.float32.kernels.rnn import rnn
 from quantization.float32.kernels.softmax import softmax
 from quantization.float32.kernels.ssd_postprocess import ssd_postprocess
 from quantization.float32.kernels.tensor_functions import (cast, concat,
                                                            constant_input,
                                                            copy, graph_input,
                                                            graph_output,
-                                                           reshape, split,
+                                                           reshape, revert,
+                                                           split,
                                                            strided_slice,
                                                            transpose)
 from quantization.kernels.kernel_function import (KernelFunction,
@@ -171,3 +173,7 @@ class Float32KernelSet(KernelFunctionSetBase):
     @property
     def expression(self) -> KernelFunction:
         return expression
+
+    @property
+    def revert(self) -> KernelFunction:
+        return revert

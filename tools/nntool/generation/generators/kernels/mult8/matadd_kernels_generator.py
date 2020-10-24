@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import reduce
 import logging
 
 from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params)
@@ -46,6 +47,24 @@ def gen_mat_add_sq8(code_block, cname, ctrl, feat, width, height, act_oper):
                                                                                MAT_ADD_OPER,
                                                                                act_oper))
 
+def balanced_factors(num):
+    factors = [(x, num//x) for x in range(2,int(num/2)+1) if num%x==0]
+    differences = [abs(x[0] - x[1]) for x in factors]
+    min_idx = differences.index(min(differences))
+    return factors[min_idx]
+
+def make_three_dims(dims):
+    if len(dims) == 1:
+        factors = balanced_factors(dims[0])
+        return (1, factors[0], factors[1])
+    if len(dims) == 2:
+        return (1, dims[0], dims[1])
+    if len(dims) == 3:
+        return dims
+    prod = reduce(lambda x, y: x * y, dims[1:])
+    factors = balanced_factors(prod)
+    return (dims[0], factors[0], factors[1])
+
 class MatAddKernel(AutotilerKernel):
     def __init__(self, node_name, cname, matrixadd_params, act_params, at_ver=3, gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:
@@ -64,7 +83,7 @@ class MatAddKernel(AutotilerKernel):
             self.at_act_params = NO_ACTIVATION
 
         self.matrixadd_params = matrixadd_params
-        dimensions = matrixadd_params.in_dims[0]
+        dimensions = make_three_dims(matrixadd_params.in_dims[0])
         self.feat_dim = dimensions[0]
         self.width = dimensions[1]
         self.height = dimensions[2]

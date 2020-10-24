@@ -1,7 +1,0 @@
-Known issues
-============
-
-3.7.1
-
-- FreeRTOS
-  - Deep_sleep example not working

@@ -306,6 +306,7 @@ void __pi_cpi_conf_init(struct pi_cpi_conf *conf)
 {
     conf->device = PI_DEVICE_CPI_TYPE;
     conf->itf = 0;
+    conf->datasize = 16; /* 16 bits transfer data by default */
 }
 
 int32_t __pi_cpi_open(struct pi_cpi_conf *conf, struct cpi_itf_data_s **device_data)
@@ -327,6 +328,7 @@ int32_t __pi_cpi_open(struct pi_cpi_conf *conf, struct cpi_itf_data_s **device_d
         driver_data->fifo_tail = NULL;
         driver_data->device_id = conf->itf;
         driver_data->nb_open = 1;
+        driver_data->datasize = conf->datasize;
 
         CPI_TRACE("Device id=%ld opened for first time\n", driver_data->device_id);
 
@@ -382,7 +384,7 @@ void __pi_cpi_copy(struct cpi_itf_data_s *device_data, void *l2_buf,
     task->data[1] = size;              /* size. */
     task->data[2] = 0;                 /* pending ? */
     task->data[3] = 0;                 /* resume ? */
-    task->data[4] = (UDMA_CORE_RX_CFG_DATASIZE(16 >> 4) | UDMA_CORE_RX_CFG_EN(1)); /* udma cfg. */
+    task->data[4] = (UDMA_CORE_RX_CFG_DATASIZE(device_data->datasize >> 4) | UDMA_CORE_RX_CFG_EN(1)); /* udma cfg. */
     task->next    = NULL;
     int32_t slot_free = __pi_cpi_hw_fifo_empty(device_data);
     /* Both HW buffers in use. */

@@ -1,0 +1,5 @@
+NE16
+----
+
+.. include:: ../ips/ne16.rst
+

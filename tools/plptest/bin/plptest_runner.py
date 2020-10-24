@@ -98,6 +98,7 @@ def parse_test(top_testset, test, topParent, runner, path):
 
   test.struct.set_restrict(test.restrict)
   test.struct.scores = test.scores
+  test.struct.skip = test.skip
 
   for tag in test.tags:
     test.struct.addTag(tag)
@@ -435,13 +436,17 @@ class TestRunner(object):
 
     def testEnd(self, testrun):
 
-      if testrun.status: testStr = bcolors.OKGREEN + 'OK: '.ljust(6) + bcolors.ENDC
-      else: testStr = bcolors.FAIL + 'KO: '.ljust(6) + bcolors.ENDC
+      if testrun.skip is not None:
+        testStr = bcolors.WARNING + 'SKIP: '.ljust(6) + bcolors.ENDC
+      elif testrun.status:
+        testStr = bcolors.OKGREEN + 'OK: '.ljust(6) + bcolors.ENDC
+      else:
+        testStr = bcolors.FAIL + 'KO: '.ljust(6) + bcolors.ENDC
       print (testStr + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
 
 
       test = self.plpobjects.getTest(testrun.test.getFullName())
-      testResult = plpobjects.TestRun(self.plpobjects, test, testrun.status, testrun.duration, testrun.config, testrun.log, build=self.build)
+      testResult = plpobjects.TestRun(self.plpobjects, test, testrun.status, testrun.duration, testrun.config, testrun.log, build=self.build, skip=testrun.skip)
 
       if testrun in self.runnings:
         self.runnings.remove(testrun)
@@ -458,6 +463,9 @@ class TestRunner(object):
       self.check_completion()
 
     def check_completion(self):
+      if not self.enqueue_all:
+        return
+
       if self.runCompletionCallback != None and len(self.pendings) == 0 and len(self.runnings) == 0:
         if self.cpu_load_checker_call_id is not None:
           self.cpu_load_checker_call_id.cancel()
@@ -471,7 +479,8 @@ class TestRunner(object):
       if self.uiServer is not None and self.uiServer.handler is not None:
         self.uiServer.handler.transport.write(pickle.dumps(TestRunning(testrun.test.getFullName(), testrun.config)))
       
-      print (bcolors.OKBLUE + 'START'.ljust(6) + bcolors.ENDC + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
+      if testrun.skip is None:
+        print (bcolors.OKBLUE + 'START'.ljust(6) + bcolors.ENDC + bcolors.BOLD + testrun.test.getFullName().ljust(self.maxTestNameLen + 5) + bcolors.ENDC + ' %s' % (testrun.config))
 
       testrun.run(reactor, self.testEnd, self.commands, self.dry_run, testrun)
 
@@ -508,6 +517,7 @@ class TestRunner(object):
       self.runCompletionCallback = callback
       self.runCompletionArgs = args
       self.runCompletionKwargs = kwargs
+      self.enqueue_all = False
 
       for config in self.configs:
         if tests == None:
@@ -518,6 +528,8 @@ class TestRunner(object):
             for test2 in self.tests:
               for test in test2.getFromRegExp(testRegExp):
                 test.run(config)
+
+      self.enqueue_all = True
 
       self.check_completion()
 

@@ -16,7 +16,7 @@
 import logging
 
 from graph.types.base import SensitiveToOrder, Transposable
-from graph.types.others import (ConcatParameters, ReshapeParameters, SplitParameters,
+from graph.types.others import (ConcatParameters, ReshapeParameters, ReverseParameters, SplitParameters,
                                 StridedSliceParameters)
 from utils.compatible_transposes import (find_combination,
                                          find_compatible_transpose)
@@ -185,7 +185,11 @@ def search_for_reverses(G):
                     continue
                 result = search_up_edges(G, visited_edges, transpose_node,
                                          transpose_node.transpose_in[edge.to_idx], [], start_edge=edge)
+                edges_done = set()
                 for r in result:
+                    # remove edges that are already treated by other results in this group
+                    edge_list = [vedge for vedge in r[1][::-1] if vedge not in edges_done]
+                    edges_done |= set(edge_list) 
                     visited_edges |= set(r[1])
                     # result is (from_node, from_transpose_dir, from_idx), (to_node, to_transpose_dir, to_idx),
                     # edge list, transpose (from_node)
@@ -193,7 +197,7 @@ def search_for_reverses(G):
                         (
                             (r[0], r[2], r[3]),
                             (transpose_node, 'in', edge.to_idx),
-                            r[1][::-1],
+                            edge_list,
                             getattr(r[0], "transpose_" + r[2])[r[3]]
                         )
                     )
@@ -232,6 +236,9 @@ def process_result(res):
             LOG.info("transpose strided slice %s", to_node.name)
             to_node.act_slice = [to_node.act_slice[idx] for idx in transpose]
             to_node.out_shape = [to_node.out_shape[idx] for idx in transpose]
+        elif isinstance(to_node, ReverseParameters):
+            LOG.info("change reverse %s axis %s to %s", to_node.name, to_node.axis, transpose[to_node.axis])
+            to_node.axis = transpose[to_node.axis]
 
     for node, direction, edge_idx in [res[idx] for idx in range(2)]:
         trans = getattr(node, "transpose_"+direction)

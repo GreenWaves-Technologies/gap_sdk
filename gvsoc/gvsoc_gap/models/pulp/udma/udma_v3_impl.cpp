@@ -790,7 +790,7 @@ int udma::build()
         trace.msg("Instantiating CPI channel (id: %d, offset: 0x%x)\n", id, offset);
         if (version == 1)
         {
-          Cpi_periph_v1 *periph = new Cpi_periph_v1(this, id, j);
+          Cpi_periph *periph = new Cpi_periph(this, id, j);
           periphs[id] = periph;
         }
         else

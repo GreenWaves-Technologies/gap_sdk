@@ -42,7 +42,7 @@ struct cluster_driver_data
     struct pi_cluster_task *task_first;
     struct pi_cluster_task *task_last;
     // event kernel attached
-    struct pmsis_event_kernel_wrap* event_kernel;
+    //struct pmsis_event_kernel_wrap* event_kernel; //using one EK.
     // metadata
     uint32_t cluster_is_on;
     pmsis_mutex_t task_mutex;

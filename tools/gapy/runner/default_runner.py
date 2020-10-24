@@ -92,14 +92,13 @@ class Runner(object):
                     gen_image = True
 
                     type_name = partition.get_str('type')
-                    if type_name is None:
-                        raise errors.InputError('No partition type found')
 
                     if type_name not in ['hostfs'] and ((partition.get('files') is not None and len(partition.get('files').get_dict()) != 0) or (partition.get_str('root_dir'))):
                         flash_image = True
 
-                    img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.' + name + '.img')
-                    partition.set('image', img_path)
+                    if type_name is not None:
+                        img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.' + name + '.img')
+                        partition.set('image', img_path)
 
             if gen_image:
                 img_path = os.path.join(work_dir, flash_path.replace('/', '.') + '.img')
@@ -179,16 +178,17 @@ class Runner(object):
 
                     type_name = partition.get_str('type')
 
-                    if type_name == 'readfs':
-                        gen_readfs.main(config=self.config, partition_config=partition)
-                    elif type_name == 'lfs':
-                        gen_lfs.main(config=self.config, partition_config=partition)
-                    elif type_name == 'hostfs':
-                        work_dir = self.config.get_str('gapy/work_dir')
-                        for file in partition.get('files').get_dict():
-                            shutil.copy(file, work_dir)
-                    else:
-                        raise errors.InputError('Invalid partition type: ' + type_name)
+                    if type_name is not None:
+                        if type_name == 'readfs':
+                            gen_readfs.main(config=self.config, partition_config=partition)
+                        elif type_name == 'lfs':
+                            gen_lfs.main(config=self.config, partition_config=partition)
+                        elif type_name == 'hostfs':
+                            work_dir = self.config.get_str('gapy/work_dir')
+                            for file in partition.get('files').get_dict():
+                                shutil.copy(file, work_dir)
+                        else:
+                            raise errors.InputError('Invalid partition type: ' + type_name)
 
             if flash_config.get('content/image') is not None:
                 gen_flash_image.main(config=self.config, flash_config=flash_config)

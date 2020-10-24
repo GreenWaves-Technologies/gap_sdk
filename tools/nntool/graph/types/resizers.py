@@ -24,9 +24,11 @@ class ResizerParameters(Parameters, SingleInputAndOutput):
 
     SUPPORTED_OP_TYPES = ['BILINEAR', 'NEAREST']
 
-    def __init__(self, name, new_shape, **kargs):
+    def __init__(self, name, new_shape, align_corners=False, halfpixel_centers=False, **kargs):
         super(ResizerParameters, self).__init__(name, **kargs)
         self._new_shape = new_shape # always (new_H, new_W) order
+        self._align_corners = align_corners
+        self._halfpixel_centers = halfpixel_centers
 
     @property
     def new_shape(self):
@@ -48,12 +50,6 @@ class ResizerParameters(Parameters, SingleInputAndOutput):
         )
 
 class NearestNeighborResizerParameters(ResizerParameters):
-
-    def __init__(self, name, new_shape, align_corners=False, halfpixel_centers=False, **kargs):
-        super(NearestNeighborResizerParameters, self).__init__(name, new_shape, **kargs)
-        self._align_corners = align_corners
-        self._halfpixel_centers = halfpixel_centers
-
     @property
     def op_name(self):
         return "nearest_neighbor"

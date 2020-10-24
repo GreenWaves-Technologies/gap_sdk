@@ -39,7 +39,7 @@ PROJECT_BRIEF          = "Port of Arm® Mbed™ OS / CMSIS to GAP8/RISC-V"
 
 OUTPUT_DIRECTORY       = $(BUILD_DIR)/MBED-OS
 
-INPUT                  = $(GAP_SDK_HOME)/mbed-os/targets/TARGET_GWT/TARGET_GAP8/driver
+INPUT                  = $(GAP_SDK_HOME)/rtos/mbed-os/targets/TARGET_GWT/TARGET_GAP8/driver
 INPUT                 += $(MB_BASE)/groups.h $(BUILD_DIR)/MBED-OS/mainpage.md
 
 @INCLUDE = $(COM_BASE)/common.dxy

@@ -60,7 +60,11 @@ static inline uint32_t pi_freq_get(pi_freq_domain_e domain)
     case PI_FREQ_DOMAIN_CL :
         return pi_fll_get_frequency(FLL_CLUSTER, 0);
     case PI_FREQ_DOMAIN_PERIPH :
+#ifdef __GAP8__
         return pi_fll_get_frequency(FLL_SOC, 0);
+#else
+        return pi_fll_get_frequency(FLL_PERI, 0);
+#endif
     default :
         return 0;
     }
@@ -78,7 +82,11 @@ static inline int32_t pi_freq_set(pi_freq_domain_e domain, uint32_t freq)
         retval = pi_fll_set_frequency(FLL_CLUSTER, freq, 1);
         break;
     case PI_FREQ_DOMAIN_PERIPH :
+#ifdef __GAP8__
         retval = pi_fll_set_frequency(FLL_SOC, freq, 1);
+#else
+        retval = pi_fll_set_frequency(FLL_PERI, freq, 1);
+#endif
         break;
     default :
         retval = -1;

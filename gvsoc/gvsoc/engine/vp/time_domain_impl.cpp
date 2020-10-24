@@ -380,6 +380,27 @@ void vp::time_engine::run_loop()
             first_client = current->next;
             current->is_enqueued = false;
 
+#if defined(__VP_USE_SYSTEMC) || defined(__VP_USE_SYSTEMV)
+            while(1)
+            {
+#if defined(__VP_USE_SYSTEMV)
+                //vp_assert(current->next_event_time >= (int64_t)dpi_time_ps(), NULL, "SystemV time is after vp time\n");
+                dpi_wait_event_timeout_ps(current->next_event_time - dpi_time_ps());
+                this->time = dpi_time_ps();
+                if (this->time == current->next_event_time)
+                    break;
+#else
+                vp_assert(current->next_event_time >= (int64_t)sc_time_stamp().to_double(), NULL, "SystemC time is after vp time\n");
+                wait(current->next_event_time - (int64_t)sc_time_stamp().to_double(), SC_PS, sync_event);
+
+                int64_t current_sc_time = (int64_t)sc_time_stamp().to_double();
+
+                if (current_sc_time == current->next_event_time)
+                    break;
+#endif
+            }
+#endif
+
             // Update the global engine time with the current event time
             this->time = current->next_event_time;
 

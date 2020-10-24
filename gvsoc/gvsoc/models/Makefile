@@ -16,7 +16,7 @@ VP_DIRS=memory cpu/iss board \
   interco utils \
   devices/hyperbus devices/spiflash  \
   cache devices/uart devices/sound \
-  devices/testbench
+  devices/testbench devices/camera
 
 
 -include $(ROOT_VP_BUILD_DIR)/props.mk

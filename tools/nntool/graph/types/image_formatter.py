@@ -14,18 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+
 import numpy as np
 
-from graph.dim import Dim
 from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
-from utils.ssd_postprocess_decoder import DecodeBboxes
-from utils.ssd_postprocess_nms import NonMaxSuppression
 
-from .base import (NoSizeChangeParameters, Parameters,
-                   SameNumberOfDimensionsForInputs, SensitiveToOrder,
-                   SingleInputAndOutput, Transposable)
+from .base import Parameters, SensitiveToOrder, SingleInputAndOutput
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     op_name = "image_format"

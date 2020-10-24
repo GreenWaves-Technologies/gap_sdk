@@ -25,6 +25,7 @@ from graph.types.base import (EdgeParameters, FilterLikeParameters,
                               SameNumberOfDimensionsForInputs,
                               SingleInputAndOutput)
 from graph.types.conv2d import Conv2DParameters
+from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
                                  FusionBase, FusionInputParameters,
                                  FusionOutputParameters,
@@ -36,19 +37,21 @@ from graph.types.input_output import (ConstantInputParameters,
                                       OutputParameters)
 from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
-from graph.types.others import (CastParameters, ConcatParameters,
-                                CopyParameters, GlobalPoolParameters,
-                                GroupParameters, BinaryOpParameters,
+from graph.types.others import (BinaryOpParameters, CastParameters,
+                                ConcatParameters, CopyParameters,
+                                GlobalPoolParameters, GroupParameters,
                                 NoOPParameters, PadParameters,
-                                ReshapeParameters, SplitParameters,
-                                StridedSliceParameters, Transposable,
-                                TransposeParameters, UnaryOpParameters,
-                                UnconvertedOpParameters,
+                                ReshapeParameters, ReverseParameters,
+                                SplitParameters, StridedSliceParameters,
+                                Transposable, TransposeParameters,
+                                UnaryOpParameters, UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters,
                                 UpsampleParameters)
 from graph.types.pooling import PoolingParameters
 from graph.types.recurrent import RecurrentOutputParameters
-from graph.types.resizers import ResizerParameters, NearestNeighborResizerParameters, BilinearResizerParameters
+from graph.types.resizers import (BilinearResizerParameters,
+                                  NearestNeighborResizerParameters,
+                                  ResizerParameters)
 from graph.types.rnn import RNNBaseParameters, RNNParameters
 from graph.types.ssd import SSDDetectorParameters
 from graph.types.tensor_arithmetic import (MatrixAddParameters,
@@ -56,4 +59,3 @@ from graph.types.tensor_arithmetic import (MatrixAddParameters,
                                            MatrixDivParameters,
                                            MatrixMulParameters,
                                            MatrixSubParameters)
-from graph.types.expression_fusion import ExpressionFusionParameters

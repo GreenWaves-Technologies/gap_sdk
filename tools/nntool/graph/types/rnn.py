@@ -27,7 +27,7 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
     INPUT_NAMES = []
 
     def __init__(self, name, *args, n_cells=None, n_states=None, n_inputs=None, n_input_cells=None, n_output_cells=None,
-                 activation="tanh", **kwargs):
+                 activation="tanh", revert=False, **kwargs):
         super(RNNBaseParameters, self).__init__(name, *args, **kwargs)
         self.activation = activation
         self.n_cells = n_cells
@@ -37,6 +37,7 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
         self.n_output_cells = n_output_cells
         self.at_options.valid_options['PARALLELFEATURES'] = int
         self.at_options.valid_options['ENABLEIM2COL'] = int
+        self.revert = revert
 
     def get_parameter_size(self):
         return 0
@@ -88,8 +89,9 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
         return self.in_dims[0].size() * 2
 
     def __str__(self):
-        return "{} {} {}".format(
+        return "{}{}{} {}".format(
             Transposable.__str__(self),
+            ("Reversed " if self.revert else ""),
             self.activation,
             self.at_options
         )

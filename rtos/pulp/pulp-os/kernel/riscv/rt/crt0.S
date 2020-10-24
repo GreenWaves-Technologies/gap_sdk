@@ -39,6 +39,7 @@ _entry:
 #endif
   andi    a1, a0, 0x1f
   srli    a0, a0, 5
+#ifndef CONFIG_NO_CLUSTER
 #if defined(ARCHI_HAS_FC)
   li      a2, ARCHI_FC_CID
   bne     a0, a2, __rt_pe_start
@@ -47,6 +48,7 @@ _entry:
   // to the slave entry point
   bne     a1, x0, __rt_pe_start
   bne     a0, x0, __rt_pe_start
+#endif
 #endif
 #endif
 

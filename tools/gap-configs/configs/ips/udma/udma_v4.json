@@ -4,5 +4,5 @@
 
   "vp_class": "pulp/udma/udma_v4",
 
-  "nb_channels": 32
+  "nb_channels": 36
 }

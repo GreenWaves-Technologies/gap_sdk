@@ -106,8 +106,6 @@ extern rt_thread_queue_t __rt_ready_queue;
 
 extern rt_thread_t *__rt_thread_current;
 
-extern RT_FC_TINY_DATA rt_event_sched_t __rt_sched;
-
 static inline void __rt_thread_enqueue(rt_thread_queue_t *queue, rt_thread_t *thread)
 {
   thread->next = NULL;

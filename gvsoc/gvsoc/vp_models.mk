@@ -5,8 +5,8 @@ VP_PY_INSTALL_PATH ?= $(INSTALL_DIR)/python
 
 VP_MAKEFILE_LIST = $(addsuffix /Makefile,$(VP_DIRS))
 
-CPP=g++
-CC=gcc
+CPP=$(CXX)
+# CC=$(CC)
 
 ifndef VERBOSE
 V = @

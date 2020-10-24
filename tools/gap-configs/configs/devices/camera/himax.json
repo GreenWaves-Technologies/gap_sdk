@@ -1,0 +1,35 @@
+{
+  "vp_comps": [
+      "camera", "clock"
+  ],
+
+  "vp_ports": [
+      "cpi",
+      "i2c"
+  ],
+
+  "vp_bindings": [
+      ["camera->cpi", "self->cpi"],
+      ["self->i2c", "camera->i2c"],
+      ["clock->out", "camera->clock"]
+  ],
+
+  "clock": {
+      "vp_component": "vp.clock_domain_impl",
+      "frequency": "20000000"
+  },
+
+  "camera": {
+      "name": "Himax camera",
+
+      "vp_component": "devices.camera.himax",
+
+      "color-mode": "gray",
+      "width": 324,
+      "height": 244,
+      "pixel-size": 0,
+      "vsync-polarity": 1,
+      "hsync-polarity": 1,
+      "endianness": "little"
+  }
+}

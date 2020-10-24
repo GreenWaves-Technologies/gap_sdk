@@ -352,7 +352,11 @@ static int __pi_nina_b112_open(struct pi_device *device)
         return -3;
     }
     device->data = (void *) nina;
+#if (CHIP_VERSION == 1) || (CHIP_VERSION == 2)
     bsp_nina_b112_open_old();
+#else
+    bsp_nina_b112_open();
+#endif
     /* Init and open UART device. */
     struct pi_uart_conf uart_conf = {0};
     pi_uart_conf_init(&uart_conf);

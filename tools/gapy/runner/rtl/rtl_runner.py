@@ -118,7 +118,12 @@ class Runner(runner.default_runner.Runner):
                     self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
         if self.args.cov or os.environ.get('GAPY_RTL_COVERAGE') is not None:
-            self.set_cmd_arg('-covoverwrite -covworkdir %s/cov_work -covtest %s' % (os.environ.get('XCSIM_PATH'), os.environ.get('PLPTEST_NAME').replace(':', '.')))
+            test_name = os.environ.get('PLPTEST_NAME')
+            if test_name is None:
+                test_name = 'test'
+            test_name = test_name.replace(':', '.').replace('/', '.')
+
+            self.set_cmd_arg('-covoverwrite -covworkdir %s/cov_work -covtest %s' % (os.environ.get('XCSIM_PATH'), test_name))
 
 
         self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)

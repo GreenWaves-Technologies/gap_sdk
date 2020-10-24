@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from graph.types.others import ReverseParameters
 from typing import Sequence
 
 import numpy as np
@@ -79,7 +80,8 @@ class DefaultKernelSwitch(KernelSwitchBase):
         FusionInputParameters: "fusion_noop",
         FusionOutputParameters: "fusion_noop",
         NearestNeighborResizerParameters: "resize_nearest_neighbor",
-        ExpressionFusionParameters: "expression"
+        ExpressionFusionParameters: "expression",
+        ReverseParameters: "revert",
     }
 
     def __init__(self, kernel_functions):

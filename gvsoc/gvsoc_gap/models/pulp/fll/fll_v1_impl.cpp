@@ -80,6 +80,8 @@ private:
 
   vp::io_req *first_pending;
   vp::io_req *last_pending;
+
+  int64_t last_ref_clk_timestamp;
 };
 
 fll::fll(js::config *config)
@@ -99,28 +101,40 @@ void fll::ref_clock_sync(void *__this, bool value)
   if (value == false)
     return;
 
+
   _this->get_trace()->msg("Received ref clock\n");
 
-  // DCO freq is the number of pulses so we have to divide by 2
-  _this->status_reg.actual_mult_factor = _this->dco_freq * 1000000 / 32768 / 2;
+  int64_t time = _this->get_time();
 
-  if (_this->conf1_reg.mode == 1)
+  if (_this->last_ref_clk_timestamp != -1)
   {
-    int delta = _this->conf1_reg.mult_factor - _this->status_reg.actual_mult_factor;
-    int delta_ext = delta << 10;
-    int gain = _this->conf2_reg.loop_gain;
-    int delta_ext_amp = gain < 10 ? delta_ext >> gain : 0;
-    int integrator = (_this->integrator_reg.state_int_part << 10) | _this->integrator_reg.state_fract_part;
-    int integrator_output = integrator + delta_ext_amp;
+    int64_t duration = time - _this->last_ref_clk_timestamp;
 
-    _this->get_trace()->msg("Adapting DCO input (factor: %d, actual_factor: %d)\n", _this->conf1_reg.mult_factor, _this->status_reg.actual_mult_factor);
+    if (duration > 0)
+    {
 
-    _this->integrator_reg.state_int_part = integrator_output >> 10;
-    _this->integrator_reg.state_fract_part = integrator_output;
+      // DCO freq is the number of pulses so we have to divide by 2
+      _this->status_reg.actual_mult_factor = (_this->dco_freq) / 2 * 1000000 * duration / 1000000000000;
 
-    _this->dco_input = _this->integrator_reg.state_int_part;
+      if (_this->conf1_reg.mode == 1)
+      {
+        int delta = _this->conf1_reg.mult_factor - _this->status_reg.actual_mult_factor;
+        int delta_ext = delta << 10;
+        int gain = _this->conf2_reg.loop_gain;
+        int delta_ext_amp = gain < 10 ? delta_ext >> gain : 0;
+        int integrator = (_this->integrator_reg.state_int_part << 10) | _this->integrator_reg.state_fract_part;
+        int integrator_output = integrator + delta_ext_amp;
 
+        _this->integrator_reg.state_int_part = integrator_output >> 10;
+        _this->integrator_reg.state_fract_part = integrator_output;
+
+        _this->dco_input = _this->integrator_reg.state_int_part;
+
+      }
+    }
   }
+
+  _this->last_ref_clk_timestamp = time;
 
   _this->fll_check_state();
 
@@ -192,7 +206,6 @@ void fll::fll_check_state()
     // Non-locked mode, just keep the frequency out of the oscillator
   }
 
-
   this->get_trace()->msg("Setting new frequency (frequency: %d Hz)\n", frequency);
   this->fll_clock_itf.set_frequency(frequency);
 }
@@ -236,6 +249,7 @@ vp::io_req_status_e fll::conf1_req(int reg_offset, int size, bool is_write, uint
 
     // Writing to conf1 reg, whatever the mode, is unlocking the fll
     this->locked = 0;
+    this->nb_stability_cycles = 0;
 
     this->fll_check_state();
   }
@@ -378,6 +392,7 @@ void fll::reset(bool active)
     this->dco_input = this->conf1_reg.dco_input;
     this->first_pending = NULL;
     this->last_pending = NULL;
+    this->last_ref_clk_timestamp = -1;
   }
   else
   {

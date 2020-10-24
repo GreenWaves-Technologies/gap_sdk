@@ -27,15 +27,16 @@ from quantization.symmetric.kernels.pad import pad
 from quantization.symmetric.kernels.pool import (av_global_pool, av_pool,
                                                  max_global_pool, max_pool,
                                                  sum_global_pool)
-from quantization.symmetric.kernels.rnn import rnn
 from quantization.symmetric.kernels.resize import resize_nearest_neighbor
+from quantization.symmetric.kernels.rnn import rnn
 from quantization.symmetric.kernels.softmax import softmax
 from quantization.symmetric.kernels.ssd_postprocess import ssd_postprocess
 from quantization.symmetric.kernels.tensor_functions import (cast, concat,
                                                              constant_input,
                                                              copy, graph_input,
                                                              graph_output,
-                                                             reshape, split,
+                                                             reshape, revert,
+                                                             split,
                                                              strided_slice,
                                                              transpose)
 
@@ -172,3 +173,7 @@ class SymmetricKernelSet(KernelFunctionSetBase):
     @property
     def expression(self) -> KernelFunction:
         return expression
+
+    @property
+    def revert(self) -> KernelFunction:
+        return revert

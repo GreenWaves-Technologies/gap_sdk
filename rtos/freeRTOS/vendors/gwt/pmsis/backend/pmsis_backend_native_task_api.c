@@ -20,6 +20,9 @@ int __os_native_kickoff(void *arg)
         pmsis_exit(-4321);
     }
 
+    /* Enable IRQ for context switch. */
+    NVIC_EnableIRQ(PENDSV_IRQN);
+
     __enable_irq();
 
     struct pmsis_event_kernel_wrap *wrap;
@@ -66,12 +69,6 @@ void pi_time_wait_us(int time_us)
         vTaskDelay((time_us/1000)/portTICK_PERIOD_MS);
     }
 }
-
-struct pi_task_delayed_s
-{
-    struct pi_task *fifo_head;
-    struct pi_task *fifo_tail;
-};
 
 PI_FC_L1 struct pi_task_delayed_s delayed_task = {0};
 

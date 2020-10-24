@@ -7,6 +7,13 @@
 #include "pmsis_gcc.h"
 #include "pmsis_backend_native_types.h"
 
+struct pi_task_delayed_s
+{
+    struct pi_task *fifo_head;
+    struct pi_task *fifo_tail;
+};
+
+
 
 int __os_native_kickoff(void *arg);
 
@@ -127,15 +134,41 @@ static inline void __os_native_yield(void)
     taskYIELD();
 }
 
-static inline void *__os_native_api_create_task(void (*entry)(void*),
+static inline void *__os_native_api_create_task(pi_task_entry_t entry,
         void *arg,
         const char *name,
+        uint32_t stack_size,
         int priority)
 {
     TaskHandle_t task_handle = NULL;
     BaseType_t task_ret;
-    task_ret = xTaskCreate(entry,name,2*configMINIMAL_STACK_SIZE,arg,
-            tskIDLE_PRIORITY+1+priority,&task_handle);
+    task_ret = xTaskCreate(entry,name,stack_size,arg,
+            priority,&task_handle);
+    //gap9_secure_ctxt_priv_level_set(task_handle->xMPUSettings,PRIV_LEVEL_MACHINE_MODE);
+    if(task_ret != pdPASS)
+    {
+        return NULL;
+    }
+    else
+    {
+        return task_handle;
+    }
+}
+
+static inline void *__os_native_api_create_user_task(pi_task_entry_t entry,
+        void *arg,
+        const char *name,
+        uint32_t stack_size,
+        int priority)
+{
+    TaskHandle_t task_handle = NULL;
+    BaseType_t task_ret;
+    pi_user_task_arg_t *user_arg = pi_fc_l1_malloc(sizeof(pi_user_task_arg_t));
+    user_arg->entry = entry;
+    user_arg->arg = arg;
+    task_ret = xTaskCreate(system_usermode_entry,name,stack_size,user_arg,
+            priority,&task_handle);
+    //gap9_secure_ctxt_priv_level(&task_handle->xMPUSettings,PRIV_LEVEL_USER_MODE);
     if(task_ret != pdPASS)
     {
         return NULL;
@@ -149,6 +182,7 @@ static inline void *__os_native_api_create_task(void (*entry)(void*),
 static inline void __os_native_task_suspend(__os_native_task_t *task)
 {
     vTaskSuspend( (TaskHandle_t) task );
+    vTaskDelete( (TaskHandle_t) task );
 }
 
 #endif

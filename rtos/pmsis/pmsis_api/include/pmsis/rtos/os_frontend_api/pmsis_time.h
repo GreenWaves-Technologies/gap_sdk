@@ -19,4 +19,6 @@
 
 void pi_time_wait_us(int time_us);
 
+unsigned long long pi_time_get_us();
+
 #endif  /* __PMSIS_TIME_H__ */

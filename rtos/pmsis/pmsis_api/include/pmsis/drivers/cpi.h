@@ -49,7 +49,11 @@ typedef enum {
 	PI_CPI_FORMAT_RGB565        = 0, /*!< RGB565 format. */
 	PI_CPI_FORMAT_RGB555        = 1, /*!< RGB555 format. */
 	PI_CPI_FORMAT_RGB444        = 2, /*!< RGB444 format. */
+#ifdef __GAP8__
 	PI_CPI_FORMAT_YUV422        = 3, /*!< YUV422 format. */
+#else
+	PI_CPI_FORMAT_RGB888        = 3, /*!< YUV422 format. */
+#endif
 	PI_CPI_FORMAT_BYPASS_LITEND = 4, /*!< Only least significant byte is kept. */
 	PI_CPI_FORMAT_BYPASS_BIGEND = 5  /*!< Only most significant byte is kept. */
 } pi_cpi_format_e;
@@ -64,6 +68,7 @@ struct pi_cpi_conf
 {
     pi_device_e device; /*!< Device type.  */
     uint8_t itf;        /*!< CPI interface ID where the device is connected. */
+    uint8_t datasize;   /*!< CPI transfer datasize */
 };
 
 /** \brief Initialize a CPI configuration with default values.
@@ -170,6 +175,20 @@ static inline void pi_cpi_control_stop(struct pi_device *device);
 static inline void pi_cpi_set_format(struct pi_device *device,
 	pi_cpi_format_e format);
 
+/** \brief Set frame row length.
+ *
+ * Set the row length of each frame, should be the same as the camera
+ * output. Will be set at the beginning of cpi open. 
+ *
+ * \param device    A pointer to the structure describing the device.
+ * \param rowlen    The rowlen of each frame, should be divide by the datasize of CPI.
+ *  For example, if the picture size is 320*240, cpi transfer datasize is 16bits, 
+ *  the rowlen should be: 320/2 (bytes).
+ */
+static inline void pi_cpi_set_rowlen(struct pi_device *device,
+	uint16_t rowlen);
+
+
 /** \brief Configure frame drop.
  *
  * For each sampled frame, the specified number of frames will be dropped before
@@ -182,7 +201,8 @@ static inline void pi_cpi_set_format(struct pi_device *device,
 static inline void pi_cpi_set_frame_drop(struct pi_device *device,
 	uint32_t nb_frame_dropped);
 
-/** \brief Configure frame filtering.
+
+/** \brief Configure frame filtering. (ONLY available in GAP8)
  *
  * Configure how to filter the input pixels to produce the 8bits output pixels.
  * Each channel is multiplied by a coefficient. They are then summed together
@@ -198,6 +218,21 @@ static inline void pi_cpi_set_frame_drop(struct pi_device *device,
 static inline void pi_cpi_set_filter(struct pi_device *device, uint32_t r_coeff,
   uint32_t g_coeff, uint32_t b_coeff, uint32_t shift);
 
+
+/** \brief Configure RGB Sequence.
+ *
+ * Configure how the RGB be saved to L2 memory. (ONLY available in GAP9)
+ *
+ * \param device    A pointer to the structure describing the device.
+ * \param rgb_seq   Sequence of RGB: 3'h0 - RGB, 
+ *                                   3'h1 - RBG, 
+ *                                   3'h2 - GRB, 
+ *                                   3'h3 - GBR, 
+ *                                   3'h4 - BRG, 
+ *                                   3'h5 - BGR, 
+ */
+static inline void pi_cpi_set_rgb_sequence(struct pi_device *device, uint8_t rgb_seq);
+
 /** \brief Configure frame slicing.
  *
  * Configure how to extract a window slice out of the input frame.
@@ -210,6 +245,17 @@ static inline void pi_cpi_set_filter(struct pi_device *device, uint32_t r_coeff,
  */
 static inline void pi_cpi_set_slice(struct pi_device *device, uint32_t x,
   uint32_t y, uint32_t w, uint32_t h);
+
+
+/** \brief Configure vsync/hsync polarity.
+ *
+ * Configure to reverse the vsync and/or hsync polarity. (ONLY available in GAP9)
+ *
+ * \param device            A pointer to the structure describing the device.
+ * \param vsync_pol_ena     Enable the vsync polarity reversal.
+ * \param hsync_pol_ena     Enable the hsync polarity reversal.
+ */
+static inline void pi_cpi_set_sync_polarity(struct pi_device *device, uint8_t vsync_pol_ena, uint8_t hsync_pol_ena);
 
 //!@}
 

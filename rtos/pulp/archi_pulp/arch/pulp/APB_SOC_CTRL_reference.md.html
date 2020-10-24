@@ -1,0 +1,185 @@
+<h1>APB SOC controller</h1>
+<h2>Description</h2>
+<h2>Registers</h2>
+<table>
+<thead><tr>
+<th>Register Name</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Register Type</th>
+<th>Host Access Type</th>
+<th>Block Access Type</th>
+<th>Default</th>
+<th>Reset</th>
+<th>Description</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INFO</td>
+<td>0x000</td>
+<td>32</td>
+<td>Status</td>
+<td>R</td>
+<td>W</td>
+<td>0x18</td>
+<td>1</td>
+<td>Core information register.</td>
+<td></td>
+</tr>
+<tr>
+<td>FC_BOOT</td>
+<td>0x004</td>
+<td>32</td>
+<td>Config</td>
+<td>R/W</td>
+<td>R/W</td>
+<td>0x1A000000</td>
+<td>1</td>
+<td>Boot address</td>
+<td></td>
+</tr>
+<tr>
+<td>FC_FETCH</td>
+<td>0x008</td>
+<td>32</td>
+<td>Config</td>
+<td>R/W</td>
+<td>R/W</td>
+<td>0x0</td>
+<td>1</td>
+<td>FC Fetch enable</td>
+<td></td>
+</tr>
+<tr>
+<td>CORESTATUS</td>
+<td>0x0A0</td>
+<td>32</td>
+<td>Status</td>
+<td>R/W</td>
+<td>R/W</td>
+<td>0x0</td>
+<td>1</td>
+<td>EOC and chip status register</td>
+</tr>
+</tbody>
+</table>
+<h3>INFO</h3>
+<h4>Fields</h4>
+<table>
+<thead><tr>
+<th>Field Name</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Host Access Type</th>
+<th>Block Access Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NB_CL</td>
+<td>0</td>
+<td>16</td>
+<td>R</td>
+<td>W</td>
+<td>0x0008</td>
+<td>Number of clusters</td>
+</tr>
+<tr>
+<td>NB_CORES</td>
+<td>16</td>
+<td>16</td>
+<td>R</td>
+<td>W</td>
+<td>0x0001</td>
+<td>Number of cores</td>
+</tr>
+</tbody>
+</table>
+<h3>FC_BOOT</h3>
+<h4>Fields</h4>
+<table>
+<thead><tr>
+<th>Field Name</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Host Access Type</th>
+<th>Block Access Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ADDR</td>
+<td>0</td>
+<td>32</td>
+<td>R/W</td>
+<td>R</td>
+<td>0x1A000000</td>
+<td>FC Boot Address</td>
+</tr>
+</tbody>
+</table>
+<h3>FC_FETCH</h3>
+<h4>Fields</h4>
+<table>
+<thead><tr>
+<th>Field Name</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Host Access Type</th>
+<th>Block Access Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FC_FE</td>
+<td>0</td>
+<td>1</td>
+<td>R/W</td>
+<td>R</td>
+<td>0x0</td>
+<td>FC Fetch Enable</td>
+</tr>
+</tbody>
+</table>
+<h3>CORESTATUS</h3>
+<h4>Fields</h4>
+<table>
+<thead><tr>
+<th>Field Name</th>
+<th>Offset</th>
+<th>Size</th>
+<th>Host Access Type</th>
+<th>Block Access Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STATUS</td>
+<td>0</td>
+<td>32</td>
+<td>R/W</td>
+<td>R/W</td>
+<td>0x0</td>
+<td>Chip status register. The SW can store the exit value value so that the external loader can get it.</td>
+</tr>
+<tr>
+<td>EOC</td>
+<td>31</td>
+<td>1</td>
+<td>R/W</td>
+<td>R/W</td>
+<td>0x0</td>
+<td>End Of Computation. The SW can store 1 here to notify the external loader that the execution is finished.</td>
+</tr>
+</tbody>
+</table>

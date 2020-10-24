@@ -169,7 +169,7 @@ void HOGConfiguration(unsigned int L1Memory)
     SetSymbolDynamics();
 	SetKernelOpts(KER_OPT_NONE, KER_OPT_BUFFER_PROMOTE);
 
-    SetUsedFilesNames(0, 1, "HoGBasicKernels.h");
+    SetUsedFilesNames(0, 2, "HoGBasicKernels.h", "Gap8.h");
     SetGeneratedFilesNames("HoGKernelsInit.c", "HoGKernelsInit.h", "HoGKernels.c", "HoGKernels.h");
 
     SetL1MemorySize(L1Memory);

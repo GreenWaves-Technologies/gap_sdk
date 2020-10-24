@@ -54,7 +54,7 @@ $(MODEL_TFLITE): $(MODEL_TF) | $(MODEL_BUILD)
 	echo "CONVERTING TENSORFLOW  TO TENSORFLOW LITE FLATBUFFER"
 #	$(MODEL_PYTHON)  $(MODEL_FREEZE) --start_checkpoint=$(MODEL_TRAIN_BUILD)/conv.ckpt-18000    --output_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb
 	$(MODEL_PYTHON)  $(MODEL_FREEZE) --start_checkpoint=$(MODEL_TRAIN_BUILD)/conv.ckpt-10    --output_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb
-	tflite_convert --graph_def_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb --output_file=$(MODEL_BUILD)/kws.tflite --input_format=TENSORFLOW_GRAPHDEF   --output_format=TFLITE --input_arrays=Reshape --output_arrays=add_2
+	tflite_convert --graph_def_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb --output_file=$(MODEL_BUILD)/kws.tflite --input_format=TENSORFLOW_GRAPHDEF   --output_format=TFLITE --input_arrays=Reshape_1 --output_arrays=add_2
 
 tflite: $(MODEL_TFLITE)
 
@@ -68,7 +68,7 @@ tflite: $(MODEL_TFLITE)
 
 $(IMAGES):
 	echo "GENERATING INPUT IMAGES"
-	(mkdir -p $(IMAGES);	$(MODEL_PYTHON) ./model/save_samples.py --batch_size 5 --start_checkpoint $(MODEL_TRAIN_BUILD)/conv.ckpt-10)
+	(mkdir -p $(IMAGES);	$(MODEL_PYTHON) ./model/training/save_samples.py --batch_size 5 --start_checkpoint $(MODEL_TRAIN_BUILD)/conv.ckpt-10)
 
 $(MODEL_STATE): $(MODEL_TFLITE) $(IMAGES)
 	echo "GENERATING NNTOOL STATE FILE"
@@ -86,7 +86,7 @@ nntool_gen: $(MODEL_BUILD)/$(MODEL_SRC)
 # Build the code generator from the model code
 $(MODEL_GEN_EXE): $(CNN_GEN) $(MODEL_BUILD)/$(MODEL_SRC) $(EXTRA_GENERATOR_SRC) | $(MODEL_BUILD)
 	echo "COMPILING AUTOTILER MODEL"
-	gcc -g -o $(MODEL_GEN_EXE) -I. -I$(TILER_INC) -I$(TILER_EMU_INC) $(CNN_GEN_INCLUDE) $(CNN_LIB_INCLUDE) $? $(TILER_LIB)
+	gcc -g -o $(MODEL_GEN_EXE) -I. -I$(TILER_INC) -I$(TILER_EMU_INC) $(CNN_GEN_INCLUDE) $(CNN_LIB_INCLUDE) $? $(TILER_LIB) $(SDL_FLAGS)
 
 compile_model: $(MODEL_GEN_EXE)
 

@@ -43,7 +43,7 @@ class AstatsCommand(NNToolShellBase):
     @with_argparser(parser_astats)
     def do_astats(self, args: argparse.Namespace):
         """
-Calculate activation statistics on one or more imput files."""
+Calculate activation statistics on one or more input files."""
         self._check_graph()
         input_args = self._get_input_args(args)
         stats_collector = ActivationStatsCollector()

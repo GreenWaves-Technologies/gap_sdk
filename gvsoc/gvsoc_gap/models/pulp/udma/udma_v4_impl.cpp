@@ -523,8 +523,10 @@ vp::io_req_status_e udma::channel_req(vp::io_req *req, uint64_t offset)
 
 void udma::channel_register(int id, Udma_channel *channel)
 {
-    if (id == 0x7f)
+    if (id == 0xff)
+    {
         return;
+    }
 
     if (id >= this->nb_channels)
     {
@@ -751,6 +753,21 @@ int udma::build()
                 if (version == 3)
                 {
                     I2s_periph *periph = new I2s_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
+#ifdef HAS_CPI
+            else if (strcmp(name.c_str(), "cpi") == 0)
+            {
+                trace.msg(vp::trace::LEVEL_INFO, "Instantiating CPI channel (id: %d, offset: 0x%x)\n", id, offset);
+                if (version == 2)
+                {
+                    Cpi_periph *periph = new Cpi_periph(this, id, j);
                     periphs[id] = periph;
                 }
                 else

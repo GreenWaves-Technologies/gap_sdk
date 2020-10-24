@@ -98,8 +98,8 @@ class NNGraphChanges(JsonSerializable):
         graph_changed = False
         for input_node_name, params in self._image_format.items():
             graph_changed = True
-            out_edge = G.out_edges(input_node_name)[0]
-            insert_formatter(G, out_edge, params["formatter"], params["normalizer"])
+            input_node = G[input_node_name]
+            insert_formatter(G, input_node, params["formatter"], params["normalizer"])
         if graph_changed:
             G.add_dimensions()
 

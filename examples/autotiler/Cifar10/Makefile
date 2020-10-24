@@ -4,6 +4,15 @@
 # This software may be modified and distributed under the terms
 # of the BSD license.  See the LICENSE file for details.
 
+
+# All the coef in L2 statically, 
+# otherwise, in the external flash
+#COEF_FLAG = -DCOEF_L2
+
+# Using SPI Flash and SPI RAM
+# Otherwise, using hyperflash and hyperram 
+#COEF_FLAG = -DQSPI_BOARD
+
 RM=rm -f
 CNN_AT_PATH = $(TILER_CNN_GENERATOR_PATH)
 
@@ -30,8 +39,6 @@ APP_SRCS += Cifar10.c Cifar10Kernels.c \
             
 APP_INC += $(TILER_INC) $(TILER_EMU_INC) $(TILER_CNN_KERNEL_PATH)
 
-COEF_FLAG = -DCOEF_L2
-
 APP_CFLAGS += -O2 -mno-memcpy -fno-tree-loop-distribute-patterns  -fdata-sections -ffunction-sections
 # The generated code outputs a maybe-uninitialized error which is rather difficult to suppress
 # in a clean way.
@@ -54,8 +61,6 @@ FLASH_FILES = $(FILE_BIAS0) $(FILE_BIAS1) $(FILE_BIAS2) $(FILE_FILTER0) $(FILE_F
 
 #This says to put the files into flash image
 READFS_FILES=$(realpath $(FLASH_FILES)) 
-# This says to bridge to copy the image into flash
-PLPBRIDGE_FLAGS = -f
 
 
 #PMSIS_OS ?= freertos

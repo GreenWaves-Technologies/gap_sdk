@@ -142,6 +142,140 @@ INSTALL_TARGETS += $(TARGET_INSTALL_DIR)/lib/${pulp_chip}/lib$(PULP_LIB_NAME_rt)
 
 
 
+
+
+
+
+
+
+
+
+
+#
+# CC RULES for domain: cluster
+#
+
+PULP_LIB_NAME_rtnotiny ?= rtnotiny
+
+PULP_CL_EXTRA_SRCS_rtnotiny = 
+PULP_CL_EXTRA_ASM_SRCS_rtnotiny = 
+PULP_CL_EXTRA_OMP_SRCS_rtnotiny = 
+
+rtnotiny_CL_OBJS =     $(patsubst %.cpp,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o, $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o, $(PULP_LIB_CL_SRCS_rtnotiny) $(PULP_CL_SRCS_rtnotiny) $(PULP_LIB_CL_SRCS) $(PULP_APP_SRCS) $(PULP_CL_EXTRA_SRCS_rtnotiny)))
+rtnotiny_CL_ASM_OBJS = $(patsubst %.S,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o, $(PULP_LIB_CL_ASM_SRCS_rtnotiny) $(PULP_CL_ASM_SRCS_rtnotiny) $(PULP_LIB_CL_ASM_SRCS) $(PULP_APP_ASM_SRCS) $(PULP_CL_EXTRA_ASM_SRCS_rtnotiny))
+rtnotiny_CL_OMP_OBJS = $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/omp/%.o, $(PULP_LIB_CL_OMP_SRCS_rtnotiny) $(PULP_CL_OMP_SRCS_rtnotiny) $(PULP_LIB_CL_OMP_SRCS) $(PULP_APP_OMP_SRCS) $(PULP_CL_EXTRA_OMP_SRCS_rtnotiny))
+
+ifneq '$(rtnotiny_CL_OMP_OBJS)' ''
+PULP_LDFLAGS_rtnotiny += $(PULP_OMP_LDFLAGS_rtnotiny)
+endif
+
+-include $(rtnotiny_CL_OBJS:.o=.d)
+-include $(rtnotiny_CL_ASM_OBJS:.o=.d)
+-include $(rtnotiny_CL_OMP_OBJS:.o=.d)
+
+rtnotiny_cl_cflags = $(PULP_CL_ARCH_CFLAGS) $(PULP_CFLAGS) $(PULP_CL_CFLAGS) $(PULP_CFLAGS_rtnotiny) $(PULP_CL_CFLAGS_rtnotiny) $(PULP_LIB_CFLAGS_rtnotiny)
+rtnotiny_cl_omp_cflags = $(rtnotiny_cl_cflags) $(PULP_OMP_CFLAGS) $(PULP_CL_OMP_CFLAGS) $(PULP_OMP_CFLAGS_rtnotiny) $(PULP_CL_OMP_CFLAGS_rtnotiny)
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o: %.c
+	@mkdir -p `dirname $@`
+	$(PULP_CL_CC) $(rtnotiny_cl_cflags) -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o: %.cpp
+	@mkdir -p `dirname $@`
+	$(PULP_CL_CC) $(rtnotiny_cl_cflags) -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/%.o: %.S
+	@mkdir -p `dirname $@`
+	$(PULP_CL_CC) $(rtnotiny_cl_cflags) -DLANGUAGE_ASSEMBLY -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/cl/omp/%.o: %.c
+	@mkdir -p `dirname $@`
+	touch libgomp.spec
+	$(PULP_CL_CC) $(rtnotiny_cl_omp_cflags) -MMD -MP -c $< -o $@
+
+rtnotiny_OBJS += $(rtnotiny_CL_OBJS) $(rtnotiny_CL_ASM_OBJS) $(rtnotiny_CL_OMP_OBJS)
+
+
+
+#
+# CC RULES for domain: fabric_controller
+#
+
+PULP_LIB_NAME_rtnotiny ?= rtnotiny
+
+PULP_FC_CFLAGS_rtnotiny = -DCONFIG_NO_FC_TINY=1 -DCONFIG_NO_CLUSTER=1
+
+PULP_FC_EXTRA_ASM_SRCS_rtnotiny = 
+PULP_FC_EXTRA_OMP_SRCS_rtnotiny = 
+
+rtnotiny_FC_OBJS =     $(patsubst %.cpp,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o, $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o, $(PULP_LIB_FC_SRCS_rt) $(PULP_FC_SRCS_rt) $(PULP_LIB_FC_SRCS)  $(PULP_FC_EXTRA_SRCS_rt)))
+rtnotiny_FC_ASM_OBJS = $(patsubst %.S,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o, $(PULP_LIB_FC_ASM_SRCS_rt) $(PULP_FC_ASM_SRCS_rt) $(PULP_LIB_FC_ASM_SRCS)  $(PULP_FC_EXTRA_ASM_SRCS_rt))
+rtnotiny_FC_OMP_OBJS = $(patsubst %.c,$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/omp/%.o, $(PULP_LIB_FC_OMP_SRCS_rtnotiny) $(PULP_FC_OMP_SRCS_rtnotiny) $(PULP_LIB_FC_OMP_SRCS)  $(PULP_FC_EXTRA_OMP_SRCS_rtnotiny))
+
+ifneq '$(rtnotiny_FC_OMP_OBJS)' ''
+PULP_LDFLAGS_rtnotiny += $(PULP_OMP_LDFLAGS_rtnotiny)
+endif
+
+-include $(rtnotiny_FC_OBJS:.o=.d)
+-include $(rtnotiny_FC_ASM_OBJS:.o=.d)
+-include $(rtnotiny_FC_OMP_OBJS:.o=.d)
+
+rtnotiny_fc_cflags = $(PULP_FC_ARCH_CFLAGS) $(PULP_CFLAGS) $(PULP_FC_CFLAGS) $(PULP_CFLAGS_rtnotiny) $(PULP_FC_CFLAGS_rtnotiny) $(PULP_LIB_CFLAGS_rtnotiny)
+rtnotiny_fc_omp_cflags = $(rtnotiny_fc_cflags) $(PULP_OMP_CFLAGS) $(PULP_FC_OMP_CFLAGS) $(PULP_OMP_CFLAGS_rtnotiny) $(PULP_FC_OMP_CFLAGS_rtnotiny)
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o: %.c
+	@mkdir -p `dirname $@`
+	$(PULP_FC_CC) $(rtnotiny_fc_cflags) -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o: %.cpp
+	@mkdir -p `dirname $@`
+	$(PULP_FC_CC) $(rtnotiny_fc_cflags) -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/%.o: %.S
+	@mkdir -p `dirname $@`
+	$(PULP_FC_CC) $(rtnotiny_fc_cflags) -DLANGUAGE_ASSEMBLY -MMD -MP -c $< -o $@
+
+$(CONFIG_BUILD_DIR)/$(PULP_LIB_NAME_rtnotiny)/fc/omp/%.o: %.c
+	@mkdir -p `dirname $@`
+	touch libgomp.spec
+	$(PULP_FC_CC) $(rtnotiny_fc_omp_cflags) -MMD -MP -c $< -o $@
+
+rtnotiny_OBJS += $(rtnotiny_FC_OBJS) $(rtnotiny_FC_ASM_OBJS) $(rtnotiny_FC_OMP_OBJS)
+
+
+
+#
+# AR RULES for library: rtnotiny
+#
+
+PULP_LIB_NAME_rtnotiny ?= rtnotiny
+
+$(CONFIG_BUILD_DIR)/lib$(PULP_LIB_NAME_rtnotiny).a: $(rtnotiny_OBJS)
+	@mkdir -p `dirname $@`
+	@rm -f $@
+	$(PULP_AR) -r $@ $^
+
+$(TARGET_INSTALL_DIR)/lib/${pulp_chip}/lib$(PULP_LIB_NAME_rtnotiny).a: $(CONFIG_BUILD_DIR)/lib$(PULP_LIB_NAME_rtnotiny).a
+	@mkdir -p `dirname $@`
+	cp $^ $@ 
+
+
+TARGETS += $(CONFIG_BUILD_DIR)/lib$(PULP_LIB_NAME_rtnotiny).a
+CLEAN_TARGETS += $(CONFIG_BUILD_DIR)/lib$(PULP_LIB_NAME_rtnotiny).a $($(PULP_LIB_NAME_rtnotiny)_OBJS)
+INSTALL_TARGETS += $(TARGET_INSTALL_DIR)/lib/${pulp_chip}/lib$(PULP_LIB_NAME_rtnotiny).a
+
+
+
+
+
+
+
+
+
+
+
+
+
 #
 # CC RULES for domain: cluster
 #

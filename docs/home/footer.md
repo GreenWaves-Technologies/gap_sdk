@@ -6,7 +6,6 @@ Name | Descriptions
 ------------ |---------------------------------------------------------------------------
 docs | Runtime API, auto-tiler and example application documentation
 pulp-os | a simple, PULP Runtime based, open source operating system for GAP8.
-mbed-os | ARM Mbed OS based operating system
 sourceme.sh | A script for configuring the GAP SDK environment
 examples | Examples of runtime API usage
 tools | All the tools necessary for supporting the GAP8 usage
