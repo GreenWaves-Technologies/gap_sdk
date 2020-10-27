@@ -1,4 +1,5 @@
 
+NPROC := $(shell nproc)
 SCHEMA_V3=schema_v3
 SCHEMA_HEAD=schema
 SCHEMA_HEAD_NAME=schema_head
@@ -31,7 +32,7 @@ $(FLAT_BUILD)/Makefile: $(FLAT_BUILD)
 	(cd $(FLAT_BUILD); cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DFLATBUFFERS_BUILD_TESTS=OFF ..)
 
 $(FLAT_BUILD)/flatc: $(FLAT_BUILD)/Makefile
-	make -C $(FLAT_BUILD) -j
+	make -C $(FLAT_BUILD) -j$(NPROC)
 
 flatbuffers/__init__.py: $(FLAT_BUILD)/flatc
 	cp -r $(FLAT_SRC)/python/flatbuffers .
