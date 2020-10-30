@@ -10,8 +10,10 @@
 void LoadSSDLibrary(){
 
     LibKernel("Ker_SSD_Init", CALL_SEQUENTIAL_STRUCT,
-        CArgs(1,
-            TCArg("int16_t *", "bbox_idx")
+        CArgs(3,
+            TCArg("int16_t *", "bbox_idx"),
+            TCArg("bbox_t *" , "bbox_out"),
+            TCArg("int16_t " , "n_max_bb")
             ),
         "Ker_SSD_Init_ArgT", NULL
     );
@@ -73,7 +75,7 @@ void LoadSSDLibrary(){
 //infos  = [IOU threshold (Q7), score threshold (Q of output), max detection (Q0), max detection per class (Q0)]
 
 
-void CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, int n_classes, int n_outbox, int max_bb_before_nn_max)
+int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, int n_classes, int n_outbox, int max_bb_before_nn_max)
 {
 
     Kernel_T *Kernel;
@@ -91,8 +93,10 @@ void CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, 
         ),
         Calls(3,
             Call("Ker_SSD_Init", LOC_LOOP_PROLOG,
-                Bindings(1,
-                    K_Arg("bbox_idx",KER_ARG)
+                Bindings(3,
+                    K_Arg("bbox_idx",KER_ARG),
+                    K_Arg("bbox_out",KER_ARG),
+                    Imm(max_bb_before_nn_max)
                 )
             ),
             Call("Ker_SSD_Decoder", LOC_LOOP,

@@ -2,18 +2,6 @@
 #include <math.h>
 #include "CNN_BasicKernels_SQ8.h"
 
-#define Minu(a, b)            (( ((unsigned int)a)<((unsigned int)b) )?((unsigned int)a):((unsigned int)b) )
-
-#ifdef __pulp__
-#define Abs(a)                  __builtin_pulp_abs((a))
-#define Min(a, b)              __builtin_pulp_minsi((a), (b))
-#define Max(a, b)              __builtin_pulp_maxsi((a), (b))
-#else
-#define Abs(a)                  (((int)(a)<0)?(-(a)):(a))
-#define Min(a, b)              (((a)<(b))?(a):(b))
-#define Max(a, b)              (((a)>(b))?(a):(b))
-#endif
-
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
 
@@ -209,17 +197,18 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 
 		/* Of = HSigmoid(Scaled(Of)) */
 		Of = AT_SCALE(Of, ((unsigned char *)Infos)[LSTM_F_SCALE], ((unsigned char *)Infos)[LSTM_F_SCALEN]);
-		Of = AT_NORM(Max(0, Min(*((short *)&Infos[LSTM_INT_A0]), Of + *((short *)&Infos[LSTM_INT_B0]))) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
+		Of = AT_NORM(AT_CLIP_POS(Of + *(short *)&Infos[LSTM_INT_B0], *((short *)&Infos[LSTM_INT_A0])) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
 
 		/* Oi = HSigmoid(Scaled(Oi)) */
 		Oi = AT_SCALE(Oi, ((unsigned char *)Infos)[LSTM_I_SCALE], ((unsigned char *)Infos)[LSTM_I_SCALEN]);
-		Oi = AT_NORM(Max(0, Min(*((short *)&Infos[LSTM_INT_A0]), Oi + *((short *)&Infos[LSTM_INT_B0]))) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
+		Oi = AT_NORM(AT_CLIP_POS(Oi + *(short *)&Infos[LSTM_INT_B0], *((short *)&Infos[LSTM_INT_A0])) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
 
 		/* Og = HTanh(Scaled(Og)) */
 		Og = AT_SCALE(Og, ((unsigned char *)Infos)[LSTM_G_SCALE], ((unsigned char *)Infos)[LSTM_G_SCALEN]);
 
 		int one = 1 << ((unsigned char *)Infos)[LSTM_INT_Q];
 		Og = Max(-one, Min(one, Og));
+		// Og = AT_CLIP(Og, One);
 
         /* Oo = HSigmoid(Scaled(Oo)) */
         Oo = AT_SCALE(Oo, ((unsigned char *)Infos)[LSTM_O_SCALE], ((unsigned char *)Infos)[LSTM_O_SCALEN]);
@@ -234,6 +223,7 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 		/* X1 = HTanh(X1) */
 		one = one << Infos[LSTM_INT_Q];
 		X1 = Max(-one, Min(one, X1));
+		// X1 = AT_CLIP(X1, One);
 
         int X2 = gap_clip(AT_SCALE(Oo * X1, ((unsigned char *)Infos)[LSTM_OUT_SCALE], ((unsigned char *)Infos)[LSTM_OUT_SCALEN]), 7);
         StateInOut[DimState+o] = X2;
@@ -320,7 +310,7 @@ void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg)
 		}
 		/* Or = HSigmoid(Scaled(Or)) !*! StateInOut[o] */
 		Or = gap_clip(AT_SCALE(Or, ((unsigned char *)Infos)[GRU_R_SCALE], ((unsigned char *)Infos)[GRU_R_SCALEN]), 7);
-		Or = AT_SCALE(Max(0, Min(Infos[GRU_R_A0], Or + Infos[GRU_R_B0])) * Infos[GRU_R_C0] * StateInOut[o], ((unsigned char *)Infos)[GRU_R_ASCALE], ((unsigned char *)Infos)[GRU_R_ASCALEN]);
+		Or = AT_SCALE(AT_CLIP_POS(Or + Infos[GRU_R_B0], Infos[GRU_R_A0]) * Infos[GRU_R_C0] * StateInOut[o], ((unsigned char *)Infos)[GRU_R_ASCALE], ((unsigned char *)Infos)[GRU_R_ASCALEN]);
 		Sbuff[o] = Or;
 		Vr = (v4s *) ((char *)Vr + NS);
 		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
@@ -350,7 +340,7 @@ void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg)
 		}
 		/* Oz = HSigmoid(Scaled(Oz)) */
 		Oz = AT_SCALE(Oz, ((unsigned char *)Infos)[GRU_Z_SCALE], ((unsigned char *)Infos)[GRU_Z_SCALEN]);
-		Oz = Max(0, Min(Infos[GRU_Z_A0], Oz + Infos[GRU_Z_B0])) * Infos[GRU_Z_C0];
+		Oz = AT_CLIP_POS(Oz + Infos[GRU_Z_B0], Infos[GRU_Z_A0]) * Infos[GRU_Z_C0];
 
 		/* Oht = HTanh(Scaled(Oh)) */
 		int Oht = AT_SCALE(Oh, ((unsigned char *)Infos)[GRU_HT_SCALE], ((unsigned char *)Infos)[GRU_HT_SCALEN]);

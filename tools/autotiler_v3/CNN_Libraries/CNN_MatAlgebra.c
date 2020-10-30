@@ -2,18 +2,6 @@
 #include <math.h>
 #include "CNN_BasicKernels.h"
 
-#define Minu(a, b)	      (( ((unsigned int)a)<((unsigned int)b) )?((unsigned int)a):((unsigned int)b) )
-
-#ifdef __pulp__
-#define Abs(a)			__builtin_pulp_abs((a))
-#define Min(a, b)	       __builtin_pulp_minsi((a), (b))
-#define Max(a, b)	       __builtin_pulp_maxsi((a), (b))
-#else
-#define Abs(a)			(((int)(a)<0)?(-(a)):(a))
-#define Min(a, b)	       (((a)<(b))?(a):(b))
-#define Max(a, b)	       (((a)>(b))?(a):(b))
-#endif
-
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
 
@@ -30,70 +18,6 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-#if 0
-void KerParMatAddScaleScalar_fps(KerMatAddScale_fps_T *Arg)
-
-{
-	signed char * __restrict__ In1	= Arg->In1;
-	signed char * __restrict__ In2	= Arg->In2;
-	signed char * __restrict__ Out	= Arg->Out;
-	int MI1				= *Arg->MulBiasIn1;
-	int MOut			= *Arg->MulBiasOut;
-	int NormIn			= Arg->NormIn;
-	int NormOut			= Arg->NormOut;
-	int W				= Arg->W;
-	int H				= Arg->H;
-	int LB				= Arg->LB;
-	int UB				= Arg->UB;
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int Chunk = ChunkSize(Arg->N);
-	unsigned int First = Chunk*CoreId;
-	unsigned int Last = Min(First+Chunk, Arg->N);
-	int i, j;
-
-	for (i=First; i<Last; i++) {
-		for (j=0; j<((W*H)/2); j++) {
-			O[2*j  ] = Min(Max((AT_NORM((AT_NORM(I1[2*j  ]*MI1, NormIn) + I2[2*j  ])*MO, NormOut), LB), UB));
-			O[2*j+1] = Min(Max((AT_NORM((AT_NORM(I1[2*j+1]*MI1, NormIn) + I2[2*j+1])*MO, NormOut), LB), UB));
-		}
-		O[W*H-1] = Min(Max((AT_NORM((AT_NORM(I1[W*H-1]*MI1, NormIn) + I2[W*H-1])*MO, NormOut), LB), UB));
-		I1 += W*H; I2 += W*H; O += W*H;
-	}
-}
-
-void KerParMatAddScale_fps(KerMatAddScale_fps_T *Arg)
-
-{
-	signed char * __restrict__ In1	= Arg->In1;
-	signed char * __restrict__ In2	= Arg->In2;
-	signed char * __restrict__ Out	= Arg->Out;
-	int pMI1			= *Arg->MulBiasIn1;
-	int pMOut			= *Arg->MulBiasOut;
-	int NormIn			= Arg->NormIn;
-	int NormOut			= Arg->NormOut;
-	int W				= Arg->W;
-	int H				= Arg->H;
-	int LB				= Arg->LB;
-	int UB				= Arg->UB;
-
-	unsigned int CoreId = gap_coreid();
-	unsigned int Chunk = ChunkSize(Arg->N);
-	unsigned int First = Chunk*CoreId;
-	unsigned int Last = Min(First+Chunk, Arg->N);
-	int i, j;
-
-	for (i=First; i<Last; i++) {
-		int MI1 = pMI1[i], MO = pMO[i];
-		for (j=0; j<((W*H)/2); j++) {
-			O[2*j  ] = Min(Max((AT_NORM((AT_NORM(I1[2*j  ]*MI1, NormIn) + I2[2*j  ])*MO, NormOut), LB), UB));
-			O[2*j+1] = Min(Max((AT_NORM((AT_NORM(I1[2*j+1]*MI1, NormIn) + I2[2*j+1])*MO, NormOut), LB), UB));
-		}
-		O[W*H-1] = Min(Max((AT_NORM((AT_NORM(I1[W*H-1]*MI1, NormIn) + I2[W*H-1])*MO, NormOut), LB), UB));
-		I1 += W*H; I2 += W*H; O += W*H;
-	}
-}
-#endif
 void KerParMatAdd_fp(KerMat3_fp_T *Arg)
 
 {

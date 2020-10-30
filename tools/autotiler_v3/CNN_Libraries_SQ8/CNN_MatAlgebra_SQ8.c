@@ -88,31 +88,31 @@ void KerParMatAdd_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 	if (In1Scale && OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = Max(0, gap_clip(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 7));
-			O[2*i+1] = Max(0, gap_clip(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 7));
+			O[2*i  ] = AT_CLIP_POS_IMM(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 7);
+			O[2*i+1] = AT_CLIP_POS_IMM(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 7);
 		}
-		if (S&0x1) O[S-1] = Max(0, gap_clip(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 7));
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 7);
 	} else if (In1Scale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = Max(0, gap_clip(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, 7));
-			O[2*i+1] = Max(0, gap_clip(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, 7));
+			O[2*i  ] = AT_CLIP_POS_IMM(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, 7);
+			O[2*i+1] = AT_CLIP_POS_IMM(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, 7);
 		}
-		if (S&0x1) O[S-1] = Max(0, gap_clip(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], 7));
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], 7);
 	} else if (OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = Max(0, gap_clip(AT_SCALE(I10 + I20, OutScale, OutScaleN), 7));
-			O[2*i+1] = Max(0, gap_clip(AT_SCALE(I11 + I21, OutScale, OutScaleN), 7));
+			O[2*i  ] = AT_CLIP_POS_IMM(AT_SCALE(I10 + I20, OutScale, OutScaleN), 7);
+			O[2*i+1] = AT_CLIP_POS_IMM(AT_SCALE(I11 + I21, OutScale, OutScaleN), 7);
 		}
-		if (S&0x1) O[S-1] = Max(0, gap_clip(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), 7));
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), 7);
 	} else {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = Max(0, gap_clip(I10 + I20, 7));
-			O[2*i+1] = Max(0, gap_clip(I11 + I21, 7));
+			O[2*i  ] = AT_CLIP_POS_IMM(I10 + I20, 7);
+			O[2*i+1] = AT_CLIP_POS_IMM(I11 + I21, 7);
 		}
-		if (S&0x1) O[S-1] = Max(0, gap_clip(I1[S-1] + I2[S-1], 7));
+		if (S&0x1) O[S-1] = AT_CLIP_POS_IMM(I1[S-1] + I2[S-1], 7);
 	}
 	gap_waitbarrier(0);
 }
@@ -136,31 +136,31 @@ void KerParMatAdd_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 	if (In1Scale && OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = gap_clip(Max(0, Min(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), A0)), 7);
-			O[2*i+1] = gap_clip(Max(0, Min(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), A0)), 7);
+			O[2*i  ] = gap_clip(AT_CLIP_POS(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), A0), 7);
+			O[2*i+1] = gap_clip(AT_CLIP_POS(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), A0), 7);
 		}
-		if (S&0x1) O[S-1] = gap_clip(Max(0, Min(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), A0)), 7);
+		if (S&0x1) O[S-1] = gap_clip(AT_CLIP_POS(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), A0), 7);
 	} else if (In1Scale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = gap_clip(Max(0, Min(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, A0)), 7);
-			O[2*i+1] = gap_clip(Max(0, Min(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, A0)), 7);
+			O[2*i  ] = gap_clip(AT_CLIP_POS(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, A0), 7);
+			O[2*i+1] = gap_clip(AT_CLIP_POS(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, A0), 7);
 		}
-		if (S&0x1) O[S-1] = gap_clip(Max(0, Min(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], A0)), 7);
+		if (S&0x1) O[S-1] = gap_clip(AT_CLIP_POS(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], A0), 7);
 	} else if (OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = gap_clip(Max(0, Min(AT_SCALE(I10 + I20, OutScale, OutScaleN), A0)), 7);
-			O[2*i+1] = gap_clip(Max(0, Min(AT_SCALE(I11 + I21, OutScale, OutScaleN), A0)), 7);
+			O[2*i  ] = gap_clip(AT_CLIP_POS(AT_SCALE(I10 + I20, OutScale, OutScaleN), A0), 7);
+			O[2*i+1] = gap_clip(AT_CLIP_POS(AT_SCALE(I11 + I21, OutScale, OutScaleN), A0), 7);
 		}
-		if (S&0x1) O[S-1] = gap_clip(Max(0, Min(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), A0)), 7);
+		if (S&0x1) O[S-1] = gap_clip(AT_CLIP_POS(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), A0), 7);
 	} else {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
-			O[2*i  ] = gap_clip(Max(0, Min(I10 + I20, A0)), 7);
-			O[2*i+1] = gap_clip(Max(0, Min(I11 + I21, A0)), 7);
+			O[2*i  ] = gap_clip(AT_CLIP_POS(I10 + I20, A0), 7);
+			O[2*i+1] = gap_clip(AT_CLIP_POS(I11 + I21, A0), 7);
 		}
-		if (S&0x1) O[S-1] = gap_clip(Max(0, Min(I1[S-1] + I2[S-1], A0)), 7);
+		if (S&0x1) O[S-1] = gap_clip(AT_CLIP_POS(I1[S-1] + I2[S-1], A0), 7);
 	}
 	gap_waitbarrier(0);
 }
@@ -187,48 +187,48 @@ void KerParMatAdd_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 7);
 			int Acc1 = gap_clip(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 	} else if (In1Scale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, 7);
 			int Acc1 = gap_clip(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 	} else if (OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(I10 + I20, OutScale, OutScaleN), 7);
 			int Acc1 = gap_clip(AT_SCALE(I11 + I21, OutScale, OutScaleN), 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 	} else {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(I10 + I20, 7);
 			int Acc1 = gap_clip(I11 + I21, 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(I1[S-1] + I2[S-1], 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -256,48 +256,48 @@ void KerParMatAdd_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, OutScale, OutScaleN), 7);
 			int Acc1 = gap_clip(AT_SCALE(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, OutScale, OutScaleN), 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], OutScale, OutScaleN), 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
 		}
 	} else if (In1Scale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(I10, In1Scale, In1ScaleN) + I20, 7);
 			int Acc1 = gap_clip(AT_SCALE(I11, In1Scale, In1ScaleN) + I21, 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(I1[S-1], In1Scale, In1ScaleN) + I2[S-1], 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
 		}
 	} else if (OutScale) {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(AT_SCALE(I10 + I20, OutScale, OutScaleN), 7);
 			int Acc1 = gap_clip(AT_SCALE(I11 + I21, OutScale, OutScaleN), 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(AT_SCALE(I1[S-1] + I2[S-1], OutScale, OutScaleN), 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
 		}
 	} else {
 		for (int i=0; i<S/2; i++) {
 			int I10=I1[2*i], I20=I2[2*i], I11=I1[2*i+1], I21=I2[2*i+1];
 			int Acc0 = gap_clip(I10 + I20, 7);
 			int Acc1 = gap_clip(I11 + I21, 7);
-			O[2*i  ] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
-			O[2*i+1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN), 7);
+			O[2*i  ] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[2*i+1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN), 7);
 		}
 		if (S&0x1) {
 			int Acc0 = gap_clip(I1[S-1] + I2[S-1], 7);
-			O[S-1] = gap_clip(AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN), 7);
+			O[S-1] = gap_clip(AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -589,8 +589,8 @@ void KerParMatMulB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -618,8 +618,8 @@ void KerParMatMulB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -642,7 +642,7 @@ void KerParMatMulB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -713,8 +713,8 @@ void KerParMatMulB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -742,8 +742,8 @@ void KerParMatMulB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -766,7 +766,7 @@ void KerParMatMulB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -895,7 +895,7 @@ void KerParMatMulSxSyB8_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Max(0, gap_clip(AT_SCALE(S, Sc, ScN), 7));
+		       	Out[(Line+OffLine)*W_Out+Oo] = AT_CLIP_POS_IMM(AT_SCALE(S, Sc, ScN), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -964,7 +964,7 @@ void KerParMatMulSxSyB8_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(Max(0, Min(AT_SCALE(S, Sc, ScN), A0)), 7);
+		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(AT_CLIP_POS(AT_SCALE(S, Sc, ScN), A0), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1164,8 +1164,8 @@ void KerParMatMulB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -1193,8 +1193,8 @@ void KerParMatMulB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1217,7 +1217,7 @@ void KerParMatMulB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1288,8 +1288,8 @@ void KerParMatMulB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -1317,8 +1317,8 @@ void KerParMatMulB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1341,7 +1341,7 @@ void KerParMatMulB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1470,7 +1470,7 @@ void KerParMatMulSxSyB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Max(0, gap_clip(AT_SCALE(S, Sc, ScN), 7));
+		       	Out[(Line+OffLine)*W_Out+Oo] = AT_CLIP_POS_IMM(AT_SCALE(S, Sc, ScN), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1539,7 +1539,7 @@ void KerParMatMulSxSyB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(Max(0, Min(AT_SCALE(S, Sc, ScN), A0)), 7);
+		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(AT_CLIP_POS(AT_SCALE(S, Sc, ScN), A0), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -1739,8 +1739,8 @@ void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -1768,8 +1768,8 @@ void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1792,7 +1792,7 @@ void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1863,8 +1863,8 @@ void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S3 += V0 * BufferColIn2[i+3*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
                 gap_waitbarrier(0);
@@ -1892,8 +1892,8 @@ void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S1 += V0 * BufferColIn2[i+1*H_In2];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -1916,7 +1916,7 @@ void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += V0 * BufferColIn2[i];
 			}
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
                 }
                 gap_waitbarrier(0);
 	}
@@ -2045,7 +2045,7 @@ void KerParMatMulSxSyB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = Max(0, gap_clip(AT_SCALE(S, Sc, ScN), 7));
+		       	Out[(Line+OffLine)*W_Out+Oo] = AT_CLIP_POS_IMM(AT_SCALE(S, Sc, ScN), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -2114,7 +2114,7 @@ void KerParMatMulSxSyB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg)
 			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
 		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
 			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
-		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(Max(0, Min(AT_SCALE(S, Sc, ScN), A0)), 7);
+		       	Out[(Line+OffLine)*W_Out+Oo] = gap_clip(AT_CLIP_POS(AT_SCALE(S, Sc, ScN), A0), 7);
 	       	}
 		int nF = F+Sx;
 		if (nF<Wi) {
@@ -2248,8 +2248,8 @@ void KerParMatMulB8_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2269,8 +2269,8 @@ void KerParMatMulB8_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[l1*H_In2 + l2+1] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[l1*H_In2 + l2+1] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2289,7 +2289,7 @@ void KerParMatMulB8_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2328,8 +2328,8 @@ void KerParMatMulB8_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2349,8 +2349,8 @@ void KerParMatMulB8_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[l1*H_In2 + l2+1] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[l1*H_In2 + l2+1] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2369,7 +2369,7 @@ void KerParMatMulB8_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2486,8 +2486,8 @@ void KerParMatMulB16_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2507,8 +2507,8 @@ void KerParMatMulB16_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[l1*H_In2 + l2+1] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[l1*H_In2 + l2+1] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2527,7 +2527,7 @@ void KerParMatMulB16_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2566,8 +2566,8 @@ void KerParMatMulB16_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2587,8 +2587,8 @@ void KerParMatMulB16_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[l1*H_In2 + l2+1] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[l1*H_In2 + l2+1] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2607,7 +2607,7 @@ void KerParMatMulB16_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2724,8 +2724,8 @@ void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7)),
-					  Max(0, gap_clip(AT_SCALE(S2, Sc, ScN), 7)), Max(0, gap_clip(AT_SCALE(S3, Sc, ScN), 7)));
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2745,8 +2745,8 @@ void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
-			Out[l1*H_In2 + l2+1] = Max(0, gap_clip(AT_SCALE(S1, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[l1*H_In2 + l2+1] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2765,7 +2765,7 @@ void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = Max(0, gap_clip(AT_SCALE(S0, Sc, ScN), 7));
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2804,8 +2804,8 @@ void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			v4s R = gap_pack4(gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7),
-					  gap_clip(Max(0, Min(AT_SCALE(S2, Sc, ScN), A0)), 7), gap_clip(Max(0, Min(AT_SCALE(S3, Sc, ScN), A0)), 7));
+			v4s R = gap_pack4(gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7),
+					  gap_clip(AT_CLIP_POS(AT_SCALE(S2, Sc, ScN), A0), 7), gap_clip(AT_CLIP_POS(AT_SCALE(S3, Sc, ScN), A0), 7));
 			*((v4s *) (Out+l1*H_In2 + l2)) = R;
 		}
 	}
@@ -2825,8 +2825,8 @@ void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
-			Out[l1*H_In2 + l2+1] = gap_clip(Max(0, Min(AT_SCALE(S1, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
+			Out[l1*H_In2 + l2+1] = gap_clip(AT_CLIP_POS(AT_SCALE(S1, Sc, ScN), A0), 7);
 		}
 	}
 	if (Iter&0x1) {
@@ -2845,7 +2845,7 @@ void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg)
 				S0 += C0 * In2[(l2+0)*W_In2+c];
 			}
 			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
-			Out[l1*H_In2 + l2+0] = gap_clip(Max(0, Min(AT_SCALE(S0, Sc, ScN), A0)), 7);
+			Out[l1*H_In2 + l2+0] = gap_clip(AT_CLIP_POS(AT_SCALE(S0, Sc, ScN), A0), 7);
 		}
 	}
 	gap_waitbarrier(0);
@@ -2917,11 +2917,11 @@ void KerParMatVectMul_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 			signed char * __restrict__ O  = Out + i*W*H;
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
-				int P1 = Max(0, gap_clip(AT_SCALE(I10*Scale, I2, ScaleN), 7));
-				int P2 = Max(0, gap_clip(AT_SCALE(I11*Scale, I2, ScaleN), 7));
+				int P1 = AT_CLIP_POS_IMM(AT_SCALE(I10*Scale, I2, ScaleN), 7);
+				int P2 = AT_CLIP_POS_IMM(AT_SCALE(I11*Scale, I2, ScaleN), 7);
 				O[2*j  ] = P1; O[2*j+1] = P2;
 			}
-			O[W*H-1] = Max(0, gap_clip(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), 7));
+			O[W*H-1] = AT_CLIP_POS_IMM(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), 7);
 		}
 	else
 		for (int i=First; i<Last; i++) {
@@ -2930,11 +2930,11 @@ void KerParMatVectMul_ReLU_SQ8(KerMat3_SQ8_T *Arg)
 			signed char * __restrict__ O  = Out + i*W*H;
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
-				int P1 = Max(0, gap_clip(AT_SCALE(I10, I2, ScaleN), 7));
-				int P2 = Max(0, gap_clip(AT_SCALE(I11, I2, ScaleN), 7));
+				int P1 = AT_CLIP_POS_IMM(AT_SCALE(I10, I2, ScaleN), 7);
+				int P2 = AT_CLIP_POS_IMM(AT_SCALE(I11, I2, ScaleN), 7);
 				O[2*j  ] = P1; O[2*j+1] = P2;
 			}
-			O[W*H-1] = Max(0, gap_clip(AT_SCALE(I1[W*H-1], I2, ScaleN), 7));
+			O[W*H-1] = AT_CLIP_POS_IMM(AT_SCALE(I1[W*H-1], I2, ScaleN), 7);
 		}
 	gap_waitbarrier(0);
 }
@@ -2960,11 +2960,11 @@ void KerParMatVectMul_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 			signed char * __restrict__ O  = Out + i*W*H;
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
-				int P1 = Max(0, Min(AT_SCALE(I10*Scale, I2, ScaleN), A0));
-				int P2 = Max(0, Min(AT_SCALE(I11*Scale, I2, ScaleN), A0));
+				int P1 = AT_CLIP_POS(AT_SCALE(I10*Scale, I2, ScaleN), A0);
+				int P2 = AT_CLIP_POS(AT_SCALE(I11*Scale, I2, ScaleN), A0);
 				O[2*j  ] = gap_clip(P1, 7); O[2*j+1] = gap_clip(P2, 7);
 			}
-			O[W*H-1] = gap_clip(Max(0, Min(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), A0)), 7);
+			O[W*H-1] = gap_clip(AT_CLIP_POS(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), A0), 7);
 		}
 	else
 		for (int i=First; i<Last; i++) {
@@ -2973,11 +2973,11 @@ void KerParMatVectMul_ReLUN_SQ8(KerMat3_SQ8_T *Arg)
 			signed char * __restrict__ O  = Out + i*W*H;
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
-				int P1 = Max(0, Min(AT_SCALE(I10, I2, ScaleN), A0));
-				int P2 = Max(0, Min(AT_SCALE(I11, I2, ScaleN), A0));
+				int P1 = AT_CLIP_POS(AT_SCALE(I10, I2, ScaleN), A0);
+				int P2 = AT_CLIP_POS(AT_SCALE(I11, I2, ScaleN), A0);
 				O[2*j  ] = gap_clip(P1, 7); O[2*j+1] = gap_clip(P2, 7);
 			}
-			O[W*H-1] = gap_clip(Max(0, Min(AT_SCALE(I1[W*H-1], I2, ScaleN), A0)), 7);
+			O[W*H-1] = gap_clip(AT_CLIP_POS(AT_SCALE(I1[W*H-1], I2, ScaleN), A0), 7);
 		}
 	gap_waitbarrier(0);
 }
@@ -3008,12 +3008,12 @@ void KerParMatVectMul_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
 				int Acc0 = gap_clip(AT_SCALE(I10*Scale, I2, ScaleN), 7), Acc1 = gap_clip(AT_SCALE(I11*Scale, I2, ScaleN), 7);
-				Acc0 = AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0, ActScaleN);
-				Acc1 = AT_SCALE(ActScale, Max(0, Min(A0, Acc1 + B0)) * C0, ActScaleN);
+				Acc0 = AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScaleN);
+				Acc1 = AT_SCALE(ActScale, AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScaleN);
 				O[2*j  ] = gap_clip(Acc0, 7); O[2*j+1] = gap_clip(Acc1, 7);
 			}
 			int Acc0 = gap_clip(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), 7);
-			O[W*H-1] = gap_clip(AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0, ActScaleN), 7);
+			O[W*H-1] = gap_clip(AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScaleN), 7);
 		}
 	else
 		for (int i=First; i<Last; i++) {
@@ -3023,12 +3023,12 @@ void KerParMatVectMul_HSigmoid_SQ8(KerMat3_SQ8_T *Arg)
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
 				int Acc0 = gap_clip(AT_SCALE(I10, I2, ScaleN), 7), Acc1 = gap_clip(AT_SCALE(I11, I2, ScaleN), 7);
-				Acc0 = AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0, ActScaleN);
-				Acc1 = AT_SCALE(ActScale, Max(0, Min(A0, Acc1 + B0)) * C0, ActScaleN);
+				Acc0 = AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScaleN);
+				Acc1 = AT_SCALE(ActScale, AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScaleN);
 				O[2*j  ] = gap_clip(Acc0, 7); O[2*j+1] = gap_clip(Acc1, 7);
 			}
 			int Acc0 = gap_clip(AT_SCALE(I1[W*H-1], I2, ScaleN), 7);
-			O[W*H-1] = gap_clip(AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0, ActScaleN), 7);
+			O[W*H-1] = gap_clip(AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScaleN), 7);
 		}
 	gap_waitbarrier(0);
 }
@@ -3059,12 +3059,12 @@ void KerParMatVectMul_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
 				int Acc0 = gap_clip(AT_SCALE(I10*Scale, I2, ScaleN), 7), Acc1 = gap_clip(AT_SCALE(I11*Scale, I2, ScaleN), 7);
-				Acc0 = AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScaleN);
-				Acc1 = AT_SCALE(ActScale, Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScaleN);
+				Acc0 = AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScaleN);
+				Acc1 = AT_SCALE(ActScale, AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScaleN);
 				O[2*j  ] = gap_clip(Acc0, 7); O[2*j+1] = gap_clip(Acc1, 7);
 			}
 			int Acc0 = gap_clip(AT_SCALE(I1[W*H-1]*Scale, I2, ScaleN), 7);
-			O[W*H-1] = gap_clip(AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScaleN), 7);
+			O[W*H-1] = gap_clip(AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScaleN), 7);
 		}
 	else
 		for (int i=First; i<Last; i++) {
@@ -3074,12 +3074,12 @@ void KerParMatVectMul_HSwish_SQ8(KerMat3_SQ8_T *Arg)
 			for (int j=0; j<((W*H)/2); j++) {
 				int I10 = I1[2*j], I11 = I1[2*j+1];
 				int Acc0 = gap_clip(AT_SCALE(I10, I2, ScaleN), 7), Acc1 = gap_clip(AT_SCALE(I11, I2, ScaleN), 7);
-				Acc0 = AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScaleN);
-				Acc1 = AT_SCALE(ActScale, Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScaleN);
+				Acc0 = AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScaleN);
+				Acc1 = AT_SCALE(ActScale, AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScaleN);
 				O[2*j  ] = gap_clip(Acc0, 7); O[2*j+1] = gap_clip(Acc1, 7);
 			}
 			int Acc0 = gap_clip(AT_SCALE(I1[W*H-1], I2, ScaleN), 7);
-			O[W*H-1] = gap_clip(AT_SCALE(ActScale, Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScaleN), 7);
+			O[W*H-1] = gap_clip(AT_SCALE(ActScale, AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScaleN), 7);
 		}
 	gap_waitbarrier(0);
 }

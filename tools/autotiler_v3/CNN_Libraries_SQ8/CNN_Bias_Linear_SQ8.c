@@ -272,7 +272,7 @@ void KerParLinearLayerFullFeatB8_ReLUN_SQ8(KerLinear_SQ8_T *Arg)
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Out[i] = Max(0, Min(A0, AT_SCALE(Acc, Scale[i], ScaleN[i])));
+		Out[i] = AT_CLIP_POS(AT_SCALE(Acc, Scale[i], ScaleN[i]), A0);
 	}
 	gap_waitbarrier(0);
 }
@@ -365,7 +365,7 @@ void KerParLinearLayerFullFeatB16_ReLUN_SQ8(KerLinear_SQ8_T *Arg)
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Out[i] = Max(0, Min(A0, AT_SCALE(Acc, Scale[i], ScaleN[i])));
+		Out[i] = AT_CLIP_POS(AT_SCALE(Acc, Scale[i], ScaleN[i]), A0);
 	}
 	gap_waitbarrier(0);
 }
@@ -458,7 +458,7 @@ void KerParLinearLayerFullFeatB32_ReLUN_SQ8(KerLinear_SQ8_T *Arg)
 		}
 		if (InDim&0x4) Acc = gap_sumdotp4(VectIn[InDim/4-1], W[InDim/4-1], Acc);
 		for (int j=4*(InDim/4); j<InDim; j++) Acc += In[j]*Weights[i*InDim+j];
-		Out[i] = Max(0, Min(A0, AT_SCALE(Acc, Scale[i], ScaleN[i])));
+		Out[i] = AT_CLIP_POS(AT_SCALE(Acc, Scale[i], ScaleN[i]), A0);
 	}
 	gap_waitbarrier(0);
 }

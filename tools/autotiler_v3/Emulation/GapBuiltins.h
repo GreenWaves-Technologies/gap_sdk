@@ -42,8 +42,8 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_clip(x, precision) 		__builtin_pulp_clip((x), -(1<<(precision)), (1<<precision)-1)
 #define gap_clipu(x, precision) 	__builtin_pulp_clipu((x), 0, (1<<precision)-1)
 
-#define gap_clipr(x, precision)		__builtin_pulp_clip_r((x), (precision))
-#define gap_clipur(x, precision)	__builtin_pulp_clipu_r((x), (precision))
+#define gap_clipr(x, bound)		__builtin_pulp_clip_r((x), (bound))
+#define gap_clipur(x, bound)		__builtin_pulp_clipu_r((x), (bound))
 
 /* Abs */
 #define gap_abs(x) 			__builtin_pulp_abs((x))
@@ -276,8 +276,8 @@ static int _VitT0_Flag, _VitT1_Flag;
 #define gap_clip(x, precision)		((x)<(-(1<<(precision)))?(-(1<<(precision))):(((x)>((1<<(precision))-1))?((1<<(precision))-1):(x)))
 #define gap_clipu(x, precision)		((x)<0)?0:(((x)>((1<<(precision))-1))?((1<<(precision))-1):(x))
 
-#define gap_clipr(x, precision)		((x)<(-(1<<(precision)))?(-(1<<(precision))):(((x)>((1<<(precision))-1))?((1<<(precision))-1):(x)))
-#define gap_clipur(x, precision)	((x)<0)?0:(((x)>((1<<(precision))-1))?((1<<(precision))-1):(x))
+#define gap_clipr(x, bound)             ((x)<=(-((bound)+1)))?(-((bound)+1)):(((x)>=((bound)))?((bound)):(x))
+#define gap_clipur(x, bound)            ((x)<0)?0:(((x)>=((bound)))?(((bound))):(x))
 
 /* Abs */
 #define gap_abs(x) 			(((x)<0)?-(x):(x))

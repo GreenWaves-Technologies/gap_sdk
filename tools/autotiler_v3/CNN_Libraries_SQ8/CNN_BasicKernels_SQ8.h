@@ -1,27 +1,7 @@
 #ifndef __CNN_BASICKERNELS_SQ8__
 #define __CNN_BASICKERNELS_SQ8__
 #include "Gap.h"
-
-#ifdef __pulp__
-#define Min(a, b)       __builtin_pulp_minsi((a), (b))
-#define Max(a, b)       __builtin_pulp_maxsi((a), (b))
-#else
-#define Min(a, b)       (((a)<(b))?(a):(b))
-#define Max(a, b)       (((a)>(b))?(a):(b))
-#endif
-
-
-#define NORM_ROUND
-#ifdef NORM_ROUND
-#define AT_NORM(x, n)   gap_roundnorm_reg((x), (n))
-#else
-#define AT_NORM(x, n)   gap_norm_reg((x), (n))
-#endif
-
-#define AT_SCALE(X, Scale, ScaleN)      AT_NORM((X)*(Scale), (ScaleN))
-
-#define AT_LSHIFT(x, n) ((x)<<(n))
-#define AT_RSHIFT(x, n) ((x)>>(n))
+#include "../CNN_Libraries/CNN_Defines.h"
 
 #ifdef GENASM
 #ifdef __EMUL__
@@ -48,6 +28,8 @@
 #define AT_INF_OUTSCALEN	8
 
 #define AT_INF_DIM		9
+
+#define Prec 			(10)
 
 typedef enum {
         ACT_NONE = 0,

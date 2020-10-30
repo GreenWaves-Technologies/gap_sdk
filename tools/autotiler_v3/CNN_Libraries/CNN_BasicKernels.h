@@ -19,6 +19,7 @@
 #ifndef __CNN_BASIC_KERNELS_H__
 #define __CNN_BASIC_KERNELS_H__
 #include "Gap.h"
+#include "CNN_Defines.h"
 
 #define MAXDPPREC
 #ifdef MAXDPPREC
@@ -27,14 +28,8 @@
 #define DP_fps_T short int
 #endif
 
-/* Select Normalization with floor or Normalization with rounding */
-#ifdef NORM_ROUND
-#define AT_NORM(x, n)	gap_roundnorm_reg((x), (n))
-#else
-#define AT_NORM(x, n)	gap_norm_reg((x), (n))
-#endif
-#define AT_LSHIFT(x, n) ((x)<<(n))
-#define AT_RSHIFT(x, n) ((x)>>(n))
+#define Prec 	(10)
+
 /******************************************************************************************************************************/
 /******************* Autotiler Internal calls *********************************************************************************/
 /******************************************************************************************************************************/

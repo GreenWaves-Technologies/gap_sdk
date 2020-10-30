@@ -11,6 +11,13 @@
 #include "CNN_BasicKernels.h"
 #include "SSD_BasicKernels.h"
 
+#ifndef __EMUL__
+    #define CL_CRITICAL_ENTER() pi_cl_team_critical_enter()
+    #define CL_CRITICAL_EXIT()  pi_cl_team_critical_exit()
+#else
+    #define CL_CRITICAL_ENTER()
+    #define CL_CRITICAL_EXIT()
+#endif
 // optimize the division to find the chunk size
 // equivalent to ceil(KerArg0->W/rt_nb_pe())
 inline static unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
@@ -88,7 +95,14 @@ static unsigned int Exp_fp_17_15(unsigned int X)
 
 void Ker_SSD_Init(Ker_SSD_Init_ArgT  *KerArg0 )
 {    
+    // Initialize the output bounding boxes
     *(KerArg0->bbox_idx) = 0;
+    bbox_t * bbox = KerArg0->bbox_out;
+    int n_max_bb  = KerArg0->n_max_bb;
+    for (int i=0; i<n_max_bb; i++){
+        bbox[i].score = 0;
+        bbox[i].alive = 0;
+    }
 }
 
 
@@ -106,7 +120,7 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
     unsigned int Last   = (First+Chunk > KerArg0->H) ? (KerArg0->H) : (First+Chunk);
     bbox_t * bbox       = KerArg0->bbox_out;
     int8_t * scores     = KerArg0->classes_in;
-    int bbn             = *(KerArg0->bbox_idx);
+    int initial_idx     = KerArg0->bbox_idx[0];
     int num_classes     = KerArg0->Class_W;
     int16_t n_max_bb    = KerArg0->n_max_bb;
     int8_t score_th     = KerArg0->infos[1];
@@ -114,26 +128,22 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
     uint8_t* norms      = KerArg0->in_norms;
     int num_coords      = 4;
     int boxes_idx, Ax, Aw, Ay, Ah, O;
+    int bbn;
 
-	for (unsigned int i = First; i<Last; ++i)
-       {
+	for (unsigned int i = First; i<Last; i++)
+    {
         boxes_idx = i*num_coords;
         for (unsigned int j=1; j<num_classes; j++){
             if((scores[(i*num_classes)+j]) > score_th){
-                #ifndef __EMUL__
-                pi_cl_team_critical_enter();
-                #endif
-                bbn++;
-                if((bbn - *(KerArg0->bbox_idx)) >= n_max_bb){
-                    #ifndef __EMUL__
-                    pi_cl_team_critical_exit(); 
-                    #endif
-                    *(KerArg0->bbox_idx) = bbn;
+                CL_CRITICAL_ENTER();
+                bbn = KerArg0->bbox_idx[0]++;
+                // printf("Core: %d\tbbox_idx:%d\n", CoreId, KerArg0->bbox_idx[0]);
+                if(bbn - initial_idx >= n_max_bb){ // check if we reched n_max_bb
+                    KerArg0->bbox_idx[0]--;
+                    CL_CRITICAL_EXIT();
                     return;
                 }
-                #ifndef __EMUL__
-                pi_cl_team_critical_exit();
-                #endif
+                CL_CRITICAL_EXIT();
                 // Valid BBOX --> alive
                 bbox[bbn].alive = 1;
                 //Save score always as a Q15
@@ -165,34 +175,35 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
             }
     	}
     }
-    *(KerArg0->bbox_idx) = bbn;
+    gap_waitbarrier(0);
+    if (CoreId == 0) KerArg0->bbox_idx[0]--;
 }
 
 int16_t ioveru( short a_x, short a_y, short a_w, short a_h,
-                short b_x, short b_y, short b_w, short b_h, int Thr ){
+                short b_x, short b_y, short b_w, short b_h, float Thr ){
 
-    int intersect, runion,iou;
+    int intersect, runion;
     int x = Max(a_x,b_x);
     int y = Max(a_y,b_y); 
 
     int size_x = Min(a_x+a_w,b_x+b_w) - x;
     int size_y = Min(a_y+a_h,b_y+b_h) - y;
 
-    if(size_x <=0 || size_y <=0){
-        intersect=0;
+    if(size_x <= 0 || size_y <= 0){
+        // no intersection
         return (Thr?0:1);
     }
     else
         intersect=(size_x*size_y); 
 
-    runion = (((a_w)*(a_h))) + (((b_w)*(b_h))) - intersect ;
+    runion = (a_w*a_h + b_w*b_h) - intersect;
 
-    iou =  (intersect * (1 << 14)) / runion;
-    return intersect >= ((runion * Thr)>>7);
+    float iou = (float) intersect / (float) runion;
+    return iou >= Thr;
 }
 
 
-void non_max_suppress(bbox_t * boundbxs, int iouThres, int nnbb){
+void non_max_suppress(bbox_t * boundbxs, float iouThres, int nnbb){
     //BBOX value are in Q14 and non_max_threshold in Q14
     int idx, idx_int;
     //Non-max supression
@@ -259,7 +270,7 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
     int16_t bbox_max     = KerArg0->n_max_bb;
     int max_detections   = KerArg0->infos[2];
     bbox_t * bbox        = KerArg0->bbox_out;
-    int non_max_thres    = ((int) KerArg0->infos[0]) << 7;
+    float non_max_thres  = FIX2FP((int) KerArg0->infos[0], 7);
     bbox_t temp;
 
     //Sort results from the most confident
@@ -276,7 +287,7 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
             }
         }
     }while(changed);
-    
+
     #if 0
     //To test algo with sample boxes
     bbox_t test_bbx[4];

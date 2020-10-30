@@ -34,9 +34,9 @@ static void Ker_Activation_SQ8(
 		switch (Activation) {
 			case ACT_NONE:     Acc0 = AT_SCALE(Acc0, ActScale, ActScaleN); Acc1 = AT_SCALE(Acc1, ActScale, ActScaleN); break;
 			case ACT_RELU:     Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN); Acc1 = AT_SCALE(Max(0, Acc1), ActScale, ActScaleN); break;
-			case ACT_RELUN:    Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN); Acc1 = AT_SCALE(Min(A0, Max(0, Acc1)), ActScale, ActScaleN); break;
-			case ACT_HSIGMOID: Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN); Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN); break;
-			case ACT_HSWISH:   Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN); Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN); break;
+			case ACT_RELUN:    Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN); Acc1 = AT_SCALE(AT_CLIP_POS(Acc1, A0), ActScale, ActScaleN); break;
+			case ACT_HSIGMOID: Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN); Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN); break;
+			case ACT_HSWISH:   Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN); Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN); break;
 			case ACT_LEAKYRELU:
 				{
 					int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
@@ -58,9 +58,9 @@ static void Ker_Activation_SQ8(
 		switch (Activation) {
 			case ACT_NONE:     Acc0 = AT_SCALE(Acc0, ActScale, ActScaleN); break;
 			case ACT_RELU:     Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN); break;
-			case ACT_RELUN:    Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN); break;
-			case ACT_HSIGMOID: Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN); break;
-			case ACT_HSWISH:   Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN); break;
+			case ACT_RELUN:    Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN); break;
+			case ACT_HSIGMOID: Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN); break;
+			case ACT_HSWISH:   Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN); break;
 			case ACT_LEAKYRELU:
 				{
 					int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
@@ -90,7 +90,7 @@ static void Ker_ActivationScale1_SQ8(
                 int Acc0 = In[2*i], Acc1 = In[2*i+1];
 		switch (Activation) {
 			case ACT_RELU: Acc0 = Max(0, Acc0); Acc1 = Max(0, Acc1); break;
-			case ACT_RELUN: Acc0 = Min(A0, Max(0, Acc0)); Acc1 = Min(A0, Max(0, Acc1)); break;
+			case ACT_RELUN: Acc0 = AT_CLIP_POS(Acc0, A0); Acc1 = AT_CLIP_POS(Acc1, A0); break;
 		}
                 Out[2*i] = Acc0; Out[2*i+1] = Acc1;
         }
@@ -99,7 +99,7 @@ static void Ker_ActivationScale1_SQ8(
                 int Acc0 = In[i];
 		switch (Activation) {
 			case ACT_RELU: Acc0 = Max(0, Acc0); break;
-			case ACT_RELUN: Acc0 = Min(A0, Max(0, Acc0)); break;
+			case ACT_RELUN: Acc0 = AT_CLIP_POS(Acc0, A0); break;
 		}
                 Out[i] = Acc0;
 	}
@@ -128,13 +128,13 @@ static void KerReduct_Activation_SQ8(
 				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -172,7 +172,7 @@ static void KerReduct_ActivationScale1_SQ8(
 				Acc0 = Max(0, Acc0);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
 				break;
 		}
                 Out[i] = Acc0;
@@ -203,13 +203,13 @@ static void KerReductIO_Activation_SQ8(
 				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -248,7 +248,7 @@ static void KerReductIO_ActivationScale1_SQ8(
 				Acc0 = Max(0, Acc0);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
 				break;
 		}
                 Out[i] = Acc0;
@@ -282,16 +282,16 @@ static void _KerReduct_Activation_SQ8(
 				Acc1 = AT_SCALE(Max(0, Acc1), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Min(A0, Max(0, Acc1)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -318,13 +318,13 @@ static void _KerReduct_Activation_SQ8(
 				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -367,8 +367,8 @@ static void _KerReduct_ActivationScale1_SQ8(
 				Acc1 = Max(0, Acc1);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
-				Acc1 = Min(A0, Max(0, Acc1));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
+				Acc1 = AT_CLIP_POS(Acc1, A0);
 				break;
 		}
                 Out[2*i]   = Acc0; Out[2*i+1] = Acc1;
@@ -382,7 +382,7 @@ static void _KerReduct_ActivationScale1_SQ8(
 				Acc0 = Max(0, Acc0);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
 				break;
 		}
                 Out[N-1] = Acc0;
@@ -416,16 +416,16 @@ static void _KerReductIO_Activation_SQ8(
 				Acc1 = AT_SCALE(Max(0, Acc1), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Min(A0, Max(0, Acc1)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
-				Acc1 = AT_SCALE(Max(0, Min(A0, Acc1 + B0)) * C0 * Acc1, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
+				Acc1 = AT_SCALE(AT_CLIP_POS(Acc1 + B0, A0) * C0 * Acc1, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -452,13 +452,13 @@ static void _KerReductIO_Activation_SQ8(
 				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
 				break;
 			case ACT_RELUN:
-				Acc0 = AT_SCALE(Min(A0, Max(0, Acc0)), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
 				break;
 			case ACT_HSIGMOID:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
 				break;
 			case ACT_HSWISH:
-				Acc0 = AT_SCALE(Max(0, Min(A0, Acc0 + B0)) * C0 * Acc0, ActScale, ActScaleN);
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
 				break;
 			case ACT_LEAKYRELU:
 				{
@@ -501,8 +501,8 @@ static void _KerReductIO_ActivationScale1_SQ8(
 				Acc1 = Max(0, Acc1);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
-				Acc1 = Min(A0, Max(0, Acc1));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
+				Acc1 = AT_CLIP_POS(Acc1, A0);
 				break;
 		}
                 Out[2*i]   = Acc0; Out[2*i+1] = Acc1;
@@ -516,7 +516,7 @@ static void _KerReductIO_ActivationScale1_SQ8(
 				Acc0 = Max(0, Acc0);
 				break;
 			case ACT_RELUN:
-				Acc0 = Min(A0, Max(0, Acc0));
+				Acc0 = AT_CLIP_POS(Acc0, A0);
 				break;
 		}
                 Out[N-1] = Acc0;
