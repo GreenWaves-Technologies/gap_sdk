@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include "pmsis.h"
 #include "pmsis/rtos/malloc/malloc_internal.h"
 
 #define ALIGN_UP(addr,size)   (((addr) + (size) - 1) & ~((size) - 1))

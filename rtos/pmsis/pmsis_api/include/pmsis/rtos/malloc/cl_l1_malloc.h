@@ -76,6 +76,14 @@ void pi_cl_l1_free(struct pi_device *device, void *chunk, int size);
 void *pi_cl_l1_malloc_align(struct pi_device *device, int size, int align);
 
 /**
+ * \brief Display free blocks.
+ *
+ * This function can be used to display free blocks available from the CL L1 allocator.
+ */
+void pi_cl_l1_malloc_dump(struct pi_device *device);
+
+
+/**
  * @cond IMPLEM
  */
 
@@ -98,8 +106,6 @@ void *pi_cl_l1_malloc_align(struct pi_device *device, int size, int align);
  * \param heap_size size of the heap
  */
 void pi_cl_l1_malloc_init(void *heapstart, uint32_t size);
-
-void pi_cl_l1_malloc_dump();
 
 void pi_cl_l1_malloc_struct_set(malloc_t malloc_struct);
 

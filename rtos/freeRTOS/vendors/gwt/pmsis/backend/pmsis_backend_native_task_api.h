@@ -40,7 +40,7 @@ static inline void __os_native_api_sem_take(void *sem_object)
         if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
         {
             /* This case should never happen ! */
-            BaseType_t ret;
+            BaseType_t ret = pdFALSE;
             xSemaphoreTakeFromISR(sem_object, &ret);
         }
         else
@@ -54,7 +54,7 @@ static inline void __os_native_api_sem_take(void *sem_object)
 static inline void __os_native_api_sem_give(void *sem_object)
 {
     int irq = __disable_irq();
-    BaseType_t ret;
+    BaseType_t ret = pdFALSE;
     xSemaphoreGiveFromISR(sem_object, &ret);
     portYIELD_FROM_ISR(ret);
     __restore_irq(irq);
@@ -97,7 +97,7 @@ static inline void __os_native_api_mutex_lock(void *mutex_object)
 static inline void __os_native_api_mutex_release(void *mutex_object)
 {
     int irq = __disable_irq();
-    BaseType_t ret;
+    BaseType_t ret = pdFALSE;
     xSemaphoreGiveFromISR(mutex_object, &ret);
     __restore_irq(irq);
 }
@@ -141,7 +141,7 @@ static inline void *__os_native_api_create_task(pi_task_entry_t entry,
         int priority)
 {
     TaskHandle_t task_handle = NULL;
-    BaseType_t task_ret;
+    BaseType_t task_ret = pdFALSE;
     task_ret = xTaskCreate(entry,name,stack_size,arg,
             priority,&task_handle);
     //gap9_secure_ctxt_priv_level_set(task_handle->xMPUSettings,PRIV_LEVEL_MACHINE_MODE);
@@ -162,7 +162,7 @@ static inline void *__os_native_api_create_user_task(pi_task_entry_t entry,
         int priority)
 {
     TaskHandle_t task_handle = NULL;
-    BaseType_t task_ret;
+    BaseType_t task_ret = pdFALSE;
     pi_user_task_arg_t *user_arg = pi_fc_l1_malloc(sizeof(pi_user_task_arg_t));
     user_arg->entry = entry;
     user_arg->arg = arg;

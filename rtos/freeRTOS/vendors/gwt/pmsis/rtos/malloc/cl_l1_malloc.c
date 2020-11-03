@@ -59,4 +59,10 @@ malloc_t pi_cl_l1_malloc_struct_get(void)
     return malloc_struct;
 }
 
+void pi_cl_l1_malloc_dump(struct pi_device *device)
+{
+    printf("CL L1 malloc dump:\n");
+    __malloc_dump(&__cl_l1_malloc);
+}
+
 #endif  /* FEATURE_CLUSTER */
