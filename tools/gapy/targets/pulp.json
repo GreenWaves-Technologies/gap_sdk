@@ -15,11 +15,12 @@
 
     "runner": {
         "flash_devices": [
-          "target/board/devices/flash"
+          "target/board/devices/flash",
+          "target/board/devices/spiflash"
         ],
         "boot": {
             "mode": "flash",
-            "device": "target/board/devices/flash"
+            "device": "target/board/devices/spiflash"
         }
     }
 }

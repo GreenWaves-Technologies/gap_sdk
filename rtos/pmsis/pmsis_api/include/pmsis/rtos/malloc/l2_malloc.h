@@ -71,6 +71,14 @@ void pi_l2_free(void *chunk, int size);
 void *pi_l2_malloc_align(int size, int align);
 
 /**
+ * \brief Display free blocks.
+ *
+ * This function can be used to display free blocks available from the L2 allocator.
+ */
+void pi_l2_malloc_dump(void);
+
+
+/**
  * @cond IMPLEM
  */
 
@@ -87,8 +95,6 @@ void *pi_l2_malloc_align(int size, int align);
  * \param heap_size size of the heap
  */
 void pi_l2_malloc_init(void *heapstart, uint32_t size);
-
-void pi_l2_malloc_dump();
 
 /**
  * @endcond IMPLEM

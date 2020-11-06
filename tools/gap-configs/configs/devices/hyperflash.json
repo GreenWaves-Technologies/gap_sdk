@@ -45,6 +45,7 @@
     "vp_class": "devices/hyperbus/hyperflash",
     "vp_component": "devices.hyperbus.hyperflash_impl",
 
+    "writeback": true,
     "size": "0x04000000",
     "fs": {
       "files": [],

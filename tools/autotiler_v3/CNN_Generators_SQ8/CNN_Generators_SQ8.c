@@ -2754,7 +2754,7 @@ int CNN_MatMulSmallM1Act_SQ8(
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
-			Call(ActKerName, LOC_LOOP_EPILOG,
+			Call(ActKerName, LOC_LOOP,
 				Bindings(6,
 					K_Arg("Out", KER_ARG_TILE),		/* Input tile */
 					K_Arg("Out", KER_ARG_TILE),		/* Output tile */

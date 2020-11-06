@@ -79,6 +79,10 @@ AUTO_TILER_OPTIONS = [
         'name': 'GRAPH_SIZE_OPT', 'type': 'graph', 'var_type': int, 'choices': (0, 1, 2),
         'descr': '0: Default make opt, 1: O2 for all layers, Os for xtor,dxtor,runner, 2: Os for layers and  xtor,dxtor,runner', 'default': 0
     },
+    {
+        'name': 'GRAPH_WARM_CONSTRUCT', 'type': 'graph', 'var_type': bool, 'choices': [True, False],
+        'descr': 'Generate construct/destruct functions with the Warm option to only allocate/deallocate L1 buffer', 'default': False
+    },
 ]
 
 DEFAULT_GEN_OPTS = {

@@ -75,6 +75,7 @@ typedef struct pi_task
     uintptr_t arg[4];
     int32_t id;
     uint32_t data[PI_TASK_IMPLEM_NB_DATA];
+    uint32_t timeout;
     pi_sem_t wait_on;
     volatile int8_t done;
     int8_t core_id;

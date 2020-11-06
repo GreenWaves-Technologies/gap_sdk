@@ -29,7 +29,8 @@ from graph.types import (ActivationFusion, ConstantInputParameters,
                          MatrixBroadcastedLinearOpParameters,
                          MatrixSubParameters, MatScaleFusionParameters,
                          OutputParameters, PoolingParameters, RNNParameters,
-                         SoftMaxParameters, SplitParameters)
+                         ReshapeParameters, SoftMaxParameters, SplitParameters,
+                         TransposeParameters)
 from quantization.multiplicative.mult_quantization import (
     MultAddQuantizationRecord, MultConstantQuantizationRecord,
     MultExpressionQuantizationRecord, MultQuantizationRecord,
@@ -140,7 +141,7 @@ class MultQuantizer(Quantizer, JsonSerializable):
     def calculate_q(self, G, node, astats, in_qs, dtype, out_dtype=None):
         if out_dtype is None:
             out_dtype = dtype
-        if isinstance(node, (PoolingParameters, OutputParameters, SplitParameters)):
+        if isinstance(node, (PoolingParameters, OutputParameters, SplitParameters, ReshapeParameters, TransposeParameters)):
             o_q = in_qs[0]
         elif isinstance(node, SoftMaxParameters):
             o_q = SymmetricMultQType(min_val=-1, max_val=1, dtype=np.int16, scale=2**(-15))

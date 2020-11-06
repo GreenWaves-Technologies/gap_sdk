@@ -68,6 +68,7 @@ protected:
     int width;              // Number of bits of the samples
     int frequency;          // Sampling frequency
     int pdm;                // Generate samples in PDM mode
+    long long pdm_error;
     bool stim_incr;         // True if the stimuli should be an incrising number
     int stim_incr_value;    // In case incr is active, give the increment value
     int current_stim;       // When using incrementing stim value, this gives the first value
@@ -300,6 +301,7 @@ int Microphone::build()
     this->frequency = this->get_js_config()->get_int("frequency");
     this->enabled = this->get_js_config()->get_child_bool("enabled");
     this->pdm = this->get_js_config()->get_int("pdm");
+    this->pdm_error = 1;
     this->stim_incr = false;
     this->stim = NULL;
     this->is_active = false;
@@ -383,26 +385,22 @@ int Microphone::pop_data()
 {
     if (pdm)
     {
-#if 0
-        // PDM mode, only transmit one modulated bit per sample
-        long long sample = this->getData();
+        long long sample = this->current_value;
         unsigned long long value = sample + (1 << (width - 1));
 
         unsigned long long maxVal = (1 << (width)) - 1;
 
-        pdmError += value;
+        pdm_error += value;
 
-        if (pdmError >= maxVal)
+        if (pdm_error >= maxVal)
         {
-            pdmError -= maxVal;
+            pdm_error -= maxVal;
             return 1;
         }
         else
         {
             return 0;
         }
-        }
-#endif
     }
     else
     {

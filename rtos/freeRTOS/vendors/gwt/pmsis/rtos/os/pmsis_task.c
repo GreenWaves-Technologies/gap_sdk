@@ -46,6 +46,8 @@ pi_task_t *__pi_task_block(pi_task_t *callback_task)
     // lock the mutex so that task may be descheduled while waiting on it
     callback_task->destroy = 1;
     callback_task->core_id = -1;
+    callback_task->timeout = 0;
+    callback_task->next = NULL;
     return callback_task;
 }
 
@@ -59,6 +61,8 @@ pi_task_t *__pi_task_callback(pi_task_t *callback_task,
     callback_task->wait_on.sem_object = (void*)NULL;
     callback_task->destroy = 0;
     callback_task->core_id = -1;
+    callback_task->timeout = 0;
+    callback_task->next = NULL;
     return callback_task;
 }
 
@@ -120,6 +124,8 @@ pi_task_t *pi_task_block_no_mutex(pi_task_t *callback_task)
     callback_task->wait_on.sem_object = (void*)NULL;
     callback_task->destroy = 0;
     callback_task->core_id = -1;
+    callback_task->timeout = 0;
+    callback_task->next = NULL;
     // lock the mutex so that task may be descheduled while waiting on it
     return callback_task;
 }

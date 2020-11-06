@@ -51,6 +51,11 @@ static inline void iss_pccr_incr(iss_t *iss, unsigned int event, int incr)
   }
 }
 
+static inline int iss_trace_format(iss_t *iss)
+{
+  return iss->traces.get_trace_manager()->get_format();
+}
+
 static inline int iss_pccr_trace_active(iss_t *iss, unsigned int event)
 {
   return iss->pcer_trace_event[event].get_event_active() && iss->ext_counter[event].is_bound();

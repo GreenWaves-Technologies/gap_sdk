@@ -87,21 +87,22 @@ def find_combination(l1, l2, sequence=None, l1_idx=0,
                                 l1_idx=l1_idx + 1,
                                 l2_len=l2_len)
 
-    # if l1 is less then look at factors of l2. Don't factor something already combined.
-    if l1[0] <= l2[0] and not combined_l2:
-        if l2[0] % l1[0] == 0:
-            res |= find_combination(l1[1::], [l2[0]//l1[0]] + l2[1::],
-                                    sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                    l1_idx=l1_idx + 1, factored_l2=True,
-                                    l2_len=l2_len)
+    if len(l1) > 1 or len(l2) > 1:
+        # if l1 is less then look at factors of l2. Don't factor something already combined.
+        if l1[0] <= l2[0] and not combined_l2:
+            if l2[0] % l1[0] == 0:
+                res |= find_combination(l1[1::], [l2[0]//l1[0]] + l2[1::],
+                                        sequence=add_end(sequence, l1_idx, append=not factored_l2),
+                                        l1_idx=l1_idx + 1, factored_l2=True,
+                                        l2_len=l2_len)
 
-    # if l1 is more then look at factors of l1. Don't factor something already combined.
-    if l1[0] > l2[0] and not combined_l1:
-        if l1[0] % l2[0] == 0:
-            res |= find_combination([l1[0]//l2[0]] + l1[1::], l2[1::],
-                                    sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                    l1_idx=l1_idx, factored_l1=True,
-                                    l2_len=l2_len)
+        # if l1 is more then look at factors of l1. Don't factor something already combined.
+        if l1[0] > l2[0] and not combined_l1:
+            if l1[0] % l2[0] == 0:
+                res |= find_combination([l1[0]//l2[0]] + l1[1::], l2[1::],
+                                        sequence=add_end(sequence, l1_idx, append=not factored_l2),
+                                        l1_idx=l1_idx, factored_l1=True,
+                                        l2_len=l2_len)
 
     # try combining the head of l1 if more than 1 item
     if len(l1) > 1:

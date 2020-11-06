@@ -86,6 +86,14 @@ void pi_fc_l1_free(void *chunk, int size);
 void *pi_fc_l1_malloc_align(int size, int align);
 
 /**
+ * \brief Display free blocks.
+ *
+ * This function can be used to display free blocks available from the FC allocator.
+ */
+void pi_fc_l1_malloc_dump(void);
+
+
+/**
  * @cond IMPLEM
  */
 
@@ -120,8 +128,6 @@ void *pi_fc_l1_malloc_align(int size, int align);
  * \param heap_size size of the heap
  */
 void pi_fc_l1_malloc_init(void *heapstart, uint32_t size);
-
-void pi_fc_l1_malloc_dump();
 
 void pi_fc_l1_malloc_struct_set(malloc_t malloc_struct);
 

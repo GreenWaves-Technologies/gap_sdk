@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+
+import argparse
+from subprocess import Popen, PIPE
+import re
+
+parser = argparse.ArgumentParser(
+    description='Report PulpOS footprint'
+)
+
+parser.add_argument("--binary", dest="binary", default=None, type=str, help="Specify the input binary")
+parser.add_argument("--depth", dest="depth", default=0, type=int, help="Specify the display depth")
+
+args = parser.parse_args() 
+
+
+class Symbol(object):
+
+    def __init__(self, line):
+
+        try:
+            self.num, self.val, self.size, self.type, self.bind, self.vis, self.udx, self.name = line.split()
+            self.size = int(self.size)
+            self.name = self.name.decode('utf-8')
+
+        except:
+            self.size = 0
+
+
+
+
+class Group(object):
+
+    def __init__(self, name, regexps, childs=[]):
+        self.regexp = []
+        for regexp in regexps:
+            self.regexp.append(re.compile(regexp))
+        self.name = name
+        self.symbols = []
+        self.childs = childs
+        self.total = 0
+        self.own = 0
+
+    def add_child(self, child):
+        self.childs.append(child)
+
+    def match(self, symbol):
+
+        for child in self.childs:
+            if child.match(symbol):
+                self.total += symbol.size
+                return True
+
+        if symbol.size != 0:
+
+            for regexp in self.regexp:
+
+                if regexp.match(symbol.name):
+
+                    self.total += symbol.size
+                    self.own += symbol.size
+
+                    self.symbols.append(symbol)
+
+                    return True
+
+        return False
+
+    def dump(self, depth, indent=''):
+
+        if depth >= 0:
+
+            print (indent + self.name + ' ' + str(self.total))
+            if len(self.childs) != 0 and self.own != 0:
+                print (indent + '    Own   ' + str(self.own))
+
+            for symbol in self.symbols:
+                if len(self.childs) != 0:
+                    print (indent + '        ' + symbol.name + ' ' + str(symbol.size))
+                else:
+                    print (indent + '        ' + symbol.name + ' ' + str(symbol.size))
+
+            for child in self.childs:
+
+                child.dump(depth-1, indent + '    ')
+
+            print ()
+
+        else:
+
+            print (indent + 'Others   ' + str(self.own))
+
+            for symbol in self.symbols:
+                print (indent + '    ' + symbol.name + ' ' + str(symbol.size))
+
+            for child in self.childs:
+
+                child.dump(depth-1, indent)
+
+
+
+
+
+groups = [
+    Group('PulpOS', ['pos_.*', 'pi_.*'], [
+        Group('PulpOS:kernel', ['pos_kernel.*', 'pos_soc_.*', 'pos_cbsys_.*']),
+        Group('PulpOS:fll', ['pos_fll.*', 'pos_freq.*', 'pi_freq_.*']),
+        Group('PulpOS:cluster', ['pos_cluster.*', 'pi_cluster_.*']),
+        Group('PulpOS:pmu', ['pos_pmu.*']),
+        Group('PulpOS:spim', ['pos_spim.*', 'pi_spi_.*']),
+        Group('PulpOS:hyper', ['pos_hyper.*', 'pi_hyper_.*']),
+        Group('PulpOS:uart', ['pos_uart.*', 'pi_uart_.*']),
+        Group('PulpOS:init', ['pos_init.*']),
+        Group('PulpOS:irq', ['pos_irq.*']),
+        Group('PulpOS:alloc', ['pos_alloc.*']),
+        Group('PulpOS:udma', ['pos_udma.*']),
+        Group('PulpOS:soc_event', ['pos_soc_event.*']),
+        Group('PulpOS:task', ['pos_task_.*', 'pos_sched.*']),
+        Group('PulpOS:libc', ['fprintf', 'vfprintf', 'printf', 'vprintf', 'sprintf', 'snprintf', 'vsnprintf', 'vsprintf', 'memmove', 'memcpy', 'puts','exit', 'strchr', 'pos_libc_.*', 'pos_io_.*']),
+        Group('PulpOS:pmsis', ['pi_.*']),
+    ]),
+    Group('app', ['.*'])
+]
+
+
+
+
+
+
+
+process = Popen(('readelf -s %s' % args.binary).split(), stdin=PIPE, stdout=PIPE)
+reply = (process.communicate()[0])
+
+for line in reply.splitlines():
+
+    symbol = Symbol(line)
+
+    for group in groups:
+        if group.match(symbol):
+            break
+
+
+for group in groups:
+    group.dump(args.depth)

@@ -268,29 +268,6 @@ There are different cables setup by default for each board. In case you want to 
 export GAPY_OPENOCD_CABLE=interface/ftdi/olimex-arm-usb-ocd-h.cfg
 ~~~~~
 
-## Debugging Programs
-
-The JTAG bridge allows for printf's in your code to generate messages on your PC. GAP8 also has support for gdb server over JTAG for both pulp-os and mbed-os programs.
-
-To enable gdbserver run mode execute the make target gdbserver:
-
-~~~~~shell
-make clean all gdbserver
-~~~~~
-
-The program will load and gdbserver will be started. Connect to the target with gdb from another shell (remember to source the sourceme.sh file in the root of the SDK in your new shell). Change directory to the directory containing your test program and then:
-
-~~~~~shell
-riscv32-unknown-elf-gdb BUILD/GAP8/GCC_RISCV/test
-~~~~~
-
-Once gdb has loaded connect to the gdbserver on the target.
-
-~~~~~
-(gdb) target remote localhost:1234
-Remote debugging using localhost:1234
-~~~~~
-
 ## Using the virtual platform
 
 If you only followed [Minimal installation](#minimal-install-freertos-only-no-neural-network-tools) process, begin by compiling gvsoc:

@@ -75,8 +75,8 @@ def faster_conv(params,
     out_c_cnt = 0
 
 
-    dillated_filter_w = filt_w if params.dilation.w == 1 else filt_w * params.dilation.w - 1
-    dillated_filter_h = filt_h if params.dilation.h == 1 else filt_h * params.dilation.h - 1
+    dillated_filter_w = (params.dilation.w - 1) * (filt_w - 1) + filt_w
+    dillated_filter_h = (params.dilation.h - 1) * (filt_h - 1) + filt_h
 
     out_w = ((in_w - dillated_filter_w + pad_w)) // params.stride.w + 1
     out_h = ((in_h - dillated_filter_h + pad_h)) // params.stride.h + 1

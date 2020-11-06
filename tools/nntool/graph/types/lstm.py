@@ -51,6 +51,8 @@ class LSTMParameters(RNNBaseParameters):
         "o_norm"
     ]
 
+    STATE_PARAMETERS = ["i_state", "c_state"]
+
     def __init__(self, name, *args, cell_clip=0.0, proj_clip=0.0, **kwargs):
         super(LSTMParameters, self).__init__(name, *args, **kwargs)
         self.cell_clip = cell_clip

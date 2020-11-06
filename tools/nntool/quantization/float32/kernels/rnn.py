@@ -210,6 +210,9 @@ def rnn(params: RNNBaseParameters,
         qrec = Float32QuantizationRecord()
     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
     args = {params.INPUT_NAMES[idx]: in_tensors[idx] for idx in range(1, len(in_tensors))}
+    if params.always_reset_state:
+        for state_key in params.STATE_PARAMETERS:
+            args[state_key] = args[state_key].copy()
     if params.transpose_in:
         in_tensor = np.transpose(in_tensor, params.transpose_in[0])
     assert in_tensor.shape[0] == params.n_input_cells, "input shape incorrect - n_input_cells"

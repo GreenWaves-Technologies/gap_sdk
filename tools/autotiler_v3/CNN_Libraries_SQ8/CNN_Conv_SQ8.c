@@ -2960,9 +2960,9 @@ static void __attribute__ ((noinline)) KerConv13x1Stride1x1_Body_SQ8(
 	for (int h=Ho_F; h<Ho_L; h++) {
 		signed char *PtI = (In + (h*StrideY-PadT)*W + (Wo_F*StrideX-PadL));
 		int *PtO = PtO1;
-		v4s V0 = ((v4s *) PtI)[0];
-		v4s V1 = ((v4s *) PtI)[4];
-		v4s V2 = ((v4s *) PtI)[8];
+		v4s V0 = *((v4s *) &PtI[0]);
+		v4s V1 = *((v4s *) &PtI[4]);
+		v4s V2 = *((v4s *) &PtI[8]);
 		int V3 = PtI[12];
 		PtI += 13;
 		for (int w=Wo_F; w<Wo_L; w++) {
@@ -3041,7 +3041,9 @@ static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Body_SQ8(
 		for (unsigned int w=Wo_F; w<Wo_L; w++) {
 			int Acc = *PtO;
 			for (unsigned int i=0; i<Fh; i++) {
-				for (unsigned int j=0; j<Fw; j++) Acc += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]*Filter[Fw*i+j];
+				for (unsigned int j=0; j<Fw; j++) {
+					Acc += In[(h*StrideY-PadT+i)*W + (w*StrideX-PadL+j)]*Filter[Fw*i+j];
+				}
 			}
 			*PtO = Acc; PtO++;
 		}

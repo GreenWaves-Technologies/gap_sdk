@@ -6,8 +6,9 @@
 #define PIXART_MCLK_FREQ                  6000000
 #define PIXART_SPI_BAUDRATE               10000000
 
-#define PIXART_TRIGGER_MODE               0
-#define PIXART_CONTINUE_MODE              1
+#define PIXART_CONTINUE_MODE              0
+#define PIXART_TRIGGER_MODE               1
+#define PIXART_POWERDOWN_MODE             2
 
 #define PIXART_CHIP_ID_REG_L              0x00
 #define PIXART_CHIP_ID_REG_H              0x01

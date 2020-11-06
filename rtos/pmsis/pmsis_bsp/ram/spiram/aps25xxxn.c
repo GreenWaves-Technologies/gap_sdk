@@ -114,6 +114,10 @@ static int aps25xxxn_open(struct pi_device *device)
   pi_octospi_write(&aps25xxxn->octospi_device, 8, &reg, 1, &op2);
 
   pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_SET_OP, (void *)&aps25xxxn_default_op);
+  if(conf->xip_en)
+  {
+      pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_SET_XIP_OP, (void *)&aps25xxxn_default_op);
+  }
 
   return 0;
 

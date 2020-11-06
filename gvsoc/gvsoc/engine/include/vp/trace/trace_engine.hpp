@@ -33,6 +33,9 @@ namespace vp {
   #define TRACE_EVENT_BUFFER_SIZE (1<<16)
   #define TRACE_EVENT_NB_BUFFER   4
 
+  #define TRACE_FORMAT_LONG  0
+  #define TRACE_FORMAT_SHORT 1
+
   class trace_engine : public component
   {
   public:
@@ -44,6 +47,9 @@ namespace vp {
 
     virtual int get_max_path_len() = 0;
     virtual int get_trace_level() = 0;
+
+    int get_format() { return this->trace_format; }
+    
 
     void dump_event(vp::trace *trace, int64_t timestamp, uint8_t *event, int width);
 
@@ -68,6 +74,7 @@ namespace vp {
   protected:
     std::map<std::string, trace *> traces_map;
     std::vector<trace *> traces_array;
+    int trace_format;
 
   private:
     void enqueue_pending(vp::trace *trace, int64_t timestamp, uint8_t *event);
@@ -90,6 +97,7 @@ namespace vp {
 
     Event_trace *first_trace_to_dump;
     bool global_enable = true;
+
   };
 
 };

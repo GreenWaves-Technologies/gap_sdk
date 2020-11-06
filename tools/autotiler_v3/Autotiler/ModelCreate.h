@@ -68,6 +68,13 @@ extern int IsKerArgRelated(
 
 extern KernelIteratorDescrT *IsInArgFixedSpace(Kernel_T *Ker, Kernel_Arg_T *Arg, KernelIteratorT ItSpace);
 
+extern KernelArgOneDimDescrT *ContainsTiledSpace(
+	Kernel_T *Ker,
+	KernelArgDimDescrT *K,
+	Object_T *Obj,
+	Kernel_Arg_T *Arg,
+	KernelIteratorT *TiledSpace);
+
 /* Deprecated */
 extern CKernel_Arg_T *CArg(
 	char *ArgType,

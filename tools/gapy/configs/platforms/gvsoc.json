@@ -16,6 +16,7 @@
 
     "traces": {
         "level": "debug",
+        "format": "long",
         "enabled": false,
         "include_regex": [],
         "exclude_regex": []

@@ -50,6 +50,12 @@ unsigned int rt_time_get_us()
   return ((unsigned long long)count) * 1000000 / ARCHI_REF_CLOCK;
 }
 
+unsigned long long pi_time_get_us()
+{
+  return rt_time_get_us();
+}
+
+
 void rt_event_push_delayed(rt_event_t *event, int us)
 {
   int irq = rt_irq_disable();

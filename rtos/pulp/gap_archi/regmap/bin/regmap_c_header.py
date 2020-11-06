@@ -36,6 +36,13 @@ def get_c_desc(name):
 def get_c_name(name):
     return name.replace('/', '_').replace('.', '_').encode('ascii', 'ignore').decode('ascii')
 
+def get_c_name_no_digit_first(name):
+    result = name.replace('/', '_').replace('.', '_').encode('ascii', 'ignore').decode('ascii')
+    if result[0].isdigit():
+        result = '_' + result
+
+    return result
+
 
 class Header(object):
 
@@ -192,7 +199,7 @@ class Register(object):
 
             current_index = field.bit + field.width
 
-            self.__dump_file(header.file, '    unsigned int %-16s:%-2d; // %s\n' % (get_c_name(field.name).lower(), field.width, get_c_desc(field.desc)), rst)
+            self.__dump_file(header.file, '    unsigned int %-16s:%-2d; // %s\n' % (get_c_name_no_digit_first(field.name).lower(), field.width, get_c_desc(field.desc)), rst)
 
         self.__dump_file(header.file, '  };\n', rst)
         self.__dump_file(header.file, '  unsigned int raw;\n', rst)
@@ -229,9 +236,9 @@ class Register(object):
         for name, field in self.fields.items():
             field_name = '%s_%s' % (get_c_name(reg_name), get_c_name(field.name).upper())
             implem = ' { this->set_field(value, %s_BIT, %s_WIDTH); }' % (field_name, field_name) if not rst else ';'
-            self.__dump_file(header.file, '    inline void %s_set(uint%d_t value)%s\n' % (get_c_name(field.name).lower(), width, implem), rst)
+            self.__dump_file(header.file, '    inline void %s_set(uint%d_t value)%s\n' % (get_c_name_no_digit_first(field.name).lower(), width, implem), rst)
             implem = ' { return this->get_field(%s_BIT, %s_WIDTH); }' % (field_name, field_name) if not rst else ';'
-            self.__dump_file(header.file, '    inline uint%d_t %s_get()%s\n' % (width, get_c_name(field.name).lower(), implem), rst)
+            self.__dump_file(header.file, '    inline uint%d_t %s_get()%s\n' % (width, get_c_name_no_digit_first(field.name).lower(), implem), rst)
 
         if not rst:
             reg_code = '        this->hw_name = "%s";\n' % (self.name)

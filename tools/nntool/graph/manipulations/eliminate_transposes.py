@@ -19,14 +19,16 @@ from graph.types.base import SensitiveToOrder, Transposable
 from graph.types.others import (ConcatParameters, ReshapeParameters, ReverseParameters, SplitParameters,
                                 StridedSliceParameters)
 from utils.compatible_transposes import (find_combination,
-                                         find_compatible_transpose)
+                                         find_compatible_transpose,
+                                         find_all_compatible_transposes)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
 def reverse_reshape(trans, from_shape, to_shape):
     """reverses the effect of this reshape on the transpose"""
-    return find_compatible_transpose(find_combination(from_shape, to_shape), trans)
+    return next(iter([t for t in find_all_compatible_transposes(find_combination(from_shape, to_shape), trans) if len(t) == len(to_shape)]), None)
+    # return find_compatible_transpose(find_combination(from_shape, to_shape), trans)
 
 
 def reverses_transpose(trans1, trans2, dim=None):

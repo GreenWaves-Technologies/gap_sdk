@@ -236,10 +236,29 @@ proc fuse_hyperflash_boot {gap_tools_path} {
 	puts "fuse done"
 }
 
+proc fuse_check_xtal_stable {fuse_struct_ptr} {
+    # set bit 7 of INFO1 to enable 
+    # the xtal oscillator stabilization check
+	array set fuse_array {
+		0 0x80
+	}
+	gap_fuse_once 0x1c000190 0x1 0 8 0xf 1
+}
+
+
 proc fuse_fll_config_on {fuse_struct_ptr} {
     # only set 2 bit (bit 1) of INFO2 (fuse1)
 	array set fuse_array {
 		0 0x2
+	}
+	gap_fuse_once 0x1c000190 0x1 8 8 0xf 1
+}
+
+
+proc fuse_ref_clk_wait_on {fuse_struct_ptr} {
+    # Program fuse INFO2 (ID #1) to 0x40
+	array set fuse_array {
+		0 0x40
 	}
 	gap_fuse_once 0x1c000190 0x1 8 8 0xf 1
 }
@@ -285,6 +304,51 @@ proc fuse_fll_assert_cycles {fuse_struct_ptr} {
 	gap_fuse_once 0x1c000190 0x1 264 8 0xf 32
 }
 
+proc fuse_xtal_config_cycles {fuse_struct_ptr} {
+    # set 0x0040 to xtal delta: 26-27
+    # set 0x1000 to xtal min: 28-29
+    # set 0xffff to xtal max: 30-31
+    #
+    
+    puts "going to fuse assert cycles"
+	array set fuse_array {
+		0 0x00              
+		1 0x40
+		2 0x10
+		3 0x00
+		4 0xFF
+		5 0xFF
+		6 0
+		7 0
+		8 0
+		9 0
+		10 0
+		11 0
+		12 0
+		13 0
+		14 0
+		15 0
+		16 0
+		17 0
+		18 0
+		19 0
+		20 0
+		21 0
+		22 0
+		23 0
+		24 0
+		25 0
+		26 0
+		27 0
+		28 0
+		29 0
+		30 0
+		31 0x0
+	}
+    # fuse from bit 208 (#26 XTAL DELTA) value
+	gap_fuse_once 0x1c000190 0x1 208 8 0xf 32
+}
+
 proc fuse_fll_assert_cycles_revb {gap_tools_path} {
     puts "fuse array before:"
     dump_fuse_array ${gap_tools_path}
@@ -296,7 +360,7 @@ proc fuse_fll_assert_cycles_revb {gap_tools_path} {
 	gap_fuse_open 0x1c000190
 	puts "fuse fll config on bit"
 	fuse_fll_config_on 0x1c000190
-	puts "fuse fll assart cycles"
+	puts "fuse fll assert cycles"
 	sleep 100
 	gap_fuse_terminate 0x1c000190
     #-------------------------------------------------------------------------------------#
@@ -306,6 +370,43 @@ proc fuse_fll_assert_cycles_revb {gap_tools_path} {
 	gap_fuse_open 0x1c000190
 	fuse_fll_assert_cycles 0x1c000190
 	# now close the flasher
+	gap_fuse_terminate 0x1c000190
+    #-------------------------------------------------------------------------------------#
+	puts "fuse done"
+    puts "fuse array after:"
+    dump_fuse_array ${gap_tools_path}
+}
+
+proc fuse_xtal_assert_cycles_revc {gap_tools_path} {
+    puts "fuse array before:"
+    dump_fuse_array ${gap_tools_path}
+    puts "fuse fll assrt cycles"
+    #-------------------------------------------------------------------------------------#
+	reset
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	sleep 100
+	gap_fuse_open 0x1c000190
+	puts "fuse rev clk wait on bit"
+	fuse_ref_clk_wait_on 0x1c000190
+	sleep 100
+	gap_fuse_terminate 0x1c000190
+    #-------------------------------------------------------------------------------------#
+    reset
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	sleep 100
+	gap_fuse_open 0x1c000190
+	puts "fuse xtal config cycles"
+	fuse_xtal_config_cycles 0x1c000190
+	sleep 100
+	gap_fuse_terminate 0x1c000190
+    #-------------------------------------------------------------------------------------#
+    reset
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	sleep 100
+	puts "fuse xtal oscillator stable check"
+	gap_fuse_open 0x1c000190
+	fuse_check_xtal_stable 0x1c000190
+	sleep 100
 	gap_fuse_terminate 0x1c000190
     #-------------------------------------------------------------------------------------#
 	puts "fuse done"

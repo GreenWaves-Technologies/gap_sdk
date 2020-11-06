@@ -195,7 +195,8 @@ def import_md(regmap, path):
 
                 default_index = get_table_index(register_table, 'Size')
                 if default_index != -1:
-                    reg.width = int(r[default_index], 0)
+                    # Too many IPs has wrong register width, hard-code it to 32 bits
+                    reg.width = 32 # int(r[default_index], 0)
 
                 default_index = get_table_index(register_table, 'Default')
                 if default_index != -1:

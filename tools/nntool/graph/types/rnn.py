@@ -25,6 +25,7 @@ LOG = logging.getLogger("nntool." + __name__)
 class RNNBaseParameters(Transposable, SingleInputAndOutput):
 
     INPUT_NAMES = []
+    STATE_PARAMETERS = []
 
     def __init__(self, name, *args, n_cells=None, n_states=None, n_inputs=None, n_input_cells=None, n_output_cells=None,
                  activation="tanh", revert=False, **kwargs):
@@ -38,6 +39,7 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
         self.at_options.valid_options['PARALLELFEATURES'] = int
         self.at_options.valid_options['ENABLEIM2COL'] = int
         self.revert = revert
+        self.always_reset_state = True
 
     def get_parameter_size(self):
         return 0
@@ -106,6 +108,8 @@ class RNNParameters(RNNBaseParameters):
         "i_b",
         "i_state",
     ]
+
+    STATE_PARAMETERS = ["i_state"]
 
     def get_parameter_size(self):
         return ((self.n_inputs + self.n_states) * (self.n_inputs + 1)) + self.n_states

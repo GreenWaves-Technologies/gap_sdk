@@ -311,7 +311,8 @@ pi_partition_subtype_t bootloader_utility_get_boot_stable_partition(const bootlo
 pi_partition_subtype_t bootloader_utility_get_boot_partition(const flash_partition_table_t *table, const bootloader_state_t *bs)
 {
     pi_err_t rc;
-    ota_state_t *ota_state = NULL;
+    ota_state_t ota_state_data;
+    ota_state_t *ota_state = &ota_state_data;
     pi_partition_subtype_t subtype;
     
     SSBL_INF("Try to read OTA data from flash.");

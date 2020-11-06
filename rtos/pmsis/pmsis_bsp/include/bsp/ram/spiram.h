@@ -41,6 +41,7 @@ struct pi_spiram_conf
   int ram_start;         /*!< SPI ram start address. */
   int ram_size;          /*!< SPI ram size. */
   uint32_t baudrate;     /*!< Baudrate (in bytes/second). */
+  int xip_en;
 };
 
 

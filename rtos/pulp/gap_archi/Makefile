@@ -214,16 +214,23 @@ udma_core_2d:
 		--header=include/archi/chips/gap9_v2/udma_core_2d/udma_core_2d \
 		--rst=doc/ips/udma_core_2d.rst
 
-# udma_aes:
-# 	./regmap/bin/regmap \
-# 		--name=udma_aes \
-# 		--input=fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
-# 		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
-# 		--header=include/archi/chips/gap9_v2/udma_aes/udma_aes \
-# 		--rst=doc/ips/udma_aes.rst
+udma_aes:
+	./regmap/bin/regmap \
+		--name=udma_aes \
+		--input=fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
+		--header=include/archi/chips/gap9_v2/udma_aes/udma_aes \
+		--rst=doc/ips/udma_aes.rst
 
-# udma_aes (To be added back)
-udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_mram udma_i2s udma_uart udma_cpi udma_i2c
+udma_aes_dual_core:
+	./regmap/bin/regmap \
+		--name=udma_aes_dual_core \
+		--input=fe/ips/udma/udma_aes/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/README.md \
+		--header=include/archi/chips/gap9_v2/udma_aes_dual_core/udma_aes_dual_core \
+		--rst=doc/ips/udma_aes_dual_core.rst
+
+udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_mram udma_i2s udma_uart udma_cpi udma_i2c udma_aes udma_aes_dual_core
 
 gpio:
 	./regmap/bin/regmap \

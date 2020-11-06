@@ -24,6 +24,8 @@ Overview
     +---------------------------------+------+-----+-----------------------------------------+
     |:ref:`IRQ_EN<udma_uart_IRQ_EN>`  |    44|   32|enable/disable events                    |
     +---------------------------------+------+-----+-----------------------------------------+
+    |:ref:`SETUP_2<udma_uart_SETUP_2>`|    56|   32|configuration register 2                 |
+    +---------------------------------+------+-----+-----------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -52,6 +54,9 @@ Generated headers
         
                 // enable/disable events
                 #define UDMA_UART_IRQ_EN_OFFSET                  0x2c
+        
+                // configuration register 2
+                #define UDMA_UART_SETUP_2_OFFSET                 0x38
 
 .. toggle-header::
     :header: *Register accessors*
@@ -76,6 +81,9 @@ Generated headers
 
         static inline uint32_t udma_uart_irq_en_get(uint32_t base);
         static inline void udma_uart_irq_en_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t udma_uart_setup_2_get(uint32_t base);
+        static inline void udma_uart_setup_2_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -196,6 +204,18 @@ Generated headers
         #define UDMA_UART_IRQ_EN_ERR_IRQ_WIDTH                               1
         #define UDMA_UART_IRQ_EN_ERR_IRQ_MASK                                0x2
         #define UDMA_UART_IRQ_EN_ERR_IRQ_RESET                               0x0
+        
+        // emit event after a byte is sent, after stop symbol is transmitted (access: rw)
+        #define UDMA_UART_IRQ_EN_TX_IRQ_BIT                                  1
+        #define UDMA_UART_IRQ_EN_TX_IRQ_WIDTH                                1
+        #define UDMA_UART_IRQ_EN_TX_IRQ_MASK                                 0x2
+        #define UDMA_UART_IRQ_EN_TX_IRQ_RESET                                0x0
+        
+        // deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8 (access: RW)
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_BIT                         0
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_WIDTH                       4
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_MASK                        0xf
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_RESET                       0x4
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -297,6 +317,16 @@ Generated headers
         #define UDMA_UART_IRQ_EN_ERR_IRQ_GETS(value)               (GAP_BEXTRACT((value),1,1))
         #define UDMA_UART_IRQ_EN_ERR_IRQ_SET(value,field)          (GAP_BINSERT((value),(field),1,1))
         #define UDMA_UART_IRQ_EN_ERR_IRQ(val)                      ((val) << 1)
+        
+        #define UDMA_UART_IRQ_EN_TX_IRQ_GET(value)                 (GAP_BEXTRACTU((value),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ_GETS(value)                (GAP_BEXTRACT((value),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ(val)                       ((val) << 1)
+        
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_GET(value)        (GAP_BEXTRACTU((value),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_GETS(value)       (GAP_BEXTRACT((value),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_SET(value,field)  (GAP_BINSERT((value),(field),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT(val)              ((val) << 0)
 
 .. toggle-header::
     :header: *Register map structure*
@@ -312,6 +342,8 @@ Generated headers
             volatile uint32_t setup;  // configuration register
             volatile uint32_t error;  // error register. Reading it will clear it.
             volatile uint32_t irq_en;  // enable/disable events
+            volatile uint32_t reserved_1[2];  // Reserved/Not used.
+            volatile uint32_t setup_2;  // configuration register 2
         } __attribute__((packed)) udma_uart_t;
 
 .. toggle-header::
@@ -373,9 +405,17 @@ Generated headers
           struct {
             unsigned int rx_irq          :1 ; // emit event if rx received a word.
             unsigned int err_irq         :1 ; // emit event on an error (see ERROR register)
+            unsigned int tx_irq          :1 ; // emit event after a byte is sent, after stop symbol is transmitted
           };
           unsigned int raw;
         } __attribute__((packed)) udma_uart_irq_en_t;
+        
+        typedef union {
+          struct {
+            unsigned int rts_high_limit  :4 ; // deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8
+          };
+          unsigned int raw;
+        } __attribute__((packed)) udma_uart_setup_2_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -392,6 +432,7 @@ Generated headers
             vp_udma_uart_setup setup;
             vp_udma_uart_error error;
             vp_udma_uart_irq_en irq_en;
+            vp_udma_uart_setup_2 setup_2;
         };
 
 |
@@ -1039,13 +1080,15 @@ enable/disable events
 
 .. table:: 
 
-    +-----+---+-------+-------------------------------------------+
-    |Bit #|R/W| Name  |                Description                |
-    +=====+===+=======+===========================================+
-    |    0|rw |RX_IRQ |emit event if rx received a word.          |
-    +-----+---+-------+-------------------------------------------+
-    |    1|rw |ERR_IRQ|emit event on an error (see ERROR register)|
-    +-----+---+-------+-------------------------------------------+
+    +-----+---+-------+-----------------------------------------------------------------+
+    |Bit #|R/W| Name  |                           Description                           |
+    +=====+===+=======+=================================================================+
+    |    0|rw |RX_IRQ |emit event if rx received a word.                                |
+    +-----+---+-------+-----------------------------------------------------------------+
+    |    1|rw |ERR_IRQ|emit event on an error (see ERROR register)                      |
+    +-----+---+-------+-----------------------------------------------------------------+
+    |    1|rw |TX_IRQ |emit event after a byte is sent, after stop symbol is transmitted|
+    +-----+---+-------+-----------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1086,6 +1129,12 @@ Generated headers
         #define UDMA_UART_IRQ_EN_ERR_IRQ_WIDTH                               1
         #define UDMA_UART_IRQ_EN_ERR_IRQ_MASK                                0x2
         #define UDMA_UART_IRQ_EN_ERR_IRQ_RESET                               0x0
+        
+        // emit event after a byte is sent, after stop symbol is transmitted (access: rw)
+        #define UDMA_UART_IRQ_EN_TX_IRQ_BIT                                  1
+        #define UDMA_UART_IRQ_EN_TX_IRQ_WIDTH                                1
+        #define UDMA_UART_IRQ_EN_TX_IRQ_MASK                                 0x2
+        #define UDMA_UART_IRQ_EN_TX_IRQ_RESET                                0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1102,6 +1151,11 @@ Generated headers
         #define UDMA_UART_IRQ_EN_ERR_IRQ_GETS(value)               (GAP_BEXTRACT((value),1,1))
         #define UDMA_UART_IRQ_EN_ERR_IRQ_SET(value,field)          (GAP_BINSERT((value),(field),1,1))
         #define UDMA_UART_IRQ_EN_ERR_IRQ(val)                      ((val) << 1)
+        
+        #define UDMA_UART_IRQ_EN_TX_IRQ_GET(value)                 (GAP_BEXTRACTU((value),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ_GETS(value)                (GAP_BEXTRACT((value),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
+        #define UDMA_UART_IRQ_EN_TX_IRQ(val)                       ((val) << 1)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1113,6 +1167,7 @@ Generated headers
           struct {
             unsigned int rx_irq          :1 ; // emit event if rx received a word.
             unsigned int err_irq         :1 ; // emit event on an error (see ERROR register)
+            unsigned int tx_irq          :1 ; // emit event after a byte is sent, after stop symbol is transmitted
           };
           unsigned int raw;
         } __attribute__((packed)) udma_uart_irq_en_t;
@@ -1130,6 +1185,96 @@ Generated headers
             inline uint32_t rx_irq_get();
             inline void err_irq_set(uint32_t value);
             inline uint32_t err_irq_get();
+            inline void tx_irq_set(uint32_t value);
+            inline uint32_t tx_irq_get();
+        };
+
+|
+
+.. _udma_uart_SETUP_2:
+
+SETUP_2
+"""""""
+
+configuration register 2
+
+.. table:: 
+
+    +-----+---+--------------+------------------------------------------------------------------------------+
+    |Bit #|R/W|     Name     |                                 Description                                  |
+    +=====+===+==============+==============================================================================+
+    |3:0  |RW |RTS_HIGH_LIMIT|deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8|
+    +-----+---+--------------+------------------------------------------------------------------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // configuration register 2
+                #define UDMA_UART_SETUP_2_OFFSET                 0x38
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t udma_uart_setup_2_get(uint32_t base);
+        static inline void udma_uart_setup_2_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8 (access: RW)
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_BIT                         0
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_WIDTH                       4
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_MASK                        0xf
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_RESET                       0x4
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_GET(value)        (GAP_BEXTRACTU((value),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_GETS(value)       (GAP_BEXTRACT((value),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT_SET(value,field)  (GAP_BINSERT((value),(field),4,0))
+        #define UDMA_UART_SETUP_2_RTS_HIGH_LIMIT(val)              ((val) << 0)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int rts_high_limit  :4 ; // deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8
+          };
+          unsigned int raw;
+        } __attribute__((packed)) udma_uart_setup_2_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_udma_uart_setup_2 : public vp::reg_32
+        {
+        public:
+            inline void rts_high_limit_set(uint32_t value);
+            inline uint32_t rts_high_limit_get();
         };
 
 |

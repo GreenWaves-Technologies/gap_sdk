@@ -11,6 +11,7 @@
 
 #define	DBG_DUMP_OBJECT		(1<<0)
 #define	DBG_DUMP_KER_ARGS	(1<<1)
+#define	DBG_DUMP_NO_HEADER	(1<<2)
 
 extern unsigned int DebugMode;
 

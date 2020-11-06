@@ -1,9 +1,6 @@
 /* PMSIS includes */
 #include "pmsis.h"
 
-/* Variables used. */
-struct pi_device uart;
-
 /* Task executed by cluster cores. */
 void cluster_helloworld(void *arg)
 {

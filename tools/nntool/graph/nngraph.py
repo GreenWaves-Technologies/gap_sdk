@@ -27,7 +27,7 @@ from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
                          RecurrentOutputParameters, ResizerParameters,
-                         SSDDetectorParameters)
+                         SSDDetectorParameters, TransposeParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from interpreter.commands.imageformat import insert_formatter
 from quantization.quantization_set import QuantizationSet

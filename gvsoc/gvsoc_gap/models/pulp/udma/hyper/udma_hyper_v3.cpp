@@ -74,7 +74,7 @@ void Hyper_periph::trans_cfg_req(uint64_t reg_offset, int size, uint8_t *value, 
 
         if (this->channel_state == HYPER_CHANNEL_STATE_IDLE)
         {
-            if (this->regmap.burst_enable.burst_2d_enable_get())
+            if (this->regmap.burst_enable._2d_enable_get() & 1)
             {
                 this->trace.msg(vp::trace::LEVEL_DEBUG, "Starting 2D transfer (addr: 0x%x, size: 0x%x, length: 0x%x, stride: 0x%x, is_tx: %d)\n",
                     this->regmap.trans_addr.addr_get(), this->regmap.trans_size.size_get(),

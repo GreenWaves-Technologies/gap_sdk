@@ -890,7 +890,20 @@ def get_config(tp):
       soc.fc_icache.refill = soc.soc_ico.fc_fetch
     else:
       soc.fc.fetch = soc.soc_ico.fc_fetch
-    soc.fc.data = soc.soc_ico.fc_data
+
+    fc_tohost = tp.get_str('soc/fc/riscv_fesvr_tohost_addr')
+
+    if fc_tohost is not None:
+      soc.bus_watchpoint = Component(properties=OrderedDict([
+          ('@includes@', ["ips/interco/bus_watchpoint.json"]),
+          ('riscv_fesvr_tohost_addr', fc_tohost)
+      ]))
+      soc.fc.data = soc.bus_watchpoint.input
+      soc.bus_watchpoint.output = soc.soc_ico.fc_data
+    else:
+      soc.fc.data = soc.soc_ico.fc_data
+
+
     if has_fc_ico:
       soc.fc.irq_ack = soc.fc_eu.irq_ack_0
     else:

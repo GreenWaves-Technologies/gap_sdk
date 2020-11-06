@@ -210,13 +210,14 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 		Og = Max(-one, Min(one, Og));
 		// Og = AT_CLIP(Og, One);
 
-        /* Oo = HSigmoid(Scaled(Oo)) */
-        Oo = AT_SCALE(Oo, ((unsigned char *)Infos)[LSTM_O_SCALE], ((unsigned char *)Infos)[LSTM_O_SCALEN]);
-        Oo = AT_NORM(Max(0, Min(*((short *)&Infos[LSTM_INT_A0]), Oo + *((short *)&Infos[LSTM_INT_B0]))) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
+        	/* Oo = HSigmoid(Scaled(Oo)) */
+        	Oo = AT_SCALE(Oo, ((unsigned char *)Infos)[LSTM_O_SCALE], ((unsigned char *)Infos)[LSTM_O_SCALEN]);
+        	// Oo = AT_NORM(Max(0, Min(*((short *)&Infos[LSTM_INT_A0]), Oo + *((short *)&Infos[LSTM_INT_B0]))) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
+        	Oo = AT_NORM(AT_CLIP_POS(Oo + *((short *)&Infos[LSTM_INT_B0]), *((short *)&Infos[LSTM_INT_A0])) * *((short *)&Infos[LSTM_INT_C0]), ((unsigned char *)Infos)[LSTM_INT_Q]);
         
-        int X1 = AT_SCALE(State[o], ((unsigned char *)Infos)[LSTM_CIN_SCALE], ((unsigned char *)Infos)[LSTM_CIN_SCALEN]);
-        X1 = Of * X1 + Oi * Og;
-        StateInOut[o] = gap_clip(AT_SCALE(X1, ((unsigned char *)Infos)[LSTM_COUT_SCALE], ((unsigned char *)Infos)[LSTM_COUT_SCALEN]), 7);
+        	int X1 = AT_SCALE(State[o], ((unsigned char *)Infos)[LSTM_CIN_SCALE], ((unsigned char *)Infos)[LSTM_CIN_SCALEN]);
+        	X1 = Of * X1 + Oi * Og;
+        	if (StateInOut) StateInOut[o] = gap_clip(AT_SCALE(X1, ((unsigned char *)Infos)[LSTM_COUT_SCALE], ((unsigned char *)Infos)[LSTM_COUT_SCALEN]), 7);
 		// int X1 = AT_SCALE(Of * State[o] + Oi * Og, ((unsigned char *)Infos)[LSTM_COUT_SCALE], ((unsigned char *)Infos)[LSTM_COUT_SCALEN]);
 		// if (StateInOut) StateInOut[o] = X1;
 
@@ -225,8 +226,8 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 		X1 = Max(-one, Min(one, X1));
 		// X1 = AT_CLIP(X1, One);
 
-        int X2 = gap_clip(AT_SCALE(Oo * X1, ((unsigned char *)Infos)[LSTM_OUT_SCALE], ((unsigned char *)Infos)[LSTM_OUT_SCALEN]), 7);
-        StateInOut[DimState+o] = X2;
+        	int X2 = gap_clip(AT_SCALE(Oo * X1, ((unsigned char *)Infos)[LSTM_OUT_SCALE], ((unsigned char *)Infos)[LSTM_OUT_SCALEN]), 7);
+        	if (StateInOut) StateInOut[DimState+o] = X2;
 		// int X2 = AT_SCALE(Oo * X1, ((unsigned char *)Infos)[LSTM_OUT_SCALE], ((unsigned char *)Infos)[LSTM_OUT_SCALEN]);
 		// if (StateInOut) StateInOut[DimState+o] = X2;
 		if (Hout) Hout[o] = X2;

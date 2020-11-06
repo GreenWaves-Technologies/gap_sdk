@@ -269,6 +269,17 @@ int trace_domain::build()
 
     js::config *config = get_js_config()->get("gvsoc");
 
+    string format = this->get_vp_config()->get_child_str("traces/format");
+
+    if (format == "short")
+    {
+        this->trace_format = TRACE_FORMAT_SHORT;
+    }
+    else
+    {
+        this->trace_format = TRACE_FORMAT_LONG;
+    }
+
     auto vcd_traces = config->get("events/traces");
 
     if (vcd_traces != NULL)

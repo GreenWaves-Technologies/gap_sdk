@@ -1146,6 +1146,12 @@ Close currently open user kernel group.
 */
 void CloseKernelGroup();
 
+/**
+@brief Close currently open user kernel group setting KER_OPT_KEEP_GROUP for nodes in the group
+
+Close currently open user kernel group setting KER_OPT_KEEP_GROUP for nodes in the group
+*/
+void CloseKernelGroupNoMerge();
 
 /* To add a call to a user kernel in a kernel group */
 /**
