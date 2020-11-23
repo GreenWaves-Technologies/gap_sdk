@@ -17,12 +17,12 @@ import logging
 
 
 from ..dim import DilationDim
-from .base import FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder
+from .base import FilterLikeParameters, MultiplicativeBiasParameters, Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder):
+class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Transposable):
 
     op_name = "conv2d"
 
@@ -125,6 +125,9 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dims = self.in_dims[0]
 
+        if self.transpose_in:
+            in_dims = in_dims.calc_transpose(self.transpose_in[0])
+
         assert in_dims.c >= self.groups,\
             "The number of groups cannot be larger than the amount of input channels"
         self.filter.in_c = in_dims.c // self.groups
@@ -137,6 +140,8 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         out_dim = ((in_dims - filter_d + pad)//self.stride) + 1
         out_dim.c = self.filter.out_c
         out_dim.impose_order(in_dims.order)
+        if self.transpose_out:
+            out_dim = out_dim.calc_transpose(self.transpose_out[0])
         return [out_dim]
 
     def compute_load(self):
@@ -144,7 +149,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
             self.in_dims[0].c // self.groups
 
     def __str__(self):
-        return "F {} S {} D {} G {} M {} P {} {} {}".format(
+        return "F {} S {} D {} G {} M {} P {} {} {} {}".format(
             self.filter,
             self.stride,
             self.dilation,
@@ -152,5 +157,6 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
             self.multiplier,
             self.padding,
             self.pad_type,
+            Transposable.__str__(self),
             self.at_options or ""
         )

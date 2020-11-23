@@ -343,8 +343,8 @@ class NNGraph(Graph):
             else:
                 yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True, postprocess=True):
-        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess)
+    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None):
+        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess, debug_function=debug_function)
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 

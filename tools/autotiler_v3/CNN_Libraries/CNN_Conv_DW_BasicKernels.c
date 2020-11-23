@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
 
@@ -9965,3 +9969,4 @@ void KerConvDWNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+#pragma GCC diagnostic pop

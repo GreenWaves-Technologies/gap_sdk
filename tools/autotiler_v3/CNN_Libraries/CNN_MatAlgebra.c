@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <stdio.h>
 #include <math.h>
 #include "CNN_BasicKernels.h"
@@ -4759,3 +4763,4 @@ void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg)
 
 
 
+#pragma GCC diagnostic pop

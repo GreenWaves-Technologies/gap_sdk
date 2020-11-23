@@ -90,7 +90,9 @@ PMSIS_BSP_DIR            = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 endif				# GAP_SDK_HOME
 
 
+ifeq ($(CUSTOM_BSP),)
 include $(PMSIS_BSP_DIR)/rules/freertos_bsp_rules.mk
+endif
 
 include $(GAP_SDK_HOME)/rtos/openmp/rules/freertos_openmp_rules.mk
 

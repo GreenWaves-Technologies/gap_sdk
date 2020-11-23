@@ -49,6 +49,10 @@ class MatchGapConv(DefaultMatcher):
         else:
             self.fusion_type = "conv_pool"
 
+    @property
+    def name(self):
+        return "match_" + self.fusion_type
+
     def valid_convolution(self, node):
         del node
         # TODO - Add specific convolution parameter checking here
@@ -124,7 +128,7 @@ class MatchGapConv(DefaultMatcher):
             if isinstance(node, Conv2DParameters):
                 conv_name = node.name + "_fusion"
                 break
-        LOG.debug("fused nodes %s", ",".join((node.name for node in subgraph.nodes())))
+        LOG.info("fused nodes %s", ",".join((node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
         pnode = ConvFusionParameters(conv_name, fusion_type=self.fusion_type, subgraph=subgraph)

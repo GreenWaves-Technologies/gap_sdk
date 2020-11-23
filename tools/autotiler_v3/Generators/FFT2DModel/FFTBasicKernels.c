@@ -106,8 +106,6 @@ Radix 4 DIF FFT on 1024 points: 68598,  Stall Penalty: 0.5%
 
 */
 
-#define Min(x, y)       (((x)<(y))?(x):(y))
-
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
 
 {

@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 /*
  * Copyright (C) 2020 GreenWaves Technologies
  * All rights reserved.
@@ -28,8 +32,6 @@ inline static unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
     unsigned int Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
     return Chunk;
 }
-
-#define Abs(a)      (((int)(a)<0)?(-(a)):(a))
 
 static unsigned short int IntegerExpLUT[] =
 {
@@ -321,3 +323,4 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
     }
     #endif
 }
+#pragma GCC diagnostic pop

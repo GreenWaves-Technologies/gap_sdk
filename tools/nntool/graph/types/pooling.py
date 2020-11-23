@@ -16,11 +16,11 @@
 import logging
 
 from ..dim import PoolFilterDim
-from .base import FilterLikeParameters, SensitiveToOrder
+from .base import FilterLikeParameters, Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
-class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
+class PoolingParameters(FilterLikeParameters, Transposable):
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, name: str, filt=None, pool_type="max", **kwargs):
@@ -43,6 +43,9 @@ class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
         self.in_dims = in_dims
         in_dims = in_dims[0]
 
+        if self.transpose_in:
+            in_dims = in_dims.calc_transpose(self.transpose_in[0])
+
         if self.filter is None:
             self.filter = PoolFilterDim(in_dims.h, in_dims.w)
 
@@ -54,6 +57,9 @@ class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
 
         out_dim.c = in_dims.c
         out_dim.impose_order(in_dims.order)
+        if self.transpose_out:
+            out_dim = out_dim.calc_transpose(self.transpose_out[0])
+
         return [out_dim]
 
     def clone(self, name, groupn=None):
@@ -68,11 +74,12 @@ class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
                 self.filter.w) + self.out_dims[0].size()
 
     def __str__(self):
-        return "T {} F {} S {} P {} {} {}".format(
+        return "T {} F {} S {} P {} {} {} {}".format(
             self.pool_type,
             self.filter,
             self.stride,
             self.padding,
             self.pad_type,
+            Transposable.__str__(self),
             self.at_options
         )

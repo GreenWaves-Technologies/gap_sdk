@@ -56,6 +56,7 @@ def propagate_downwards(G: NNGraph):
                     for edge in G.in_edges(node.name):
                         if not node.in_dims_hint[edge.to_idx]:
                             node.in_dims_hint[edge.to_idx] = any_in_hint
+                    node.out_dims_hint = [any_in_hint]
             else:
                 if node.out_dims_hint is None:
                     node.out_dims_hint = deepcopy(node.in_dims_hint)

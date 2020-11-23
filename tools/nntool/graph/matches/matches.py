@@ -53,16 +53,15 @@ ALL_MATCH_CLASSES = [MatchReversedRnn, MatchRnnUnpack, RemoveRelusMatch, RemoveN
                      FuseMatScalePair, FuseMatScale, MatchInsertCopies, ExpressionMatcher, PropagateUpRNNInputQ]
 POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad,
                       RemoveUnusedConcats, FindMissingQuantization, MatchCloseHSigmoid,
-                      MoveActivationsMatcherPow2, ExpandTransposesMatcher, MatchAllGapConv, MatchGapLinear,
+                      ExpandTransposesMatcher, MoveActivationsMatcherPow2, MatchAllGapConv, MatchGapLinear,
                       EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput,
                       MatchInsertCopies]
 SCALE8_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBiasSQ8, MatchFusePad,
                         RemoveUnusedConcats, FindMissingQuantization,
                         MatchReversedRnn, MatchRnnUnpack,
-                        MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8,
-                        MoveActivationsMatcherScale8, ExpandTransposesMatcher,
-                        MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels, PropagateSoftmaxSymQrec,
-                        EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput,
+                        MatchFarHSigmoid, MatchCloseHSigmoid, ExpandTransposesMatcher, MoveMaxPoolMatcherScale8,
+                        MoveActivationsMatcherScale8, MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels,
+                        PropagateSoftmaxSymQrec, EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput,
                         MatchInsertCopies, PropagateUpRNNInputQ]
 
 FUSION_LIST = [((match_class.NAME, match_class.DESCRIPTION), match_class())

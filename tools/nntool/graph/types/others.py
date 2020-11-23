@@ -38,6 +38,13 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
     def permute(self, val):
         return [val[i] for i in self.transpose_in[0]]
 
+    def does_nothing(self):
+        return list(
+            filter(lambda x: x != 1,
+                   self.in_dims[0].shape)) == list(
+            filter(lambda x: x != 1,
+                   self.permute(self.in_dims[0].shape)))
+
     @property
     def can_equalize(self):
         return False
@@ -106,6 +113,7 @@ class CopyParameters(Parameters):
     def __str__(self):
         return ""
 
+
 class ReverseParameters(Parameters):
     op_name = "reverse"
 
@@ -154,13 +162,13 @@ class ConcatParameters(Transposable):
         return False
 
     def get_output_size(self, in_dims):
-        if in_dims[0].is_named and self._axis_hint:
-            self._axis = in_dims[0].get_order_idx(self._axis_hint)
         self.in_dims = self.clone_dim_with_hints(in_dims)
         if self.transpose_in:
             in_dims = [(in_dim.clone() if self.transpose_in[idx] is None
                         else in_dim.clone().transpose(self.transpose_in[idx]))
                        for idx, in_dim in enumerate(in_dims)]
+        if in_dims[0].is_named and self._axis_hint:
+            self._axis = in_dims[0].get_order_idx(self._axis_hint)
         out_dim = Dim.combine([in_dim for in_dim in in_dims], self.axis)
         if self.transpose_out:
             out_dim.transpose(self.transpose_out[0])
@@ -432,7 +440,7 @@ class CastParameters(Parameters, SingleInputAndOutput):
         return "%s -> %s" % (self.in_dtype, self.out_dtype)
 
 
-class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+class PadParameters(Parameters, SingleInputAndOutput):
     op_name = "pad"
 
     def __init__(self, name, padding, in_dims_hint=None, out_dims_hint=None):
@@ -463,6 +471,7 @@ class PadParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     def __str__(self):
         return "PAD {}".format(self.padding)
+
 
 class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
@@ -503,12 +512,13 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
             self.factor
         )
 
+
 class BinaryOpParameters(Parameters):
     op_name = "binary"
 
     def __init__(self, *args, op_type="maximum", **kwargs):
         super(BinaryOpParameters, self).__init__(*args, **kwargs)
-        self._op_type= op_type
+        self._op_type = op_type
 
     @property
     def op_type(self):
@@ -534,6 +544,7 @@ class BinaryOpParameters(Parameters):
             self._op_type,
             self.at_options
         )
+
 
 class UnaryOpParameters(Parameters):
     op_name = "unary"
@@ -566,6 +577,7 @@ class UnaryOpParameters(Parameters):
             self._op_type,
             self.at_options
         )
+
 
 class GlobalPoolParameters(Transposable, SingleInputAndOutput):
     op_name = "global"
@@ -636,7 +648,8 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
     op_name = "reshape"
 
     def __init__(self, *args, old_shape=None, shape=None, **kwargs):
-        super(ReshapeParameters, self).__init__(*args, **kwargs)
+        super(ReshapeParameters, self).__init__(
+            *args, eliminate_transposes_pass_down=True, eliminate_transposes_pass_up=True, **kwargs)
         if not isinstance(shape, Dim):
             shape = Dim.unnamed(shape)
         self._shape = shape

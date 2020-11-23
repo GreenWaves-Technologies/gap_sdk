@@ -12,8 +12,12 @@
 
 #include "Gap.h"
 
-#define Max(a, b)               (((a)>(b))?(a):(b))
-#define Min(a, b)               (((a)<(b))?(a):(b))
+#ifndef Max
+	#define Max(a, b)               (((a)>(b))?(a):(b))
+#endif
+#ifndef Min
+	#define Min(a, b)               (((a)<(b))?(a):(b))
+#endif
 
 typedef struct {
 	unsigned char * __restrict__ In;

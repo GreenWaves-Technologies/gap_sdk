@@ -104,8 +104,6 @@
 
 */
 
-#define Min(x, y)       (((x)<(y))?(x):(y))
-
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
 
 {

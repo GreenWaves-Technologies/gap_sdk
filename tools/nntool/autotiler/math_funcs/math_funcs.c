@@ -1,3 +1,8 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "math_funcs.h"
 
 typedef unsigned long long uint64;
@@ -183,3 +188,5 @@ uint32 pow_17_15(uint32 x, uint32 y)
 {
     return exp_17_15(gap_roundnorm(y * logn_17_15(x), 15));
 }
+
+#pragma GCC diagnostic pop

@@ -1,3 +1,8 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "nntool_extra_kernels.h"
 
 static int CoreCountDynamic = 1;
@@ -202,3 +207,5 @@ void CNN_NormBW_fp(KerNormBW_fp_T *Arg)
 	// if (Left) Out[Last-1] = In[Last-1] << 7;
 	gap_waitbarrier(0);
 }
+
+#pragma GCC diagnostic pop

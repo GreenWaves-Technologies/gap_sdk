@@ -322,7 +322,6 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
             self._info['mul_biases_q'] = mul_biases_q
             self._info['enable_prenorm'] = enable_prenorm
         self.biases_q.link(self.weights_q, self.in_qs[0])
-
     @property
     def unwrap(self):
         return self._unwrap
@@ -331,6 +330,12 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
     def unwrap(self, val):
         self._unwrap = val
         self.biases_q.link(self.weights_q, self.in_qs[0])
+
+    def reorder_weigths(self, trans, dim):
+        if self.biases_q:
+            self.biases_q.reorder(trans, dim)
+        self.weights_q.reorder(trans, dim)
+        self.mul_biases_q.reorder(trans, dim)
 
     def compute_prenorm(self, params: FilterParameters):
         if not self.enable_prenorm:

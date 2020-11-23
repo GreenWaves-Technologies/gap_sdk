@@ -15,7 +15,7 @@
 
 import logging
 from collections import OrderedDict
-from math import pow
+from math import pow as mpow
 
 import numpy as np
 
@@ -231,21 +231,41 @@ class MultQuantizer(Quantizer, JsonSerializable):
                     s_2_o_q=s_2_o_q
                 )
             elif opts['mode'] == 'autotiler':
-                in_and_state_scale = np.maximum(in_qs[0].scale, o_q.scale)
-                in_and_state_w_scale = np.maximum(
-                    in_qs[names['i_2_i_w']].scale, in_qs[names['r_2_i_w']].scale)
-                in_qs[0].scale = in_and_state_scale
-                o_q.scale = in_and_state_scale
-                self.rescale_constant(input_nodes['i_state'], in_and_state_scale)
-                self.rescale_constant(input_nodes['i_2_i_w'], in_and_state_w_scale)
-                self.rescale_constant(input_nodes['r_2_i_w'], in_and_state_w_scale)
-                state_w_scale = in_and_state_scale * in_and_state_w_scale
+                if np.isclose(in_qs[0].scale, o_q.scale, atol=1e-2):
+                    LOG.info("node %s has similar input and i_state scales --> will be generated the same_scale kernel with better performances", node.name)
+                    node.same_in_out_scale = True
+                    G.node_options[NodeId(node)] = node.at_options
+                
+                w_scales = np.maximum(in_qs[names['i_2_i_w']].scale, in_qs[names['r_2_i_w']].scale)
+                if node.same_in_out_scale:
+                    in_and_state_scale = np.maximum(in_qs[0].scale, o_q.scale)
+                    in_qs[0].scale = in_and_state_scale
+                    o_q.scale = in_and_state_scale
+                    self.rescale_constant(input_nodes['i_state'], in_and_state_scale)
+                    i_state_scale = in_and_state_scale
+                    i_2_a_q = MultMulBiasScaleQType(scale=1.0) # will be ignored
+                else:
+                    i_state_scale = in_qs[names['i_state']].scale
+                    i_2_a_q = MultMulBiasScaleQType(scale=in_qs[0].scale/i_state_scale)
+
+                self.rescale_constant(input_nodes['i_2_i_w'], w_scales)
+                self.rescale_constant(input_nodes['r_2_i_w'], w_scales)
+                state_w_scale = i_state_scale * w_scales
                 self.rescale_constant(input_nodes['i_b'], state_w_scale, dtype=np.int32)
-                s_2_s_q = MultMulBiasScaleQType(scale=state_w_scale/in_and_state_scale)
+                if not node.hard_act:
+                    s_2_s_q = MultMulBiasScaleQType(scale=state_w_scale/in_and_state_scale)
+                    s_2_o_q = MultMulBiasScaleQType(scale=1.0) # will be ignored
+                else:
+                    act_input_scale = mpow(2, -12)
+                    act_output_scale = mpow(2, -15)
+                    s_2_s_q = MultMulBiasScaleQType(scale=state_w_scale/act_input_scale)
+                    s_2_o_q = MultMulBiasScaleQType(scale=act_output_scale/o_q.scale)
                 qrec = MultScalableRnnQuantizationRecord(
                     in_qs=in_qs,
                     out_qs=[o_q],
                     s_2_s_q=s_2_s_q,
+                    i_2_a_q=i_2_a_q,
+                    s_2_o_q=s_2_o_q,
                 )
         elif isinstance(node, LSTMParameters):
             input_nodes = {LSTMParameters.INPUT_NAMES[edge.to_idx]: edge.from_node
@@ -265,15 +285,35 @@ class MultQuantizer(Quantizer, JsonSerializable):
                       cell_int_bits,
                       cell_max,
                       in_qs[names['c_state']].range)
-            # worst case is (internal_q * 3) + 2 = 32 (1 for 1 and 1 for sign) i.e. 10
-            # but also (internal_q * 2) + cell_bits = 32
-            int_q = min((32-cell_int_bits)//2, 10)
-            # in and out and state are all in the same scale
-            in_and_out_scale = np.maximum(in_qs[0].scale, o_q.scale)
-            in_and_state_scale = np.maximum(in_and_out_scale, in_qs[names['i_state']].scale)
-            in_qs[0].scale = in_and_state_scale
-            o_q.scale = in_and_state_scale
-            self.rescale_constant(input_nodes['i_state'], in_and_state_scale)
+            if node.hard_act:
+                # worst case is (internal_q * 3) + 2 = 32 (1 for 1 and 1 for sign) i.e. 10
+                # but also (internal_q * 2) + cell_bits = 32
+                int_q = min((16-cell_int_bits), 10)
+                int2_scale = mpow(2, -(int_q*2))
+                int3_scale = mpow(2, -(int_q*3))
+            else:
+                int_q = 12
+                out_tanh_sig_scale = mpow(2, -15) # output of LUT activations are always Q15
+            int_scale = mpow(2, -int_q)
+
+            if np.isclose(in_qs[0].scale, o_q.scale, atol=1e-2):
+                LOG.info("node %s has similar input and i_state scales --> will be generated the same_scale kernel with better performances", node.name)
+                node.same_in_out_scale = True
+                G.node_options[NodeId(node)] = node.at_options
+
+            if node.same_in_out_scale:
+                if not np.isclose(in_qs[0].scale, o_q.scale, atol=1e-2):
+                    LOG.warning("node %s has different input and i_state scales consider using the LSTM kerne lwith same_in_out_scale=False (better accuracy)", node.name)
+                # in and out and state are all in the same scale
+                in_and_out_scale = np.maximum(in_qs[0].scale, o_q.scale)
+                i_state_scale = in_scale = np.maximum(in_and_out_scale, in_qs[names['i_state']].scale)
+                in_qs[0].scale = in_scale
+                o_q.scale = in_scale
+                self.rescale_constant(input_nodes['i_state'], i_state_scale)
+            else:
+                in_scale = in_qs[0].scale
+                i_state_scale = np.maximum(o_q.scale, in_qs[names['i_state']].scale)
+                o_q.scale = i_state_scale
             scale_pairs = {chan: ('i_2_%s_w' % chan, 'r_2_%s_w' % chan)
                            for chan in ['i', 'o', 'c', 'f']}
             scales = {k: np.maximum(in_qs[names[namei]].scale, in_qs[names[namer]].scale)
@@ -281,19 +321,29 @@ class MultQuantizer(Quantizer, JsonSerializable):
             for k, (namei, namer) in scale_pairs.items():
                 self.rescale_constant(input_nodes[namei], scales[k])
                 self.rescale_constant(input_nodes[namer], scales[k])
-            int_scale = pow(2, -int_q)
-            int2_scale = pow(2, -(int_q*2))
-            int3_scale = pow(2, -(int_q*3))
             # compute scales for perceptrons
-            pscales = {k: scales[k] * in_and_state_scale for k in ['i', 'o', 'c', 'f']}
+            pscales = {k: scales[k] * i_state_scale for k in ['i', 'o', 'c', 'f']}
             scale_qtypes = {"r_2_%s_q" % k: MultMulBiasScaleQType(
                 scale=pscale/int_scale) for k, pscale in pscales.items()}
-            scale_qtypes['cell_in_q'] = MultMulBiasScaleQType(
-                scale=in_qs[names['c_state']].scale/int_scale)
+
+            # if input and i_state have different scales -> scale the inputs before sum
+            # otherwise do nothing and these scales will be ignored
+            scale_qtypes.update({"i_2_%s_q" % k: MultMulBiasScaleQType(
+                scale=in_scale/i_state_scale) for k in ['i', 'o', 'c', 'f']})
+            
+            if node.hard_act:
+                cell_in_scale = in_qs[names['c_state']].scale/int_scale
+                cell_out_scale = int2_scale/in_qs[names['c_state']].scale
+                state_out_scale = int3_scale/i_state_scale
+            else:
+                cell_in_scale = in_qs[names['c_state']].scale*out_tanh_sig_scale/int_scale
+                cell_out_scale = int_scale/in_qs[names['c_state']].scale
+                state_out_scale = out_tanh_sig_scale/i_state_scale
+
+            scale_qtypes['cell_in_q'] = MultMulBiasScaleQType(scale=cell_in_scale)
             # TODO - Check cell clip here
-            scale_qtypes['cell_out_q'] = MultMulBiasScaleQType(
-                scale=int2_scale/in_qs[names['c_state']].scale)
-            scale_qtypes['state_out_q'] = MultMulBiasScaleQType(scale=int3_scale/in_and_state_scale)
+            scale_qtypes['cell_out_q'] = MultMulBiasScaleQType(scale=cell_out_scale)
+            scale_qtypes['state_out_q'] = MultMulBiasScaleQType(scale=state_out_scale)
             # set internal scale
             scale_qtypes['i_qtype'] = QType(q=int_q, bits=32, signed=True)
             # set biases to output of perceptron

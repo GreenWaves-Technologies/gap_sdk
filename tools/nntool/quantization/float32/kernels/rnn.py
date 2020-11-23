@@ -213,8 +213,6 @@ def rnn(params: RNNBaseParameters,
     if params.always_reset_state:
         for state_key in params.STATE_PARAMETERS:
             args[state_key] = args[state_key].copy()
-    if params.transpose_in:
-        in_tensor = np.transpose(in_tensor, params.transpose_in[0])
     assert in_tensor.shape[0] == params.n_input_cells, "input shape incorrect - n_input_cells"
     assert in_tensor.shape[1] == params.n_inputs, "input shape incorrect - n_inputs"
     if params.revert:
@@ -242,6 +240,4 @@ def rnn(params: RNNBaseParameters,
 
     if params.revert:
         out_tensor = np.flip(out_tensor, axis=0)
-    if params.transpose_out:
-        out_tensor = np.transpose(out_tensor, params.transpose_out[0])
     return [out_tensor]

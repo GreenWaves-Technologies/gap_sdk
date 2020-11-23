@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
 
@@ -1240,3 +1244,4 @@ void Ker_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg)
 	Ker_Activation_SQ8(In+First, Out+First, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
 }
+#pragma GCC diagnostic pop

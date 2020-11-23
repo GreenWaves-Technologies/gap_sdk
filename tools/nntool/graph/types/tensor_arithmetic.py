@@ -15,11 +15,11 @@
 
 import logging
 
-from .base import Parameters, SameNumberOfDimensionsForInputs
+from .base import Transposable, SameNumberOfDimensionsForInputs
 
 LOG = logging.getLogger("nntool." + __name__)
 
-class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForInputs):
+class MatrixBroadcastedLinearOpParameters(Transposable, SameNumberOfDimensionsForInputs):
     def __init__(self, name, *args, **kwargs):
         super(MatrixBroadcastedLinearOpParameters, self).__init__(name, *args, **kwargs)
         self.at_options.valid_options['PARALLELFEATURES'] = int
@@ -40,11 +40,18 @@ class MatrixBroadcastedLinearOpParameters(Parameters, SameNumberOfDimensionsForI
 
     def get_output_size(self, in_dims):
         self.in_dims = self.clone_dim_with_hints(in_dims)
-        max_idx, _ = max(enumerate(self.in_dims), key=lambda x: x[1].size())
-        return [self.in_dims[max_idx].clone()]
+        if self.transpose_in:
+            in_dims = [dim.calc_transpose(trans) if trans is not None else dim for dim, trans in zip(self.in_dims, self.transpose_in)]
+        else:
+            in_dims = self.in_dims
+        max_idx, _ = max(enumerate(in_dims), key=lambda x: x[1].size())
+        out_dim = in_dims[max_idx].clone()
+        if self.transpose_out and self.transpose_out[0]:
+            out_dim.transpose(self.transpose_out[0])
+        return [out_dim]
 
     def __str__(self):
-        return "{} {}".format(self.op_name, self.at_options)
+        return "{} {} {}".format(self.op_name, Transposable.__str__(self), self.at_options)
 
 
 class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):

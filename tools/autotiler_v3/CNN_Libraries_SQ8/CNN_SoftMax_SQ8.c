@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <stdio.h>
 #include <math.h>
 #include "CNN_BasicKernels_SQ8.h"
@@ -229,3 +233,4 @@ void KerParSoftMax_SQ8(KerSoftMax_SQ8_T *Arg)
 	gap_waitbarrier(0);
 
 }
+#pragma GCC diagnostic pop

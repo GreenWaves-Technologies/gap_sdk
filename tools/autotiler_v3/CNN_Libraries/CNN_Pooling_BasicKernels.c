@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <stdio.h>
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
@@ -3022,3 +3026,4 @@ void KerPoolNxMStrideSxSy_fp(KerReLUPool_fp_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+#pragma GCC diagnostic pop

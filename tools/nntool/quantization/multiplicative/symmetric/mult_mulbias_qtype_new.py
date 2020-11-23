@@ -98,6 +98,14 @@ class MultMulBiasScaleQType(MultMulBiasQType):
     def pre_normalization(self, val):
         self._info['pre_normalization'] = val
 
+    @staticmethod
+    def reshape_transpose(trans, dim, val):
+        return np.reshape(np.transpose(np.reshape(val, dim.shape), trans), val.shape)
+
+    def reorder(self, trans, dim):
+        if self.scale.size > 1:
+            self.scale = self.reshape_transpose(trans, dim, self.scale)
+
     def _encapsulate(self):
         return {
             "qnorms": self.qnorms,

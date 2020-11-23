@@ -16,13 +16,13 @@
 import logging
 
 from graph.dim import Dim
-from graph.types.base import Transposable, SingleInputAndOutput
+from graph.types.base import Parameters, SensitiveToOrder, SingleInputAndOutput
 from graph.types.input_output import ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
 #pylint: disable=abstract-method
-class RNNBaseParameters(Transposable, SingleInputAndOutput):
+class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     INPUT_NAMES = []
     STATE_PARAMETERS = []
@@ -38,8 +38,12 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
         self.n_output_cells = n_output_cells
         self.at_options.valid_options['PARALLELFEATURES'] = int
         self.at_options.valid_options['ENABLEIM2COL'] = int
+        self.at_options.valid_options['RNN_USE_HARDACT'] = int
+        self.at_options.valid_options['RNN_SAME_INOUT_SCALE'] = int
         self.revert = revert
         self.always_reset_state = True
+        self.hard_act = False
+        self.same_in_out_scale = False
 
     def get_parameter_size(self):
         return 0
@@ -79,20 +83,37 @@ class RNNBaseParameters(Transposable, SingleInputAndOutput):
 
     def get_output_size(self, in_dims):
         out_dim = Dim.unnamed([self.n_output_cells, self.n_states])
-        if self.transpose_out:
-            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     @property
     def can_equalize(self):
         return False
 
+    @property
+    def hard_act(self):
+        if hasattr(self.at_options, 'use_hard_act'):
+            return self.at_options.use_hard_act == 1
+        return False
+
+    @hard_act.setter
+    def hard_act(self, val):
+        self.at_options.use_hard_act = 1 if val else 0
+
+    @property
+    def same_in_out_scale(self):
+        if hasattr(self.at_options, 'same_in_out_scale'):
+            return self.at_options.same_in_out_scale == 1
+        return False
+
+    @same_in_out_scale.setter
+    def same_in_out_scale(self, val):
+        self.at_options.same_in_out_scale = 1 if val else 0
+
     def compute_load(self):
         return self.in_dims[0].size() * 2
 
     def __str__(self):
-        return "{}{}{} {}".format(
-            Transposable.__str__(self),
+        return "{}{} {}".format(
             ("Reversed " if self.revert else ""),
             self.activation,
             self.at_options

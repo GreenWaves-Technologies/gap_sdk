@@ -1,3 +1,8 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "nntool_extra_kernels.h"
 
 static int CoreCountDynamic = 1;
@@ -36,3 +41,5 @@ void CNN_Copy_fps(KerCopy_fps_T * Arg)
 	if (Iter & 0x2) *((short int *) (To + First + B_CLR(Iter, 2))) = *((short int *) (From + First + B_CLR(Iter, 2)));
 	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
 }
+
+#pragma GCC diagnostic pop

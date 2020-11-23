@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
 
@@ -2872,3 +2876,4 @@ void KerDPMulBias_IO_fps(KerDP_fps_T *Arg)
 	}
 #endif
 }
+#pragma GCC diagnostic pop

@@ -53,7 +53,7 @@ class MatchRnnUnpack(Matcher):
                 continue
             unpack_node = rnn_unpack[-1]
             rnn_node = rnn_unpack[0]
-            time_axis = rnn_node.transpose_out[0].index(0) if rnn_node.transpose_out else 0
+            time_axis = 0
             if isinstance(unpack_node, StridedSliceParameters):
                 if unpack_node.act_slice[time_axis][1] != rnn_node.n_cells:
                     LOG.debug("can't remove %s. Slice not equal to cells", unpack_node.name)
@@ -94,7 +94,6 @@ class MatchRnnUnpack(Matcher):
             rnn_node.n_output_cells = 1
             rnn_node.out_dims[0] = unpack_node.out_dims[out_edge.from_idx]
             rnn_node.out_dims_hint = [unpack_node.out_dims_hint[out_edge.from_idx]]
-            rnn_node.transpose_out = None
             G.add_edge(NNEdge(rnn_node, out_edge.to_node, to_idx=out_edge.to_idx))
 
         if set_identity:
