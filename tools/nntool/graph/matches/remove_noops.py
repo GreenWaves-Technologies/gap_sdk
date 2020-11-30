@@ -13,21 +13,36 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from utils.graph import GraphView, MatchNode, Node, Edge
-from graph.types import NoOPParameters
-from .matcher import DefaultMatcher
+from graph.types.others import ReshapeParameters, TransposeParameters
+from graph.types import NNEdge, NoOPParameters
+from utils.graph import GraphView
 
-class NoOPMatcher(MatchNode):
-    def _match(self, G: GraphView, node: Node, edge: Edge):
-        return isinstance(node, NoOPParameters)
+from .matcher import Matcher
 
-class RemoveNoOPs(DefaultMatcher):
+
+class RemoveNoOPs(Matcher):
     NAME = "remove_noops"
     DESCRIPTION = "Remove noop nodes"
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(NoOPMatcher('0'))
-        return G.match_fragment(sub)
 
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        return None, None, None
+    @staticmethod
+    def node_does_nothing(node):
+        return (isinstance(node, NoOPParameters) or
+                isinstance(node, TransposeParameters) and node.transpose_in is None or
+                isinstance(node, ReshapeParameters) and node.old_shape == node.shape)
+
+    def match(self, G: GraphView, set_identity: bool = True) -> bool:
+        has_modified_graph = False
+        for node in [node for node in G.nodes() if self.node_does_nothing(node)]:
+            has_modified_graph = True
+            in_edge = G.in_edges(node.name)[0]
+            G.remove_edge(in_edge)
+            for out_edge in G.out_edges(node.name):
+                G.remove_edge(out_edge)
+                G.add_edge(NNEdge(in_edge.from_node, out_edge.to_node,
+                                  from_idx=in_edge.from_idx, to_idx=out_edge.to_idx))
+            G.remove(node)
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph

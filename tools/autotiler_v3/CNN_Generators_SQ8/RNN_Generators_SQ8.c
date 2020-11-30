@@ -16,7 +16,7 @@ void Load_RNN_SQ8_Library()
 
 {
         LibKernelTemplate("KerRNN_SQ8_T",
-                  CArgs(13,
+                  CArgs(14,
                         TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -29,14 +29,18 @@ void Load_RNN_SQ8_Library()
                         TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
         );
-        LibKernel("RNN_KerB32_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
-        LibKernel("RNN_ParKerB32_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_KerB32_SQ8",			     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_SQ8",			     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_SameInStateScale_SQ8",      CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_Hard_SQ8",		     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_Hard_SameInStateScale_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
 
         LibKernelTemplate("KerLSTM_SQ8_T",
-                  CArgs(19,
+                  CArgs(20,
                         TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -55,15 +59,19 @@ void Load_RNN_SQ8_Library()
                         TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
         );
-        LibKernel("LSTM_KerB32_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
-        LibKernel("LSTM_ParKerB32_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_KerB32_SQ8",                          CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_SQ8",                       CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_SameInStateScale_SQ8",      CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_Hard_SQ8",                  CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_Hard_SameInStateScale_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
 
 
         LibKernelTemplate("KerGRU_SQ8_T",
-                  CArgs(18,
+                  CArgs(19,
 			TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -81,6 +89,7 @@ void Load_RNN_SQ8_Library()
 			TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
 	);
@@ -166,7 +175,7 @@ static int RNN_Stack_RevertedSeq_SQ8(
                 ),
 		Calls(1,
 			Call(RNNKerName, LOC_LOOP,
-				Bindings(12,
+				Bindings(14,
 					K_Arg("Hinout",  KER_ARG_TILE),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin", KER_ARG_TILE):Imm(0),
@@ -176,6 +185,7 @@ static int RNN_Stack_RevertedSeq_SQ8(
 					K_Arg("Bf", KER_ARG_TILE_H),
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPredList(BIND_PRED_AND, 2, K_ArgPred("Wf", KER_ARG_TILEFIRST, T0), K_ArgPred("Wf", KER_ARG_TILEFIRST, D0)),
+					K_Arg("Bf", KER_ARG_TILE_BASE),
 					C_Arg("Reset")
 					)
 			)
@@ -279,7 +289,7 @@ static int RNN_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(RNNKerName, LOC_LOOP,
-				Bindings(13,
+				Bindings(14,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("Sin",  KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("Sout",  KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin", KER_ARG_TILE):Imm(0),
@@ -290,6 +300,7 @@ static int RNN_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bf", KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -357,12 +368,23 @@ int RNN_Stack_SQ8(
 	if (K0>NCells) GenTilingError("RNN_Stack_SQ8, %s, K0, Number of input should be in [1,NCells]\n", Name, K0);
 	if (K1>NCells) GenTilingError("RNN_Stack_SQ8, %s, K1, Number of ouput should be in [1,NCells]\n", Name, K1);
 
+	int UseHardAct = 1;
+	int SameInStateScales = 1;
+	if (Ctrl) {
+		if (Ctrl->RNNUseHardActivation != -1) UseHardAct = Ctrl->RNNUseHardActivation;
+		if (Ctrl->RNNSameInStateScales != -1) SameInStateScales = Ctrl->RNNSameInStateScales;
+	}
+
 	int ParFeat = 1;
 	int PerCell = 0;
 	int PerChanQuant = 0;
 	unsigned S_Attr = 0 | ((!AlwaysReset)?O_IN:0) | ((!AlwaysReset)?O_OUT:0);
 
-	char *RNNKerName = ParFeat?"RNN_ParKerB32_SQ8":"RNN_KerB32_SQ8";
+	char *RNNKerName = ParFeat?(UseHardAct? \
+				    (SameInStateScales?"RNN_ParKerB32_Hard_SameInStateScale_SQ8":"RNN_ParKerB32_Hard_SQ8"): \
+				    (SameInStateScales?"RNN_ParKerB32_SameInStateScale_SQ8":"RNN_ParKerB32_SQ8") \
+				   ): \
+			   "RNN_KerB32_SQ8";
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 	int DimOut = PerCell?NCells:1;
@@ -556,7 +578,7 @@ static int LSTM_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(LSTMKerName, LOC_LOOP,
-				Bindings(19,
+				Bindings(20,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("SCin",  KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("SCout",  KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin",  KER_ARG_TILE):Imm(0),
@@ -570,6 +592,7 @@ static int LSTM_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bo",     KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -678,7 +701,18 @@ int LSTM_Stack_SQ8(
 	int PerCell = 0;
 	int PerChanQuant = 0;
 
-	char *LSTMKerName = ParFeat?"LSTM_ParKerB32_SQ8":"LSTM_KerB32_SQ8";
+	int UseHardAct = 1;
+	int SameInStateScales = 1;
+	if (Ctrl) {
+		if (Ctrl->RNNUseHardActivation != -1) UseHardAct = Ctrl->RNNUseHardActivation;
+		if (Ctrl->RNNSameInStateScales != -1) SameInStateScales = Ctrl->RNNSameInStateScales;
+	}
+
+	char *LSTMKerName = ParFeat?(UseHardAct? \
+								 (SameInStateScales?"LSTM_ParKerB32_Hard_SameInStateScale_SQ8":"LSTM_ParKerB32_Hard_SQ8"): \
+								 (SameInStateScales?"LSTM_ParKerB32_SameInStateScale_SQ8":"LSTM_ParKerB32_SQ8") \
+								): \
+						"LSTM_KerB32_SQ8";
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 	int DimOut = PerCell?NCells:1;
@@ -903,7 +937,7 @@ static int GRU_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(GRUKerName, LOC_LOOP,
-				Bindings(18,
+				Bindings(19,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("Sin", KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("Sout", KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin",  KER_ARG_TILE):Imm(0),
@@ -917,6 +951,7 @@ static int GRU_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bh",     KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)

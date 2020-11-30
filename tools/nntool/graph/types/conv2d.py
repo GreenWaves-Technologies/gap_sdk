@@ -17,10 +17,35 @@ import logging
 
 
 from ..dim import DilationDim
-from .base import FilterLikeParameters, MultiplicativeBiasParameters, Transposable
+from .base import FilterLikeParameters, MultiplicativeBiasParameters, NoSizeChangeParameters, SingleInputAndOutput, Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
+class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput, Transposable):
+
+    op_name = "batchnorm"
+
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, name, scale=None, bias=None, running_mean=None,
+                 running_variance=None, spatial=None, momentum=None, epsilon=None,  **kwargs):
+        super(BatchNormalizationParameters, self).__init__(name, **kwargs)
+        self.scale = scale
+        self.bias = bias
+        self.running_mean = running_mean
+        self.running_variance = running_variance
+        self.spatial = spatial
+        self.momentum = momentum
+        self.epsilon = epsilon
+
+    def get_parameter_size(self):
+        return 0
+
+    def __str__(self):
+        return "{} {}".format(
+            Transposable.__str__(self),
+            self.at_options or ""
+        )
 
 class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Transposable):
 
@@ -88,7 +113,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
                 new_conv.biases = self.biases[offset:offset + num_out - 1]
 
             if self.weights is not None:
-                # TODO - THIS IS NOT CORRECT. CHECK ORDER.
+                # TODO - THIS IS NOT CORRECT BUT UNUSED AT PRESENT. CHECK ORDER.
                 new_conv.weights = self.weights[offset:offset +
                                                 num_out - 1, ...]
 

@@ -15,13 +15,15 @@
 
 import logging
 
-from .adjust_base import AdjusterBase
+from graph.types import Conv2DParameters
+
+from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
 AT_CONVFILTER_ORD = ['out_c', 'in_c', 'h', 'w']
 
-
+@handles(Conv2DParameters)
 class ConvAdjuster(AdjusterBase):
     def adjust_input(self, G, node, names):
         self.verify_chw(node, names)

@@ -1267,6 +1267,23 @@ void vp::reg_32::build(vp::component *top, std::string name)
     top->new_reg(name, this, this->reset_val, this->do_reset);
 }
 
+void vp::reg_32::write(int reg_offset, int size, uint8_t *value)
+{
+    uint8_t *dest = this->value_bytes+reg_offset;
+    uint8_t *src = value;
+    uint8_t *mask = ((uint8_t *)&this->write_mask) + reg_offset;
+
+    for (int i=0; i<size; i++)
+    {
+        dest[i] = (dest[i] & ~mask[i]) | (src[i] & mask[i]);
+    }
+    this->dump_after_write();
+    if (this->reg_event.get_event_active())
+    {
+        this->reg_event.event((uint8_t *)this->value_bytes);
+    }
+}
+
 void vp::reg_64::build(vp::component *top, std::string name)
 {
     top->new_reg(name, this, this->reset_val, this->do_reset);

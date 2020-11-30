@@ -975,6 +975,8 @@ typedef struct {
 	char Out_L3;		/* if != 0 Out forced to be in L3 memory */
 	char Scale_L3;		/* if != 0 Scale forced to be in L3 memory */
 	char ScaleN_L3;		/* if != 0 ScaleN forced to be in L3 memory */
+	char RNNUseHardActivation; /* if != -1 Overides the usage of HARD activations in RNNs/LSTMs Generator (default use Hard ones) */ 
+	char RNNSameInStateScales; /* if != -1 Overides the RNNs/LSTMs input and state Quantization handling (default they must be the same) */ 
 } CNN_GenControl_T;
 
 typedef struct {

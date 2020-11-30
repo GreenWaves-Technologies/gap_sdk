@@ -327,22 +327,64 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_MASK                            0x2
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_RESET                           0x0
         
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_WIDTH                        2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_MASK                         0xc
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_RESET                        0x0
+        
         // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          4
         #define UDMA_HYPER_TRANS_MODE_STREAM_EN_WIDTH                        1
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x4
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x10
         #define UDMA_HYPER_TRANS_MODE_STREAM_EN_RESET                        0x0
         
-        // Transfer mode in XIP mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_BIT                      3
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_WIDTH                    1
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_MASK                     0x8
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_RESET                    0x0
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_BIT                      5
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_MASK                     0x20
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_BIT                 6
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_WIDTH               1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_MASK                0x40
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_RESET               0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_BIT                          7
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_MASK                         0x80
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_BIT                      8
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_MASK                     0x100
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_BIT                  9
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_WIDTH                1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_MASK                 0x200
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_RESET                0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_BIT             10
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_WIDTH           1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_MASK            0x400
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_RESET           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_BIT                          11
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_MASK                         0x800
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_RESET                        0x0
         
         // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         4
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         12
         #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_WIDTH                       1
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x10
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x1000
         #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_RESET                       0x0
         
         // Transfer addr, only when MODE is in AUTO (access: R/W)
@@ -909,20 +951,55 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN(val)                  ((val) << 1)
         
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 2)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GET(value)         (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GETS(value)        (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_SET(value,field)   (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0(val)               ((val) << 2)
         
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_GET(value)     (GAP_BEXTRACTU((value),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_GETS(value)    (GAP_BEXTRACT((value),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_SET(value,field) (GAP_BINSERT((value),(field),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN(val)           ((val) << 3)
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 4)
         
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 4)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN(val)           ((val) << 5)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256(val)      ((val) << 6)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GET(value)         (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GETS(value)        (GAP_BEXTRACT((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_SET(value,field)   (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1(val)               ((val) << 7)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN(val)           ((val) << 8)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GET(value) (GAP_BEXTRACTU((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GETS(value) (GAP_BEXTRACT((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN(val)       ((val) << 9)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256(val)  ((val) << 10)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GET(value)         (GAP_BEXTRACTU((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GETS(value)        (GAP_BEXTRACT((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_SET(value,field)   (GAP_BINSERT((value),(field),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2(val)               ((val) << 11)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 12)
         
         #define UDMA_HYPER_TRANS_ADDR_ADDR_GET(value)              (GAP_BEXTRACTU((value),32,0))
         #define UDMA_HYPER_TRANS_ADDR_ADDR_GETS(value)             (GAP_BEXTRACT((value),32,0))
@@ -1431,8 +1508,15 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved0       :2 ; // -
             unsigned int stream_en       :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
-            unsigned int stream_xip_en   :1 ; // Transfer mode in XIP mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int aes_stream_en   :1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved1       :1 ; // -
+            unsigned int xip_stream_en   :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int xip_aes_stream_en:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int xip_aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved2       :1 ; // -
             unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
           };
           unsigned int raw;
@@ -1972,19 +2056,33 @@ Configure transaction mode
 
 .. table:: 
 
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|    Name     |                                                                                    Description                                                                                    |
-    +=====+===+=============+===================================================================================================================================================================================+
-    |    0|R/W|AUTO_ENA     |Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN         |
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    1|R/W|XIP_EN       |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN                |
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    2|R/W|STREAM_EN    |Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN|
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    3|R/W|STREAM_XIP_EN|Transfer mode in XIP mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN   |
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    4|R/W|XIP_HALTED   |Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED                                                                    |
-    +-----+---+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|         Name         |                                                                                    Description                                                                                    |
+    +=====+===+======================+===================================================================================================================================================================================+
+    |    0|R/W|AUTO_ENA              |Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN         |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    1|R/W|XIP_EN                |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN                |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |3:2  |R/W|RESERVED0             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    4|R/W|STREAM_EN             |Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN|
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    5|R/W|AES_STREAM_EN         |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    6|R/W|AES_STREAM_128_256    |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    7|R/W|RESERVED1             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    8|R/W|XIP_STREAM_EN         |Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN|
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    9|R/W|XIP_AES_STREAM_EN     |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   10|R/W|XIP_AES_STREAM_128_256|Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   11|R/W|RESERVED2             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   12|R/W|XIP_HALTED            |Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED                                                                    |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2026,22 +2124,64 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_MASK                            0x2
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_RESET                           0x0
         
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_WIDTH                        2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_MASK                         0xc
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_RESET                        0x0
+        
         // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          4
         #define UDMA_HYPER_TRANS_MODE_STREAM_EN_WIDTH                        1
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x4
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x10
         #define UDMA_HYPER_TRANS_MODE_STREAM_EN_RESET                        0x0
         
-        // Transfer mode in XIP mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_BIT                      3
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_WIDTH                    1
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_MASK                     0x8
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_RESET                    0x0
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_BIT                      5
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_MASK                     0x20
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_BIT                 6
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_WIDTH               1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_MASK                0x40
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_RESET               0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_BIT                          7
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_MASK                         0x80
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_BIT                      8
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_MASK                     0x100
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_BIT                  9
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_WIDTH                1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_MASK                 0x200
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_RESET                0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_BIT             10
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_WIDTH           1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_MASK            0x400
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_RESET           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_BIT                          11
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_MASK                         0x800
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_RESET                        0x0
         
         // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         4
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         12
         #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_WIDTH                       1
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x10
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x1000
         #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_RESET                       0x0
 
 .. toggle-header::
@@ -2060,20 +2200,55 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN(val)                  ((val) << 1)
         
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,2))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 2)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GET(value)         (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GETS(value)        (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_SET(value,field)   (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0(val)               ((val) << 2)
         
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_GET(value)     (GAP_BEXTRACTU((value),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_GETS(value)    (GAP_BEXTRACT((value),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN_SET(value,field) (GAP_BINSERT((value),(field),1,3))
-        #define UDMA_HYPER_TRANS_MODE_STREAM_XIP_EN(val)           ((val) << 3)
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 4)
         
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 4)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN(val)           ((val) << 5)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256(val)      ((val) << 6)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GET(value)         (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GETS(value)        (GAP_BEXTRACT((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_SET(value,field)   (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1(val)               ((val) << 7)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN(val)           ((val) << 8)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GET(value) (GAP_BEXTRACTU((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GETS(value) (GAP_BEXTRACT((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN(val)       ((val) << 9)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256(val)  ((val) << 10)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GET(value)         (GAP_BEXTRACTU((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GETS(value)        (GAP_BEXTRACT((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_SET(value,field)   (GAP_BINSERT((value),(field),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2(val)               ((val) << 11)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 12)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2085,8 +2260,15 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved0       :2 ; // -
             unsigned int stream_en       :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
-            unsigned int stream_xip_en   :1 ; // Transfer mode in XIP mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int aes_stream_en   :1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved1       :1 ; // -
+            unsigned int xip_stream_en   :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int xip_aes_stream_en:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int xip_aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved2       :1 ; // -
             unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
           };
           unsigned int raw;
@@ -2105,10 +2287,24 @@ Generated headers
             inline uint32_t auto_ena_get();
             inline void xip_en_set(uint32_t value);
             inline uint32_t xip_en_get();
+            inline void reserved0_set(uint32_t value);
+            inline uint32_t reserved0_get();
             inline void stream_en_set(uint32_t value);
             inline uint32_t stream_en_get();
-            inline void stream_xip_en_set(uint32_t value);
-            inline uint32_t stream_xip_en_get();
+            inline void aes_stream_en_set(uint32_t value);
+            inline uint32_t aes_stream_en_get();
+            inline void aes_stream_128_256_set(uint32_t value);
+            inline uint32_t aes_stream_128_256_get();
+            inline void reserved1_set(uint32_t value);
+            inline uint32_t reserved1_get();
+            inline void xip_stream_en_set(uint32_t value);
+            inline uint32_t xip_stream_en_get();
+            inline void xip_aes_stream_en_set(uint32_t value);
+            inline uint32_t xip_aes_stream_en_get();
+            inline void xip_aes_stream_128_256_set(uint32_t value);
+            inline uint32_t xip_aes_stream_128_256_get();
+            inline void reserved2_set(uint32_t value);
+            inline uint32_t reserved2_get();
             inline void xip_halted_set(uint32_t value);
             inline uint32_t xip_halted_get();
         };

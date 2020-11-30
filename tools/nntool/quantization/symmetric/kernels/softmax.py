@@ -14,9 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-
+from graph.types.activations import SoftMaxParameters
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              qrec_type, quantization)
+from quantization.multiplicative.mult_quantization import \
+    MultQuantizationRecord
 from quantization.quantization_record_base import QuantizationRecordBase
-from quantization.multiplicative.mult_quantization import MultQuantizationRecordBase
 from utils.exp_17_15 import exp_fp_17_15
 
 
@@ -26,33 +29,40 @@ def softmax_func(v):
     return np.exp(v)/np.sum(np.exp(v))
 
 
-def softmax(params,
-            in_tensors,
-            qrec: QuantizationRecordBase,
-            details=None):
-    if isinstance(qrec, MultQuantizationRecordBase):
-        return softmax_sq8(params, in_tensors, qrec, details=details)
-
-    np.seterr(over='raise')
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-    # TODO - Implement properly quantized version
-    in_tensor = qrec.in_qs[0].dequantize(in_tensor)
-    return qrec.get_outputs(params, [qrec.out_qs[0].quantize(softmax_func(in_tensor))], ktype="symmetric")
-
-
-# void KerParSoftMax_SQ8(KerSoftMax_SQ8_T *Arg)
-def softmax_sq8(params,
+@params_type(SoftMaxParameters)
+@quantization('symmetric')
+class SoftMaxSymmetric(KernelBase):
+    @classmethod
+    def execute(cls, params,
                 in_tensors,
                 qrec: QuantizationRecordBase,
-                details=None):
-    del details
-    in_tensor = in_tensors[0].flatten()
-    max_val = np.max(in_tensor)
-    norm = 15 + np.ceil(np.log2(qrec.in_qs[0].scale)).astype(np.int32)
-    exp = exp_fp_17_15((in_tensor.astype(np.int32) - max_val) << (norm))
-    sum_exp = np.sum(exp)
-    inv_sum = (np.array([(1 << 15)-1], dtype=np.uint32) << 15)//sum_exp
-    res = np.abs((exp * inv_sum + (1 << 14)) >> 15)
-    iinfo = np.iinfo(np.int16)
-    res = np.clip(res, iinfo.min, iinfo.max).astype(np.int16).reshape(params.out_dims[0].shape)
-    return qrec.get_outputs(params, [res], ktype="symmetric")
+                **kwargs):
+
+        old_err = np.seterr(over='raise')
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        # TODO - Implement properly quantized version
+        in_tensor = qrec.in_qs[0].dequantize(in_tensor)
+        in_tensor = qrec.out_qs[0].quantize(softmax_func(in_tensor))
+        np.seterr(**old_err)
+        return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
+
+
+@params_type(SoftMaxParameters)
+@quantization('symmetric')
+@qrec_type(MultQuantizationRecord)
+class SoftMaxSymmetricMult(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        in_tensor = in_tensors[0].flatten()
+        max_val = np.max(in_tensor)
+        norm = 15 + np.ceil(np.log2(qrec.in_qs[0].scale)).astype(np.int32)
+        exp = exp_fp_17_15((in_tensor.astype(np.int32) - max_val) << (norm))
+        sum_exp = np.sum(exp)
+        inv_sum = (np.array([(1 << 15)-1], dtype=np.uint32) << 15)//sum_exp
+        res = np.abs((exp * inv_sum + (1 << 14)) >> 15)
+        iinfo = np.iinfo(np.int16)
+        res = np.clip(res, iinfo.min, iinfo.max).astype(np.int16).reshape(params.out_dims[0].shape)
+        return qrec.get_outputs(params, [res], ktype="symmetric")

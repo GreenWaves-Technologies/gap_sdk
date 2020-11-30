@@ -36,8 +36,7 @@
 
 /* Peripherals */
 /* SoC peripherals */
-#define SOC_FLL_OFFSET              (0x00000000)
-#define CL_FLL_OFFSET               (0x00000800)
+#define FLL_OFFSET                  (0x00000000)
 #define GPIO_OFFSET                 (0x00001000)
 #define UDMA_OFFSET                 (0x00002000)
 #define APB_SOC_CTRL_OFFSET         (0x00004000)
@@ -46,6 +45,21 @@
 #define DLC_OFFSET                  (0x00007000)
 #define RTC_BASE_OFFSET             (0x00008000)
 #define EFUSE_OFFSET                (0x00009000)
+
+/* CLOCKS */
+#define ARCHI_REF_CLOCK_LOG2        (15)
+#define ARCHI_REF_CLOCK             (1 << ARCHI_REF_CLOCK_LOG2) // 32kHz, 32768
+#define ARCHI_FLL_REF_CLOCK_LOG2    (ARCHI_REF_CLOCK_LOG2)
+#define ARCHI_FLL_REF_CLOCK         (ARCHI_REF_CLOCK)
+
+/* FLL */
+#define ARCHI_FREQ_INIT             (50000000)
+#define ARCHI_NB_FLL                (2)
+#define FLL_SIZE_LOG2               (4)
+#define FLL_SIZE                    (1 << FLL_SIZE_LOG2)
+#define FLL_ID_PERIPH               (0)
+#define FLL_ID_FC                   (0)
+#define FLL_ID_CL                   (1)
 
 /* UDMA peripherals */
 #define UDMA_HAS_SPIM               (1)

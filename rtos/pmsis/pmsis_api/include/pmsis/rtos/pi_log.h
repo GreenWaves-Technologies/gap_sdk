@@ -360,6 +360,22 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 #define MRAM_TRC(fmt, ...)
 #endif
 
+#if defined(CONFIG_TRACE_ALL) || defined(CONFIG_TRACE_FREQ)
+#define FREQ_TAG "FREQ"
+#define FREQ_COLOR LOG_COLOR_PURPLE
+#define FREQ_ERR(fmt, ...) PI_LOG_ERR(FREQ_TAG, FREQ_COLOR, fmt, ##__VA_ARGS__)
+#define FREQ_WNG(fmt, ...) PI_LOG_WNG(FREQ_TAG, FREQ_COLOR, fmt, ##__VA_ARGS__)
+#define FREQ_INF(fmt, ...) PI_LOG_INF(FREQ_TAG, FREQ_COLOR, fmt, ##__VA_ARGS__)
+#define FREQ_DBG(fmt, ...) PI_LOG_DBG(FREQ_TAG, FREQ_COLOR, fmt, ##__VA_ARGS__)
+#define FREQ_TRC(fmt, ...) PI_LOG_TRC(FREQ_TAG, FREQ_COLOR, fmt, ##__VA_ARGS__)
+#else
+#define FREQ_ERR(fmt, ...)
+#define FREQ_WNG(fmt, ...)
+#define FREQ_INF(fmt, ...)
+#define FREQ_DBG(fmt, ...)
+#define FREQ_TRC(fmt, ...)
+#endif
+
 #else
 
 #define SSBL_TAG "ssbl"
@@ -396,6 +412,13 @@ static inline int pi_log_default_vprintf(const char *format, va_list list)
 #define MRAM_INF(fmt, ...) PI_LOG_INF(MRAM_TAG, fmt, ##__VA_ARGS__)
 #define MRAM_DBG(fmt, ...) PI_LOG_DBG(MRAM_TAG, fmt, ##__VA_ARGS__)
 #define MRAM_TRC(fmt, ...) PI_LOG_TRC(MRAM_TAG, fmt, ##__VA_ARGS__)
+
+#define freq_TAG "freq"
+#define FREQ_ERR(fmt, ...) PI_LOG_ERR(FREQ_TAG, fmt, ##__VA_ARGS__)
+#define FREQ_WNG(fmt, ...) PI_LOG_WNG(FREQ_TAG, fmt, ##__VA_ARGS__)
+#define FREQ_INF(fmt, ...) PI_LOG_INF(FREQ_TAG, fmt, ##__VA_ARGS__)
+#define FREQ_DBG(fmt, ...) PI_LOG_DBG(FREQ_TAG, fmt, ##__VA_ARGS__)
+#define FREQ_TRC(fmt, ...) PI_LOG_TRC(FREQ_TAG, fmt, ##__VA_ARGS__)
 
 #endif
 

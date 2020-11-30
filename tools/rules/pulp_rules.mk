@@ -81,7 +81,7 @@ APP_ARCH_CFLAGS ?= -mchip=gap8 -mPE=8 -mFC=1
 else
 APP_ARCH_CFLAGS ?= -mchip=gap9 -mPE=8 -mFC=1
 endif
-APP_ARCH_LDFLAGS ?=
+APP_ARCH_LDFLAGS ?= -march=rv32imcxgap8 -mPE=8 -mFC=1
 
 PULP_ARCH_CFLAGS ?= $(APP_ARCH_CFLAGS)
 PULP_ARCH_LDFLAGS ?= $(APP_ARCH_LDFLAGS)

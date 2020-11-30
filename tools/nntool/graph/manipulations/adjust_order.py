@@ -15,13 +15,9 @@
 
 import logging
 
-from ..types import (ConcatParameters, Conv2DParameters,
-                     PoolingParameters, SplitParameters, GlobalPoolParameters)
-from .adjusts.concat import ConcatAdjuster
-from .adjusts.conv import ConvAdjuster
-from .adjusts.global_pool import GlobalPoolAdjuster
-from .adjusts.pool import PoolAdjuster
-from .adjusts.split import SplitAdjuster
+#pylint: disable=wildcard-import
+from .adjusts import *
+from .adjust_base import AdjusterBase
 from .dimensions import add_dimensions
 from .eliminate_transposes import eliminate_transposes
 
@@ -30,13 +26,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None):
     opts = {'reshape_weights': reshape_weights}
-    selector = {
-        ConcatParameters: ConcatAdjuster(opts),
-        Conv2DParameters: ConvAdjuster(opts),
-        GlobalPoolParameters: GlobalPoolAdjuster(opts),
-        PoolingParameters: PoolAdjuster(opts),
-        SplitParameters: SplitAdjuster(opts),
-    }
+    selector = AdjusterBase.get_all_handlers(opts)
     LOG.info("adding transposes to correct tensor order for AT kernels")
     for node in [n for n in G.nodes() if n.__class__ in selector]:
         adjuster = selector[node.__class__]

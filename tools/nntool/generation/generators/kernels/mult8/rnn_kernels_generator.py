@@ -94,7 +94,7 @@ class RNNKernel(AutotilerKernel):
         self.revert = rnn_params.revert
         if not rnn_params.hard_act and gen_ctrl.rnn_use_hardact is None:
             gen_ctrl.rnn_use_hardact = 0
-        if not rnn_params.same_in_out_scale and gen_ctrl.rnn_same_inout_scale is None:
+        if not rnn_params.rnn_same_inout_scale and gen_ctrl.rnn_same_inout_scale is None:
             gen_ctrl.rnn_same_inout_scale = 0
         self.cname = cname
         self.node_name = node_name

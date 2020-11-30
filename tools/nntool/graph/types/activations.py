@@ -173,9 +173,9 @@ class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
 
     op_name = "softmax"
 
-    def __init__(self, name, beta):
+    def __init__(self, name, beta=None):
         super(SoftMaxParameters, self).__init__(name)
-        self.beta = beta
+        self.beta = 0.0 if beta is None else beta
 
     def get_parameter_size(self):
         return 0

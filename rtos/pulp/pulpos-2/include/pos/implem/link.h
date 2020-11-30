@@ -125,5 +125,11 @@ static inline int pos_l1_size(int cid) { return (int)&__l1_heap_size; }
 #endif
 
 
+extern unsigned char _bss_start;
+extern unsigned char _bss_end;
+
+static inline void *pos_bss_start() { return ((char *)&_bss_start); }
+static inline int pos_bss_end() { return (int)&_bss_end; }
+
 
 #endif

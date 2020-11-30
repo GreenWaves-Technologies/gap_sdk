@@ -17,9 +17,10 @@ import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
+from graph.dim import Dim
 
 LOG = logging.getLogger("nntool." + __name__)
-LOGL = LOG.debug
+LOGL = LOG.info
 
 
 class Action(ABC):
@@ -154,6 +155,8 @@ class TransposePad(Action):
 
     def _execute(self, node):
         LOGL("%s", str(self))
+        node.padding = [node.padding[idx] for idx in self.transpose]
+        node.pad_vals = [node.pad_vals[idx] for idx in self.transpose]
 
     def __str__(self) -> str:
         return "%s transpose pad parameters with %s" % (self.node.name, self.transpose)
@@ -210,6 +213,7 @@ class ReorderConstantInput(TransposeInputBase):
     def _execute(self, node):
         LOGL("%s", str(self))
         node.value = np.transpose(node.value, self.transpose)
+        node.dims = Dim.unnamed(node.value.shape)
 
     def __str__(self) -> str:
         return "%s reorder constant input to %s" % (self.node.name, self.transpose)

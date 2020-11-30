@@ -72,7 +72,8 @@ class Runner(runner.default_runner.Runner):
             pass
 
         self.areas = []
-        self.cmd_args = []
+        self.cmd_args = self.config.get('rtl/args').get_dict()
+
         self.plt_args = []
         self.env = {}
         self.platform_path = None
@@ -195,7 +196,10 @@ class Runner(runner.default_runner.Runner):
             status = 0
 
         if self.args.extend_traces:
-            traces = ['trace_core_1f_0.log', 'trace_core_00_0.log', 'trace_core_00_1.log', 'trace_core_00_2.log', 'trace_core_00_3.log', 'trace_core_00_4.log', 'trace_core_00_5.log', 'trace_core_00_6.log', 'trace_core_00_7.log', 'trace_core_00_8.log']
+            if os.environ.get('CONFIG_NEW_HARTS') is not None:
+                traces = ['trace_core_00_9.log', 'trace_core_00_0.log', 'trace_core_00_1.log', 'trace_core_00_2.log', 'trace_core_00_3.log', 'trace_core_00_4.log', 'trace_core_00_5.log', 'trace_core_00_6.log', 'trace_core_00_7.log', 'trace_core_00_8.log']
+            else:
+                traces = ['trace_core_1f_0.log', 'trace_core_00_0.log', 'trace_core_00_1.log', 'trace_core_00_2.log', 'trace_core_00_3.log', 'trace_core_00_4.log', 'trace_core_00_5.log', 'trace_core_00_6.log', 'trace_core_00_7.log', 'trace_core_00_8.log']
             binary = self.config.get_str('runner/boot-loader')
             rom_binary = '%s/boot/boot-gap9' % self.__get_platform_path()
 

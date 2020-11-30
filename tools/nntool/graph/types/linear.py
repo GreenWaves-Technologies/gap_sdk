@@ -27,10 +27,11 @@ LOG = logging.getLogger("nntool." + __name__)
 
 class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
     op_name = "linear"
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, keep_dims=False, **kwargs):
 
         super(FcParameters, self).__init__(*args, **kwargs)
         LOG.debug("created LINEAR %s", str(self))
+        self._keep_dims = keep_dims
 
     def get_parameter_size(self):
         return self.filter.size() + (self.has_bias and self.filter.out_c or 0)

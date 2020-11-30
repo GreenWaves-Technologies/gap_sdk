@@ -88,7 +88,7 @@ class ValidationError(InputError):
 
 class PartitionNameFilenamePairAction(argparse.Action):
 	def __init__(self, option_strings, dest, nargs = 2, default = {}, **kwargs):
-		if nargs is not 2:
+		if nargs != 2:
 			raise ValueError("nargs not allowed")
 		super(PartitionNameFilenamePairAction, self).__init__(
 			option_strings = option_strings,

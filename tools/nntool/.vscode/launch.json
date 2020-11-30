@@ -35,6 +35,27 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Python: start nntool with blstm",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "/home/osboxes/projects/nntool_examples/mnist_lstm/BUILD_MODEL_SQ8BIT_EMUL/mnist.json"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with blstm2",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "model/blstm_with_concat.tflite"
+            ],
+            "cwd": "${workspaceFolder}/../../nntool_examples/mnist_lstm",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Python: start nntool with lstm2",
             "type": "python",
             "request": "launch",
@@ -61,6 +82,16 @@
             "program": "${workspaceFolder}/nntool",
             "args": [
                 "tests/graph/visual_wake.tflite"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with ONNX emotion",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/emotion_ferplus.onnx"
             ],
             "console": "integratedTerminal"
         },
@@ -174,6 +205,17 @@
             "args": [
                 "tests/graph/vergesense_mnv2.tflite",
                 "-q"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: start nntool with lstm_norm tflite",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nntool",
+            "args": [
+                "tests/graph/lstm_norm.tflite"
             ],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"

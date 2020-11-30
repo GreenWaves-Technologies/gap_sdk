@@ -39,11 +39,11 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
         return [val[i] for i in self.transpose_in[0]]
 
     def does_nothing(self):
+        def not_one(x):
+            return x != 1
         return list(
-            filter(lambda x: x != 1,
-                   self.in_dims[0].shape)) == list(
-            filter(lambda x: x != 1,
-                   self.permute(self.in_dims[0].shape)))
+            filter(not_one, self.in_dims[0].shape)) == list(
+                filter(not_one, self.permute(self.in_dims[0].shape)))
 
     @property
     def can_equalize(self):
@@ -206,8 +206,9 @@ class SplitParameters(Transposable):
         return [arr[spec] for spec in slice_specs]
 
     @staticmethod
-    def get_splits(in_shape, axis, batch_dim, splits=None, num_splits=None):
+    def get_splits(in_shape, axis, splits=None, num_splits=None):
         assert splits or num_splits, "no split parameters provided"
+        assert in_shape[axis] is not None, "split on undefined axis"
         in_idx = 0
         act_slices = []
         out_shapes = []
@@ -215,10 +216,9 @@ class SplitParameters(Transposable):
             for sz in splits:
                 act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
                                    for idx, shape in enumerate(in_shape)
-                                   if idx != batch_dim])
-                out_shapes.append([sz if idx == axis else shape
-                                   for idx, shape in enumerate(in_shape)
-                                   if idx != batch_dim])
+                                   if shape is not None])
+                out_shapes.append([sz if shape is not None and idx == axis else shape
+                                   for idx, shape in enumerate(in_shape)])
                 in_idx += sz
         elif num_splits:
             assert in_shape[axis] % num_splits == 0, "dimension of split is not divisible by number of splits"
@@ -226,14 +226,12 @@ class SplitParameters(Transposable):
             while in_idx < in_shape[axis]:
                 act_slices.append([(in_idx, in_idx + sz, 1) if idx == axis else (0, shape, 1)
                                    for idx, shape in enumerate(in_shape)
-                                   if idx != batch_dim])
-                out_shapes.append([sz if idx == axis else shape
-                                   for idx, shape in enumerate(in_shape)
-                                   if idx != batch_dim])
+                                   if shape is not None])
+                out_shapes.append([sz if shape is not None and idx == axis else shape
+                                   for idx, shape in enumerate(in_shape)])
                 in_idx += sz
-
-        if axis > batch_dim:
-            axis -= 1
+        count_nones = sum(1 if dim is None else 0 for dim in in_shape[:axis:])
+        axis -= count_nones
         return act_slices, out_shapes, axis
 
     @property
@@ -272,6 +270,40 @@ class SplitParameters(Transposable):
             self.at_options
         )
 
+class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+    op_name = "gather"
+
+    def __init__(self, *args,
+                 axis=None,
+                 indices=None,
+                 **kwargs):
+
+        super(GatherParametters, self).__init__(*args, **kwargs)
+        self.axis = axis
+        self.indices = np.array(indices)
+
+    def get_parameter_size(self):
+        return 0
+
+    def get_output_size(self, in_dims):
+        in_dim = in_dims[0].clone()
+        self.in_dims = [in_dim]
+        new_shape = in_dim.shape[:self.axis:] + self.indices.shape + in_dim.shape[self.axis + 1:]
+        return [Dim.unnamed(new_shape)]
+
+    @property
+    def rank(self):
+        return len(self.in_dims[0].shape) + len(self.indices.shape) - 1
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "A %s I %s"%(self.axis, self.indices)
 
 class StridedSliceParameters(Parameters, SingleInputAndOutput):
 
@@ -299,11 +331,11 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
 
     def is_unit_slice(self, axis):
         """check if the slice on one axis returns shape of 1"""
-        sl = self.act_slice[axis]
-        if sl[1] > sl[0]:
-            return sl[1] - sl[0] == 1 and sl[2] == 1
+        slce = self.act_slice[axis]
+        if slce[1] > slce[0]:
+            return slce[1] - slce[0] == 1 and slce[2] == 1
         else:
-            return sl[0] - sl[1] == 2 and sl[2] == -1
+            return slce[0] - slce[1] == 2 and slce[2] == -1
 
     @staticmethod
     def get_slice(in_shape, spec, begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask):
@@ -319,6 +351,9 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
         for idx, sz in enumerate(spec):
             mask = [elem & 0x1 for elem in masks]
             masks = [elem >> 1 for elem in masks]
+            if in_shape[in_idx] is None:
+                in_idx += 1
+                continue
 
             if mask[2]:
                 for _ in range(len(in_shape) - (len(spec) - idx) + 1):
@@ -354,7 +389,15 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
             if beg != 0 or end != in_shape[in_idx] or sz[2] != 1:
                 can_reshape = False
             in_idx += 1
-        return act_slice[1:], out_shape[1:], can_reshape
+        return act_slice, out_shape, can_reshape
+
+    @property
+    def post_slice_shape(self):
+        return [(sl[1] - sl[0])//sl[2] for sl in self.act_slice]
+
+    @property
+    def changes_shape(self):
+        return len(self.post_slice_shape) > len(self.out_shape)
 
     def get_parameter_size(self):
         return 0
@@ -443,13 +486,13 @@ class CastParameters(Parameters, SingleInputAndOutput):
 class PadParameters(Parameters, SingleInputAndOutput):
     op_name = "pad"
 
-    def __init__(self, name, padding, in_dims_hint=None, out_dims_hint=None):
+    def __init__(self, name, padding=None, pad_vals=None, in_dims_hint=None, out_dims_hint=None):
 
         super(PadParameters, self).__init__(name,
                                             in_dims_hint=in_dims_hint,
                                             out_dims_hint=out_dims_hint)
         self.padding = padding
-        self.pad_type = "zero"
+        self.pad_vals = pad_vals
 
     def get_parameter_size(self):
         return 0
@@ -457,9 +500,10 @@ class PadParameters(Parameters, SingleInputAndOutput):
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
         self.in_dims = self.clone_dim_with_hints(in_dims)
+
         out_dim = self.in_dims[0].clone()
-        out_dim.w += self.padding.w
-        out_dim.h += self.padding.h
+        for idx, vals in enumerate(self.padding):
+            out_dim[idx] += sum(vals)
         return [out_dim]
 
     @property
@@ -611,6 +655,7 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
         out_dim = in_dims[0].clone()
         if self.transpose_in:
             out_dim.transpose(self.transpose_in[0])
+
         if self.keep_dims:
             names = out_dim.keys if out_dim.is_named else None
             out_dim = Dim(shape=[1 if idx in self._axis else dim
@@ -640,7 +685,6 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
             Transposable.__str__(self),
             self.at_options
         )
-
 
 class ReshapeParameters(Transposable, SingleInputAndOutput):
     '''This class covers reshapes and transposes'''
@@ -739,8 +783,9 @@ class UnexecutableOpParameters(Parameters):
 
 class UnconvertedOpParameters(UnexecutableOpParameters):
 
-    def __init__(self, name, indicated_op_name, expected_inputs, indicated_outputs, info):
-        super(UnconvertedOpParameters, self).__init__(name)
+    def __init__(self, name, indicated_op_name=None, expected_inputs=None,
+                 indicated_outputs=None, info=None, **kwargs):
+        super(UnconvertedOpParameters, self).__init__(name, **kwargs)
         self.info = info
         self.expected_inputs = expected_inputs
         self.indicated_outputs = indicated_outputs
@@ -748,7 +793,7 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
 
     @property
     def op_name(self):
-        return self.indicated_op_name
+        return "UNSUPPORTED"
 
     def get_output_size(self, in_dims):
         if self.indicated_outputs:
@@ -769,7 +814,7 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
         raise NotImplementedError()
 
     def __str__(self):
-        return self.indicated_op_name
+        return "UNSUPPORTED OP: %s" % self.indicated_op_name
 
 
 class UnknownOpParameters(UnexecutableOpParameters):

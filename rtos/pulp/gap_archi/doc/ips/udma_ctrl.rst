@@ -26,53 +26,53 @@ Overview
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`CFG_EVENT<udma_ctrl_CFG_EVENT>`            |    24|   32|uDMA peripherals external event configuration                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`FIFO_CFG<udma_ctrl_FIFO_CFG>`              |    28|   16|Sets the FIFO ID for push and pop                                                                                                                                                                                                                 |
+    |:ref:`FIFO_CFG<udma_ctrl_FIFO_CFG>`              |    28|   32|Sets the FIFO ID for push and pop                                                                                                                                                                                                                 |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`FIFO_PUSHPOP_8<udma_ctrl_FIFO_PUSHPOP_8>`  |    32|    8|Pushes(write) and pops(read) 8bit to the fifo                                                                                                                                                                                                     |
+    |:ref:`FIFO_PUSHPOP_8<udma_ctrl_FIFO_PUSHPOP_8>`  |    32|   32|Pushes(write) and pops(read) 8bit to the fifo                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`FIFO_PUSHPOP_16<udma_ctrl_FIFO_PUSHPOP_16>`|    36|   16|Pushes(write) and pops(read) 16bit to the fifo                                                                                                                                                                                                    |
+    |:ref:`FIFO_PUSHPOP_16<udma_ctrl_FIFO_PUSHPOP_16>`|    36|   32|Pushes(write) and pops(read) 16bit to the fifo                                                                                                                                                                                                    |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`FIFO_PUSHPOP_24<udma_ctrl_FIFO_PUSHPOP_24>`|    40|   24|Pushes(write) and pops(read) 24bit to the fifo                                                                                                                                                                                                    |
+    |:ref:`FIFO_PUSHPOP_24<udma_ctrl_FIFO_PUSHPOP_24>`|    40|   32|Pushes(write) and pops(read) 24bit to the fifo                                                                                                                                                                                                    |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`FIFO_PUSHPOP_32<udma_ctrl_FIFO_PUSHPOP_32>`|    44|   32|Pushes(write) and pops(read) 32bit to the fifo                                                                                                                                                                                                    |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`DATAMOVE0_CFG<udma_ctrl_DATAMOVE0_CFG>`    |    48|   32|Configure of data movement                                                                                                                                                                                                                        |
+    |:ref:`DATAMOVE_CFG<udma_ctrl_DATAMOVE_CFG>`      |    48|   32|Configure of data movement                                                                                                                                                                                                                        |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`DATAMOVE0_SIZE<udma_ctrl_DATAMOVE0_SIZE>`  |    52|   21|Write sets the number of bytes to be moved. Read returns the number of bytes remaining                                                                                                                                                            |
+    |:ref:`DATAMOVE0_SIZE<udma_ctrl_DATAMOVE0_SIZE>`  |    52|   32|Write sets the number of bytes to be moved. Read returns the number of bytes remaining                                                                                                                                                            |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`DATAMOVE1_CFG<udma_ctrl_DATAMOVE1_CFG>`    |    56|   32|Configure of data movement                                                                                                                                                                                                                        |
+    |:ref:`DATAMOVE1_SIZE<udma_ctrl_DATAMOVE1_SIZE>`  |    56|   32|Write sets the number of bytes to be moved. Read returns the number of bytes remaining                                                                                                                                                            |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`DATAMOVE1_SIZE<udma_ctrl_DATAMOVE1_SIZE>`  |    60|   21|Write sets the number of bytes to be moved. Read returns the number of bytes remaining                                                                                                                                                            |
+    |:ref:`STREAM_CFG<udma_ctrl_STREAM_CFG>`          |    60|   32|Configure blocking behaviour of streams 1'b0 sets the stream as non blocking 1'b1 sets the stream to be blocking(giving ready only when data available)                                                                                           |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE0<udma_ctrl_TIMEOUT_PRE0>`      |    64|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE0<udma_ctrl_TIMEOUT_PRE0>`      |    64|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH0<udma_ctrl_TIMEOUT_CH0>`        |    68|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE1<udma_ctrl_TIMEOUT_PRE1>`      |    72|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE1<udma_ctrl_TIMEOUT_PRE1>`      |    72|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH1<udma_ctrl_TIMEOUT_CH1>`        |    76|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE2<udma_ctrl_TIMEOUT_PRE2>`      |    80|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE2<udma_ctrl_TIMEOUT_PRE2>`      |    80|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH2<udma_ctrl_TIMEOUT_CH2>`        |    84|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE3<udma_ctrl_TIMEOUT_PRE3>`      |    88|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE3<udma_ctrl_TIMEOUT_PRE3>`      |    88|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH3<udma_ctrl_TIMEOUT_CH3>`        |    92|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE4<udma_ctrl_TIMEOUT_PRE4>`      |    96|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE4<udma_ctrl_TIMEOUT_PRE4>`      |    96|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH4<udma_ctrl_TIMEOUT_CH4>`        |   100|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE5<udma_ctrl_TIMEOUT_PRE5>`      |   104|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE5<udma_ctrl_TIMEOUT_PRE5>`      |   104|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH5<udma_ctrl_TIMEOUT_CH5>`        |   108|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE6<udma_ctrl_TIMEOUT_PRE6>`      |   112|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE6<udma_ctrl_TIMEOUT_PRE6>`      |   112|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH6<udma_ctrl_TIMEOUT_CH6>`        |   116|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |:ref:`TIMEOUT_PRE7<udma_ctrl_TIMEOUT_PRE7>`      |   120|   17|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
+    |:ref:`TIMEOUT_PRE7<udma_ctrl_TIMEOUT_PRE7>`      |   120|   32|Configuration of the frequency prescaler for timeout                                                                                                                                                                                              |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |:ref:`TIMEOUT_CH7<udma_ctrl_TIMEOUT_CH7>`        |   124|   32|Configuration for timeout ch0                                                                                                                                                                                                                     |
     +-------------------------------------------------+------+-----+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -124,16 +124,16 @@ Generated headers
                 #define UDMA_CTRL_FIFO_PUSHPOP_32_OFFSET         0x2c
         
                 // Configure of data movement
-                #define UDMA_CTRL_DATAMOVE0_CFG_OFFSET           0x30
+                #define UDMA_CTRL_DATAMOVE_CFG_OFFSET            0x30
         
                 // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
                 #define UDMA_CTRL_DATAMOVE0_SIZE_OFFSET          0x34
         
-                // Configure of data movement
-                #define UDMA_CTRL_DATAMOVE1_CFG_OFFSET           0x38
-        
                 // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
-                #define UDMA_CTRL_DATAMOVE1_SIZE_OFFSET          0x3c
+                #define UDMA_CTRL_DATAMOVE1_SIZE_OFFSET          0x38
+        
+                // Configure blocking behaviour of streams 1'b0 sets the stream as non blocking 1'b1 sets the stream to be blocking(giving ready only when data available)
+                #define UDMA_CTRL_STREAM_CFG_OFFSET              0x3c
         
                 // Configuration of the frequency prescaler for timeout
                 #define UDMA_CTRL_TIMEOUT_PRE0_OFFSET            0x40
@@ -225,17 +225,17 @@ Generated headers
         static inline uint32_t udma_ctrl_fifo_pushpop_32_get(uint32_t base);
         static inline void udma_ctrl_fifo_pushpop_32_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t udma_ctrl_datamove0_cfg_get(uint32_t base);
-        static inline void udma_ctrl_datamove0_cfg_set(uint32_t base, uint32_t value);
+        static inline uint32_t udma_ctrl_datamove_cfg_get(uint32_t base);
+        static inline void udma_ctrl_datamove_cfg_set(uint32_t base, uint32_t value);
 
         static inline uint32_t udma_ctrl_datamove0_size_get(uint32_t base);
         static inline void udma_ctrl_datamove0_size_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t udma_ctrl_datamove1_cfg_get(uint32_t base);
-        static inline void udma_ctrl_datamove1_cfg_set(uint32_t base, uint32_t value);
-
         static inline uint32_t udma_ctrl_datamove1_size_get(uint32_t base);
         static inline void udma_ctrl_datamove1_size_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t udma_ctrl_stream_cfg_get(uint32_t base);
+        static inline void udma_ctrl_stream_cfg_set(uint32_t base, uint32_t value);
 
         static inline uint32_t udma_ctrl_timeout_pre0_get(uint32_t base);
         static inline void udma_ctrl_timeout_pre0_set(uint32_t base, uint32_t value);
@@ -327,53 +327,71 @@ Generated headers
         #define UDMA_CTRL_FIFO_CFG_POP_ID_MASK                               0xff00
         #define UDMA_CTRL_FIFO_CFG_POP_ID_RESET                              0xff
         
-        // Sets the source ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_BIT                        0
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_WIDTH                      8
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_MASK                       0xff
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_RESET                      0xff
-        
-        // Sets the destination ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_BIT                          8
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_WIDTH                        8
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_MASK                         0xff00
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_RESET                        0xff
+        // Write sets the number of bytes to be moved. Read returns the number of bytes remaining (access: R/W)
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_BIT                              0
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_WIDTH                            21
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_MASK                             0x1fffff
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_RESET                            0x0
         
         // When written to 1 stops the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_BIT                             30
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_WIDTH                           1
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_MASK                            0x40000000
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_RESET                           0x0
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_BIT                              30
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_WIDTH                            1
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_MASK                             0x40000000
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_RESET                            0x0
         
         // When written to 1 enables the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_BIT                               31
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_WIDTH                             1
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_MASK                              0x80000000
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_RESET                             0x0
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_BIT                                31
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_WIDTH                              1
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_MASK                               0x80000000
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_RESET                              0x0
         
         // Sets the source ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_BIT                        0
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_WIDTH                      8
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_MASK                       0xff
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_RESET                      0xff
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_BIT                     0
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_MASK                    0xff
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_RESET                   0xff
         
         // Sets the destination ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_BIT                          8
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_WIDTH                        8
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_MASK                         0xff00
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_RESET                        0xff
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_BIT                       8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_MASK                      0xff00
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_RESET                     0xff
         
-        // When written to 1 stops the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_BIT                             30
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_WIDTH                           1
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_MASK                            0x40000000
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_RESET                           0x0
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_BIT                     16
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_MASK                    0xff0000
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_RESET                   0xff
         
-        // When written to 1 enables the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_BIT                               31
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_WIDTH                             1
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_MASK                              0x80000000
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_RESET                             0x0
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_BIT                       24
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_MASK                      0xff000000
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_RESET                     0xff
+        
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_BIT                     0
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_MASK                    0xff
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_RESET                   0xff
+        
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_BIT                       8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_MASK                      0xff00
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_RESET                     0xff
+        
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_BIT                     16
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_MASK                    0xff0000
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_RESET                   0xff
+        
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_BIT                       24
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_MASK                      0xff000000
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_RESET                     0xff
         
         // Sets the target for the timeout counter (access: R/W)
         #define UDMA_CTRL_TIMEOUT_PRE0_CNT_BIT                               0
@@ -747,45 +765,60 @@ Generated headers
         #define UDMA_CTRL_FIFO_CFG_POP_ID_SET(value,field)         (GAP_BINSERT((value),(field),8,8))
         #define UDMA_CTRL_FIFO_CFG_POP_ID(val)                     ((val) << 8)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_GET(value)       (GAP_BEXTRACTU((value),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_GETS(value)      (GAP_BEXTRACT((value),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID(val)             ((val) << 0)
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_GET(value)             (GAP_BEXTRACTU((value),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_GETS(value)            (GAP_BEXTRACT((value),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_SET(value,field)       (GAP_BINSERT((value),(field),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE(val)                   ((val) << 0)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_GET(value)         (GAP_BEXTRACTU((value),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_GETS(value)        (GAP_BEXTRACT((value),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_SET(value,field)   (GAP_BINSERT((value),(field),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID(val)               ((val) << 8)
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_GET(value)             (GAP_BEXTRACTU((value),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_GETS(value)            (GAP_BEXTRACT((value),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_SET(value,field)       (GAP_BINSERT((value),(field),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP(val)                   ((val) << 30)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_GET(value)            (GAP_BEXTRACTU((value),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_GETS(value)           (GAP_BEXTRACT((value),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP(val)                  ((val) << 30)
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_GET(value)               (GAP_BEXTRACTU((value),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_GETS(value)              (GAP_BEXTRACT((value),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_SET(value,field)         (GAP_BINSERT((value),(field),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN(val)                     ((val) << 31)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_GET(value)              (GAP_BEXTRACTU((value),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_GETS(value)             (GAP_BEXTRACT((value),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN(val)                    ((val) << 31)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_GET(value)    (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_GETS(value)   (GAP_BEXTRACT((value),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0(val)          ((val) << 0)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_GET(value)       (GAP_BEXTRACTU((value),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_GETS(value)      (GAP_BEXTRACT((value),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID(val)             ((val) << 0)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_GET(value)      (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_GETS(value)     (GAP_BEXTRACT((value),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0(val)            ((val) << 8)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_GET(value)         (GAP_BEXTRACTU((value),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_GETS(value)        (GAP_BEXTRACT((value),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_SET(value,field)   (GAP_BINSERT((value),(field),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID(val)               ((val) << 8)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_GET(value)    (GAP_BEXTRACTU((value),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_GETS(value)   (GAP_BEXTRACT((value),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1(val)          ((val) << 16)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_GET(value)            (GAP_BEXTRACTU((value),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_GETS(value)           (GAP_BEXTRACT((value),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP(val)                  ((val) << 30)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_GET(value)      (GAP_BEXTRACTU((value),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_GETS(value)     (GAP_BEXTRACT((value),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1(val)            ((val) << 24)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_GET(value)              (GAP_BEXTRACTU((value),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_GETS(value)             (GAP_BEXTRACT((value),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN(val)                    ((val) << 31)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_GET(value)    (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_GETS(value)   (GAP_BEXTRACT((value),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0(val)          ((val) << 0)
+        
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_GET(value)      (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_GETS(value)     (GAP_BEXTRACT((value),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0(val)            ((val) << 8)
+        
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_GET(value)    (GAP_BEXTRACTU((value),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_GETS(value)   (GAP_BEXTRACT((value),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1(val)          ((val) << 16)
+        
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_GET(value)      (GAP_BEXTRACTU((value),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_GETS(value)     (GAP_BEXTRACT((value),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1(val)            ((val) << 24)
         
         #define UDMA_CTRL_TIMEOUT_PRE0_CNT_GET(value)              (GAP_BEXTRACTU((value),16,0))
         #define UDMA_CTRL_TIMEOUT_PRE0_CNT_GETS(value)             (GAP_BEXTRACT((value),16,0))
@@ -1086,10 +1119,10 @@ Generated headers
             volatile uint32_t fifo_pushpop_16;  // Pushes(write) and pops(read) 16bit to the fifo
             volatile uint32_t fifo_pushpop_24;  // Pushes(write) and pops(read) 24bit to the fifo
             volatile uint32_t fifo_pushpop_32;  // Pushes(write) and pops(read) 32bit to the fifo
-            volatile uint32_t datamove0_cfg;  // Configure of data movement
+            volatile uint32_t datamove_cfg;  // Configure of data movement
             volatile uint32_t datamove0_size;  // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
-            volatile uint32_t datamove1_cfg;  // Configure of data movement
             volatile uint32_t datamove1_size;  // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
+            volatile uint32_t stream_cfg;  // Configure blocking behaviour of streams 1'b0 sets the stream as non blocking 1'b1 sets the stream to be blocking(giving ready only when data available)
             volatile uint32_t timeout_pre0;  // Configuration of the frequency prescaler for timeout
             volatile uint32_t timeout_ch0;  // Configuration for timeout ch0
             volatile uint32_t timeout_pre1;  // Configuration of the frequency prescaler for timeout
@@ -1194,37 +1227,39 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int source_id       :8 ; // Sets the source ID used by the data mover
-            unsigned int dest_id         :8 ; // Sets the destination ID used by the data mover
-            unsigned int padding0:14;
+            unsigned int size            :21; // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
+            unsigned int padding0:9 ;
             unsigned int stop            :1 ; // When written to 1 stops the data mover. When read return the enable status of the data mover
             unsigned int en              :1 ; // When written to 1 enables the data mover. When read return the enable status of the data mover
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove0_cfg_t;
+        } __attribute__((packed)) udma_ctrl_datamove_cfg_t;
         
         typedef union {
           struct {
+            unsigned int source_id_0     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_0       :8 ; // Sets the destination ID used by the data mover
+            unsigned int source_id_1     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_1       :8 ; // Sets the destination ID used by the data mover
           };
           unsigned int raw;
         } __attribute__((packed)) udma_ctrl_datamove0_size_t;
         
         typedef union {
           struct {
-            unsigned int source_id       :8 ; // Sets the source ID used by the data mover
-            unsigned int dest_id         :8 ; // Sets the destination ID used by the data mover
-            unsigned int padding0:14;
-            unsigned int stop            :1 ; // When written to 1 stops the data mover. When read return the enable status of the data mover
-            unsigned int en              :1 ; // When written to 1 enables the data mover. When read return the enable status of the data mover
+            unsigned int source_id_0     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_0       :8 ; // Sets the destination ID used by the data mover
+            unsigned int source_id_1     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_1       :8 ; // Sets the destination ID used by the data mover
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove1_cfg_t;
+        } __attribute__((packed)) udma_ctrl_datamove1_size_t;
         
         typedef union {
           struct {
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove1_size_t;
+        } __attribute__((packed)) udma_ctrl_stream_cfg_t;
         
         typedef union {
           struct {
@@ -1407,10 +1442,10 @@ Generated headers
             vp_udma_ctrl_fifo_pushpop_16 fifo_pushpop_16;
             vp_udma_ctrl_fifo_pushpop_24 fifo_pushpop_24;
             vp_udma_ctrl_fifo_pushpop_32 fifo_pushpop_32;
-            vp_udma_ctrl_datamove0_cfg datamove0_cfg;
+            vp_udma_ctrl_datamove_cfg datamove_cfg;
             vp_udma_ctrl_datamove0_size datamove0_size;
-            vp_udma_ctrl_datamove1_cfg datamove1_cfg;
             vp_udma_ctrl_datamove1_size datamove1_size;
+            vp_udma_ctrl_stream_cfg stream_cfg;
             vp_udma_ctrl_timeout_pre0 timeout_pre0;
             vp_udma_ctrl_timeout_ch0 timeout_ch0;
             vp_udma_ctrl_timeout_pre1 timeout_pre1;
@@ -2098,13 +2133,13 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_fifo_cfg : public vp::reg_16
+        class vp_udma_ctrl_fifo_cfg : public vp::reg_32
         {
         public:
-            inline void push_id_set(uint16_t value);
-            inline uint16_t push_id_get();
-            inline void pop_id_set(uint16_t value);
-            inline uint16_t pop_id_get();
+            inline void push_id_set(uint32_t value);
+            inline uint32_t push_id_get();
+            inline void pop_id_set(uint32_t value);
+            inline uint32_t pop_id_get();
         };
 
 |
@@ -2175,7 +2210,7 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_fifo_pushpop_8 : public vp::reg_8
+        class vp_udma_ctrl_fifo_pushpop_8 : public vp::reg_32
         {
         public:
         };
@@ -2248,7 +2283,7 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_fifo_pushpop_16 : public vp::reg_16
+        class vp_udma_ctrl_fifo_pushpop_16 : public vp::reg_32
         {
         public:
         };
@@ -2401,26 +2436,24 @@ Generated headers
 
 |
 
-.. _udma_ctrl_DATAMOVE0_CFG:
+.. _udma_ctrl_DATAMOVE_CFG:
 
-DATAMOVE0_CFG
-"""""""""""""
+DATAMOVE_CFG
+""""""""""""
 
 Configure of data movement
 
 .. table:: 
 
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |Bit #|R/W|  Name   |                                         Description                                          |
-    +=====+===+=========+==============================================================================================+
-    |7:0  |R/W|SOURCE_ID|Sets the source ID used by the data mover                                                     |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |15:8 |R/W|DEST_ID  |Sets the destination ID used by the data mover                                                |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |30   |R/W|STOP     |When written to 1 stops the data mover. When read return the enable status of the data mover  |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |31   |R/W|EN       |When written to 1 enables the data mover. When read return the enable status of the data mover|
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
+    +-----+---+----+----------------------------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                         Description                                          |
+    +=====+===+====+==============================================================================================+
+    |20:0 |R/W|SIZE|Write sets the number of bytes to be moved. Read returns the number of bytes remaining        |
+    +-----+---+----+----------------------------------------------------------------------------------------------+
+    |30   |R/W|STOP|When written to 1 stops the data mover. When read return the enable status of the data mover  |
+    +-----+---+----+----------------------------------------------------------------------------------------------+
+    |31   |R/W|EN  |When written to 1 enables the data mover. When read return the enable status of the data mover|
+    +-----+---+----+----------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2433,7 +2466,7 @@ Generated headers
 
         
                 // Configure of data movement
-                #define UDMA_CTRL_DATAMOVE0_CFG_OFFSET           0x30
+                #define UDMA_CTRL_DATAMOVE_CFG_OFFSET            0x30
 
 .. toggle-header::
     :header: *Register accessors*
@@ -2441,8 +2474,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t udma_ctrl_datamove0_cfg_get(uint32_t base);
-        static inline void udma_ctrl_datamove0_cfg_set(uint32_t base, uint32_t value);
+        static inline uint32_t udma_ctrl_datamove_cfg_get(uint32_t base);
+        static inline void udma_ctrl_datamove_cfg_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2450,29 +2483,23 @@ Generated headers
     .. code-block:: c
 
         
-        // Sets the source ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_BIT                        0
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_WIDTH                      8
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_MASK                       0xff
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_RESET                      0xff
-        
-        // Sets the destination ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_BIT                          8
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_WIDTH                        8
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_MASK                         0xff00
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_RESET                        0xff
+        // Write sets the number of bytes to be moved. Read returns the number of bytes remaining (access: R/W)
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_BIT                              0
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_WIDTH                            21
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_MASK                             0x1fffff
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_RESET                            0x0
         
         // When written to 1 stops the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_BIT                             30
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_WIDTH                           1
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_MASK                            0x40000000
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_RESET                           0x0
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_BIT                              30
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_WIDTH                            1
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_MASK                             0x40000000
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_RESET                            0x0
         
         // When written to 1 enables the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_BIT                               31
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_WIDTH                             1
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_MASK                              0x80000000
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_RESET                             0x0
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_BIT                                31
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_WIDTH                              1
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_MASK                               0x80000000
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_RESET                              0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2480,25 +2507,20 @@ Generated headers
     .. code-block:: c
 
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_GET(value)       (GAP_BEXTRACTU((value),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_GETS(value)      (GAP_BEXTRACT((value),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define UDMA_CTRL_DATAMOVE0_CFG_SOURCE_ID(val)             ((val) << 0)
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_GET(value)             (GAP_BEXTRACTU((value),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_GETS(value)            (GAP_BEXTRACT((value),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE_SET(value,field)       (GAP_BINSERT((value),(field),21,0))
+        #define UDMA_CTRL_DATAMOVE_CFG_SIZE(val)                   ((val) << 0)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_GET(value)         (GAP_BEXTRACTU((value),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_GETS(value)        (GAP_BEXTRACT((value),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID_SET(value,field)   (GAP_BINSERT((value),(field),8,8))
-        #define UDMA_CTRL_DATAMOVE0_CFG_DEST_ID(val)               ((val) << 8)
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_GET(value)             (GAP_BEXTRACTU((value),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_GETS(value)            (GAP_BEXTRACT((value),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP_SET(value,field)       (GAP_BINSERT((value),(field),1,30))
+        #define UDMA_CTRL_DATAMOVE_CFG_STOP(val)                   ((val) << 30)
         
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_GET(value)            (GAP_BEXTRACTU((value),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_GETS(value)           (GAP_BEXTRACT((value),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
-        #define UDMA_CTRL_DATAMOVE0_CFG_STOP(val)                  ((val) << 30)
-        
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_GET(value)              (GAP_BEXTRACTU((value),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_GETS(value)             (GAP_BEXTRACT((value),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
-        #define UDMA_CTRL_DATAMOVE0_CFG_EN(val)                    ((val) << 31)
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_GET(value)               (GAP_BEXTRACTU((value),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_GETS(value)              (GAP_BEXTRACT((value),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN_SET(value,field)         (GAP_BINSERT((value),(field),1,31))
+        #define UDMA_CTRL_DATAMOVE_CFG_EN(val)                     ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2508,14 +2530,13 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int source_id       :8 ; // Sets the source ID used by the data mover
-            unsigned int dest_id         :8 ; // Sets the destination ID used by the data mover
-            unsigned int padding0:14;
+            unsigned int size            :21; // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
+            unsigned int padding0:9 ;
             unsigned int stop            :1 ; // When written to 1 stops the data mover. When read return the enable status of the data mover
             unsigned int en              :1 ; // When written to 1 enables the data mover. When read return the enable status of the data mover
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove0_cfg_t;
+        } __attribute__((packed)) udma_ctrl_datamove_cfg_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -2523,13 +2544,11 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_datamove0_cfg : public vp::reg_32
+        class vp_udma_ctrl_datamove_cfg : public vp::reg_32
         {
         public:
-            inline void source_id_set(uint32_t value);
-            inline uint32_t source_id_get();
-            inline void dest_id_set(uint32_t value);
-            inline uint32_t dest_id_get();
+            inline void size_set(uint32_t value);
+            inline uint32_t size_get();
             inline void stop_set(uint32_t value);
             inline uint32_t stop_get();
             inline void en_set(uint32_t value);
@@ -2547,10 +2566,17 @@ Write sets the number of bytes to be moved. Read returns the number of bytes rem
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+-----------+----------------------------------------------+
+    |Bit #|R/W|   Name    |                 Description                  |
+    +=====+===+===========+==============================================+
+    |7:0  |R/W|SOURCE_ID_0|Sets the source ID used by the data mover     |
+    +-----+---+-----------+----------------------------------------------+
+    |15:8 |R/W|DEST_ID_0  |Sets the destination ID used by the data mover|
+    +-----+---+-----------+----------------------------------------------+
+    |23:16|R/W|SOURCE_ID_1|Sets the source ID used by the data mover     |
+    +-----+---+-----------+----------------------------------------------+
+    |31:24|R/W|DEST_ID_1  |Sets the destination ID used by the data mover|
+    +-----+---+-----------+----------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2579,12 +2605,56 @@ Generated headers
 
     .. code-block:: c
 
+        
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_BIT                     0
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_MASK                    0xff
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_RESET                   0xff
+        
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_BIT                       8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_MASK                      0xff00
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_RESET                     0xff
+        
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_BIT                     16
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_MASK                    0xff0000
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_RESET                   0xff
+        
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_BIT                       24
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_MASK                      0xff000000
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_RESET                     0xff
 
 .. toggle-header::
     :header: *Register fields macros*
 
     .. code-block:: c
 
+        
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_GET(value)    (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_GETS(value)   (GAP_BEXTRACT((value),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,0))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_0(val)          ((val) << 0)
+        
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_GET(value)      (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_GETS(value)     (GAP_BEXTRACT((value),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_0(val)            ((val) << 8)
+        
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_GET(value)    (GAP_BEXTRACTU((value),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_GETS(value)   (GAP_BEXTRACT((value),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,16))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_SOURCE_ID_1(val)          ((val) << 16)
+        
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_GET(value)      (GAP_BEXTRACTU((value),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_GETS(value)     (GAP_BEXTRACT((value),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,24))
+        #define UDMA_CTRL_DATAMOVE0_SIZE_DEST_ID_1(val)            ((val) << 24)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2594,6 +2664,10 @@ Generated headers
         
         typedef union {
           struct {
+            unsigned int source_id_0     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_0       :8 ; // Sets the destination ID used by the data mover
+            unsigned int source_id_1     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_1       :8 ; // Sets the destination ID used by the data mover
           };
           unsigned int raw;
         } __attribute__((packed)) udma_ctrl_datamove0_size_t;
@@ -2607,30 +2681,38 @@ Generated headers
         class vp_udma_ctrl_datamove0_size : public vp::reg_32
         {
         public:
+            inline void source_id_0_set(uint32_t value);
+            inline uint32_t source_id_0_get();
+            inline void dest_id_0_set(uint32_t value);
+            inline uint32_t dest_id_0_get();
+            inline void source_id_1_set(uint32_t value);
+            inline uint32_t source_id_1_get();
+            inline void dest_id_1_set(uint32_t value);
+            inline uint32_t dest_id_1_get();
         };
 
 |
 
-.. _udma_ctrl_DATAMOVE1_CFG:
+.. _udma_ctrl_DATAMOVE1_SIZE:
 
-DATAMOVE1_CFG
-"""""""""""""
+DATAMOVE1_SIZE
+""""""""""""""
 
-Configure of data movement
+Write sets the number of bytes to be moved. Read returns the number of bytes remaining
 
 .. table:: 
 
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |Bit #|R/W|  Name   |                                         Description                                          |
-    +=====+===+=========+==============================================================================================+
-    |7:0  |R/W|SOURCE_ID|Sets the source ID used by the data mover                                                     |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |15:8 |R/W|DEST_ID  |Sets the destination ID used by the data mover                                                |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |30   |R/W|STOP     |When written to 1 stops the data mover. When read return the enable status of the data mover  |
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
-    |31   |R/W|EN       |When written to 1 enables the data mover. When read return the enable status of the data mover|
-    +-----+---+---------+----------------------------------------------------------------------------------------------+
+    +-----+---+-----------+----------------------------------------------+
+    |Bit #|R/W|   Name    |                 Description                  |
+    +=====+===+===========+==============================================+
+    |7:0  |R/W|SOURCE_ID_0|Sets the source ID used by the data mover     |
+    +-----+---+-----------+----------------------------------------------+
+    |15:8 |R/W|DEST_ID_0  |Sets the destination ID used by the data mover|
+    +-----+---+-----------+----------------------------------------------+
+    |23:16|R/W|SOURCE_ID_1|Sets the source ID used by the data mover     |
+    +-----+---+-----------+----------------------------------------------+
+    |31:24|R/W|DEST_ID_1  |Sets the destination ID used by the data mover|
+    +-----+---+-----------+----------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2642,8 +2724,8 @@ Generated headers
     .. code-block:: c
 
         
-                // Configure of data movement
-                #define UDMA_CTRL_DATAMOVE1_CFG_OFFSET           0x38
+                // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
+                #define UDMA_CTRL_DATAMOVE1_SIZE_OFFSET          0x38
 
 .. toggle-header::
     :header: *Register accessors*
@@ -2651,8 +2733,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t udma_ctrl_datamove1_cfg_get(uint32_t base);
-        static inline void udma_ctrl_datamove1_cfg_set(uint32_t base, uint32_t value);
+        static inline uint32_t udma_ctrl_datamove1_size_get(uint32_t base);
+        static inline void udma_ctrl_datamove1_size_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2661,28 +2743,28 @@ Generated headers
 
         
         // Sets the source ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_BIT                        0
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_WIDTH                      8
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_MASK                       0xff
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_RESET                      0xff
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_BIT                     0
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_MASK                    0xff
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_RESET                   0xff
         
         // Sets the destination ID used by the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_BIT                          8
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_WIDTH                        8
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_MASK                         0xff00
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_RESET                        0xff
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_BIT                       8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_MASK                      0xff00
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_RESET                     0xff
         
-        // When written to 1 stops the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_BIT                             30
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_WIDTH                           1
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_MASK                            0x40000000
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_RESET                           0x0
+        // Sets the source ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_BIT                     16
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_WIDTH                   8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_MASK                    0xff0000
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_RESET                   0xff
         
-        // When written to 1 enables the data mover. When read return the enable status of the data mover (access: R/W)
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_BIT                               31
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_WIDTH                             1
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_MASK                              0x80000000
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_RESET                             0x0
+        // Sets the destination ID used by the data mover (access: R/W)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_BIT                       24
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_WIDTH                     8
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_MASK                      0xff000000
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_RESET                     0xff
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2690,25 +2772,25 @@ Generated headers
     .. code-block:: c
 
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_GET(value)       (GAP_BEXTRACTU((value),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_GETS(value)      (GAP_BEXTRACT((value),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define UDMA_CTRL_DATAMOVE1_CFG_SOURCE_ID(val)             ((val) << 0)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_GET(value)    (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_GETS(value)   (GAP_BEXTRACT((value),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,0))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_0(val)          ((val) << 0)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_GET(value)         (GAP_BEXTRACTU((value),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_GETS(value)        (GAP_BEXTRACT((value),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID_SET(value,field)   (GAP_BINSERT((value),(field),8,8))
-        #define UDMA_CTRL_DATAMOVE1_CFG_DEST_ID(val)               ((val) << 8)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_GET(value)      (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_GETS(value)     (GAP_BEXTRACT((value),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0_SET(value,field) (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_0(val)            ((val) << 8)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_GET(value)            (GAP_BEXTRACTU((value),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_GETS(value)           (GAP_BEXTRACT((value),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
-        #define UDMA_CTRL_DATAMOVE1_CFG_STOP(val)                  ((val) << 30)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_GET(value)    (GAP_BEXTRACTU((value),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_GETS(value)   (GAP_BEXTRACT((value),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,16))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_SOURCE_ID_1(val)          ((val) << 16)
         
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_GET(value)              (GAP_BEXTRACTU((value),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_GETS(value)             (GAP_BEXTRACT((value),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
-        #define UDMA_CTRL_DATAMOVE1_CFG_EN(val)                    ((val) << 31)
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_GET(value)      (GAP_BEXTRACTU((value),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_GETS(value)     (GAP_BEXTRACT((value),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1_SET(value,field) (GAP_BINSERT((value),(field),8,24))
+        #define UDMA_CTRL_DATAMOVE1_SIZE_DEST_ID_1(val)            ((val) << 24)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2718,14 +2800,13 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int source_id       :8 ; // Sets the source ID used by the data mover
-            unsigned int dest_id         :8 ; // Sets the destination ID used by the data mover
-            unsigned int padding0:14;
-            unsigned int stop            :1 ; // When written to 1 stops the data mover. When read return the enable status of the data mover
-            unsigned int en              :1 ; // When written to 1 enables the data mover. When read return the enable status of the data mover
+            unsigned int source_id_0     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_0       :8 ; // Sets the destination ID used by the data mover
+            unsigned int source_id_1     :8 ; // Sets the source ID used by the data mover
+            unsigned int dest_id_1       :8 ; // Sets the destination ID used by the data mover
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove1_cfg_t;
+        } __attribute__((packed)) udma_ctrl_datamove1_size_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -2733,27 +2814,27 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_datamove1_cfg : public vp::reg_32
+        class vp_udma_ctrl_datamove1_size : public vp::reg_32
         {
         public:
-            inline void source_id_set(uint32_t value);
-            inline uint32_t source_id_get();
-            inline void dest_id_set(uint32_t value);
-            inline uint32_t dest_id_get();
-            inline void stop_set(uint32_t value);
-            inline uint32_t stop_get();
-            inline void en_set(uint32_t value);
-            inline uint32_t en_get();
+            inline void source_id_0_set(uint32_t value);
+            inline uint32_t source_id_0_get();
+            inline void dest_id_0_set(uint32_t value);
+            inline uint32_t dest_id_0_get();
+            inline void source_id_1_set(uint32_t value);
+            inline uint32_t source_id_1_get();
+            inline void dest_id_1_set(uint32_t value);
+            inline uint32_t dest_id_1_get();
         };
 
 |
 
-.. _udma_ctrl_DATAMOVE1_SIZE:
+.. _udma_ctrl_STREAM_CFG:
 
-DATAMOVE1_SIZE
-""""""""""""""
+STREAM_CFG
+""""""""""
 
-Write sets the number of bytes to be moved. Read returns the number of bytes remaining
+Configure blocking behaviour of streams 1'b0 sets the stream as non blocking 1'b1 sets the stream to be blocking(giving ready only when data available)
 
 .. table:: 
 
@@ -2772,8 +2853,8 @@ Generated headers
     .. code-block:: c
 
         
-                // Write sets the number of bytes to be moved. Read returns the number of bytes remaining
-                #define UDMA_CTRL_DATAMOVE1_SIZE_OFFSET          0x3c
+                // Configure blocking behaviour of streams 1'b0 sets the stream as non blocking 1'b1 sets the stream to be blocking(giving ready only when data available)
+                #define UDMA_CTRL_STREAM_CFG_OFFSET              0x3c
 
 .. toggle-header::
     :header: *Register accessors*
@@ -2781,8 +2862,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t udma_ctrl_datamove1_size_get(uint32_t base);
-        static inline void udma_ctrl_datamove1_size_set(uint32_t base, uint32_t value);
+        static inline uint32_t udma_ctrl_stream_cfg_get(uint32_t base);
+        static inline void udma_ctrl_stream_cfg_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2806,7 +2887,7 @@ Generated headers
           struct {
           };
           unsigned int raw;
-        } __attribute__((packed)) udma_ctrl_datamove1_size_t;
+        } __attribute__((packed)) udma_ctrl_stream_cfg_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -2814,7 +2895,7 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_udma_ctrl_datamove1_size : public vp::reg_32
+        class vp_udma_ctrl_stream_cfg : public vp::reg_32
         {
         public:
         };

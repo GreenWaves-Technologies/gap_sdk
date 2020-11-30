@@ -35,7 +35,7 @@ static inline void __os_native_api_restore_irq(int irq_enable)
 static inline void __os_native_api_sem_take(void *sem_object)
 {
     int irq = __disable_irq();
-    if (pi_cluster_id() == (uint32_t) ARCHI_FC_CID)
+    if (pi_is_fc())
     {
         if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
         {

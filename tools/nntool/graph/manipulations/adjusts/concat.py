@@ -15,11 +15,13 @@
 
 import logging
 
-from .adjust_base import AdjusterBase
+from graph.types import ConcatParameters
+
+from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
+@handles(ConcatParameters)
 class ConcatAdjuster(AdjusterBase):
     def adjust(self, G, node):
         # if the concat axis is already 0 nothing to do

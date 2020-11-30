@@ -23,6 +23,7 @@
 #include "pmsis.h"
 
 
+PI_FC_TINY int pos_fll_reg1[ARCHI_NB_FLL];
 PI_FC_TINY int pos_fll_freq[ARCHI_NB_FLL];
 static PI_FC_TINY char pos_fll_is_on[ARCHI_NB_FLL];
 
@@ -40,7 +41,15 @@ static unsigned int pos_fll_get_mult_div_from_freq(unsigned int freq, unsigned i
 
     while(1)
     {
-        M = ((uint64_t)freq<<D)/fref;
+        if (D > 0 && freq >= (1<<(32-D)))
+        {
+            M = (freq / fref) << D;
+
+        }
+        else
+        {
+            M = (freq << D) / fref;
+        }
         if (M <= FLL_MAXM)
             break;
         D--;
@@ -63,7 +72,6 @@ static unsigned int pos_fll_get_freq_from_mult_div(unsigned int mult, unsigned i
 
 
 #else
-
 static unsigned int pos_fll_get_mult_div_from_freq(unsigned int freq, unsigned int *mult, unsigned int *div)
 {
     unsigned int fref = ARCHI_REF_CLOCK;
@@ -118,7 +126,11 @@ unsigned int pos_fll_set_freq(int fll, unsigned int frequency)
     pos_fll_freq[fll] = real_freq;
     if (pos_fll_is_on[fll])
     {
-        hal_fll_update_mult_div(fll, mult, div);
+        fll_reg_conf1_t reg = { .raw = hal_fll_conf_reg1_get(fll) };
+        reg.mult_factor = mult;
+        reg.clock_out_divider = div;
+        hal_fll_conf_reg1_set(fll, reg.raw);
+        pos_fll_reg1[fll] = reg.raw;
     }
 
     return real_freq;
@@ -161,10 +173,10 @@ POS_TEXT_L2 unsigned int pos_fll_init(int fll, int frequency)
 {
     FREQ_TRACE(POS_LOG_INFO, "Initializing FLL (fll: %d)\n", fll);
 
-    fll_reg_conf1_t reg1 = { .raw = hal_fll_conf_reg1_get(fll) };
-
     /* Set Clock Ref lock assert count */
+    fll_reg_conf1_t reg1 = { .raw = hal_fll_conf_reg1_get(fll) };
     fll_reg_conf2_t reg2 = { .raw = hal_fll_conf_reg2_get(fll) };
+    int freq;
     reg2.assert_cycles = 6;
 #ifndef ARCHI_REF_CLOCK_LOG2
     reg2.lock_tolerance = 0x10;
@@ -190,18 +202,27 @@ POS_TEXT_L2 unsigned int pos_fll_init(int fll, int frequency)
     }
 
     /* Lock Fll */
-    reg1.output_lock_enable = 1;
-    reg1.mode = 1;
-#ifndef ARCHI_REF_CLOCK_LOG2
-    int mult, div;
-    pos_fll_get_mult_div_from_freq(frequency, &mult, &div);
-    reg1.mult_factor = mult;
-    reg1.clock_out_divider = div;
-#endif
-    hal_fll_conf_reg1_set(fll, reg1.raw);
+    if (pi_pmu_get_prev_state(PI_PMU_DOMAIN_CHIP) != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
+    {
+        reg1.output_lock_enable = 1;
+        reg1.mode = 1;
+    #ifndef ARCHI_REF_CLOCK_LOG2
+        int mult, div;
+        pos_fll_get_mult_div_from_freq(frequency, &mult, &div);
+        reg1.mult_factor = mult;
+        reg1.clock_out_divider = div;
+    #endif
+        hal_fll_conf_reg1_set(fll, reg1.raw);
+        pos_fll_reg1[fll] = reg1.raw;
 
-    int freq = pos_fll_get_freq_from_mult_div(reg1.mult_factor, reg1.clock_out_divider);
-    pos_fll_freq[fll] = freq;
+        freq = pos_fll_get_freq_from_mult_div(reg1.mult_factor, reg1.clock_out_divider);
+        pos_fll_freq[fll] = freq;
+    }
+    else
+    {
+        freq = pos_fll_freq[fll];
+        hal_fll_conf_reg1_set(fll, pos_fll_reg1[fll]);
+    }
 
     pos_fll_is_on[fll] = 1;
 
@@ -227,7 +248,10 @@ void pos_fll_constructor()
 {
     for (int i=0; i<ARCHI_NB_FLL; i++)
     {
-        pos_fll_freq[i] = 0;
+        if (pi_pmu_get_prev_state(PI_PMU_DOMAIN_CHIP) != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
+        {
+            pos_fll_freq[i] = 0;
+        }
         pos_fll_is_on[i] = 0;
     }
 }

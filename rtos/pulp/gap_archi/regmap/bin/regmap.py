@@ -109,6 +109,16 @@ class Regfield(regmap_c_header.Regfield, regmap_table.Regfield, regmap_rst.Regfi
         self.reg_reset = reg_reset
         self.full_name = full_name
 
+    def is_read_only(self):
+        return self.access == 'R'
+
+    def get_write_mask(self):
+        
+        if self.is_read_only():
+            return 0
+        else:
+            return ((1 << self.width) - 1) << self.bit
+
 
 
 class Register(regmap_c_header.Register, regmap_table.Register, regmap_rst.Register, regmap_json.Register, regmap_ipxact.Register):
@@ -124,6 +134,24 @@ class Register(regmap_c_header.Register, regmap_table.Register, regmap_rst.Regis
         self.fields = collections.OrderedDict([])
         self.do_reset = do_reset
         self.template = name
+        self.access = None
+
+    def is_read_only(self):
+        return self.access == 'R'
+
+    def get_write_mask(self):
+        result = 0
+
+        if len(self.fields.values()) != 0:
+            for field in self.fields.values():
+                result |= field.get_write_mask()
+        else:
+            if self.is_read_only():
+                return 0
+            else:
+                return (1 << self.width) - 1
+
+        return result
 
     def get_field_template(self):
         return self.template
@@ -132,7 +160,10 @@ class Register(regmap_c_header.Register, regmap_table.Register, regmap_rst.Regis
         return self.fields.values()
 
     def add_regfield(self, regfield):
+        if self.fields.get(regfield.name) is not None:
+            raise RuntimeError('Trying to add already existing field to register (register name: %s, field name: %s)' % (self.name, regfield.name))
         self.fields[regfield.name] = regfield
+        return regfield
 
     def get_regfield(self, name):
         return self.fields.get(name)

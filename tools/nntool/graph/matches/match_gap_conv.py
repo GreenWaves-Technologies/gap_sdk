@@ -55,17 +55,14 @@ class MatchGapConv(DefaultMatcher):
 
     def valid_convolution(self, node):
         del node
-        # TODO - Add specific convolution parameter checking here
         return True
 
     def valid_pooling(self, node):
         del node
-        # TODO - Add specific pool parameter checking here
         return True
 
     def valid_activation(self, node):
         del node
-        # TODO - Add specific pool parameter checking here
         return True
 
     def validate_match(self, subgraph: GraphView):
@@ -128,7 +125,7 @@ class MatchGapConv(DefaultMatcher):
             if isinstance(node, Conv2DParameters):
                 conv_name = node.name + "_fusion"
                 break
-        LOG.info("fused nodes %s", ",".join((node.name for node in subgraph.nodes())))
+        LOG.info("fusing nodes %s", ",".join((node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
         pnode = ConvFusionParameters(conv_name, fusion_type=self.fusion_type, subgraph=subgraph)

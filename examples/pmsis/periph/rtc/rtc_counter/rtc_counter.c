@@ -43,7 +43,7 @@ void test_rtc_counter(void)
     uint32_t arg = 0xabbadead;
     struct pi_task task = {0};
     pi_task_callback(&task, timer_irq_handler, &arg);
-    pi_rtc_ioctl(&rtc, PI_RTC_ATTACH_CB_TIMER, &task);
+    pi_rtc_ioctl(&rtc, PI_RTC_TIMER_ATTACH_TASK, &task);
 
     /* Start timer */
     pi_rtc_ioctl(&rtc, PI_RTC_TIMER_START, (void *) ((uint32_t) repeat_en));

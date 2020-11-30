@@ -14,47 +14,48 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from typing import Mapping, Sequence, Any
+from typing import Mapping
 
 import numpy as np
-
-from graph.types import LSTMParameters, RNNBaseParameters, RNNParameters
-from quantization.multiplicative.mult_quantization import \
-    MultScalableRnnQuantizationRecord
-from quantization.qtype_base import QTypeBase
-from quantization.quantized_ndarray import QuantizedNdarray
+from graph.types import LSTMParameters, RNNParameters
+from graph.types.rnn import GRUParameters
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
 from quantization.qtype import QType
+from quantization.quantization_record_base import QuantizationRecordBase
+from utils.at_norm import at_norm
 
 LOG = logging.getLogger("nntool." + __name__)
 
 # Q16 (uint16) LUT for sigmoid function
 sigmoid_table = np.array(
     [32768, 33451, 34133, 34813, 35493, 36169, 36843, 37513, 38180, 38841, 39498,
-    40149, 40794, 41432, 42064, 42688, 43304, 43912, 44511, 45102, 45683, 46255,
-    46817, 47369, 47911, 48443, 48964, 49475, 49975, 50464, 50942, 51409, 51865,
-    52311, 52745, 53169, 53581, 53983, 54374, 54755, 55125, 55485, 55834, 56174,
-    56503, 56823, 57133, 57433, 57724, 58007, 58280, 58544, 58800, 59048, 59288,
-    59519, 59743, 59959, 60168, 60370, 60565, 60753, 60935, 61110, 61279, 61441,
-    61599, 61750, 61896, 62036, 62172, 62302, 62428, 62549, 62666, 62778, 62886,
-    62990, 63090, 63186, 63279, 63368, 63454, 63536, 63615, 63691, 63765, 63835,
-    63903, 63968, 64030, 64090, 64148, 64204, 64257, 64308, 64357, 64405, 64450,
-    64494, 64536, 64576, 64614, 64652, 64687, 64721, 64754, 64786, 64816, 64845,
-    64873, 64900, 64926, 64950, 64974, 64997, 65019, 65039, 65060, 65079, 65097,
-    65115, 65132, 65149, 65164, 65179, 65194, 65208, 65221, 65234, 65246, 65258,
-    65269, 65280, 65291, 65301, 65310, 65319, 65328, 65337, 65345, 65352, 65360,
-    65367, 65374, 65381, 65387, 65393, 65399, 65404, 65410, 65415, 65420, 65425,
-    65429, 65433, 65438, 65442, 65445, 65449, 65453, 65456, 65459, 65462, 65465,
-    65468, 65471, 65474, 65476, 65479, 65481, 65483, 65485, 65488, 65489, 65491,
-    65493, 65495, 65497, 65498, 65500, 65501, 65503, 65504, 65505, 65507, 65508,
-    65509, 65510, 65511, 65512, 65513, 65514, 65515, 65516, 65517, 65517, 65518,
-    65519, 65520, 65520, 65521, 65522, 65522, 65523, 65523, 65524, 65524, 65525,
-    65525, 65526, 65526, 65526, 65527, 65527, 65528, 65528, 65528, 65529, 65529,
-    65529, 65529, 65530, 65530, 65530, 65530, 65531, 65531, 65531, 65531, 65531,
-    65532, 65532, 65532, 65532, 65532, 65532, 65533, 65533, 65533, 65533, 65533,
-    65533, 65533, 65533, 65534, 65534, 65534, 65534, 65534, 65534, 65534, 65534,
-    65534, 65534, 65535])
+     40149, 40794, 41432, 42064, 42688, 43304, 43912, 44511, 45102, 45683, 46255,
+     46817, 47369, 47911, 48443, 48964, 49475, 49975, 50464, 50942, 51409, 51865,
+     52311, 52745, 53169, 53581, 53983, 54374, 54755, 55125, 55485, 55834, 56174,
+     56503, 56823, 57133, 57433, 57724, 58007, 58280, 58544, 58800, 59048, 59288,
+     59519, 59743, 59959, 60168, 60370, 60565, 60753, 60935, 61110, 61279, 61441,
+     61599, 61750, 61896, 62036, 62172, 62302, 62428, 62549, 62666, 62778, 62886,
+     62990, 63090, 63186, 63279, 63368, 63454, 63536, 63615, 63691, 63765, 63835,
+     63903, 63968, 64030, 64090, 64148, 64204, 64257, 64308, 64357, 64405, 64450,
+     64494, 64536, 64576, 64614, 64652, 64687, 64721, 64754, 64786, 64816, 64845,
+     64873, 64900, 64926, 64950, 64974, 64997, 65019, 65039, 65060, 65079, 65097,
+     65115, 65132, 65149, 65164, 65179, 65194, 65208, 65221, 65234, 65246, 65258,
+     65269, 65280, 65291, 65301, 65310, 65319, 65328, 65337, 65345, 65352, 65360,
+     65367, 65374, 65381, 65387, 65393, 65399, 65404, 65410, 65415, 65420, 65425,
+     65429, 65433, 65438, 65442, 65445, 65449, 65453, 65456, 65459, 65462, 65465,
+     65468, 65471, 65474, 65476, 65479, 65481, 65483, 65485, 65488, 65489, 65491,
+     65493, 65495, 65497, 65498, 65500, 65501, 65503, 65504, 65505, 65507, 65508,
+     65509, 65510, 65511, 65512, 65513, 65514, 65515, 65516, 65517, 65517, 65518,
+     65519, 65520, 65520, 65521, 65522, 65522, 65523, 65523, 65524, 65524, 65525,
+     65525, 65526, 65526, 65526, 65527, 65527, 65528, 65528, 65528, 65529, 65529,
+     65529, 65529, 65530, 65530, 65530, 65530, 65531, 65531, 65531, 65531, 65531,
+     65532, 65532, 65532, 65532, 65532, 65532, 65533, 65533, 65533, 65533, 65533,
+     65533, 65533, 65533, 65534, 65534, 65534, 65534, 65534, 65534, 65534, 65534,
+     65534, 65534, 65535])
 
 NEAREST = True
+
 
 def sigmoidLUT(x, qtype):
     del qtype
@@ -62,24 +63,24 @@ def sigmoidLUT(x, qtype):
     result = np.empty_like(x)
     if not NEAREST:
         for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 9 #input in Q12
+            abs_x = (np.abs(x[i]) * 3) >> 9  # input in Q12
             if abs_x >= 255:
                 result[i] = 0x7FFF << 10
             else:
                 ua = sigmoid_table[abs_x]
                 ub = sigmoid_table[abs_x+1]
                 ut = abs_x & 0xFF
-                result[i] = (ua << 9) + ut * (ub-ua) #Q16*Q8 = Q24
-        result = np.where(x>0, result + (1<<9), (1<<(9+16))-result+(1<<9)-1)
+                result[i] = (ua << 9) + ut * (ub-ua)  # Q16*Q8 = Q24
+        result = np.where(x > 0, result + (1 << 9), (1 << (9+16))-result+(1 << 9)-1)
         return result >> 10
     else:
         for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 9 #input in Q12
+            abs_x = (np.abs(x[i]) * 3) >> 9  # input in Q12
             if abs_x >= 255:
                 result[i] = 0xFFFF
             else:
                 result[i] = sigmoid_table[abs_x]
-        result = np.where(x>0, result, (1<<16)-result)
+        result = np.where(x > 0, result, (1 << 16)-result)
         return result >> 1
 
 
@@ -89,24 +90,25 @@ def tanhLUT(x, qtype):
     result = np.empty_like(x)
     if not NEAREST:
         for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 8 # 2*abs_x
+            abs_x = (np.abs(x[i]) * 3) >> 8  # 2*abs_x
             if abs_x >= 255:
                 result[i] = 0xFFFF << 8
             else:
                 ua = sigmoid_table[abs_x]
                 ub = sigmoid_table[abs_x+1]
                 ut = abs_x & 0xFF
-                result[i] = (ua << 8) + ut * (ub-ua) #Q16*Q8 = Q24
-        result = np.where(x>0, result - (1<<(9+14)) + (1<<(9-2)), -result + (1<<(9+14)) + (1<<(9-2)) - 1)
+                result[i] = (ua << 8) + ut * (ub-ua)  # Q16*Q8 = Q24
+        result = np.where(x > 0, result - (1 << (9+14)) + (1 << (9-2)), -
+                          result + (1 << (9+14)) + (1 << (9-2)) - 1)
         return result >> 8
     else:
         for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 8 # 2*abs_x
+            abs_x = (np.abs(x[i]) * 3) >> 8  # 2*abs_x
             if abs_x >= 255:
                 result[i] = 0xFFFF
             else:
                 result[i] = sigmoid_table[abs_x]
-        result = np.where(x>0, result - (1<<15), -result + (1<<15))
+        result = np.where(x > 0, result - (1 << 15), -result + (1 << 15))
         return result
 
 
@@ -132,7 +134,7 @@ def tanhLUT(x, qtype):
 #     return np.where(x<(-K), -ONE, np.where(x>K, ONE, np.where(x<0, result_neg, -result_pos)))
 # def quant_sigmoid(x, qtype):
 #     ONE = qtype.quantize(np.array([1])).astype(np.int32)
-#     return np.where(x>0, (exp_taylor_quant(x, qtype) << qtype.q) // (ONE + exp_taylor_quant(x, qtype)), 
+#     return np.where(x>0, (exp_taylor_quant(x, qtype) << qtype.q) // (ONE + exp_taylor_quant(x, qtype)),
 #                          (ONE << qtype.q) // (ONE + exp_taylor_quant(-x, qtype)))
 
 
@@ -194,201 +196,315 @@ def get_activation(name, use_hard):
     raise NotImplementedError("This activation is not implemented")
 
 
-def rnn_step(params: RNNParameters,
-             args: Mapping[str, Sequence],
-             idx: int,
-             input_tensor: np.ndarray,
-             qrec):
+class RnnSymmetricMixin():
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        del kwargs
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        args = {params.INPUT_NAMES[idx]: [in_tensors[idx], qrec.in_qs[idx]]
+                for idx in range(1, len(in_tensors))}
+        if params.revert:
+            in_tensor = np.flip(in_tensor, axis=0)
+        assert in_tensor.shape[0] == params.n_input_cells, "input shape incorrect - n_input_cells"
+        assert in_tensor.shape[1] == params.n_inputs, "input shape incorrect - n_inputs"
+        out_tensor = np.zeros([params.n_output_cells, params.n_states], dtype=qrec.out_qs[0].dtype)
+        out_idx = 0
 
-    # These two sections could be combined by stacking the weights horizontally
-    # and the input and state vertically
+        for idx in range(params.n_cells):
+            res = cls.step_kernel(params, args, idx, in_tensor, qrec)
+            if idx >= (params.n_cells - params.n_output_cells):
+                out_tensor[out_idx] = res
+                out_idx += 1
 
-    # For each cell: compute input_weight * input if there is an input
-    if idx < params.n_input_cells:
-        # scale result to recurrent_weight * input_state scale
-        input_gate_scratch = qrec.scale_input(
+        if params.revert:
+            out_tensor = np.flip(out_tensor, axis=0)
+        if params.output_directions:
+            out_tensor = np.expand_dims(out_tensor, 0)
+        return [out_tensor]
+
+
+@params_type(RNNParameters)
+@quantization('symmetric')
+class RNNSymmetric(RnnSymmetricMixin, KernelBase):
+    @classmethod
+    def step_kernel(cls, params: RNNParameters,
+                    args: Mapping[str, np.ndarray],
+                    idx: int,
+                    input_tensor: np.ndarray,
+                    qrec):
+
+        # These two sections could be combined by stacking the weights horizontally
+        # and the input and state vertically
+
+        # For each cell: compute input_weight * input if there is an input
+        if idx < params.n_input_cells:
+            # scale result to recurrent_weight * input_state scale
+            input_gate_scratch = qrec.scale_input(
+                params,
+                args['i_2_i_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+                0,
+                args,
+                ktype="symmetric")
+
+        # biases already in recurrent_weight * input_state scale
+        input_gate_scratch_state = args['i_b'][0].copy()
+
+        # For each cell: compute recurrent_weight * input_state
+        input_gate_scratch_state += args['r_2_i_w'][0].astype(
+            np.int32).dot(args['i_state'][0].astype(np.int32))
+
+        # scale to state scale
+        input_gate_scratch = qrec.scale_state(
             params,
-            args['i_2_i_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+            input_gate_scratch+input_gate_scratch_state,
             0,
             args,
             ktype="symmetric")
 
-    # biases already in recurrent_weight * input_state scale
-    input_gate_scratch_state = args['i_b'][0].copy()
+        # apply activation at state scale
+        input_gate_scratch = get_activation(params.activation, params.hard_act)(
+            input_gate_scratch, args['i_state'][1])
 
-    # For each cell: compute recurrent_weight * input_state
-    input_gate_scratch_state += args['r_2_i_w'][0].astype(
-        np.int32).dot(args['i_state'][0].astype(np.int32))
+        # scale the state scale to the output scale
+        output_gate_scratch = qrec.scale_output(params, input_gate_scratch, 0, args, ktype="symmetric")
+        # store the state
+        args['i_state'][0] = output_gate_scratch.copy()
+        return output_gate_scratch
 
-    # scale to state scale
-    input_gate_scratch = qrec.scale_state(
-        params,
-        input_gate_scratch+input_gate_scratch_state,
-        0,
-        args,
-        ktype="symmetric")
+@params_type(GRUParameters)
+@quantization('symmetric')
+class GRUSymmetric(RnnSymmetricMixin, KernelBase):
+    @classmethod
+    def step_kernel(cls, params: GRUParameters,
+                    args: Mapping[str, np.ndarray],
+                    idx: int,
+                    input_tensor: np.ndarray,
+                    qrec):
 
-    # apply activation at state scale
-    input_gate_scratch = get_activation(params.activation, params.hard_act)(input_gate_scratch, args['i_state'][1])
-    # store the state
-    args['i_state'][0] = input_gate_scratch.copy()
+        z_gate_scratch = args['w_z_b'][0]
+        hr_gate_scratch = args['w_r_b'][0]
 
-    # scale the state scale to the output scale
-    return qrec.scale_output(
-        params,
-        input_gate_scratch,
-        0,
-        args,
-        ktype="symmetric")
+        if idx < params.n_input_cells:
+            # calculate z gate on input
+            z_gate_scratch += args['w_2_z_w'][0].astype(np.int32).dot(input_tensor[idx])
+            # calculate r gate on input
+            hr_gate_scratch += args['w_2_r_w'][0].astype(np.int32).dot(input_tensor[idx])
+            # scale to recurrent * state scale if input scale is different
+            if not params.rnn_same_inout_scale:
+                z_gate_scratch = qrec.scale_z_input2_z_HtxW(z_gate_scratch, 0, ktype='symmetric')
+                hr_gate_scratch = qrec.scale_r_input2_r_HtxW(hr_gate_scratch, 0, ktype='symmetric')
 
+        # calculate z gate on recurrent
+        z_gate_scratch += args['r_2_z_w'][0].astype(
+            np.int32).dot(args['h_state'][0]) + args['r_z_b'][0]
+        # if not hard_act then the scale will scale to Q15
+        z_gate_scratch = get_activation(params.activation_zr, params.hard_act)(
+            qrec.scale_z_internal(z_gate_scratch, 0, ktype='symmetric'), qrec.internal_qtype)
+        # normalise to internal Q
+        if not params.hard_act and qrec.internal_qtype.q != 15:
+            z_gate_scratch = at_norm(z_gate_scratch, 15 - qrec.internal_qtype.q)
 
-def lstm_step(params: LSTMParameters,
-              args: Mapping[str, np.ndarray],
-              idx: int,
-              input_tensor: np.ndarray,
-              qrec):
+        # same as above on r gate
+        hr_gate_scratch += args['r_2_r_w'][0].astype(
+            np.int32).dot(args['h_state'][0]) + args['r_r_b'][0]
+        hr_gate_scratch = get_activation(params.activation_zr, params.hard_act)(
+            qrec.scale_r_internal(hr_gate_scratch, 0, ktype='symmetric'), qrec.internal_qtype)
+        if not params.hard_act and qrec.internal_qtype.q != 15:
+            hr_gate_scratch = at_norm(hr_gate_scratch, 15 - qrec.internal_qtype.q)
 
-    use_cifg = 'i_2_i_w' in args and args['i_2_i_w'][0] is None
-    use_peephole = 'c_2_o_w' in args and args['c_2_o_w'][0] is not None
-    use_layer_norm = 'f_norm' in args and args['f_norm'][0] is not None
-    if use_cifg:
-        raise NotImplementedError("cifg mode is not supported")
-    if use_peephole:
-        raise NotImplementedError("peephole mode is not supported")
-    if use_layer_norm:
-        raise NotImplementedError("layer norm mode is not supported")
+        if params.linear_before_reset:
+            # haddamard after linear
+            # r_gate_scratch = (rt (.) (Ht-1*(Rh^T) + Rbh))
+            h_gate_recurrent = args['r_2_h_w'][0].astype(np.int32).dot(args['h_state'][0]) + args['r_h_b'][0]
+            # this is int_q_scale * state_q_scale * h_recurrent_weights_scale
+            hr_gate_scratch = hr_gate_scratch * h_gate_recurrent
+            # normalize to state_q_scale * h_recurrent_weights_scale
+            hr_gate_scratch = at_norm(hr_gate_scratch, qrec.internal_qtype.q)
 
-    sigmoid = hsigmoid if params.hard_act else sigmoidLUT
-    tanh = htanh if params.hard_act else tanhLUT
+            # ht = g(Xt*(Wh^T) + (rt (.) (Ht-1*(Rh^T) + Rbh)) + Wbh) # when linear_before_reset != 0
+            if idx < params.n_input_cells:
+                if not params.rnn_same_inout_scale:
+                    # scale input_scale * h_input_weights_scale to state_q_scale * h_recurrent_weights_scale
+                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(
+                        (args['w_2_h_w'][0].astype(np.int32).dot(input_tensor[idx]) + args['w_h_b'][0]),
+                        0, ktype='symmetric')
+                else:
+                    # since input_scale == state scale and h_input_weights_scale == h_recurrent_weights_scale
+                    # no scaling is necessary
+                    hr_gate_scratch += args['w_2_h_w'][0].astype(
+                        np.int32).dot(input_tensor[idx]) + args['w_h_b'][0]
+            else:
+                # Is this correct if there is no input (and below)? This is not a mode that
+                # exists in any framework and will not ever be used at present
+                if not params.rnn_same_inout_scale:
+                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(args['w_h_b'][0], 0, ktype='symmetric')
+                else:
+                    hr_gate_scratch += args['w_h_b'][0]
+        else:
+            # haddamard on state before linear
+            # r_gate_scratch = (rt (.) Ht-1)*(Rh^T) + Rbh + Wbh
 
-    # INPUT vs WEIGHTS
-    # For each cell: compute input_weight * input if there is an input
-    if idx < params.n_input_cells:
-        input_gate_scratch = qrec.scale_input_input(
-            args['i_2_i_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
-            0,
-            ktype="symmetric")
-        forget_gate_scratch = qrec.scale_input_forget(
-            args['i_2_f_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
-            0,
-            ktype="symmetric")
-        cell_scratch = qrec.scale_input_cell(
-            args['i_2_c_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
-            0,
-            ktype="symmetric")
-        output_gate_scratch = qrec.scale_input_output(
-            args['i_2_o_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
-            0,
-            ktype="symmetric")
+            # this is int_q_scale * state_q_scale * h_recurrent_weights_scale
+            # normalize to state_q_scale * h_recurrent_weights_scale
+            hr_gate_scratch = at_norm(args['r_2_h_w'][0].astype(np.int32).dot(
+                args['h_state'][0] * hr_gate_scratch), qrec.internal_qtype.q) + args['r_h_b'][0]
 
-    # Initialize scratch buffers with bias for regular lstm
-    input_gate_scratch_state = args['i_b'][0].astype(np.int32)
-    forget_gate_scratch_state = args['f_b'][0].astype(np.int32)
-    cell_scratch_state = args['c_b'][0].astype(np.int32)
-    output_gate_scratch_state = args['o_b'][0].astype(np.int32)
+            if idx < params.n_input_cells:
+                if not params.rnn_same_inout_scale:
+                    # scale input_scale * h_input_weights_scale to state_q_scale * h_recurrent_weights_scale
+                    hr_gate_scratch += qrec.scale_h_input_2_h_HtxW(
+                        args['w_2_h_w'][0].dot(input_tensor[idx]) + args['w_h_b'][0], 0, ktype='symmetric')
+                else:
+                    hr_gate_scratch += args['w_2_h_w'][0].astype(
+                        np.int32).dot(input_tensor[idx]) + args['w_h_b'][0]
+            else:
+                if not params.rnn_same_inout_scale:
+                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(args['w_h_b'][0], 0, ktype='symmetric')
+                else:
+                    hr_gate_scratch += args['w_h_b'][0]
 
-    # STATE vs WEIGHTS INITIALIZED WITH BIASES
-    # For each cell: compute recurrent_weight * output_state
-    input_gate_scratch_state += args['r_2_i_w'][0].astype(
-        np.int32).dot(args['i_state'][0].astype(np.int32))
-    forget_gate_scratch_state += args['r_2_f_w'][0].astype(
-        np.int32).dot(args['i_state'][0].astype(np.int32))
-    cell_scratch_state += args['r_2_c_w'][0].astype(np.int32).dot(args['i_state'][0].astype(np.int32))
-    output_gate_scratch_state += args['r_2_o_w'][0].astype(
-        np.int32).dot(args['i_state'][0].astype(np.int32))
+        # scale to q15 or internal Q depending on activation type
+        hr_gate_scratch = get_activation(params.activation, params.hard_act)(
+            qrec.scale_h_internal(hr_gate_scratch, 0, ktype='symmetric'), qrec.internal_qtype)
+        # if not hard then go from Q15 -> int_q
+        if not params.hard_act and qrec.internal_qtype.q != 15:
+            hr_gate_scratch = at_norm(hr_gate_scratch, 15 - qrec.internal_qtype.q)
 
-    input_gate_scratch = qrec.scale_internal_input(input_gate_scratch_state+input_gate_scratch,
-                                                   0, ktype="symmetric")
-    forget_gate_scratch = qrec.scale_internal_forget(forget_gate_scratch_state+forget_gate_scratch,
-                                                     0, ktype="symmetric")
-    cell_scratch = qrec.scale_internal_cell(cell_scratch_state+cell_scratch,
-                                            0, ktype="symmetric")
-    output_gate_scratch = qrec.scale_internal_output(output_gate_scratch_state+output_gate_scratch,
-                                                     0, ktype="symmetric")
+        # ----------- SCALE Q7 -----------
 
-    # Apply activations in internal Q * 1
-    input_gate_scratch = sigmoid(input_gate_scratch, qrec.internal_qtype)
+        # Ht = (1 - zt) (.) ht + zt (.) Ht-1
+        # zt = (1 - int_q) * Q7 + Q7 * Q7 = INT_Q * 2
+        # >> and clip
 
-    forget_gate_scratch = sigmoid(forget_gate_scratch, qrec.internal_qtype)
-
-    output_gate_scratch = sigmoid(output_gate_scratch, qrec.internal_qtype)
-
-    cell_scratch = tanh(cell_scratch, qrec.internal_qtype)
-
-    # cstate = cstate * Of + Og * Oi
-    if params.hard_act:
-        # Scale cell state to internal Q * 1
-        cstate = qrec.scale_cellin(args['c_state'][0].astype(np.int32), 0, ktype="symmetric")
-        cstate = cstate * forget_gate_scratch + cell_scratch * input_gate_scratch
-        # cstate now in (2 * Q) * 1
-    else:
-        # Multiply cstate [Scstate] * Of [Sq15] and scale to [Sq12]
-        # Multiply Og [Sq15] * Oi [Sq15] --> [Sq30] >> 30-12 --> [Sq12]
-        # cstate is now in q12 = internal_qtype
-        cstate = qrec.scale_cellin(args['c_state'][0] * forget_gate_scratch, 0, ktype='symmetric') \
-                 + ((cell_scratch * input_gate_scratch) >> (15+(15-qrec.internal_qtype.q)))
-
-    # if params.cell_clip > 0.0:
-    #     args['c_state'] = abs_clip(args['c_state'], params.cell_clip)
-    # if there is a clip value this should override the min max here
-    # clip here
-
-    args['c_state'][0] = qrec.scale_cellout(cstate,
-                                            0, ktype="symmetric")
-
-    if params.hard_act:
-        two_qtype = QType(qrec.internal_qtype, q = qrec.internal_qtype.q * 2)
-        cell_scratch = tanh(cstate, two_qtype)
-        # Assume scaling from internalq * 3 -> Q7 * 1
-        output_gate_scratch *= cell_scratch
-    else:
-        cell_scratch = tanh(cstate, qrec.internal_qtype)
-        # output = Og[Sq15] * tanh(cell_scratch)[Sq15] -> [Sq30] >> 15 -> [Sq15]
-        output_gate_scratch = (output_gate_scratch * cell_scratch) >> 15
-
-    output_gate_scratch = qrec.scale_output(output_gate_scratch,
-                                            0, ktype="symmetric")
-    output_gate_scratch = qrec.out_qs[0].clip(output_gate_scratch)
-
-    use_projection_weight = 'proj_w' in args and args['proj_w'][0] is not None
-    use_projection_bias = 'proj_b' in args and args['proj_b'][0] is not None
-
-    if use_projection_weight or use_projection_bias:
-        raise NotImplementedError("LSTMP is not yet supported by kernel")
+        h_state = (args['h_state'][0].copy()).astype(np.int32) << (qrec.internal_qtype.q - 7)
+        h_state = qrec.out_qs[0].clip(at_norm((qrec.internal_qtype.quantize(1) - z_gate_scratch) *
+                                              hr_gate_scratch + z_gate_scratch * h_state,
+                                              (qrec.internal_qtype.q * 2) - 7)).astype(qrec.out_qs[0].dtype)
+        args['h_state'][0] = h_state.copy()
+        return h_state
 
 
-    args['i_state'][0] = output_gate_scratch.copy()
-    return output_gate_scratch
+@params_type(LSTMParameters)
+@quantization('symmetric')
+class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
+    @classmethod
+    def step_kernel(cls, params: LSTMParameters,
+                    args: Mapping[str, np.ndarray],
+                    idx: int,
+                    input_tensor: np.ndarray,
+                    qrec):
 
+        use_cifg = 'i_2_i_w' in args and args['i_2_i_w'][0] is None
+        use_peephole = 'c_2_o_w' in args and args['c_2_o_w'][0] is not None
+        use_layer_norm = 'f_norm' in args and args['f_norm'][0] is not None
+        if use_cifg:
+            raise NotImplementedError("cifg mode is not supported")
+        if use_peephole:
+            raise NotImplementedError("peephole mode is not supported")
+        if use_layer_norm:
+            raise NotImplementedError("layer norm mode is not supported")
 
-STEP_KERNEL = {
-    RNNParameters: rnn_step,
-    LSTMParameters: lstm_step
-}
+        sigmoid = hsigmoid if params.hard_act else sigmoidLUT
+        tanh = htanh if params.hard_act else tanhLUT
 
+        # INPUT vs WEIGHTS
+        # For each cell: compute input_weight * input if there is an input
+        if idx < params.n_input_cells:
+            input_gate_scratch = qrec.scale_input_input(
+                args['i_2_i_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+                0,
+                ktype="symmetric")
+            forget_gate_scratch = qrec.scale_input_forget(
+                args['i_2_f_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+                0,
+                ktype="symmetric")
+            cell_scratch = qrec.scale_input_cell(
+                args['i_2_c_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+                0,
+                ktype="symmetric")
+            output_gate_scratch = qrec.scale_input_output(
+                args['i_2_o_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
+                0,
+                ktype="symmetric")
 
-def rnn(params: RNNBaseParameters,
-        in_tensors: Sequence[np.ndarray],
-        qrec: MultScalableRnnQuantizationRecord,
-        details=None):
-    del details
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-    args = {params.INPUT_NAMES[idx]: [in_tensors[idx], qrec.in_qs[idx]]
-            for idx in range(1, len(in_tensors))}
-    if params.revert:
-        in_tensor = np.flip(in_tensor, axis=0)
-    assert in_tensor.shape[0] == params.n_input_cells, "input shape incorrect - n_input_cells"
-    assert in_tensor.shape[1] == params.n_inputs, "input shape incorrect - n_inputs"
-    out_tensor = np.zeros([params.n_output_cells, params.n_states], dtype=qrec.out_qs[0].dtype)
-    out_idx = 0
+        # Initialize scratch buffers with bias for regular lstm
+        input_gate_scratch_state = args['i_b'][0].astype(np.int32)
+        forget_gate_scratch_state = args['f_b'][0].astype(np.int32)
+        cell_scratch_state = args['c_b'][0].astype(np.int32)
+        output_gate_scratch_state = args['o_b'][0].astype(np.int32)
 
-    step_kernel = STEP_KERNEL[params.__class__]
-    for idx in range(params.n_cells):
-        res = step_kernel(params, args, idx, in_tensor, qrec)
-        if idx >= (params.n_cells - params.n_output_cells):
-            out_tensor[out_idx] = res
-            out_idx += 1
+        # STATE vs WEIGHTS INITIALIZED WITH BIASES
+        # For each cell: compute recurrent_weight * output_state
+        input_gate_scratch_state += args['r_2_i_w'][0].astype(
+            np.int32).dot(args['i_state'][0].astype(np.int32))
+        forget_gate_scratch_state += args['r_2_f_w'][0].astype(
+            np.int32).dot(args['i_state'][0].astype(np.int32))
+        cell_scratch_state += args['r_2_c_w'][0].astype(
+            np.int32).dot(args['i_state'][0].astype(np.int32))
+        output_gate_scratch_state += args['r_2_o_w'][0].astype(
+            np.int32).dot(args['i_state'][0].astype(np.int32))
 
-    if params.revert:
-        out_tensor = np.flip(out_tensor, axis=0)
-    return [out_tensor]
+        input_gate_scratch = qrec.scale_internal_input(input_gate_scratch_state+input_gate_scratch,
+                                                       0, ktype="symmetric")
+        forget_gate_scratch = qrec.scale_internal_forget(forget_gate_scratch_state+forget_gate_scratch,
+                                                         0, ktype="symmetric")
+        cell_scratch = qrec.scale_internal_cell(cell_scratch_state+cell_scratch,
+                                                0, ktype="symmetric")
+        output_gate_scratch = qrec.scale_internal_output(output_gate_scratch_state+output_gate_scratch,
+                                                         0, ktype="symmetric")
+
+        # Apply activations in internal Q * 1
+        input_gate_scratch = sigmoid(input_gate_scratch, qrec.internal_qtype)
+
+        forget_gate_scratch = sigmoid(forget_gate_scratch, qrec.internal_qtype)
+
+        output_gate_scratch = sigmoid(output_gate_scratch, qrec.internal_qtype)
+
+        cell_scratch = tanh(cell_scratch, qrec.internal_qtype)
+
+        # cstate = cstate * Of + Og * Oi
+        if params.hard_act:
+            # Scale cell state to internal Q * 1
+            cstate = qrec.scale_cellin(args['c_state'][0].astype(np.int32), 0, ktype="symmetric")
+            cstate = cstate * forget_gate_scratch + cell_scratch * input_gate_scratch
+            # cstate now in (2 * Q) * 1
+        else:
+            # Multiply cstate [Scstate] * Of [Sq15] and scale to [Sq12]
+            # Multiply Og [Sq15] * Oi [Sq15] --> [Sq30] >> 30-12 --> [Sq12]
+            # cstate is now in q12 = internal_qtype
+            cstate = qrec.scale_cellin(args['c_state'][0] * forget_gate_scratch, 0, ktype='symmetric') \
+                + ((cell_scratch * input_gate_scratch) >> (15+(15-qrec.internal_qtype.q)))
+
+        # if params.cell_clip > 0.0:
+        #     args['c_state'] = abs_clip(args['c_state'], params.cell_clip)
+        # if there is a clip value this should override the min max here
+        # clip here
+
+        args['c_state'][0] = qrec.scale_cellout(cstate,
+                                                0, ktype="symmetric")
+
+        if params.hard_act:
+            two_qtype = QType(qrec.internal_qtype, q=qrec.internal_qtype.q * 2)
+            cell_scratch = tanh(cstate, two_qtype)
+            # Assume scaling from internalq * 3 -> Q7 * 1
+            output_gate_scratch *= cell_scratch
+        else:
+            cell_scratch = tanh(cstate, qrec.internal_qtype)
+            # output = Og[Sq15] * tanh(cell_scratch)[Sq15] -> [Sq30] >> 15 -> [Sq15]
+            output_gate_scratch = (output_gate_scratch * cell_scratch) >> 15
+
+        output_gate_scratch = qrec.scale_output(output_gate_scratch,
+                                                0, ktype="symmetric")
+        output_gate_scratch = qrec.out_qs[0].clip(output_gate_scratch)
+
+        use_projection_weight = 'proj_w' in args and args['proj_w'][0] is not None
+        use_projection_bias = 'proj_b' in args and args['proj_b'][0] is not None
+
+        if use_projection_weight or use_projection_bias:
+            raise NotImplementedError("LSTMP is not yet supported by kernel")
+
+        args['i_state'][0] = output_gate_scratch.copy()
+        return output_gate_scratch

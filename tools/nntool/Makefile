@@ -7,7 +7,7 @@ SCHEMA_HEAD_TAG=54151bec863ab6159b3c288f8a3dc6b4d281bb27
 PACKAGES=build/packages
 FLAT_SRC=$(PACKAGES)/flatbuffers
 FLAT_BUILD=$(FLAT_SRC)/build
-TFLITE_DIR=importer/tflite
+TFLITE_DIR=importer/tflite2
 FLAT_TAG=de89bd193370c8b33686f1f33edd63593e48cd3f
 
 all: flatbuffers tflite req

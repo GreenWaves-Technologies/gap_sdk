@@ -53,7 +53,7 @@ train: $(MODEL_TF)
 $(MODEL_TFLITE): $(MODEL_TF) | $(MODEL_BUILD)
 	echo "CONVERTING TENSORFLOW  TO TENSORFLOW LITE FLATBUFFER"
 #	$(MODEL_PYTHON)  $(MODEL_FREEZE) --start_checkpoint=$(MODEL_TRAIN_BUILD)/conv.ckpt-18000    --output_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb
-	$(MODEL_PYTHON)  $(MODEL_FREEZE) --start_checkpoint=$(MODEL_TRAIN_BUILD)/conv.ckpt-10    --output_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb
+	$(MODEL_PYTHON)  $(MODEL_FREEZE) --start_checkpoint=$(MODEL_TRAIN_BUILD)/conv.ckpt-$(TRAINING_EPOCHS)    --output_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb
 	tflite_convert --graph_def_file=$(MODEL_TRAIN_BUILD)/kws_frozen.pb --output_file=$(MODEL_BUILD)/kws.tflite --input_format=TENSORFLOW_GRAPHDEF   --output_format=TFLITE --input_arrays=Reshape_1 --output_arrays=add_2
 
 tflite: $(MODEL_TFLITE)

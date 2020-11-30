@@ -66,7 +66,7 @@ class MatchGapLinear(DefaultMatcher):
             if isinstance(node, FcParameters):
                 linear_name = node.name + "_fusion"
                 break
-        LOG.debug("fused nodes %s", ",".join(
+        LOG.info("fusing nodes %s", ",".join(
             (node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order

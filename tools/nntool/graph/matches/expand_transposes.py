@@ -13,9 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+from copy import deepcopy
 from graph.matches.matcher import Matcher
 from graph.types import NNEdge, Transposable, TransposeParameters
+from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
 from utils.graph import GraphView
+
+LOG = logging.getLogger("nntool." + __name__)
 
 
 def apply_reverse_transpose_to_hint(hint, transpose):
@@ -23,6 +28,8 @@ def apply_reverse_transpose_to_hint(hint, transpose):
     reversed_hint = [reverse_transpose[idx] for idx in range(len(hint))]
     return reversed_hint
 
+def apply_transpose_to_hint(hint, transpose):
+    return [hint[idx] for idx in transpose]
 
 class ExpandTransposesMatcher(Matcher):
     NAME = "expand_transposes"
@@ -43,17 +50,19 @@ class ExpandTransposesMatcher(Matcher):
                     trans = node.transpose_in[edge.to_idx]
                     if trans is None:
                         continue
+                    LOG.info("Expand transpose in on node %s", node.name)
                     has_modified_graph = True
                     in_params = TransposeParameters("%s_TIN_%s" % (node.name, idx),
                                                     transpose=trans)
                     if node.in_dims_hint and node.in_dims_hint[edge.to_idx]:
                         in_hint = node.in_dims_hint[edge.to_idx]
-                        out_hint = apply_reverse_transpose_to_hint(in_hint, trans)
+                        out_hint = apply_transpose_to_hint(in_hint, trans)
                         in_params.in_dims_hint = [in_hint.copy()]
                         in_params.out_dims_hint = [out_hint.copy()]
                         node.in_dims_hint[edge.to_idx] = out_hint
                     if G.quantization:
                         G.quantization.copy_to_node(node, in_params)
+                        G.quantization[NodeId(in_params)].out_qs = deepcopy(G.quantization[NodeId(in_params)].in_qs)
                     G.insert_node(in_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx,
                                   edge_class=NNEdge)
@@ -65,6 +74,7 @@ class ExpandTransposesMatcher(Matcher):
                     trans = node.transpose_out[edge.from_idx]
                     if trans is None:
                         continue
+                    LOG.info("Expand transpose out on node %s", node.name)
                     has_modified_graph = True
                     out_params = TransposeParameters("%s_TOUT_%s" % (node.name, idx),
                                                      transpose=trans)
@@ -76,6 +86,7 @@ class ExpandTransposesMatcher(Matcher):
                         node.out_dims_hint[edge.from_idx] = in_hint
                     if G.quantization:
                         G.quantization.copy_to_node(node, out_params)
+                        G.quantization[NodeId(out_params)].in_qs = deepcopy(G.quantization[NodeId(out_params)].out_qs)
                     G.insert_node(out_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx,
                                   edge_class=NNEdge)

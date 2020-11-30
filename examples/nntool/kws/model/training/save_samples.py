@@ -269,8 +269,8 @@ def main():
 
     strout = ''
     for i in range(batch_size):
-        s_16b = test_fingerprints[i] * 64 + 0.5 # Q10.6 found in nntool
-        s_8b = test_fingerprints[i] / 2.40380199 # Scale found in nntool
+        s_16b = np.floor(test_fingerprints[i] * 64 + 0.5) # Q10.6 found in nntool
+        s_8b = np.floor(test_fingerprints[i] / 2.40380199 + 0.5) # Scale found in nntool
         #print(s_16b)
         test_fingerprints[i].tofile("./images/features_float_{}.dat".format(str(i)))
         with open(os.path.join(directory, "features_q16_{}_{}_{}.pgm".format(expected[i], predicted[i], i)), 'wb') as f:

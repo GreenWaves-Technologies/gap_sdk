@@ -36,6 +36,7 @@ def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
         if dim is None:
             cloned_dims.append(None)
             continue
+        assert hasattr(dim, 'clone'), "no clone attribute - probably not a dim"
         cloned_dim = dim.clone()
         if not cloned_dim.is_named and hints and hints[dim_idx]:
             cloned_dim.apply_naming_hints(hints[dim_idx])
@@ -176,7 +177,9 @@ def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
 
     steps = []
     indexes = {'input': 0, 'output': 0, 'constant': 0}
+    LOG.debug("inputs: %s", [node.name for node in G.inputs()])
     for node in G.dfs():
+        LOG.debug("add dimensions to: %s", node.name)
         node.step_idx = len(steps)
         steps.append({'node': node})
         if node.__class__ in OP_ROUTINES:

@@ -38,8 +38,7 @@
 /* SoC peripherals */
 #define SOC_PERIPHERALS_ADDR                        (0x1A100000)
 
-#define SOC_FLL_ADDR                                (SOC_PERIPHERALS_ADDR + SOC_FLL_OFFSET)
-#define CL_FLL_ADDR                                 (SOC_PERIPHERALS_ADDR + CL_FLL_OFFSET)
+#define FLL_ADDR(id)                                (SOC_PERIPHERALS_ADDR + FLL_OFFSET + ((id) << FLL_SIZE_LOG2))
 #define GPIO_ADDR                                   (SOC_PERIPHERALS_ADDR + GPIO_OFFSET)
 #define UDMA_CTRL_ADDR                              (SOC_PERIPHERALS_ADDR + UDMA_OFFSET)
 #define APB_SOC_CTRL_ADDR                           (SOC_PERIPHERALS_ADDR + APB_SOC_CTRL_OFFSET)

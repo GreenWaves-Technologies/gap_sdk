@@ -69,19 +69,38 @@ class InputResizerCommand(NNToolShellBase):
 
 def insert_resizer(G, out_edge, resize_op, from_shape):
     input_node = out_edge.from_node
-    net_in_dim = input_node.in_dims[0]
-    from_dim = deepcopy(net_in_dim)
-    from_dim.h = from_shape[0]
-    from_dim.w = from_shape[1]
+    old_in_dim = input_node.in_dims[0]
+    new_in_dim = old_in_dim.clone()
+    if not old_in_dim.is_named:
+        if len(old_in_dim) == 2:
+            hint = ['h', 'w']
+        elif len(old_in_dim) == 3:
+            if old_in_dim[2] == 1 or old_in_dim[2] == 3:
+                hint = ['h', 'w', 'c']
+            elif old_in_dim[0] == 1 or old_in_dim[0] == 3:
+                hint = ['c', 'h', 'w']
+            else:
+                raise ValueError("cannot determine height and width dimensions of input")
+        else:
+            raise ValueError("cannot determine height and width dimensions of input")
+
+        old_in_dim.apply_naming_hints(hint)
+        input_node.out_dim_hint = [hint]
+        new_in_dim.apply_naming_hints(hint)
+    new_in_dim.h = from_shape[0]
+    new_in_dim.w = from_shape[1]
+    from_dim = new_in_dim.clone()
+
     if resize_op == 'bilinear':
-        resize_node = BilinearResizerParameters(input_node.name + "_resizer", (net_in_dim.h, net_in_dim.w))
+        resize_node = BilinearResizerParameters(input_node.name + "_resizer", (old_in_dim.h, old_in_dim.w))
     elif resize_op == 'nearest':
-        resize_node = NearestNeighborResizerParameters(input_node.name + "_resizer", (net_in_dim.h, net_in_dim.w))
+        resize_node = NearestNeighborResizerParameters(input_node.name + "_resizer", (old_in_dim.h, old_in_dim.w))
+    else:
+        raise ValueError("invalid resize operation")
     to_node = out_edge.to_node
     to_idx = out_edge.to_idx
     resize_node.in_dims = [from_dim]
-    input_node.dims.h = from_shape[0]
-    input_node.dims.w = from_shape[1]
+    input_node.dims = new_in_dim
 
     # qrec updated to reflect resizer
     input_qrec = G.quantization and G.quantization.get(NodeId(input_node))

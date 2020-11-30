@@ -1,0 +1,17 @@
+#define	SAMPLERATE      	16000
+#define	PREEMP_FACTOR   	0.0
+#define	FRAME_SIZE      	480
+#define	FRAME_STEP      	160
+#define	N_FRAME         	49
+#define	N_FFT           	512
+#define	MFCC_BANK_CNT   	40
+#define	FMIN            	20
+#define	FMAX            	4000
+#define	MFCC_COEFF_CNT  	495
+#define	NUMCEP          	40
+#define	N_DCT           	40
+#define	DO_DCT          	1
+#define	USE_RADIX_4     	0
+#define	USE_HIGH_PREC   	0
+#define	USE_POWER       	1
+#define	LIFTER_COEFF    	0

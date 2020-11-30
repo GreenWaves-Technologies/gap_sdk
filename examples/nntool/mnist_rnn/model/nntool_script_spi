@@ -1,6 +1,8 @@
 adjust
 fusions --scale8
 set input_norm_func "x: x/128-1"
+nodeoption UNIDIRECTIONAL_SEQUENCE_LSTM_0_1 RNN_USE_HARDACT 1
+nodeoption UNIDIRECTIONAL_SEQUENCE_LSTM_0_2 RNN_USE_HARDACT 1
 aquant images/* -s SQ8
 imageformat input_1 bw8 offset_int8
 set graph_reorder_constant_in true

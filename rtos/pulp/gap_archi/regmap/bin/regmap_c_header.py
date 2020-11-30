@@ -241,10 +241,12 @@ class Register(object):
             self.__dump_file(header.file, '    inline uint%d_t %s_get()%s\n' % (width, get_c_name_no_digit_first(field.name).lower(), implem), rst)
 
         if not rst:
+
             reg_code = '        this->hw_name = "%s";\n' % (self.name)
             reg_code += '        this->offset = 0x%x;\n' % (self.offset)
             reg_code += '        this->width = %d;\n' % (self.width)
             reg_code += '        this->do_reset = %d;\n' % (self.do_reset)
+            reg_code += '        this->write_mask = 0x%x;\n' % (self.get_write_mask())
             if self.reset is not None:
                 reg_code += '        this->reset_val = 0x%x;\n' % (self.reset)
             for field in self.get_fields():

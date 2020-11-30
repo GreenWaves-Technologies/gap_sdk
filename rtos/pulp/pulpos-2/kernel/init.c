@@ -52,40 +52,56 @@ static void pos_init_do_dtors(void)
 }
 
 
+static void pos_init_bss()
+{
+    if (pi_pmu_get_prev_state(PI_PMU_DOMAIN_CHIP) != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
+    {
+        unsigned int *bss = (unsigned int *)pos_bss_start();
+        unsigned int *bss_end = (unsigned int *)pos_bss_end();
+
+        INIT_INF("BSS init (start: 0x%x, end: 0x%x)\n", bss, bss_end);
+
+        while (bss != bss_end)
+        {
+            *bss++ = 0;
+        }
+    }
+}
+
 
 void pos_init_start()
 {
-#if PULP_CHIP_FAMILY == CHIP_GAP
-  // Always allow JTAG accesses for now as security is not implemented
-  hal_pmu_bypass_set (ARCHI_REG_FIELD_SET (hal_pmu_bypass_get (), 1, 11, 1) );
-#endif
+    INIT_INF("Starting runtime initialization\n");
 
-  INIT_TRACE(POS_LOG_INFO, "Starting runtime initialization\n");
+    pos_kernel_init();
 
-  pos_irq_init();
+    pos_irq_init();
 
-  pos_soc_init();
+    pos_soc_init();
 
-  pos_soc_event_init();
+    // BSS init
+    pos_init_bss();
 
-  // Initialize first the memory allocators and the utils so that they are
-  // available for constructors, especially to let them declare
-  // callbacks
-  //__rt_utils_init();
-  pos_allocs_init();
+    pos_soc_event_init();
 
-  // Scheduler is initialized now to let other modules use it early
-  pos_sched_init();
+    // Initialize first the memory allocators and the utils so that they are
+    // available for constructors, especially to let them declare
+    // callbacks
+    //__rt_utils_init();
+    pos_allocs_init();
 
-  // Call global and static constructors
-  // Each module may do private initializations there
-  pos_init_do_ctors();
+    // Scheduler is initialized now to let other modules use it early
+    pos_sched_init();
 
-  // Now that the system is ready, activate IO
-  pos_io_start();
+    // Call global and static constructors
+    // Each module may do private initializations there
+    pos_init_do_ctors();
 
-  // Now now the minimal init are done, we can activate interruptions
-  hal_irq_enable();
+    // Now that the system is ready, activate IO
+    pos_io_start();
+
+    // Now now the minimal init are done, we can activate interruptions
+    hal_irq_enable();
 }
 
 

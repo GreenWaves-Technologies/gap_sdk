@@ -17,6 +17,8 @@ export BOARD_NAME=gapuino
 export PULP_CURRENT_CONFIG=$BOARD_NAME@config_file=config/gapuino_revc.json
 export GVSOC_CONFIG=gapuino_revc
 export PLPBRIDGE_CABLE=ftdi@digilent
+export OPENOCD_CHIP_TARGET=target/gap8revb.tcl
+export OPENOCD_CABLE=interface/ftdi/gapuino_ftdi.cfg
 
 export GAPY_TARGET=gapuino_v3
 

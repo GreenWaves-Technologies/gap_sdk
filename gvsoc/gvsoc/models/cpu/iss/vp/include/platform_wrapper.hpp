@@ -24,6 +24,7 @@
 
 #include "types.hpp"
 #include "iss_wrapper.hpp"
+#include "insn_cache.hpp"
 #include <string.h>
 
 static inline void iss_handle_ecall(iss_t *iss, iss_insn_t *insn)
@@ -316,5 +317,17 @@ static inline void iss_lsu_store(iss_t *iss, iss_insn_t *insn, iss_addr_t addr, 
     iss_exec_insn_stall(iss);
   }
 }
+
+static inline void iss_fence_i(iss_t *iss)
+{
+    if (iss->flush_cache_req_itf.is_bound())
+    {
+        iss_exec_insn_stall(iss);
+
+        iss->flush_cache_req_itf.sync(true);
+        iss_cache_flush(iss);
+    }
+}
+
 
 #endif

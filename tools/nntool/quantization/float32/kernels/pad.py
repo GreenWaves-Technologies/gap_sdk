@@ -14,16 +14,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-
+from graph.types import PadParameters
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
 from quantization.quantization_record_base import QuantizationRecordBase
 
 
-def pad(params,
-        in_tensors,
-        qrec: QuantizationRecordBase,
-        details=None):
-    del qrec, details
-    if params.pad_type == "zero":
-        return [np.pad(in_tensors[0], params.padding.numpy_pad_shape(params.in_dims[0]),
-                       'constant', constant_values=0)]
-    raise NotImplementedError()
+@params_type(PadParameters)
+@quantization('float32')
+class PadFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        del qrec
+        return [np.pad(in_tensors[0], params.padding, 'constant', constant_values=params.pad_vals)]

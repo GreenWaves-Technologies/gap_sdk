@@ -123,9 +123,9 @@ void pi_aes_ioctl(pi_device_t *device, uint32_t cmd, void *arg);
  * \param device the AES device
  * \param src data to encrypt
  * \param dest encrypted data
- * \param len length of the data in bytes
+ * \param len length of the data in block (4 bytes)
  *
- * \warning source data length should be a multiple of 16
+ * \warning source data length (in bytes) should be a multiple of 16
  *          user needs to handle padding if needed
  */
 int pi_aes_encrypt(struct pi_device* device, void* src, void* dest, uint16_t len);
@@ -136,10 +136,10 @@ int pi_aes_encrypt(struct pi_device* device, void* src, void* dest, uint16_t len
  * \param device the AES device
  * \param src data to encrypt
  * \param dest encrypted data
- * \param len length of the data in bytes
+ * \param len length of the data in block (4 bytes)
  * \param task the task executed after the encryption
  *
- * \warning source data length should be a multiple of 16
+ * \warning source data length (in bytes) should be a multiple of 16
  *          user needs to handle padding if needed
  */
 int pi_aes_encrypt_async(struct pi_device* device, void* src, void* dest, uint16_t len, struct pi_task* task);
@@ -150,9 +150,10 @@ int pi_aes_encrypt_async(struct pi_device* device, void* src, void* dest, uint16
  * \param device the AES device
  * \param src data to decrypt
  * \param dest decrypted data
- * \param len length of the data in bytes
+ * \param len length of the data in block (4 bytes)
  *
- * \warning source data length should be a multiple of 16
+ * \warning source data length (in bytes) should be a multiple of 16
+ *          user needs to handle padding if needed
  */
 int pi_aes_decrypt(struct pi_device* device, void* src, void* dest, uint16_t len);
 
@@ -162,10 +163,11 @@ int pi_aes_decrypt(struct pi_device* device, void* src, void* dest, uint16_t len
  * \param device the AES device
  * \param src data to decrypt
  * \param dest decrypted data
- * \param len length of the data in bytes
+ * \param len length of the data in block (4 bytes)
  * \param task the task executed after the decryption
  *
- * \warning source data length should be a multiple of 16
+ * \warning source data length (in bytes) should be a multiple of 16
+ *          user needs to handle padding if needed
  */
 int pi_aes_decrypt_async(struct pi_device* device, void* src, void* dest, uint16_t len, struct pi_task* task);
 

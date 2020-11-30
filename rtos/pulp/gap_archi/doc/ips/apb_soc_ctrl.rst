@@ -126,7 +126,7 @@ Overview
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
     |:ref:`SUPERVISOR_DBG<apb_soc_ctrl_SUPERVISOR_DBG>`              |   224|   32|                                                   |
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`RESERVED10<apb_soc_ctrl_RESERVED10>`                      |   228|   32|Reserved                                           |
+    |:ref:`DBG_CTRL<apb_soc_ctrl_DBG_CTRL>`                          |   228|   32|Debug access control                               |
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
     |:ref:`RESERVED11<apb_soc_ctrl_RESERVED11>`                      |   232|   32|Reserved                                           |
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
@@ -179,6 +179,8 @@ Overview
     |:ref:`L2_PWR<apb_soc_ctrl_L2_PWR>`                              |   372|   32|Controls L2 power                                  |
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
     |:ref:`L2_CTRL<apb_soc_ctrl_L2_CTRL>`                            |   376|   32|Controls L2 power                                  |
+    +----------------------------------------------------------------+------+-----+---------------------------------------------------+
+    |:ref:`BORCFG<apb_soc_ctrl_BORCFG>`                              |   384|   32|Controls the brown-out reset                       |
     +----------------------------------------------------------------+------+-----+---------------------------------------------------+
 
 Generated headers
@@ -361,8 +363,8 @@ Generated headers
         
                 #define APB_SOC_CTRL_SUPERVISOR_DBG_OFFSET       0xe0
         
-                // Reserved
-                #define APB_SOC_CTRL_RESERVED10_OFFSET           0xe4
+                // Debug access control
+                #define APB_SOC_CTRL_DBG_CTRL_OFFSET             0xe4
         
                 // Reserved
                 #define APB_SOC_CTRL_RESERVED11_OFFSET           0xe8
@@ -441,6 +443,9 @@ Generated headers
         
                 // Controls L2 power
                 #define APB_SOC_CTRL_L2_CTRL_OFFSET              0x178
+        
+                // Controls the brown-out reset
+                #define APB_SOC_CTRL_BORCFG_OFFSET               0x180
 
 .. toggle-header::
     :header: *Register accessors*
@@ -619,8 +624,8 @@ Generated headers
         static inline uint32_t apb_soc_ctrl_supervisor_dbg_get(uint32_t base);
         static inline void apb_soc_ctrl_supervisor_dbg_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t apb_soc_ctrl_reserved10_get(uint32_t base);
-        static inline void apb_soc_ctrl_reserved10_set(uint32_t base, uint32_t value);
+        static inline uint32_t apb_soc_ctrl_dbg_ctrl_get(uint32_t base);
+        static inline void apb_soc_ctrl_dbg_ctrl_set(uint32_t base, uint32_t value);
 
         static inline uint32_t apb_soc_ctrl_reserved11_get(uint32_t base);
         static inline void apb_soc_ctrl_reserved11_set(uint32_t base, uint32_t value);
@@ -699,6 +704,9 @@ Generated headers
 
         static inline uint32_t apb_soc_ctrl_l2_ctrl_get(uint32_t base);
         static inline void apb_soc_ctrl_l2_ctrl_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t apb_soc_ctrl_borcfg_get(uint32_t base);
+        static inline void apb_soc_ctrl_borcfg_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -1558,6 +1566,18 @@ Generated headers
         #define APB_SOC_CTRL_REG_OSC_CTRL_GM_SEL_MASK                        0x3c
         #define APB_SOC_CTRL_REG_OSC_CTRL_GM_SEL_RESET                       0x0
         
+        // Max output current when switching on iswitchable I/Os (access: R/W)
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_BIT                     0
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_WIDTH                   5
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_MASK                    0x1f
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_RESET                   0x1f
+        
+        // Max output current when switching on memory interfaces (access: R/W)
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_BIT                     8
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_WIDTH                   5
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_MASK                    0x1f00
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_RESET                   0x1f
+        
         // L2 retention control for private and interleaved banks (access: R/W)
         #define APB_SOC_CTRL_L2_PWR_L2_MEM_RET_BIT                           0
         #define APB_SOC_CTRL_L2_PWR_L2_MEM_RET_WIDTH                         14
@@ -1581,6 +1601,18 @@ Generated headers
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP_WIDTH                  12
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP_MASK                   0xfff0000
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP_RESET                  0x0
+        
+        // Set to 1 to enable BOR monitoring of power supply (access: R/W)
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_BIT                           0
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_WIDTH                         1
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_MASK                          0x1
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_RESET                         0x0
+        
+        // Threshold of detection of power supply drops (access: R/W)
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_BIT                             1
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_WIDTH                           5
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_MASK                            0x3e
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_RESET                           0x5
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2298,6 +2330,16 @@ Generated headers
         #define APB_SOC_CTRL_REG_OSC_CTRL_GM_SEL_SET(value,field)  (GAP_BINSERT((value),(field),4,2))
         #define APB_SOC_CTRL_REG_OSC_CTRL_GM_SEL(val)              ((val) << 2)
         
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_GET(value)    (GAP_BEXTRACTU((value),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_GETS(value)   (GAP_BEXTRACT((value),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_SET(value,field) (GAP_BINSERT((value),(field),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL(val)          ((val) << 0)
+        
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_GET(value)    (GAP_BEXTRACTU((value),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_GETS(value)   (GAP_BEXTRACT((value),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_SET(value,field) (GAP_BINSERT((value),(field),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL(val)          ((val) << 8)
+        
         #define APB_SOC_CTRL_L2_PWR_L2_MEM_RET_GET(value)          (GAP_BEXTRACTU((value),14,0))
         #define APB_SOC_CTRL_L2_PWR_L2_MEM_RET_GETS(value)         (GAP_BEXTRACT((value),14,0))
         #define APB_SOC_CTRL_L2_PWR_L2_MEM_RET_SET(value,field)    (GAP_BINSERT((value),(field),14,0))
@@ -2317,6 +2359,16 @@ Generated headers
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP_GETS(value)  (GAP_BEXTRACT((value),12,16))
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP_SET(value,field) (GAP_BINSERT((value),(field),12,16))
         #define APB_SOC_CTRL_L2_CTRL_L2_MEM_DEEPSLEEP(val)         ((val) << 16)
+        
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_GET(value)          (GAP_BEXTRACTU((value),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_GETS(value)         (GAP_BEXTRACT((value),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_SET(value,field)    (GAP_BINSERT((value),(field),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE(val)                ((val) << 0)
+        
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_GET(value)            (GAP_BEXTRACTU((value),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_GETS(value)           (GAP_BEXTRACT((value),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_SET(value,field)      (GAP_BINSERT((value),(field),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL(val)                  ((val) << 1)
 
 .. toggle-header::
     :header: *Register map structure*
@@ -2382,7 +2434,7 @@ Generated headers
             volatile uint32_t reserved8;  // Reserved
             volatile uint32_t reserved9;  // Reserved
             volatile uint32_t supervisor_dbg; 
-            volatile uint32_t reserved10;  // Reserved
+            volatile uint32_t dbg_ctrl;  // Debug access control
             volatile uint32_t reserved11;  // Reserved
             volatile uint32_t reserved12;  // Reserved
             volatile uint32_t clk_div_i3c;  // Clock divider for I3C
@@ -2412,6 +2464,8 @@ Generated headers
             volatile uint32_t rwm_l2_pri;  // RWM for L2 Private memories 3:0
             volatile uint32_t l2_pwr;  // Controls L2 power
             volatile uint32_t l2_ctrl;  // Controls L2 power
+            volatile uint32_t reserved_3[1];  // Reserved/Not used.
+            volatile uint32_t borcfg;  // Controls the brown-out reset
         } __attribute__((packed)) apb_soc_ctrl_t;
 
 .. toggle-header::
@@ -2895,7 +2949,7 @@ Generated headers
           struct {
           };
           unsigned int raw;
-        } __attribute__((packed)) apb_soc_ctrl_reserved10_t;
+        } __attribute__((packed)) apb_soc_ctrl_dbg_ctrl_t;
         
         typedef union {
           struct {
@@ -3034,6 +3088,9 @@ Generated headers
         
         typedef union {
           struct {
+            unsigned int neva_io_ls_tsel :5 ; // Max output current when switching on iswitchable I/Os
+            unsigned int padding0:3 ;
+            unsigned int neva_io_hs_tsel :5 ; // Max output current when switching on memory interfaces
           };
           unsigned int raw;
         } __attribute__((packed)) apb_soc_ctrl_nevacfg_t;
@@ -3073,6 +3130,14 @@ Generated headers
           };
           unsigned int raw;
         } __attribute__((packed)) apb_soc_ctrl_l2_ctrl_t;
+        
+        typedef union {
+          struct {
+            unsigned int bor_enable      :1 ; // Set to 1 to enable BOR monitoring of power supply
+            unsigned int bor_vsel        :5 ; // Threshold of detection of power supply drops
+          };
+          unsigned int raw;
+        } __attribute__((packed)) apb_soc_ctrl_borcfg_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -3140,7 +3205,7 @@ Generated headers
             vp_apb_soc_ctrl_reserved8 reserved8;
             vp_apb_soc_ctrl_reserved9 reserved9;
             vp_apb_soc_ctrl_supervisor_dbg supervisor_dbg;
-            vp_apb_soc_ctrl_reserved10 reserved10;
+            vp_apb_soc_ctrl_dbg_ctrl dbg_ctrl;
             vp_apb_soc_ctrl_reserved11 reserved11;
             vp_apb_soc_ctrl_reserved12 reserved12;
             vp_apb_soc_ctrl_clk_div_i3c clk_div_i3c;
@@ -3167,6 +3232,7 @@ Generated headers
             vp_apb_soc_ctrl_rwm_l2_pri rwm_l2_pri;
             vp_apb_soc_ctrl_l2_pwr l2_pwr;
             vp_apb_soc_ctrl_l2_ctrl l2_ctrl;
+            vp_apb_soc_ctrl_borcfg borcfg;
         };
 
 |
@@ -9342,12 +9408,12 @@ Generated headers
 
 |
 
-.. _apb_soc_ctrl_RESERVED10:
+.. _apb_soc_ctrl_DBG_CTRL:
 
-RESERVED10
-""""""""""
+DBG_CTRL
+""""""""
 
-Reserved
+Debug access control
 
 .. table:: 
 
@@ -9366,8 +9432,8 @@ Generated headers
     .. code-block:: c
 
         
-                // Reserved
-                #define APB_SOC_CTRL_RESERVED10_OFFSET           0xe4
+                // Debug access control
+                #define APB_SOC_CTRL_DBG_CTRL_OFFSET             0xe4
 
 .. toggle-header::
     :header: *Register accessors*
@@ -9375,8 +9441,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t apb_soc_ctrl_reserved10_get(uint32_t base);
-        static inline void apb_soc_ctrl_reserved10_set(uint32_t base, uint32_t value);
+        static inline uint32_t apb_soc_ctrl_dbg_ctrl_get(uint32_t base);
+        static inline void apb_soc_ctrl_dbg_ctrl_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -9400,7 +9466,7 @@ Generated headers
           struct {
           };
           unsigned int raw;
-        } __attribute__((packed)) apb_soc_ctrl_reserved10_t;
+        } __attribute__((packed)) apb_soc_ctrl_dbg_ctrl_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -9408,7 +9474,7 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_apb_soc_ctrl_reserved10 : public vp::reg_32
+        class vp_apb_soc_ctrl_dbg_ctrl : public vp::reg_32
         {
         public:
         };
@@ -11120,10 +11186,13 @@ NEVA config
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+---------------+------------------------------------------------------+
+    |Bit #|R/W|     Name      |                     Description                      |
+    +=====+===+===============+======================================================+
+    |4:0  |R/W|NEVA_IO_LS_TSEL|Max output current when switching on iswitchable I/Os |
+    +-----+---+---------------+------------------------------------------------------+
+    |12:8 |R/W|NEVA_IO_HS_TSEL|Max output current when switching on memory interfaces|
+    +-----+---+---------------+------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -11152,12 +11221,34 @@ Generated headers
 
     .. code-block:: c
 
+        
+        // Max output current when switching on iswitchable I/Os (access: R/W)
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_BIT                     0
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_WIDTH                   5
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_MASK                    0x1f
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_RESET                   0x1f
+        
+        // Max output current when switching on memory interfaces (access: R/W)
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_BIT                     8
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_WIDTH                   5
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_MASK                    0x1f00
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_RESET                   0x1f
 
 .. toggle-header::
     :header: *Register fields macros*
 
     .. code-block:: c
 
+        
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_GET(value)    (GAP_BEXTRACTU((value),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_GETS(value)   (GAP_BEXTRACT((value),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL_SET(value,field) (GAP_BINSERT((value),(field),5,0))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_LS_TSEL(val)          ((val) << 0)
+        
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_GET(value)    (GAP_BEXTRACTU((value),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_GETS(value)   (GAP_BEXTRACT((value),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL_SET(value,field) (GAP_BINSERT((value),(field),5,8))
+        #define APB_SOC_CTRL_NEVACFG_NEVA_IO_HS_TSEL(val)          ((val) << 8)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -11167,6 +11258,9 @@ Generated headers
         
         typedef union {
           struct {
+            unsigned int neva_io_ls_tsel :5 ; // Max output current when switching on iswitchable I/Os
+            unsigned int padding0:3 ;
+            unsigned int neva_io_hs_tsel :5 ; // Max output current when switching on memory interfaces
           };
           unsigned int raw;
         } __attribute__((packed)) apb_soc_ctrl_nevacfg_t;
@@ -11180,6 +11274,10 @@ Generated headers
         class vp_apb_soc_ctrl_nevacfg : public vp::reg_32
         {
         public:
+            inline void neva_io_ls_tsel_set(uint32_t value);
+            inline uint32_t neva_io_ls_tsel_get();
+            inline void neva_io_hs_tsel_set(uint32_t value);
+            inline uint32_t neva_io_hs_tsel_get();
         };
 
 |
@@ -11609,6 +11707,110 @@ Generated headers
             inline uint32_t l2_mem_powergate_get();
             inline void l2_mem_deepsleep_set(uint32_t value);
             inline uint32_t l2_mem_deepsleep_get();
+        };
+
+|
+
+.. _apb_soc_ctrl_BORCFG:
+
+BORCFG
+""""""
+
+Controls the brown-out reset
+
+.. table:: 
+
+    +-----+---+----------+-------------------------------------------------+
+    |Bit #|R/W|   Name   |                   Description                   |
+    +=====+===+==========+=================================================+
+    |    0|R/W|BOR_ENABLE|Set to 1 to enable BOR monitoring of power supply|
+    +-----+---+----------+-------------------------------------------------+
+    |5:1  |R/W|BOR_VSEL  |Threshold of detection of power supply drops     |
+    +-----+---+----------+-------------------------------------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // Controls the brown-out reset
+                #define APB_SOC_CTRL_BORCFG_OFFSET               0x180
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t apb_soc_ctrl_borcfg_get(uint32_t base);
+        static inline void apb_soc_ctrl_borcfg_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // Set to 1 to enable BOR monitoring of power supply (access: R/W)
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_BIT                           0
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_WIDTH                         1
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_MASK                          0x1
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_RESET                         0x0
+        
+        // Threshold of detection of power supply drops (access: R/W)
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_BIT                             1
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_WIDTH                           5
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_MASK                            0x3e
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_RESET                           0x5
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_GET(value)          (GAP_BEXTRACTU((value),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_GETS(value)         (GAP_BEXTRACT((value),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE_SET(value,field)    (GAP_BINSERT((value),(field),1,0))
+        #define APB_SOC_CTRL_BORCFG_BOR_ENABLE(val)                ((val) << 0)
+        
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_GET(value)            (GAP_BEXTRACTU((value),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_GETS(value)           (GAP_BEXTRACT((value),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL_SET(value,field)      (GAP_BINSERT((value),(field),5,1))
+        #define APB_SOC_CTRL_BORCFG_BOR_VSEL(val)                  ((val) << 1)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int bor_enable      :1 ; // Set to 1 to enable BOR monitoring of power supply
+            unsigned int bor_vsel        :5 ; // Threshold of detection of power supply drops
+          };
+          unsigned int raw;
+        } __attribute__((packed)) apb_soc_ctrl_borcfg_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_apb_soc_ctrl_borcfg : public vp::reg_32
+        {
+        public:
+            inline void bor_enable_set(uint32_t value);
+            inline uint32_t bor_enable_get();
+            inline void bor_vsel_set(uint32_t value);
+            inline uint32_t bor_vsel_get();
         };
 
 |

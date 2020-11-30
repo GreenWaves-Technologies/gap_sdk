@@ -1,4 +1,4 @@
-DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip sfu
+DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip sfu fll riscv_dbg
 
 #TODO this doc has been removed: quiddikey
 #TODO add back udma AES when markdown is added
@@ -90,8 +90,8 @@ timer_unit:
 # Stopped here
 quiddikey:
 	./regmap/bin/regmap --name=quiddikey \
-		--input=fe/ips/quiddikey/doc/QUIDDIKEY_reference.xlsx \
-		--input-xls=$(GAP9_V2_HOME)/fe/ips/quiddikey/doc/QUIDDIKEY_reference.xlsx \
+		--input=fe/ips/quiddikey/doc/quiddikey_reference.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/quiddikey/doc/quiddikey_reference.md\
 		--header=include/archi/chips/gap9_v2/quiddikey/quiddikey \
 		--rst=doc/ips/quiddikey.rst
 
@@ -217,16 +217,16 @@ udma_core_2d:
 udma_aes:
 	./regmap/bin/regmap \
 		--name=udma_aes \
-		--input=fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
-		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/doc/udma_aes_reference.md \
+		--input=fe/ips/udma/udma_aes/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/README.md \
 		--header=include/archi/chips/gap9_v2/udma_aes/udma_aes \
 		--rst=doc/ips/udma_aes.rst
 
 udma_aes_dual_core:
 	./regmap/bin/regmap \
 		--name=udma_aes_dual_core \
-		--input=fe/ips/udma/udma_aes/README.md \
-		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/README.md \
+		--input=fe/ips/udma/udma_aes/README_dual_core.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_aes/README_dual_core.md \
 		--header=include/archi/chips/gap9_v2/udma_aes_dual_core/udma_aes_dual_core \
 		--rst=doc/ips/udma_aes_dual_core.rst
 
@@ -253,6 +253,21 @@ fc_mpu:
 		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/FC_MPU_reference.md \
 		--header=include/archi/chips/gap9_v2/fc_mpu/fc_mpu \
 		--rst=doc/ips/fc_mpu.rst
+
+fll:
+	./regmap/bin/regmap \
+		--name=fll \
+		--input=fe/ips/fll_new/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/fll_new/README.md \
+		--header=include/archi/chips/gap9_v2/fll/fll \
+		--rst=doc/ips/fll.rst
+
+riscv_dbg:
+	./regmap/bin/regmap --name=riscv_dbg_dm \
+		--input=docs/IP_REFERENCES/RISCV_DBG_DM_reference.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/RISCV_DBG_DM_reference.md \
+		--header=include/archi/riscv_dbg/riscv_dbg_dm \
+		--rst=doc/ips/riscv_dbg_dm.rst
 
 
 build:

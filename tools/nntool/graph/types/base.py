@@ -54,6 +54,7 @@ class Parameters(Node):
         self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
                                   "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
         self._at_options = NodeOptions(self._valid_at_options)
+        self._meta = {}
 
     def get_parameters(self):
         return {}
@@ -63,6 +64,10 @@ class Parameters(Node):
 
     def get_gen_ctrl(self):
         return GenCtrl(self.at_options)
+
+    @property
+    def meta(self):
+        return self._meta
 
     @property
     def valid_at_options(self):
@@ -142,7 +147,7 @@ class Parameters(Node):
 
     @out_dims.setter
     def out_dims(self, value):
-        LOG.debug("%s out dims set to %s", self.__class__.__name__, str(value))
+        LOG.debug("%s out dims set to %s", self.__class__.__name__, [str(val) for val in value])
         self._out_dims = value
 
     @abstractmethod

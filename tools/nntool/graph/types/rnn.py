@@ -22,13 +22,15 @@ from graph.types.input_output import ConstantInputParameters
 LOG = logging.getLogger("nntool." + __name__)
 
 #pylint: disable=abstract-method
+
+
 class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     INPUT_NAMES = []
     STATE_PARAMETERS = []
 
     def __init__(self, name, *args, n_cells=None, n_states=None, n_inputs=None, n_input_cells=None, n_output_cells=None,
-                 activation="tanh", revert=False, **kwargs):
+                 activation="tanh", revert=False, output_directions=False, **kwargs):
         super(RNNBaseParameters, self).__init__(name, *args, **kwargs)
         self.activation = activation
         self.n_cells = n_cells
@@ -43,11 +45,11 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
         self.revert = revert
         self.always_reset_state = True
         self.hard_act = False
-        self.same_in_out_scale = False
+        self.rnn_same_inout_scale = False
+        self.output_directions = output_directions
 
     def get_parameter_size(self):
         return 0
-
 
     def get_name_indexes(self):
         return {name: idx for idx, name in enumerate(self.INPUT_NAMES)}
@@ -82,8 +84,11 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
         const_node.value = value
 
     def get_output_size(self, in_dims):
-        out_dim = Dim.unnamed([self.n_output_cells, self.n_states])
-        return [out_dim]
+        if self.output_directions:
+            out_dims = [Dim.unnamed([1, self.n_output_cells, self.n_states])]
+        else:
+            out_dims = [Dim.unnamed([self.n_output_cells, self.n_states])]
+        return out_dims
 
     @property
     def can_equalize(self):
@@ -91,23 +96,23 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     @property
     def hard_act(self):
-        if hasattr(self.at_options, 'use_hard_act'):
-            return self.at_options.use_hard_act == 1
+        if hasattr(self.at_options, 'rnn_use_hardact'):
+            return self.at_options.rnn_use_hardact == 1
         return False
 
     @hard_act.setter
     def hard_act(self, val):
-        self.at_options.use_hard_act = 1 if val else 0
+        self.at_options.rnn_use_hardact = 1 if val else 0
 
     @property
-    def same_in_out_scale(self):
-        if hasattr(self.at_options, 'same_in_out_scale'):
-            return self.at_options.same_in_out_scale == 1
+    def rnn_same_inout_scale(self):
+        if hasattr(self.at_options, 'rnn_same_inout_scale'):
+            return self.at_options.rnn_same_inout_scale == 1
         return False
 
-    @same_in_out_scale.setter
-    def same_in_out_scale(self, val):
-        self.at_options.same_in_out_scale = 1 if val else 0
+    @rnn_same_inout_scale.setter
+    def rnn_same_inout_scale(self, val):
+        self.at_options.rnn_same_inout_scale = 1 if val else 0
 
     def compute_load(self):
         return self.in_dims[0].size() * 2
@@ -121,6 +126,7 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
 
 class RNNParameters(RNNBaseParameters):
+    op_name = "rnn"
 
     INPUT_NAMES = [
         "input",
@@ -138,4 +144,47 @@ class RNNParameters(RNNBaseParameters):
     def clone(self, name, groupn=None):
         raise NotImplementedError()
 
-    op_name = "rnn"
+
+
+
+class GRUParameters(RNNBaseParameters):
+    op_name = "gru"
+
+    INPUT_NAMES = [
+        "input",
+        "w_2_z_w",
+        "w_2_r_w",
+        "w_2_h_w",
+        "r_2_z_w",
+        "r_2_r_w",
+        "r_2_h_w",
+        "w_z_b",
+        "w_r_b",
+        "w_h_b",
+        "r_z_b",
+        "r_r_b",
+        "r_h_b",
+        "h_state",
+    ]
+
+    STATE_PARAMETERS = ["h_state"]
+
+    def __init__(self, *args, linear_before_reset=False, activation_zr=None, **kwargs) -> None:
+        super(GRUParameters, self).__init__(*args, **kwargs)
+        self.activation_zr = "sigmoid" if activation_zr is None else activation_zr
+        self.linear_before_reset = linear_before_reset
+
+    def get_parameter_size(self):
+        return 3 * ((self.n_inputs + self.n_states) * (self.n_inputs + 1)) + self.n_states
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "{}{} {} {}{}".format(
+            ("Reversed " if self.revert else ""),
+            self.activation,
+            self.activation_zr,
+            "linear before reset " if self.linear_before_reset else "",
+            self.at_options
+        )

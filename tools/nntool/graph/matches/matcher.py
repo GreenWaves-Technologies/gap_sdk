@@ -128,6 +128,7 @@ class MatchGroup(Matcher):
             has_modified_graph = match_instance.match(G, set_identity=False)
             if has_modified_graph:
                 LOG.info("fusions - %s modified graph", match_instance.name)
+                G.add_dimensions()
             if dimensions_set and has_modified_graph:
                 dimensions_set = False
         if set_identity:

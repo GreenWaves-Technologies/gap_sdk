@@ -15,7 +15,7 @@
 
 import logging
 
-from .adjust_base import AdjusterBase
+from ..adjust_base import AdjusterBase
 
 LOG = logging.getLogger("nntool." + __name__)
 

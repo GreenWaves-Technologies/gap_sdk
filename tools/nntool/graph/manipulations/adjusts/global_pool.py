@@ -15,10 +15,13 @@
 
 import logging
 
-from .adjust_base import AdjusterBase
+from graph.types import GlobalPoolParameters
+
+from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
+@handles(GlobalPoolParameters)
 class GlobalPoolAdjuster(AdjusterBase):
     def adjust(self, G, node):
         # make sure that node.axis axes are at the RHS of the tensor
@@ -31,7 +34,7 @@ class GlobalPoolAdjuster(AdjusterBase):
             return False
         LOG.info("global pool %s: inserting transpose before operation", node.name)
         # we need a transpose [all not in axis] + axis
-        transpose = [i for i in range(in_dim_len) if i not in node.axis] + node.axis
+        transpose = [i for i in range(in_dim_len) if i not in node.axis] + list(node.axis)
         node.transpose_in = [transpose]
         # if we keep dimensions then we need to transpose on output
         # this will be reduced to a reshape by eliminate transposes so no code

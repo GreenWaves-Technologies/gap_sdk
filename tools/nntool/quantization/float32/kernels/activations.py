@@ -14,72 +14,93 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-
-from quantization.quantization_record_base import QuantizationRecordBase
+from graph.types import (HSigmoidActivationParameters,
+                         HSwishActivationParameters, LeakyActivationParameters,
+                         ReluActivationParameters)
 from quantization.float32.float32_quantization import Float32QuantizationRecord
-from graph.types import ReluActivationParameters
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
+from quantization.quantization_record_base import QuantizationRecordBase
 
 
-def hswish(params,
-           in_tensors,
-           qrec: QuantizationRecordBase,
-           details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    return qrec.get_outputs(params, [in_tensor * np.minimum(np.maximum(in_tensor + 3, 0), 6) / 6], ktype="float32")
+@params_type(HSwishActivationParameters)
+@quantization('float32')
+class HSwishFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        return qrec.get_outputs(params, [in_tensor * np.minimum(np.maximum(in_tensor + 3, 0), 6) / 6], ktype="float32")
 
 
-def hsigmoid(params,
-             in_tensors,
-             qrec: QuantizationRecordBase,
-             details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    return qrec.get_outputs(params, [np.minimum(np.maximum(in_tensor + params.offset, 0), 6) / 6], ktype="float32")
+@params_type(HSigmoidActivationParameters)
+@quantization('float32')
+class HSigmoidFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        return qrec.get_outputs(params, [np.minimum(np.maximum(in_tensor + params.offset, 0), 6) / 6], ktype="float32")
+
+# Not used currently - need a way to select this
 
 
-def sigmoid(params,
-            in_tensors,
-            qrec: QuantizationRecordBase,
-            details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    return qrec.get_outputs(params, [1/(1 + np.exp(-in_tensor))], ktype="float32")
+# def sigmoid(params,
+#             in_tensors,
+#             qrec: QuantizationRecordBase,
+#             **kwargs):
+#     del details
+#     if qrec is None:
+#         qrec = Float32QuantizationRecord()
+#     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+#     return qrec.get_outputs(params, [1/(1 + np.exp(-in_tensor))], ktype="float32")
 
 
-def relu(params: ReluActivationParameters,
-         in_tensors,
-         qrec: QuantizationRecordBase,
-         details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    if params.upper_bound is None:
+@params_type(ReluActivationParameters)
+@quantization('float32')
+class ReluFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        if params.upper_bound is None:
+            return qrec.get_outputs(params,
+                                    [np.maximum(in_tensor,
+                                                params.lower_bound)],
+                                    ktype="float32")
         return qrec.get_outputs(params,
-                                [np.maximum(in_tensor,
-                                            params.lower_bound)],
+                                [np.minimum(np.maximum(in_tensor,
+                                                       params.lower_bound),
+                                            params.upper_bound)],
                                 ktype="float32")
-    return qrec.get_outputs(params,
-                            [np.minimum(np.maximum(in_tensor,
-                                                   params.lower_bound),
-                                        params.upper_bound)],
-                            ktype="float32")
 
 
-def leaky(params,
-          in_tensors,
-          qrec: QuantizationRecordBase,
-          details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    output = in_tensor * (in_tensor > 0) + in_tensor * params.leak_factor * (in_tensor < 0)
-    return qrec.get_outputs(params, [output], ktype="float32")
+@params_type(LeakyActivationParameters)
+@quantization('float32')
+class LeakyFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        output = in_tensor * (in_tensor > 0) + in_tensor * params.leak_factor * (in_tensor < 0)
+        return qrec.get_outputs(params, [output], ktype="float32")

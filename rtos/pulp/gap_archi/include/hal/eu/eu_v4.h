@@ -480,6 +480,16 @@ static inline uint32_t eu_sem_dec(unsigned int sem_addr)
     return IP_READ(sem_addr, EU_HW_SEM_COUNTER);
 }
  
+static inline uint32_t eu_sem_dec_irq_safe(unsigned int sem_addr)
+{
+    return evt_read32(sem_addr, EU_HW_SEM_COUNTER);
+}
+ 
+static inline uint32_t eu_sem_get(unsigned int sem_addr)
+{
+    return IP_READ(sem_addr, EU_HW_SEM_VALUE);
+}
+ 
 
 
 
@@ -493,27 +503,27 @@ static inline int eu_bitfield_id(unsigned int bitfield_addr)
   return EU_BITFIELD_AREA_BITFIELDID_GET(bitfield_addr);
 }
 
-static inline void eu_bitfield_value_set(unsigned int bitfield_addr, uint8_t value)
+static inline void eu_bitfield_value_set(unsigned int bitfield_addr, uint32_t value)
 {
     IP_WRITE_PTR(bitfield_addr, EU_HW_BITFIELD_VALUE, (uint32_t)value);
 }
 
-static inline uint8_t eu_bitfield_value_get(unsigned int bitfield_addr)
+static inline uint32_t eu_bitfield_value_get(unsigned int bitfield_addr)
 {
     return evt_read32(bitfield_addr, EU_HW_BITFIELD_VALUE);
 }
 
-static inline void eu_bitfield_set(unsigned int bitfield_addr, uint8_t value)
+static inline void eu_bitfield_set(unsigned int bitfield_addr, uint32_t value)
 {
     IP_WRITE_PTR(bitfield_addr, EU_HW_BITFIELD_SET, (uint32_t)value);
 }
 
-static inline void eu_bitfield_clear(unsigned int bitfield_addr, uint8_t value)
+static inline void eu_bitfield_clear(unsigned int bitfield_addr, uint32_t value)
 {
     IP_WRITE_PTR(bitfield_addr, EU_HW_BITFIELD_CLEAR, (uint32_t)value);
 }
 
-static inline uint8_t eu_bitfield_alloc(unsigned int bitfield_addr)
+static inline uint32_t eu_bitfield_alloc(unsigned int bitfield_addr)
 {
     return evt_read32(bitfield_addr, EU_HW_BITFIELD_ALLOC);
 }
@@ -523,7 +533,7 @@ static inline void eu_bitfield_value_set_from_id(int id, uint32_t value)
     IP_WRITE_PTR(ARCHI_EU_DEMUX_ADDR, EU_BITFIELD_DEMUX_OFFSET + EU_HW_BITFIELD_VALUE + (id << EU_BITFIELD_SIZE_LOG2), value);
 }
 
-static inline uint8_t eu_bitfield_value_get_from_id(int id)
+static inline uint32_t eu_bitfield_value_get_from_id(int id)
 {
     return IP_READ(ARCHI_EU_DEMUX_ADDR, EU_BITFIELD_DEMUX_OFFSET + EU_HW_BITFIELD_VALUE + (id << EU_BITFIELD_SIZE_LOG2));
 }
@@ -538,7 +548,7 @@ static inline void eu_bitfield_clear_from_id( int id, uint32_t value)
     IP_WRITE_PTR(ARCHI_EU_DEMUX_ADDR, EU_BITFIELD_DEMUX_OFFSET + EU_HW_BITFIELD_CLEAR + (id << EU_BITFIELD_SIZE_LOG2), value);
 }
 
-static inline uint8_t eu_bitfield_alloc_from_id(int id)
+static inline uint32_t eu_bitfield_alloc_from_id(int id)
 {
     return IP_READ(ARCHI_EU_DEMUX_ADDR, EU_BITFIELD_DEMUX_OFFSET + EU_HW_BITFIELD_ALLOC + (id << EU_BITFIELD_SIZE_LOG2));
 }

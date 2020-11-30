@@ -89,6 +89,9 @@ public:
   vp::wire_slave<int>      irq_req_itf;
   vp::wire_master<int>     irq_ack_itf;
 
+  vp::wire_master<bool>    flush_cache_req_itf;
+  vp::wire_slave<bool>     flush_cache_ack_itf;
+
   vp::wire_master<uint32_t> ext_counter[32];
 
   vp::io_req     io_req;
@@ -173,7 +176,7 @@ private:
   vp::wire_slave<bool>     fetchen_itf;
   vp::wire_slave<bool>     flush_cache_itf;
   vp::wire_slave<bool>     halt_itf;
-  vp::wire_master<bool>     halt_status_itf;
+  vp::wire_master<bool>    halt_status_itf;
 
   bool clock_active;
 
@@ -181,6 +184,7 @@ private:
   static void bootaddr_sync(void *_this, uint32_t value);
   static void fetchen_sync(void *_this, bool active);
   static void flush_cache_sync(void *_this, bool active);
+  static void flush_cache_ack_sync(void *_this, bool active);
   static void halt_sync(void *_this, bool active);
   inline void enqueue_next_instr(int64_t cycles);
   void halt_core();

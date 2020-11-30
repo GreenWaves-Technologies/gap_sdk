@@ -18,6 +18,8 @@ export USE_PULPOS=1
 endif
 endif
 
+APP_INC += $(GAP_SDK_HOME)/tools/autotiler_v3/Emulation
+
 ifndef USE_PULPOS
 ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO

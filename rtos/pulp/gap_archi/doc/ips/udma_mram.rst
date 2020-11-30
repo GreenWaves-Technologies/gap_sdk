@@ -179,7 +179,7 @@ Generated headers
     .. code-block:: c
 
         
-        // Stream ID for the CMD uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        // Stream ID for the RX and TX uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_MRAM_RX_DEST_DEST_BIT                                   0
         #define UDMA_MRAM_RX_DEST_DEST_WIDTH                                 8
         #define UDMA_MRAM_RX_DEST_DEST_MASK                                  0xff
@@ -202,6 +202,24 @@ Generated headers
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_WIDTH                            1
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_MASK                             0x2
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_RESET                            0x0
+        
+        // Reserved (access: R)
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_BIT                            2
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_WIDTH                          2
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_MASK                           0xc
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_RESET                          0x0
+        
+        // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_BIT                          4
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_WIDTH                        1
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_MASK                         0x10
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_RESET                        0x0
+        
+        // XIP refills will be automatically blocked when an erase operation is on-going.  - 1'b0: Disabled - 1'b1: enabled (access: R/W)
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_BIT                     5
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_WIDTH                   1
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_MASK                    0x20
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_RESET                   0x0
         
         // Transfer addr, only when MODE is in AUTO (access: R/W)
         #define UDMA_MRAM_TRANS_ADDR_ADDR_BIT                                0
@@ -251,17 +269,23 @@ Generated headers
         #define UDMA_MRAM_STATUS_RX_BUSY_MASK                                0x4
         #define UDMA_MRAM_STATUS_RX_BUSY_RESET                               0x0
         
-        // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected. (access: R)
-        #define UDMA_MRAM_STATUS_EC_ERR_BIT                                  4
-        #define UDMA_MRAM_STATUS_EC_ERR_WIDTH                                1
-        #define UDMA_MRAM_STATUS_EC_ERR_MASK                                 0x10
-        #define UDMA_MRAM_STATUS_EC_ERR_RESET                                0x0
+        // - (access: R)
+        #define UDMA_MRAM_STATUS_RESERVED_BIT                                3
+        #define UDMA_MRAM_STATUS_RESERVED_WIDTH                              1
+        #define UDMA_MRAM_STATUS_RESERVED_MASK                               0x8
+        #define UDMA_MRAM_STATUS_RESERVED_RESET                              0x0
         
         // Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84% (access: R)
-        #define UDMA_MRAM_STATUS_UE_ERR_BIT                                  5
+        #define UDMA_MRAM_STATUS_UE_ERR_BIT                                  4
         #define UDMA_MRAM_STATUS_UE_ERR_WIDTH                                1
-        #define UDMA_MRAM_STATUS_UE_ERR_MASK                                 0x20
+        #define UDMA_MRAM_STATUS_UE_ERR_MASK                                 0x10
         #define UDMA_MRAM_STATUS_UE_ERR_RESET                                0x0
+        
+        // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected. (access: R)
+        #define UDMA_MRAM_STATUS_EC_ERR_BIT                                  5
+        #define UDMA_MRAM_STATUS_EC_ERR_WIDTH                                1
+        #define UDMA_MRAM_STATUS_EC_ERR_MASK                                 0x20
+        #define UDMA_MRAM_STATUS_EC_ERR_RESET                                0x0
         
         // Signal ECC bypass (access: R/W)
         #define UDMA_MRAM_MODE_ECCBYPS_BIT                                   0
@@ -396,27 +420,27 @@ Generated headers
         #define UDMA_MRAM_IER_RX_DONE_EN_RESET                               0x0
         
         // MRAM xip erase IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_BIT                               0
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_BIT                               4
         #define UDMA_MRAM_IER_XIP_ERASE_EN_WIDTH                             1
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_MASK                              0x1
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_MASK                              0x10
         #define UDMA_MRAM_IER_XIP_ERASE_EN_RESET                             0x0
         
         // MRAM xip program IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_BIT                             1
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_BIT                             5
         #define UDMA_MRAM_IER_XIP_PROGRAM_EN_WIDTH                           1
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_MASK                            0x2
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_MASK                            0x20
         #define UDMA_MRAM_IER_XIP_PROGRAM_EN_RESET                           0x0
         
         // MRAM xip trim config IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_BIT                         2
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_BIT                         6
         #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_WIDTH                       1
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_MASK                        0x4
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_MASK                        0x40
         #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_RESET                       0x0
         
         // MRAM xip read IRQ enable. (access: R/W)
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_BIT                             3
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_BIT                             7
         #define UDMA_MRAM_IER_RX_XIP_DONE_EN_WIDTH                           1
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_MASK                            0x8
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_MASK                            0x80
         #define UDMA_MRAM_IER_RX_XIP_DONE_EN_RESET                           0x0
         
         // OSPI 2D line with 2D mode. For example, ADDR = START_ADDR + i * BURST_STRIDE. Normally, LINE &gt;= BURST_SIZE. (access: R/W)
@@ -505,6 +529,21 @@ Generated headers
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
         #define UDMA_MRAM_TRANS_MODE_XIP_EN(val)                   ((val) << 1)
         
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_GET(value)           (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_GETS(value)          (GAP_BEXTRACT((value),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_SET(value,field)     (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED(val)                 ((val) << 2)
+        
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED(val)               ((val) << 4)
+        
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_GET(value)    (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_GETS(value)   (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED(val)          ((val) << 5)
+        
         #define UDMA_MRAM_TRANS_ADDR_ADDR_GET(value)               (GAP_BEXTRACTU((value),32,0))
         #define UDMA_MRAM_TRANS_ADDR_ADDR_GETS(value)              (GAP_BEXTRACT((value),32,0))
         #define UDMA_MRAM_TRANS_ADDR_ADDR_SET(value,field)         (GAP_BINSERT((value),(field),32,0))
@@ -545,15 +584,20 @@ Generated headers
         #define UDMA_MRAM_STATUS_RX_BUSY_SET(value,field)          (GAP_BINSERT((value),(field),1,2))
         #define UDMA_MRAM_STATUS_RX_BUSY(val)                      ((val) << 2)
         
-        #define UDMA_MRAM_STATUS_EC_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR_GETS(value)                (GAP_BEXTRACT((value),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR(val)                       ((val) << 4)
+        #define UDMA_MRAM_STATUS_RESERVED_GET(value)               (GAP_BEXTRACTU((value),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED_GETS(value)              (GAP_BEXTRACT((value),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED_SET(value,field)         (GAP_BINSERT((value),(field),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED(val)                     ((val) << 3)
         
-        #define UDMA_MRAM_STATUS_UE_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR_GETS(value)                (GAP_BEXTRACT((value),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR(val)                       ((val) << 5)
+        #define UDMA_MRAM_STATUS_UE_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR_GETS(value)                (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR(val)                       ((val) << 4)
+        
+        #define UDMA_MRAM_STATUS_EC_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR(val)                       ((val) << 5)
         
         #define UDMA_MRAM_MODE_ECCBYPS_GET(value)                  (GAP_BEXTRACTU((value),1,0))
         #define UDMA_MRAM_MODE_ECCBYPS_GETS(value)                 (GAP_BEXTRACT((value),1,0))
@@ -665,25 +709,25 @@ Generated headers
         #define UDMA_MRAM_IER_RX_DONE_EN_SET(value,field)          (GAP_BINSERT((value),(field),1,3))
         #define UDMA_MRAM_IER_RX_DONE_EN(val)                      ((val) << 3)
         
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_GET(value)              (GAP_BEXTRACTU((value),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_GETS(value)             (GAP_BEXTRACT((value),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN(val)                    ((val) << 0)
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_GET(value)              (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_GETS(value)             (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN(val)                    ((val) << 4)
         
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GET(value)            (GAP_BEXTRACTU((value),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GETS(value)           (GAP_BEXTRACT((value),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN(val)                  ((val) << 1)
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GET(value)            (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GETS(value)           (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN(val)                  ((val) << 5)
         
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GET(value)        (GAP_BEXTRACTU((value),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GETS(value)       (GAP_BEXTRACT((value),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_SET(value,field)  (GAP_BINSERT((value),(field),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN(val)              ((val) << 2)
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GET(value)        (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GETS(value)       (GAP_BEXTRACT((value),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_SET(value,field)  (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN(val)              ((val) << 6)
         
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GET(value)            (GAP_BEXTRACTU((value),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GETS(value)           (GAP_BEXTRACT((value),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN(val)                  ((val) << 3)
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GET(value)            (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GETS(value)           (GAP_BEXTRACT((value),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN(val)                  ((val) << 7)
         
         #define UDMA_MRAM_LINE_2D_LINE_GET(value)                  (GAP_BEXTRACTU((value),32,0))
         #define UDMA_MRAM_LINE_2D_LINE_GETS(value)                 (GAP_BEXTRACT((value),32,0))
@@ -771,7 +815,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int dest            :8 ; // Stream ID for the CMD uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the RX and TX uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_rx_dest_t;
@@ -787,6 +831,9 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved        :2 ; // Reserved
+            unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
+            unsigned int xip_auto_halted :1 ; // XIP refills will be automatically blocked when an erase operation is on-going.  - 1'b0: Disabled - 1'b1: enabled
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_trans_mode_t;
@@ -825,9 +872,9 @@ Generated headers
             unsigned int erase_busy      :1 ; // Erase busy: - 1'b0: no busy - 1'b1: busy
             unsigned int tx_busy         :1 ; // TX busy: - 1'b0: no busy - 1'b1: busy
             unsigned int rx_busy         :1 ; // RX busy: - 1'b0: no busy - 1'b1: busy
-            unsigned int padding0:1 ;
-            unsigned int ec_err          :1 ; // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.
+            unsigned int reserved        :1 ; // -
             unsigned int ue_err          :1 ; // Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84%
+            unsigned int ec_err          :1 ; // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_status_t;
@@ -969,11 +1016,11 @@ Stream ID for the uDMA channel
 
 .. table:: 
 
-    +-----+---+----+---------------------------------------------------------------------+
-    |Bit #|R/W|Name|                             Description                             |
-    +=====+===+====+=====================================================================+
-    |7:0  |R/W|DEST|Stream ID for the CMD uDMA channel. Default is 0xFF(channel disabled)|
-    +-----+---+----+---------------------------------------------------------------------+
+    +-----+---+----+---------------------------------------------------------------------------+
+    |Bit #|R/W|Name|                                Description                                |
+    +=====+===+====+===========================================================================+
+    |7:0  |R/W|DEST|Stream ID for the RX and TX uDMA channel. Default is 0xFF(channel disabled)|
+    +-----+---+----+---------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1003,7 +1050,7 @@ Generated headers
     .. code-block:: c
 
         
-        // Stream ID for the CMD uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        // Stream ID for the RX and TX uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_MRAM_RX_DEST_DEST_BIT                                   0
         #define UDMA_MRAM_RX_DEST_DEST_WIDTH                                 8
         #define UDMA_MRAM_RX_DEST_DEST_MASK                                  0xff
@@ -1028,7 +1075,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int dest            :8 ; // Stream ID for the CMD uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the RX and TX uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_rx_dest_t;
@@ -1145,13 +1192,19 @@ Configure transaction mode
 
 .. table:: 
 
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|  Name  |                                                                               Description                                                                                |
-    +=====+===+========+==========================================================================================================================================================================+
-    |    0|R/W|AUTO_ENA|Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN|
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    1|R/W|XIP_EN  |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN       |
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|     Name      |                                                                               Description                                                                                |
+    +=====+===+===============+==========================================================================================================================================================================+
+    |    0|R/W|AUTO_ENA       |Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN|
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    1|R/W|XIP_EN         |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN       |
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |3:2  |R  |RESERVED       |Reserved                                                                                                                                                                  |
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    4|R/W|XIP_HALTED     |Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED                                                           |
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    5|R/W|XIP_AUTO_HALTED|XIP refills will be automatically blocked when an erase operation is on-going.  - 1'b0: Disabled - 1'b1: enabled                                                          |
+    +-----+---+---------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1192,6 +1245,24 @@ Generated headers
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_WIDTH                            1
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_MASK                             0x2
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_RESET                            0x0
+        
+        // Reserved (access: R)
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_BIT                            2
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_WIDTH                          2
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_MASK                           0xc
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_RESET                          0x0
+        
+        // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_BIT                          4
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_WIDTH                        1
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_MASK                         0x10
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_RESET                        0x0
+        
+        // XIP refills will be automatically blocked when an erase operation is on-going.  - 1'b0: Disabled - 1'b1: enabled (access: R/W)
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_BIT                     5
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_WIDTH                   1
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_MASK                    0x20
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_RESET                   0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1208,6 +1279,21 @@ Generated headers
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_GETS(value)            (GAP_BEXTRACT((value),1,1))
         #define UDMA_MRAM_TRANS_MODE_XIP_EN_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
         #define UDMA_MRAM_TRANS_MODE_XIP_EN(val)                   ((val) << 1)
+        
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_GET(value)           (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_GETS(value)          (GAP_BEXTRACT((value),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED_SET(value,field)     (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_MRAM_TRANS_MODE_RESERVED(val)                 ((val) << 2)
+        
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_TRANS_MODE_XIP_HALTED(val)               ((val) << 4)
+        
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_GET(value)    (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_GETS(value)   (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_TRANS_MODE_XIP_AUTO_HALTED(val)          ((val) << 5)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1219,6 +1305,9 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved        :2 ; // Reserved
+            unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
+            unsigned int xip_auto_halted :1 ; // XIP refills will be automatically blocked when an erase operation is on-going.  - 1'b0: Disabled - 1'b1: enabled
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_trans_mode_t;
@@ -1236,6 +1325,12 @@ Generated headers
             inline uint32_t auto_ena_get();
             inline void xip_en_set(uint32_t value);
             inline uint32_t xip_en_get();
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
+            inline void xip_halted_set(uint32_t value);
+            inline uint32_t xip_halted_get();
+            inline void xip_auto_halted_set(uint32_t value);
+            inline uint32_t xip_auto_halted_get();
         };
 
 |
@@ -1626,9 +1721,11 @@ MRAM status register.
     +-----+---+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    2|R  |RX_BUSY   |RX busy: - 1'b0: no busy - 1'b1: busy                                                                                                                              |
     +-----+---+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    4|R  |EC_ERR    |ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.                                                             |
+    |    3|R  |RESERVED  |-                                                                                                                                                                  |
     +-----+---+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    5|R  |UE_ERR    |Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84%|
+    |    4|R  |UE_ERR    |Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84%|
+    +-----+---+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    5|R  |EC_ERR    |ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.                                                             |
     +-----+---+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
@@ -1677,17 +1774,23 @@ Generated headers
         #define UDMA_MRAM_STATUS_RX_BUSY_MASK                                0x4
         #define UDMA_MRAM_STATUS_RX_BUSY_RESET                               0x0
         
-        // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected. (access: R)
-        #define UDMA_MRAM_STATUS_EC_ERR_BIT                                  4
-        #define UDMA_MRAM_STATUS_EC_ERR_WIDTH                                1
-        #define UDMA_MRAM_STATUS_EC_ERR_MASK                                 0x10
-        #define UDMA_MRAM_STATUS_EC_ERR_RESET                                0x0
+        // - (access: R)
+        #define UDMA_MRAM_STATUS_RESERVED_BIT                                3
+        #define UDMA_MRAM_STATUS_RESERVED_WIDTH                              1
+        #define UDMA_MRAM_STATUS_RESERVED_MASK                               0x8
+        #define UDMA_MRAM_STATUS_RESERVED_RESET                              0x0
         
         // Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84% (access: R)
-        #define UDMA_MRAM_STATUS_UE_ERR_BIT                                  5
+        #define UDMA_MRAM_STATUS_UE_ERR_BIT                                  4
         #define UDMA_MRAM_STATUS_UE_ERR_WIDTH                                1
-        #define UDMA_MRAM_STATUS_UE_ERR_MASK                                 0x20
+        #define UDMA_MRAM_STATUS_UE_ERR_MASK                                 0x10
         #define UDMA_MRAM_STATUS_UE_ERR_RESET                                0x0
+        
+        // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected. (access: R)
+        #define UDMA_MRAM_STATUS_EC_ERR_BIT                                  5
+        #define UDMA_MRAM_STATUS_EC_ERR_WIDTH                                1
+        #define UDMA_MRAM_STATUS_EC_ERR_MASK                                 0x20
+        #define UDMA_MRAM_STATUS_EC_ERR_RESET                                0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1710,15 +1813,20 @@ Generated headers
         #define UDMA_MRAM_STATUS_RX_BUSY_SET(value,field)          (GAP_BINSERT((value),(field),1,2))
         #define UDMA_MRAM_STATUS_RX_BUSY(val)                      ((val) << 2)
         
-        #define UDMA_MRAM_STATUS_EC_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR_GETS(value)                (GAP_BEXTRACT((value),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_MRAM_STATUS_EC_ERR(val)                       ((val) << 4)
+        #define UDMA_MRAM_STATUS_RESERVED_GET(value)               (GAP_BEXTRACTU((value),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED_GETS(value)              (GAP_BEXTRACT((value),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED_SET(value,field)         (GAP_BINSERT((value),(field),1,3))
+        #define UDMA_MRAM_STATUS_RESERVED(val)                     ((val) << 3)
         
-        #define UDMA_MRAM_STATUS_UE_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR_GETS(value)                (GAP_BEXTRACT((value),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
-        #define UDMA_MRAM_STATUS_UE_ERR(val)                       ((val) << 5)
+        #define UDMA_MRAM_STATUS_UE_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR_GETS(value)                (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_STATUS_UE_ERR(val)                       ((val) << 4)
+        
+        #define UDMA_MRAM_STATUS_EC_ERR_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_STATUS_EC_ERR(val)                       ((val) << 5)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1731,9 +1839,9 @@ Generated headers
             unsigned int erase_busy      :1 ; // Erase busy: - 1'b0: no busy - 1'b1: busy
             unsigned int tx_busy         :1 ; // TX busy: - 1'b0: no busy - 1'b1: busy
             unsigned int rx_busy         :1 ; // RX busy: - 1'b0: no busy - 1'b1: busy
-            unsigned int padding0:1 ;
-            unsigned int ec_err          :1 ; // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.
+            unsigned int reserved        :1 ; // -
             unsigned int ue_err          :1 ; // Unrecoverable Error, High indicates unrecoverable errors detected. Not 100% accurate for 3 or more bit errors. In the case of 3-bit errors,correct detection is 84%
+            unsigned int ec_err          :1 ; // ECC Error Correction, Low indicates no ECC error detected. High indicates 1 or 2 bit errors corrected.
           };
           unsigned int raw;
         } __attribute__((packed)) udma_mram_status_t;
@@ -1753,10 +1861,12 @@ Generated headers
             inline uint32_t tx_busy_get();
             inline void rx_busy_set(uint32_t value);
             inline uint32_t rx_busy_get();
-            inline void ec_err_set(uint32_t value);
-            inline uint32_t ec_err_get();
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
             inline void ue_err_set(uint32_t value);
             inline uint32_t ue_err_get();
+            inline void ec_err_set(uint32_t value);
+            inline uint32_t ec_err_get();
         };
 
 |
@@ -2430,13 +2540,13 @@ IRQ enable register.
     +-----+---+------------------+-------------------------------+
     |    3|R/W|rx_done_en        |MRAM read IRQ enable.          |
     +-----+---+------------------+-------------------------------+
-    |    0|R/W|xip_erase_en      |MRAM xip erase IRQ enable      |
+    |    4|R/W|xip_erase_en      |MRAM xip erase IRQ enable      |
     +-----+---+------------------+-------------------------------+
-    |    1|R/W|xip_program_en    |MRAM xip program IRQ enable    |
+    |    5|R/W|xip_program_en    |MRAM xip program IRQ enable    |
     +-----+---+------------------+-------------------------------+
-    |    2|R/W|xip_trim_config_en|MRAM xip trim config IRQ enable|
+    |    6|R/W|xip_trim_config_en|MRAM xip trim config IRQ enable|
     +-----+---+------------------+-------------------------------+
-    |    3|R/W|rx_xip_done_en    |MRAM xip read IRQ enable.      |
+    |    7|R/W|rx_xip_done_en    |MRAM xip read IRQ enable.      |
     +-----+---+------------------+-------------------------------+
 
 Generated headers
@@ -2492,27 +2602,27 @@ Generated headers
         #define UDMA_MRAM_IER_RX_DONE_EN_RESET                               0x0
         
         // MRAM xip erase IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_BIT                               0
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_BIT                               4
         #define UDMA_MRAM_IER_XIP_ERASE_EN_WIDTH                             1
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_MASK                              0x1
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_MASK                              0x10
         #define UDMA_MRAM_IER_XIP_ERASE_EN_RESET                             0x0
         
         // MRAM xip program IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_BIT                             1
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_BIT                             5
         #define UDMA_MRAM_IER_XIP_PROGRAM_EN_WIDTH                           1
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_MASK                            0x2
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_MASK                            0x20
         #define UDMA_MRAM_IER_XIP_PROGRAM_EN_RESET                           0x0
         
         // MRAM xip trim config IRQ enable (access: R/W)
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_BIT                         2
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_BIT                         6
         #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_WIDTH                       1
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_MASK                        0x4
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_MASK                        0x40
         #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_RESET                       0x0
         
         // MRAM xip read IRQ enable. (access: R/W)
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_BIT                             3
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_BIT                             7
         #define UDMA_MRAM_IER_RX_XIP_DONE_EN_WIDTH                           1
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_MASK                            0x8
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_MASK                            0x80
         #define UDMA_MRAM_IER_RX_XIP_DONE_EN_RESET                           0x0
 
 .. toggle-header::
@@ -2541,25 +2651,25 @@ Generated headers
         #define UDMA_MRAM_IER_RX_DONE_EN_SET(value,field)          (GAP_BINSERT((value),(field),1,3))
         #define UDMA_MRAM_IER_RX_DONE_EN(val)                      ((val) << 3)
         
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_GET(value)              (GAP_BEXTRACTU((value),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_GETS(value)             (GAP_BEXTRACT((value),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,0))
-        #define UDMA_MRAM_IER_XIP_ERASE_EN(val)                    ((val) << 0)
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_GET(value)              (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_GETS(value)             (GAP_BEXTRACT((value),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN_SET(value,field)        (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_MRAM_IER_XIP_ERASE_EN(val)                    ((val) << 4)
         
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GET(value)            (GAP_BEXTRACTU((value),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GETS(value)           (GAP_BEXTRACT((value),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
-        #define UDMA_MRAM_IER_XIP_PROGRAM_EN(val)                  ((val) << 1)
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GET(value)            (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_GETS(value)           (GAP_BEXTRACT((value),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_MRAM_IER_XIP_PROGRAM_EN(val)                  ((val) << 5)
         
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GET(value)        (GAP_BEXTRACTU((value),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GETS(value)       (GAP_BEXTRACT((value),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_SET(value,field)  (GAP_BINSERT((value),(field),1,2))
-        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN(val)              ((val) << 2)
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GET(value)        (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_GETS(value)       (GAP_BEXTRACT((value),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN_SET(value,field)  (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_MRAM_IER_XIP_TRIM_CONFIG_EN(val)              ((val) << 6)
         
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GET(value)            (GAP_BEXTRACTU((value),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GETS(value)           (GAP_BEXTRACT((value),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,3))
-        #define UDMA_MRAM_IER_RX_XIP_DONE_EN(val)                  ((val) << 3)
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GET(value)            (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_GETS(value)           (GAP_BEXTRACT((value),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_MRAM_IER_RX_XIP_DONE_EN(val)                  ((val) << 7)
 
 .. toggle-header::
     :header: *Register fields structures*

@@ -16,14 +16,12 @@
 import logging
 from typing import Sequence
 
-from graph.types.base import SensitiveToOrder, Transposable
-from graph.types.input_output import (ConstantInputParameters, InputParameters,
-                                      OutputParameters)
-from graph.types.linear import FcParameters
-from graph.types.others import (ConcatParameters, PadParameters,
-                                ReshapeParameters, ReverseParameters,
-                                SplitParameters, StridedSliceParameters)
-from graph.types.tensor_arithmetic import MatrixBroadcastedLinearOpParameters
+from graph.types import (ConcatParameters, ConstantInputParameters,
+                         FcParameters, InputParameters,
+                         MatrixBroadcastedLinearOpParameters, OutputParameters,
+                         PadParameters, ReshapeParameters, ReverseParameters,
+                         SensitiveToOrder, SplitParameters,
+                         StridedSliceParameters, Transposable)
 from utils.compatible_transposes import (find_all_compatible_transposes,
                                          find_combination)
 from utils.node_id import NodeId
@@ -194,7 +192,7 @@ def search_up_edges(G, visited_edges, node, transpose, edge_list, done_edges,
                 LOG.info("++ Found results for %s[%s]", edge.to_node.name, edge.to_idx)
                 if equalizing:
                     next_res = [StartActionUp(edge.to_node),
-                                SetTranspose(edge.to_node, 'in', edge.to_idx, transpose)] + next_res
+                                SetTranspose(edge.to_node, 'in', edge.to_idx, reverse_transpose(transpose))] + next_res
                 else:
                     next_res = [StartActionUp(edge.to_node),
                                 DeleteTranspose(edge.to_node, 'in', edge.to_idx)] + next_res
@@ -293,7 +291,8 @@ def search_down_for_reverse(G, visited_edges, node, in_idx, transpose, done_edge
             SetHintAction(node, 'in', in_idx, transpose=reverse_transpose(transpose))
         ]
         if node.__class__ in TRANSIENT_ACTIONS:
-            extra_actions.append(TRANSIENT_ACTIONS[node.__class__](node, reverse_transpose(transpose)))
+            extra_actions.append(TRANSIENT_ACTIONS[node.__class__](
+                node, reverse_transpose(transpose)))
 
     if isinstance(node, Transposable) and node.transpose_out:
         LOG.info("rejected %s - transposable", node.name)
@@ -388,16 +387,21 @@ def search_for_reverses(G):
             this_node_results = []
             success = True
             for edge in G.in_edges(transpose_node.name):
+                if edge in visited_edges:
+                    success = False
+                    break
                 trans_in = transpose_node.transpose_in[edge.to_idx]
                 # check if this edge is the one we are trying to propagate
                 if trans_in and tuple(trans_in) == transpose_candidate:
                     continue
 
+                reverse_candidate = reverse_transpose(transpose_candidate)
+                LOG.info("%s rev %s trans_in %s", transpose_candidate, reverse_candidate, trans_in)
                 if trans_in is None:
-                    set_trans = transpose_candidate
+                    set_trans = reverse_candidate
                 else:
                     # transpose to convert current transpose to candidate
-                    set_trans = [trans_in.index(idx) for idx in transpose_candidate]
+                    set_trans = [trans_in.index(idx) for idx in reverse_candidate]
                 done_edges = set()
                 result = search_up_edges(G, visited_edges, transpose_node,
                                          set_trans, [], done_edges, start_edge=edge, equalizing=True)

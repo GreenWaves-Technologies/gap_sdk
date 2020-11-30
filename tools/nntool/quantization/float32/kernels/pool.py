@@ -15,150 +15,194 @@
 
 import logging
 from functools import reduce
-import numpy as np
 
-from quantization.quantization_record_base import QuantizationRecordBase
+import numpy as np
+from graph.types import GlobalPoolParameters, PoolingParameters
 from quantization.float32.float32_quantization import Float32QuantizationRecord
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
+from quantization.quantization_record_base import QuantizationRecordBase
 
 LOG = logging.getLogger("nntool." + __name__)
 
 # pylint: disable=too-many-arguments, too-many-locals
 
 
-def av_pool(params,
-            in_tensors,
-            qrec: QuantizationRecordBase,
-            details=None):
-    del details
+@params_type(PoolingParameters)
+@quantization('float32')
+class PoolingFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        if params.pool_type == "average":
+            return cls.average_execute(params,
+                                       in_tensors,
+                                       qrec)
+        elif params.pool_type == "max":
+            return cls.max_execute(params,
+                                   in_tensors,
+                                   qrec)
+        else:
+            ValueError("unknown pool type")
 
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
+    @classmethod
+    def average_execute(cls, params,
+                        in_tensors,
+                        qrec: QuantizationRecordBase,
+                        **kwargs):
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
 
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    in_dims = params.in_dims[0]
-    out_dims = params.out_dims[0]
-    filter_sz = params.filter.h * params.filter.w
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        in_dims = params.in_dims[0]
+        out_dims = params.out_dims[0]
+        filter_sz = params.filter.h * params.filter.w
 
-    pool_factor = 1.0/filter_sz
+        pool_factor = 1.0/filter_sz
 
-    out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
+        out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
 
-    if params.padding.h + params.padding.w > 0:
-        in_tensor = np.pad(in_tensor,
-                           params.padding.numpy_pad_shape(in_dims),
-                           mode='constant',
-                           constant_values=0.0)
-        pad_w = params.padding.w
-        pad_h = params.padding.h
-    else:
-        pad_w = pad_h = 0
+        if params.padding.h + params.padding.w > 0:
+            in_tensor = np.pad(in_tensor,
+                               params.padding.numpy_pad_shape(in_dims),
+                               mode='constant',
+                               constant_values=0.0)
+            pad_w = params.padding.w
+            pad_h = params.padding.h
+        else:
+            pad_w = pad_h = 0
 
-    for in_c in range(out_dims.c):
+        for in_c in range(out_dims.c):
 
-        out_h = 0
-        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                           params.stride.h):
-            out_w = 0
-            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                               params.stride.w):
-                # accumulate - potentially with different Q
-                in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                               h=[h_idx, h_idx + params.filter.h, 1],
-                                               w=[w_idx, w_idx + params.filter.w, 1])
+            out_h = 0
+            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                               params.stride.h):
+                out_w = 0
+                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                   params.stride.w):
+                    # accumulate - potentially with different Q
+                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+                                                   h=[h_idx, h_idx + params.filter.h, 1],
+                                                   w=[w_idx, w_idx + params.filter.w, 1])
 
-                sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.float32)
-                sum_filter = np.multiply(sum_filter, pool_factor, dtype=np.float32)
-                out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
-                out_w += 1
-            out_h += 1
+                    sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.float32)
+                    sum_filter = np.multiply(sum_filter, pool_factor, dtype=np.float32)
+                    out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
+                    out_w += 1
+                out_h += 1
 
-    return qrec.get_outputs(params, [out_tensor], ktype="float32")
+        return qrec.get_outputs(params, [out_tensor], ktype="float32")
 
-
-def max_pool(params,
-             in_tensors,
-             qrec: QuantizationRecordBase,
-             details=None):
-
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-    in_dims = params.in_dims[0]
-    out_dims = params.out_dims[0]
-
-    out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
-
-    if params.padding.h + params.padding.w > 0:
-        in_tensor = np.pad(in_tensor,
-                           params.padding.numpy_pad_shape(in_dims),
-                           mode='constant',
-                           constant_values=0.0)
-        pad_w = params.padding.w
-        pad_h = params.padding.h
-    else:
-        pad_w = pad_h = 0
-
-    for in_c in range(out_dims.c):
-        out_h = 0
-        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                           params.stride.h):
-            out_w = 0
-            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                               params.stride.w):
-                # accumulate - potentially with different Q
-                out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
-                in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                               h=[h_idx, h_idx + params.filter.h, 1],
-                                               w=[w_idx, w_idx + params.filter.w, 1])
-
-                out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
-                out_w += 1
-            out_h += 1
-
-    return qrec.get_outputs(params, [out_tensor], ktype="float32")
-
-
-def av_global_pool(params,
-                   in_tensors,
-                   qrec: QuantizationRecordBase,
-                   details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-
-    sum_by_chan = np.sum(in_tensor, dtype=np.float32, axis=tuple(params.axis), keepdims=params.keep_dims)
-    sz = reduce(lambda x, y: x * y, [i for idx, i in enumerate(in_tensor.shape) if idx in params.axis])
-
-    return qrec.get_outputs(params,
-                            [(sum_by_chan / sz).reshape(params.out_dims[0].shape)],
-                            ktype="float32")
-
-
-def max_global_pool(params,
+    @classmethod
+    def max_execute(cls, params,
                     in_tensors,
                     qrec: QuantizationRecordBase,
-                    details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+                    **kwargs):
 
-    return qrec.get_outputs(params, [np.max(in_tensor,
-                                            axis=tuple(params.axis),
-                                            keepdims=params.keep_dims)], ktype="float32")
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
 
-def sum_global_pool(params,
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        in_dims = params.in_dims[0]
+        out_dims = params.out_dims[0]
+
+        out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
+
+        if params.padding.h + params.padding.w > 0:
+            in_tensor = np.pad(in_tensor,
+                               params.padding.numpy_pad_shape(in_dims),
+                               mode='constant',
+                               constant_values=0.0)
+            pad_w = params.padding.w
+            pad_h = params.padding.h
+        else:
+            pad_w = pad_h = 0
+
+        for in_c in range(out_dims.c):
+            out_h = 0
+            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                               params.stride.h):
+                out_w = 0
+                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                   params.stride.w):
+                    # accumulate - potentially with different Q
+                    out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
+                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+                                                   h=[h_idx, h_idx + params.filter.h, 1],
+                                                   w=[w_idx, w_idx + params.filter.w, 1])
+
+                    out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
+                    out_w += 1
+                out_h += 1
+
+        return qrec.get_outputs(params, [out_tensor], ktype="float32")
+
+
+@params_type(GlobalPoolParameters)
+@quantization('float32')
+class GlobalPoolingFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        if params.pool_type == "average":
+            return cls.average_execute(params,
+                                       in_tensors,
+                                       qrec)
+        elif params.pool_type == "max":
+            return cls.max_execute(params,
+                                   in_tensors,
+                                   qrec)
+        elif params.pool_type == "sum":
+            return cls.sum_execute(params,
+                                   in_tensors,
+                                   qrec)
+        else:
+            ValueError("unknown pool type")
+
+    @classmethod
+    def average_execute(cls, params,
+                        in_tensors,
+                        qrec: QuantizationRecordBase,
+                        **kwargs):
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+
+        sum_by_chan = np.sum(in_tensor, dtype=np.float32, axis=tuple(
+            params.axis), keepdims=params.keep_dims)
+        sz = reduce(lambda x, y: x * y, [i for idx,
+                                         i in enumerate(in_tensor.shape) if idx in params.axis])
+
+        return qrec.get_outputs(params,
+                                [(sum_by_chan / sz).reshape(params.out_dims[0].shape)],
+                                ktype="float32")
+
+    @classmethod
+    def max_execute(cls, params,
                     in_tensors,
                     qrec: QuantizationRecordBase,
-                    details=None):
-    del details
-    if qrec is None:
-        qrec = Float32QuantizationRecord()
-    in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+                    **kwargs):
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
-    return qrec.get_outputs(params, [np.sum(in_tensor,
-                                            axis=tuple(params.axis),
-                                            keepdims=params.keep_dims)], ktype="float32")
+        return qrec.get_outputs(params, [np.max(in_tensor,
+                                                axis=tuple(params.axis),
+                                                keepdims=params.keep_dims)], ktype="float32")
+
+    @classmethod
+    def sum_execute(cls, params,
+                    in_tensors,
+                    qrec: QuantizationRecordBase,
+                    **kwargs):
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+
+        return qrec.get_outputs(params, [np.sum(in_tensor,
+                                                axis=tuple(params.axis),
+                                                keepdims=params.keep_dims)], ktype="float32")
