@@ -62,7 +62,12 @@ void pi_time_wait_us(int time_us)
     /* Wait less than 1 ms. */
     if (time_us < 1000)
     {
-        for (volatile int i=0; i<time_us; i++);
+        uint32_t irq = disable_irq();
+        uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
+        uint32_t freq_us = freq_fc / 1000000;
+        uint32_t counter = (((uint32_t) time_us) - 1) * freq_us;
+        for (volatile uint32_t i=0; i<counter; i++);
+        restore_irq(irq);
     }
     else
     {

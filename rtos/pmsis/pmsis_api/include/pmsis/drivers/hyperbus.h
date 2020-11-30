@@ -499,6 +499,32 @@ static inline void pi_cl_hyper_copy_2d(struct pi_device *device,
   uint32_t length, int ext2loc, pi_cl_hyper_req_t *req);
 
 
+/** \brief Forbid XIP refills
+ *
+ * This function can be called to prevent the hyperbus from triggering any
+ * XIP refill transfer. This can be used to do an operation in a device which
+ * would make an XIP refill fail, like an erase operation.
+ * Be careful that locking XIP refills can lead to a deadlock if XIP code is
+ * executed so only local code must be execyted when the XIP refill
+ * is locked.
+ * This will only apply to the new transfer enqueued after calling this
+ * function, not to the pending transfers enqueued before.
+ *
+ * \param device    The device structure of the device to close.
+ */
+void pi_hyper_xip_lock(struct pi_device *device);
+
+
+/** \brief Allow XIP refills
+ *
+ * This function can be called to allow again XIP refills after they have been
+ * forbidden.
+ *
+ * \param device    The device structure of the device to close.
+ */
+void pi_hyper_xip_unlock(struct pi_device *device);
+
+
 //!@}
 
 /**

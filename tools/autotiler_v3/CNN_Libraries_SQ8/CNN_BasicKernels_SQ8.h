@@ -92,10 +92,10 @@ typedef struct {
 	v4s Pad;				/**< Paddding, 0: Left, 1: Right, 2: Top, 3: Bottom */
 	unsigned char NormBias;			/**< Bias init correction factor */
 	unsigned char Orientation;		/**< Tile orientation: 1 => Horizontal, 0 => Vertical, used only for feature parallel kernels */
-	unsigned char N;			/**< Dimension of the convolution: Nx, NxN, used only for general versions */
+	unsigned short N;			/**< Dimension of the convolution: Nx, NxN, used only for general versions */
 	unsigned char S;			/**< Output stride, S, used only for general versions */
 	unsigned char D;			/**< Dilation Dx */
-	unsigned char Ny;			/**< Filter Ny, used only if Nx!=Ny */
+	unsigned short Ny;			/**< Filter Ny, used only if Nx!=Ny */
 	unsigned char Sy;			/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;			/**< Dilation Dy, used only if Dx!=Dy */
 } KerConv_SQ8_T;
@@ -139,8 +139,8 @@ typedef struct {
 	unsigned short int H;
 	unsigned short int UsedH;
 	unsigned char PoolMax;
-	unsigned char FS;		/* Filter Size, x */
-	unsigned char FSy;		/* Filter Size, y */
+	unsigned short FS;		/* Filter Size, x */
+	unsigned short FSy;		/* Filter Size, y */
 	unsigned char S;		/* Filter Stride, x */
 	unsigned char Sy;		/* Filter Stride, y */
 	unsigned char D;
@@ -238,12 +238,17 @@ typedef struct {
  	Recursive NN (RNN, LSTM, GRU)
 ******************************************************************************************************************/
 
-#define RNN_F_INF              4
+#define RNN_F_INF              8
 #define RNN_F_OFF              0
 #define RNN_F_SCALE            0
 #define RNN_F_SCALEN           1
 #define RNN_F_A0               2
 #define RNN_F_B0               3
+
+#define RNN_F_IN_SCALE         4
+#define RNN_F_IN_SCALEN        5
+#define RNN_OUT_SCALE          6
+#define RNN_OUT_SCALEN         7
 
 #define RNN_CELL_INFOS (RNN_F_INF)
 
@@ -257,10 +262,12 @@ typedef struct {
 	void * __restrict__ Bf;			/**< Pointer to Forget gate bias */
 	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
 	unsigned short int Nout;		/**< Number of output produced in StateInOut */
+	unsigned short int OutBase;		/**< Index of first output produced in StateInOut */
 	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
 	char FirstOut;				/**< 1 if first out of one cell to eval */
 	char FirstCell;				/**< 1 if first cell of a group of cell */
 	char Reset;				/**< 1 if RNN State has to be reset */
+	int TileOffset;				/**< Buffer Offset related to the current Tile index */
 } KerRNN_SQ8_T;
 
 #define LSTM_F_INF              2
@@ -299,7 +306,19 @@ typedef struct {
 #define LSTM_INT_C0             (4 + LSTM_INT_OFF)
 #define LSTM_INT_Q              (6 + LSTM_INT_OFF)
 
-#define LSTM_CELL_INFOS (LSTM_F_INF+LSTM_I_INF+LSTM_G_INF+LSTM_O_INF+LSTM_COUT_INF+LSTM_INT_INF)
+#define LSTM_X_IN_INF           8
+#define LSTM_X_IN_OFF           (LSTM_INT_OFF+LSTM_INT_INF)
+#define LSTM_F_IN_SCALE         (0 + LSTM_X_IN_OFF)
+#define LSTM_F_IN_SCALEN        (1 + LSTM_X_IN_OFF)
+#define LSTM_I_IN_SCALE         (2 + LSTM_X_IN_OFF)
+#define LSTM_I_IN_SCALEN        (3 + LSTM_X_IN_OFF)
+#define LSTM_G_IN_SCALE         (4 + LSTM_X_IN_OFF)
+#define LSTM_G_IN_SCALEN        (5 + LSTM_X_IN_OFF)
+#define LSTM_O_IN_SCALE         (6 + LSTM_X_IN_OFF)
+#define LSTM_O_IN_SCALEN        (7 + LSTM_X_IN_OFF)
+
+//#define LSTM_CELL_INFOS 	    (LSTM_F_INF+LSTM_I_INF+LSTM_G_INF+LSTM_O_INF+LSTM_COUT_INF+LSTM_INT_INF)
+#define LSTM_CELL_INFOS  (LSTM_F_INF+LSTM_I_INF+LSTM_G_INF+LSTM_O_INF+LSTM_COUT_INF+LSTM_INT_INF+LSTM_X_IN_INF)
 
 typedef struct {
 	signed char *__restrict__ StateInOut;	/**< Pointer to In/Out state, Dim=DimState   */
@@ -318,10 +337,12 @@ typedef struct {
 	void * __restrict__ Bo;			/**< Pointer to Output gate bias */
 	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
 	unsigned short int Nout;		/**< Number of output produced in StateInOut and CInOut */
+	unsigned short int OutBase;		/**< Index of first output produced in StateInOut and CInOut*/
 	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
 	char FirstOut;				/**< 1 if first out of one cell to eval */
 	char FirstCell;				/**< 1 if first cell of a group of cell */
 	char Reset;				/**< If 1 LSTM State is reset */
+	int TileOffset;				/**< Buffer Offset related to the current Tile index */
 } KerLSTM_SQ8_T;
 
 
@@ -375,10 +396,12 @@ typedef struct {
 	signed char *__restrict__ Sbuff;	/**< Pointer to Ht buffer, Dim=[DimState] */
 	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
 	unsigned short int Nout;		/**< Number of output produced in StateInOut */
+	unsigned short int OutBase;		/**< Index of first output produced in StateInOut */
 	signed char *__restrict__ Infos;	/**< Infos vector for scaling */
 	char FirstOut;				/**< 1 if first out of one cell to eval */
 	char FirstCell;				/**< 1 if first cell of a group of cell */
 	char Reset;				/**< If 1 GRU State is reset */
+	int TileOffset;				/**< Buffer Offset related to the current Tile index */
 } KerGRU_SQ8_T;
 
 
@@ -843,7 +866,13 @@ void KerParSoftMax_SQ8(KerSoftMax_SQ8_T *Arg);
 ******************************************************************************************************************/
 
 void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg);
+void RNN_ParKerB32_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg);
+void RNN_ParKerB32_Hard_SQ8(KerRNN_SQ8_T *Arg);
+void RNN_ParKerB32_Hard_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg);
 void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg);
+void LSTM_ParKerB32_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg);
+void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg);
+void LSTM_ParKerB32_Hard_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg);
 void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************

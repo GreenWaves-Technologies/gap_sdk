@@ -28,8 +28,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PI_FLL_H__
-#define __PI_FLL_H__
+#ifndef __PMSIS_IMPLEM_DRIVERS_FLL_H__
+#define __PMSIS_IMPLEM_DRIVERS_FLL_H__
 
 #include "pmsis/targets/target.h"
 
@@ -46,65 +46,42 @@
 #define    FLL_SOC_FV_SLOPE       ((FLL_SOC_MAX_FREQUENCY - FLL_SOC_MIN_FREQUENCY) / (DCDC_DEFAULT_NV - DCDC_DEFAULT_LV))
 #define    FLL_CLUSTER_FV_SLOPE   ((FLL_CLUSTER_MAX_FREQUENCY - FLL_CLUSTER_MIN_FREQUENCY) / (DCDC_DEFAULT_NV - DCDC_DEFAULT_LV))
 
-typedef enum _fll_type
-{
-    FLL_SOC     = 0,
-    FLL_PERI    = 0,
-    FLL_CLUSTER = 1
-} fll_type_t;
-
 /*******************************************************************************
- * APIs
+ * Function declaration
  ******************************************************************************/
 
-/*!
- * @brief Initialize one FLL.
+/**
+ * \brief Initialize an FLL.
  *
- * @param which_fll       SoC's or Cluster's fll.
- * @param ret_state       Retention state.
+ * This function initializes an FLL at a given frequency if param is not null.
  *
- * @note .
+ * \param fll_id         FLL domain.
+ * \param frequency      Initial frequency.
  */
-void pi_fll_init(fll_type_t which_fll, uint32_t ret_state);
+void pi_fll_init(uint8_t fll_id, uint32_t frequency);
 
-/*!
- * @brief Deinitalize one FLL.
+/**
+ * \brief Set FLL to given frequency.
  *
- * @param which_fll       SoC's or Cluster's fll.
+ * \param fll_id         FLL domain.
+ * \param frequency      Frequency value to set.
+ * \param check          Check frequency(with current voltage).
  *
- * @note .
+ * \return Set frequency.
  */
-void pi_fll_deinit(fll_type_t which_fll);
+int32_t pi_fll_frequency_set(uint8_t fll_id, uint32_t frequency, uint8_t check);
 
-/*!
- * @brief Clean all FLL configuration.
+/**
+ * \brief Get FLL frequency.
  *
- * @note .
+ * \param fll_id         FLL domain.
+ * \param real           Compute current frequency.
+ *
+ * \note If real param is set, current frequency is computed from HW registers.
+ *
+ * \return Frequency value.
  */
-void pi_fll_clear();
-
-
-/*!
- * @brief Set specific FLL to wanted frequency.
- *
- * @param which_fll       SoC's or Cluster's fll.
- * @param frequency       The frequency value to set.
- * @param check           Check frequency.
- *
- * @note .
- * @return check result of frequency.
- */
-int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check);
-
-/*!
- * @brief Get specific FLL's frequency.
- *
- * @param which_fll       SoC's or Cluster's fll.
- *
- * @note .
- * @return frequency value.
- */
-int pi_fll_get_frequency(fll_type_t which_fll, uint8_t real);
+uint32_t pi_fll_frequency_get(uint8_t fll_id, uint8_t real);
 
 /*!
  * @brief Calculate FC SOC domain's max frequency with certain voltage
@@ -158,4 +135,4 @@ static inline void pi_freq_callback_init(pi_freq_cb_t *cb, pi_freq_func_t func,
     cb->prev = NULL;
 }
 
-#endif /* __PI_FLL_H__ */
+#endif /* __PMSIS_IMPLEM_DRIVERS_FLL_H__ */

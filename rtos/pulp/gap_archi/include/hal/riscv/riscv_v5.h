@@ -163,13 +163,19 @@ static inline unsigned int cluster_id() {  int hart_id;
 #ifndef PLP_NO_BUILTIN
 
 static inline unsigned int hal_core_id() {
-  return core_id();
-  //return __builtin_pulp_CoreId();
+#ifndef CONFIG_NO_CLUSTER_ID
+    return __builtin_pulp_CoreId();
+#else
+    return __builtin_pulp_spr_read(0xF14);
+#endif
 }
 
 static inline unsigned int hal_cluster_id() {
-  //return cluster_id();
-  return __builtin_pulp_ClusterId();
+#ifndef CONFIG_NO_CLUSTER_ID
+    return __builtin_pulp_ClusterId();
+#else
+    return 0;
+#endif
 }
 
 // TODO replace by compiler builtin
@@ -185,8 +191,12 @@ static inline __attribute__((always_inline)) unsigned int hal_is_fc() {
 #ifndef ARCHI_HAS_FC
   return 0;
 #else
+#ifndef CONFIG_NO_CLUSTER_ID
   if (hal_has_fc()) return hal_cluster_id() == ARCHI_FC_CID;
   else return 0;
+#else
+    return hal_core_id() == ARCHI_FC_COREID;
+#endif
 #endif
 }
 

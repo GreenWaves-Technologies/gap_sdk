@@ -86,7 +86,7 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
           TCArg("int8_t * __restrict__", "boxes_in"  ),
           TCArg("int8_t * __restrict__", "classes_in"),
           TCArg("int8_t * __restrict__", "anchors_in"),
-          TCArg("bbox_t * "            , "bbox_out"  ),
+          TCArg("short int *"          , "bbox_out"  ),
           TCArg("uint8_t * "           , "in_scales" ),
           TCArg("uint8_t * "           , "in_norms"  ),
           TCArg("int8_t * "            , "infos"     )

@@ -12,7 +12,9 @@
 #include "MatMultBasicKernels.h"
 
 
-#define Min(a, b)               (((a)<(b))?(a):(b))
+#ifndef Min
+  #define Min(a, b)               (((a)<(b))?(a):(b))
+#endif
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();

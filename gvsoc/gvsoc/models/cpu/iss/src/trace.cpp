@@ -125,7 +125,7 @@ static inline char iss_trace_get_mode(int mode) {
 
 static inline int iss_trace_dump_reg(iss_t *iss, iss_insn_t *insn, char *buff, unsigned int reg, bool is_long=true)
 {
-  //if (!cpu->conf->traceLikeRtl)
+  if (is_long)
   {
     if (reg == 0) {
       return sprintf(buff, "0");
@@ -158,7 +158,7 @@ static inline int iss_trace_dump_reg(iss_t *iss, iss_insn_t *insn, char *buff, u
 static char *iss_trace_dump_reg_value(iss_t *iss, iss_insn_t *insn, char *buff, bool is_out, int reg, uint64_t saved_value, iss_decoder_arg_t *arg, iss_decoder_arg_t **prev_arg, bool is_long)
 {
   char regStr[16];
-  iss_trace_dump_reg(iss, insn, regStr, reg);
+  iss_trace_dump_reg(iss, insn, regStr, reg, is_long);
   if (is_long) buff += sprintf(buff, "%3.3s", regStr);
   else buff += sprintf(buff, "%s", regStr);
 
@@ -318,8 +318,12 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
       buff = trace_dump_debug(iss, insn, buff);
   }
 
-  if (is_long) {
+  if (1) {
     buff += sprintf(buff,  "%c %" PRIxFULLREG " ", iss_trace_get_mode(mode), insn->addr);
+  }
+
+  if (!is_long) {
+    buff += sprintf(buff,  "%" PRIxFULLREG " ", insn->opcode);
   }
 
   char *start_buff = buff;
@@ -345,7 +349,7 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
   }
   if (nb_args != 0) buff += sprintf(buff,  " ");
 
-  if (is_long) {
+  if (1) {
     len = buff - start_buff;
   
     if (len > max_arg_len) max_arg_len = len;
@@ -356,7 +360,7 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
     }
   }
 
-  if (is_long)
+  if (1)
   {
     prev_arg = NULL;
     for (int i=0; i<nb_args; i++) {
@@ -422,7 +426,7 @@ void iss_trace_dump(iss_t *iss, iss_insn_t *insn)
 
   iss_trace_save_args(iss, insn, iss->cpu.state.saved_args, true);
   
-  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, true, 3);
+  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, iss_trace_format(iss) == TRACE_FORMAT_LONG, 3);
 
   iss_insn_msg(iss, buffer);
 }

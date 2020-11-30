@@ -1,0 +1,5 @@
+{
+    "name": "OpenOCD JTAG bitbang",
+    "vp_component": "devices.jtag.ocd_jtag_bitbang",
+    "port": 9999
+}

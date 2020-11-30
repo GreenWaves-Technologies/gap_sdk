@@ -1,3 +1,8 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
 
@@ -8521,3 +8526,4 @@ void KerConvNxMDxDyStrideSxSy_fps(KerConv_fps_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+#pragma GCC diagnostic pop

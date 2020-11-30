@@ -103,6 +103,8 @@ void pi_free(void *_chunk)
     #endif  /* __GAP8__ */
 }
 
-void pi_malloc_display(void)
+void pi_malloc_dump(void)
 {
+    pi_fc_l1_malloc_dump();
+    pi_l2_malloc_dump();
 }

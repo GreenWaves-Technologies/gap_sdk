@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -154,3 +158,4 @@ int main()
 	TestByte();
 }
 
+#pragma GCC diagnostic pop

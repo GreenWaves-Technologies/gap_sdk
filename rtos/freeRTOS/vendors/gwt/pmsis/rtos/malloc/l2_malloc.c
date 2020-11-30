@@ -69,4 +69,10 @@ malloc_t pi_l2_malloc_struct_get(void)
     return malloc_struct;
 }
 
+void pi_l2_malloc_dump(void)
+{
+    printf("L2 malloc dump:\n");
+    __malloc_dump(&__l2_malloc);
+}
+
 #endif  /* (__PMSIS_L2_MALLOC_NATIVE__ == 0) */

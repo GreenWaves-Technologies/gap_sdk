@@ -4,8 +4,9 @@
     "runner_module": "runner.rtl.rtl_runner",
 
     "verbose": true,
-    "simulator": "vsim",
+    "simulator": "xcelium",
     "mode": "shell",
+    "args": [],
 
     "vsim": {
         "profiles": {

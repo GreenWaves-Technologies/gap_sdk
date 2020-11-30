@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <stdio.h>
 #include "CNN_BasicKernels_SQ8.h"
 
@@ -3439,3 +3443,4 @@ void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
+#pragma GCC diagnostic pop

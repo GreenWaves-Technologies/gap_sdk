@@ -15,12 +15,14 @@
 #
 # author: martin.croome@greenwaves-technologies.com
 
-#pylint: disable=attribute-defined-outside-init
-
 from collections.abc import Iterable
+#pylint: disable=attribute-defined-outside-init
+from copy import deepcopy
 from functools import reduce
 from math import ceil, floor
+
 import numpy as np
+
 
 class DimError(Exception):
     pass
@@ -56,6 +58,7 @@ class MissMatchedInputsError(DimError):
 
 class MoreThanOneInputError(DimError):
     pass
+
 
 class Dim():
     def __init__(self, shape=None, names=None, is_ordered=False, is_unknown=False):
@@ -227,8 +230,9 @@ class Dim():
             self._names.insert(0, self._names.pop())
 
     def apply_naming_hints(self, hint):
+        if hint is None:
+            return self
         self._verify_is_ordered()
-        assert hint is not None, "hint should not be none"
 
         # pylint: disable=protected-access
         if len(self._shape) != len(hint):
@@ -240,6 +244,7 @@ class Dim():
         # pylint: disable=protected-access
         object.__setattr__(self, '_names', hint.copy())
         object.__setattr__(self, '_is_named', True)
+        return self
 
     def impose_order(self, order) -> 'Dim':
         if not object.__getattribute__(self, '_is_unknown'):
@@ -283,13 +288,11 @@ class Dim():
 
     def has_key(self, key) -> bool:
         '''Checks if dim has a key'''
-        self._verify_is_named()
-        return key in self._names
+        return self._is_named and key in self._names
 
     def has_keys(self, keys: list) -> bool:
         '''Checks if dim has the keys in keys'''
-        self._verify_is_named()
-        return all(k in self._names for k in keys)
+        return self._is_named and all(k in self._names for k in keys)
 
     def just_has_keys(self, keys: list) -> bool:
         if not self.is_named:
@@ -316,35 +319,37 @@ class Dim():
         return newshape
 
     @classmethod
-    def broadcast(cls, dims):
-        shapes = [dim.shape.copy() for dim in dims]
+    def npbroadcast(cls, shapes):
+        shapes = deepcopy(shapes)
         max_len = max(len(shape) for shape in shapes)
-        keys = None
-        for idx, shape in enumerate(shapes):
-            if len(shape) == max_len:
-                if dims[idx].is_named:
-                    if keys is None:
-                        keys = dims[idx].keys
-                    elif dims[idx].keys != keys:
-                        raise ValueError('axis names do not match')
-            else:
-                while len(shape) < max_len:
-                    shape.insert(0, 1)
-
-        broadcast_axis = -1
+        shapes = [[1] * (max_len - len(shape)) + shape for shape in shapes]
         res = []
-        for idx, elems in enumerate(zip(*shapes)):
-            max_elem = max(elems)
-            if all(elem == 1 or elem == max_elem for elem in elems):
-                res.append(max_elem)
-            elif broadcast_axis == -1:
-                broadcast_axis = idx
-                res.append(sum(elems))
-            else:
-                raise ValueError("shapes cannot be broadcast")
-        res = cls.unnamed(res)
-        if keys is not None:
-            res.apply_naming_hints(keys)
+        for vals in zip(*shapes):
+            elem = max(vals)
+            if not all(val == 1 or val == elem for val in vals):
+                raise ValueError("arguments cannot be broadcasted %s"%shapes)
+            res.append(elem)
+        return res
+
+    @classmethod
+    def broadcast(cls, dims):
+        shapes = [dim.shape for dim in dims]
+        out_shape = cls.npbroadcast(shapes)
+        out_keys = [None] * len(out_shape)
+        for dim in dims:
+            if not dim.is_named:
+                continue
+            keys = [None] * (len(out_shape) - len(dim.keys)) + dim.keys
+            for idx, key in enumerate(keys):
+                if key is None:
+                    continue
+                if out_keys[idx] is None:
+                    out_keys[idx] = key
+                else:
+                    assert out_keys[idx] == key, "dimension label mismatch in broadcast"
+        res = cls.unnamed(out_shape)
+        if all(key is not None for key in out_keys):
+            res.apply_naming_hints(out_keys)
         return res
 
     @staticmethod
@@ -556,9 +561,7 @@ class PadDim(Dim):
             super().__init__(names=PAD_DIMS.copy(), is_ordered=True, is_unknown=True)
             object.__setattr__(self, '_same_type', same_type)
         else:
-            if not all(isinstance(i, int) for i in args):
-                raise TypeError("incorrect type for PadDim")
-
+            args = [int(i) for i in args]
             if len(args) == 1:
                 val = args[0]
                 super().__init__([val] * 4, PAD_DIMS, is_ordered=True)
@@ -824,7 +827,8 @@ class FcFilterDim(Dim):
         self._verify_is_ordered()
         self._verify_is_named()
         out_c_idx = self.get_order_idx('out_c')
-        assert out_c_idx == 0 or out_c_idx == (len(self.order) - 1), "very strange shape for Linear filter"
+        assert out_c_idx == 0 or out_c_idx == (
+            len(self.order) - 1), "very strange shape for Linear filter"
         if out_c_idx == 0:
             return Dim.named_ordered(out_c=self.out_c, sz=self.in_c)
         return Dim.named_ordered(sz=self.in_c, out_c=self.out_c)

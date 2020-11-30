@@ -43,6 +43,16 @@ def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None
                         action="store_true",
                         help="Launch in coverage mode")
 
+    parser.add_argument("--extend-traces",
+                        dest="extend_traces",
+                        action="store_true",
+                        help="Extend instruction traces")
+
+    parser.add_argument("--no-run",
+                        dest="no_run",
+                        action="store_true",
+                        help="Don't run simulation")
+
     try:
         gv.gvsoc.appendArgs(parser, runnerConfig)
     except:
@@ -62,7 +72,8 @@ class Runner(runner.default_runner.Runner):
             pass
 
         self.areas = []
-        self.cmd_args = []
+        self.cmd_args = self.config.get('rtl/args').get_dict()
+
         self.plt_args = []
         self.env = {}
         self.platform_path = None
@@ -179,7 +190,27 @@ class Runner(runner.default_runner.Runner):
 
         self.gen_stim_txt()
 
-        return os.system(command)
+        if not self.args.no_run:
+            status = os.system(command)
+        else:
+            status = 0
+
+        if self.args.extend_traces:
+            if os.environ.get('CONFIG_NEW_HARTS') is not None:
+                traces = ['trace_core_00_9.log', 'trace_core_00_0.log', 'trace_core_00_1.log', 'trace_core_00_2.log', 'trace_core_00_3.log', 'trace_core_00_4.log', 'trace_core_00_5.log', 'trace_core_00_6.log', 'trace_core_00_7.log', 'trace_core_00_8.log']
+            else:
+                traces = ['trace_core_1f_0.log', 'trace_core_00_0.log', 'trace_core_00_1.log', 'trace_core_00_2.log', 'trace_core_00_3.log', 'trace_core_00_4.log', 'trace_core_00_5.log', 'trace_core_00_6.log', 'trace_core_00_7.log', 'trace_core_00_8.log']
+            binary = self.config.get_str('runner/boot-loader')
+            rom_binary = '%s/boot/boot-gap9' % self.__get_platform_path()
+
+            for trace in traces:
+                if os.path.exists(trace):
+                    trace_cmd = 'gap-rtl-trace-extend --binary %s --binary %s --input %s --output extended_%s' % (binary, rom_binary, trace, trace)
+                    if os.system(trace_cmd):
+                        return -1
+
+        return status
+
 
     def gen_stim_txt(self):
 

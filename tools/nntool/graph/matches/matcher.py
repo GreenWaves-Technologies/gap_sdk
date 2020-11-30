@@ -12,12 +12,12 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+import logging
 from abc import ABC, abstractmethod
 from typing import Generator, Sequence
 
 from utils.graph import GraphView, Node, MatchNode
-
+LOG = logging.getLogger("nntool." + __name__)
 
 class MatchNodeType(MatchNode):
     def __init__(self, name, node_class):
@@ -39,6 +39,10 @@ class Matcher(ABC):
             self._identity = self.NAME
         else:
             self._identity = identity
+
+    @property
+    def name(self):
+        return self.NAME
 
     def set_identity(self, G):
         if hasattr(G, 'graph_identity') and self._identity != '__NOT_SET__':
@@ -117,10 +121,14 @@ class MatchGroup(Matcher):
         # Note: assumption is that dimensions are valid when a match is called
         dimensions_set = True
         for match_instance in self.matches:
+            LOG.info("fusions - start %s", match_instance.name)
             if match_instance.NEEDS_VALID_DIMENSION and not dimensions_set:
                 G.add_dimensions()
                 dimensions_set = True
             has_modified_graph = match_instance.match(G, set_identity=False)
+            if has_modified_graph:
+                LOG.info("fusions - %s modified graph", match_instance.name)
+                G.add_dimensions()
             if dimensions_set and has_modified_graph:
                 dimensions_set = False
         if set_identity:

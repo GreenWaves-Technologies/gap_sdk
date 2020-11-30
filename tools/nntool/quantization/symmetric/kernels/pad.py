@@ -13,17 +13,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.others import PadParameters
 import numpy as np
 
 from quantization.quantization_record_base import QuantizationRecordBase
 
-
-def pad(params,
-        in_tensors,
-        qrec: QuantizationRecordBase,
-        details=None):
-    del qrec, details
-    if params.pad_type == "zero":
-        return [np.pad(in_tensors[0], params.padding.numpy_pad_shape(params.in_dims[0]),
-                       'constant', constant_values=0)]
-    raise NotImplementedError()
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
+@params_type(PadParameters)
+@quantization('symmetric')
+class PadSymmetric(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        pad_vals = [(qrec.in_qs[0].quantize(val[0])[0], qrec.in_qs[0].quantize(val[1])[0])
+                    for val in params.pad_vals]
+        return [np.pad(in_tensors[0], params.padding, 'constant', constant_values=pad_vals)]

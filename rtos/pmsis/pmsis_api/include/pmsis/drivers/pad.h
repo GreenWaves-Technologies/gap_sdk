@@ -127,7 +127,7 @@ void pi_pad_set_configuration(pi_pad_e pad, pi_pad_flags_e cfg);
  *
  * This function configures pads behaviour when microcontroller goes into sleep
  * or deep sleep mode.
- * The array sent to this function should be filled for available pads(cf \ref pi_pad_e),
+ * The array sent to this function should be filled for available pads(cf pi_pad_e),
  * with 2 bits per pad(active state and direction).
  *
  * Ex : Pad 10 - PI_PAD_18_A43_CAM_PCLK

@@ -52,6 +52,8 @@ Overview
     +----------------------------------------------------+------+-----+-----------------------------------------------------------+
     |:ref:`OSPI_ALTER_XIP<udma_hyper_OSPI_ALTER_XIP>`    |    76|   32|OSPI XIP alternative 2 bytes                               |
     +----------------------------------------------------+------+-----+-----------------------------------------------------------+
+    |:ref:`OSPI_REG_XIP<udma_hyper_OSPI_REG_XIP>`        |    80|   32|OSPI XIP other configuration                               |
+    +----------------------------------------------------+------+-----+-----------------------------------------------------------+
     |:ref:`LINE_2D<udma_hyper_LINE_2D>`                  |    84|   32|OSPI 2D line.                                              |
     +----------------------------------------------------+------+-----+-----------------------------------------------------------+
     |:ref:`STRIDE_2D<udma_hyper_STRIDE_2D>`              |    88|   32|OSPI 2D stride.                                            |
@@ -144,6 +146,9 @@ Generated headers
         
                 // OSPI XIP alternative 2 bytes
                 #define UDMA_HYPER_OSPI_ALTER_XIP_OFFSET         0x4c
+        
+                // OSPI XIP other configuration
+                #define UDMA_HYPER_OSPI_REG_XIP_OFFSET           0x50
         
                 // OSPI 2D line.
                 #define UDMA_HYPER_LINE_2D_OFFSET                0x54
@@ -244,6 +249,9 @@ Generated headers
         static inline uint32_t udma_hyper_ospi_alter_xip_get(uint32_t base);
         static inline void udma_hyper_ospi_alter_xip_set(uint32_t base, uint32_t value);
 
+        static inline uint32_t udma_hyper_ospi_reg_xip_get(uint32_t base);
+        static inline void udma_hyper_ospi_reg_xip_set(uint32_t base, uint32_t value);
+
         static inline uint32_t udma_hyper_line_2d_get(uint32_t base);
         static inline void udma_hyper_line_2d_set(uint32_t base, uint32_t value);
 
@@ -283,17 +291,29 @@ Generated headers
     .. code-block:: c
 
         
-        // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled) (access: R/W)
+        // Stream ID for the RX uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_HYPER_RX_DEST_DEST_BIT                                  0
-        #define UDMA_HYPER_RX_DEST_DEST_WIDTH                                7
-        #define UDMA_HYPER_RX_DEST_DEST_MASK                                 0x7f
-        #define UDMA_HYPER_RX_DEST_DEST_RESET                                0x7f
+        #define UDMA_HYPER_RX_DEST_DEST_WIDTH                                8
+        #define UDMA_HYPER_RX_DEST_DEST_MASK                                 0xff
+        #define UDMA_HYPER_RX_DEST_DEST_RESET                                0xff
         
-        // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled) (access: R/W)
+        // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_BIT                           8
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_WIDTH                         8
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_MASK                          0xff00
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_RESET                         0xff
+        
+        // Stream ID for the TX 2D uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_HYPER_TX_DEST_DEST_BIT                                  0
-        #define UDMA_HYPER_TX_DEST_DEST_WIDTH                                7
-        #define UDMA_HYPER_TX_DEST_DEST_MASK                                 0x7f
-        #define UDMA_HYPER_TX_DEST_DEST_RESET                                0x7f
+        #define UDMA_HYPER_TX_DEST_DEST_WIDTH                                8
+        #define UDMA_HYPER_TX_DEST_DEST_MASK                                 0xff
+        #define UDMA_HYPER_TX_DEST_DEST_RESET                                0xff
+        
+        // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_BIT                           8
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_WIDTH                         8
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_MASK                          0xff00
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_RESET                         0xff
         
         // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN (access: R/W)
         #define UDMA_HYPER_TRANS_MODE_AUTO_ENA_BIT                           0
@@ -306,6 +326,66 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_WIDTH                           1
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_MASK                            0x2
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_RESET                           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_WIDTH                        2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_MASK                         0xc
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          4
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x10
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_RESET                        0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_BIT                      5
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_MASK                     0x20
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_BIT                 6
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_WIDTH               1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_MASK                0x40
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_RESET               0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_BIT                          7
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_MASK                         0x80
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_BIT                      8
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_MASK                     0x100
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_BIT                  9
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_WIDTH                1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_MASK                 0x200
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_RESET                0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_BIT             10
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_WIDTH           1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_MASK            0x400
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_RESET           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_BIT                          11
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_MASK                         0x800
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_RESET                        0x0
+        
+        // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         12
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_WIDTH                       1
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x1000
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_RESET                       0x0
         
         // Transfer addr, only when MODE is in AUTO (access: R/W)
         #define UDMA_HYPER_TRANS_ADDR_ADDR_BIT                               0
@@ -325,7 +405,7 @@ Generated headers
         #define UDMA_HYPER_TRANS_CFG_RXTX_MASK                               0x1
         #define UDMA_HYPER_TRANS_CFG_RXTX_RESET                              0x0
         
-        // Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start (access: R/W)
+        // Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start (access: W)
         #define UDMA_HYPER_TRANS_CFG_VALID_BIT                               1
         #define UDMA_HYPER_TRANS_CFG_VALID_WIDTH                             1
         #define UDMA_HYPER_TRANS_CFG_VALID_MASK                              0x2
@@ -439,11 +519,23 @@ Generated headers
         #define UDMA_HYPER_TIMING_CFG_CS_MAX_MASK                            0xfffc0000
         #define UDMA_HYPER_TIMING_CFG_CS_MAX_RESET                           0x100
         
+        // - (access: R/W)
+        #define UDMA_HYPER_MBA0_RESERVED_BIT                                 0
+        #define UDMA_HYPER_MBA0_RESERVED_WIDTH                               24
+        #define UDMA_HYPER_MBA0_RESERVED_MASK                                0xffffff
+        #define UDMA_HYPER_MBA0_RESERVED_RESET                               0x0
+        
         // Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0; (access: R/W)
         #define UDMA_HYPER_MBA0_MBA0_BIT                                     24
         #define UDMA_HYPER_MBA0_MBA0_WIDTH                                   7
         #define UDMA_HYPER_MBA0_MBA0_MASK                                    0x7f000000
         #define UDMA_HYPER_MBA0_MBA0_RESET                                   0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_MBA1_RESERVED_BIT                                 0
+        #define UDMA_HYPER_MBA1_RESERVED_WIDTH                               24
+        #define UDMA_HYPER_MBA1_RESERVED_MASK                                0xffffff
+        #define UDMA_HYPER_MBA1_RESERVED_RESET                               0x0
         
         // Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0; (access: R/W)
         #define UDMA_HYPER_MBA1_MBA1_BIT                                     24
@@ -501,8 +593,8 @@ Generated headers
         
         // 2 Bytes SPI alternative (access: R/W)
         #define UDMA_HYPER_OSPI_ALTER_MODE1_BIT                              16
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_WIDTH                            32
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_MASK                             0xffffffff0000
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_WIDTH                            16
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_MASK                             0xffff0000
         #define UDMA_HYPER_OSPI_ALTER_MODE1_RESET                            0x0
         
         // Octo SPI command size :  - 2b0: 0 byte -  2'b1: 1 byte -  2'b2: 2 byte (access: R/W)
@@ -558,6 +650,12 @@ Generated headers
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_WIDTH                            1
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_MASK                             0x2
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_RESET                            0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_BIT                             2
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_WIDTH                           2
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_MASK                            0xc
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_RESET                           0x0
         
         // Octo SPI chip select controlled by user enable GPIO mode :  - 1'b0: IP control CSN according to index -  1'b1: USER control CSN in GPIO mode (access: R/W)
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_BIT                          4
@@ -657,9 +755,21 @@ Generated headers
         
         // 2 Bytes SPI alternative (access: R/W)
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_BIT                          16
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_WIDTH                        32
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_MASK                         0xffffffff0000
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_WIDTH                        16
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_MASK                         0xffff0000
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_RESET                        0x0
+        
+        // XIP latency0 for cs0 (access: -)
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_BIT                     0
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_WIDTH                   5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_MASK                    0x1f
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_RESET                   0x0
+        
+        // XIP latency1 for cs1 (access: -)
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_BIT                     5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_WIDTH                   5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_MASK                    0x3e0
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_RESET                   0x0
         
         // OSPI 2D line with 2D mode. For example, ADDR = START_ADDR + i * BURST_STRIDE. Normally, LINE &gt;= BURST_SIZE. (access: R/W)
         #define UDMA_HYPER_LINE_2D_LINE_BIT                                  0
@@ -697,23 +807,29 @@ Generated headers
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_MASK        0x8
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_RESET       0x0
         
-        // OSPI burst 2D mode enable :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable (access: R/W)
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_BIT                  4
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_WIDTH                1
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_MASK                 0x10
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_RESET                0x0
+        // OSPI burst 2D mode enable for normal mode and XIP :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable (access: R/W)
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_BIT                        4
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_WIDTH                      2
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_MASK                       0x30
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_RESET                      0x0
         
         // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D (access: R/W)
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_BIT                    5
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_WIDTH                  2
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_MASK                   0x60
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_RESET                  0x0
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_BIT                          6
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_WIDTH                        2
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_MASK                         0xc0
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_RESET                        0x0
         
         // Octo SPI interrupt enable control :  - 1'b0: interrupt disable -  1'b1: Interrupt enable (access: R/W)
         #define UDMA_HYPER_IRQ_EN_EN_BIT                                     0
         #define UDMA_HYPER_IRQ_EN_EN_WIDTH                                   1
         #define UDMA_HYPER_IRQ_EN_EN_MASK                                    0x1
         #define UDMA_HYPER_IRQ_EN_EN_RESET                                   0x0
+        
+        // Octo SPI interrupt enable control for XIP :  - 1'b0: interrupt disable -  1'b1: Interrupt enable (access: R/W)
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_BIT                                 1
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_WIDTH                               1
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_MASK                                0x2
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_RESET                               0x0
         
         // Clock divide data, form 0  255, frequency divide table is : -8h0  IO_FREQUENCY / 1 -8h1  IO_FREQUENCY / 2 -8h2  IO_FREQUENCY / 4  (access: R/W)
         #define UDMA_HYPER_CLK_DIV_DATA_BIT                                  0
@@ -757,6 +873,12 @@ Generated headers
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_MASK                        0x10
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_RESET                       0x0
         
+        // - (access: R/W)
+        #define UDMA_HYPER_STATUS_RESERVED_BIT                               5
+        #define UDMA_HYPER_STATUS_RESERVED_WIDTH                             11
+        #define UDMA_HYPER_STATUS_RESERVED_MASK                              0xffe0
+        #define UDMA_HYPER_STATUS_RESERVED_RESET                             0x0
+        
         // SDIO error status flag, indicate the error type (access: R/W)
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_BIT                      16
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_WIDTH                    16
@@ -799,15 +921,25 @@ Generated headers
     .. code-block:: c
 
         
-        #define UDMA_HYPER_RX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),7,0))
-        #define UDMA_HYPER_RX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),7,0))
-        #define UDMA_HYPER_RX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),7,0))
+        #define UDMA_HYPER_RX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_HYPER_RX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),8,0))
+        #define UDMA_HYPER_RX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),8,0))
         #define UDMA_HYPER_RX_DEST_DEST(val)                       ((val) << 0)
         
-        #define UDMA_HYPER_TX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),7,0))
-        #define UDMA_HYPER_TX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),7,0))
-        #define UDMA_HYPER_TX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),7,0))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_GET(value)          (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_GETS(value)         (GAP_BEXTRACT((value),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_SET(value,field)    (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM(val)                ((val) << 8)
+        
+        #define UDMA_HYPER_TX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_HYPER_TX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),8,0))
+        #define UDMA_HYPER_TX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),8,0))
         #define UDMA_HYPER_TX_DEST_DEST(val)                       ((val) << 0)
+        
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_GET(value)          (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_GETS(value)         (GAP_BEXTRACT((value),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_SET(value,field)    (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM(val)                ((val) << 8)
         
         #define UDMA_HYPER_TRANS_MODE_AUTO_ENA_GET(value)          (GAP_BEXTRACTU((value),1,0))
         #define UDMA_HYPER_TRANS_MODE_AUTO_ENA_GETS(value)         (GAP_BEXTRACT((value),1,0))
@@ -818,6 +950,56 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_GETS(value)           (GAP_BEXTRACT((value),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN(val)                  ((val) << 1)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GET(value)         (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GETS(value)        (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_SET(value,field)   (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0(val)               ((val) << 2)
+        
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 4)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN(val)           ((val) << 5)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256(val)      ((val) << 6)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GET(value)         (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GETS(value)        (GAP_BEXTRACT((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_SET(value,field)   (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1(val)               ((val) << 7)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN(val)           ((val) << 8)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GET(value) (GAP_BEXTRACTU((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GETS(value) (GAP_BEXTRACT((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN(val)       ((val) << 9)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256(val)  ((val) << 10)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GET(value)         (GAP_BEXTRACTU((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GETS(value)        (GAP_BEXTRACT((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_SET(value,field)   (GAP_BINSERT((value),(field),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2(val)               ((val) << 11)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 12)
         
         #define UDMA_HYPER_TRANS_ADDR_ADDR_GET(value)              (GAP_BEXTRACTU((value),32,0))
         #define UDMA_HYPER_TRANS_ADDR_ADDR_GETS(value)             (GAP_BEXTRACT((value),32,0))
@@ -929,10 +1111,20 @@ Generated headers
         #define UDMA_HYPER_TIMING_CFG_CS_MAX_SET(value,field)      (GAP_BINSERT((value),(field),14,18))
         #define UDMA_HYPER_TIMING_CFG_CS_MAX(val)                  ((val) << 18)
         
+        #define UDMA_HYPER_MBA0_RESERVED_GET(value)                (GAP_BEXTRACTU((value),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED_GETS(value)               (GAP_BEXTRACT((value),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED_SET(value,field)          (GAP_BINSERT((value),(field),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED(val)                      ((val) << 0)
+        
         #define UDMA_HYPER_MBA0_MBA0_GET(value)                    (GAP_BEXTRACTU((value),7,24))
         #define UDMA_HYPER_MBA0_MBA0_GETS(value)                   (GAP_BEXTRACT((value),7,24))
         #define UDMA_HYPER_MBA0_MBA0_SET(value,field)              (GAP_BINSERT((value),(field),7,24))
         #define UDMA_HYPER_MBA0_MBA0(val)                          ((val) << 24)
+        
+        #define UDMA_HYPER_MBA1_RESERVED_GET(value)                (GAP_BEXTRACTU((value),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED_GETS(value)               (GAP_BEXTRACT((value),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED_SET(value,field)          (GAP_BINSERT((value),(field),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED(val)                      ((val) << 0)
         
         #define UDMA_HYPER_MBA1_MBA1_GET(value)                    (GAP_BEXTRACTU((value),7,24))
         #define UDMA_HYPER_MBA1_MBA1_GETS(value)                   (GAP_BEXTRACT((value),7,24))
@@ -979,9 +1171,9 @@ Generated headers
         #define UDMA_HYPER_OSPI_ALTER_MODE0_SET(value,field)       (GAP_BINSERT((value),(field),16,0))
         #define UDMA_HYPER_OSPI_ALTER_MODE0(val)                   ((val) << 0)
         
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_GET(value)             (GAP_BEXTRACTU((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_GETS(value)            (GAP_BEXTRACT((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_SET(value,field)       (GAP_BINSERT((value),(field),32,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_GET(value)             (GAP_BEXTRACTU((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_GETS(value)            (GAP_BEXTRACT((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_SET(value,field)       (GAP_BINSERT((value),(field),16,16))
         #define UDMA_HYPER_OSPI_ALTER_MODE1(val)                   ((val) << 16)
         
         #define UDMA_HYPER_OSPI_CFG_CMD_SIZE_GET(value)            (GAP_BEXTRACTU((value),2,0))
@@ -1028,6 +1220,11 @@ Generated headers
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_GETS(value)            (GAP_BEXTRACT((value),1,1))
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN(val)                   ((val) << 1)
+        
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_GET(value)            (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_GETS(value)           (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_SET(value,field)      (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED(val)                  ((val) << 2)
         
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_GET(value)         (GAP_BEXTRACTU((value),1,4))
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_GETS(value)        (GAP_BEXTRACT((value),1,4))
@@ -1109,10 +1306,20 @@ Generated headers
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE0_SET(value,field)   (GAP_BINSERT((value),(field),16,0))
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE0(val)               ((val) << 0)
         
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GET(value)         (GAP_BEXTRACTU((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GETS(value)        (GAP_BEXTRACT((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_SET(value,field)   (GAP_BINSERT((value),(field),32,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GET(value)         (GAP_BEXTRACTU((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GETS(value)        (GAP_BEXTRACT((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_SET(value,field)   (GAP_BINSERT((value),(field),16,16))
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1(val)               ((val) << 16)
+        
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_GET(value)    (GAP_BEXTRACTU((value),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_GETS(value)   (GAP_BEXTRACT((value),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_SET(value,field) (GAP_BINSERT((value),(field),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0(val)          ((val) << 0)
+        
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_GET(value)    (GAP_BEXTRACTU((value),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_GETS(value)   (GAP_BEXTRACT((value),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_SET(value,field) (GAP_BINSERT((value),(field),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1(val)          ((val) << 5)
         
         #define UDMA_HYPER_LINE_2D_LINE_GET(value)                 (GAP_BEXTRACTU((value),32,0))
         #define UDMA_HYPER_LINE_2D_LINE_GETS(value)                (GAP_BEXTRACT((value),32,0))
@@ -1144,20 +1351,25 @@ Generated headers
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),1,3))
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE(val) ((val) << 3)
         
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_GET(value) (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_GETS(value) (GAP_BEXTRACT((value),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE(val)       ((val) << 4)
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_GET(value)       (GAP_BEXTRACTU((value),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_GETS(value)      (GAP_BEXTRACT((value),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE(val)             ((val) << 4)
         
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_GET(value)   (GAP_BEXTRACTU((value),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_GETS(value)  (GAP_BEXTRACT((value),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_SET(value,field) (GAP_BINSERT((value),(field),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE(val)         ((val) << 5)
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_GET(value)         (GAP_BEXTRACTU((value),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_GETS(value)        (GAP_BEXTRACT((value),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_SET(value,field)   (GAP_BINSERT((value),(field),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE(val)               ((val) << 6)
         
         #define UDMA_HYPER_IRQ_EN_EN_GET(value)                    (GAP_BEXTRACTU((value),1,0))
         #define UDMA_HYPER_IRQ_EN_EN_GETS(value)                   (GAP_BEXTRACT((value),1,0))
         #define UDMA_HYPER_IRQ_EN_EN_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
         #define UDMA_HYPER_IRQ_EN_EN(val)                          ((val) << 0)
+        
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_GET(value)                (GAP_BEXTRACTU((value),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_GETS(value)               (GAP_BEXTRACT((value),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_SET(value,field)          (GAP_BINSERT((value),(field),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN(val)                      ((val) << 1)
         
         #define UDMA_HYPER_CLK_DIV_DATA_GET(value)                 (GAP_BEXTRACTU((value),8,0))
         #define UDMA_HYPER_CLK_DIV_DATA_GETS(value)                (GAP_BEXTRACT((value),8,0))
@@ -1193,6 +1405,11 @@ Generated headers
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_GETS(value)       (GAP_BEXTRACT((value),1,4))
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END(val)              ((val) << 4)
+        
+        #define UDMA_HYPER_STATUS_RESERVED_GET(value)              (GAP_BEXTRACTU((value),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED_GETS(value)             (GAP_BEXTRACT((value),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED_SET(value,field)        (GAP_BINSERT((value),(field),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED(val)                    ((val) << 5)
         
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_GET(value)     (GAP_BEXTRACTU((value),16,16))
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_GETS(value)    (GAP_BEXTRACT((value),16,16))
@@ -1251,7 +1468,7 @@ Generated headers
             volatile uint32_t ospi_jedec_reset;  // OSPI JEDEC Hardware Reset, user can control sdo0 manually
             volatile uint32_t ospi_ram_opt;  // OSPI RAM DATA transfer optimisation, only in auto mode
             volatile uint32_t ospi_alter_xip;  // OSPI XIP alternative 2 bytes
-            volatile uint32_t reserved_0[1];  // Reserved/Not used.
+            volatile uint32_t ospi_reg_xip;  // OSPI XIP other configuration
             volatile uint32_t line_2d;  // OSPI 2D line.
             volatile uint32_t stride_2d;  // OSPI 2D stride.
             volatile uint32_t burst_enable;  // OSPI burst mode/2D mode enable.
@@ -1273,14 +1490,16 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int dest            :7 ; // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the RX uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest_stream     :8 ; // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_rx_dest_t;
         
         typedef union {
           struct {
-            unsigned int dest            :7 ; // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the TX 2D uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest_stream     :8 ; // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_tx_dest_t;
@@ -1289,6 +1508,16 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved0       :2 ; // -
+            unsigned int stream_en       :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int aes_stream_en   :1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved1       :1 ; // -
+            unsigned int xip_stream_en   :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int xip_aes_stream_en:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int xip_aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved2       :1 ; // -
+            unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_trans_mode_t;
@@ -1364,7 +1593,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int padding0:24;
+            unsigned int reserved        :24; // -
             unsigned int mba0            :7 ; // Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0;
           };
           unsigned int raw;
@@ -1372,7 +1601,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int padding0:24;
+            unsigned int reserved        :24; // -
             unsigned int mba1            :7 ; // Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0;
           };
           unsigned int raw;
@@ -1402,7 +1631,7 @@ Generated headers
         typedef union {
           struct {
             unsigned int mode0           :16; // 2 Bytes SPI alternative
-            unsigned int mode1           :32; // 2 Bytes SPI alternative
+            unsigned int mode1           :16; // 2 Bytes SPI alternative
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_ospi_alter_t;
@@ -1427,7 +1656,7 @@ Generated headers
           struct {
             unsigned int index           :1 ; // Octo SPI chip select index controlled by user  :  - 1'b0: CSN0 -  1'b1: CSN1
             unsigned int auto_en         :1 ; // Octo SPI chip select controlled by IP automatically  :  - 1'b0: IP control CSN according to index -  1'b1: : IP control CSN according to address range automatically
-            unsigned int padding0:2 ;
+            unsigned int reserved        :2 ; // -
             unsigned int direct_ctrl     :1 ; // Octo SPI chip select controlled by user enable GPIO mode :  - 1'b0: IP control CSN according to index -  1'b1: USER control CSN in GPIO mode
             unsigned int value           :1 ; // Octo SPI chip select value controlled by user  :  - 1'b0: HIGH -  1'b1: : Low
             unsigned int sdio_data_quad  :1 ; // SDIO data quad enable  :  - 1'b0: Disable -  1'b1: : Enable
@@ -1462,10 +1691,18 @@ Generated headers
         typedef union {
           struct {
             unsigned int mode0           :16; // 2 Bytes SPI alternative
-            unsigned int mode1           :32; // 2 Bytes SPI alternative
+            unsigned int mode1           :16; // 2 Bytes SPI alternative
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_ospi_alter_xip_t;
+        
+        typedef union {
+          struct {
+            unsigned int xip_latency0    :5 ; // XIP latency0 for cs0
+            unsigned int xip_latency1    :5 ; // XIP latency1 for cs1
+          };
+          unsigned int raw;
+        } __attribute__((packed)) udma_hyper_ospi_reg_xip_t;
         
         typedef union {
           struct {
@@ -1487,8 +1724,8 @@ Generated headers
             unsigned int cs1_auto_burst_enable:1 ; // Automatically control Maximum chip select low time for self-refresh HYPERRAM to valid the data transfer for channel 1 : - 1'b0 disable    - 1'b1 Enable
             unsigned int cs0_maximum_check_enable:1 ; // Enable Maximum chip select low time for self-refresh HYPERRAM for channel 0:  - 1'b0: disable -  1'b1: enable
             unsigned int cs1_maximum_check_enable:1 ; // Enable Maximum chip select low time for self-refresh HYPERRAM for channel 1 :  - 1'b0: disable -  1'b1: enable
-            unsigned int burst_2d_enable :1 ; // OSPI burst 2D mode enable :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable
-            unsigned int burst_2d_mode   :2 ; // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D
+            unsigned int _2d_enable      :2 ; // OSPI burst 2D mode enable for normal mode and XIP :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable
+            unsigned int _2d_mode        :2 ; // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_burst_enable_t;
@@ -1496,6 +1733,7 @@ Generated headers
         typedef union {
           struct {
             unsigned int en              :1 ; // Octo SPI interrupt enable control :  - 1'b0: interrupt disable -  1'b1: Interrupt enable
+            unsigned int xip_en          :1 ; // Octo SPI interrupt enable control for XIP :  - 1'b0: interrupt disable -  1'b1: Interrupt enable
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_irq_en_t;
@@ -1515,7 +1753,7 @@ Generated headers
             unsigned int rx_tx_end       :1 ; // RX TX transfer end flag, can be polling by user, write 1 to clear: - 1'b0: not end - 1'b1: end
             unsigned int sdio_rx_tx_error:1 ; // SDIO RX TX transfer error because of tcsm, write 1 to clear: - 1'b0: no error - 1'b1: error
             unsigned int sdio_rx_tx_end  :1 ; // SDIO RX TX transfer end flag, can be polling by user, write 1 to clear: - 1'b0: not end - 1'b1: end
-            unsigned int padding0:11;
+            unsigned int reserved        :11; // -
             unsigned int sdio_error_status:16; // SDIO error status flag, indicate the error type
           };
           unsigned int raw;
@@ -1585,6 +1823,7 @@ Generated headers
             vp_udma_hyper_ospi_jedec_reset ospi_jedec_reset;
             vp_udma_hyper_ospi_ram_opt ospi_ram_opt;
             vp_udma_hyper_ospi_alter_xip ospi_alter_xip;
+            vp_udma_hyper_ospi_reg_xip ospi_reg_xip;
             vp_udma_hyper_line_2d line_2d;
             vp_udma_hyper_stride_2d stride_2d;
             vp_udma_hyper_burst_enable burst_enable;
@@ -1609,11 +1848,13 @@ Stream ID for the uDMA channel
 
 .. table:: 
 
-    +-----+---+----+---------------------------------------------------------------------+
-    |Bit #|R/W|Name|                             Description                             |
-    +=====+===+====+=====================================================================+
-    |6:0  |R/W|DEST|Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)|
-    +-----+---+----+---------------------------------------------------------------------+
+    +-----+---+-----------+------------------------------------------------------------------------+
+    |Bit #|R/W|   Name    |                              Description                               |
+    +=====+===+===========+========================================================================+
+    |7:0  |R/W|DEST       |Stream ID for the RX uDMA channel. Default is 0xFF(channel disabled)    |
+    +-----+---+-----------+------------------------------------------------------------------------+
+    |15:8 |R/W|DEST_STREAM|Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)|
+    +-----+---+-----------+------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1643,11 +1884,17 @@ Generated headers
     .. code-block:: c
 
         
-        // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled) (access: R/W)
+        // Stream ID for the RX uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_HYPER_RX_DEST_DEST_BIT                                  0
-        #define UDMA_HYPER_RX_DEST_DEST_WIDTH                                7
-        #define UDMA_HYPER_RX_DEST_DEST_MASK                                 0x7f
-        #define UDMA_HYPER_RX_DEST_DEST_RESET                                0x7f
+        #define UDMA_HYPER_RX_DEST_DEST_WIDTH                                8
+        #define UDMA_HYPER_RX_DEST_DEST_MASK                                 0xff
+        #define UDMA_HYPER_RX_DEST_DEST_RESET                                0xff
+        
+        // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_BIT                           8
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_WIDTH                         8
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_MASK                          0xff00
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_RESET                         0xff
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1655,10 +1902,15 @@ Generated headers
     .. code-block:: c
 
         
-        #define UDMA_HYPER_RX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),7,0))
-        #define UDMA_HYPER_RX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),7,0))
-        #define UDMA_HYPER_RX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),7,0))
+        #define UDMA_HYPER_RX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_HYPER_RX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),8,0))
+        #define UDMA_HYPER_RX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),8,0))
         #define UDMA_HYPER_RX_DEST_DEST(val)                       ((val) << 0)
+        
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_GET(value)          (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_GETS(value)         (GAP_BEXTRACT((value),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM_SET(value,field)    (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_HYPER_RX_DEST_DEST_STREAM(val)                ((val) << 8)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1668,7 +1920,8 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int dest            :7 ; // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the RX uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest_stream     :8 ; // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_rx_dest_t;
@@ -1684,6 +1937,8 @@ Generated headers
         public:
             inline void dest_set(uint32_t value);
             inline uint32_t dest_get();
+            inline void dest_stream_set(uint32_t value);
+            inline uint32_t dest_stream_get();
         };
 
 |
@@ -1697,11 +1952,13 @@ Stream ID for the uDMA channel
 
 .. table:: 
 
-    +-----+---+----+---------------------------------------------------------------------+
-    |Bit #|R/W|Name|                             Description                             |
-    +=====+===+====+=====================================================================+
-    |6:0  |R/W|DEST|Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)|
-    +-----+---+----+---------------------------------------------------------------------+
+    +-----+---+-----------+------------------------------------------------------------------------+
+    |Bit #|R/W|   Name    |                              Description                               |
+    +=====+===+===========+========================================================================+
+    |7:0  |R/W|DEST       |Stream ID for the TX 2D uDMA channel. Default is 0xFF(channel disabled) |
+    +-----+---+-----------+------------------------------------------------------------------------+
+    |15:8 |R/W|DEST_STREAM|Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)|
+    +-----+---+-----------+------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1731,11 +1988,17 @@ Generated headers
     .. code-block:: c
 
         
-        // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled) (access: R/W)
+        // Stream ID for the TX 2D uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
         #define UDMA_HYPER_TX_DEST_DEST_BIT                                  0
-        #define UDMA_HYPER_TX_DEST_DEST_WIDTH                                7
-        #define UDMA_HYPER_TX_DEST_DEST_MASK                                 0x7f
-        #define UDMA_HYPER_TX_DEST_DEST_RESET                                0x7f
+        #define UDMA_HYPER_TX_DEST_DEST_WIDTH                                8
+        #define UDMA_HYPER_TX_DEST_DEST_MASK                                 0xff
+        #define UDMA_HYPER_TX_DEST_DEST_RESET                                0xff
+        
+        // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled) (access: R/W)
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_BIT                           8
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_WIDTH                         8
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_MASK                          0xff00
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_RESET                         0xff
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1743,10 +2006,15 @@ Generated headers
     .. code-block:: c
 
         
-        #define UDMA_HYPER_TX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),7,0))
-        #define UDMA_HYPER_TX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),7,0))
-        #define UDMA_HYPER_TX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),7,0))
+        #define UDMA_HYPER_TX_DEST_DEST_GET(value)                 (GAP_BEXTRACTU((value),8,0))
+        #define UDMA_HYPER_TX_DEST_DEST_GETS(value)                (GAP_BEXTRACT((value),8,0))
+        #define UDMA_HYPER_TX_DEST_DEST_SET(value,field)           (GAP_BINSERT((value),(field),8,0))
         #define UDMA_HYPER_TX_DEST_DEST(val)                       ((val) << 0)
+        
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_GET(value)          (GAP_BEXTRACTU((value),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_GETS(value)         (GAP_BEXTRACT((value),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM_SET(value,field)    (GAP_BINSERT((value),(field),8,8))
+        #define UDMA_HYPER_TX_DEST_DEST_STREAM(val)                ((val) << 8)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1756,7 +2024,8 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int dest            :7 ; // Stream ID for the CMD uDMA channel. Default is 0x7F(channel disabled)
+            unsigned int dest            :8 ; // Stream ID for the TX 2D uDMA channel. Default is 0xFF(channel disabled)
+            unsigned int dest_stream     :8 ; // Stream ID for the STREAM uDMA channel. Default is 0xFF(channel disabled)
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_tx_dest_t;
@@ -1772,6 +2041,8 @@ Generated headers
         public:
             inline void dest_set(uint32_t value);
             inline uint32_t dest_get();
+            inline void dest_stream_set(uint32_t value);
+            inline uint32_t dest_stream_get();
         };
 
 |
@@ -1785,13 +2056,33 @@ Configure transaction mode
 
 .. table:: 
 
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|  Name  |                                                                               Description                                                                                |
-    +=====+===+========+==========================================================================================================================================================================+
-    |    0|R/W|AUTO_ENA|Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN|
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    1|R/W|XIP_EN  |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN       |
-    +-----+---+--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|         Name         |                                                                                    Description                                                                                    |
+    +=====+===+======================+===================================================================================================================================================================================+
+    |    0|R/W|AUTO_ENA              |Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN         |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    1|R/W|XIP_EN                |Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN                |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |3:2  |R/W|RESERVED0             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    4|R/W|STREAM_EN             |Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN|
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    5|R/W|AES_STREAM_EN         |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    6|R/W|AES_STREAM_128_256    |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    7|R/W|RESERVED1             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    8|R/W|XIP_STREAM_EN         |Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN|
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |    9|R/W|XIP_AES_STREAM_EN     |Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   10|R/W|XIP_AES_STREAM_128_256|Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN                                 |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   11|R/W|RESERVED2             |-                                                                                                                                                                                  |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |   12|R/W|XIP_HALTED            |Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED                                                                    |
+    +-----+---+----------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1832,6 +2123,66 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_WIDTH                           1
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_MASK                            0x2
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_RESET                           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_BIT                          2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_WIDTH                        2
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_MASK                         0xc
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_BIT                          4
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_MASK                         0x10
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_RESET                        0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_BIT                      5
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_MASK                     0x20
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_BIT                 6
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_WIDTH               1
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_MASK                0x40
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_RESET               0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_BIT                          7
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_MASK                         0x80
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_RESET                        0x0
+        
+        // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_BIT                      8
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_WIDTH                    1
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_MASK                     0x100
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_RESET                    0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_BIT                  9
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_WIDTH                1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_MASK                 0x200
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_RESET                0x0
+        
+        // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_BIT             10
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_WIDTH           1
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_MASK            0x400
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_RESET           0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_BIT                          11
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_WIDTH                        1
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_MASK                         0x800
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_RESET                        0x0
+        
+        // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED (access: R/W)
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_BIT                         12
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_WIDTH                       1
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_MASK                        0x1000
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_RESET                       0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1848,6 +2199,56 @@ Generated headers
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_GETS(value)           (GAP_BEXTRACT((value),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_TRANS_MODE_XIP_EN(val)                  ((val) << 1)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GET(value)         (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_GETS(value)        (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0_SET(value,field)   (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED0(val)               ((val) << 2)
+        
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GET(value)         (GAP_BEXTRACTU((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_GETS(value)        (GAP_BEXTRACT((value),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
+        #define UDMA_HYPER_TRANS_MODE_STREAM_EN(val)               ((val) << 4)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_EN(val)           ((val) << 5)
+        
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define UDMA_HYPER_TRANS_MODE_AES_STREAM_128_256(val)      ((val) << 6)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GET(value)         (GAP_BEXTRACTU((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_GETS(value)        (GAP_BEXTRACT((value),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1_SET(value,field)   (GAP_BINSERT((value),(field),1,7))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED1(val)               ((val) << 7)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GET(value)     (GAP_BEXTRACTU((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_GETS(value)    (GAP_BEXTRACT((value),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define UDMA_HYPER_TRANS_MODE_XIP_STREAM_EN(val)           ((val) << 8)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GET(value) (GAP_BEXTRACTU((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_GETS(value) (GAP_BEXTRACT((value),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_EN(val)       ((val) << 9)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GET(value) (GAP_BEXTRACTU((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_GETS(value) (GAP_BEXTRACT((value),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256_SET(value,field) (GAP_BINSERT((value),(field),1,10))
+        #define UDMA_HYPER_TRANS_MODE_XIP_AES_STREAM_128_256(val)  ((val) << 10)
+        
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GET(value)         (GAP_BEXTRACTU((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_GETS(value)        (GAP_BEXTRACT((value),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2_SET(value,field)   (GAP_BINSERT((value),(field),1,11))
+        #define UDMA_HYPER_TRANS_MODE_RESERVED2(val)               ((val) << 11)
+        
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GET(value)        (GAP_BEXTRACTU((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_GETS(value)       (GAP_BEXTRACT((value),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED_SET(value,field)  (GAP_BINSERT((value),(field),1,12))
+        #define UDMA_HYPER_TRANS_MODE_XIP_HALTED(val)              ((val) << 12)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1859,6 +2260,16 @@ Generated headers
           struct {
             unsigned int auto_ena        :1 ; // Transfer mode in AUTO, IP will configure the UDMA transfer automatically using register parameters instead using SW configuration in UDMA - 1'b0: AUTO_DIS - 1'b1: AUTO_EN
             unsigned int xip_en          :1 ; // Transfer mode in XIP, IP will configure the UDMA transfer automatically using XIP parameters  instead using SW configuration in UDMA - 1'b0: XIP_DIS - 1'b1: XIP_EN
+            unsigned int reserved0       :2 ; // -
+            unsigned int stream_en       :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int aes_stream_en   :1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved1       :1 ; // -
+            unsigned int xip_stream_en   :1 ; // Transfer mode in noraml mode use STREAM or not, IP will configure the STREAM UDMA transfer automatically to read / write data from / to memory - 1'b0: STREAM_DIS - 1'b1: STREAM_EN
+            unsigned int xip_aes_stream_en:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int xip_aes_stream_128_256:1 ; // Transfer mode in noraml mode use AES STREAM or not, to avoid Read synchronous issue when in AUTO mode - 1'b0: AES_STREAM_DIS - 1'b1: AES_STREAM_EN
+            unsigned int reserved2       :1 ; // -
+            unsigned int xip_halted      :1 ; // Halted XIP refill when in XIP, XIP refill will wait SW unlock this bit.  - 1'b0: XIP_RUNNING - 1'b1: XIP_HALTED
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_trans_mode_t;
@@ -1876,6 +2287,26 @@ Generated headers
             inline uint32_t auto_ena_get();
             inline void xip_en_set(uint32_t value);
             inline uint32_t xip_en_get();
+            inline void reserved0_set(uint32_t value);
+            inline uint32_t reserved0_get();
+            inline void stream_en_set(uint32_t value);
+            inline uint32_t stream_en_get();
+            inline void aes_stream_en_set(uint32_t value);
+            inline uint32_t aes_stream_en_get();
+            inline void aes_stream_128_256_set(uint32_t value);
+            inline uint32_t aes_stream_128_256_get();
+            inline void reserved1_set(uint32_t value);
+            inline uint32_t reserved1_get();
+            inline void xip_stream_en_set(uint32_t value);
+            inline uint32_t xip_stream_en_get();
+            inline void xip_aes_stream_en_set(uint32_t value);
+            inline uint32_t xip_aes_stream_en_get();
+            inline void xip_aes_stream_128_256_set(uint32_t value);
+            inline uint32_t xip_aes_stream_128_256_get();
+            inline void reserved2_set(uint32_t value);
+            inline uint32_t reserved2_get();
+            inline void xip_halted_set(uint32_t value);
+            inline uint32_t xip_halted_get();
         };
 
 |
@@ -2070,7 +2501,7 @@ Start  each transaction rx/tx
     +=====+===+=====+===========================================================================+
     |    0|R/W|RXTX |Transfer type - 1'b0: TX - 1'b1: RX                                        |
     +-----+---+-----+---------------------------------------------------------------------------+
-    |    1|R/W|VALID|Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start|
+    |    1|W  |VALID|Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start|
     +-----+---+-----+---------------------------------------------------------------------------+
 
 Generated headers
@@ -2107,7 +2538,7 @@ Generated headers
         #define UDMA_HYPER_TRANS_CFG_RXTX_MASK                               0x1
         #define UDMA_HYPER_TRANS_CFG_RXTX_RESET                              0x0
         
-        // Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start (access: R/W)
+        // Transfer valid to start, always read 0 - 1'b0: clear transfer - 1'b1: Start (access: W)
         #define UDMA_HYPER_TRANS_CFG_VALID_BIT                               1
         #define UDMA_HYPER_TRANS_CFG_VALID_WIDTH                             1
         #define UDMA_HYPER_TRANS_CFG_VALID_MASK                              0x2
@@ -2750,11 +3181,13 @@ Device start address register.
 
 .. table:: 
 
-    +-----+---+----+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|Name|                                                                                                                                                                                                                        Description                                                                                                                                                                                                                         |
-    +=====+===+====+============================================================================================================================================================================================================================================================================================================================================================================================================================================================+
-    |30:24|R/W|MBA0|Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0;|
-    +-----+---+----+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|  Name  |                                                                                                                                                                                                                        Description                                                                                                                                                                                                                         |
+    +=====+===+========+============================================================================================================================================================================================================================================================================================================================================================================================================================================================+
+    |23:0 |R/W|reserved|-                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+    +-----+---+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |30:24|R/W|MBA0    |Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0;|
+    +-----+---+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2784,6 +3217,12 @@ Generated headers
     .. code-block:: c
 
         
+        // - (access: R/W)
+        #define UDMA_HYPER_MBA0_RESERVED_BIT                                 0
+        #define UDMA_HYPER_MBA0_RESERVED_WIDTH                               24
+        #define UDMA_HYPER_MBA0_RESERVED_MASK                                0xffffff
+        #define UDMA_HYPER_MBA0_RESERVED_RESET                               0x0
+        
         // Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0; (access: R/W)
         #define UDMA_HYPER_MBA0_MBA0_BIT                                     24
         #define UDMA_HYPER_MBA0_MBA0_WIDTH                                   7
@@ -2795,6 +3234,11 @@ Generated headers
 
     .. code-block:: c
 
+        
+        #define UDMA_HYPER_MBA0_RESERVED_GET(value)                (GAP_BEXTRACTU((value),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED_GETS(value)               (GAP_BEXTRACT((value),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED_SET(value,field)          (GAP_BINSERT((value),(field),24,0))
+        #define UDMA_HYPER_MBA0_RESERVED(val)                      ((val) << 0)
         
         #define UDMA_HYPER_MBA0_MBA0_GET(value)                    (GAP_BEXTRACTU((value),7,24))
         #define UDMA_HYPER_MBA0_MBA0_GETS(value)                   (GAP_BEXTRACT((value),7,24))
@@ -2809,7 +3253,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int padding0:24;
+            unsigned int reserved        :24; // -
             unsigned int mba0            :7 ; // Memory Base Address 0 for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CS1 = 0;  else CS0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CS0 = 0;  else CS1 = 0;
           };
           unsigned int raw;
@@ -2824,6 +3268,8 @@ Generated headers
         class vp_udma_hyper_mba0 : public vp::reg_32
         {
         public:
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
             inline void mba0_set(uint32_t value);
             inline uint32_t mba0_get();
         };
@@ -2839,11 +3285,13 @@ Device start address register.
 
 .. table:: 
 
-    +-----+---+----+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|Name|                                                                                                                                                                                                                          Description                                                                                                                                                                                                                          |
-    +=====+===+====+===============================================================================================================================================================================================================================================================================================================================================================================================================================================================+
-    |30:24|R/W|MBA1|Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0;|
-    +-----+---+----+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|  Name  |                                                                                                                                                                                                                          Description                                                                                                                                                                                                                          |
+    +=====+===+========+===============================================================================================================================================================================================================================================================================================================================================================================================================================================================+
+    |23:0 |R/W|reserved|-                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+    +-----+---+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |30:24|R/W|MBA1    |Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0;|
+    +-----+---+--------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2873,6 +3321,12 @@ Generated headers
     .. code-block:: c
 
         
+        // - (access: R/W)
+        #define UDMA_HYPER_MBA1_RESERVED_BIT                                 0
+        #define UDMA_HYPER_MBA1_RESERVED_WIDTH                               24
+        #define UDMA_HYPER_MBA1_RESERVED_MASK                                0xffffff
+        #define UDMA_HYPER_MBA1_RESERVED_RESET                               0x0
+        
         // Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0; (access: R/W)
         #define UDMA_HYPER_MBA1_MBA1_BIT                                     24
         #define UDMA_HYPER_MBA1_MBA1_WIDTH                                   7
@@ -2884,6 +3338,11 @@ Generated headers
 
     .. code-block:: c
 
+        
+        #define UDMA_HYPER_MBA1_RESERVED_GET(value)                (GAP_BEXTRACTU((value),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED_GETS(value)               (GAP_BEXTRACT((value),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED_SET(value,field)          (GAP_BINSERT((value),(field),24,0))
+        #define UDMA_HYPER_MBA1_RESERVED(val)                      ((val) << 0)
         
         #define UDMA_HYPER_MBA1_MBA1_GET(value)                    (GAP_BEXTRACTU((value),7,24))
         #define UDMA_HYPER_MBA1_MBA1_GETS(value)                   (GAP_BEXTRACT((value),7,24))
@@ -2898,7 +3357,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int padding0:24;
+            unsigned int reserved        :24; // -
             unsigned int mba1            :7 ; // Memory Base Address  for both RAM and FLASH bitfield. The base address of addressable region to each memory is set up. Since register can be set in 16M bytes boundary, lower 24 bit is fixed to 0. MBA0 can be greater than MBA1, the chip select which decided by the relationship among MBA0, MBA1, and EXT_ADDR.  - MBA0 &lt; MBA1, if (MBA1 &lt;= EXT_ADDR) CSn1 = 0;  else CSn0 = 0; - MBA0 &gt; MBA1, if (MBA0 &lt;= EXT_ADDR) CSn0 = 0;  else CSn1 = 0;
           };
           unsigned int raw;
@@ -2913,6 +3372,8 @@ Generated headers
         class vp_udma_hyper_mba1 : public vp::reg_32
         {
         public:
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
             inline void mba1_set(uint32_t value);
             inline uint32_t mba1_get();
         };
@@ -3191,7 +3652,7 @@ OSPI alternative 2 bytes
     +=====+===+=====+=======================+
     |15:0 |R/W|MODE0|2 Bytes SPI alternative|
     +-----+---+-----+-----------------------+
-    |47:16|R/W|MODE1|2 Bytes SPI alternative|
+    |31:16|R/W|MODE1|2 Bytes SPI alternative|
     +-----+---+-----+-----------------------+
 
 Generated headers
@@ -3230,8 +3691,8 @@ Generated headers
         
         // 2 Bytes SPI alternative (access: R/W)
         #define UDMA_HYPER_OSPI_ALTER_MODE1_BIT                              16
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_WIDTH                            32
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_MASK                             0xffffffff0000
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_WIDTH                            16
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_MASK                             0xffff0000
         #define UDMA_HYPER_OSPI_ALTER_MODE1_RESET                            0x0
 
 .. toggle-header::
@@ -3245,9 +3706,9 @@ Generated headers
         #define UDMA_HYPER_OSPI_ALTER_MODE0_SET(value,field)       (GAP_BINSERT((value),(field),16,0))
         #define UDMA_HYPER_OSPI_ALTER_MODE0(val)                   ((val) << 0)
         
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_GET(value)             (GAP_BEXTRACTU((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_GETS(value)            (GAP_BEXTRACT((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_MODE1_SET(value,field)       (GAP_BINSERT((value),(field),32,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_GET(value)             (GAP_BEXTRACTU((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_GETS(value)            (GAP_BEXTRACT((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_MODE1_SET(value,field)       (GAP_BINSERT((value),(field),16,16))
         #define UDMA_HYPER_OSPI_ALTER_MODE1(val)                   ((val) << 16)
 
 .. toggle-header::
@@ -3259,7 +3720,7 @@ Generated headers
         typedef union {
           struct {
             unsigned int mode0           :16; // 2 Bytes SPI alternative
-            unsigned int mode1           :32; // 2 Bytes SPI alternative
+            unsigned int mode1           :16; // 2 Bytes SPI alternative
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_ospi_alter_t;
@@ -3484,6 +3945,8 @@ OSPI chip select configuration
     +-----+---+------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    1|R/W|AUTO_EN           |Octo SPI chip select controlled by IP automatically  :  - 1'b0: IP control CSN according to index -  1'b1: : IP control CSN according to address range automatically|
     +-----+---+------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    |3:2  |R/W|reserved          |-                                                                                                                                                                   |
+    +-----+---+------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    4|R/W|DIRECT_CTRL       |Octo SPI chip select controlled by user enable GPIO mode :  - 1'b0: IP control CSN according to index -  1'b1: USER control CSN in GPIO mode                        |
     +-----+---+------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    5|R/W|VALUE             |Octo SPI chip select value controlled by user  :  - 1'b0: HIGH -  1'b1: : Low                                                                                       |
@@ -3538,6 +4001,12 @@ Generated headers
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_WIDTH                            1
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_MASK                             0x2
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_RESET                            0x0
+        
+        // - (access: R/W)
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_BIT                             2
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_WIDTH                           2
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_MASK                            0xc
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_RESET                           0x0
         
         // Octo SPI chip select controlled by user enable GPIO mode :  - 1'b0: IP control CSN according to index -  1'b1: USER control CSN in GPIO mode (access: R/W)
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_BIT                          4
@@ -3597,6 +4066,11 @@ Generated headers
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
         #define UDMA_HYPER_OSPI_CSN_AUTO_EN(val)                   ((val) << 1)
         
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_GET(value)            (GAP_BEXTRACTU((value),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_GETS(value)           (GAP_BEXTRACT((value),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED_SET(value,field)      (GAP_BINSERT((value),(field),2,2))
+        #define UDMA_HYPER_OSPI_CSN_RESERVED(val)                  ((val) << 2)
+        
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_GET(value)         (GAP_BEXTRACTU((value),1,4))
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_GETS(value)        (GAP_BEXTRACT((value),1,4))
         #define UDMA_HYPER_OSPI_CSN_DIRECT_CTRL_SET(value,field)   (GAP_BINSERT((value),(field),1,4))
@@ -3642,7 +4116,7 @@ Generated headers
           struct {
             unsigned int index           :1 ; // Octo SPI chip select index controlled by user  :  - 1'b0: CSN0 -  1'b1: CSN1
             unsigned int auto_en         :1 ; // Octo SPI chip select controlled by IP automatically  :  - 1'b0: IP control CSN according to index -  1'b1: : IP control CSN according to address range automatically
-            unsigned int padding0:2 ;
+            unsigned int reserved        :2 ; // -
             unsigned int direct_ctrl     :1 ; // Octo SPI chip select controlled by user enable GPIO mode :  - 1'b0: IP control CSN according to index -  1'b1: USER control CSN in GPIO mode
             unsigned int value           :1 ; // Octo SPI chip select value controlled by user  :  - 1'b0: HIGH -  1'b1: : Low
             unsigned int sdio_data_quad  :1 ; // SDIO data quad enable  :  - 1'b0: Disable -  1'b1: : Enable
@@ -3667,6 +4141,8 @@ Generated headers
             inline uint32_t index_get();
             inline void auto_en_set(uint32_t value);
             inline uint32_t auto_en_get();
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
             inline void direct_ctrl_set(uint32_t value);
             inline uint32_t direct_ctrl_get();
             inline void value_set(uint32_t value);
@@ -3971,7 +4447,7 @@ OSPI XIP alternative 2 bytes
     +=====+===+=====+=======================+
     |15:0 |R/W|MODE0|2 Bytes SPI alternative|
     +-----+---+-----+-----------------------+
-    |47:16|R/W|MODE1|2 Bytes SPI alternative|
+    |31:16|R/W|MODE1|2 Bytes SPI alternative|
     +-----+---+-----+-----------------------+
 
 Generated headers
@@ -4010,8 +4486,8 @@ Generated headers
         
         // 2 Bytes SPI alternative (access: R/W)
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_BIT                          16
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_WIDTH                        32
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_MASK                         0xffffffff0000
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_WIDTH                        16
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_MASK                         0xffff0000
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_RESET                        0x0
 
 .. toggle-header::
@@ -4025,9 +4501,9 @@ Generated headers
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE0_SET(value,field)   (GAP_BINSERT((value),(field),16,0))
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE0(val)               ((val) << 0)
         
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GET(value)         (GAP_BEXTRACTU((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GETS(value)        (GAP_BEXTRACT((value),32,16))
-        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_SET(value,field)   (GAP_BINSERT((value),(field),32,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GET(value)         (GAP_BEXTRACTU((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_GETS(value)        (GAP_BEXTRACT((value),16,16))
+        #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1_SET(value,field)   (GAP_BINSERT((value),(field),16,16))
         #define UDMA_HYPER_OSPI_ALTER_XIP_MODE1(val)               ((val) << 16)
 
 .. toggle-header::
@@ -4039,7 +4515,7 @@ Generated headers
         typedef union {
           struct {
             unsigned int mode0           :16; // 2 Bytes SPI alternative
-            unsigned int mode1           :32; // 2 Bytes SPI alternative
+            unsigned int mode1           :16; // 2 Bytes SPI alternative
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_ospi_alter_xip_t;
@@ -4057,6 +4533,110 @@ Generated headers
             inline uint32_t mode0_get();
             inline void mode1_set(uint32_t value);
             inline uint32_t mode1_get();
+        };
+
+|
+
+.. _udma_hyper_OSPI_REG_XIP:
+
+OSPI_REG_XIP
+""""""""""""
+
+OSPI XIP other configuration
+
+.. table:: 
+
+    +-----+---+------------+--------------------+
+    |Bit #|R/W|    Name    |    Description     |
+    +=====+===+============+====================+
+    |4:0  |-  |XIP_LATENCY0|XIP latency0 for cs0|
+    +-----+---+------------+--------------------+
+    |9:5  |-  |XIP_LATENCY1|XIP latency1 for cs1|
+    +-----+---+------------+--------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // OSPI XIP other configuration
+                #define UDMA_HYPER_OSPI_REG_XIP_OFFSET           0x50
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t udma_hyper_ospi_reg_xip_get(uint32_t base);
+        static inline void udma_hyper_ospi_reg_xip_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // XIP latency0 for cs0 (access: -)
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_BIT                     0
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_WIDTH                   5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_MASK                    0x1f
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_RESET                   0x0
+        
+        // XIP latency1 for cs1 (access: -)
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_BIT                     5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_WIDTH                   5
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_MASK                    0x3e0
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_RESET                   0x0
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_GET(value)    (GAP_BEXTRACTU((value),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_GETS(value)   (GAP_BEXTRACT((value),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0_SET(value,field) (GAP_BINSERT((value),(field),5,0))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY0(val)          ((val) << 0)
+        
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_GET(value)    (GAP_BEXTRACTU((value),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_GETS(value)   (GAP_BEXTRACT((value),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1_SET(value,field) (GAP_BINSERT((value),(field),5,5))
+        #define UDMA_HYPER_OSPI_REG_XIP_XIP_LATENCY1(val)          ((val) << 5)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int xip_latency0    :5 ; // XIP latency0 for cs0
+            unsigned int xip_latency1    :5 ; // XIP latency1 for cs1
+          };
+          unsigned int raw;
+        } __attribute__((packed)) udma_hyper_ospi_reg_xip_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_udma_hyper_ospi_reg_xip : public vp::reg_32
+        {
+        public:
+            inline void xip_latency0_set(uint32_t value);
+            inline uint32_t xip_latency0_get();
+            inline void xip_latency1_set(uint32_t value);
+            inline uint32_t xip_latency1_get();
         };
 
 |
@@ -4257,9 +4837,9 @@ OSPI burst mode/2D mode enable.
     +-----+---+------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
     |    3|R/W|CS1_MAXIMUM_CHECK_ENABLE|Enable Maximum chip select low time for self-refresh HYPERRAM for channel 1 :  - 1'b0: disable -  1'b1: enable                                         |
     +-----+---+------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |    4|R/W|BURST_2D_ENABLE         |OSPI burst 2D mode enable :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable                                                              |
+    |5:4  |R/W|2D_ENABLE               |OSPI burst 2D mode enable for normal mode and XIP :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable                                      |
     +-----+---+------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
-    |6:5  |R/W|BURST_2D_MODE           |2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D                           |
+    |7:6  |R/W|2D_MODE                 |2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D                           |
     +-----+---+------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Generated headers
@@ -4314,17 +4894,17 @@ Generated headers
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_MASK        0x8
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_RESET       0x0
         
-        // OSPI burst 2D mode enable :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable (access: R/W)
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_BIT                  4
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_WIDTH                1
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_MASK                 0x10
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_RESET                0x0
+        // OSPI burst 2D mode enable for normal mode and XIP :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable (access: R/W)
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_BIT                        4
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_WIDTH                      2
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_MASK                       0x30
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_RESET                      0x0
         
         // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D (access: R/W)
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_BIT                    5
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_WIDTH                  2
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_MASK                   0x60
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_RESET                  0x0
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_BIT                          6
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_WIDTH                        2
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_MASK                         0xc0
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_RESET                        0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -4352,15 +4932,15 @@ Generated headers
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),1,3))
         #define UDMA_HYPER_BURST_ENABLE_CS1_MAXIMUM_CHECK_ENABLE(val) ((val) << 3)
         
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_GET(value) (GAP_BEXTRACTU((value),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_GETS(value) (GAP_BEXTRACT((value),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),1,4))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_ENABLE(val)       ((val) << 4)
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_GET(value)       (GAP_BEXTRACTU((value),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_GETS(value)      (GAP_BEXTRACT((value),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE_SET(value,field) (GAP_BINSERT((value),(field),2,4))
+        #define UDMA_HYPER_BURST_ENABLE_2D_ENABLE(val)             ((val) << 4)
         
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_GET(value)   (GAP_BEXTRACTU((value),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_GETS(value)  (GAP_BEXTRACT((value),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE_SET(value,field) (GAP_BINSERT((value),(field),2,5))
-        #define UDMA_HYPER_BURST_ENABLE_BURST_2D_MODE(val)         ((val) << 5)
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_GET(value)         (GAP_BEXTRACTU((value),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_GETS(value)        (GAP_BEXTRACT((value),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE_SET(value,field)   (GAP_BINSERT((value),(field),2,6))
+        #define UDMA_HYPER_BURST_ENABLE_2D_MODE(val)               ((val) << 6)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -4374,8 +4954,8 @@ Generated headers
             unsigned int cs1_auto_burst_enable:1 ; // Automatically control Maximum chip select low time for self-refresh HYPERRAM to valid the data transfer for channel 1 : - 1'b0 disable    - 1'b1 Enable
             unsigned int cs0_maximum_check_enable:1 ; // Enable Maximum chip select low time for self-refresh HYPERRAM for channel 0:  - 1'b0: disable -  1'b1: enable
             unsigned int cs1_maximum_check_enable:1 ; // Enable Maximum chip select low time for self-refresh HYPERRAM for channel 1 :  - 1'b0: disable -  1'b1: enable
-            unsigned int burst_2d_enable :1 ; // OSPI burst 2D mode enable :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable
-            unsigned int burst_2d_mode   :2 ; // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D
+            unsigned int _2d_enable      :2 ; // OSPI burst 2D mode enable for normal mode and XIP :  - 1'b0: BURST 2D mode disable -  1'b1: BURST 2D mode disable
+            unsigned int _2d_mode        :2 ; // 2D tansfer mode from L2 to external memory config :  - 2'b00: 1D_TO_1D - 2'b01: 1D_TO_2D - 2'b10: 2D_TO_1D - 2'b11: 2D_TO_2D
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_burst_enable_t;
@@ -4397,10 +4977,10 @@ Generated headers
             inline uint32_t cs0_maximum_check_enable_get();
             inline void cs1_maximum_check_enable_set(uint32_t value);
             inline uint32_t cs1_maximum_check_enable_get();
-            inline void burst_2d_enable_set(uint32_t value);
-            inline uint32_t burst_2d_enable_get();
-            inline void burst_2d_mode_set(uint32_t value);
-            inline uint32_t burst_2d_mode_get();
+            inline void _2d_enable_set(uint32_t value);
+            inline uint32_t _2d_enable_get();
+            inline void _2d_mode_set(uint32_t value);
+            inline uint32_t _2d_mode_get();
         };
 
 |
@@ -4414,11 +4994,13 @@ OSPI interrupt enable register
 
 .. table:: 
 
-    +-----+---+----+----------------------------------------------------------------------------------------+
-    |Bit #|R/W|Name|                                      Description                                       |
-    +=====+===+====+========================================================================================+
-    |    0|R/W|EN  |Octo SPI interrupt enable control :  - 1'b0: interrupt disable -  1'b1: Interrupt enable|
-    +-----+---+----+----------------------------------------------------------------------------------------+
+    +-----+---+------+------------------------------------------------------------------------------------------------+
+    |Bit #|R/W| Name |                                          Description                                           |
+    +=====+===+======+================================================================================================+
+    |    0|R/W|EN    |Octo SPI interrupt enable control :  - 1'b0: interrupt disable -  1'b1: Interrupt enable        |
+    +-----+---+------+------------------------------------------------------------------------------------------------+
+    |    1|R/W|XIP_EN|Octo SPI interrupt enable control for XIP :  - 1'b0: interrupt disable -  1'b1: Interrupt enable|
+    +-----+---+------+------------------------------------------------------------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -4453,6 +5035,12 @@ Generated headers
         #define UDMA_HYPER_IRQ_EN_EN_WIDTH                                   1
         #define UDMA_HYPER_IRQ_EN_EN_MASK                                    0x1
         #define UDMA_HYPER_IRQ_EN_EN_RESET                                   0x0
+        
+        // Octo SPI interrupt enable control for XIP :  - 1'b0: interrupt disable -  1'b1: Interrupt enable (access: R/W)
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_BIT                                 1
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_WIDTH                               1
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_MASK                                0x2
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_RESET                               0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -4464,6 +5052,11 @@ Generated headers
         #define UDMA_HYPER_IRQ_EN_EN_GETS(value)                   (GAP_BEXTRACT((value),1,0))
         #define UDMA_HYPER_IRQ_EN_EN_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
         #define UDMA_HYPER_IRQ_EN_EN(val)                          ((val) << 0)
+        
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_GET(value)                (GAP_BEXTRACTU((value),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_GETS(value)               (GAP_BEXTRACT((value),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN_SET(value,field)          (GAP_BINSERT((value),(field),1,1))
+        #define UDMA_HYPER_IRQ_EN_XIP_EN(val)                      ((val) << 1)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -4474,6 +5067,7 @@ Generated headers
         typedef union {
           struct {
             unsigned int en              :1 ; // Octo SPI interrupt enable control :  - 1'b0: interrupt disable -  1'b1: Interrupt enable
+            unsigned int xip_en          :1 ; // Octo SPI interrupt enable control for XIP :  - 1'b0: interrupt disable -  1'b1: Interrupt enable
           };
           unsigned int raw;
         } __attribute__((packed)) udma_hyper_irq_en_t;
@@ -4489,6 +5083,8 @@ Generated headers
         public:
             inline void en_set(uint32_t value);
             inline uint32_t en_get();
+            inline void xip_en_set(uint32_t value);
+            inline uint32_t xip_en_get();
         };
 
 |
@@ -4619,6 +5215,8 @@ Transfer status for error.
     +-----+---+-----------------+---------------------------------------------------------------------------------------------------+
     |    4|R/W|SDIO_RX_TX_END   |SDIO RX TX transfer end flag, can be polling by user, write 1 to clear: - 1'b0: not end - 1'b1: end|
     +-----+---+-----------------+---------------------------------------------------------------------------------------------------+
+    |15:5 |R/W|reserved         |-                                                                                                  |
+    +-----+---+-----------------+---------------------------------------------------------------------------------------------------+
     |31:16|R/W|SDIO_ERROR_STATUS|SDIO error status flag, indicate the error type                                                    |
     +-----+---+-----------------+---------------------------------------------------------------------------------------------------+
 
@@ -4680,6 +5278,12 @@ Generated headers
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_MASK                        0x10
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_RESET                       0x0
         
+        // - (access: R/W)
+        #define UDMA_HYPER_STATUS_RESERVED_BIT                               5
+        #define UDMA_HYPER_STATUS_RESERVED_WIDTH                             11
+        #define UDMA_HYPER_STATUS_RESERVED_MASK                              0xffe0
+        #define UDMA_HYPER_STATUS_RESERVED_RESET                             0x0
+        
         // SDIO error status flag, indicate the error type (access: R/W)
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_BIT                      16
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_WIDTH                    16
@@ -4717,6 +5321,11 @@ Generated headers
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
         #define UDMA_HYPER_STATUS_SDIO_RX_TX_END(val)              ((val) << 4)
         
+        #define UDMA_HYPER_STATUS_RESERVED_GET(value)              (GAP_BEXTRACTU((value),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED_GETS(value)             (GAP_BEXTRACT((value),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED_SET(value,field)        (GAP_BINSERT((value),(field),11,5))
+        #define UDMA_HYPER_STATUS_RESERVED(val)                    ((val) << 5)
+        
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_GET(value)     (GAP_BEXTRACTU((value),16,16))
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_GETS(value)    (GAP_BEXTRACT((value),16,16))
         #define UDMA_HYPER_STATUS_SDIO_ERROR_STATUS_SET(value,field) (GAP_BINSERT((value),(field),16,16))
@@ -4735,7 +5344,7 @@ Generated headers
             unsigned int rx_tx_end       :1 ; // RX TX transfer end flag, can be polling by user, write 1 to clear: - 1'b0: not end - 1'b1: end
             unsigned int sdio_rx_tx_error:1 ; // SDIO RX TX transfer error because of tcsm, write 1 to clear: - 1'b0: no error - 1'b1: error
             unsigned int sdio_rx_tx_end  :1 ; // SDIO RX TX transfer end flag, can be polling by user, write 1 to clear: - 1'b0: not end - 1'b1: end
-            unsigned int padding0:11;
+            unsigned int reserved        :11; // -
             unsigned int sdio_error_status:16; // SDIO error status flag, indicate the error type
           };
           unsigned int raw;
@@ -4760,6 +5369,8 @@ Generated headers
             inline uint32_t sdio_rx_tx_error_get();
             inline void sdio_rx_tx_end_set(uint32_t value);
             inline uint32_t sdio_rx_tx_end_get();
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
             inline void sdio_error_status_set(uint32_t value);
             inline uint32_t sdio_error_status_get();
         };

@@ -14,9 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from copy import deepcopy
 from ..dim import Dim
-from .base import (Parameters, NodeOptions, FilterParameters, SingleInputAndOutput, NNEdge)
+from .base import (Parameters, NodeOptions, FilterParameters, SensitiveToOrder, SingleInputAndOutput, NNEdge)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -192,7 +191,7 @@ class FusionBase(Parameters):
         return "{}".format(", ".join([str(node).strip() for node in self.contained_nodes()]))
 
 
-class MatScaleFusionParameters(FusionBase):
+class MatScaleFusionParameters(FusionBase, SensitiveToOrder):
     fusion_op_name = "matscale"
 
     def __init__(self, *args, activation=None, **kwargs):
@@ -203,7 +202,7 @@ class MatScaleFusionParameters(FusionBase):
         return [Dim.broadcast(in_dims)]
 
 
-class ConvFusionParameters(FusionBase, SingleInputAndOutput):
+class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
     '''Fusion of operators. At present restricted to single input and output but
     this could be removed perhaps'''
 

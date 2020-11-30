@@ -65,16 +65,19 @@ class Block(object):
 
 blocks = []
 top_block = None
+skip_header = True
 
 with open(args.input) as report:
     for line in report.read().splitlines():
-        if line.find('name                                     Overall Average      Overall Covered') == 0:
-            continue
 
         if line.find('-----------------------------------------------------------------------------------') == 0:
+            skip_header = False
             continue
 
-        nb_items = 4 if line.find('n/a') == -1 else 3
+        if skip_header:
+            continue
+
+        nb_items = 7 if line.find('n/a') == -1 else 6
 
         results = line.split()
         name = results[-nb_items]

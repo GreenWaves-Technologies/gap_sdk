@@ -13,13 +13,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.image_formatter import ImageFormatParameters
+from quantization.kernels.kernel_base import (KernelBase, params_type,
+                                              quantization)
+from quantization.quantization_record_base import QuantizationRecordBase
 from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
 
-def image_format(params, in_tensors, qrec, details):
-    del qrec, details
-    in_dim = params.in_dims[0]
-    out_dim = params.out_dims[0]
-    res = in_tensors[0]
-    res = FORMAT_CHANGES[params.format_change](res, in_dim, out_dim)
-    res = NORMALIZATIONS[params.norm_func](res)
-    return [res]
+
+@params_type(ImageFormatParameters)
+@quantization('symmetric')
+class ImageFormatSymmetric(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        del qrec
+        in_dim = params.in_dims[0]
+        out_dim = params.out_dims[0]
+        res = in_tensors[0]
+        res = FORMAT_CHANGES[params.format_change](res, in_dim, out_dim)
+        res = NORMALIZATIONS[params.norm_func](res)
+        return [res]

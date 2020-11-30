@@ -15,7 +15,6 @@
 
 import logging
 
-from .base import Transposable
 from .rnn import RNNBaseParameters
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -51,6 +50,8 @@ class LSTMParameters(RNNBaseParameters):
         "o_norm"
     ]
 
+    STATE_PARAMETERS = ["i_state", "c_state"]
+
     def __init__(self, name, *args, cell_clip=0.0, proj_clip=0.0, **kwargs):
         super(LSTMParameters, self).__init__(name, *args, **kwargs)
         self.cell_clip = cell_clip
@@ -60,8 +61,7 @@ class LSTMParameters(RNNBaseParameters):
         raise NotImplementedError()
 
     def __str__(self):
-        return "{}{} Cell {} Prj {} {} {}".format(
-            Transposable.__str__(self),
+        return "{} Cell {} Prj {} {} {}".format(
             ("Reversed " if self.revert else ""),
             self.cell_clip,
             self.proj_clip,

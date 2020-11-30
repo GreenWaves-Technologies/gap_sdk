@@ -56,6 +56,7 @@ class AsymmetricMultQType(MultQTypeBase):
 
     @classmethod
     def from_tflite(cls, tf_qps, dtype):
+        # NOTE - This is no longer used by the new importer and is moved into the tensor wrapper in the importer
         res = cls(zero_point=tf_qps.ZeroPointAsNumpy() if tf_qps.ZeroPointLength() > 0 else None)
         res.min_val = tf_qps.MinAsNumpy() if tf_qps.MinLength() > 0 else None
         res.max_val = tf_qps.MaxAsNumpy() if tf_qps.MaxLength() > 0 else None

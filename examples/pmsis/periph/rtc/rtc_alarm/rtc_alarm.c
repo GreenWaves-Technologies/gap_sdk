@@ -77,7 +77,7 @@ void test_rtc_alarm(void)
     uint32_t arg = 0xabbadead;
     struct pi_task task = {0};
     pi_task_callback(&task, alarm_irq_handler, &arg);
-    pi_rtc_ioctl(&rtc, PI_RTC_ATTACH_CB_ALARM, &task);
+    pi_rtc_ioctl(&rtc, PI_RTC_ALARM_ATTACH_TASK, &task);
 
     pi_rtc_alarm_repeat_e repeat = PI_RTC_ALARM_RPT_HOUR;
     memcpy((void *) &time, (void *) &(rtc_conf.alarm), sizeof(struct tm));

@@ -83,7 +83,8 @@ LSTM_INFOS_ORDER = {
 
 INFOS_FUNCS = {
     'sigmoid': sigmoid_infos,
-    'htanh': htanh_infos
+    'htanh': htanh_infos,
+    'tanh': htanh_infos,
 }
 
 def highb(x):
@@ -128,6 +129,17 @@ def lowb(x):
 #define LSTM_INT_C0             (4 + LSTM_INT_OFF)
 #define LSTM_INT_Q              (6 + LSTM_INT_OFF)
 
+#define LSTM_X_IN_INF           7
+#define LSTM_X_IN_OFF           (LSTM_INT_OFF+LSTM_INT_INF)
+#define LSTM_F_IN_SCALE         (0 + LSTM_X_IN_OFF)
+#define LSTM_F_IN_SCALEN        (1 + LSTM_X_IN_OFF)
+#define LSTM_I_IN_SCALE         (2 + LSTM_X_IN_OFF)
+#define LSTM_I_IN_SCALEN        (3 + LSTM_X_IN_OFF)
+#define LSTM_G_IN_SCALE         (4 + LSTM_X_IN_OFF)
+#define LSTM_G_IN_SCALEN        (5 + LSTM_X_IN_OFF)
+#define LSTM_O_IN_SCALE         (6 + LSTM_X_IN_OFF)
+#define LSTM_O_IN_SCALEN        (7 + LSTM_X_IN_OFF)
+
 def lstm_infos(gen, node, qrec):
     internal_qtype = qrec.internal_qtype
     contents = []
@@ -161,6 +173,11 @@ def lstm_infos(gen, node, qrec):
                               lowb(sixth), highb(sixth), internal_qtype.q],
                              dtype=np.int8))
 
+    for k in LSTM_INFOS_ORDER.keys():
+        info, comment = scale_infos(k, getattr(qrec, "i_2_%s_q" % k))
+        contents.append(info)
+        comments.append(comment)
+
     cname, file_name = gen_constant(gen, node, node, INFOS)
     const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True),
                               contents=np.hstack(tuple(contents)))
@@ -171,19 +188,42 @@ def lstm_infos(gen, node, qrec):
                                      const_info=const_info,
                                      comment=" ".join(comments)))
 
-#define RNN_F_INF              4
+#define RNN_F_INF              8
 #define RNN_F_OFF              0
 #define RNN_F_SCALE            0
 #define RNN_F_SCALEN           1
 #define RNN_F_A0               2
 #define RNN_F_B0               3
 
+#define RNN_F_IN_SCALE         4
+#define RNN_F_IN_SCALEN        5
+#define RNN_OUT_SCALE          6
+#define RNN_OUT_SCALEN         7
+
 def rnn_infos(gen, node, qrec):
     i_state_q = qrec.in_qs[node.INPUT_NAMES.index('i_state')]
 
-    contents, comment = htanh_infos("f", qrec.s_2_s_q, i_state_q)
+    contents = []
+    comments = []
+
+    # info for activation (scale the act input to the proper scale)
+    info, comment = INFOS_FUNCS[node.activation]("f", qrec.s_2_s_q, i_state_q)
+    contents.append(info)
+    comments.append(comment)
+
+    # info for input scaling (only used with non SameInputStateScale kernels)
+    info, comment = scale_infos("f", getattr(qrec, "i_2_a_q"))
+    contents.append(info)
+    comments.append(comment)
+
+    # info for scaling the activation out to out scale (only used for non Hard activations kernels)
+    info, comment = scale_infos("f", getattr(qrec, "s_2_o_q"))
+    contents.append(info)
+    comments.append(comment)
+
     cname, file_name = gen_constant(gen, node, node, INFOS)
-    const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True), contents=contents)
+    const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True),
+                              contents=np.hstack(tuple(contents)))
 
     gen.globals.append(GlobalArgInfo("int8", cname,
                                      gen.opts['default_global_home_location'],

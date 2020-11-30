@@ -23,11 +23,9 @@ from execution.quantization_mode import QuantizationMode
 from graph.types import (ActivationFusion, ConstantInputParameters,
                          ConvFusionParameters, FusionInputParameters,
                          FusionOutputParameters, InputParameters, Parameters)
-from quantization.float32.float_kernet_set import Float32KernelSet
-from quantization.kernels.kernel_switch import (DefaultKernelSwitch,
-                                                KernelSwitchBase)
 from quantization.quantization_record_base import QuantizationRecordBase
-from quantization.symmetric.symmetric_kernet_set import SymmetricKernelSet
+from quantization.kernels.kernel_executer import KernelExecuter
+
 from utils.graph import Graph
 from utils.node_id import NodeId
 
@@ -37,15 +35,11 @@ LOG = logging.getLogger('nntool.'+__name__)
 class GraphExecuter():
     def __init__(self,
                  G: Graph,
-                 qrecs: Optional[Mapping[NodeId, QuantizationRecordBase]] = None,
-                 kernel_switch: Optional[KernelSwitchBase] = None,
-                 quantized_kernel_switch: Optional[KernelSwitchBase] = None):
+                 qrecs: Optional[Mapping[NodeId, QuantizationRecordBase]] = None):
         self._G = G
         self._qrecs = qrecs
-        self._kernel_switch = DefaultKernelSwitch(
-            Float32KernelSet()) if kernel_switch is None else kernel_switch
-        self._quantized_kernel_switch = DefaultKernelSwitch(
-            SymmetricKernelSet()) if quantized_kernel_switch is None else quantized_kernel_switch
+        self._kernel_switch = KernelExecuter('float32')
+        self._quantized_kernel_switch = KernelExecuter('symmetric')
 
     @staticmethod
     def collect_outputs(G, saved_outputs, node):

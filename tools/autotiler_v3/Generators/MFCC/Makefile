@@ -1,12 +1,28 @@
-PULP_APP = MFCC_Gap
-PULP_APP_SRCS = MFCC_Gap.c ../FFT_Lib/FFT_Lib.c ../FFT_Lib/TwiddlesDef.c ../FFT_Lib/SwapTablesDef.c
+# User Test
+#------------------------------------
+WAV_FILE = $(CURDIR)/samples/yes.wav
+USE_ABS ?= 0
+USE_HIGH_PREC ?= 0
 
-PULP_ARCH_CFLAGS=-march=IMXgap8 -mPE=8 -mFC=1
-PULP_ARCH_LDFLAGS=-march=IMXgap8 -mPE=8 -mFC=1
+include MfccModel.mk
 
-PULP_CFLAGS += -O3 -DFFTR2_512 -DOLD_RUNTIME
-PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
-PULP_LDFLAGS +=  -flto -Wl,--gc-sections
+APP              = test
+APP_SRCS        += MfccRunTest.c $(GAP_LIB_PATH)/wav_io/wavIO.c $(MFCCBUILD_DIR)/MFCCKernels.c MfccBasicKernels.c FFTLib.c
+APP_INC	        += 
+APP_LDFLAGS		+= 
+LIBS 		    += -lm
+APP_CFLAGS      += -O3 -I. -I$(GAP_SDK_HOME)/libs/gap_lib/include/gaplib -DAT_WAV=$(WAV_FILE)
+APP_CFLAGS 		+= -I$(MFCCBUILD_DIR) -I$(TILER_INC) -I$(TILER_EMU_INC) -DPERF #-DPRINTDEB -DPRINT_WAV
 
-include $(PULP_SDK_HOME)/install/rules/pulp_rt.mk
+ifeq ($(USE_ABS), 1)
+	APP_CFLAGS += -DUSE_ABS
+endif
+ifeq ($(USE_HIGH_PREC), 1)
+	APP_CFLAGS += -DHIGH_PREC_FFT
+endif
 
+all:: mfcc_model
+
+clean:: clean_model
+
+include $(RULES_DIR)/pmsis_rules.mk

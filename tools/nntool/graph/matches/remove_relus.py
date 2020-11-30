@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          HSigmoidActivationParameters, MatrixAddParameters,
                          MatrixDivParameters, MatrixMulParameters, NNEdge,
@@ -23,6 +24,7 @@ from utils.node_id import NodeId
 
 from .matcher import Matcher
 
+LOG = logging.getLogger("nntool." + __name__)
 
 def reduce_edges(in_edges, visited_edges):
     status = [None, None]
@@ -80,8 +82,9 @@ def find_redundant_relus(G, node, visited_edges):
     elif not isinstance(node, (ConstantInputParameters, ReshapeParameters, TransposeParameters, PoolingParameters, ConcatParameters)):
         status = [False, False]
     for edge in G.out_edges(node.name):
-        visited_edges[edge] = status
-        nodes_to_remove += find_redundant_relus(G, edge.to_node, visited_edges)
+        if edge not in visited_edges:
+            visited_edges[edge] = status
+            nodes_to_remove += find_redundant_relus(G, edge.to_node, visited_edges)
     return nodes_to_remove
 
 

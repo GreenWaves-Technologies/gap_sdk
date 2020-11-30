@@ -27,7 +27,7 @@ from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
                          RecurrentOutputParameters, ResizerParameters,
-                         SSDDetectorParameters)
+                         SSDDetectorParameters, TransposeParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from interpreter.commands.imageformat import insert_formatter
 from quantization.quantization_set import QuantizationSet
@@ -301,10 +301,12 @@ class NNGraph(Graph):
         self.add_node(node)
         return node
 
-    def add_input(self, dim: Dim) -> InputParameters:
+    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None) -> InputParameters:
         self.num_inputs += 1
         node_name = "input_"+str(self.num_inputs)
         node = InputParameters(node_name, dims=dim)
+        node.in_dims_hint = in_dim_hint
+        node.out_dim_hint = out_dim_hint
         self.add_node(node)
         return node
 
@@ -343,8 +345,8 @@ class NNGraph(Graph):
             else:
                 yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True, postprocess=True):
-        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess)
+    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None):
+        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess, debug_function=debug_function)
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 

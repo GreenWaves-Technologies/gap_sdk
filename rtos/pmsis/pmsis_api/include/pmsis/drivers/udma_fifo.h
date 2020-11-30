@@ -61,6 +61,7 @@ typedef struct pi_udma_fifo_conf
 typedef enum {
     PI_UDMA_FIFO_GET_ID,              /*!< type uint32_t: return the fifo id */
     PI_UDMA_FIFO_SET_SIZE,            /*!< set the FIFO size (in bytes, minimum 16) */
+    PI_UDMA_FIFO_GET_LEVEL,           /*!< get current number of bytes in FIFO */
     PI_UDMA_FIFO_SET_EVENT_THRESHOLD, /*!< type uint32_t: set the number of bytes after which the
                                            event will be triggered. Setting a value greater than 0
                                            enable the event, setting 0 disables it */

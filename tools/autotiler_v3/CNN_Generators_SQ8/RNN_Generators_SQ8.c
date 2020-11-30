@@ -16,7 +16,7 @@ void Load_RNN_SQ8_Library()
 
 {
         LibKernelTemplate("KerRNN_SQ8_T",
-                  CArgs(13,
+                  CArgs(14,
                         TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -29,14 +29,18 @@ void Load_RNN_SQ8_Library()
                         TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
         );
-        LibKernel("RNN_KerB32_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
-        LibKernel("RNN_ParKerB32_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_KerB32_SQ8",			     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_SQ8",			     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_SameInStateScale_SQ8",      CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_Hard_SQ8",		     CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
+        LibKernel("RNN_ParKerB32_Hard_SameInStateScale_SQ8", CALL_PARALLEL, 0, "KerRNN_SQ8_T", 0);
 
         LibKernelTemplate("KerLSTM_SQ8_T",
-                  CArgs(19,
+                  CArgs(20,
                         TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -55,15 +59,19 @@ void Load_RNN_SQ8_Library()
                         TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
         );
-        LibKernel("LSTM_KerB32_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
-        LibKernel("LSTM_ParKerB32_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_KerB32_SQ8",                          CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_SQ8",                       CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_SameInStateScale_SQ8",      CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_Hard_SQ8",                  CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
+        LibKernel("LSTM_ParKerB32_Hard_SameInStateScale_SQ8", CALL_PARALLEL, 0, "KerLSTM_SQ8_T", 0);
 
 
         LibKernelTemplate("KerGRU_SQ8_T",
-                  CArgs(18,
+                  CArgs(19,
 			TCArg("signed char *__restrict__", "StateInOut"),
                         TCArg("signed char *__restrict__", "State"),
                         TCArg("signed char *__restrict__", "Xin"),
@@ -81,6 +89,7 @@ void Load_RNN_SQ8_Library()
 			TCArg("signed char *__restrict__", "Infos"),
 			TCArg("char", "FirstCell"),
 			TCArg("char", "FirstOut"),
+                        TCArg("int", "TileOffset"),
 			TCArg("char", "Reset")
 		       )
 	);
@@ -166,7 +175,7 @@ static int RNN_Stack_RevertedSeq_SQ8(
                 ),
 		Calls(1,
 			Call(RNNKerName, LOC_LOOP,
-				Bindings(12,
+				Bindings(14,
 					K_Arg("Hinout",  KER_ARG_TILE),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin", KER_ARG_TILE):Imm(0),
@@ -176,6 +185,7 @@ static int RNN_Stack_RevertedSeq_SQ8(
 					K_Arg("Bf", KER_ARG_TILE_H),
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPredList(BIND_PRED_AND, 2, K_ArgPred("Wf", KER_ARG_TILEFIRST, T0), K_ArgPred("Wf", KER_ARG_TILEFIRST, D0)),
+					K_Arg("Bf", KER_ARG_TILE_BASE),
 					C_Arg("Reset")
 					)
 			)
@@ -230,7 +240,8 @@ static int RNN_Stack_Seq_SQ8(
 	int ExposeSequence,
 	int Buffer,
 	int FirstSeq,
-	int LastSeq
+	int LastSeq,
+	int Revert
 	)
 
 {
@@ -249,6 +260,7 @@ static int RNN_Stack_Seq_SQ8(
         unsigned long long int LayerBandwidth = 0;
 	unsigned int Si_Attr = O_IN|((!FirstSeq||AlwaysReset)?O_NO_LOAD:0);
 	unsigned int So_Attr = O_OUT|((!LastSeq||AlwaysReset)?O_NO_STORE:0);
+	int RD0 = Revert?SPACE_PROP(D0, SPACE_PROP_REVERT):D0;
 
 	if (Ctrl) {
 		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
@@ -277,7 +289,7 @@ static int RNN_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(RNNKerName, LOC_LOOP,
-				Bindings(13,
+				Bindings(14,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("Sin",  KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("Sout",  KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin", KER_ARG_TILE):Imm(0),
@@ -288,6 +300,7 @@ static int RNN_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bf", KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -302,7 +315,7 @@ static int RNN_Stack_Seq_SQ8(
                         KerArg("Sout",    KerArgSpace(1,T0),    So_Attr|O_BUFF|O_NTILED,      DimState,       1,        FeatDataSize, 0, 0, 0, "Sout")):AT_NO_KER_ARG,
 
 			(UseIn)?
-                        KerArg("Xin",     KerArgSpace(1,D0),    O_IN|O_DB,                    DimIn,          1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
+                        KerArg("Xin",     KerArgSpace(1,RD0),   O_IN|O_DB,                    DimIn,          1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
 			(PerCell)?
                         KerArg("Wf",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST|Buffer,     DimIn+DimState, DimState, 1,            0, 0, TileCons, "Wf"):
                         KerArg("Wf",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST|Buffer,     DimIn+DimState, DimState, 1,            0, 0, 0, "Wf"),
@@ -310,9 +323,9 @@ static int RNN_Stack_Seq_SQ8(
                         KerArg("Bf",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST|Buffer,     1,              DimState, BiasDataSize, 0, 0, 0, "Bf"):
                         KerArg("Bf",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST|Buffer,     1,              DimState, BiasDataSize, 0, 0, 0, "Bf"),
 			(ExposeSequence)?
-                        KerArg("Hout",    KerArgSpace(2,D0,T0), O_OUT|O_DB,                   1,              DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
+                        KerArg("Hout",    KerArgSpace(2,RD0,T0),O_OUT|O_DB,                   1,              DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
 			(PerCell)?
-                        KerArg("Infos",   KerArgSpace(2,D0,T0), O_IN|O_BUFF|O_NTILED|O_CONST, RNN_CELL_INFOS, DimInfos, 1,            0, 0, 0, "Infos"):
+                        KerArg("Infos",   KerArgSpace(2,RD0,T0),O_IN|O_BUFF|O_NTILED|O_CONST, RNN_CELL_INFOS, DimInfos, 1,            0, 0, 0, "Infos"):
                         KerArg("Infos",   KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST, RNN_CELL_INFOS, DimInfos, 1,            0, 0, 0, "Infos")
 		)
 	);
@@ -345,7 +358,7 @@ int RNN_Stack_SQ8(
 	int DimState,
 	int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
 	)
 
 {
@@ -355,19 +368,30 @@ int RNN_Stack_SQ8(
 	if (K0>NCells) GenTilingError("RNN_Stack_SQ8, %s, K0, Number of input should be in [1,NCells]\n", Name, K0);
 	if (K1>NCells) GenTilingError("RNN_Stack_SQ8, %s, K1, Number of ouput should be in [1,NCells]\n", Name, K1);
 
+	int UseHardAct = 1;
+	int SameInStateScales = 1;
+	if (Ctrl) {
+		if (Ctrl->RNNUseHardActivation != -1) UseHardAct = Ctrl->RNNUseHardActivation;
+		if (Ctrl->RNNSameInStateScales != -1) SameInStateScales = Ctrl->RNNSameInStateScales;
+	}
+
 	int ParFeat = 1;
 	int PerCell = 0;
 	int PerChanQuant = 0;
 	unsigned S_Attr = 0 | ((!AlwaysReset)?O_IN:0) | ((!AlwaysReset)?O_OUT:0);
 
-	char *RNNKerName = ParFeat?"RNN_ParKerB32_SQ8":"RNN_KerB32_SQ8";
+	char *RNNKerName = ParFeat?(UseHardAct? \
+				    (SameInStateScales?"RNN_ParKerB32_Hard_SameInStateScale_SQ8":"RNN_ParKerB32_Hard_SQ8"): \
+				    (SameInStateScales?"RNN_ParKerB32_SameInStateScale_SQ8":"RNN_ParKerB32_SQ8") \
+				   ): \
+			   "RNN_KerB32_SQ8";
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 	int DimOut = PerCell?NCells:1;
 	int DimInfos = PerChanQuant?DimState:1;
 
 	if (Log) {
-		printf("RNN, %d Cells, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d\n", NCells, DimState, DimIn, K0, K1);
+		printf("RNN, %d Cells, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n", NCells, DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
 		printf("Basic Kernel: %s\n", RNNKerName);
 		printf("In Seq: %d, %s Seq: %d, Out Seq: %d\n", N1, N2_IO?"In/Out":"void", N2, N3);
 	}
@@ -375,19 +399,19 @@ int RNN_Stack_SQ8(
 	OpenKernelGroup(Name);
 	if (N1==0 && N3==0) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
-		Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, O_BUFF, 1, 1);
+		Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, O_BUFF, 1, 1, Revert);
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 		if (Ok==0) {
 			if (Log) printf("Failed to map with all coeffs promoted to buffer, reverting to tile based\n");
 			Ok = 1;
-			Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, 0, 1, 1);
+			Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, 0, 1, 1, Revert);
 		}
 	} else {
-		if (N1>0) Ok = Ok && RNN_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     0, 1, 0);
-		if (N2>0) Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, 0, (N1==0), (N3==0));
-		if (N3>0) Ok = Ok && RNN_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 0, 1);
+		if (N1>0) Ok = Ok && RNN_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     0, 1, 0, Revert);
+		if (N2>0) Ok = Ok && RNN_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, 0, (N1==0), (N3==0), Revert);
+		if (N3>0) Ok = Ok && RNN_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, RNNKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 0, 1, Revert);
 	}
-	CloseKernelGroup();
+	CloseKernelGroupNoMerge();
 	if (Ok==0) return 0;
 
         CKernel_Arg_T **GroupCArgs;
@@ -414,14 +438,14 @@ int RNN_Stack_SQ8(
 					Bindings(7,
 						(!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						C_Arg("G1O"),
-						C_Arg("Xin"),
+						Revert?KG_ArgOper("Xin",   '+', (N2_IO?N2:0)*DimIn):C_Arg("Xin"),
 						C_Arg("Wf"), C_Arg("Bf"), C_Arg("Infos"), (AlwaysReset==0)?C_Arg("Reset"):AT_NO_ARG_BINDING));
 	}
 	if (N2>0&&N2_IO)
 		GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
 					Bindings(8, (N1)?C_Arg("G1O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
 						    (N3)?C_Arg("G2O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
-						    KG_ArgOper("Xin",   '+', N1*DimIn),
+						    Revert?C_Arg("Xin"):KG_ArgOper("Xin",   '+', N1*DimIn),
 						    KG_ArgOper("Wf",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bf",    '+', PerCell*N1*DimState),
 						    C_Arg("Hout"),
@@ -445,7 +469,7 @@ int RNN_Stack_SQ8(
 						    (!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						    KG_ArgOper("Wf",    '+', PerCell*(N1+N2)*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bf",    '+', PerCell*(N1+N2)*DimState),
-						    KG_ArgOper("Hout",  '+', N2_IO?N2*DimState:0),
+						    KG_ArgOper("Hout",  '+', N2_IO?(N2*DimState):0),
 						    KG_ArgOper("Infos", '+', PerCell*(N1+N2)*RNN_CELL_INFOS),
 						    (!AlwaysReset)?Imm(0):AT_NO_ARG_BINDING
 						    )
@@ -490,7 +514,8 @@ static int LSTM_Stack_Seq_SQ8(
 	int UseIn,
 	int ExposeSequence,
 	int FirstSeq,
-	int LastSeq
+	int LastSeq,
+	int Revert
 	)
 
 {
@@ -500,6 +525,7 @@ static int LSTM_Stack_Seq_SQ8(
                 None:   DimIn==0, ExposeSequence==0
                 Out:    DimIn==0, ExposeSequence!=0
 	*/
+	int RD0 = Revert?SPACE_PROP(D0, SPACE_PROP_REVERT):D0;
 	int ParFeat = 1;
 	int PerCell = 0;
 	int PerChanQuant = 0;
@@ -552,7 +578,7 @@ static int LSTM_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(LSTMKerName, LOC_LOOP,
-				Bindings(19,
+				Bindings(20,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("SCin",  KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("SCout",  KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin",  KER_ARG_TILE):Imm(0),
@@ -566,6 +592,7 @@ static int LSTM_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wf", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bo",     KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -589,7 +616,7 @@ static int LSTM_Stack_Seq_SQ8(
 		        KerArg("SHout",   KerArgSpace(1,T0),    So_Attr|O_BUFF|O_NTILED,	   	   DimState,         1,        FeatDataSize, 0, 0, 0, "SHout")):AT_NO_KER_ARG,
 
 			(UseIn)?
-                        KerArg("Xin",     KerArgSpace(1,D0),    O_IN|O_DB,                    		   DimIn,            1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
+                        KerArg("Xin",     KerArgSpace(1,RD0),   O_IN|O_DB,                    		   DimIn,            1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
 			(PerCell)?
                         KerArg("Wf",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,            		   DimIn+DimState,   DimState, 1,            0, 0, TileCons, "Wf"):
                         KerArg("Wf",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,            		   DimIn+DimState,   DimState, 1,            0, 0, 0, "Wf"),
@@ -615,9 +642,9 @@ static int LSTM_Stack_Seq_SQ8(
                         KerArg("Bo",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,            		   1,                DimState, BiasDataSize, 0, 0, 0, "Bo"):
                         KerArg("Bo",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,            		   1,                DimState, BiasDataSize, 0, 0, 0, "Bo"),
 			(ExposeSequence)?
-                        KerArg("Hout",    KerArgSpace(2,D0,T0), O_OUT|O_DB,                   		   1,                DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
+                        KerArg("Hout",    KerArgSpace(2,RD0,T0),O_OUT|O_DB,                   		   1,                DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
 			(PerCell)?
-                        KerArg("Infos",   KerArgSpace(2,D0,T0), O_IN|O_BUFF|O_NTILED|O_CONST, 		   LSTM_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos"):
+                        KerArg("Infos",   KerArgSpace(2,RD0,T0),O_IN|O_BUFF|O_NTILED|O_CONST, 		   LSTM_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos"):
                         KerArg("Infos",   KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST, 		   LSTM_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos")
 		)
 	);
@@ -658,7 +685,7 @@ int LSTM_Stack_SQ8(
 	int DimState,
 	int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
 
 	)
 
@@ -674,7 +701,18 @@ int LSTM_Stack_SQ8(
 	int PerCell = 0;
 	int PerChanQuant = 0;
 
-	char *LSTMKerName = ParFeat?"LSTM_ParKerB32_SQ8":"LSTM_KerB32_SQ8";
+	int UseHardAct = 1;
+	int SameInStateScales = 1;
+	if (Ctrl) {
+		if (Ctrl->RNNUseHardActivation != -1) UseHardAct = Ctrl->RNNUseHardActivation;
+		if (Ctrl->RNNSameInStateScales != -1) SameInStateScales = Ctrl->RNNSameInStateScales;
+	}
+
+	char *LSTMKerName = ParFeat?(UseHardAct? \
+								 (SameInStateScales?"LSTM_ParKerB32_Hard_SameInStateScale_SQ8":"LSTM_ParKerB32_Hard_SQ8"): \
+								 (SameInStateScales?"LSTM_ParKerB32_SameInStateScale_SQ8":"LSTM_ParKerB32_SQ8") \
+								): \
+						"LSTM_KerB32_SQ8";
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 	int DimOut = PerCell?NCells:1;
@@ -687,10 +725,10 @@ int LSTM_Stack_SQ8(
 	}
 	int Ok = 1;
 	OpenKernelGroup(Name);
-	if (N1>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     1, 0);
-	if (N2>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, (N1==0), (N3==0));
-	if (N3>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 1);
-	CloseKernelGroup();
+	if (N1>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     1, 0, Revert);
+	if (N2>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, (N1==0), (N3==0), Revert);
+	if (N3>0) Ok = Ok && LSTM_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, LSTMKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 1, Revert);
+	CloseKernelGroupNoMerge();
 	if (Ok==0) return 0;
 
         CKernel_Arg_T **GroupCArgs;
@@ -726,7 +764,7 @@ int LSTM_Stack_SQ8(
 					Bindings(15,(!AlwaysReset)?C_Arg("Cinout"):AT_NO_ARG_BINDING,
 						    (!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						    C_Arg("G1O0"), C_Arg("G1O1"),
-						    C_Arg("Xin"),
+						    Revert?KG_ArgOper("Xin",   '+', (N2_IO?N2:0)*DimIn):C_Arg("Xin"),
 						    C_Arg("Wf"), C_Arg("Bf"),
 						    C_Arg("Wi"), C_Arg("Bi"),
 						    C_Arg("Wg"), C_Arg("Bg"),
@@ -741,7 +779,7 @@ int LSTM_Stack_SQ8(
 						    (N1)?C_Arg("G1O1"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
 						    (N3)?C_Arg("G2O0"):((!AlwaysReset)?C_Arg("Cinout"):AT_NO_ARG_BINDING),
 						    (N3)?C_Arg("G2O1"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
-						    KG_ArgOper("Xin",   '+', N1*DimIn),
+						    Revert?C_Arg("Xin"):KG_ArgOper("Xin",   '+', N1*DimIn),
 						    KG_ArgOper("Wf",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bf",    '+', PerCell*N1*DimState),
 						    KG_ArgOper("Wi",    '+', PerCell*N1*(DimState+DimIn)*DimState),
@@ -841,7 +879,8 @@ static int GRU_Stack_Seq_SQ8(
 	int UseIn,
 	int ExposeSequence,
 	int FirstSeq,
-	int LastSeq
+	int LastSeq,
+	int Revert
 	)
 
 {
@@ -851,6 +890,7 @@ static int GRU_Stack_Seq_SQ8(
                 None:   DimIn==0, ExposeSequence==0
                 Out:    DimIn==0, ExposeSequence!=0
 	*/
+	int RD0 = Revert?SPACE_PROP(D0, SPACE_PROP_REVERT):D0;
 	int ParFeat = 1;
 	int PerCell = 0;
 	int PerChanQuant = 0;
@@ -897,7 +937,7 @@ static int GRU_Stack_Seq_SQ8(
                 ),
 		Calls(1,
 			Call(GRUKerName, LOC_LOOP,
-				Bindings(18,
+				Bindings(19,
 					(!(FirstSeq&&AlwaysReset))?K_Arg("Sin", KER_ARG_TILE):((!(LastSeq&&AlwaysReset))?K_Arg("Sout", KER_ARG_TILE):Imm(0)),
 					K_Arg("State",  KER_ARG_TILE),
 					UseIn?K_Arg("Xin",  KER_ARG_TILE):Imm(0),
@@ -911,6 +951,7 @@ static int GRU_Stack_Seq_SQ8(
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, T0),
+					K_Arg("Bh",     KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -924,7 +965,7 @@ static int GRU_Stack_Seq_SQ8(
 	         KerArgAliased("Sout",    KerArgSpace(1,T0),1,  So_Attr|O_BUFF|O_NTILED,           DimState,        1,        FeatDataSize, 0, 0, 0, "Sout"):
 	                KerArg("Sout",    KerArgSpace(1,T0),    So_Attr|O_BUFF|O_NTILED,           DimState,        1,        FeatDataSize, 0, 0, 0, "Sout")):AT_NO_KER_ARG,
 			(UseIn)?
-                        KerArg("Xin",     KerArgSpace(1,D0),    O_IN|O_DB,                         DimIn,           1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
+                        KerArg("Xin",     KerArgSpace(1,RD0),   O_IN|O_DB,                         DimIn,           1,        FeatDataSize, 0, 0, 0, "Xin"):AT_NO_KER_ARG,
 			(PerCell)?
                         KerArg("Wr",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,                 DimIn+DimState,  DimState, 1,            0, 0, TileCons, "Wr"):
                         KerArg("Wr",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 DimIn+DimState,  DimState, 1,            0, 0, 0, "Wr"),
@@ -945,9 +986,9 @@ static int GRU_Stack_Seq_SQ8(
                         KerArg("Bh",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Bh"),
                         KerArg("Sbuff",   KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,                  1,               DimState, 1, 	    0, 0, 0, ""),
 			(ExposeSequence)?
-                        KerArg("Hout",    KerArgSpace(2,D0,T0), O_OUT|O_DB,                        1,               DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
+                        KerArg("Hout",    KerArgSpace(2,RD0,T0),O_OUT|O_DB,                        1,               DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
 			(PerCell)?
-                        KerArg("Infos",   KerArgSpace(2,D0,T0), O_IN|O_BUFF|O_NTILED|O_CONST,      GRU_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos"):
+                        KerArg("Infos",   KerArgSpace(2,RD0,T0),O_IN|O_BUFF|O_NTILED|O_CONST,      GRU_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos"):
                         KerArg("Infos",   KerArgSpace(1,T0),    O_IN|O_BUFF|O_NTILED|O_CONST,      GRU_CELL_INFOS,  DimInfos, 1,            0, 0, 0, "Infos")
 		)
 	);
@@ -990,7 +1031,7 @@ int GRU_Stack_SQ8(
 	int DimState,
 	int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
 	)
 
 {
@@ -1019,10 +1060,10 @@ int GRU_Stack_SQ8(
 	}
 	int Ok = 1;
 	OpenKernelGroup(Name);
-	if (N1>0) Ok = Ok && GRU_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     1, 0);
-	if (N2>0) Ok = Ok && GRU_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, (N1==0), (N3==0));
-	if (N3>0) Ok = Ok && GRU_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 1);
-	CloseKernelGroup();
+	if (N1>0) Ok = Ok && GRU_Stack_Seq_SQ8(G1_Name = AppendNames(Name, "G1"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N1, DimState, DimIn, 1,     0,     1, 0, Revert);
+	if (N2>0) Ok = Ok && GRU_Stack_Seq_SQ8(G2_Name = AppendNames(Name, "G2"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N2, DimState, DimIn, N2_IO, N2_IO, (N1==0), (N3==0), Revert);
+	if (N3>0) Ok = Ok && GRU_Stack_Seq_SQ8(G3_Name = AppendNames(Name, "G3"), Ctrl, GRUKerName, BiasDataSize, FeatDataSize, AlwaysReset, N3, DimState, DimIn, 0,     1,     0, 1, Revert);
+	CloseKernelGroupNoMerge();
 	if (Ok==0) return 0;
 
         CKernel_Arg_T **GroupCArgs;
@@ -1052,7 +1093,7 @@ int GRU_Stack_SQ8(
 		GroupCCalls[A++] = UserKernelCall(G1_Name, LOC_GROUP,
 					Bindings(11,(!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						    C_Arg("G1O"),
-						    C_Arg("Xin"),
+						    Revert?KG_ArgOper("Xin",   '+', (N2_IO?N2:0)*DimIn):C_Arg("Xin"),
 						    C_Arg("Wr"), C_Arg("Br"),
 						    C_Arg("Wz"), C_Arg("Bz"),
 						    C_Arg("Wh"), C_Arg("Bh"),
@@ -1064,7 +1105,7 @@ int GRU_Stack_SQ8(
 		GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
 					Bindings(12,(N1)?C_Arg("G1O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
                                                     (N3)?C_Arg("G2O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
-						    KG_ArgOper("Xin",   '+', N1*DimIn),
+						    Revert?C_Arg("Xin"):KG_ArgOper("Xin",   '+', N1*DimIn),
 						    KG_ArgOper("Wr",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Br",    '+', PerCell*N1*DimState),
 						    KG_ArgOper("Wz",    '+', PerCell*N1*(DimState+DimIn)*DimState),

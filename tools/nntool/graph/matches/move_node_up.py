@@ -70,17 +70,19 @@ class MoveNodeUpMatcher(Matcher):
         nid = NodeId(node)
         qrec = G.quantization[nid] if G.quantization and nid in G.quantization else None
         node_in_edge = G.in_edges(node.name)[0]
-        node_out_edge = G.out_edges(node.name)[0]
+        node_out_edges = G.out_edges(node.name)
         G.remove(node)
-        new_edge = NNEdge(from_node=node_in_edge.from_node, to_node=node_out_edge.to_node,
-                          from_idx=node_in_edge.from_idx, to_idx=node_out_edge.to_idx)
-        G.add_edge(new_edge)
+        for node_out_edge in node_out_edges:
+            new_edge = NNEdge(from_node=node_in_edge.from_node, to_node=node_out_edge.to_node,
+                              from_idx=node_in_edge.from_idx, to_idx=node_out_edge.to_idx)
+            G.add_edge(new_edge)
         cnt = 0
+        original_node = node
         for edge in edges:
             LOG.info("Moving node %s between %s and %s",
                      node.name, edge.from_node.name, edge.to_node.name)
             if cnt > 0:
-                new_node = node.clone("{}_{}".format(new_node.name, cnt))
+                new_node = node.clone("{}_{}".format(original_node.name, cnt))
             else:
                 new_node = node
             cnt += 1
@@ -95,7 +97,7 @@ class MoveNodeUpMatcher(Matcher):
                 new_qrec.in_qs[0] = deepcopy(from_qrec.out_qs[edge.from_idx])
                 G.quantization[NodeId(new_node)] = new_qrec
                 G.quantization.propagate(
-                    G, new_node, new_edge.from_node, qtype=new_qrec.out_qs[0])
+                    G, new_node, node_in_edge.from_node, qtype=new_qrec.out_qs[0])
 
     def match(self, G: GraphView, set_identity: bool = True):
         target_nodes = [node for node in G.nodes(

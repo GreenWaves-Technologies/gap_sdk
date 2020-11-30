@@ -1,4 +1,4 @@
-Input file: fe/ips/quiddikey/doc/QUIDDIKEY_reference.xlsx
+Input file: fe/ips/quiddikey/doc/quiddikey_reference.md
 
 Register map
 ^^^^^^^^^^^^
@@ -9,45 +9,53 @@ Overview
 
 .. table:: 
 
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |                 Name                  |Offset|Width|                    Description                    |
-    +=======================================+======+=====+===================================================+
-    |:ref:`CR<QUIDDIKEY_CR>`                |     0|   32|QUIDDIKEY Control register                         |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`SR<QUIDDIKEY_SR>`                |     8|   32|QUIDDIKEY Status register                          |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`AR<QUIDDIKEY_AR>`                |    12|   32|QUIDDIKEY Allow register                           |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`IER<QUIDDIKEY_IER>`              |    16|   32|QUIDDIKEY Interrupt Enable register                |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`IMR<QUIDDIKEY_IMR>`              |    20|   32|QUIDDIKEY Interrupt Mask register                  |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`ISR<QUIDDIKEY_ISR>`              |    24|   32|QUIDDIKEY Interrupt Status register                |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`KEY_DEST<QUIDDIKEY_KEY_DEST>`    |    32|   32|QUIDDIKEY Key Destination register                 |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`DIR<QUIDDIKEY_DIR>`              |   160|   32|QUIDDIKEY Data Input register                      |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`DOR<QUIDDIKEY_DOR>`              |   168|   32|QUIDDIKEY Data Output register                     |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`MISC<QUIDDIKEY_MISC>`            |   192|   32|QUIDDIKEY Miscellaneous register                   |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`IF_SR<QUIDDIKEY_IF_SR>`          |   208|   32|QUIDDIKEY Interface Status register                |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`TEST<QUIDDIKEY_TEST>`            |   216|   32|QUIDDIKEY Test register                            |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_RUC0<QUIDDIKEY_HW_RUC0>`      |   224|   32|QUIDDIKEY Hardware Restrict User Context 0 register|
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_RUC1<QUIDDIKEY_HW_RUC1>`      |   228|   32|QUIDDIKEY Hardware Restrict User Context 1 register|
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_SETTING<QUIDDIKEY_HW_SETTING>`|   240|   32|QUIDDIKEY Hardware Setting register                |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_INFO<QUIDDIKEY_HW_INFO>`      |   244|   32|QUIDDIKEY Hardware information register            |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_ID<QUIDDIKEY_HW_ID>`          |   248|   32|QUIDDIKEY Hardware Identifier register             |
-    +---------------------------------------+------+-----+---------------------------------------------------+
-    |:ref:`HW_VER<QUIDDIKEY_HW_VER>`        |   252|   32|QUIDDIKEY Hardware Version register                |
-    +---------------------------------------+------+-----+---------------------------------------------------+
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |                              Name                               |Offset|Width|               Description               |
+    +=================================================================+======+=====+=========================================+
+    |:ref:`CR<quiddikey_CR>`                                          |     0|   32|Control register                         |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`ORR<quiddikey_ORR>`                                        |     4|   32|Operation Result register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`SR<quiddikey_SR>`                                          |     8|   32|Status register                          |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`AR<quiddikey_AR>`                                          |    12|   32|Allow register                           |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IER<quiddikey_IER>`                                        |    16|   32|Interrupt Enable register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IMR<quiddikey_IMR>`                                        |    20|   32|Interrupt Mask register                  |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`ISR<quiddikey_ISR>`                                        |    24|   32|Interrupt Status register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DATA_DEST<quiddikey_DATA_DEST>`                            |    32|   32|Destination Data register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DATA_SRC (not mapped ?)<quiddikey_DATA_SRC (not mapped ?)>`|    40|   32|Data Source register                     |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`KEY_INDEX<quiddikey_KEY_INDEX>`                            |    40|   32|Key Index register                       |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DIR<quiddikey_DIR>`                                        |   160|   32|Data Input register                      |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DOR<quiddikey_DOR>`                                        |   168|   32|Data Output register                     |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`MISC<quiddikey_MISC>`                                      |   192|   32|Miscellaneous register                   |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IF_SR<quiddikey_IF_SR>`                                    |   208|   32|Interface Status register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`TEST<quiddikey_TEST>`                                      |   216|   32|Test register                            |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`PSR<quiddikey_PSR>`                                        |   220|   32|PUF Score register                       |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_RUC0<quiddikey_HW_RUC0>`                                |   224|   32|Hardware Restrict User Context 0 register|
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_RUC1<quiddikey_HW_RUC1>`                                |   228|   32|Hardware Restrict User Context 1 register|
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_SETTINGS<quiddikey_HW_SETTINGS>`                        |   240|   32|Hardware Settings register               |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_INFO<quiddikey_HW_INFO>`                                |   244|   32|Hardware Information register            |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_ID<quiddikey_HW_ID>`                                    |   248|   32|Hardware Identifier register             |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_VER<quiddikey_HW_VER>`                                  |   252|   32|Hardware Version register                |
+    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -59,58 +67,70 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Control register
+                // Control register
                 #define QUIDDIKEY_CR_OFFSET                      0x0
         
-                // QUIDDIKEY Status register
+                // Operation Result register
+                #define QUIDDIKEY_ORR_OFFSET                     0x4
+        
+                // Status register
                 #define QUIDDIKEY_SR_OFFSET                      0x8
         
-                // QUIDDIKEY Allow register
+                // Allow register
                 #define QUIDDIKEY_AR_OFFSET                      0xc
         
-                // QUIDDIKEY Interrupt Enable register
+                // Interrupt Enable register
                 #define QUIDDIKEY_IER_OFFSET                     0x10
         
-                // QUIDDIKEY Interrupt Mask register
+                // Interrupt Mask register
                 #define QUIDDIKEY_IMR_OFFSET                     0x14
         
-                // QUIDDIKEY Interrupt Status register
+                // Interrupt Status register
                 #define QUIDDIKEY_ISR_OFFSET                     0x18
         
-                // QUIDDIKEY Key Destination register
-                #define QUIDDIKEY_KEY_DEST_OFFSET                0x20
+                // Destination Data register
+                #define QUIDDIKEY_DATA_DEST_OFFSET               0x20
         
-                // QUIDDIKEY Data Input register
+                // Data Source register
+                #define QUIDDIKEY_DATA_SRC (NOT MAPPED ?)_OFFSET 0x28
+        
+                // Key Index register
+                #define QUIDDIKEY_KEY_INDEX_OFFSET               0x28
+        
+                // Data Input register
                 #define QUIDDIKEY_DIR_OFFSET                     0xa0
         
-                // QUIDDIKEY Data Output register
+                // Data Output register
                 #define QUIDDIKEY_DOR_OFFSET                     0xa8
         
-                // QUIDDIKEY Miscellaneous register
+                // Miscellaneous register
                 #define QUIDDIKEY_MISC_OFFSET                    0xc0
         
-                // QUIDDIKEY Interface Status register
+                // Interface Status register
                 #define QUIDDIKEY_IF_SR_OFFSET                   0xd0
         
-                // QUIDDIKEY Test register
+                // Test register
                 #define QUIDDIKEY_TEST_OFFSET                    0xd8
         
-                // QUIDDIKEY Hardware Restrict User Context 0 register
+                // PUF Score register
+                #define QUIDDIKEY_PSR_OFFSET                     0xdc
+        
+                // Hardware Restrict User Context 0 register
                 #define QUIDDIKEY_HW_RUC0_OFFSET                 0xe0
         
-                // QUIDDIKEY Hardware Restrict User Context 1 register
+                // Hardware Restrict User Context 1 register
                 #define QUIDDIKEY_HW_RUC1_OFFSET                 0xe4
         
-                // QUIDDIKEY Hardware Setting register
-                #define QUIDDIKEY_HW_SETTING_OFFSET              0xf0
+                // Hardware Settings register
+                #define QUIDDIKEY_HW_SETTINGS_OFFSET             0xf0
         
-                // QUIDDIKEY Hardware information register
+                // Hardware Information register
                 #define QUIDDIKEY_HW_INFO_OFFSET                 0xf4
         
-                // QUIDDIKEY Hardware Identifier register
+                // Hardware Identifier register
                 #define QUIDDIKEY_HW_ID_OFFSET                   0xf8
         
-                // QUIDDIKEY Hardware Version register
+                // Hardware Version register
                 #define QUIDDIKEY_HW_VER_OFFSET                  0xfc
 
 .. toggle-header::
@@ -121,6 +141,9 @@ Generated headers
 
         static inline uint32_t quiddikey_cr_get(uint32_t base);
         static inline void quiddikey_cr_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t quiddikey_orr_get(uint32_t base);
+        static inline void quiddikey_orr_set(uint32_t base, uint32_t value);
 
         static inline uint32_t quiddikey_sr_get(uint32_t base);
         static inline void quiddikey_sr_set(uint32_t base, uint32_t value);
@@ -137,8 +160,14 @@ Generated headers
         static inline uint32_t quiddikey_isr_get(uint32_t base);
         static inline void quiddikey_isr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_key_dest_get(uint32_t base);
-        static inline void quiddikey_key_dest_set(uint32_t base, uint32_t value);
+        static inline uint32_t quiddikey_data_dest_get(uint32_t base);
+        static inline void quiddikey_data_dest_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t quiddikey_data_src (not mapped ?)_get(uint32_t base);
+        static inline void quiddikey_data_src (not mapped ?)_set(uint32_t base, uint32_t value);
+
+        static inline uint32_t quiddikey_key_index_get(uint32_t base);
+        static inline void quiddikey_key_index_set(uint32_t base, uint32_t value);
 
         static inline uint32_t quiddikey_dir_get(uint32_t base);
         static inline void quiddikey_dir_set(uint32_t base, uint32_t value);
@@ -155,14 +184,17 @@ Generated headers
         static inline uint32_t quiddikey_test_get(uint32_t base);
         static inline void quiddikey_test_set(uint32_t base, uint32_t value);
 
+        static inline uint32_t quiddikey_psr_get(uint32_t base);
+        static inline void quiddikey_psr_set(uint32_t base, uint32_t value);
+
         static inline uint32_t quiddikey_hw_ruc0_get(uint32_t base);
         static inline void quiddikey_hw_ruc0_set(uint32_t base, uint32_t value);
 
         static inline uint32_t quiddikey_hw_ruc1_get(uint32_t base);
         static inline void quiddikey_hw_ruc1_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_hw_setting_get(uint32_t base);
-        static inline void quiddikey_hw_setting_set(uint32_t base, uint32_t value);
+        static inline uint32_t quiddikey_hw_settings_get(uint32_t base);
+        static inline void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
 
         static inline uint32_t quiddikey_hw_info_get(uint32_t base);
         static inline void quiddikey_hw_info_set(uint32_t base, uint32_t value);
@@ -180,406 +212,568 @@ Generated headers
 
         
         // Begin Zeroize operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_ZEROIZE_BIT                                  0
-        #define QUIDDIKEY_CR_QK_ZEROIZE_WIDTH                                1
-        #define QUIDDIKEY_CR_QK_ZEROIZE_MASK                                 0x1
-        #define QUIDDIKEY_CR_QK_ZEROIZE_RESET                                0x0
+        #define QUIDDIKEY_CR_ZEROIZE_BIT                                     0
+        #define QUIDDIKEY_CR_ZEROIZE_WIDTH                                   1
+        #define QUIDDIKEY_CR_ZEROIZE_MASK                                    0x1
+        #define QUIDDIKEY_CR_ZEROIZE_RESET                                   0x0
         
         // Begin Enroll operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_ENROLL_BIT                                   1
-        #define QUIDDIKEY_CR_QK_ENROLL_WIDTH                                 1
-        #define QUIDDIKEY_CR_QK_ENROLL_MASK                                  0x2
-        #define QUIDDIKEY_CR_QK_ENROLL_RESET                                 0x0
+        #define QUIDDIKEY_CR_ENROLL_BIT                                      1
+        #define QUIDDIKEY_CR_ENROLL_WIDTH                                    1
+        #define QUIDDIKEY_CR_ENROLL_MASK                                     0x2
+        #define QUIDDIKEY_CR_ENROLL_RESET                                    0x0
         
         // Begin Start operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_START_BIT                                    2
-        #define QUIDDIKEY_CR_QK_START_WIDTH                                  1
-        #define QUIDDIKEY_CR_QK_START_MASK                                   0x4
-        #define QUIDDIKEY_CR_QK_START_RESET                                  0x0
+        #define QUIDDIKEY_CR_START_BIT                                       2
+        #define QUIDDIKEY_CR_START_WIDTH                                     1
+        #define QUIDDIKEY_CR_START_MASK                                      0x4
+        #define QUIDDIKEY_CR_START_RESET                                     0x0
         
         // Begin Stop operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_STOP_BIT                                     5
-        #define QUIDDIKEY_CR_QK_STOP_WIDTH                                   1
-        #define QUIDDIKEY_CR_QK_STOP_MASK                                    0x20
-        #define QUIDDIKEY_CR_QK_STOP_RESET                                   0x0
+        #define QUIDDIKEY_CR_STOP_BIT                                        5
+        #define QUIDDIKEY_CR_STOP_WIDTH                                      1
+        #define QUIDDIKEY_CR_STOP_MASK                                       0x20
+        #define QUIDDIKEY_CR_STOP_RESET                                      0x0
         
         // Begin Get Key operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_GET_KEY_BIT                                  6
-        #define QUIDDIKEY_CR_QK_GET_KEY_WIDTH                                1
-        #define QUIDDIKEY_CR_QK_GET_KEY_MASK                                 0x40
-        #define QUIDDIKEY_CR_QK_GET_KEY_RESET                                0x0
+        #define QUIDDIKEY_CR_GET_KEY_BIT                                     6
+        #define QUIDDIKEY_CR_GET_KEY_WIDTH                                   1
+        #define QUIDDIKEY_CR_GET_KEY_MASK                                    0x40
+        #define QUIDDIKEY_CR_GET_KEY_RESET                                   0x0
         
         // Begin Unwrap operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_UNWRAP_BIT                                   7
-        #define QUIDDIKEY_CR_QK_UNWRAP_WIDTH                                 1
-        #define QUIDDIKEY_CR_QK_UNWRAP_MASK                                  0x80
-        #define QUIDDIKEY_CR_QK_UNWRAP_RESET                                 0x0
+        #define QUIDDIKEY_CR_UNWRAP_BIT                                      7
+        #define QUIDDIKEY_CR_UNWRAP_WIDTH                                    1
+        #define QUIDDIKEY_CR_UNWRAP_MASK                                     0x80
+        #define QUIDDIKEY_CR_UNWRAP_RESET                                    0x0
         
-        // Begin Wrap Generated Random operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_BIT                    8
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_WIDTH                  1
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_MASK                   0x100
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_RESET                  0x0
+        // Begin Wrap Generation Random operation (access: R/W)
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_BIT                       8
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_WIDTH                     1
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_MASK                      0x100
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_RESET                     0x0
         
         // Begin Wrap operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_WRAP_BIT                                     9
-        #define QUIDDIKEY_CR_QK_WRAP_WIDTH                                   1
-        #define QUIDDIKEY_CR_QK_WRAP_MASK                                    0x200
-        #define QUIDDIKEY_CR_QK_WRAP_RESET                                   0x0
+        #define QUIDDIKEY_CR_WRAP_BIT                                        9
+        #define QUIDDIKEY_CR_WRAP_WIDTH                                      1
+        #define QUIDDIKEY_CR_WRAP_MASK                                       0x200
+        #define QUIDDIKEY_CR_WRAP_RESET                                      0x0
         
         // Begin Generate Random operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_BIT                          15
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_WIDTH                        1
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_MASK                         0x8000
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_RESET                        0x0
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_BIT                             15
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_WIDTH                           1
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_MASK                            0x8000
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_RESET                           0x0
+        
+        // Begin Reseed operation (access: R/W)
+        #define QUIDDIKEY_CR_RESEED_BIT                                      16
+        #define QUIDDIKEY_CR_RESEED_WIDTH                                    1
+        #define QUIDDIKEY_CR_RESEED_MASK                                     0x10000
+        #define QUIDDIKEY_CR_RESEED_RESET                                    0x0
+        
+        // Begin Test PUF operation (access: R/W)
+        #define QUIDDIKEY_CR_TEST_PUF_BIT                                    31
+        #define QUIDDIKEY_CR_TEST_PUF_WIDTH                                  1
+        #define QUIDDIKEY_CR_TEST_PUF_MASK                                   0x80000000
+        #define QUIDDIKEY_CR_TEST_PUF_RESET                                  0x0
+        
+        // Result code of last operation (access: R/W)
+        #define QUIDDIKEY_ORR_RESULT_CODE_BIT                                0
+        #define QUIDDIKEY_ORR_RESULT_CODE_WIDTH                              8
+        #define QUIDDIKEY_ORR_RESULT_CODE_MASK                               0xff
+        #define QUIDDIKEY_ORR_RESULT_CODE_RESET                              0x0
+        
+        // Reseed Warning register field (access: R/W)
+        #define QUIDDIKEY_ORR_RESEED_WARNING_BIT                             14
+        #define QUIDDIKEY_ORR_RESEED_WARNING_WIDTH                           1
+        #define QUIDDIKEY_ORR_RESEED_WARNING_MASK                            0x4000
+        #define QUIDDIKEY_ORR_RESEED_WARNING_RESET                           0x0
+        
+        // Reseed Required register field (access: R/W)
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_BIT                            15
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_WIDTH                          1
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_MASK                           0x8000
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_RESET                          0x0
+        
+        // Number of last operation (access: R/W)
+        #define QUIDDIKEY_ORR_LAST_OPERATION_BIT                             24
+        #define QUIDDIKEY_ORR_LAST_OPERATION_WIDTH                           8
+        #define QUIDDIKEY_ORR_LAST_OPERATION_MASK                            0xff000000
+        #define QUIDDIKEY_ORR_LAST_OPERATION_RESET                           0x0
         
         // Operation is in progress (access: R/W)
-        #define QUIDDIKEY_SR_QK_BUSY_BIT                                     0
-        #define QUIDDIKEY_SR_QK_BUSY_WIDTH                                   1
-        #define QUIDDIKEY_SR_QK_BUSY_MASK                                    0x1
-        #define QUIDDIKEY_SR_QK_BUSY_RESET                                   0x1
+        #define QUIDDIKEY_SR_BUSY_BIT                                        0
+        #define QUIDDIKEY_SR_BUSY_WIDTH                                      1
+        #define QUIDDIKEY_SR_BUSY_MASK                                       0x1
+        #define QUIDDIKEY_SR_BUSY_RESET                                      0x0
         
         // Last operation was successful (access: R/W)
-        #define QUIDDIKEY_SR_QK_OK_BIT                                       1
-        #define QUIDDIKEY_SR_QK_OK_WIDTH                                     1
-        #define QUIDDIKEY_SR_QK_OK_MASK                                      0x2
-        #define QUIDDIKEY_SR_QK_OK_RESET                                     0x0
+        #define QUIDDIKEY_SR_OK_BIT                                          1
+        #define QUIDDIKEY_SR_OK_WIDTH                                        1
+        #define QUIDDIKEY_SR_OK_MASK                                         0x2
+        #define QUIDDIKEY_SR_OK_RESET                                        0x0
         
         // Last operation failed (access: R/W)
-        #define QUIDDIKEY_SR_QK_ERROR_BIT                                    2
-        #define QUIDDIKEY_SR_QK_ERROR_WIDTH                                  1
-        #define QUIDDIKEY_SR_QK_ERROR_MASK                                   0x4
-        #define QUIDDIKEY_SR_QK_ERROR_RESET                                  0x0
+        #define QUIDDIKEY_SR_ERROR_BIT                                       2
+        #define QUIDDIKEY_SR_ERROR_WIDTH                                     1
+        #define QUIDDIKEY_SR_ERROR_MASK                                      0x4
+        #define QUIDDIKEY_SR_ERROR_RESET                                     0x0
         
-        // QuiddiKey is in Zeroized or Locked state, For details see section 3.1 (access: R/W)
-        #define QUIDDIKEY_SR_QK_ZEROIZED_BIT                                 3
-        #define QUIDDIKEY_SR_QK_ZEROIZED_WIDTH                               1
-        #define QUIDDIKEY_SR_QK_ZEROIZED_MASK                                0x8
-        #define QUIDDIKEY_SR_QK_ZEROIZED_RESET                               0x0
+        // Quiddikey is in Zeroized or in Locked state (access: R/W)
+        #define QUIDDIKEY_SR_ZEROIZED_BIT                                    3
+        #define QUIDDIKEY_SR_ZEROIZED_WIDTH                                  1
+        #define QUIDDIKEY_SR_ZEROIZED_MASK                                   0x8
+        #define QUIDDIKEY_SR_ZEROIZED_RESET                                  0x0
         
-        // Read: Last command was rejected Write 1: Clears this bit (access: R/W)
-        #define QUIDDIKEY_SR_QK_REJECTED_BIT                                 4
-        #define QUIDDIKEY_SR_QK_REJECTED_WIDTH                               1
-        #define QUIDDIKEY_SR_QK_REJECTED_MASK                                0x10
-        #define QUIDDIKEY_SR_QK_REJECTED_RESET                               0x0
+        // Read: last command rejected, Write 1: Clear this bit (access: R/W)
+        #define QUIDDIKEY_SR_REJECTED_BIT                                    4
+        #define QUIDDIKEY_SR_REJECTED_WIDTH                                  1
+        #define QUIDDIKEY_SR_REJECTED_MASK                                   0x10
+        #define QUIDDIKEY_SR_REJECTED_RESET                                  0x0
         
-        // Request for data in transfer via the QK_DIR register (access: R/W)
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_BIT                               5
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_WIDTH                             1
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_MASK                              0x20
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_RESET                             0x0
+        // Request for Data in transfer via DIR register (access: R/W)
+        #define QUIDDIKEY_SR_DI_REQUEST_BIT                                  5
+        #define QUIDDIKEY_SR_DI_REQUEST_WIDTH                                1
+        #define QUIDDIKEY_SR_DI_REQUEST_MASK                                 0x20
+        #define QUIDDIKEY_SR_DI_REQUEST_RESET                                0x0
         
-        // Request for data out transfer via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_BIT                               6
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_WIDTH                             1
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_MASK                              0x40
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_RESET                             0x0
+        // Request for Data out transfer via DOR register (access: R/W)
+        #define QUIDDIKEY_SR_DO_REQUEST_BIT                                  6
+        #define QUIDDIKEY_SR_DO_REQUEST_WIDTH                                1
+        #define QUIDDIKEY_SR_DO_REQUEST_MASK                                 0x40
+        #define QUIDDIKEY_SR_DO_REQUEST_RESET                                0x0
         
-        // Enroll operation is allowed (access: R/W)
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_BIT                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_WIDTH                           1
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_MASK                            0x2
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_RESET                           0x0
+        // Reseed warning (see ORR RESEED_WARNING) (access: R/W)
+        #define QUIDDIKEY_SR_RESEED_WARNING_BIT                              29
+        #define QUIDDIKEY_SR_RESEED_WARNING_WIDTH                            1
+        #define QUIDDIKEY_SR_RESEED_WARNING_MASK                             0x20000000
+        #define QUIDDIKEY_SR_RESEED_WARNING_RESET                            0x0
         
-        // Start operation is allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_START_BIT                              2
-        #define QUIDDIKEY_AR_QK_ALLOW_START_WIDTH                            1
-        #define QUIDDIKEY_AR_QK_ALLOW_START_MASK                             0x4
-        #define QUIDDIKEY_AR_QK_ALLOW_START_RESET                            0x0
+        // Reseed required (see ORR RESEED_REQUIRED) (access: R/W)
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_BIT                             30
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_WIDTH                           1
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_MASK                            0x40000000
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_RESET                           0x0
         
-        // Stop operation is allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_BIT                               5
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_WIDTH                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_MASK                              0x20
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_RESET                             0x0
+        // Quiddikey is in state Lab Test Mode (access: R/W)
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_BIT                               31
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_WIDTH                             1
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_MASK                              0x80000000
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_RESET                             0x0
         
-        // Get Key operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_BIT                            6
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_WIDTH                          1
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_MASK                           0x40
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_RESET                          0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_BIT                                1
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_MASK                               0x2
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_RESET                              0x0
         
-        // Unwrap operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_BIT                             7
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_WIDTH                           1
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_MASK                            0x80
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_RESET                           0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_START_BIT                                 2
+        #define QUIDDIKEY_AR_ALLOW_START_WIDTH                               1
+        #define QUIDDIKEY_AR_ALLOW_START_MASK                                0x4
+        #define QUIDDIKEY_AR_ALLOW_START_RESET                               0x0
         
-        // Wrap Generated Random operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_BIT              8
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_WIDTH            1
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_MASK             0x100
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_RESET            0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_STOP_BIT                                  5
+        #define QUIDDIKEY_AR_ALLOW_STOP_WIDTH                                1
+        #define QUIDDIKEY_AR_ALLOW_STOP_MASK                                 0x20
+        #define QUIDDIKEY_AR_ALLOW_STOP_RESET                                0x0
         
-        // Wrap operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_BIT                               9
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_WIDTH                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_MASK                              0x200
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_RESET                             0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_BIT                               6
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_WIDTH                             1
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_MASK                              0x40
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_RESET                             0x0
         
-        // Generate Random operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_BIT                    15
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_WIDTH                  1
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_MASK                   0x8000
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_RESET                  0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_BIT                                7
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_MASK                               0x80
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_RESET                              0x0
         
-        // 0: Disables all QuiddiKey interrupts 1: Enables all QuiddiKey interrupts that are enabled in the Interrupt Mask register  (access: R/W)
-        #define QUIDDIKEY_IER_QK_INT_EN_BIT                                  0
-        #define QUIDDIKEY_IER_QK_INT_EN_WIDTH                                1
-        #define QUIDDIKEY_IER_QK_INT_EN_MASK                                 0x1
-        #define QUIDDIKEY_IER_QK_INT_EN_RESET                                0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_BIT                          8
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_WIDTH                        1
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_MASK                         0x100
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_RESET                        0x0
         
-        // Enables the busy interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_BIT                             0
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_WIDTH                           1
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_MASK                            0x1
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_RESET                           0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_BIT                                  9
+        #define QUIDDIKEY_AR_ALLOW_WRAP_WIDTH                                1
+        #define QUIDDIKEY_AR_ALLOW_WRAP_MASK                                 0x200
+        #define QUIDDIKEY_AR_ALLOW_WRAP_RESET                                0x0
         
-        // Enables the ok interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_BIT                               1
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_WIDTH                             1
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_MASK                              0x2
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_RESET                             0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_BIT                               15
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_WIDTH                             1
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_MASK                              0x8000
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_RESET                             0x0
         
-        // Enables the error interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_BIT                            2
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_WIDTH                          1
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_MASK                           0x4
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_RESET                          0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_RESEED_BIT                                16
+        #define QUIDDIKEY_AR_ALLOW_RESEED_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_RESEED_MASK                               0x10000
+        #define QUIDDIKEY_AR_ALLOW_RESEED_RESET                              0x0
         
-        // Enables the zeroized interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_BIT                         3
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_WIDTH                       1
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_MASK                        0x8
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_RESET                       0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_BIT                              31
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_WIDTH                            1
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_MASK                             0x80000000
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_RESET                            0x0
         
-        // Enables the rejected interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_BIT                         4
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_WIDTH                       1
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_MASK                        0x10
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_RESET                       0x0
+        // Interrupt enable register (access: R/W)
+        #define QUIDDIKEY_IER_INT_EN_BIT                                     0
+        #define QUIDDIKEY_IER_INT_EN_WIDTH                                   1
+        #define QUIDDIKEY_IER_INT_EN_MASK                                    0x1
+        #define QUIDDIKEY_IER_INT_EN_RESET                                   0x0
         
-        // Enables the data in request interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_BIT                       5
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_WIDTH                     1
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_MASK                      0x20
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_RESET                     0x0
+        // Enable Busy interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_BIT                                0
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_WIDTH                              1
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_MASK                               0x1
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_RESET                              0x0
         
-        // Enables the data out request interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_BIT                       6
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_WIDTH                     1
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_MASK                      0x40
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_RESET                     0x0
+        // Enable Ok interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_OK_BIT                                  1
+        #define QUIDDIKEY_IMR_INT_EN_OK_WIDTH                                1
+        #define QUIDDIKEY_IMR_INT_EN_OK_MASK                                 0x2
+        #define QUIDDIKEY_IMR_INT_EN_OK_RESET                                0x0
         
-        // A negative edge has occurred on qk_busy, which means that an operation has completed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_BIT                                0
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_WIDTH                              1
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_MASK                               0x1
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_RESET                              0x0
+        // Enable Error interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_BIT                               2
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_WIDTH                             1
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_MASK                              0x4
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_RESET                             0x0
         
-        // A positive edge has occurred on qk_ok, which means that an operation successfully completed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_OK_BIT                                  1
-        #define QUIDDIKEY_ISR_QK_INT_OK_WIDTH                                1
-        #define QUIDDIKEY_ISR_QK_INT_OK_MASK                                 0x2
-        #define QUIDDIKEY_ISR_QK_INT_OK_RESET                                0x0
+        // Enable Zeroized interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_BIT                            3
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_WIDTH                          1
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_MASK                           0x8
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_RESET                          0x0
         
-        // A positive edge has occurred on qk_error, which means that an operation has failed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_BIT                               2
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_WIDTH                             1
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_MASK                              0x4
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_RESET                             0x0
+        // Enable Rejected interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_BIT                            4
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_WIDTH                          1
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_MASK                           0x10
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_RESET                          0x0
         
-        // A positive edge has occurred on qk_zeroized, which means that QuiddiKey has moved to the Zeroized or Locked state For details see section 3.1 (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_BIT                            3
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_WIDTH                          1
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_MASK                           0x8
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_RESET                          0x0
+        // Enable Data In Request interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_BIT                          5
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_WIDTH                        1
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_MASK                         0x20
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_RESET                        0x0
         
-        // A positive edge has occurred on qk_rejected, which means that a command was rejected (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_BIT                            4
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_WIDTH                          1
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_MASK                           0x10
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_RESET                          0x0
+        // Enable Data Out Request interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_BIT                          6
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_WIDTH                        1
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_MASK                         0x40
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_RESET                        0x0
         
-        // A positive edge has occurred on qk_di_request, which means that a data in transfer is requested via the QK_DIR register (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_BIT                          5
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_WIDTH                        1
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_MASK                         0x20
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_RESET                        0x0
+        // Enable Reseed Warning interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_BIT                      29
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_WIDTH                    1
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_MASK                     0x20000000
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_RESET                    0x0
         
-        // A positive edge has occurred on qk_do_request, which means that a data out transfer is requested via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_BIT                          6
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_WIDTH                        1
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_MASK                         0x40
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_RESET                        0x0
+        // Enable Reseed Required interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_BIT                     30
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_WIDTH                   1
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_MASK                    0x40000000
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_RESET                   0x0
         
-        // Key will be made available via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_BIT                           0
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_WIDTH                         1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_MASK                          0x1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_RESET                         0x0
+        // Enable Lab Test Mode interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_BIT                       31
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_WIDTH                     1
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_MASK                      0x80000000
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_RESET                     0x0
         
-        // Key will be made available via the KO interface (access: R/W)
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_BIT                            1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_WIDTH                          1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_MASK                           0x2
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_RESET                          0x0
+        // Busy interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_BUSY_BIT                                   0
+        #define QUIDDIKEY_ISR_INT_BUSY_WIDTH                                 1
+        #define QUIDDIKEY_ISR_INT_BUSY_MASK                                  0x1
+        #define QUIDDIKEY_ISR_INT_BUSY_RESET                                 0x0
         
-        // Input data to QuiddiKey Note: This field must only be written when qk_di_request = 1 (access: W)
-        #define QUIDDIKEY_DIR_QK_DI_BIT                                      0
-        #define QUIDDIKEY_DIR_QK_DI_WIDTH                                    32
-        #define QUIDDIKEY_DIR_QK_DI_MASK                                     0xffffffff
-        #define QUIDDIKEY_DIR_QK_DI_RESET                                    0x0
+        // Ok interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_OK_BIT                                     1
+        #define QUIDDIKEY_ISR_INT_OK_WIDTH                                   1
+        #define QUIDDIKEY_ISR_INT_OK_MASK                                    0x2
+        #define QUIDDIKEY_ISR_INT_OK_RESET                                   0x0
         
-        // Output data from QuiddiKey Note: This field must only be read when qk_do_request = 1 (access: W)
-        #define QUIDDIKEY_DOR_QK_DO_BIT                                      0
-        #define QUIDDIKEY_DOR_QK_DO_WIDTH                                    32
-        #define QUIDDIKEY_DOR_QK_DO_MASK                                     0xffffffff
-        #define QUIDDIKEY_DOR_QK_DO_RESET                                    0x0
+        // Error interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_ERROR_BIT                                  2
+        #define QUIDDIKEY_ISR_INT_ERROR_WIDTH                                1
+        #define QUIDDIKEY_ISR_INT_ERROR_MASK                                 0x4
+        #define QUIDDIKEY_ISR_INT_ERROR_RESET                                0x0
         
-        //  Defines the endianness of keys and data in system memory: 0: Little endian 1: Big endian (default) See section 5.1.4 for details (access: R/W)
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_BIT                        0
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_WIDTH                      1
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_MASK                       0x1
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_RESET                      0x0
+        // Zeroized interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_BIT                               3
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_WIDTH                             1
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_MASK                              0x8
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_RESET                             0x0
         
-        //  An APB error has occurred, for details see section 5.1.2 (access: R)
+        // Rejected interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_REJECTED_BIT                               4
+        #define QUIDDIKEY_ISR_INT_REJECTED_WIDTH                             1
+        #define QUIDDIKEY_ISR_INT_REJECTED_MASK                              0x10
+        #define QUIDDIKEY_ISR_INT_REJECTED_RESET                             0x0
+        
+        // Data In Request interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_BIT                             5
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_WIDTH                           1
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_MASK                            0x20
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_RESET                           0x0
+        
+        // Data Out Request interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_BIT                             6
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_WIDTH                           1
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_MASK                            0x40
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_RESET                           0x0
+        
+        // Reseed Warning interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_BIT                         29
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_WIDTH                       1
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_MASK                        0x20000000
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_RESET                       0x0
+        
+        // Reseed Required interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_BIT                        30
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_WIDTH                      1
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_MASK                       0x40000000
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_RESET                      0x0
+        
+        // Lab Test Mode interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_BIT                          31
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_WIDTH                        1
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_MASK                         0x80000000
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_RESET                        0x0
+        
+        // Data out register destination (access: R/W)
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_BIT                             0
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_WIDTH                           1
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_MASK                            0x1
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_RESET                           0x0
+        
+        // Secure Output interface destination (access: R/W)
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_BIT                              1
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_WIDTH                            1
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_MASK                             0x2
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_RESET                            0x0
+        
+        // Value of the Key Index (access: R)
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_BIT                            0
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_WIDTH                          4
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_MASK                           0xf
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_RESET                          0x0
+        
+        // Data In field (access: R/W)
+        #define QUIDDIKEY_DIR_DI_BIT                                         0
+        #define QUIDDIKEY_DIR_DI_WIDTH                                       32
+        #define QUIDDIKEY_DIR_DI_MASK                                        0xffffffff
+        #define QUIDDIKEY_DIR_DI_RESET                                       0x0
+        
+        // Data Out field (access: R)
+        #define QUIDDIKEY_DOR_DO_BIT                                         0
+        #define QUIDDIKEY_DOR_DO_WIDTH                                       32
+        #define QUIDDIKEY_DOR_DO_MASK                                        0xffffffff
+        #define QUIDDIKEY_DOR_DO_RESET                                       0x0
+        
+        // An APB error has occured (access: R/W)
         #define QUIDDIKEY_IF_SR_APB_ERROR_BIT                                0
         #define QUIDDIKEY_IF_SR_APB_ERROR_WIDTH                              1
         #define QUIDDIKEY_IF_SR_APB_ERROR_MASK                               0x1
         #define QUIDDIKEY_IF_SR_APB_ERROR_RESET                              0x0
         
-        // Isolates QuiddiKey and runs BIST (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_BIT                            0
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_WIDTH                          1
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_MASK                           0x1
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_RESET                          0x0
+        // Isolates Quiddikey and runs BIST (access: R/W)
+        #define QUIDDIKEY_TEST_BIST_ENABLE_BIT                               0
+        #define QUIDDIKEY_TEST_BIST_ENABLE_WIDTH                             1
+        #define QUIDDIKEY_TEST_BIST_ENABLE_MASK                              0x1
+        #define QUIDDIKEY_TEST_BIST_ENABLE_RESET                             0x0
         
-        // BIST is in progress or finishing up (after qk_bist_enable = 0) (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_BIT                           4
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_WIDTH                         1
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_MASK                          0x10
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_RESET                         0x0
+        // BIST is in progress or finishing up (access: R/W)
+        #define QUIDDIKEY_TEST_BIST_RUNNING_BIT                              4
+        #define QUIDDIKEY_TEST_BIST_RUNNING_WIDTH                            1
+        #define QUIDDIKEY_TEST_BIST_RUNNING_MASK                             0x10
+        #define QUIDDIKEY_TEST_BIST_RUNNING_RESET                            0x0
         
         // BIST is in progress (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_BIT                            5
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_WIDTH                          1
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_MASK                           0x20
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_RESET                          0x0
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_BIT                               5
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_WIDTH                             1
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_MASK                              0x20
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_RESET                             0x0
         
         // BIST has passed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_OK_BIT                                6
-        #define QUIDDIKEY_TEST_QK_BIST_OK_WIDTH                              1
-        #define QUIDDIKEY_TEST_QK_BIST_OK_MASK                               0x40
-        #define QUIDDIKEY_TEST_QK_BIST_OK_RESET                              0x0
+        #define QUIDDIKEY_TEST_BIST_OK_BIT                                   6
+        #define QUIDDIKEY_TEST_BIST_OK_WIDTH                                 1
+        #define QUIDDIKEY_TEST_BIST_OK_MASK                                  0x40
+        #define QUIDDIKEY_TEST_BIST_OK_RESET                                 0x0
         
         // BIST has failed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_BIT                             7
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_WIDTH                           1
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_MASK                            0x80
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_RESET                           0x0
+        #define QUIDDIKEY_TEST_BIST_ERROR_BIT                                7
+        #define QUIDDIKEY_TEST_BIST_ERROR_WIDTH                              1
+        #define QUIDDIKEY_TEST_BIST_ERROR_MASK                               0x80
+        #define QUIDDIKEY_TEST_BIST_ERROR_RESET                              0x0
         
-        // BIST is allowed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_BIT                             31
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_WIDTH                           1
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_MASK                            0x80000000
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_RESET                           0x0
+        // BIST is not allowed (access: R/W)
+        #define QUIDDIKEY_TEST_ALLOW_BIST_BIT                                31
+        #define QUIDDIKEY_TEST_ALLOW_BIST_WIDTH                              1
+        #define QUIDDIKEY_TEST_ALLOW_BIST_MASK                               0x80000000
+        #define QUIDDIKEY_TEST_ALLOW_BIST_RESET                              0x0
         
-        // Hardware Restrict UC0 register (access: R/W)
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_BIT             0
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_WIDTH           32
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_MASK            0xffffffff
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_RESET           0x0
+        // PUF Score field (access: R/W)
+        #define QUIDDIKEY_PSR_PUF_SCORE_BIT                                  0
+        #define QUIDDIKEY_PSR_PUF_SCORE_WIDTH                                4
+        #define QUIDDIKEY_PSR_PUF_SCORE_MASK                                 0xf
+        #define QUIDDIKEY_PSR_PUF_SCORE_RESET                                0x0
         
-        // Hardware Restrict UC1 register (access: R/W)
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_BIT             0
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_WIDTH           32
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_MASK            0xffffffff
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_RESET           0x0
+        // Restrict User Context 0 field (access: R/W)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_BIT                0
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_WIDTH              32
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_MASK               0xffffffff
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_RESET              0x0
         
-        // 0:Enroll operations are enabled 1:Enroll operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_BIT                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_WIDTH                 1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_MASK                  0x2
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_RESET                 0x0
+        // Restrict User Context 1 field (access: R/W)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_BIT                0
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_WIDTH              32
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_MASK               0xffffffff
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_RESET              0x0
         
-        // 0:Start operations are disabled 1:Start operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_BIT                    2
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_WIDTH                  1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_MASK                   0x4
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_RESET                  0x0
+        // Enroll settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_BIT                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_MASK                    0x2
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_RESET                   0x0
         
-        // 0:Stop operations are enabled 1:Stop operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_BIT                     5
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_WIDTH                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_MASK                    0x20
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_RESET                   0x0
+        // Start settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_BIT                      2
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_WIDTH                    1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_MASK                     0x4
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_RESET                    0x0
         
-        // 0:Get Key operations are enabled 1:Get Key operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_BIT                  6
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_WIDTH                1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_MASK                 0x40
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_RESET                0x0
+        // Stop settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_BIT                       5
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_WIDTH                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_MASK                      0x20
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_RESET                     0x0
         
-        // 0:Unwrap operations are enabled 1:Unwrap operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_BIT                   7
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_WIDTH                 1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_MASK                  0x80
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_RESET                 0x0
+        // Get Key settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_BIT                    6
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_WIDTH                  1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_MASK                   0x40
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_RESET                  0x0
         
-        // 0:Wrap Generated Random operations are enabled 1:Wrap Generated Random operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_BIT    8
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_WIDTH  1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_MASK   0x100
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_RESET  0x0
+        // Unwrap settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_BIT                     7
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_MASK                    0x80
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_RESET                   0x0
         
-        // 0:Wrap operations are enabled 1:Wrap operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_BIT                     9
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_WIDTH                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_MASK                    0x200
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_RESET                   0x0
+        // Wrap Generated Random settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_BIT               8
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_WIDTH             1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_MASK              0x100
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_RESET             0x0
         
-        // 0:Generate Random operations are enabled 1:Generate Random operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_BIT          15
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_WIDTH        1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_MASK         0x8000
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_RESET        0x0
+        // Wrap settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_BIT                       9
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_WIDTH                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_MASK                      0x200
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_RESET                     0x0
         
-        // QuiddiKey configuration: 0001: Safe 0010: Plus Other values: Reserved (access: R)
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_BIT                         28
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_WIDTH                       4
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_MASK                        0xf0000000
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_RESET                       0x10
+        // Generate Random settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_BIT                    15
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_WIDTH                  1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_MASK                   0x8000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_RESET                  0x0
         
-        // 1: BIST is included 0: BIST is not included (access: R)
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_BIT                         22
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_WIDTH                       1
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_MASK                        0x400000
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_RESET                       0x1
+        // Reseed settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_BIT                     16
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_MASK                    0x10000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_RESET                   0x0
         
-        // Hardware Identifier (access: R)
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_BIT                                 0
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_WIDTH                               32
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_MASK                                0xffffffff
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_RESET                               0x0
+        // Lab Test Mode settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_BIT              24
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_WIDTH            1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_MASK             0x1000000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_RESET            0x0
         
-        // Hardware version, major part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_BIT                     0
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_WIDTH                   8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_MASK                    0xff
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_RESET                   0x0
+        // Lab Test Mode select field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_BIT               25
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_WIDTH             1
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_MASK              0x2000000
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_RESET             0x0
         
-        // Hardware version, minor part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_BIT                     8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_WIDTH                   8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_MASK                    0xff00
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_RESET                   0x0
+        // Reseed via DIR settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_BIT         27
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_WIDTH       1
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_MASK        0x8000000
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_RESET       0x0
         
-        // Hardware version, patch part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_BIT                               16
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_WIDTH                             8
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_MASK                              0xff0000
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_RESET                             0x0
+        // Reseed via SI settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_BIT          28
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_WIDTH        1
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_MASK         0x10000000
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_RESET        0x0
+        
+        // Test PUF settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_BIT                   31
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_WIDTH                 1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_MASK                  0x80000000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_RESET                 0x0
+        
+        // 1: SP 800-90 is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_BIT                       21
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_WIDTH                     1
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_MASK                      0x200000
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_RESET                     0x0
+        
+        // 1: BIST is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_BIT                            22
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_WIDTH                          1
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_MASK                           0x400000
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_RESET                          0x0
+        
+        // 1: Safe, 0: Plus (access: R/W)
+        #define QUIDDIKEY_HW_INFO_RESERVED_BIT                               23
+        #define QUIDDIKEY_HW_INFO_RESERVED_WIDTH                             1
+        #define QUIDDIKEY_HW_INFO_RESERVED_MASK                              0x800000
+        #define QUIDDIKEY_HW_INFO_RESERVED_RESET                             0x0
+        
+        // 1: Wrap is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_BIT                            24
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_WIDTH                          1
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_MASK                           0x1000000
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_RESET                          0x0
+        
+        // Quiddikey configuration (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_BIT                            28
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_WIDTH                          4
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_MASK                           0xf0000000
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_RESET                          0x0
+        
+        // Hardware Identifier (access: R/W)
+        #define QUIDDIKEY_HW_ID_HW_ID_BIT                                    0
+        #define QUIDDIKEY_HW_ID_HW_ID_WIDTH                                  32
+        #define QUIDDIKEY_HW_ID_HW_ID_MASK                                   0xffffffff
+        #define QUIDDIKEY_HW_ID_HW_ID_RESET                                  0x0
+        
+        // Hardware version, revision part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_BIT                              0
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_WIDTH                            8
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_MASK                             0xff
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_RESET                            0x0
+        
+        // Hardware version, minor part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_BIT                            8
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_WIDTH                          8
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_MASK                           0xff00
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_RESET                          0x0
+        
+        // Hardware version, major part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_BIT                            16
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_WIDTH                          8
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_MASK                           0xff0000
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_RESET                          0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -587,340 +781,475 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_CR_QK_ZEROIZE_GET(value)                 (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE_GETS(value)                (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE_SET(value,field)           (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE(val)                       ((val) << 0)
+        #define QUIDDIKEY_CR_ZEROIZE_GET(value)                    (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE_GETS(value)                   (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE(val)                          ((val) << 0)
         
-        #define QUIDDIKEY_CR_QK_ENROLL_GET(value)                  (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL_GETS(value)                 (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL_SET(value,field)            (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL(val)                        ((val) << 1)
+        #define QUIDDIKEY_CR_ENROLL_GET(value)                     (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_CR_ENROLL_GETS(value)                    (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_CR_ENROLL_SET(value,field)               (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_CR_ENROLL(val)                           ((val) << 1)
         
-        #define QUIDDIKEY_CR_QK_START_GET(value)                   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_CR_QK_START_GETS(value)                  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_CR_QK_START_SET(value,field)             (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_CR_QK_START(val)                         ((val) << 2)
+        #define QUIDDIKEY_CR_START_GET(value)                      (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_CR_START_GETS(value)                     (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_CR_START_SET(value,field)                (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_CR_START(val)                            ((val) << 2)
         
-        #define QUIDDIKEY_CR_QK_STOP_GET(value)                    (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_CR_QK_STOP_GETS(value)                   (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_CR_QK_STOP_SET(value,field)              (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_CR_QK_STOP(val)                          ((val) << 5)
+        #define QUIDDIKEY_CR_STOP_GET(value)                       (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_CR_STOP_GETS(value)                      (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_CR_STOP_SET(value,field)                 (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_CR_STOP(val)                             ((val) << 5)
         
-        #define QUIDDIKEY_CR_QK_GET_KEY_GET(value)                 (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY_GETS(value)                (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY_SET(value,field)           (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY(val)                       ((val) << 6)
+        #define QUIDDIKEY_CR_GET_KEY_GET(value)                    (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_CR_GET_KEY_GETS(value)                   (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_CR_GET_KEY_SET(value,field)              (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_CR_GET_KEY(val)                          ((val) << 6)
         
-        #define QUIDDIKEY_CR_QK_UNWRAP_GET(value)                  (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP_GETS(value)                 (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP_SET(value,field)            (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP(val)                        ((val) << 7)
+        #define QUIDDIKEY_CR_UNWRAP_GET(value)                     (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_CR_UNWRAP_GETS(value)                    (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_CR_UNWRAP_SET(value,field)               (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_CR_UNWRAP(val)                           ((val) << 7)
         
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_GET(value)   (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_GETS(value)  (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM(val)         ((val) << 8)
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_GET(value)      (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_GETS(value)     (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM(val)            ((val) << 8)
         
-        #define QUIDDIKEY_CR_QK_WRAP_GET(value)                    (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP_GETS(value)                   (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP_SET(value,field)              (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP(val)                          ((val) << 9)
+        #define QUIDDIKEY_CR_WRAP_GET(value)                       (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_CR_WRAP_GETS(value)                      (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_CR_WRAP_SET(value,field)                 (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_CR_WRAP(val)                             ((val) << 9)
         
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_GET(value)         (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_GETS(value)        (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_SET(value,field)   (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM(val)               ((val) << 15)
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_GET(value)            (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_GETS(value)           (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_SET(value,field)      (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM(val)                  ((val) << 15)
         
-        #define QUIDDIKEY_SR_QK_BUSY_GET(value)                    (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY_GETS(value)                   (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY(val)                          ((val) << 0)
+        #define QUIDDIKEY_CR_RESEED_GET(value)                     (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_CR_RESEED_GETS(value)                    (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_CR_RESEED_SET(value,field)               (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_CR_RESEED(val)                           ((val) << 16)
         
-        #define QUIDDIKEY_SR_QK_OK_GET(value)                      (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_SR_QK_OK_GETS(value)                     (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_SR_QK_OK_SET(value,field)                (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_SR_QK_OK(val)                            ((val) << 1)
+        #define QUIDDIKEY_CR_TEST_PUF_GET(value)                   (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF_GETS(value)                  (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF_SET(value,field)             (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF(val)                         ((val) << 31)
         
-        #define QUIDDIKEY_SR_QK_ERROR_GET(value)                   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR_GETS(value)                  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR_SET(value,field)             (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR(val)                         ((val) << 2)
+        #define QUIDDIKEY_ORR_RESULT_CODE_GET(value)               (GAP_BEXTRACTU((value),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE_GETS(value)              (GAP_BEXTRACT((value),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE_SET(value,field)         (GAP_BINSERT((value),(field),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE(val)                     ((val) << 0)
         
-        #define QUIDDIKEY_SR_QK_ZEROIZED_GET(value)                (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED_GETS(value)               (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED_SET(value,field)          (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED(val)                      ((val) << 3)
+        #define QUIDDIKEY_ORR_RESEED_WARNING_GET(value)            (GAP_BEXTRACTU((value),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING_GETS(value)           (GAP_BEXTRACT((value),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING_SET(value,field)      (GAP_BINSERT((value),(field),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING(val)                  ((val) << 14)
         
-        #define QUIDDIKEY_SR_QK_REJECTED_GET(value)                (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED_GETS(value)               (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED_SET(value,field)          (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED(val)                      ((val) << 4)
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GET(value)           (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GETS(value)          (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_SET(value,field)     (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED(val)                 ((val) << 15)
         
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_GET(value)              (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_GETS(value)             (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST(val)                    ((val) << 5)
+        #define QUIDDIKEY_ORR_LAST_OPERATION_GET(value)            (GAP_BEXTRACTU((value),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION_GETS(value)           (GAP_BEXTRACT((value),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION_SET(value,field)      (GAP_BINSERT((value),(field),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION(val)                  ((val) << 24)
         
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_GET(value)              (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_GETS(value)             (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_SET(value,field)        (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST(val)                    ((val) << 6)
+        #define QUIDDIKEY_SR_BUSY_GET(value)                       (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_SR_BUSY_GETS(value)                      (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_SR_BUSY_SET(value,field)                 (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_SR_BUSY(val)                             ((val) << 0)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_GET(value)            (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_GETS(value)           (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL(val)                  ((val) << 1)
+        #define QUIDDIKEY_SR_OK_GET(value)                         (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_SR_OK_GETS(value)                        (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_SR_OK_SET(value,field)                   (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_SR_OK(val)                               ((val) << 1)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_START_GET(value)             (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START_GETS(value)            (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START_SET(value,field)       (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START(val)                   ((val) << 2)
+        #define QUIDDIKEY_SR_ERROR_GET(value)                      (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_SR_ERROR_GETS(value)                     (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_SR_ERROR_SET(value,field)                (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_SR_ERROR(val)                            ((val) << 2)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_GET(value)              (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_GETS(value)             (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP(val)                    ((val) << 5)
+        #define QUIDDIKEY_SR_ZEROIZED_GET(value)                   (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED_GETS(value)                  (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED_SET(value,field)             (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED(val)                         ((val) << 3)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_GET(value)           (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_GETS(value)          (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_SET(value,field)     (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY(val)                 ((val) << 6)
+        #define QUIDDIKEY_SR_REJECTED_GET(value)                   (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_SR_REJECTED_GETS(value)                  (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_SR_REJECTED_SET(value,field)             (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_SR_REJECTED(val)                         ((val) << 4)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_GET(value)            (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_GETS(value)           (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP(val)                  ((val) << 7)
+        #define QUIDDIKEY_SR_DI_REQUEST_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST(val)                       ((val) << 5)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM(val)   ((val) << 8)
+        #define QUIDDIKEY_SR_DO_REQUEST_GET(value)                 (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST_GETS(value)                (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST_SET(value,field)           (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST(val)                       ((val) << 6)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GET(value)              (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GETS(value)             (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_SET(value,field)        (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP(val)                    ((val) << 9)
+        #define QUIDDIKEY_SR_RESEED_WARNING_GET(value)             (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING_GETS(value)            (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING_SET(value,field)       (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING(val)                   ((val) << 29)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_GET(value)   (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_GETS(value)  (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM(val)         ((val) << 15)
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_GET(value)            (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_GETS(value)           (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED(val)                  ((val) << 30)
         
-        #define QUIDDIKEY_IER_QK_INT_EN_GET(value)                 (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN_GETS(value)                (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN_SET(value,field)           (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN(val)                       ((val) << 0)
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_GET(value)              (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_GETS(value)             (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE(val)                    ((val) << 31)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_GET(value)            (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_GETS(value)           (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_SET(value,field)      (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY(val)                  ((val) << 0)
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_GET(value)               (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_GETS(value)              (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_SET(value,field)         (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL(val)                     ((val) << 1)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_GET(value)              (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_GETS(value)             (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_SET(value,field)        (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK(val)                    ((val) << 1)
+        #define QUIDDIKEY_AR_ALLOW_START_GET(value)                (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START_GETS(value)               (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START_SET(value,field)          (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START(val)                      ((val) << 2)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_GET(value)           (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_GETS(value)          (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_SET(value,field)     (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR(val)                 ((val) << 2)
+        #define QUIDDIKEY_AR_ALLOW_STOP_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP(val)                       ((val) << 5)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_GET(value)        (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_GETS(value)       (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_SET(value,field)  (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED(val)              ((val) << 3)
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_GET(value)              (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_GETS(value)             (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_SET(value,field)        (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY(val)                    ((val) << 6)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_GET(value)        (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_GETS(value)       (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED(val)              ((val) << 4)
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_GET(value)               (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_GETS(value)              (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_SET(value,field)         (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP(val)                     ((val) << 7)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_GET(value)      (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_GETS(value)     (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_SET(value,field) (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST(val)            ((val) << 5)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_GET(value)         (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_GETS(value)        (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_SET(value,field)   (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND(val)               ((val) << 8)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_GET(value)      (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_GETS(value)     (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_SET(value,field) (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST(val)            ((val) << 6)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GET(value)                 (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GETS(value)                (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_SET(value,field)           (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP(val)                       ((val) << 9)
         
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_GET(value)               (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_GETS(value)              (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_SET(value,field)         (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY(val)                     ((val) << 0)
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_GET(value)              (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_GETS(value)             (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_SET(value,field)        (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND(val)                    ((val) << 15)
         
-        #define QUIDDIKEY_ISR_QK_INT_OK_GET(value)                 (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK_GETS(value)                (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK(val)                       ((val) << 1)
+        #define QUIDDIKEY_AR_ALLOW_RESEED_GET(value)               (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED_GETS(value)              (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED_SET(value,field)         (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED(val)                     ((val) << 16)
         
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_GET(value)              (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_GETS(value)             (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_SET(value,field)        (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR(val)                    ((val) << 2)
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_GET(value)             (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_GETS(value)            (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_SET(value,field)       (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF(val)                   ((val) << 31)
         
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_GET(value)           (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_GETS(value)          (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_SET(value,field)     (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED(val)                 ((val) << 3)
+        #define QUIDDIKEY_IER_INT_EN_GET(value)                    (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_IER_INT_EN_GETS(value)                   (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_IER_INT_EN_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_IER_INT_EN(val)                          ((val) << 0)
         
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_GET(value)           (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_GETS(value)          (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_SET(value,field)     (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED(val)                 ((val) << 4)
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_GET(value)               (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_GETS(value)              (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_SET(value,field)         (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY(val)                     ((val) << 0)
         
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST(val)               ((val) << 5)
+        #define QUIDDIKEY_IMR_INT_EN_OK_GET(value)                 (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK_GETS(value)                (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK(val)                       ((val) << 1)
         
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST(val)               ((val) << 6)
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_GET(value)              (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_GETS(value)             (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_SET(value,field)        (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR(val)                    ((val) << 2)
         
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_GET(value)          (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_GETS(value)         (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_SET(value,field)    (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG(val)                ((val) << 0)
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_GET(value)           (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_GETS(value)          (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_SET(value,field)     (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED(val)                 ((val) << 3)
         
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_GET(value)           (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_GETS(value)          (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_SET(value,field)     (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO(val)                 ((val) << 1)
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_GET(value)           (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_GETS(value)          (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_SET(value,field)     (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED(val)                 ((val) << 4)
         
-        #define QUIDDIKEY_DIR_QK_DI_GET(value)                     (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DIR_QK_DI_GETS(value)                    (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DIR_QK_DI_SET(value,field)               (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DIR_QK_DI(val)                           ((val) << 0)
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST(val)               ((val) << 5)
         
-        #define QUIDDIKEY_DOR_QK_DO_GET(value)                     (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DOR_QK_DO_GETS(value)                    (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DOR_QK_DO_SET(value,field)               (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DOR_QK_DO(val)                           ((val) << 0)
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST(val)               ((val) << 6)
         
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_GET(value)       (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_GETS(value)      (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_SET(value,field) (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS(val)             ((val) << 0)
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_GET(value)     (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_GETS(value)    (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_SET(value,field) (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING(val)           ((val) << 29)
+        
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_GET(value)    (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_GETS(value)   (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_SET(value,field) (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED(val)          ((val) << 30)
+        
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_GET(value)      (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_GETS(value)     (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE(val)            ((val) << 31)
+        
+        #define QUIDDIKEY_ISR_INT_BUSY_GET(value)                  (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY_GETS(value)                 (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY_SET(value,field)            (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY(val)                        ((val) << 0)
+        
+        #define QUIDDIKEY_ISR_INT_OK_GET(value)                    (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_ISR_INT_OK_GETS(value)                   (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_ISR_INT_OK_SET(value,field)              (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_ISR_INT_OK(val)                          ((val) << 1)
+        
+        #define QUIDDIKEY_ISR_INT_ERROR_GET(value)                 (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR_GETS(value)                (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR_SET(value,field)           (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR(val)                       ((val) << 2)
+        
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_GET(value)              (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_GETS(value)             (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_SET(value,field)        (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED(val)                    ((val) << 3)
+        
+        #define QUIDDIKEY_ISR_INT_REJECTED_GET(value)              (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED_GETS(value)             (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED_SET(value,field)        (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED(val)                    ((val) << 4)
+        
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_GET(value)            (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_GETS(value)           (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_SET(value,field)      (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST(val)                  ((val) << 5)
+        
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_GET(value)            (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_GETS(value)           (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_SET(value,field)      (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST(val)                  ((val) << 6)
+        
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_GET(value)        (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_GETS(value)       (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_SET(value,field)  (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING(val)              ((val) << 29)
+        
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_GET(value)       (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_GETS(value)      (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_SET(value,field) (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED(val)             ((val) << 30)
+        
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_GET(value)         (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_GETS(value)        (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_SET(value,field)   (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE(val)               ((val) << 31)
+        
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_GET(value)            (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_GETS(value)           (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_SET(value,field)      (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR(val)                  ((val) << 0)
+        
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_GET(value)             (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_GETS(value)            (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO(val)                   ((val) << 1)
+        
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GET(value)           (GAP_BEXTRACTU((value),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GETS(value)          (GAP_BEXTRACT((value),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_SET(value,field)     (GAP_BINSERT((value),(field),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX(val)                 ((val) << 0)
+        
+        #define QUIDDIKEY_DIR_DI_GET(value)                        (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_DIR_DI_GETS(value)                       (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DIR_DI(val)                              ((val) << 0)
+        
+        #define QUIDDIKEY_DOR_DO_GET(value)                        (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_DOR_DO_GETS(value)                       (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_DOR_DO_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DOR_DO(val)                              ((val) << 0)
         
         #define QUIDDIKEY_IF_SR_APB_ERROR_GET(value)               (GAP_BEXTRACTU((value),1,0))
         #define QUIDDIKEY_IF_SR_APB_ERROR_GETS(value)              (GAP_BEXTRACT((value),1,0))
         #define QUIDDIKEY_IF_SR_APB_ERROR_SET(value,field)         (GAP_BINSERT((value),(field),1,0))
         #define QUIDDIKEY_IF_SR_APB_ERROR(val)                     ((val) << 0)
         
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_GET(value)           (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_GETS(value)          (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_SET(value,field)     (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE(val)                 ((val) << 0)
+        #define QUIDDIKEY_TEST_BIST_ENABLE_GET(value)              (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE_GETS(value)             (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE_SET(value,field)        (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE(val)                    ((val) << 0)
         
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_GET(value)          (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_GETS(value)         (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_SET(value,field)    (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING(val)                ((val) << 4)
+        #define QUIDDIKEY_TEST_BIST_RUNNING_GET(value)             (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING_GETS(value)            (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING_SET(value,field)       (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING(val)                   ((val) << 4)
         
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_GET(value)           (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_GETS(value)          (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_SET(value,field)     (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE(val)                 ((val) << 5)
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_GET(value)              (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_GETS(value)             (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE(val)                    ((val) << 5)
         
-        #define QUIDDIKEY_TEST_QK_BIST_OK_GET(value)               (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK_GETS(value)              (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK_SET(value,field)         (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK(val)                     ((val) << 6)
+        #define QUIDDIKEY_TEST_BIST_OK_GET(value)                  (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK_GETS(value)                 (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK_SET(value,field)            (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK(val)                        ((val) << 6)
         
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_GET(value)            (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_GETS(value)           (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR(val)                  ((val) << 7)
+        #define QUIDDIKEY_TEST_BIST_ERROR_GET(value)               (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR_GETS(value)              (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR_SET(value,field)         (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR(val)                     ((val) << 7)
         
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_GET(value)            (GAP_BEXTRACTU((value),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_GETS(value)           (GAP_BEXTRACT((value),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_SET(value,field)      (GAP_BINSERT((value),(field),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST(val)                  ((val) << 31)
+        #define QUIDDIKEY_TEST_ALLOW_BIST_GET(value)               (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST_GETS(value)              (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST_SET(value,field)         (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST(val)                     ((val) << 31)
         
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0(val)  ((val) << 0)
+        #define QUIDDIKEY_PSR_PUF_SCORE_GET(value)                 (GAP_BEXTRACTU((value),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE_GETS(value)                (GAP_BEXTRACT((value),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE_SET(value,field)           (GAP_BINSERT((value),(field),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE(val)                       ((val) << 0)
         
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1(val)  ((val) << 0)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0(val)     ((val) << 0)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_GET(value)  (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_GETS(value) (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_SET(value,field) (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL(val)        ((val) << 1)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1(val)     ((val) << 0)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_GET(value)   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_GETS(value)  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_SET(value,field) (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START(val)         ((val) << 2)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_GET(value)    (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_GETS(value)   (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_SET(value,field) (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL(val)          ((val) << 1)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_GET(value)    (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_GETS(value)   (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_SET(value,field) (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP(val)          ((val) << 5)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_GET(value)     (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_GETS(value)    (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_SET(value,field) (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START(val)           ((val) << 2)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_GET(value) (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_GETS(value) (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_SET(value,field) (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY(val)       ((val) << 6)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_GET(value)      (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_GETS(value)     (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP(val)            ((val) << 5)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_GET(value)  (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_GETS(value) (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_SET(value,field) (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP(val)        ((val) << 7)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_GET(value)   (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_GETS(value)  (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY(val)         ((val) << 6)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM(val) ((val) << 8)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_GET(value)    (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_GETS(value)   (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_SET(value,field) (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP(val)          ((val) << 7)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GET(value)    (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GETS(value)   (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_SET(value,field) (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP(val)          ((val) << 9)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_GET(value) (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_GETS(value) (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND(val)    ((val) << 8)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM(val) ((val) << 15)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GET(value)      (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GETS(value)     (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP(val)            ((val) << 9)
         
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_GET(value)        (GAP_BEXTRACTU((value),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_GETS(value)       (GAP_BEXTRACT((value),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_SET(value,field)  (GAP_BINSERT((value),(field),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE(val)              ((val) << 28)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_GET(value)   (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_GETS(value)  (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_SET(value,field) (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND(val)         ((val) << 15)
         
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_GET(value)        (GAP_BEXTRACTU((value),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_GETS(value)       (GAP_BEXTRACT((value),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_SET(value,field)  (GAP_BINSERT((value),(field),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST(val)              ((val) << 22)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_GET(value)    (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_GETS(value)   (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_SET(value,field) (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED(val)          ((val) << 16)
         
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_GET(value)                (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_GETS(value)               (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_SET(value,field)          (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID(val)                      ((val) << 0)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_GET(value) (GAP_BEXTRACTU((value),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_GETS(value) (GAP_BEXTRACT((value),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE(val)   ((val) << 24)
         
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_GET(value)    (GAP_BEXTRACTU((value),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_GETS(value)   (GAP_BEXTRACT((value),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR(val)          ((val) << 0)
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_GET(value) (GAP_BEXTRACTU((value),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_GETS(value) (GAP_BEXTRACT((value),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE(val)    ((val) << 25)
         
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_GET(value)    (GAP_BEXTRACTU((value),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_GETS(value)   (GAP_BEXTRACT((value),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_SET(value,field) (GAP_BINSERT((value),(field),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR(val)          ((val) << 8)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_GET(value) (GAP_BEXTRACTU((value),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_GETS(value) (GAP_BEXTRACT((value),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_SET(value,field) (GAP_BINSERT((value),(field),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR(val) ((val) << 27)
         
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_GET(value)              (GAP_BEXTRACTU((value),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_GETS(value)             (GAP_BEXTRACT((value),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_SET(value,field)        (GAP_BINSERT((value),(field),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV(val)                    ((val) << 16)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_GET(value) (GAP_BEXTRACTU((value),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_GETS(value) (GAP_BEXTRACT((value),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_SET(value,field) (GAP_BINSERT((value),(field),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI(val) ((val) << 28)
+        
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_GET(value)  (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_GETS(value) (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_SET(value,field) (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF(val)        ((val) << 31)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_GET(value)      (GAP_BEXTRACTU((value),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_GETS(value)     (GAP_BEXTRACT((value),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_SET(value,field) (GAP_BINSERT((value),(field),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90(val)            ((val) << 21)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_GET(value)           (GAP_BEXTRACTU((value),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_GETS(value)          (GAP_BEXTRACT((value),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_SET(value,field)     (GAP_BINSERT((value),(field),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST(val)                 ((val) << 22)
+        
+        #define QUIDDIKEY_HW_INFO_RESERVED_GET(value)              (GAP_BEXTRACTU((value),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED_GETS(value)             (GAP_BEXTRACT((value),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED_SET(value,field)        (GAP_BINSERT((value),(field),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED(val)                    ((val) << 23)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_GET(value)           (GAP_BEXTRACTU((value),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_GETS(value)          (GAP_BEXTRACT((value),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_SET(value,field)     (GAP_BINSERT((value),(field),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP(val)                 ((val) << 24)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_GET(value)           (GAP_BEXTRACTU((value),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_GETS(value)          (GAP_BEXTRACT((value),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_SET(value,field)     (GAP_BINSERT((value),(field),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE(val)                 ((val) << 28)
+        
+        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID(val)                         ((val) << 0)
+        
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_GET(value)             (GAP_BEXTRACTU((value),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_GETS(value)            (GAP_BEXTRACT((value),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_SET(value,field)       (GAP_BINSERT((value),(field),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV(val)                   ((val) << 0)
+        
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_GET(value)           (GAP_BEXTRACTU((value),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_GETS(value)          (GAP_BEXTRACT((value),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_SET(value,field)     (GAP_BINSERT((value),(field),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR(val)                 ((val) << 8)
+        
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_GET(value)           (GAP_BEXTRACTU((value),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_GETS(value)          (GAP_BEXTRACT((value),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_SET(value,field)     (GAP_BINSERT((value),(field),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR(val)                 ((val) << 16)
 
 .. toggle-header::
     :header: *Register map structure*
@@ -929,33 +1258,36 @@ Generated headers
 
         /** QUIDDIKEY_Type Register Layout Typedef */
         typedef struct {
-            volatile uint32_t cr;  // QUIDDIKEY Control register
+            volatile uint32_t cr;  // Control register
+            volatile uint32_t orr;  // Operation Result register
+            volatile uint32_t sr;  // Status register
+            volatile uint32_t ar;  // Allow register
+            volatile uint32_t ier;  // Interrupt Enable register
+            volatile uint32_t imr;  // Interrupt Mask register
+            volatile uint32_t isr;  // Interrupt Status register
             volatile uint32_t reserved_0[1];  // Reserved/Not used.
-            volatile uint32_t sr;  // QUIDDIKEY Status register
-            volatile uint32_t ar;  // QUIDDIKEY Allow register
-            volatile uint32_t ier;  // QUIDDIKEY Interrupt Enable register
-            volatile uint32_t imr;  // QUIDDIKEY Interrupt Mask register
-            volatile uint32_t isr;  // QUIDDIKEY Interrupt Status register
+            volatile uint32_t data_dest;  // Destination Data register
             volatile uint32_t reserved_1[1];  // Reserved/Not used.
-            volatile uint32_t key_dest;  // QUIDDIKEY Key Destination register
-            volatile uint32_t reserved_2[31];  // Reserved/Not used.
-            volatile uint32_t dir;  // QUIDDIKEY Data Input register
+            volatile uint32_t data_src (not mapped ?);  // Data Source register
+            volatile uint32_t key_index;  // Key Index register
+            volatile uint32_t reserved_2[29];  // Reserved/Not used.
+            volatile uint32_t dir;  // Data Input register
             volatile uint32_t reserved_3[1];  // Reserved/Not used.
-            volatile uint32_t dor;  // QUIDDIKEY Data Output register
+            volatile uint32_t dor;  // Data Output register
             volatile uint32_t reserved_4[5];  // Reserved/Not used.
-            volatile uint32_t misc;  // QUIDDIKEY Miscellaneous register
+            volatile uint32_t misc;  // Miscellaneous register
             volatile uint32_t reserved_5[3];  // Reserved/Not used.
-            volatile uint32_t if_sr;  // QUIDDIKEY Interface Status register
+            volatile uint32_t if_sr;  // Interface Status register
             volatile uint32_t reserved_6[1];  // Reserved/Not used.
-            volatile uint32_t test;  // QUIDDIKEY Test register
-            volatile uint32_t reserved_7[1];  // Reserved/Not used.
-            volatile uint32_t hw_ruc0;  // QUIDDIKEY Hardware Restrict User Context 0 register
-            volatile uint32_t hw_ruc1;  // QUIDDIKEY Hardware Restrict User Context 1 register
-            volatile uint32_t reserved_8[2];  // Reserved/Not used.
-            volatile uint32_t hw_setting;  // QUIDDIKEY Hardware Setting register
-            volatile uint32_t hw_info;  // QUIDDIKEY Hardware information register
-            volatile uint32_t hw_id;  // QUIDDIKEY Hardware Identifier register
-            volatile uint32_t hw_ver;  // QUIDDIKEY Hardware Version register
+            volatile uint32_t test;  // Test register
+            volatile uint32_t psr;  // PUF Score register
+            volatile uint32_t hw_ruc0;  // Hardware Restrict User Context 0 register
+            volatile uint32_t hw_ruc1;  // Hardware Restrict User Context 1 register
+            volatile uint32_t reserved_7[2];  // Reserved/Not used.
+            volatile uint32_t hw_settings;  // Hardware Settings register
+            volatile uint32_t hw_info;  // Hardware Information register
+            volatile uint32_t hw_id;  // Hardware Identifier register
+            volatile uint32_t hw_ver;  // Hardware Version register
         } __attribute__((packed)) quiddikey_t;
 
 .. toggle-header::
@@ -966,30 +1298,49 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_zeroize      :1 ; // Begin Zeroize operation
-            unsigned int qk_enroll       :1 ; // Begin Enroll operation
-            unsigned int qk_start        :1 ; // Begin Start operation
+            unsigned int zeroize         :1 ; // Begin Zeroize operation
+            unsigned int enroll          :1 ; // Begin Enroll operation
+            unsigned int start           :1 ; // Begin Start operation
             unsigned int padding0:2 ;
-            unsigned int qk_stop         :1 ; // Begin Stop operation
-            unsigned int qk_get_key      :1 ; // Begin Get Key operation
-            unsigned int qk_unwrap       :1 ; // Begin Unwrap operation
-            unsigned int qk_wrap_generated_random:1 ; // Begin Wrap Generated Random operation
-            unsigned int qk_wrap         :1 ; // Begin Wrap operation
+            unsigned int stop            :1 ; // Begin Stop operation
+            unsigned int get_key         :1 ; // Begin Get Key operation
+            unsigned int unwrap          :1 ; // Begin Unwrap operation
+            unsigned int wrap_generated_random:1 ; // Begin Wrap Generation Random operation
+            unsigned int wrap            :1 ; // Begin Wrap operation
             unsigned int padding1:5 ;
-            unsigned int qk_generate_random:1 ; // Begin Generate Random operation
+            unsigned int generate_random :1 ; // Begin Generate Random operation
+            unsigned int reseed          :1 ; // Begin Reseed operation
+            unsigned int padding2:14;
+            unsigned int test_puf        :1 ; // Begin Test PUF operation
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_cr_t;
         
         typedef union {
           struct {
-            unsigned int qk_busy         :1 ; // Operation is in progress
-            unsigned int qk_ok           :1 ; // Last operation was successful
-            unsigned int qk_error        :1 ; // Last operation failed
-            unsigned int qk_zeroized     :1 ; // QuiddiKey is in Zeroized or Locked state, For details see section 3.1
-            unsigned int qk_rejected     :1 ; // Read: Last command was rejected Write 1: Clears this bit
-            unsigned int qk_di_request   :1 ; // Request for data in transfer via the QK_DIR register
-            unsigned int qk_do_request   :1 ; // Request for data out transfer via the QK_DOR register
+            unsigned int result_code     :8 ; // Result code of last operation
+            unsigned int padding0:6 ;
+            unsigned int reseed_warning  :1 ; // Reseed Warning register field
+            unsigned int reseed_required :1 ; // Reseed Required register field
+            unsigned int padding1:8 ;
+            unsigned int last_operation  :8 ; // Number of last operation
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_orr_t;
+        
+        typedef union {
+          struct {
+            unsigned int busy            :1 ; // Operation is in progress
+            unsigned int ok              :1 ; // Last operation was successful
+            unsigned int error           :1 ; // Last operation failed
+            unsigned int zeroized        :1 ; // Quiddikey is in Zeroized or in Locked state
+            unsigned int rejected        :1 ; // Read: last command rejected, Write 1: Clear this bit
+            unsigned int di_request      :1 ; // Request for Data in transfer via DIR register
+            unsigned int do_request      :1 ; // Request for Data out transfer via DOR register
+            unsigned int padding0:22;
+            unsigned int reseed_warning  :1 ; // Reseed warning (see ORR RESEED_WARNING)
+            unsigned int reseed_required :1 ; // Reseed required (see ORR RESEED_REQUIRED)
+            unsigned int lab_test_mode   :1 ; // Quiddikey is in state Lab Test Mode
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_sr_t;
@@ -997,113 +1348,143 @@ Generated headers
         typedef union {
           struct {
             unsigned int padding0:1 ;
-            unsigned int qk_allow_enroll :1 ; // Enroll operation is allowed
-            unsigned int qk_allow_start  :1 ; // Start operation is allowed
+            unsigned int allow_enroll    :1 ; // Operation allowed status
+            unsigned int allow_start     :1 ; // Operation allowed status
             unsigned int padding1:2 ;
-            unsigned int qk_allow_stop   :1 ; // Stop operation is allowed
-            unsigned int qk_allow_get_key:1 ; // Get Key operations are allowed
-            unsigned int qk_allow_unwrap :1 ; // Unwrap operations are allowed
-            unsigned int qk_allow_wrap_generated_random:1 ; // Wrap Generated Random operations are allowed
-            unsigned int qk_allow_wrap   :1 ; // Wrap operations are allowed
+            unsigned int allow_stop      :1 ; // Operation allowed status
+            unsigned int allow_get_key   :1 ; // Operation allowed status
+            unsigned int allow_unwrap    :1 ; // Operation allowed status
+            unsigned int allow_wrap_gen_rnd:1 ; // Operation allowed status
+            unsigned int allow_wrap      :1 ; // Operation allowed status
             unsigned int padding2:5 ;
-            unsigned int qk_allow_generate_random:1 ; // Generate Random operations are allowed
+            unsigned int allow_gen_rnd   :1 ; // Operation allowed status
+            unsigned int allow_reseed    :1 ; // Operation allowed status
+            unsigned int padding3:14;
+            unsigned int allow_test_puf  :1 ; // Operation allowed status
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_ar_t;
         
         typedef union {
           struct {
-            unsigned int qk_int_en       :1 ; // 0: Disables all QuiddiKey interrupts 1: Enables all QuiddiKey interrupts that are enabled in the Interrupt Mask register 
+            unsigned int int_en          :1 ; // Interrupt enable register
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_ier_t;
         
         typedef union {
           struct {
-            unsigned int qk_int_en_busy  :1 ; // Enables the busy interrupt
-            unsigned int qk_int_en_ok    :1 ; // Enables the ok interrupt
-            unsigned int qk_int_en_error :1 ; // Enables the error interrupt
-            unsigned int qk_int_en_zeroized:1 ; // Enables the zeroized interrupt
-            unsigned int qk_int_en_rejected:1 ; // Enables the rejected interrupt
-            unsigned int qk_int_en_di_request:1 ; // Enables the data in request interrupt
-            unsigned int qk_int_en_do_request:1 ; // Enables the data out request interrupt
+            unsigned int int_en_busy     :1 ; // Enable Busy interrupt
+            unsigned int int_en_ok       :1 ; // Enable Ok interrupt
+            unsigned int int_en_error    :1 ; // Enable Error interrupt
+            unsigned int int_en_zeroized :1 ; // Enable Zeroized interrupt
+            unsigned int int_en_rejected :1 ; // Enable Rejected interrupt
+            unsigned int int_en_di_request:1 ; // Enable Data In Request interrupt
+            unsigned int int_en_do_request:1 ; // Enable Data Out Request interrupt
+            unsigned int padding0:22;
+            unsigned int int_en_reseed_warning:1 ; // Enable Reseed Warning interrupt
+            unsigned int int_en_reseed_required:1 ; // Enable Reseed Required interrupt
+            unsigned int int_en_lab_test_mode:1 ; // Enable Lab Test Mode interrupt
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_imr_t;
         
         typedef union {
           struct {
-            unsigned int qk_int_busy     :1 ; // A negative edge has occurred on qk_busy, which means that an operation has completed
-            unsigned int qk_int_ok       :1 ; // A positive edge has occurred on qk_ok, which means that an operation successfully completed
-            unsigned int qk_int_error    :1 ; // A positive edge has occurred on qk_error, which means that an operation has failed
-            unsigned int qk_int_zeroized :1 ; // A positive edge has occurred on qk_zeroized, which means that QuiddiKey has moved to the Zeroized or Locked state For details see section 3.1
-            unsigned int qk_int_rejected :1 ; // A positive edge has occurred on qk_rejected, which means that a command was rejected
-            unsigned int qk_int_di_request:1 ; // A positive edge has occurred on qk_di_request, which means that a data in transfer is requested via the QK_DIR register
-            unsigned int qk_int_do_request:1 ; // A positive edge has occurred on qk_do_request, which means that a data out transfer is requested via the QK_DOR register
+            unsigned int int_busy        :1 ; // Busy interrupt status register
+            unsigned int int_ok          :1 ; // Ok interrupt status register
+            unsigned int int_error       :1 ; // Error interrupt status register
+            unsigned int int_zeroized    :1 ; // Zeroized interrupt status register
+            unsigned int int_rejected    :1 ; // Rejected interrupt status register
+            unsigned int int_di_request  :1 ; // Data In Request interrupt status register
+            unsigned int int_do_request  :1 ; // Data Out Request interrupt status register
+            unsigned int padding0:22;
+            unsigned int int_reseed_warning:1 ; // Reseed Warning interrupt status register
+            unsigned int int_reseed_required:1 ; // Reseed Required interrupt status register
+            unsigned int int_lab_test_mode:1 ; // Lab Test Mode interrupt status register
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_isr_t;
         
         typedef union {
           struct {
-            unsigned int qk_dest_reg     :1 ; // Key will be made available via the QK_DOR register
-            unsigned int qk_dest_ko      :1 ; // Key will be made available via the KO interface
+            unsigned int dest_dor        :1 ; // Data out register destination
+            unsigned int dest_so         :1 ; // Secure Output interface destination
           };
           unsigned int raw;
-        } __attribute__((packed)) quiddikey_key_dest_t;
+        } __attribute__((packed)) quiddikey_data_dest_t;
         
         typedef union {
           struct {
-            unsigned int qk_di           :32; // Input data to QuiddiKey Note: This field must only be written when qk_di_request = 1
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_data_src (not mapped ?)_t;
+        
+        typedef union {
+          struct {
+            unsigned int key_index       :4 ; // Value of the Key Index
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_key_index_t;
+        
+        typedef union {
+          struct {
+            unsigned int di              :32; // Data In field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dir_t;
         
         typedef union {
           struct {
-            unsigned int qk_do           :32; // Output data from QuiddiKey Note: This field must only be read when qk_do_request = 1
+            unsigned int do              :32; // Data Out field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dor_t;
         
         typedef union {
           struct {
-            unsigned int qk_data_endianness:1 ; //  Defines the endianness of keys and data in system memory: 0: Little endian 1: Big endian (default) See section 5.1.4 for details
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_misc_t;
         
         typedef union {
           struct {
-            unsigned int apb_error       :1 ; //  An APB error has occurred, for details see section 5.1.2
+            unsigned int apb_error       :1 ; // An APB error has occured
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_if_sr_t;
         
         typedef union {
           struct {
-            unsigned int qk_bist_enable  :1 ; // Isolates QuiddiKey and runs BIST
+            unsigned int bist_enable     :1 ; // Isolates Quiddikey and runs BIST
             unsigned int padding0:3 ;
-            unsigned int qk_bist_running :1 ; // BIST is in progress or finishing up (after qk_bist_enable = 0)
-            unsigned int qk_bist_active  :1 ; // BIST is in progress
-            unsigned int qk_bist_ok      :1 ; // BIST has passed
-            unsigned int qk_bist_error   :1 ; // BIST has failed
+            unsigned int bist_running    :1 ; // BIST is in progress or finishing up
+            unsigned int bist_active     :1 ; // BIST is in progress
+            unsigned int bist_ok         :1 ; // BIST has passed
+            unsigned int bist_error      :1 ; // BIST has failed
             unsigned int padding1:23;
-            unsigned int qk_allow_bist   :1 ; // BIST is allowed
+            unsigned int allow_bist      :1 ; // BIST is not allowed
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_test_t;
         
         typedef union {
           struct {
-            unsigned int qk_restrict_user_context_0:32; // Hardware Restrict UC0 register
+            unsigned int puf_score       :4 ; // PUF Score field
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_psr_t;
+        
+        typedef union {
+          struct {
+            unsigned int restrict_user_context_0:32; // Restrict User Context 0 field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ruc0_t;
         
         typedef union {
           struct {
-            unsigned int qk_restrict_user_context_1:32; // Hardware Restrict UC1 register
+            unsigned int restrict_user_context_1:32; // Restrict User Context 1 field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ruc1_t;
@@ -1111,41 +1492,54 @@ Generated headers
         typedef union {
           struct {
             unsigned int padding0:1 ;
-            unsigned int qk_disable_enroll:1 ; // 0:Enroll operations are enabled 1:Enroll operations are disabled
-            unsigned int qk_disable_start:1 ; // 0:Start operations are disabled 1:Start operations are disabled
+            unsigned int disable_enroll  :1 ; // Enroll settings field
+            unsigned int disable_start   :1 ; // Start settings field
             unsigned int padding1:2 ;
-            unsigned int qk_disable_stop :1 ; // 0:Stop operations are enabled 1:Stop operations are disabled
-            unsigned int qk_disable_get_key:1 ; // 0:Get Key operations are enabled 1:Get Key operations are disabled
-            unsigned int qk_disable_unwrap:1 ; // 0:Unwrap operations are enabled 1:Unwrap operations are disabled
-            unsigned int qk_disable_wrap_generated_random:1 ; // 0:Wrap Generated Random operations are enabled 1:Wrap Generated Random operations are disabled
-            unsigned int qk_disable_wrap :1 ; // 0:Wrap operations are enabled 1:Wrap operations are disabled
+            unsigned int disable_stop    :1 ; // Stop settings field
+            unsigned int disable_get_key :1 ; // Get Key settings field
+            unsigned int disable_unwrap  :1 ; // Unwrap settings field
+            unsigned int disable_wrap_gen_rnd:1 ; // Wrap Generated Random settings field
+            unsigned int disable_wrap    :1 ; // Wrap settings field
             unsigned int padding2:5 ;
-            unsigned int qk_disable_generate_random:1 ; // 0:Generate Random operations are enabled 1:Generate Random operations are disabled
+            unsigned int disable_gen_rnd :1 ; // Generate Random settings field
+            unsigned int disable_reseed  :1 ; // Reseed settings field
+            unsigned int padding3:7 ;
+            unsigned int disable_lab_test_mode:1 ; // Lab Test Mode settings field
+            unsigned int select_lab_test_mode:1 ; // Lab Test Mode select field
+            unsigned int padding4:1 ;
+            unsigned int require_reseed_src_via_dir:1 ; // Reseed via DIR settings field
+            unsigned int require_reseed_src_via_si:1 ; // Reseed via SI settings field
+            unsigned int padding5:2 ;
+            unsigned int disable_test_puf:1 ; // Test PUF settings field
           };
           unsigned int raw;
-        } __attribute__((packed)) quiddikey_hw_setting_t;
+        } __attribute__((packed)) quiddikey_hw_settings_t;
         
         typedef union {
           struct {
-            unsigned int padding0:28;
-            unsigned int qk_config_type  :4 ; // QuiddiKey configuration: 0001: Safe 0010: Plus Other values: Reserved
-            unsigned int qk_config_bist  :1 ; // 1: BIST is included 0: BIST is not included
+            unsigned int padding0:21;
+            unsigned int config_sp_800_90:1 ; // 1: SP 800-90 is included, 0: not included
+            unsigned int config_bist     :1 ; // 1: BIST is included, 0: not included
+            unsigned int reserved        :1 ; // 1: Safe, 0: Plus
+            unsigned int config_wrap     :1 ; // 1: Wrap is included, 0: not included
+            unsigned int padding1:3 ;
+            unsigned int config_type     :4 ; // Quiddikey configuration
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_info_t;
         
         typedef union {
           struct {
-            unsigned int qk_hw_id        :32; // Hardware Identifier
+            unsigned int hw_id           :32; // Hardware Identifier
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_id_t;
         
         typedef union {
           struct {
-            unsigned int qk_hw_version_major:8 ; // Hardware version, major part
-            unsigned int qk_hw_version_minor:8 ; // Hardware version, minor part
-            unsigned int qk_hw_rev       :8 ; // Hardware version, patch part
+            unsigned int hw_ver_rev      :8 ; // Hardware version, revision part
+            unsigned int hw_ver_minor    :8 ; // Hardware version, minor part
+            unsigned int hw_ver_major    :8 ; // Hardware version, major part
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ver_t;
@@ -1160,20 +1554,24 @@ Generated headers
         {
         public:
             vp_quiddikey_cr cr;
+            vp_quiddikey_orr orr;
             vp_quiddikey_sr sr;
             vp_quiddikey_ar ar;
             vp_quiddikey_ier ier;
             vp_quiddikey_imr imr;
             vp_quiddikey_isr isr;
-            vp_quiddikey_key_dest key_dest;
+            vp_quiddikey_data_dest data_dest;
+            vp_quiddikey_data_src (not mapped ?) data_src (not mapped ?);
+            vp_quiddikey_key_index key_index;
             vp_quiddikey_dir dir;
             vp_quiddikey_dor dor;
             vp_quiddikey_misc misc;
             vp_quiddikey_if_sr if_sr;
             vp_quiddikey_test test;
+            vp_quiddikey_psr psr;
             vp_quiddikey_hw_ruc0 hw_ruc0;
             vp_quiddikey_hw_ruc1 hw_ruc1;
-            vp_quiddikey_hw_setting hw_setting;
+            vp_quiddikey_hw_settings hw_settings;
             vp_quiddikey_hw_info hw_info;
             vp_quiddikey_hw_id hw_id;
             vp_quiddikey_hw_ver hw_ver;
@@ -1181,36 +1579,40 @@ Generated headers
 
 |
 
-.. _QUIDDIKEY_CR:
+.. _quiddikey_CR:
 
 CR
 ""
 
-QUIDDIKEY Control register
+Control register
 
 .. table:: 
 
-    +-----+---+------------------------+-------------------------------------+
-    |Bit #|R/W|          Name          |             Description             |
-    +=====+===+========================+=====================================+
-    |    0|R/W|qk_zeroize              |Begin Zeroize operation              |
-    +-----+---+------------------------+-------------------------------------+
-    |    1|R/W|qk_enroll               |Begin Enroll operation               |
-    +-----+---+------------------------+-------------------------------------+
-    |    2|R/W|qk_start                |Begin Start operation                |
-    +-----+---+------------------------+-------------------------------------+
-    |    5|R/W|qk_stop                 |Begin Stop operation                 |
-    +-----+---+------------------------+-------------------------------------+
-    |    6|R/W|qk_get_key              |Begin Get Key operation              |
-    +-----+---+------------------------+-------------------------------------+
-    |    7|R/W|qk_unwrap               |Begin Unwrap operation               |
-    +-----+---+------------------------+-------------------------------------+
-    |    8|R/W|qk_wrap_generated_random|Begin Wrap Generated Random operation|
-    +-----+---+------------------------+-------------------------------------+
-    |    9|R/W|qk_wrap                 |Begin Wrap operation                 |
-    +-----+---+------------------------+-------------------------------------+
-    |   15|R/W|qk_generate_random      |Begin Generate Random operation      |
-    +-----+---+------------------------+-------------------------------------+
+    +-----+---+---------------------+--------------------------------------+
+    |Bit #|R/W|        Name         |             Description              |
+    +=====+===+=====================+======================================+
+    |    0|R/W|ZEROIZE              |Begin Zeroize operation               |
+    +-----+---+---------------------+--------------------------------------+
+    |    1|R/W|ENROLL               |Begin Enroll operation                |
+    +-----+---+---------------------+--------------------------------------+
+    |    2|R/W|START                |Begin Start operation                 |
+    +-----+---+---------------------+--------------------------------------+
+    |    5|R/W|STOP                 |Begin Stop operation                  |
+    +-----+---+---------------------+--------------------------------------+
+    |    6|R/W|GET_KEY              |Begin Get Key operation               |
+    +-----+---+---------------------+--------------------------------------+
+    |    7|R/W|UNWRAP               |Begin Unwrap operation                |
+    +-----+---+---------------------+--------------------------------------+
+    |    8|R/W|WRAP_GENERATED_RANDOM|Begin Wrap Generation Random operation|
+    +-----+---+---------------------+--------------------------------------+
+    |    9|R/W|WRAP                 |Begin Wrap operation                  |
+    +-----+---+---------------------+--------------------------------------+
+    |   15|R/W|GENERATE_RANDOM      |Begin Generate Random operation       |
+    +-----+---+---------------------+--------------------------------------+
+    |   16|R/W|RESEED               |Begin Reseed operation                |
+    +-----+---+---------------------+--------------------------------------+
+    |   31|R/W|TEST_PUF             |Begin Test PUF operation              |
+    +-----+---+---------------------+--------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1222,7 +1624,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Control register
+                // Control register
                 #define QUIDDIKEY_CR_OFFSET                      0x0
 
 .. toggle-header::
@@ -1241,58 +1643,70 @@ Generated headers
 
         
         // Begin Zeroize operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_ZEROIZE_BIT                                  0
-        #define QUIDDIKEY_CR_QK_ZEROIZE_WIDTH                                1
-        #define QUIDDIKEY_CR_QK_ZEROIZE_MASK                                 0x1
-        #define QUIDDIKEY_CR_QK_ZEROIZE_RESET                                0x0
+        #define QUIDDIKEY_CR_ZEROIZE_BIT                                     0
+        #define QUIDDIKEY_CR_ZEROIZE_WIDTH                                   1
+        #define QUIDDIKEY_CR_ZEROIZE_MASK                                    0x1
+        #define QUIDDIKEY_CR_ZEROIZE_RESET                                   0x0
         
         // Begin Enroll operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_ENROLL_BIT                                   1
-        #define QUIDDIKEY_CR_QK_ENROLL_WIDTH                                 1
-        #define QUIDDIKEY_CR_QK_ENROLL_MASK                                  0x2
-        #define QUIDDIKEY_CR_QK_ENROLL_RESET                                 0x0
+        #define QUIDDIKEY_CR_ENROLL_BIT                                      1
+        #define QUIDDIKEY_CR_ENROLL_WIDTH                                    1
+        #define QUIDDIKEY_CR_ENROLL_MASK                                     0x2
+        #define QUIDDIKEY_CR_ENROLL_RESET                                    0x0
         
         // Begin Start operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_START_BIT                                    2
-        #define QUIDDIKEY_CR_QK_START_WIDTH                                  1
-        #define QUIDDIKEY_CR_QK_START_MASK                                   0x4
-        #define QUIDDIKEY_CR_QK_START_RESET                                  0x0
+        #define QUIDDIKEY_CR_START_BIT                                       2
+        #define QUIDDIKEY_CR_START_WIDTH                                     1
+        #define QUIDDIKEY_CR_START_MASK                                      0x4
+        #define QUIDDIKEY_CR_START_RESET                                     0x0
         
         // Begin Stop operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_STOP_BIT                                     5
-        #define QUIDDIKEY_CR_QK_STOP_WIDTH                                   1
-        #define QUIDDIKEY_CR_QK_STOP_MASK                                    0x20
-        #define QUIDDIKEY_CR_QK_STOP_RESET                                   0x0
+        #define QUIDDIKEY_CR_STOP_BIT                                        5
+        #define QUIDDIKEY_CR_STOP_WIDTH                                      1
+        #define QUIDDIKEY_CR_STOP_MASK                                       0x20
+        #define QUIDDIKEY_CR_STOP_RESET                                      0x0
         
         // Begin Get Key operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_GET_KEY_BIT                                  6
-        #define QUIDDIKEY_CR_QK_GET_KEY_WIDTH                                1
-        #define QUIDDIKEY_CR_QK_GET_KEY_MASK                                 0x40
-        #define QUIDDIKEY_CR_QK_GET_KEY_RESET                                0x0
+        #define QUIDDIKEY_CR_GET_KEY_BIT                                     6
+        #define QUIDDIKEY_CR_GET_KEY_WIDTH                                   1
+        #define QUIDDIKEY_CR_GET_KEY_MASK                                    0x40
+        #define QUIDDIKEY_CR_GET_KEY_RESET                                   0x0
         
         // Begin Unwrap operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_UNWRAP_BIT                                   7
-        #define QUIDDIKEY_CR_QK_UNWRAP_WIDTH                                 1
-        #define QUIDDIKEY_CR_QK_UNWRAP_MASK                                  0x80
-        #define QUIDDIKEY_CR_QK_UNWRAP_RESET                                 0x0
+        #define QUIDDIKEY_CR_UNWRAP_BIT                                      7
+        #define QUIDDIKEY_CR_UNWRAP_WIDTH                                    1
+        #define QUIDDIKEY_CR_UNWRAP_MASK                                     0x80
+        #define QUIDDIKEY_CR_UNWRAP_RESET                                    0x0
         
-        // Begin Wrap Generated Random operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_BIT                    8
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_WIDTH                  1
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_MASK                   0x100
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_RESET                  0x0
+        // Begin Wrap Generation Random operation (access: R/W)
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_BIT                       8
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_WIDTH                     1
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_MASK                      0x100
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_RESET                     0x0
         
         // Begin Wrap operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_WRAP_BIT                                     9
-        #define QUIDDIKEY_CR_QK_WRAP_WIDTH                                   1
-        #define QUIDDIKEY_CR_QK_WRAP_MASK                                    0x200
-        #define QUIDDIKEY_CR_QK_WRAP_RESET                                   0x0
+        #define QUIDDIKEY_CR_WRAP_BIT                                        9
+        #define QUIDDIKEY_CR_WRAP_WIDTH                                      1
+        #define QUIDDIKEY_CR_WRAP_MASK                                       0x200
+        #define QUIDDIKEY_CR_WRAP_RESET                                      0x0
         
         // Begin Generate Random operation (access: R/W)
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_BIT                          15
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_WIDTH                        1
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_MASK                         0x8000
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_RESET                        0x0
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_BIT                             15
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_WIDTH                           1
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_MASK                            0x8000
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_RESET                           0x0
+        
+        // Begin Reseed operation (access: R/W)
+        #define QUIDDIKEY_CR_RESEED_BIT                                      16
+        #define QUIDDIKEY_CR_RESEED_WIDTH                                    1
+        #define QUIDDIKEY_CR_RESEED_MASK                                     0x10000
+        #define QUIDDIKEY_CR_RESEED_RESET                                    0x0
+        
+        // Begin Test PUF operation (access: R/W)
+        #define QUIDDIKEY_CR_TEST_PUF_BIT                                    31
+        #define QUIDDIKEY_CR_TEST_PUF_WIDTH                                  1
+        #define QUIDDIKEY_CR_TEST_PUF_MASK                                   0x80000000
+        #define QUIDDIKEY_CR_TEST_PUF_RESET                                  0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1300,50 +1714,60 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_CR_QK_ZEROIZE_GET(value)                 (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE_GETS(value)                (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE_SET(value,field)           (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_CR_QK_ZEROIZE(val)                       ((val) << 0)
+        #define QUIDDIKEY_CR_ZEROIZE_GET(value)                    (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE_GETS(value)                   (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_CR_ZEROIZE(val)                          ((val) << 0)
         
-        #define QUIDDIKEY_CR_QK_ENROLL_GET(value)                  (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL_GETS(value)                 (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL_SET(value,field)            (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_CR_QK_ENROLL(val)                        ((val) << 1)
+        #define QUIDDIKEY_CR_ENROLL_GET(value)                     (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_CR_ENROLL_GETS(value)                    (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_CR_ENROLL_SET(value,field)               (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_CR_ENROLL(val)                           ((val) << 1)
         
-        #define QUIDDIKEY_CR_QK_START_GET(value)                   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_CR_QK_START_GETS(value)                  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_CR_QK_START_SET(value,field)             (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_CR_QK_START(val)                         ((val) << 2)
+        #define QUIDDIKEY_CR_START_GET(value)                      (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_CR_START_GETS(value)                     (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_CR_START_SET(value,field)                (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_CR_START(val)                            ((val) << 2)
         
-        #define QUIDDIKEY_CR_QK_STOP_GET(value)                    (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_CR_QK_STOP_GETS(value)                   (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_CR_QK_STOP_SET(value,field)              (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_CR_QK_STOP(val)                          ((val) << 5)
+        #define QUIDDIKEY_CR_STOP_GET(value)                       (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_CR_STOP_GETS(value)                      (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_CR_STOP_SET(value,field)                 (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_CR_STOP(val)                             ((val) << 5)
         
-        #define QUIDDIKEY_CR_QK_GET_KEY_GET(value)                 (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY_GETS(value)                (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY_SET(value,field)           (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_CR_QK_GET_KEY(val)                       ((val) << 6)
+        #define QUIDDIKEY_CR_GET_KEY_GET(value)                    (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_CR_GET_KEY_GETS(value)                   (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_CR_GET_KEY_SET(value,field)              (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_CR_GET_KEY(val)                          ((val) << 6)
         
-        #define QUIDDIKEY_CR_QK_UNWRAP_GET(value)                  (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP_GETS(value)                 (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP_SET(value,field)            (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_CR_QK_UNWRAP(val)                        ((val) << 7)
+        #define QUIDDIKEY_CR_UNWRAP_GET(value)                     (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_CR_UNWRAP_GETS(value)                    (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_CR_UNWRAP_SET(value,field)               (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_CR_UNWRAP(val)                           ((val) << 7)
         
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_GET(value)   (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_GETS(value)  (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_CR_QK_WRAP_GENERATED_RANDOM(val)         ((val) << 8)
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_GET(value)      (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_GETS(value)     (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_CR_WRAP_GENERATED_RANDOM(val)            ((val) << 8)
         
-        #define QUIDDIKEY_CR_QK_WRAP_GET(value)                    (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP_GETS(value)                   (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP_SET(value,field)              (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_CR_QK_WRAP(val)                          ((val) << 9)
+        #define QUIDDIKEY_CR_WRAP_GET(value)                       (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_CR_WRAP_GETS(value)                      (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_CR_WRAP_SET(value,field)                 (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_CR_WRAP(val)                             ((val) << 9)
         
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_GET(value)         (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_GETS(value)        (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM_SET(value,field)   (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_CR_QK_GENERATE_RANDOM(val)               ((val) << 15)
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_GET(value)            (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_GETS(value)           (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM_SET(value,field)      (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_CR_GENERATE_RANDOM(val)                  ((val) << 15)
+        
+        #define QUIDDIKEY_CR_RESEED_GET(value)                     (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_CR_RESEED_GETS(value)                    (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_CR_RESEED_SET(value,field)               (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_CR_RESEED(val)                           ((val) << 16)
+        
+        #define QUIDDIKEY_CR_TEST_PUF_GET(value)                   (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF_GETS(value)                  (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF_SET(value,field)             (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_CR_TEST_PUF(val)                         ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1353,17 +1777,20 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_zeroize      :1 ; // Begin Zeroize operation
-            unsigned int qk_enroll       :1 ; // Begin Enroll operation
-            unsigned int qk_start        :1 ; // Begin Start operation
+            unsigned int zeroize         :1 ; // Begin Zeroize operation
+            unsigned int enroll          :1 ; // Begin Enroll operation
+            unsigned int start           :1 ; // Begin Start operation
             unsigned int padding0:2 ;
-            unsigned int qk_stop         :1 ; // Begin Stop operation
-            unsigned int qk_get_key      :1 ; // Begin Get Key operation
-            unsigned int qk_unwrap       :1 ; // Begin Unwrap operation
-            unsigned int qk_wrap_generated_random:1 ; // Begin Wrap Generated Random operation
-            unsigned int qk_wrap         :1 ; // Begin Wrap operation
+            unsigned int stop            :1 ; // Begin Stop operation
+            unsigned int get_key         :1 ; // Begin Get Key operation
+            unsigned int unwrap          :1 ; // Begin Unwrap operation
+            unsigned int wrap_generated_random:1 ; // Begin Wrap Generation Random operation
+            unsigned int wrap            :1 ; // Begin Wrap operation
             unsigned int padding1:5 ;
-            unsigned int qk_generate_random:1 ; // Begin Generate Random operation
+            unsigned int generate_random :1 ; // Begin Generate Random operation
+            unsigned int reseed          :1 ; // Begin Reseed operation
+            unsigned int padding2:14;
+            unsigned int test_puf        :1 ; // Begin Test PUF operation
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_cr_t;
@@ -1377,54 +1804,52 @@ Generated headers
         class vp_quiddikey_cr : public vp::reg_32
         {
         public:
-            inline void qk_zeroize_set(uint32_t value);
-            inline uint32_t qk_zeroize_get();
-            inline void qk_enroll_set(uint32_t value);
-            inline uint32_t qk_enroll_get();
-            inline void qk_start_set(uint32_t value);
-            inline uint32_t qk_start_get();
-            inline void qk_stop_set(uint32_t value);
-            inline uint32_t qk_stop_get();
-            inline void qk_get_key_set(uint32_t value);
-            inline uint32_t qk_get_key_get();
-            inline void qk_unwrap_set(uint32_t value);
-            inline uint32_t qk_unwrap_get();
-            inline void qk_wrap_generated_random_set(uint32_t value);
-            inline uint32_t qk_wrap_generated_random_get();
-            inline void qk_wrap_set(uint32_t value);
-            inline uint32_t qk_wrap_get();
-            inline void qk_generate_random_set(uint32_t value);
-            inline uint32_t qk_generate_random_get();
+            inline void zeroize_set(uint32_t value);
+            inline uint32_t zeroize_get();
+            inline void enroll_set(uint32_t value);
+            inline uint32_t enroll_get();
+            inline void start_set(uint32_t value);
+            inline uint32_t start_get();
+            inline void stop_set(uint32_t value);
+            inline uint32_t stop_get();
+            inline void get_key_set(uint32_t value);
+            inline uint32_t get_key_get();
+            inline void unwrap_set(uint32_t value);
+            inline uint32_t unwrap_get();
+            inline void wrap_generated_random_set(uint32_t value);
+            inline uint32_t wrap_generated_random_get();
+            inline void wrap_set(uint32_t value);
+            inline uint32_t wrap_get();
+            inline void generate_random_set(uint32_t value);
+            inline uint32_t generate_random_get();
+            inline void reseed_set(uint32_t value);
+            inline uint32_t reseed_get();
+            inline void test_puf_set(uint32_t value);
+            inline uint32_t test_puf_get();
         };
 
 |
 
-.. _QUIDDIKEY_SR:
+.. _quiddikey_ORR:
 
-SR
-""
+ORR
+"""
 
-QUIDDIKEY Status register
+Operation Result register
 
 .. table:: 
 
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |Bit #|R/W|    Name     |                             Description                             |
-    +=====+===+=============+=====================================================================+
-    |    0|R/W|qk_busy      |Operation is in progress                                             |
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    1|R/W|qk_ok        |Last operation was successful                                        |
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    2|R/W|qk_error     |Last operation failed                                                |
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    3|R/W|qk_zeroized  |QuiddiKey is in Zeroized or Locked state, For details see section 3.1|
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    4|R/W|qk_rejected  |Read: Last command was rejected Write 1: Clears this bit             |
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    5|R/W|qk_di_request|Request for data in transfer via the QK_DIR register                 |
-    +-----+---+-------------+---------------------------------------------------------------------+
-    |    6|R/W|qk_do_request|Request for data out transfer via the QK_DOR register                |
-    +-----+---+-------------+---------------------------------------------------------------------+
+    +-----+---+---------------+------------------------------+
+    |Bit #|R/W|     Name      |         Description          |
+    +=====+===+===============+==============================+
+    |7:0  |R/W|RESULT_CODE    |Result code of last operation |
+    +-----+---+---------------+------------------------------+
+    |14   |R/W|RESEED_WARNING |Reseed Warning register field |
+    +-----+---+---------------+------------------------------+
+    |15   |R/W|RESEED_REQUIRED|Reseed Required register field|
+    +-----+---+---------------+------------------------------+
+    |31:24|R/W|LAST_OPERATION |Number of last operation      |
+    +-----+---+---------------+------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1436,7 +1861,157 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Status register
+                // Operation Result register
+                #define QUIDDIKEY_ORR_OFFSET                     0x4
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t quiddikey_orr_get(uint32_t base);
+        static inline void quiddikey_orr_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // Result code of last operation (access: R/W)
+        #define QUIDDIKEY_ORR_RESULT_CODE_BIT                                0
+        #define QUIDDIKEY_ORR_RESULT_CODE_WIDTH                              8
+        #define QUIDDIKEY_ORR_RESULT_CODE_MASK                               0xff
+        #define QUIDDIKEY_ORR_RESULT_CODE_RESET                              0x0
+        
+        // Reseed Warning register field (access: R/W)
+        #define QUIDDIKEY_ORR_RESEED_WARNING_BIT                             14
+        #define QUIDDIKEY_ORR_RESEED_WARNING_WIDTH                           1
+        #define QUIDDIKEY_ORR_RESEED_WARNING_MASK                            0x4000
+        #define QUIDDIKEY_ORR_RESEED_WARNING_RESET                           0x0
+        
+        // Reseed Required register field (access: R/W)
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_BIT                            15
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_WIDTH                          1
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_MASK                           0x8000
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_RESET                          0x0
+        
+        // Number of last operation (access: R/W)
+        #define QUIDDIKEY_ORR_LAST_OPERATION_BIT                             24
+        #define QUIDDIKEY_ORR_LAST_OPERATION_WIDTH                           8
+        #define QUIDDIKEY_ORR_LAST_OPERATION_MASK                            0xff000000
+        #define QUIDDIKEY_ORR_LAST_OPERATION_RESET                           0x0
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define QUIDDIKEY_ORR_RESULT_CODE_GET(value)               (GAP_BEXTRACTU((value),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE_GETS(value)              (GAP_BEXTRACT((value),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE_SET(value,field)         (GAP_BINSERT((value),(field),8,0))
+        #define QUIDDIKEY_ORR_RESULT_CODE(val)                     ((val) << 0)
+        
+        #define QUIDDIKEY_ORR_RESEED_WARNING_GET(value)            (GAP_BEXTRACTU((value),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING_GETS(value)           (GAP_BEXTRACT((value),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING_SET(value,field)      (GAP_BINSERT((value),(field),1,14))
+        #define QUIDDIKEY_ORR_RESEED_WARNING(val)                  ((val) << 14)
+        
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GET(value)           (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GETS(value)          (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED_SET(value,field)     (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_ORR_RESEED_REQUIRED(val)                 ((val) << 15)
+        
+        #define QUIDDIKEY_ORR_LAST_OPERATION_GET(value)            (GAP_BEXTRACTU((value),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION_GETS(value)           (GAP_BEXTRACT((value),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION_SET(value,field)      (GAP_BINSERT((value),(field),8,24))
+        #define QUIDDIKEY_ORR_LAST_OPERATION(val)                  ((val) << 24)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int result_code     :8 ; // Result code of last operation
+            unsigned int padding0:6 ;
+            unsigned int reseed_warning  :1 ; // Reseed Warning register field
+            unsigned int reseed_required :1 ; // Reseed Required register field
+            unsigned int padding1:8 ;
+            unsigned int last_operation  :8 ; // Number of last operation
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_orr_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_quiddikey_orr : public vp::reg_32
+        {
+        public:
+            inline void result_code_set(uint32_t value);
+            inline uint32_t result_code_get();
+            inline void reseed_warning_set(uint32_t value);
+            inline uint32_t reseed_warning_get();
+            inline void reseed_required_set(uint32_t value);
+            inline uint32_t reseed_required_get();
+            inline void last_operation_set(uint32_t value);
+            inline uint32_t last_operation_get();
+        };
+
+|
+
+.. _quiddikey_SR:
+
+SR
+""
+
+Status register
+
+.. table:: 
+
+    +-----+---+---------------+----------------------------------------------------+
+    |Bit #|R/W|     Name      |                    Description                     |
+    +=====+===+===============+====================================================+
+    |    0|R/W|BUSY           |Operation is in progress                            |
+    +-----+---+---------------+----------------------------------------------------+
+    |    1|R/W|OK             |Last operation was successful                       |
+    +-----+---+---------------+----------------------------------------------------+
+    |    2|R/W|ERROR          |Last operation failed                               |
+    +-----+---+---------------+----------------------------------------------------+
+    |    3|R/W|ZEROIZED       |Quiddikey is in Zeroized or in Locked state         |
+    +-----+---+---------------+----------------------------------------------------+
+    |    4|R/W|REJECTED       |Read: last command rejected, Write 1: Clear this bit|
+    +-----+---+---------------+----------------------------------------------------+
+    |    5|R/W|DI_REQUEST     |Request for Data in transfer via DIR register       |
+    +-----+---+---------------+----------------------------------------------------+
+    |    6|R/W|DO_REQUEST     |Request for Data out transfer via DOR register      |
+    +-----+---+---------------+----------------------------------------------------+
+    |   29|R/W|RESEED_WARNING |Reseed warning (see ORR RESEED_WARNING)             |
+    +-----+---+---------------+----------------------------------------------------+
+    |   30|R/W|RESEED_REQUIRED|Reseed required (see ORR RESEED_REQUIRED)           |
+    +-----+---+---------------+----------------------------------------------------+
+    |   31|R/W|LAB_TEST_MODE  |Quiddikey is in state Lab Test Mode                 |
+    +-----+---+---------------+----------------------------------------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // Status register
                 #define QUIDDIKEY_SR_OFFSET                      0x8
 
 .. toggle-header::
@@ -1455,46 +2030,64 @@ Generated headers
 
         
         // Operation is in progress (access: R/W)
-        #define QUIDDIKEY_SR_QK_BUSY_BIT                                     0
-        #define QUIDDIKEY_SR_QK_BUSY_WIDTH                                   1
-        #define QUIDDIKEY_SR_QK_BUSY_MASK                                    0x1
-        #define QUIDDIKEY_SR_QK_BUSY_RESET                                   0x1
+        #define QUIDDIKEY_SR_BUSY_BIT                                        0
+        #define QUIDDIKEY_SR_BUSY_WIDTH                                      1
+        #define QUIDDIKEY_SR_BUSY_MASK                                       0x1
+        #define QUIDDIKEY_SR_BUSY_RESET                                      0x0
         
         // Last operation was successful (access: R/W)
-        #define QUIDDIKEY_SR_QK_OK_BIT                                       1
-        #define QUIDDIKEY_SR_QK_OK_WIDTH                                     1
-        #define QUIDDIKEY_SR_QK_OK_MASK                                      0x2
-        #define QUIDDIKEY_SR_QK_OK_RESET                                     0x0
+        #define QUIDDIKEY_SR_OK_BIT                                          1
+        #define QUIDDIKEY_SR_OK_WIDTH                                        1
+        #define QUIDDIKEY_SR_OK_MASK                                         0x2
+        #define QUIDDIKEY_SR_OK_RESET                                        0x0
         
         // Last operation failed (access: R/W)
-        #define QUIDDIKEY_SR_QK_ERROR_BIT                                    2
-        #define QUIDDIKEY_SR_QK_ERROR_WIDTH                                  1
-        #define QUIDDIKEY_SR_QK_ERROR_MASK                                   0x4
-        #define QUIDDIKEY_SR_QK_ERROR_RESET                                  0x0
+        #define QUIDDIKEY_SR_ERROR_BIT                                       2
+        #define QUIDDIKEY_SR_ERROR_WIDTH                                     1
+        #define QUIDDIKEY_SR_ERROR_MASK                                      0x4
+        #define QUIDDIKEY_SR_ERROR_RESET                                     0x0
         
-        // QuiddiKey is in Zeroized or Locked state, For details see section 3.1 (access: R/W)
-        #define QUIDDIKEY_SR_QK_ZEROIZED_BIT                                 3
-        #define QUIDDIKEY_SR_QK_ZEROIZED_WIDTH                               1
-        #define QUIDDIKEY_SR_QK_ZEROIZED_MASK                                0x8
-        #define QUIDDIKEY_SR_QK_ZEROIZED_RESET                               0x0
+        // Quiddikey is in Zeroized or in Locked state (access: R/W)
+        #define QUIDDIKEY_SR_ZEROIZED_BIT                                    3
+        #define QUIDDIKEY_SR_ZEROIZED_WIDTH                                  1
+        #define QUIDDIKEY_SR_ZEROIZED_MASK                                   0x8
+        #define QUIDDIKEY_SR_ZEROIZED_RESET                                  0x0
         
-        // Read: Last command was rejected Write 1: Clears this bit (access: R/W)
-        #define QUIDDIKEY_SR_QK_REJECTED_BIT                                 4
-        #define QUIDDIKEY_SR_QK_REJECTED_WIDTH                               1
-        #define QUIDDIKEY_SR_QK_REJECTED_MASK                                0x10
-        #define QUIDDIKEY_SR_QK_REJECTED_RESET                               0x0
+        // Read: last command rejected, Write 1: Clear this bit (access: R/W)
+        #define QUIDDIKEY_SR_REJECTED_BIT                                    4
+        #define QUIDDIKEY_SR_REJECTED_WIDTH                                  1
+        #define QUIDDIKEY_SR_REJECTED_MASK                                   0x10
+        #define QUIDDIKEY_SR_REJECTED_RESET                                  0x0
         
-        // Request for data in transfer via the QK_DIR register (access: R/W)
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_BIT                               5
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_WIDTH                             1
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_MASK                              0x20
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_RESET                             0x0
+        // Request for Data in transfer via DIR register (access: R/W)
+        #define QUIDDIKEY_SR_DI_REQUEST_BIT                                  5
+        #define QUIDDIKEY_SR_DI_REQUEST_WIDTH                                1
+        #define QUIDDIKEY_SR_DI_REQUEST_MASK                                 0x20
+        #define QUIDDIKEY_SR_DI_REQUEST_RESET                                0x0
         
-        // Request for data out transfer via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_BIT                               6
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_WIDTH                             1
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_MASK                              0x40
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_RESET                             0x0
+        // Request for Data out transfer via DOR register (access: R/W)
+        #define QUIDDIKEY_SR_DO_REQUEST_BIT                                  6
+        #define QUIDDIKEY_SR_DO_REQUEST_WIDTH                                1
+        #define QUIDDIKEY_SR_DO_REQUEST_MASK                                 0x40
+        #define QUIDDIKEY_SR_DO_REQUEST_RESET                                0x0
+        
+        // Reseed warning (see ORR RESEED_WARNING) (access: R/W)
+        #define QUIDDIKEY_SR_RESEED_WARNING_BIT                              29
+        #define QUIDDIKEY_SR_RESEED_WARNING_WIDTH                            1
+        #define QUIDDIKEY_SR_RESEED_WARNING_MASK                             0x20000000
+        #define QUIDDIKEY_SR_RESEED_WARNING_RESET                            0x0
+        
+        // Reseed required (see ORR RESEED_REQUIRED) (access: R/W)
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_BIT                             30
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_WIDTH                           1
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_MASK                            0x40000000
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_RESET                           0x0
+        
+        // Quiddikey is in state Lab Test Mode (access: R/W)
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_BIT                               31
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_WIDTH                             1
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_MASK                              0x80000000
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_RESET                             0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1502,40 +2095,55 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_SR_QK_BUSY_GET(value)                    (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY_GETS(value)                   (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_SR_QK_BUSY(val)                          ((val) << 0)
+        #define QUIDDIKEY_SR_BUSY_GET(value)                       (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_SR_BUSY_GETS(value)                      (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_SR_BUSY_SET(value,field)                 (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_SR_BUSY(val)                             ((val) << 0)
         
-        #define QUIDDIKEY_SR_QK_OK_GET(value)                      (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_SR_QK_OK_GETS(value)                     (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_SR_QK_OK_SET(value,field)                (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_SR_QK_OK(val)                            ((val) << 1)
+        #define QUIDDIKEY_SR_OK_GET(value)                         (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_SR_OK_GETS(value)                        (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_SR_OK_SET(value,field)                   (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_SR_OK(val)                               ((val) << 1)
         
-        #define QUIDDIKEY_SR_QK_ERROR_GET(value)                   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR_GETS(value)                  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR_SET(value,field)             (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_SR_QK_ERROR(val)                         ((val) << 2)
+        #define QUIDDIKEY_SR_ERROR_GET(value)                      (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_SR_ERROR_GETS(value)                     (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_SR_ERROR_SET(value,field)                (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_SR_ERROR(val)                            ((val) << 2)
         
-        #define QUIDDIKEY_SR_QK_ZEROIZED_GET(value)                (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED_GETS(value)               (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED_SET(value,field)          (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_SR_QK_ZEROIZED(val)                      ((val) << 3)
+        #define QUIDDIKEY_SR_ZEROIZED_GET(value)                   (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED_GETS(value)                  (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED_SET(value,field)             (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_SR_ZEROIZED(val)                         ((val) << 3)
         
-        #define QUIDDIKEY_SR_QK_REJECTED_GET(value)                (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED_GETS(value)               (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED_SET(value,field)          (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_SR_QK_REJECTED(val)                      ((val) << 4)
+        #define QUIDDIKEY_SR_REJECTED_GET(value)                   (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_SR_REJECTED_GETS(value)                  (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_SR_REJECTED_SET(value,field)             (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_SR_REJECTED(val)                         ((val) << 4)
         
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_GET(value)              (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_GETS(value)             (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_SR_QK_DI_REQUEST(val)                    ((val) << 5)
+        #define QUIDDIKEY_SR_DI_REQUEST_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_SR_DI_REQUEST(val)                       ((val) << 5)
         
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_GET(value)              (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_GETS(value)             (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST_SET(value,field)        (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_SR_QK_DO_REQUEST(val)                    ((val) << 6)
+        #define QUIDDIKEY_SR_DO_REQUEST_GET(value)                 (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST_GETS(value)                (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST_SET(value,field)           (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_SR_DO_REQUEST(val)                       ((val) << 6)
+        
+        #define QUIDDIKEY_SR_RESEED_WARNING_GET(value)             (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING_GETS(value)            (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING_SET(value,field)       (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_SR_RESEED_WARNING(val)                   ((val) << 29)
+        
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_GET(value)            (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_GETS(value)           (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED_SET(value,field)      (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_SR_RESEED_REQUIRED(val)                  ((val) << 30)
+        
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_GET(value)              (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_GETS(value)             (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE_SET(value,field)        (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_SR_LAB_TEST_MODE(val)                    ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1545,13 +2153,17 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_busy         :1 ; // Operation is in progress
-            unsigned int qk_ok           :1 ; // Last operation was successful
-            unsigned int qk_error        :1 ; // Last operation failed
-            unsigned int qk_zeroized     :1 ; // QuiddiKey is in Zeroized or Locked state, For details see section 3.1
-            unsigned int qk_rejected     :1 ; // Read: Last command was rejected Write 1: Clears this bit
-            unsigned int qk_di_request   :1 ; // Request for data in transfer via the QK_DIR register
-            unsigned int qk_do_request   :1 ; // Request for data out transfer via the QK_DOR register
+            unsigned int busy            :1 ; // Operation is in progress
+            unsigned int ok              :1 ; // Last operation was successful
+            unsigned int error           :1 ; // Last operation failed
+            unsigned int zeroized        :1 ; // Quiddikey is in Zeroized or in Locked state
+            unsigned int rejected        :1 ; // Read: last command rejected, Write 1: Clear this bit
+            unsigned int di_request      :1 ; // Request for Data in transfer via DIR register
+            unsigned int do_request      :1 ; // Request for Data out transfer via DOR register
+            unsigned int padding0:22;
+            unsigned int reseed_warning  :1 ; // Reseed warning (see ORR RESEED_WARNING)
+            unsigned int reseed_required :1 ; // Reseed required (see ORR RESEED_REQUIRED)
+            unsigned int lab_test_mode   :1 ; // Quiddikey is in state Lab Test Mode
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_sr_t;
@@ -1565,52 +2177,62 @@ Generated headers
         class vp_quiddikey_sr : public vp::reg_32
         {
         public:
-            inline void qk_busy_set(uint32_t value);
-            inline uint32_t qk_busy_get();
-            inline void qk_ok_set(uint32_t value);
-            inline uint32_t qk_ok_get();
-            inline void qk_error_set(uint32_t value);
-            inline uint32_t qk_error_get();
-            inline void qk_zeroized_set(uint32_t value);
-            inline uint32_t qk_zeroized_get();
-            inline void qk_rejected_set(uint32_t value);
-            inline uint32_t qk_rejected_get();
-            inline void qk_di_request_set(uint32_t value);
-            inline uint32_t qk_di_request_get();
-            inline void qk_do_request_set(uint32_t value);
-            inline uint32_t qk_do_request_get();
+            inline void busy_set(uint32_t value);
+            inline uint32_t busy_get();
+            inline void ok_set(uint32_t value);
+            inline uint32_t ok_get();
+            inline void error_set(uint32_t value);
+            inline uint32_t error_get();
+            inline void zeroized_set(uint32_t value);
+            inline uint32_t zeroized_get();
+            inline void rejected_set(uint32_t value);
+            inline uint32_t rejected_get();
+            inline void di_request_set(uint32_t value);
+            inline uint32_t di_request_get();
+            inline void do_request_set(uint32_t value);
+            inline uint32_t do_request_get();
+            inline void reseed_warning_set(uint32_t value);
+            inline uint32_t reseed_warning_get();
+            inline void reseed_required_set(uint32_t value);
+            inline uint32_t reseed_required_get();
+            inline void lab_test_mode_set(uint32_t value);
+            inline uint32_t lab_test_mode_get();
         };
 
 |
 
-.. _QUIDDIKEY_AR:
+.. _quiddikey_AR:
 
 AR
 ""
 
-QUIDDIKEY Allow register
+Allow register
 
 .. table:: 
 
-    +-----+---+------------------------------+--------------------------------------------+
-    |Bit #|R/W|             Name             |                Description                 |
-    +=====+===+==============================+============================================+
-    |    1|R/W|qk_allow_enroll               |Enroll operation is allowed                 |
-    +-----+---+------------------------------+--------------------------------------------+
-    |    2|R  |qk_allow_start                |Start operation is allowed                  |
-    +-----+---+------------------------------+--------------------------------------------+
-    |    5|R  |qk_allow_stop                 |Stop operation is allowed                   |
-    +-----+---+------------------------------+--------------------------------------------+
-    |    6|R  |qk_allow_get_key              |Get Key operations are allowed              |
-    +-----+---+------------------------------+--------------------------------------------+
-    |    7|R  |qk_allow_unwrap               |Unwrap operations are allowed               |
-    +-----+---+------------------------------+--------------------------------------------+
-    |    8|R  |qk_allow_wrap_generated_random|Wrap Generated Random operations are allowed|
-    +-----+---+------------------------------+--------------------------------------------+
-    |    9|R  |qk_allow_wrap                 |Wrap operations are allowed                 |
-    +-----+---+------------------------------+--------------------------------------------+
-    |   15|R  |qk_allow_generate_random      |Generate Random operations are allowed      |
-    +-----+---+------------------------------+--------------------------------------------+
+    +-----+---+------------------+------------------------+
+    |Bit #|R/W|       Name       |      Description       |
+    +=====+===+==================+========================+
+    |    1|R/W|ALLOW_ENROLL      |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    2|R/W|ALLOW_START       |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    5|R/W|ALLOW_STOP        |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    6|R/W|ALLOW_GET_KEY     |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    7|R/W|ALLOW_UNWRAP      |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    8|R/W|ALLOW_WRAP_GEN_RND|Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |    9|R/W|ALLOW_WRAP        |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |   15|R/W|ALLOW_GEN_RND     |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |   16|R/W|ALLOW_RESEED      |Operation allowed status|
+    +-----+---+------------------+------------------------+
+    |   31|R/W|ALLOW_TEST_PUF    |Operation allowed status|
+    +-----+---+------------------+------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1622,7 +2244,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Allow register
+                // Allow register
                 #define QUIDDIKEY_AR_OFFSET                      0xc
 
 .. toggle-header::
@@ -1640,53 +2262,65 @@ Generated headers
     .. code-block:: c
 
         
-        // Enroll operation is allowed (access: R/W)
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_BIT                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_WIDTH                           1
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_MASK                            0x2
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_RESET                           0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_BIT                                1
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_MASK                               0x2
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_RESET                              0x0
         
-        // Start operation is allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_START_BIT                              2
-        #define QUIDDIKEY_AR_QK_ALLOW_START_WIDTH                            1
-        #define QUIDDIKEY_AR_QK_ALLOW_START_MASK                             0x4
-        #define QUIDDIKEY_AR_QK_ALLOW_START_RESET                            0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_START_BIT                                 2
+        #define QUIDDIKEY_AR_ALLOW_START_WIDTH                               1
+        #define QUIDDIKEY_AR_ALLOW_START_MASK                                0x4
+        #define QUIDDIKEY_AR_ALLOW_START_RESET                               0x0
         
-        // Stop operation is allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_BIT                               5
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_WIDTH                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_MASK                              0x20
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_RESET                             0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_STOP_BIT                                  5
+        #define QUIDDIKEY_AR_ALLOW_STOP_WIDTH                                1
+        #define QUIDDIKEY_AR_ALLOW_STOP_MASK                                 0x20
+        #define QUIDDIKEY_AR_ALLOW_STOP_RESET                                0x0
         
-        // Get Key operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_BIT                            6
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_WIDTH                          1
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_MASK                           0x40
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_RESET                          0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_BIT                               6
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_WIDTH                             1
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_MASK                              0x40
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_RESET                             0x0
         
-        // Unwrap operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_BIT                             7
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_WIDTH                           1
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_MASK                            0x80
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_RESET                           0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_BIT                                7
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_MASK                               0x80
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_RESET                              0x0
         
-        // Wrap Generated Random operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_BIT              8
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_WIDTH            1
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_MASK             0x100
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_RESET            0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_BIT                          8
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_WIDTH                        1
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_MASK                         0x100
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_RESET                        0x0
         
-        // Wrap operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_BIT                               9
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_WIDTH                             1
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_MASK                              0x200
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_RESET                             0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_BIT                                  9
+        #define QUIDDIKEY_AR_ALLOW_WRAP_WIDTH                                1
+        #define QUIDDIKEY_AR_ALLOW_WRAP_MASK                                 0x200
+        #define QUIDDIKEY_AR_ALLOW_WRAP_RESET                                0x0
         
-        // Generate Random operations are allowed (access: R)
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_BIT                    15
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_WIDTH                  1
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_MASK                   0x8000
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_RESET                  0x0
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_BIT                               15
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_WIDTH                             1
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_MASK                              0x8000
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_RESET                             0x0
+        
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_RESEED_BIT                                16
+        #define QUIDDIKEY_AR_ALLOW_RESEED_WIDTH                              1
+        #define QUIDDIKEY_AR_ALLOW_RESEED_MASK                               0x10000
+        #define QUIDDIKEY_AR_ALLOW_RESEED_RESET                              0x0
+        
+        // Operation allowed status (access: R/W)
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_BIT                              31
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_WIDTH                            1
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_MASK                             0x80000000
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_RESET                            0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1694,45 +2328,55 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_GET(value)            (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_GETS(value)           (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL_SET(value,field)      (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_AR_QK_ALLOW_ENROLL(val)                  ((val) << 1)
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_GET(value)               (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_GETS(value)              (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL_SET(value,field)         (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_AR_ALLOW_ENROLL(val)                     ((val) << 1)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_START_GET(value)             (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START_GETS(value)            (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START_SET(value,field)       (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_AR_QK_ALLOW_START(val)                   ((val) << 2)
+        #define QUIDDIKEY_AR_ALLOW_START_GET(value)                (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START_GETS(value)               (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START_SET(value,field)          (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_AR_ALLOW_START(val)                      ((val) << 2)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_GET(value)              (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_GETS(value)             (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_AR_QK_ALLOW_STOP(val)                    ((val) << 5)
+        #define QUIDDIKEY_AR_ALLOW_STOP_GET(value)                 (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP_GETS(value)                (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP_SET(value,field)           (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_AR_ALLOW_STOP(val)                       ((val) << 5)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_GET(value)           (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_GETS(value)          (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY_SET(value,field)     (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_AR_QK_ALLOW_GET_KEY(val)                 ((val) << 6)
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_GET(value)              (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_GETS(value)             (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY_SET(value,field)        (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_AR_ALLOW_GET_KEY(val)                    ((val) << 6)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_GET(value)            (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_GETS(value)           (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_AR_QK_ALLOW_UNWRAP(val)                  ((val) << 7)
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_GET(value)               (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_GETS(value)              (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP_SET(value,field)         (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_AR_ALLOW_UNWRAP(val)                     ((val) << 7)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GENERATED_RANDOM(val)   ((val) << 8)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_GET(value)         (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_GETS(value)        (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND_SET(value,field)   (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GEN_RND(val)               ((val) << 8)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GET(value)              (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_GETS(value)             (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP_SET(value,field)        (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_AR_QK_ALLOW_WRAP(val)                    ((val) << 9)
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GET(value)                 (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_GETS(value)                (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP_SET(value,field)           (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_AR_ALLOW_WRAP(val)                       ((val) << 9)
         
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_GET(value)   (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_GETS(value)  (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_AR_QK_ALLOW_GENERATE_RANDOM(val)         ((val) << 15)
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_GET(value)              (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_GETS(value)             (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND_SET(value,field)        (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_AR_ALLOW_GEN_RND(val)                    ((val) << 15)
+        
+        #define QUIDDIKEY_AR_ALLOW_RESEED_GET(value)               (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED_GETS(value)              (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED_SET(value,field)         (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_AR_ALLOW_RESEED(val)                     ((val) << 16)
+        
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_GET(value)             (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_GETS(value)            (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF_SET(value,field)       (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_AR_ALLOW_TEST_PUF(val)                   ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1743,16 +2387,19 @@ Generated headers
         typedef union {
           struct {
             unsigned int padding0:1 ;
-            unsigned int qk_allow_enroll :1 ; // Enroll operation is allowed
-            unsigned int qk_allow_start  :1 ; // Start operation is allowed
+            unsigned int allow_enroll    :1 ; // Operation allowed status
+            unsigned int allow_start     :1 ; // Operation allowed status
             unsigned int padding1:2 ;
-            unsigned int qk_allow_stop   :1 ; // Stop operation is allowed
-            unsigned int qk_allow_get_key:1 ; // Get Key operations are allowed
-            unsigned int qk_allow_unwrap :1 ; // Unwrap operations are allowed
-            unsigned int qk_allow_wrap_generated_random:1 ; // Wrap Generated Random operations are allowed
-            unsigned int qk_allow_wrap   :1 ; // Wrap operations are allowed
+            unsigned int allow_stop      :1 ; // Operation allowed status
+            unsigned int allow_get_key   :1 ; // Operation allowed status
+            unsigned int allow_unwrap    :1 ; // Operation allowed status
+            unsigned int allow_wrap_gen_rnd:1 ; // Operation allowed status
+            unsigned int allow_wrap      :1 ; // Operation allowed status
             unsigned int padding2:5 ;
-            unsigned int qk_allow_generate_random:1 ; // Generate Random operations are allowed
+            unsigned int allow_gen_rnd   :1 ; // Operation allowed status
+            unsigned int allow_reseed    :1 ; // Operation allowed status
+            unsigned int padding3:14;
+            unsigned int allow_test_puf  :1 ; // Operation allowed status
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_ar_t;
@@ -1766,40 +2413,44 @@ Generated headers
         class vp_quiddikey_ar : public vp::reg_32
         {
         public:
-            inline void qk_allow_enroll_set(uint32_t value);
-            inline uint32_t qk_allow_enroll_get();
-            inline void qk_allow_start_set(uint32_t value);
-            inline uint32_t qk_allow_start_get();
-            inline void qk_allow_stop_set(uint32_t value);
-            inline uint32_t qk_allow_stop_get();
-            inline void qk_allow_get_key_set(uint32_t value);
-            inline uint32_t qk_allow_get_key_get();
-            inline void qk_allow_unwrap_set(uint32_t value);
-            inline uint32_t qk_allow_unwrap_get();
-            inline void qk_allow_wrap_generated_random_set(uint32_t value);
-            inline uint32_t qk_allow_wrap_generated_random_get();
-            inline void qk_allow_wrap_set(uint32_t value);
-            inline uint32_t qk_allow_wrap_get();
-            inline void qk_allow_generate_random_set(uint32_t value);
-            inline uint32_t qk_allow_generate_random_get();
+            inline void allow_enroll_set(uint32_t value);
+            inline uint32_t allow_enroll_get();
+            inline void allow_start_set(uint32_t value);
+            inline uint32_t allow_start_get();
+            inline void allow_stop_set(uint32_t value);
+            inline uint32_t allow_stop_get();
+            inline void allow_get_key_set(uint32_t value);
+            inline uint32_t allow_get_key_get();
+            inline void allow_unwrap_set(uint32_t value);
+            inline uint32_t allow_unwrap_get();
+            inline void allow_wrap_gen_rnd_set(uint32_t value);
+            inline uint32_t allow_wrap_gen_rnd_get();
+            inline void allow_wrap_set(uint32_t value);
+            inline uint32_t allow_wrap_get();
+            inline void allow_gen_rnd_set(uint32_t value);
+            inline uint32_t allow_gen_rnd_get();
+            inline void allow_reseed_set(uint32_t value);
+            inline uint32_t allow_reseed_get();
+            inline void allow_test_puf_set(uint32_t value);
+            inline uint32_t allow_test_puf_get();
         };
 
 |
 
-.. _QUIDDIKEY_IER:
+.. _quiddikey_IER:
 
 IER
 """
 
-QUIDDIKEY Interrupt Enable register
+Interrupt Enable register
 
 .. table:: 
 
-    +-----+---+---------+-------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|  Name   |                                                       Description                                                       |
-    +=====+===+=========+=========================================================================================================================+
-    |    0|R/W|qk_int_en|0: Disables all QuiddiKey interrupts 1: Enables all QuiddiKey interrupts that are enabled in the Interrupt Mask register |
-    +-----+---+---------+-------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+------+-------------------------+
+    |Bit #|R/W| Name |       Description       |
+    +=====+===+======+=========================+
+    |    0|R/W|INT_EN|Interrupt enable register|
+    +-----+---+------+-------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1811,7 +2462,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Interrupt Enable register
+                // Interrupt Enable register
                 #define QUIDDIKEY_IER_OFFSET                     0x10
 
 .. toggle-header::
@@ -1829,11 +2480,11 @@ Generated headers
     .. code-block:: c
 
         
-        // 0: Disables all QuiddiKey interrupts 1: Enables all QuiddiKey interrupts that are enabled in the Interrupt Mask register  (access: R/W)
-        #define QUIDDIKEY_IER_QK_INT_EN_BIT                                  0
-        #define QUIDDIKEY_IER_QK_INT_EN_WIDTH                                1
-        #define QUIDDIKEY_IER_QK_INT_EN_MASK                                 0x1
-        #define QUIDDIKEY_IER_QK_INT_EN_RESET                                0x0
+        // Interrupt enable register (access: R/W)
+        #define QUIDDIKEY_IER_INT_EN_BIT                                     0
+        #define QUIDDIKEY_IER_INT_EN_WIDTH                                   1
+        #define QUIDDIKEY_IER_INT_EN_MASK                                    0x1
+        #define QUIDDIKEY_IER_INT_EN_RESET                                   0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1841,10 +2492,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_IER_QK_INT_EN_GET(value)                 (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN_GETS(value)                (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN_SET(value,field)           (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_IER_QK_INT_EN(val)                       ((val) << 0)
+        #define QUIDDIKEY_IER_INT_EN_GET(value)                    (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_IER_INT_EN_GETS(value)                   (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_IER_INT_EN_SET(value,field)              (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_IER_INT_EN(val)                          ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1854,7 +2505,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_int_en       :1 ; // 0: Disables all QuiddiKey interrupts 1: Enables all QuiddiKey interrupts that are enabled in the Interrupt Mask register 
+            unsigned int int_en          :1 ; // Interrupt enable register
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_ier_t;
@@ -1868,38 +2519,44 @@ Generated headers
         class vp_quiddikey_ier : public vp::reg_32
         {
         public:
-            inline void qk_int_en_set(uint32_t value);
-            inline uint32_t qk_int_en_get();
+            inline void int_en_set(uint32_t value);
+            inline uint32_t int_en_get();
         };
 
 |
 
-.. _QUIDDIKEY_IMR:
+.. _quiddikey_IMR:
 
 IMR
 """
 
-QUIDDIKEY Interrupt Mask register
+Interrupt Mask register
 
 .. table:: 
 
-    +-----+---+--------------------+--------------------------------------+
-    |Bit #|R/W|        Name        |             Description              |
-    +=====+===+====================+======================================+
-    |    0|R/W|qk_int_en_busy      |Enables the busy interrupt            |
-    +-----+---+--------------------+--------------------------------------+
-    |    1|R/W|qk_int_en_ok        |Enables the ok interrupt              |
-    +-----+---+--------------------+--------------------------------------+
-    |    2|R/W|qk_int_en_error     |Enables the error interrupt           |
-    +-----+---+--------------------+--------------------------------------+
-    |    3|R/W|qk_int_en_zeroized  |Enables the zeroized interrupt        |
-    +-----+---+--------------------+--------------------------------------+
-    |    4|R/W|qk_int_en_rejected  |Enables the rejected interrupt        |
-    +-----+---+--------------------+--------------------------------------+
-    |    5|R/W|qk_int_en_di_request|Enables the data in request interrupt |
-    +-----+---+--------------------+--------------------------------------+
-    |    6|R/W|qk_int_en_do_request|Enables the data out request interrupt|
-    +-----+---+--------------------+--------------------------------------+
+    +-----+---+----------------------+---------------------------------+
+    |Bit #|R/W|         Name         |           Description           |
+    +=====+===+======================+=================================+
+    |    0|R/W|INT_EN_BUSY           |Enable Busy interrupt            |
+    +-----+---+----------------------+---------------------------------+
+    |    1|R/W|INT_EN_OK             |Enable Ok interrupt              |
+    +-----+---+----------------------+---------------------------------+
+    |    2|R/W|INT_EN_ERROR          |Enable Error interrupt           |
+    +-----+---+----------------------+---------------------------------+
+    |    3|R/W|INT_EN_ZEROIZED       |Enable Zeroized interrupt        |
+    +-----+---+----------------------+---------------------------------+
+    |    4|R/W|INT_EN_REJECTED       |Enable Rejected interrupt        |
+    +-----+---+----------------------+---------------------------------+
+    |    5|R/W|INT_EN_DI_REQUEST     |Enable Data In Request interrupt |
+    +-----+---+----------------------+---------------------------------+
+    |    6|R/W|INT_EN_DO_REQUEST     |Enable Data Out Request interrupt|
+    +-----+---+----------------------+---------------------------------+
+    |   29|R/W|INT_EN_RESEED_WARNING |Enable Reseed Warning interrupt  |
+    +-----+---+----------------------+---------------------------------+
+    |   30|R/W|INT_EN_RESEED_REQUIRED|Enable Reseed Required interrupt |
+    +-----+---+----------------------+---------------------------------+
+    |   31|R/W|INT_EN_LAB_TEST_MODE  |Enable Lab Test Mode interrupt   |
+    +-----+---+----------------------+---------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -1911,7 +2568,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Interrupt Mask register
+                // Interrupt Mask register
                 #define QUIDDIKEY_IMR_OFFSET                     0x14
 
 .. toggle-header::
@@ -1929,47 +2586,65 @@ Generated headers
     .. code-block:: c
 
         
-        // Enables the busy interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_BIT                             0
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_WIDTH                           1
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_MASK                            0x1
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_RESET                           0x0
+        // Enable Busy interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_BIT                                0
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_WIDTH                              1
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_MASK                               0x1
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_RESET                              0x0
         
-        // Enables the ok interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_BIT                               1
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_WIDTH                             1
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_MASK                              0x2
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_RESET                             0x0
+        // Enable Ok interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_OK_BIT                                  1
+        #define QUIDDIKEY_IMR_INT_EN_OK_WIDTH                                1
+        #define QUIDDIKEY_IMR_INT_EN_OK_MASK                                 0x2
+        #define QUIDDIKEY_IMR_INT_EN_OK_RESET                                0x0
         
-        // Enables the error interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_BIT                            2
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_WIDTH                          1
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_MASK                           0x4
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_RESET                          0x0
+        // Enable Error interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_BIT                               2
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_WIDTH                             1
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_MASK                              0x4
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_RESET                             0x0
         
-        // Enables the zeroized interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_BIT                         3
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_WIDTH                       1
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_MASK                        0x8
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_RESET                       0x0
+        // Enable Zeroized interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_BIT                            3
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_WIDTH                          1
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_MASK                           0x8
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_RESET                          0x0
         
-        // Enables the rejected interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_BIT                         4
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_WIDTH                       1
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_MASK                        0x10
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_RESET                       0x0
+        // Enable Rejected interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_BIT                            4
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_WIDTH                          1
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_MASK                           0x10
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_RESET                          0x0
         
-        // Enables the data in request interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_BIT                       5
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_WIDTH                     1
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_MASK                      0x20
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_RESET                     0x0
+        // Enable Data In Request interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_BIT                          5
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_WIDTH                        1
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_MASK                         0x20
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_RESET                        0x0
         
-        // Enables the data out request interrupt (access: R/W)
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_BIT                       6
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_WIDTH                     1
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_MASK                      0x40
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_RESET                     0x0
+        // Enable Data Out Request interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_BIT                          6
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_WIDTH                        1
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_MASK                         0x40
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_RESET                        0x0
+        
+        // Enable Reseed Warning interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_BIT                      29
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_WIDTH                    1
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_MASK                     0x20000000
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_RESET                    0x0
+        
+        // Enable Reseed Required interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_BIT                     30
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_WIDTH                   1
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_MASK                    0x40000000
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_RESET                   0x0
+        
+        // Enable Lab Test Mode interrupt (access: R/W)
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_BIT                       31
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_WIDTH                     1
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_MASK                      0x80000000
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_RESET                     0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -1977,40 +2652,55 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_GET(value)            (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_GETS(value)           (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY_SET(value,field)      (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_IMR_QK_INT_EN_BUSY(val)                  ((val) << 0)
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_GET(value)               (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_GETS(value)              (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY_SET(value,field)         (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_IMR_INT_EN_BUSY(val)                     ((val) << 0)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_GET(value)              (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_GETS(value)             (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK_SET(value,field)        (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_IMR_QK_INT_EN_OK(val)                    ((val) << 1)
+        #define QUIDDIKEY_IMR_INT_EN_OK_GET(value)                 (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK_GETS(value)                (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_IMR_INT_EN_OK(val)                       ((val) << 1)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_GET(value)           (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_GETS(value)          (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR_SET(value,field)     (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ERROR(val)                 ((val) << 2)
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_GET(value)              (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_GETS(value)             (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR_SET(value,field)        (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_IMR_INT_EN_ERROR(val)                    ((val) << 2)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_GET(value)        (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_GETS(value)       (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED_SET(value,field)  (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_IMR_QK_INT_EN_ZEROIZED(val)              ((val) << 3)
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_GET(value)           (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_GETS(value)          (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED_SET(value,field)     (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_IMR_INT_EN_ZEROIZED(val)                 ((val) << 3)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_GET(value)        (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_GETS(value)       (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED_SET(value,field)  (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_IMR_QK_INT_EN_REJECTED(val)              ((val) << 4)
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_GET(value)           (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_GETS(value)          (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED_SET(value,field)     (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_IMR_INT_EN_REJECTED(val)                 ((val) << 4)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_GET(value)      (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_GETS(value)     (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST_SET(value,field) (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DI_REQUEST(val)            ((val) << 5)
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_IMR_INT_EN_DI_REQUEST(val)               ((val) << 5)
         
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_GET(value)      (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_GETS(value)     (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST_SET(value,field) (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_IMR_QK_INT_EN_DO_REQUEST(val)            ((val) << 6)
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_IMR_INT_EN_DO_REQUEST(val)               ((val) << 6)
+        
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_GET(value)     (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_GETS(value)    (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING_SET(value,field) (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_WARNING(val)           ((val) << 29)
+        
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_GET(value)    (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_GETS(value)   (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED_SET(value,field) (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_IMR_INT_EN_RESEED_REQUIRED(val)          ((val) << 30)
+        
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_GET(value)      (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_GETS(value)     (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_IMR_INT_EN_LAB_TEST_MODE(val)            ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2020,13 +2710,17 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_int_en_busy  :1 ; // Enables the busy interrupt
-            unsigned int qk_int_en_ok    :1 ; // Enables the ok interrupt
-            unsigned int qk_int_en_error :1 ; // Enables the error interrupt
-            unsigned int qk_int_en_zeroized:1 ; // Enables the zeroized interrupt
-            unsigned int qk_int_en_rejected:1 ; // Enables the rejected interrupt
-            unsigned int qk_int_en_di_request:1 ; // Enables the data in request interrupt
-            unsigned int qk_int_en_do_request:1 ; // Enables the data out request interrupt
+            unsigned int int_en_busy     :1 ; // Enable Busy interrupt
+            unsigned int int_en_ok       :1 ; // Enable Ok interrupt
+            unsigned int int_en_error    :1 ; // Enable Error interrupt
+            unsigned int int_en_zeroized :1 ; // Enable Zeroized interrupt
+            unsigned int int_en_rejected :1 ; // Enable Rejected interrupt
+            unsigned int int_en_di_request:1 ; // Enable Data In Request interrupt
+            unsigned int int_en_do_request:1 ; // Enable Data Out Request interrupt
+            unsigned int padding0:22;
+            unsigned int int_en_reseed_warning:1 ; // Enable Reseed Warning interrupt
+            unsigned int int_en_reseed_required:1 ; // Enable Reseed Required interrupt
+            unsigned int int_en_lab_test_mode:1 ; // Enable Lab Test Mode interrupt
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_imr_t;
@@ -2040,50 +2734,62 @@ Generated headers
         class vp_quiddikey_imr : public vp::reg_32
         {
         public:
-            inline void qk_int_en_busy_set(uint32_t value);
-            inline uint32_t qk_int_en_busy_get();
-            inline void qk_int_en_ok_set(uint32_t value);
-            inline uint32_t qk_int_en_ok_get();
-            inline void qk_int_en_error_set(uint32_t value);
-            inline uint32_t qk_int_en_error_get();
-            inline void qk_int_en_zeroized_set(uint32_t value);
-            inline uint32_t qk_int_en_zeroized_get();
-            inline void qk_int_en_rejected_set(uint32_t value);
-            inline uint32_t qk_int_en_rejected_get();
-            inline void qk_int_en_di_request_set(uint32_t value);
-            inline uint32_t qk_int_en_di_request_get();
-            inline void qk_int_en_do_request_set(uint32_t value);
-            inline uint32_t qk_int_en_do_request_get();
+            inline void int_en_busy_set(uint32_t value);
+            inline uint32_t int_en_busy_get();
+            inline void int_en_ok_set(uint32_t value);
+            inline uint32_t int_en_ok_get();
+            inline void int_en_error_set(uint32_t value);
+            inline uint32_t int_en_error_get();
+            inline void int_en_zeroized_set(uint32_t value);
+            inline uint32_t int_en_zeroized_get();
+            inline void int_en_rejected_set(uint32_t value);
+            inline uint32_t int_en_rejected_get();
+            inline void int_en_di_request_set(uint32_t value);
+            inline uint32_t int_en_di_request_get();
+            inline void int_en_do_request_set(uint32_t value);
+            inline uint32_t int_en_do_request_get();
+            inline void int_en_reseed_warning_set(uint32_t value);
+            inline uint32_t int_en_reseed_warning_get();
+            inline void int_en_reseed_required_set(uint32_t value);
+            inline uint32_t int_en_reseed_required_get();
+            inline void int_en_lab_test_mode_set(uint32_t value);
+            inline uint32_t int_en_lab_test_mode_get();
         };
 
 |
 
-.. _QUIDDIKEY_ISR:
+.. _quiddikey_ISR:
 
 ISR
 """
 
-QUIDDIKEY Interrupt Status register
+Interrupt Status register
 
 .. table:: 
 
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|      Name       |                                                                 Description                                                                 |
-    +=====+===+=================+=============================================================================================================================================+
-    |    0|R/W|qk_int_busy      |A negative edge has occurred on qk_busy, which means that an operation has completed                                                         |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    1|R/W|qk_int_ok        |A positive edge has occurred on qk_ok, which means that an operation successfully completed                                                  |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    2|R/W|qk_int_error     |A positive edge has occurred on qk_error, which means that an operation has failed                                                           |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    3|R/W|qk_int_zeroized  |A positive edge has occurred on qk_zeroized, which means that QuiddiKey has moved to the Zeroized or Locked state For details see section 3.1|
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    4|R/W|qk_int_rejected  |A positive edge has occurred on qk_rejected, which means that a command was rejected                                                         |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    5|R/W|qk_int_di_request|A positive edge has occurred on qk_di_request, which means that a data in transfer is requested via the QK_DIR register                      |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
-    |    6|R/W|qk_int_do_request|A positive edge has occurred on qk_do_request, which means that a data out transfer is requested via the QK_DOR register                     |
-    +-----+---+-----------------+---------------------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+-------------------+------------------------------------------+
+    |Bit #|R/W|       Name        |               Description                |
+    +=====+===+===================+==========================================+
+    |    0|R/W|INT_BUSY           |Busy interrupt status register            |
+    +-----+---+-------------------+------------------------------------------+
+    |    1|R/W|INT_OK             |Ok interrupt status register              |
+    +-----+---+-------------------+------------------------------------------+
+    |    2|R/W|INT_ERROR          |Error interrupt status register           |
+    +-----+---+-------------------+------------------------------------------+
+    |    3|R/W|INT_ZEROIZED       |Zeroized interrupt status register        |
+    +-----+---+-------------------+------------------------------------------+
+    |    4|R/W|INT_REJECTED       |Rejected interrupt status register        |
+    +-----+---+-------------------+------------------------------------------+
+    |    5|R/W|INT_DI_REQUEST     |Data In Request interrupt status register |
+    +-----+---+-------------------+------------------------------------------+
+    |    6|R/W|INT_DO_REQUEST     |Data Out Request interrupt status register|
+    +-----+---+-------------------+------------------------------------------+
+    |   29|R/W|INT_RESEED_WARNING |Reseed Warning interrupt status register  |
+    +-----+---+-------------------+------------------------------------------+
+    |   30|R/W|INT_RESEED_REQUIRED|Reseed Required interrupt status register |
+    +-----+---+-------------------+------------------------------------------+
+    |   31|R/W|INT_LAB_TEST_MODE  |Lab Test Mode interrupt status register   |
+    +-----+---+-------------------+------------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2095,7 +2801,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Interrupt Status register
+                // Interrupt Status register
                 #define QUIDDIKEY_ISR_OFFSET                     0x18
 
 .. toggle-header::
@@ -2113,47 +2819,65 @@ Generated headers
     .. code-block:: c
 
         
-        // A negative edge has occurred on qk_busy, which means that an operation has completed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_BIT                                0
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_WIDTH                              1
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_MASK                               0x1
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_RESET                              0x0
+        // Busy interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_BUSY_BIT                                   0
+        #define QUIDDIKEY_ISR_INT_BUSY_WIDTH                                 1
+        #define QUIDDIKEY_ISR_INT_BUSY_MASK                                  0x1
+        #define QUIDDIKEY_ISR_INT_BUSY_RESET                                 0x0
         
-        // A positive edge has occurred on qk_ok, which means that an operation successfully completed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_OK_BIT                                  1
-        #define QUIDDIKEY_ISR_QK_INT_OK_WIDTH                                1
-        #define QUIDDIKEY_ISR_QK_INT_OK_MASK                                 0x2
-        #define QUIDDIKEY_ISR_QK_INT_OK_RESET                                0x0
+        // Ok interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_OK_BIT                                     1
+        #define QUIDDIKEY_ISR_INT_OK_WIDTH                                   1
+        #define QUIDDIKEY_ISR_INT_OK_MASK                                    0x2
+        #define QUIDDIKEY_ISR_INT_OK_RESET                                   0x0
         
-        // A positive edge has occurred on qk_error, which means that an operation has failed (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_BIT                               2
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_WIDTH                             1
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_MASK                              0x4
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_RESET                             0x0
+        // Error interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_ERROR_BIT                                  2
+        #define QUIDDIKEY_ISR_INT_ERROR_WIDTH                                1
+        #define QUIDDIKEY_ISR_INT_ERROR_MASK                                 0x4
+        #define QUIDDIKEY_ISR_INT_ERROR_RESET                                0x0
         
-        // A positive edge has occurred on qk_zeroized, which means that QuiddiKey has moved to the Zeroized or Locked state For details see section 3.1 (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_BIT                            3
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_WIDTH                          1
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_MASK                           0x8
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_RESET                          0x0
+        // Zeroized interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_BIT                               3
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_WIDTH                             1
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_MASK                              0x8
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_RESET                             0x0
         
-        // A positive edge has occurred on qk_rejected, which means that a command was rejected (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_BIT                            4
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_WIDTH                          1
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_MASK                           0x10
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_RESET                          0x0
+        // Rejected interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_REJECTED_BIT                               4
+        #define QUIDDIKEY_ISR_INT_REJECTED_WIDTH                             1
+        #define QUIDDIKEY_ISR_INT_REJECTED_MASK                              0x10
+        #define QUIDDIKEY_ISR_INT_REJECTED_RESET                             0x0
         
-        // A positive edge has occurred on qk_di_request, which means that a data in transfer is requested via the QK_DIR register (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_BIT                          5
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_WIDTH                        1
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_MASK                         0x20
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_RESET                        0x0
+        // Data In Request interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_BIT                             5
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_WIDTH                           1
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_MASK                            0x20
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_RESET                           0x0
         
-        // A positive edge has occurred on qk_do_request, which means that a data out transfer is requested via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_BIT                          6
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_WIDTH                        1
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_MASK                         0x40
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_RESET                        0x0
+        // Data Out Request interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_BIT                             6
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_WIDTH                           1
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_MASK                            0x40
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_RESET                           0x0
+        
+        // Reseed Warning interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_BIT                         29
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_WIDTH                       1
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_MASK                        0x20000000
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_RESET                       0x0
+        
+        // Reseed Required interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_BIT                        30
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_WIDTH                      1
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_MASK                       0x40000000
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_RESET                      0x0
+        
+        // Lab Test Mode interrupt status register (access: R/W)
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_BIT                          31
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_WIDTH                        1
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_MASK                         0x80000000
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_RESET                        0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2161,40 +2885,55 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_GET(value)               (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_GETS(value)              (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY_SET(value,field)         (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_ISR_QK_INT_BUSY(val)                     ((val) << 0)
+        #define QUIDDIKEY_ISR_INT_BUSY_GET(value)                  (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY_GETS(value)                 (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY_SET(value,field)            (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_ISR_INT_BUSY(val)                        ((val) << 0)
         
-        #define QUIDDIKEY_ISR_QK_INT_OK_GET(value)                 (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK_GETS(value)                (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK_SET(value,field)           (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_ISR_QK_INT_OK(val)                       ((val) << 1)
+        #define QUIDDIKEY_ISR_INT_OK_GET(value)                    (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_ISR_INT_OK_GETS(value)                   (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_ISR_INT_OK_SET(value,field)              (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_ISR_INT_OK(val)                          ((val) << 1)
         
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_GET(value)              (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_GETS(value)             (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR_SET(value,field)        (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_ISR_QK_INT_ERROR(val)                    ((val) << 2)
+        #define QUIDDIKEY_ISR_INT_ERROR_GET(value)                 (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR_GETS(value)                (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR_SET(value,field)           (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_ISR_INT_ERROR(val)                       ((val) << 2)
         
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_GET(value)           (GAP_BEXTRACTU((value),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_GETS(value)          (GAP_BEXTRACT((value),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED_SET(value,field)     (GAP_BINSERT((value),(field),1,3))
-        #define QUIDDIKEY_ISR_QK_INT_ZEROIZED(val)                 ((val) << 3)
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_GET(value)              (GAP_BEXTRACTU((value),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_GETS(value)             (GAP_BEXTRACT((value),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED_SET(value,field)        (GAP_BINSERT((value),(field),1,3))
+        #define QUIDDIKEY_ISR_INT_ZEROIZED(val)                    ((val) << 3)
         
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_GET(value)           (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_GETS(value)          (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED_SET(value,field)     (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_ISR_QK_INT_REJECTED(val)                 ((val) << 4)
+        #define QUIDDIKEY_ISR_INT_REJECTED_GET(value)              (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED_GETS(value)             (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED_SET(value,field)        (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_ISR_INT_REJECTED(val)                    ((val) << 4)
         
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_ISR_QK_INT_DI_REQUEST(val)               ((val) << 5)
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_GET(value)            (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_GETS(value)           (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST_SET(value,field)      (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_ISR_INT_DI_REQUEST(val)                  ((val) << 5)
         
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_GET(value)         (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_GETS(value)        (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST_SET(value,field)   (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_ISR_QK_INT_DO_REQUEST(val)               ((val) << 6)
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_GET(value)            (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_GETS(value)           (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST_SET(value,field)      (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_ISR_INT_DO_REQUEST(val)                  ((val) << 6)
+        
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_GET(value)        (GAP_BEXTRACTU((value),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_GETS(value)       (GAP_BEXTRACT((value),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING_SET(value,field)  (GAP_BINSERT((value),(field),1,29))
+        #define QUIDDIKEY_ISR_INT_RESEED_WARNING(val)              ((val) << 29)
+        
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_GET(value)       (GAP_BEXTRACTU((value),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_GETS(value)      (GAP_BEXTRACT((value),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED_SET(value,field) (GAP_BINSERT((value),(field),1,30))
+        #define QUIDDIKEY_ISR_INT_RESEED_REQUIRED(val)             ((val) << 30)
+        
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_GET(value)         (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_GETS(value)        (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE_SET(value,field)   (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_ISR_INT_LAB_TEST_MODE(val)               ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2204,13 +2943,17 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_int_busy     :1 ; // A negative edge has occurred on qk_busy, which means that an operation has completed
-            unsigned int qk_int_ok       :1 ; // A positive edge has occurred on qk_ok, which means that an operation successfully completed
-            unsigned int qk_int_error    :1 ; // A positive edge has occurred on qk_error, which means that an operation has failed
-            unsigned int qk_int_zeroized :1 ; // A positive edge has occurred on qk_zeroized, which means that QuiddiKey has moved to the Zeroized or Locked state For details see section 3.1
-            unsigned int qk_int_rejected :1 ; // A positive edge has occurred on qk_rejected, which means that a command was rejected
-            unsigned int qk_int_di_request:1 ; // A positive edge has occurred on qk_di_request, which means that a data in transfer is requested via the QK_DIR register
-            unsigned int qk_int_do_request:1 ; // A positive edge has occurred on qk_do_request, which means that a data out transfer is requested via the QK_DOR register
+            unsigned int int_busy        :1 ; // Busy interrupt status register
+            unsigned int int_ok          :1 ; // Ok interrupt status register
+            unsigned int int_error       :1 ; // Error interrupt status register
+            unsigned int int_zeroized    :1 ; // Zeroized interrupt status register
+            unsigned int int_rejected    :1 ; // Rejected interrupt status register
+            unsigned int int_di_request  :1 ; // Data In Request interrupt status register
+            unsigned int int_do_request  :1 ; // Data Out Request interrupt status register
+            unsigned int padding0:22;
+            unsigned int int_reseed_warning:1 ; // Reseed Warning interrupt status register
+            unsigned int int_reseed_required:1 ; // Reseed Required interrupt status register
+            unsigned int int_lab_test_mode:1 ; // Lab Test Mode interrupt status register
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_isr_t;
@@ -2224,40 +2967,46 @@ Generated headers
         class vp_quiddikey_isr : public vp::reg_32
         {
         public:
-            inline void qk_int_busy_set(uint32_t value);
-            inline uint32_t qk_int_busy_get();
-            inline void qk_int_ok_set(uint32_t value);
-            inline uint32_t qk_int_ok_get();
-            inline void qk_int_error_set(uint32_t value);
-            inline uint32_t qk_int_error_get();
-            inline void qk_int_zeroized_set(uint32_t value);
-            inline uint32_t qk_int_zeroized_get();
-            inline void qk_int_rejected_set(uint32_t value);
-            inline uint32_t qk_int_rejected_get();
-            inline void qk_int_di_request_set(uint32_t value);
-            inline uint32_t qk_int_di_request_get();
-            inline void qk_int_do_request_set(uint32_t value);
-            inline uint32_t qk_int_do_request_get();
+            inline void int_busy_set(uint32_t value);
+            inline uint32_t int_busy_get();
+            inline void int_ok_set(uint32_t value);
+            inline uint32_t int_ok_get();
+            inline void int_error_set(uint32_t value);
+            inline uint32_t int_error_get();
+            inline void int_zeroized_set(uint32_t value);
+            inline uint32_t int_zeroized_get();
+            inline void int_rejected_set(uint32_t value);
+            inline uint32_t int_rejected_get();
+            inline void int_di_request_set(uint32_t value);
+            inline uint32_t int_di_request_get();
+            inline void int_do_request_set(uint32_t value);
+            inline uint32_t int_do_request_get();
+            inline void int_reseed_warning_set(uint32_t value);
+            inline uint32_t int_reseed_warning_get();
+            inline void int_reseed_required_set(uint32_t value);
+            inline uint32_t int_reseed_required_get();
+            inline void int_lab_test_mode_set(uint32_t value);
+            inline uint32_t int_lab_test_mode_get();
         };
 
 |
 
-.. _QUIDDIKEY_KEY_DEST:
+.. _quiddikey_DATA_DEST:
 
-KEY_DEST
-""""""""
+DATA_DEST
+"""""""""
 
-QUIDDIKEY Key Destination register
+Destination Data register
 
 .. table:: 
 
-    +-----+---+-----------+--------------------------------------------------+
-    |Bit #|R/W|   Name    |                   Description                    |
-    +=====+===+===========+==================================================+
-    |    0|R/W|qk_dest_reg|Key will be made available via the QK_DOR register|
-    +-----+---+-----------+--------------------------------------------------+
-    |    1|R/W|qk_dest_ko |Key will be made available via the KO interface   |
-    +-----+---+-----------+--------------------------------------------------+
+    +-----+---+--------+-----------------------------------+
+    |Bit #|R/W|  Name  |            Description            |
+    +=====+===+========+===================================+
+    |    0|R/W|DEST_DOR|Data out register destination      |
+    +-----+---+--------+-----------------------------------+
+    |    1|R/W|DEST_SO |Secure Output interface destination|
+    +-----+---+--------+-----------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2269,8 +3018,8 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Key Destination register
-                #define QUIDDIKEY_KEY_DEST_OFFSET                0x20
+                // Destination Data register
+                #define QUIDDIKEY_DATA_DEST_OFFSET               0x20
 
 .. toggle-header::
     :header: *Register accessors*
@@ -2278,8 +3027,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_key_dest_get(uint32_t base);
-        static inline void quiddikey_key_dest_set(uint32_t base, uint32_t value);
+        static inline uint32_t quiddikey_data_dest_get(uint32_t base);
+        static inline void quiddikey_data_dest_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2287,17 +3036,17 @@ Generated headers
     .. code-block:: c
 
         
-        // Key will be made available via the QK_DOR register (access: R/W)
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_BIT                           0
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_WIDTH                         1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_MASK                          0x1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_RESET                         0x0
+        // Data out register destination (access: R/W)
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_BIT                             0
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_WIDTH                           1
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_MASK                            0x1
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_RESET                           0x0
         
-        // Key will be made available via the KO interface (access: R/W)
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_BIT                            1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_WIDTH                          1
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_MASK                           0x2
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_RESET                          0x0
+        // Secure Output interface destination (access: R/W)
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_BIT                              1
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_WIDTH                            1
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_MASK                             0x2
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_RESET                            0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2305,15 +3054,15 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_GET(value)          (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_GETS(value)         (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG_SET(value,field)    (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_REG(val)                ((val) << 0)
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_GET(value)            (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_GETS(value)           (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR_SET(value,field)      (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_DATA_DEST_DEST_DOR(val)                  ((val) << 0)
         
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_GET(value)           (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_GETS(value)          (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO_SET(value,field)     (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_KEY_DEST_QK_DEST_KO(val)                 ((val) << 1)
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_GET(value)             (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_GETS(value)            (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_DATA_DEST_DEST_SO(val)                   ((val) << 1)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2323,11 +3072,11 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_dest_reg     :1 ; // Key will be made available via the QK_DOR register
-            unsigned int qk_dest_ko      :1 ; // Key will be made available via the KO interface
+            unsigned int dest_dor        :1 ; // Data out register destination
+            unsigned int dest_so         :1 ; // Secure Output interface destination
           };
           unsigned int raw;
-        } __attribute__((packed)) quiddikey_key_dest_t;
+        } __attribute__((packed)) quiddikey_data_dest_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -2335,31 +3084,30 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_quiddikey_key_dest : public vp::reg_32
+        class vp_quiddikey_data_dest : public vp::reg_32
         {
         public:
-            inline void qk_dest_reg_set(uint32_t value);
-            inline uint32_t qk_dest_reg_get();
-            inline void qk_dest_ko_set(uint32_t value);
-            inline uint32_t qk_dest_ko_get();
+            inline void dest_dor_set(uint32_t value);
+            inline uint32_t dest_dor_get();
+            inline void dest_so_set(uint32_t value);
+            inline uint32_t dest_so_get();
         };
 
 |
 
-.. _QUIDDIKEY_DIR:
+.. _quiddikey_DATA_SRC (not mapped ?):
 
-DIR
-"""
+DATA_SRC (not mapped ?)
+"""""""""""""""""""""""
 
-QUIDDIKEY Data Input register
+Data Source register
 
 .. table:: 
 
-    +-----+---+-----+------------------------------------------------------------------------------------+
-    |Bit #|R/W|Name |                                    Description                                     |
-    +=====+===+=====+====================================================================================+
-    |31:0 |W  |qk_di|Input data to QuiddiKey Note: This field must only be written when qk_di_request = 1|
-    +-----+---+-----+------------------------------------------------------------------------------------+
+    +-----+---+----+-----------+
+    |Bit #|R/W|Name|Description|
+    +=====+===+====+===========+
+    +-----+---+----+-----------+
 
 Generated headers
 """""""""""""""""
@@ -2371,7 +3119,169 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Data Input register
+                // Data Source register
+                #define QUIDDIKEY_DATA_SRC (NOT MAPPED ?)_OFFSET 0x28
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t quiddikey_data_src (not mapped ?)_get(uint32_t base);
+        static inline void quiddikey_data_src (not mapped ?)_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_data_src (not mapped ?)_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_quiddikey_data_src (not mapped ?) : public vp::reg_32
+        {
+        public:
+        };
+
+|
+
+.. _quiddikey_KEY_INDEX:
+
+KEY_INDEX
+"""""""""
+
+Key Index register
+
+.. table:: 
+
+    +-----+---+---------+----------------------+
+    |Bit #|R/W|  Name   |     Description      |
+    +=====+===+=========+======================+
+    |3:0  |R  |KEY_INDEX|Value of the Key Index|
+    +-----+---+---------+----------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // Key Index register
+                #define QUIDDIKEY_KEY_INDEX_OFFSET               0x28
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t quiddikey_key_index_get(uint32_t base);
+        static inline void quiddikey_key_index_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // Value of the Key Index (access: R)
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_BIT                            0
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_WIDTH                          4
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_MASK                           0xf
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_RESET                          0x0
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GET(value)           (GAP_BEXTRACTU((value),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GETS(value)          (GAP_BEXTRACT((value),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_SET(value,field)     (GAP_BINSERT((value),(field),4,0))
+        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX(val)                 ((val) << 0)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int key_index       :4 ; // Value of the Key Index
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_key_index_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_quiddikey_key_index : public vp::reg_32
+        {
+        public:
+            inline void key_index_set(uint32_t value);
+            inline uint32_t key_index_get();
+        };
+
+|
+
+.. _quiddikey_DIR:
+
+DIR
+"""
+
+Data Input register
+
+.. table:: 
+
+    +-----+---+----+-------------+
+    |Bit #|R/W|Name| Description |
+    +=====+===+====+=============+
+    |31:0 |R/W|DI  |Data In field|
+    +-----+---+----+-------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // Data Input register
                 #define QUIDDIKEY_DIR_OFFSET                     0xa0
 
 .. toggle-header::
@@ -2389,11 +3299,11 @@ Generated headers
     .. code-block:: c
 
         
-        // Input data to QuiddiKey Note: This field must only be written when qk_di_request = 1 (access: W)
-        #define QUIDDIKEY_DIR_QK_DI_BIT                                      0
-        #define QUIDDIKEY_DIR_QK_DI_WIDTH                                    32
-        #define QUIDDIKEY_DIR_QK_DI_MASK                                     0xffffffff
-        #define QUIDDIKEY_DIR_QK_DI_RESET                                    0x0
+        // Data In field (access: R/W)
+        #define QUIDDIKEY_DIR_DI_BIT                                         0
+        #define QUIDDIKEY_DIR_DI_WIDTH                                       32
+        #define QUIDDIKEY_DIR_DI_MASK                                        0xffffffff
+        #define QUIDDIKEY_DIR_DI_RESET                                       0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2401,10 +3311,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_DIR_QK_DI_GET(value)                     (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DIR_QK_DI_GETS(value)                    (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DIR_QK_DI_SET(value,field)               (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DIR_QK_DI(val)                           ((val) << 0)
+        #define QUIDDIKEY_DIR_DI_GET(value)                        (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_DIR_DI_GETS(value)                       (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DIR_DI(val)                              ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2414,7 +3324,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_di           :32; // Input data to QuiddiKey Note: This field must only be written when qk_di_request = 1
+            unsigned int di              :32; // Data In field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dir_t;
@@ -2428,26 +3338,26 @@ Generated headers
         class vp_quiddikey_dir : public vp::reg_32
         {
         public:
-            inline void qk_di_set(uint32_t value);
-            inline uint32_t qk_di_get();
+            inline void di_set(uint32_t value);
+            inline uint32_t di_get();
         };
 
 |
 
-.. _QUIDDIKEY_DOR:
+.. _quiddikey_DOR:
 
 DOR
 """
 
-QUIDDIKEY Data Output register
+Data Output register
 
 .. table:: 
 
-    +-----+---+-----+------------------------------------------------------------------------------------+
-    |Bit #|R/W|Name |                                    Description                                     |
-    +=====+===+=====+====================================================================================+
-    |31:0 |W  |qk_do|Output data from QuiddiKey Note: This field must only be read when qk_do_request = 1|
-    +-----+---+-----+------------------------------------------------------------------------------------+
+    +-----+---+----+--------------+
+    |Bit #|R/W|Name| Description  |
+    +=====+===+====+==============+
+    |31:0 |R  |DO  |Data Out field|
+    +-----+---+----+--------------+
 
 Generated headers
 """""""""""""""""
@@ -2459,7 +3369,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Data Output register
+                // Data Output register
                 #define QUIDDIKEY_DOR_OFFSET                     0xa8
 
 .. toggle-header::
@@ -2477,11 +3387,11 @@ Generated headers
     .. code-block:: c
 
         
-        // Output data from QuiddiKey Note: This field must only be read when qk_do_request = 1 (access: W)
-        #define QUIDDIKEY_DOR_QK_DO_BIT                                      0
-        #define QUIDDIKEY_DOR_QK_DO_WIDTH                                    32
-        #define QUIDDIKEY_DOR_QK_DO_MASK                                     0xffffffff
-        #define QUIDDIKEY_DOR_QK_DO_RESET                                    0x0
+        // Data Out field (access: R)
+        #define QUIDDIKEY_DOR_DO_BIT                                         0
+        #define QUIDDIKEY_DOR_DO_WIDTH                                       32
+        #define QUIDDIKEY_DOR_DO_MASK                                        0xffffffff
+        #define QUIDDIKEY_DOR_DO_RESET                                       0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2489,10 +3399,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_DOR_QK_DO_GET(value)                     (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DOR_QK_DO_GETS(value)                    (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DOR_QK_DO_SET(value,field)               (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DOR_QK_DO(val)                           ((val) << 0)
+        #define QUIDDIKEY_DOR_DO_GET(value)                        (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_DOR_DO_GETS(value)                       (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_DOR_DO_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DOR_DO(val)                              ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2502,7 +3412,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_do           :32; // Output data from QuiddiKey Note: This field must only be read when qk_do_request = 1
+            unsigned int do              :32; // Data Out field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dor_t;
@@ -2516,26 +3426,25 @@ Generated headers
         class vp_quiddikey_dor : public vp::reg_32
         {
         public:
-            inline void qk_do_set(uint32_t value);
-            inline uint32_t qk_do_get();
+            inline void do_set(uint32_t value);
+            inline uint32_t do_get();
         };
 
 |
 
-.. _QUIDDIKEY_MISC:
+.. _quiddikey_MISC:
 
 MISC
 """"
 
-QUIDDIKEY Miscellaneous register
+Miscellaneous register
 
 .. table:: 
 
-    +-----+---+------------------+---------------------------------------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|       Name       |                                                           Description                                                           |
-    +=====+===+==================+=================================================================================================================================+
-    |    0|R/W|qk_data_endianness| Defines the endianness of keys and data in system memory: 0: Little endian 1: Big endian (default) See section 5.1.4 for details|
-    +-----+---+------------------+---------------------------------------------------------------------------------------------------------------------------------+
+    +-----+---+----+-----------+
+    |Bit #|R/W|Name|Description|
+    +=====+===+====+===========+
+    +-----+---+----+-----------+
 
 Generated headers
 """""""""""""""""
@@ -2547,7 +3456,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Miscellaneous register
+                // Miscellaneous register
                 #define QUIDDIKEY_MISC_OFFSET                    0xc0
 
 .. toggle-header::
@@ -2564,23 +3473,12 @@ Generated headers
 
     .. code-block:: c
 
-        
-        //  Defines the endianness of keys and data in system memory: 0: Little endian 1: Big endian (default) See section 5.1.4 for details (access: R/W)
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_BIT                        0
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_WIDTH                      1
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_MASK                       0x1
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_RESET                      0x0
 
 .. toggle-header::
     :header: *Register fields macros*
 
     .. code-block:: c
 
-        
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_GET(value)       (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_GETS(value)      (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS_SET(value,field) (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_MISC_QK_DATA_ENDIANNESS(val)             ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2590,7 +3488,6 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_data_endianness:1 ; //  Defines the endianness of keys and data in system memory: 0: Little endian 1: Big endian (default) See section 5.1.4 for details
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_misc_t;
@@ -2604,26 +3501,24 @@ Generated headers
         class vp_quiddikey_misc : public vp::reg_32
         {
         public:
-            inline void qk_data_endianness_set(uint32_t value);
-            inline uint32_t qk_data_endianness_get();
         };
 
 |
 
-.. _QUIDDIKEY_IF_SR:
+.. _quiddikey_IF_SR:
 
 IF_SR
 """""
 
-QUIDDIKEY Interface Status register
+Interface Status register
 
 .. table:: 
 
-    +-----+---+---------+---------------------------------------------------------+
-    |Bit #|R/W|  Name   |                       Description                       |
-    +=====+===+=========+=========================================================+
-    |    0|R  |apb_error| An APB error has occurred, for details see section 5.1.2|
-    +-----+---+---------+---------------------------------------------------------+
+    +-----+---+---------+------------------------+
+    |Bit #|R/W|  Name   |      Description       |
+    +=====+===+=========+========================+
+    |    0|R/W|APB_ERROR|An APB error has occured|
+    +-----+---+---------+------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2635,7 +3530,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Interface Status register
+                // Interface Status register
                 #define QUIDDIKEY_IF_SR_OFFSET                   0xd0
 
 .. toggle-header::
@@ -2653,7 +3548,7 @@ Generated headers
     .. code-block:: c
 
         
-        //  An APB error has occurred, for details see section 5.1.2 (access: R)
+        // An APB error has occured (access: R/W)
         #define QUIDDIKEY_IF_SR_APB_ERROR_BIT                                0
         #define QUIDDIKEY_IF_SR_APB_ERROR_WIDTH                              1
         #define QUIDDIKEY_IF_SR_APB_ERROR_MASK                               0x1
@@ -2678,7 +3573,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int apb_error       :1 ; //  An APB error has occurred, for details see section 5.1.2
+            unsigned int apb_error       :1 ; // An APB error has occured
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_if_sr_t;
@@ -2698,30 +3593,30 @@ Generated headers
 
 |
 
-.. _QUIDDIKEY_TEST:
+.. _quiddikey_TEST:
 
 TEST
 """"
 
-QUIDDIKEY Test register
+Test register
 
 .. table:: 
 
-    +-----+---+---------------+--------------------------------------------------------------+
-    |Bit #|R/W|     Name      |                         Description                          |
-    +=====+===+===============+==============================================================+
-    |    0|R/W|qk_bist_enable |Isolates QuiddiKey and runs BIST                              |
-    +-----+---+---------------+--------------------------------------------------------------+
-    |    4|R/W|qk_bist_running|BIST is in progress or finishing up (after qk_bist_enable = 0)|
-    +-----+---+---------------+--------------------------------------------------------------+
-    |    5|R/W|qk_bist_active |BIST is in progress                                           |
-    +-----+---+---------------+--------------------------------------------------------------+
-    |    6|R/W|qk_bist_ok     |BIST has passed                                               |
-    +-----+---+---------------+--------------------------------------------------------------+
-    |    7|R/W|qk_bist_error  |BIST has failed                                               |
-    +-----+---+---------------+--------------------------------------------------------------+
-    |   31|R/W|qk_allow_bist  |BIST is allowed                                               |
-    +-----+---+---------------+--------------------------------------------------------------+
+    +-----+---+------------+-----------------------------------+
+    |Bit #|R/W|    Name    |            Description            |
+    +=====+===+============+===================================+
+    |    0|R/W|BIST_ENABLE |Isolates Quiddikey and runs BIST   |
+    +-----+---+------------+-----------------------------------+
+    |    4|R/W|BIST_RUNNING|BIST is in progress or finishing up|
+    +-----+---+------------+-----------------------------------+
+    |    5|R/W|BIST_ACTIVE |BIST is in progress                |
+    +-----+---+------------+-----------------------------------+
+    |    6|R/W|BIST_OK     |BIST has passed                    |
+    +-----+---+------------+-----------------------------------+
+    |    7|R/W|BIST_ERROR  |BIST has failed                    |
+    +-----+---+------------+-----------------------------------+
+    |   31|R/W|ALLOW_BIST  |BIST is not allowed                |
+    +-----+---+------------+-----------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2733,7 +3628,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Test register
+                // Test register
                 #define QUIDDIKEY_TEST_OFFSET                    0xd8
 
 .. toggle-header::
@@ -2751,41 +3646,41 @@ Generated headers
     .. code-block:: c
 
         
-        // Isolates QuiddiKey and runs BIST (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_BIT                            0
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_WIDTH                          1
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_MASK                           0x1
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_RESET                          0x0
+        // Isolates Quiddikey and runs BIST (access: R/W)
+        #define QUIDDIKEY_TEST_BIST_ENABLE_BIT                               0
+        #define QUIDDIKEY_TEST_BIST_ENABLE_WIDTH                             1
+        #define QUIDDIKEY_TEST_BIST_ENABLE_MASK                              0x1
+        #define QUIDDIKEY_TEST_BIST_ENABLE_RESET                             0x0
         
-        // BIST is in progress or finishing up (after qk_bist_enable = 0) (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_BIT                           4
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_WIDTH                         1
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_MASK                          0x10
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_RESET                         0x0
+        // BIST is in progress or finishing up (access: R/W)
+        #define QUIDDIKEY_TEST_BIST_RUNNING_BIT                              4
+        #define QUIDDIKEY_TEST_BIST_RUNNING_WIDTH                            1
+        #define QUIDDIKEY_TEST_BIST_RUNNING_MASK                             0x10
+        #define QUIDDIKEY_TEST_BIST_RUNNING_RESET                            0x0
         
         // BIST is in progress (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_BIT                            5
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_WIDTH                          1
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_MASK                           0x20
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_RESET                          0x0
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_BIT                               5
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_WIDTH                             1
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_MASK                              0x20
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_RESET                             0x0
         
         // BIST has passed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_OK_BIT                                6
-        #define QUIDDIKEY_TEST_QK_BIST_OK_WIDTH                              1
-        #define QUIDDIKEY_TEST_QK_BIST_OK_MASK                               0x40
-        #define QUIDDIKEY_TEST_QK_BIST_OK_RESET                              0x0
+        #define QUIDDIKEY_TEST_BIST_OK_BIT                                   6
+        #define QUIDDIKEY_TEST_BIST_OK_WIDTH                                 1
+        #define QUIDDIKEY_TEST_BIST_OK_MASK                                  0x40
+        #define QUIDDIKEY_TEST_BIST_OK_RESET                                 0x0
         
         // BIST has failed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_BIT                             7
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_WIDTH                           1
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_MASK                            0x80
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_RESET                           0x0
+        #define QUIDDIKEY_TEST_BIST_ERROR_BIT                                7
+        #define QUIDDIKEY_TEST_BIST_ERROR_WIDTH                              1
+        #define QUIDDIKEY_TEST_BIST_ERROR_MASK                               0x80
+        #define QUIDDIKEY_TEST_BIST_ERROR_RESET                              0x0
         
-        // BIST is allowed (access: R/W)
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_BIT                             31
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_WIDTH                           1
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_MASK                            0x80000000
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_RESET                           0x0
+        // BIST is not allowed (access: R/W)
+        #define QUIDDIKEY_TEST_ALLOW_BIST_BIT                                31
+        #define QUIDDIKEY_TEST_ALLOW_BIST_WIDTH                              1
+        #define QUIDDIKEY_TEST_ALLOW_BIST_MASK                               0x80000000
+        #define QUIDDIKEY_TEST_ALLOW_BIST_RESET                              0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2793,35 +3688,35 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_GET(value)           (GAP_BEXTRACTU((value),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_GETS(value)          (GAP_BEXTRACT((value),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE_SET(value,field)     (GAP_BINSERT((value),(field),1,0))
-        #define QUIDDIKEY_TEST_QK_BIST_ENABLE(val)                 ((val) << 0)
+        #define QUIDDIKEY_TEST_BIST_ENABLE_GET(value)              (GAP_BEXTRACTU((value),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE_GETS(value)             (GAP_BEXTRACT((value),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE_SET(value,field)        (GAP_BINSERT((value),(field),1,0))
+        #define QUIDDIKEY_TEST_BIST_ENABLE(val)                    ((val) << 0)
         
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_GET(value)          (GAP_BEXTRACTU((value),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_GETS(value)         (GAP_BEXTRACT((value),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING_SET(value,field)    (GAP_BINSERT((value),(field),1,4))
-        #define QUIDDIKEY_TEST_QK_BIST_RUNNING(val)                ((val) << 4)
+        #define QUIDDIKEY_TEST_BIST_RUNNING_GET(value)             (GAP_BEXTRACTU((value),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING_GETS(value)            (GAP_BEXTRACT((value),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING_SET(value,field)       (GAP_BINSERT((value),(field),1,4))
+        #define QUIDDIKEY_TEST_BIST_RUNNING(val)                   ((val) << 4)
         
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_GET(value)           (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_GETS(value)          (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE_SET(value,field)     (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_TEST_QK_BIST_ACTIVE(val)                 ((val) << 5)
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_GET(value)              (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_GETS(value)             (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE_SET(value,field)        (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_TEST_BIST_ACTIVE(val)                    ((val) << 5)
         
-        #define QUIDDIKEY_TEST_QK_BIST_OK_GET(value)               (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK_GETS(value)              (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK_SET(value,field)         (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_TEST_QK_BIST_OK(val)                     ((val) << 6)
+        #define QUIDDIKEY_TEST_BIST_OK_GET(value)                  (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK_GETS(value)                 (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK_SET(value,field)            (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_TEST_BIST_OK(val)                        ((val) << 6)
         
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_GET(value)            (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_GETS(value)           (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR_SET(value,field)      (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_TEST_QK_BIST_ERROR(val)                  ((val) << 7)
+        #define QUIDDIKEY_TEST_BIST_ERROR_GET(value)               (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR_GETS(value)              (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR_SET(value,field)         (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_TEST_BIST_ERROR(val)                     ((val) << 7)
         
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_GET(value)            (GAP_BEXTRACTU((value),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_GETS(value)           (GAP_BEXTRACT((value),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST_SET(value,field)      (GAP_BINSERT((value),(field),1,31))
-        #define QUIDDIKEY_TEST_QK_ALLOW_BIST(val)                  ((val) << 31)
+        #define QUIDDIKEY_TEST_ALLOW_BIST_GET(value)               (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST_GETS(value)              (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST_SET(value,field)         (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_TEST_ALLOW_BIST(val)                     ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2831,14 +3726,14 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_bist_enable  :1 ; // Isolates QuiddiKey and runs BIST
+            unsigned int bist_enable     :1 ; // Isolates Quiddikey and runs BIST
             unsigned int padding0:3 ;
-            unsigned int qk_bist_running :1 ; // BIST is in progress or finishing up (after qk_bist_enable = 0)
-            unsigned int qk_bist_active  :1 ; // BIST is in progress
-            unsigned int qk_bist_ok      :1 ; // BIST has passed
-            unsigned int qk_bist_error   :1 ; // BIST has failed
+            unsigned int bist_running    :1 ; // BIST is in progress or finishing up
+            unsigned int bist_active     :1 ; // BIST is in progress
+            unsigned int bist_ok         :1 ; // BIST has passed
+            unsigned int bist_error      :1 ; // BIST has failed
             unsigned int padding1:23;
-            unsigned int qk_allow_bist   :1 ; // BIST is allowed
+            unsigned int allow_bist      :1 ; // BIST is not allowed
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_test_t;
@@ -2852,36 +3747,36 @@ Generated headers
         class vp_quiddikey_test : public vp::reg_32
         {
         public:
-            inline void qk_bist_enable_set(uint32_t value);
-            inline uint32_t qk_bist_enable_get();
-            inline void qk_bist_running_set(uint32_t value);
-            inline uint32_t qk_bist_running_get();
-            inline void qk_bist_active_set(uint32_t value);
-            inline uint32_t qk_bist_active_get();
-            inline void qk_bist_ok_set(uint32_t value);
-            inline uint32_t qk_bist_ok_get();
-            inline void qk_bist_error_set(uint32_t value);
-            inline uint32_t qk_bist_error_get();
-            inline void qk_allow_bist_set(uint32_t value);
-            inline uint32_t qk_allow_bist_get();
+            inline void bist_enable_set(uint32_t value);
+            inline uint32_t bist_enable_get();
+            inline void bist_running_set(uint32_t value);
+            inline uint32_t bist_running_get();
+            inline void bist_active_set(uint32_t value);
+            inline uint32_t bist_active_get();
+            inline void bist_ok_set(uint32_t value);
+            inline uint32_t bist_ok_get();
+            inline void bist_error_set(uint32_t value);
+            inline uint32_t bist_error_get();
+            inline void allow_bist_set(uint32_t value);
+            inline uint32_t allow_bist_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_RUC0:
+.. _quiddikey_PSR:
 
-HW_RUC0
-"""""""
+PSR
+"""
 
-QUIDDIKEY Hardware Restrict User Context 0 register
+PUF Score register
 
 .. table:: 
 
-    +-----+---+--------------------------+------------------------------+
-    |Bit #|R/W|           Name           |         Description          |
-    +=====+===+==========================+==============================+
-    |31:0 |R/W|qk_restrict_user_context_0|Hardware Restrict UC0 register|
-    +-----+---+--------------------------+------------------------------+
+    +-----+---+---------+---------------+
+    |Bit #|R/W|  Name   |  Description  |
+    +=====+===+=========+===============+
+    |3:0  |R/W|PUF_SCORE|PUF Score field|
+    +-----+---+---------+---------------+
 
 Generated headers
 """""""""""""""""
@@ -2893,7 +3788,95 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware Restrict User Context 0 register
+                // PUF Score register
+                #define QUIDDIKEY_PSR_OFFSET                     0xdc
+
+.. toggle-header::
+    :header: *Register accessors*
+
+    .. code-block:: c
+
+
+        static inline uint32_t quiddikey_psr_get(uint32_t base);
+        static inline void quiddikey_psr_set(uint32_t base, uint32_t value);
+
+.. toggle-header::
+    :header: *Register fields defines*
+
+    .. code-block:: c
+
+        
+        // PUF Score field (access: R/W)
+        #define QUIDDIKEY_PSR_PUF_SCORE_BIT                                  0
+        #define QUIDDIKEY_PSR_PUF_SCORE_WIDTH                                4
+        #define QUIDDIKEY_PSR_PUF_SCORE_MASK                                 0xf
+        #define QUIDDIKEY_PSR_PUF_SCORE_RESET                                0x0
+
+.. toggle-header::
+    :header: *Register fields macros*
+
+    .. code-block:: c
+
+        
+        #define QUIDDIKEY_PSR_PUF_SCORE_GET(value)                 (GAP_BEXTRACTU((value),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE_GETS(value)                (GAP_BEXTRACT((value),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE_SET(value,field)           (GAP_BINSERT((value),(field),4,0))
+        #define QUIDDIKEY_PSR_PUF_SCORE(val)                       ((val) << 0)
+
+.. toggle-header::
+    :header: *Register fields structures*
+
+    .. code-block:: c
+
+        
+        typedef union {
+          struct {
+            unsigned int puf_score       :4 ; // PUF Score field
+          };
+          unsigned int raw;
+        } __attribute__((packed)) quiddikey_psr_t;
+
+.. toggle-header::
+    :header: *GVSOC registers*
+
+    .. code-block:: c
+
+        
+        class vp_quiddikey_psr : public vp::reg_32
+        {
+        public:
+            inline void puf_score_set(uint32_t value);
+            inline uint32_t puf_score_get();
+        };
+
+|
+
+.. _quiddikey_HW_RUC0:
+
+HW_RUC0
+"""""""
+
+Hardware Restrict User Context 0 register
+
+.. table:: 
+
+    +-----+---+-----------------------+-----------------------------+
+    |Bit #|R/W|         Name          |         Description         |
+    +=====+===+=======================+=============================+
+    |31:0 |R/W|RESTRICT_USER_CONTEXT_0|Restrict User Context 0 field|
+    +-----+---+-----------------------+-----------------------------+
+
+Generated headers
+"""""""""""""""""
+
+
+.. toggle-header::
+    :header: *Register map C offsets*
+
+    .. code-block:: c
+
+        
+                // Hardware Restrict User Context 0 register
                 #define QUIDDIKEY_HW_RUC0_OFFSET                 0xe0
 
 .. toggle-header::
@@ -2911,11 +3894,11 @@ Generated headers
     .. code-block:: c
 
         
-        // Hardware Restrict UC0 register (access: R/W)
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_BIT             0
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_WIDTH           32
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_MASK            0xffffffff
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_RESET           0x0
+        // Restrict User Context 0 field (access: R/W)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_BIT                0
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_WIDTH              32
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_MASK               0xffffffff
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_RESET              0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -2923,10 +3906,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_RUC0_QK_RESTRICT_USER_CONTEXT_0(val)  ((val) << 0)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0(val)     ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -2936,7 +3919,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_restrict_user_context_0:32; // Hardware Restrict UC0 register
+            unsigned int restrict_user_context_0:32; // Restrict User Context 0 field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ruc0_t;
@@ -2950,26 +3933,26 @@ Generated headers
         class vp_quiddikey_hw_ruc0 : public vp::reg_32
         {
         public:
-            inline void qk_restrict_user_context_0_set(uint32_t value);
-            inline uint32_t qk_restrict_user_context_0_get();
+            inline void restrict_user_context_0_set(uint32_t value);
+            inline uint32_t restrict_user_context_0_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_RUC1:
+.. _quiddikey_HW_RUC1:
 
 HW_RUC1
 """""""
 
-QUIDDIKEY Hardware Restrict User Context 1 register
+Hardware Restrict User Context 1 register
 
 .. table:: 
 
-    +-----+---+--------------------------+------------------------------+
-    |Bit #|R/W|           Name           |         Description          |
-    +=====+===+==========================+==============================+
-    |31:0 |R/W|qk_restrict_user_context_1|Hardware Restrict UC1 register|
-    +-----+---+--------------------------+------------------------------+
+    +-----+---+-----------------------+-----------------------------+
+    |Bit #|R/W|         Name          |         Description         |
+    +=====+===+=======================+=============================+
+    |31:0 |R/W|RESTRICT_USER_CONTEXT_1|Restrict User Context 1 field|
+    +-----+---+-----------------------+-----------------------------+
 
 Generated headers
 """""""""""""""""
@@ -2981,7 +3964,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware Restrict User Context 1 register
+                // Hardware Restrict User Context 1 register
                 #define QUIDDIKEY_HW_RUC1_OFFSET                 0xe4
 
 .. toggle-header::
@@ -2999,11 +3982,11 @@ Generated headers
     .. code-block:: c
 
         
-        // Hardware Restrict UC1 register (access: R/W)
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_BIT             0
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_WIDTH           32
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_MASK            0xffffffff
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_RESET           0x0
+        // Restrict User Context 1 field (access: R/W)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_BIT                0
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_WIDTH              32
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_MASK               0xffffffff
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_RESET              0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3011,10 +3994,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_RUC1_QK_RESTRICT_USER_CONTEXT_1(val)  ((val) << 0)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1(val)     ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3024,7 +4007,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_restrict_user_context_1:32; // Hardware Restrict UC1 register
+            unsigned int restrict_user_context_1:32; // Restrict User Context 1 field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ruc1_t;
@@ -3038,40 +4021,52 @@ Generated headers
         class vp_quiddikey_hw_ruc1 : public vp::reg_32
         {
         public:
-            inline void qk_restrict_user_context_1_set(uint32_t value);
-            inline uint32_t qk_restrict_user_context_1_get();
+            inline void restrict_user_context_1_set(uint32_t value);
+            inline uint32_t restrict_user_context_1_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_SETTING:
+.. _quiddikey_HW_SETTINGS:
 
-HW_SETTING
-""""""""""
+HW_SETTINGS
+"""""""""""
 
-QUIDDIKEY Hardware Setting register
+Hardware Settings register
 
 .. table:: 
 
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |Bit #|R/W|              Name              |                                         Description                                          |
-    +=====+===+================================+==============================================================================================+
-    |    1|R  |qk_disable_enroll               |0:Enroll operations are enabled 1:Enroll operations are disabled                              |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    2|R  |qk_disable_start                |0:Start operations are disabled 1:Start operations are disabled                               |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    5|R  |qk_disable_stop                 |0:Stop operations are enabled 1:Stop operations are disabled                                  |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    6|R  |qk_disable_get_key              |0:Get Key operations are enabled 1:Get Key operations are disabled                            |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    7|R  |qk_disable_unwrap               |0:Unwrap operations are enabled 1:Unwrap operations are disabled                              |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    8|R  |qk_disable_wrap_generated_random|0:Wrap Generated Random operations are enabled 1:Wrap Generated Random operations are disabled|
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |    9|R  |qk_disable_wrap                 |0:Wrap operations are enabled 1:Wrap operations are disabled                                  |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
-    |   15|R  |qk_disable_generate_random      |0:Generate Random operations are enabled 1:Generate Random operations are disabled            |
-    +-----+---+--------------------------------+----------------------------------------------------------------------------------------------+
+    +-----+---+--------------------------+------------------------------------+
+    |Bit #|R/W|           Name           |            Description             |
+    +=====+===+==========================+====================================+
+    |    1|R/W|DISABLE_ENROLL            |Enroll settings field               |
+    +-----+---+--------------------------+------------------------------------+
+    |    2|R/W|DISABLE_START             |Start settings field                |
+    +-----+---+--------------------------+------------------------------------+
+    |    5|R/W|DISABLE_STOP              |Stop settings field                 |
+    +-----+---+--------------------------+------------------------------------+
+    |    6|R/W|DISABLE_GET_KEY           |Get Key settings field              |
+    +-----+---+--------------------------+------------------------------------+
+    |    7|R/W|DISABLE_UNWRAP            |Unwrap settings field               |
+    +-----+---+--------------------------+------------------------------------+
+    |    8|R/W|DISABLE_WRAP_GEN_RND      |Wrap Generated Random settings field|
+    +-----+---+--------------------------+------------------------------------+
+    |    9|R/W|DISABLE_WRAP              |Wrap settings field                 |
+    +-----+---+--------------------------+------------------------------------+
+    |   15|R/W|DISABLE_GEN_RND           |Generate Random settings field      |
+    +-----+---+--------------------------+------------------------------------+
+    |   16|R/W|DISABLE_RESEED            |Reseed settings field               |
+    +-----+---+--------------------------+------------------------------------+
+    |   24|R/W|DISABLE_LAB_TEST_MODE     |Lab Test Mode settings field        |
+    +-----+---+--------------------------+------------------------------------+
+    |   25|R/W|SELECT_LAB_TEST_MODE      |Lab Test Mode select field          |
+    +-----+---+--------------------------+------------------------------------+
+    |   27|R/W|REQUIRE_RESEED_SRC_VIA_DIR|Reseed via DIR settings field       |
+    +-----+---+--------------------------+------------------------------------+
+    |   28|R/W|REQUIRE_RESEED_SRC_VIA_SI |Reseed via SI settings field        |
+    +-----+---+--------------------------+------------------------------------+
+    |   31|R/W|DISABLE_TEST_PUF          |Test PUF settings field             |
+    +-----+---+--------------------------+------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -3083,8 +4078,8 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware Setting register
-                #define QUIDDIKEY_HW_SETTING_OFFSET              0xf0
+                // Hardware Settings register
+                #define QUIDDIKEY_HW_SETTINGS_OFFSET             0xf0
 
 .. toggle-header::
     :header: *Register accessors*
@@ -3092,8 +4087,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_setting_get(uint32_t base);
-        static inline void quiddikey_hw_setting_set(uint32_t base, uint32_t value);
+        static inline uint32_t quiddikey_hw_settings_get(uint32_t base);
+        static inline void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3101,53 +4096,89 @@ Generated headers
     .. code-block:: c
 
         
-        // 0:Enroll operations are enabled 1:Enroll operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_BIT                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_WIDTH                 1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_MASK                  0x2
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_RESET                 0x0
+        // Enroll settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_BIT                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_MASK                    0x2
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_RESET                   0x0
         
-        // 0:Start operations are disabled 1:Start operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_BIT                    2
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_WIDTH                  1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_MASK                   0x4
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_RESET                  0x0
+        // Start settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_BIT                      2
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_WIDTH                    1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_MASK                     0x4
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_RESET                    0x0
         
-        // 0:Stop operations are enabled 1:Stop operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_BIT                     5
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_WIDTH                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_MASK                    0x20
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_RESET                   0x0
+        // Stop settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_BIT                       5
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_WIDTH                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_MASK                      0x20
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_RESET                     0x0
         
-        // 0:Get Key operations are enabled 1:Get Key operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_BIT                  6
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_WIDTH                1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_MASK                 0x40
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_RESET                0x0
+        // Get Key settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_BIT                    6
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_WIDTH                  1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_MASK                   0x40
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_RESET                  0x0
         
-        // 0:Unwrap operations are enabled 1:Unwrap operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_BIT                   7
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_WIDTH                 1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_MASK                  0x80
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_RESET                 0x0
+        // Unwrap settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_BIT                     7
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_MASK                    0x80
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_RESET                   0x0
         
-        // 0:Wrap Generated Random operations are enabled 1:Wrap Generated Random operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_BIT    8
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_WIDTH  1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_MASK   0x100
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_RESET  0x0
+        // Wrap Generated Random settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_BIT               8
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_WIDTH             1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_MASK              0x100
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_RESET             0x0
         
-        // 0:Wrap operations are enabled 1:Wrap operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_BIT                     9
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_WIDTH                   1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_MASK                    0x200
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_RESET                   0x0
+        // Wrap settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_BIT                       9
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_WIDTH                     1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_MASK                      0x200
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_RESET                     0x0
         
-        // 0:Generate Random operations are enabled 1:Generate Random operations are disabled (access: R)
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_BIT          15
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_WIDTH        1
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_MASK         0x8000
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_RESET        0x0
+        // Generate Random settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_BIT                    15
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_WIDTH                  1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_MASK                   0x8000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_RESET                  0x0
+        
+        // Reseed settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_BIT                     16
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_WIDTH                   1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_MASK                    0x10000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_RESET                   0x0
+        
+        // Lab Test Mode settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_BIT              24
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_WIDTH            1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_MASK             0x1000000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_RESET            0x0
+        
+        // Lab Test Mode select field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_BIT               25
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_WIDTH             1
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_MASK              0x2000000
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_RESET             0x0
+        
+        // Reseed via DIR settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_BIT         27
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_WIDTH       1
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_MASK        0x8000000
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_RESET       0x0
+        
+        // Reseed via SI settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_BIT          28
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_WIDTH        1
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_MASK         0x10000000
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_RESET        0x0
+        
+        // Test PUF settings field (access: R/W)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_BIT                   31
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_WIDTH                 1
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_MASK                  0x80000000
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_RESET                 0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3155,45 +4186,75 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_GET(value)  (GAP_BEXTRACTU((value),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_GETS(value) (GAP_BEXTRACT((value),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL_SET(value,field) (GAP_BINSERT((value),(field),1,1))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_ENROLL(val)        ((val) << 1)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_GET(value)    (GAP_BEXTRACTU((value),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_GETS(value)   (GAP_BEXTRACT((value),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_SET(value,field) (GAP_BINSERT((value),(field),1,1))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL(val)          ((val) << 1)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_GET(value)   (GAP_BEXTRACTU((value),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_GETS(value)  (GAP_BEXTRACT((value),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START_SET(value,field) (GAP_BINSERT((value),(field),1,2))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_START(val)         ((val) << 2)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_GET(value)     (GAP_BEXTRACTU((value),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_GETS(value)    (GAP_BEXTRACT((value),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START_SET(value,field) (GAP_BINSERT((value),(field),1,2))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_START(val)           ((val) << 2)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_GET(value)    (GAP_BEXTRACTU((value),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_GETS(value)   (GAP_BEXTRACT((value),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP_SET(value,field) (GAP_BINSERT((value),(field),1,5))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_STOP(val)          ((val) << 5)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_GET(value)      (GAP_BEXTRACTU((value),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_GETS(value)     (GAP_BEXTRACT((value),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP_SET(value,field) (GAP_BINSERT((value),(field),1,5))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_STOP(val)            ((val) << 5)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_GET(value) (GAP_BEXTRACTU((value),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_GETS(value) (GAP_BEXTRACT((value),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY_SET(value,field) (GAP_BINSERT((value),(field),1,6))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GET_KEY(val)       ((val) << 6)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_GET(value)   (GAP_BEXTRACTU((value),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_GETS(value)  (GAP_BEXTRACT((value),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY_SET(value,field) (GAP_BINSERT((value),(field),1,6))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GET_KEY(val)         ((val) << 6)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_GET(value)  (GAP_BEXTRACTU((value),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_GETS(value) (GAP_BEXTRACT((value),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP_SET(value,field) (GAP_BINSERT((value),(field),1,7))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_UNWRAP(val)        ((val) << 7)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_GET(value)    (GAP_BEXTRACTU((value),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_GETS(value)   (GAP_BEXTRACT((value),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP_SET(value,field) (GAP_BINSERT((value),(field),1,7))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_UNWRAP(val)          ((val) << 7)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,8))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GENERATED_RANDOM(val) ((val) << 8)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_GET(value) (GAP_BEXTRACTU((value),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_GETS(value) (GAP_BEXTRACT((value),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND_SET(value,field) (GAP_BINSERT((value),(field),1,8))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GEN_RND(val)    ((val) << 8)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GET(value)    (GAP_BEXTRACTU((value),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_GETS(value)   (GAP_BEXTRACT((value),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP_SET(value,field) (GAP_BINSERT((value),(field),1,9))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_WRAP(val)          ((val) << 9)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GET(value)      (GAP_BEXTRACTU((value),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_GETS(value)     (GAP_BEXTRACT((value),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP_SET(value,field) (GAP_BINSERT((value),(field),1,9))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_WRAP(val)            ((val) << 9)
         
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_GET(value) (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_GETS(value) (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM_SET(value,field) (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_HW_SETTING_QK_DISABLE_GENERATE_RANDOM(val) ((val) << 15)
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_GET(value)   (GAP_BEXTRACTU((value),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_GETS(value)  (GAP_BEXTRACT((value),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND_SET(value,field) (GAP_BINSERT((value),(field),1,15))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_GEN_RND(val)         ((val) << 15)
+        
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_GET(value)    (GAP_BEXTRACTU((value),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_GETS(value)   (GAP_BEXTRACT((value),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED_SET(value,field) (GAP_BINSERT((value),(field),1,16))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_RESEED(val)          ((val) << 16)
+        
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_GET(value) (GAP_BEXTRACTU((value),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_GETS(value) (GAP_BEXTRACT((value),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,24))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_LAB_TEST_MODE(val)   ((val) << 24)
+        
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_GET(value) (GAP_BEXTRACTU((value),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_GETS(value) (GAP_BEXTRACT((value),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE_SET(value,field) (GAP_BINSERT((value),(field),1,25))
+        #define QUIDDIKEY_HW_SETTINGS_SELECT_LAB_TEST_MODE(val)    ((val) << 25)
+        
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_GET(value) (GAP_BEXTRACTU((value),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_GETS(value) (GAP_BEXTRACT((value),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR_SET(value,field) (GAP_BINSERT((value),(field),1,27))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_DIR(val) ((val) << 27)
+        
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_GET(value) (GAP_BEXTRACTU((value),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_GETS(value) (GAP_BEXTRACT((value),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI_SET(value,field) (GAP_BINSERT((value),(field),1,28))
+        #define QUIDDIKEY_HW_SETTINGS_REQUIRE_RESEED_SRC_VIA_SI(val) ((val) << 28)
+        
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_GET(value)  (GAP_BEXTRACTU((value),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_GETS(value) (GAP_BEXTRACT((value),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF_SET(value,field) (GAP_BINSERT((value),(field),1,31))
+        #define QUIDDIKEY_HW_SETTINGS_DISABLE_TEST_PUF(val)        ((val) << 31)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3204,19 +4265,28 @@ Generated headers
         typedef union {
           struct {
             unsigned int padding0:1 ;
-            unsigned int qk_disable_enroll:1 ; // 0:Enroll operations are enabled 1:Enroll operations are disabled
-            unsigned int qk_disable_start:1 ; // 0:Start operations are disabled 1:Start operations are disabled
+            unsigned int disable_enroll  :1 ; // Enroll settings field
+            unsigned int disable_start   :1 ; // Start settings field
             unsigned int padding1:2 ;
-            unsigned int qk_disable_stop :1 ; // 0:Stop operations are enabled 1:Stop operations are disabled
-            unsigned int qk_disable_get_key:1 ; // 0:Get Key operations are enabled 1:Get Key operations are disabled
-            unsigned int qk_disable_unwrap:1 ; // 0:Unwrap operations are enabled 1:Unwrap operations are disabled
-            unsigned int qk_disable_wrap_generated_random:1 ; // 0:Wrap Generated Random operations are enabled 1:Wrap Generated Random operations are disabled
-            unsigned int qk_disable_wrap :1 ; // 0:Wrap operations are enabled 1:Wrap operations are disabled
+            unsigned int disable_stop    :1 ; // Stop settings field
+            unsigned int disable_get_key :1 ; // Get Key settings field
+            unsigned int disable_unwrap  :1 ; // Unwrap settings field
+            unsigned int disable_wrap_gen_rnd:1 ; // Wrap Generated Random settings field
+            unsigned int disable_wrap    :1 ; // Wrap settings field
             unsigned int padding2:5 ;
-            unsigned int qk_disable_generate_random:1 ; // 0:Generate Random operations are enabled 1:Generate Random operations are disabled
+            unsigned int disable_gen_rnd :1 ; // Generate Random settings field
+            unsigned int disable_reseed  :1 ; // Reseed settings field
+            unsigned int padding3:7 ;
+            unsigned int disable_lab_test_mode:1 ; // Lab Test Mode settings field
+            unsigned int select_lab_test_mode:1 ; // Lab Test Mode select field
+            unsigned int padding4:1 ;
+            unsigned int require_reseed_src_via_dir:1 ; // Reseed via DIR settings field
+            unsigned int require_reseed_src_via_si:1 ; // Reseed via SI settings field
+            unsigned int padding5:2 ;
+            unsigned int disable_test_puf:1 ; // Test PUF settings field
           };
           unsigned int raw;
-        } __attribute__((packed)) quiddikey_hw_setting_t;
+        } __attribute__((packed)) quiddikey_hw_settings_t;
 
 .. toggle-header::
     :header: *GVSOC registers*
@@ -3224,45 +4294,63 @@ Generated headers
     .. code-block:: c
 
         
-        class vp_quiddikey_hw_setting : public vp::reg_32
+        class vp_quiddikey_hw_settings : public vp::reg_32
         {
         public:
-            inline void qk_disable_enroll_set(uint32_t value);
-            inline uint32_t qk_disable_enroll_get();
-            inline void qk_disable_start_set(uint32_t value);
-            inline uint32_t qk_disable_start_get();
-            inline void qk_disable_stop_set(uint32_t value);
-            inline uint32_t qk_disable_stop_get();
-            inline void qk_disable_get_key_set(uint32_t value);
-            inline uint32_t qk_disable_get_key_get();
-            inline void qk_disable_unwrap_set(uint32_t value);
-            inline uint32_t qk_disable_unwrap_get();
-            inline void qk_disable_wrap_generated_random_set(uint32_t value);
-            inline uint32_t qk_disable_wrap_generated_random_get();
-            inline void qk_disable_wrap_set(uint32_t value);
-            inline uint32_t qk_disable_wrap_get();
-            inline void qk_disable_generate_random_set(uint32_t value);
-            inline uint32_t qk_disable_generate_random_get();
+            inline void disable_enroll_set(uint32_t value);
+            inline uint32_t disable_enroll_get();
+            inline void disable_start_set(uint32_t value);
+            inline uint32_t disable_start_get();
+            inline void disable_stop_set(uint32_t value);
+            inline uint32_t disable_stop_get();
+            inline void disable_get_key_set(uint32_t value);
+            inline uint32_t disable_get_key_get();
+            inline void disable_unwrap_set(uint32_t value);
+            inline uint32_t disable_unwrap_get();
+            inline void disable_wrap_gen_rnd_set(uint32_t value);
+            inline uint32_t disable_wrap_gen_rnd_get();
+            inline void disable_wrap_set(uint32_t value);
+            inline uint32_t disable_wrap_get();
+            inline void disable_gen_rnd_set(uint32_t value);
+            inline uint32_t disable_gen_rnd_get();
+            inline void disable_reseed_set(uint32_t value);
+            inline uint32_t disable_reseed_get();
+            inline void disable_lab_test_mode_set(uint32_t value);
+            inline uint32_t disable_lab_test_mode_get();
+            inline void select_lab_test_mode_set(uint32_t value);
+            inline uint32_t select_lab_test_mode_get();
+            inline void require_reseed_src_via_dir_set(uint32_t value);
+            inline uint32_t require_reseed_src_via_dir_get();
+            inline void require_reseed_src_via_si_set(uint32_t value);
+            inline uint32_t require_reseed_src_via_si_get();
+            inline void disable_test_puf_set(uint32_t value);
+            inline uint32_t disable_test_puf_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_INFO:
+.. _quiddikey_HW_INFO:
 
 HW_INFO
 """""""
 
-QUIDDIKEY Hardware information register
+Hardware Information register
 
 .. table:: 
 
-    +-----+---+--------------+---------------------------------------------------------------------+
-    |Bit #|R/W|     Name     |                             Description                             |
-    +=====+===+==============+=====================================================================+
-    |31:28|R  |qk_config_type|QuiddiKey configuration: 0001: Safe 0010: Plus Other values: Reserved|
-    +-----+---+--------------+---------------------------------------------------------------------+
-    |22   |R  |qk_config_bist|1: BIST is included 0: BIST is not included                          |
-    +-----+---+--------------+---------------------------------------------------------------------+
+    +-----+---+----------------+-----------------------------------------+
+    |Bit #|R/W|      Name      |               Description               |
+    +=====+===+================+=========================================+
+    |   21|R/W|CONFIG_SP_800_90|1: SP 800-90 is included, 0: not included|
+    +-----+---+----------------+-----------------------------------------+
+    |   22|R/W|CONFIG_BIST     |1: BIST is included, 0: not included     |
+    +-----+---+----------------+-----------------------------------------+
+    |   23|R/W|RESERVED        |1: Safe, 0: Plus                         |
+    +-----+---+----------------+-----------------------------------------+
+    |   24|R/W|CONFIG_WRAP     |1: Wrap is included, 0: not included     |
+    +-----+---+----------------+-----------------------------------------+
+    |31:28|R/W|CONFIG_TYPE     |Quiddikey configuration                  |
+    +-----+---+----------------+-----------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -3274,7 +4362,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware information register
+                // Hardware Information register
                 #define QUIDDIKEY_HW_INFO_OFFSET                 0xf4
 
 .. toggle-header::
@@ -3292,17 +4380,35 @@ Generated headers
     .. code-block:: c
 
         
-        // QuiddiKey configuration: 0001: Safe 0010: Plus Other values: Reserved (access: R)
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_BIT                         28
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_WIDTH                       4
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_MASK                        0xf0000000
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_RESET                       0x10
+        // 1: SP 800-90 is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_BIT                       21
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_WIDTH                     1
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_MASK                      0x200000
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_RESET                     0x0
         
-        // 1: BIST is included 0: BIST is not included (access: R)
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_BIT                         22
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_WIDTH                       1
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_MASK                        0x400000
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_RESET                       0x1
+        // 1: BIST is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_BIT                            22
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_WIDTH                          1
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_MASK                           0x400000
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_RESET                          0x0
+        
+        // 1: Safe, 0: Plus (access: R/W)
+        #define QUIDDIKEY_HW_INFO_RESERVED_BIT                               23
+        #define QUIDDIKEY_HW_INFO_RESERVED_WIDTH                             1
+        #define QUIDDIKEY_HW_INFO_RESERVED_MASK                              0x800000
+        #define QUIDDIKEY_HW_INFO_RESERVED_RESET                             0x0
+        
+        // 1: Wrap is included, 0: not included (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_BIT                            24
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_WIDTH                          1
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_MASK                           0x1000000
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_RESET                          0x0
+        
+        // Quiddikey configuration (access: R/W)
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_BIT                            28
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_WIDTH                          4
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_MASK                           0xf0000000
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_RESET                          0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3310,15 +4416,30 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_GET(value)        (GAP_BEXTRACTU((value),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_GETS(value)       (GAP_BEXTRACT((value),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE_SET(value,field)  (GAP_BINSERT((value),(field),4,28))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_TYPE(val)              ((val) << 28)
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_GET(value)      (GAP_BEXTRACTU((value),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_GETS(value)     (GAP_BEXTRACT((value),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90_SET(value,field) (GAP_BINSERT((value),(field),1,21))
+        #define QUIDDIKEY_HW_INFO_CONFIG_SP_800_90(val)            ((val) << 21)
         
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_GET(value)        (GAP_BEXTRACTU((value),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_GETS(value)       (GAP_BEXTRACT((value),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST_SET(value,field)  (GAP_BINSERT((value),(field),1,22))
-        #define QUIDDIKEY_HW_INFO_QK_CONFIG_BIST(val)              ((val) << 22)
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_GET(value)           (GAP_BEXTRACTU((value),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_GETS(value)          (GAP_BEXTRACT((value),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST_SET(value,field)     (GAP_BINSERT((value),(field),1,22))
+        #define QUIDDIKEY_HW_INFO_CONFIG_BIST(val)                 ((val) << 22)
+        
+        #define QUIDDIKEY_HW_INFO_RESERVED_GET(value)              (GAP_BEXTRACTU((value),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED_GETS(value)             (GAP_BEXTRACT((value),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED_SET(value,field)        (GAP_BINSERT((value),(field),1,23))
+        #define QUIDDIKEY_HW_INFO_RESERVED(val)                    ((val) << 23)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_GET(value)           (GAP_BEXTRACTU((value),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_GETS(value)          (GAP_BEXTRACT((value),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP_SET(value,field)     (GAP_BINSERT((value),(field),1,24))
+        #define QUIDDIKEY_HW_INFO_CONFIG_WRAP(val)                 ((val) << 24)
+        
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_GET(value)           (GAP_BEXTRACTU((value),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_GETS(value)          (GAP_BEXTRACT((value),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_SET(value,field)     (GAP_BINSERT((value),(field),4,28))
+        #define QUIDDIKEY_HW_INFO_CONFIG_TYPE(val)                 ((val) << 28)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3328,9 +4449,13 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int padding0:28;
-            unsigned int qk_config_type  :4 ; // QuiddiKey configuration: 0001: Safe 0010: Plus Other values: Reserved
-            unsigned int qk_config_bist  :1 ; // 1: BIST is included 0: BIST is not included
+            unsigned int padding0:21;
+            unsigned int config_sp_800_90:1 ; // 1: SP 800-90 is included, 0: not included
+            unsigned int config_bist     :1 ; // 1: BIST is included, 0: not included
+            unsigned int reserved        :1 ; // 1: Safe, 0: Plus
+            unsigned int config_wrap     :1 ; // 1: Wrap is included, 0: not included
+            unsigned int padding1:3 ;
+            unsigned int config_type     :4 ; // Quiddikey configuration
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_info_t;
@@ -3344,28 +4469,34 @@ Generated headers
         class vp_quiddikey_hw_info : public vp::reg_32
         {
         public:
-            inline void qk_config_type_set(uint32_t value);
-            inline uint32_t qk_config_type_get();
-            inline void qk_config_bist_set(uint32_t value);
-            inline uint32_t qk_config_bist_get();
+            inline void config_sp_800_90_set(uint32_t value);
+            inline uint32_t config_sp_800_90_get();
+            inline void config_bist_set(uint32_t value);
+            inline uint32_t config_bist_get();
+            inline void reserved_set(uint32_t value);
+            inline uint32_t reserved_get();
+            inline void config_wrap_set(uint32_t value);
+            inline uint32_t config_wrap_get();
+            inline void config_type_set(uint32_t value);
+            inline uint32_t config_type_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_ID:
+.. _quiddikey_HW_ID:
 
 HW_ID
 """""
 
-QUIDDIKEY Hardware Identifier register
+Hardware Identifier register
 
 .. table:: 
 
-    +-----+---+--------+-------------------+
-    |Bit #|R/W|  Name  |    Description    |
-    +=====+===+========+===================+
-    |31:0 |R  |qk_hw_id|Hardware Identifier|
-    +-----+---+--------+-------------------+
+    +-----+---+-----+-------------------+
+    |Bit #|R/W|Name |    Description    |
+    +=====+===+=====+===================+
+    |31:0 |R/W|HW_ID|Hardware Identifier|
+    +-----+---+-----+-------------------+
 
 Generated headers
 """""""""""""""""
@@ -3377,7 +4508,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware Identifier register
+                // Hardware Identifier register
                 #define QUIDDIKEY_HW_ID_OFFSET                   0xf8
 
 .. toggle-header::
@@ -3395,11 +4526,11 @@ Generated headers
     .. code-block:: c
 
         
-        // Hardware Identifier (access: R)
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_BIT                                 0
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_WIDTH                               32
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_MASK                                0xffffffff
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_RESET                               0x0
+        // Hardware Identifier (access: R/W)
+        #define QUIDDIKEY_HW_ID_HW_ID_BIT                                    0
+        #define QUIDDIKEY_HW_ID_HW_ID_WIDTH                                  32
+        #define QUIDDIKEY_HW_ID_HW_ID_MASK                                   0xffffffff
+        #define QUIDDIKEY_HW_ID_HW_ID_RESET                                  0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3407,10 +4538,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_GET(value)                (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_GETS(value)               (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID_SET(value,field)          (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_HW_ID_QK_HW_ID(val)                      ((val) << 0)
+        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (GAP_BEXTRACTU((value),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (GAP_BEXTRACT((value),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID(val)                         ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3420,7 +4551,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_hw_id        :32; // Hardware Identifier
+            unsigned int hw_id           :32; // Hardware Identifier
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_id_t;
@@ -3434,30 +4565,30 @@ Generated headers
         class vp_quiddikey_hw_id : public vp::reg_32
         {
         public:
-            inline void qk_hw_id_set(uint32_t value);
-            inline uint32_t qk_hw_id_get();
+            inline void hw_id_set(uint32_t value);
+            inline uint32_t hw_id_get();
         };
 
 |
 
-.. _QUIDDIKEY_HW_VER:
+.. _quiddikey_HW_VER:
 
 HW_VER
 """"""
 
-QUIDDIKEY Hardware Version register
+Hardware Version register
 
 .. table:: 
 
-    +-----+---+-------------------+----------------------------+
-    |Bit #|R/W|       Name        |        Description         |
-    +=====+===+===================+============================+
-    |7:0  |R  |qk_hw_version_major|Hardware version, major part|
-    +-----+---+-------------------+----------------------------+
-    |15:8 |R  |qk_hw_version_minor|Hardware version, minor part|
-    +-----+---+-------------------+----------------------------+
-    |23:16|R  |qk_hw_rev          |Hardware version, patch part|
-    +-----+---+-------------------+----------------------------+
+    +-----+---+------------+-------------------------------+
+    |Bit #|R/W|    Name    |          Description          |
+    +=====+===+============+===============================+
+    |7:0  |R/W|HW_VER_REV  |Hardware version, revision part|
+    +-----+---+------------+-------------------------------+
+    |15:8 |R/W|HW_VER_MINOR|Hardware version, minor part   |
+    +-----+---+------------+-------------------------------+
+    |23:16|R/W|HW_VER_MAJOR|Hardware version, major part   |
+    +-----+---+------------+-------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -3469,7 +4600,7 @@ Generated headers
     .. code-block:: c
 
         
-                // QUIDDIKEY Hardware Version register
+                // Hardware Version register
                 #define QUIDDIKEY_HW_VER_OFFSET                  0xfc
 
 .. toggle-header::
@@ -3487,23 +4618,23 @@ Generated headers
     .. code-block:: c
 
         
-        // Hardware version, major part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_BIT                     0
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_WIDTH                   8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_MASK                    0xff
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_RESET                   0x0
+        // Hardware version, revision part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_BIT                              0
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_WIDTH                            8
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_MASK                             0xff
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_RESET                            0x0
         
-        // Hardware version, minor part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_BIT                     8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_WIDTH                   8
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_MASK                    0xff00
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_RESET                   0x0
+        // Hardware version, minor part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_BIT                            8
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_WIDTH                          8
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_MASK                           0xff00
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_RESET                          0x0
         
-        // Hardware version, patch part (access: R)
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_BIT                               16
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_WIDTH                             8
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_MASK                              0xff0000
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_RESET                             0x0
+        // Hardware version, major part (access: R/W)
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_BIT                            16
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_WIDTH                          8
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_MASK                           0xff0000
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_RESET                          0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3511,20 +4642,20 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_GET(value)    (GAP_BEXTRACTU((value),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_GETS(value)   (GAP_BEXTRACT((value),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR_SET(value,field) (GAP_BINSERT((value),(field),8,0))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MAJOR(val)          ((val) << 0)
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_GET(value)             (GAP_BEXTRACTU((value),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_GETS(value)            (GAP_BEXTRACT((value),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV_SET(value,field)       (GAP_BINSERT((value),(field),8,0))
+        #define QUIDDIKEY_HW_VER_HW_VER_REV(val)                   ((val) << 0)
         
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_GET(value)    (GAP_BEXTRACTU((value),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_GETS(value)   (GAP_BEXTRACT((value),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR_SET(value,field) (GAP_BINSERT((value),(field),8,8))
-        #define QUIDDIKEY_HW_VER_QK_HW_VERSION_MINOR(val)          ((val) << 8)
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_GET(value)           (GAP_BEXTRACTU((value),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_GETS(value)          (GAP_BEXTRACT((value),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR_SET(value,field)     (GAP_BINSERT((value),(field),8,8))
+        #define QUIDDIKEY_HW_VER_HW_VER_MINOR(val)                 ((val) << 8)
         
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_GET(value)              (GAP_BEXTRACTU((value),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_GETS(value)             (GAP_BEXTRACT((value),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV_SET(value,field)        (GAP_BINSERT((value),(field),8,16))
-        #define QUIDDIKEY_HW_VER_QK_HW_REV(val)                    ((val) << 16)
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_GET(value)           (GAP_BEXTRACTU((value),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_GETS(value)          (GAP_BEXTRACT((value),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR_SET(value,field)     (GAP_BINSERT((value),(field),8,16))
+        #define QUIDDIKEY_HW_VER_HW_VER_MAJOR(val)                 ((val) << 16)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3534,9 +4665,9 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int qk_hw_version_major:8 ; // Hardware version, major part
-            unsigned int qk_hw_version_minor:8 ; // Hardware version, minor part
-            unsigned int qk_hw_rev       :8 ; // Hardware version, patch part
+            unsigned int hw_ver_rev      :8 ; // Hardware version, revision part
+            unsigned int hw_ver_minor    :8 ; // Hardware version, minor part
+            unsigned int hw_ver_major    :8 ; // Hardware version, major part
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_hw_ver_t;
@@ -3550,12 +4681,12 @@ Generated headers
         class vp_quiddikey_hw_ver : public vp::reg_32
         {
         public:
-            inline void qk_hw_version_major_set(uint32_t value);
-            inline uint32_t qk_hw_version_major_get();
-            inline void qk_hw_version_minor_set(uint32_t value);
-            inline uint32_t qk_hw_version_minor_get();
-            inline void qk_hw_rev_set(uint32_t value);
-            inline uint32_t qk_hw_rev_get();
+            inline void hw_ver_rev_set(uint32_t value);
+            inline uint32_t hw_ver_rev_get();
+            inline void hw_ver_minor_set(uint32_t value);
+            inline uint32_t hw_ver_minor_get();
+            inline void hw_ver_major_set(uint32_t value);
+            inline uint32_t hw_ver_major_get();
         };
 
 |

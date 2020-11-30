@@ -45,7 +45,8 @@
 
 /// @endcond
 
-/** \struct pi_i2c_conf_t
+/**
+ * \struct pi_i2c_conf_t
  * \brief I2C master configuration structure.
  *
  * This structure is used to pass the desired I2C configuration to the runtime
@@ -92,9 +93,58 @@ typedef enum {
  *
  * This is used to tell which command to execute through pi_i2c_control.
  */
-typedef enum {
-  PI_I2C_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_CTRL_SET_MAX_BAUDRATE_BIT, /*!<
-    Change maximum baudrate. */
+typedef enum
+{
+    /**
+     * \brief Change maximum baudrate.
+     *
+     * \param baudrate   Max baudrate.
+     */
+    PI_I2C_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_I2C_CTRL_SET_MAX_BAUDRATE_BIT,
+    /**
+     * \brief Abort RX transfer.
+     *
+     * Abort current RX transfert.
+     */
+    PI_I2C_IOCTL_ABORT_RX   = 6,
+    /**
+     * \brief Abort TX transfer.
+     *
+     * Abort current TX transfert.
+     */
+    PI_I2C_IOCTL_ABORT_TX   = 7,
+    /**
+     * \brief Attach UDMA timer.
+     *
+     * This command attaches a UDMA timer channel to UDMA reception channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_I2C_IOCTL_ATTACH_TIMEOUT_RX = 8,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA reception channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_I2C_IOCTL_DETACH_TIMEOUT_RX = 9,
+    /**
+     * \brief Attach UDMA timer.
+     *
+     * This command attaches a UDMA timer channel to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_I2C_IOCTL_ATTACH_TIMEOUT_TX = 10,
+    /**
+     * \brief Detach UDMA timer.
+     *
+     * This command removes a UDMA timer channel attached to UDMA transmission channel.
+     *
+     * \param timeout_id UDMA timeout channel ID.
+     */
+    PI_I2C_IOCTL_DETACH_TIMEOUT_TX = 11
 } pi_i2c_ioctl_e;
 
 /** \brief Initialize an I2C configuration with default values.
@@ -108,13 +158,15 @@ typedef enum {
 void pi_i2c_conf_init(pi_i2c_conf_t *conf);
 
 
-/** \brief set slave addr in conf.
+/**
+ * \brief set slave addr in conf.
  *
- * \param conf A pointer to the I2C configuration.
- * \param slave_addr Addr of the slave
+ * \param conf           A pointer to the I2C configuration.
+ * \param slave_addr     Address of the slave device.
+ * \param is_10_bits     Indicate if slave address is 7 bits or 10 bits.
  */
 void pi_i2c_conf_set_slave_addr(struct pi_i2c_conf *conf, uint16_t slave_addr,
-        int8_t is_10_bits);
+                                int8_t is_10_bits);
 
 /** \brief set wait_cycles in conf.
  *
@@ -265,6 +317,62 @@ void pi_i2c_write_read_async(struct pi_device *device, void *tx_buffer,
 
 void pi_i2c_write_dual_async(struct pi_device *device, void *tx_buffer0,
         void *tx_buffer1, uint32_t tx_size0, uint32_t tx_size1, pi_task_t *callback);
+
+/**
+ * \brief Enqueue an asynchronous burst read copy from the I2C (from I2C
+ * device to chip), with timeout.
+ *
+ * This function has the same behaviour as pi_i2c_read(), with timeout.
+ * This timeout value is used to abort/cancel a transfer when timeout is reached.
+ *
+ * \param device         Pointer to the structure describing the device.
+ * \param rx_buff        Address in the chip where the received data must be written.
+ * \param length         Size in bytes of the copy.
+ * \param flags          Specify additional transfer behaviors like start and stop
+ *                       bits management.
+ * \param timeout_us     Timeout value in us.
+ *
+ * \note To use this feature, a UDMA timeout channel must be allocated before a
+ *       call to this functions :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_i2c_ioctl()   //PI_I2C_IOCTL_ATTACH_TIMEOUT_RX
+ *
+ * \note To use this feature asynchronously, proceed as follows :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_i2c_ioctl()   //PI_I2C_IOCTL_ATTACH_TIMEOUT_RX
+ *       * pi_task_timeout_set()
+ *       * pi_i2c_write_async()
+ */
+int pi_i2c_read_timeout(struct pi_device *device, uint8_t *rx_buff, int length,
+                        pi_i2c_xfer_flags_e flags, uint32_t timeout_us);
+
+/**
+ * \brief Enqueue a burst write copy to the I2C (from chip to I2C device), with timeout.
+ *
+ * This function has the same behaviour as pi_i2c_write(), with timeout.
+ * This timeout value is used to abort/cancel a transfer when timeout is reached.
+ *
+ * \param device         Pointer to the structure describing the device.
+ * \param tx_data        Address in the chip where the data to be sent is read.
+ * \param length         Size in bytes of the copy
+ * \param flags          Specify additional transfer behaviors like start and stop bits
+ *                       management.
+ * \param timeout_us     Timeout value in us.
+ *
+ * \note To use this feature, a UDMA timeout channel must be allocated before a
+ *       call to this functions :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_i2c_ioctl()   //PI_I2C_IOCTL_ATTACH_TIMEOUT_TX
+ *
+ * \note To use this feature asynchronously, proceed as follows :
+ *       * pi_udma_timeout_alloc()
+ *       * pi_i2c_ioctl()   //PI_I2C_IOCTL_ATTACH_TIMEOUT_TX
+ *       * pi_task_timeout_set()
+ *       * pi_i2c_write_async()
+ */
+int pi_i2c_write_timeout(struct pi_device *device, uint8_t *tx_data, int length,
+                         pi_i2c_xfer_flags_e flags, uint32_t timeout_us);
+
 /**
  * \brief get the request status from a task
  *
@@ -286,7 +394,7 @@ int pi_i2c_get_request_status(pi_task_t* task);
  * \brief Scan i2c bus to detect a dev
  *
  * This function can be used to detect if a device is connected to the i2c bus.
- * The \struct pi_i2c_conf structure is used to pass the address of the device
+ * The pi_i2c_conf_t structure is used to pass the address of the device
  * to look for, with different baudrate if needed.
  *
  * \param device         Pointer to device structure.

@@ -54,6 +54,7 @@ class Parameters(Node):
         self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
                                   "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
         self._at_options = NodeOptions(self._valid_at_options)
+        self._meta = {}
 
     def get_parameters(self):
         return {}
@@ -63,6 +64,10 @@ class Parameters(Node):
 
     def get_gen_ctrl(self):
         return GenCtrl(self.at_options)
+
+    @property
+    def meta(self):
+        return self._meta
 
     @property
     def valid_at_options(self):
@@ -142,7 +147,7 @@ class Parameters(Node):
 
     @out_dims.setter
     def out_dims(self, value):
-        LOG.debug("%s out dims set to %s", self.__class__.__name__, str(value))
+        LOG.debug("%s out dims set to %s", self.__class__.__name__, [str(val) for val in value])
         self._out_dims = value
 
     @abstractmethod
@@ -239,9 +244,15 @@ class FilterLikeParameters(Parameters, SingleInputAndOutput):
 
 class Transposable(Parameters):
 
-    def __init__(self, *args, transpose_in=None, transpose_out=None, **kwargs):
+    def __init__(self, *args,
+                 transpose_in=None,
+                 transpose_out=None,
+                 eliminate_transposes_pass_down=False,
+                 eliminate_transposes_pass_up=False, **kwargs):
         self._transpose_in = transpose_in
         self._transpose_out = transpose_out
+        self._eliminate_transposes_pass_down = eliminate_transposes_pass_down
+        self._eliminate_transposes_pass_up = eliminate_transposes_pass_up
         super(Transposable, self).__init__(*args, **kwargs)
 
     @staticmethod
@@ -255,6 +266,14 @@ class Transposable(Parameters):
         trans = list(range(len(dim.shape)))
         trans.insert(0, trans.pop())
         return trans
+
+    @property
+    def eliminate_transposes_pass_up(self):
+        return self._eliminate_transposes_pass_up
+
+    @property
+    def eliminate_transposes_pass_down(self):
+        return self._eliminate_transposes_pass_down
 
     @property
     def transpose_in(self):
@@ -279,9 +298,9 @@ class Transposable(Parameters):
     def __str__(self):
         trans = []
         if self.transpose_in:
-            trans.append("t_in: %s"%",".join(str(trans) for trans in self.transpose_in))
+            trans.append("t_in: %s" % ",".join(str(trans) for trans in self.transpose_in))
         if self.transpose_out:
-            trans.append("t_out: %s"%",".join(str(trans) for trans in self.transpose_out))
+            trans.append("t_out: %s" % ",".join(str(trans) for trans in self.transpose_out))
         return ", ".join(trans)
 
 #pylint: disable=abstract-method

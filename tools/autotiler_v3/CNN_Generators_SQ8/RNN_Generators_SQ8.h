@@ -28,7 +28,7 @@ int RNN_Stack_SQ8(
         int DimState,
         int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
         );
 
 int LSTM_Stack_SQ8(
@@ -44,7 +44,7 @@ int LSTM_Stack_SQ8(
         int DimState,
         int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
         );
 
 int GRU_Stack_SQ8(
@@ -60,7 +60,7 @@ int GRU_Stack_SQ8(
         int DimState,
         int DimIn,
 	int AlwaysReset,
-	int BiDir
+	int Revert
         );
 
 #endif

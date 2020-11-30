@@ -55,6 +55,8 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     elif isinstance(pnode, ConvFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+        for qrec in quants:
+            qrec.set_scale()
         if node.fusion_type.startswith('linear') or node.fusion_type.startswith('conv'):
             if cnodes[0].has_bias:
                 bias_q = quants[0].biases_q.q
@@ -83,6 +85,8 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     elif isinstance(pnode, ActivationFusion):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+        for qrec in quants:
+            qrec.set_scale()
         if isinstance(cnodes[0], (GlobalPoolParameters, PoolingParameters)):
             act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1])
         elif isinstance(cnodes[0], MatrixAddParameters):
@@ -126,13 +130,15 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
     if act_params is None:
         contents = np.array([0, 0, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)
     elif isinstance(act_params, ReluActivationParameters):
+        actscale = act_q.scale_mul_biases_q.qbiases[0]
+        actscalen = act_q.scale_mul_biases_q.qnorms[0]
         if act_params.upper_bound is None: # or fnode is not None:
-            contents = np.array([0, 0, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)
+            contents = np.array([actscale, actscalen, 0, 0, 0, extra1, extra2, extra3, extra4], dtype=np.int8)
             if len(comment) == 0:
                 comment = "all 0"
         else:
             fac_1 = act_q.in_qs[0].quantize(act_params.upper_bound)
-            contents = np.array([0, 0, fac_1, 0, 0, extra1, extra2, extra3, extra4],
+            contents = np.array([actscale, actscalen, fac_1, 0, 0, extra1, extra2, extra3, extra4],
                                 dtype=np.int8)
             comment += str.format("in: {:05f} out: {:05f} A0: {} B0: 0 C0: 0",
                                   act_q.in_qs[0].scale[0],

@@ -73,6 +73,12 @@ static void insn_block_init(iss_insn_block_t *b, iss_addr_t pc)
 void iss_cache_flush(iss_t *iss)
 {
   flush_cache(iss, &iss->cpu.insn_cache);
+  if (iss->cpu.current_insn)
+    iss->cpu.current_insn = insn_cache_get_decoded(iss, iss->cpu.current_insn->addr);
+  if (iss->cpu.prev_insn)
+    iss->cpu.prev_insn = insn_cache_get_decoded(iss, iss->cpu.prev_insn->addr);
+  if (iss->cpu.stall_insn)
+    iss->cpu.stall_insn = insn_cache_get_decoded(iss, iss->cpu.stall_insn->addr);
 }
 
 

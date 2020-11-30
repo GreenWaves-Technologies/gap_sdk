@@ -18,6 +18,8 @@
 #define __AUTO_TILER_LIB__
 
 #include <stdio.h>
+#define Max(a, b)               (((a)>(b))?(a):(b))
+#define Min(a, b)               (((a)<(b))?(a):(b))
 
 /** @defgroup groupAutoTilerApi AutoTilerAPI
 @ingroup groupAutoTiler
@@ -838,22 +840,6 @@ KernelArgDimDescrT *KerArgSpace(
 	...				/**< List of KernelIteratorT */
 	);
 
-#ifdef LEGACY
-Object_T *_KerArgP(
-	char *KerArgName,			/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,				/**< Kernel argument width */
-	unsigned int H,				/**< Kernel argument height */
-	v4s PadTile,				/**< Kernel argument Padding [Left,Right,Top,Bottom], Used for tiling, = PadExec if no cascaded calls, >= PadExec else */
-	v4s PadExec,				/**< Kernel argument Padding [Left,Right,Top,Bottom], Used at exec time */
-	unsigned int ItemSize,			/**< Kernel argument data type size in bytes */
-	int TileOverlap,			/**< Kernel argument overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
-	unsigned int PreferedTileSize,		/**< Kernel argument prefered tile size, expressed on tile size - overlap, tile size must be a multiple of PreferedTileSize */
-	char *CArgName);			/**< To which user kernel C argument this kernel argument is related to */
-#endif
-
 /**
 @brief Creates one user kernel argument. Kernel argument Space is explicitely described
 
@@ -866,7 +852,7 @@ Object_T *KerArg(
 	unsigned int W,				/**< Kernel argument Data plane width */
 	unsigned int H,				/**< Kernel argument Data plane height */
 	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
-	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
@@ -880,7 +866,7 @@ Object_T *KerArgAliased(
 	unsigned int W,				/**< Kernel argument Data plane width */
 	unsigned int H,				/**< Kernel argument Data plane height */
 	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
-	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint, 	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,  	/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
@@ -901,7 +887,7 @@ Object_T *KerArgP(
 	v4s PadTile,				/**< Left, Right, Top, Bottom amount of pad, for dimension ratio evaluation, may be > Pad Exec if several kernels are cascaded */
 	v4s PadExec,				/**< Left, Right, Top, Bottom amount of pad, actual pad to be used at kernel exec time */
 	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
-        int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+        int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
         unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
@@ -921,7 +907,7 @@ Object_T *KerArgPadAlign(
 	unsigned int TileWPadAlign,		/**< Add TilePadAlign to the width of the tile, use adjust tile alignment through tile expansion */
 	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
 	unsigned int RawItemSize,		/**< In case ItemSize has to be padded this is the ItemSize before padding */
-	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles */
+	int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
 	unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
@@ -944,72 +930,12 @@ Object_T *KerArgPad(
 	unsigned int BottomBuffer,	/**< Amount of buffer to be added before this kernel argument, unit is ItemSize */
 	unsigned int TopBuffer,		/**< Amount of buffer to be added after this kernel argument, unit is ItemSize */
 	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
+	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
 	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
 	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
 	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
 	);
 
-#ifdef LEGACY
-/**
-@brief Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-
-Creates one user kernel argument.  Kernel width/height is strided. Kernel argument Space is explicitely described
-*/
-Object_T *KerArg2D(
-	char 	     *KerArgName,	/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,			/**< Kernel argument Data plane width */
-	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
-	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
-	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
-	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
-	);
-
-/**
-@brief Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel width/height is strided. Kernel argument Space is explicitely described
-
-Creates one user kernel argument with fixed padding left/right and top/bottom for this argument. Kernel argument Space is explicitely described
-
-*/
-Object_T *KerArg2DP(
-	char 	     *KerArgName,	/**< Kernel argument name */
-	KernelArgDimDescrT *KerArgSpace,/**< Kernel argument space descriptor */
-	Object_Type_T ObjType,		/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
-	unsigned int W,			/**< Kernel argument Data plane width */
-	unsigned int H,			/**< Kernel argument Data plane height */
-	unsigned int Stride,		/**< Kernel argument W is strided with stride factor = Stride in bytes */
-	unsigned int PadL,		/**< Amount of padding to be added on the left of a line, unit is Item */
-	unsigned int PadR,		/**< Amount of padding to be added on the right of a line, unit is Item */
-	unsigned int PadT,		/**< Amount of padding to be added on the top of a column, unit is Item */
-	unsigned int PadB,		/**< Amount of padding to be added on the bottom of a column, unit is Item */
-	unsigned int ItemSize,		/**< Data plane basic data type size in bytes */
-	int TileOverlap,		/**< Amount of overlap between 2 adjacent tiles */
-	KernelArgConstraints_T Constraint, /**< Kernel argument constraints */
-	unsigned int PreferedTileSize,  /**< Tile variable dimension is prefered to a multiple of PreferedTileSize if not 0 */
-	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
-	);
-
-Object_T *_KerArg2D(
-	char *KerArgName,
-	KernelArgDimDescrT *KerArgSpace,
-	Object_Type_T ObjType,
-	unsigned int W,
-	unsigned int H,
-	unsigned int Stride,
-	v4s PadTile,
-	v4s PadExec,
-	unsigned int ItemSize,
-	int TileOverlap,
-	KernelArgConstraints_T Constraint,
-	unsigned int PreferedTileSize,
-	char *CArgName
-	);
-#endif
 /**
 @brief Creates one user kernel argument with dimension [WxH] but used partially as [UsedWxUsedH]. Kernel argument Space is explicitely described
 
@@ -1146,6 +1072,12 @@ Close currently open user kernel group.
 */
 void CloseKernelGroup();
 
+/**
+@brief Close currently open user kernel group setting KER_OPT_KEEP_GROUP for nodes in the group
+
+Close currently open user kernel group setting KER_OPT_KEEP_GROUP for nodes in the group
+*/
+void CloseKernelGroupNoMerge();
 
 /* To add a call to a user kernel in a kernel group */
 /**

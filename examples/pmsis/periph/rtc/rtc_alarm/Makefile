@@ -2,12 +2,9 @@
 #------------------------------------
 
 APP              = test
-APP_SRCS        += rtc_alarm.c
-APP_INC         +=
-APP_CFLAGS      +=
-
-# Uncomment to disable preemptive scheduling
-# NO_PREEMPTION	= true
+APP_SRCS         = rtc_alarm.c
+APP_INC          =
+APP_CFLAGS       =
 
 PMSIS_OS = freertos
 BOARD_NAME ?= gapuino

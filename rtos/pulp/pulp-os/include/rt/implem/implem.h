@@ -36,6 +36,16 @@ void __rt_deinit();
 
 extern void __pi_yield();
 
+static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us)
+{
+
+}
+
+static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task)
+{
+  return 0;
+}
+
 static inline struct pi_task *pi_task_block(struct pi_task *task)
 {
   task->id = PI_TASK_NONE_ID;

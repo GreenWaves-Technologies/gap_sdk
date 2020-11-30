@@ -329,8 +329,7 @@ void padframe::jtag_chip_slave_sync(void *__this, int tck, int tdi, int tms, int
 
   group->tdo_trace.event((uint8_t *)&tdi);
 
-  if (tck)
-    group->pad_slave.sync(tdi);
+  group->pad_slave.sync(tdi);
 }
 
 

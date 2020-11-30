@@ -39,6 +39,7 @@ typedef struct {
   uint8_t data;
 } pixart_reg_init_t;
 
+// for QVGA
 static pixart_reg_init_t __pixart_reg_init[] =
 {
   {0x7F, 0x00}, // bank select 0
@@ -49,6 +50,95 @@ static pixart_reg_init_t __pixart_reg_init[] =
   {0x08, 0x03}, // Askip_V/Askip_H
   {0x0B, 0x0E},
   {0x0D, 0xC5}, // BLC/R_ABC_startline/R_ABC_En
+  {0x0F, 0x32}, // BINV_UB
+  //{0x11, 0x41}, // R_fgh
+  {0x11, 0x61}, // R_fgh
+  {0x12, 0xBD}, // R_ggh
+  {0x13, 0xD2},
+  {0x14, 0xFE},
+  {0x15, 0x00},
+  {0x17, 0x02},
+  {0x1A, 0x07},
+  {0x1B, 0x08},
+  {0x20, 0x00},
+  {0x25, 0x78},
+  {0x29, 0x28},
+  {0x2B, 0x06},
+  {0x2F, 0x0E},
+  {0x30, 0x0E},
+  {0x34, 0x0F},
+  {0x35, 0x0F},
+  {0x3A, 0x28},
+  {0x45, 0x17},
+  {0x46, 0x17},
+  //{0x48, 0x00}, // Expo[7:0]
+  //{0x49, 0x00}, // Expo[15:8]
+  //{0x4A, 0x00}, // Expo[23:16]
+  {0x48, 0x10}, // Expo[7:0]
+  {0x49, 0x51}, // Expo[15:8]
+  {0x4A, 0x00}, // Expo[23:16]
+  {0x4D, 0x0D},
+  {0x4E, 0x20},
+  {0x62, 0x12},
+  {0x64, 0x02},
+  {0x67, 0x0A},
+  {0x69, 0x0A},
+  {0x6C, 0x0B},
+  {0x6E, 0x0B},
+  {0x71, 0x0A},
+  {0x73, 0x1D},
+  {0x75, 0x1E},
+  {0x77, 0x0B},
+  //{0x7A, 0x80}, // R_FrameTime[7:0, test for 5fps
+  //{0x7B, 0x4F}, // R_FrameTime[15:8]
+  //{0x7C, 0x12}, // R_FrameTime[23:16]
+  //{0x7A, 0xA0}, // R_FrameTime[7:0, test for 60fps
+  //{0x7B, 0x86}, // R_FrameTime[15:8]
+  //{0x7C, 0x01}, // R_FrameTime[23:16]
+  {0x7F, 0x01}, // Bank select 1
+  {0x01, 0x14},
+  {0x02, 0x02},
+  {0x04, 0x96},
+  {0x05, 0x03},
+  {0x06, 0x46},
+  {0x0D, 0x9F}, // BLACINV Control 1/T_BLACINV_EnH/
+  {0x0E, 0x11}, // BLACINV Control 2/T_SIG_REF
+  {0x0F, 0x48},
+  {0x10, 0x10},
+  {0x11, 0x00},
+  {0x12, 0x05}, // T_GPIO_OPDRV/T_HSYNC_OPDRV/T_VSYNC_OPDRV/T_PXD_OPDRV
+  {0x15, 0x00},
+  {0x16, 0x01},
+  {0x17, 0x67},
+  {0x18, 0xD0},
+  {0x21, 0x14},
+  {0x22, 0x80},
+  {0x23, 0x80}, // Mode select trigger/exit low power mode
+  {0x2F, 0x30},
+  {0x35, 0x64},
+  {0x39, 0x03},
+  {0x3A, 0x03},
+  //{0x45, 0x02},
+  {0x46, 0x06}, // BLC Function 2/R_ABC_SampleSize
+  //{0x4A, 0x01}, // Vsync_front_delay[7:0]
+  //{0x4B, 0x10}, // Vsync_rear_delay[7:0]
+  {0x4A, 0x00}, // Vsync_front_delay[7:0]
+  {0x4B, 0x00}, // Vsync_rear_delay[7:0]
+  {0x00, 0x01}, // Update
+};
+
+/*
+// for QQVGA(skip)
+static pixart_reg_init_t __pixart_reg_init[] =
+{
+  {0x7F, 0x00}, // bank select 0
+  {0x0C, 0x1D}, // soft reset
+  {0x7F, 0x00}, // bank select 0
+  //{0x07, 0x00}, // Hsynclnv/Vsynclnv/PxClklnv/AAvg_V/AAvg_H/VFlip/HFlip
+  {0x07, 0x80}, // Hsynclnv/Vsynclnv/PxClklnv/AAvg_V/AAvg_H/VFlip/HFlip
+  {0x08, 0xC3}, // Askip_V/Askip_H
+  {0x0B, 0x0E},
+  {0x0D, 0xC3}, // BLC/R_ABC_startline/R_ABC_En
   {0x0F, 0x32}, // BINV_UB
   //{0x11, 0x41}, // R_fgh
   {0x11, 0x61}, // R_fgh
@@ -112,13 +202,98 @@ static pixart_reg_init_t __pixart_reg_init[] =
   {0x39, 0x03},
   {0x3A, 0x03},
   //{0x45, 0x02},
-  {0x46, 0x06}, // BLC Function 2/R_ABC_SampleSize
+  {0x46, 0x05}, // BLC Function 2/R_ABC_SampleSize
   //{0x4A, 0x01}, // Vsync_front_delay[7:0]
   //{0x4B, 0x10}, // Vsync_rear_delay[7:0]
   {0x4A, 0xFF}, // Vsync_front_delay[7:0]
   {0x4B, 0x00}, // Vsync_rear_delay[7:0]
   {0x00, 0x01}, // Update
 };
+*/
+
+/*
+// for QQVGA(AVG)
+static pixart_reg_init_t __pixart_reg_init[] =
+{
+  {0x7F, 0x00}, // bank select 0
+  {0x0C, 0x1D}, // soft reset
+  {0x7F, 0x00}, // bank select 0
+  //{0x07, 0x00}, // Hsynclnv/Vsynclnv/PxClklnv/AAvg_V/AAvg_H/VFlip/HFlip
+  {0x07, 0x8C}, // Hsynclnv/Vsynclnv/PxClklnv/AAvg_V/AAvg_H/VFlip/HFlip
+  {0x08, 0x03}, // Askip_V/Askip_H
+  {0x0B, 0x0E},
+  {0x0D, 0xC3}, // BLC/R_ABC_startline/R_ABC_En
+  {0x0F, 0x32}, // BINV_UB
+  //{0x11, 0x41}, // R_fgh
+  {0x11, 0x61}, // R_fgh
+  {0x12, 0xBD}, // R_ggh
+  {0x13, 0xD2},
+  {0x14, 0xFE},
+  {0x15, 0x00},
+  {0x17, 0x02},
+  {0x1A, 0x07},
+  {0x1B, 0x08},
+  {0x20, 0x00},
+  {0x25, 0x78},
+  {0x29, 0x28},
+  {0x2B, 0x06},
+  {0x2F, 0x0E},
+  {0x30, 0x0E},
+  {0x34, 0x0F},
+  {0x35, 0x0F},
+  {0x3A, 0x28},
+  {0x45, 0x17},
+  {0x46, 0x17},
+  //{0x48, 0x10}, // Expo[7:0]
+  //{0x49, 0x27}, // Expo[15:8]
+  //{0x4A, 0x00}, // Expo[23:16]
+  {0x48, 0x10}, // Expo[7:0]
+  {0x49, 0x51}, // Expo[15:8]
+  {0x4A, 0x00}, // Expo[23:16]
+  {0x4D, 0x0D},
+  {0x4E, 0x20},
+  {0x62, 0x12},
+  {0x64, 0x02},
+  {0x67, 0x0A},
+  {0x69, 0x0A},
+  {0x6C, 0x0B},
+  {0x6E, 0x0B},
+  {0x71, 0x0A},
+  {0x73, 0x1D},
+  {0x75, 0x1E},
+  {0x77, 0x0B},
+  {0x7F, 0x01}, // Bank select 1
+  {0x01, 0x14},
+  {0x02, 0x02},
+  {0x04, 0x96},
+  {0x05, 0x03},
+  {0x06, 0x46},
+  {0x0D, 0x9F}, // BLACINV Control 1/T_BLACINV_EnH/
+  {0x0E, 0x11}, // BLACINV Control 2/T_SIG_REF
+  {0x0F, 0x48},
+  {0x10, 0x10},
+  {0x11, 0x00},
+  {0x12, 0x05}, // T_GPIO_OPDRV/T_HSYNC_OPDRV/T_VSYNC_OPDRV/T_PXD_OPDRV
+  {0x15, 0x00},
+  {0x16, 0x01},
+  {0x17, 0x67},
+  {0x18, 0xD0},
+  {0x21, 0x14},
+  {0x22, 0x80},
+  {0x23, 0x80}, // Mode select trigger/exit low power mode
+  {0x2F, 0x30},
+  {0x35, 0x64},
+  {0x39, 0x03},
+  {0x3A, 0x03},
+  {0x45, 0x01},
+  {0x46, 0x05}, // BLC Function 2/R_ABC_SampleSize
+  //{0x4A, 0x01}, // Vsync_front_delay[7:0]
+  //{0x4B, 0x10}, // Vsync_rear_delay[7:0]
+  {0x4A, 0xFF}, // Vsync_front_delay[7:0]
+  {0x4B, 0x00}, // Vsync_rear_delay[7:0]
+  {0x00, 0x01}, // Update
+};
+*/
 
 
 static inline int is_spi_active(void)
@@ -160,7 +335,7 @@ static uint8_t __pixart_reg_read(pixart_t *pixart, uint8_t addr)
     pixart->spi_req.addr = (addr | 0x80);
     pi_spi_send(&pixart->spi_device, (uint8_t *)&pixart->spi_req.addr, 8, PI_SPI_CS_KEEP);
     pi_spi_receive(&pixart->spi_device, (uint8_t *)&pixart->spi_req.value, 8, PI_SPI_CS_AUTO);
-    return pixart->spi_req.value;
+    return (uint8_t)(pixart->spi_req.value & 0x0FF);
   }
 
   return 0;
@@ -194,7 +369,8 @@ static void __pixart_off(pixart_t *pixart)
 static void __pixart_mode(pixart_t *pixart, uint8_t mode)
 {
   __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x01);
-  __pixart_reg_write(pixart, PIXART_SWITCH_MODE_CTL1_REG, (mode != PIXART_TRIGGER_MODE) ? 0x00 : 0x80);
+  __pixart_reg_write(pixart, PIXART_SWITCH_MODE_CTL1_REG, (mode == PIXART_TRIGGER_MODE) ? 0x80 :
+                                                          ((mode == PIXART_POWERDOWN_MODE) ? 0xC0 : 0x00));
   __pixart_reg_write(pixart, PIXART_UPDATE_REG, 0x01);
 }
 
@@ -204,21 +380,28 @@ static int __pixart_start(pixart_t *pixart)
   __pixart_on(pixart);
 
   /* wait time > 500us to complete poweron process. */
-  pi_time_wait_us(1000);
+  pi_time_wait_us(500);
 
   /* reset camera from pad. */
   //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 1);
 
   /* wait time > 500us to complete reset process. */
-  //pi_time_wait_us(1000);
+  //pi_time_wait_us(500);
 
-  uint16_t id;
+  uint16_t id = 0xFFFF;
   do
   {
     /* soft reset pixart. */
     __pixart_reg_write(pixart, PIXART_GLOBAL_RESET_REG, PIXART_SOFT_RESET);
 
+    /* update */
+    __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x01);
+    __pixart_reg_write(pixart, PIXART_UPDATE_REG, 0x01);
+
     pi_time_wait_us(100);
+
+    /* switch bank 0. */
+    __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x00);
 
     id = ((__pixart_reg_read(pixart, PIXART_CHIP_ID_REG_H) << 8) | __pixart_reg_read(pixart, PIXART_CHIP_ID_REG_L));
 
@@ -228,6 +411,18 @@ static int __pixart_start(pixart_t *pixart)
   __pixart_regs_init(pixart);
 
   return 0;
+}
+
+static void __pixart_set_qqvga(pixart_t *pixart)
+{
+  __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x00);
+  __pixart_reg_write(pixart, 0x07, 0x8C);
+  __pixart_reg_write(pixart, 0x08, 0x03);
+  __pixart_reg_write(pixart, 0x0D, 0xC3);
+  __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x01);
+  __pixart_reg_write(pixart, 0x45, 0x01);
+  __pixart_reg_write(pixart, 0x46, 0x05);
+  __pixart_reg_write(pixart, PIXART_UPDATE_REG, 0x01);
 }
 
 static void __pixart_trigger_snapshot(pixart_t *pixart)
@@ -306,6 +501,105 @@ static int32_t __pixart_open(struct pi_device *device)
   if (__pixart_start(pixart) != 0)
     goto error5;
 
+  if (pixart->conf.format == PI_CAMERA_QQVGA)
+  {
+    __pixart_set_qqvga(pixart);
+  }
+
+  return 0;
+
+error5:
+  // TODO does not exist yet
+  //pi_gpio_close(&pixart->gpio_port);
+error4:
+  pi_pwm_close(&pixart->pwm_device);
+error3:
+  pi_spi_close(&pixart->spi_device);
+error2:
+  pi_cpi_close(&pixart->cpi_device);
+error:
+  pmsis_l2_malloc_free(pixart, sizeof(pixart_t));
+
+  return -1;
+}
+
+static int32_t __pixart_reopen(struct pi_device *device, pi_camera_opts_e opts)
+{
+  struct pi_pixart_conf *conf = (struct pi_pixart_conf *)device->config;
+
+  /* init bsp gpio. */
+  bsp_pixart_open(conf);
+
+  pixart_t *pixart = (pixart_t *)pmsis_l2_malloc(sizeof(pixart_t));
+  if (pixart == NULL)
+    return -1;
+
+  memcpy(&pixart->conf, conf, sizeof(*conf));
+  device->data = (void *)pixart;
+
+  /* configure cpi interface. */
+  struct pi_cpi_conf cpi_conf;
+  pi_cpi_conf_init(&cpi_conf);
+  cpi_conf.itf = conf->cpi_itf;
+  pi_open_from_conf(&pixart->cpi_device, &cpi_conf);
+  if (pi_cpi_open(&pixart->cpi_device))
+    goto error;
+
+  pi_cpi_set_format(&pixart->cpi_device, PI_CPI_FORMAT_BYPASS_BIGEND);
+
+  /* configure spi interface to use for command. */
+  struct pi_spi_conf spi_conf;
+  pi_spi_conf_init(&spi_conf);
+  spi_conf.itf = conf->spi_itf;
+  spi_conf.cs = conf->spi_cs;
+  spi_conf.wordsize = PI_SPI_WORDSIZE_8;
+  spi_conf.big_endian = 1;
+  spi_conf.max_baudrate = PIXART_SPI_BAUDRATE;
+  spi_conf.polarity = 0;
+  spi_conf.phase = 0;
+  pi_open_from_conf(&pixart->spi_device, &spi_conf);
+  if (pi_spi_open(&pixart->spi_device))
+    goto error2;
+
+  /* configure pwm to support clk to camera. */
+  struct pi_pwm_conf pwm_conf;
+  pi_pwm_conf_init(&pwm_conf);
+  pwm_conf.pwm_id = conf->pwm_id;
+  pwm_conf.ch_id = conf->pwm_channel;
+  pwm_conf.timer_conf &= ~PI_PWM_CLKSEL_REFCLK_32K;
+  pwm_conf.timer_conf |= PI_PWM_CLKSEL_FLL;
+  pi_open_from_conf(&pixart->pwm_device, &pwm_conf);
+  if (pi_pwm_open(&pixart->pwm_device))
+    goto error3;
+
+  pi_pwm_duty_cycle_set(&pixart->pwm_device, PIXART_MCLK_FREQ, 50);
+  pi_pwm_timer_start(&pixart->pwm_device);
+
+  /* configure gpio to control power and reset functions. */
+  struct pi_gpio_conf gpio_conf;
+  pi_gpio_conf_init(&gpio_conf);
+  pi_open_from_conf(&pixart->gpio_port, &gpio_conf);
+  if (pi_gpio_open(&pixart->gpio_port))
+    goto error4;
+
+  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_4V, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_2V5, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_reset, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  __pixart_off(pixart);
+  //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 0);
+
+  if (opts != PI_CAMERA_OPT_NO_REG_INIT)
+  {
+    /* init camera. */
+    if (__pixart_start(pixart) != 0)
+      goto error5;
+  }
+
+  if (pixart->conf.format == PI_CAMERA_QQVGA)
+  {
+    __pixart_set_qqvga(pixart);
+  }
+
   return 0;
 
 error5:
@@ -335,12 +629,15 @@ static void __pixart_close(struct pi_device *device)
 
 static int32_t __pixart_control(struct pi_device *device, pi_camera_cmd_e cmd, void *arg)
 {
+  int irq = disable_irq();
+  pi_camera_opts_e open_opt = (pi_camera_opts_e)arg;
+
   pixart_t *pixart = (pixart_t *)device->data;
 
   switch (cmd)
   {
     case PI_CAMERA_CMD_ON:
-      __pixart_on(pixart);
+      __pixart_reopen(device, open_opt);
       break;
 
     case PI_CAMERA_CMD_OFF:
@@ -353,13 +650,28 @@ static int32_t __pixart_control(struct pi_device *device, pi_camera_cmd_e cmd, v
 
     case PI_CAMERA_CMD_STOP:
       /* switch from contiune mode to trigger mode(or stop output datastream). */
-      __pixart_mode(pixart, PIXART_TRIGGER_MODE);
       pi_cpi_control_stop(&pixart->cpi_device);
+      break;
+
+    case PI_CAMERA_CMD_CONTINUE_MODE:
+      __pixart_mode(pixart, PIXART_CONTINUE_MODE);
+      break;
+
+    case PI_CAMERA_CMD_TRIGGER_MODE:
+      __pixart_mode(pixart, PIXART_TRIGGER_MODE);
+      break;
+
+    case PI_CAMERA_CMD_POWERDOWN_MODE:
+      __pixart_mode(pixart, PIXART_POWERDOWN_MODE);
+      // TODO
+      // disable 6M sys_clk
       break;
 
     default:
       break;
   }
+
+  restore_irq(irq);
 
   return 0;
 }
@@ -371,20 +683,20 @@ static void __pixart_capture_async(struct pi_device *device, void *buffer, uint3
   pi_cpi_capture_async(&pixart->cpi_device, buffer, bufferlen, task);
 
   /* switch to continue mode and start output datastream. */
-  __pixart_mode(pixart, PIXART_CONTINUE_MODE);
+  __pixart_trigger_snapshot(pixart);
 }
 
 static int32_t __pixart_reg_set(struct pi_device *device, uint32_t addr, uint8_t *value)
 {
   pixart_t *pixart = (pixart_t *)device->data;
-  __pixart_reg_write(pixart, addr, *(uint16_t *)value);
+  __pixart_reg_write(pixart, (uint8_t)addr, *value);
   return 0;
 }
 
 static int32_t __pixart_reg_get(struct pi_device *device, uint32_t addr, uint8_t *value)
 {
   pixart_t *pixart = (pixart_t *)device->data;
-  *(uint16_t *)value = __pixart_reg_read(pixart, addr);
+  *value = __pixart_reg_read(pixart, (uint8_t)addr);
   return 0;
 }
 

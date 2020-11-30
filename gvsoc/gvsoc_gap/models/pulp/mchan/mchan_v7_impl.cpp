@@ -937,7 +937,8 @@ void mchan::account_transfered_bytes(Mchan_cmd *cmd, int bytes)
   {
     trace.msg("Counter reached zero, raising event\n");
     
-    if (cmd->broadcast)
+    // Event is now always broadcasted
+    if (1) //cmd->broadcast)
     {
       for (unsigned int i=0; i<nb_channels; i++)
         channels[i]->trigger_event(cmd);

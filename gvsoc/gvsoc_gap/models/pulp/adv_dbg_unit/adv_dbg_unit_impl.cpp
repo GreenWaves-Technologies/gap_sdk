@@ -155,7 +155,6 @@ void adv_dbg_unit::tap_reset() {
 void adv_dbg_unit::tap_init() {
   tap.state = TAP_STATE_TEST_LOGIC_RESET;
   tap.tclk = 0;
-  tap.id_reg = 0x87654321;
   tap.confreg_reg = 0;
   tap_reset();
   debug.msg("Updating instruction (newInstr: IDCODE)\n");
@@ -626,6 +625,15 @@ int adv_dbg_unit::build()
     this->confreg_instr = get_js_config()->get_int("confreg_instr");
 
   this->tap.capture_instr = 0;
+
+  if (get_js_config()->get("idcode") == NULL)
+  {
+    this->tap.id_reg = 0x87654321;
+  }
+  else
+  {
+    this->tap.id_reg = get_js_config()->get_int("idcode");
+  }
 
   tap_init();
   return 0;

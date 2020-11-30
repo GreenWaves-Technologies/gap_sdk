@@ -228,7 +228,7 @@ void __pi_pmu_init(void)
 
     /* TODO : Init out of PMU? */
     /* Init FLLs. */
-    pi_fll_init(FLL_SOC, 0);
+    pi_fll_init(FLL_ID_FC, (uint32_t) ARCHI_FREQ_INIT);
 
     /* Set handlers. */
     pi_fc_event_handler_set(SOC_EVENT_PMU_CLUSTER_POWER, __pi_pmu_handler);
@@ -449,7 +449,7 @@ void __pi_pmu_cluster_power_on(void)
         /* Set cluster FLL if not retentive. */
         if (g_pmu_data.sleepctrl.field.cl_fll == PI_PMU_FLL_RET_OFF)
         {
-            pi_fll_init(FLL_CLUSTER, 0);
+            pi_fll_init(FLL_ID_CL, (uint32_t) ARCHI_FREQ_INIT);
         }
 
         /* Tell external loader (such as gdb) that the cluster is on so that it can take it into account. */

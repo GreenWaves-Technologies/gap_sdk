@@ -37,9 +37,6 @@ extern "C" {
 
 #include <stdint.h>
 
-/* Define clock source values */
-#define DEFAULT_SYSTEM_CLOCK           50000000u           /* Default System clock value */
-
 
 /**
  * @brief System clock frequency (core clock)
@@ -75,8 +72,10 @@ void system_setup_systick(uint32_t tick_rate_hz);
  *
  * It must be called whenever the CPU frequency is changed during execution.
  * This function updates SystemCoreClock variable according to current CPU frequency.
+ *
+ * \param new_freq       New SoC frequence.
  */
-void system_core_clock_update(void);
+void system_core_clock_update(uint32_t new_freq);
 
 /**
  * @brief Get current SystemCoreClock value.

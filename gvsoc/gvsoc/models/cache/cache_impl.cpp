@@ -67,6 +67,7 @@ private:
   vp::io_master refill_itf;
   vp::wire_slave<bool>      enable_itf;
   vp::wire_slave<bool>      flush_itf;
+  vp::wire_master<bool>     flush_ack_itf;
   vp::wire_slave<bool>      flush_line_itf;
   vp::wire_slave<uint32_t>  flush_line_addr_itf;
 
@@ -155,6 +156,8 @@ int Cache::build()
 
   this->new_master_port("refill", &this->refill_itf);
 
+  this->new_master_port("flush_ack", &this->flush_ack_itf);
+
   this->io_event.resize(this->nb_ports);
 
   for (int i=0; i<this->nb_ports; i++)
@@ -186,7 +189,7 @@ int Cache::build()
 
 void Cache::start()
 {
-  this->trace.msg("Instantiating cache (nb_sets: %d, nb_ways: %d, line_size: %d)\n", 1<<this->nb_sets_bits, this->nb_ways, 1<<this->line_size_bits);
+  this->trace.msg(vp::trace::LEVEL_INFO, "Instantiating cache (nb_sets: %d, nb_ways: %d, line_size: %d)\n", 1<<this->nb_sets_bits, this->nb_ways, 1<<this->line_size_bits);
 }
 
 
@@ -218,7 +221,7 @@ cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag,
 
   uint32_t full_addr = this->get_line_base(addr);
 
-  this->trace.msg("Refilling line (addr: 0x%x, index: %d)\n", full_addr, line_index);
+  this->trace.msg(vp::trace::LEVEL_DEBUG, "Refilling line (addr: 0x%x, index: %d)\n", full_addr, line_index);
   // Flush the line in case it is dirty to copy it back outside
   //flush();
 
@@ -250,7 +253,7 @@ cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag,
 
 void Cache::flush_line(unsigned int addr)
 {
-  this->trace.msg("Flushing cache line (addr: 0x%x)\n", addr);
+  this->trace.msg(vp::trace::LEVEL_INFO, "Flushing cache line (addr: 0x%x)\n", addr);
   unsigned int tag = addr >> this->line_size_bits;
   unsigned int line_index = this->get_line_index(addr);
   for (int i=0; i<this->nb_ways; i++)
@@ -265,13 +268,18 @@ void Cache::flush_line(unsigned int addr)
 
 void Cache::flush()
 {
-  this->trace.msg("Flushing whole cache\n");
-  for (int i=0; i<1<<this->nb_sets; i++)
+  this->trace.msg(vp::trace::LEVEL_INFO, "Flushing whole cache\n");
+  for (int i=0; i<this->nb_sets; i++)
   {
-    for (int j=0; i<j<<this->nb_ways; j++)
+    for (int j=0; j<this->nb_ways; j++)
     {
       this->lines[i*this->nb_ways+j].tag = -1;;
     }
+  }
+
+  if (this->flush_ack_itf.is_bound())
+  {
+    this->flush_ack_itf.sync(true);
   }
 }
 
@@ -280,9 +288,9 @@ void Cache::flush()
 void Cache::enable(bool enable) {
   this->enabled = enable;
   if (enable)
-    this->trace.msg("Enabling cache\n");
+    this->trace.msg(vp::trace::LEVEL_INFO, "Enabling cache\n");
   else
-    this->trace.msg("Disabling cache\n");
+    this->trace.msg(vp::trace::LEVEL_INFO, "Disabling cache\n");
 }
 
 vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
@@ -294,7 +302,7 @@ vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
   uint64_t size = req->get_size();
   bool is_write = req->get_is_write();
 
-  _this->trace.msg("Received req (port: %d, is_write: %d, offset: 0x%x, size: 0x%x)\n", port, is_write, offset, size);
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Received req (port: %d, is_write: %d, offset: 0x%x, size: 0x%x)\n", port, is_write, offset, size);
 
   if (!_this->enabled)
     return _this->refill_itf.req_forward(req);
@@ -309,7 +317,7 @@ vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
   unsigned int line_index = tag & (nb_sets - 1);
   unsigned int line_offset = offset & (line_size - 1);
 
-  _this->trace.msg("Cache access (is_write: %d, offset: 0x%x, size: 0x%x, tag: 0x%x, line_index: %d, line_offset: 0x%x)\n", is_write, offset, size, offset, line_index, line_offset);
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Cache access (is_write: %d, offset: 0x%x, size: 0x%x, tag: 0x%x, line_index: %d, line_offset: 0x%x)\n", is_write, offset, size, offset, line_index, line_offset);
 
   cache_line_t *hit_line = NULL;
   cache_line_t *line = &_this->lines[line_index*nb_ways];
@@ -318,7 +326,7 @@ vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
   {
     if (line->tag == tag)
     {
-      _this->trace.msg("Cache hit (way: %d)\n", i);
+      _this->trace.msg(vp::trace::LEVEL_TRACE, "Cache hit (way: %d)\n", i);
       hit_line = line;
       break;
     }
@@ -327,7 +335,7 @@ vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
 
   if (hit_line == NULL)
   {
-    _this->trace.msg("Cache miss\n");
+    _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
     _this->refill_event.event((uint8_t *)&offset);
     hit_line = _this->refill(line_index, offset, tag, req);
     if (hit_line == NULL)
@@ -358,7 +366,9 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
   uint64_t size = req->get_size();
   bool is_write = req->get_is_write();
 
-  _this->trace.msg("Received req (port: %d, is_write: %d, offset: 0x%x, size: 0x%x)\n", port, is_write, offset, size);
+
+
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Received req (port: %d, is_write: %d, offset: 0x%x, size: 0x%x)\n", port, is_write, offset, size);
 
   if (!_this->enabled)
     return _this->refill_itf.req_forward(req);
@@ -374,7 +384,7 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
   const unsigned int line_index = tag & (nb_sets - 1);
   const unsigned int line_offset = offset & (line_size - 1);
 
-  _this->trace.msg("Cache access (is_write: %d, offset: 0x%x, size: 0x%x, tag: 0x%x, line_index: %d, line_offset: 0x%x)\n", is_write, offset, size, offset, line_index, line_offset);
+  _this->trace.msg(vp::trace::LEVEL_TRACE, "Cache access (is_write: %d, offset: 0x%x, size: 0x%x, tag: 0x%x, line_index: %d, line_offset: 0x%x)\n", is_write, offset, size, offset, line_index, line_offset);
 
   cache_line_t *line = &_this->lines[line_index*nb_ways];
 
@@ -385,7 +395,7 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
   {
     if (tag != line[0].tag && tag != line[1].tag && tag != line[2].tag && tag != line[3].tag)
     {
-      _this->trace.msg("Cache miss\n");
+      _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
       _this->refill_event.event((uint8_t *)&offset);
       if (_this->refill(line_index, offset, tag, req) == NULL)
         return vp::IO_REQ_INVALID;
@@ -401,7 +411,7 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
     else if (tag == line[3].tag) hit_line = &line[3];
     else
     {
-      _this->trace.msg("Cache miss\n");
+      _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
       _this->refill_event.event((uint8_t *)&offset);
       hit_line = _this->refill(line_index, offset, tag, req);
       if (hit_line == NULL)

@@ -390,6 +390,7 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
 
             if (words[0] == "START")
             {
+                this->top->trace.msg(vp::trace::LEVEL_INFO, "UART flow control received start command\n");
                 this->waiting_command = false;
                 this->status = 0;
                 if (this->rx_size > 0)
@@ -418,6 +419,7 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
             }
             else if (words[0] == "STATUS")
             {
+                this->top->trace.msg(vp::trace::LEVEL_INFO, "UART flow control received status command\n");
                 this->send_reply = true;
                 this->reply_index = 0;
                 if (this->status == 0)

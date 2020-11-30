@@ -29,6 +29,9 @@
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_regfields.h"
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_gvsoc.h"
 
+using namespace std::placeholders;
+
+
 #define L2_NB_BANKS 16
 #define L1_NB_BANKS 2
 
@@ -52,6 +55,7 @@ private:
   vp::io_req_status_e fll_ctrl_req(int reg_offset, int size, bool is_write, uint8_t *data);
   vp::io_req_status_e l1_pwr_ctrl_req(int reg_offset, int size, bool is_write, uint8_t *data);
   vp::io_req_status_e l2_pwr_ctrl_req(int reg_offset, int size, bool is_write, uint8_t *data);
+  void dbg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
 
 
   static void bootsel_sync(void *__this, int value);
@@ -59,6 +63,7 @@ private:
   static void wakeup_rtc_sync(void *__this, bool wakeup);
   static void wakeup_gpio_sync(void *__this, int value, int gpio);
   void set_wakeup(int value);
+  void sync_dm_available(uint32_t mask);
 
   vp::trace     trace;
   vp::trace     info;
@@ -74,6 +79,7 @@ private:
   vp::wire_slave<bool>  wakeup_rtc_itf;
   vp::wire_master<bool>  wakeup_out_itf;
   vp::wire_master<unsigned int>  wakeup_seq_itf;
+  std::vector<vp::wire_master<bool>> dm_hart_available_itf;
 
   std::vector<vp::wire_slave<int>> wakeup_gpio_itf;
 
@@ -94,6 +100,7 @@ private:
   uint32_t l2_standby;
   uint32_t l1_power;
   uint32_t l1_standby;
+  int nb_harts;
 
   unsigned int extwake_sync;
 
@@ -640,6 +647,12 @@ int apb_soc_ctrl::build()
 
   this->extwake_sync = 0;
 
+  this->nb_harts = this->get_js_config()->get_int("nb_harts");
+  this->dm_hart_available_itf.resize(this->nb_harts);
+  for (int i=0; i<this->nb_harts; i++)
+  {
+    this->new_master_port("dm_hart_available_" + std::to_string(i), &this->dm_hart_available_itf[i]);
+  }
 
   this->new_reg("sleep_ctrl", &this->r_sleep_ctrl, 0, false);
   //this->new_reg("l2_btrim_stdby", &this->r_l2_btrim_stdby, 0, false);
@@ -659,9 +672,33 @@ int apb_soc_ctrl::build()
   this->l1_standby = 0;
 
   this->regmap.build(this, &this->trace);
+  this->regmap.dbg_ctrl.register_callback(std::bind(&apb_soc_ctrl::dbg_ctrl_req, this, _1, _2, _3, _4));
 
   return 0;
 }
+
+
+void apb_soc_ctrl::sync_dm_available(uint32_t mask)
+{
+    for (int i=0; i<this->nb_harts; i++)
+    {
+        if (this->dm_hart_available_itf[i].is_bound())
+        {
+            this->dm_hart_available_itf[i].sync((mask >> i) & 1);
+        }
+    }
+}
+
+void apb_soc_ctrl::dbg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+{
+    this->regmap.dbg_ctrl.update(reg_offset, size, value, is_write);
+
+    if (is_write)
+    {
+        this->sync_dm_available(this->regmap.dbg_ctrl.get_32());
+    }
+}
+
 
 void apb_soc_ctrl::reset(bool active)
 {
@@ -669,6 +706,8 @@ void apb_soc_ctrl::reset(bool active)
   {
     cluster_power = false;
     cluster_clock_gate = false;
+
+    this->sync_dm_available(this->regmap.dbg_ctrl.get_32());
   }
 }
 

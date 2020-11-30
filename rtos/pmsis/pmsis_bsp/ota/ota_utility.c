@@ -23,7 +23,6 @@
 
 #include "bsp/crc/md5.h"
 #include "pmsis.h"
-#include "bsp/flash/hyperflash.h"
 #include "bsp/flash_partition.h"
 
 #include "bsp/bootloader_utility.h"
@@ -31,6 +30,7 @@
 /*
  * Global variables
  */
+
 
 
 #include "bsp/ota_utility.h"
@@ -71,7 +71,7 @@ bool ota_utility_state_is_valid(ota_state_t *state)
     
     if(state->seq == UINT32_MAX)
     {
-        PI_LOG_INF("ota", "Check ota state: bad sequence number 0x%lx", state->seq);
+        PI_LOG_INF("ota", "Check ota state: bad sequence number 0x%lx\n", state->seq);
         return false;
     }
     
@@ -80,7 +80,7 @@ bool ota_utility_state_is_valid(ota_state_t *state)
     
     if(cmp)
     {
-        PI_LOG_WNG("ota", "Check ota state: MD5 differ");
+        PI_LOG_WNG("ota", "Check ota state: MD5 differ\n");
         return false;
     }
     
@@ -105,8 +105,9 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
     bool s0_is_valid, s1_is_valid;
     int8_t sector_id = -1;
     
+
     pi_flash_ioctl(flash, PI_FLASH_IOCTL_INFO, &flash_info);
-    PI_LOG_TRC("ota", "Read OTA data, flash offset %lx, sector size %lx", partition_offset, flash_info.sector_size);
+    PI_LOG_TRC("ota", "Read OTA data, flash offset %lx, sector size %lx\n", partition_offset, flash_info.sector_size);
     
     ota_states_l2 = pi_l2_malloc(sizeof(ota_state_t) * 2);
     if(ota_states_l2 == NULL)
@@ -115,9 +116,9 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
     pi_flash_read(flash, partition_offset, ota_states_l2, sizeof(ota_state_t));
     pi_flash_read(flash, partition_offset + flash_info.sector_size, ota_states_l2 + 1, sizeof(ota_state_t));
     
-    PI_LOG_TRC("ota", "Check if OTA data 0 is valid");
+    PI_LOG_TRC("ota", "Check if OTA data 0 is valid\n");
     s0_is_valid = ota_utility_state_is_valid(ota_states_l2 + 0);
-    PI_LOG_TRC("ota", "Check if OTA data 1 is valid");
+    PI_LOG_TRC("ota", "Check if OTA data 1 is valid\n");
     s1_is_valid = ota_utility_state_is_valid(ota_states_l2 + 1);
     
     // Both slots are valids
@@ -125,11 +126,11 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
     {
         if(ota_states_l2[0].seq <= ota_states_l2[1].seq)
         {
-            PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 0 which is the most recent.");
+            PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 0 which is the most recent.\n");
             sector_id = 0;
         } else
         {
-            PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 1 which is the most recent.");
+            PI_LOG_TRC("ota", "Two OTA data are valid, using OTA data 1 which is the most recent.\n");
             sector_id = 1;
         }
         rc = PI_OK;
@@ -138,14 +139,14 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
         
         if(s0_is_valid)
         {
-            PI_LOG_TRC("ota", "Using OTA data 0 that is the only valid.");
+            PI_LOG_TRC("ota", "Using OTA data 0 that is the only valid.\n");
             sector_id = 0;
             rc = PI_OK;
         }
         
         if(s1_is_valid)
         {
-            PI_LOG_TRC("ota", "Using OTA data 1 that is the only valid.");
+            PI_LOG_TRC("ota", "Using OTA data 1 that is the only valid.\n");
             sector_id = 1;
             rc = PI_OK;
         }
@@ -153,10 +154,10 @@ ota_utility_get_ota_state(pi_device_t *flash, const uint32_t partition_offset, o
     
     if(rc == PI_OK)
     {
-        SSBL_TRC("OTA data found at sector %u. Seqence number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x",
+        *ota_state = ota_states_l2[sector_id];
+        SSBL_TRC("OTA data found at sector %u. Seqence number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x\n",
                  sector_id, ota_state->seq, ota_state->state, ota_state->stable, ota_state->previous_stable, ota_state->once);
         
-        *ota_state = ota_states_l2[sector_id];
     }
     
     pi_l2_free(ota_states_l2, sizeof(ota_state_t) * 2);
@@ -189,10 +190,10 @@ pi_err_t ota_utility_write_ota_data(const flash_partition_table_t *table, ota_st
     *ota_state_l2 = *ota_state;
     
     sector_id = ota_state->seq % 2;
-    PI_LOG_TRC("ota", "Erase OTA data sector %u", sector_id);
+    PI_LOG_TRC("ota", "Erase OTA data sector %u\n", sector_id);
     pi_flash_erase_sector(table->flash, ota_data_partition->pos.offset + sector_id * flash_info.sector_size);
     
-    PI_LOG_TRC("ota", "Write ota data at sector %u: seq number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x",
+    PI_LOG_TRC("ota", "Write ota data at sector %u: seq number %lx, OTA state %u, stable subtype 0x%x, previous stable subtype 0x%x, once subtype 0x%x\n",
                sector_id, ota_state->seq, ota_state->state, ota_state->stable, ota_state->previous_stable, ota_state->once);
     pi_flash_program(table->flash, ota_data_partition->pos.offset + sector_id * flash_info.sector_size, ota_state_l2, sizeof(ota_state_t));
     

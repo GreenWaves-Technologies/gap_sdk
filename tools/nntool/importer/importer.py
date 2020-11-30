@@ -15,10 +15,12 @@
 
 import re
 from typing import Mapping
-from .tflite.new_tflite_graph_all import TfliteImporter, NNGraph
+from .tflite2.tflite import TFLiteImporter, NNGraph
+from .onnx.onnx import OnnxImporter
 
 GRAPH_IMPORTERS = {
-    'tflite': {'matches':[r".*\.tflite$"], 'importer':TfliteImporter, 'loader': None},
+    'onnx': {'matches':[r".*\.onnx$"], 'importer':OnnxImporter, 'loader': None},
+    'tflite': {'matches':[r".*\.tflite$"], 'importer':TFLiteImporter, 'loader': None},
 }
 
 class ImportException(Exception):

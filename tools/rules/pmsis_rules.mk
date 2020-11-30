@@ -18,6 +18,8 @@ export USE_PULPOS=1
 endif
 endif
 
+APP_INC += $(GAP_SDK_HOME)/tools/autotiler_v3/Emulation
+
 ifndef USE_PULPOS
 ifeq ($(BOARD_NAME), gapuino)
 COMMON_CFLAGS          += -DCONFIG_GAPUINO
@@ -90,7 +92,9 @@ PMSIS_BSP_DIR            = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 endif				# GAP_SDK_HOME
 
 
+ifeq ($(CUSTOM_BSP),)
 include $(PMSIS_BSP_DIR)/rules/freertos_bsp_rules.mk
+endif
 
 include $(GAP_SDK_HOME)/rtos/openmp/rules/freertos_openmp_rules.mk
 

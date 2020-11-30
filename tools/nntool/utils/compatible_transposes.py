@@ -13,139 +13,144 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
-from itertools import groupby
-from more_itertools import locate
+from typing import Sequence
+from functools import reduce
 
 
-def append_greater(l1, l2):
-    last_idx = -1 if not l1 else l1[-1]
-    l2 = [i for i in l2 if i > last_idx]
-    return l1 + l2
+def reduce_one(state, num):
+    (l, idx) = state
+    if num == 1:
+        return (l + [None], idx)
+    return (l + [idx], idx + 1)
 
 
-def add_end(l1, idx, append=False):
-    l1 = deepcopy(l1)
-    if isinstance(idx, list):
-        if append or not l1:
-            return l1 + [idx]
-        return l1[0:-1:] + [append_greater(l1[-1], idx)]
-
-    if append or not l1:
-        return l1 + [[idx]]
-    return l1[0:-1:] + [append_greater(l1[-1], [idx])]
+def index_or_none(l):
+    return reduce(reduce_one, l, ([], 0))[0]
 
 
-def tupled(l):
-    return tuple([tuple(elem) for elem in l])
+def set_indexes(res_elem, l1_idxes):
+    return tuple(l1_idxes[i] for i in res_elem)
 
 
-def find_combination(l1, l2, sequence=None, l1_idx=0,
-                     factored_l1=False, factored_l2=False,
-                     combined_l1=False, combined_l2=False,
-                     l2_len=None):
-
-    # set up the run
-    if sequence is None:
-        l1_idxes = [i for i, val in enumerate(l1) if val > 1]
-        reses = find_combination([val for val in l1 if val > 1], l2,
-                                 sequence=[], l2_len=len(l2))
-        return [tuple([tuple([l1_idxes[i] for i in el]) for el in res]) for res in reses]
-
-    # result cannot exceed l2 length
-    if len(sequence) > l2_len:
-        return set([])
-
-    # found a possible result
-    if not l1 and not l2:
-        return set([tupled(sequence)])
-
-    # gobble 1s at the end of l1 (due to factorization)
-    if not l2 and l1 and l1[0] == 1:
-        return find_combination(l1[1::], l2,
-                                sequence=sequence,
-                                l1_idx=l1_idx,
-                                l2_len=l2_len)
-
-    # gobble 1s at the end of l2
-    if not l1 and l2 and l2[0] == 1:
-        return find_combination(l1, l2[1::],
-                                sequence=sequence,
-                                l1_idx=l1_idx,
-                                l2_len=l2_len)
-
-    # unequal and no 1s means no result.
-    if not l1 or not l2:
-        return set([])
-
-    # now look for possible solutions
-    res = set()
-    # if they are equal gobble both and look at the rest
-    if l1[0] == l2[0]:
-        res |= find_combination(l1[1::], l2[1::],
-                                sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                l1_idx=l1_idx + 1,
-                                l2_len=l2_len)
-
-    # if l1 is less then look at factors of l2. Don't factor something already combined.
-    if l1[0] <= l2[0] and not combined_l2:
-        if l2[0] % l1[0] == 0:
-            res |= find_combination(l1[1::], [l2[0]//l1[0]] + l2[1::],
-                                    sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                    l1_idx=l1_idx + 1, factored_l2=True,
-                                    l2_len=l2_len)
-
-    # if l1 is more then look at factors of l1. Don't factor something already combined.
-    if l1[0] > l2[0] and not combined_l1:
-        if l1[0] % l2[0] == 0:
-            res |= find_combination([l1[0]//l2[0]] + l1[1::], l2[1::],
-                                    sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                    l1_idx=l1_idx, factored_l1=True,
-                                    l2_len=l2_len)
-
-    # try combining the head of l1 if more than 1 item
-    if len(l1) > 1:
-        res |= find_combination([l1[0] * l1[1]] + l1[2::], l2,
-                                sequence=add_end(sequence, [l1_idx, l1_idx + 1]),
-                                l1_idx=l1_idx + 1,
-                                combined_l1=True,
-                                l2_len=l2_len)
-
-    # try combining the head of l2 if more than 1 item
-    if len(l2) > 1:
-        res |= find_combination(l1, [l2[0] * l2[1]] + l2[2::],
-                                sequence=add_end(sequence, l1_idx, append=not factored_l2),
-                                l1_idx=l1_idx, combined_l2=True,
-                                l2_len=l2_len)
-    return res
+def process_result(result, l1_idxes, l2_idxes):
+    return tuple(set_indexes(result[idx], l1_idxes) if idx is not None else None for idx in l2_idxes)
 
 
-def compatible_transpose(remap, trans):
-    dims_in_remap = set(i for elem in remap for i in elem)
+def process_results(results, l1_idxes, l2_idxes):
+    """Expands the None elements in l2 and substitutes the real l1 indexes"""
+    return set(process_result(result, l1_idxes, l2_idxes) for result in results) - set()
 
-    class State:
-        def __init__(self):
-            self.value = -1
-            self.key = 0
-    flag = State()
 
-    def less_than(o):
-        if flag.value >= o:
-            flag.key += 1
-        flag.value = o
-        return flag.key
-    reduced_trans = tuple(tuple(g) for _, g in groupby(
-        [i for i in trans if i in dims_in_remap], key=less_than))
-    if all(reduced_trans[i+1] > reduced_trans[i] for i in range(len(reduced_trans) - 1)):
-        return tuple(range(len(remap)))
-    if all(elem in reduced_trans for elem in remap):
-        return tuple(i for elem in reduced_trans for i in locate(remap, lambda x: x == elem))
+def find_combination(dims1: Sequence, dims2: Sequence, result: Sequence[Sequence] = None,
+                     cur_l1: Sequence = None, l1_idx: int = 0):
+    """Finds the sequence indexes of elements in l1 that match l2 and returns a list
+    of tuples of those indexes. If an element is None then the size of that element
+    in l2 is 1. If an index is not present then the size of that element in l1 is 1"""
+    if result is None:
+        results = find_combination([val for val in dims1 if val > 1],
+                                   [val for val in dims2 if val > 1],
+                                   result=[],
+                                   cur_l1=[0],
+                                   l1_idx=0)
+        return process_results(results, [idx for idx, val in enumerate(dims1) if val > 1], index_or_none(dims2))
+    # if both are empty we match
+    if not dims1 and not dims2:
+        return [result]
+    # if one is empty we fail
+    if not dims1 or not dims2:
+        return []
+    results = []
+    # if the start matches we match
+    if dims1[0] == dims2[0]:
+        results += find_combination(dims1[1::], dims2[1::], result=result +
+                                    [cur_l1], cur_l1=[l1_idx+1], l1_idx=l1_idx+1)
+    # if we can combine two in l1 do it - l1 must be longer than l2
+    if len(dims1) > 1 and len(dims1) > len(dims2):
+        results += find_combination([dims1[0]*dims1[1]] + dims1[2::], dims2,
+                                    result=result, cur_l1=cur_l1 + [l1_idx+1], l1_idx=l1_idx+1)
+    # if we can combine two in l2 do it - l2 must be longer than l1
+    if len(dims2) > 1 and len(dims2) > len(dims1):
+        results += find_combination(dims1, [dims2[0]*dims2[1]] + dims2[2::],
+                                    result=result+[cur_l1], cur_l1=cur_l1, l1_idx=l1_idx)
+    return results
+
+
+def find_first(combination, idx):
+    """finds the next non null element in the combination sequence whose first
+    element matches the index"""
+    for fc_idx, fc_set in enumerate(combination):
+        if fc_set is None:
+            continue
+        if idx == fc_set[0]:
+            return fc_idx
+        elif idx in fc_set:
+            # item is not first so no match
+            raise IndexError()
     return None
 
 
-def find_all_compatible_transposes(remaps, transpose):
-    return iter([item for item in (compatible_transpose(res, transpose) for res in remaps) if item is not None])
+def len_at_start(l, elem):
+    """finds the index in l of the first item that does not match elem"""
+    for idx, lelem in enumerate(l):
+        if lelem != elem:
+            return idx
+    return 0
 
 
-def find_compatible_transpose(remaps, transpose):
-    return next(find_all_compatible_transposes(remaps, transpose), None)
+def compatible_transpose(combination, trans):
+    """Determines if the transpose can be expressed in the combination in fc
+    """
+    res = []
+    trans = list(trans)
+    while trans:
+        try:
+            first_idx = find_first(combination, trans[0])
+        except IndexError:
+            # the next non null segment doesn't match so bail
+            return False
+        if first_idx is None:
+            # this element was not found in the sequence which means it doesn't matter (it's 1)
+            trans.pop(0)
+            continue
+        # we have a segment who's first element matches the transpose
+        # the rest of the elements in the segment must be in order
+        fc_idx = first_idx
+        while trans and fc_idx < len(combination):
+            segs = combination[fc_idx]
+            if segs is not None:  # if segs is none then it matches anything
+                # the first seg must match since it was found by find_first
+                # this tests if another seg doesn't match in which case we are
+                # successful and break
+                if segs[0] != trans[0]:
+                    break
+                # now check the rest of the seg. Always leave the last trans
+                # element in trans so we can look for it in a subsequent trans
+                for oidx in segs[1::]:
+                    trans.pop(0)
+                    # element in segment doesn't match the transpose
+                    # so no solution
+                    if trans[0] != oidx:
+                        return False
+            fc_idx += 1
+        # this trans element no longer matches the next segment or we
+        # reached the end
+        if trans:
+            trans.pop(0)
+        # add range from first to last on first time around
+        # this will include idxes idxes of Nones after this segment
+        res += list(range(first_idx, fc_idx))
+    at_start = len_at_start(combination, None)
+    # The only bit we won't have matched is a fc that starts with None's so
+    # add those indexes to the start
+    return tuple(list(range(0, at_start)) + res)
+
+
+def find_all_compatible_transposes(combinations, trans):
+    for combination in combinations:
+        ctrans = compatible_transpose(combination, trans)
+        if ctrans:
+            yield ctrans
+
+
+def find_compatible_transpose(fcs, trans):
+    return next(find_all_compatible_transposes(fcs, trans), None)

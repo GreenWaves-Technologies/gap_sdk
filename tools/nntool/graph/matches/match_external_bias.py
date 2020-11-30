@@ -49,6 +49,7 @@ class MatchExternalBias(DefaultMatcher):
                 filter_node = node
             elif isinstance(node, ConstantInputParameters):
                 constant_node = node
+        LOG.info("fusing bias in %s into %s", constant_node.name, filter_node.name)
         flattened_constant = constant_node.value.flatten()
         # shape needs to match
         if flattened_constant.shape[0] == filter_node.filter.out_c:
@@ -101,6 +102,7 @@ class MatchExternalBiasSQ8(DefaultMatcher):
 
         # shape needs to match
         if flattened_constant.shape[0] == filter_node.filter.out_c:
+            LOG.info("fusing bias in %s into %s", constant_node.name, filter_node.name)
             if filter_node.has_bias:
                 assert filter_node.biases is not None, "can't absorb bias into filter. maybe weights are not loaded"
                 if G.quantization:
@@ -112,6 +114,7 @@ class MatchExternalBiasSQ8(DefaultMatcher):
                 else:
                     filter_node.biases += flattened_constant
             else:
+                filter_node.has_bias = True
                 if G.quantization:
                     #dequantize the constants
                     flattened_constant_dq = const_q.get_dequantized(flattened_constant)

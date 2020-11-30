@@ -65,4 +65,10 @@ malloc_t pi_fc_l1_malloc_struct_get(void)
     return malloc_struct;
 }
 
+void pi_fc_l1_malloc_dump(void)
+{
+    printf("FC L1 malloc dump:\n");
+    __malloc_dump(&__fc_l1_malloc);
+}
+
 #endif  /* (__FC_MALLOC_NATIVE__ == 0) */

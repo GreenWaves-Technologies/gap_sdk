@@ -105,6 +105,8 @@ class ExpressionMatcher(Matcher):
                           for edge_group in in_edges.values()]
             out_mapping = list(out_edges.keys())
             constant_inputs = [isinstance(node_edge_idx[0], ConstantInputParameters) for node_edge_idx in in_edges]
+            LOG.info("constant_nodes %s", constant_inputs)
+            LOG.info("in_edges %s", in_edges)
             expr = ExpressionFusionParameters("expr_%s" % self._expr_num,
                                               subgraph=frag,
                                               input_mapping=in_mapping,

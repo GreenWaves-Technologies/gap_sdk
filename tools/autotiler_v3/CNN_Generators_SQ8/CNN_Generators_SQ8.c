@@ -64,10 +64,10 @@ void LoadCNN_SQ8_Library()
 			TCArg("v4s", "Pad"),
 			TCArg("unsigned char", "NormBias"),
 			TCArg("unsigned char", "Orientation"),
-                        TCArg("unsigned char", "N"),
+                        TCArg("unsigned short", "N"),
                         TCArg("unsigned char", "S"),
                         TCArg("unsigned char", "D"),
-                        TCArg("unsigned char", "Ny"),
+                        TCArg("unsigned short", "Ny"),
                         TCArg("unsigned char", "Sy"),
                         TCArg("unsigned char", "Dy")
 			)
@@ -104,10 +104,10 @@ void LoadCNN_SQ8_Library()
 			TCArg("unsigned short int", "Feat"),
 			TCArg("signed char * __restrict__", "Out"),
 			TCArg("v4s", "Pad"),
-			TCArg("unsigned char", "FS"),
+			TCArg("unsigned short", "FS"),
 			TCArg("unsigned char", "S"),
                         TCArg("unsigned char", "D"),
-                        TCArg("unsigned char", "FSy"),
+                        TCArg("unsigned short", "FSy"),
                         TCArg("unsigned char", "Sy"),
                         TCArg("unsigned char", "Dy"),
 			TCArg("unsigned char", "PoolMax"),
@@ -2754,7 +2754,7 @@ int CNN_MatMulSmallM1Act_SQ8(
 				)
 			),
 			(ActKerName==0)?AT_NO_CALL:
-			Call(ActKerName, LOC_LOOP_EPILOG,
+			Call(ActKerName, LOC_LOOP,
 				Bindings(6,
 					K_Arg("Out", KER_ARG_TILE),		/* Input tile */
 					K_Arg("Out", KER_ARG_TILE),		/* Output tile */

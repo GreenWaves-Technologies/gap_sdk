@@ -18,6 +18,7 @@
 import generators.v1.chip_gen as chip_gen
 from generators.v1.comp_gen import *
 import imp
+import importlib
 
 
 
@@ -155,9 +156,12 @@ def get_config(tp):
       ('name', board_name)
   ]))
 
+  chip_gen_module = tp.get_str('chip_gen')
 
-
-  system.system_tree.board.chip = chip_gen.get_config(tp)
+  if chip_gen_module is not None:
+    system.system_tree.board.chip = importlib.import_module(chip_gen_module).Chip(tp).gen()
+  else:
+    system.system_tree.board.chip = chip_gen.Chip(tp).gen()
 
   system.system_tree.board.dpi_clock = Component(OrderedDict([
       ('vp_class', "vp/clock_domain"),
@@ -199,7 +203,7 @@ def get_config(tp):
     system.system_tree.board.fast_clock_clock = Component(OrderedDict([
     ('vp_class', "vp/clock_domain"),
     ('vp_component', 'vp.clock_domain_impl'),
-    ('frequency', 1000000*2)
+    ('frequency', 24000000*2)
     ]))
 
     system.system_tree.board.fast_clock = Component(OrderedDict([

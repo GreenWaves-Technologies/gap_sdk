@@ -23,7 +23,6 @@
 
 #include "bsp/crc/md5.h"
 #include "pmsis.h"
-#include "bsp/flash/hyperflash.h"
 #include "bsp/flash_partition.h"
 
 #include "bsp/bootloader_utility.h"

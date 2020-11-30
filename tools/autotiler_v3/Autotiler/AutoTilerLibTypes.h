@@ -503,6 +503,7 @@ typedef enum {
 	KER_OPT_NONE  = 0, /**< No optimization */
 	KER_OPT_BUFFER_PROMOTE = (1<<0), /**< When all user kernel arguments can fit into given L1 memory promote them to buffer */
 	KER_OPT_PARTIAL_BUFFER_PROMOTE = (1<<1), /**< When all tile of a user kernel argument across In Planes can fit into given L1 memory promote them to partial buffer */
+	KER_OPT_KEEP_GROUP = (1<<2), /**< When in part of a group and expanded in a graph all elements of the group should be kept together */
 } KernelOptimizationT;
 
 /**
@@ -592,6 +593,8 @@ typedef struct {
 	KernelIteratorT KerIterSpace;	/* A tiled Iterator (possibly a single tile) or a regular iterator, in case of a Ker Arg Sub Space only the most inner dim can be tiled */
 	unsigned int SpaceSize[2];	/* Total size of this sub space */
 	unsigned int SubSpaceSize[4];	/* In bytes size of one item of this sub space, In case sub space is parametric index 0 is std tile dim, index 1 is last tile dim  */
+	unsigned int UnitSubSpaceSize;	/* Size in bytes of the full sub space for a unit stride in space */
+	int UnitStride;			/* Unit move stride along KerIterSpace */
 	char IsAbs;			/* If 1 this subspace is addressable through Base (relative or not) + subscript, if 0 it is relative */
 	char InL1;			/* If 1 this subspace is entirely in L1 addressable through Base (relative or not) + subscript */
 	char Promoted;			/* If 1 this subspace has been promoted to buffer */
@@ -972,6 +975,8 @@ typedef struct {
 	char Out_L3;		/* if != 0 Out forced to be in L3 memory */
 	char Scale_L3;		/* if != 0 Scale forced to be in L3 memory */
 	char ScaleN_L3;		/* if != 0 ScaleN forced to be in L3 memory */
+	char RNNUseHardActivation; /* if != -1 Overides the usage of HARD activations in RNNs/LSTMs Generator (default use Hard ones) */ 
+	char RNNSameInStateScales; /* if != -1 Overides the RNNs/LSTMs input and state Quantization handling (default they must be the same) */ 
 } CNN_GenControl_T;
 
 typedef struct {
@@ -1200,6 +1205,7 @@ typedef enum {
 	AT_GRAPH_DUMP_ONE_NODE,			/* Trace one specific graph node */
 	AT_GRAPH_ARG2STRUCT,			/* Kernel C arguments are promoted to struct */
 	AT_GRAPH_SIZE_OPT,			/* Graph constructor, runner and destructor are compiled with -Os */
+	AT_GRAPH_WARM_CONSTRUCT,		/* If Warm arg should be added to constructor to bypass all but L1 mem allocation */
 } AT_GraphCtrl_T;
 /*
 #define AT_OPT_ON	((void *) 1)
@@ -1226,12 +1232,13 @@ typedef struct {
 	NameT *DumpTensorNode;			/* Dump tensor defined by DumpTensorFilter for this specific node, if null dump all */
 	int PromoteArgsToStruct;		/* When 1 function calls arguments are promoted to structure */
 	int OptRunnerForSize;			/* When 1 forces CNN graph construct, runner and destruct to be compiled in Os */
+	int XtructWarmArg;			/* When 1 add Warm as an arg to xtruct */
 } GraphControl_T;
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))
 #define MultRndu(x,y, scale)    ((unsigned int)(((x)*(y)) + (1<<((scale)-1)))>>(scale))
-#define Max(a, b)               (((a)>(b))?(a):(b))
-#define Min(a, b)               (((a)<(b))?(a):(b))
+//#define Max(a, b)               (((a)>(b))?(a):(b))
+//#define Min(a, b)               (((a)<(b))?(a):(b))
 
 /* Return aligned value, alignment is 2^Size */
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))

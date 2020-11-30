@@ -126,8 +126,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
     @staticmethod
     def real_up_connection(G, eparams, set_real=False):
         while isinstance(eparams.creating_node, ReshapeParameters) or \
-            (isinstance(eparams.creating_node, TransposeParameters) and
-             eparams.creating_node.transpose_dimension == 1):
+            (isinstance(eparams.creating_node, TransposeParameters) and eparams.creating_node.does_nothing()):
             set_real = True
             eparams = G.in_edges(eparams.creating_node.name)[0].params
         return eparams, set_real
@@ -136,8 +135,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
     def real_down_connection(G, eparams):
         oedge = G.out_edges(eparams.creating_node.name)[eparams.creating_node_idx]
         while isinstance(oedge.to_node, ReshapeParameters) or \
-            (isinstance(oedge.to_node, TransposeParameters) and
-             oedge.to_node.transpose_dimension == 1):
+            (isinstance(oedge.to_node, TransposeParameters) and oedge.to_node.does_nothing()):
             assert len(G.out_edges(oedge.to_node.name)) <= 1
             oedge = G.out_edges(oedge.to_node.name)[0]
         return oedge
@@ -198,6 +196,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                     continue
             elif eparams.edge_type != "in_out" or eparams.is_alias:
                 continue
+
             home_location = eparams.creating_node.at_options.out_home_mem_loc if eparams.creating_node.at_options.out_home_mem_loc \
                             is not None else self.opts['default_local_location']
             exec_location = eparams.creating_node.at_options.out_exec_mem_loc if eparams.creating_node.at_options.out_exec_mem_loc \
@@ -375,6 +374,8 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                     LOG.error("Don't know how to generate kernel \
                         for a reshape that has a transpose.")
                     return ""
+                continue
+            elif isinstance(node, TransposeParameters) and node.does_nothing():
                 continue
             elif isinstance(node, (InputParameters, OutputParameters)):
                 continue

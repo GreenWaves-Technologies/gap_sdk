@@ -371,7 +371,15 @@ typedef enum
      *
      * Disable clock for the i2s interface.
      */
-    PI_I2S_IOCTL_CLOCK_DISABLE
+    PI_I2S_IOCTL_CLOCK_DISABLE,
+    
+    /**
+     * \brief Enable the timestamp
+     *
+     * Enable the timestamp feature for the i2s interface.
+     */
+    PI_I2S_IOCTL_EN_TIMESTAMP,
+
 } pi_i2s_ioctl_cmd_e;
 
 /**

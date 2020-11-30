@@ -35,9 +35,8 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-/*
- * Fll control
- * FreqOut = Fref * Mult/2^(Div-1)
+/**
+ * FreqOut = (Fref * Mult)/2^(Div-1)
  * With Mult on 16 bits and Div on 4 bits
  */
 
@@ -46,212 +45,162 @@
 /* Maximum Log2(Clok Divider) */
 #define LOG2_MAXDIV     15
 /* Log2(FLL_REF_CLK=32768) */
-#define LOG2_REFCLK     15
+#define LOG2_REFCLK     (ARCHI_FLL_REF_CLOCK_LOG2)
 /* Maximum Log2(Multiplier) */
 #define LOG2_MAXM       (LOG2_MAXDCO - LOG2_REFCLK)
 
 /*******************************************************************************
- * Prototypes
+ * Driver data
  ******************************************************************************/
 
-/*******************************************************************************
- * Variables
- ******************************************************************************/
-static volatile uint32_t flls_frequency[FLL_NUM];
+static volatile uint32_t g_fll_frequency[ARCHI_NB_FLL] = {0};
 
 static pi_freq_cb_t *g_freq_cb = NULL;
 
 /*******************************************************************************
- * Code
+ * Internal functions
  ******************************************************************************/
-static uint32_t fll_get_mult_div_from_frequency(uint32_t freq, uint32_t *mult, uint32_t *div)
+
+static uint32_t __pi_fll_mult_div_from_frequency_get(uint32_t freq, uint32_t *mult,
+                                                     uint32_t *div)
 {
     uint32_t D = __builtin_pulp_minsi(8, __MAX(1, (8 - (__FL1(freq) - 3 - LOG2_REFCLK))));
-    uint32_t M = (freq >> LOG2_REFCLK) * (1 << (D-1));
+    uint32_t M = (freq >> (LOG2_REFCLK - (D-1)));
     *mult = M;
     *div  = D;
-    return (((FLL_REF_CLK)*M) / (1 << (D-1)));
-}
-
-static uint32_t fll_get_frequency_from_mult_div(uint32_t mult, uint32_t div)
-{
-    /* FreqOut = Fref * Mult/2^(Div-1)    With Mult on 16 bits and Div on 4 bits */
-    uint32_t fref = FLL_REF_CLK;
-    uint32_t fres = (div == 0) ? (fref * mult) : (fref * mult) >> (div-1);
+    uint32_t fres = (M << (LOG2_REFCLK - (D-1)));
+    //printf("Set freq: mult=%lx, div=%lx, real_freq=%ld, freq=%ld\n", *mult, *div, fres, freq);
     return fres;
 }
 
-int pi_fll_set_frequency(fll_type_t which_fll, uint32_t frequency, int check)
+static uint32_t __pi_fll_frequency_from_mult_div_get(uint32_t mult, uint32_t div)
 {
-    uint32_t val1, val2;
-    uint32_t mult, div, mult_factor_diff;
+    /* FreqOut = Fref * Mult/2^(Div-1)    With Mult on 16 bits and Div on 4 bits */
+    uint32_t fref = (uint32_t) ARCHI_FLL_REF_CLOCK;
+    uint32_t fres = (mult << (LOG2_REFCLK - (div - 1)));
+    //printf("Get freq: mult=%lx, div=%lx, real_freq=%ld\n", mult, div, fres);
+    return fres;
+}
 
-    int irq =  __disable_irq();
+/*******************************************************************************
+ * Function implementation
+ ******************************************************************************/
 
-    #if 0
-    if (check)
+void pi_fll_init(uint8_t fll_id, uint32_t frequency)
+{
+    uint32_t mult = 0, div = 0;
+    fll_ctrl_conf1_t conf1 = {0};
+    fll_ctrl_conf2_t conf2 = {0};
+    conf1.raw = hal_fll_conf1_get(fll_id);
+
+    /* Don't set the gain and integrator in case it has already been set by the boot code */
+    /* as it totally blocks the fll on the RTL platform. */
+    /* The boot code is anyway setting the same configuration. */
+    if (conf1.mode == 0)
     {
-        uint32_t curr_voltage = DCDC_TO_mV(pmu_state.DCDC_Settings[READ_PMU_REGULATOR_STATE(pmu_state.State)]);
+        conf2.loop_gain = 0x7;
+        conf2.de_assert_cycles = 0x10;
+        conf2.assert_cycles = 0x10;
+        conf2.lock_tolerance = 0x100;
+        conf2.config_clock_sel = 0x0;
+        conf2.open_loop = 0x0;
+        conf2.dithering = 0x1;
+        hal_fll_conf2_mask_set(fll_id, conf2.raw);
 
-        if (which_fll == FLL_SOC)
-        {
-            if (pi_fll_soc_max_freq_at_V(curr_voltage) < (int)frequency)
-            {
-                __restore_irq(irq);
-                return -1;
-            }
-        }
-        else
-        {
-            if (pi_fll_cluster_max_freq_at_V(curr_voltage) < (int)frequency)
-            {
-                __restore_irq(irq);
-                return -1;
-            }
-        }
+        /* We are in open loop, prime the fll forcing dco input, approx 50 MHz */
+        /* Set int part to 332 */
+        fll_ctrl_integrator_t integrator = {0};
+        integrator.int_part = 332;
+        hal_fll_integrator_set(fll_id, integrator.raw);
     }
-    #endif
+
+    /* Set frequency. */
+    pi_fll_frequency_set(fll_id, frequency, 0);
+}
+
+int32_t pi_fll_frequency_set(uint8_t fll_id, uint32_t frequency, uint8_t check)
+{
+    uint32_t irq =  __disable_irq();
+    /* TODO : Voltage check. */
+
+    uint32_t mult = 0, div = 0;
+    fll_ctrl_conf1_t conf1 = {0};
+    fll_ctrl_conf2_t conf2 = {0};
 
     /* Frequency calculation from theory */
-    fll_get_mult_div_from_frequency(frequency, &mult, &div);
+    uint32_t real_freq = __pi_fll_mult_div_from_frequency_get(frequency, &mult, &div);
+    conf1.raw = 0x0;
+    conf1.mult_factor = mult;
+    conf1.clock_out_divider = div;
+    conf1.mode = 0x1;
 
     #if defined(CHIP_VERSION) && (CHIP_VERSION == 1)
     /* Gain : 2-1 - 2-10 (0x2-0xB) */
     /* Return to close loop mode and give gain to feedback loop */
-    val2 = FLL_CTRL_CONF2_LOOPGAIN(0x7)         |
-           FLL_CTRL_CONF2_DEASSERT_CYCLES(0x10) |
-           FLL_CTRL_CONF2_ASSERT_CYCLES(0x10)   |
-           FLL_CTRL_CONF2_LOCK_TOLERANCE(0x100) |
-           FLL_CTRL_CONF2_CONF_CLK_SEL(0x0)     |
-           FLL_CTRL_CONF2_OPEN_LOOP(0x0)        |
-           FLL_CTRL_CONF2_DITHERING(0x1);
+    conf2.loop_gain = 0x7;
+    conf2.de_assert_cycles = 0x10;
+    conf2.assert_cycles = 0x10;
+    conf2.lock_tolerance = 0x100;
+    conf2.config_clock_sel = 0x0;
+    conf2.open_loop = 0x0;
+    conf2.dithering = 0x1;
+    hal_fll_conf2_mask_set(fll_id, conf2.raw);
 
-    if (which_fll) {
-        FLL_CTRL->CLUSTER_CONF2 = val2;
-    } else {
-        FLL_CTRL->SOC_CONF2 = val2;
-    }
-
-    /* Configure register 1 */
-    val1 = FLL_CTRL_CONF1_MODE(1)            |
-           FLL_CTRL_CONF1_MULTI_FACTOR(mult) |
-           FLL_CTRL_CONF1_CLK_OUT_DIV(div);
-
-    if (which_fll) {
-        FLL_CTRL->CLUSTER_CONF1 = val1;
-    } else {
-        FLL_CTRL->SOC_CONF1 = val1;
-    }
+    hal_fll_conf1_mask_set(fll_id, conf1.raw);
 
     /* Check FLL converge by compare status register with multiply factor */
-    do {
-        mult_factor_diff = which_fll ? abs(FLL_CTRL->CLUSTER_FLL_STATUS - mult) :
-                                       abs(FLL_CTRL->SOC_FLL_STATUS - mult);
-    } while ( mult_factor_diff > 0x10 );
-
-    val2 = FLL_CTRL_CONF2_LOOPGAIN(0xB)      |
-        FLL_CTRL_CONF2_DEASSERT_CYCLES(0x10) |
-        FLL_CTRL_CONF2_ASSERT_CYCLES(0x10)   |
-        FLL_CTRL_CONF2_LOCK_TOLERANCE(0x100) |
-        FLL_CTRL_CONF2_CONF_CLK_SEL(0x0)     |
-        FLL_CTRL_CONF2_OPEN_LOOP(0x0)        |
-        FLL_CTRL_CONF2_DITHERING(0x1);
-
-    if (which_fll) {
-        FLL_CTRL->CLUSTER_CONF2 = val2;
-    } else {
-        FLL_CTRL->SOC_CONF2 = val2;
-    }
-    #else
-    /* Configure register 1 */
-    val1 = FLL_CTRL_CONF1_MODE(1)            |
-           FLL_CTRL_CONF1_MULTI_FACTOR(mult) |
-           FLL_CTRL_CONF1_CLK_OUT_DIV(div);
-
-    if (which_fll) {
-        FLL_CTRL->CLUSTER_CONF1 = val1;
-    } else {
-        FLL_CTRL->SOC_CONF1 = val1;
-    }
-    #endif  /* CHIP_VERSION && (CHIP_VERSION == 1) */
-
-    flls_frequency[which_fll] = frequency;
-
-    if (which_fll == FLL_SOC)
+    uint32_t tolerance = mult / 20;
+    uint32_t status_mult = 0;
+    do
     {
-        system_core_clock_update();
+        status_mult = abs(hal_fll_status_mult_factor_get(fll_id) - mult);
+    } while (status_mult <= tolerance);
+
+    /* Disable lock enable since we are stable now and remove gain from feed back loop */
+    if (conf1.output_lock_enable)
+    {
+        conf1.output_lock_enable = 0x0;
+        hal_fll_conf1_mask_set(fll_id, conf1.raw);
+    }
+    conf2.loop_gain = 0xB;
+    hal_fll_conf2_mask_set(fll_id, conf2.raw);
+    #else
+    hal_fll_conf1_mask_set(fll_id, conf1.raw);
+    #endif  /* (CHIP_VERSION) && (CHIP_VERSION == 1) */
+
+    mult = hal_fll_status_mult_factor_get(fll_id);
+    div = hal_fll_conf1_div_get(fll_id);
+    real_freq = __pi_fll_frequency_from_mult_div_get(mult, div);
+    g_fll_frequency[fll_id] = frequency;
+
+    if (fll_id == FLL_ID_FC)
+    {
+        system_core_clock_update(frequency);
         pi_freq_callback_exec();
     }
-
     __restore_irq(irq);
 
-    return flls_frequency[which_fll];
+    return real_freq;
 }
 
-void pi_fll_init(fll_type_t which_fll, uint32_t ret_state)
+uint32_t pi_fll_frequency_get(uint8_t fll_id, uint8_t real)
 {
-    uint32_t val;
-
-    if (ret_state) {
-        pi_fll_get_frequency(which_fll, 1);
-    } else {
-        val = (which_fll) ? FLL_CTRL->CLUSTER_CONF1 : FLL_CTRL->SOC_CONF1;
-
-        /* Don't set the gain and integrator in case it has already been set by the boot code */
-        /* as it totally blocks the fll on the RTL platform. */
-        /* The boot code is anyway setting the same configuration. */
-        if(!READ_FLL_CTRL_CONF1_MODE(val)) {
-            /* Intergrator register */
-            /* We are in open loop, prime the fll forcing dco input, approx 50 MHz */
-            /* Set int part to 1*/
-            val = FLL_CTRL_INTEGRATOR_INT_PART(332);
-
-            if (which_fll) {
-                FLL_CTRL->CLUSTER_INTEGRATOR = val;
-            } else {
-                FLL_CTRL->SOC_INTEGRATOR = val;
-            }
-        }
-
-        if (pi_fll_set_frequency(which_fll, DEFAULT_SYSTEM_CLOCK, 0) == -1 )
-            exit(-1);
-    }
-}
-
-int pi_fll_get_frequency(fll_type_t which_fll, uint8_t real)
-{
+    uint32_t real_freq = 0;
     if (real)
     {
         /* Frequency calculation from real world */
-        int real_freq = 0;
-        if (which_fll == FLL_CLUSTER)
-        {
-            real_freq = fll_get_frequency_from_mult_div(FLL_CTRL->CLUSTER_FLL_STATUS,
-                                                        READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->CLUSTER_CONF1));
-        }
-        else
-        {
-            real_freq = fll_get_frequency_from_mult_div(FLL_CTRL->SOC_FLL_STATUS,
-                                                        READ_FLL_CTRL_CONF1_CLK_OUT_DIV(FLL_CTRL->SOC_CONF1));
-        }
+        uint32_t mult = hal_fll_status_mult_factor_get(fll_id);
+        uint32_t div = hal_fll_conf1_div_get(fll_id);
+        real_freq = __pi_fll_frequency_from_mult_div_get(mult, div);
+        //printf("Get freq: mult=%lx, div=%lx, real_freq=%ld\n", mult, div, real_freq);
         /* Update Frequency */
-        flls_frequency[which_fll] = real_freq;
-        //pmu_state.frequency[which_fll] = real_freq;
+        g_fll_frequency[fll_id] = real_freq;
     }
-    return flls_frequency[which_fll];
-}
-
-void pi_fll_deinit(fll_type_t which_fll)
-{
-    flls_frequency[which_fll] = 0;
-}
-
-void FLL_Clear()
-{
-  for (int i = 0; i < FLL_NUM; i++)
-  {
-    flls_frequency[i] = 0;
-  }
+    else
+    {
+        real_freq = g_fll_frequency[fll_id];
+    }
+    return real_freq;
 }
 
 int pi_freq_callback_add(pi_freq_cb_t *cb)

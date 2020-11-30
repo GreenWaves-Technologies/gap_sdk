@@ -469,11 +469,17 @@ void vp::time_engine::run_loop()
                         // or wait unil the systemC part enqueues something before
 
 #if defined(__VP_USE_SYSTEMV)
-                        //vp_assert(first_client->next_event_time >= (int64_t)dpi_time_ps(), NULL, "SystemV time is after vp time\n");
-                        dpi_wait_event_timeout_ps(first_client->next_event_time - dpi_time_ps());
+                        int64_t diff = first_client->next_event_time - dpi_time_ps();
+                        // Be careful on xcelium the time is sometimes rounded to the upper picosecond
+                        //vp_assert(diff >= -1, NULL, "SystemV time is after vp time\n");
+                        if (diff > 0)
+                            dpi_wait_event_timeout_ps(first_client->next_event_time - dpi_time_ps());
                         this->time = dpi_time_ps();
-                        if (this->time == first_client->next_event_time)
+                        if (this->time >= first_client->next_event_time)
+                        {
+                            this->time = first_client->next_event_time;
                             break;
+                        }
 #else
                         vp_assert(first_client->next_event_time >= (int64_t)sc_time_stamp().to_double(), NULL, "SystemC time is after vp time\n");
                         wait(first_client->next_event_time - (int64_t)sc_time_stamp().to_double(), SC_PS, sync_event);

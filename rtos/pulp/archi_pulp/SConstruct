@@ -29,6 +29,7 @@ configs = plpconfig.get_configs_from_env()
 
 def append_file(file):
   global files
+  print ('include/' + file)
   if not file in files and os.path.exists('include/' + file):
     files.append(file)
 
@@ -90,6 +91,8 @@ for config in configs:
     append_file('archi/udma/mram/udma_mram_v%d.h' % udma_mram)
 
 
+  # RISCV DM
+  append_archi_files('archi/riscv_dbg/riscv_dbg_dm')
 
   # HWCE
   hwce = config.get_child_int('**/hwce/version')

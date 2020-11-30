@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
 
@@ -251,3 +255,4 @@ void AT_TileClear(
 		__CALL(AT_KerTileClear, (AT_KerTileClear_T *) &Arg);
 	}
 }
+#pragma GCC diagnostic pop

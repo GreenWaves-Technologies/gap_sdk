@@ -206,7 +206,16 @@ enum pi_octospi_ioctl_cmd
      * The argument must be a pointer to a variable of type
      * pi_octospi_op_conf_t.
      */
-    PI_OCTOSPI_IOCTL_SET_OP
+    PI_OCTOSPI_IOCTL_SET_OP,
+    /** @brief Configure the SPI operation for XIP.
+     *
+     * This command can be used when the interface has been opened to configure
+     * the SPI operation used for all XIP transfers (latency, SPI command, etc).
+     * The argument must be a pointer to a variable of type
+     * pi_octospi_op_conf_t.
+     * NOTE: For flash, only set read command, as XIP flash is RO
+     */
+    PI_OCTOSPI_IOCTL_SET_XIP_OP
 };
 
 /**

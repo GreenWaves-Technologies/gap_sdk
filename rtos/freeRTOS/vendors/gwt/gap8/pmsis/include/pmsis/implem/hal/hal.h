@@ -41,6 +41,9 @@
 /* Efuse */
 #include "efuse/pmsis_efuse.h"
 
+/* FLL. */
+#include "fll/fll.h"
+
 /* GPIO. */
 #include "gpio/gpio.h"
 

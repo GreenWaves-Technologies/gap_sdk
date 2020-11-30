@@ -43,6 +43,11 @@ def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None
                         default=None,
                         help="Specify trace level")
 
+    parser.add_argument("--trace-format",
+                        dest="trace_format",
+                        default="long",
+                        help="Specify trace format")
+
     parser.add_argument("--vcd", dest="vcd", action="store_true", help="Activate VCD traces")
 
     parser.add_argument("--event", dest="events", default=[], action="append", help="Specify gvsoc event (for VCD traces)")
@@ -60,6 +65,9 @@ def process_args(args, config):
 
     if args.trace_level is not None:
         config.set('gvsoc/traces/level', args.trace_level)
+
+    if args.trace_format is not None:
+        config.set('gvsoc/traces/format', args.trace_format)
 
     if args.vcd:
         config.set('gvsoc/events/enabled', True)

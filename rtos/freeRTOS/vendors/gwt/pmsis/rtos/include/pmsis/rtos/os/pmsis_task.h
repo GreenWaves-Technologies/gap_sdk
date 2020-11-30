@@ -150,4 +150,21 @@ static inline void pi_task_destroy(pi_task_t *task)
     __pi_task_destroy(task);
 }
 
+static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us)
+{
+    task->timeout = timeout_us;
+}
+
+static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task)
+{
+    return task->arg[2];
+}
+
+static inline void pi_task_timeout_callback_set(pi_task_t *task, pi_callback_func_t func,
+                                                void *arg)
+{
+    task->arg[2] = (uintptr_t) func;
+    task->arg[3] = (uintptr_t) arg;
+}
+
 #endif  /* __PI_RTOS_PMSIS_TASK_H__ */

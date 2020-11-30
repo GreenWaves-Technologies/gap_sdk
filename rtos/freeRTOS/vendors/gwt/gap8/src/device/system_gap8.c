@@ -41,7 +41,7 @@ extern char __heapfcram_size;
 extern char __heapl2ram_start;
 extern char __heapl2ram_size;
 
-volatile uint32_t SystemCoreClock = (uint32_t) DEFAULT_SYSTEM_CLOCK;
+volatile uint32_t SystemCoreClock = (uint32_t) ARCHI_FREQ_INIT;
 
 static volatile uint32_t tick_rate = 0;
 
@@ -59,6 +59,8 @@ void system_init(void)
 
     /* Setup FC_SOC events handler. */
     pi_fc_event_handler_init(FC_SOC_EVENT_IRQN);
+    /* Enable IRQ for SW IRQ, SuperVisor call. */
+    NVIC_EnableIRQ(PENDSV_IRQN);
 
     /* PMU Init */
     __pi_pmu_init();
@@ -78,20 +80,22 @@ void system_init(void)
 void system_setup_systick(uint32_t tick_rate_hz)
 {
     tick_rate = tick_rate_hz;
+    /* Systick timer configuration. */
     timer_cfg_u cfg = {0};
     cfg.field.enable = 1;
     cfg.field.reset = 1;
     cfg.field.irq_en = 1;
     cfg.field.mode = 1;
+    /* Start the timer by putting a CMP value. */
     uint32_t cmp_val = ((SystemCoreClock / tick_rate) - 1);
     pi_timer_init(SYS_TIMER, cfg, cmp_val);
+    /* Enable IRQ from Systick timer. */
     NVIC_EnableIRQ(SYSTICK_IRQN);
 }
 
-void system_core_clock_update(void)
+void system_core_clock_update(uint32_t new_freq)
 {
-    //system_setup_systick(tick_rate);
-    SystemCoreClock = pi_fll_get_frequency(FLL_SOC, 0);
+    SystemCoreClock = new_freq;
     pi_timer_stop(SYS_TIMER);
     /* Systick timer configuration. */
     timer_cfg_u cfg = {0};

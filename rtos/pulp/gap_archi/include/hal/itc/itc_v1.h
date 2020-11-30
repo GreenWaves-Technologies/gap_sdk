@@ -36,6 +36,7 @@ static inline void hal_itc_enable_set(unsigned int mask) {
 
 static inline void hal_itc_enable_clr(unsigned int mask) {
   pulp_write32(ARCHI_FC_ITC_ADDR + ITC_MASK_CLR_OFFSET, mask);
+  asm volatile("nop");
 }
 
 

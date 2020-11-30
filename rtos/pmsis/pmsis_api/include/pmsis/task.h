@@ -138,6 +138,27 @@ static inline pi_callback_t *pi_callback_init(pi_callback_t *callback,
                                               void *arg);
 
 /**
+ * \brief Init timeout feature for transfers.
+ *
+ * Initialize timeout value of the event task before starting transfers.
+ *
+ * \param task           Pointer to event task.
+ * \param timeout_us     Timeout value in us.
+ *
+ * \note This event task will hold transfer result.
+ */
+static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us);
+
+/**
+ * \brief Query result end of transfer.
+ *
+ * This function can be used to check the end result of a transfer.
+ *
+ * \return ERRNO         Value corresponding to end of transfer.
+ */
+static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task);
+
+/**
  * @}
  */
 

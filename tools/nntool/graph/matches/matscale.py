@@ -16,18 +16,19 @@
 import logging
 
 from graph.types import MatrixMulParameters, MatScaleFusionParameters
-
-from utils.graph import GraphView, Edge, Node
-from utils.graph_matcher import NodeMatch, MatchNodeByClass, EdgeMatch, GraphMatcher, MatchFinishSuccess
+from numpy.core.fromnumeric import prod
+from utils.graph import Edge, GraphView, Node
+from utils.graph_matcher import (EdgeMatch, GraphMatcher, MatchFinishSuccess,
+                                 MatchNodeByClass, NodeMatch)
 
 from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def is_channel_only(node, idx):
-    dim = node.in_dims[idx]
-    return dim.is_named and dim.has_keys(['c', 'h', 'w']) and dim.h == 1 and dim.w == 1
+def is_channel_vector(node, idx):
+    shape = node.in_dims[idx].shape
+    return shape[0] == prod(shape)
 
 
 def opposite(edge_idx):
@@ -69,7 +70,7 @@ class MatScalePairMatchFactory():
             vectors = set()
             node_edges = set(node_edges)
             for node_edge in node_edges:
-                if is_channel_only(node_edge[0], node_edge[1]):
+                if is_channel_vector(node_edge[0], node_edge[1]):
                     vectors.add(node_edge)
                 if is_scalar(node_edge[0], node_edge[1]):
                     scalars.add(node_edge)
@@ -136,7 +137,6 @@ class MatScalePairMatchFactory():
                                                                      to_node=node_2))
         return fragment
 
-
 class MatScaleNodeMatch(NodeMatch):
     def __init__(self):
         self._has_matched = False
@@ -148,7 +148,7 @@ class MatScaleNodeMatch(NodeMatch):
         vectors = set()
         node_edges = set((node, idx) for idx in [0, 1])
         for node_edge in node_edges:
-            if is_channel_only(node_edge[0], node_edge[1]):
+            if is_channel_vector(node_edge[0], node_edge[1]):
                 vectors.add(node_edge)
             if is_scalar(node_edge[0], node_edge[1]):
                 scalars.add(node_edge)

@@ -56,16 +56,33 @@ static himax_reg_init_t __himax_reg_init[] =
 {
   {HIMAX_BLC_TGT, 0x08},            //  BLC target :8  at 8 bit mode
   {HIMAX_BLC2_TGT, 0x08},           //  BLI target :8  at 8 bit mode
+  {0x3044, 0x0A},             //  Increase CDS time for settling
+  {0x3045, 0x00},             //  Make symetric for cds_tg and rst_tg
+  {0x3047, 0x0A},             //  Increase CDS time for settling
+  {0x3050, 0xC0},             //  Make negative offset up to 4x
+  {0x3051, 0x42},
+  {0x3052, 0x50},
+  {0x3053, 0x00},
+  {0x3054, 0x03},             //  tuning sf sig clamping as lowest
+  {0x3055, 0xF7},             //  tuning dsun
+  {0x3056, 0xF8},             //  increase adc nonoverlap clk
+  {0x3057, 0x29},             //  increase adc pwr for missing code
+  {0x3058, 0x1F},             //  turn on dsun
   {HIMAX_BIT_CONTROL, 0x1E},
   {HIMAX_ANA_Register_14, 0x00},
   {HIMAX_OUTPUT_PIN_STATUS_CONTROL, 0x04},             //  pad pull 0
 
   {HIMAX_BLC_CFG, 0x43},            //  BLC_on, IIR
 
+  {0x1001, 0x43},             //  BLC dithering en
+  {0x1002, 0x43},             //  blc_darkpixel_thd
+  {0x0350, 0x00},             //  Dgain Control
   {HIMAX_BLI_EN, 0x01},             //  BLI enable
   {HIMAX_BLC_TGT, 0x00},             //  BLI Target [Def: 0x20]
 
   {HIMAX_DPC_CTRL, 0x01},           //  DPC option 0: DPC off   1 : mono   3 : bayer1   5 : bayer2
+  {0x1009, 0xA0},             //  cluster hot pixel th
+  {0x100A, 0x60},             //  cluster cold pixel th
   {HIMAX_SINGLE_THR_HOT, 0x90},     //  single hot pixel th
   {HIMAX_SINGLE_THR_COLD, 0x40},    //  single cold pixel th
 

@@ -24,6 +24,7 @@
 
 #include "types.hpp"
 #include "iss_wrapper.hpp"
+#include "insn_cache.hpp"
 #include <string.h>
 
 static inline void iss_handle_ecall(iss_t *iss, iss_insn_t *insn)
@@ -49,6 +50,11 @@ static inline void iss_pccr_incr(iss_t *iss, unsigned int event, int incr)
   {
     iss->pcer_trace_event[event].event_pulse(incr*iss->get_period(), (uint8_t *)&one, (uint8_t *)&zero);
   }
+}
+
+static inline int iss_trace_format(iss_t *iss)
+{
+  return iss->traces.get_trace_manager()->get_format();
 }
 
 static inline int iss_pccr_trace_active(iss_t *iss, unsigned int event)
@@ -311,5 +317,17 @@ static inline void iss_lsu_store(iss_t *iss, iss_insn_t *insn, iss_addr_t addr, 
     iss_exec_insn_stall(iss);
   }
 }
+
+static inline void iss_fence_i(iss_t *iss)
+{
+    if (iss->flush_cache_req_itf.is_bound())
+    {
+        iss_exec_insn_stall(iss);
+
+        iss->flush_cache_req_itf.sync(true);
+        iss_cache_flush(iss);
+    }
+}
+
 
 #endif

@@ -115,6 +115,19 @@ proc gap_flash_raw {image_name image_size gap_tools_path} {
 	# flash the flash image with the flasher
 	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000190
 	sleep 2
+
+    puts "--------------------------"
+    puts "Reset CONFREG to 0"
+    puts "--------------------------"
+    reset
+    # remove polling, prevent openocd from complaining while reset tap
+    poll off
+    irscan gap8.cpu 0x7
+    drscan gap8.cpu 0x4 0x0
+    # set reset signals (direct control) jtag_reset 0 1
+    jtag_reset 0 0
+    # exit openocd, card will boot from flash
+    exit
 }
 
 proc gap_flash_raw_hyper {image_name image_size gap_tools_path} {
@@ -132,6 +145,19 @@ proc gap_flash_raw_hyper {image_name image_size gap_tools_path} {
     puts "--------------------------"
     puts "flasher is done!"
     puts "--------------------------"
+    puts "--------------------------"
+    puts "Reset CONFREG to 0"
+    puts "--------------------------"
+    reset
+    # remove polling, prevent openocd from complaining while reset tap
+    poll off
+    irscan gap8.cpu 0x7
+    drscan gap8.cpu 0x4 0x0
+    # set reset signals (direct control) jtag_reset 0 1
+    jtag_reset 0 0
+    # exit openocd, card will boot from flash
+    exit
+
 }
 
 # specific for gap9
@@ -170,4 +196,16 @@ proc gap_flash_raw_spi {image_name image_size gap_tools_path} {
     puts "--------------------------"
     puts "flasher session is done!"
     puts "--------------------------"
+    puts "--------------------------"
+    puts "Reset CONFREG to 0"
+    puts "--------------------------"
+    reset
+    # remove polling, prevent openocd from complaining while reset tap
+    poll off
+    irscan gap8.cpu 0x7
+    drscan gap8.cpu 0x4 0x0
+    # set reset signals (direct control) jtag_reset 0 1
+    jtag_reset 0 0
+    # exit openocd, card will boot from flash
+    exit
 }

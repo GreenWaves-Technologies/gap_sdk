@@ -125,8 +125,16 @@ void vp::trace::dump_header()
     time = comp->get_time_engine()->get_time();
   }
 
-  int max_trace_len = comp->traces.get_trace_manager()->get_max_path_len();
-  fprintf(this->trace_file, "%ld: %ld: [\033[34m%-*.*s\033[0m] ", time, cycles, max_trace_len, max_trace_len, path.c_str());
+  int format = comp->traces.get_trace_manager()->get_format();
+  if (format == TRACE_FORMAT_SHORT)
+  {
+    fprintf(this->trace_file, "%ldns %ld ", time, cycles);
+  }
+  else
+  {
+    int max_trace_len = comp->traces.get_trace_manager()->get_max_path_len();
+    fprintf(this->trace_file, "%ld: %ld: [\033[34m%-*.*s\033[0m] ", time, cycles, max_trace_len, max_trace_len, path.c_str());
+  }
 }
 
 void vp::trace::dump_warning_header()

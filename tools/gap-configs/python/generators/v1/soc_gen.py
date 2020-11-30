@@ -511,6 +511,9 @@ def get_config(tp):
     apb_soc_params['cluster_power_event'] = tp.get_child_int('soc_events/soc_evt_cluster_pok')
     apb_soc_params['cluster_clock_gate_event'] = tp.get_child_int('soc_events/soc_evt_cluster_cg_ok')
 
+  apb_soc_ctrl_config = tp.get('**/apb_soc_ctrl/config')
+  if apb_soc_ctrl_config is not None:
+    apb_soc_params.update(apb_soc_ctrl_config.get_dict())
   soc.apb_soc_ctrl = Component(properties=apb_soc_params)
 
   soc.stdout = Component(properties=OrderedDict([
@@ -585,6 +588,8 @@ def get_config(tp):
     soc.fc_icache_ctrl.flush = soc.fc.flush_cache
     soc.fc_icache_ctrl.flush_line = soc.fc_icache.flush_line
     soc.fc_icache_ctrl.flush_line_addr = soc.fc_icache.flush_line_addr
+    soc.fc.flush_cache_req = soc.fc_icache.flush
+    soc.fc_icache.flush_ack = soc.fc.flush_cache_ack
 
   if has_fc:
     if has_fc_ico:
@@ -720,7 +725,10 @@ def get_config(tp):
         soc.apb_ico.get_property('mappings')['debug_rom'] = get_mapping(tp.get_child_dict("**/debug_rom"), True)
 
         soc.apb_ico.debug_rom = soc.debug_rom.input
-        soc.apb_ico.fc_dbg_unit = tap.input 
+        soc.apb_ico.fc_dbg_unit = tap.input
+
+        for i in range(0, 10):
+          soc.apb_soc_ctrl.set('dm_hart_available_' + str(i), tap.new_itf('hart_available_' + str(i)))
 
 
         tap.set_property('harts', [])
@@ -729,6 +737,15 @@ def get_config(tp):
           hart_id = (tp.get_int('soc/fc/cluster_id') << 5) | (tp.get_int('soc/fc/core_id'))
           tap.get_property('harts').append([hart_id, 'fc'])
           tap.fc = soc.fc.halt
+
+        for cluster in range(0, nb_cluster):
+          for pe in range(0, nb_pe):
+            hart_id = (cluster << 5) | pe
+
+            name = 'cluster%d_pe%d' % (cluster, pe)
+            tap.get_property('harts').append([hart_id, name])
+  
+            tap.set(name, soc.new_itf('halt_' + name))
 
 
 
@@ -743,23 +760,49 @@ def get_config(tp):
       for fll_name, fll_config in flls_config.get_items().items():
         soc.apb_ico.set(fll_name, soc.get(fll_name).input)
 
-        if "soc" in fll_config.get('targets').get_dict():
-          soc.get(fll_name).clock_out = soc.fll_soc_clock
+        if fll_config.get("clocks") is not None:
 
-        if "cluster" in fll_config.get('targets').get_dict():
-          for cid in range(0, nb_cluster):
-            soc.get(fll_name).clock_out = soc.new_itf(get_cluster_name(cid) + '_fll')
+          clocks = fll_config.get("clocks").get_dict()
 
-        if "periph" in fll_config.get('targets').get_dict():
-          if "soc" not in fll_config.get('targets').get_dict():
-            soc.periph_clock = Component(properties=OrderedDict([
-              ('vp_class', "vp/clock_domain"),
-              ('vp_component', "vp.clock_domain_impl"),
-              ('frequency', 50000000)
-            ]))
-            soc.get(fll_name).clock_out = soc.periph_clock.clock_in
-            if has_udma:
-              soc.periph_clock.out = soc.udma.periph_clock
+          for i in range(0, len(clocks)):
+
+            target = clocks[i]
+            clock_itf = 'clock_' + str(i)
+
+            if target == 'soc':
+              soc.get(fll_name).set(clock_itf, soc.fll_soc_clock)
+            elif target == 'cluster':
+              for cid in range(0, nb_cluster):
+                soc.get(fll_name).set(clock_itf, soc.new_itf(get_cluster_name(cid) + '_fll'))
+            elif target == 'periph':
+              soc.periph_clock = Component(properties=OrderedDict([
+                ('vp_class', "vp/clock_domain"),
+                ('vp_component', "vp.clock_domain_impl"),
+                ('frequency', 50000000)
+              ]))
+              soc.get(fll_name).set(clock_itf, soc.periph_clock.clock_in)
+              if has_udma:
+                soc.periph_clock.out = soc.udma.periph_clock
+
+
+        else:
+          if "soc" in fll_config.get('targets').get_dict():
+            soc.get(fll_name).clock_out = soc.fll_soc_clock
+
+          if "cluster" in fll_config.get('targets').get_dict():
+            for cid in range(0, nb_cluster):
+              soc.get(fll_name).clock_out = soc.new_itf(get_cluster_name(cid) + '_fll')
+
+          if "periph" in fll_config.get('targets').get_dict():
+            if "soc" not in fll_config.get('targets').get_dict():
+              soc.periph_clock = Component(properties=OrderedDict([
+                ('vp_class', "vp/clock_domain"),
+                ('vp_component', "vp.clock_domain_impl"),
+                ('frequency', 50000000)
+              ]))
+              soc.get(fll_name).clock_out = soc.periph_clock.clock_in
+              if has_udma:
+                soc.periph_clock.out = soc.udma.periph_clock
 
 
 
@@ -890,7 +933,20 @@ def get_config(tp):
       soc.fc_icache.refill = soc.soc_ico.fc_fetch
     else:
       soc.fc.fetch = soc.soc_ico.fc_fetch
-    soc.fc.data = soc.soc_ico.fc_data
+
+    fc_tohost = tp.get_str('soc/fc/riscv_fesvr_tohost_addr')
+
+    if fc_tohost is not None:
+      soc.bus_watchpoint = Component(properties=OrderedDict([
+          ('@includes@', ["ips/interco/bus_watchpoint.json"]),
+          ('riscv_fesvr_tohost_addr', fc_tohost)
+      ]))
+      soc.fc.data = soc.bus_watchpoint.input
+      soc.bus_watchpoint.output = soc.soc_ico.fc_data
+    else:
+      soc.fc.data = soc.soc_ico.fc_data
+
+
     if has_fc_ico:
       soc.fc.irq_ack = soc.fc_eu.irq_ack_0
     else:

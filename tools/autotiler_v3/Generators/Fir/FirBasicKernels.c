@@ -9,7 +9,9 @@
 
 #include "Gap.h"
 #include "FirBasicKernels.h"
+#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
+#endif
 static int CoreCountDynamic = 0;
 static int ActiveCore = gap_ncore();
 

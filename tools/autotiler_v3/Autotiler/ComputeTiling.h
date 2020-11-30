@@ -83,10 +83,16 @@ extern KerIteratorParT *ArgParametricSpace1(
 	int *MultFactor,
 	KernelIteratorT *FullSpace);
 
+extern KernelArgOneDimDescrT *GetArgSubSpaceDescriptor(
+	Object_T *Obj,
+	Kernel_Arg_T *Arg,
+	KernelIteratorT Space);
+
 extern int NumberOfTiles(
 	Kernel_T *Ker,
 	Kernel_Arg_T *Arg,
-	int *N_LogicalTiles);
+	int *N_LogicalTiles,
+	int Traversed);
 
 extern int LastNonL1Space1(
 	KernelArgDimDescrT *ArgSpace);

@@ -14,35 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+# pylint: disable=wildcard-import
+from .commands import *
 
 from interpreter.nntool_shell_base import NNToolShellBase
-from .commands.dump import DumpCommand, RoundingCommand
-from .commands.tensors import TensorsCommand
-from .commands.validation import ValidationCommand
-from .commands.gen import GenCommand
-from .commands.nodeoption import NodeoptionCommand
-from .commands.adjust import AdjustCommand
-from .commands.freeze import FreezeCommand
-from .commands.fusions import FusionsCommand
-from .commands.graph import GraphCommand
-from .commands.imageformat import ImageFormatCommand
-from .commands.open import OpenCommand
-from .commands.save_state import SaveStateCommand
-from .commands.aquant import AquantCommand
-from .commands.fquant import FquantCommand
-from .commands.qerror import QerrorCommand
-from .commands.qtune import QtuneCommand
-from .commands.range_equalization import (
-    BalanceFiltersCommand, BcorrCommand, WeightEqualizationCommand)
-from .commands.resizer import InputResizerCommand
-from .commands.qshow import QshowCommand
-from .commands.astats import AstatsCommand
-from .commands.temps import TempsCommand
-from .commands.ssd_setter import SSDSetterCommand
-from .commands.nntool_force_relu import NntoolForceReluCommand
 
 LOG = logging.getLogger("nntool")
-
 
 VALID_LOG_LEVELS = [
     "INFO",
@@ -50,34 +27,7 @@ VALID_LOG_LEVELS = [
     "WARNING"
 ]
 
-COMMANDS = [
-    AquantCommand,
-    QshowCommand,
-    DumpCommand,
-    TensorsCommand,
-    ValidationCommand,
-    WeightEqualizationCommand,
-    OpenCommand,
-    SaveStateCommand,
-    GenCommand,
-    NodeoptionCommand,
-    AdjustCommand,
-    FreezeCommand,
-    FusionsCommand,
-    GraphCommand,
-    FquantCommand,
-    QerrorCommand,
-    BalanceFiltersCommand,
-    BcorrCommand,
-    AstatsCommand,
-    TempsCommand,
-    RoundingCommand,
-    QtuneCommand,
-    ImageFormatCommand,
-    SSDSetterCommand,
-    InputResizerCommand,
-    NntoolForceReluCommand
-]
+COMMANDS = NNToolShellBase.__subclasses__()
 
 
 class CommandMixer(type):

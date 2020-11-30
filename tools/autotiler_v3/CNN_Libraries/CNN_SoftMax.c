@@ -1,3 +1,8 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <stdio.h>
 #include <math.h>
 #include "CNN_BasicKernels.h"
@@ -226,3 +231,4 @@ void KerParSoftMax_fps(KerSoftMax_fps_T *Arg)
 	gap_waitbarrier(0);
 
 }
+#pragma GCC diagnostic pop

@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpointer-sign"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
 
@@ -547,6 +551,27 @@ void static __attribute__ ((noinline)) KerReductIO_Compact_SQ8(int *__restrict__
 	gap_waitbarrier(0);
 }
 
+#define B_CLR(x, bits)  ((x)&(~((1<<(bits))-1)))
+static void KerReductIO_Compact_SQ8_1(char *__restrict__ To, char *__restrict__ From, int Size, int TotalSize)
+
+{
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+        unsigned int Iter = Max(0, Last-First);
+
+	for (int i=Size; i<TotalSize; i+=Size) {
+		From += Size*4; To += Size;
+
+        	int *pFrom = (int *) (From+First), *pTo = (int *) (To+First);
+        	for (int j=0; j<Iter/8; j++) {
+                	int V0 = pFrom[2*j], V1 = pFrom[2*j+1];
+                	pTo[2*j] = V0; pTo[2*j+1] = V1;
+        	}
+        	if (Iter & 0x4) *((int *) (To + First + B_CLR(Iter, 3))) = *((int *) (From + First + B_CLR(Iter, 3)));
+        	if (Iter & 0x2) *((short int *) (To + First + B_CLR(Iter, 2))) = *((short int *) (From + First + B_CLR(Iter, 2)));
+        	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
+		gap_waitbarrier(0);
+	}
+}
 
 /*
  * Input Scaling and reduction to 8b then channel cnetric activation, Out location != In location. Features are evaluated in parallel
@@ -683,7 +708,8 @@ void KerParReductIO_CC_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_ActivationScale1_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_NONE, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 void KerParReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -703,7 +729,8 @@ void KerParReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_ActivationScale1_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_RELU, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 void KerParReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -723,7 +750,8 @@ void KerParReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_ActivationScale1_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_RELUN, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 void KerParReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -743,7 +771,8 @@ void KerParReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_Activation_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_HSIGMOID, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 void KerParReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -763,7 +792,8 @@ void KerParReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_Activation_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_HSWISH, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 void KerParReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -783,7 +813,8 @@ void KerParReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	S = Size*Max(0, Last-First);
 	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_Activation_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
-	KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
 /* Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated one after the other in parallel */
@@ -919,10 +950,12 @@ void KerReductIO_CC_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_ActivationScale1_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_NONE, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 void KerReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -942,10 +975,11 @@ void KerReductIO_CC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_ActivationScale1_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_RELU, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 void KerReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -965,10 +999,11 @@ void KerReductIO_CC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_ActivationScale1_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_RELUN, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 void KerReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -988,10 +1023,11 @@ void KerReductIO_CC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_Activation_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_HSIGMOID, ActScale, ActScaleN, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 void KerReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -1011,10 +1047,11 @@ void KerReductIO_CC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_Activation_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_HSWISH, ActScale, ActScaleN, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 void KerReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
@@ -1034,10 +1071,11 @@ void KerReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	for (int c=0; c<Feat; c++) {
 		KerReductIO_Activation_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
 		gap_waitbarrier(0);
-		KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
 	}
-	ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
-	KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
 /*
@@ -1206,3 +1244,4 @@ void Ker_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg)
 	Ker_Activation_SQ8(In+First, Out+First, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
 }
+#pragma GCC diagnostic pop

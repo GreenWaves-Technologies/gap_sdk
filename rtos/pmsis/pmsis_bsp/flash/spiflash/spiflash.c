@@ -799,6 +799,20 @@ static void spiflash_read_async(struct pi_device *device, uint32_t addr, void *d
 #endif
 }
 
+static void spiflash_check_erase_chip(void *arg)
+{
+    struct pi_device *device = (struct pi_device *)arg;
+    spi_flash_t *spiflash = (spi_flash_t *)device->data;
+
+    if (get_wip(spiflash))
+    {
+        pi_task_push_delayed_us(pi_task_callback(&spiflash->task, spiflash_check_erase_chip, device), 5000);
+    }
+    else
+    {
+        spiflash_handle_pending_task(device);
+    }
+}
 
 static void spiflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
 {
@@ -813,7 +827,8 @@ static void spiflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
     pi_spi_send(qspi_dev, (void*)g_chip_erase, 8,
             SPI_LINES_FLAG | PI_SPI_CS_AUTO);
 
-    spiflash_handle_pending_task(device);
+    // Typical sector erase time is 10-15s
+    pi_task_push_delayed_us(pi_task_callback(&spiflash->task, spiflash_check_erase_chip, device), 5000);
 }
 
 

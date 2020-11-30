@@ -168,9 +168,9 @@ static inline int pi_cluster_send_task(struct pi_device *device,
  * while the fabric controller receives the termination notification and can
  * enqueue a new execution, in order to keep the cluster busy.
  *
- * \param device    A pointer to the structure describing the device.
- * \param task Cluster task structure containing task and its parameters.
- * \param end_task        The task used to notify the end of execution.
+ * \param device         A pointer to the structure describing the device.
+ * \param cluster_task   Cluster task structure containing task and its parameters.
+ * \param task           The task used to notify the end of execution.
  */
 static inline int pi_cluster_send_task_async(struct pi_device *device,
         struct pi_cluster_task *cluster_task,

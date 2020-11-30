@@ -54,6 +54,11 @@ class Node():
         '''Node name - must not be changed once node is in graph'''
         return self._name
 
+    @name.setter
+    def name(self, name):
+        '''Node name - must not be changed once node is in graph'''
+        self._name = name
+
     def __str__(self):
         return self._name
 
@@ -241,11 +246,13 @@ class GraphView(Mapping):
         '''Adds an edge to the graph'''
         if isinstance(edge.from_node, str):
             edge._link[0] = self._nodes[edge.from_node]
-        elif edge.from_node not in self._nodes:
+        elif edge.from_node.name not in self._nodes:
+            assert edge.from_node not in self._nodes.values()
             self._nodes[edge.from_node.name] = edge.from_node
         if isinstance(edge.to_node, str):
             edge._link[2] = self._nodes[edge.to_node]
-        elif edge.to_node not in self._nodes:
+        elif edge.to_node.name not in self._nodes:
+            assert edge.to_node not in self._nodes.values()
             self._nodes[edge.to_node.name] = edge.to_node
         self.__add_in_edge(edge)
         self.__add_out_edge(edge)
@@ -531,6 +538,7 @@ class GraphView(Mapping):
     def add_node(self, node: Node):
         if node.name in self._nodes:
             raise ValueError("node already in graph")
+        assert node not in self._nodes.values()
         self._nodes[node.name] = node
 
     def inputs(self, ignore_names=None):

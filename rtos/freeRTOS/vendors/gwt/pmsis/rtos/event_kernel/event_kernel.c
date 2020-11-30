@@ -241,10 +241,18 @@ static void pmsis_event_kernel_exec_event(struct pmsis_event_kernel *kernel,
                 // This should however not be abused.
                 // In particular the user must ensure the potential waiting thread is using an OS
                 // provided mechanism to synchronize (mutex/semaphore/signals) and avoid "yield loops"
-                pmsis_event_release(event);
-                event->done = 1;
+                /* If event task is from cluster, release it after callback completion. */
+                if (event->core_id == -1)
+                {
+                    pmsis_event_release(event);
+                    //event->done = 1;
+                }
                 pi_callback_func_t callback_func = (pi_callback_func_t) event->arg[0];
                 callback_func((void*) event->arg[1]);
+                if (event->core_id != -1)
+                {
+                    pmsis_event_release(event);
+                }
             }
             break;
         default: // unimplemented or mutex only -- just release the event

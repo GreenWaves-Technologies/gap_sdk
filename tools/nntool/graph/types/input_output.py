@@ -9,8 +9,7 @@ import sys
 
 import numpy as np
 
-
-from .base import (Transposable, Parameters)
+from .base import Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -29,6 +28,10 @@ class InputOutputParameters(Transposable):
     @property
     def short_name(self):
         return self._short_name
+
+    @short_name.setter
+    def short_name(self, val):
+        self._short_name = val
 
     @property
     def fixed_order(self):
@@ -131,8 +134,8 @@ class ConstantInputParameters(InputBaseParameters):
     op_name = "constant"
 
     def __init__(self, *args, adjust_transpose=None, is_mutated=False,
-                 is_intermediate=False, always_copy=False, **kwargs):
-        self.value = None
+                 is_intermediate=False, always_copy=False, value=None, **kwargs):
+        self.value = value
         super(ConstantInputParameters, self).__init__(*args, **kwargs)
         del self.at_options.valid_options['FIXED_ORDER']
         self.at_options.valid_options['RESET_NAME'] = str
@@ -146,6 +149,7 @@ class ConstantInputParameters(InputBaseParameters):
         self._is_constant = True
         self._is_global = True
         self._always_copy = always_copy
+
 
     @property
     def value(self):
@@ -197,6 +201,10 @@ class ConstantInputParameters(InputBaseParameters):
     def adjust_transpose(self):
         return self._adjust_transpose
 
+    @adjust_transpose.setter
+    def adjust_transpose(self, val):
+        self._adjust_transpose = val
+
     @property
     def is_constant(self):
         return self._is_constant
@@ -217,9 +225,17 @@ class ConstantInputParameters(InputBaseParameters):
     def is_mutated(self):
         return self._is_mutated
 
+    @is_mutated.setter
+    def is_mutated(self, val):
+        self._is_mutated = val
+
     @property
     def is_intermediate(self):
         return self._is_intermediate
+
+    @is_intermediate.setter
+    def is_intermediate(self, val):
+        self._is_intermediate = val
 
     def clone(self, name, groupn=None):
         raise NotImplementedError()

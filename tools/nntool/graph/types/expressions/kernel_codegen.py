@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.dim import Dim
 import logging
 from ctypes import POINTER, c_char, c_int, c_uint
 from functools import reduce
@@ -78,7 +79,9 @@ def split_indexes(unique_axis_groups):
 
 def create_indexes(node_shapes):
     """Discovers iteration space for basic kernel. All 1 and uniformly indexed shapes are reduced"""
-    shapes = np.array([list(val) for val in node_shapes.values()])
+    # broadcast all shapes to maximum length
+    max_len = max([len(val) for val in node_shapes.values()])
+    shapes = np.array([[1]*(max_len - len(val)) + list(val) for val in node_shapes.values()])
     # get the maximal shape which will be the out shape
     max_shape = tuple(shapes.max(axis=0))
     # get the index list of axis > 1 per input shape

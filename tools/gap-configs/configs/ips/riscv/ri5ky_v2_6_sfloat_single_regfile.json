@@ -17,6 +17,7 @@
   "vp_component": "cpu/iss/iss_riscy_v2_5_single_regfile",
   "first_external_pcer": 12,
   "riscv_dbg_unit": true,
+  "misa": "0x40000000",
   "debug_binaries": [],
   "debug_handler" : "0x1a190800",
   "power_models": {

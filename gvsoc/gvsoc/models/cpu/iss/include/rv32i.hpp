@@ -597,15 +597,17 @@ static inline iss_insn_t *and_exec(iss_t *iss, iss_insn_t *insn)
 
 
 
-static inline iss_insn_t *fence_exec(iss_t *iss, iss_insn_t *insn)
+static inline iss_insn_t *fence_i_exec(iss_t *iss, iss_insn_t *insn)
 {
+  iss_fence_i(iss);
   return insn->next;
 }
 
 
 
-static inline iss_insn_t *fence_i_exec(iss_t *iss, iss_insn_t *insn)
+static inline iss_insn_t *fence_exec(iss_t *iss, iss_insn_t *insn)
 {
+  fence_i_exec(iss, insn);
   return insn->next;
 }
 
@@ -617,7 +619,7 @@ static inline iss_insn_t *ebreak_exec(iss_t *iss, iss_insn_t *insn)
   if (next)
   {
     next = iss_decode_pc_noexec(iss, next);
-    if (insn->next->opcode == 0x40705013)
+    if (insn->next && insn->next->opcode == 0x40705013)
     {
       iss_handle_riscv_ebreak(iss, insn);
       return insn->next;

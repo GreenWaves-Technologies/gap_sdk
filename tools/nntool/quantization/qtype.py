@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
+
 import numpy as np
 
 from utils.json_serializable import JsonSerializable
@@ -173,6 +175,10 @@ class QType(QTypeBase, JsonSerializable):
     @property
     def pad_zero_point(self):
         return 0
+
+    @property
+    def scale(self):
+        return np.array([math.pow(2, -self.q)])
 
     def double_precision(self):
         return QType(self.bits * 2, self.q, self.signed)

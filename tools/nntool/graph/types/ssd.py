@@ -17,14 +17,11 @@ import logging
 
 from graph.dim import Dim
 
-from utils.ssd_postprocess_decoder import DecodeBboxes
-from utils.ssd_postprocess_nms import NonMaxSuppression
-
-from .base import (Transposable)
+from .base import (Parameters, SensitiveToOrder)
 
 LOG = logging.getLogger("nntool." + __name__)
 
-class SSDDetectorParameters(Transposable):
+class SSDDetectorParameters(Parameters, SensitiveToOrder):
     op_name = "ssd_detector"
 
     INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
@@ -105,8 +102,7 @@ class SSDDetectorParameters(Transposable):
         raise NotImplementedError()
 
     def __str__(self):
-        return "{} {} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
-            Transposable.__str__(self),
+        return "{} SCORE_THR {:.2f} IOU_THR {:.2f}".format(
             self.at_options,
             self.nms_score_threshold,
             self.nms_iou_threshold

@@ -60,16 +60,27 @@ def get_register_field_table(current_node):
 
     return None
 
-def get_table_index(table, name):
-    headrow = table.thead.tr
-    r = []
+def get_table_index(table, name=None, names=[]):
 
-    for field_el in headrow('th'):
-        r.append(field_el.decode_contents().lower())
+    search_names = []
 
-    if not name.lower() in r:
-        return -1
-    return r.index(name.lower())
+    search_names += names
+
+    if name is not None:
+        search_names.append(name)
+
+    for name in search_names:
+        headrow = table.thead.tr
+        r = []
+
+        for field_el in headrow('th'):
+            r.append(field_el.decode_contents().lower())
+
+        if not name.lower() in r:
+            continue
+        return r.index(name.lower())
+
+    return -1
 
 def get_register_field_node(current_node, field_name):
     for register_header in current_node.find_next_siblings(header_name(header_node_level(current_node)+2)):
@@ -195,9 +206,10 @@ def import_md(regmap, path):
 
                 default_index = get_table_index(register_table, 'Size')
                 if default_index != -1:
-                    reg.width = int(r[default_index], 0)
+                    # Too many IPs has wrong register width, hard-code it to 32 bits
+                    reg.width = 32 # int(r[default_index], 0)
 
-                default_index = get_table_index(register_table, 'Default')
+                default_index = get_table_index(register_table, names=['Default', 'Reset Value'])
                 if default_index != -1:
                     reg.reset = int(r[default_index], 0)
 
@@ -217,6 +229,7 @@ def import_md(regmap, path):
                 print ('Caught error while parsing register (name: %s)' % r[0])
                 raise
 
+        # Now for each register parse the field table
         for register in regmap.get_registers():
             node = get_register_node(register_header_node, register.get_field_template())
 
@@ -233,13 +246,18 @@ def import_md(regmap, path):
                         for field_el in field_row('td'):
                             r.append(field_el.decode_contents())
 
-                        register.add_regfield(
+                        name_index = get_table_index(fields_table, names=['Field Name'])
+                        bit_index = get_table_index(fields_table, names=['Offset', 'Bit'])
+                        width_index = get_table_index(fields_table, names=['Size', 'Width'])
+                        access_index = get_table_index(fields_table, names=['Host Access Type', 'Access Type'])
+                        reset_index = get_table_index(fields_table, names=['Default', 'Reset Value'])
+
+                        regfield = register.add_regfield(
                             rmap.Regfield(
-                                name=r[0],
-                                width=int(r[2], 0),
-                                bit=int(r[1], 0),
-                                access=r[3],
-                                reset=int(r[5], 0)
+                                name=r[name_index],
+                                width=int(r[width_index], 0),
+                                bit=int(r[bit_index], 0),
+                                access=r[access_index]
                             )
                         )
 
@@ -249,6 +267,9 @@ def import_md(regmap, path):
 
                         if desc_index != -1:
                             register.get_regfield(r[0]).desc = r[desc_index]
+
+                        if reset_index != -1:
+                            regfield.reset = int(r[reset_index], 0)
 
             for field in register.get_fields():
                 field_node = get_register_field_node(node, field.name)

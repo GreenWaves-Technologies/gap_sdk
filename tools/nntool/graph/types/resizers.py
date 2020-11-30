@@ -15,16 +15,16 @@
 
 import logging
 
-from .base import Parameters, SingleInputAndOutput
+from .base import SingleInputAndOutput, Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
 #pylint: disable=abstract-method
-class ResizerParameters(Parameters, SingleInputAndOutput):
+class ResizerParameters(SingleInputAndOutput, Transposable):
 
     SUPPORTED_OP_TYPES = ['BILINEAR', 'NEAREST']
 
-    def __init__(self, name, new_shape, align_corners=False, halfpixel_centers=False, **kargs):
+    def __init__(self, name, new_shape=None, align_corners=False, halfpixel_centers=False, **kargs):
         super(ResizerParameters, self).__init__(name, **kargs)
         self._new_shape = new_shape # always (new_H, new_W) order
         self._align_corners = align_corners
@@ -35,9 +35,14 @@ class ResizerParameters(Parameters, SingleInputAndOutput):
         return self._new_shape
 
     def get_output_size(self, in_dims):
+        in_dims = self.clone_dim_with_hints(in_dims)
+        if self.transpose_in:
+            in_dims = in_dims.calc_transpose(self.transpose_in[0])
         out_dims = in_dims[0]
         out_dims.h = self.new_shape[0]
         out_dims.w = self.new_shape[1]
+        if self.transpose_out:
+            out_dims = in_dims.calc_transpose(self.transpose_out[0])
         return [out_dims]
 
     def get_parameter_size(self):

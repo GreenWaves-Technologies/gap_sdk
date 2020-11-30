@@ -17,12 +17,37 @@ import logging
 
 
 from ..dim import DilationDim
-from .base import FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder
+from .base import FilterLikeParameters, MultiplicativeBiasParameters, NoSizeChangeParameters, SingleInputAndOutput, Transposable
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, SensitiveToOrder):
+class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput, Transposable):
+
+    op_name = "batchnorm"
+
+    #pylint: disable-msg=too-many-arguments
+    def __init__(self, name, scale=None, bias=None, running_mean=None,
+                 running_variance=None, spatial=None, momentum=None, epsilon=None,  **kwargs):
+        super(BatchNormalizationParameters, self).__init__(name, **kwargs)
+        self.scale = scale
+        self.bias = bias
+        self.running_mean = running_mean
+        self.running_variance = running_variance
+        self.spatial = spatial
+        self.momentum = momentum
+        self.epsilon = epsilon
+
+    def get_parameter_size(self):
+        return 0
+
+    def __str__(self):
+        return "{} {}".format(
+            Transposable.__str__(self),
+            self.at_options or ""
+        )
+
+class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Transposable):
 
     op_name = "conv2d"
 
@@ -88,7 +113,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
                 new_conv.biases = self.biases[offset:offset + num_out - 1]
 
             if self.weights is not None:
-                # TODO - THIS IS NOT CORRECT. CHECK ORDER.
+                # TODO - THIS IS NOT CORRECT BUT UNUSED AT PRESENT. CHECK ORDER.
                 new_conv.weights = self.weights[offset:offset +
                                                 num_out - 1, ...]
 
@@ -125,6 +150,9 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dims = self.in_dims[0]
 
+        if self.transpose_in:
+            in_dims = in_dims.calc_transpose(self.transpose_in[0])
+
         assert in_dims.c >= self.groups,\
             "The number of groups cannot be larger than the amount of input channels"
         self.filter.in_c = in_dims.c // self.groups
@@ -137,6 +165,8 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
         out_dim = ((in_dims - filter_d + pad)//self.stride) + 1
         out_dim.c = self.filter.out_c
         out_dim.impose_order(in_dims.order)
+        if self.transpose_out:
+            out_dim = out_dim.calc_transpose(self.transpose_out[0])
         return [out_dim]
 
     def compute_load(self):
@@ -144,7 +174,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
             self.in_dims[0].c // self.groups
 
     def __str__(self):
-        return "F {} S {} D {} G {} M {} P {} {} {}".format(
+        return "F {} S {} D {} G {} M {} P {} {} {} {}".format(
             self.filter,
             self.stride,
             self.dilation,
@@ -152,5 +182,6 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Sensi
             self.multiplier,
             self.padding,
             self.pad_type,
+            Transposable.__str__(self),
             self.at_options or ""
         )

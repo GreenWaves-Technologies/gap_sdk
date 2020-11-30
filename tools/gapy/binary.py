@@ -154,10 +154,13 @@ class SSBL(Binary):
     def __init__(self, flashType, *args, **kargs):
         if flashType == 'hyper':
             romBlockSize = 1024
+            self.xip_dev = 0
         elif flashType == 'spi':
             romBlockSize = 4096
+            self.xip_dev = 1
         elif flashType == 'mram':
             romBlockSize = 1024
+            self.xip_dev = 2
         else:
             raise FatalError(
                 'Flash type %s not suported. ROM boot loader supports hyper and spi flash type' % flashType)
@@ -251,7 +254,8 @@ class SSBL(Binary):
         # Legacy bootAddr ROM  field, it is no longer used
         header.appendInt(0x1c000000)
         
-        xip_dev = 0
+        xip_dev = self.xip_dev
+
         xip_vaddr = 0x20000000
         xip_l2_addr = 0x1c190000 - 16*xip_page_size
         xip_l2_nb_pages = 16

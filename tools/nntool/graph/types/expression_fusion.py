@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.input_output import ConstantInputParameters
 import logging
 from collections import Counter
 from functools import cmp_to_key
@@ -51,7 +52,7 @@ class ExpressionFusionParameters(FusionBase):
         LOG.debug("++++ DECOMPOSE ++++ scaled=%s", node_scale_map is not None)
         # assumption - only single output nodes for all nodes in an expression
         intermediates = set([node for node in self.subgraph.nodes()
-                             if len(self.subgraph.out_edges(node.name)) > 1])
+                             if len(self.subgraph.out_edges(node.name)) > 1 and not isinstance(node, ConstantInputParameters)])
         outputs = sorted([node for node in self.subgraph.nodes()
                           if isinstance(node, FusionOutputParameters)], key=lambda x: x.idx)
         inputs = set([node for node in self.subgraph.nodes()

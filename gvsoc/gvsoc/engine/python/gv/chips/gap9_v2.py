@@ -23,14 +23,28 @@
 import gv.gvsoc
 import runner.chips.gap9_v2
 import os
+from elftools.elf.elffile import *
 
 
 
 class Runner(gv.gvsoc.Runner, runner.chips.gap9_v2.Runner):
 
     def __init__(self, args, config):
+
+        # Check if the binary contains special riscv fesvr tohost symbol for interations
+        # between simulated code and testbench
+        with open(args.binary, 'rb') as file:
+            elffile = ELFFile(file)
+            for section in elffile.iter_sections():
+                if isinstance(section, SymbolTableSection):
+                    for symbol in section.iter_symbols():
+                        if symbol.name == 'tohost':
+                            config.get('**/soc/fc').set('riscv_fesvr_tohost_addr', '0x%x' % symbol.entry['st_value'])
+
         gv.gvsoc.Runner.__init__(self, args, config)
         runner.chips.gap9_v2.Runner.__init__(self, args, config)
+
+
 
     def gen_stimuli(self):
         gv.gvsoc.Runner.gen_stimuli(self)

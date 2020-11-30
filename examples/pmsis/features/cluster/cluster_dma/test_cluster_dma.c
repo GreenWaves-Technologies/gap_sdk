@@ -2,7 +2,11 @@
 #include "pmsis.h"
 
 /* Variables used. */
+#ifdef __GAP9__
+#define BUFFER_SIZE      ( 256 * (ARCHI_CLUSTER_NB_PE+1))
+#else
 #define BUFFER_SIZE      ( 256 * ARCHI_CLUSTER_NB_PE )
+#endif
 
 static uint8_t l2_in[BUFFER_SIZE], l2_out[BUFFER_SIZE];
 

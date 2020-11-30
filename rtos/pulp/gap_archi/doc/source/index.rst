@@ -31,6 +31,7 @@ Welcome to gap9_v2's documentation!
    power_manager
    non_secured_riscv_debug
    secured_riscv_debug
+   fll
    udma
 
 

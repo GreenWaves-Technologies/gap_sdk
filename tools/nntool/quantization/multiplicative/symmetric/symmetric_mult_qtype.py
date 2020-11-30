@@ -50,6 +50,7 @@ class SymmetricMultQType(MultQTypeBase):
 
     @classmethod
     def from_tflite(cls, tf_qps, dtype):
+        # NOTE - This is no longer used by the new importer and is moved into the tensor wrapper in the importer
         res = cls()
         res.min_val = tf_qps.MinAsNumpy() if tf_qps.MinLength() > 0 else None
         res.max_val = tf_qps.MaxAsNumpy() if tf_qps.MaxLength() > 0 else None
@@ -79,6 +80,23 @@ class SymmetricMultQType(MultQTypeBase):
         return cls.from_min_max(rmin, rmax, dtype=dtype,
                                 quantized_dimension=quantized_dimension,
                                 narrow_range=narrow_range)
+
+    @staticmethod
+    def reshape_transpose(trans, dim, val):
+        return np.reshape(np.transpose(np.reshape(val, dim.shape), trans), val.shape)
+
+
+    def reorder(self, trans, dim):
+        if self.min_val is not None:
+            if self.min_val.size <= 1:
+                return
+            min_val = self.reshape_transpose(trans, dim, self.min_val)
+            max_val = self.reshape_transpose(trans, dim, self.max_val)
+            self.recalculate_scale(min_val, max_val, narrow_range=self.narrow_range)
+        else:
+            if self.scale.size <= 1:
+                return
+            self.scale = self.reshape_transpose(trans, dim, self.scale)
 
     def recalculate_scale(self, min_val, max_val, narrow_range=False):
         iinfo = np.iinfo(self.dtype)

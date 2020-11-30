@@ -137,7 +137,7 @@ class Runner(runner.default_runner.Runner):
                 if chip_family == 'vega' or chip_family == 'gap9_v2':
                     cmd = '%s -c "gdb_port disabled; telnet_port disabled; tcl_port disabled" -c "script %s; script %s; load_and_start_binary %s 0x%x"' % (openocd, cable, script, binary, entry)
                 else:
-                    cmd = "%s -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf'" % (openocd, cable, script, binary)
+                    cmd = "%s -c 'gdb_port disabled; telnet_port disabled; tcl_port disabled' -f %s -f %s -f tcl/jtag_boot_entry.tcl -c 'gap8_jtag_load_binary_and_start \"%s\" elf 0x%x'" % (openocd, cable, script, binary, entry)
 
             os.chdir(self.config.get_str('gapy/work_dir'))
 

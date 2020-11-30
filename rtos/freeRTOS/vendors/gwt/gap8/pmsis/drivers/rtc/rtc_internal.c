@@ -585,45 +585,47 @@ int32_t __pi_rtc_ioctl(uint8_t rtc_id, uint32_t cmd, void *arg)
     case PI_RTC_CALENDAR_START :
         __pi_rtc_calendar_start(rtc_id);
         break;
+
     case PI_RTC_CALENDAR_STOP :
         __pi_rtc_calendar_stop(rtc_id);
         break;
+
     case PI_RTC_ALARM_START :
     {
         pi_rtc_alarm_repeat_e repeat = (pi_rtc_alarm_repeat_e) arg;
         __pi_rtc_alarm_start(rtc_id, repeat);
-    }
         break;
+    }
+
     case PI_RTC_ALARM_STOP :
         __pi_rtc_alarm_stop(rtc_id);
         break;
+
     case PI_RTC_TIMER_START :
     {
         uint8_t repeat = (uint32_t) arg;
         __pi_rtc_timer_start(rtc_id, repeat);
-    }
         break;
+    }
+
     case PI_RTC_TIMER_STOP :
         __pi_rtc_timer_stop(rtc_id);
         break;
-    case PI_RTC_ATTACH_CB_CAL :
-    {
-        pi_task_t *task = (pi_task_t *) arg;
-        __pi_rtc_cb_attach(rtc_id, PI_RTC_IFR_CAL_FLAG, task);
-    }
-        break;
-    case PI_RTC_ATTACH_CB_ALARM :
+
+    case PI_RTC_ALARM_ATTACH_TASK :
     {
         pi_task_t *task = (pi_task_t *) arg;
         __pi_rtc_cb_attach(rtc_id, PI_RTC_IFR_ALARM_FLAG, task);
     }
         break;
-    case PI_RTC_ATTACH_CB_TIMER :
+
+    case PI_RTC_TIMER_ATTACH_TASK :
     {
         pi_task_t *task = (pi_task_t *) arg;
         __pi_rtc_cb_attach(rtc_id, PI_RTC_IFR_TIMER_FLAG, task);
     }
         break;
+
     default :
         return -199;
     }
