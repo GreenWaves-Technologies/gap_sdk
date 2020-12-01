@@ -67,17 +67,17 @@ static void __pi_thermeye_start(thermeye_t *thermeye)
 
         /* Enable power to sensor. */
         pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 1);
-        pi_time_wait_us(1500);
+        pi_time_wait_us(1000);
 
         /* Start sensor MC -> PWM. */
         /* No need to start again and again. */
-        //pi_pwm_timer_start(&(thermeye->pwm_device));
+        pi_pwm_timer_start(&(thermeye->pwm_device));
 
         /* Release NRST. */
         pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_reset, 1);
 
         /* Wait some time to stabilise power on. */
-        pi_time_wait_us(1500);
+        //pi_time_wait_us(1500); this is already done
         hal_compiler_barrier();
     }
 
@@ -113,8 +113,8 @@ static void __pi_thermeye_start(thermeye_t *thermeye)
     //__pi_thermeye_reg_write(thermeye, (uint16_t) CONFIG, 0x01);
 
     hal_compiler_barrier();
-    /* Wait capa preload. Here 19ms. */
-    pi_time_wait_us(19000);
+    /* Wait capa preload. Here 19ms - reg set above. */
+    pi_time_wait_us(15000);
 
     /* Disable external capa preload. */
     __pi_thermeye_reg_write(thermeye, (uint16_t) EXT_CAPA_LD, 0x00);
@@ -133,30 +133,28 @@ static uint32_t __pi_thermeye_trigger_snapshot(thermeye_t *thermeye)
 
 static void __pi_thermeye_stop(thermeye_t *thermeye)
 {
-    /* Switch off led. */
-    //pi_gpio_pin_write(NULL, GPIO_USER_LED, 0);
-
+    
     /* Reset NRST. GPIO_IR_NRST, pin M5 on sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_reset, 0);
     pi_time_wait_us(2);
-
+    pi_pwm_timer_stop(&(thermeye->pwm_device));
     /* Disable power to sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 0);
-    //printf("Sensor Off\n");
+    
 }
 
 static void __pi_thermeye_on(thermeye_t *thermeye)
 {
     /* Enable power to sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 1);
-    pi_time_wait_us(100);
+    //pi_time_wait_us(100);
 }
 
 static void __pi_thermeye_off(thermeye_t *thermeye)
 {
     /* Disable power to sensor. */
     pi_gpio_pin_write(&(thermeye->gpio_device), thermeye->conf.gpio_power, 0);
-    pi_time_wait_us(100);
+    //pi_time_wait_us(100);
 }
 
 static int32_t __pi_thermeye_open(struct pi_device *device)
@@ -199,7 +197,7 @@ static int32_t __pi_thermeye_open(struct pi_device *device)
     }
     pi_pwm_duty_cycle_set(&(thermeye->pwm_device), PWM_FQCY_KHz * 1000, 50);
 
-    pi_pwm_timer_start(&(thermeye->pwm_device));
+    //pi_pwm_timer_start(&(thermeye->pwm_device));
 
     /* I2C open. */
     /* F_pwm = 14 * F_i2c, at least. */
@@ -292,8 +290,8 @@ static int32_t __pi_thermeye_control(struct pi_device *device, pi_camera_cmd_e c
         break;
 
     case PI_CAMERA_CMD_START:
-        pi_cpi_control_start(&(thermeye->cpi_device));
         __pi_thermeye_start(thermeye);
+        pi_cpi_control_start(&(thermeye->cpi_device));
         __pi_thermeye_trigger_snapshot(thermeye);
         break;
 

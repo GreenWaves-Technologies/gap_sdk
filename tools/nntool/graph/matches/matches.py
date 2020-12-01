@@ -41,9 +41,10 @@ from .remove_relus import RemoveRelusMatch
 from .remove_unused_concats import RemoveUnusedConcats
 from .expression_matcher import ExpressionMatcher
 from .match_reversed_rnn import MatchReversedRnn
+from .gather_to_split import GatherToSplitMatch
 
 ALL_MATCH_CLASSES = [MatchReversedRnn, MatchRnnUnpack, RemoveRelusMatch, RemoveNoOPs, MatchExternalBias,
-                     MatchFusePad, RemoveUnusedConcats,
+                     MatchFusePad, RemoveUnusedConcats, GatherToSplitMatch,
                      FindMissingQuantization, MatchFarHSigmoid, MatchCloseHSigmoid, MoveMaxPoolMatcherScale8,
                      MoveActivationsMatcherScale8, MoveActivationsMatcherPow2,
                      EqualizeSymmetricMultiplicativeQuantivedConcats,
@@ -52,12 +53,12 @@ ALL_MATCH_CLASSES = [MatchReversedRnn, MatchRnnUnpack, RemoveRelusMatch, RemoveN
                      MatchGapLinear, ExpandTransposesMatcher, FindAsymmetricQuantization,
                      FuseMatScalePair, FuseMatScale, MatchInsertCopies, ExpressionMatcher, PropagateUpRNNInputQ]
 POW2_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBias, MatchFusePad,
-                      RemoveUnusedConcats, FindMissingQuantization, MatchCloseHSigmoid,
+                      RemoveUnusedConcats, GatherToSplitMatch, FindMissingQuantization, MatchCloseHSigmoid,
                       ExpandTransposesMatcher, MoveActivationsMatcherPow2, MatchAllGapConv, MatchGapLinear,
                       EqualizeSymmetricMultiplicativeQuantivedConcats, FilterBiggerThanInput,
                       MatchInsertCopies]
 SCALE8_MATCH_CLASSES = [RemoveRelusMatch, RemoveNoOPs, MatchExternalBiasSQ8, MatchFusePad,
-                        RemoveUnusedConcats, FindMissingQuantization,
+                        RemoveUnusedConcats, GatherToSplitMatch, FindMissingQuantization,
                         MatchReversedRnn, MatchRnnUnpack,
                         MatchFarHSigmoid, MatchCloseHSigmoid, ExpandTransposesMatcher, MoveMaxPoolMatcherScale8,
                         MoveActivationsMatcherScale8, MatchAllGapConv, MatchGapLinear, MatchOpActivationScaleKernels,

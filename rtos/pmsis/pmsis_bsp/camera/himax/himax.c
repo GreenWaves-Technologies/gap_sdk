@@ -136,6 +136,8 @@ static himax_reg_init_t __himax_reg_init[] =
   {HIMAX_IMG_ORIENTATION, 0x00}, // change the orientation
   {HIMAX_GRP_PARAM_HOLD, 0x01}, // hold
   {HIMAX_VSYNC_HSYNC_PIXEL_SHIFT_EN, 0x01}, // avoid 2 invalid pixel columns
+
+  {HIMAX_MODE_SELECT, 0x00}, // standby mode
 };
 
 
@@ -262,6 +264,12 @@ static int __himax_id_check(himax_t *himax)
 #endif
 }
 
+static void __himax_aeg_init(himax_t *himax)
+{
+    __himax_wakeup(himax);
+    pi_time_wait_us(1000000);
+    __himax_standby(himax);
+}
 
 
 int32_t __himax_open(struct pi_device *device)
@@ -345,8 +353,6 @@ int32_t __himax_open(struct pi_device *device)
     __himax_set_qqvga(himax);
   }
 
-  __himax_wakeup(himax);
-
   return 0;
 
 error2:
@@ -402,7 +408,6 @@ int32_t __himax_reopen(struct pi_device *device, pi_camera_opts_e opts)
   if(himax->conf.format==PI_CAMERA_QQVGA){
     __himax_set_qqvga(himax);
   }
-  __himax_wakeup(himax);
 
   return 0;
 
@@ -450,6 +455,10 @@ static int32_t __himax_control(struct pi_device *device, pi_camera_cmd_e cmd, vo
     case PI_CAMERA_CMD_STOP:
       __himax_standby(himax);
       pi_cpi_control_stop(&himax->cpi_device);
+      break;
+
+    case PI_CAMERA_CMD_AEG_INIT:
+      __himax_aeg_init(himax);
       break;
 
     default:

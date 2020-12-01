@@ -52,7 +52,7 @@ class Flatten(ConstantMixin, BackendHandler):
         else:
             start = x_shape[:axis:]
             end = x_shape[axis::]
-            pshape = start + [prod(cls._get_real_dim(end))]
+            pshape = list(start) + [prod(cls._get_real_dim(end))]
             shape = cls._get_real_dim(pshape)
 
         if cls.is_constant(x):

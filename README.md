@@ -9,13 +9,16 @@
 
 The GAP8 SDK allows you to compile and execute applications on the GAP8 IoT Application Processor. This SDK is an extract of the necessary elements from the pulp-sdk (https://github.com/pulp-platform/pulp-sdk) produced by the PULP project, to provide a development environment for the GAP8 series processors.
 
-We provide you with all the necessary tools and two different operating systems for GAP8:
+We provide you with a set of tool and two different operating systems for GAP8:
 
-*   Tools
+*   [Tools](https://greenwaves-technologies.com/tools-and-software/)
     -   GAP8 RISCV GNU toolchain: a pre-compiled toolchain inherited from RISC V project with support for our extensions to the RISC-V Instruction Set Architecture.
         * Program / control GAP8
         * Debug your application using GDB
         * Program the GAPuino flash memory with applications
+    -   [NNTOOL](https://github.com/GreenWaves-Technologies/gap_sdk/blob/master/tools/nntool/README.md): a set of tool based on python helps to port NN graphs from various NN training packages to GAP8    
+    -   [Autotiler](https://greenwaves-technologies.com/manuals/BUILD/AUTOTILER/html/index.html): a code generator for GAP8, which can generate a user algorithm (CNN, MatrixAdd, MatrixMult, FFT, MFCC, etc) with optimized memory management.
+    -   gapy: a set of tool based on python for building the flashimage, creating partitions, creating FS, executing the openOCD, etc.
 
 *   Operating Systems
     -   PULP OS - The open source embedded RTOS produced by the PULP project

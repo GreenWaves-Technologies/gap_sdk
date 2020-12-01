@@ -62,7 +62,7 @@ weights and input data are avalaible."""
             quantizer = MultQuantizer(astats, 8)
         else:
             astats = stats_collector.reduce_stats()
-            stats_collector = FilterStatsCollector()
+            stats_collector = FakeFilterStatsCollector()
             fstats = stats_collector.collect_stats(self.G)
             quantizer = SymmetricQuantizer(astats, fstats,
                                            force_width=args.force_width,

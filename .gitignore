@@ -13,3 +13,6 @@ BUILD
 junit-reports/
 /rtos/pulp/archi/
 /rtos/pulp/hal/
+*.a
+.tiler_url
+

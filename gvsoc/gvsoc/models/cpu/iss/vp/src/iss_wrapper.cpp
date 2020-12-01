@@ -508,14 +508,27 @@ void iss_wrapper::wait_for_interrupt()
 }
 
 
+void iss_wrapper::irq_req_sync_handler(void *__this, vp::clock_event *event)
+{
+  iss_t *_this = (iss_t *)__this;
+  _this->irq_req = _this->irq_req_value;
+  _this->irq_check();
+  iss_irq_req(_this, _this->irq_req);
+  _this->wfi.set(false);
+  _this->check_state();
+}
+
+
 void iss_wrapper::irq_req_sync(void *__this, int irq)
 {
   iss_t *_this = (iss_t *)__this;
-  _this->irq_req = irq;
-  _this->irq_check();
-  iss_irq_req(_this, irq);
-  _this->wfi.set(false);
-  _this->check_state();
+  _this->irq_req_value = irq;
+  // Handle the sync in an event with 0 delay to always take into account interrupts after the
+  // instruction has been executed
+  if (!_this->irq_sync_event->is_enqueued())
+  {
+    _this->event_enqueue(_this->irq_sync_event, 0);
+  }
 }
 
 void iss_wrapper::debug_req()
@@ -1125,6 +1138,7 @@ int iss_wrapper::build()
   instr_event = event_new(iss_wrapper::exec_instr);
   check_all_event = event_new(iss_wrapper::exec_instr_check_all);
   misaligned_event = event_new(iss_wrapper::exec_misaligned);
+  irq_sync_event = event_new(iss_wrapper::irq_req_sync_handler);
 
   this->riscv_dbg_unit = this->get_js_config()->get_child_bool("riscv_dbg_unit");
   this->bootaddr_offset = get_config_int("bootaddr_offset");
@@ -1200,6 +1214,7 @@ void iss_wrapper::reset(bool active)
 
     this->ipc_stat_nb_insn = 0;
     this->ipc_stat_delay = 10;
+    this->clock_active = false;
 
     iss_reset(this, 1);
   }

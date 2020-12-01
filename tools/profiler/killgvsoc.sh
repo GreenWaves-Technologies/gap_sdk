@@ -1,1 +1,0 @@
-for pid in $(ps -ef | grep "grep" | awk '{print $2}'); do kill -9 $pid; done

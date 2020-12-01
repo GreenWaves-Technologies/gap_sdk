@@ -82,21 +82,21 @@ class MatchGapConv(DefaultMatcher):
 
     def add_pooling(self, i, sub):
         sub.add_node(MatchNode(str(i),
-                               matcher=lambda node:\
-                                isinstance(node, PoolingParameters) and\
-                                self.valid_pooling(node)))
+                               matcher=lambda node:
+                               isinstance(node, PoolingParameters) and
+                               self.valid_pooling(node)))
 
     def add_activation(self, i, sub):
         sub.add_node(MatchNode(str(i),
-                               matcher=lambda node:\
-                                isinstance(node, ActivationParameters) and\
-                                self.valid_activation(node)))
+                               matcher=lambda node:
+                               isinstance(node, ActivationParameters) and
+                               self.valid_activation(node)))
 
     def match_function(self, G: GraphView):
         sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:\
-                isinstance(node, Conv2DParameters) and\
-                self.valid_convolution(node)))
+        sub.add_node(MatchNode('0', matcher=lambda node:
+                               isinstance(node, Conv2DParameters) and
+                               self.valid_convolution(node)))
         if self.match_activation and self.match_pool:
             if self.pool_after_activation:
                 self.add_activation('1', sub)
@@ -119,21 +119,28 @@ class MatchGapConv(DefaultMatcher):
         if not self.validate_match(subgraph):
             raise DontReplaceError()
         step = 0
+        conv = None
         for node in subgraph.nodes():
             node.step_idx = step
             step = step + 1
             if isinstance(node, Conv2DParameters):
-                conv_name = node.name + "_fusion"
-                break
+                conv = node
         LOG.info("fusing nodes %s", ",".join((node.name for node in subgraph.nodes())))
         # simple node order is necessary because nodes() will not necessarily
         # be in order
-        pnode = ConvFusionParameters(conv_name, fusion_type=self.fusion_type, subgraph=subgraph)
+        pnode = ConvFusionParameters(
+            conv.name + '_fusion',
+            fusion_type=self.fusion_type,
+            subgraph=subgraph,
+            in_dims_hint=conv.in_dims_hint,
+            out_dims_hint=conv.out_dims_hint)
         if G.quantization:
             qrecs = G.quantization.get_all(pnode.contained_nodes())
             if qrecs:
+                prec = None
                 if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
-                    prec = SymmetricQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    prec = SymmetricQuantizationRecord(
+                        in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
                 elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
                     prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
                 elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
@@ -147,10 +154,11 @@ class MatchGapConv(DefaultMatcher):
 class MatchAllGapConv(MatchGroup):
     NAME = 'fuse_gap_convs'
     DESCRIPTION = 'Fuse convolutions, pools and activations to match GAP AutoTiler operations'
+
     def __init__(self):
-        super().__init__(\
-            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=True),\
-            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=False),\
-            MatchGapConv(match_activation=True, match_pool=False),\
-            MatchGapConv(match_activation=False, match_pool=True)\
+        super().__init__(
+            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=True),
+            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=False),
+            MatchGapConv(match_activation=True, match_pool=False),
+            MatchGapConv(match_activation=False, match_pool=True)
         )
