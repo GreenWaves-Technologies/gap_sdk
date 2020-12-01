@@ -306,7 +306,7 @@ static char *trace_dump_debug(iss_t *iss, iss_insn_t *insn, char *buff)
   return buff + MAX_DEBUG_INFO_WIDTH + 1;
 }
 
-static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int buffer_size, iss_insn_arg_t *saved_args, bool is_long, int mode) {
+static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int buffer_size, iss_insn_arg_t *saved_args, bool is_long, int mode, bool is_event) {
 
   char *init_buff = buff;
   static int max_len = 20;
@@ -318,7 +318,7 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
       buff = trace_dump_debug(iss, insn, buff);
   }
 
-  if (1) {
+  if (!is_event) {
     buff += sprintf(buff,  "%c %" PRIxFULLREG " ", iss_trace_get_mode(mode), insn->addr);
   }
 
@@ -349,7 +349,7 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
   }
   if (nb_args != 0) buff += sprintf(buff,  " ");
 
-  if (1) {
+  if (!is_event) {
     len = buff - start_buff;
   
     if (len > max_arg_len) max_arg_len = len;
@@ -360,7 +360,7 @@ static void iss_trace_dump_insn(iss_t *iss, iss_insn_t *insn, char *buff, int bu
     }
   }
 
-  if (1)
+  if (!is_event)
   {
     prev_arg = NULL;
     for (int i=0; i<nb_args; i++) {
@@ -426,7 +426,7 @@ void iss_trace_dump(iss_t *iss, iss_insn_t *insn)
 
   iss_trace_save_args(iss, insn, iss->cpu.state.saved_args, true);
   
-  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, iss_trace_format(iss) == TRACE_FORMAT_LONG, 3);
+  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, iss_trace_format(iss) == TRACE_FORMAT_LONG, 3, 0);
 
   iss_insn_msg(iss, buffer);
 }
@@ -435,7 +435,7 @@ void iss_event_dump(iss_t *iss, iss_insn_t *insn)
 {
   char buffer[1024];
 
-  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, false, 3);
+  iss_trace_dump_insn(iss, insn, buffer, 1024, iss->cpu.state.saved_args, false, 3, 1);
 
   char *current = buffer;
   while (*current)

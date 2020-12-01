@@ -137,6 +137,7 @@ void Hyper_periph::reset(bool active)
         this->pending_tx = false;
         this->pending_rx = false;
         this->current_cmd = NULL;
+        this->transfer_size = 0;
     }
 }
 

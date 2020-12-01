@@ -79,7 +79,10 @@ public:
 
   uint8_t value;
   uint32_t waiting_mask;
+  int elected_core;
   vp::io_req *waiting_reqs[32];
+  vp::trace     trace_value;
+  vp::trace     trace_waiting_cores;
 };
 
 class Semaphore_unit {
@@ -160,10 +163,10 @@ class Dispatch {
 public:
   //Plp3_ckg *top;
   //DispatchUnit *dispatch;
-  uint32_t value;
-  uint32_t status_mask;     // Cores that must get the value before it can be written again
-  uint32_t config_mask;     // Cores that will get a valid value
-  uint32_t waiting_mask;
+  vp::reg_32 value;
+  vp::reg_32 status_mask;     // Cores that must get the value before it can be written again
+  vp::reg_32 config_mask;     // Cores that will get a valid value
+  vp::reg_32 waiting_mask;
   vp::io_req *waiting_reqs[32];
 //
 //  //gv::ioSlave_ioReq stallRetryCallbackPtr;
@@ -211,9 +214,11 @@ private:
 
 class Barrier {
 public:
-  uint32_t core_mask;
-  uint32_t status;
-  uint32_t target_mask;
+    uint32_t      core_mask;
+    vp::reg_32    status;
+    uint32_t      target_mask;
+    vp::trace     trace_core_mask;
+    vp::trace     trace_target_mask;
 };
 
 
@@ -307,26 +312,29 @@ public:
   void cancel_pending_req();
   vp::io_req_status_e wait_event(vp::io_req *req, Event_unit_core_state_e wait_state=CORE_STATE_WAITING_EVENT);
   vp::io_req_status_e put_to_sleep(vp::io_req *req, Event_unit_core_state_e wait_state=CORE_STATE_WAITING_EVENT);
-  Event_unit_core_state_e get_state() { return state; }
-  void set_state(Event_unit_core_state_e state) { this->state = state; }
+  Event_unit_core_state_e get_state() { return (Event_unit_core_state_e)state.get(); }
+  void set_state(Event_unit_core_state_e state) { this->top->trace.msg("Changing state (core: %d, state: %d)\n", core_id, state); this->state.set(state); }
   void irq_ack_sync(int irq, int core);
-  static void wakeup_handler(void *__this, vp::clock_event *event);
-  static void irq_wakeup_handler(void *__this, vp::clock_event *event);
+  void wakeup_handler();
+  void irq_wakeup_handler();
 
   vp::io_slave demux_in;
 
-  uint32_t status;
-  uint32_t evt_mask;
-  uint32_t irq_mask;
+  vp::reg_32 status;
+  vp::reg_32 evt_mask;
+  vp::reg_32 irq_mask;
   uint32_t clear_evt_mask;
+  uint32_t interrupt_elw_value;
 
   int sync_irq;
-  int pending_elw;
+  int interrupted_elw;       // True if an ELW was interrupted to handle an IRQ
+
+  vp::reg_1  is_active;
 
 private:
   Event_unit *top;
   int core_id;
-  Event_unit_core_state_e state;
+  vp::reg_32 state;
   vp::io_req *pending_req;
 
   vp::wire_master<bool> barrier_itf;
@@ -339,8 +347,6 @@ private:
 
   vp::clock_event *wakeup_event;
   vp::clock_event *irq_wakeup_event;
-
-  vp::reg_1  is_active;
 
 };
 
@@ -364,6 +370,7 @@ void Event_unit::reset(bool active)
     barrier_unit->reset();
     mutex->reset();
     soc_event_unit->reset();
+    semaphore->reset();
   }
 }
 
@@ -480,7 +487,7 @@ void Event_unit::send_event(int core, uint32_t mask)
 {
   trace.msg("Triggering event (core: %d, mask: 0x%x)\n", core, mask);
   Core_event_unit *eu = &core_eu[core];
-  eu->set_status(eu->status | mask);
+  eu->set_status(eu->status.get() | mask);
   eu->check_state();
 }
 
@@ -491,12 +498,16 @@ void Core_event_unit::build(Event_unit *top, int core_id)
   this->core_id = core_id;
 
   this->top->new_reg("core_" + std::to_string(core_id) + "/active", &this->is_active, 1);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/status", &this->status, 32);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/evt_mask", &this->evt_mask, 32);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/irq_mask", &this->irq_mask, 32);
+  this->top->new_reg("core_" + std::to_string(core_id) + "/state", &this->state, 32);
 
   demux_in.set_req_meth_muxed(&Event_unit::demux_req, core_id);
   top->new_slave_port("demux_in_" + std::to_string(core_id), &demux_in);
 
-  wakeup_event = top->event_new((void *)this, Core_event_unit::wakeup_handler);
-  irq_wakeup_event = top->event_new((void *)this, Core_event_unit::irq_wakeup_handler);
+  //wakeup_event = top->event_new((void *)this, Core_event_unit::wakeup_handler);
+  //irq_wakeup_event = top->event_new((void *)this, Core_event_unit::irq_wakeup_handler);
 
   top->new_master_port("irq_req_" + std::to_string(core_id), &irq_req_itf);
 
@@ -518,28 +529,28 @@ vp::io_req_status_e Core_event_unit::req(vp::io_req *req, uint64_t offset, bool 
   if (offset == EU_CORE_BUFFER)
   {
     if (is_write) return vp::IO_REQ_INVALID;
-    *data = status;
+    *data = status.get();
     return vp::IO_REQ_OK;
   }
   else if (offset == EU_CORE_BUFFER_MASKED)
   {
     if (is_write) return vp::IO_REQ_INVALID;
-    *data = status & evt_mask;
+    *data = status.get() & evt_mask.get();
     return vp::IO_REQ_OK;
   }
   else if (offset == EU_CORE_BUFFER_CLEAR)
   {
     if (!is_write) return vp::IO_REQ_INVALID;
     clear_status(*data);
-    top->trace.msg("Clearing buffer status (mask: 0x%x, newValue: 0x%x)\n", *data, status);
+    top->trace.msg("Clearing buffer status (mask: 0x%x, newValue: 0x%x)\n", *data, status.get());
     check_state();
     return vp::IO_REQ_OK;
   }
   else if (offset == EU_CORE_MASK)
   {
-    if (!is_write) *data = evt_mask;
+    if (!is_write) *data = evt_mask.get();
     else {
-      evt_mask = *data;
+      evt_mask.set(*data);
       top->trace.msg("Updating event mask (newValue: 0x%x)\n", *data);
       check_state();
     }
@@ -547,14 +558,14 @@ vp::io_req_status_e Core_event_unit::req(vp::io_req *req, uint64_t offset, bool 
   else if (offset == EU_CORE_MASK_AND)
   {
     if (!is_write) return vp::IO_REQ_INVALID;
-    evt_mask &= ~*data;
+    evt_mask.set(evt_mask.get() & ~*data);
     top->trace.msg("Clearing event mask (mask: 0x%x, newValue: 0x%x)\n", *data, evt_mask);
     check_state();
   }
   else if (offset == EU_CORE_MASK_OR)
   {
     if (!is_write) return vp::IO_REQ_INVALID;
-    evt_mask |= *data;
+    evt_mask.set(evt_mask.get() | *data);
     top->trace.msg("Setting event mask (mask: 0x%x, newValue: 0x%x)\n", *data, evt_mask);
     check_state();
   }
@@ -570,43 +581,43 @@ vp::io_req_status_e Core_event_unit::req(vp::io_req *req, uint64_t offset, bool 
     if (is_write) return vp::IO_REQ_INVALID;
     top->trace.msg("Wait\n");
     vp::io_req_status_e err = wait_event(req);
-    *data = evt_mask & status;
+    *data = evt_mask.get() & status.get();
     return err;
   }
 
   else if (offset == EU_CORE_EVENT_WAIT_CLEAR)
   {
     top->trace.msg("Wait and clear\n");
-    clear_evt_mask = evt_mask;
+    clear_evt_mask = evt_mask.get();
     vp::io_req_status_e err = wait_event(req);
-    *data = evt_mask & status;
+    *data = evt_mask.get() & status.get();
     return err;
   }
   else if (offset == EU_CORE_MASK_IRQ)
   {
-    if (!is_write) *data = irq_mask;
+    if (!is_write) *data = irq_mask.get();
     else {
       top->trace.msg("Updating irq mask (newValue: 0x%x)\n", *data);
-      irq_mask = *data;
+      irq_mask.set(*data);
       check_state();
     }
   }
   else if (offset == EU_CORE_BUFFER_IRQ_MASKED)
   {
     if (is_write) return vp::IO_REQ_INVALID;
-    *data = status & irq_mask;
+    *data = status.get() & irq_mask.get();
   }
   else if (offset == EU_CORE_MASK_IRQ_AND)
   {
     if (!is_write) return vp::IO_REQ_INVALID;
-    irq_mask &= ~*data;
+    irq_mask.set(irq_mask.get() & ~*data);
     top->trace.msg("Clearing irq mask (mask: 0x%x, newValue: 0x%x)\n", *data, irq_mask);
     check_state();
   }
   else if (offset == EU_CORE_MASK_IRQ_OR)
   {
     if (!is_write) return vp::IO_REQ_INVALID;
-    irq_mask |= *data;
+    irq_mask.set(irq_mask.get() | *data);
     top->trace.msg("Setting irq mask (mask: 0x%x, newValue: 0x%x)\n", *data, irq_mask);
     check_state();
   }
@@ -640,18 +651,19 @@ vp::io_req_status_e Event_unit::demux_req(void *__this, vp::io_req *req, int cor
 
   Core_event_unit *core_eu = &_this->core_eu[core];
 
-  core_eu->pending_elw = false;
-
-  if (core_eu->get_state() == CORE_STATE_SKIP_ELW)
-  {
-    core_eu->set_state(CORE_STATE_NONE);
-    return vp::IO_REQ_OK;
-  }
+  core_eu->interrupted_elw = false;
 
   if (size != 4)
   {
     _this->trace.warning("Only 32 bits accesses are allowed\n");
     return vp::IO_REQ_INVALID;
+  }
+
+  if (core_eu->get_state() == CORE_STATE_SKIP_ELW)
+  {
+    core_eu->set_state(CORE_STATE_NONE);
+    *(uint32_t *)data = core_eu->interrupt_elw_value;
+    return vp::IO_REQ_OK;
   }
 
   if (offset >= EU_CORE_DEMUX_OFFSET && offset < EU_CORE_DEMUX_OFFSET + EU_CORE_DEMUX_SIZE)
@@ -698,7 +710,7 @@ void Event_unit::in_event_sync(void *__this, bool active, int id)
   int event_id = id & 0xffff;
   _this->trace.msg("Received input event (core: %d, event: %d, active: %d)\n", core_id, event_id, active);
   Core_event_unit *eu = &_this->core_eu[core_id];
-  eu->set_status(eu->status | (1<<event_id));
+  eu->set_status(eu->status.get() | (1<<event_id));
   eu->check_state();
 }
 
@@ -748,12 +760,12 @@ void Core_event_unit::irq_ack_sync(int irq, int core)
 
 void Core_event_unit::set_status(uint32_t new_value)
 {
-  status = new_value;
+  status.set(new_value);
 }
 
 void Core_event_unit::clear_status(uint32_t mask)
 {
-  status = status & ~mask;
+  status.set(status.get() & ~mask);
   top->soc_event_unit->check_state();
 }
 
@@ -782,7 +794,7 @@ void Core_event_unit::check_wait_mask()
 
 vp::io_req_status_e Core_event_unit::put_to_sleep(vp::io_req *req, Event_unit_core_state_e wait_state)
 {
-  state = wait_state;
+  state.set(wait_state);
   this->is_active.set(0);
   this->clock_itf.sync(0);
   pending_req = req;
@@ -805,16 +817,16 @@ vp::io_req_status_e Core_event_unit::wait_event(vp::io_req *req, Event_unit_core
   // This gives much better tming results on barrier.
   // Check if it is also the case for other features and check in the RTL how it is
   // handled.
-  if (evt_mask & status)
+  if (evt_mask.get() & status.get())
   {
     // Case where the core ask for clock-gating but the event status prevent him from doing so
     // In this case, don't forget to clear the status in case of wait and clear.
     // Still apply the latency as to core will go to sleep before continuing.
     top->trace.msg("Activating clock (core: %d)\n", core_id);
     check_wait_mask();
-    pending_req = req;
-    top->event_enqueue(wakeup_event, EU_WAKEUP_LATENCY);
-    return vp::IO_REQ_PENDING;
+    req->inc_latency(EU_WAKEUP_LATENCY);
+    this->wakeup_handler();
+    return vp::IO_REQ_OK;
   }
   else
   {
@@ -965,41 +977,39 @@ vp::io_req_status_e Core_event_unit::req(void *__this, vp::io_req *req)
 
 void Core_event_unit::reset()
 {
-  status = 0;
-  evt_mask = 0;
-  irq_mask = 0;
+  status.set(0);
+  evt_mask.set(0);
+  irq_mask.set(0);
   clear_evt_mask = 0;
   sync_irq = -1;
-  pending_elw = false;
-  state = CORE_STATE_NONE;
+  interrupted_elw = false;
+  state.set(CORE_STATE_NONE);
   this->clock_itf.sync(1);
 }
 
-void Core_event_unit::wakeup_handler(void *__this, vp::clock_event *event)
+void Core_event_unit::wakeup_handler()
 {
-  Core_event_unit *_this = (Core_event_unit *)__this;
-  _this->top->trace.msg("Replying to core after wakeup (core: %d)\n", _this->core_id);
-  _this->is_active.set(1);
-  _this->clock_itf.sync(1);
-  _this->check_pending_req();
-  _this->check_state();
+  this->top->trace.msg("Replying to core after wakeup (core: %d)\n", this->core_id);
+  this->is_active.set(1);
+  this->clock_itf.sync(1);
+  this->check_pending_req();
+  this->check_state();
 }
 
-void Core_event_unit::irq_wakeup_handler(void *__this, vp::clock_event *event)
+void Core_event_unit::irq_wakeup_handler()
 {
-  Core_event_unit *_this = (Core_event_unit *)__this;
-  _this->top->trace.msg("IRQ wakeup\n");
-  _this->is_active.set(1);
-  _this->clock_itf.sync(1);
-  _this->check_state();
+  this->top->trace.msg("IRQ wakeup\n");
+  this->is_active.set(1);
+  this->clock_itf.sync(1);
+  this->check_state();
 }
 
 void Core_event_unit::check_state()
 {
   //top->trace.msg("Checking core state (coreId: %d, active: %d, waitingEvent: %d, status: 0x%llx, evtMask: 0x%llx, irqMask: 0x%llx)\n", coreId, active, waitingEvent, status, evtMask, irqMask);
 
-  uint32_t status_irq_masked = status & irq_mask;
-  uint32_t status_evt_masked = status & evt_mask;
+  uint32_t status_irq_masked = status.get() & irq_mask.get();
+  uint32_t status_evt_masked = status.get() & evt_mask.get();
   int irq = status_irq_masked ? 31 - __builtin_clz(status_irq_masked) : -1;
 
   top->trace.msg("Checking core state (coreId: %d, active: %d, status: 0x%llx, evtMask: 0x%llx, irqMask: 0x%llx)\n", core_id, this->is_active.get(), status, evt_mask, irq_mask);
@@ -1013,6 +1023,19 @@ void Core_event_unit::check_state()
     }
   }
 
+  if (status_evt_masked)
+  {
+    // If a wakeup occurs while the core is handling an interrupt (e.g. a barrier is reached)
+    // skip the next elw 
+    if (this->interrupted_elw)
+    {
+      top->trace.msg("Wakeup during interrupted elw (core: %d)\n", core_id);
+      this->set_state(CORE_STATE_SKIP_ELW);
+      check_wait_mask();
+      return;
+    }
+  }
+
   if (!this->is_active.get())
   {
     if (status_irq_masked && !status_evt_masked)
@@ -1023,11 +1046,13 @@ void Core_event_unit::check_state()
       // the on-going synchronization.
       top->trace.msg("Activating clock for IRQ handling(core: %d)\n", core_id);
 
-      this->pending_elw = true;
+      // Remeber that we interrupted an ELW so that we can properly restore it after IRQ handling
+      this->interrupted_elw = true;
 
-      if (!irq_wakeup_event->is_enqueued())
+      //if (!irq_wakeup_event->is_enqueued())
       {
-        top->event_enqueue(irq_wakeup_event, EU_WAKEUP_LATENCY);
+        this->irq_wakeup_handler();
+        //top->event_enqueue(irq_wakeup_event, EU_WAKEUP_LATENCY);
         sync_irq = -1;
       }
     }
@@ -1035,27 +1060,17 @@ void Core_event_unit::check_state()
     {
       if (status_evt_masked)
       {
-        if (this->pending_elw)
-        {
-          this->set_state(CORE_STATE_SKIP_ELW);
-        }
-        else
-        {
-          switch (state)
+          switch (state.get())
           {
             case CORE_STATE_WAITING_EVENT:
             case CORE_STATE_WAITING_BARRIER:
 
               top->trace.msg("Activating clock (core: %d)\n", core_id);
-              state = CORE_STATE_NONE;
+              state.set(CORE_STATE_NONE);
               check_wait_mask();
-              if (!wakeup_event->is_enqueued())
-              {
-                top->event_enqueue(wakeup_event, EU_WAKEUP_LATENCY);
-              }
+              this->wakeup_handler();
               break;
           }
-        }
       }
     }
   }
@@ -1069,10 +1084,17 @@ void Core_event_unit::check_state()
 Semaphore_unit::Semaphore_unit(Event_unit *top)
 : top(top)
 {
-  top->traces.new_trace("sem/trace", &trace, vp::DEBUG);
-  nb_semaphores = top->get_config_int("**/properties/semaphores/nb_semaphores");
-  semaphore_event = top->get_config_int("**/properties/events/semaphore");
-  semaphores = new Semaphore[nb_semaphores];
+    top->traces.new_trace("sem/trace", &trace, vp::DEBUG);
+    nb_semaphores = top->get_config_int("**/properties/semaphores/nb_semaphores");
+    semaphore_event = top->get_config_int("**/properties/events/semaphore");
+    semaphores = new Semaphore[nb_semaphores];
+
+    for (int i=0; i<nb_semaphores; i++)
+    {
+        Semaphore *sem = &this->semaphores[i];
+        this->top->traces.new_trace_event("sem" + std::to_string(i) + "/value", &sem->trace_value, 8);
+        this->top->traces.new_trace_event("sem" + std::to_string(i) + "/waiting_cores", &sem->trace_waiting_cores, 32);
+    }
 }
 
 vp::io_req_status_e Semaphore_unit::enqueue_sleep(Semaphore *mutex, vp::io_req *req, int core_id) {
@@ -1081,6 +1103,7 @@ vp::io_req_status_e Semaphore_unit::enqueue_sleep(Semaphore *mutex, vp::io_req *
   // Enqueue the request so that the core can be unstalled when a value is pushed
   mutex->waiting_reqs[core_id] = req;
   mutex->waiting_mask |= 1<<core_id;
+  mutex->trace_waiting_cores.event((uint8_t *)&mutex->waiting_mask);
 
   // Don't forget to remember to clear the event after wake-up by the dispatch event
   core_eu->clear_evt_mask = 1<<semaphore_event;
@@ -1097,10 +1120,14 @@ void Semaphore_unit::reset()
   }
 }
 
+
 void Semaphore::reset()
 {
   value = 0;
   waiting_mask = 0;
+  elected_core = 0;
+  this->trace_value.event((uint8_t *)&value);
+  this->trace_waiting_cores.event((uint8_t *)&waiting_mask);
 }
 
 vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core)
@@ -1114,13 +1141,26 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
   Core_event_unit *evtUnit = &top->core_eu[core];
   this->trace.msg("Received semaphore IO access (offset: 0x%x, mutex: %d, is_write: %d)\n", offset, id, is_write);
   
-  if (!is_write)
+  if (offset == EU_HW_SEM_VALUE)
   {
-    if (offset == EU_HW_SEM_COUNTER)
+    if (!is_write)
+    {
+      *data = semaphore->value;
+    }
+    else
+    {
+      this->trace.msg("Setting semaphore value (semaphore: %d, value: 0x%x)\n", id, *data);
+      semaphore->value = *data;
+    }
+  }
+  else if (offset == EU_HW_SEM_COUNTER)
+  {
+    if (!is_write)
     {
       if (semaphore->value > 0)
       {
         semaphore->value--;
+        semaphore->trace_value.event((uint8_t *)&semaphore->value);
         this->trace.msg("Decrementing semaphore (semaphore: %d, coreId: %d, new_value: %d)\n", id, core);
       }
       else
@@ -1129,39 +1169,47 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
         return enqueue_sleep(semaphore, req, core);
       }
     }
-  }
-  else
-  {
-    if (offset == EU_HW_SEM_COUNTER)
+    else
     {
       semaphore->value += *(uint32_t *)req->get_data();
+      semaphore->trace_value.event((uint8_t *)&semaphore->value);
+      this->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, inc: %d, value: %d)\n", id, core, *(uint32_t *)req->get_data(), semaphore->value);
 
       // The core is unlocking the semaphore, check if we have to wake-up someone
-      unsigned int waiting_mask = semaphore->waiting_mask;
-      if (waiting_mask)
+      while (semaphore->value > 0 && semaphore->waiting_mask)
       {
-        // We have to wake-up at least one core
-        for (unsigned int i=0; i<32 && semaphore->value > 0; i++)
+        if (semaphore->waiting_mask & (1<<semaphore->elected_core))
         {
-          if (waiting_mask & (1<<i))
+          // Clear the mask and wake-up the core.
+          this->trace.msg("Waking-up core waiting for semaphore (coreId: %d)\n", semaphore->elected_core);
+          vp::io_req *waiting_req = semaphore->waiting_reqs[semaphore->elected_core];
+
+          semaphore->waiting_mask &= ~(1<<semaphore->elected_core);
+          semaphore->trace_waiting_cores.event((uint8_t *)&semaphore->waiting_mask);
+
+          // Store the semaphore value into the pending request
+          // Don't reply now to the initiator, this will be done by the wakeup event
+          // to introduce some delays
+          if (!this->top->core_eu[semaphore->elected_core].interrupted_elw)
           {
-            // Clear the mask and wake-up the core.
-
-            this->trace.msg("Waking-up core waiting for semaphore (coreId: %d)\n", i);
-            vp::io_req *waiting_req = semaphore->waiting_reqs[i];
-
-            semaphore->waiting_mask &= ~(1<<i);
-
-            // Store the semaphore value into the pending request
-            // Don't reply now to the initiator, this will be done by the wakeup event
-            // to introduce some delays
             *(uint32_t *)waiting_req->get_data() = semaphore->value;
-
-            // And trigger the event to the core
-            top->trigger_event(1<<semaphore_event, 1<<i); 
-
-            semaphore->value--;
           }
+          else
+          {
+            this->top->core_eu[semaphore->elected_core].interrupt_elw_value = semaphore->value;
+          }
+
+          // And trigger the event to the core
+          top->trigger_event(1<<semaphore_event, 1<<semaphore->elected_core); 
+
+          semaphore->value--;
+          semaphore->trace_value.event((uint8_t *)&semaphore->value);
+        }
+
+        semaphore->elected_core++;
+        if (semaphore->elected_core == this->top->nb_core)
+        {
+          semaphore->elected_core = 0;
         }
       }
     }
@@ -1359,7 +1407,14 @@ vp::io_req_status_e Mutex_unit::req(vp::io_req *req, uint64_t offset, bool is_wr
           // Store the mutex value into the pending request
           // Don't reply now to the initiator, this will be done by the wakeup event
           // to introduce some delays
-          *(uint32_t *)waiting_req->get_data() = mutex->value;
+          if (!this->top->core_eu[i].interrupted_elw)
+          {
+            *(uint32_t *)waiting_req->get_data() = mutex->value;
+          }
+          else
+          {
+            this->top->core_eu[i].interrupt_elw_value = mutex->value;
+          }
 
           // And trigger the event to the core
           top->trigger_event(1<<mutex_event, 1<<i); 
@@ -1391,7 +1446,7 @@ vp::io_req_status_e Dispatch_unit::enqueue_sleep(Dispatch *dispatch, vp::io_req 
 
   // Enqueue the request so that the core can be unstalled when a value is pushed
   dispatch->waiting_reqs[core_id] = req;
-  dispatch->waiting_mask |= 1<<core_id;
+  dispatch->waiting_mask.set(dispatch->waiting_mask.get() | (1<<core_id));
 
   // Don't forget to remember to clear the event after wake-up by the dispatch event
   core_eu->clear_evt_mask = 1<<dispatch_event;
@@ -1423,10 +1478,14 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
     }
     for (int i=0; i<size; i++)
     {
-      dispatches[i].value = 0;
-      dispatches[i].status_mask = 0;
-      dispatches[i].config_mask = 0;
-      dispatches[i].waiting_mask = 0;
+      this->top->new_reg("dispatcher" + std::to_string(i) + "/value", &dispatches[i].value, 32);
+      this->top->new_reg("dispatcher" + std::to_string(i) + "/status_mask", &dispatches[i].status_mask, 32);
+      this->top->new_reg("dispatcher" + std::to_string(i) + "/config_mask", &dispatches[i].config_mask, 32);
+      this->top->new_reg("dispatcher" + std::to_string(i) + "/waiting_mask", &dispatches[i].waiting_mask, 32);
+      dispatches[i].value.set(0);
+      dispatches[i].status_mask.set(0);
+      dispatches[i].config_mask.set(0);
+      dispatches[i].waiting_mask.set(0);
     }
   }
 
@@ -1442,34 +1501,43 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         Dispatch *dispatch = &dispatches[id];
 
         // When pushing to the FIFO, the global config is pushed to the elected dispatcher
-        dispatch->config_mask = config;     // Cores that will get a valid value
+        dispatch->config_mask.set(config);     // Cores that will get a valid value
 
         top->trace.msg("Pushing dispatch value (dispatch: %d, value: 0x%x, coreMask: 0x%x)\n", id, *data, dispatch->config_mask);
 
         // Case where the master push a value
-        dispatch->value = *data;
+        dispatch->value.set(*data);
         // Reinitialize the status mask to notify a new value is ready
-        dispatch->status_mask = -1;
+        dispatch->status_mask.set(-1);
         // Then wake-up the waiting cores
-        unsigned int mask = dispatch->waiting_mask & dispatch->status_mask;
+        unsigned int mask = dispatch->waiting_mask.get() & dispatch->status_mask.get();
         for (int i=0; i<32 && mask; i++)
         {
           if (mask & (1<<i))
           {
             // Only wake-up the core if he's actually involved in the team
-            if (dispatch->config_mask & (1<<i))
+            if (dispatch->config_mask.get() & (1<<i))
             {
               top->trace.msg("Waking-up core waiting for dispatch value (coreId: %d)\n", i);
               vp::io_req *waiting_req = dispatch->waiting_reqs[i];
 
               // Clear the status bit as the waking core takes the data
-              dispatch->status_mask &= ~(1<<i);
-              dispatch->waiting_mask &= ~(1<<i);
+              dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<i)));
+              dispatch->waiting_mask.set(dispatch->waiting_mask.get() & (~(1<<i)));
 
               // Store the dispatch value into the pending request
               // Don't reply now to the initiator, this will be done by the wakeup event
               // to introduce some delays
-              *(uint32_t *)waiting_req->get_data() = dispatch->value;
+              if (!this->top->core_eu[i].interrupted_elw)
+              {
+              top->trace.msg("Storing to pending (coreId: %d)\n", i);
+                *(uint32_t *)waiting_req->get_data() = dispatch->value.get();
+              }
+              else
+              {
+              top->trace.msg("Storing to interrupted_elw (coreId: %d)\n", i);
+                this->top->core_eu[i].interrupt_elw_value = dispatch->value.get();
+              }
 
               // Update the core fifo
               core[i].tail++;
@@ -1485,8 +1553,8 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
             else
             {
               // Cancel current dispatch sleep
-              dispatch->status_mask &= ~(1<<i);
-              dispatch->waiting_mask &= ~(1<<i);
+              dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<i)));
+              dispatch->waiting_mask.set(dispatch->waiting_mask.get() & (~(1<<i)));
               vp::io_req *pending_req = dispatch->waiting_reqs[i];
 
               // Bypass the current entry
@@ -1511,8 +1579,8 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         top->trace.msg("Trying to get dispatch value (dispatch: %d)\n", id);
 
         // In case we found ready elements where this core is not involved, bypass them all
-        while ((dispatch->status_mask & (1<<core_id)) && !(dispatch->config_mask & (1<<core_id))) {
-          dispatch->status_mask &= ~(1<<core_id);
+        while ((dispatch->status_mask.get() & (1<<core_id)) && !(dispatch->config_mask.get() & (1<<core_id))) {
+          dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<core_id)));
           core[core_id].tail++;
           if (core[core_id].tail == size) core[core_id].tail = 0;
           id = core[core_id].tail;
@@ -1521,14 +1589,14 @@ Dispatch_unit::Dispatch_unit(Event_unit *top)
         }
 
         // Case where a slave tries to get a value
-        if (dispatch->status_mask & (1<<core_id))
+        if (dispatch->status_mask.get() & (1<<core_id))
         {
           // A value is ready. Get it and clear the status bit to not read it again the next time
           // In case the core is not involved in this dispatch, returns 0
-          if (dispatch->config_mask & (1<<core_id)) *data = dispatch->value;
+          if (dispatch->config_mask.get() & (1<<core_id)) *data = dispatch->value.get();
           else *data = 0;
-          dispatch->status_mask &= ~(1<<core_id);
-          top->trace.msg("Getting ready dispatch value (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value, dispatch->status_mask);
+          dispatch->status_mask.set(dispatch->status_mask.get() & (~(1<<core_id)));
+          top->trace.msg("Getting ready dispatch value (dispatch: %d, value: %x, dispatchStatus: 0x%x)\n", id, dispatch->value.get(), dispatch->status_mask.get());
           core[core_id].tail++;
           if (core[core_id].tail == size) core[core_id].tail = 0;
         }
@@ -1572,16 +1640,24 @@ Barrier_unit::Barrier_unit(Event_unit *top)
   nb_barriers = top->get_config_int("**/properties/barriers/nb_barriers");
   barrier_event = top->get_config_int("**/properties/events/barrier");
   barriers = new Barrier[nb_barriers];
+
+  for (int i=0; i<nb_barriers; i++)
+  {
+      Barrier *barrier = &this->barriers[i];
+      this->top->new_reg("barrier" + std::to_string(i) + "/status", &barrier->status, 32);
+      this->top->traces.new_trace_event("barrier" + std::to_string(i) + "/core_mask", &barrier->trace_core_mask, 32);
+      this->top->traces.new_trace_event("barrier" + std::to_string(i) + "/target_mask", &barrier->trace_target_mask, 32);
+  }
 }
 
 void Barrier_unit::check_barrier(int barrier_id)
 {
   Barrier *barrier = &barriers[barrier_id];
 
-  if (barrier->status == barrier->core_mask) 
+  if (barrier->status.get() == barrier->core_mask) 
   {
     trace.msg("Barrier reached, triggering event (barrier: %d, coreMask: 0x%x, targetMask: 0x%x)\n", barrier_id, barrier->core_mask, barrier->target_mask);
-    barrier->status = 0;
+    barrier->status.set(0);
 
     top->trigger_event(1<<barrier_event, barrier->target_mask);
   }
@@ -1601,6 +1677,7 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
     else {
       trace.msg("Setting barrier core mask (barrier: %d, mask: 0x%x)\n", barrier_id, *data);
       barrier->core_mask = *data;
+      barrier->trace_core_mask.event((uint8_t *)&barrier->core_mask);
       check_barrier(barrier_id);
     }
   }
@@ -1611,15 +1688,16 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
     else {
       trace.msg("Setting barrier target mask (barrier: %d, mask: 0x%x)\n", barrier_id, *data);
       barrier->target_mask = *data;
+      barrier->trace_target_mask.event((uint8_t *)&barrier->target_mask);
       check_barrier(barrier_id);
     }
   }
   else if (offset == EU_HW_BARR_STATUS)
   {
-    if (!is_write) *data = barrier->status;
+    if (!is_write) *data = barrier->status.get();
     else {
       trace.msg("Setting barrier status (barrier: %d, status: 0x%x)\n", barrier_id, *data);
-      barrier->status = *data;
+      barrier->status.set(*data);
       check_barrier(barrier_id);
     }
   }
@@ -1627,8 +1705,8 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
   {
     if (!is_write) return vp::IO_REQ_INVALID;
     else {
-      barrier->status |= *data;
-      trace.msg("Barrier mask trigger (barrier: %d, mask: 0x%x, newStatus: 0x%x)\n", barrier_id, *data, barrier->status);
+      barrier->status.set(barrier->status.get() | (*data));
+      trace.msg("Barrier mask trigger (barrier: %d, mask: 0x%x, newStatus: 0x%x)\n", barrier_id, *data, barrier->status.get());
     }
 
     check_barrier(barrier_id);
@@ -1637,9 +1715,9 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
   {
     // The access is valid only through the demux
     if (core == -1) return vp::IO_REQ_INVALID;
-    barrier->status |= 1 << core
-    ;
-    trace.msg("Barrier trigger (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status);
+    barrier->status.set(barrier->status.get() | (1 << core));
+
+    trace.msg("Barrier trigger (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status.get());
 
     check_barrier(barrier_id);
   }
@@ -1653,12 +1731,12 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
     {
       // The core was already waiting for the barrier which means it was interrupted
       // by an interrupt. Just resume the barrier by going to sleep
-      trace.msg("Resuming barrier trigger and wait (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status);
+      trace.msg("Resuming barrier trigger and wait (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status.get());
     }
     else
     {
-      barrier->status |= 1 << core;
-      trace.msg("Barrier trigger and wait (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status);
+      barrier->status.set(barrier->status.get() | (1 << core));
+      trace.msg("Barrier trigger and wait (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status.get());
     }
 
     check_barrier(barrier_id);
@@ -1675,14 +1753,14 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
     {
       // The core was already waiting for the barrier which means it was interrupted
       // by an interrupt. Just resume the barrier by going to sleep
-      trace.msg("Resuming barrier trigger and wait (barrier: %d, coreId: %d, mask: 0x%x, newStatus: 0x%x)\n", barrier_id, core, barrier->core_mask, barrier->status);
+      trace.msg("Resuming barrier trigger and wait (barrier: %d, coreId: %d, mask: 0x%x, newStatus: 0x%x)\n", barrier_id, core, barrier->core_mask, barrier->status.get());
     }
     else
     {
-      barrier->status |= 1 << core;
-      trace.msg("Barrier trigger, wait and clear (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status);
+      barrier->status.set(barrier->status.get() | (1 << core));
+      trace.msg("Barrier trigger, wait and clear (barrier: %d, coreId: %d, newStatus: 0x%x)\n", barrier_id, core, barrier->status.get());
     }
-    core_eu->clear_evt_mask = core_eu->evt_mask;
+    core_eu->clear_evt_mask = core_eu->evt_mask.get();
 
     check_barrier(barrier_id);
 
@@ -1692,7 +1770,7 @@ vp::io_req_status_e Barrier_unit::req(vp::io_req *req, uint64_t offset, bool is_
   {
     if (is_write) return vp::IO_REQ_INVALID;
     uint32_t status = 0;
-    for (unsigned int i=1; i<nb_barriers; i++) status |= barriers[i].status;
+    for (unsigned int i=1; i<nb_barriers; i++) status |= barriers[i].status.get();
     *data = status;
   }
   else return vp::IO_REQ_INVALID;
@@ -1706,8 +1784,10 @@ void Barrier_unit::reset()
   {
     Barrier *barrier = &barriers[i];
     barrier->core_mask = 0;
-    barrier->status = 0;
+    barrier->status.set(0);
     barrier->target_mask = 0;
+    barrier->trace_core_mask.event((uint8_t *)&barrier->core_mask);
+    barrier->trace_target_mask.event((uint8_t *)&barrier->target_mask);
   }
 }
 

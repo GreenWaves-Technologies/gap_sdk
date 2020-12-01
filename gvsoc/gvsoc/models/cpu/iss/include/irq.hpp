@@ -45,6 +45,9 @@ static inline void iss_irq_check(iss_t *iss)
         iss_msg(iss, "Interrupting pending elw\n");
         iss->cpu.current_insn = iss->cpu.state.elw_insn;
         iss->cpu.state.elw_insn = NULL;
+        // Keep the information that we interrupted it, so that features like HW loop
+        // knows that the instruction is being replayed
+        iss->cpu.state.elw_interrupted = 1;
       }
 
       iss->cpu.csr.epc = iss->cpu.current_insn->addr;
@@ -130,6 +133,7 @@ static inline void iss_irq_build(iss_t *iss)
 
 static inline void iss_irq_init(iss_t *iss)
 {
+  iss->cpu.state.elw_interrupted = 0;
   iss->cpu.irq.irq_enable = 0;
   iss->cpu.irq.req_irq = -1;
   iss->cpu.irq.req_debug = false;

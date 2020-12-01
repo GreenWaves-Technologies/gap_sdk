@@ -259,7 +259,7 @@ void iss_reset(iss_t *iss, int active)
   {
     for (int i=0; i<ISS_NB_TOTAL_REGS; i++)
     {
-      iss->cpu.regfile.regs[i] = 0;
+      iss->cpu.regfile.regs[i] = i == 0 ? 0 : 0x57575757;
     }
 
     iss_cache_flush(iss);
@@ -284,6 +284,8 @@ int iss_open(iss_t *iss)
 
   iss->cpu.regfile.regs[0] = 0;
   iss->cpu.current_insn = NULL;
+  iss->cpu.stall_insn = NULL;
+  iss->cpu.prev_insn = NULL;
   iss->cpu.state.fetch_cycles = 0;
 
   iss_irq_build(iss);

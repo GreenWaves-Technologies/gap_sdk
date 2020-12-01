@@ -54,6 +54,7 @@ public:
   void exec_first_instr(vp::clock_event *event);
   static void exec_instr_check_all(void *__this, vp::clock_event *event);
   static inline void exec_misaligned(void *__this, vp::clock_event *event);
+  static inline void irq_req_sync_handler(void *__this, vp::clock_event *event);
 
   static void irq_req_sync(void *__this, int irq);
   void debug_req();
@@ -152,8 +153,10 @@ private:
   vp::clock_event *instr_event;
   vp::clock_event *check_all_event;
   vp::clock_event *misaligned_event;
+  vp::clock_event *irq_sync_event;
 
   int irq_req;
+  int irq_req_value;
 
   bool iss_opened;
   int halt_cause;

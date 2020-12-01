@@ -1,7 +1,0 @@
-*/build/*
-docs/
-gui/Makefile
-*.qmake.stash
-*.debug_info
-gui/uic_wrapper.sh
-function_statistics.txt

@@ -288,7 +288,7 @@ class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def get_output_size(self, in_dims):
         in_dim = in_dims[0].clone()
         self.in_dims = [in_dim]
-        new_shape = in_dim.shape[:self.axis:] + self.indices.shape + in_dim.shape[self.axis + 1:]
+        new_shape = in_dim.shape[:self.axis:] + list(self.indices.shape) + in_dim.shape[self.axis + 1:]
         return [Dim.unnamed(new_shape)]
 
     @property

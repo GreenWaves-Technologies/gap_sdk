@@ -167,7 +167,7 @@ class Parameters(Node):
     def clone(self, name, groupn=None):
         pass
 
-    def clone_dim_with_hints(self, dims, hint_dir="in"):
+    def clone_dim_with_hints(self, dims, hint_dir="in", hint_idx=None):
         if hint_dir == "in":
             hints = self._in_dims_hint
         else:
@@ -180,8 +180,9 @@ class Parameters(Node):
                 cloned_dims.append(dim.clone(['c', 'h', 'w']))
             else:
                 cloned_dim = dim.clone()
-                if hints and hints[dim_idx]:
-                    cloned_dim.apply_naming_hints(hints[dim_idx])
+                hint = None if hints is None else hints[hint_idx] if hint_idx is not None else hints[dim_idx]
+                if hint:
+                    cloned_dim.apply_naming_hints(hint)
                 cloned_dims.append(cloned_dim)
         return cloned_dims
 

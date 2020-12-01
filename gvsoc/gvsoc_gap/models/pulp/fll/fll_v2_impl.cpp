@@ -141,6 +141,7 @@ Dco::Dco(Fll *top, int id, vp::reg_32 *fcr1, vp::reg_32 *fcr2)
     this->top = top;
     this->is_on = false;
     this->is_open_loop = true;
+    this->is_locked = false;
     this->fcr1 = (vp_fll_f0cr1 *)fcr1;
     this->fcr2 = (vp_fll_f0cr2 *)fcr2;
 }

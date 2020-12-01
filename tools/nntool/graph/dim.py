@@ -22,6 +22,7 @@ from functools import reduce
 from math import ceil, floor
 
 import numpy as np
+from numpy.core.fromnumeric import prod
 
 
 class DimError(Exception):
@@ -194,6 +195,20 @@ class Dim():
         self._verify_is_ordered()
         return tuple(sz for sz in self.shape if sz > 1)
 
+    def expand_to_chw(self):
+        self._verify_is_ordered()
+        if self.is_named and self.has_keys(['c', 'h', 'w']):
+            return self
+        if len(self.shape) == 0:
+            return Dim.named(c=1, h=1, w=1)
+        if len(self.shape) == 1:
+            return Dim.named(c=1, h=1, w=self.shape[0])
+        if len(self.shape) == 2:
+            return Dim.named(c=1, h=self.shape[0], w=self.shape[1])
+        if len(self.shape) == 3:
+            return Dim.named(c=self.shape[0], h=self.shape[1], w=self.shape[2])
+        return Dim.named(c=prod(self.shape[:-2:]), h=self.shape[-2], w=self.shape[-1])
+
     def transpose(self, order):
         '''transpose dimension in order which is a list of indexes or list of names'''
         self._verify_is_ordered()
@@ -303,7 +318,7 @@ class Dim():
         '''Get size of dim'''
         if self.is_unknown:
             return 0
-        return reduce(lambda x, y: x*y, self._shape)
+        return reduce(lambda x, y: x*y, self._shape, 1)
 
     def makeshape(self, order):
         self._verify_is_ordered()
@@ -546,6 +561,8 @@ class Dim():
             return 'x'.join(map(lambda k: str(getattr(self, k)), self._names))
         if self.is_unknown:
             return "unknown"
+        if not self._shape:
+            return "scalar"
         return 'x'.join([str(v) for v in self._shape])
 
 
