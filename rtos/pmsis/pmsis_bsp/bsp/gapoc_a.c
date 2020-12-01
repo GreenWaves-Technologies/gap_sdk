@@ -31,7 +31,7 @@
 #include "bsp/ble/nina_b112/nina_b112_old.h"
 
 
-static int __bsp_init_pads_done = 1;
+static int __bsp_init_pads_done = 0;
 
 
 static void __gpio_init()

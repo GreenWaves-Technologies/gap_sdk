@@ -28,6 +28,7 @@ from ..common.provisional_dim import ProvisionalDim
 from ..importer_base import ImporterBase
 from .common.handler_helper import get_all_backend_handlers
 from .common.onnx_node import OnnxNode
+from .common import logger
 
 # pylint: disable=E1101
 
@@ -54,7 +55,8 @@ class OnnxImporter(ImporterBase):
         all_nodes = {}
         constants = self._get_initializers(graph.initializer)
         all_nodes.update(constants)
-        inputs = self._get_input_nodes(G, graph.input, constants)
+        inputs = self._get_input_nodes(G, graph.input, constants,
+                                       batch_hint=opts.get('batch_hint', None))
         all_nodes.update(inputs)
         outputs = self._get_output_nodes(G, graph.output)
         self._import_nodes(G, graph, handlers, all_nodes, outputs, opts)
@@ -94,11 +96,18 @@ class OnnxImporter(ImporterBase):
             )
             for init in initializer}
 
-    def _get_input_nodes(self, G, inputs, constants):
+    def _get_input_nodes(self, G, inputs, constants, batch_hint=None):
         prov_dims = {
             idx: ProvisionalDim.from_onnx_shape(input.type.tensor_type.shape, check_for_batch=0)
             for idx, input in enumerate(inputs) if input.name not in constants
         }
+        if batch_hint is None and any(len(pshape.shape) >= 4 and pshape.shape[0] != 1 for pshape in prov_dims.values()):
+            logger.warning("unable to determine batch dimension. if the graph fails to import properly set it to 1 or a variable.")
+            batch_hint = 0
+
+        if batch_hint is not None:
+            prov_dims = {idx: dim.eliminate_dimension(batch_hint)
+                         for idx, dim in prov_dims.items()}
         return {
             input.name: (
                 G.add_input(Dim.unnamed(prov_dims[idx].known_shape)),
