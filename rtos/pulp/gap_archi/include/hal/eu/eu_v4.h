@@ -490,6 +490,15 @@ static inline uint32_t eu_sem_get(unsigned int sem_addr)
     return IP_READ(sem_addr, EU_HW_SEM_VALUE);
 }
  
+static inline void eu_sem_set(unsigned int sem_addr, uint32_t value)
+{
+    IP_WRITE(sem_addr, EU_HW_SEM_VALUE, value);
+}
+ 
+static inline uint32_t eu_sem_load_inc(unsigned int sem_addr)
+{
+    return IP_READ(sem_addr, EU_HW_SEM_LOAD_INC);
+}
 
 
 
@@ -510,7 +519,7 @@ static inline void eu_bitfield_value_set(unsigned int bitfield_addr, uint32_t va
 
 static inline uint32_t eu_bitfield_value_get(unsigned int bitfield_addr)
 {
-    return evt_read32(bitfield_addr, EU_HW_BITFIELD_VALUE);
+    return IP_READ(bitfield_addr, EU_HW_BITFIELD_VALUE);
 }
 
 static inline void eu_bitfield_set(unsigned int bitfield_addr, uint32_t value)
@@ -525,7 +534,7 @@ static inline void eu_bitfield_clear(unsigned int bitfield_addr, uint32_t value)
 
 static inline uint32_t eu_bitfield_alloc(unsigned int bitfield_addr)
 {
-    return evt_read32(bitfield_addr, EU_HW_BITFIELD_ALLOC);
+    return IP_READ(bitfield_addr, EU_HW_BITFIELD_ALLOC);
 }
 
 static inline void eu_bitfield_value_set_from_id(int id, uint32_t value)

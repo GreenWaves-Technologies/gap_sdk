@@ -13,16 +13,17 @@
         "size": 8
       },
       "mutex": {
-        "nb_mutexes": 1
+        "nb_mutexes": 8
       },
       "barriers": {
         "nb_barriers": 8
       },
       "semaphores": {
-        "nb_semaphores": 16
+        "nb_semaphores": 16,
+        "width": 12
       },
       "bitfields": {
-        "nb_bitfields": 8
+        "nb_bitfields": 24
       },
       "soc_event": {
         "nb_fifo_events": 8,

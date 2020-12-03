@@ -26,6 +26,7 @@
  */
 
 #if !defined(ASSEMBLY_LANGUAGE)
+
 /* Control and Status Registers reset values. */
 /* Machine mode with IRQ disabled, after MRET stay in MM. */
 #define portINITIAL_MSTATUS ( 0x1880 )
@@ -33,6 +34,7 @@
 extern uint8_t __irq_vector_base_m__;
 #define portINITIAL_MEPC    ( &__irq_vector_base_m__ )
 #define portINITIAL_MCAUSE  ( 0x00000000 )
+
 #endif  /* ASSEMBLY_LANGUAGE */
 
 /* Size of a word, in bytes. */
@@ -65,3 +67,9 @@ extern uint8_t __irq_vector_base_m__;
 #define LP_START_1  ( 0x7B4 )
 #define LP_END_1    ( 0x7B5 )
 #define LP_COUNT_1  ( 0x7B6 )
+
+/* Registers position on stack. */
+#define portGAP8_REG_RA_POS      ( 0 )
+#define portGAP8_REG_A0_POS      ( 1 )
+#define portGAP8_REG_MSTATUS_POS ( 28 )
+#define portGAP8_REG_MEPC_POS    ( 29 )

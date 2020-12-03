@@ -705,7 +705,11 @@ void Core_event_unit::clear_status(uint32_t mask)
 
 void Core_event_unit::check_pending_req()
 {
-  pending_req->get_resp_port()->resp(pending_req);
+    if (this->pending_req)
+    {
+        this->pending_req->get_resp_port()->resp(pending_req);
+        this->pending_req = NULL;
+    }
 }
 
 void Core_event_unit::cancel_pending_req()
@@ -916,6 +920,7 @@ void Core_event_unit::reset()
   clear_evt_mask = 0;
   sync_irq = -1;
   interrupted_elw = false;
+  this->pending_req = NULL;
   state.set(CORE_STATE_NONE);
   this->clock_itf.sync(1);
 }
