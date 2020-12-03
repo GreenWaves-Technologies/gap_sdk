@@ -46,7 +46,7 @@
 #define EU_DISPATCH_AREA_SIZE_LOG2          4
 #define EU_DISPATCH_AREA_SIZE               (1<<EU_DISPATCH_AREA_SIZE_LOG2)
 #define EU_SEM_AREA_SIZE                    0x100
-#define EU_BITFIELD_AREA_SIZE               0x100
+#define EU_BITFIELD_AREA_SIZE               0x200
 
 // Demux offsets
 #define EU_CORE_DEMUX_OFFSET                0x0000
@@ -63,8 +63,8 @@
 #define EU_BARRIER_DEMUX_SIZE               0x0200
 #define EU_SEM_DEMUX_OFFSET                 0x0400
 #define EU_SEM_DEMUX_SIZE                   0x0100
-#define EU_BITFIELD_DEMUX_OFFSET            0x0500
-#define EU_BITFIELD_DEMUX_SIZE              0x0100
+#define EU_BITFIELD_DEMUX_OFFSET            0x0600
+#define EU_BITFIELD_DEMUX_SIZE              0x0200
 
 // Only when secure extensions are active
 #define EU_SEC_DEMUX_OFFSET                  0x040
@@ -128,7 +128,7 @@
  // Single semaphore
 #define EU_HW_SEM_VALUE                     0x00
 #define EU_HW_SEM_COUNTER                   0x04
-#define EU_HW_SEM_BITFIELD                  0x08
+#define EU_HW_SEM_LOAD_INC                  0x08
 
  // Single bitfield unit
 #define EU_HW_BITFIELD_VALUE                0x00

@@ -77,12 +77,15 @@ class Semaphore {
 public:
   void reset();
 
-  uint8_t value;
+  uint32_t value;
   uint32_t waiting_mask;
   int elected_core;
+  int width;
   vp::io_req *waiting_reqs[32];
   vp::trace     trace_value;
   vp::trace     trace_waiting_cores;
+
+  void set_value(uint32_t value);
 };
 
 class Semaphore_unit {
@@ -100,6 +103,7 @@ private:
   vp::trace     trace;
   int nb_semaphores;
   int semaphore_event;
+  int width;
 };
 
 class Bitfield {
@@ -772,7 +776,11 @@ void Core_event_unit::clear_status(uint32_t mask)
 
 void Core_event_unit::check_pending_req()
 {
-  pending_req->get_resp_port()->resp(pending_req);
+    if (this->pending_req)
+    {
+        this->pending_req->get_resp_port()->resp(pending_req);
+        this->pending_req = NULL;
+    }
 }
 
 void Core_event_unit::cancel_pending_req()
@@ -983,6 +991,7 @@ void Core_event_unit::reset()
   clear_evt_mask = 0;
   sync_irq = -1;
   interrupted_elw = false;
+  this->pending_req = NULL;
   state.set(CORE_STATE_NONE);
   this->clock_itf.sync(1);
 }
@@ -1086,12 +1095,14 @@ Semaphore_unit::Semaphore_unit(Event_unit *top)
 {
     top->traces.new_trace("sem/trace", &trace, vp::DEBUG);
     nb_semaphores = top->get_config_int("**/properties/semaphores/nb_semaphores");
+    this->width = top->get_config_int("**/properties/semaphores/width");
     semaphore_event = top->get_config_int("**/properties/events/semaphore");
     semaphores = new Semaphore[nb_semaphores];
 
     for (int i=0; i<nb_semaphores; i++)
     {
         Semaphore *sem = &this->semaphores[i];
+        sem->width = width;
         this->top->traces.new_trace_event("sem" + std::to_string(i) + "/value", &sem->trace_value, 8);
         this->top->traces.new_trace_event("sem" + std::to_string(i) + "/waiting_cores", &sem->trace_waiting_cores, 32);
     }
@@ -1130,6 +1141,13 @@ void Semaphore::reset()
   this->trace_waiting_cores.event((uint8_t *)&waiting_mask);
 }
 
+
+void Semaphore::set_value(uint32_t value)
+{
+  this->value = value & ((1 << this->width) - 1);
+}
+
+
 vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core)
 {
   unsigned int id = EU_SEM_AREA_SEMID_GET(offset);
@@ -1150,7 +1168,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     else
     {
       this->trace.msg("Setting semaphore value (semaphore: %d, value: 0x%x)\n", id, *data);
-      semaphore->value = *data;
+      semaphore->set_value(*data);
     }
   }
   else if (offset == EU_HW_SEM_COUNTER)
@@ -1159,7 +1177,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     {
       if (semaphore->value > 0)
       {
-        semaphore->value--;
+        semaphore->set_value(semaphore->value - 1);
         semaphore->trace_value.event((uint8_t *)&semaphore->value);
         this->trace.msg("Decrementing semaphore (semaphore: %d, coreId: %d, new_value: %d)\n", id, core);
       }
@@ -1171,7 +1189,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
     }
     else
     {
-      semaphore->value += *(uint32_t *)req->get_data();
+      semaphore->set_value(semaphore->value +  *(uint32_t *)req->get_data());
       semaphore->trace_value.event((uint8_t *)&semaphore->value);
       this->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, inc: %d, value: %d)\n", id, core, *(uint32_t *)req->get_data(), semaphore->value);
 
@@ -1202,7 +1220,7 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
           // And trigger the event to the core
           top->trigger_event(1<<semaphore_event, 1<<semaphore->elected_core); 
 
-          semaphore->value--;
+          semaphore->set_value(semaphore->value - 1);
           semaphore->trace_value.event((uint8_t *)&semaphore->value);
         }
 
@@ -1212,6 +1230,16 @@ vp::io_req_status_e Semaphore_unit::req(vp::io_req *req, uint64_t offset, bool i
           semaphore->elected_core = 0;
         }
       }
+    }
+  }
+  else if (offset == EU_HW_SEM_LOAD_INC)
+  {
+    if (!is_write)
+    {
+      *data = semaphore->value;
+      semaphore->set_value(semaphore->value + 1);
+      this->trace.msg("Incrementing semaphore (semaphore: %d, core: %d, value: %d)\n", id, core, semaphore->value);
+      semaphore->trace_value.event((uint8_t *)&semaphore->value);
     }
   }
 
@@ -1249,8 +1277,8 @@ void Bitfield::reset()
 
 vp::io_req_status_e Bitfield_unit::req(vp::io_req *req, uint64_t offset, bool is_write, uint32_t *data, int core)
 {
-  unsigned int id = EU_SEM_AREA_SEMID_GET(offset);
-  offset = offset - (id << EU_SEM_SIZE_LOG2);
+  unsigned int id = EU_BITFIELD_AREA_BITFIELDID_GET(offset);
+  offset = offset - (id << EU_BITFIELD_SIZE_LOG2);
 
   if (id >= nb_bitfields) return vp::IO_REQ_INVALID;
 

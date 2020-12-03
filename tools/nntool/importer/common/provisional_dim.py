@@ -44,6 +44,10 @@ class ProvisionalDim():
             self.shape,
             [])
 
+    def eliminate_dimension(self, dim_idx):
+        self.shape[dim_idx] = None
+        return self
+
     def infer_mapping(self, shape, allow_bad_length=False):
         assert allow_bad_length or len(shape) == len(self.known_shape), "shape cannot be inferred"
         new_shape = []

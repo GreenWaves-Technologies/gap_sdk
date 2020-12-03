@@ -78,27 +78,21 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack,
 {
     /* Few bytes on the bottom of the stack. May be useful for debugging. */
     pxTopOfStack--;
-    *pxTopOfStack = 0xdeedfeed;
-
-    /* GAP8 extensions. */
+    *pxTopOfStack = ( uint32_t ) 0xFEED51AC;
+    pxTopOfStack -= ( uint32_t ) portGAP8_FULL_CONTEXT_SIZE;
+    for (uint32_t reg = 0; reg < ( uint32_t ) portGAP8_FULL_CONTEXT_SIZE; reg++)
     {
-        /* Hardware Loop registers. */
-        pxTopOfStack -= (uint32_t) portGAP8_ADDITIONAL_EXTENSIONS;
+        /* GAP8 extensions : Hardware Loop registers.
+         * Control and status registers saved if R/W.
+         * General purpose registers saved : ra + a0-a7 + t0-t6 +  s0-11.
+         * sp reg stored in Task Control Block.
+         */
+        pxTopOfStack[reg] = 0x0;
     }
-    /* Control and status registers saved if R/W. */
-    {
-	pxTopOfStack--;
-	*pxTopOfStack = ( StackType_t ) pxCode; /* MEPC */
-        pxTopOfStack--;
-	*pxTopOfStack = ( StackType_t ) portINITIAL_MSTATUS; /* MSTATUS */
-    }
-    /* General purpose registers saved. sp reg stored in Task Control Block. */
-    {
-	pxTopOfStack -= 27; /* a1-a7 + t0-t6 +  s0-11 */
-	*pxTopOfStack = ( StackType_t ) pvParameters; /* a0 */
-	pxTopOfStack -= 1;
-        *pxTopOfStack = ( StackType_t ) pxCode; /* ra */
-    }
+    pxTopOfStack[portGAP8_REG_RA_POS] = ( StackType_t ) pxCode;                   /* RA */
+    pxTopOfStack[portGAP8_REG_A0_POS] = ( StackType_t ) pvParameters;             /* A0 */
+    pxTopOfStack[portGAP8_REG_MSTATUS_POS] = ( StackType_t ) portINITIAL_MSTATUS; /* MSTATUS */
+    pxTopOfStack[portGAP8_REG_MEPC_POS] = ( StackType_t ) pxCode;                 /* MEPC */
 
 /*
  * Task's stack view.

@@ -23,7 +23,7 @@ from generation.code_block import CodeBlock
 from generation.generators.generator_decorators import generation_function, QREC_MULT8
 from graph.dim import PadDim
 from graph.types import (ActivationParameters, Conv2DParameters,
-                         ConvFusionParameters, PoolingParameters)
+                         ConvFusionParameters)
 from utils.node_id import NodeId
 
 from ..autotiler_kernel import AutotilerKernel
@@ -76,6 +76,7 @@ def conv_pool_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, c
     else:
         return False
     return True
+
 
 def gen_cnn_conv_pool_act_qs8(code_block, cname,
                               in_feat, out_feat, width, height, bias_size,
