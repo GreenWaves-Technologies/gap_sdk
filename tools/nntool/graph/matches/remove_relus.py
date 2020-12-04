@@ -101,17 +101,22 @@ class RemoveRelusMatch(Matcher):
             if isinstance(node, ConstantInputParameters):
                 if node.value is not None:
                     if G.has_quantized_parameters:
-                        qrec = G.quantization[NodeId(node)]
-                        qtype = qrec.out_qs[0]
-                        if hasattr(qtype, 'wrapped'):
-                            qtype = qtype.wrapped
-                        val = qtype.dequantize(node.value)
+                        qrec = G.quantization.get(NodeId(node), None)
+                        if qrec is not None:
+                            qtype = qrec.out_qs[0]
+                            if hasattr(qtype, 'wrapped'):
+                                qtype = qtype.wrapped
+                            val = qtype.dequantize(node.value)
+                        else:
+                            val = None
                     else:
                         val = node.value
-                    if val.min() >= 0:
+                    if val is not None and val.min() >= 0:
                         status = (True, val.max())
                     else:
                         status = (False, False)
+                else:
+                    status = (False, False)
             else:
                 status = (False, False)
 
