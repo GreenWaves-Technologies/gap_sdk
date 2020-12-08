@@ -105,7 +105,7 @@ def glob_input_files(input_files, graph_inputs=1):
         for globbed_file in glob(file):
             input_files_list.append(globbed_file)
     if len(input_files_list) % graph_inputs:
-        return ValueError("input files number is not divisible for graph inputs {}".format(graph_inputs))
+        raise ValueError("input files number is not divisible for graph inputs {}".format(graph_inputs))
     shard = int(len(input_files_list) / graph_inputs)
     return [[input_files_list[i+j] for i in range(0, len(input_files_list), shard)] \
                 for j in range(shard)]

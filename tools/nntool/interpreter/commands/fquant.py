@@ -43,6 +43,12 @@ class FquantCommand(NNToolShellBase):
     parser_fquant.add_argument('-s', '--scheme',
                                type=str, choices=QUANTIZATION_SCHEMES, default='SQ8',
                                help='quantize with scaling factors (TFlite quantization-like) [default] or POW2')
+    parser_fquant.add_argument('--uniform',
+                               type=float, default=0.0,
+                               help='Use uniform distribution for input with the specified max value')
+    parser_fquant.add_argument('--num_inference',
+                               type=int, default=1,
+                               help='How many inferences')
     table_options(parser_fquant, default_width=140)
 
     @with_argparser(parser_fquant)
@@ -54,9 +60,14 @@ weights and input data are avalaible."""
         self._check_graph()
         self.G.constant_store.fake = True
         stats_collector = ACTIVATION_STATS[args.scheme]()
-        input_tensors = [np.random.normal(0, 0.2, input.dims.shape)
-                         for input in self.G.input_nodes()]
-        stats_collector.collect_stats(self.G, input_tensors)
+        for _ in range(args.num_inference):
+            if args.uniform:
+                input_tensors = [np.random.uniform(-args.uniform, args.uniform, inp.dims.shape)
+                                for inp in self.G.input_nodes()]
+            else:
+                input_tensors = [np.random.normal(0, 0.2, inp.dims.shape)
+                                for inp in self.G.input_nodes()]
+            stats_collector.collect_stats(self.G, input_tensors)
         if args.scheme == 'SQ8':
             astats = stats_collector.stats
             quantizer = MultQuantizer(astats, 8)

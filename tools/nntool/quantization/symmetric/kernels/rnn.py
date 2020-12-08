@@ -213,8 +213,12 @@ class RnnSymmetricMixin():
         out_tensor = np.zeros([params.n_output_cells, params.n_states], dtype=qrec.out_qs[0].dtype)
         out_idx = 0
 
+        new_c_state = None
         for idx in range(params.n_cells):
-            res = cls.step_kernel(params, args, idx, in_tensor, qrec)
+            if isinstance(params, LSTMParameters):
+                res, new_c_state = cls.step_kernel(params, args, idx, in_tensor, qrec)
+            else:
+                res = cls.step_kernel(params, args, idx, in_tensor, qrec)
             if idx >= (params.n_cells - params.n_output_cells):
                 out_tensor[out_idx] = res
                 out_idx += 1
@@ -223,6 +227,8 @@ class RnnSymmetricMixin():
             out_tensor = np.flip(out_tensor, axis=0)
         if params.output_directions:
             out_tensor = np.expand_dims(out_tensor, 0)
+        if new_c_state is not None:
+            return [out_tensor, new_c_state]
         return [out_tensor]
 
 
@@ -507,4 +513,6 @@ class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
             raise NotImplementedError("LSTMP is not yet supported by kernel")
 
         args['i_state'][0] = output_gate_scratch.copy()
-        return output_gate_scratch
+        if params.lstm_output_c_state:
+            return output_gate_scratch, args['c_state'][0]
+        return output_gate_scratch, None

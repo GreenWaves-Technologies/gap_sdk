@@ -301,9 +301,9 @@ class NNGraph(Graph):
         self.add_node(node)
         return node
 
-    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None) -> InputParameters:
+    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None, name=None) -> InputParameters:
         self.num_inputs += 1
-        node_name = "input_"+str(self.num_inputs)
+        node_name = "input_"+str(self.num_inputs) if not name else name
         node = InputParameters(node_name, dims=dim)
         node.in_dims_hint = in_dim_hint
         node.out_dim_hint = out_dim_hint

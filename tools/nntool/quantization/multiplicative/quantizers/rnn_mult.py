@@ -99,7 +99,8 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
                 in_and_state_scale = np.maximum(in_qs[0].scale, o_q.scale)
                 in_qs[0].scale = in_and_state_scale
                 o_q.scale = in_and_state_scale
-                cls.rescale_constant(input_nodes['i_state'], in_and_state_scale, qrecs)
+                if not params.rnn_states_as_inputs:
+                    cls.rescale_constant(input_nodes['i_state'], in_and_state_scale, qrecs)
                 i_state_scale = in_and_state_scale
                 i_2_a_q = MultMulBiasScaleQType(scale=1.0)  # will be ignored
             else:

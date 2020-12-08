@@ -52,7 +52,8 @@ class Parameters(Node):
         self._step_idx = -1
         self._constant_store = constant_store
         self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
-                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
+                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str,
+                                  "NODE_CNAME": str}
         self._at_options = NodeOptions(self._valid_at_options)
         self._meta = {}
 
@@ -149,6 +150,14 @@ class Parameters(Node):
     def out_dims(self, value):
         LOG.debug("%s out dims set to %s", self.__class__.__name__, [str(val) for val in value])
         self._out_dims = value
+
+    @property
+    def node_cname(self):
+        return self.at_options.node_cname
+
+    @node_cname.setter
+    def node_cname(self, val):
+        self.at_options.node_cname = val
 
     @abstractmethod
     def get_parameter_size(self):

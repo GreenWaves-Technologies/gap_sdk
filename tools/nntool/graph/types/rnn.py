@@ -16,7 +16,7 @@
 import logging
 
 from graph.dim import Dim
-from graph.types.base import Parameters, SensitiveToOrder, SingleInputAndOutput
+from graph.types.base import NNEdge, Parameters, SensitiveToOrder, SingleInputAndOutput
 from graph.types.input_output import ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -42,10 +42,12 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
         self.at_options.valid_options['ENABLEIM2COL'] = int
         self.at_options.valid_options['RNN_USE_HARDACT'] = int
         self.at_options.valid_options['RNN_SAME_INOUT_SCALE'] = int
+        self.at_options.valid_options['RNN_STATES_AS_INPUTS'] = int
         self.revert = revert
         self.always_reset_state = True
         self.hard_act = False
         self.rnn_same_inout_scale = False
+        self.rnn_states_as_inputs = (False, None)
         self.output_directions = output_directions
 
     def get_parameter_size(self):
@@ -90,6 +92,22 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
             out_dims = [Dim.unnamed([self.n_output_cells, self.n_states])]
         return out_dims
 
+    def set_states_as_inputs(self, G):
+        input_nodes = {self.INPUT_NAMES[edge.to_idx]: edge.from_node
+                        for edge in G.in_edges(self.name)
+                        if isinstance(edge.from_node, ConstantInputParameters)}
+        state_node_names = [name for name in self.INPUT_NAMES if "state" in name]
+        for state_node_name in state_node_names:
+            state_node_idx = self.INPUT_NAMES.index(state_node_name)
+            state_node = input_nodes[state_node_name]
+            step_idx = state_node.step_idx
+            G.remove(state_node)
+            state_node = G.add_input(name=state_node_name+"_"+self.name,
+                                     dim=Dim(list(state_node.value.shape)))
+            state_node.step_idx = step_idx
+            G.add_edge(NNEdge(state_node, self, to_idx=state_node_idx))
+        G.add_dimensions()
+
     @property
     def can_equalize(self):
         return False
@@ -113,6 +131,18 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
     @rnn_same_inout_scale.setter
     def rnn_same_inout_scale(self, val):
         self.at_options.rnn_same_inout_scale = 1 if val else 0
+
+    @property
+    def rnn_states_as_inputs(self):
+        if hasattr(self.at_options, 'rnn_states_as_inputs'):
+            return self.at_options.rnn_states_as_inputs == 1
+        return False
+
+    @rnn_states_as_inputs.setter
+    def rnn_states_as_inputs(self, val_and_graph):
+        self.at_options.rnn_states_as_inputs = 1 if val_and_graph[0] else 0
+        if val_and_graph[0]:
+            self.set_states_as_inputs(val_and_graph[1])
 
     def compute_load(self):
         return self.in_dims[0].size() * 2

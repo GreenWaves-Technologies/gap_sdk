@@ -102,7 +102,7 @@ def set_parameters(G, parameters):
             LOG.warning("can't find parameters for node %s.", anode.name)
 
 
-def set_options(G, node_options, graph_node_options=None):
+def set_options(G, node_options, graph_node_options=None, skip_rnn_states_as_input=False):
     if not node_options:
         return
     node_ids = []
@@ -113,6 +113,8 @@ def set_options(G, node_options, graph_node_options=None):
             if graph_node_options:
                 raise err
             continue
+        if not skip_rnn_states_as_input and hasattr(node_option, "RNN_STATES_AS_INPUTS") and node_option.rnn_states_as_inputs:
+            node.rnn_states_as_inputs = (node_option.rnn_states_as_inputs, G)
         node.at_options.extend(node_option, overwrite=True)
         node_ids.append(nodeid)
     if graph_node_options:
@@ -156,7 +158,7 @@ def load_state(graph_file: str, return_extra=False):
         }
     else:
         opts = {
-            'load_tensors': False,
+            'load_tensors': True,
         }
     # Retrieve the identity of the saved state
     identity = GraphIdentity(None)
@@ -167,8 +169,11 @@ def load_state(graph_file: str, return_extra=False):
     if 'name' in info_state:
         G.name = info_state['name']
     G.add_dimensions()
+    # This node options need to be set before adjust !!
     freeze_options = {k: v for k, v in info_state['node_options'].items() if 'FIXED_ORDER' in list(v.set_options)}
     set_options(G, freeze_options)
+    rnn_states_options = {k: v for k, v in info_state['node_options'].items() if 'RNN_STATES_AS_INPUTS' in list(v.set_options)}
+    set_options(G, rnn_states_options)
     if identity.is_adjusted:
         # If weights were saved then don't reshaoe them since it was already done
         # before they were saved
@@ -190,7 +195,7 @@ def load_state(graph_file: str, return_extra=False):
     G.changes.replay(G)
     G.graph_identity = identity
     G.node_options = info_state['node_options']
-    set_options(G, info_state['node_options'], info_state['node_options'])
+    set_options(G, info_state['node_options'], info_state['node_options'], skip_rnn_states_as_input=True)
 
     if identity.extracted_step is not None:
         extract_node(G, G.graph_state.steps[identity.extracted_step]['node'])

@@ -97,6 +97,7 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
         handler.setFormatter(formatter)
         LOG.addHandler(handler)
         LOG.setLevel(self.settings['log_level'])
+        self.py_locals['graphs'] = self._graphs
 
     def run_script(self, script_path):
         expanded_path = os.path.abspath(os.path.expanduser(script_path))

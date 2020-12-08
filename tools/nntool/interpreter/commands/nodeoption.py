@@ -104,7 +104,13 @@ can be set refer to the autotiler documentation."""
                     continue
                 val = option_type(args.value)
             try:
-                setattr(node_options, args.parameter, val)
+                if args.parameter in ["RNN_STATES_AS_INPUTS", "LSTM_OUTPUT_C_STATE"] and val:
+                    if args.parameter == "RNN_STATES_AS_INPUTS":
+                        node.rnn_states_as_inputs = (val, self.G)
+                    if args.parameter == "LSTM_OUTPUT_C_STATE":
+                        node.lstm_output_c_state = (val, self.G)
+                else:
+                    setattr(node_options, args.parameter, val)
                 self.G.node_options[NodeId(node)] = node_options
             except:
                 self.perror("%s is not a valid parameter for node %s"%(args.parameter, node.name))

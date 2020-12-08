@@ -61,6 +61,7 @@ def set_lstm_bindings(gen, step_idx, in_eparams, out_eparams, cname,
         gen.locals.append(LocalArgInfo("int8", "S%s_CellInternal02"%step_idx))
         gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal02"%step_idx))
 
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(c_state_eparams, direction="GNA_INOUT"),
@@ -80,7 +81,7 @@ def set_lstm_bindings(gen, step_idx, in_eparams, out_eparams, cname,
                         GNodeArgEdge(in_eparams[names['o_b']]),
                         GNodeArgEdge(out_eparams[0], direction="GNA_OUT"),
                         GNodeArgNode(rnn_params, INFOS),
-                        GArgName(i_state_eparams.creating_node.reset_name)
+                        GArgName(reset_name)
                         ))
 
 
@@ -101,6 +102,7 @@ def set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname,
         gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal02"%step_idx))
 
     i_state_eparams = in_eparams[names['i_state']]
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),
@@ -111,5 +113,5 @@ def set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname,
                         GNodeArgEdge(in_eparams[names['i_b']]),
                         GNodeArgEdge(out_eparams[0], direction="GNA_OUT"),
                         GNodeArgNode(rnn_params, INFOS),
-                        GArgName(i_state_eparams.creating_node.reset_name)
+                        GArgName(reset_name)
                         ))

@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.lstm import LSTMParameters
 import logging
 
 from generation.generators import RegisteredGeneratorsMixin
@@ -277,7 +278,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         for node in self.G.output_nodes():
             qrec = self.G.quantization[NodeId(node)]
             for edge in self.G.in_edges(node.name):
-                if isinstance(edge.from_node, SSDDetectorParameters) and count_outputs:
+                if isinstance(edge.from_node, (SSDDetectorParameters, LSTMParameters)) and count_outputs:
                     continue
                 eparams, _ = self.real_up_connection(self.G, edge.params)
                 if eparams in outputs:
@@ -349,7 +350,7 @@ class CodeGenerator(RegisteredGeneratorsMixin):
     def get_node_cname(self, node):
         cname = self.name_cache.get(node, 'node')
         if not cname:
-            cname = self.naming_convension.get_node_name(node.name, node.step_idx, node)
+            cname = self.naming_convension.get_node_name(node.name, node.step_idx, node) if not node.node_cname else node.node_cname
             self.name_cache.set(node, 'node', cname)
         return cname
 

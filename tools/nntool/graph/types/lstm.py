@@ -13,6 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from utils.node_id import NodeId
+from graph.dim import Dim
+from graph.types.base import NNEdge
+from quantization.multiplicative.mult_quantization import MultQuantizationRecord
 import logging
 
 from .rnn import RNNBaseParameters
@@ -56,6 +60,39 @@ class LSTMParameters(RNNBaseParameters):
         super(LSTMParameters, self).__init__(name, *args, **kwargs)
         self.cell_clip = cell_clip
         self.proj_clip = proj_clip
+        self.at_options.valid_options['LSTM_OUTPUT_C_STATE'] = int
+        self.lstm_output_c_state = (False, None)
+
+    def set_c_state_as_output(self, G):
+        output_c_state = G.add_output()
+        lstm_qrec = G.quantization and G.quantization.get(NodeId(self))
+        if lstm_qrec:
+            c_state_idx = self.INPUT_NAMES.index('c_state')
+            in_q = lstm_qrec.in_qs[c_state_idx]
+            lstm_qrec.out_qs.append(in_q)
+            c_state_q = MultQuantizationRecord(in_qs=[in_q], out_qs=[in_q])
+            G.quantization[NodeId(output_c_state)] = c_state_q
+
+        G.add_edge(NNEdge(self, output_c_state, from_idx=1))
+        G.add_dimensions()
+
+    @property
+    def lstm_output_c_state(self):
+        if hasattr(self.at_options, 'lstm_output_c_state'):
+            return self.at_options.lstm_output_c_state == 1
+        return False
+
+    @lstm_output_c_state.setter
+    def lstm_output_c_state(self, val_and_graph):
+        self.at_options.lstm_output_c_state = 1 if val_and_graph[0] else 0
+        if val_and_graph[0]:
+            self.set_c_state_as_output(val_and_graph[1])
+
+    def get_output_size(self, in_dims):
+        output_dims = super(LSTMParameters, self).get_output_size(in_dims)
+        if self.lstm_output_c_state:
+            output_dims.append(Dim.unnamed([1, self.n_states]))
+        return output_dims
 
     def clone(self, name, groupn=None):
         raise NotImplementedError()

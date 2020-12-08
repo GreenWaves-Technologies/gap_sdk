@@ -17,7 +17,7 @@ import os
 import numpy as np
 
 from generation.at_types.constant_info import ConstantInfo
-from generation.at_types.tc_arg_info import GlobalArgInfo
+from generation.at_types.tc_arg_info import GlobalArgInfo, GlobalResetArgInfo
 from generation.generators.generator_decorators import (QREC_MULT8,
                                                         generation_function)
 from graph.types import (RNNParameters, LSTMParameters)
@@ -40,6 +40,8 @@ def mult8_rnn_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         lstm_infos(gen, node, qrec)
     else:
         raise ValueError()
+    if node.rnn_states_as_inputs:
+        gen.globals.append(GlobalResetArgInfo("Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
     return True
 
 def sigmoid_infos(gate_name, mult_qtype, qtype):

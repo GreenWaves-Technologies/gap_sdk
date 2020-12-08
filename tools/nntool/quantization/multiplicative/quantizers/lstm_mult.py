@@ -90,7 +90,8 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
             i_state_scale = in_scale = np.maximum(in_and_out_scale, in_qs[names['i_state']].scale)
             in_qs[0].scale = in_scale
             o_q.scale = in_scale
-            cls.rescale_constant(input_nodes['i_state'], i_state_scale, qrecs)
+            if not params.rnn_states_as_inputs:
+                cls.rescale_constant(input_nodes['i_state'], i_state_scale, qrecs)
         else:
             in_scale = in_qs[0].scale
             i_state_scale = np.maximum(o_q.scale, in_qs[names['i_state']].scale)
@@ -130,8 +131,12 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
         # set biases to output of perceptron
         for gate in ['i', 'o', 'c', 'f']:
             cls.rescale_constant(input_nodes["%s_b" % gate], pscales[gate], qrecs, dtype=np.int32)
+        if params.lstm_output_c_state:
+            out_qs = [o_q, in_qs[names['c_state']]]
+        else:
+            out_qs = [o_q]
         return MultScalableLstmQuantizationRecord(
             in_qs=in_qs,
-            out_qs=[o_q],
+            out_qs=out_qs,
             **scale_qtypes,
         )
