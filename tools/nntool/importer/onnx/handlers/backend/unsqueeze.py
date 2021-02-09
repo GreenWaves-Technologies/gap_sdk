@@ -38,10 +38,15 @@ class Unsqueeze(ConstantMixin, BackendHandler):
             assert len(axes) == 1 and axes[0] == 0
             new_shape = [1]
         else:
-            new_shape = [item for sublist in [[1, dim] if idx in axes else [dim]
-                                              for idx, dim in enumerate(x_shape)]
-                         for item in sublist]
-
+            new_shape = []
+            for idx, i in enumerate(x_shape):
+                if idx in axes:
+                    new_shape.append(1, i)
+                else:
+                    new_shape.append(i)
+            axes2 = [i for i in axes if i >= len(x_shape)]
+            for i in axes2:
+                new_shape.append(1)
         pshape = ProvisionalDim(new_shape)
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
