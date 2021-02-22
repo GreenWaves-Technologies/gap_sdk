@@ -144,14 +144,14 @@ int main(int argc, char **argv)
     {
 #if RT_HAS_HWCE
         // Load HWCE enabled CNN basic kernels
+        LoadCNNLibrary();
         CNN_LoadHWCEKernelLibrary();
-
         // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. HWCE based.
         // 1 input plane [28x28], 32 output planes [12x12]
-        CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1,0,0);
+        CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_0", 5,  1, 32, 28, 28, 1);
         // 5x5 Convolution followed by ReLu and then by 2x2 Max pooling. HWCE based.
         // 32 input planes [12x12], 64 output planes [4x4]
-        CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_1", 5, 32, 64, 12, 12, 1,0,0);
+        CNN_TiledConvNxNReLUPool2x2_HWCE_fp	("Conv5x5ReLUMaxPool2x2_HWCE_1", 5, 32, 64, 12, 12, 1);
 #else
         // Load SW CNN basic kernels
         LoadCNNLibrary();
