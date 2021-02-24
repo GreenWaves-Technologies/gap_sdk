@@ -157,9 +157,11 @@ static void RunMnist()
         
 #if RT_HAS_HWCE
         eu_evt_maskSet(1<<ARCHI_CL_EVT_ACC0);
-        
+
         Conv5x5ReLUMaxPool2x2_HWCE_0((short int*)ImageIn   , L2_W_0_HWCE, Out_Layer0, 12,L2_B_0,  0);
+        //DumpPaddedCoeff("OUTPUT Layer 1",Out_Layer0,12*12,32);
         Conv5x5ReLUMaxPool2x2_HWCE_1(            Out_Layer0, L2_W_1_HWCE, Out_Layer1, 12,L2_B_1, 0);
+        //DumpPaddedCoeff("OUTPUT Layer 1",Out_Layer1,4*4,32);
 #else
         Conv5x5ReLUMaxPool2x2_0((short int*)ImageIn   , L2_W_0, L2_B_0, Out_Layer0, 12, 0);
         //DumpPaddedCoeff("OUTPUT Layer 1",Out_Layer0,12*12,32);
@@ -293,19 +295,6 @@ int main()
 
     printf("Entering main controller\n");
 
-
-/*    for(int i=0;i<sizeof(L2_W_1)/sizeof(short int);i++){
-        printf("%d, ",L2_W_1[i]);
-        if((i+1)%25==0 && i!=0)
-            printf("0, \n");
-    }
-
-    printf("\n");
-    printf("\n");
-    printf("\n");
-    printf("\n");
-    return;
-*/
     if (rt_event_alloc(NULL, 8)) return -1;
 
     //Allocating input and output image buffers in L2 memory

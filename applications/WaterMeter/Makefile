@@ -32,7 +32,7 @@ export GAP_USE_OPENOCD=1
 io=host
 
 #To activeate Hardware CE SET -DRT_HAS_HWCE=1
-USE_HARDWARE_CE = -DRT_HAS_HWCE=1
+#USE_HARDWARE_CE = -DRT_HAS_HWCE=1 
 
 PULP_CFLAGS += -O3 $(USE_HARDWARE_CE)
 PULP_CFLAGS += -mno-memcpy -fno-tree-loop-distribute-patterns  -fdata-sections -ffunction-sections
