@@ -503,7 +503,7 @@ static void __attribute__ ((noinline)) KerMaxPoolNxNStrideS_Body_fp(
 					v2s *Line1 = (v2s *) &In[(h*Stride-PadT+2*i+1)*W + (w*Stride-PadL)];
 					for ( int j=0; j<(Fw/2); j++) {
 						v2s M0 = gap8_max2(Line0[j], Line1[j]);
-						Acc = Max(M0[0], M0[1]);
+						Acc = Max(Acc,Max(M0[0], M0[1]));
 					}
 				}
 				Out[Wo*h+w] = Acc;
@@ -1476,16 +1476,16 @@ void KerPoolNxNStrideS_fp(KerReLUPool_fp_T *Arg)
 	short int * __restrict__ Out = Arg->Out;
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int FS = Arg->M, S = Arg->S;
-        v4s PadIn = Arg->Pad;
+    v4s PadIn = Arg->Pad;
 	int PoolMax = ((Arg->DoReLU&0x2)==0);
 
-        int Wo = (W-FS+PadIn[0]+PadIn[1])/S + 1;
+    int Wo = (W-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(W, FS, PadIn[0], S));
-        int Ho = (H-FS+PadIn[2]+PadIn[3])/S + 1;
+    int Ho = (H-FS+PadIn[2]+PadIn[3])/S + 1;
 	int Ho_F = Min(Ho, FirstDefinedOutput(FS, PadIn[2], S)), Ho_L = Max(Ho_F, LastDefinedOutput(H, FS, PadIn[2], S));
-        int ReVal = (Arg->DoReLU&0x1)?0:0x80000000;
+	int ReVal = (Arg->DoReLU&0x1)?0:0x80000000;
 
-        unsigned int CoreId = gap8_coreid();
+    unsigned int CoreId = gap8_coreid();
 
 	if (Arg->Orientation) { // Horizontal
 		int Chunk = ChunkSize(Wo);
