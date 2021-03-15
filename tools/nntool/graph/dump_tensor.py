@@ -15,6 +15,8 @@
 
 from abc import ABC, abstractmethod
 import numpy as np
+from bfloat16 import bfloat16
+
 
 class Dumper(ABC):
 
@@ -29,7 +31,7 @@ class Dumper(ABC):
 class PrintDumper(Dumper):
 
     def __init__(self, tensor, width=12, precision=6):
-        if np.issubdtype(tensor.dtype, np.floating):
+        if np.issubdtype(tensor.dtype, np.floating) or tensor.dtype == bfloat16:
             self.fmt = " {:{width}.{precision}f} "
             self.fmt_args = {"width": width, "precision": precision}
         elif np.issubdtype(tensor.dtype, np.unsignedinteger) or\
@@ -41,6 +43,9 @@ class PrintDumper(Dumper):
         print()
 
     def element(self, elem):
+        if isinstance(elem, bfloat16):
+            elem = float(elem)
+
         print(self.fmt.format(elem, **self.fmt_args), end="")
 
 def dump_tensor(tensor, dumper):

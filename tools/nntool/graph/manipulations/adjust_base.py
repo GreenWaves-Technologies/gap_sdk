@@ -13,7 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import Error
+from copy import Error, deepcopy
+from utils.node_id import NodeId
+from graph.dim import Dim
+from graph.types.base import NNEdge
+from graph.types.others import ReshapeParameters
 import logging
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -41,25 +45,31 @@ class AdjusterBase():
             return None
         return trans
 
-    def apply_trans(self, node, trans, key, index=None):
-        if getattr(node, key) is None:
-            setattr(node, key, [None] * len(node.in_dims))
+    def apply_trans(self, node, trans, direction, index=None):
+        trans_key = 'transpose_' + direction
+        dims_key = direction + '_dims'
+        if getattr(node, trans_key) is None:
+            setattr(node, trans_key, [None] * len(getattr(node, dims_key)))
         if index is None:
-            setattr(node, key, [trans.copy() if cur is None else self.trans_trans(
-                cur, trans) for cur in getattr(node, key)])
+            setattr(node, trans_key, [trans.copy() if cur is None else self.trans_trans(
+                cur, trans) for cur in getattr(node, trans_key)])
         else:
-            getattr(node, key)[index] = trans.copy() if getattr(node, key)[index] is None else self.trans_trans(
-                getattr(node, key)[index], trans)
+            getattr(node, trans_key)[index] = trans.copy() if getattr(node, trans_key)[index] is None else self.trans_trans(
+                getattr(node, trans_key)[index], trans)
 
     def apply_input_trans(self, node, trans: list, index=None):
-        self.apply_trans(node, trans, 'transpose_in', index=index)
+        self.apply_trans(node, trans, 'in', index=index)
 
     def apply_output_trans(self, node, trans: list, index=None):
-        self.apply_trans(node, trans, 'transpose_out', index=index)
+        self.apply_trans(node, trans, 'out', index=index)
 
     @staticmethod
     def move_axis_to_zero_trans(axis: int, shape: list):
         return [axis] + [idx for idx in range(len(shape)) if idx != axis]
+
+    @staticmethod
+    def move_axis_to_last_trans(axis: int, shape: list):
+        return [idx for idx in range(len(shape)) if idx != axis] + [axis]
 
     @staticmethod
     def verify_chw(node, names: list):
@@ -103,6 +113,58 @@ class AdjusterBase():
             return cls
 
         return deco
+
+    @staticmethod
+    def get_output_qrec_class(G):
+        outs = next(iter(G.outputs()), None)
+        if not outs:
+            raise ValueError('no output nodes found in graph')
+        qrec = G.quantization.get(NodeId(outs), None)
+        if not qrec:
+            raise ValueError('no output quantization found')
+        return qrec.__class__
+
+    def check_quantization(self, G, node, reshape, dir='in'):
+        if G.quantization:
+            qclass = self.get_output_qrec_class(G)
+            node_qrec = G.quantization[NodeId(node)]
+            qtype = getattr(node_qrec, f'{dir}_qs')[0]
+            G.quantization[NodeId(reshape)] = qclass(
+                in_qs=[deepcopy(qtype)], out_qs=[deepcopy(qtype)])
+
+    def adjust_in_out_chw(self, G, node, names):
+        self.verify_chw(node, names)
+        trans = self.get_trans(names, ['c', 'h', 'w'])
+        in_dim = node.in_dims[0]
+        if in_dim.c != 1:
+            self.apply_input_trans(node, trans, index=0)
+        else:
+            reshape = ReshapeParameters(
+                f'{node.name}_r_chw',
+                old_shape=in_dim.clone(),
+                shape=Dim.named_ordered(c=in_dim.c, h=in_dim.h, w=in_dim.w)
+            )
+            G.insert_node_before(
+                reshape,
+                node,
+                edge_class=NNEdge
+            )
+            self.check_quantization(G, node, reshape)
+        out_dim = node.out_dims[0]
+        if out_dim.c != 1:
+            self.apply_output_trans(node, self.invert(trans), index=0)
+        else:
+            reshape = ReshapeParameters(
+                f'{node.name}_r_{"".join(names)}',
+                old_shape=Dim.named_ordered(c=out_dim.c, h=out_dim.h, w=out_dim.w),
+                shape=out_dim.clone()
+            )
+            G.insert_node_after(
+                node,
+                reshape,
+                edge_class=NNEdge
+            )
+            self.check_quantization(G, node, reshape, dir='out')
 
 
 handles = AdjusterBase.handles

@@ -35,7 +35,7 @@ class GlobalPoolMixin(object):
             axis=tuple(range(1, len(x_shape) - unknown_dims)),
             keep_dims=True
         )
-        pout_dims = ProvisionalDim([x_shape[0], x_shape[1]])
+        pout_dims = ProvisionalDim([x_shape[0], x_shape[1]] + ([1] * (len(x_shape) - 2)))
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pout_dims)
         return params

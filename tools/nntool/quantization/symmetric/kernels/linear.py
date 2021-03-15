@@ -36,24 +36,23 @@ class LinearSymmetric(KernelBase):
 
         in_dims = params.in_dims[0]
         out_dims = params.out_dims[0]
-        weights = qrec.prepare_weights(params, params.weights, ktype="symmetric")
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
+        in_tensor = prepared_in_tensors[0]
+        weights = prepared_in_tensors[1]
+        biases = prepared_in_tensors[2]
 
         if details is not None:
             details['min_acc'] = float("Infinity")
             details['max_acc'] = float("-Infinity")
 
         if params.has_bias:
-            biases = qrec.prepare_biases(params,
-                                        params.biases,
-                                        params.weights,
-                                        ktype="symmetric")
-            acc_tensor = np.ones(biases.shape, dtype=qrec.acc_q.dtype) * biases
-            if qrec.acc_q != qrec.biases_q:
-                acc_tensor = qrec.acc_q.expand_from(acc_tensor, qrec.biases_q)
+            # move biases to accumulator dtype and Q
+            acc_tensor = biases.copy().astype(qrec.acc_q.dtype)
+            if qrec.acc_q != qrec.in_qs[2]:
+                acc_tensor = qrec.acc_q.expand_from(acc_tensor, qrec.in_qs[2])
         else:
             acc_tensor = np.zeros(out_dims.shape,
-                                dtype=qrec.acc_q.dtype)
+                                  dtype=qrec.acc_q.dtype)
 
         # force the bit dimension of the input tensor to the bit width of the calc
         # so that the dot product occurs in this precision

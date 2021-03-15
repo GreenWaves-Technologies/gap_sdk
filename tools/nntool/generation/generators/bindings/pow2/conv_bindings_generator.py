@@ -16,8 +16,7 @@ from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
 from generation.generators.generator_decorators import (QREC_POW2,
                                                         generation_function)
-from generation.generators.globals.global_names import (BIASES, MULSCALE,
-                                                        WEIGHTS)
+from generation.generators.globals.global_names import (MULSCALE)
 from graph.types import Conv2DParameters, ConvFusionParameters
 from utils.node_id import NodeId
 
@@ -54,15 +53,15 @@ def set_conv_bindings(gen, step_idx, in_eparams, out_eparams, cname, params, con
         out_q = conv_q
     gen.bindings.append(
         CommentBindingList("Node {} inq {} weightsq {} outq {} biasesq {}", cname,
-                           conv_q.in_qs[0].q, conv_q.weights_q.q, out_q.out_qs[0].q, conv_q.biases_q.q)
+                           conv_q.in_qs[0].q, conv_q.in_qs[1].q, out_q.out_qs[0].q, conv_q.in_qs[2].q)
     )
     if params.has_mul_bias:
         gen.bindings.append(
-            NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, WEIGHTS),
-                            GNodeArgNode(params, BIASES), GNodeArgNode(params, MULSCALE),
+            NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
+                            GNodeArgEdge(in_eparams[2]), GNodeArgNode(params, MULSCALE),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT")))
     else:
         gen.bindings.append(
-            NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, WEIGHTS),
-                            GNodeArgNode(params, BIASES),
+            NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
+                            GNodeArgEdge(in_eparams[2]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT")))

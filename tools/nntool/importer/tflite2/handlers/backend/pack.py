@@ -75,7 +75,7 @@ class Pack(ConstantMixin, BackendHandler):
         if all(cls.is_constant(inp) for inp in inputs):
             LOG.info("reducing %s to a constant", node.name)
             value = np.stack([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(node.name, value=value)
+            params = ConstantInputParameters(node.name, value=value, constant_store=G.constant_store)
         else:
             axis -= sum(1 if dim is None else 0 for dim in pconcat_out_shape[:axis:])
             params = ConcatParameters(node.name, axis=axis, axis_hint=None)

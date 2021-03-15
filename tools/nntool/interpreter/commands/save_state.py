@@ -14,14 +14,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
-import configparser
+import json
+import logging
 import os
-from functools import partial
+
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
-from interpreter.shell_utils import filter_dirs
-from generation.autotiler_options import DEFAULT_GEN_OPTS
-from utils.new_param_state import dump_state
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
+from utils.json_serializable import JsonSerializableStateEncoder
+
+LOG = logging.getLogger("nntool")
+
+STATE_EXTENSION = ".json"
 
 class SaveStateCommand(NNToolShellBase):
     # SAVE_STATE COMMAND
@@ -32,6 +35,7 @@ class SaveStateCommand(NNToolShellBase):
                                    help='file to write to')
 
     @with_argparser(parser_save_state)
+    @no_history
     def do_save_state(self, args):
         """
 Save the state of the transforms and quantization of the graph.
@@ -43,5 +47,14 @@ basename. If a filename is given, its basename will be used to
 save the state files."""
         self._check_graph()
         self._check_quantized()
-        gen_opts = {k: self.settings[k] for k in DEFAULT_GEN_OPTS}
-        dump_state(self.G, state_path=args.output, extra=gen_opts)
+        if args.output is not None:
+            graph_base, _ = os.path.splitext(args.output)
+            if os.path.isdir(graph_base):
+                graph_base = os.path.join(graph_base,
+                                          os.path.basename(self.G.graph_identity.filename))
+        else:
+            graph_base, _ = os.path.splitext(self.G.graph_identity.filename)
+        state_filename = graph_base + STATE_EXTENSION
+        with open(state_filename, mode='w+') as fp:
+            json.dump(self.graph_history, fp, indent=2, cls=JsonSerializableStateEncoder)
+        LOG.info("saved state to %s", state_filename)

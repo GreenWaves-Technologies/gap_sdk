@@ -10,6 +10,8 @@ else
 	export GAP_SDK_HOME="$(dirname $(dirname "$(readlink -f "${BASH_SOURCE[0]}")"))"
 fi
 
+source $GAP_SDK_HOME/configs/openocd-gap8.sh
+
 export TARGET_CHIP_FAMILY="GAP8"
 export TARGET_CHIP="GAP8_V3"
 export TARGET_NAME="gap8_revc"

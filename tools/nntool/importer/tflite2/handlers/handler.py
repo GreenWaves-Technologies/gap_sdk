@@ -15,10 +15,13 @@
 
 import inspect
 
+from importer.common.handler_options import HandlerOptions, handler_option
+
 from .. import common
 
-
-class Handler(object):
+@handler_option('remove_quantize_ops', val_type=bool, default=True, desc="remove cast and quantization operations on non-constant tensors")
+@handler_option('load_quantization', val_type=bool, default=False, desc="load TFLITE tensor quantization", shortcut='q')
+class Handler(HandlerOptions):
     """ This class is base handler class.
     Base backend and frontend base handler class inherit this class.
 

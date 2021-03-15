@@ -25,13 +25,15 @@
 #include <vp/vp.hpp>
 #include <vp/itf/io.hpp>
 #include <vp/itf/wire.hpp>
+#include "vp/gdbserver/gdbserver_engine.hpp"
+
 
 #ifdef USE_TRDB
 #define HAVE_DECL_BASENAME 1
 #include "trace_debugger.h"
 #endif
 
-class iss_wrapper : public vp::component
+class iss_wrapper : public vp::component, vp::Gdbserver_core
 {
 
 public:
@@ -83,6 +85,16 @@ public:
 
   void insn_trace_callback();
 
+  int gdbserver_get_id();
+  std::string gdbserver_get_name();
+  int gdbserver_reg_set(int reg, uint8_t *value);
+  int gdbserver_reg_get(int reg, uint8_t *value);
+  int gdbserver_regs_get(int *nb_regs, int *reg_size, uint8_t *value);
+  int gdbserver_stop();
+  int gdbserver_cont();
+  int gdbserver_stepi();
+  int gdbserver_state();
+
   vp::io_master data;
   vp::io_master fetch;
   vp::io_slave  dbg_unit;
@@ -101,6 +113,7 @@ public:
   iss_cpu_t cpu;
 
   vp::trace     trace;
+  vp::trace     gdbserver_trace;
   vp::trace     decode_trace;
   vp::trace     insn_trace;
   vp::trace     csr_trace;
@@ -180,6 +193,8 @@ private:
   vp::wire_slave<bool>     flush_cache_itf;
   vp::wire_slave<bool>     halt_itf;
   vp::wire_master<bool>    halt_status_itf;
+
+  vp::Gdbserver_engine *gdbserver;
 
   bool clock_active;
 

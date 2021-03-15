@@ -128,7 +128,7 @@ void vp::trace::dump_header()
   int format = comp->traces.get_trace_manager()->get_format();
   if (format == TRACE_FORMAT_SHORT)
   {
-    fprintf(this->trace_file, "%ldns %ld ", time, cycles);
+    fprintf(this->trace_file, "%ldps %ld ", time, cycles);
   }
   else
   {

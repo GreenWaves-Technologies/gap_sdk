@@ -157,7 +157,7 @@ static inline void pi_task_timeout_set(pi_task_t *task, uint32_t timeout_us)
 
 static inline int32_t pi_task_transfer_end_result_get(pi_task_t *task)
 {
-    return task->arg[2];
+    return task->arg[3];
 }
 
 static inline void pi_task_timeout_callback_set(pi_task_t *task, pi_callback_func_t func,

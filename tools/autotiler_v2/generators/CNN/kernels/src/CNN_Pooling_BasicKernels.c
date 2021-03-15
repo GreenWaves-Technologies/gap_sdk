@@ -503,7 +503,7 @@ static void __attribute__ ((noinline)) KerMaxPoolNxNStrideS_Body_fp(
 					v2s *Line1 = (v2s *) &In[(h*Stride-PadT+2*i+1)*W + (w*Stride-PadL)];
 					for ( int j=0; j<(Fw/2); j++) {
 						v2s M0 = gap8_max2(Line0[j], Line1[j]);
-						Acc = Max(M0[0], M0[1]);
+						Acc = Max(Acc, Max(M0[0], M0[1]));
 					}
 				}
 				Out[Wo*h+w] = Acc;

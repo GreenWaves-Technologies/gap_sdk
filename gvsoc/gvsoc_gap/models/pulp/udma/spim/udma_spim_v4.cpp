@@ -73,7 +73,7 @@ void Spim_periph_v4::reset(bool active)
 }
 
   
-void Spim_periph_v4::slave_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask)
+void Spim_periph_v4::slave_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask)
 {
   Spim_periph_v4 *_this = (Spim_periph_v4 *)__this;
   (static_cast<Spim_v4_rx_channel *>(_this->channel0))->handle_rx_bits(data_0, data_1, data_2, data_3, mask);
@@ -266,8 +266,7 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
     else
     {
       if (!_this->is_full_duplex) {
-        _this->qspim_itf.sync_cycle(0, 0, 0, 0, 0
-      );
+        _this->qspim_itf.sync(1, 0, 0, 0, 0, 0);
       }
     }
 
@@ -335,8 +334,8 @@ void Spim_periph_v4::handle_spi_pending_word(void *__this, vp::clock_event *even
     }
     else
     {
-      _this->qspim_itf.sync_cycle(
-        (bits >> 0) & 1, (bits >> 1) & 1, (bits >> 2) & 1, (bits >> 3) & 1, (1<<nb_bits)-1
+      _this->qspim_itf.sync(
+        1, (bits >> 0) & 1, (bits >> 1) & 1, (bits >> 2) & 1, (bits >> 3) & 1, (1<<nb_bits)-1
       );
     }
 
@@ -696,20 +695,20 @@ vp::io_req_status_e Spim_periph_v4::custom_req(vp::io_req *req, uint64_t offset)
 {
   if (offset == UDMA_SPIM_RX_DEST_OFFSET)
   {
-    if (req->get_is_write())
-      this->top->channel_register(*(uint32_t *)req->get_data(), this->channel0);
+    //if (req->get_is_write())
+    //  this->top->channel_register(*(uint32_t *)req->get_data(), this->channel0);
     return vp::IO_REQ_OK;
   }
   else if (offset == UDMA_SPIM_TX_DEST_OFFSET)
   {
-    if (req->get_is_write())
-      this->top->channel_register(*(uint32_t *)req->get_data(), this->channel1);
+    //if (req->get_is_write())
+    //  this->top->channel_register(*(uint32_t *)req->get_data(), this->channel1);
     return vp::IO_REQ_OK;
   }
   else if (offset == UDMA_SPIM_CMD_DEST_OFFSET)
   {
-    if (req->get_is_write())
-      this->top->channel_register(*(uint32_t *)req->get_data(), this->channel2);
+    //if (req->get_is_write())
+    //  this->top->channel_register(*(uint32_t *)req->get_data(), this->channel2);
     return vp::IO_REQ_OK;
   }
 

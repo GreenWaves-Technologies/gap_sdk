@@ -159,9 +159,8 @@ public:
 
 private:
 
-  static void qspim_master_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
+  static void qspim_master_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id);
   static void qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id);
-  static void qspim_sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
   static void qspim_cs_sync(void *__this, int cs, int active, int id);
 
   static void jtag_pad_slave_sync(void *__this, int tck, int tdi, int tms, int trst, int id);
@@ -218,12 +217,6 @@ padframe::padframe(js::config *config)
 
 void padframe::qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
-
-  printf("%s %d\n", __FILE__, __LINE__);
-}
-
-void padframe::qspim_sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id)
-{
   padframe *_this = (padframe *)__this;
   Qspim_group *group = static_cast<Qspim_group *>(_this->groups[id]);
   unsigned int data = (data_0 << 0) | (data_1 << 1) | (data_2 << 2)| (data_3 << 3);
@@ -247,9 +240,10 @@ void padframe::qspim_sync_cycle(void *__this, int data_0, int data_1, int data_2
   }
   else
   {
-    group->master[group->active_cs]->sync_cycle(data_0, data_1, data_2, data_3, mask);
+    group->master[group->active_cs]->sync(sck, data_0, data_1, data_2, data_3, mask);
   }
 }
+
 
 void padframe::qspim_cs_sync(void *__this, int cs, int active, int id)
 {
@@ -275,7 +269,7 @@ void padframe::qspim_cs_sync(void *__this, int cs, int active, int id)
   }
 } 
 
-void padframe::qspim_master_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id)
+void padframe::qspim_master_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
   padframe *_this = (padframe *)__this;
   Qspim_group *group = static_cast<Qspim_group *>(_this->groups[id]);
@@ -289,7 +283,7 @@ void padframe::qspim_master_sync(void *__this, int data_0, int data_1, int data_
   if (mask & (1<<3))
     group->data_3_trace.event((uint8_t *)&data_3);
 
-  group->slave.sync(data_0, data_1, data_2, data_3, mask);
+  group->slave.sync(sck, data_0, data_1, data_2, data_3, mask);
 }
 
 
@@ -615,7 +609,6 @@ int padframe::build()
         new_slave_port(name, &group->slave);
         group->active_cs = -1;
         group->slave.set_sync_meth_muxed(&padframe::qspim_sync, nb_itf);
-        group->slave.set_sync_cycle_meth_muxed(&padframe::qspim_sync_cycle, nb_itf);
         group->slave.set_cs_sync_meth_muxed(&padframe::qspim_cs_sync, nb_itf);
         this->groups.push_back(group);
 

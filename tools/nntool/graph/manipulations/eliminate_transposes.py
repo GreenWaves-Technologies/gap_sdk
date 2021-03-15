@@ -34,7 +34,7 @@ from .eliminate_transposes_actions import (Action, DeleteTranspose,
                                            SetTranspose, StartActionDown,
                                            StartActionUp, TransposePad,
                                            TransposeReverse,
-                                           TransposeSlidedSlice)
+                                           TransposeSlidedSlice, do_transpose)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -380,22 +380,26 @@ def search_for_reverses(G):
                                node.transpose_in and
                                len(node.transpose_in) > 1)]:
         LOG.info("Equalizing multi input transposes on node %s", transpose_node.name)
-        transpose_candidates = set(tuple(trans)
+        max_len = max(len(dim) for dim in transpose_node.in_dims)
+        transpose_candidates = set(expand_transpose(trans, max_len)
                                    for trans in transpose_node.transpose_in if trans is not None)
         for transpose_candidate in transpose_candidates:
             LOG.info("Trying candidate %s", transpose_candidate)
             this_node_results = []
             success = True
+            all_match = True
             for edge in G.in_edges(transpose_node.name):
                 if edge in visited_edges:
                     success = False
                     break
                 trans_in = transpose_node.transpose_in[edge.to_idx]
+                exp_trans_in = expand_transpose(trans_in, max_len)
                 # check if this edge is the one we are trying to propagate
-                if trans_in and tuple(trans_in) == transpose_candidate:
+                if exp_trans_in and exp_trans_in == transpose_candidate:
                     continue
+                all_match = False
 
-                reverse_candidate = reverse_transpose(transpose_candidate)
+                reverse_candidate = reverse_transpose(transpose_node.derive_transpose(transpose_candidate, edge.to_idx))
                 LOG.info("%s rev %s trans_in %s", transpose_candidate, reverse_candidate, trans_in)
                 if trans_in is None:
                     set_trans = reverse_candidate
@@ -408,15 +412,36 @@ def search_for_reverses(G):
                 if not result:
                     success = False
                     break
+
                 visited_edges |= done_edges
                 this_node_results.extend(result)
             if success:
                 LOG.info(
                     "Found equalization to %s for %s", transpose_candidate, transpose_node.name)
+                if all_match:
+                    results += [SetTranspose(transpose_node, 'in', None, None)]
                 results += this_node_results
                 break
 
     return results
+
+
+def reduce_transpose(trans, act_len):
+    if trans is None:
+        return None
+    extra = len(trans) - act_len
+    if extra == 0:
+        return trans
+    return tuple([trans_idx - extra for idx, trans_idx in enumerate(trans) if idx >= extra])
+
+
+def expand_transpose(trans, max_len):
+    if trans is None:
+        return None
+    if len(trans) == max_len:
+        return trans
+    excess = max_len - len(trans)
+    return tuple(list(range(excess)) + [idx + excess for idx in trans])
 
 
 def reverse_transpose(trans):
@@ -425,9 +450,9 @@ def reverse_transpose(trans):
     return [trans.index(idx) for idx in range(len(trans))]
 
 
-def process_results(results: Sequence[Action]):
+def process_results(results: Sequence[Action], G):
     for action in results:
-        action.execute()
+        action.execute(G)
 
 
 def eliminate_transposes(G, debug_function=None):
@@ -439,7 +464,7 @@ def eliminate_transposes(G, debug_function=None):
         results = search_for_reverses(G)
         if results:
             LOG.info("eliminate transposes")
-            process_results(results)
+            process_results(results, G)
         else:
             LOG.info("no transposes to eliminate found")
         G.add_dimensions()

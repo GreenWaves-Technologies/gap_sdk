@@ -127,7 +127,7 @@ def get_table_node(current_node, name):
     
     return None
 
-def import_md(regmap, path):
+def import_md(regmap, path, registers=[]):
     with open(path, "rt") as fh:
         raw_text = fh.read()
         html_text = mt.markdown(raw_text)
@@ -183,6 +183,14 @@ def import_md(regmap, path):
                     register_table = i
                     break
         
+        for reg_name in registers:
+            reg = regmap.add_register(
+                rmap.Register(
+                    name=reg_name
+                )
+            )
+
+
         # parse registers
         for register_row in register_table.tbody('tr'):
             r = []
@@ -229,6 +237,7 @@ def import_md(regmap, path):
                 print ('Caught error while parsing register (name: %s)' % r[0])
                 raise
 
+
         # Now for each register parse the field table
         for register in regmap.get_registers():
             node = get_register_node(register_header_node, register.get_field_template())
@@ -247,7 +256,7 @@ def import_md(regmap, path):
                             r.append(field_el.decode_contents())
 
                         name_index = get_table_index(fields_table, names=['Field Name'])
-                        bit_index = get_table_index(fields_table, names=['Offset', 'Bit'])
+                        bit_index = get_table_index(fields_table, names=['Offset', 'Bit', 'Bit Position'])
                         width_index = get_table_index(fields_table, names=['Size', 'Width'])
                         access_index = get_table_index(fields_table, names=['Host Access Type', 'Access Type'])
                         reset_index = get_table_index(fields_table, names=['Default', 'Reset Value'])

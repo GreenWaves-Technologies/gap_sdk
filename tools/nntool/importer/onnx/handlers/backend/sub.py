@@ -24,7 +24,9 @@ from .math_mixin import ArithmeticMixin
 class Sub(ArithmeticMixin, BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
-        return super(Sub, cls)._common(node, params_class=MatrixSubParameters, **kwargs)
+        return super(Sub, cls)._common(node, params_class=MatrixSubParameters,
+                                       constant_operation=lambda x, y: x - y,
+                                       **kwargs)
 
     @classmethod
     def version_7(cls, node, **kwargs):

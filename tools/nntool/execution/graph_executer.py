@@ -21,8 +21,8 @@ import numpy as np
 from execution.execution_progress import ExecutionProgress
 from execution.quantization_mode import QuantizationMode
 from graph.types import (ActivationFusion, ConstantInputParameters,
-                         ConvFusionParameters, FusionInputParameters,
-                         FusionOutputParameters, InputParameters, Parameters)
+                         ConvFusionParameters, FusionInputParameters, PaddedAddFusionParameters,
+                         FusionOutputParameters, InputParameters, Parameters, MatMulOpFusionParameters)
 from quantization.quantization_record_base import QuantizationRecordBase
 from quantization.kernels.kernel_executer import KernelExecuter
 
@@ -45,7 +45,7 @@ class GraphExecuter():
     def collect_outputs(G, saved_outputs, node):
         # collect outputs from previous nodes
         # InputNode is already set above
-        if isinstance(node, (InputParameters, FusionInputParameters)):
+        if isinstance(node, (InputParameters, FusionInputParameters, ConstantInputParameters)):
             inputs = None
         else:
             inputs = [None]*len(node.in_dims)
@@ -93,15 +93,15 @@ class GraphExecuter():
             else:
                 qrec = self._qrecs[nid]
 
-            if isinstance(node, (ConvFusionParameters, ActivationFusion)):
-                for f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node in self.execute_qnoq_iterator(
-                        output,
-                        yield_fusions=yield_fusions,
-                        silent=silent,
-                        parent_node=node,
-                        parent_step_idx=step_idx,
-                        saved_outputs=saved_outputs,
-                        G=node.subgraph
+            if isinstance(node, (ConvFusionParameters, ActivationFusion, PaddedAddFusionParameters)):
+                for (f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node) in self.execute_qnoq_iterator(
+                    output,
+                    yield_fusions=yield_fusions,
+                    silent=silent,
+                    parent_node=node,
+                    parent_step_idx=step_idx,
+                    saved_outputs=saved_outputs,
+                    G=node.subgraph
                 ):
                     if yield_fusions and not isinstance(f_node, (FusionInputParameters, FusionOutputParameters)):
                         yield f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node
@@ -194,7 +194,14 @@ class GraphExecuter():
                 qrec = None
                 switch = self._kernel_switch
             else:
-                qrec = self._qrecs[nid] if self._qrecs is not None else None
+                if self._qrecs:
+                    if nid not in self._qrecs:
+                        LOG.warning("no quantization parameters on %s", node.name)
+                        qrec = None
+                    else:
+                        qrec = self._qrecs[nid]
+                else:
+                    qrec = None
                 if qmode.get_quantized(node, step_idx):
                     switch = self._quantized_kernel_switch
                     if qmode.is_step and output_tensors:
@@ -205,7 +212,7 @@ class GraphExecuter():
 
             details = {} if yield_details and (
                 not only_yield_step or step_idx == step_idx_limit) else None
-            if isinstance(node, (ConvFusionParameters, ActivationFusion)):
+            if isinstance(node, (ConvFusionParameters, ActivationFusion, PaddedAddFusionParameters, MatMulOpFusionParameters)):
 
                 for f_step_idx, f_pnode, f_node, f_output_tensors, f_details in self.execute_iterator(
                         output_tensors,
@@ -275,6 +282,12 @@ class GraphExecuter():
             fusion_outputs = []
             if all_details is not None:
                 fusion_details = []
+            else:
+                fusion_details = None
+        else:
+            fusion_details = None
+            fusion_outputs = None
+
         for _, _, _, _, qoutput, qdetails, fnode in self.execute_qnoq_iterator(in_tensors,
                                                                                step_idx_limit=step_idx_limit,
                                                                                silent=silent):
@@ -336,6 +349,11 @@ class GraphExecuter():
             fusion_outputs = []
             if all_details is not None:
                 fusion_details = []
+            else:
+                fusion_details = None
+        else:
+            fusion_details = None
+            fusion_outputs = None
 
         for output_tensors, details, fnode in iterator:
             if yield_fusions:

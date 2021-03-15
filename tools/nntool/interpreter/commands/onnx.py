@@ -13,16 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
+import texttable
+from importer.onnx.common.handler_helper import get_opset_status
 from interpreter.nntool_shell_base import NNToolShellBase
-from importer.onnx.common.handler_helper import get_backend_coverage, get_backend_partial_support_detail
 
 class HelpOnnxCommand(NNToolShellBase):
     def help_onnx(self):
-        ops_dict = get_backend_coverage()[0]['']
-        bc_dict = get_backend_partial_support_detail()
+        ops, counts_by_domain = get_opset_status()
+        table = texttable.Texttable()
+        table.set_cols_align(['l', 'l', 'l', 'l'])
+        table.set_max_width(120)
+        table.set_cols_width([15, 20, 15, 60])
+        table.add_rows(ops)
         self.pfeedback("Supported operators and versions")
-        for op in ops_dict:
-            self.pfeedback("%s (%s)"%(op, ",".join(str(ver) for ver in ops_dict[op])))
-            if op in bc_dict:
-                self.pfeedback(bc_dict[op])
-        
+        self.pfeedback(table.draw()+'\n')
+        self.pfeedback(f"{counts_by_domain[''][0]}/{counts_by_domain[''][1]} operators {math.ceil(100*counts_by_domain[''][0]/counts_by_domain[''][1])}% coverage")

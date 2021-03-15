@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 GreenWaves Technologies
+ * Copyright (C) 2021 GreenWaves Technologies
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms
@@ -23,14 +23,18 @@
 #include "gaplib/ImgIO.h"
 #include "bsp/display/ili9341.h"
 
-
-
 struct pi_device ili;
 struct pi_device device;
 static pi_buffer_t buffer;
 
+#ifdef VGA
+#define WIDTH    640
+#define HEIGHT   480
+#else
 #define WIDTH    320
 #define HEIGHT   240
+#endif
+
 #ifdef GRAYSCALE
 #define PIXEL_SIZE  1
 #else
@@ -38,7 +42,7 @@ static pi_buffer_t buffer;
 #endif
 
 #define BUFF_SIZE (WIDTH*HEIGHT*PIXEL_SIZE)
-#define ITER_SIZE  (0x2000)
+#define ITER_SIZE  (0x1000)
 
 PI_L2 unsigned char *buff[2];
 PI_L2 unsigned char *imgIO_buff;
@@ -74,7 +78,6 @@ static void enqueue_transfer()
             pi_task_t *task = &ctrl_tasks[current_task];
             // Enqueue a transfer. The callback will be called once the transfer is finished
             // so that  a new one is enqueued while another one is already running
-//            printf("%d\n", nb_transfers);
             pi_camera_capture_async(&camera, buff[current_task], iter_size, pi_task_callback(task, handle_transfer_end, (void *) current_task));
 
             current_size[current_task] = iter_size;
@@ -110,7 +113,12 @@ static int open_camera(struct pi_device *device)
     struct pi_gc0308_conf cam_conf;
     pi_gc0308_conf_init(&cam_conf);
 
+    #ifdef VGA
+    cam_conf.format = PI_CAMERA_VGA;
+    #else
     cam_conf.format = PI_CAMERA_QVGA;
+    #endif
+    
     #ifdef GRAYSCALE 
     cam_conf.color_mode = PI_CAMERA_GRAY8;
     #else
@@ -171,10 +179,19 @@ static int test_entry()
 {
 
     printf("Entering main controller\n");
-    // prepare a full buffer for image IO
-    imgIO_buff = pmsis_l2_malloc(BUFF_SIZE);
-    pi_freq_set(PI_FREQ_DOMAIN_FC,250000000);
 
+    //bsp_init();
+    // prepare a full buffer for image IO
+    #ifndef VGA
+
+    imgIO_buff = pmsis_l2_malloc(BUFF_SIZE);
+    if(imgIO_buff==NULL){
+        printf("Error Allocating img buffer...\n");
+        goto error;
+    }
+    #endif
+
+    pi_freq_set(PI_FREQ_DOMAIN_FC,150000000);
     
     if (open_camera(&camera))
     {
@@ -183,7 +200,6 @@ static int test_entry()
     }
     //pi_camera_set_crop(&camera,160,120,320,240);
 
-    
     #ifdef OUT_TO_DISPLAY
     if (open_display(&ili))
     {
@@ -207,11 +223,17 @@ static int test_entry()
 
     #endif
 
-    #ifdef STORE_IMG_TO_L3
+    #ifdef VGA
 
+    #ifndef QSPI
     /* Init & open ram. */
     struct pi_hyperram_conf conf;
     pi_hyperram_conf_init(&conf);
+    #else
+    struct pi_spiram_conf conf;
+    pi_spiram_conf_init(&conf);
+    #endif
+
     pi_open_from_conf(&ram, &conf);
     if (pi_ram_open(&ram))
     {
@@ -241,10 +263,10 @@ static int test_entry()
 
     char name[25];
     int idx = 0;
-
-    while (1)
-    {
-        #ifdef STORE_IMG_TO_L3 //This needs to be fixed
+    //while (1)
+    //{
+        printf("Aquiring image\n");
+        #ifdef VGA 
 
             enqueue_transfer();
             pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
@@ -266,13 +288,20 @@ static int test_entry()
 
         #ifndef OUT_TO_DISPLAY
             printf("Saving Image to file...\n");
-            //pi_ram_read(&ram, l3_buff, imgIO_buff, (uint32_t) BUFF_SIZE);
             sprintf(name, "../../../output_%d.ppm", idx);
 
-            #ifdef GRAYSCALE
-            WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, GRAY_SCALE_IO);
+            #ifdef VGA
+                #ifdef GRAYSCALE
+                WriteImageToFileL3(&ram, name, WIDTH, HEIGHT, PIXEL_SIZE, l3_buff, GRAY_SCALE_IO);
+                #else
+                WriteImageToFileL3(&ram, name, WIDTH, HEIGHT, PIXEL_SIZE, l3_buff, RGB565_IO);
+                #endif
             #else
-            WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, RGB565_IO);
+                #ifdef GRAYSCALE
+                WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, GRAY_SCALE_IO);
+                #else
+                WriteImageToFile(name, WIDTH, HEIGHT, PIXEL_SIZE, imgIO_buff, RGB565_IO);
+                #endif
             #endif
         #else
             pi_display_write(&ili, &buffer, 0,0, 320, 240);   
@@ -286,7 +315,7 @@ static int test_entry()
         nb_transfers = 0;
         current_buff = 0;
         current_task = 0;
-    }
+    //}
 
     pi_camera_close(&camera);
 

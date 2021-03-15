@@ -60,9 +60,9 @@ class PoolingFloat32(KernelBase):
         out_dims = params.out_dims[0]
         filter_sz = params.filter.h * params.filter.w
 
-        pool_factor = 1.0/filter_sz
+        pool_factor = np.array(1.0/filter_sz, dtype=qrec.dtype(ktype="float32"))
 
-        out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
+        out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float32"))
 
         if params.padding.h + params.padding.w > 0:
             in_tensor = np.pad(in_tensor,
@@ -74,24 +74,25 @@ class PoolingFloat32(KernelBase):
         else:
             pad_w = pad_h = 0
 
-        for in_c in range(out_dims.c):
+        out_h = 0
+        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                            params.stride.h):
+            out_w = 0
+            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                params.stride.w):
+                # accumulate - potentially with different Q
+                out_slice_args = out_dims.srange(h=out_h, w=out_w)
+                in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
+                                                h=[h_idx, h_idx + params.filter.h, 1],
+                                                w=[w_idx, w_idx + params.filter.w, 1])
 
-            out_h = 0
-            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                               params.stride.h):
-                out_w = 0
-                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                   params.stride.w):
-                    # accumulate - potentially with different Q
-                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                                   h=[h_idx, h_idx + params.filter.h, 1],
-                                                   w=[w_idx, w_idx + params.filter.w, 1])
-
-                    sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.float32)
-                    sum_filter = np.multiply(sum_filter, pool_factor, dtype=np.float32)
-                    out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
-                    out_w += 1
-                out_h += 1
+                res_shape = out_tensor[out_slice_args].shape
+                sum_filter = np.sum(in_tensor[in_slice_args], dtype=qrec.dtype(ktype="float32"),
+                                    axis=(out_dims.keys.index('h'), out_dims.keys.index('w'))).reshape(res_shape)
+                sum_filter = np.multiply(sum_filter, pool_factor)
+                out_tensor[out_slice_args] = sum_filter
+                out_w += 1
+            out_h += 1
 
         return qrec.get_outputs(params, [out_tensor], ktype="float32")
 
@@ -108,7 +109,7 @@ class PoolingFloat32(KernelBase):
         in_dims = params.in_dims[0]
         out_dims = params.out_dims[0]
 
-        out_tensor = np.zeros(out_dims.shape, dtype=np.float32)
+        out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float32"))
 
         if params.padding.h + params.padding.w > 0:
             in_tensor = np.pad(in_tensor,
@@ -120,24 +121,117 @@ class PoolingFloat32(KernelBase):
         else:
             pad_w = pad_h = 0
 
-        for in_c in range(out_dims.c):
-            out_h = 0
-            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                               params.stride.h):
-                out_w = 0
-                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                   params.stride.w):
-                    # accumulate - potentially with different Q
-                    out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
-                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                                   h=[h_idx, h_idx + params.filter.h, 1],
-                                                   w=[w_idx, w_idx + params.filter.w, 1])
+        out_h = 0
+        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                            params.stride.h):
+            out_w = 0
+            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                params.stride.w):
+                # accumulate - potentially with different Q
+                out_slice_args = out_dims.srange(h=out_h, w=out_w)
+                in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
+                                               h=[h_idx, h_idx + params.filter.h, 1],
+                                               w=[w_idx, w_idx + params.filter.w, 1])
 
-                    out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
-                    out_w += 1
-                out_h += 1
+                res_shape = out_tensor[out_slice_args].shape
+                out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray),
+                                                    axis=(out_dims.keys.index('h'), out_dims.keys.index('w'))).reshape(res_shape)
+                out_w += 1
+            out_h += 1
 
         return qrec.get_outputs(params, [out_tensor], ktype="float32")
+
+    # @classmethod
+    # def average_execute(cls, params,
+    #                     in_tensors,
+    #                     qrec: QuantizationRecordBase,
+    #                     **kwargs):
+    #     if qrec is None:
+    #         qrec = Float32QuantizationRecord()
+
+    #     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    #     in_dims = params.in_dims[0]
+    #     out_dims = params.out_dims[0]
+    #     filter_sz = params.filter.h * params.filter.w
+
+    #     pool_factor = np.array(1.0/filter_sz, dtype=qrec.dtype(ktype="float32"))
+
+    #     out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float32"))
+
+    #     if params.padding.h + params.padding.w > 0:
+    #         in_tensor = np.pad(in_tensor,
+    #                            params.padding.numpy_pad_shape(in_dims),
+    #                            mode='constant',
+    #                            constant_values=0.0)
+    #         pad_w = params.padding.w
+    #         pad_h = params.padding.h
+    #     else:
+    #         pad_w = pad_h = 0
+
+    #     for in_c in range(out_dims.c):
+
+    #         out_h = 0
+    #         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+    #                            params.stride.h):
+    #             out_w = 0
+    #             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+    #                                params.stride.w):
+    #                 # accumulate - potentially with different Q
+    #                 in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+    #                                                h=[h_idx, h_idx + params.filter.h, 1],
+    #                                                w=[w_idx, w_idx + params.filter.w, 1])
+
+    #                 sum_filter = np.sum(in_tensor[in_slice_args], dtype=qrec.dtype(ktype="float32"))
+    #                 sum_filter = np.multiply(sum_filter, pool_factor)
+    #                 out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
+    #                 out_w += 1
+    #             out_h += 1
+
+    #     return qrec.get_outputs(params, [out_tensor], ktype="float32")
+
+    # @classmethod
+    # def max_execute(cls, params,
+    #                 in_tensors,
+    #                 qrec: QuantizationRecordBase,
+    #                 **kwargs):
+
+    #     if qrec is None:
+    #         qrec = Float32QuantizationRecord()
+
+    #     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+    #     in_dims = params.in_dims[0]
+    #     out_dims = params.out_dims[0]
+
+    #     out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float32"))
+
+    #     if params.padding.h + params.padding.w > 0:
+    #         in_tensor = np.pad(in_tensor,
+    #                            params.padding.numpy_pad_shape(in_dims),
+    #                            mode='constant',
+    #                            constant_values=0.0)
+    #         pad_w = params.padding.w
+    #         pad_h = params.padding.h
+    #     else:
+    #         pad_w = pad_h = 0
+
+    #     for in_c in range(out_dims.c):
+    #         out_h = 0
+    #         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+    #                            params.stride.h):
+    #             out_w = 0
+    #             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+    #                                params.stride.w):
+    #                 # accumulate - potentially with different Q
+    #                 out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
+    #                 in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+    #                                                h=[h_idx, h_idx + params.filter.h, 1],
+    #                                                w=[w_idx, w_idx + params.filter.w, 1])
+
+    #                 out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
+    #                 out_w += 1
+    #             out_h += 1
+
+    #     return qrec.get_outputs(params, [out_tensor], ktype="float32")
 
 
 @params_type(GlobalPoolParameters)
@@ -172,7 +266,7 @@ class GlobalPoolingFloat32(KernelBase):
             qrec = Float32QuantizationRecord()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
 
-        sum_by_chan = np.sum(in_tensor, dtype=np.float32, axis=tuple(
+        sum_by_chan = np.sum(in_tensor, dtype=qrec.dtype(ktype="float32"), axis=tuple(
             params.axis), keepdims=params.keep_dims)
         sz = reduce(lambda x, y: x * y, [i for idx,
                                          i in enumerate(in_tensor.shape) if idx in params.axis])

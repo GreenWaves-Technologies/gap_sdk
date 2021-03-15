@@ -148,10 +148,10 @@ class ConvPoolReluKernel(AutotilerKernel):
             # Set ENABLEIM2COL on 1x1 filters by default
             if conv_params.filter.h == 1 and conv_params.filter.w == 1 and gen_ctrl.enableim2col is None:
                 gen_ctrl.enableim2col = 1
-            filter_q = conv_q.weights_q
+            filter_q = conv_q.in_qs[1]
             in_q = conv_q.in_qs[0]
             out_q = conv_q.out_qs[0]
-            bias_q = conv_q.biases_q
+            bias_q = conv_q.in_qs[2]
             if conv_params.has_mul_bias:
                 mul_biases_q = conv_q.mul_biases_q
         else:

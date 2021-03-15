@@ -83,7 +83,29 @@ static inline int pmsis_kickoff(void *arg);
 static inline void pmsis_exit(int err);
 
 
+#if defined(__GAP9__)
+/**
+ * \brief Reboot whole system.
+ *
+ * This function allows user to do a SW reset of the system. When called,
+ * the SOC is shut down, therefore no data can be saved on L2 memory(which will
+ * be shutdown too). At reboot, everything on SOC will be reinitialized like
+ * a cold boot.
+ *
+ * \note Prior to this function call, data must be saved on external
+ *       flash devices, if available.
+ */
+static inline void pi_os_reboot(void);
+#endif  /* __GAP9__ */
+
+
+/**
+ * \cond IMPLEM
+ */
 #if defined(PMSIS_DRIVERS)
+/**
+ * \endcond
+ */
 
 /**
  * \deprecated
@@ -116,8 +138,8 @@ static inline void *pmsis_task_create(void (*entry)(void*), void *arg,
  * \retval task_handler  Pointer to created task.
  * \retval NULL          If task has not been created.
  */
-static inline void *pi_task_create(pi_task_entry_t func, void *arg, char *name, uint32_t stack_size,
-                     int priority);
+static inline void *pi_task_create(pi_task_entry_t func, void *arg, char *name,
+                                   uint32_t stack_size, int priority);
 
 /**
  * \brief Create a usermode task.
@@ -133,8 +155,9 @@ static inline void *pi_task_create(pi_task_entry_t func, void *arg, char *name, 
  * \retval task_handler  Pointer to created task.
  * \retval NULL          If task has not been created.
  */
-static inline void *pi_user_task_create(pi_task_entry_t func, void *arg, char *name, uint32_t stack_size,
-                     int priority);
+static inline void *pi_user_task_create(pi_task_entry_t func, void *arg,
+                                        char *name, uint32_t stack_size,
+                                        int priority);
 
 /**
  * \brief Resume a task.
@@ -176,6 +199,14 @@ void pi_task_suspend(void *task_handler);
 void pi_task_terminate(void *task_handler);
 
 /**
+ * \cond IMPLEM
+ */
+#endif  /* PMSIS_DRIVERS */
+/**
+ * \endcond
+ */
+
+/**
  * \brief Call OS to switch context.
  *
  * This function can be called when a task should let another task run on CPU.
@@ -184,8 +215,116 @@ void pi_task_terminate(void *task_handler);
 static inline void pi_yield();
 
 /**
- * @} addtogroup Task
+ * @}
  */
+
+
+/**
+ * @ingroup groupRTOS
+ *
+ * @defgroup IRQ IRQ management
+ *
+ * \brief IRQ management.
+ *
+ * This part details interruption management.
+ *
+ * @addtogroup IRQ
+ * @{
+ */
+
+/**
+ * \brief Disable IRQ.
+ *
+ * Calling this function disables IRQ, ie CPU will not receive IRQ.
+ *
+ * \return IRQ           Current IRQ mode.
+ */
+static inline int pi_irq_disable(void);
+
+/**
+ * \brief Enable IRQ.
+ *
+ * This function will enable IRQ, ie CPU will be able to receive IRQ.
+ */
+static inline void pi_irq_enable(void);
+
+/**
+ * \brief Restore IRQ.
+ *
+ * This function will or will not enable IRQ depending on given parameter.
+ *
+ * \param irq_enable     IRQ mode.
+ *
+ * \note This function should be used in pair with pi_irq_disable().
+ */
+static inline void pi_irq_restore(int irq_enable);
+
+/**
+ * \brief Unmask an IRQ.
+ *
+ * This function will unmask un IRQ, allowing to receive it.
+ *
+ * \param irq            IRQ number.
+ */
+static inline void pi_irq_mask_enable(int irq);
+
+/**
+ * \brief Mask an IRQ.
+ *
+ * This function will mask un IRQ, effectively ignoring it.
+ *
+ * \param irq            IRQ number.
+ */
+static inline void pi_irq_mask_disable(int irq);
+
+/**
+ * \brief set handler for a given exception
+ *
+ * \param cause          Cause number, as seen in mcause.
+ * \param handler        Handler to execute.
+ */
+static inline void pi_irq_exception_handler_set(int cause, void (*handler)());
+
+/**
+ * \brief set handler for a given IRQ, no wrapper
+ *
+ * \param irq            IRQ number, as seen in ITC.
+ * \param handler        Handler to execute.
+ */
+static inline void pi_irq_handler_fast_set(int irq, void (*handler)());
+
+/**
+ * \brief set handler for a given IRQ, with wrapper
+ *
+ * \param irq            IRQ number, as seen in ITC.
+ * \param handler        Handler to execute.
+ */
+static inline void pi_irq_handler_set(int irq, void (*handler)());
+
+/**
+ * \brief Set handler for a given IRQ, with wrapper.
+ *
+ * \param irq            IRQ number.
+ * \param handler        Handler to execute.
+ *
+ * \note This function is to be called to set a handler for cluster core to
+ *       handle an IRQ. This handler will be executed by cluster master core.
+ * \note Context of executing core will be saved before a call to this handler.
+ */
+void pi_cl_irq_handler_set(uint32_t irq, void (*handler)());
+
+/**
+ * \brief Set handler for a given IRQ, without wrapper.
+ *
+ * \param irq            IRQ number.
+ * \param handler        Handler to execute.
+ *
+ * \note This function is to be called to set a handler for cluster core to
+ *       handle an IRQ. This handler will be executed by cluster master core.
+ * \note Context of executing core should be saved by the handler, otherwise
+ *       context is lost.
+ */
+void pi_cl_irq_handler_fast_set(uint32_t irq, void (*handler)());
 
 /**
  * \brief Disable IRQ.
@@ -206,6 +345,18 @@ static inline int disable_irq(void);
  * \note This function should be used in pair with disable_irq().
  */
 static inline void restore_irq(int irq_enable);
+
+/**
+ * @}
+ */
+
+/**
+ * \cond IMPLEM
+ */
+#if defined(PMSIS_DRIVERS)
+/**
+ * \endcond
+ */
 
 /**
  * @ingroup groupRTOS
@@ -266,7 +417,7 @@ static inline void pi_sem_take(pi_sem_t *semaphore);
 static inline void pi_sem_give(pi_sem_t *semaphore);
 
 /**
- * @} addtogroup Semaphore
+ * @}
  */
 
 /**
@@ -327,10 +478,16 @@ static inline void pmsis_mutex_take(pmsis_mutex_t *mutex);
  */
 static inline void pmsis_mutex_release(pmsis_mutex_t *mutex);
 
-#endif
+/**
+ * @}
+ */
 
 /**
- * @} addtogroup Mutex
+ * \cond IMPLEM
+ */
+#endif  /* PMSIS_DRIVERS */
+/**
+ * \endcond
  */
 
 #endif  /* __PMSIS_RTOS_OS_H__ */

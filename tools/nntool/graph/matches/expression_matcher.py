@@ -12,42 +12,13 @@
 
 import logging
 
-from graph.types import (ActivationParameters, BinaryOpParameters,
-                         ConstantInputParameters, ExpressionFusionParameters,
-                         MatrixAddParameters, MatrixDivParameters,
-                         MatrixMulParameters, MatrixSubParameters, NNEdge,
-                         UnaryOpParameters)
+from graph.types import ConstantInputParameters, ExpressionFusionParameters
+from graph.types.base import CanFuseToExpression
 from utils.graph import GraphView
 
 from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
-
-
-FUSE_NODES = (ActivationParameters, MatrixDivParameters, MatrixSubParameters,
-              MatrixAddParameters, MatrixMulParameters, NNEdge,
-              UnaryOpParameters, BinaryOpParameters)
-
-
-def group_node(G, node, node_sets):
-    connected_nodes = (set([edge.from_node for edge in G.in_edges(node.name)]) |
-                       set([edge.to_node for edge in G.out_edges(node.name)]))
-    current_set = set([node])
-    produced_sets = []
-    for node_set in node_sets:
-        if connected_nodes & node_set:
-            current_set |= node_set
-        else:
-            produced_sets.append(node_set)
-    produced_sets.append(current_set)
-    return produced_sets
-
-
-def group_nodes(G, nodes):
-    node_sets = []
-    for node in nodes:
-        node_sets = group_node(G, node, node_sets)
-    return node_sets
 
 
 def add_edge(edge_set, edge):
@@ -88,14 +59,7 @@ class ExpressionMatcher(Matcher):
 
     def match(self, G: GraphView, set_identity: bool = True):
         has_modified_graph = False
-        # collect connected node sets
-        node_sets = group_nodes(G, [node for node in G.nodes() if isinstance(node, FUSE_NODES) or (
-            isinstance(node, ConstantInputParameters) and node.out_dims[0].size() == 1)])
-        # remove sets that are only ConstantInputs
-        node_sets = [node_set for node_set in node_sets
-                     if not all(isinstance(node, ConstantInputParameters)
-                                for node in node_set)]
-        for node_set in node_sets:
+        for node_set in self.find_sets(G):
             has_modified_graph = True
             in_edges, out_edges, internal_edges = group_edges(G, node_set)
             frag = GraphView()
@@ -103,25 +67,112 @@ class ExpressionMatcher(Matcher):
                 frag.add_edge(edge)
             in_mapping = [[(edge.to_node, edge.to_idx) for edge in edge_group]
                           for edge_group in in_edges.values()]
+            in_dims = [from_node.out_dims[from_idx] for from_node, from_idx in in_edges]
+            out_dims = [from_node.out_dims[from_idx] for from_node, from_idx in out_edges]
             out_mapping = list(out_edges.keys())
-            constant_inputs = [isinstance(node_edge_idx[0], ConstantInputParameters) for node_edge_idx in in_edges]
-            LOG.info("constant_nodes %s", constant_inputs)
-            LOG.info("in_edges %s", in_edges)
-            expr = ExpressionFusionParameters("expr_%s" % self._expr_num,
+            constant_inputs = [node_edge_idx[0]
+                               for node_edge_idx in in_edges
+                               if isinstance(node_edge_idx[0], ConstantInputParameters)]
+            LOG.info('matched expression - creating expression %s', self._expr_num)
+            expr = ExpressionFusionParameters(f"expr_{self._expr_num}",
                                               subgraph=frag,
                                               input_mapping=in_mapping,
                                               output_mapping=out_mapping,
+                                              in_dims=in_dims,
+                                              out_dims=out_dims,
                                               constant_inputs=constant_inputs)
+            in_edge_mapping = list(in_edges.keys())
+            out_edge_mapping = [[(edge.to_node, edge.to_idx) for edge in edge_set] for edge_set in
+                                                 out_edges.values()]
+
             G.replace_fragment(frag,
                                expr,
                                frag_in_edges=list(set.union(*in_edges.values())),
                                frag_out_edges=list(set.union(*out_edges.values())),
-                               edge_in_mapping=sorted(list(in_edges.keys()), key=lambda x: x[1]),
-                               edge_out_mapping=[[(edge.to_node, edge.to_idx) for edge in edge_set] for edge_set in
-                                                 out_edges.values()]
+                               edge_in_mapping=in_edge_mapping,
+                               edge_out_mapping=out_edge_mapping
                                )
+            self._expr_num += 1
 
         if set_identity:
             self.set_identity(G)
 
         return has_modified_graph
+
+    @staticmethod
+    def can_find_up(G, node, to_find):
+        if node in to_find:
+            return True
+        in_edges = G.in_edges(node.name)
+        if not in_edges:
+            return False
+        return any(ExpressionMatcher.can_find_up(G, edge.from_node, to_find)
+                   for edge in in_edges)
+
+    @staticmethod
+    def explore(G, node, in_idx=None, curset=None):
+        if curset is None:
+            curset = set()
+        if not isinstance(node, CanFuseToExpression):
+            return curset
+        if in_idx is not None:
+            if any(ExpressionMatcher.can_find_up(G, edge.from_node, curset)
+                   for edge in G.in_edges(node.name) if edge.to_idx != in_idx):
+                return curset
+        curset.add(node)
+        for edge in G.out_edges(node.name):
+            ExpressionMatcher.explore(G, edge.to_node, edge.to_idx, curset=curset)
+        return curset
+
+    @staticmethod
+    def add_constants(G, node_set):
+        result = node_set.copy()
+        for node in node_set:
+            result.add(node)
+            for edge in G.in_edges(node.name):
+                if isinstance(edge.from_node, ConstantInputParameters) and edge.from_node.out_dims[0].size() == 1:
+                    result.add(edge.from_node)
+        return result
+
+    def find_sets(self, G):
+        # find all nodes that are CanFuseToExpression
+        candidate_node_set = set([node for node in G.nodes() if isinstance(node, CanFuseToExpression)])
+        explore_node_set = set()
+        # filter out the CanFuseToExpression nodes that have immediate predecessors in the nodes found into a new set
+        # ignore constant inputs since they will get fused later
+        for node in candidate_node_set:
+            if (not all(edge.from_node in candidate_node_set or isinstance(edge.from_node, ConstantInputParameters)
+                        for edge in G.in_edges(node.name))):
+                explore_node_set.add(node)
+        # look down from each of these and absorb branches that are just CanFuseToExpression nodes
+        node_sets = [set(self.explore(G, node)) for node in explore_node_set]
+        # check if each node in each subset should fuse
+        # if there is a shared node i.e. any intersection then we can fuse
+        condensed_node_sets = []
+        while node_sets:
+            cur_set = node_sets.pop(0)
+            found_sets = []
+            for node_set in node_sets:
+                if cur_set.intersection(node_set):
+                    found_sets.append(node_set)
+            for found_set in found_sets:
+                cur_set |= found_set
+                node_sets.remove(found_set)
+            condensed_node_sets.append(cur_set)
+
+        results = []
+        for node_set in condensed_node_sets:
+            while True:
+                remove_node = None
+                for node in node_set:
+                    if not node.should_fuse(node_set):
+                        remove_node = node
+                        break
+                if remove_node:
+                    node_set.remove(remove_node)
+                else:
+                    if node_set:
+                        results.append(self.add_constants(G, node_set))
+                    break
+
+        return results

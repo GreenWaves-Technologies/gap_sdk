@@ -15,6 +15,7 @@
 
 import logging
 from typing import Mapping
+from utils.diag_collector import DiagCollector
 
 import numpy as np
 from graph.types import LSTMParameters, RNNParameters
@@ -57,57 +58,54 @@ sigmoid_table = np.array(
 NEAREST = True
 
 
-def sigmoidLUT(x, qtype):
+def sigmoidLUT(x, qtype=None):
     del qtype
     # Scale [-8:8] into [-10.7:10.7] --> *3/4
     result = np.empty_like(x)
     if not NEAREST:
-        for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 9  # input in Q12
-            if abs_x >= 255:
-                result[i] = 0x7FFF << 10
-            else:
-                ua = sigmoid_table[abs_x]
-                ub = sigmoid_table[abs_x+1]
-                ut = abs_x & 0xFF
-                result[i] = (ua << 9) + ut * (ub-ua)  # Q16*Q8 = Q24
+        abs_x = (np.abs(x) * 3) >> 9  # input in Q12
+        abs_x_masked = np.where(abs_x >= 255, 0, abs_x)
+        ua = sigmoid_table[abs_x_masked]
+        ub = sigmoid_table[abs_x_masked+1]
+        ut = abs_x & 0xFF
+        result = np.where(abs_x >= 255,
+                          0x7FFF << 10,
+                          (ua << 9) + ut * (ub-ua))  # Q16*Q8 = Q24
         result = np.where(x > 0, result + (1 << 9), (1 << (9+16))-result+(1 << 9)-1)
         return result >> 10
     else:
-        for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 9  # input in Q12
-            if abs_x >= 255:
-                result[i] = 0xFFFF
-            else:
-                result[i] = sigmoid_table[abs_x]
+        abs_x = (np.abs(x) * 3) >> 9  # input in Q12
+        abs_x_masked = np.where(abs_x >= 255, 0, abs_x)
+        result = np.where(abs_x >= 255,
+                          0x7FFF << 10,
+                          sigmoid_table[abs_x_masked])  # Q16*Q8 = Q24
         result = np.where(x > 0, result, (1 << 16)-result)
         return result >> 1
 
 
-def tanhLUT(x, qtype):
+def tanhLUT(x, qtype=None):
     del qtype
     # Scale [-8:8] into [-10.7:10.7] --> *3/4
     result = np.empty_like(x)
     if not NEAREST:
-        for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 8  # 2*abs_x
-            if abs_x >= 255:
-                result[i] = 0xFFFF << 8
-            else:
-                ua = sigmoid_table[abs_x]
-                ub = sigmoid_table[abs_x+1]
-                ut = abs_x & 0xFF
-                result[i] = (ua << 8) + ut * (ub-ua)  # Q16*Q8 = Q24
-        result = np.where(x > 0, result - (1 << (9+14)) + (1 << (9-2)), -
-                          result + (1 << (9+14)) + (1 << (9-2)) - 1)
+        abs_x = (np.abs(x) * 3) >> 8  # 2*abs_x
+        abs_x_masked = np.where(abs_x >= 255, 0, abs_x)
+        ua = sigmoid_table[abs_x_masked]
+        ub = sigmoid_table[abs_x_masked+1]
+        ut = abs_x & 0xFF
+        result = np.where(abs_x >= 255,
+                          0xFFFF << 8,
+                          (ua << 8) + ut * (ub-ua))  # Q16*Q8 = Q24
+        result = np.where(x > 0,
+                          result - (1 << (9+14)) + (1 << (9-2)),
+                          -result + (1 << (9+14)) + (1 << (9-2)) - 1)
         return result >> 8
     else:
-        for i, _ in enumerate(x):
-            abs_x = (np.abs(x[i]) * 3) >> 8  # 2*abs_x
-            if abs_x >= 255:
-                result[i] = 0xFFFF
-            else:
-                result[i] = sigmoid_table[abs_x]
+        abs_x = (np.abs(x) * 3) >> 8  # 2*abs_x
+        abs_x_masked = np.where(abs_x >= 255, 0, abs_x)
+        result = np.where(abs_x >= 255,
+                          0xFFFF,
+                          sigmoid_table[abs_x_masked])
         result = np.where(x > 0, result - (1 << 15), -result + (1 << 15))
         return result
 
@@ -213,8 +211,12 @@ class RnnSymmetricMixin():
         out_tensor = np.zeros([params.n_output_cells, params.n_states], dtype=qrec.out_qs[0].dtype)
         out_idx = 0
 
+        new_c_state = None
         for idx in range(params.n_cells):
-            res = cls.step_kernel(params, args, idx, in_tensor, qrec)
+            if isinstance(params, LSTMParameters):
+                res, new_c_state = cls.step_kernel(params, args, idx, in_tensor, qrec)
+            else:
+                res = cls.step_kernel(params, args, idx, in_tensor, qrec)
             if idx >= (params.n_cells - params.n_output_cells):
                 out_tensor[out_idx] = res
                 out_idx += 1
@@ -223,6 +225,8 @@ class RnnSymmetricMixin():
             out_tensor = np.flip(out_tensor, axis=0)
         if params.output_directions:
             out_tensor = np.expand_dims(out_tensor, 0)
+        if new_c_state is not None:
+            return [out_tensor, new_c_state]
         return [out_tensor]
 
 
@@ -269,10 +273,12 @@ class RNNSymmetric(RnnSymmetricMixin, KernelBase):
             input_gate_scratch, args['i_state'][1])
 
         # scale the state scale to the output scale
-        output_gate_scratch = qrec.scale_output(params, input_gate_scratch, 0, args, ktype="symmetric")
+        output_gate_scratch = qrec.scale_output(
+            params, input_gate_scratch, 0, args, ktype="symmetric")
         # store the state
         args['i_state'][0] = output_gate_scratch.copy()
         return output_gate_scratch
+
 
 @params_type(GRUParameters)
 @quantization('symmetric')
@@ -284,41 +290,58 @@ class GRUSymmetric(RnnSymmetricMixin, KernelBase):
                     input_tensor: np.ndarray,
                     qrec):
 
-        z_gate_scratch = args['w_z_b'][0]
-        hr_gate_scratch = args['w_r_b'][0]
+        z_gate_scratch = 0
+        hr_gate_scratch = 0
+        DiagCollector.record('h_state', args['h_state'][0], scale=qrec.scales['state'], node=params)
+        DiagCollector.record('input', input_tensor[idx], scale=qrec.scales['in'][0], node=params)
 
+        DiagCollector.record('z_weigths', args['w_2_z_w'][0],
+                             scale=qrec.scales['r_2_z_w'], node=params)
         if idx < params.n_input_cells:
             # calculate z gate on input
             z_gate_scratch += args['w_2_z_w'][0].astype(np.int32).dot(input_tensor[idx])
             # calculate r gate on input
             hr_gate_scratch += args['w_2_r_w'][0].astype(np.int32).dot(input_tensor[idx])
             # scale to recurrent * state scale if input scale is different
+            DiagCollector.record('z_gate_inp', z_gate_scratch,
+                                 scale=qrec.scales['w_2_z_w'] * qrec.scales['state'], node=params)
+            DiagCollector.record('r_gate_inp', hr_gate_scratch,
+                                 scale=qrec.scales['w_2_r_w'] * qrec.scales['state'], node=params)
             if not params.rnn_same_inout_scale:
                 z_gate_scratch = qrec.scale_z_input2_z_HtxW(z_gate_scratch, 0, ktype='symmetric')
                 hr_gate_scratch = qrec.scale_r_input2_r_HtxW(hr_gate_scratch, 0, ktype='symmetric')
 
         # calculate z gate on recurrent
         z_gate_scratch += args['r_2_z_w'][0].astype(
-            np.int32).dot(args['h_state'][0]) + args['r_z_b'][0]
+            np.int32).dot(args['h_state'][0]) + args['z_b'][0].copy()
+        DiagCollector.record('z_gate', z_gate_scratch,
+                             scale=qrec.scales['r_2_z_w'] * qrec.scales['state'], node=params)
         # if not hard_act then the scale will scale to Q15
         z_gate_scratch = get_activation(params.activation_zr, params.hard_act)(
             qrec.scale_z_internal(z_gate_scratch, 0, ktype='symmetric'), qrec.internal_qtype)
         # normalise to internal Q
         if not params.hard_act and qrec.internal_qtype.q != 15:
             z_gate_scratch = at_norm(z_gate_scratch, 15 - qrec.internal_qtype.q)
+        DiagCollector.record('z_gate_sigmoid', z_gate_scratch,
+                             scale=qrec.internal_qtype.scale, node=params)
 
         # same as above on r gate
         hr_gate_scratch += args['r_2_r_w'][0].astype(
-            np.int32).dot(args['h_state'][0]) + args['r_r_b'][0]
+            np.int32).dot(args['h_state'][0]) + args['r_b'][0].copy()
+        DiagCollector.record('r_gate', hr_gate_scratch,
+                             scale=qrec.scales['r_2_r_w'] * qrec.scales['state'], node=params)
         hr_gate_scratch = get_activation(params.activation_zr, params.hard_act)(
             qrec.scale_r_internal(hr_gate_scratch, 0, ktype='symmetric'), qrec.internal_qtype)
         if not params.hard_act and qrec.internal_qtype.q != 15:
             hr_gate_scratch = at_norm(hr_gate_scratch, 15 - qrec.internal_qtype.q)
+        DiagCollector.record('r_gate_sigmoid', hr_gate_scratch,
+                             scale=qrec.internal_qtype.scale, node=params)
 
         if params.linear_before_reset:
             # haddamard after linear
             # r_gate_scratch = (rt (.) (Ht-1*(Rh^T) + Rbh))
-            h_gate_recurrent = args['r_2_h_w'][0].astype(np.int32).dot(args['h_state'][0]) + args['r_h_b'][0]
+            h_gate_recurrent = args['r_2_h_w'][0].astype(
+                np.int32).dot(args['h_state'][0]) + args['r_h_b'][0]
             # this is int_q_scale * state_q_scale * h_recurrent_weights_scale
             hr_gate_scratch = hr_gate_scratch * h_gate_recurrent
             # normalize to state_q_scale * h_recurrent_weights_scale
@@ -329,7 +352,8 @@ class GRUSymmetric(RnnSymmetricMixin, KernelBase):
                 if not params.rnn_same_inout_scale:
                     # scale input_scale * h_input_weights_scale to state_q_scale * h_recurrent_weights_scale
                     hr_gate_scratch += qrec.scale_h_input2_h_HtxW(
-                        (args['w_2_h_w'][0].astype(np.int32).dot(input_tensor[idx]) + args['w_h_b'][0]),
+                        (args['w_2_h_w'][0].astype(np.int32).dot(
+                            input_tensor[idx]) + args['w_h_b'][0]),
                         0, ktype='symmetric')
                 else:
                     # since input_scale == state scale and h_input_weights_scale == h_recurrent_weights_scale
@@ -340,7 +364,8 @@ class GRUSymmetric(RnnSymmetricMixin, KernelBase):
                 # Is this correct if there is no input (and below)? This is not a mode that
                 # exists in any framework and will not ever be used at present
                 if not params.rnn_same_inout_scale:
-                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(args['w_h_b'][0], 0, ktype='symmetric')
+                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(
+                        args['w_h_b'][0], 0, ktype='symmetric')
                 else:
                     hr_gate_scratch += args['w_h_b'][0]
         else:
@@ -362,7 +387,8 @@ class GRUSymmetric(RnnSymmetricMixin, KernelBase):
                         np.int32).dot(input_tensor[idx]) + args['w_h_b'][0]
             else:
                 if not params.rnn_same_inout_scale:
-                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(args['w_h_b'][0], 0, ktype='symmetric')
+                    hr_gate_scratch += qrec.scale_h_input2_h_HtxW(
+                        args['w_h_b'][0], 0, ktype='symmetric')
                 else:
                     hr_gate_scratch += args['w_h_b'][0]
 
@@ -407,25 +433,26 @@ class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
         if use_layer_norm:
             raise NotImplementedError("layer norm mode is not supported")
 
-        sigmoid = hsigmoid if params.hard_act else sigmoidLUT
-        tanh = htanh if params.hard_act else tanhLUT
-
         # INPUT vs WEIGHTS
         # For each cell: compute input_weight * input if there is an input
+        input_gate_scratch = 0
+        forget_gate_scratch = 0
+        cell_scratch = 0
+        output_gate_scratch = 0
         if idx < params.n_input_cells:
-            input_gate_scratch = qrec.scale_input_input(
+            input_gate_scratch += qrec.scale_input_input(
                 args['i_2_i_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
                 0,
                 ktype="symmetric")
-            forget_gate_scratch = qrec.scale_input_forget(
+            forget_gate_scratch += qrec.scale_input_forget(
                 args['i_2_f_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
                 0,
                 ktype="symmetric")
-            cell_scratch = qrec.scale_input_cell(
+            cell_scratch += qrec.scale_input_cell(
                 args['i_2_c_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
                 0,
                 ktype="symmetric")
-            output_gate_scratch = qrec.scale_input_output(
+            output_gate_scratch += qrec.scale_input_output(
                 args['i_2_o_w'][0].astype(np.int32).dot(input_tensor[idx].astype(np.int32)),
                 0,
                 ktype="symmetric")
@@ -457,13 +484,13 @@ class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
                                                          0, ktype="symmetric")
 
         # Apply activations in internal Q * 1
-        input_gate_scratch = sigmoid(input_gate_scratch, qrec.internal_qtype)
+        input_gate_scratch = get_activation('sigmoid', params.hard_act)(input_gate_scratch, qrec.internal_qtype)
 
-        forget_gate_scratch = sigmoid(forget_gate_scratch, qrec.internal_qtype)
+        forget_gate_scratch = get_activation('sigmoid', params.hard_act)(forget_gate_scratch, qrec.internal_qtype)
 
-        output_gate_scratch = sigmoid(output_gate_scratch, qrec.internal_qtype)
+        output_gate_scratch = get_activation('sigmoid', params.hard_act)(output_gate_scratch, qrec.internal_qtype)
 
-        cell_scratch = tanh(cell_scratch, qrec.internal_qtype)
+        cell_scratch = get_activation('tanh', params.hard_act)(cell_scratch, qrec.internal_qtype)
 
         # cstate = cstate * Of + Og * Oi
         if params.hard_act:
@@ -487,18 +514,17 @@ class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
                                                 0, ktype="symmetric")
 
         if params.hard_act:
-            two_qtype = QType(qrec.internal_qtype, q=qrec.internal_qtype.q * 2)
-            cell_scratch = tanh(cstate, two_qtype)
+            two_qtype = QType.Pow2(qrec.internal_qtype.bits, qrec.internal_qtype.q * 2, True)
+            cell_scratch = get_activation('tanh', params.hard_act)(cstate, two_qtype)
             # Assume scaling from internalq * 3 -> Q7 * 1
             output_gate_scratch *= cell_scratch
         else:
-            cell_scratch = tanh(cstate, qrec.internal_qtype)
+            cell_scratch = get_activation('tanh', params.hard_act)(cstate, qrec.internal_qtype)
             # output = Og[Sq15] * tanh(cell_scratch)[Sq15] -> [Sq30] >> 15 -> [Sq15]
             output_gate_scratch = (output_gate_scratch * cell_scratch) >> 15
 
-        output_gate_scratch = qrec.scale_output(output_gate_scratch,
-                                                0, ktype="symmetric")
-        output_gate_scratch = qrec.out_qs[0].clip(output_gate_scratch)
+        output = qrec.scale_output(output_gate_scratch, 0, ktype="symmetric")
+        output = qrec.out_qs[0].clip(output)
 
         use_projection_weight = 'proj_w' in args and args['proj_w'][0] is not None
         use_projection_bias = 'proj_b' in args and args['proj_b'][0] is not None
@@ -506,5 +532,8 @@ class LSTMSymmetric(RnnSymmetricMixin, KernelBase):
         if use_projection_weight or use_projection_bias:
             raise NotImplementedError("LSTMP is not yet supported by kernel")
 
-        args['i_state'][0] = output_gate_scratch.copy()
-        return output_gate_scratch
+        #args['i_state'][0] = qrec.scale_i_state(output_gate_scratch.copy(), 0, ktype="symmetric")
+        args['i_state'][0] = output.copy()
+        if params.lstm_output_c_state:
+            return output, args['c_state'][0]
+        return output, None

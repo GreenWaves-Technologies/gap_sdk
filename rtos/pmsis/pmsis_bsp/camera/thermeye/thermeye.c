@@ -100,8 +100,8 @@ static void __pi_thermeye_start(thermeye_t *thermeye)
     __pi_thermeye_reg_write(thermeye, (uint16_t) ADC_BIAS, 0x00);
     __pi_thermeye_reg_write(thermeye, (uint16_t) EXT_POLAR, 0x08);
     __pi_thermeye_reg_write(thermeye, (uint16_t) DACGFID, 0xBD);
-    __pi_thermeye_reg_write(thermeye, (uint16_t) DACGSK_A, 0x01);
-    __pi_thermeye_reg_write(thermeye, (uint16_t) DACGSK_B, 0x30);
+    //__pi_thermeye_reg_write(thermeye, (uint16_t) DACGSK_A, 0x01);
+    //__pi_thermeye_reg_write(thermeye, (uint16_t) DACGSK_B, 0x30);
     __pi_thermeye_reg_write(thermeye, (uint16_t) VTEMP_ADC, 0x60);
     __pi_thermeye_reg_write(thermeye, (uint16_t) DACVBUS, 0x00);
     __pi_thermeye_reg_write(thermeye, (uint16_t) INTEGRATION, 0x25);
@@ -114,7 +114,7 @@ static void __pi_thermeye_start(thermeye_t *thermeye)
 
     hal_compiler_barrier();
     /* Wait capa preload. Here 19ms - reg set above. */
-    pi_time_wait_us(15000);
+    pi_time_wait_us(19000);
 
     /* Disable external capa preload. */
     __pi_thermeye_reg_write(thermeye, (uint16_t) EXT_CAPA_LD, 0x00);

@@ -181,3 +181,13 @@ void pi_task_push_delayed_us(pi_task_t *task, uint32_t delay)
     pi_task_delayed_fifo_enqueue(task, delay);
     restore_irq(irq);
 }
+
+extern void pi_event_kernel_task_remove(struct pmsis_event_kernel_wrap *ek_wrap,
+                                        pi_task_t *task);
+void pi_task_abort(pi_task_t *task)
+{
+    uint32_t irq = __disable_irq();
+    struct pmsis_event_kernel_wrap *ek_wrap = pmsis_event_get_default_scheduler();
+    pi_event_kernel_task_remove(ek_wrap, task);
+    __restore_irq(irq);
+}

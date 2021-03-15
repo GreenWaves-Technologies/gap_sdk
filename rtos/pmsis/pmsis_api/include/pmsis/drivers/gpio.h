@@ -280,7 +280,7 @@ int pi_gpio_pin_task_add(struct pi_device *device, uint32_t pin, pi_task_t *task
 int pi_gpio_pin_task_remove(struct pi_device *device, uint32_t pin);
 
 /**
- * \struct pi_gpio_callback_t
+ * \struct pi_gpio_callback_s
  *
  * \brief GPIO callback struct.
  *

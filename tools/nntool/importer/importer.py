@@ -15,8 +15,9 @@
 
 import re
 from typing import Mapping
-from .tflite2.tflite import TFLiteImporter, NNGraph
+
 from .onnx.onnx import OnnxImporter
+from .tflite2.tflite import NNGraph, TFLiteImporter
 
 GRAPH_IMPORTERS = {
     'onnx': {'matches':[r".*\.onnx$"], 'importer':OnnxImporter, 'loader': None},
@@ -40,8 +41,6 @@ def requires_tensor_file(filename: str) -> bool:
     return importer['loader'] is not None
 
 def create_graph(filename: str, graph_format: str = None, opts: Mapping = None) -> NNGraph:
-    if opts is None:
-        opts = {}
     if graph_format is not None:
         assert graph_format in GRAPH_IMPORTERS, "Unknown format"
         return GRAPH_IMPORTERS[graph_format].importer(filename, opts)

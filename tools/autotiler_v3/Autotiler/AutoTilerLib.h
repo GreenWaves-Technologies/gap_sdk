@@ -733,6 +733,32 @@ ArgBindingDescr_T *K_ArgPar(
 	);
 
 /**
+@brief As K_ArgPar but with an operation
+*/
+ArgBindingDescr_T *K_ArgParOper(
+	char *ArgName, 
+	KernelArgSelect_T ArgSelect,
+	KernelIteratorT ItSpace,
+	char Oper,
+	int Value
+	);
+
+/**
+@brief Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper.
+
+Binds argument to a user kernel argument (a tiled argument) and combine it with Value using Oper.
+
+See K_Arg() for ArgName and ArgSelect. Supported operation are defined in ArgBindingOper. Value is a signed immediate constant.
+*/
+ArgBindingDescr_T *K_ArgOperSel(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	KernelArgSelect_T ArgSelect,	/**< Select which user kernel argument property to be used */
+	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
+	int Value			/**< A signed immediate value */
+	);
+
+
+/**
 @brief Binds argument to kernel argument tile attribute predicate for a given sub space of this kernel argument.
 
 Binds argument to kernel argument tile attribute predicate for a given sub space of this kernel argument.

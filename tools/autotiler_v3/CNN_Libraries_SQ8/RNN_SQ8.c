@@ -202,7 +202,7 @@ void RNN_ParKerB32_Hard_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		if (Nin & 0x4) Of = gap_sumdotp4(Vin[Nin/4-1], Vf[Nin/4-1], Of);
 		for (int i=(Nin/4)*4; i<Nin; i++) {
 			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
 		}
 
 		/* Of = HTanh(Scaled(Of)) */
@@ -274,7 +274,7 @@ void RNN_ParKerB32_Hard_SQ8(KerRNN_SQ8_T *Arg)
 		if (DimState & 0x4) Of = gap_sumdotp4(Vin[DimState/4-1], Vf[DimState/4-1], Of);
 		for (int i=(DimState/4)*4; i<DimState; i++) {
 			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + DimState);
 		if (Xin) {
@@ -288,7 +288,7 @@ void RNN_ParKerB32_Hard_SQ8(KerRNN_SQ8_T *Arg)
 			if (DimIn & 0x4) Of = gap_sumdotp4(Vin[DimIn/4-1], Vf[DimIn/4-1], Of);
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
 				int X = ((char *)Vin)[Off+i];
-				Of_in += X * ((char *)Vf)[Off+i];
+				Of_in += X * ((signed char *)Vf)[Off+i];
 			}
 			Of += AT_SCALE(Of_in, ((unsigned char *)Infos)[RNN_F_IN_SCALE], ((unsigned char *)Infos)[RNN_F_IN_SCALEN]);
 			Vf = (v4s *) ((char *)Vf + DimIn);
@@ -362,7 +362,7 @@ void RNN_ParKerB32_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		if (Nin & 0x4) Of = gap_sumdotp4(Vin[Nin/4-1], Vf[Nin/4-1], Of);
 		for (int i=(Nin/4)*4; i<Nin; i++) {
 			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
 		}
 
 		/* Of = Tanh(Scaled(Of)) */
@@ -436,7 +436,7 @@ void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg)
 		if (DimState & 0x4) Of = gap_sumdotp4(Vin[DimState/4-1], Vf[DimState/4-1], Of);
 		for (int i=(DimState/4)*4; i<DimState; i++) {
 			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + DimState);
 		if (Xin) {
@@ -450,7 +450,7 @@ void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg)
 			if (DimIn & 0x4) Of = gap_sumdotp4(Vin[DimIn/4-1], Vf[DimIn/4-1], Of);
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
 				int X = ((char *)Vin)[Off+i];
-				Of_in += X * ((char *)Vf)[Off+i];
+				Of_in += X * ((signed char *)Vf)[Off+i];
 			}
 			Of += AT_SCALE(Of_in, ((unsigned char *)Infos)[RNN_F_IN_SCALE], ((unsigned char *)Infos)[RNN_F_IN_SCALEN]);
 			Vf = (v4s *) ((char *)Vf + DimIn);
@@ -540,10 +540,10 @@ void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg)
 		}
 		for (int i=(DimState/4)*4; i<DimState; i++) {
 			int X = ((char *)Vstate)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
-			Oi += X * ((char *)Vi)[Off+i];
-			Og += X * ((char *)Vg)[Off+i];
-			Oo += X * ((char *)Vo)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
+			Oi += X * ((signed char *)Vi)[Off+i];
+			Og += X * ((signed char *)Vg)[Off+i];
+			Oo += X * ((signed char *)Vo)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + DimState);
 		Vi = (v4s *) ((char *)Vi + DimState);
@@ -562,10 +562,10 @@ void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg)
 			}
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
 				int X = ((char *)Vin)[Off_in+i];
-				Of_in += X * ((char *)Vf)[Off_in+i];
-				Oi_in += X * ((char *)Vi)[Off_in+i];
-				Og_in += X * ((char *)Vg)[Off_in+i];
-				Oo_in += X * ((char *)Vo)[Off_in+i];
+				Of_in += X * ((signed char *)Vf)[Off_in+i];
+				Oi_in += X * ((signed char *)Vi)[Off_in+i];
+				Og_in += X * ((signed char *)Vg)[Off_in+i];
+				Oo_in += X * ((signed char *)Vo)[Off_in+i];
 			}
 			// Rescale Ox_in into Ox Scale and sum --> Infos[LSTM_X_IN_SCALE/N] = Sin / Sin_state
 			// Ox = Ox + Sin/Sin_state * Of_in
@@ -688,10 +688,10 @@ void LSTM_ParKerB32_Hard_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg)
 		}
 		for (int i=(Nin/4)*4; i<Nin; i++) {
 			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
-			Oi += X * ((char *)Vi)[Off+i];
-			Og += X * ((char *)Vg)[Off+i];
-			Oo += X * ((char *)Vo)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
+			Oi += X * ((signed char *)Vi)[Off+i];
+			Og += X * ((signed char *)Vg)[Off+i];
+			Oo += X * ((signed char *)Vo)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + NS);
 		Vi = (v4s *) ((char *)Vi + NS);
@@ -807,11 +807,11 @@ void LSTM_ParKerB32_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg)
 			Oo = gap_sumdotp4(X, Vo[i], Oo);
 		}
 		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
-			Oi += X * ((char *)Vi)[Off+i];
-			Og += X * ((char *)Vg)[Off+i];
-			Oo += X * ((char *)Vo)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
+			Oi += X * ((signed char *)Vi)[Off+i];
+			Og += X * ((signed char *)Vg)[Off+i];
+			Oo += X * ((signed char *)Vo)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + NS);
 		Vi = (v4s *) ((char *)Vi + NS);
@@ -928,10 +928,10 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 		}
 		for (int i=(DimState/4)*4; i<DimState; i++) {
 			int X = ((char *)Vstate)[Off+i];
-			Of += X * ((char *)Vf)[Off+i];
-			Oi += X * ((char *)Vi)[Off+i];
-			Og += X * ((char *)Vg)[Off+i];
-			Oo += X * ((char *)Vo)[Off+i];
+			Of += X * ((signed char *)Vf)[Off+i];
+			Oi += X * ((signed char *)Vi)[Off+i];
+			Og += X * ((signed char *)Vg)[Off+i];
+			Oo += X * ((signed char *)Vo)[Off+i];
 		}
 		Vf = (v4s *) ((char *)Vf + DimState);
 		Vi = (v4s *) ((char *)Vi + DimState);
@@ -950,10 +950,10 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 			}
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
 				int X = ((char *)Vin)[Off_in+i];
-				Of_in += X * ((char *)Vf)[Off_in+i];
-				Oi_in += X * ((char *)Vi)[Off_in+i];
-				Og_in += X * ((char *)Vg)[Off_in+i];
-				Oo_in += X * ((char *)Vo)[Off_in+i];
+				Of_in += X * ((signed char *)Vf)[Off_in+i];
+				Oi_in += X * ((signed char *)Vi)[Off_in+i];
+				Og_in += X * ((signed char *)Vg)[Off_in+i];
+				Oo_in += X * ((signed char *)Vo)[Off_in+i];
 			}
 			// Rescale Ox_in into Ox Scale and sum --> Infos[LSTM_X_IN_SCALE/N] = Sin / Sin_state
 			// Ox = Ox + Sin/Sin_state * Of_in
@@ -1030,8 +1030,8 @@ void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg)
         signed char *__restrict__ Wz = Arg->Wz;
         int * __restrict__ Bz = Arg->Bz;
         signed char *__restrict__ Wh = Arg->Wh;
-        int * __restrict__ Bh = Arg->Bh;
-        signed char *__restrict__ Sbuff = Arg->Sbuff;
+        int * __restrict__ Bwh = Arg->Bwh;
+        int * __restrict__ Brh = Arg->Brh;
         signed char *__restrict__ Hout = Arg->Hout;
         unsigned short int Nout = Arg->Nout;
         signed char *__restrict__ Infos = Arg->Infos;
@@ -1046,82 +1046,223 @@ void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg)
 	unsigned int Last  = Min(First+ChunkCell, Nout);
 
 	if (Arg->FirstOut) {
-		if (Arg->FirstCell && Arg->Reset) Zero(State, DimState, CoreId);
-		else Copy(State, StateInOut, DimState, CoreId);
+		if (Arg->FirstCell && Arg->Reset) Zero(State, DimState, CoreId); // Reset h_state -> 0s
+		else Copy(State, StateInOut, DimState, CoreId);                  // Copy h_state into State
 		gap_waitbarrier(0);
 	}
-        if (Xin) {
-                Copy(State+DimState, Xin, DimIn, CoreId);
-                gap_waitbarrier(0);
-	} else Nin -= DimIn;
-	int Off = Nin/4;
-	/* Fisrt eval Sbuff<DimState> = HSigmoid(NLP(StateInOut<DimState+DimIn>, Wr<DimState+DimIn>, Br<DimState>)) !*! StateInOut<DimState>
-	   !*! is Hadammard product (elemt wise product)
-	   Actual dimension of Sbuff is <DimState+DimIn>
-	   Previous step has copied StateInOut into the DimIn last items of Sbuff
-	*/
-	v4s *Vin = (v4s *) State;
-	v4s *Vr  = (v4s *) (Wr+Nin*First);
-	for (int o=First; o<Last; o++) {
-		int Or = Br[o];
-		for (int i=0; i<Nin/8; i++) {
-			v4s X0 = Vin[2*i], X1 = Vin[2*i+1];
-			v4s Y0 = Vr[2*i], Y1 = Vr[2*i+1];
-			Or = gap_sumdotp4(X0, Y0, Or);
-			Or = gap_sumdotp4(X1, Y1, Or);
-		}
-		if (Nin & 0x4) Or= gap_sumdotp4(Vin[Nin/4], Vr[Nin/4], Or);
-		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i];
-			Or += X * ((char *)Vr)[Off+i];
-		}
-		/* Or = HSigmoid(Scaled(Or)) !*! StateInOut[o] */
-		Or = gap_clip(AT_SCALE(Or, ((unsigned char *)Infos)[GRU_R_SCALE], ((unsigned char *)Infos)[GRU_R_SCALEN]), 7);
-		Or = AT_SCALE(AT_CLIP_POS(Or + Infos[GRU_R_B0], Infos[GRU_R_A0]) * Infos[GRU_R_C0] * StateInOut[TileOff+o], ((unsigned char *)Infos)[GRU_R_ASCALE], ((unsigned char *)Infos)[GRU_R_ASCALEN]);
-		Sbuff[TileOff+o] = Or;
-		Vr = (v4s *) ((char *)Vr + NS);
-		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
-	}
-	gap_waitbarrier(0);
 
-	/* Now eval the rest:
-	 	Zt  = HSigmoid(NLP(StateInOut<DimState+DimIn>, Wz<DimState+DimIn>, Bz<DimState>))
-		Ht' = HTanh(NLP(Sbuff<DimState+DimIn>, Wh<DimState+DimIn>, Bh<DimState>))
-		Ht  = (1-Zt) !*! Ht'  +  Zt !*! Ht'
-	*/
-	if (PerChannelQuant) Infos = Arg->Infos;
-	Vr = (v4s *) Sbuff;
-	v4s *Vz = (v4s *) (Wz+Nin*First);
-	v4s *Vh = (v4s *) (Wh+Nin*First);
+	// Offsets for leftovers
+	int Off_in = 0;
+	if (Xin) Off_in = DimIn/4; else Nin -= DimIn;
+	int Off = DimState/4;
+
+	v4s *Vstate = (v4s *) State;
+	v4s *Vin    = (v4s *) Xin;
+	v4s *Vr     = (v4s *) (Wr+Nin*First);
+	v4s *Vz     = (v4s *) (Wz+Nin*First);
+	v4s *Vh     = (v4s *) (Wh+Nin*First);
 	for (int o=First; o<Last; o++) {
-		int Oz = Bz[o], Oh = Bh[o];
-		for (int i=0; i<Nin/4; i++) {
-			v4s X0 = Vin[i], Z0 = Vz[i], V0 = Vh[i], R0 = Vr[i];
+		int Or = Br[o], Oz = Bz[o], Oh = Brh[o];
+		for (int i=0; i<DimState/4; i++) {
+			v4s X0 = Vstate[i];
+			v4s R0 = Vr[i];
+			v4s Z0 = Vz[i];
+			v4s H0 = Vh[i];
+			Or = gap_sumdotp4(X0, R0, Or);
 			Oz = gap_sumdotp4(X0, Z0, Oz);
-			Oh = gap_sumdotp4(R0, V0, Oh);
+			Oh = gap_sumdotp4(X0, H0, Oh);
 		}
-		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i], R = ((char *)Vr)[Off+i];
-			Oz += X * ((char *)Vz)[Off+i];
-			Oh += R * ((char *)Vh)[Off+i];
+		for (int i=(DimState/4)*4; i<DimState; i++) {
+			int X = ((signed char *)Vstate)[Off+i];
+			Or += X * ((signed char *)Vr)[Off+i];
+			Oz += X * ((signed char *)Vz)[Off+i];
+			Oh += X * ((signed char *)Vh)[Off+i];
 		}
-		/* Oz = HSigmoid(Scaled(Oz)) */
-		Oz = AT_SCALE(Oz, ((unsigned char *)Infos)[GRU_Z_SCALE], ((unsigned char *)Infos)[GRU_Z_SCALEN]);
-		Oz = AT_CLIP_POS(Oz + Infos[GRU_Z_B0], Infos[GRU_Z_A0]) * Infos[GRU_Z_C0];
+		Vr = (v4s *) ((signed char *)Vr + DimState);
+		Vz = (v4s *) ((signed char *)Vz + DimState);
+		Vh = (v4s *) ((signed char *)Vh + DimState);
+		int Oh_in = Bwh[o];
+		if (Xin) {
+			int Or_in = 0, Oz_in = 0;
+			for (int i=0; i<DimIn/4; i++) {
+				v4s X0 = Vin[i];
+				v4s R0 = Vr[i];
+				v4s Z0 = Vz[i];
+				v4s H0 = Vh[i];
+				Or_in = gap_sumdotp4(X0, R0, Or_in);
+				Oz_in = gap_sumdotp4(X0, Z0, Oz_in);
+				Oh_in = gap_sumdotp4(X0, H0, Oh_in);
+			}
+			for (int i=(DimIn/4)*4; i<DimIn; i++) {
+				int X = ((signed char *)Vin)[Off_in+i];
+				Or_in += X * ((signed char *)Vr)[Off_in+i];
+				Oz_in += X * ((signed char *)Vz)[Off_in+i];
+				Oh_in += X * ((signed char *)Vh)[Off_in+i];
+			}
+			Or += AT_SCALE(Or_in, ((unsigned char *)Infos)[GRU_R_IN_SCALE], ((unsigned char *)Infos)[GRU_R_IN_SCALEN]);
+			Oz += AT_SCALE(Oz_in, ((unsigned char *)Infos)[GRU_Z_IN_SCALE], ((unsigned char *)Infos)[GRU_Z_IN_SCALEN]);
+			Vr = (v4s *) ((signed char *)Vr + DimIn);
+			Vz = (v4s *) ((signed char *)Vz + DimIn);
+			Vh = (v4s *) ((signed char *)Vh + DimIn);
+		}
 
-		/* Oht = HTanh(Scaled(Oh)) */
-		int Oht = AT_SCALE(Oh, ((unsigned char *)Infos)[GRU_HT_SCALE], ((unsigned char *)Infos)[GRU_HT_SCALEN]);
-		Oht = Max(Infos[GRU_HT_A0], Min(Infos[GRU_HT_B0], Oht));
+		/* Scale to internal_qtype --> 16bits QY */
+		Or = AT_SCALE(Or, ((unsigned char *)Infos)[GRU_R_INT_SCALE], ((unsigned char *)Infos)[GRU_R_INT_SCALEN]);
+		/* Or = Sigmoid(internal_scaled(Or)) */
+		Or = Sigmoid(Or);
+		/* Q15 -> Q12 */
+		Or = AT_NORM(Or, 3);
 
-		/* Oh = Scaled((1-Oz)*StateInOut[o] + Oz*Oht) */
-		Oh = gap_clip(AT_SCALE((Infos[GRU_H_A0] - Oz)*StateInOut[TileOff+o] + Oz*Oht, ((unsigned char *)Infos)[GRU_H_SCALE], ((unsigned char *)Infos)[GRU_H_SCALEN]), 7);
+		/* Scale to internal_qtype --> 16bits QY */
+		Oz = AT_SCALE(Oz, ((unsigned char *)Infos)[GRU_Z_INT_SCALE], ((unsigned char *)Infos)[GRU_Z_INT_SCALEN]);
+		/* Oz = Sigmoid(internal_scaled(Oz)) */
+		Oz = Sigmoid(Oz);
+		/* Q15 -> Q12 */
+		Oz = AT_NORM(Oz, 3);
 
+		Oh = AT_NORM(Oh*Or, 12) + AT_SCALE(Oh_in, ((unsigned char *)Infos)[GRU_HT_IN_SCALE], ((unsigned char *)Infos)[GRU_HT_IN_SCALEN]);
+
+		Oh = AT_SCALE(Oh, ((unsigned char *)Infos)[GRU_H_INT_SCALE], ((unsigned char *)Infos)[GRU_H_INT_SCALEN]);
+		Oh = Tanh(Oh);
+		Oh = AT_NORM(Oh, 3);
+
+		int CurrStateQ12 = State[TileOff+o] << 5;
+		/* h_t = (1 - Oz) * Oh + Oz * h_t-1 */
+		/* Oz->Q12 * Oh->Q12 --> Q24 */
+		/* h_t -> Q7 --> >> (24 - 7) */
+		Oh = gap_clip(AT_NORM(((1 << 12) - Oz) * Oh + Oz * CurrStateQ12, 17), 7);
 		if (StateInOut) StateInOut[TileOff+o] = Oh;
 		if (Hout) Hout[o] = Oh;
+		if (PerChannelQuant) Infos += GRU_CELL_INFOS;
+	}
+	gap_waitbarrier(0);
+}
 
-		Vz = (v4s *) ((char *)Vz + NS);
-		Vh = (v4s *) ((char *)Vh + NS);
-		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
+void GRU_ParKerB32_Hard_SQ8(KerGRU_SQ8_T *Arg)
+
+{
+
+	/*	Sequences
+	 	In:	DimIn!=0, Hout==0
+		InOut:	DimIn!=0, Hout!=0
+		None:	DimIn==0, Hout==0
+		Out:	DimIn==0, Hout!=0
+
+		Infos:
+		if (PerChannelQuant) Infos group for each output elemt (Nout) else one group for all out
+	*/
+	int PerChannelQuant = 0;
+	signed char *__restrict__ StateInOut = Arg->StateInOut;
+	signed char *__restrict__ State = Arg->State;
+        signed char *__restrict__ Xin= Arg->Xin;
+        unsigned int DimState = Arg->DimState;
+        unsigned int DimIn = Arg->DimIn;
+        signed char *__restrict__ Wr = Arg->Wr;
+        int * __restrict__ Br = Arg->Br;
+        signed char *__restrict__ Wz = Arg->Wz;
+        int * __restrict__ Bz = Arg->Bz;
+        signed char *__restrict__ Wh = Arg->Wh;
+        int * __restrict__ Bwh = Arg->Bwh;
+        int * __restrict__ Brh = Arg->Brh;
+        signed char *__restrict__ Hout = Arg->Hout;
+        unsigned short int Nout = Arg->Nout;
+        signed char *__restrict__ Infos = Arg->Infos;
+        int TileOff = Arg->TileOffset;
+
+	unsigned int Nin = DimState+DimIn;
+	unsigned int NS = Nin;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(Nout);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, Nout);
+
+	if (Arg->FirstOut) {
+		if (Arg->FirstCell && Arg->Reset) Zero(State, DimState, CoreId); // Reset h_state -> 0s
+		else Copy(State, StateInOut, DimState, CoreId);                  // Copy h_state into State
+		gap_waitbarrier(0);
+	}
+
+	// Offsets for leftovers
+	int Off_in = 0;
+	if (Xin) Off_in = DimIn/4; else Nin -= DimIn;
+	int Off = DimState/4;
+
+	v4s *Vstate = (v4s *) State;
+	v4s *Vin    = (v4s *) Xin;
+	v4s *Vr     = (v4s *) (Wr+Nin*First);
+	v4s *Vz     = (v4s *) (Wz+Nin*First);
+	v4s *Vh     = (v4s *) (Wh+Nin*First);
+	for (int o=First; o<Last; o++) {
+		int Or = Br[o], Oz = Bz[o], Oh = Brh[o];
+		for (int i=0; i<DimState/4; i++) {
+			v4s X0 = Vstate[i];
+			v4s R0 = Vr[i];
+			v4s Z0 = Vz[i];
+			v4s H0 = Vh[i];
+			Or = gap_sumdotp4(X0, R0, Or);
+			Oz = gap_sumdotp4(X0, Z0, Oz);
+			Oh = gap_sumdotp4(X0, H0, Oh);
+		}
+		for (int i=(DimState/4)*4; i<DimState; i++) {
+			int X = ((signed char *)Vstate)[Off+i];
+			Or += X * ((signed char *)Vr)[Off+i];
+			Oz += X * ((signed char *)Vz)[Off+i];
+			Oh += X * ((signed char *)Vh)[Off+i];
+		}
+		Vr = (v4s *) ((signed char *)Vr + DimState);
+		Vz = (v4s *) ((signed char *)Vz + DimState);
+		Vh = (v4s *) ((char *)Vh + DimState);
+
+		int Oh_in = Bwh[o];
+		if (Xin) {
+			int Or_in = 0, Oz_in = 0;
+			for (int i=0; i<DimIn/4; i++) {
+				v4s X0 = Vin[i];
+				v4s R0 = Vr[i];
+				v4s Z0 = Vz[i];
+				v4s H0 = Vh[i];
+				Or_in = gap_sumdotp4(X0, R0, Or_in);
+				Oz_in = gap_sumdotp4(X0, Z0, Oz_in);
+				Oh_in = gap_sumdotp4(X0, H0, Oh_in);
+			}
+			for (int i=(DimIn/4)*4; i<DimIn; i++) {
+				int X = ((signed char *)Vin)[Off_in+i];
+				Or_in += X * ((signed char *)Vr)[Off_in+i];
+				Oz_in += X * ((signed char *)Vz)[Off_in+i];
+				Oh_in += X * ((signed char *)Vh)[Off_in+i];
+			}
+			Or += AT_SCALE(Or_in, ((unsigned char *)Infos)[GRU_R_IN_SCALE], ((unsigned char *)Infos)[GRU_R_IN_SCALEN]);
+			Oz += AT_SCALE(Oz_in, ((unsigned char *)Infos)[GRU_Z_IN_SCALE], ((unsigned char *)Infos)[GRU_Z_IN_SCALEN]);
+			Vr = (v4s *) ((signed char *)Vr + DimIn);
+			Vz = (v4s *) ((signed char *)Vz + DimIn);
+			Vh = (v4s *) ((signed char *)Vh + DimIn);
+		}
+
+		/* Scale to internal_qtype --> 16bits QY */
+		Or = AT_SCALE(Or, ((unsigned char *)Infos)[GRU_R_INT_SCALE], ((unsigned char *)Infos)[GRU_R_INT_SCALEN]);
+		/* Or = HSigmoid(internal_scaled(Or)) */
+		Or = AT_NORM(AT_CLIP_POS(Or + *(short *)&Infos[GRU_INT_B0], *((short *)&Infos[GRU_INT_A0])) * *((short *)&Infos[GRU_INT_C0]), ((unsigned char *)Infos)[GRU_INT_Q]);
+
+		/* Scale to internal_qtype --> 16bits QY */
+		Oz = AT_SCALE(Oz, ((unsigned char *)Infos)[GRU_Z_INT_SCALE], ((unsigned char *)Infos)[GRU_Z_INT_SCALEN]);
+		/* Oz = HSigmoid(internal_scaled(Oz)) */
+		Oz = AT_NORM(AT_CLIP_POS(Oz + *(short *)&Infos[GRU_INT_B0], *((short *)&Infos[GRU_INT_A0])) * *((short *)&Infos[GRU_INT_C0]), ((unsigned char *)Infos)[GRU_INT_Q]);
+
+		Oh = AT_NORM(Oh*Or, 12) + AT_SCALE(Oh_in, ((unsigned char *)Infos)[GRU_HT_IN_SCALE], ((unsigned char *)Infos)[GRU_HT_IN_SCALEN]);
+		Oh = AT_SCALE(Oh, ((unsigned char *)Infos)[GRU_H_INT_SCALE], ((unsigned char *)Infos)[GRU_H_INT_SCALEN]);
+		/* X1 = HTanh(X1) */
+		int one = 1 << ((unsigned char *)Infos)[GRU_INT_Q];
+		Oh = Max(-one, Min(one, Oh));
+
+		int CurrStateQ12 = State[TileOff+o] << 5;
+		/* h_t = (1 - Oz) * Oh + Oz * h_t-1 */
+		/* Oz->Q12 * Oh->Q12 --> Q24 */
+		/* h_t -> Q7 --> >> (24 - 7) */
+		Oh = gap_clip(AT_NORM(((1 << 12) - Oz) * Oh + Oz * CurrStateQ12, 17), 7);
+		if (StateInOut) StateInOut[TileOff+o] = Oh;
+		if (Hout) Hout[o] = Oh;
+		if (PerChannelQuant) Infos += GRU_CELL_INFOS;
 	}
 	gap_waitbarrier(0);
 }

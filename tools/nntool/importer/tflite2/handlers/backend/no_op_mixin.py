@@ -20,9 +20,6 @@ class NoOpMixin(BasicMathMixin):
 
     @classmethod
     def _common(cls, node, **kwargs):
-        all_nodes = kwargs['all_nodes']
-        inputs = [all_nodes[t] for t in node.input]
-        x = inputs[0]
         return super(NoOpMixin, cls)._common(
             node,
             params_class=NoOPParameters,

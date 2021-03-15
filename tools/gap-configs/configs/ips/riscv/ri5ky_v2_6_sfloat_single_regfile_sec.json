@@ -1,4 +1,6 @@
 {
   "@includes@" : ["ips/riscv/ri5ky_v2_6_sfloat_single_regfile.json"],
-  "defines"  : [ "ARCHI_CORE_HAS_PULPV2", "ARCHI_CORE_HAS_CPLX", "ARCHI_CORE_HAS_SECURITY", "ARCHI_CORE_HAS_1_10" ]
+  "vp_component": "cpu/iss/iss_riscy_v2_5_single_regfile_secure",
+  "iss_class": "iss_riscy_v2_5_single_regfile_secure",
+  "isa"           : "rv32imfcXpulpv2Xf8Xf16XfvecXfauxXf16altXgap9Xint64"
 }

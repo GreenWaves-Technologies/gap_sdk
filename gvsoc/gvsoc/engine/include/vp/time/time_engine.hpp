@@ -129,6 +129,11 @@ public:
         return engine->enqueue(this, time);
     }
 
+    inline bool dequeue_from_engine()
+    {
+        return engine->dequeue(this);
+    }
+
     inline int64_t get_time() { return engine->get_time(); }
 
     virtual int64_t exec() = 0;

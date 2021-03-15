@@ -27,7 +27,7 @@ MODEL_SUFFIX = _SQ8BIT
 NNTOOL_EXTRA_FLAGS= -q
 
 include ../common/model_decl.mk
-TRAINED_TFLITE_MODEL=model/visual_wake_quant.tflite
+TRAINED_MODEL=model/visual_wake_quant.tflite
 
 # Here we set the memory allocation for the generated kernels
 # REMEMBER THAT THE L1 MEMORY ALLOCATION MUST INCLUDE SPACE

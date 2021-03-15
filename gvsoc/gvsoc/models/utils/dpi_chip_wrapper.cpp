@@ -37,7 +37,7 @@ using namespace std;
 
 class dpi_chip_wrapper;
 
-extern "C" void dpi_external_edge(int handle, int value);
+extern "C" void dpi_external_edge(int handle, uint32_t value);
 
 class Pad_group
 {
@@ -58,6 +58,8 @@ public:
     Qspim_group(dpi_chip_wrapper *top, std::string name) : Pad_group(top, name) {}
     void edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int data);
     bool bind(std::string pad_name, Dpi_chip_wrapper_callback *callback);
+    void rx_edge(int sck, int data_0, int data_1, int data_2, int data_3, int mask);
+    void rx_cs_edge(bool data);
     vp::trace trace;
     vp::trace data_0_trace;
     vp::trace data_1_trace;
@@ -68,6 +70,10 @@ public:
     vector<vp::qspim_master *> master;
     vector<vp::wire_master<bool> *> cs_master;
     int active_cs;
+
+    Dpi_chip_wrapper_callback *data_callback[4];
+    Dpi_chip_wrapper_callback *sck_callback;
+    Dpi_chip_wrapper_callback *cs_callback;
 
     int sck;
     int data_0;
@@ -91,10 +97,12 @@ public:
     Dpi_chip_wrapper_callback *sck_callback;
     Dpi_chip_wrapper_callback *ws_callback;
     Dpi_chip_wrapper_callback *sdi_callback;
+    Dpi_chip_wrapper_callback *sdo_callback;
 
     int sck;
     int ws;
     int sdo;
+    int sdi;
 };
 
 
@@ -192,7 +200,8 @@ public:
     void start();
 
 private:
-    static void qspim_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
+    static void qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id);
+    static void qspim_cs_sync(void *__this, bool data, int id);
     static void uart_rx_edge(void *__this, int data, int id);
     static void uart_rx_edge_full(void *__this, int data, int sck, int rtr, int id);
     static void uart_sync(void *__this, int data, int sck, int rtr, int id);
@@ -241,6 +250,12 @@ int dpi_chip_wrapper::build()
             {
                 Qspim_group *group = new Qspim_group(this, name);
                 group->active_cs = -1;
+
+                group->data_callback[0] = NULL;
+                group->data_callback[1] = NULL;
+                group->data_callback[2] = NULL;
+                group->data_callback[3] = NULL;
+
                 this->groups.push_back(group);
 
                 traces.new_trace(name, &group->trace, vp::WARNING);
@@ -266,6 +281,7 @@ int dpi_chip_wrapper::build()
 
                     vp::wire_master<bool> *cs_itf = new vp::wire_master<bool>;
                     new_master_port(name + "_cs" + std::to_string(i), cs_itf);
+                    cs_itf->set_sync_meth_muxed(&dpi_chip_wrapper::qspim_cs_sync, nb_itf);
                     group->cs_master.push_back(cs_itf);
                 }
 
@@ -358,23 +374,18 @@ int dpi_chip_wrapper::build()
 }
 
 
-void dpi_chip_wrapper::qspim_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id)
+void dpi_chip_wrapper::qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
-#if 0
-  padframe *_this = (padframe *)__this;
-  Qspim_group *group = static_cast<Qspim_group *>(_this->groups[id]);
+    dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
+    Qspim_group *group = static_cast<Qspim_group *>(_this->groups[id]);
+    group->rx_edge(sck, data_0, data_1, data_2, data_3, mask);
+}
 
-  if (mask & (1<<0))
-    group->data_0_trace.event((uint8_t *)&data_0);
-  if (mask & (1<<1))
-    group->data_1_trace.event((uint8_t *)&data_1);
-  if (mask & (1<<2))
-    group->data_2_trace.event((uint8_t *)&data_2);
-  if (mask & (1<<3))
-    group->data_3_trace.event((uint8_t *)&data_3);
-
-  group->slave.sync(data_0, data_1, data_2, data_3, mask);
-#endif
+void dpi_chip_wrapper::qspim_cs_sync(void *__this, bool data, int id)
+{
+    dpi_chip_wrapper *_this = (dpi_chip_wrapper *)__this;
+    Qspim_group *group = static_cast<Qspim_group *>(_this->groups[id]);
+    group->rx_cs_edge(data);
 }
 
 
@@ -489,14 +500,32 @@ bool Qspim_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback
     {
         callback->pad_value = &this->sck;
         callback->is_sck = true;
+        this->sck_callback = callback;
     }
     else if (pad_name == "mosi")
     {
         callback->pad_value = &this->data_0;
+        this->data_callback[0] = callback;
     }
     else if (pad_name == "miso")
     {
         callback->pad_value = &this->data_1;
+        this->data_callback[1] = callback;
+    }
+    else if (pad_name == "sdio2")
+    {
+        callback->pad_value = &this->data_2;
+        this->data_callback[2] = callback;
+    }
+    else if (pad_name == "sdio3")
+    {
+        callback->pad_value = &this->data_3;
+        this->data_callback[3] = callback;
+    }
+    else if (pad_name == "miso")
+    {
+        callback->pad_value = &this->data_1;
+        this->data_callback[1] = callback;
     }
     else if (pad_name.find("csn") != string::npos)
     {
@@ -504,6 +533,10 @@ bool Qspim_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback
         callback->pad_value = &this->cs[cs];
         callback->is_cs = true;
         callback->cs_id = cs;
+        if (cs == 0)
+        {
+            this->cs_callback = callback;
+        }
     }
     else
     {
@@ -523,7 +556,7 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
     {
         this->trace.msg(vp::trace::LEVEL_TRACE, "SPI CS (name: %s, value: %d)\n", callback->name.c_str(), data);
 
-        if (!this->cs_master[callback->cs_id]->is_bound())
+        if (this->cs_master.size() <= callback->cs_id || !this->cs_master[callback->cs_id]->is_bound())
         {
             //this->trace.force_warning("Trying to synchronize unconnected pads\n");
         }
@@ -537,7 +570,7 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
             this->cs_master[callback->cs_id]->sync(!data);
         }
     }
-    else if (callback->is_sck)
+    else
     {
         this->trace.msg(vp::trace::LEVEL_TRACE, "SPI clock (name: %s, value: %d)\n", callback->name.c_str(), data);
 
@@ -554,6 +587,27 @@ void Qspim_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, i
         }
     }
 }
+
+void Qspim_group::rx_edge(int sck, int data_0, int data_1, int data_2, int data_3, int mask)
+{
+    if (sck_callback)
+        dpi_external_edge(this->sck_callback->handle, sck);
+    if (data_callback[0])
+        dpi_external_edge(this->data_callback[0]->handle, data_0);
+    if (data_callback[1])
+        dpi_external_edge(this->data_callback[1]->handle, data_1);
+    if (data_callback[2])
+        dpi_external_edge(this->data_callback[2]->handle, data_2);
+    if (data_callback[3])
+        dpi_external_edge(this->data_callback[3]->handle, data_3);
+}
+
+void Qspim_group::rx_cs_edge(bool data)
+{
+    if (this->cs_callback)
+        dpi_external_edge(this->cs_callback->handle, data);
+}
+
 
 /*
  * I2S
@@ -576,12 +630,15 @@ bool I2s_group::bind(std::string pad_name, Dpi_chip_wrapper_callback *callback)
     }
     else if (pad_name == "sdi")
     {
+        callback->pad_value = &this->sdi;
         this->sdi_callback = callback;
-        return true;
+        this->sdi = 0;
     }
     else if (pad_name == "sdo")
     {
         callback->pad_value = &this->sdo;
+        this->sdo_callback = callback;
+        this->sdo = 0;
     }
     else
     {
@@ -597,22 +654,23 @@ void I2s_group::edge(Dpi_chip_wrapper_callback *callback, int64_t timestamp, int
 
     *(callback->pad_value) = data;
 
-    if (callback->is_sck)
-    {
-        this->trace.msg(vp::trace::LEVEL_TRACE, "I2S clock (name: %s, value: %d)\n", callback->name.c_str(), data);
+    this->trace.msg(vp::trace::LEVEL_TRACE, "I2S clock (name: %s, value: %d)\n", callback->name.c_str(), data);
 
-        if (this->slave.is_bound())
-        {
-            this->trace.msg(vp::trace::LEVEL_TRACE, "I2S clock  SYNC(name: %s, value: %d)\n", callback->name.c_str(), data);
-            this->slave.sync(this->sck, this->ws, this->sdo);
-        }
+    if (this->slave.is_bound())
+    {
+        this->trace.msg(vp::trace::LEVEL_TRACE, "I2S clock  SYNC(name: %s, value: %d)\n", callback->name.c_str(), data);
+        this->slave.sync(this->sck, this->ws, ((this->sdo & 3) << 2) | (this->sdi & 3));
     }
 }
 
 void I2s_group::rx_edge(int sck, int ws, int sd)
 {
     this->trace.msg(vp::trace::LEVEL_TRACE, "External EDGE\n");
-    dpi_external_edge(this->sdi_callback->handle, sd);
+
+    dpi_external_edge(this->sdi_callback->handle, sd & 3);
+    dpi_external_edge(this->sdo_callback->handle, (sd >> 2) & 3);
+    dpi_external_edge(this->sck_callback->handle, sck);
+    dpi_external_edge(this->ws_callback->handle, ws);
 }
 
 

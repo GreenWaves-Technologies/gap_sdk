@@ -113,7 +113,7 @@ proc gap_flash_raw {image_name image_size gap_tools_path} {
 	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_flasher@gapoc_a.elf elf
 	sleep 100
 	# flash the flash image with the flasher
-	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000190
+	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000090
 	sleep 2
 
     puts "--------------------------"
@@ -140,7 +140,7 @@ proc gap_flash_raw_hyper {image_name image_size gap_tools_path} {
 	sleep 2
 	# flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
-	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000190
+	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000090
 	sleep 2
     puts "--------------------------"
     puts "flasher is done!"
@@ -170,11 +170,11 @@ proc gap9_flash_raw_hyper {image_name image_size gap_tools_path} {
     puts "--------------------------"
     puts "load flasher to L2 memory"
     # need to pass board name as arg -- TODO: unify command name
-	load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher@gapuino9.elf 0x1c000080
+	load_and_start_binary ${gap_tools_path}/gap_bins/gap_flasher@gapuino9.elf 0x1c010170
 	sleep 2
 	# flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
-	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c000090
+	gap_flasher_ctrl $image_name $image_size 0 0x40000 0 0x1c010090
 	sleep 2
     puts "--------------------------"
     puts "flasher is done!"
@@ -191,7 +191,7 @@ proc gap_flash_raw_spi {image_name image_size gap_tools_path} {
 	sleep 2
 	# flash the flash image with the flasher
     puts "Instruct flasher to begin flash per se"
-	gap_flasher_ctrl $image_name $image_size 0 0x1000 1 0x1c000190
+	gap_flasher_ctrl $image_name $image_size 0 0x1000 1 0x1c000090
 	sleep 2
     puts "--------------------------"
     puts "flasher session is done!"

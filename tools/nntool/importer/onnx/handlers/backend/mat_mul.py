@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.input_output import ConstantInputParameters
+from graph.types.others import TransposeParameters
 import numpy as np
 from graph.dim import Dim, FcFilterDim
 from graph.types import FcParameters, MatMulOpParameters, NNEdge
@@ -40,12 +42,18 @@ class MatMul(PromoteLinearMixin, BackendHandler):
         if cls.is_linear(y, x_shape, y_shape):
             filt_dim = FcFilterDim(y_shape[1], x_shape[0])
             weights = np.transpose(cls.get_constant(y), [1, 0])
-            params = FcParameters(valid_name, filt=filt_dim, has_bias=False,
-                                  in_dims_hint=SparseList([['c']]),
+            weights_params = ConstantInputParameters(f'{valid_name}_weights',
+                                                     dims=Dim.unnamed([y_shape[1], x_shape[0]]),
+                                                     value=weights)
+            params = FcParameters(valid_name, filt=filt_dim, has_bias=True,
+                                  in_dims_hint=SparseList([['c'], ['out_c', 'in_c'], ['out_c']]),
                                   out_dims_hint=SparseList([['c']]),
                                   constant_store=G.constant_store)
-            params.weights = weights
             out_dims = params.get_output_size([Dim.unnamed(x_shape)])
+            biases_params = ConstantInputParameters(f'{valid_name}_biases', dims=Dim.unnamed([y_shape[1]]),
+                                                    value=np.zeros((y_shape[1]), dtype=np.float32))
+            G.add_edge(NNEdge(from_node=weights_params, to_node=params, to_idx=1))
+            G.add_edge(NNEdge(from_node=biases_params, to_node=params, to_idx=2))
         else:
             params = MatMulOpParameters(valid_name)
             out_dims = params.get_output_size([Dim.unnamed(x_shape), Dim.unnamed(y_shape)])

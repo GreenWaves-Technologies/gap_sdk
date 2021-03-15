@@ -200,6 +200,133 @@ static inline void pi_cl_team_barrier()
     hal_compiler_barrier();
 }
 
+static inline void pi_cl_team_barrier_cc()
+{
+    pos_team_cc_barrier();
+}
+
+
+static inline int pi_cl_bitfield_nb_available()
+{
+    return __builtin_popcount(eu_bitfield_value_get(POS_BITFIELD_ALLOC_ID));
+}
+
+
+static inline uint32_t pi_cl_bitfield_alloc()
+{
+    int id = eu_bitfield_alloc_from_id(POS_BITFIELD_ALLOC_ID);
+    if (id == 32)
+        return 0;
+    else
+        return eu_bitfield_addr(id);
+}
+
+
+static inline void pi_cl_bitfield_free(uint32_t bitfield)
+{
+    eu_bitfield_set_from_id(POS_BITFIELD_ALLOC_ID, 1 << eu_bitfield_id(bitfield));
+}
+
+
+static inline int pi_cl_bitfield_id(uint32_t bitfield)
+{
+    return eu_bitfield_id(bitfield);
+}
+
+
+static inline void pi_cl_bitfield_value_set(uint32_t bitfield, uint32_t value)
+{
+    eu_bitfield_value_set(bitfield, value);
+}
+
+
+static inline uint32_t pi_cl_bitfield_value_get(uint32_t bitfield)
+{
+    return eu_bitfield_value_get(bitfield);
+}
+
+
+static inline void pi_cl_bitfield_bits_set(uint32_t bitfield, uint32_t value)
+{
+    eu_bitfield_set(bitfield, value);
+}
+
+
+static inline void pi_cl_bitfield_bits_clr(uint32_t bitfield, uint32_t value)
+{
+    eu_bitfield_clear(bitfield, value);
+}
+
+
+static inline uint32_t pi_cl_bitfield_bit_alloc(uint32_t bitfield)
+{
+    return eu_bitfield_alloc(bitfield);
+}
+
+
+static inline int pi_cl_sem_nb_available()
+{
+    return __builtin_popcount(eu_bitfield_value_get(POS_SEM_ALLOC_ID));
+}
+
+
+static inline uint32_t pi_cl_sem_alloc()
+{
+    int id = eu_bitfield_alloc_from_id(POS_SEM_ALLOC_ID);
+    if (id == 32)
+        return 0;
+    else
+        return eu_sem_addr(id);
+}
+
+
+static inline void pi_cl_sem_free(uint32_t sem)
+{
+    eu_bitfield_set_from_id(POS_SEM_ALLOC_ID, 1 << eu_sem_id(sem));
+}
+
+
+static inline int pi_cl_sem_id(uint32_t sem)
+{
+    return eu_sem_id(sem);
+}
+
+
+static inline void pi_cl_sem_set(uint32_t sem, uint32_t value)
+{
+    eu_sem_set(sem, value);
+}
+
+
+static inline uint32_t pi_cl_sem_get(uint32_t sem)
+{
+    return eu_sem_get(sem);
+}
+
+
+static inline void pi_cl_sem_inc(uint32_t sem, uint32_t value)
+{
+    eu_sem_inc(sem, value);
+}
+
+
+static inline uint32_t pi_cl_sem_dec(uint32_t sem)
+{
+    return eu_sem_dec(sem);
+}
+
+
+static inline uint32_t pi_cl_sem_dec_cc(uint32_t sem)
+{
+    return eu_sem_dec_irq_safe(sem);
+}
+
+
+static inline uint32_t pi_cl_sem_load_inc(uint32_t sem)
+{
+    return eu_sem_load_inc(sem);
+}
+
 
 
 #endif

@@ -175,10 +175,22 @@ namespace vp {
     if (is_active && comp->traces.get_trace_manager()->get_trace_level() >= level)
     {
       dump_header();
+      if (level == vp::trace::LEVEL_ERROR)
+      {
+        fprintf(this->trace_file, "\033[31m");
+      }
+      else if (level == vp::trace::LEVEL_WARNING)
+      {
+        fprintf(this->trace_file, "\033[33m");
+      }
       va_list ap;
       va_start(ap, fmt);
       if (vfprintf(this->trace_file, fmt, ap) < 0) {}
       va_end(ap);  
+      if (level == vp::trace::LEVEL_ERROR || level == vp::trace::LEVEL_WARNING)
+      {
+        fprintf(this->trace_file, "\033[0m");
+      }
     }
   #endif
   }

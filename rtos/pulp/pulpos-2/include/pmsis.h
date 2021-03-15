@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -46,6 +46,7 @@
 #include "pmsis/cluster/cl_malloc.h"
 #include "pmsis/rtos/os_frontend_api/pmsis_time.h"
 #include "pmsis/rtos/os_frontend_api/freq.h"
+#include "pmsis/rtos/os_frontend_api/os.h"
 #include "pmsis/rtos/malloc/cl_l1_malloc.h"
 #include "pmsis/rtos/malloc/l2_malloc.h"
 #include "pmsis/rtos/malloc/fc_l1_malloc.h"
@@ -63,7 +64,10 @@
 #include "pmsis/drivers/pad.h"
 #include "pmsis/drivers/aes.h"
 #include "pmsis/drivers/rtc.h"
+#include "pmsis/drivers/udma_fifo.h"
+#include "pmsis/drivers/udma_timestamp.h"
 #include "pmsis/cluster/dma/cl_dma.h"
+#include "pmsis/chips/gap9/gap9.h"
 
 
 #include "hal/utils.h"

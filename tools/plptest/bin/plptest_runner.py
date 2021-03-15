@@ -36,6 +36,8 @@ try:
 except:
   pass
 
+test_runner = None
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -45,6 +47,12 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+def sigint_handler(sig, frame):
+    if test_runner is not None:
+        test_runner.close_runner()
+        test_runner.stop()
+
 
 if os.environ.get('PYTHON_LOG') != None:
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -333,6 +341,9 @@ class TestRunner(object):
         maxOutputLen=-1, maxTimeout=-1, worker_pool=None,
         db=False, pobjs=None, build=None, average_load=None, safe_stdout=False, home=None,
         bench_csv_file=None, bench_regexp=None, commands=None, dry_run=False):
+
+        global test_runner
+
         self.nb_runs = 0
         self.tests = []
         self.server = server
@@ -358,6 +369,8 @@ class TestRunner(object):
         self.commands = commands
         self.cpu_load_checker_call_id = None
         self.dry_run = dry_run
+
+        test_runner = self
 
         if average_load is not None:
           self.average_load = average_load * 100
@@ -423,11 +436,14 @@ class TestRunner(object):
       if callback != None:
         reactor.callWhenRunning(callback, *args, **kwargs)
         
+      signal.signal(signal.SIGINT, sigint_handler)
+
       if not reactor.running:
         reactor.run()
         self.close_runner()
       else:
         reactor.addSystemEventTrigger('after', 'shutdown', self.close_runner)
+
 
     def check_pending_tests(self):
       if len(self.pendings) > 0 and self.check_cpu_load():

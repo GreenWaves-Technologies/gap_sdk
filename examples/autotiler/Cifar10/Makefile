@@ -78,7 +78,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenCifar10 $(COEF_FLAG) -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(MODEL_GEN_POW2) $(TILER_LIB)
+	gcc -o GenCifar10 -fcommon $(COEF_FLAG) -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) Cifar10Model.c $(MODEL_GEN_POW2) $(TILER_LIB)
 
 # Run the code generator
 Cifar10Kernels.c: GenTile

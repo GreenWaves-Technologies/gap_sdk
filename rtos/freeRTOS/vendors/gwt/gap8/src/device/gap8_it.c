@@ -31,6 +31,7 @@
 #include "gap8_it.h"
 #include "pmsis/implem/hal/hal.h"
 #include "printf.h"
+#include "pmsis.h"
 
 /* Ecall Table. */
 const void *_ecall_vector[NB_ECALL] = {
@@ -145,4 +146,10 @@ void _isr_default( void )
     printf("Default\n");
     __asm__ volatile ( "nop" );
     return;
+}
+
+void _ill_insn_print(uint32_t mepc)
+{
+    PI_LOG_ERR(__func__, "Error : illegal instruction at %lx\n", mepc);
+    pmsis_exit(-199);
 }

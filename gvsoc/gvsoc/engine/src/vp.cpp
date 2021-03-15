@@ -100,6 +100,13 @@ uint64_t vp::reg::get_field(int offset, int width)
 }
 
 
+void vp::regmap::reset(bool active)
+{
+    for (auto x: this->get_registers())
+    {
+        x->reset(active);
+    }
+}
 
 bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write)
 {
@@ -1104,6 +1111,7 @@ vp::config *vp::component::import_config(const char *config_string)
 
 void vp::component::conf(string name, string path, vp::component *parent)
 {
+    this->name = name;
     this->parent = parent;
     this->path = path;
     if (parent != NULL)

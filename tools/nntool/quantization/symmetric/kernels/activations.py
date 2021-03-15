@@ -13,16 +13,21 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
+
 import numpy as np
 from graph.types import (HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
-                         ReluActivationParameters)
+                         ReluActivationParameters, SigmoidActivationParameters)
 from quantization.kernels.kernel_base import (KernelBase, params_type,
                                               qrec_type, quantization)
 from quantization.multiplicative.mult_quantization import \
     MultQuantizationRecord
+from quantization.multiplicative.utils.scale import (apply_scales,
+                                                     compute_scales)
 from quantization.qtype import QType
 from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.symmetric.kernels.rnn import sigmoidLUT
 from utils.at_norm import at_norm
 
 
@@ -169,7 +174,7 @@ class HSigmoidSymmetric(KernelBase):
                 **kwargs):
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
 
-        calc_q = QType(bits=32, q=qrec.in_qs[0].q + 15, signed=True)
+        calc_q = QType.Pow2(bits=32, q=qrec.in_qs[0].q + 15, signed=True)
 
         fac_1 = qrec.in_qs[0].quantize(np.array([params.offset]))
         fac_2 = (1 << 15) // 6
@@ -180,6 +185,30 @@ class HSigmoidSymmetric(KernelBase):
                                            upper_bound), fac_2, dtype=np.int32)
         return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, calc_q)], ktype="symmetric")
 
+def sigmoid_mult_gen_factors(params, qrec):
+    in_q = qrec.in_qs[0]
+    mul_bias_sigmoid = in_q.scale / math.pow(2, -12)
+    return compute_scales(mul_bias_sigmoid)
+
+@params_type(SigmoidActivationParameters)
+@quantization('symmetric')
+@qrec_type(MultQuantizationRecord)
+class SigmoidSymmetricMult(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        a0, b0 = sigmoid_mult_gen_factors(params, qrec)
+        in_tensor = in_tensor.astype(np.int32)
+        in_tensor_q12 = apply_scales(a0, b0, in_tensor)
+        output = sigmoidLUT(in_tensor_q12)
+
+        #output = qrec.scale_mul_biases_q.apply_scales(output)
+        return qrec.get_outputs(params,
+                                [output >> 8],
+                                ktype="symmetric")
 
 def hswish_mult_gen_factors(qrec):
     in_q = qrec.in_qs[0]
@@ -221,7 +250,7 @@ class HSwishSymmetric(KernelBase):
 
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
 
-        calc_q = QType(bits=32, q=qrec.in_qs[0].q + 15, signed=True)
+        calc_q = QType.Pow2(bits=32, q=qrec.in_qs[0].q + 15, signed=True)
         fac_1 = qrec.in_qs[0].quantize(np.array([3.]))
         fac_2 = (1 << 15) // 6
         upper_bound = qrec.in_qs[0].quantize([6.])

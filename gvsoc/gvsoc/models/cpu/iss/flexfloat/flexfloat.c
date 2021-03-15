@@ -97,6 +97,7 @@ uint_t flexfloat_pack_bits(flexfloat_desc_t desc, uint_t bits)
             exp--;
         frac &= ((UINT_C(1) << desc.frac_bits) - 1); // remove implicit bit
         // printf("[ff_pack_bits] done normalizing 0x%016lx, exp %d\n", frac, exp);
+
         return flexfloat_pack(desc, sign, exp, frac);
     }
     else
@@ -110,21 +111,36 @@ void flexfloat_set_bits(flexfloat_t *a, uint_t bits)
     CAST_TO_INT(a->value) = flexfloat_pack_bits(a->desc, bits);
 }
 
+
 uint_t flexfloat_get_bits(flexfloat_t *a)
 {
     int_fast16_t exp = flexfloat_exp(a);
     uint_t frac = flexfloat_frac(a);
 
     if(exp == INF_EXP) exp = flexfloat_inf_exp(a->desc);
-    else if(exp <= 0) {
+    else  if (exp<0 && frac == 0) {
+            /* We have a subnormal here since we cannot represent exp (too small), set frac to 2^(frac_bits-exp+1) */
+            if ((a->desc.frac_bits-exp-1) >= 0)
+                frac = 1<<(a->desc.frac_bits+exp-1);
+            else frac = 0;
+            exp = 0;
+    } else if(exp <= 0) {
         frac = flexfloat_denorm_frac(a, exp);
         exp = 0;
     }
 
+#ifdef OLD
     return ((uint_t)flexfloat_sign(a) << (a->desc.exp_bits + a->desc.frac_bits))
            + ((uint_t)exp << a->desc.frac_bits)
            + frac;
+#else
+    uint_t Mask = ((uint_t)flexfloat_sign(a))?((uint_t)(-1)<<(a->desc.exp_bits + a->desc.frac_bits)):0;
+    return ((((uint_t)flexfloat_sign(a) << (a->desc.exp_bits + a->desc.frac_bits))
+           + ((uint_t)exp << a->desc.frac_bits)
+           + frac) | Mask);
+#endif
 }
+
 
 #ifdef FLEXFLOAT_ROUNDING
 
@@ -133,11 +149,18 @@ bool flexfloat_round_bit(const flexfloat_t *a, int_fast16_t exp)
 {
     if(exp <= 0 && EXPONENT(CAST_TO_INT(a->value)) != 0)
     {
+#ifdef OLD
         int shift = (- exp + 1);
         uint_t denorm = 0;
         if(shift < NUM_BITS)
           denorm = ((CAST_TO_INT(a->value) & MASK_FRAC | MASK_FRAC_MSB)) >> shift;
         return denorm & (UINT_C(0x1) << (NUM_BITS_FRAC - a->desc.frac_bits - 1));
+#else
+        unsigned short shift = NUM_BITS_FRAC - a->desc.frac_bits - exp + 1;
+	uint_t Frac = (CAST_TO_INT(a->value) & MASK_FRAC) | MASK_FRAC_MSB;
+        int RndB = ((Frac & ((uint_t)1<<(shift-1)))!=0);
+        return (RndB!=0);
+#endif
     }
     else
     {
@@ -150,12 +173,20 @@ bool flexfloat_sticky_bit(const flexfloat_t *a, int_fast16_t exp)
 {
     if(exp <= 0 && EXPONENT(CAST_TO_INT(a->value)) != 0)
     {
+#ifdef OLD
         int shift = (- exp + 1);
         uint_t denorm = 0;
         if(shift < NUM_BITS)
             denorm = ((CAST_TO_INT(a->value) & MASK_FRAC) | MASK_FRAC_MSB) >> shift;
         return (denorm & (MASK_FRAC >> (a->desc.frac_bits + 1))) ||
                ( ((denorm & MASK_FRAC) == 0)  && (CAST_TO_INT(a->value)!=0) );
+#else
+        unsigned short shift = NUM_BITS_FRAC - a->desc.frac_bits - exp + 1;
+	uint_t Frac = (CAST_TO_INT(a->value) & MASK_FRAC) | MASK_FRAC_MSB;
+        int StiB = ((Frac & (((uint_t)1<<(shift-1))-1)) != 0);
+        return (StiB!=0);
+
+#endif
     }
     else
     {
@@ -540,9 +571,15 @@ INLINE void ff_min(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b
     assert((dest->desc.exp_bits == a->desc.exp_bits) && (dest->desc.frac_bits == a->desc.frac_bits) &&
            (a->desc.exp_bits == b->desc.exp_bits) && (a->desc.frac_bits == b->desc.frac_bits));
     dest->value = fmin(a->value,b->value);
-    // fmin's zero sign handling is implementation defined! Check for 0 cases and ensure -0 is chosen
+    // fmin's zero sign handling is implementation defined! Check for 0 cases to ensure right result
     if ((a->value == 0) && (a->value == b->value))
-        CAST_TO_INT(dest->value) = (UINT_C(0x1) << NUM_BITS-1);
+    {
+        if (flexfloat_sign(a) || flexfloat_sign(b))
+            CAST_TO_INT(dest->value) = (UINT_C(0x1) << NUM_BITS-1);
+        else
+            CAST_TO_INT(dest->value) = 0;
+    }
+
     #ifdef FLEXFLOAT_TRACKING
     dest->exact_value = fmin(a->exact_value,b->exact_value);
     if ((a->exact_value == 0) && (a->exact_value == b->exact_value))
@@ -559,9 +596,14 @@ INLINE void ff_max(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b
     assert((dest->desc.exp_bits == a->desc.exp_bits) && (dest->desc.frac_bits == a->desc.frac_bits) &&
            (a->desc.exp_bits == b->desc.exp_bits) && (a->desc.frac_bits == b->desc.frac_bits));
     dest->value = fmax(a->value,b->value);
-    // fmax' zero sign handling is implementation defined! Check for 0 cases and ensure +0 is chosen
+    // fmin's zero sign handling is implementation defined! Check for 0 cases to ensure right result
     if ((a->value == 0) && (a->value == b->value))
-        CAST_TO_INT(dest->value) = 0;
+    {
+        if (flexfloat_sign(a) && flexfloat_sign(b))
+            CAST_TO_INT(dest->value) = (UINT_C(0x1) << NUM_BITS-1);
+        else
+            CAST_TO_INT(dest->value) = 0;
+    }
     #ifdef FLEXFLOAT_TRACKING
     dest->exact_value = fmax(a->exact_value,b->exact_value);
     if ((a->exact_value == 0) && (a->exact_value == b->exact_value))
@@ -590,11 +632,51 @@ INLINE void ff_fma(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b
             (try >= 0) ? fesetround(FE_UPWARD) : fesetround(FE_DOWNWARD);
             fesetexceptflag(&flags, FE_ALL_EXCEPT); // restore flags here
         } else {
+#ifdef OLD
             fesetround(FE_TOWARDZERO); // just truncate
+#endif
         }
     }
     #endif
     dest->value = fma(a->value, b->value, c->value); // finally the actual operation
+
+    #ifdef FLEXFLOAT_TRACKING
+    dest->exact_value = fma(a->exact_value, b->exact_value, c->exact_value);
+    if(dest->tracking_fn) (dest->tracking_fn)(dest, dest->tracking_arg);
+    #endif
+    #ifdef FLEXFLOAT_ROUNDING
+    if (a->desc.frac_bits < NUM_BITS_FRAC && mode == FE_TONEAREST)
+        fesetround(FE_TONEAREST); // restore rounding
+    #endif
+    flexfloat_sanitize(dest);
+    #ifdef FLEXFLOAT_STATS
+    if(StatsEnabled) getOpStats(dest->desc)->fma += 1;
+    #endif
+}
+
+INLINE void ff_fnma(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b, const flexfloat_t *c) {
+    assert((dest->desc.exp_bits == a->desc.exp_bits) && (dest->desc.frac_bits == a->desc.frac_bits) &&
+           (a->desc.exp_bits == b->desc.exp_bits) && (a->desc.frac_bits == b->desc.frac_bits) &&
+           (b->desc.exp_bits == c->desc.exp_bits) && (b->desc.frac_bits == c->desc.frac_bits));
+    #ifdef FLEXFLOAT_ROUNDING
+    // Change the rounding mode according to the error direction if we need to do manual rounding for RNE
+    int mode = fegetround();
+    bool eff_sub = flexfloat_sign(a) ^ flexfloat_sign(b) ^ flexfloat_sign(c);
+    if (a->desc.frac_bits < NUM_BITS_FRAC && mode == FE_TONEAREST) {
+        if (!eff_sub) { // in this case, we need to round away from zero
+            fexcept_t flags;
+            fegetexceptflag(&flags, FE_ALL_EXCEPT); // get accrued flags to not tarnish them here
+            double try = fma(a->value, b->value, c->value);
+            (try >= 0) ? fesetround(FE_UPWARD) : fesetround(FE_DOWNWARD);
+            fesetexceptflag(&flags, FE_ALL_EXCEPT); // restore flags here
+        } else {
+            fesetround(FE_TOWARDZERO); // just truncate
+        }
+    }
+    #endif
+
+    dest->value = -(a->value*b->value) - c->value;
+
     #ifdef FLEXFLOAT_TRACKING
     dest->exact_value = fma(a->exact_value, b->exact_value, c->exact_value);
     if(dest->tracking_fn) (dest->tracking_fn)(dest, dest->tracking_arg);

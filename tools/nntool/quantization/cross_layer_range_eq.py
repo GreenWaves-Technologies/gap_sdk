@@ -29,13 +29,13 @@ from stats.scales import Scales
 LOG = logging.getLogger('nntool.'+__name__)
 
 
-def process_node(node, last_neuron, group, groups, neurons):
+def process_node(G, node, last_neuron, group, groups, neurons, pnode=None):
     if not node.can_equalize:
         group = add_group(group, groups, neurons)
         return True, None, group
 
     if isinstance(node, FilterParameters):
-        last_neuron = add_neuron(node.name, node, last_neuron, neurons, group)
+        last_neuron = add_neuron(G, node.name, node, last_neuron, neurons, group, pnode=pnode)
         return True, last_neuron, group
 
     if isinstance(node, ActivationParameters) and\
@@ -51,23 +51,32 @@ def discover_groups(G):
     group = []
     neurons = []
     last_neuron = None
-    for step in G.graph_state.steps:
-        node = step['node']
-        # nodes cannot have multiple outputs
-        if len(G.successors(node.name)) != 1 or len(G.successors(node.name)[0]) != 1:
-            last_neuron = None
-            group = add_group(group, groups, neurons)
-            continue
+    filters = sorted([node for node in G.nodes() if isinstance(
+        node, (FilterParameters, ConvFusionParameters))], key=lambda x: x.step_idx)
+    while filters:
+        node = filters.pop(0)
+        while True:
+            next_nodes = G.successors(node.name)
+            next_node = next_nodes[0][0] if len(G.successors(node.name)) == 1 and len(
+                G.successors(node.name)[0]) == 1 else None
+            if not next_node:
+                last_neuron = None
+                group = add_group(group, groups, neurons)
+                break
 
-        should_continue, last_neuron, group = process_node(node, last_neuron, group,
-                                                           groups, neurons)
-        if should_continue:
-            continue
+            should_continue, last_neuron, group = process_node(G, node, last_neuron, group,
+                                                               groups, neurons)
+            if should_continue:
+                if next_node in filters:
+                    filters.remove(next_node)
+                node = next_node
+                continue
 
-        if isinstance(node, ConvFusionParameters):
-            for fnode in node.contained_nodes():
-                _, last_neuron, group = process_node(fnode, last_neuron, group,
-                                                     groups, neurons)
+            if isinstance(node, ConvFusionParameters):
+                for fnode in node.contained_nodes():
+                    _, last_neuron, group = process_node(G, fnode, last_neuron, group,
+                                                         groups, neurons, pnode=node)
+            break
 
     if group:
         add_group(group, groups, neurons)
@@ -84,9 +93,11 @@ def add_group(group, groups, neurons):
     return group
 
 
-def add_neuron(node_name, node, last_neuron, neurons, group):
+def add_neuron(G, node_name, node, last_neuron, neurons, group, pnode=None):
+    in_edges = G.indexed_in_edges(pnode.name) if pnode else G.indexed_in_edges(node.name)
     new_neuron = {'name': node_name, 'node': node,
-                  'weights': None, 'biases': None}
+                  'weights': in_edges[1].from_node.dqvalue.copy(), 'biases': in_edges[2].from_node.dqvalue.copy(),
+                  'pnode': pnode}
     if last_neuron is not None:
         neurons.append(last_neuron)
         LOG.info("Discovered neuron pair %s -> %s", last_neuron['name'], new_neuron['name'])
@@ -105,17 +116,17 @@ class QuantizationError(Exception):
     pass
 
 
-def calculate_precisions(step):
+def calculate_precisions(G, step):
     nn_0 = step[0]
     nn_1 = step[1]
-    ranges_0, max_0 = Ranges.range_output(nn_0['node'], weights=nn_0['weights'])
-    ranges_1, max_1 = Ranges.range_input(nn_1['node'], weights=nn_1['weights'])
+    ranges_0, max_0 = Ranges.range_output(G, nn_0['node'], weights=nn_0['weights'])
+    ranges_1, max_1 = Ranges.range_input(G, nn_1['node'], weights=nn_1['weights'])
     prec_0 = ranges_0/max_0
     prec_1 = ranges_1/max_1
     return prec_0, prec_1
 
 
-def process_group(group, threshold):
+def process_group(G, group, threshold):
     total_precision = 0
     cycles = 0
     # Keep going until we converge
@@ -125,7 +136,7 @@ def process_group(group, threshold):
         if cycles > 50:
             raise QuantizationError("Weight scaling has failed to converge")
         for step in group:
-            prec_0, prec_1 = calculate_precisions(step)
+            prec_0, prec_1 = calculate_precisions(G, step)
             precisions.append(np.sum(prec_0 * prec_1))
 
         new_total_precision = sum(precisions)
@@ -140,35 +151,37 @@ def process_group(group, threshold):
             nn_0 = step[0]
             nn_1 = step[1]
             # get the ranges of the output channels of layer 0 and input channels of layer 2
-            ranges_0, _ = Ranges.range_output(nn_0['node'], weights=nn_0['weights'])
-            ranges_1, _ = Ranges.range_input(nn_1['node'], weights=nn_1['weights'])
+            ranges_0, _ = Ranges.range_output(G, nn_0['node'], weights=nn_0['weights'])
+            ranges_1, _ = Ranges.range_input(G, nn_1['node'], weights=nn_1['weights'])
             scale = calculate_s(ranges_0, ranges_1)
             # now apply the scale to the output and input channels
             nn_0['weights'], nn_0['biases'] =\
-                Scales.scale_output(nn_0['node'], scale, nn_0['weights'], nn_0['biases'])
-            nn_1['weights'] = Scales.scale_input(nn_1['node'], scale, nn_1['weights'])
+                Scales.scale_output(G, nn_0['node'], scale, nn_0['weights'], nn_0['biases'])
+            nn_1['weights'] = Scales.scale_input(G, nn_1['node'], scale, nn_1['weights'])
 
 
-def process_groups(groups, threshold=0.01):
+def process_groups(G, groups, threshold=0.01):
     for group in groups:
         LOG.info("processing group")
-        process_group(group, float(threshold))
+        process_group(G, group, float(threshold))
 
 
-def update_parameters(neurons):
+def update_parameters(G, neurons):
     for neuron in neurons:
-        params = neuron['node']
-        params.weights = neuron['weights']
+        params = neuron['pnode'] or neuron['node']
+        in_edges = G.indexed_in_edges(params.name)
+        in_edges[1].from_node.dqvalue = neuron['weights']
         if neuron['biases'] is not None:
-            params.biases = neuron['biases']
+            in_edges[2].from_node.dqvalue = neuron['biases']
+
 
 def weight_equalization(G, threshold=0.01):
     LOG.info("discovering groups")
     groups, neurons = discover_groups(G)
     if groups and neurons:
         LOG.info("found %d groups and %d neurons", len(groups), len(neurons))
-        process_groups(groups, threshold)
-        update_parameters(neurons)
+        process_groups(G, groups, threshold)
+        update_parameters(G, neurons)
         G.graph_identity.set_equalized(threshold)
     else:
         LOG.warning("no groups to equalize found")
@@ -179,9 +192,6 @@ def adjust_biases(G, stats):
         node = nid.get_node(G)
         if isinstance(node, FilterParameters):
             chan_err = np.array(stat['chan_err'], dtype=np.float32)
-            if node.has_bias:
-                node.biases = node.biases - chan_err
-            else:
-                node.has_bias = True
-                node.biases = chan_err * -1
-                # TODO - set quantization of biases
+            in_edges = G.indexed_in_edges(node.name)
+            in_edges[2].from_node.value = in_edges[2].from_node.dqvalue - chan_err
+            in_edges[2].from_node.qtype = None

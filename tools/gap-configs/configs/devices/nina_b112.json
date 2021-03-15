@@ -1,0 +1,44 @@
+{
+    "vp_comps": [
+        "nina", "rx_clock", "tx_clock"
+    ],
+
+    "vp_ports": [
+        "uart"
+    ],
+
+    "vp_bindings": [
+        ["self->uart", "nina->uart"],
+        ["rx_clock->out", "nina->rx_clock"],
+        ["nina->rx_clock_cfg", "rx_clock->clock_in"],
+        ["tx_clock->out", "nina->tx_clock"],
+        ["nina->tx_clock_cfg", "tx_clock->clock_in"]
+    ],
+
+    "rx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "tx_clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "50000000"
+    },
+
+    "nina": {
+        "name": "Nina b112",
+
+        "vp_component": "devices.ble.nina_b112",
+        "behavior": {
+            "loopback_size": 200
+        },
+        "rts": {
+            "enabled" : false,
+            "buffer_limit": 200,
+            "duration": 200,
+            "random_seed": 12345,
+            "random_high": 10000,
+            "random_threshold": 100
+        }
+    }
+}

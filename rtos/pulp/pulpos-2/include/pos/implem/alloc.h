@@ -52,4 +52,13 @@ static inline void pi_cl_l2_free_wait(pi_cl_free_req_t *req)
   }
 }
 
+
+#ifdef ARCHI_MEMORY_POWER
+void pos_alloc_account_free(pos_alloc_t *a, void *chunk, int size);
+
+void pos_alloc_account(pos_alloc_t *a, void *chunk, uint32_t size, int factor, uint32_t standby);
+
+#endif
+
+
 #endif

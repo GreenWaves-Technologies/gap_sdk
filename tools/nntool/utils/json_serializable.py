@@ -17,16 +17,20 @@ import importlib
 class JsonSerializable(ABC):
     @abstractmethod
     def _encapsulate(self):
-        pass
+        raise NotImplementedError("JsonSerializable  must implement _encapsulate()")
 
     @abstractclassmethod
     def _dencapsulate(cls, val):
-        pass
+        raise NotImplementedError("JsonSerializable  must implement _dencapsulate()")
+
+    @classmethod
+    def dencapsulate(cls, val):
+        return cls._dencapsulate(val)
 
     def to_dict(self):
         return {
             '__type': 'JsonSerializable',
-            '__module_name': self.__module__,
+            '__module_name': self.__class__.__module__,
             '__class_name': self.__class__.__name__,
             '__contents': self._encapsulate()
         }
@@ -36,7 +40,7 @@ class JsonSerializable(ABC):
         assert val['__type'] == 'JsonSerializable', 'no a JsonSerializable'
         json_module = importlib.import_module(val['__module_name'])
         json_class = getattr(json_module, val['__class_name'])
-        return json_class._dencapsulate(val['__contents'])
+        return json_class.dencapsulate(val['__contents'])
 
 
 class JsonSerializableStateEncoder(json.JSONEncoder):
@@ -64,6 +68,26 @@ class JsonSerializableStateEncoder(json.JSONEncoder):
         except TypeError as err:
             raise err
 
+    def prepare(self, obj):
+        if isinstance(obj, dict):
+            # if we have non string keys then encode as a list
+            if any(not isinstance(k, str) for k in obj.keys()):
+                return {
+                    '__type': 'dict',
+                    '__module_name': obj.__class__.__module__,
+                    '__class_name': obj.__class__.__name__,
+                    '__contents': [(self.prepare(k), self.prepare(v)) for k, v in obj.items()]
+                }
+            else:
+                return {k: self.prepare(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [self.prepare(v) for v in obj]
+        if isinstance(obj, (str, bool, float, int)) or obj is None:
+            return obj
+        return self.default(obj)
+
+    def iterencode(self, obj, **kwargs):
+        return super(JsonSerializableStateEncoder, self).iterencode(self.prepare(obj), **kwargs)
 
 class JsonSerializableStateDecoder(json.JSONDecoder):
     def __init__(self, *args, object_hook=None, **kwargs):
@@ -75,6 +99,10 @@ class JsonSerializableStateDecoder(json.JSONDecoder):
 # pylint: disable=no-self-use, method-hidden
     def object_hook(self, obj):
         if '__type' in obj:
+            if obj['__type'] == 'dict':
+                json_module = importlib.import_module(obj['__module_name'])
+                json_class = getattr(json_module, obj['__class_name'])
+                return json_class(tuple(elem) for elem in obj['__contents'])
             if obj['__type'] == 'numpy.ndarray':
                 return np.array(obj['__contents'], dtype=np.dtype(obj['__dtype']))
             if obj['__type'] == 'JsonSerializable':

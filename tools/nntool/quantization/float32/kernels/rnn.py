@@ -15,6 +15,7 @@
 
 import logging
 from typing import Mapping
+from utils.diag_collector import DiagCollector
 
 import numpy as np
 from graph.types import LSTMParameters, RNNParameters
@@ -93,8 +94,12 @@ class RnnFloat32Mixin():
             if isinstance(params, LSTMParameters):
                 details['range_cell'] = {'min': float('inf'), 'max': float('-inf')}
 
+        new_c_state = None
         for idx in range(params.n_cells):
-            res = cls.step_kernel(params, args, idx, in_tensor, details=details)
+            if isinstance(params, LSTMParameters):
+                res, new_c_state = cls.step_kernel(params, args, idx, in_tensor, details=details)
+            else:
+                res = cls.step_kernel(params, args, idx, in_tensor, details=details)
             if idx >= (params.n_cells - params.n_output_cells):
                 out_tensor[out_idx] = res
                 out_idx += 1
@@ -112,6 +117,8 @@ class RnnFloat32Mixin():
             out_tensor = np.flip(out_tensor, axis=0)
         if params.output_directions:
             out_tensor = np.expand_dims(out_tensor, 0)
+        if new_c_state is not None:
+            return [out_tensor, new_c_state]
         return [out_tensor]
 
 @params_type(RNNParameters)
@@ -152,19 +159,28 @@ class GRUFloat32(RnnFloat32Mixin, KernelBase):
                     **kwargs):
 
         del kwargs
-        z_gate_scratch = args['w_z_b'] + args['r_z_b']
-        r_gate_scratch = args['w_r_b'] + args['r_r_b']
+        DiagCollector.record('h_state', args['h_state'], node=params)
+        DiagCollector.record('input', input_tensor[idx], node=params)
+        z_gate_scratch = args['z_b'].copy()
+        r_gate_scratch = args['r_b'].copy()
 
+        DiagCollector.record('z_weigths', args['w_2_z_w'], node=params)
         if idx < params.n_input_cells:
             z_gate_scratch += args['w_2_z_w'].dot(input_tensor[idx])
             r_gate_scratch += args['w_2_r_w'].dot(input_tensor[idx])
+            DiagCollector.record('z_gate_inp', z_gate_scratch, node=params)
+            DiagCollector.record('r_gate_inp', r_gate_scratch, node=params)
 
         # zt = f(Xt*(Wz^T) + Ht-1*(Rz^T) + Wbz + Rbz)
         z_gate_scratch += args['r_2_z_w'].dot(args['h_state'])
+        DiagCollector.record('z_gate', z_gate_scratch, node=params)
         z_gate_scratch = sigmoid(z_gate_scratch)
+        DiagCollector.record('z_gate_sigmoid', z_gate_scratch, node=params)
         # rt = f(Xt*(Wr^T) + Ht-1*(Rr^T) + Wbr + Rbr)
         r_gate_scratch += args['r_2_r_w'].dot(args['h_state'])
+        DiagCollector.record('r_gate', r_gate_scratch, node=params)
         r_gate_scratch = sigmoid(r_gate_scratch)
+        DiagCollector.record('r_gate_sigmoid', r_gate_scratch, node=params)
         if params.linear_before_reset:
             # ht = g(Xt*(Wh^T) + (rt (.) (Ht-1*(Rh^T) + Rbh)) + Wbh) # when linear_before_reset != 0
             # h_gate_scratch already has Wbh in it
@@ -300,4 +316,6 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
             raise NotImplementedError("LSTMP is not yet supported by kernel")
 
         args['i_state'] = output_gate_scratch.copy()
-        return output_gate_scratch
+        if params.lstm_output_c_state:
+            return output_gate_scratch, args['c_state']
+        return output_gate_scratch, None

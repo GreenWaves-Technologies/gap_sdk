@@ -81,7 +81,7 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
     {0x11,0x0d},
     {0x12,0x2a},
     {0x13,0x00},
-    {0x14,0x11},
+    {0x14,0x10},
     
     //{0x15,0x4a},
     
@@ -361,12 +361,17 @@ static void __gc0308_init_regs(gc0308_t *gc0308)
 
 }
 
-
-
 static void __gc0308_reset(gc0308_t *gc0308)
 {
-    //set to 0 power down pin
+    //Set to 0 reset pin
     pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 0);
+    pi_time_wait_us(1000); //This is just a guess
+    pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.reset_gpio, 1);
+    //soft reset for gapuino
+    __gc0308_reg_write(gc0308, 0xfe,0x80);
+    pi_time_wait_us(1000); //This is just a guess
+    __gc0308_reg_write(gc0308, 0xfe,0x00);
+    
 }
 
 
@@ -382,9 +387,12 @@ static void __gc0308_wakeup(gc0308_t *gc0308)
 {
     if (!gc0308->is_awake)
     {
-        // The camera standby mode is controlled by PWDN pin, which is not connected on GAPuino board.
-        // Do nothing here
+        //Disable powerdown (only on gapoc)
+        pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.pwdn_gpio, 0);
+        //Enable master clock
+        pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.mclk_gpio, 1);
         gc0308->is_awake = 1;
+
     }
 }
 
@@ -394,8 +402,11 @@ static void __gc0308_standby(gc0308_t *gc0308)
 {
     if (gc0308->is_awake)
     {
-        // The camera standby mode is controlled by PWDN pin, which is not connected on GAPuino board.
-        // Do nothing here
+        // The camera standby mode is controlled by PWDN pin, which is  connected only on Gapoc C
+        //Disable master clock
+        pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.mclk_gpio, 0);
+        //Enable Power Down
+        pi_gpio_pin_write(&gc0308->gpio_port, gc0308->conf.pwdn_gpio, 1);
         gc0308->is_awake = 0;
     }
 }
@@ -419,7 +430,26 @@ static void __gc0308_set_qvga(gc0308_t *gc0308)
     __gc0308_reg_write(gc0308,0x49,0x00); 
     __gc0308_reg_write(gc0308,0x4a,0xf0);//240
     __gc0308_reg_write(gc0308,0x4b,0x01);  
-    __gc0308_reg_write(gc0308,0x4c,0x40); //320
+    __gc0308_reg_write(gc0308,0x4c,0x40);//320
+
+    return;
+}
+
+static void __gc0308_set_vga(gc0308_t *gc0308)
+{
+
+   // gc0308_t *gc0308 = (gc0308_t *)device->data;
+
+    __gc0308_reg_write(gc0308,0xfe,0x01);
+    __gc0308_reg_write(gc0308,0x54,0x11);  //1/2 subsample 
+    __gc0308_reg_write(gc0308,0xfe,0x00);
+    __gc0308_reg_write(gc0308,0x46,0x80);//enable crop window mode
+    __gc0308_reg_write(gc0308,0x47,0x00);  
+    __gc0308_reg_write(gc0308,0x48,0x00);  
+    __gc0308_reg_write(gc0308,0x49,0x01); 
+    __gc0308_reg_write(gc0308,0x4a,0xe0); //480
+    __gc0308_reg_write(gc0308,0x4b,0x02);  
+    __gc0308_reg_write(gc0308,0x4c,0x80); //640
 
     return;
 }
@@ -466,14 +496,6 @@ int32_t __gc0308_open(struct pi_device *device)
     if (bsp_gc0308_open(conf))
         goto error;
 
-    struct pi_gpio_conf gpio_reset_conf;
-    pi_gpio_conf_init(&gpio_reset_conf);
-    pi_open_from_conf(&gc0308->gpio_port, &gpio_reset_conf);
-    if (pi_gpio_open(&gc0308->gpio_port))
-        goto error;
-
-    pi_gpio_pin_configure(&gc0308->gpio_port, conf->reset_gpio, PI_GPIO_OUTPUT);
-
     struct pi_cpi_conf cpi_conf;
     pi_cpi_conf_init(&cpi_conf);
     cpi_conf.itf = conf->cpi_itf;
@@ -492,20 +514,23 @@ int32_t __gc0308_open(struct pi_device *device)
     if (pi_i2c_open(&gc0308->i2c_device))
         goto error2;
 
+    //Enable Power and Master Clock
+    __gc0308_wakeup(gc0308);
+
     __gc0308_reset(gc0308);
 
     uint8_t cam_id = __gc0308_reg_read(gc0308, 0x00);
-    if (cam_id != 0x9b) goto error2;
+    if (cam_id != 0x9b){ goto error2;}
 
     __gc0308_init_regs(gc0308);
 
     if(gc0308->conf.format==PI_CAMERA_QVGA){
         __gc0308_set_qvga(gc0308);
-    }
+    }else __gc0308_set_vga(gc0308);
 
     if(gc0308->conf.color_mode==PI_CAMERA_GRAY8){
         pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_BIGEND);
-        __gc0308_reg_write(gc0308,0x24,0xb1); //set to YUV and get only Y
+        __gc0308_reg_write(gc0308,0x24,0x91); //set to YUV and get only Y
     }else{
         pi_cpi_set_format(&gc0308->cpi_device, PI_CPI_FORMAT_BYPASS_LITEND);
         //registers in this case are left by default to RGB565

@@ -20,8 +20,6 @@ from cmd2 import Cmd2ArgumentParser, with_argparser
 
 from graph.types import ImageFormatParameters, NNEdge, TransposeParameters
 from interpreter.nntool_shell_base import NNToolShellBase
-from quantization.multiplicative.asymmetric.asymmetric_mult_qtype import \
-    AsymmetricMultQType
 from quantization.multiplicative.mult_quantization import \
     MultQuantizationRecordBase
 from quantization.qtype import QType
@@ -139,7 +137,7 @@ def insert_formatter(G, input_node, formatter, normalizer):
             formatter_qrec = deepcopy(input_qrec)
             formatter_qrec.out_qs[0] = deepcopy(formatter_qrec.out_qs[0])
             if isinstance(formatter_qrec, MultQuantizationRecordBase):
-                formatter_in_q = AsymmetricMultQType(scale=1, dtype=format_node.input_dtype)
+                formatter_in_q = QType(scale=1, zero_point=0, dtype=format_node.input_dtype)
             elif isinstance(formatter_qrec, SymmetricQuantizationBase):
                 formatter_in_q = QType(q=0, dtype=format_node.input_dtype)
             else:

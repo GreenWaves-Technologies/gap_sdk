@@ -5,17 +5,17 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -33,171 +33,15 @@
 using namespace std::placeholders;
 
 
-void Udma_rx_channel::push_data(uint8_t *data, int size)
+void Udma_channel::reset(bool active)
 {
-    if (current_cmd == NULL)
-    {
-        //top->warning.warning("Received data while there is no ready command\n");
-        return;
-    }
-
-    if (size + this->pending_byte_index > 4)
-    {
-        top->warning.force_warning("Trying to push more than 4 bytes from peripheral to udma core\n");
-        return;
-    }
-
-    memcpy(&(((uint8_t *)&this->pending_word)[this->pending_byte_index]), data, size);
-
-    this->pending_byte_index += size;
-
-    if (this->pending_byte_index >= 4 || this->pending_byte_index >= current_cmd->remaining_size)
-    {
-        this->pending_byte_index = 0;
-        vp::io_req *req = this->top->l2_itf.req_new(0, new uint8_t[4], 4, true);
-        *(uint32_t *)req->get_data() = this->pending_word;
-        bool end = current_cmd->prepare_req(req);
-        trace.msg(vp::trace::LEVEL_TRACE, "Writing 4 bytes to memory (value: 0x%x, addr: 0x%x)\n", this->pending_word, req->get_addr());
-        this->top->push_l2_write_req(req);
-        if (end)
-        {
-            handle_transfer_end();
-        }
-    }
 }
 
-void Udma_rx_channel::reset(bool active)
+
+void Udma_channel::set_addrgen(Udma_addrgen *addrgen)
 {
-    Udma_channel::reset(active);
-
-    if (active)
-    {
-        pending_byte_index = 0;
-    }
-}
-
-void Udma_channel::handle_transfer_end()
-{
-    trace.msg(vp::trace::LEVEL_DEBUG, "Current transfer is finished\n");
-    free_reqs->push(current_cmd);
-    current_cmd = NULL;
-    top->trigger_event(this->channel_id);
-    this->check_state();
-}
-
-void Udma_channel::handle_ready_reqs()
-{
-    if (!ready_reqs->is_empty())
-    {
-        vp::io_req *req = ready_reqs->pop();
-        handle_ready_req_end(req);
-    }
-}
-
-void Udma_channel::handle_ready_req(vp::io_req *req)
-{
-    ready_reqs->push(req);
-    handle_ready_reqs();
-}
-
-bool Udma_channel::handle_ready_req_end(vp::io_req *req)
-{
-    bool end = false;
-    if (current_cmd && current_cmd->received_size >= current_cmd->size)
-    {
-        handle_transfer_end();
-        end = true;
-    }
-    top->free_read_req(req);
-    return end;
-}
-
-void Udma_channel::push_ready_req(vp::io_req *req)
-{
-    current_cmd->received_size += req->get_size();
-
-    trace.msg(vp::trace::LEVEL_TRACE, "Received\n");
-    trace.msg(vp::trace::LEVEL_TRACE, "Received data from L2 (cmd: %p, data_size: 0x%x, transfer_size: 0x%x, received_size: 0x%x, value: 0x%x)\n",
-              current_cmd, req->get_size(), current_cmd->size, current_cmd->received_size, *(uint32_t *)req->get_data());
-
-    handle_ready_req(req);
-}
-
-void Udma_channel::event_handler()
-{
-    if (!pending_reqs->is_empty() && current_cmd == NULL)
-    {
-        current_cmd = pending_reqs->pop();
-        trace.msg(vp::trace::LEVEL_DEBUG, "New ready transfer (cmd: %p)\n", current_cmd);
-        top->enqueue_ready(this);
-    }
-}
-
-void Udma_channel::check_state()
-{
-    if (!pending_reqs->is_empty() && current_cmd == NULL)
-    {
-        top->event_enqueue_ext(event, 1);
-    }
-
-    if (free_reqs->is_full())
-    {
-        trace.msg(vp::trace::LEVEL_TRACE, "Inactive\n");
-        ;
-        this->state_event.event(NULL);
-    }
-    else
-    {
-        trace.msg(vp::trace::LEVEL_TRACE, "Active\n");
-        ;
-        uint8_t one = 1;
-        this->state_event.event(&one);
-    }
-}
-
-void Udma_channel::enqueue_transfer()
-{
-    if (free_reqs->is_empty())
-    {
-        vp_warning_always(&this->trace, "Trying to enqueue transfer while already 2 are pending\n");
-        return;
-    }
-
-    Udma_transfer *req = free_reqs->pop();
-
-    trace.msg(vp::trace::LEVEL_DEBUG, "Enqueueing new transfer (req: %p, addr: 0x%x, size: 0x%x, transfer_size: %s, continuous: %d)\n",
-              req, this->regmap.addrgen_cfg_sa_buf0.sa_addr0_get(), this->regmap.addrgen_cfg_size.size_get(), transfer_size == 0 ? "8bits" : transfer_size == 1 ? "16bits" : "32bits",
-              continuous_mode);
-
-    req->addr = this->regmap.addrgen_cfg_sa_buf0.sa_addr0_get();
-    req->current_addr = this->regmap.addrgen_cfg_sa_buf0.sa_addr0_get();
-    req->size = this->regmap.addrgen_cfg_size.size_get();
-    req->remaining_size = this->regmap.addrgen_cfg_size.size_get();
-    req->transfer_size = transfer_size;
-    req->received_size = 0;
-    req->continuous_mode = continuous_mode;
-    req->channel = this;
-    pending_reqs->push(req);
-
-    check_state();
-}
-
-void Udma_channel::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
-{
-    this->regmap.addrgen_cfg_ctrl.update(reg_offset, size, value, is_write);
-
-    if (is_write)
-    {
-        if (this->regmap.addrgen_cfg_ctrl.stop_get())
-        {
-            trace.msg(vp::trace::LEVEL_TRACE, "UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
-        }
-
-        if (this->regmap.addrgen_cfg_ctrl.en_get())
-        {
-            enqueue_transfer();
-        }
-    }
+    this->addrgen = addrgen;
+    addrgen->register_channel(this);
 }
 
 
@@ -209,51 +53,27 @@ vp::io_req_status_e Udma_channel::req(vp::io_req *req, uint64_t offset)
 
 vp::io_req_status_e Udma_channel::access(uint64_t offset, int size, uint8_t *value, bool is_write)
 {
-    if (this->regmap.access(offset, size, value, is_write))
+    if (this->addrgen == NULL)
+    {
         return vp::IO_REQ_INVALID;
-
-    return vp::IO_REQ_OK;
+    }
+    else
+    {
+        return this->addrgen->access(offset, size, value, is_write);
+    }
 }
+
 
 
 Udma_channel::Udma_channel(udma *top, string name) : top(top), name(name)
 {
-    top->traces.new_trace(name + "/trace", &trace, vp::DEBUG);
-
-    // Each channel can handle 2 transfers at the same time
-    free_reqs = new Udma_queue<Udma_transfer>(2);
-    pending_reqs = new Udma_queue<Udma_transfer>(2);
-    ready_reqs = new Udma_queue<vp::io_req>(-1);
-    free_reqs->push(new Udma_transfer());
-    free_reqs->push(new Udma_transfer());
-
-    this->regmap.build(top, &this->trace, name);
-    this->regmap.addrgen_cfg_ctrl.register_callback(std::bind(&Udma_channel::cfg_ctrl_req, this, _1, _2, _3, _4));
-
-    event = top->event_new(udma::channel_handler, this);
-
-    top->traces.new_trace_event(name + "/state", &this->state_event, 8);
 }
 
-bool Udma_channel::prepare_req(vp::io_req *req)
-{
-    return current_cmd->prepare_req(req);
-}
-
-void Udma_channel::reset(bool active)
-{
-    if (active)
-    {
-        current_cmd = NULL;
-        continuous_mode = 0;
-        transfer_size = 0;
-        this->state_event.event(NULL);
-    }
-}
 
 Udma_periph::Udma_periph(udma *top, int id) : top(top), id(id)
 {
 }
+
 
 void Udma_periph::clock_gate(bool new_is_on)
 {
@@ -308,20 +128,6 @@ vp::io_req_status_e Udma_periph::req(vp::io_req *req, uint64_t offset)
     return custom_req(req, offset);
 }
 
-bool Udma_transfer::prepare_req(vp::io_req *req)
-{
-    req->prepare();
-    req->set_addr(current_addr);
-    req->set_size(remaining_size > 4 ? 4 : remaining_size);
-    req->set_actual_size(remaining_size > 4 ? 4 : remaining_size);
-
-    *(Udma_channel **)req->arg_get(0) = channel;
-
-    current_addr += 4;
-    remaining_size -= 4;
-
-    return remaining_size <= 0;
-}
 
 void udma::trigger_event(int event)
 {
@@ -329,109 +135,12 @@ void udma::trigger_event(int event)
     event_itf.sync(event);
 }
 
+
 udma::udma(js::config *config)
     : vp::component(config)
 {
 }
 
-void udma::push_l2_write_req(vp::io_req *req)
-{
-    this->l2_write_reqs->push(req);
-    this->check_state();
-}
-
-void udma::channel_handler(void *__this, vp::clock_event *event)
-{
-    Udma_channel *channel = (Udma_channel *)event->get_args()[0];
-    channel->event_handler();
-}
-
-void udma::enqueue_ready(Udma_channel *channel)
-{
-    if (channel->is_tx())
-        ready_tx_channels->push(channel);
-    else
-        channel->handle_ready();
-
-    check_state();
-}
-
-void udma::event_handler(void *__this, vp::clock_event *event)
-{
-    udma *_this = (udma *)__this;
-
-    if (!_this->l2_write_reqs->is_empty())
-    {
-        vp::io_req *req = _this->l2_write_reqs->pop();
-        _this->trace.msg(vp::trace::LEVEL_TRACE, "Sending write request to L2 (value: 0x%x, addr: 0x%x, size: 0x%x)\n", *(uint32_t *)req->get_data(), req->get_addr(), req->get_size());
-        int err = _this->l2_itf.req(req);
-        if (err == vp::IO_REQ_OK)
-        {
-        }
-        else
-        {
-            _this->trace.warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
-        }
-    }
-
-    if (!_this->ready_tx_channels->is_empty() && !_this->l2_read_reqs->is_empty())
-    {
-        vp::io_req *req = _this->l2_read_reqs->pop();
-        Udma_channel *channel = _this->ready_tx_channels->pop();
-        if (!channel->prepare_req(req))
-        {
-            _this->ready_tx_channels->push(channel);
-        }
-
-        _this->trace.msg(vp::trace::LEVEL_TRACE, "Sending read request to L2 (addr: 0x%x, size: 0x%x)\n", req->get_addr(), req->get_size());
-        int err = _this->l2_itf.req(req);
-        if (err == vp::IO_REQ_OK)
-        {
-            _this->trace.msg(vp::trace::LEVEL_TRACE, "Read FIFO received word from L2 (value: 0x%x)\n", *(uint32_t *)req->get_data());
-            req->set_latency(req->get_latency() + _this->get_cycles() + 1);
-            _this->l2_read_waiting_reqs->push_from_latency(req);
-        }
-        else
-        {
-            _this->trace.warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
-        }
-    }
-
-    vp::io_req *req = _this->l2_read_waiting_reqs->get_first();
-    while (req != NULL && req->get_latency() <= _this->get_cycles())
-    {
-        _this->trace.msg(vp::trace::LEVEL_TRACE, "Read request is ready, pushing to channel (req: %p)\n", req);
-
-        Udma_channel *channel = *(Udma_channel **)req->arg_get(0);
-        _this->l2_read_waiting_reqs->pop();
-        channel->push_ready_req(req);
-
-        req = _this->l2_read_waiting_reqs->get_first();
-    }
-
-    _this->check_state();
-}
-
-void udma::free_read_req(vp::io_req *req)
-{
-    l2_read_reqs->push(req);
-    check_state();
-}
-
-void udma::check_state()
-{
-    if ((!ready_tx_channels->is_empty() && !l2_read_reqs->is_empty()) || !l2_write_reqs->is_empty())
-    {
-        //printf("Enqueue 1 cycles\n");
-        event_reenqueue_ext(event, 1);
-    }
-
-    if (!l2_read_waiting_reqs->is_empty())
-    {
-        //printf("Enqueue %ld cycles\n", l2_read_waiting_reqs->get_first()->get_latency() - get_cycles());
-        event_reenqueue_ext(event, l2_read_waiting_reqs->get_first()->get_latency() - get_cycles());
-    }
-}
 
 
 void udma::cfg_cg_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
@@ -511,14 +220,18 @@ vp::io_req_status_e udma::conf_req(vp::io_req *req, uint64_t offset)
 vp::io_req_status_e udma::channel_req(vp::io_req *req, uint64_t offset)
 {
     int channel_id = UDMA_CHANNEL_GET(offset);
+    int local_offset = offset - UDMA_CHANNEL_OFFSET(channel_id);
 
-    if (channel_id >= this->nb_channels || this->channels[channel_id] == NULL)
+    if (channel_id < this->nb_addrgen_linear)
     {
-        trace.force_warning("Accessing invalid channel (id: %d)\n", channel_id);
-        return vp::IO_REQ_INVALID;
+        return this->addrgen_linear[channel_id]->access(local_offset, req->get_size(), req->get_data(), req->get_is_write());
+    }
+    else if (channel_id < this->nb_addrgen_linear + this->nb_addrgen_2d)
+    {
+        return this->addrgen_linear[channel_id - this->nb_addrgen_linear]->access(local_offset, req->get_size(), req->get_data(), req->get_is_write());
     }
 
-    return this->channels[channel_id]->req(req, offset - (UDMA_CHANNEL_OFFSET(channel_id)));
+    return vp::IO_REQ_INVALID;
 }
 
 void udma::channel_register(int id, Udma_channel *channel)
@@ -528,25 +241,24 @@ void udma::channel_register(int id, Udma_channel *channel)
         return;
     }
 
-    if (id >= this->nb_channels)
+    if (id < this->nb_addrgen_linear)
+    {
+        channel->set_addrgen(this->addrgen_linear[id]);
+    }
+    else if (id < this->nb_addrgen_linear + this->nb_addrgen_2d)
+    {
+        // TODO switch to 2d channels
+        channel->set_addrgen(this->addrgen_2d[id - this->nb_addrgen_linear]);
+    }
+    else
     {
         trace.force_warning("Registering invalid channel (id: %d)\n", id);
-        return;
     }
-
-    this->channels[id] = channel;
-    channel->set_channel_id(id);
 }
 
 void udma::channel_unregister(int id, Udma_channel *channel)
 {
-    if (id >= this->nb_channels)
-    {
-        trace.force_warning("Unregistering invalid channel (id: %d)\n", id);
-        return;
-    }
-
-    this->channels[id] = NULL;
+    channel->set_addrgen(NULL);
 }
 
 vp::io_req_status_e udma::periph_req(vp::io_req *req, uint64_t offset)
@@ -641,22 +353,21 @@ int udma::build()
 
     new_master_port("event_itf", &event_itf);
 
-    event = event_new(udma::event_handler);
+    this->nb_addrgen_linear = this->get_config_int("nb_addrgen_linear");
+    this->nb_addrgen_2d = this->get_config_int("nb_addrgen_2d");
 
-    l2_read_reqs = new Udma_queue<vp::io_req>(l2_read_fifo_size);
-    l2_write_reqs = new Udma_queue<vp::io_req>(0);
-    l2_read_waiting_reqs = new Udma_queue<vp::io_req>(l2_read_fifo_size);
-    for (int i = 0; i < l2_read_fifo_size; i++)
+    for (int i=0; i<this->nb_addrgen_linear; i++)
     {
-        vp::io_req *req = new vp::io_req();
-        req->set_data(new uint8_t[4]);
-        req->set_is_write(false);
-        req->arg_alloc(); // Used to store channel;
-        l2_read_reqs->push(req);
+        this->addrgen_linear.push_back(new Udma_addrgen_linear(this, i, i));
     }
 
-    ready_rx_channels = new Udma_queue<Udma_channel>(nb_periphs);
-    ready_tx_channels = new Udma_queue<Udma_channel>(nb_periphs);
+    for (int i=0; i<this->get_config_int("nb_addrgen_2d"); i++)
+    {
+        this->addrgen_2d.push_back(new Udma_addrgen_2d(this, i, i+this->nb_addrgen_linear));
+    }
+
+    this->rx_channels = new Udma_rx_channels(this, l2_read_fifo_size);
+    this->tx_channels = new Udma_tx_channels(this, l2_read_fifo_size);
 
     this->ctrl_regmap.build(this, &this->trace, "ctrl");
 
@@ -776,6 +487,62 @@ int udma::build()
                 }
             }
 #endif
+#ifdef HAS_AES
+            else if (strcmp(name.c_str(), "aes") == 0)
+            {
+                if (version == 1)
+                {
+                    Aes_periph *periph = new Aes_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
+#if defined(HAS_SFU)
+            else if (strcmp(name.c_str(), "sfu") == 0)
+            {
+                if (version == 1)
+                {
+                    Sfu_periph *periph = new Sfu_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
+#if defined(HAS_EMPTY_SFU)
+            else if (strcmp(name.c_str(), "sfu") == 0)
+            {
+                if (version == 1)
+                {
+                    Sfu_periph_empty *periph = new Sfu_periph_empty(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
+#ifdef HAS_FFC
+            else if (strcmp(name.c_str(), "ffc") == 0)
+            {
+                if (version == 1)
+                {
+                    Ffc_periph *periph = new Ffc_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
             else
             {
                 trace.msg(vp::trace::LEVEL_INFO, "Instantiating channel (id: %d, offset: 0x%x)\n", id, offset);
@@ -797,27 +564,16 @@ void udma::reset(bool active)
         if (this->periphs[i] != NULL && this->periphs[i]->id == i)
             this->periphs[i]->reset(active);
     }
-}
 
-template <class T>
-void Udma_queue<T>::push_from_latency(T *cmd)
-{
-    T *current = first, *prev = NULL;
-    while (current && cmd->get_latency() > current->get_latency())
+    for (auto x: this->addrgen_linear)
     {
-        prev = current;
-        current = current->get_next();
+        x->reset(active);
     }
 
-    if (current == NULL)
-        last = cmd;
-
-    if (prev)
-        prev->set_next(cmd);
-    else
-        first = cmd;
-    cmd->set_next(current);
-    nb_cmd++;
+    for (auto x: this->addrgen_2d)
+    {
+        x->reset(active);
+    }
 }
 
 extern "C" vp::component *vp_constructor(js::config *config)

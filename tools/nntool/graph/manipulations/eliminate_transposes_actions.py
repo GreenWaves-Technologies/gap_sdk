@@ -15,9 +15,12 @@
 
 import logging
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 import numpy as np
 from graph.dim import Dim
+from graph.types.tensor_arithmetic import Broadcastable
+from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 LOGL = LOG.info
@@ -28,11 +31,11 @@ class Action(ABC):
         self.node = node
 
     @abstractmethod
-    def _execute(self, node):
+    def _execute(self, node, G):
         pass
 
-    def execute(self):
-        self._execute(self.node)
+    def execute(self, G):
+        self._execute(self.node, G)
 
 
 class DebugActionBase(Action):
@@ -42,7 +45,7 @@ class DebugActionBase(Action):
             message = ""
         self.message = message
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
 
 
@@ -104,7 +107,7 @@ class SetHintAction(Action):
             setattr(node, hints_name, hints)
         hints[idx] = val
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         if self.val is None:
             return
         LOGL("%s", str(self))
@@ -123,7 +126,7 @@ class SetReshapeAction(Action):
         self.in_shape = in_shape.clone() if in_shape is not None else None
         self.out_shape = out_shape.clone() if out_shape is not None else None
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         if self.in_shape is not None:
             node.old_shape = self.in_shape
@@ -139,7 +142,7 @@ class TransposeSlidedSlice(Action):
         super(TransposeSlidedSlice, self).__init__(node)
         self.transpose = tuple(transpose)
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         node.act_slice = [node.act_slice[idx] for idx in self.transpose]
         node.out_shape = [node.out_shape[idx] for idx in self.transpose]
@@ -153,7 +156,7 @@ class TransposePad(Action):
         super(TransposePad, self).__init__(node)
         self.transpose = tuple(transpose)
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         node.padding = [node.padding[idx] for idx in self.transpose]
         node.pad_vals = [node.pad_vals[idx] for idx in self.transpose]
@@ -167,7 +170,7 @@ class TransposeReverse(Action):
         super(TransposeReverse, self).__init__(node)
         self.transpose = tuple(transpose)
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         node.axis = self.transpose[node.axis]
 
@@ -181,7 +184,7 @@ class TransposeInputBase(Action):
         self.transpose = tuple(transpose)
 
     @abstractmethod
-    def _execute(self, node):
+    def _execute(self, node, G):
         pass
 
     @classmethod
@@ -198,7 +201,7 @@ class TransposeInputBase(Action):
 
 
 class ReorderInputDims(TransposeInputBase):
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         node.dims.transpose(self.transpose)
         if node.out_dims_hint:
@@ -210,10 +213,23 @@ class ReorderInputDims(TransposeInputBase):
 
 
 class ReorderConstantInput(TransposeInputBase):
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
+        if G.quantization:
+            qrec = G.quantization.get(NodeId(node), None)
+        else:
+            qrec = None
         node.value = np.transpose(node.value, self.transpose)
         node.dims = Dim.unnamed(node.value.shape)
+        # update the quantized dimension if the constant is channel scaled
+        if node.qtype and node.qtype.quantized_dimension is not None:
+            cqtype = deepcopy(node.qtype)
+            cqtype.quantized_dimension = self.transpose.index(cqtype.quantized_dimension)
+            node.qtype = cqtype
+        if qrec and qrec.out_qs[0].quantized_dimension is not None:
+            cqtype = deepcopy(qrec.out_qs[0])
+            cqtype.quantized_dimension = self.transpose.index(cqtype.quantized_dimension)
+            qrec.out_qs[0] = cqtype
 
     def __str__(self) -> str:
         return "%s reorder constant input to %s" % (self.node.name, self.transpose)
@@ -225,10 +241,12 @@ class DeleteTranspose(Action):
         self.direction = direction
         self.idx = idx
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         transpose_name = "transpose_" + self.direction
         trans = getattr(node, transpose_name)
+        if self.direction == 'in' and isinstance(node, Broadcastable):
+            node.delete_transpose(self.idx, trans[self.idx])
         trans[self.idx] = None
         if all(t is None for t in trans):
             setattr(node, transpose_name, None)
@@ -237,36 +255,72 @@ class DeleteTranspose(Action):
         return "%s delete transpose %s[%s]" % (self.node.name, self.direction, self.idx)
 
 
+def expand_transpose(trans, max_len):
+    if trans is None:
+        return None
+    if len(trans) == max_len:
+        return trans
+    excess = max_len - len(trans)
+    return tuple(list(range(excess)) + [idx + excess for idx in trans])
+
+
+def expand_transposes(trans, direction):
+    if direction == 'in':
+        max_len = max(len(t) for t in trans)
+        trans = [expand_transpose(t, max_len) for t in trans]
+    return trans
+
+def reverse_transpose(trans):
+    if trans is None:
+        return trans
+    return [trans.index(idx) for idx in range(len(trans))]
+
+def do_transpose(trans, shape):
+    return [shape[idx] for idx in trans]
+
 class SetTranspose(Action):
     def __init__(self, node, direction, idx, transpose) -> None:
         super(SetTranspose, self).__init__(node)
         self.direction = direction
         self.idx = idx
-        self.transpose = tuple(transpose)
+        self.transpose = tuple(transpose) if transpose is not None else None
 
     def __move_transpose(self, from_dir, to_dir):
         pass
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
         transpose_name = "transpose_" + self.direction
         trans = getattr(node, transpose_name)
-        if trans is None:
-            dims_name = self.direction + '_dims'
-            dims = getattr(self.node, dims_name)
-            trans = [None] * len(dims)
-            setattr(self.node, transpose_name, trans)
-        trans[self.idx] = self.transpose
-        if all(t is not None and tuple(trans[0]) == tuple(t) for t in trans):
-            other_dir = "in" if self.direction == "out" else "out"
-            LOGL("moving transpose from %s to %s", self.direction, other_dir)
-            other_transpose_name = "transpose_" + other_dir
-            assert getattr(node, other_transpose_name) is None
-            setattr(node, other_transpose_name, [trans[0]])
-            setattr(node, transpose_name, None)
-            self.__move_transpose(self.direction, other_dir)
+        if self.transpose is not None:
+            if trans is None:
+                dims_name = self.direction + '_dims'
+                dims = getattr(self.node, dims_name)
+                trans = [None] * len(dims)
+                setattr(self.node, transpose_name, trans)
+            trans[self.idx] = self.transpose
+
+        if all(t is not None for t in trans):
+            expanded_trans = expand_transposes(trans, self.direction)
+            if all(tuple(expanded_trans[0]) == tuple(t) for t in expanded_trans):
+                other_dir = "in" if self.direction == "out" else "out"
+                LOGL("moving transpose from %s to %s", self.direction, other_dir)
+                other_transpose_name = "transpose_" + other_dir
+                assert getattr(node, other_transpose_name) is None
+                setattr(node, other_transpose_name, [deepcopy(expanded_trans[0])
+                                                    for _ in range(len(getattr(node, f'{other_dir}_dims')))])
+                setattr(node, transpose_name, None)
+                if isinstance(node, Broadcastable):
+                    if other_dir == 'out':
+                        node.transpose_broadcast(expanded_trans[0])
+                    else:
+                        node.transpose_broadcast(reverse_transpose(expanded_trans[0]))
+
+                self.__move_transpose(self.direction, other_dir)
 
     def __str__(self) -> str:
+        if self.transpose is None:
+            return "%s verify move transpose from %s" % (self.node.name, self.direction)
         return "%s set transpose %s[%s] to %s" % (self.node.name, self.direction, self.idx, self.transpose)
 
 
@@ -288,12 +342,14 @@ class ReorderLinear(Action):
         # will not affect them.
         return cls(node, "out", first_valid_entry[0], first_valid_entry[1], qrec=qrec)
 
-    def _execute(self, node):
+    def _execute(self, node, G):
         LOGL("%s", str(self))
+        in_edges = G.indexed_in_edges(node.name)
         if self.direction == "in":
-            node.transpose_filter_in(self.transpose, self.shape)
+            node.transpose_filter_in(self.transpose, self.shape, in_edges[1].from_node)
             return
-        node.transpose_filter_out(self.transpose, self.shape, self.qrec)
+        node.transpose_filter_out(self.transpose, self.shape, self.qrec,
+                                  in_edges[1].from_node, in_edges[2].from_node)
 
     def __str__(self) -> str:
         return "reorder linear layer %s %s with shape %s transposed %s" % (self.node.name, self.direction,

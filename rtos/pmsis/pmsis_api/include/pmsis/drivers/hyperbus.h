@@ -19,6 +19,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#if defined(__GAP9__)
+#include "pmsis/drivers/aes_utils.h"
+#endif
+
 #ifndef PI_INLINE_HYPER_LVL_0
 #define PI_INLINE_HYPER_LVL_0
 #endif
@@ -70,7 +74,11 @@ typedef struct pi_hyper_conf
     pi_device_e device;  /*!< Interface type. */
     signed char id;      /*!< Hyperbus interface where the device is connected.
      */
+#if defined(__GAP9__)
     uint8_t xip_en;      /*!< Specify whether xip is on */
+    pi_aes_utils_conf_t* aes_conf; /*!< pointer to the AES configuration for
+                                        on-the-fly encryption/decryption */
+#endif
     uint32_t cs;         /*!< Chip select where the device is connected. */
     pi_hyper_type_e type;/*!< Type of device connected on the hyperbus
     interface. */
@@ -131,7 +139,14 @@ enum pi_hyper_ioctl_cmd
      * This command can be used when the interface has been opened to configure
      * the latency suitable for the device.
      */
-    PI_HYPER_IOCTL_SET_LATENCY
+    PI_HYPER_IOCTL_SET_LATENCY,
+#if defined(__GAP9__)
+    /** @brief Enable AES
+     *
+     * This command can be used to enable/disable the on-the-fly AES at runtime
+     */
+    PI_HYPER_IOCTL_ENABLE_AES,
+#endif
 };
 
 /**

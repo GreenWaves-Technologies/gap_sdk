@@ -15,9 +15,9 @@
 
 import logging
 
-
 from ..dim import DilationDim
-from .base import FilterLikeParameters, MultiplicativeBiasParameters, NoSizeChangeParameters, SingleInputAndOutput, Transposable
+from .base import (FilterLikeParameters, MultiplicativeBiasParameters,
+                   NoSizeChangeParameters, SingleInputAndOutput, Transposable)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -28,7 +28,7 @@ class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput,
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, name, scale=None, bias=None, running_mean=None,
-                 running_variance=None, spatial=None, momentum=None, epsilon=None,  **kwargs):
+                 running_variance=None, spatial=None, momentum=None, epsilon=None, **kwargs):
         super(BatchNormalizationParameters, self).__init__(name, **kwargs)
         self.scale = scale
         self.bias = bias
@@ -37,6 +37,10 @@ class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput,
         self.spatial = spatial
         self.momentum = momentum
         self.epsilon = epsilon
+
+    @property
+    def can_equalize(self):
+        return False
 
     def get_parameter_size(self):
         return 0
@@ -93,31 +97,32 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
     #     return not self.tf_depthwise
 
     def clone(self, name, groupn=None):
-        """ Clones conv parameters for a specific group number
-        """
-        if groupn is None:
-            new_conv = Conv2DParameters(name, filter=self.filter, stride=self.stride, padding=self.padding,
-                                        dilation=self.dilation, pad_type=self.pad_type, groups=self.groups,
-                                        multiplier=self.multiplier, has_bias=self.has_bias)
-        else:
-            assert groupn < self.groups, "incorrect group number"
-            c_per_g = self.filter.out_c//self.groups
-            offset = c_per_g * groupn
-            new_filter = self.filter.clone()
-            new_filter.out_c = c_per_g
-            new_conv = Conv2DParameters(name, filter=new_filter, stride=self.stride, padding=self.padding,
-                                        dilation=self.dilation, pad_type=self.pad_type, groups=1,
-                                        multiplier=self.multiplier, has_bias=self.has_bias)
-            num_out = c_per_g * self.multiplier
-            if self.biases is not None:
-                new_conv.biases = self.biases[offset:offset + num_out - 1]
+        raise NotImplementedError()
+        # """ Clones conv parameters for a specific group number
+        # """
+        # if groupn is None:
+        #     new_conv = Conv2DParameters(name, filter=self.filter, stride=self.stride, padding=self.padding,
+        #                                 dilation=self.dilation, pad_type=self.pad_type, groups=self.groups,
+        #                                 multiplier=self.multiplier, has_bias=self.has_bias)
+        # else:
+        #     assert groupn < self.groups, "incorrect group number"
+        #     c_per_g = self.filter.out_c//self.groups
+        #     offset = c_per_g * groupn
+        #     new_filter = self.filter.clone()
+        #     new_filter.out_c = c_per_g
+        #     new_conv = Conv2DParameters(name, filter=new_filter, stride=self.stride, padding=self.padding,
+        #                                 dilation=self.dilation, pad_type=self.pad_type, groups=1,
+        #                                 multiplier=self.multiplier, has_bias=self.has_bias)
+        #     num_out = c_per_g * self.multiplier
+        #     if self.biases is not None:
+        #         new_conv.biases = self.biases[offset:offset + num_out - 1]
 
-            if self.weights is not None:
-                # TODO - THIS IS NOT CORRECT BUT UNUSED AT PRESENT. CHECK ORDER.
-                new_conv.weights = self.weights[offset:offset +
-                                                num_out - 1, ...]
+        #     if self.weights is not None:
+        #         # TODO - THIS IS NOT CORRECT BUT UNUSED AT PRESENT. CHECK ORDER.
+        #         new_conv.weights = self.weights[offset:offset +
+        #                                         num_out - 1, ...]
 
-        return new_conv
+        # return new_conv
 
     def is_grouped_conv(self):
         return self.groups > 1
@@ -126,7 +131,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         # this does not cope with TFLITE DW convs with a multiplier but the
         # generator is going to need to split those up into multiple per channel
         # normal convolutions
-        return self.groups == self.filter.out_c and self.multiplier == 1 and not self.cannot_be_dw
+        return self.groups == self.filter.out_c and self.filter.in_c == 1 and self.multiplier == 1 and not self.cannot_be_dw
 
     def get_weights_count(self):
         return self.filter.size() * self.multiplier // self.groups
@@ -145,12 +150,10 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
 
     def get_output_size(self, in_dims):
 
-        assert len(in_dims) == 1,\
-            "Only expecting one input dimension"
         self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dims = self.in_dims[0]
 
-        if self.transpose_in:
+        if self.transpose_in and self.transpose_in[0]:
             in_dims = in_dims.calc_transpose(self.transpose_in[0])
 
         assert in_dims.c >= self.groups,\
@@ -165,7 +168,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         out_dim = ((in_dims - filter_d + pad)//self.stride) + 1
         out_dim.c = self.filter.out_c
         out_dim.impose_order(in_dims.order)
-        if self.transpose_out:
+        if self.transpose_out and self.transpose_out[0]:
             out_dim = out_dim.calc_transpose(self.transpose_out[0])
         return [out_dim]
 

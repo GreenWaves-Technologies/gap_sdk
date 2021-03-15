@@ -25,7 +25,7 @@ from generation.default_template import (basic_kernel_header_template,
                                          default_template, dynamic_template,
                                          header_template)
 from generation.naming_convension import DefaultNamingConvension
-from utils.new_param_state import load_state
+from interpreter.nntool_shell import NNToolShell
 
 LOG = logging.getLogger("nntool")
 
@@ -54,17 +54,25 @@ def write_template(G, code_gen, model_directory, model_file, template, template_
 
 def generate_code(args):
     LOG.propagate = False
-    handler = GeneratorShellLogHandler()
-    formatter = logging.Formatter('%(module)s - %(message)s')
-    handler.setFormatter(formatter)
-    LOG.addHandler(handler)
-    if args.log_level:
-        LOG.setLevel(args.log_level.upper())
-    else:
-        LOG.setLevel('WARN')
+
+    nntool_shell = NNToolShell(args,
+                               allow_cli_args=False)
+
+    # handler = GeneratorShellLogHandler()
+    # formatter = logging.Formatter('%(module)s - %(message)s')
+    # handler.setFormatter(formatter)
+    # LOG.addHandler(handler)
+    # if args.log_level:
+    #     LOG.setLevel(args.log_level.upper())
+    # else:
+    #     LOG.setLevel('WARN')
 
     LOG.info("Loading %s", args.graph_file)
-    G, opts = load_state(args.graph_file, return_extra=True)
+
+    nntool_shell.load_state_file(args.graph_file)
+    G = nntool_shell.G
+    opts = nntool_shell.settings
+
     if args.model_file:
         opts['model_file'] = args.model_file
     if args.model_directory:

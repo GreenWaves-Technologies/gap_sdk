@@ -15,22 +15,22 @@
 
 from utils.option_list import OptionList
 
-# char TileOrientation;	     /* Set Tiling orientation TILE_HOR TILE_VER */
-# char ParallelFeatures;	 /* Parallelize along channels */
-# char ForceDPconv;    	     /* Forces double precision convolution*/
-# char UseHwCE;		         /* Enable HW CE */
-# AT_PadType PadType;	     /* Control padding strategy */
-# char EnableIm2Col;	     /* Enable mat mul based convolution when feasible */
-# char ReluN;		         /* if != -1 Overides 6 as a default value for ReLUN */
-# char MulBiasScalar;	     /* if != -1 Overides default non scalar for MulBias convolutions */
-# char In_L3;		         /* if != 0 In (or In1) forced to be in L3 memory */
-# char Filter_L3;	         /* if != 0 Filter (or In2)  forced to be in L3 memory */
-# char Bias_L3;	             /* if != 0 Bias forced to be in L3 memory */
-# char Out_L3;	             /* if != 0 Out forced to be in L3 memory */
-# char Scale_L3;	         /* if != 0 Scale forced to be in L3 memory */
-# char ScaleN_L3;	         /* if != 0 ScaleN forced to be in L3 memory */
-# char RNNUseHardActivation; /* if != -1 Overides the usage of HARD activations in RNNs/LSTMs Generator (default use Hard ones) */ 
-# char RNNSameInStateScales; /* if != -1 Overides the RNNs/LSTMs input and state Quantization handling (default they must be the same) */ 
+# char TileOrientation;	        /* Set Tiling orientation TILE_HOR TILE_VER */
+# char ParallelFeatures;	    /* Parallelize along channels */
+# char ForceDPconv;    	        /* Forces double precision convolution*/
+# char UseHwCE;		            /* Enable HW CE */
+# AT_PadType PadType;	        /* Control padding strategy */
+# char EnableIm2Col;	        /* Enable mat mul based convolution when feasible */
+# char ReluN;		            /* if != -1 Overides 6 as a default value for ReLUN */
+# char MulBiasScalar;	        /* if != -1 Overides default non scalar for MulBias convolutions */
+# char In_L3;		            /* if != 0 In (or In1) forced to be in L3 memory */
+# char Filter_L3;	            /* if != 0 Filter (or In2)  forced to be in L3 memory */
+# char Bias_L3;	                /* if != 0 Bias forced to be in L3 memory */
+# char Out_L3;	                /* if != 0 Out forced to be in L3 memory */
+# char Scale_L3;	            /* if != 0 Scale forced to be in L3 memory */
+# char ScaleN_L3;	            /* if != 0 ScaleN forced to be in L3 memory */
+# char RNNUseHardActivation;    /* if != -1 Overides the usage of HARD activations in RNNs/LSTMs Generator (default use Hard ones) */ 
+# char RNNSameInStateScales;    /* if != -1 Overides the RNNs/LSTMs input and state Quantization handling (default they must be the same) */ 
 
 def gen_ctrl_call(api, op, val, code_block):
     if isinstance(val, str):

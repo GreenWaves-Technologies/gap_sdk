@@ -13,114 +13,102 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
+from graph.types.base import NNEdge
+from graph.types.tensor_arithmetic import MatrixMulParameters, MatrixSubParameters
 import logging
 
 from graph.types import  FilterParameters, MatrixAddParameters, ConstantInputParameters
-from utils.graph import MatchNode, GraphView, Edge
+from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from .matcher import DefaultMatcher, DontReplaceError
+from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
 
+# TODO - verify with quantized constants
 
-class MatchExternalBias(DefaultMatcher):
+OPS = {
+    MatrixAddParameters: (np.add, False),
+    MatrixMulParameters: (np.multiply, True)
+}
+
+class MatchExternalBias(Matcher):
     NAME = 'fuse_external_bias'
     DESCRIPTION = 'Fuse bias addition after filter with filter bias'
 
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:\
-                isinstance(node, FilterParameters)))
-        sub.add_node(MatchNode('1', matcher=lambda node:\
-                isinstance(node, MatrixAddParameters)))
-        sub.add_node(MatchNode('2', matcher=lambda node:\
-                isinstance(node, ConstantInputParameters)))
-        sub.add_edge(Edge('0', '1', to_idx=0))
-        sub.add_edge(Edge('2', '1', to_idx=1))
 
-        return G.match_fragment(sub)
+    def match(self, G: GraphView, set_identity: bool = True):
+        has_modified_graph = False
+        filter_nodes = [node for node in G.nodes() if isinstance(node, FilterParameters)]
+        for filter_node in filter_nodes:
+            while True:
+                out_edges = G.out_edges(filter_node.name)
+                # can't fuse if there is a branch
+                if len(out_edges) > 1:
+                    break
+                out_edge = out_edges[0]
+                op_node = out_edge.to_node
+                # must be a valid matrix op
+                if not isinstance(op_node, tuple(OPS.keys())):
+                    break
+                # other edge to the op must be a constant
+                other_idx = 1 if out_edge.to_idx == 0 else 0
+                other_in_edge = G.indexed_in_edges(op_node.name)[other_idx]
+                if not isinstance(other_in_edge.from_node, ConstantInputParameters):
+                    break
+                const_node = other_in_edge.from_node
+                remove_constant = len(G.out_edges(const_node.name))
 
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        filter_node = None
-        constant_node = None
-        for node in subgraph.nodes():
-            if isinstance(node, FilterParameters):
-                filter_node = node
-            elif isinstance(node, ConstantInputParameters):
-                constant_node = node
-        LOG.info("fusing bias in %s into %s", constant_node.name, filter_node.name)
-        flattened_constant = constant_node.value.flatten()
-        # shape needs to match
-        if flattened_constant.shape[0] == filter_node.filter.out_c:
-            if filter_node.has_bias:
-                assert filter_node.biases is not None, "can't absorb bias into filter. maybe weights are not loaded"
-                filter_node.biases += flattened_constant
-            else:
-                filter_node.biases = flattened_constant
+                flat_value = const_node.dqvalue.flatten()
+                out_c = filter_node.filter.out_c
+                op, weights_and_biases = OPS[op_node.__class__]
+                # it would be possible to support mult bias addition by out channel but only supporting a
+                # scalar at present
+                if len(flat_value) != 1 and (weights_and_biases or len(flat_value) != out_c):
+                    LOG.warning('could not absorb %s into %s', const_node.name, filter_node.name)
+                    break
+                # If there is quantization then essentially the output of the filter
+                # takes the quantization of the output of the operation.
+                # The biases will not change since their quantization depends on the weights
+                # and input
+                fnid = NodeId(filter_node)
+                opnid = NodeId(op_node)
+                if G.quantization and (fnid in G.quantization or opnid in G.quantization):
+                    if not (fnid in G.quantization and opnid in G.quantization):
+                        LOG.warning('could not absorb %s into %s - graph is partially quantized', const_node.name, filter_node.name)
+                        break
+                    fqrec = G.quantization[fnid]
+                    opqrec = G.quantization[opnid]
+                    fqrec.out_qs[0] = opqrec.out_qs[0]
+
+                has_modified_graph = True
+                LOG.info("fusing bias in %s into %s", const_node.name, filter_node.name)
+                self.fuse_bias(G, filter_node, other_idx, op, flat_value, 2)
+                if weights_and_biases:
+                    # TODO - need to adjust weights quantization here
+                    LOG.info("fusing multiplicative bias in %s into %s", const_node.name, filter_node.name)
+                    self.fuse_bias(G, filter_node, other_idx, op, flat_value, 1)
+
+                out_edges = G.out_edges(op_node.name)
+                G.remove(op_node)
+                if remove_constant:
+                    G.remove(const_node)
+                for edge in out_edges:
+                    G.add_edge(NNEdge(from_node=filter_node, to_node=edge.to_node, to_idx=edge.to_idx))
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph
+
+    @staticmethod
+    def fuse_bias(G, filter_node, other_idx, op, flat_value, idx):
+        edge = G.indexed_in_edges(filter_node.name)[idx]
+        node = edge.from_node
+        # flat value is dequantized so we operate on the dequantized value
+        # on the weights or biases node
+        if other_idx == 0:
+            node.dqvalue = op(flat_value, node.dqvalue)
         else:
-            raise DontReplaceError()
-        if G.quantization:
-            fnid = NodeId(filter_node)
-            cnid = NodeId(constant_node)
-            if fnid in G.quantization and cnid in G.quantization:
-                G.quantization[fnid].biases_q = G.quantization[cnid].out_qs[0]
-        return filter_node, None, None
-
-class MatchExternalBiasSQ8(DefaultMatcher):
-    NAME = 'fuse_external_bias_sq8'
-    DESCRIPTION = 'Fuse bias addition after filter with filter bias'
-
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:\
-                isinstance(node, FilterParameters)))
-        sub.add_node(MatchNode('1', matcher=lambda node:\
-                isinstance(node, MatrixAddParameters)))
-        sub.add_node(MatchNode('2', matcher=lambda node:\
-                isinstance(node, ConstantInputParameters)))
-        sub.add_edge(Edge('0', '1', to_idx=0))
-        sub.add_edge(Edge('2', '1', to_idx=1))
-
-        return G.match_fragment(sub)
-
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        filter_node = None
-        constant_node = None
-        for node in subgraph.nodes():
-            if isinstance(node, FilterParameters):
-                filter_node = node
-            elif isinstance(node, ConstantInputParameters):
-                constant_node = node
-        flattened_constant = constant_node.value.flatten()
-        if G.quantization:
-            fnid = NodeId(filter_node)
-            cnid = NodeId(constant_node)
-            if fnid in G.quantization and cnid in G.quantization:
-                biases_q = G.quantization[fnid].biases_q
-                const_q = G.quantization[cnid].out_qs[0]
-
-        # shape needs to match
-        if flattened_constant.shape[0] == filter_node.filter.out_c:
-            LOG.info("fusing bias in %s into %s", constant_node.name, filter_node.name)
-            if filter_node.has_bias:
-                assert filter_node.biases is not None, "can't absorb bias into filter. maybe weights are not loaded"
-                if G.quantization:
-                    #dequantize the constants
-                    flattened_constant_dq = const_q.get_dequantized(flattened_constant)
-                    biases_dq = biases_q.get_dequantized(filter_node.biases)
-                    #sum the floats and requantize at biases_q scale
-                    filter_node.biases = biases_q.quantize(flattened_constant_dq + biases_dq)
-                else:
-                    filter_node.biases += flattened_constant
-            else:
-                filter_node.has_bias = True
-                if G.quantization:
-                    #dequantize the constants
-                    flattened_constant_dq = const_q.get_dequantized(flattened_constant)
-                    filter_node.biases = biases_q.get_quantized(flattened_constant_dq)
-                else:
-                    filter_node.biases = flattened_constant
-        else:
-            raise DontReplaceError()
-        return filter_node, None, None
+            node.dqvalue = op(node.dqvalue, flat_value)

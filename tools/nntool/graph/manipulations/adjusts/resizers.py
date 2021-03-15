@@ -15,13 +15,13 @@
 
 import logging
 
-from graph.types import ResizerParameters
+from graph.types import BilinearResizerParameters, NearestNeighborResizerParameters
 
 from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@handles(ResizerParameters)
+@handles(BilinearResizerParameters, NearestNeighborResizerParameters)
 class ResizerAdjuster(AdjusterBase):
     def adjust_input(self, G, node, names):
         self.verify_chw(node, names)

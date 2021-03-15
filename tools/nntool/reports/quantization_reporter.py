@@ -16,7 +16,6 @@
 from quantization.symmetric.symmetric_quantization import \
     SymmetricScalableFilterQuantizationRecord
 from quantization.multiplicative.mult_quantization import MultScalableFilterQuantizationRecord
-from quantization.multiplicative.mult_qtype_base import WrapperMixin
 from graph.types import ConstantInputParameters
 from utils.node_id import NodeId
 from utils.tabular import Tabular, TabularColumn
@@ -27,26 +26,21 @@ DEFAULT_ACC_BITS = 32
 
 
 class QuantizationReporter(Reporter):
-    def __init__(self, step=None, emit_wrapped=True):
+    def __init__(self, step=None):
         super(QuantizationReporter).__init__()
         self._step = step
-        self._emit_wrapped = emit_wrapped
 
     def emit_qs(self, qtypes, limit=True):
+        if qtypes is None:
+            return "N/A"
         if limit and len(qtypes) > 10:
             qtypes = qtypes[0:10]
             extra = " ..."
         else:
             extra = ""
-        if self._emit_wrapped:
-            return (",".join([str(qtype.wrapped) if isinstance(qtype, WrapperMixin)
-                              else str(qtype) for qtype in qtypes])) + extra
         return (",".join([str(qtype) for qtype in qtypes])) + extra
 
     def emit_q_chan(self, qtype, chan):
-        if self._emit_wrapped:
-            return (qtype.wrapped.str_by_chan(chan) if isinstance(qtype, WrapperMixin)
-                    else qtype.str_by_chan(chan))
         return qtype.str_by_chan(chan)
 
     def report(self, G, stats):
@@ -54,6 +48,7 @@ class QuantizationReporter(Reporter):
         table.add_row([
             TabularColumn("Step", fmt="^d"),
             TabularColumn("Name"),
+            TabularColumn("Type"),
             TabularColumn("In"),
             TabularColumn("Out"),
             TabularColumn("Weights"),
@@ -62,6 +57,8 @@ class QuantizationReporter(Reporter):
             TabularColumn("Calc"),
             TabularColumn("Acc"),
         ])
+
+        # TODO - Fix report for weights_q
 
         for key, qrec in stats.sorted_iterator(G):
             if not isinstance(key, NodeId):
@@ -73,50 +70,52 @@ class QuantizationReporter(Reporter):
             step_idx = node.step_idx
             node = fnode or node
             if qrec:
-                if self._step is None or not isinstance(qrec, MultScalableFilterQuantizationRecord) or len(qrec.weights_q.scale) == 1:
+                if self._step is None or not isinstance(qrec, MultScalableFilterQuantizationRecord) or len(qrec.in_qs[1].scale) == 1:
                     if isinstance(node, ConstantInputParameters):
-                        row = [step_idx, node.name,
+                        row = [step_idx, node.name, qrec.TYPE,
                                "",
                                self.emit_qs(qrec.out_qs,
                                             limit=self._step is None),
                                "", "", "", "", ""]
                     else:
-                        row = [step_idx, node.name,
+                        row = [step_idx, node.name, qrec.TYPE,
                                self.emit_qs(qrec.in_qs,
                                             limit=self._step is None),
                                self.emit_qs(qrec.out_qs,
                                             limit=self._step is None)]
                         if isinstance(qrec, (SymmetricScalableFilterQuantizationRecord, MultScalableFilterQuantizationRecord)):
-                            for i in ["weights", "biases", "mul_biases", "calc", "acc"]:
+                            for i in [1, 2]:
+                                row.append(self.emit_qs([qrec.in_qs[i]]))
+                            for i in ["mul_biases", "calc", "acc"]:
                                 row.append(self.emit_qs([getattr(qrec, i+'_q')]))
                         else:
                             row += ["", "", "", "", ""]
                 else:
                     first = True
-                    for chan in range(len(qrec.weights_q.scale)):
+                    for chan in range(len(qrec.in_qs[1].scale)):
                         if first:
-                            row = [step_idx, node.name,
+                            row = [step_idx, node.name, qrec.TYPE,
                                    self.emit_qs(qrec.in_qs,
                                                 limit=self._step is None),
                                    self.emit_qs(qrec.out_qs,
                                                 limit=self._step is None),
-                                   self.emit_q_chan(qrec.weights_q, chan),
-                                   self.emit_q_chan(qrec.biases_q, chan),
+                                   self.emit_q_chan(qrec.in_qs[1], chan),
+                                   self.emit_q_chan(qrec.in_qs[2], chan),
                                    self.emit_q_chan(qrec.mul_biases_q, chan),
                                    str(qrec.calc_q),
                                    str(qrec.acc_q),
                                    ]
                             first = False
                         else:
-                            row = [chan, "", "", "",
-                                   self.emit_q_chan(qrec.weights_q, chan),
-                                   self.emit_q_chan(qrec.biases_q, chan),
+                            row = [chan, "", "", "", "",
+                                   self.emit_q_chan(qrec.in_qs[1], chan),
+                                   self.emit_q_chan(qrec.in_qs[2], chan),
                                    self.emit_q_chan(qrec.mul_biases_q, chan),
                                    "", ""
                                    ]
                         table.add_row(row)
                     continue
             else:
-                row = [step_idx, node.name, "None", "None", "", "", "", "", ""]
+                row = [step_idx, node.name, "IEEE32", "None", "None", "", "", "", "", ""]
             table.add_row(row)
         return table

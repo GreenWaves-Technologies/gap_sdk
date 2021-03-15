@@ -47,7 +47,7 @@ def gen_ssd_globals(gen, node, qrec):
                          qrec.scale_w_q.qbiases,
                          qrec.scale_ao_q.qbiases,
                          scores_scale], dtype=np.int8)
-    scale_info = ConstantInfo(file_name_scales, QType(bits=8, q=0, signed=True), contents=contents)
+    scale_info = ConstantInfo(file_name_scales, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
 
     cname_norms, file_name_norms = gen_constant(gen, node, node, SSD_NORMS)
     contents = np.array([qrec.scale_x_q.qnorms,
@@ -58,7 +58,7 @@ def gen_ssd_globals(gen, node, qrec):
                          qrec.scale_w_q.qnorms,
                          qrec.scale_ao_q.qnorms,
                          scores_norm], dtype=np.int8)
-    norms_info = ConstantInfo(file_name_norms, QType(bits=8, q=0, signed=True), contents=contents)
+    norms_info = ConstantInfo(file_name_norms, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
 
     score_threshold = scores_q.quantize(node.nms_score_threshold)
     cname_infos, file_name_infos = gen_constant(gen, node, node, INFOS)
@@ -68,7 +68,7 @@ def gen_ssd_globals(gen, node, qrec):
                          node.max_classes_per_detection,           # Q0 [0:255]
                          node.max_bb_before_nms >> 8,
                          node.max_bb_before_nms], dtype=np.int8)   # max_bb = Infos[4]<<8 + Infos[5]
-    ssd_infos = ConstantInfo(file_name_infos, QType(bits=8, q=0, signed=True), contents=contents)
+    ssd_infos = ConstantInfo(file_name_infos, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
 
     gen.globals.append(GlobalArgInfo(qrec.scale_x_q.ctype, cname_scales,
                                      gen.opts['default_global_home_location'],

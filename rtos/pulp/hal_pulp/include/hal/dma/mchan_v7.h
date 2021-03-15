@@ -286,7 +286,7 @@ static inline unsigned int plp_dma_getCmd(int ext2loc, unsigned int size, int is
   res = __builtin_bitinsert(res, broadcast,   1, MCHAN_CMD_CMD_BLE_BIT);
   return res;
 #else
-  return (ext2loc << MCHAN_CMD_CMD_TYPE_BIT) | (PLP_DMA_INC << MCHAN_CMD_CMD_INC_BIT) | (is2D << MCHAN_CMD_CMD__2D_EXT_BIT) | (size << MCHAN_CMD_CMD_LEN_BIT) | (trigEvt<<MCHAN_CMD_ELE_BIT) | (trigIrq<<MCHAN_CMD_ILE_BIT) | (broadcast<<MCHAN_CMD_CMD_BLE_BIT);
+  return (ext2loc << MCHAN_CMD_CMD_TYPE_BIT) | (PLP_DMA_INC << MCHAN_CMD_CMD_INC_BIT) | (is2D << MCHAN_CMD_CMD__2D_EXT_BIT) | (size << MCHAN_CMD_CMD_LEN_BIT) | (trigEvt<<MCHAN_CMD_CMD_ELE_BIT) | (trigIrq<<MCHAN_CMD_CMD_ILE_BIT) | (broadcast<<MCHAN_CMD_CMD_BLE_BIT);
 #endif
 }
 

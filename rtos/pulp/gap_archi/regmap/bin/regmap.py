@@ -149,7 +149,10 @@ class Register(regmap_c_header.Register, regmap_table.Register, regmap_rst.Regis
             if self.is_read_only():
                 return 0
             else:
-                return (1 << self.width) - 1
+                if self.width is None:
+                    return 0
+                else:
+                    return (1 << self.width) - 1
 
         return result
 

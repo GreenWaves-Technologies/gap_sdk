@@ -824,7 +824,7 @@ static void __pi_hyper_copy_exec(int channel, uint32_t addr, uint32_t hyper_addr
   __rt_hyper_current_task = event;
 
   // Check if we are in the fast case where everything is correctly aligned.
-  if (likely((((int)addr & 0x3) == 0) && (((int)hyper_addr) & 0x1) == 0 && (((int)size & 0x3) == 0 || ((channel & 1) && ((int)size & 0x1) == 0))))
+  if (likely((((int)addr & 0x3) == 0) && (((int)hyper_addr) & 0x1) == 0 && (((int)size & 0x3) == 0)) || ((channel & 1) && size == 2))
   {
     __pi_hyper_copy_aligned(channel, addr, hyper_addr, size, event);
   }

@@ -28,7 +28,12 @@
 
 
 #include "dpi/models.hpp"
+
+//#define USE_BRIDGE
+
+#ifdef USE_BRIDGE
 #include "debug_bridge/proxy.hpp"
+#endif
 
 typedef struct {
   int tdi;
@@ -168,6 +173,8 @@ void Proxy::config_req(int value)
 
 void Proxy::proxy_loop(int sock)
 {
+#ifdef USE_BRIDGE
+
   while(1) {
 
     proxy_req_t req;
@@ -233,6 +240,7 @@ void Proxy::proxy_loop(int sock)
       fprintf(stderr, "Received unknown debug bridge request: %d\n", req.type);
     }
   }
+#endif
 }
 
 void Proxy::proxy_listener()

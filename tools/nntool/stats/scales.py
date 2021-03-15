@@ -19,10 +19,6 @@ class Scales():
 
     @staticmethod
     def conv2d_scale_output(node, scale, weights=None, biases=None):
-        if weights is None:
-            weights = node.weights
-        if biases is None and node.has_bias:
-            biases = node.biases
         assert node.groups == 1 or node.tf_depthwise,\
             "this needs checking for grouped convs"
         for out_c in range(node.filter.out_c):
@@ -33,8 +29,6 @@ class Scales():
 
     @staticmethod
     def conv2d_scale_input(node, scale, weights=None):
-        if weights is None:
-            weights = node.weights
         if node.tf_depthwise:
             for in_c in range(node.in_dims[0].c):
                 in_c_start = in_c * node.multiplier
@@ -71,7 +65,11 @@ class Scales():
         return weights
 
     @classmethod
-    def scale_input(cls, node, scale, weights=None):
+    def scale_input(cls, G, node, scale, weights=None):
+        if not isinstance(node, (Conv2DParameters, FcParameters)):
+            raise ValueError()
+        if weights is None:
+            weights = G.indexed_in_edges(node.name)[1].from_node.dqvalue.copy()
         if isinstance(node, Conv2DParameters):
             return cls.conv2d_scale_input(node, scale, weights)
         if isinstance(node, FcParameters):
@@ -79,7 +77,13 @@ class Scales():
         raise ValueError()
 
     @classmethod
-    def scale_output(cls, node, scale, weights=None, biases=None):
+    def scale_output(cls, G, node, scale, weights=None, biases=None):
+        if not isinstance(node, (Conv2DParameters, FcParameters)):
+            raise ValueError()
+        if weights is None:
+            in_edges = G.indexed_in_edges(node.name)
+            weights = in_edges[1].from_node.dqvalue.copy()
+            biases = in_edges[2].from_node.dqvalue.copy()
         if isinstance(node, Conv2DParameters):
             return cls.conv2d_scale_output(node, scale, weights, biases)
         if isinstance(node, FcParameters):

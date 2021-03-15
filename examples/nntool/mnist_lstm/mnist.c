@@ -28,10 +28,11 @@
 AT_HYPERFLASH_FS_EXT_ADDR_TYPE mnist_L3_Flash = 0;
 
 // Softmax always outputs Q15 short int even from 8 bit input
-L2_MEM short int *ResOut;
+L2_MEM unsigned short int *ResOut;
 //Image in is unsigned but the model is trained with -1:1 inputs
 //The preprocessing to scale the image is done in the CNN AT graph
 L2_MEM unsigned char *Img_In;
+int rec_digit;
 
 #define AT_INPUT_SIZE (AT_INPUT_WIDTH*AT_INPUT_HEIGHT*AT_INPUT_COLORS)
 #define AT_INPUT_SIZE_BYTES (AT_INPUT_SIZE*sizeof(char))
@@ -47,12 +48,12 @@ static void cluster()
   gap_cl_starttimer();
   gap_cl_resethwtimer();
 #endif
-  mnistCNN(Img_In, 1, ResOut);
+  mnistCNN(Img_In, 1, (signed short *) ResOut);
 //  printf("Runner completed\n");
 
   //Checki Results
-  int rec_digit = 0;
-  short int highest = ResOut[0];
+  rec_digit = 0;
+  int highest = ResOut[0];
   for(int i = 0; i < 10; i++) {
     printf("class %d: %d \n", i, ResOut[i]);
     if(ResOut[i] > highest) {

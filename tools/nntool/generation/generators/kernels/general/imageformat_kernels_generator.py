@@ -34,6 +34,8 @@ def gen_at_imageformat(code_block, name, in_dim, do_offset, nntool_kop):
         code_block.write('CNN_Norm("{}", {}, {}, {}, {});',
                          name, in_dim.w, in_dim.h, do_offset and "1" or "0", nntool_kop)
     else:
+        if len(in_dim.shape) > 2:
+            LOG.warning(f"Input Dim has no hints -> we are assuming HxWxC order in this case -> {in_dim.shape[0]}x{in_dim.shape[1]}x{in_dim.shape[2]}, for .onnx graphs may not be the case")
         code_block.write('CNN_Norm("{}", {}, {}, {}, {});',
                          name, in_dim.shape[1], in_dim.shape[0], do_offset and "1" or "0", nntool_kop)
 

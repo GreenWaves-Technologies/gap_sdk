@@ -37,17 +37,14 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
         return self.filter.size() + (self.has_bias and self.filter.out_c or 0)
 
     def get_output_size(self, in_dims):
-
-        assert len(in_dims) == 1
         self.in_dims = in_dims
 
         out_dim = Dim.named(c=self.filter.out_c, order=True)
         return [out_dim]
 
-    def transpose_filter_in(self, trans: list, dim: Dim):
-        if self.weights is None:
-            return
-        assert dim.size() * self.filter.out_c == self.weights.size, "weights do not match transpose shape"
+    def transpose_filter_in(self, trans: list, dim: Dim, weights_node):
+        weights = weights_node.value
+        assert dim.size() * self.filter.out_c == weights.size, "weights do not match transpose shape"
         # add the output channel dimension to the transpose (which is only for the input)
         real_transpose = [0] + [t + 1 for t in trans]
         # transpose the filter dimensions
@@ -59,21 +56,21 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
             # if there is an input hint then transpose the hint
             self.in_dims_hint[0] = [self.in_dims_hint[0][i] for i in trans]
         # now transpose the weights to match the new input order
-        self.weights = np.reshape(np.transpose(np.reshape(self.weights, [int(self.filter.out_c)] + dim.shape),
-                                               real_transpose),
-                                  [self.filter.out_c, dim.size()])
+        weights_node.value = np.reshape(np.transpose(np.reshape(weights, [int(self.filter.out_c)] + dim.shape),
+                                                     real_transpose),
+                                        [self.filter.out_c, dim.size()])
 
-    def transpose_filter_out(self, trans: list, dim: Dim, qrec):
-        if self.weights is None:
-            return
+    def transpose_filter_out(self, trans: list, dim: Dim, qrec, weights_node, biases_node):
+        weights = weights_node.value
+        biases = biases_node.value
         rest = self.filter.size()//self.filter.out_c
-        assert dim.size() * rest == self.weights.size, "weights do not match transpose shape"
-        temp = np.reshape(self.weights, dim.shape + [rest])
+        assert dim.size() * rest == weights.size, "weights do not match transpose shape"
+        temp = np.reshape(weights, dim.shape + [rest])
         temp = np.transpose(temp, list(trans) + [len(trans)])
-        self.weights = np.reshape(temp, [self.filter.out_c, rest])
-        temp = np.reshape(self.biases, dim.shape)
+        weights_node.value = np.reshape(temp, [self.filter.out_c, rest])
+        temp = np.reshape(biases, dim.shape)
         temp = np.transpose(temp, trans)
-        self.biases = np.reshape(temp, [self.filter.out_c])
+        biases_node.value = np.reshape(temp, [self.filter.out_c])
         # no need to transpose filter or output dimension since it will just be [out_c]
         if isinstance(qrec, MultScalableFilterQuantizationRecord):
             qrec.reorder_weigths(trans, dim)

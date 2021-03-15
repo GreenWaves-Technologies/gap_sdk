@@ -481,3 +481,67 @@ int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned c
 
     return ret;
 }
+
+#ifndef __EMUL__
+int WriteImageToFileL3(struct pi_device *l3_mem, char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned int OutBuffer, unsigned char imgFormat)
+{
+
+	switch_fs_t fs;
+	__FS_INIT(fs);
+
+    void *File = __OPEN_WRITE(fs, ImageName);
+
+    int ret = 0;
+    WritePPMHeader(File,W,H, imgFormat);
+    unsigned char * buff=__ALLOC_L2(CHUNK_SIZE);
+
+
+    if(imgFormat == RGB565_IO)
+    {
+        unsigned int rgb888_size = (CHUNK_SIZE/2)*3;     // size of 888 image in byte
+        img_rgb888 = (unsigned char *) __ALLOC_L2(rgb888_size);
+
+        int steps = (W*H*PixelSize) / CHUNK_SIZE;             // convert and fs write times
+
+        for(int i=0;i<steps;i++){
+        	#ifndef SILENT
+	            progress_bar("Writing image ",i,steps);
+	        #endif
+	        pi_ram_read(l3_mem,(uint32_t) OutBuffer+(CHUNK_SIZE*i), buff, (uint32_t) CHUNK_SIZE);
+            
+            rgb565_to_rgb888(buff, CHUNK_SIZE, img_rgb888);
+            ret+=__WRITE(File, img_rgb888, rgb888_size);
+        }
+        if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
+        {
+            rgb888_size = ((W*H*PixelSize) % CHUNK_SIZE)/2*3;
+            pi_ram_read(l3_mem,(uint32_t) OutBuffer+(CHUNK_SIZE*steps), buff, (uint32_t) ((W*H*PixelSize) % CHUNK_SIZE));
+            rgb565_to_rgb888(buff,((W*H*PixelSize) % CHUNK_SIZE) ,img_rgb888);
+            ret+=__WRITE(File, img_rgb888, rgb888_size);
+        }
+
+        __FREE_L2(img_rgb888, (CHUNK_SIZE/2)*3);
+    }
+    else
+    {
+        int steps = (W*H*PixelSize) / CHUNK_SIZE;
+
+        for(int i=0;i<steps;i++){
+            #ifndef SILENT
+	            progress_bar("Writing image ",i,steps);
+	        #endif
+	        pi_ram_read(l3_mem,(uint32_t) OutBuffer+(CHUNK_SIZE*i), buff, (uint32_t) CHUNK_SIZE);
+            ret+=__WRITE(File,buff, CHUNK_SIZE);
+        }
+        if(((W*H*PixelSize) % CHUNK_SIZE) != 0)
+        	pi_ram_read(l3_mem,(uint32_t) OutBuffer+(CHUNK_SIZE*steps), buff, ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
+            ret+=__WRITE(File,buff , ((W*H*PixelSize) % CHUNK_SIZE)*sizeof(unsigned char));
+    }
+
+    __FREE_L2(buff,CHUNK_SIZE);
+    __CLOSE(File);
+    __FS_DEINIT(fs);
+
+    return ret;
+}
+#endif

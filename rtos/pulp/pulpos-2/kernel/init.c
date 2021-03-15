@@ -29,6 +29,7 @@ typedef void (*fptr)(void);
 static fptr ctor_list[1] __attribute__((section(".ctors.start"))) = { (fptr) -1 };
 static fptr dtor_list[1] __attribute__((section(".dtors.start"))) = { (fptr) -1 };
 
+int main();
 
 static void pos_init_do_ctors(void)
 {
@@ -102,6 +103,10 @@ void pos_init_start()
 
     // Now now the minimal init are done, we can activate interruptions
     hal_irq_enable();
+
+    int retval = main();
+
+    exit(retval);
 }
 
 

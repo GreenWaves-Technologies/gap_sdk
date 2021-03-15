@@ -14,14 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from graph.dim import Dim
 from graph.types import (ConstantInputParameters, NNEdge, NoOPParameters,
                          TransposeParameters)
+from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 
 
 @onnx_op("Transpose")
@@ -47,7 +48,9 @@ class Transpose(ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=x_val.transpose(transpose))
+            x_val = x_val.transpose(transpose)
+            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val,
+                                             constant_store=G.constant_store)
         else:
             transpose = [new_axes[axis] for axis in transpose if x_shape[axis] is not None]
             if transpose == sorted(transpose):
@@ -57,7 +60,6 @@ class Transpose(ConstantMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pout_shape))
         return params
-
 
     @classmethod
     def version_1(cls, node, **kwargs):

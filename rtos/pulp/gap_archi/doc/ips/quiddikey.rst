@@ -9,53 +9,47 @@ Overview
 
 .. table:: 
 
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |                              Name                               |Offset|Width|               Description               |
-    +=================================================================+======+=====+=========================================+
-    |:ref:`CR<quiddikey_CR>`                                          |     0|   32|Control register                         |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`ORR<quiddikey_ORR>`                                        |     4|   32|Operation Result register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`SR<quiddikey_SR>`                                          |     8|   32|Status register                          |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`AR<quiddikey_AR>`                                          |    12|   32|Allow register                           |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`IER<quiddikey_IER>`                                        |    16|   32|Interrupt Enable register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`IMR<quiddikey_IMR>`                                        |    20|   32|Interrupt Mask register                  |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`ISR<quiddikey_ISR>`                                        |    24|   32|Interrupt Status register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`DATA_DEST<quiddikey_DATA_DEST>`                            |    32|   32|Destination Data register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`DATA_SRC (not mapped ?)<quiddikey_DATA_SRC (not mapped ?)>`|    40|   32|Data Source register                     |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`KEY_INDEX<quiddikey_KEY_INDEX>`                            |    40|   32|Key Index register                       |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`DIR<quiddikey_DIR>`                                        |   160|   32|Data Input register                      |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`DOR<quiddikey_DOR>`                                        |   168|   32|Data Output register                     |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`MISC<quiddikey_MISC>`                                      |   192|   32|Miscellaneous register                   |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`IF_SR<quiddikey_IF_SR>`                                    |   208|   32|Interface Status register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`TEST<quiddikey_TEST>`                                      |   216|   32|Test register                            |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`PSR<quiddikey_PSR>`                                        |   220|   32|PUF Score register                       |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_RUC0<quiddikey_HW_RUC0>`                                |   224|   32|Hardware Restrict User Context 0 register|
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_RUC1<quiddikey_HW_RUC1>`                                |   228|   32|Hardware Restrict User Context 1 register|
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_SETTINGS<quiddikey_HW_SETTINGS>`                        |   240|   32|Hardware Settings register               |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_INFO<quiddikey_HW_INFO>`                                |   244|   32|Hardware Information register            |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_ID<quiddikey_HW_ID>`                                    |   248|   32|Hardware Identifier register             |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
-    |:ref:`HW_VER<quiddikey_HW_VER>`                                  |   252|   32|Hardware Version register                |
-    +-----------------------------------------------------------------+------+-----+-----------------------------------------+
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |                  Name                   |Offset|Width|               Description               |
+    +=========================================+======+=====+=========================================+
+    |:ref:`CR<quiddikey_CR>`                  |     0|   32|Control register                         |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`SR<quiddikey_SR>`                  |     8|   32|Status register                          |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`AR<quiddikey_AR>`                  |    12|   32|Allow register                           |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IER<quiddikey_IER>`                |    16|   32|Interrupt Enable register                |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IMR<quiddikey_IMR>`                |    20|   32|Interrupt Mask register                  |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`ISR<quiddikey_ISR>`                |    24|   32|Interrupt Status register                |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DATA_DEST<quiddikey_DATA_DEST>`    |    32|   32|Destination Data register                |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DIR<quiddikey_DIR>`                |   160|   32|Data Input register                      |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`DOR<quiddikey_DOR>`                |   168|   32|Data Output register                     |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`MISC<quiddikey_MISC>`              |   192|   32|Miscellaneous register                   |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`IF_SR<quiddikey_IF_SR>`            |   208|   32|Interface Status register                |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`TEST<quiddikey_TEST>`              |   216|   32|Test register                            |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`PSR<quiddikey_PSR>`                |   220|   32|PUF Score register                       |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_RUC0<quiddikey_HW_RUC0>`        |   224|   32|Hardware Restrict User Context 0 register|
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_RUC1<quiddikey_HW_RUC1>`        |   228|   32|Hardware Restrict User Context 1 register|
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_SETTINGS<quiddikey_HW_SETTINGS>`|   240|   32|Hardware Settings register               |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_INFO<quiddikey_HW_INFO>`        |   244|   32|Hardware Information register            |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_ID<quiddikey_HW_ID>`            |   248|   32|Hardware Identifier register             |
+    +-----------------------------------------+------+-----+-----------------------------------------+
+    |:ref:`HW_VER<quiddikey_HW_VER>`          |   252|   32|Hardware Version register                |
+    +-----------------------------------------+------+-----+-----------------------------------------+
 
 Generated headers
 """""""""""""""""
@@ -69,9 +63,6 @@ Generated headers
         
                 // Control register
                 #define QUIDDIKEY_CR_OFFSET                      0x0
-        
-                // Operation Result register
-                #define QUIDDIKEY_ORR_OFFSET                     0x4
         
                 // Status register
                 #define QUIDDIKEY_SR_OFFSET                      0x8
@@ -90,12 +81,6 @@ Generated headers
         
                 // Destination Data register
                 #define QUIDDIKEY_DATA_DEST_OFFSET               0x20
-        
-                // Data Source register
-                #define QUIDDIKEY_DATA_SRC (NOT MAPPED ?)_OFFSET 0x28
-        
-                // Key Index register
-                #define QUIDDIKEY_KEY_INDEX_OFFSET               0x28
         
                 // Data Input register
                 #define QUIDDIKEY_DIR_OFFSET                     0xa0
@@ -139,71 +124,62 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_cr_get(uint32_t base);
-        static inline void quiddikey_cr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_cr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_cr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_orr_get(uint32_t base);
-        static inline void quiddikey_orr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_sr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_sr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_sr_get(uint32_t base);
-        static inline void quiddikey_sr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_ar_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_ar_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_ar_get(uint32_t base);
-        static inline void quiddikey_ar_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_ier_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_ier_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_ier_get(uint32_t base);
-        static inline void quiddikey_ier_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_imr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_imr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_imr_get(uint32_t base);
-        static inline void quiddikey_imr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_isr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_isr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_isr_get(uint32_t base);
-        static inline void quiddikey_isr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_data_dest_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_data_dest_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_data_dest_get(uint32_t base);
-        static inline void quiddikey_data_dest_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_dir_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_dir_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_data_src (not mapped ?)_get(uint32_t base);
-        static inline void quiddikey_data_src (not mapped ?)_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_dor_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_dor_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_key_index_get(uint32_t base);
-        static inline void quiddikey_key_index_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_misc_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_misc_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_dir_get(uint32_t base);
-        static inline void quiddikey_dir_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_if_sr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_if_sr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_dor_get(uint32_t base);
-        static inline void quiddikey_dor_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_test_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_test_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_misc_get(uint32_t base);
-        static inline void quiddikey_misc_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_psr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_psr_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_if_sr_get(uint32_t base);
-        static inline void quiddikey_if_sr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ruc0_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ruc0_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_test_get(uint32_t base);
-        static inline void quiddikey_test_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ruc1_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ruc1_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_psr_get(uint32_t base);
-        static inline void quiddikey_psr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_settings_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_hw_ruc0_get(uint32_t base);
-        static inline void quiddikey_hw_ruc0_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_info_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_info_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_hw_ruc1_get(uint32_t base);
-        static inline void quiddikey_hw_ruc1_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_id_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_id_set(uint32_t base, uint32_t value);
 
-        static inline uint32_t quiddikey_hw_settings_get(uint32_t base);
-        static inline void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
-
-        static inline uint32_t quiddikey_hw_info_get(uint32_t base);
-        static inline void quiddikey_hw_info_set(uint32_t base, uint32_t value);
-
-        static inline uint32_t quiddikey_hw_id_get(uint32_t base);
-        static inline void quiddikey_hw_id_set(uint32_t base, uint32_t value);
-
-        static inline uint32_t quiddikey_hw_ver_get(uint32_t base);
-        static inline void quiddikey_hw_ver_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ver_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ver_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -276,30 +252,6 @@ Generated headers
         #define QUIDDIKEY_CR_TEST_PUF_WIDTH                                  1
         #define QUIDDIKEY_CR_TEST_PUF_MASK                                   0x80000000
         #define QUIDDIKEY_CR_TEST_PUF_RESET                                  0x0
-        
-        // Result code of last operation (access: R/W)
-        #define QUIDDIKEY_ORR_RESULT_CODE_BIT                                0
-        #define QUIDDIKEY_ORR_RESULT_CODE_WIDTH                              8
-        #define QUIDDIKEY_ORR_RESULT_CODE_MASK                               0xff
-        #define QUIDDIKEY_ORR_RESULT_CODE_RESET                              0x0
-        
-        // Reseed Warning register field (access: R/W)
-        #define QUIDDIKEY_ORR_RESEED_WARNING_BIT                             14
-        #define QUIDDIKEY_ORR_RESEED_WARNING_WIDTH                           1
-        #define QUIDDIKEY_ORR_RESEED_WARNING_MASK                            0x4000
-        #define QUIDDIKEY_ORR_RESEED_WARNING_RESET                           0x0
-        
-        // Reseed Required register field (access: R/W)
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_BIT                            15
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_WIDTH                          1
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_MASK                           0x8000
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_RESET                          0x0
-        
-        // Number of last operation (access: R/W)
-        #define QUIDDIKEY_ORR_LAST_OPERATION_BIT                             24
-        #define QUIDDIKEY_ORR_LAST_OPERATION_WIDTH                           8
-        #define QUIDDIKEY_ORR_LAST_OPERATION_MASK                            0xff000000
-        #define QUIDDIKEY_ORR_LAST_OPERATION_RESET                           0x0
         
         // Operation is in progress (access: R/W)
         #define QUIDDIKEY_SR_BUSY_BIT                                        0
@@ -559,12 +511,6 @@ Generated headers
         #define QUIDDIKEY_DATA_DEST_DEST_SO_MASK                             0x2
         #define QUIDDIKEY_DATA_DEST_DEST_SO_RESET                            0x0
         
-        // Value of the Key Index (access: R)
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_BIT                            0
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_WIDTH                          4
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_MASK                           0xf
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_RESET                          0x0
-        
         // Data In field (access: R/W)
         #define QUIDDIKEY_DIR_DI_BIT                                         0
         #define QUIDDIKEY_DIR_DI_WIDTH                                       32
@@ -572,10 +518,16 @@ Generated headers
         #define QUIDDIKEY_DIR_DI_RESET                                       0x0
         
         // Data Out field (access: R)
-        #define QUIDDIKEY_DOR_DO_BIT                                         0
-        #define QUIDDIKEY_DOR_DO_WIDTH                                       32
-        #define QUIDDIKEY_DOR_DO_MASK                                        0xffffffff
-        #define QUIDDIKEY_DOR_DO_RESET                                       0x0
+        #define QUIDDIKEY_DOR_DOR_BIT                                        0
+        #define QUIDDIKEY_DOR_DOR_WIDTH                                      32
+        #define QUIDDIKEY_DOR_DOR_MASK                                       0xffffffff
+        #define QUIDDIKEY_DOR_DOR_RESET                                      0x0
+        
+        // Set endianness (access: R)
+        #define QUIDDIKEY_MISC_ENDIANNESS_BIT                                0
+        #define QUIDDIKEY_MISC_ENDIANNESS_WIDTH                              32
+        #define QUIDDIKEY_MISC_ENDIANNESS_MASK                               0xffffffff
+        #define QUIDDIKEY_MISC_ENDIANNESS_RESET                              0x0
         
         // An APB error has occured (access: R/W)
         #define QUIDDIKEY_IF_SR_APB_ERROR_BIT                                0
@@ -836,26 +788,6 @@ Generated headers
         #define QUIDDIKEY_CR_TEST_PUF_SET(value,field)             (GAP_BINSERT((value),(field),1,31))
         #define QUIDDIKEY_CR_TEST_PUF(val)                         ((val) << 31)
         
-        #define QUIDDIKEY_ORR_RESULT_CODE_GET(value)               (GAP_BEXTRACTU((value),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE_GETS(value)              (GAP_BEXTRACT((value),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE_SET(value,field)         (GAP_BINSERT((value),(field),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE(val)                     ((val) << 0)
-        
-        #define QUIDDIKEY_ORR_RESEED_WARNING_GET(value)            (GAP_BEXTRACTU((value),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING_GETS(value)           (GAP_BEXTRACT((value),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING_SET(value,field)      (GAP_BINSERT((value),(field),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING(val)                  ((val) << 14)
-        
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GET(value)           (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GETS(value)          (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_SET(value,field)     (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED(val)                 ((val) << 15)
-        
-        #define QUIDDIKEY_ORR_LAST_OPERATION_GET(value)            (GAP_BEXTRACTU((value),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION_GETS(value)           (GAP_BEXTRACT((value),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION_SET(value,field)      (GAP_BINSERT((value),(field),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION(val)                  ((val) << 24)
-        
         #define QUIDDIKEY_SR_BUSY_GET(value)                       (GAP_BEXTRACTU((value),1,0))
         #define QUIDDIKEY_SR_BUSY_GETS(value)                      (GAP_BEXTRACT((value),1,0))
         #define QUIDDIKEY_SR_BUSY_SET(value,field)                 (GAP_BINSERT((value),(field),1,0))
@@ -1071,20 +1003,20 @@ Generated headers
         #define QUIDDIKEY_DATA_DEST_DEST_SO_SET(value,field)       (GAP_BINSERT((value),(field),1,1))
         #define QUIDDIKEY_DATA_DEST_DEST_SO(val)                   ((val) << 1)
         
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GET(value)           (GAP_BEXTRACTU((value),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GETS(value)          (GAP_BEXTRACT((value),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_SET(value,field)     (GAP_BINSERT((value),(field),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX(val)                 ((val) << 0)
-        
-        #define QUIDDIKEY_DIR_DI_GET(value)                        (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DIR_DI_GETS(value)                       (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DIR_DI_GET(value)                        (value)
+        #define QUIDDIKEY_DIR_DI_GETS(value)                       (value)
+        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (field)
         #define QUIDDIKEY_DIR_DI(val)                              ((val) << 0)
         
-        #define QUIDDIKEY_DOR_DO_GET(value)                        (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DOR_DO_GETS(value)                       (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DOR_DO_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DOR_DO(val)                              ((val) << 0)
+        #define QUIDDIKEY_DOR_DOR_GET(value)                       (value)
+        #define QUIDDIKEY_DOR_DOR_GETS(value)                      (value)
+        #define QUIDDIKEY_DOR_DOR_SET(value,field)                 (field)
+        #define QUIDDIKEY_DOR_DOR(val)                             ((val) << 0)
+        
+        #define QUIDDIKEY_MISC_ENDIANNESS_GET(value)               (value)
+        #define QUIDDIKEY_MISC_ENDIANNESS_GETS(value)              (value)
+        #define QUIDDIKEY_MISC_ENDIANNESS_SET(value,field)         (field)
+        #define QUIDDIKEY_MISC_ENDIANNESS(val)                     ((val) << 0)
         
         #define QUIDDIKEY_IF_SR_APB_ERROR_GET(value)               (GAP_BEXTRACTU((value),1,0))
         #define QUIDDIKEY_IF_SR_APB_ERROR_GETS(value)              (GAP_BEXTRACT((value),1,0))
@@ -1126,14 +1058,14 @@ Generated headers
         #define QUIDDIKEY_PSR_PUF_SCORE_SET(value,field)           (GAP_BINSERT((value),(field),4,0))
         #define QUIDDIKEY_PSR_PUF_SCORE(val)                       ((val) << 0)
         
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (value)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (value)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (field)
         #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0(val)     ((val) << 0)
         
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (value)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (value)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (field)
         #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1(val)     ((val) << 0)
         
         #define QUIDDIKEY_HW_SETTINGS_DISABLE_ENROLL_GET(value)    (GAP_BEXTRACTU((value),1,1))
@@ -1231,9 +1163,9 @@ Generated headers
         #define QUIDDIKEY_HW_INFO_CONFIG_TYPE_SET(value,field)     (GAP_BINSERT((value),(field),4,28))
         #define QUIDDIKEY_HW_INFO_CONFIG_TYPE(val)                 ((val) << 28)
         
-        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (value)
+        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (value)
+        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (field)
         #define QUIDDIKEY_HW_ID_HW_ID(val)                         ((val) << 0)
         
         #define QUIDDIKEY_HW_VER_HW_VER_REV_GET(value)             (GAP_BEXTRACTU((value),8,0))
@@ -1259,18 +1191,15 @@ Generated headers
         /** QUIDDIKEY_Type Register Layout Typedef */
         typedef struct {
             volatile uint32_t cr;  // Control register
-            volatile uint32_t orr;  // Operation Result register
+            volatile uint32_t reserved_0[1];  // Reserved/Not used.
             volatile uint32_t sr;  // Status register
             volatile uint32_t ar;  // Allow register
             volatile uint32_t ier;  // Interrupt Enable register
             volatile uint32_t imr;  // Interrupt Mask register
             volatile uint32_t isr;  // Interrupt Status register
-            volatile uint32_t reserved_0[1];  // Reserved/Not used.
-            volatile uint32_t data_dest;  // Destination Data register
             volatile uint32_t reserved_1[1];  // Reserved/Not used.
-            volatile uint32_t data_src (not mapped ?);  // Data Source register
-            volatile uint32_t key_index;  // Key Index register
-            volatile uint32_t reserved_2[29];  // Reserved/Not used.
+            volatile uint32_t data_dest;  // Destination Data register
+            volatile uint32_t reserved_2[31];  // Reserved/Not used.
             volatile uint32_t dir;  // Data Input register
             volatile uint32_t reserved_3[1];  // Reserved/Not used.
             volatile uint32_t dor;  // Data Output register
@@ -1289,6 +1218,36 @@ Generated headers
             volatile uint32_t hw_id;  // Hardware Identifier register
             volatile uint32_t hw_ver;  // Hardware Version register
         } __attribute__((packed)) quiddikey_t;
+        /** QUIDDIKEY_Type Register Layout Typedef */
+        typedef struct {
+            volatile quiddikey_cr_t cr;  // Control register
+            volatile uint32_t reserved_0[1];  // Reserved/Not used.
+            volatile quiddikey_sr_t sr;  // Status register
+            volatile quiddikey_ar_t ar;  // Allow register
+            volatile quiddikey_ier_t ier;  // Interrupt Enable register
+            volatile quiddikey_imr_t imr;  // Interrupt Mask register
+            volatile quiddikey_isr_t isr;  // Interrupt Status register
+            volatile uint32_t reserved_1[1];  // Reserved/Not used.
+            volatile quiddikey_data_dest_t data_dest;  // Destination Data register
+            volatile uint32_t reserved_2[31];  // Reserved/Not used.
+            volatile quiddikey_dir_t dir;  // Data Input register
+            volatile uint32_t reserved_3[1];  // Reserved/Not used.
+            volatile quiddikey_dor_t dor;  // Data Output register
+            volatile uint32_t reserved_4[5];  // Reserved/Not used.
+            volatile quiddikey_misc_t misc;  // Miscellaneous register
+            volatile uint32_t reserved_5[3];  // Reserved/Not used.
+            volatile quiddikey_if_sr_t if_sr;  // Interface Status register
+            volatile uint32_t reserved_6[1];  // Reserved/Not used.
+            volatile quiddikey_test_t test;  // Test register
+            volatile quiddikey_psr_t psr;  // PUF Score register
+            volatile quiddikey_hw_ruc0_t hw_ruc0;  // Hardware Restrict User Context 0 register
+            volatile quiddikey_hw_ruc1_t hw_ruc1;  // Hardware Restrict User Context 1 register
+            volatile uint32_t reserved_7[2];  // Reserved/Not used.
+            volatile quiddikey_hw_settings_t hw_settings;  // Hardware Settings register
+            volatile quiddikey_hw_info_t hw_info;  // Hardware Information register
+            volatile quiddikey_hw_id_t hw_id;  // Hardware Identifier register
+            volatile quiddikey_hw_ver_t hw_ver;  // Hardware Version register
+        } __attribute__((packed)) quiddikey_struct_t;
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -1315,18 +1274,6 @@ Generated headers
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_cr_t;
-        
-        typedef union {
-          struct {
-            unsigned int result_code     :8 ; // Result code of last operation
-            unsigned int padding0:6 ;
-            unsigned int reseed_warning  :1 ; // Reseed Warning register field
-            unsigned int reseed_required :1 ; // Reseed Required register field
-            unsigned int padding1:8 ;
-            unsigned int last_operation  :8 ; // Number of last operation
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_orr_t;
         
         typedef union {
           struct {
@@ -1416,19 +1363,6 @@ Generated headers
         
         typedef union {
           struct {
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_data_src (not mapped ?)_t;
-        
-        typedef union {
-          struct {
-            unsigned int key_index       :4 ; // Value of the Key Index
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_key_index_t;
-        
-        typedef union {
-          struct {
             unsigned int di              :32; // Data In field
           };
           unsigned int raw;
@@ -1436,13 +1370,14 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int do              :32; // Data Out field
+            unsigned int dor             :32; // Data Out field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dor_t;
         
         typedef union {
           struct {
+            unsigned int endianness      :32; // Set endianness
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_misc_t;
@@ -1554,15 +1489,12 @@ Generated headers
         {
         public:
             vp_quiddikey_cr cr;
-            vp_quiddikey_orr orr;
             vp_quiddikey_sr sr;
             vp_quiddikey_ar ar;
             vp_quiddikey_ier ier;
             vp_quiddikey_imr imr;
             vp_quiddikey_isr isr;
             vp_quiddikey_data_dest data_dest;
-            vp_quiddikey_data_src (not mapped ?) data_src (not mapped ?);
-            vp_quiddikey_key_index key_index;
             vp_quiddikey_dir dir;
             vp_quiddikey_dor dor;
             vp_quiddikey_misc misc;
@@ -1633,8 +1565,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_cr_get(uint32_t base);
-        static inline void quiddikey_cr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_cr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_cr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -1830,144 +1762,6 @@ Generated headers
 
 |
 
-.. _quiddikey_ORR:
-
-ORR
-"""
-
-Operation Result register
-
-.. table:: 
-
-    +-----+---+---------------+------------------------------+
-    |Bit #|R/W|     Name      |         Description          |
-    +=====+===+===============+==============================+
-    |7:0  |R/W|RESULT_CODE    |Result code of last operation |
-    +-----+---+---------------+------------------------------+
-    |14   |R/W|RESEED_WARNING |Reseed Warning register field |
-    +-----+---+---------------+------------------------------+
-    |15   |R/W|RESEED_REQUIRED|Reseed Required register field|
-    +-----+---+---------------+------------------------------+
-    |31:24|R/W|LAST_OPERATION |Number of last operation      |
-    +-----+---+---------------+------------------------------+
-
-Generated headers
-"""""""""""""""""
-
-
-.. toggle-header::
-    :header: *Register map C offsets*
-
-    .. code-block:: c
-
-        
-                // Operation Result register
-                #define QUIDDIKEY_ORR_OFFSET                     0x4
-
-.. toggle-header::
-    :header: *Register accessors*
-
-    .. code-block:: c
-
-
-        static inline uint32_t quiddikey_orr_get(uint32_t base);
-        static inline void quiddikey_orr_set(uint32_t base, uint32_t value);
-
-.. toggle-header::
-    :header: *Register fields defines*
-
-    .. code-block:: c
-
-        
-        // Result code of last operation (access: R/W)
-        #define QUIDDIKEY_ORR_RESULT_CODE_BIT                                0
-        #define QUIDDIKEY_ORR_RESULT_CODE_WIDTH                              8
-        #define QUIDDIKEY_ORR_RESULT_CODE_MASK                               0xff
-        #define QUIDDIKEY_ORR_RESULT_CODE_RESET                              0x0
-        
-        // Reseed Warning register field (access: R/W)
-        #define QUIDDIKEY_ORR_RESEED_WARNING_BIT                             14
-        #define QUIDDIKEY_ORR_RESEED_WARNING_WIDTH                           1
-        #define QUIDDIKEY_ORR_RESEED_WARNING_MASK                            0x4000
-        #define QUIDDIKEY_ORR_RESEED_WARNING_RESET                           0x0
-        
-        // Reseed Required register field (access: R/W)
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_BIT                            15
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_WIDTH                          1
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_MASK                           0x8000
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_RESET                          0x0
-        
-        // Number of last operation (access: R/W)
-        #define QUIDDIKEY_ORR_LAST_OPERATION_BIT                             24
-        #define QUIDDIKEY_ORR_LAST_OPERATION_WIDTH                           8
-        #define QUIDDIKEY_ORR_LAST_OPERATION_MASK                            0xff000000
-        #define QUIDDIKEY_ORR_LAST_OPERATION_RESET                           0x0
-
-.. toggle-header::
-    :header: *Register fields macros*
-
-    .. code-block:: c
-
-        
-        #define QUIDDIKEY_ORR_RESULT_CODE_GET(value)               (GAP_BEXTRACTU((value),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE_GETS(value)              (GAP_BEXTRACT((value),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE_SET(value,field)         (GAP_BINSERT((value),(field),8,0))
-        #define QUIDDIKEY_ORR_RESULT_CODE(val)                     ((val) << 0)
-        
-        #define QUIDDIKEY_ORR_RESEED_WARNING_GET(value)            (GAP_BEXTRACTU((value),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING_GETS(value)           (GAP_BEXTRACT((value),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING_SET(value,field)      (GAP_BINSERT((value),(field),1,14))
-        #define QUIDDIKEY_ORR_RESEED_WARNING(val)                  ((val) << 14)
-        
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GET(value)           (GAP_BEXTRACTU((value),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_GETS(value)          (GAP_BEXTRACT((value),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED_SET(value,field)     (GAP_BINSERT((value),(field),1,15))
-        #define QUIDDIKEY_ORR_RESEED_REQUIRED(val)                 ((val) << 15)
-        
-        #define QUIDDIKEY_ORR_LAST_OPERATION_GET(value)            (GAP_BEXTRACTU((value),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION_GETS(value)           (GAP_BEXTRACT((value),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION_SET(value,field)      (GAP_BINSERT((value),(field),8,24))
-        #define QUIDDIKEY_ORR_LAST_OPERATION(val)                  ((val) << 24)
-
-.. toggle-header::
-    :header: *Register fields structures*
-
-    .. code-block:: c
-
-        
-        typedef union {
-          struct {
-            unsigned int result_code     :8 ; // Result code of last operation
-            unsigned int padding0:6 ;
-            unsigned int reseed_warning  :1 ; // Reseed Warning register field
-            unsigned int reseed_required :1 ; // Reseed Required register field
-            unsigned int padding1:8 ;
-            unsigned int last_operation  :8 ; // Number of last operation
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_orr_t;
-
-.. toggle-header::
-    :header: *GVSOC registers*
-
-    .. code-block:: c
-
-        
-        class vp_quiddikey_orr : public vp::reg_32
-        {
-        public:
-            inline void result_code_set(uint32_t value);
-            inline uint32_t result_code_get();
-            inline void reseed_warning_set(uint32_t value);
-            inline uint32_t reseed_warning_get();
-            inline void reseed_required_set(uint32_t value);
-            inline uint32_t reseed_required_get();
-            inline void last_operation_set(uint32_t value);
-            inline uint32_t last_operation_get();
-        };
-
-|
-
 .. _quiddikey_SR:
 
 SR
@@ -2020,8 +1814,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_sr_get(uint32_t base);
-        static inline void quiddikey_sr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_sr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_sr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2253,8 +2047,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_ar_get(uint32_t base);
-        static inline void quiddikey_ar_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_ar_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_ar_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2471,8 +2265,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_ier_get(uint32_t base);
-        static inline void quiddikey_ier_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_ier_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_ier_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2577,8 +2371,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_imr_get(uint32_t base);
-        static inline void quiddikey_imr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_imr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_imr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -2810,8 +2604,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_isr_get(uint32_t base);
-        static inline void quiddikey_isr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_isr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_isr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3027,8 +2821,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_data_dest_get(uint32_t base);
-        static inline void quiddikey_data_dest_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_data_dest_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_data_dest_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3095,167 +2889,6 @@ Generated headers
 
 |
 
-.. _quiddikey_DATA_SRC (not mapped ?):
-
-DATA_SRC (not mapped ?)
-"""""""""""""""""""""""
-
-Data Source register
-
-.. table:: 
-
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
-
-Generated headers
-"""""""""""""""""
-
-
-.. toggle-header::
-    :header: *Register map C offsets*
-
-    .. code-block:: c
-
-        
-                // Data Source register
-                #define QUIDDIKEY_DATA_SRC (NOT MAPPED ?)_OFFSET 0x28
-
-.. toggle-header::
-    :header: *Register accessors*
-
-    .. code-block:: c
-
-
-        static inline uint32_t quiddikey_data_src (not mapped ?)_get(uint32_t base);
-        static inline void quiddikey_data_src (not mapped ?)_set(uint32_t base, uint32_t value);
-
-.. toggle-header::
-    :header: *Register fields defines*
-
-    .. code-block:: c
-
-
-.. toggle-header::
-    :header: *Register fields macros*
-
-    .. code-block:: c
-
-
-.. toggle-header::
-    :header: *Register fields structures*
-
-    .. code-block:: c
-
-        
-        typedef union {
-          struct {
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_data_src (not mapped ?)_t;
-
-.. toggle-header::
-    :header: *GVSOC registers*
-
-    .. code-block:: c
-
-        
-        class vp_quiddikey_data_src (not mapped ?) : public vp::reg_32
-        {
-        public:
-        };
-
-|
-
-.. _quiddikey_KEY_INDEX:
-
-KEY_INDEX
-"""""""""
-
-Key Index register
-
-.. table:: 
-
-    +-----+---+---------+----------------------+
-    |Bit #|R/W|  Name   |     Description      |
-    +=====+===+=========+======================+
-    |3:0  |R  |KEY_INDEX|Value of the Key Index|
-    +-----+---+---------+----------------------+
-
-Generated headers
-"""""""""""""""""
-
-
-.. toggle-header::
-    :header: *Register map C offsets*
-
-    .. code-block:: c
-
-        
-                // Key Index register
-                #define QUIDDIKEY_KEY_INDEX_OFFSET               0x28
-
-.. toggle-header::
-    :header: *Register accessors*
-
-    .. code-block:: c
-
-
-        static inline uint32_t quiddikey_key_index_get(uint32_t base);
-        static inline void quiddikey_key_index_set(uint32_t base, uint32_t value);
-
-.. toggle-header::
-    :header: *Register fields defines*
-
-    .. code-block:: c
-
-        
-        // Value of the Key Index (access: R)
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_BIT                            0
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_WIDTH                          4
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_MASK                           0xf
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_RESET                          0x0
-
-.. toggle-header::
-    :header: *Register fields macros*
-
-    .. code-block:: c
-
-        
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GET(value)           (GAP_BEXTRACTU((value),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_GETS(value)          (GAP_BEXTRACT((value),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX_SET(value,field)     (GAP_BINSERT((value),(field),4,0))
-        #define QUIDDIKEY_KEY_INDEX_KEY_INDEX(val)                 ((val) << 0)
-
-.. toggle-header::
-    :header: *Register fields structures*
-
-    .. code-block:: c
-
-        
-        typedef union {
-          struct {
-            unsigned int key_index       :4 ; // Value of the Key Index
-          };
-          unsigned int raw;
-        } __attribute__((packed)) quiddikey_key_index_t;
-
-.. toggle-header::
-    :header: *GVSOC registers*
-
-    .. code-block:: c
-
-        
-        class vp_quiddikey_key_index : public vp::reg_32
-        {
-        public:
-            inline void key_index_set(uint32_t value);
-            inline uint32_t key_index_get();
-        };
-
-|
-
 .. _quiddikey_DIR:
 
 DIR
@@ -3290,8 +2923,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_dir_get(uint32_t base);
-        static inline void quiddikey_dir_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_dir_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_dir_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3311,9 +2944,9 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_DIR_DI_GET(value)                        (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DIR_DI_GETS(value)                       (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_DIR_DI_GET(value)                        (value)
+        #define QUIDDIKEY_DIR_DI_GETS(value)                       (value)
+        #define QUIDDIKEY_DIR_DI_SET(value,field)                  (field)
         #define QUIDDIKEY_DIR_DI(val)                              ((val) << 0)
 
 .. toggle-header::
@@ -3356,7 +2989,7 @@ Data Output register
     +-----+---+----+--------------+
     |Bit #|R/W|Name| Description  |
     +=====+===+====+==============+
-    |31:0 |R  |DO  |Data Out field|
+    |31:0 |R  |DOR |Data Out field|
     +-----+---+----+--------------+
 
 Generated headers
@@ -3378,8 +3011,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_dor_get(uint32_t base);
-        static inline void quiddikey_dor_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_dor_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_dor_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3388,10 +3021,10 @@ Generated headers
 
         
         // Data Out field (access: R)
-        #define QUIDDIKEY_DOR_DO_BIT                                         0
-        #define QUIDDIKEY_DOR_DO_WIDTH                                       32
-        #define QUIDDIKEY_DOR_DO_MASK                                        0xffffffff
-        #define QUIDDIKEY_DOR_DO_RESET                                       0x0
+        #define QUIDDIKEY_DOR_DOR_BIT                                        0
+        #define QUIDDIKEY_DOR_DOR_WIDTH                                      32
+        #define QUIDDIKEY_DOR_DOR_MASK                                       0xffffffff
+        #define QUIDDIKEY_DOR_DOR_RESET                                      0x0
 
 .. toggle-header::
     :header: *Register fields macros*
@@ -3399,10 +3032,10 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_DOR_DO_GET(value)                        (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_DOR_DO_GETS(value)                       (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_DOR_DO_SET(value,field)                  (GAP_BINSERT((value),(field),32,0))
-        #define QUIDDIKEY_DOR_DO(val)                              ((val) << 0)
+        #define QUIDDIKEY_DOR_DOR_GET(value)                       (value)
+        #define QUIDDIKEY_DOR_DOR_GETS(value)                      (value)
+        #define QUIDDIKEY_DOR_DOR_SET(value,field)                 (field)
+        #define QUIDDIKEY_DOR_DOR(val)                             ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3412,7 +3045,7 @@ Generated headers
         
         typedef union {
           struct {
-            unsigned int do              :32; // Data Out field
+            unsigned int dor             :32; // Data Out field
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_dor_t;
@@ -3426,8 +3059,8 @@ Generated headers
         class vp_quiddikey_dor : public vp::reg_32
         {
         public:
-            inline void do_set(uint32_t value);
-            inline uint32_t do_get();
+            inline void dor_set(uint32_t value);
+            inline uint32_t dor_get();
         };
 
 |
@@ -3441,10 +3074,11 @@ Miscellaneous register
 
 .. table:: 
 
-    +-----+---+----+-----------+
-    |Bit #|R/W|Name|Description|
-    +=====+===+====+===========+
-    +-----+---+----+-----------+
+    +-----+---+----------+--------------+
+    |Bit #|R/W|   Name   | Description  |
+    +=====+===+==========+==============+
+    |31:0 |R  |ENDIANNESS|Set endianness|
+    +-----+---+----------+--------------+
 
 Generated headers
 """""""""""""""""
@@ -3465,20 +3099,31 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_misc_get(uint32_t base);
-        static inline void quiddikey_misc_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_misc_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_misc_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
 
     .. code-block:: c
 
+        
+        // Set endianness (access: R)
+        #define QUIDDIKEY_MISC_ENDIANNESS_BIT                                0
+        #define QUIDDIKEY_MISC_ENDIANNESS_WIDTH                              32
+        #define QUIDDIKEY_MISC_ENDIANNESS_MASK                               0xffffffff
+        #define QUIDDIKEY_MISC_ENDIANNESS_RESET                              0x0
 
 .. toggle-header::
     :header: *Register fields macros*
 
     .. code-block:: c
 
+        
+        #define QUIDDIKEY_MISC_ENDIANNESS_GET(value)               (value)
+        #define QUIDDIKEY_MISC_ENDIANNESS_GETS(value)              (value)
+        #define QUIDDIKEY_MISC_ENDIANNESS_SET(value,field)         (field)
+        #define QUIDDIKEY_MISC_ENDIANNESS(val)                     ((val) << 0)
 
 .. toggle-header::
     :header: *Register fields structures*
@@ -3488,6 +3133,7 @@ Generated headers
         
         typedef union {
           struct {
+            unsigned int endianness      :32; // Set endianness
           };
           unsigned int raw;
         } __attribute__((packed)) quiddikey_misc_t;
@@ -3501,6 +3147,8 @@ Generated headers
         class vp_quiddikey_misc : public vp::reg_32
         {
         public:
+            inline void endianness_set(uint32_t value);
+            inline uint32_t endianness_get();
         };
 
 |
@@ -3539,8 +3187,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_if_sr_get(uint32_t base);
-        static inline void quiddikey_if_sr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_if_sr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_if_sr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3637,8 +3285,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_test_get(uint32_t base);
-        static inline void quiddikey_test_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_test_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_test_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3797,8 +3445,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_psr_get(uint32_t base);
-        static inline void quiddikey_psr_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_psr_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_psr_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3885,8 +3533,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_ruc0_get(uint32_t base);
-        static inline void quiddikey_hw_ruc0_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ruc0_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ruc0_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3906,9 +3554,9 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GET(value) (value)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_GETS(value) (value)
+        #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0_SET(value,field) (field)
         #define QUIDDIKEY_HW_RUC0_RESTRICT_USER_CONTEXT_0(val)     ((val) << 0)
 
 .. toggle-header::
@@ -3973,8 +3621,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_ruc1_get(uint32_t base);
-        static inline void quiddikey_hw_ruc1_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ruc1_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ruc1_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -3994,9 +3642,9 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GET(value) (value)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_GETS(value) (value)
+        #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1_SET(value,field) (field)
         #define QUIDDIKEY_HW_RUC1_RESTRICT_USER_CONTEXT_1(val)     ((val) << 0)
 
 .. toggle-header::
@@ -4087,8 +3735,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_settings_get(uint32_t base);
-        static inline void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_settings_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_settings_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -4371,8 +4019,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_info_get(uint32_t base);
-        static inline void quiddikey_hw_info_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_info_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_info_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -4517,8 +4165,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_id_get(uint32_t base);
-        static inline void quiddikey_hw_id_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_id_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_id_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*
@@ -4538,9 +4186,9 @@ Generated headers
     .. code-block:: c
 
         
-        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (GAP_BEXTRACTU((value),32,0))
-        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (GAP_BEXTRACT((value),32,0))
-        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (GAP_BINSERT((value),(field),32,0))
+        #define QUIDDIKEY_HW_ID_HW_ID_GET(value)                   (value)
+        #define QUIDDIKEY_HW_ID_HW_ID_GETS(value)                  (value)
+        #define QUIDDIKEY_HW_ID_HW_ID_SET(value,field)             (field)
         #define QUIDDIKEY_HW_ID_HW_ID(val)                         ((val) << 0)
 
 .. toggle-header::
@@ -4609,8 +4257,8 @@ Generated headers
     .. code-block:: c
 
 
-        static inline uint32_t quiddikey_hw_ver_get(uint32_t base);
-        static inline void quiddikey_hw_ver_set(uint32_t base, uint32_t value);
+        static inline __attribute__((always_inline)) uint32_t quiddikey_hw_ver_get(uint32_t base);
+        static inline __attribute__((always_inline)) void quiddikey_hw_ver_set(uint32_t base, uint32_t value);
 
 .. toggle-header::
     :header: *Register fields defines*

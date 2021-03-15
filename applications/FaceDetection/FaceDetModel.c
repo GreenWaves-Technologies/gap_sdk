@@ -19,8 +19,6 @@
 
 // AutoTiler Libraries
 #include "AutoTilerLib.h"
-// AutoTiler Standard types plus a set of pre defined types for basic kernels
-//#include "StdTypes.h"
 // HOG generator
 #include "FaceDetGenerator.h"
 

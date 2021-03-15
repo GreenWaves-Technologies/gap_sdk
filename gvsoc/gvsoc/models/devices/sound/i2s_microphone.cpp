@@ -70,13 +70,15 @@ protected:
     int pdm;                // Generate samples in PDM mode
     long long pdm_error;
     bool stim_incr;         // True if the stimuli should be an incrising number
-    int stim_incr_value;    // In case incr is active, give the increment value
-    int current_stim;       // When using incrementing stim value, this gives the first value
+    unsigned int stim_incr_value;    // In case incr is active, give the increment value
+    unsigned int stim_incr_start;    // In case incr is active, give the increment start value
+    unsigned int current_stim;       // When using incrementing stim value, this gives the first value
     bool is_active;         // Set to true when the word-select of this microphone is detected. The microphone is sending samples when this is true;
     Stim_txt *stim;         // Pointer to the stim generator
     int ws_in;
     bool lower_ws_out;
     bool enabled;
+    int prev_sck;
 
     vp::trace trace;
 
@@ -341,13 +343,15 @@ int Microphone::build()
     else if (mode == "incr")
     {
         this->stim_incr = true;
-        this->current_stim = this->get_js_config()->get_int("stim_incr_start");
+        this->stim_incr_start = this->get_js_config()->get_int("stim_incr_start");
+        this->current_stim = this->stim_incr_start;
         this->stim_incr_value = this->get_js_config()->get_int("stim_incr_value");
     }
     this->current_ws_delay = 0;
     this->pending_bits = -1;
     this->ws_in = 0;
     this->lower_ws_out = false;
+    this->prev_sck = 0;
 
     return 0;
 }
@@ -372,8 +376,21 @@ int Microphone::get_data()
         if (this->stim_incr)
         {
             this->trace.msg(vp::trace::LEVEL_TRACE, "Incrementing stim (value: 0x%x)\n", this->current_stim);
-            //fprintf(stderr, "stim incr %x %d\n", this->current_stim, (short)this->current_stim);
-            return this->current_stim += this->stim_incr_value;
+            int result = this->current_stim;
+
+            uint64_t incr_val = (uint64_t)this->current_stim + this->stim_incr_value;
+            uint64_t incr_val_trunc = (incr_val & ((1ULL << this->width) - 1));
+
+            if (incr_val_trunc != incr_val)
+            {
+                this->current_stim = this->stim_incr_start;
+            }
+            else
+            {
+                this->current_stim = incr_val_trunc;
+            }
+
+            return result;
         }
     }
 
@@ -428,9 +445,11 @@ int Microphone::pop_data()
 }
 
 
-void Microphone::sync(void *__this, int sck, int ws, int sd)
+void Microphone::sync(void *__this, int sck, int ws, int sdio)
 {
     Microphone *_this = (Microphone *)__this;
+
+    int sd = sdio & 3;
 
     if (!_this->enabled)
         return;
@@ -438,82 +457,84 @@ void Microphone::sync(void *__this, int sck, int ws, int sd)
     if (_this->ws_in_itf.is_bound())
         ws = _this->ws_in;
 
-    _this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d %d)\n", sck, ws, sd, _this->ws_in_itf.is_bound());
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d)\n", sck, ws, sd);
 
-    if (sck)
+    if (_this->prev_sck != sck)
     {
-        if (_this->pending_bits == 1 && _this->ws_out_itf.is_bound())
+        if (sck)
         {
-            _this->ws_out_itf.sync(0, 1, 0);
-            _this->lower_ws_out = true;
-        }
-        else if ( _this->lower_ws_out)
-        {
-            _this->ws_out_itf.sync(0, 0, 0);
-            _this->lower_ws_out = false;
-        }
-    }
-    else
-    {
-        // The channel is the one of this microphone
-        if (_this->prev_ws != ws && ws == _this->channel_ws)
-        {
-            if (!_this->is_active)
+            // The channel is the one of this microphone
+            if (ws == _this->channel_ws)
             {
-                _this->trace.msg(vp::trace::LEVEL_TRACE, "Activating channel\n");
-            }
+                if (!_this->is_active)
+                {
+                    _this->trace.msg(vp::trace::LEVEL_TRACE, "Activating channel\n");
+                }
 
-            _this->is_active = true;
-
-            // If the WS just changed, apply the delay before starting sending
-            _this->current_ws_delay = _this->ws_delay + 1;
-            if (_this->current_ws_delay == 0)
-            {
                 _this->is_active = true;
-            }
-        }
 
-        // If there is a delay, decrease it
-        if (_this->current_ws_delay > 0)
-        {
-            _this->current_ws_delay--;
-            if (_this->current_ws_delay == 0)
+                // If the WS just changed, apply the delay before starting sending
+                _this->current_ws_delay = _this->ws_delay;
+                if (_this->current_ws_delay == 0)
+                {
+                    _this->is_active = true;
+                }
+            }
+
+            // If there is a delay, decrease it
+            if (_this->current_ws_delay > 0)
             {
-                // And reset the sample
-                _this->start_sample();
+                _this->current_ws_delay--;
+                if (_this->current_ws_delay == 0)
+                {
+                    // And reset the sample
+                    _this->start_sample();
+                }
             }
-        }
 
-        if (_this->is_active && _this->pending_bits > 0)
+        }
+        else
         {
-            int data = _this->pop_data();
-            if (data >= 0)
+            if (_this->is_active && _this->pending_bits > 0)
             {
-                //fprintf(stderr, "Popped data %d\n", data);
+                int data = _this->pop_data();
+                if (data >= 0)
+                {
+                    //fprintf(stderr, "Popped data %d\n", data);
 
-                // If there is no more delay, set the sample now as it wil be sampled by the receiver in 1 cycle
-                _this->trace.msg(vp::trace::LEVEL_TRACE, "Setting data (value: %d)\n", data);
+                    // If there is no more delay, set the sample now as it wil be sampled by the receiver in 1 cycle
+                    _this->trace.msg(vp::trace::LEVEL_TRACE, "Setting data (value: %d)\n", data);
 
-                _this->i2s_itf.sync(sck, ws, data);
+                    _this->i2s_itf.sync(2, 2, data | (2 << 2));
+                }
+                else if (data == -1)
+                {
+                    _this->i2s_itf.sync(sck, 2, 2 | (2 << 2));
+                    _this->is_active = false;
+                    _this->ws_out_itf.sync(2, 0, 2 | (2 << 2));
+                }
             }
-            else if (data == -1)
+            else if (_this->pending_bits == 0)
             {
-                _this->i2s_itf.sync(sck, ws, 2);
-                _this->is_active = false;
-                _this->ws_out_itf.sync(0, 0, 0);
+                _this->pending_bits = -1;
+                _this->trace.msg(vp::trace::LEVEL_TRACE, "Releasing output\n");
+                _this->i2s_itf.sync(2, 2, 2 | (2 << 2));
+            }
+
+            if (_this->pending_bits == 0 && _this->ws_out_itf.is_bound())
+            {
+                _this->ws_out_itf.sync(2, 1, 2 | (2 << 2));
+                _this->lower_ws_out = true;
+            }
+            else if ( _this->lower_ws_out)
+            {
+                _this->ws_out_itf.sync(2, 0, 2 | (2 << 2));
+                _this->lower_ws_out = false;
             }
         }
-        else if (_this->pending_bits == 0)
-        {
-            _this->pending_bits = -1;
-            _this->trace.msg(vp::trace::LEVEL_TRACE, "Releasing output\n");
-            _this->i2s_itf.sync(sck, ws, 2);
-        }
-
-        _this->prev_ws = ws;
-
-
     }
+
+    _this->prev_sck = sck;
 }
 
 

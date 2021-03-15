@@ -1,0 +1,106 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "@BIN@",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "externalTerminal",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "@GDB@",
+            "setupCommands": [
+                {
+                    "description": "Set Architecture",
+                    "text": "set arch riscv:rv32",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Connection to Openocd",
+                    "text": "target extended-remote <IP address>:3333",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "set program to run",
+                    "text": "file @BIN@",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Load Program to run",
+                    "text": "load",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Run Program",
+                    "text": "exec-continue",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        
+        {
+            "name": "(gdb) Pipe Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "@BIN@",
+            "args": ["run",
+                "debug"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "logging": { "engineLogging": true },
+            "pipeTransport": {
+                "debuggerPath": "@GDB@",
+                "pipeProgram": "/usr/bin/ssh",
+                "pipeArgs": ["dito"],
+                "pipeCwd": ""
+            },
+            "MIMode": "gdb",
+            //"preLaunchTask": "configure",
+            "setupCommands": [
+                {
+                    "description": "Set Architecture",
+                    "text": "set arch riscv:rv32",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Connection to Openocd",
+                    "text": "target extended-remote :10035",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "set program to run",
+                    "text": "file @BIN@",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Load Program to run",
+                    "text": "load",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "Run Program",
+                    "text": "exec-continue",
+                    "ignoreFailures": true
+                }
+            ],
+            "launchCompleteCommand":  "None", 
+        }
+        
+    ]
+}

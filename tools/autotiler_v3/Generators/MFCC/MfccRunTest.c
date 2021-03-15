@@ -85,21 +85,8 @@ void test_kickoff(void *arg)
 		for (int j=0; j<N_DCT; j++) {
 			printf("%d, ", out_feat[i*N_DCT+j]);
 		}
+		printf("\n");
 	}
-	#endif
-
-	#ifdef WRITE_OUT_TO_FILE
-		FILE *fi = fopen("mfcc_from_gap.txt", "wb");
-		for (int i=0; i<N_FRAME; i++) {
-			for (int j=0; j<N_DCT; j++) {
-				#ifdef SCALED
-					fprintf(fi, "%d\n", (signed char) gap_roundnorm(out_feat[i*N_DCT+j]*NNTOOL_INPUT_SCALE, NNTOOL_INPUT_SCALEN));
-				#else
-					fprintf(fi, "%d\n", out_feat[i*N_DCT+j]);
-				#endif
-			}
-		}
-		fclose(fi);
 	#endif
 
     pmsis_exit(0);

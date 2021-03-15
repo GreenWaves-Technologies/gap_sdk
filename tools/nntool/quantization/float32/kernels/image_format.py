@@ -14,6 +14,9 @@
 
 import numpy as np
 from graph.types import ImageFormatParameters
+from quantization.float32.float32_quantization import Float32QuantizationRecord
+from quantization.float32.float16_quantization import Float16QuantizationRecord
+from quantization.float32.bfloat16_quantization import Bfloat16QuantizationRecord
 from quantization.kernels.kernel_base import (KernelBase, params_type,
                                               quantization)
 from quantization.quantization_record_base import QuantizationRecordBase
@@ -34,12 +37,12 @@ class ImageFormatFloat32(KernelBase):
         res = in_tensors[0]
         res = FORMAT_CHANGES[params.format_change](res, in_dim, out_dim)
         res = NORMALIZATIONS[params.norm_func](res)
-        if not qrec:
+        if qrec is None or isinstance(qrec, (Float32QuantizationRecord,
+                                             Float16QuantizationRecord,
+                                             Bfloat16QuantizationRecord)):
             iinfo = np.iinfo(res.dtype)
-            if res.dtype == np.int8:
-                res = res.astype(np.float32) / -iinfo.min
-            elif res.dtype == np.int16:
-                res = res.astype(np.float32) / -iinfo.min
+            if res.dtype == np.int8 or res.dtype == np.int16:
+                res = res.astype(qrec.dtype(ktype="float32")) / -iinfo.min
             else:
                 raise ValueError("unsure how to dequantize this output from imageformatter")
             return [res]

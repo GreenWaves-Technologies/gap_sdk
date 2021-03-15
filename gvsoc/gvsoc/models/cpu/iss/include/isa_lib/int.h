@@ -27,6 +27,21 @@
 #define MAX(a,b) ((a)>=(b)?(a):(b))
 #define MIN(a,b) ((a)<=(b)?(a):(b))
 
+static inline unsigned int DoExtend(unsigned int R, unsigned int e, unsigned int m)
+
+{
+#ifdef OLD
+	return R;
+#else
+	if ((m+e)==31) return R;
+	else {
+		unsigned int S = (R>>(e+m)) & 0x1;
+		unsigned int Mask = S?(((unsigned int)-1)<<(e+m)):0;
+		return (R|Mask);
+	}
+#endif
+}
+
 static inline unsigned int getField(unsigned int val, int shift, int bits)
 {
   return (val >> shift) & ((1<<bits) - 1);
@@ -57,7 +72,7 @@ static inline unsigned int lib_AND(iss_cpu_state_t *s, unsigned int a, unsigned 
 
 static inline uint64_t lib_SLL_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a << b; }
 static inline uint64_t lib_SRL_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a >> b; }
-static inline uint64_t lib_SRA_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return ((int32_t)a) >> b; }
+static inline int64_t lib_SRA_64(iss_cpu_state_t *s, int64_t a, uint64_t b) { return a >> b; }
 static inline uint64_t lib_ROR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return (a >> b) | (a << (32 - b)); }
 static inline uint64_t lib_XOR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a ^ b; }
 static inline uint64_t lib_OR_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a | b; }
@@ -122,10 +137,10 @@ static inline unsigned int lib_MSU(iss_cpu_state_t *s, unsigned int a, unsigned 
 static inline unsigned int lib_MMUL(iss_cpu_state_t *s, unsigned int a, unsigned int b, unsigned int c) { return - b * c; }
 
 
-static inline uint64_t lib_MACS_64(iss_cpu_state_t *s, int64_t a, int64_t b, int64_t c) { return a + b * c; }
-static inline uint64_t lib_MSUS_64(iss_cpu_state_t *s, int64_t a, int64_t b, int64_t c) { return a - b * c; }
-static inline uint64_t lib_MACU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b, uint64_t c) { return a + b * c; }
-static inline uint64_t lib_MSUU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b, uint64_t c) { return a - b * c; }
+static inline int64_t lib_MACS_64(iss_cpu_state_t *s, int64_t a, int32_t b, int32_t c) { return a + (int64_t)b * (int64_t)c; }
+static inline int64_t lib_MSUS_64(iss_cpu_state_t *s, int64_t a, int32_t b, int32_t c) { return a - (int64_t)b * (int64_t)c; }
+static inline uint64_t lib_MACU_64(iss_cpu_state_t *s, uint64_t a, uint32_t b, uint32_t c) { return a + (int64_t)b * (int64_t)c; }
+static inline uint64_t lib_MSUU_64(iss_cpu_state_t *s, uint64_t a, uint32_t b, uint32_t c) { return a - (int64_t)b * (int64_t)c; }
 
 #define SL(val) ((int16_t)((val) & 0xffff))
 #define SH(val) ((int16_t)(((val)>>16) & 0xffff))
@@ -297,7 +312,7 @@ static inline unsigned int lib_MMUL_ZH_SH(iss_cpu_state_t *s, unsigned int b, un
 
 static inline unsigned int lib_MULS(iss_cpu_state_t *s, int a, int b) { return a * b; }
 static inline unsigned int lib_MULU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { return a * b; }
-static inline uint64_t lib_MULS_64(iss_cpu_state_t *s, int64_t a, int64_t b) { return a * b; }
+static inline int64_t lib_MULS_64(iss_cpu_state_t *s, int32_t a, int32_t b) { return (int64_t)a * (int64_t)b; }
 static inline uint64_t lib_MULU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a * b; }
 static inline unsigned int lib_DIVS(iss_cpu_state_t *s, int a, int b) { if (b == 0) return 0; else return a / b; }
 static inline unsigned int lib_DIVU(iss_cpu_state_t *s, unsigned int a, unsigned int b) { if (b == 0) return 0; else return a / b; }
@@ -310,10 +325,10 @@ static inline unsigned int lib_AVGU(iss_cpu_state_t *s, unsigned int a, unsigned
 static inline int lib_AVGS(iss_cpu_state_t *s, int a, int b) { return (a + b) >> 1; }
 
 static inline uint64_t lib_MINU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a < b ? a : b; }
-static inline int64_t lib_MINS_64(iss_cpu_state_t *s, int a, int64_t b) { return a < b ? a : b; }
+static inline int64_t lib_MINS_64(iss_cpu_state_t *s, int64_t a, int64_t b) { return a < b ? a : b; }
 static inline uint64_t lib_MAXU_64(iss_cpu_state_t *s, uint64_t a, uint64_t b) { return a > b ? a : b; }
-static inline int64_t lib_MAXS_64(iss_cpu_state_t *s, int a, int64_t b) { return a > b ? a : b; }
-static inline int64_t lib_ABS_64(iss_cpu_state_t *s, int64_t a) { return a >= 0 ? a : -a; }
+static inline int64_t lib_MAXS_64(iss_cpu_state_t *s, int64_t a, int64_t b) { return a > b ? a : b; }
+static inline int64_t lib_ABS_64(iss_cpu_state_t *s, int64_t a) { return a < 0 ? -a : a; }
 
 
 
@@ -379,7 +394,7 @@ static inline unsigned int lib_CNT(iss_cpu_state_t *s, unsigned int t) {
 
 static inline unsigned int lib_CNT_64(iss_cpu_state_t *s, uint64_t t) {
 #if 1
-  return __builtin_popcount(t);
+  return __builtin_popcount((t >> 32) & ((1l<<32)-1)) + __builtin_popcount(t & ((1l<<32)-1));
 #else
   uint64_t v = cpu->regs[pc->inReg[0]];
   v = v - ((v >> 1) & 0x55555555);
@@ -1194,20 +1209,21 @@ static inline unsigned int lib_MACUS_NR_R(iss_cpu_state_t *s, int a, unsigned in
 //Clipping
 static inline unsigned int lib_CLIP(iss_cpu_state_t *s, int a, int low, int high) {
   unsigned int result;
-  if (a > high) result = high;
-  else if (a < low) result = low;
+
+  if (a < low) result = low;
+  else if (a > high) result = high;
   else result = a;
 
   return result;
 }
 
-static inline unsigned int lib_CLIPU(iss_cpu_state_t *s, int a, unsigned int high) {
+static inline unsigned int lib_CLIPU(iss_cpu_state_t *s, int a, int high) {
   unsigned int result;
 
-  if (a <= 0)
-    result = 0;
-  else if (a > high)
+  if (a > high)
     result = high;
+  else if (a <= 0)
+    result = 0;
   else
     result = a;
 
@@ -1385,7 +1401,7 @@ static inline unsigned int lib_VEC_PACK_SC_HL_16(iss_cpu_state_t *s, unsigned in
   feclearexcept(FE_ALL_EXCEPT); \
   name(&ff_res, &ff_a, &ff_b); \
   update_fflags_fenv(s); \
-  return flexfloat_get_bits(&ff_res);
+  return DoExtend(flexfloat_get_bits(&ff_res), e, m);
 
 #define FF_EXEC_3(s, name, a, b, c, e, m) \
   FF_INIT_3(a, b, c, e, m) \
@@ -1474,7 +1490,7 @@ static inline unsigned int lib_flexfloat_add(iss_cpu_state_t *s, unsigned int a,
 }
 
 static inline unsigned int lib_flexfloat_sub(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
-  FF_EXEC_2(s, ff_sub, a, b, e, m)
+  FF_EXEC_2(s, ff_sub, a, b, e, m);
 }
 
 static inline unsigned int lib_flexfloat_mul(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
@@ -1540,9 +1556,8 @@ static inline unsigned int lib_flexfloat_nmsub(iss_cpu_state_t *s, unsigned int 
 static inline unsigned int lib_flexfloat_nmadd(iss_cpu_state_t *s, unsigned int a, unsigned int b, unsigned int c, uint8_t e, uint8_t m) {
   FF_INIT_3(a, b, c, e, m)
   feclearexcept(FE_ALL_EXCEPT);
-  ff_fma(&ff_res, &ff_a, &ff_b, &ff_c);
+  ff_fnma(&ff_res, &ff_a, &ff_b, &ff_c);
   update_fflags_fenv(s);
-  ff_inverse(&ff_res, &ff_res);
   return flexfloat_get_bits(&ff_res);
 }
 
@@ -1648,31 +1663,91 @@ static inline unsigned int lib_flexfloat_sqrt_round(iss_cpu_state_t *s, unsigned
 }
 
 static inline unsigned int lib_flexfloat_sgnj(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
+#ifdef OLD
   FF_INIT_2(a, b, e, m)
   CAST_TO_INT(ff_res.value) = flexfloat_pack(env, flexfloat_sign(&ff_b), flexfloat_exp(&ff_a), flexfloat_frac(&ff_a));
   return flexfloat_get_bits(&ff_res);
+#else
+        unsigned int S_b = (b>>(m+e)) & 0x1;
+        unsigned int R = (a & ((1<<(m+e))-1)) | ((S_b)<<(m+e));
+        return DoExtend(R, e, m);
+#endif
 }
 
 static inline unsigned int lib_flexfloat_sgnjn(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
+#ifdef OLD
   FF_INIT_2(a, b, e, m)
   CAST_TO_INT(ff_res.value) = flexfloat_pack(env, !flexfloat_sign(&ff_b), flexfloat_exp(&ff_a), flexfloat_frac(&ff_a));
   return flexfloat_get_bits(&ff_res);
+#else
+        unsigned int S_b = (b>>(m+e)) & 0x1;
+        unsigned int R = (a & ((1<<(m+e))-1)) | ((!S_b)<<(m+e));
+        return DoExtend(R, e, m);
+#endif
 }
 
 static inline unsigned int lib_flexfloat_sgnjx(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
+#ifdef OLD
   FF_INIT_2(a, b, e, m)
   CAST_TO_INT(ff_res.value) = flexfloat_pack(env, flexfloat_sign(&ff_a)^flexfloat_sign(&ff_b), flexfloat_exp(&ff_a), flexfloat_frac(&ff_a));
   return flexfloat_get_bits(&ff_res);
+#else
+        unsigned int S_a = (a>>(m+e)) & 0x1;
+        unsigned int S_b = (b>>(m+e)) & 0x1;
+        unsigned int R = (a & ((1<<(m+e))-1)) | ((S_a^S_b)<<(m+e));
+        return DoExtend(R, e, m);
+#endif
 }
+
+#ifndef OLD
+static int IsNan(unsigned int X, uint8_t e, uint8_t m)          // NEW FUNCTION
+
+{
+        unsigned int E = (X>>m)&((1<<e)-1);
+        unsigned int M = (X)&((1<<m)-1);
+
+        if ((E==((1<<e)-1)) && (M!=0)) {
+                if ((M>>(m-1))&0x1) return 1;   // Nan quiet
+                else return 2;                  // Nam signaling
+        } else return 0;
+        return ((E==((1<<e)-1)) && (M!=0));
+}
+#endif
 
 // TODO proper nan handling
 static inline unsigned int lib_flexfloat_min(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
+#ifdef OLD
   FF_EXEC_2(s, ff_min, a, b, e, m)
+#else
+        int Nan_a = IsNan(a, e, m);
+        int Nan_b = IsNan(b, e, m);
+        unsigned int Nan_Q = (((1<<e)-1)<<m)|((unsigned int)1<<(m-1));
+        unsigned int Nan_S = (((1<<e)-1)<<m)|((unsigned int)1<<(m-2));
+
+        if (Nan_a && Nan_b) {
+                if (Nan_a==2 || Nan_b==2) return Nan_S; else return Nan_Q;
+        } else if (Nan_a) return b;
+        else if (Nan_b) return a;
+        FF_EXEC_2(s, ff_min, a, b, e, m);
+#endif
 }
 
 // TODO proper NaN handling
 static inline unsigned int lib_flexfloat_max(iss_cpu_state_t *s, unsigned int a, unsigned int b, uint8_t e, uint8_t m) {
+#ifdef OLD
   FF_EXEC_2(s, ff_max, a, b, e, m)
+#else
+        int Nan_a = IsNan(a, e, m);
+        int Nan_b = IsNan(b, e, m);
+        unsigned int Nan_Q = (((1<<e)-1)<<m)|((unsigned int)1<<(m-1));
+        unsigned int Nan_S = (((1<<e)-1)<<m)|((unsigned int)1<<(m-2));
+
+        if (Nan_a && Nan_b) {
+                if (Nan_a==2 || Nan_b==2) return Nan_S; else return Nan_Q;
+        } else if (Nan_a) return b;
+        else if (Nan_b) return a;
+        FF_EXEC_2(s, ff_max, a, b, e, m);
+#endif
 }
 
 static inline int64_t lib_flexfloat_cvt_w_ff_round(iss_cpu_state_t *s, unsigned int a, uint8_t e, uint8_t m, unsigned int round) {
@@ -1780,10 +1855,11 @@ static inline unsigned int lib_flexfloat_le(iss_cpu_state_t *s, unsigned int a, 
 }
 
 static inline unsigned int lib_flexfloat_class(iss_cpu_state_t *s, unsigned int a, uint8_t e, uint8_t m) {
-  FF_INIT_1(a, e, m)
-  unsigned int frac = flexfloat_frac(&ff_a);
-  unsigned int exp = flexfloat_exp(&ff_a);
-  bool sign = flexfloat_sign(&ff_a);
+
+#ifdef OLD
+  bool sign = (a >> (e + m)) & 0x1;
+  int_fast16_t exp = (a >> m) & ((0x1<<e) - 1);
+  uint_t frac = a & ((UINT_C(1)<<m) - 1);
 
   if (exp == INF_EXP) {
     if (frac == 0) {
@@ -1803,20 +1879,48 @@ static inline unsigned int lib_flexfloat_class(iss_cpu_state_t *s, unsigned int 
     if (sign) return (0x1 << 1); // negative number
     else return (0x1 << 6); // positive number
   }
+#else
+        unsigned int S = ((unsigned int)a >> (e + m)) & 0x1;
+        unsigned int E = (a >> m) & ((0x1<<e) - 1);
+        unsigned int M = a & (((1)<<m) - 1);
+
+        if (S==1) {
+                if (E==((1<<e)-1) && M==0) return (1<<0);       // - infinity
+                if (E>=1 && E<=((1<<e)-2)) return (1<<1);       // Negative normal
+                if (E==0 && M!=0) return (1<<2);                // Negative sub normal
+                if (E==0 && M==0) return (1<<3);                // -0
+                if (E==((1<<e)-1) && M!=0) {
+                        int   Is_Quiet = ((unsigned int)M >> (m-1)) & 0x1;
+                        if (Is_Quiet) return (1<<9);            // Quiet nan
+                        else          return (1<<8);            // Signaling nan
+                }
+        } else {
+                if (E==0 && M==0) return (1<<4);                // +0
+                if (E==0 && M!=0) return (1<<5);                // Positive sub normal
+                if (E>=1 && E<=((1<<e)-2)) return (1<<6);       // Normal positive
+                if (E==((1<<e)-1) && M==0) return (1<<7);       // + infinity
+                if (E==((1<<e)-1) && M!=0) {
+                        int   Is_Quiet = ((unsigned int)M >> (m-1)) & 0x1;
+                        if (Is_Quiet) return (1<<9);            // Quiet nan
+                        else          return (1<<8);            // Signaling nan
+                }
+        }
+	return 0;
+#endif
 }
 
-static inline unsigned int lib_flexfloat_vclass(iss_cpu_state_t *s, unsigned int a, unsigned int vlen, uint8_t e, uint8_t m) {
+static inline unsigned int lib_flexfloat_vclass(iss_cpu_state_t *s, unsigned int a, unsigned int vlen, int width, uint8_t e, uint8_t m) {
+
   unsigned int result = 0;
 
   for (int i = 0; i < vlen; i++) {
-    FF_INIT_1(a, e, m)
-    unsigned int frac = flexfloat_frac(&ff_a);
-    unsigned int exp = flexfloat_exp(&ff_a);
-    bool sign = flexfloat_sign(&ff_a);
+    bool sign = (a >> (e + m)) & 0x1;
+    int_fast16_t exp = (a >> m) & ((0x1<<e) - 1);
+    uint_t frac = a & ((UINT_C(1)<<m) - 1);
 
     unsigned char cblock = ((char) sign << 7) | ((char) !sign << 6);
 
-    if (exp == flexfloat_inf_exp(env)) {
+    if (exp == (1 << e) - 1) {
       if (frac == 0) {
         cblock |= 0x1; // infinity
       } else if (frac & (0x1 << m-1)) {
@@ -1833,6 +1937,7 @@ static inline unsigned int lib_flexfloat_vclass(iss_cpu_state_t *s, unsigned int
     }
 
     result |= cblock << 8*i;
+    a >>= width;
   }
   return result;
 }

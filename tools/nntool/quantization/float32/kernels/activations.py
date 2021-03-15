@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import (HSigmoidActivationParameters,
+from graph.types import (HSigmoidActivationParameters, SigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          ReluActivationParameters)
 from quantization.float32.float32_quantization import Float32QuantizationRecord
@@ -51,6 +51,20 @@ class HSigmoidFloat32(KernelBase):
             qrec = Float32QuantizationRecord()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
         return qrec.get_outputs(params, [np.minimum(np.maximum(in_tensor + params.offset, 0), 6) / 6], ktype="float32")
+
+@params_type(SigmoidActivationParameters)
+@quantization('float32')
+class SigmoidFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        return qrec.get_outputs(params, [1 / (1 + np.exp(-in_tensor))], ktype="float32")
 
 # Not used currently - need a way to select this
 

@@ -1,7 +1,6 @@
 #ifndef __MATH_FUNCS_H
 #define __MATH_FUNCS_H
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -22,4 +21,5 @@ uint32 logn_17_15(uint32 x);
 uint32 exp_17_15(uint32 x);
 uint32 pow_17_15(uint32 x, uint32 y);
 
+int square_17_15(int x);
 #endif

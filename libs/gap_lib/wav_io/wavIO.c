@@ -6,9 +6,65 @@
  * of the BSD license.  See the LICENSE file for details.
  *
  */
-#include "wavIO.h"
+#include "gaplib/wavIO.h"
 
 #define WAV_HEADER_SIZE	44
+
+#ifndef __EMUL__
+#include "bsp/ram.h"
+#include "bsp/ram/hyperram.h"
+#define INTER_BUFF_SIZE     (1000*2)
+static uint8_t *_tmp_buffer;
+static int fs_write_from_L3(void *file, void *data, int size_total, struct pi_device *ram)
+{
+    int l3_index = 0;
+    int size = 0;
+    int rest_size = size_total;
+    uint32_t _l3_buff = (uint32_t) (data);
+
+    PRINTF("l3_buff: %x, size_total: %d\n", _l3_buff, size_total);
+
+    _tmp_buffer = (uint8_t *) __ALLOC_L2((uint32_t) INTER_BUFF_SIZE);
+    if (_tmp_buffer == NULL)
+    {
+        printf("TMP BUFFER malloc failed\n");
+        return -1;
+    }
+
+    do
+    {
+        if(rest_size >= INTER_BUFF_SIZE)
+            size = INTER_BUFF_SIZE;
+        else
+            size = INTER_BUFF_SIZE - rest_size;
+
+        pi_ram_read(ram, (_l3_buff+l3_index), _tmp_buffer, (uint32_t) size);
+        pi_fs_write(file, _tmp_buffer, size);
+
+        l3_index += size;
+        rest_size = rest_size - size;
+    } while (rest_size > 0);
+
+    return 0;
+}
+#endif
+
+static void progress_bar(char * OutString, int n, int tot)
+{
+	int tot_chars = 30;
+	printf("%s",OutString);
+	printf(" [");
+	int chars = (n*tot_chars)/tot;
+
+	for(int i=0;i<tot_chars;i++){
+		if(i<=chars)
+			printf("#");
+		else printf(" ");
+	}
+	printf("]");
+	printf("\n");
+
+}
 
 static int ReadWAVHeader(char *FileName, header_struct *HeaderInfo)
 {
@@ -42,46 +98,70 @@ static int ReadWAVHeader(char *FileName, header_struct *HeaderInfo)
 
 static int ReadWavShort(switch_file_t File, short int* OutBuf, unsigned int NumSamples, unsigned int Channels)
 {
-	unsigned char *data_buf = (unsigned char *) __ALLOC_L2(Channels*sizeof(short int));
+	int ChunkSize = 1024;
+	unsigned char *data_buf = (unsigned char *) __ALLOC_L2(ChunkSize*Channels*sizeof(short int));
 	int BytesPerSample = Channels * sizeof(short int);
 	if (data_buf==NULL) {
 		printf("Error allocating\n");
 		return 1;
 	}
 	int i, ch;
-	for (i=0; i<NumSamples; i++){
-		int len = __READ(File, data_buf, BytesPerSample);
-		if (len != BytesPerSample) return 1;
-		int data_in_channel;
+	int RemainBytes = NumSamples*BytesPerSample;
+	int read_size;
+	while (RemainBytes>0){
+		#ifndef SILENT
+			progress_bar("Reading Wav ", NumSamples*BytesPerSample-RemainBytes, NumSamples*BytesPerSample);
+		#endif
+		if (RemainBytes > ChunkSize*BytesPerSample) read_size = ChunkSize*BytesPerSample;
+		else 										read_size = RemainBytes;
+		int len = __READ(File, data_buf, read_size);
+		if (!len) return 1;
+		RemainBytes -= len;
 		int offset = 0;
-		for (ch=0; ch<Channels; ch++){
-			data_in_channel = data_buf[offset] | (data_buf[offset+1] << 8);
-			OutBuf[i*Channels + ch] = (short int) data_in_channel;
-			offset += 2; //Bytes in each channel
+		for (i=0; i<read_size/2; i++){
+			int data_in_channel;
+			for (ch=0; ch<Channels; ch++){
+				data_in_channel = data_buf[offset*2] | (data_buf[offset*2+1] << 8);
+				OutBuf[offset*Channels + ch] = (short int) data_in_channel;
+				offset += 1; //Bytes in each channel
+			}
 		}
+		OutBuf += len/BytesPerSample;
 	}
 	return 0;
 }
 
 static int ReadWavChar(switch_file_t File, char* OutBuf, unsigned int NumSamples, unsigned int Channels)
 {
-	unsigned char *data_buf = (unsigned char *) __ALLOC_L2(Channels*sizeof(char));
+	int ChunkSize = 1024;
+	unsigned char *data_buf = (unsigned char *) __ALLOC_L2(ChunkSize*Channels*sizeof(char));
 	int BytesPerSample = Channels * sizeof(char);
 	if (data_buf==NULL) {
 		printf("Error allocating\n");
 		return 1;
 	}
 	int i, ch;
-	for (i=0; i<NumSamples; i++){
-		int len = __READ(File, data_buf, BytesPerSample);
-		if (len != BytesPerSample) return 1;
-		int data_in_channel;
+	int RemainBytes = NumSamples*BytesPerSample;
+	int read_size;
+	while (RemainBytes>0){
+		#ifndef SILENT
+			progress_bar("Reading Wav ", NumSamples*BytesPerSample-RemainBytes, NumSamples*BytesPerSample);
+		#endif
+		if (RemainBytes > ChunkSize*BytesPerSample) read_size = ChunkSize*BytesPerSample;
+		else 										read_size = RemainBytes;
+		int len = __READ(File, data_buf, read_size);
+		if (!len) return 1;
+		RemainBytes -= len;
 		int offset = 0;
-		for (ch=0; ch<Channels; ch++){
-			data_in_channel = data_buf[offset] | (data_buf[offset+1] << 8);
-			OutBuf[i*Channels + ch] = (short int) data_in_channel;
-			offset += 1; //Bytes in each channel
+		for (i=0; i<read_size; i++){
+			int data_in_channel;
+			for (ch=0; ch<Channels; ch++){
+				data_in_channel = data_buf[offset];
+				OutBuf[offset*Channels + ch] = (short int) data_in_channel;
+				offset += 1; //Bytes in each channel
+			}
 		}
+		OutBuf += len/BytesPerSample;
 	}
 	return 0;
 }
@@ -105,7 +185,7 @@ int ReadWavFromFile(char *FileName, void* OutBuf, unsigned int BufSize, header_s
 	int SamplesShort;
 	if (HeaderInfo->BitsPerSample == 16) SamplesShort = 1;
 	else if (HeaderInfo->BitsPerSample == 8) SamplesShort = 0;
-	else return 1;
+	else {printf("BytesPerSample %d not supported\n", HeaderInfo->BitsPerSample); return 1;}
 
 	if (BufSize < HeaderInfo->DataSize){
 		printf("Buffer Size too small: %d required, %d given", HeaderInfo->DataSize, BufSize);
@@ -136,7 +216,19 @@ Fail:
 
 }
 
+#ifndef __EMUL__
+int WriteWavFromL3ToFile(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size, struct pi_device *ram)
+{
+	return WriteWavToFileNew(FileName, BytesPerSample, SampleRate, NumChannels, data, Size, 1, ram);
+}
+#endif
+
 int WriteWavToFile(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size)
+{
+	return WriteWavToFileNew(FileName, BytesPerSample, SampleRate, NumChannels, data, Size, 0, 0);
+}
+
+int WriteWavToFileNew(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size, int fromL3, struct pi_device *ram)
 {
 	switch_fs_t fs;
 	__FS_INIT(fs);
@@ -234,7 +326,14 @@ int WriteWavToFile(char *FileName, int BytesPerSample, int SampleRate, int NumCh
 
     int ret = 0;
     ret += __WRITE(File, header_buffer, WAV_HEADER_SIZE);
-    ret += __WRITE(File, data, Size);
+    #ifndef __EMUL__
+	    if(fromL3)
+	        ret += fs_write_from_L3(File, data, Size, ram);
+	    else
+	        ret += __WRITE(File, data, Size);
+    #else
+	    ret += __WRITE(File, data, Size);
+	#endif
 
     __CLOSE(File);
 

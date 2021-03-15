@@ -64,6 +64,16 @@ typedef enum {
 } pi_ffc_mode_e;
 
 /**
+ * \enum pi_ffc_io_mode_e
+ */
+typedef enum {
+    PI_FFC_MEMORY_IN_MEMORY_OUT = 0,
+    PI_FFC_STREAM_IN_MEMORY_OUT = 1,
+    PI_FFC_MEMORY_IN_STREAM_OUT = 2,
+    PI_FFC_STREAM_IN_STREAM_OUT = 3,
+} pi_ffc_io_mode_e;
+
+/**
  * \struct pi_ffc_conf_t
  *
  * \brief FFC configuration structure.
@@ -79,19 +89,8 @@ typedef struct pi_ffc_conf
     uint32_t fixed_precision;
     pi_ffc_float_type_e float_type;
     pi_ffc_mode_e mode;
+    pi_ffc_io_mode_e io_mode;
 } pi_ffc_conf_t;
-
-/**
- * \enum pi_ffc_ioctl_e
- *
- * \brief Commands for pi_ffc_ioctl.
- *
- * This is used to tell which command to execute through pi_ffc_ioctl.
- * Parameters are passed as pointers.
- */
-typedef enum {
-    PI_FFC_GET_ID, /*!< type uint32_t: return the fifo id */
-} pi_ffc_ioctl_e;
 
 /**
  * \brief Initialize an FFC configuration with default values.
@@ -135,13 +134,42 @@ int pi_ffc_open(pi_device_t *device);
 void pi_ffc_close(pi_device_t *device);
 
 /**
+ * \enum pi_ffc_ioctl_e
+ *
+ * \brief Commands for pi_ffc_ioctl.
+ */
+enum
+{
+    /**
+     * \brief Set the IO mode
+     *
+     * This command can be used to change the IO mode
+     */
+    PI_FFC_IOCTL_SET_IO_MODE,
+    /**
+     * \brief Set the continuous mode
+     *
+     * This command can be used to change the continuous operating mode
+     * - 1 enable continuous, ie ffc will continuously convert data
+     * - 0 stops continuous mode. If a transfer is in progress it is stopped
+     *   immediately.
+     * \warning if continuous mode is enabled with io mode
+     *          PI_FFC_STREAM_IN_STREAM_OUT there is no way to know
+     *          when transfers are done.
+     */
+    PI_FFC_IOCTL_CONTINUOUS_ENABLE,
+} pi_ffc_ioctl_e;
+
+/**
  * \brief FFC IOCTL function
  *
  * \param device A pi device structure pointing to FFC device
  * \param cmd ioctl number
  * \param arg argument to be passed to ioctl
+ *
+ * \return PI_OK if operation successfull, else error code
  */
-void pi_ffc_ioctl(pi_device_t *device, uint32_t cmd, void *arg);
+int32_t pi_ffc_ioctl(pi_device_t *device, uint32_t cmd, void *arg);
 
 /**
  * \brief TODO

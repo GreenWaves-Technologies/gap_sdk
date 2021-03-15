@@ -15,10 +15,11 @@
 
 import numpy as np
 from graph.types import GRUParameters
+from importer.common.constant_mixin import ConstantMixin
+from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 from .rnn_mixin import RNNMixin
 
 
@@ -36,18 +37,24 @@ class GRU(RNNMixin, ConstantMixin, BackendHandler):
         x = inputs[0]
 
         seq_len = input_shapes[0][0]
+        if seq_len is None:
+            logger.warning("sequence length is variable in size. forcing to 20. "
+                           "reexport your graph with sequence length set to the maxmimum sequence size")
+            seq_len = 20
         input_size = input_shapes[0][2]
         hidden_size = node.attrs["hidden_size"]
         direction = node.attrs.get("direction", "forward")
         num_directions = 2 if direction == "bidirectional" else 1
         linear_before_reset = bool(node.attrs.get("linear_before_reset", 0))
+        if not linear_before_reset:
+            logger.warning("In {} linear_before_reset == 0 not supported by the Autotiler kernels".fromat(valid_name))
         # output_sequence = node.attrs.get("output_sequence", 0)
 
         i_weights = cls.get_constant(inputs[1])
         r_weights = cls.get_constant(inputs[2])
         biases = cls.get_constant(inputs[3]) if inputs[3] else np.zeros(
             [num_directions, 6 * hidden_size])
-        tensors = {'forward':{}, 'backward':{}}
+        tensors = {'forward': {}, 'backward': {}}
         # extract all the tensors in approriate format
         cls.deep_update(tensors, cls.extract_weights(
             i_weights, hidden_size,
@@ -60,12 +67,22 @@ class GRU(RNNMixin, ConstantMixin, BackendHandler):
             ("w_z_b", "w_r_b", "w_h_b", "r_z_b", "r_r_b", "r_h_b"), num_directions))
         cls.deep_update(tensors,
                         cls.get_state(inputs, 5, 'h_state', hidden_size, num_directions))
+        cls.combine_biases_gru(tensors, ['z', 'r'], num_directions)
         extra_args = {
             'linear_before_reset': linear_before_reset
         }
         return cls.attach_rnn(G, x, GRUParameters, extra_args, valid_name, tensors,
                               used_tensors, hidden_size, input_size,
                               all_nodes, node, seq_len, num_directions)
+
+    @classmethod
+    def combine_biases_gru(cls, tensors, gates, num_directions):
+        for i in range(num_directions):
+            t = tensors['forward' if i == 0 else 'backward']
+            for gate in gates:
+                t['%s_b' % gate] = t['w_%s_b' % gate] + t['r_%s_b' % gate]
+                del t['w_%s_b' % gate]
+                del t['r_%s_b' % gate]
 
     @classmethod
     def version_1(cls, node, **kwargs):

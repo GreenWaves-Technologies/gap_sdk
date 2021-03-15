@@ -26,19 +26,10 @@ PI_FC_TINY void *pos_soc_event_callback_arg[ARCHI_SOC_EVENT_NB_TOTAL];
 
 volatile PI_FC_TINY unsigned int pos_soc_event_status[ARCHI_SOC_EVENT_NB_TOTAL/32];
 
-extern void POS_HANDLER pos_soc_event_handler_asm();
-
 void pos_soc_event_init()
 {
-
-#if defined(ARCHI_HAS_FC)
-    // Deactivate all soc events as they are active by default
-    soc_eu_eventMask_reset(SOC_FC_FIRST_MASK);
-#endif
-
 #if defined(ARCHI_HAS_FC)
     // Activate soc events handler
-    pos_irq_set_handler(ARCHI_FC_EVT_SOC_EVT, pos_soc_event_handler_asm);
     pos_irq_mask_set(1<<ARCHI_FC_EVT_SOC_EVT);
 #endif
 }

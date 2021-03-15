@@ -29,14 +29,18 @@ MAT_ADD_OPER = "KOP_MATADD"
 
 @generation_function("kernels", (MatrixAddParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
 def matadd_kernel_generator(gen, node, qrec, in_eparams, out_eparams, cname):
-    del in_eparams, out_eparams, qrec
+    del out_eparams, qrec
     if isinstance(node, ActivationFusion):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], MatrixAddParameters):
+            if in_eparams[0].dims.size() != in_eparams[1].dims.size():
+                raise ValueError("missing generator: the matrix add generator only handles adds of tensors of the same size")
             gen.kernels.append(MatAddKernel(node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver'],
                                             force_relu=gen.force_relu))
             return True
         return False
+    if in_eparams[0].dims.size() != in_eparams[1].dims.size():
+        raise ValueError("missing generator: the matrix add generator only handles adds of tensors of the same size")
     gen.kernels.append(MatAddKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 

@@ -29,6 +29,7 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
     def __init__(self, *args, parameters=None, **kwargs):
         super(SSDDetectorParameters, self).__init__(*args, **kwargs)
         self._parameters = parameters
+        self._parameters["use_exp_for_wh_decode"] = True
         self.decoder_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
                                'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
                                'using_params': {'INCLUDE': True, 'params': self._parameters}}
@@ -75,6 +76,14 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
     @max_bb_before_nms.setter
     def max_bb_before_nms(self, val):
         self._parameters['max_bb_before_nms'] = val
+
+    @property
+    def use_exp_for_wh_decode(self):
+        return self._parameters['use_exp_for_wh_decode']
+
+    @use_exp_for_wh_decode.setter
+    def use_exp_for_wh_decode(self, val):
+        self._parameters['use_exp_for_wh_decode'] = val
 
     @property
     def nms_iou_threshold(self):

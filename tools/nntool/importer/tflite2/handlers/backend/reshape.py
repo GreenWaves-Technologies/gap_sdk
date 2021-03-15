@@ -44,12 +44,17 @@ class Reshape(BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
 
-        set_shape_tensor = list(cls._verify_constant(inputs[1]))
-        node.input[1].used = True
-
         # TF2 seems to use the second input whereas TF1 uses the opts
-        new_shape = list(node_opts.NewShapeAsNumpy()
-                         if node_opts else set_shape_tensor)
+        new_shape = None
+        if node_opts:
+            new_shape = list(node_opts.NewShapeAsNumpy())
+        elif len(inputs) > 1:
+            set_shape_tensor = list(cls._verify_constant(inputs[1]))
+            node.input[1].used = True
+            new_shape = list(set_shape_tensor)
+        else:
+            ValueError(f"Cannot asses new_shape for Reshape Parameter: {node.name}")
+
         if -1 in new_shape:
             new_shape_size = reduce(lambda x, y: x * 1 if y == -1 else x * y, new_shape, 1)
             inp_size = reduce(lambda x, y: x * y if y is not None else x, x_shape, 1)

@@ -109,5 +109,5 @@ class TFLiteNode():
         return None
 
     def get_custom_options(self):
-        flex_buffer = GetRoot(array.array('B', self._op.CustomOptionsAsNumpy()).tostring()).AsMap
+        flex_buffer = GetRoot(array.array('B', self._op.CustomOptionsAsNumpy()).tobytes()).AsMap
         return flex_buffer.Value

@@ -66,6 +66,12 @@ void bsp_himax_conf_init(struct pi_himax_conf *conf);
 int bsp_himax_open(struct pi_himax_conf *conf);
 #endif
 
+#if defined(CONFIG_HM0360)
+#include "bsp/camera/hm0360.h"
+void bsp_hm0360_conf_init(struct pi_hm0360_conf *conf);
+int bsp_hm0360_open(struct pi_hm0360_conf *conf);
+#endif
+
 #if defined(CONFIG_OV7670)
 #include "bsp/camera/ov7670.h"
 void bsp_ov7670_conf_init(struct pi_ov7670_conf *conf);

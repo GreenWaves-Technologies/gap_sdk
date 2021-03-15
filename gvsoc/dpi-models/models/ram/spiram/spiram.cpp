@@ -103,6 +103,7 @@ private:
   bool refresh_failure;
   int cs_pulse_width;
   void *trace;
+  int cross_pagesize_limit_mask;
 };
 
 
@@ -110,6 +111,18 @@ Spiram::Spiram(js::config *config, void *handle) : Dpi_model(config, handle)
 {
   this->mem_size = config->get("mem_size")->get_int();
   verbose = true; //config->get("verbose")->get_bool();
+  int cross_pagesize_limit = config->get("cross_page_size")->get_int();
+
+  if (cross_pagesize_limit == 0)
+  {
+    this->cross_pagesize_limit_mask = 0;
+  }
+  else
+  {
+    this->cross_pagesize_limit_mask = ~(cross_pagesize_limit - 1);
+  }
+
+
   print("Creating SPIRAM model (mem_size: 0x%x)", this->mem_size);
   data = new unsigned char[mem_size];
   qspi0 = new Spiram_qspi_itf(this);
@@ -353,7 +366,15 @@ void Spiram::handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sdio2,
         }
         else
         {
-          this->data[this->current_addr++] = this->current_data;
+          this->data[this->current_addr] = this->current_data;
+          if (this->cross_pagesize_limit_mask)
+          {
+            this->current_addr = (this->current_addr & this->cross_pagesize_limit_mask) | ((this->current_addr + 1) & ~this->cross_pagesize_limit_mask);
+          }
+          else
+          {
+            this->current_addr++;
+          }
         }
       }
     }
@@ -374,7 +395,14 @@ void Spiram::handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, 
       {
         this->current_data = this->data[this->current_addr];
         this->trace_msg(this->trace, 2, "Read byte from memory (address: 0x%6.6x, value: 0x%2.2x)", this->current_addr, this->current_data);
-        this->current_addr++;
+        if (this->cross_pagesize_limit_mask)
+        {
+          this->current_addr = (this->current_addr & this->cross_pagesize_limit_mask) | ((this->current_addr + 1) & ~this->cross_pagesize_limit_mask);
+        }
+        else
+        {
+          this->current_addr++;
+        }
       }
     }
 

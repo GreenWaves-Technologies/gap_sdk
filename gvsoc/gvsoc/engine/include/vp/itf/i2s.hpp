@@ -184,23 +184,33 @@ namespace vp {
 
   inline int i2s_slave::get_sd()
   {
-    int sd = this->master_port->sd;
+    int sdi = this->master_port->sd & 3;
+    int sdo = (this->master_port->sd >> 2) & 3;
     i2s_slave *current = this->next;
 
     while(current)
     {
       int next_sd = current->master_port->sd;
-      if (next_sd != 2)
+      int next_data = next_sd & 3;
+      if (next_data != 2)
       {
-        if (sd == 2 || next_sd == sd)
-          sd = next_sd;
+        if (sdi == 2 || next_data == sdi)
+          sdi = next_data;
         else
-          sd = 3;
+          sdi = 3;
+      }
+      next_data = (next_sd >> 2) & 3;
+      if (next_data != 2)
+      {
+        if (sdo == 2 || next_data == sdo)
+          sdo = next_data;
+        else
+          sdo = 3;
       }
       current = current->next;
     }
 
-    return sd;
+    return sdi | (sdo << 2);
   }
 
   inline void i2s_slave::bind_to(vp::port *_port, vp::config *config)

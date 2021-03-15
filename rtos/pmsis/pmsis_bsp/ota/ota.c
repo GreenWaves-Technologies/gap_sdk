@@ -193,7 +193,7 @@ pi_err_t ota_set_boot_partition(const pi_partition_table_t table, const pi_parti
     if(partition->subtype == PI_PARTITION_SUBTYPE_APP_FACTORY)
     {
         PI_LOG_TRC("ota", "Erase OTA data information. During the next reboot, Factory partition will be used to boot.");
-        rc = pi_partition_format(partition);
+        rc = pi_partition_format(ota_data_partition);
         if(rc != PI_OK)
         {
             PI_LOG_ERR("ota", "Erase OTA data partition error.");

@@ -23,11 +23,15 @@ from quantization.quantization_record_base import QuantizationRecordBase
 from utils.exp_17_15 import exp_fp_17_15
 
 
-def softmax_func(v):
-    max_v = np.max(v)
-    v = v - max_v
-    return np.exp(v)/np.sum(np.exp(v))
-
+def softmax_func(arg, axis=None):
+    if axis is None:
+        axis = -1
+    v = arg - np.max(arg, axis=axis, keepdims=True)
+    exp_v = np.exp(v)
+    v = exp_v/np.sum(exp_v, axis=axis, keepdims=True)
+    if len(arg.shape) == 1:
+        v = v.flatten()
+    return v
 
 @params_type(SoftMaxParameters)
 @quantization('symmetric')

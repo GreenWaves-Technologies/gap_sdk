@@ -42,7 +42,7 @@ BUILD_DIR=BUILD
 
 NNTOOL_SCRIPT_PARAMETRIC = model/nntool_script_params
 NNTOOL_SCRIPT=model/nntool_script
-TRAINED_TFLITE_MODEL=model/expressions.tflite
+TRAINED_MODEL=model/expressions.tflite
 MODEL_SUFFIX = _$(QUANT_BITS)BIT
 
 CLUSTER_STACK_SIZE=4096

@@ -54,6 +54,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--register", dest="registers", default=[], action="append",
+    help="Specifies register to be parsed"
+)
+
+parser.add_argument(
     "--ipxact", dest="ipxact", default=None,
     help="Dump register map into a IPXACT file"
 )
@@ -79,7 +84,7 @@ if args.input_xls is not None:
     regmap_xls.import_xls(regmap, args.input_xls)
 
 if args.input_md is not None:
-    regmap_md.import_md(regmap, args.input_md)
+    regmap_md.import_md(regmap, args.input_md, registers=args.registers)
 
 if args.input_json is not None:
     regmap_json.import_json_file(regmap, args.input_json)

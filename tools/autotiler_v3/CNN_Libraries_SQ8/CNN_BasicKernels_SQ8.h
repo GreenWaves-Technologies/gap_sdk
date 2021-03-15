@@ -126,6 +126,12 @@ typedef struct {
 	signed char * __restrict__ Infos;
 } KerActivation_SQ8_T;
 
+typedef struct {
+	signed char *__restrict__ In;           /**< Input matrix */
+	signed char *__restrict__ Out;          /**< Output matrix */
+	unsigned int W;                         /**< Tile width */
+	unsigned int H;                         /**< Tile height */
+} KerCopy_fps_T;
 
 /******************************************************************************************************************
 	Pooling followed by optional scaling and activation
@@ -346,40 +352,38 @@ typedef struct {
 } KerLSTM_SQ8_T;
 
 
-#define GRU_R_INF              7
+#define GRU_R_INF              4
 #define GRU_R_OFF              0
-#define GRU_R_SCALE            0
-#define GRU_R_SCALEN           1
-#define GRU_R_A0               2
-#define GRU_R_B0               3
-#define GRU_R_C0               4
-#define GRU_R_ASCALE           5
-#define GRU_R_ASCALEN          6
+#define GRU_R_INT_SCALE        0
+#define GRU_R_INT_SCALEN       1
+#define GRU_R_IN_SCALE         2
+#define GRU_R_IN_SCALEN        3
 
-#define GRU_Z_INF              7
+#define GRU_Z_INF              4
 #define GRU_Z_OFF              (GRU_R_OFF+GRU_R_INF)
-#define GRU_Z_SCALE            (0 + GRU_Z_OFF)
-#define GRU_Z_SCALEN           (1 + GRU_Z_OFF)
-#define GRU_Z_A0               (2 + GRU_Z_OFF)
-#define GRU_Z_B0               (3 + GRU_Z_OFF)
-#define GRU_Z_C0               (4 + GRU_Z_OFF)
-#define GRU_Z_ASCALE           (5 + GRU_Z_OFF)
-#define GRU_Z_ASCALEN          (6 + GRU_Z_OFF)
+#define GRU_Z_INT_SCALE        (0 + GRU_Z_OFF)
+#define GRU_Z_INT_SCALEN       (1 + GRU_Z_OFF)
+#define GRU_Z_IN_SCALE         (2 + GRU_Z_OFF)
+#define GRU_Z_IN_SCALEN        (3 + GRU_Z_OFF)
 
-#define GRU_HT_INF              4
+#define GRU_HT_INF              2
 #define GRU_HT_OFF              (GRU_Z_OFF+GRU_Z_INF)
-#define GRU_HT_SCALE            (0 + GRU_HT_OFF)
-#define GRU_HT_SCALEN           (1 + GRU_HT_OFF)
-#define GRU_HT_A0               (2 + GRU_HT_OFF)
-#define GRU_HT_B0               (3 + GRU_HT_OFF)
+#define GRU_HT_IN_SCALE         (0 + GRU_HT_OFF)
+#define GRU_HT_IN_SCALEN        (1 + GRU_HT_OFF)
 
-#define GRU_H_INF		3
-#define GRU_H_OFF		(GRU_HT_OFF+GRU_HT_INF)
-#define GRU_H_SCALE		(0 + GRU_HT_OFF)
-#define GRU_H_SCALEN		(1 + GRU_HT_OFF)
-#define GRU_H_A0		(2 + GRU_HT_OFF)
+#define GRU_H_INF				2
+#define GRU_H_OFF				(GRU_HT_OFF+GRU_HT_INF)
+#define GRU_H_INT_SCALE			(0 + GRU_H_OFF)
+#define GRU_H_INT_SCALEN		(1 + GRU_H_OFF)
 
-#define GRU_CELL_INFOS (GRU_R_INF+GRU_Z_INF+GRU_HT_INF+GRU_H_INF)
+#define GRU_INT_INF             7
+#define GRU_INT_OFF             (GRU_H_OFF+GRU_H_INF)
+#define GRU_INT_A0              (0 + GRU_INT_OFF)
+#define GRU_INT_B0              (2 + GRU_INT_OFF)
+#define GRU_INT_C0              (4 + GRU_INT_OFF)
+#define GRU_INT_Q               (6 + GRU_INT_OFF)
+
+#define GRU_CELL_INFOS (GRU_R_INF+GRU_Z_INF+GRU_HT_INF+GRU_H_INF+GRU_INT_INF)
 
 typedef struct {
 	signed char *__restrict__ StateInOut;	/**< Pointer to In/Out state, Dim=DimState   */
@@ -392,8 +396,8 @@ typedef struct {
 	signed char *__restrict__ Wz;		/**< Pointer to Z gate weights, Dim=[DimState+DimIn,DimState] */
 	void * __restrict__ Bz;			/**< Pointer to Z gate bias */
 	signed char *__restrict__ Wh;		/**< Pointer to H gate weights, Dim=[DimState+DimIn,DimState] */
-	void * __restrict__ Bh;			/**< Pointer to H gate bias */
-	signed char *__restrict__ Sbuff;	/**< Pointer to Ht buffer, Dim=[DimState] */
+	void * __restrict__ Bwh;		/**< Pointer to H gate bias vs Inputs */
+	void * __restrict__ Brh;		/**< Pointer to H gate bias vs States */
 	signed char *__restrict__ Hout;		/**< Pointer to Hout in case sequence must be exposed, null otherwise */
 	unsigned short int Nout;		/**< Number of output produced in StateInOut */
 	unsigned short int OutBase;		/**< Index of first output produced in StateInOut */
@@ -672,15 +676,20 @@ void KerReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg);
 /*
  * Standalone Scaled Activation, Features are evaluated in parallel
 */
+void KerPar_ActNone_SQ8(KerActivation_SQ8_T *Arg);
 void KerPar_ReLU_SQ8(KerActivation_SQ8_T *Arg);
 void KerPar_ReLUN_SQ8(KerActivation_SQ8_T *Arg);
 void KerPar_HSigmoid_SQ8(KerActivation_SQ8_T *Arg);
 void KerPar_HSwish_SQ8(KerActivation_SQ8_T *Arg);
 void KerPar_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg);
 
+
+void CNN_Copy_fps(KerCopy_fps_T * Arg);
+
 /*
  * Standalone Scaled Activation, Features are evaluated one after the other in parallel
 */
+void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg);
 void Ker_ReLU_SQ8(KerActivation_SQ8_T *Arg);
 void Ker_ReLUN_SQ8(KerActivation_SQ8_T *Arg);
 void Ker_HSigmoid_SQ8(KerActivation_SQ8_T *Arg);
@@ -777,7 +786,9 @@ void KerParMatMulSxSyB16_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulSxSyB16_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
 
 void KerParMatMulB32_SQ8(KerMatMul_SQ8_T *Arg);
+void KerParMatMulB32_2x4_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
+void KerParMatMulB32_2x4_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulB32_ReLUN_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulSxSyB32_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulSxSyB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg);
@@ -802,6 +813,7 @@ void KerParMatMulB16_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
 
 void KerParMatMulB32_SF_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
+void KerParMatMulB32_2x4_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg);
 void KerParMatMulB32_ReLUN_SF_SQ8(KerMatMul_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
@@ -874,6 +886,7 @@ void LSTM_ParKerB32_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg);
 void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg);
 void LSTM_ParKerB32_Hard_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg);
 void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg);
+void GRU_ParKerB32_Hard_SQ8(KerGRU_SQ8_T *Arg);
 
 /*************************************************************************************************************************************************
 	AT book keeping functions

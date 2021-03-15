@@ -36,6 +36,11 @@ typedef enum {
 	KOP_NEAREST_NEIGHBOR_RESIZE
 } resize_kop_t;
 
+typedef enum {
+    UNSIGNED_INOUT,
+    SIGNED_INOUT
+} InOut_t;
+
 /**
 @brief Generate Resizing for a given set of parameters
 
@@ -46,10 +51,14 @@ Generate Resizing for a given set of parameters
     \param    Hin :           Hight of the input
     \param    Wout:           Width of the output
     \param    Hout:           Hight of the output
+    \param    Channels:       Number of input/output channels
+    \params   InOut_Type
     \param 	  Type:			  Resizer Type
 */
-void GenerateResizeNew(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, resize_kop_t Type);
+int GenerateResizeMultiChannel(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, unsigned int Channels, InOut_t InOut_Type, resize_kop_t Type);
+int GenerateResizeMultiChannelQ16(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, unsigned int Channels, InOut_t InOut_Type, resize_kop_t Type);
 
+#define GenerateResizeNew(Name, Win, Hin, Wout, Hout, Type) GenerateResizeMultiChannel(Name, Win, Hin, Wout, Hout, 1, UNSIGNED_INOUT, Type)
 #define GenerateResize(Name, Win, Hin, Wout, Hout)  GenerateResizeNew(Name, Win, Hin, Wout, Hout, KOP_BILINEAR_RESIZE)
 
 /** @} */

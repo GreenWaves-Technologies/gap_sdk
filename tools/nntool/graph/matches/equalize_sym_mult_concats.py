@@ -16,9 +16,9 @@ import logging
 from copy import deepcopy
 
 from graph.matches.matcher import Matcher
-from graph.types import ConcatParameters, ReshapeParameters, TransposeParameters
+from graph.types import ConcatParameters, ReshapeParameters, TransposeParameters, SplitParameters
 from quantization.multiplicative.mult_quantization import MultQuantizationRecord, MultScalableFilterQuantizationRecord
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import SymmetricMultQType
+from quantization.qtype import QType
 from utils.graph import Edge, GraphView
 from utils.node_id import NodeId
 
@@ -26,21 +26,22 @@ LOG = logging.getLogger("nntool." + __name__)
 
 CAN_PASS = (
     ReshapeParameters,
-    TransposeParameters
+    TransposeParameters,
+    SplitParameters
 )
 
 def set_in_scale(qrec, index, scale):
     in_q = qrec.in_qs[index]
-    assert isinstance(in_q, SymmetricMultQType), "not supported on other quantization types"
+    assert in_q.is_sq and in_q.is_symmetric, "not supported on other quantization types"
     in_q.scale = scale
 
 def set_out_scale(qrec, index, scale):
     out_q = qrec.out_qs[index]
-    assert isinstance(out_q, SymmetricMultQType), "not supported on other quantization types"
+    assert out_q.is_sq and out_q.is_symmetric, "not supported on other quantization types"
     if isinstance(qrec, MultScalableFilterQuantizationRecord):
         assert index == 0, "trying to set strange index on filter quantization record"
         out_q.scale = scale
-        qrec.mul_biases_q.scale = qrec.in_qs[0].scale * qrec.weights_q.scale / out_q.scale
+        qrec.mul_biases_q.scale = qrec.in_qs[0].scale * qrec.in_qs[1].scale / out_q.scale
     else:
         out_q.scale = scale
 

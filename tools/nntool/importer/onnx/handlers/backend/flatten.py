@@ -59,7 +59,8 @@ class Flatten(ConstantMixin, BackendHandler):
             logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(
                 valid_name,
-                value=cls.get_constant(x).reshape(shape)
+                value=cls.get_constant(x).reshape(shape),
+                constant_store=G.constant_store
             )
             pshape = ProvisionalDim(shape)
         else:

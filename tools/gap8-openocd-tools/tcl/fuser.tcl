@@ -312,12 +312,12 @@ proc fuse_xtal_config_cycles {fuse_struct_ptr} {
     
     puts "going to fuse assert cycles"
 	array set fuse_array {
-		0 0x00              
-		1 0x40
-		2 0x10
-		3 0x00
-		4 0xFF
-		5 0xFF
+		0 0x40000000
+		1 0xffff0010
+		2 0
+		3 0
+		4 0
+		5 0
 		6 0
 		7 0
 		8 0
@@ -346,7 +346,55 @@ proc fuse_xtal_config_cycles {fuse_struct_ptr} {
 		31 0x0
 	}
     # fuse from bit 208 (#26 XTAL DELTA) value
-	gap_fuse_once 0x1c000190 0x1 208 8 0xf 32
+	gap_fuse_once 0x1c000190 0x1 192 48 0xf 32
+}
+
+
+proc fuse_all_for_hyper_reliable_revc {fuse_struct_ptr} {
+    # set 0x90 to INFO1: bit7 - xtal check, bit4 - boot from flash
+    # set 0x40 to INFO2: ref clk wait
+    # set 0x40 to xtal delta: 27
+    # set 0x0010 to xtal min: 28
+    # set 0xffff to xtal max: 30-31
+    # set 0x01 to INFO3 : boot from hyperflash
+    
+    puts "going to fuse assert cycles"
+	array set fuse_array {
+		0 0x00004090              
+		1 0
+		2 0
+		3 0
+		4 0
+		5 0
+		6 0x40000000
+		7 0xffff0010
+		8 0
+		9 0x00000100
+		10 0
+		11 0
+		12 0
+		13 0
+		14 0
+		15 0
+		16 0
+		17 0
+		18 0
+		19 0
+		20 0
+		21 0
+		22 0
+		23 0
+		24 0
+		25 0
+		26 0
+		27 0
+		28 0
+		29 0
+		30 0
+		31 0x0
+	}
+    # fuse from bit 208 (#26 XTAL DELTA) value
+	gap_fuse_once 0x1c000190 0x1 0 1024 0xf 32
 }
 
 proc fuse_fll_assert_cycles_revb {gap_tools_path} {
@@ -412,6 +460,26 @@ proc fuse_xtal_assert_cycles_revc {gap_tools_path} {
 	puts "fuse done"
     puts "fuse array after:"
     dump_fuse_array ${gap_tools_path}
+}
+
+proc fuse_reliable_hyper_boot_revc {gap_tools_path} {
+    puts "fuse array before:"
+    dump_fuse_array ${gap_tools_path}
+    puts "fuse all the bits for boot from hyperflash and xtal check for revc"
+    #-------------------------------------------------------------------------------------#
+	reset
+	gap8_jtag_load_binary_and_start ${gap_tools_path}/gap_bins/gap_fuser@gapuino8.elf elf
+	sleep 100
+	gap_fuse_open 0x1c000190
+	puts "fuse start"
+	fuse_all_for_hyper_reliable_revc 0x1c000190
+	sleep 100
+	gap_fuse_terminate 0x1c000190
+    #-------------------------------------------------------------------------------------#
+ 	puts "fuse done"
+    puts "fuse array after:"
+    dump_fuse_array ${gap_tools_path}
+    exit
 }
 
 proc fuse_spiflash_boot {gap_tools_path} {

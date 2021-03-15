@@ -43,11 +43,11 @@
 struct pi_gc0308_conf
 {
   struct pi_camera_conf camera; /*!< Generic camera configuration. */
-  int cpi_itf;                  /*!< CPI interface where the camera is
-    connected. */
-  int i2c_itf;                  /*!< I2C interface where the camera control
-    interface is connected. */
-  pi_gpio_e reset_gpio;              /*!< GPIO number for reset the gc0308 camera */
+  int cpi_itf;                  /*!< CPI interface where the camera is connected. */
+  int i2c_itf;                  /*!< I2C interface where the camera control interface is connected. */
+  pi_gpio_e reset_gpio;         /*!< GPIO number for reset the gc0308 camera */
+  pi_gpio_e pwdn_gpio;          /*!< GPIO number for power down the gc0308 camera */
+  pi_gpio_e mclk_gpio;          /*!< GPIO number to enable master clock of the gc0308 camera */
   char skip_pads_config;        /*!< Skip pads configuration if set to 1. */
   pi_camera_format_e format;    /*!< Camera image resolution. */
   pi_camera_color_mode_e color_mode;    /*!< Camera image color mode. */

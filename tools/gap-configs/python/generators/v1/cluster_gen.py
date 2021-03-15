@@ -30,6 +30,7 @@ class Cluster(object):
     cluster_version   = tp.get_child_int('cluster/version')
     has_cc            = tp.get_child_bool('cluster/has_cc')
     has_hwce          = tp.get('cluster/peripherals/hwce') is not None
+    has_ne16          = tp.get('cluster/peripherals/ne16') is not None
     has_hwacc          = tp.get('cluster/peripherals/hwacc') is not None
     dma_irq_0         = tp.get('cluster/pe/irq').get_dict().index('dma_0')
     dma_irq_1         = tp.get('cluster/pe/irq').get_dict().index('dma_1')
@@ -47,6 +48,9 @@ class Cluster(object):
 
     if has_hwce:
       hwce_irq         = tp.get('cluster/pe/irq').get_dict().index('acc_0')
+
+    if has_ne16:
+      ne16_irq         = tp.get('cluster/pe/irq').get_dict().index('acc_0')
 
     if has_hwacc:
       hwacc_irq         = tp.get('cluster/pe/irq').get_dict().index('acc_0')
@@ -131,6 +135,11 @@ class Cluster(object):
         ("hwce", get_mapping_area(tp.get_child_dict("cluster/peripherals/hwce"), cluster_size, cluster_id, True))
       ]))
 
+    if has_ne16:
+      periph_ico_mappings.update(OrderedDict([
+        ("ne16", get_mapping_area(tp.get_child_dict("cluster/peripherals/ne16"), cluster_size, cluster_id, True))
+      ]))
+
     if has_hwacc:
       periph_ico_mappings.update(OrderedDict([
         ("hwacc", get_mapping_area(tp.get_child_dict("cluster/peripherals/hwacc"), cluster_size, cluster_id, True))
@@ -202,6 +211,8 @@ class Cluster(object):
     l1_interleaver_nb_masters = nb_pe + 4
     if has_hwce:
       l1_interleaver_nb_masters += 4
+    if has_ne16:
+      l1_interleaver_nb_masters += 1
     if has_hwacc:
       l1_interleaver_nb_masters += 4
 
@@ -289,6 +300,11 @@ class Cluster(object):
         ('@includes@', ["ips/hwce/hwce_v%d.json" % tp.get_child_int('cluster/peripherals/hwce/version')])
       ]))
 
+    if has_ne16:
+      cluster.ne16 = Component(properties=OrderedDict([
+        ('@includes@', ["ips/ne16/ne16.json"])
+      ]))
+
     if has_hwacc:
       cluster.hwacc = Component(properties=OrderedDict([
         ('@includes@', ["ips/hwacc/hwacc.json"])
@@ -351,6 +367,8 @@ class Cluster(object):
     cluster.cluster_ico.periph_ico = cluster.periph_ico.input
     cluster.cluster_ico.periph_ico_alias = cluster.periph_ico.input
     cluster.periph_ico.icache_ctrl = cluster.icache_ctrl.input
+    if has_ne16:
+      cluster.periph_ico.ne16 = cluster.ne16.input
     if has_hwce:
       cluster.periph_ico.hwce = cluster.hwce.input
     if has_hwacc:
@@ -364,6 +382,10 @@ class Cluster(object):
     if has_hwce:
       for i in range(0, nb_pe):
         cluster.hwce.irq = cluster.event_unit.new_itf('in_event_%d_pe_%d' % (hwce_irq, i))
+
+    if has_ne16:
+      for i in range(0, nb_pe):
+        cluster.ne16.irq = cluster.event_unit.new_itf('in_event_%d_pe_%d' % (ne16_irq, i))
 
     if has_hwacc:
       for i in range(0, nb_pe):
@@ -457,6 +479,10 @@ class Cluster(object):
       for i in range(0, 4):
         cluster.hwce.set('out_%d' % i, cluster.l1_ico.new_itf('hwce_in_%d' % i))
         cluster.l1_ico.set('hwce_in_%d' % i, cluster.l1_ico.interleaver.new_itf('in_%d' % (nb_pe + 4 + i)))
+
+    if has_ne16:
+        cluster.ne16.set('out', cluster.l1_ico.new_itf('ne16_in'))
+        cluster.l1_ico.set('ne16_in', cluster.l1_ico.interleaver.new_itf('in_%d' % (nb_pe + 4)))
 
     if has_hwacc:
       for i in range(0, 4):

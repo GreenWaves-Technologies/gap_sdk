@@ -61,7 +61,7 @@ static inline iss_insn_t *div_exec(iss_t *iss, iss_insn_t *insn)
   int32_t dividend = REG_GET(0);
   int32_t result;
   if (divider == 0) result = -1;
-  else if (divider == (1<<31) && dividend == -1) result = (1<<31);
+  else if (divider == (1<<31) && dividend == -1) result = 0;
   else if (dividend == (1<<31) && divider == -1) result = (1<<31);
   else result = dividend / divider;
   REG_SET(0, result);
@@ -87,7 +87,7 @@ static inline iss_insn_t *rem_exec(iss_t *iss, iss_insn_t *insn)
   int32_t dividend = REG_GET(0);
   int32_t result;
   if (divider == 0) result = dividend;
-  else if (divider == (1<<31) && dividend == -1) result = 0;
+  else if (divider == (1<<31) && dividend == -1) result = -1;
   else if (dividend == (1<<31) && divider == -1) result = 0;
   else result = dividend % divider;
   REG_SET(0, result);

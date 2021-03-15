@@ -27,12 +27,14 @@ $(MFCC_MODEL_GEN): $(MFCCBUILD_DIR)
 	gcc -g -o $(MFCC_MODEL_GEN) -I. -I$(TILER_INC) -I$(TILER_EMU_INC) $(MFCC_DIR)/MfccModel.c $(MFCC_SRCG) $(TILER_LIB)  $(TABLE_CFLAGS) #$(SDL_FLAGS)
 
 gen_lut: $(MFCCBUILD_DIR)
-	python GenLUT.py
+	python GenLUT.py --fft_lut_file $(MFCCBUILD_DIR)/LUT.def --mfcc_bf_lut_file $(MFCCBUILD_DIR)/MFCC_FB.def \
+					 --sample_rate 16000 --frame_size 480 --frame_step 160 --n_frame 49 --n_fft 512 --n_dct 40 \
+					 --mfcc_bank_cnt 40 --fmin 20 --fmax 4000 --use_power --mfcc_bank_cnt 40 --preempfactor 0.0 \
+					 --save_params_header MFCC_params.h
 
 # Run the code generator  kernel code
 mfcc_model: gen_lut $(MFCC_MODEL_GEN)
 	$(MFCC_MODEL_GEN) -o $(MFCCBUILD_DIR) -c $(MFCCBUILD_DIR) $(MODEL_GEN_EXTRA_FLAGS)
 
 clean_model:
-	rm -rf MFCC_params.h
 	rm -rf $(MFCCBUILD_DIR)

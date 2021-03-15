@@ -34,10 +34,10 @@ def get_c_desc(name):
         return name.replace('\n', ' ').encode('ascii', 'ignore').decode('ascii')
 
 def get_c_name(name):
-    return name.replace('/', '_').replace('.', '_').encode('ascii', 'ignore').decode('ascii')
+    return name.replace('/', '_').replace('.', '_').replace(' ', '_').encode('ascii', 'ignore').decode('ascii')
 
 def get_c_name_no_digit_first(name):
-    result = name.replace('/', '_').replace('.', '_').encode('ascii', 'ignore').decode('ascii')
+    result = name.replace('/', '_').replace('.', '_').replace(' ', '_').encode('ascii', 'ignore').decode('ascii')
     if result[0].isdigit():
         result = '_' + result
 
@@ -105,17 +105,23 @@ class Regfield(object):
         if reset is not None:
             self.__dump_file(header.file, '#define %-60s 0x%x\n' % (field_name + '_RESET', reset), rst)
 
-    def dump_macros(self, header, reg_name=None, rst=False):
+    def dump_macros(self, header, reg_name=None, rst=False, reg=None):
         self.__dump_file(header.file, '\n', rst)
         field_name = '%s_%s' % (get_c_name(reg_name), get_c_name(self.name).upper())
-        self.__dump_file(header.file, '#define %-50s (GAP_BEXTRACTU((value),%d,%d))\n' % (field_name + '_GET(value)', self.width, self.bit), rst)
-        self.__dump_file(header.file, '#define %-50s (GAP_BEXTRACT((value),%d,%d))\n' % (field_name + '_GETS(value)', self.width, self.bit), rst)
-        self.__dump_file(header.file, '#define %-50s (GAP_BINSERT((value),(field),%d,%d))\n' % (field_name + '_SET(value,field)', self.width, self.bit), rst)
+        if reg is not None and self.width == reg.width:
+            self.__dump_file(header.file, '#define %-50s (value)\n' % (field_name + '_GET(value)'), rst)
+            self.__dump_file(header.file, '#define %-50s (value)\n' % (field_name + '_GETS(value)'), rst)
+            self.__dump_file(header.file, '#define %-50s (field)\n' % (field_name + '_SET(value,field)'), rst)
+        else:
+            self.__dump_file(header.file, '#define %-50s (GAP_BEXTRACTU((value),%d,%d))\n' % (field_name + '_GET(value)', self.width, self.bit), rst)
+            self.__dump_file(header.file, '#define %-50s (GAP_BEXTRACT((value),%d,%d))\n' % (field_name + '_GETS(value)', self.width, self.bit), rst)
+            self.__dump_file(header.file, '#define %-50s (GAP_BINSERT((value),(field),%d,%d))\n' % (field_name + '_SET(value,field)', self.width, self.bit), rst)
         self.__dump_file(header.file, '#define %-50s ((val) << %d)\n' % (field_name + '(val)', self.bit), rst)
 
     def dump_access_functions(self, reg, header=None, rst=False):
         reg_name = '%s_%s' % (get_c_name(header.name), get_c_name(reg.name))
         reg_c_name = get_c_name(reg_name).upper()
+        field_c_name = get_c_name(self.name)
 
         indent = '' if not rst else '        '
         header.file.write("\n")
@@ -129,9 +135,9 @@ class Regfield(object):
             getu_implem = '\n{\n    return GAP_BEXTRACTU(GAP_READ(base, %s_OFFSET), %d, %d);\n}\n' % (reg_c_name, self.width, self.bit) if not rst else ';'
             get_implem = '\n{\n    return GAP_BEXTRACT(GAP_READ(base, %s_OFFSET), %d, %d);\n}\n' % (reg_c_name, self.width, self.bit) if not rst else ';'
 
-        header.file.write("%sstatic inline void %s_%s_set(uint32_t base, uint32_t value)%s\n" % (indent, reg_name.lower(), self.name.lower(), set_implem))
-        header.file.write("%sstatic inline uint32_t %s_%s_get(uint32_t base)%s\n" % (indent, reg_name.lower(), self.name.lower(), getu_implem))
-        header.file.write("%sstatic inline int32_t %s_%s_gets(uint32_t base)%s\n" % (indent, reg_name.lower(), self.name.lower(), get_implem))
+        header.file.write("%sstatic inline __attribute__((always_inline)) void %s_%s_set(uint32_t base, uint32_t value)%s\n" % (indent, reg_name.lower(), field_c_name.lower(), set_implem))
+        header.file.write("%sstatic inline __attribute__((always_inline)) uint32_t %s_%s_get(uint32_t base)%s\n" % (indent, reg_name.lower(), field_c_name.lower(), getu_implem))
+        header.file.write("%sstatic inline __attribute__((always_inline)) int32_t %s_%s_gets(uint32_t base)%s\n" % (indent, reg_name.lower(), field_c_name.lower(), get_implem))
 
 
 
@@ -186,6 +192,7 @@ class Register(object):
             field.dump_to_header(reg_name=reg_name, header=header, rst=rst)
 
     def dump_struct(self, header, rst=False):
+
         self.__dump_file(header.file, '\n', rst)
         self.__dump_file(header.file, 'typedef union {\n', rst)
         self.__dump_file(header.file, '  struct {\n', rst)
@@ -199,10 +206,18 @@ class Register(object):
 
             current_index = field.bit + field.width
 
-            self.__dump_file(header.file, '    unsigned int %-16s:%-2d; // %s\n' % (get_c_name_no_digit_first(field.name).lower(), field.width, get_c_desc(field.desc)), rst)
+            if field.width <= 32:
+                self.__dump_file(header.file, '    unsigned int %-16s:%-2d; // %s\n' % (get_c_name_no_digit_first(field.name).lower(), field.width, get_c_desc(field.desc)), rst)
+            else:
+                self.__dump_file(header.file, '    unsigned long long int %-16s:%-2d; // %s\n' % (get_c_name_no_digit_first(field.name).lower(), field.width, get_c_desc(field.desc)), rst)
 
         self.__dump_file(header.file, '  };\n', rst)
-        self.__dump_file(header.file, '  unsigned int raw;\n', rst)
+
+        if current_index <= 32:
+            self.__dump_file(header.file, '  unsigned int raw;\n', rst)
+        else:
+            self.__dump_file(header.file, '  unsigned int raw[%d];\n' % ((current_index + 31) / 32), rst)
+
         self.__dump_file(header.file, '} __attribute__((packed)) %s_%s_t;\n' % (get_c_name(header.name).lower(), get_c_name(self.name).lower()), rst)
 
     def __dump_file(self, file, msg, rst=False):
@@ -225,7 +240,7 @@ class Register(object):
             elif width > 32 and width < 64:
                 width = 64
         except:
-            return
+            width = 32
 
         self.__dump_file(header.file, '\n', rst)
         self.__dump_file(header.file, 'class %s : public vp::reg_%d\n' % (self.get_vp_name(header), width), rst)
@@ -243,10 +258,10 @@ class Register(object):
         if not rst:
 
             reg_code = '        this->hw_name = "%s";\n' % (self.name)
-            reg_code += '        this->offset = 0x%x;\n' % (self.offset)
-            reg_code += '        this->width = %d;\n' % (self.width)
+            reg_code += '        this->offset = 0x%x;\n' % (self.offset if self.offset is not None else 0)
+            reg_code += '        this->width = %d;\n' % (self.width if self.width is not None else 32)
             reg_code += '        this->do_reset = %d;\n' % (self.do_reset)
-            reg_code += '        this->write_mask = 0x%x;\n' % (self.get_write_mask())
+            reg_code += '        this->write_mask = 0x%x;\n' % (self.get_write_mask() & 0xFFFFFFFF)
             if self.reset is not None:
                 reg_code += '        this->reset_val = 0x%x;\n' % (self.reset)
             for field in self.get_fields():
@@ -259,7 +274,7 @@ class Register(object):
     def dump_macros(self, header=None, rst=False):
         reg_name = '%s_%s' % (get_c_name(header.name).upper(), get_c_name(self.name).upper())
         for name, field in self.fields.items():
-            field.dump_macros(header, reg_name, rst=rst)
+            field.dump_macros(header, reg_name, rst=rst, reg=self)
 
     def dump_regfields_access_functions(self, header=None, rst=False):
         for name, field in self.fields.items():
@@ -276,8 +291,8 @@ class Register(object):
             get_implem = '\n{\n    return GAP_READ(base, %s_OFFSET);\n}\n' % (get_c_name(reg_name).upper()) if not rst else ';'
             set_implem = '\n{\n    GAP_WRITE(base, %s_OFFSET, value);\n}\n' % (get_c_name(reg_name).upper()) if not rst else ';'
 
-            header.file.write("%sstatic inline uint32_t %s_get(uint32_t base)%s\n" % (indent, reg_name.lower(), get_implem));
-            header.file.write("%sstatic inline void %s_set(uint32_t base, uint32_t value)%s\n" % (indent, reg_name.lower(), set_implem));
+            header.file.write("%sstatic inline __attribute__((always_inline)) uint32_t %s_get(uint32_t base)%s\n" % (indent, reg_name.lower(), get_implem));
+            header.file.write("%sstatic inline __attribute__((always_inline)) void %s_set(uint32_t base, uint32_t value)%s\n" % (indent, reg_name.lower(), set_implem));
 
 
 
@@ -302,12 +317,14 @@ class Regmap(object):
         self.__dump_file(header.file, 'public:\n', rst)
 
         for register in self.registers.values():
-            self.__dump_file(header.file, '    %s %s;\n' % (register.get_vp_name(header), register.name.lower()), rst)
+            if register.offset is not None:
+                self.__dump_file(header.file, '    %s %s;\n' % (register.get_vp_name(header), register.name.lower()), rst)
 
         if not rst:
             reg_init_code = ''
             for register in self.registers.values():
-                reg_init_code += '        this->registers.push_back(&this->%s);\n' % (register.name.lower())
+                if register.offset is not None:
+                    reg_init_code += '        this->registers.push_back(&this->%s);\n' % (register.name.lower())
 
             self.__dump_file(header.file, '    vp_regmap_%s()\n    {\n%s    }\n' % (get_c_name(self.name).lower(), reg_init_code))
 
@@ -439,6 +456,9 @@ class Regmap(object):
         padding = 0
         padding_idx = 0
         for name, register in self.registers.items():
+            if register.offset is None:
+                continue
+
             cur_idx = register.offset
             if (cur_idx != 0):
                 if (cur_idx > (prev_idx + 4)):
@@ -455,6 +475,40 @@ class Regmap(object):
             prev_idx = cur_idx
 
         self.__dump_file(header.file, '} __attribute__((packed)) %s_t;\n' % (get_c_name(self.name).lower()), rst)
+
+        self.__dump_file(header.file, ('/** %s_Type Register Layout Typedef */\n' % header.name.upper()), rst)
+        self.__dump_file(header.file, 'typedef struct {\n', rst)
+
+        if not rst:
+            header.file.write('\n')
+
+
+        cur_idx = 0
+        prev_idx = 0
+        padding = 0
+        padding_idx = 0
+        for name, register in self.registers.items():
+            if register.offset is None:
+                continue
+
+            cur_idx = register.offset
+            if (cur_idx != 0):
+                if (cur_idx > (prev_idx + 4)):
+                    padding = ((cur_idx - prev_idx) / 4) - 1
+            desc = ''
+            if register.desc != '':
+                desc = ' // %s' % register.desc
+            if (padding != 0):
+                desc_reserved = " // Reserved/Not used."
+                self.__dump_file(header.file, '    volatile uint32_t reserved_%d[%d]; %s\n' % (padding_idx, padding, get_c_desc(desc_reserved)), rst)
+                padding_idx = padding_idx + 1
+                padding = 0
+            self.__dump_file(header.file, '    volatile %s_%s_t %s; %s\n' % (get_c_name(header.name).lower(), get_c_name(register.name).lower(), get_c_name(register.name).lower(), get_c_desc(desc)), rst)
+            prev_idx = cur_idx
+
+        self.__dump_file(header.file, '} __attribute__((packed)) %s_struct_t;\n' % (get_c_name(self.name).lower()), rst)
+
+
 
         if not rst:
             header.file.write('\n')

@@ -112,7 +112,7 @@ vp::io_req_status_e Cpi_periph::custom_req(vp::io_req *req, uint64_t offset)
     case UDMA_CPI_CAM_CFG_LL_OFFSET: return handle_l1_access(is_write, data);
     case UDMA_CPI_CAM_CFG_UR_OFFSET: return handle_ur_access(is_write, data);
     case UDMA_CPI_CAM_CFG_SIZE_OFFSET: return handle_size_access(is_write, data);
-    case UDMA_CPI_CAM_CFG_FILTER_OFFSET: return handle_filter_access(is_write, data);
+    //case UDMA_CPI_CAM_CFG_FILTER_OFFSET: return handle_filter_access(is_write, data);
   }
 
   return vp::IO_REQ_INVALID;
@@ -221,7 +221,7 @@ void Cpi_periph::handle_sof()
     this->nbFrameDrop = ARCHI_REG_FIELD_GET(glob,UDMA_CPI_CAM_CFG_GLOB_FRAMEDROP_VAL_BIT,UDMA_CPI_CAM_CFG_GLOB_FRAMEDROP_VAL_WIDTH);
     this->frameSliceEn = ARCHI_REG_FIELD_GET(glob,UDMA_CPI_CAM_CFG_GLOB_FRAMESLICE_EN_BIT, 1);
     this->format = ARCHI_REG_FIELD_GET(glob,UDMA_CPI_CAM_CFG_GLOB_FORMAT_BIT,UDMA_CPI_CAM_CFG_GLOB_FORMAT_WIDTH);
-    this->shift = ARCHI_REG_FIELD_GET(glob,UDMA_CPI_CAM_CFG_GLOB_SHIFT_BIT,UDMA_CPI_CAM_CFG_GLOB_SHIFT_WIDTH);
+    //this->shift = ARCHI_REG_FIELD_GET(glob,UDMA_CPI_CAM_CFG_GLOB_SHIFT_BIT,UDMA_CPI_CAM_CFG_GLOB_SHIFT_WIDTH);
 
     // In case of frame dropping, start with an enabled one
     if (this->frameDrop) {
@@ -253,9 +253,9 @@ void Cpi_periph::handle_sof()
 
   if (this->wroteFilter) {
     this->wroteFilter = false;
-    this->bCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_B_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_B_COEFF_WIDTH);
-    this->gCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_G_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_G_COEFF_WIDTH);
-    this->rCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_R_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_R_COEFF_WIDTH);
+    //this->bCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_B_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_B_COEFF_WIDTH);
+    //this->gCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_G_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_G_COEFF_WIDTH);
+    //this->rCoeff = ARCHI_REG_FIELD_GET(filter,UDMA_CPI_CAM_CFG_FILTER_R_COEFF_BIT,UDMA_CPI_CAM_CFG_FILTER_R_COEFF_WIDTH);
     this->trace.msg("Updating coefficients (b: %d, g: %d, r: %d)\n", bCoeff, gCoeff, rCoeff);
   }
 }

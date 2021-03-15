@@ -35,17 +35,35 @@
   \param offset The offset in the event unit where to load from. Depending on this offset, this will trigger different behaviors (barrier, wait, wait&clear, etc).
   \return       The loaded value, after the core has been waken-up. This value depends on the feature which is accessed.
   */
+#if defined(__PULP_TOOLCHAIN__)
+
 #if defined(__OPTIMIZE__)
 static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
 {
   unsigned int value;
-  #if !defined(__LLVM__) && ((defined(OR1K_VERSION) && OR1K_VERSION >= 5) || (defined(RISCV_VERSION) && RISCV_VERSION >= 4))
-  value = __builtin_pulp_event_unit_read_fenced((int *)base, offset);
-  #else
   __asm__ __volatile__ ("" : : : "memory");
   value = pulp_read32(base + offset);
   __asm__ __volatile__ ("" : : : "memory");
-  #endif
+  return value;
+}
+#else
+#define evt_read32(base,offset) \
+  ({ \
+    unsigned int value; \
+  __asm__ __volatile__ ("" : : : "memory"); \
+  value = pulp_read32(base + offset); \
+  __asm__ __volatile__ ("" : : : "memory"); \
+    value; \
+  })
+#endif
+
+#else
+
+#if defined(__OPTIMIZE__)
+static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
+{
+  unsigned int value;
+  value = __builtin_pulp_event_unit_read_fenced((int *)base, offset);
   return value;
 }
 #else
@@ -55,6 +73,8 @@ static inline unsigned int evt_read32(unsigned int base, unsigned int offset)
     value = __builtin_pulp_event_unit_read_fenced((int *)base, offset); \
     value; \
   })
+#endif
+
 #endif
 
 /** Get event status. 
@@ -428,12 +448,20 @@ static inline unsigned int eu_dispatch_pop()
 
 static inline void eu_dispatch_push(unsigned value)
 {
+#if defined(__PULP_TOOLCHAIN__)
+  IP_WRITE(ARCHI_EU_DEMUX_ADDR, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_FIFO_ACCESS, value);
+#else
   IP_WRITE_PTR(ARCHI_EU_DEMUX_ADDR, EU_DISPATCH_DEMUX_OFFSET + EU_DISPATCH_FIFO_ACCESS, value);
+#endif
 }
 
 static inline void eu_dispatch_push_base(unsigned int base, unsigned value)
 {
+#if defined(__PULP_TOOLCHAIN__)
+  IP_WRITE(base, EU_DISPATCH_FIFO_ACCESS, value);
+#else
   IP_WRITE_PTR(base, EU_DISPATCH_FIFO_ACCESS, value);
+#endif
 }
 
 static inline void eu_dispatch_team_config(unsigned value)

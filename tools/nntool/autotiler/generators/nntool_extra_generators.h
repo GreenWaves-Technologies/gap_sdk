@@ -21,4 +21,10 @@ int CNN_Norm(
 	nntool_kop_t kop
 );
 
+// int CNN_Copy(
+// 	char *Name,
+//     CNN_GenControl_T *Ctrl,
+// 	int Sz
+// );
+
 #endif

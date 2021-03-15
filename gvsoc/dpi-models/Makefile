@@ -32,27 +32,27 @@ PERIPH_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/periph/%.o,$(patsubst %.c,$(BUILD_DI
 
 $(BUILD_DIR)/dpi/%.o: %.cpp
 	@mkdir -p $(basename $@)
-	g++ $(DPI_CFLAGS) -o $@ -c $<
+	$(CXX) $(DPI_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/dpi/%.o: %.c
 	@mkdir -p $(basename $@)
-	g++ $(DPI_CFLAGS) -o $@ -c $<
+	$(CXX) $(DPI_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/periph/%.o: %.cpp
 	@mkdir -p $(basename $@)
-	g++ $(PERIPH_CFLAGS) -o $@ -c $<
+	$(CXX) $(PERIPH_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/periph/%.o: %.c
 	@mkdir -p $(basename $@)
-	g++ $(PERIPH_CFLAGS) -o $@ -c $<
+	$(CXX) $(PERIPH_CFLAGS) -o $@ -c $<
 
 $(BUILD_DIR)/libpulpdpi.so: $(DPI_OBJS)
 	@mkdir -p $(basename $@)
-	g++ -o $@ $^ $(DPI_LDFLAGS)
+	$(CXX) -o $@ $^ $(DPI_LDFLAGS)
 
 $(BUILD_DIR)/libpulpperiph.so: $(PERIPH_OBJS)
 	@mkdir -p $(basename $@)
-	g++ -o $@ $^ $(PERIPH_LDFLAGS)
+	$(CXX) -o $@ $^ $(PERIPH_LDFLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)

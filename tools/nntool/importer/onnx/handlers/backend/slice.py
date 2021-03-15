@@ -14,13 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
+from graph.dim import Dim
 from graph.types import ConstantInputParameters, NNEdge, StridedSliceParameters
+from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op, partial_support, ps_description
-from importer.common.constant_mixin import ConstantMixin
 
 
 @onnx_op("Slice")
@@ -39,7 +40,7 @@ class Slice(ConstantMixin, BackendHandler):
         axes = cls._resolve_negative_ranks(axes, len(x_shape)) if axes else tuple(range(x_rank))
         axes_rank = len(axes)
         steps = steps if steps else [1] * axes_rank
-        slices = np.concatenate([starts, ends, steps]).reshape((3, axes_rank)).transpose((1, 0))
+        slices = np.stack([starts, ends, steps]).transpose((1, 0))
         p_slices = []
         p_shape = []
         for idx, dim in enumerate(x_shape):
@@ -51,8 +52,8 @@ class Slice(ConstantMixin, BackendHandler):
                     slice_idx = axes.index(idx)
                     begin, end, step = slices[slice_idx]
                     begin = max(min(begin if begin >= 0 else dim + begin, dim), 0)
-                    end = max(min(end if end >= 0 else dim + end, dim), 0)
-                    p_slices.append((begin, end, step))
+                    end = max(min(end if end >= 0 else dim + end, dim), -1)
+                    p_slices.append((begin, None if end == -1 else end, step))
                     if step < 0:
                         p_shape.append((begin - end)//-step)
                     else:
@@ -70,7 +71,7 @@ class Slice(ConstantMixin, BackendHandler):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
             x_val = params.numpy_slice(x_val)
-            params = ConstantInputParameters(valid_name, value=x_val)
+            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val, constant_store=G.constant_store)
         else:
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(p_shape))
@@ -90,8 +91,8 @@ class Slice(ConstantMixin, BackendHandler):
 
         starts = tuple(cls.get_constant(inputs[1]))
         ends = tuple(cls.get_constant(inputs[2]))
-        axes = tuple(cls.get_constant(inputs[3])) if inputs[3] else None
-        steps = tuple(cls.get_constant(inputs[4])) if inputs[4] else None
+        axes = tuple(cls.get_constant(inputs[3])) if len(inputs) >= 4 and inputs[3] else None
+        steps = tuple(cls.get_constant(inputs[4])) if len(inputs) >= 5 and inputs[4] else None
 
         return cls._common(node, starts, ends, axes, steps, **kwargs)
 

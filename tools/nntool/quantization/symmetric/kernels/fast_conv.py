@@ -41,8 +41,10 @@ class Conv2DSymmetric(KernelBase):
         details = kwargs.get('details')
         in_dims = params.in_dims[0]
         out_dims = params.out_dims[0]
-        weights = qrec.prepare_weights(params, params.weights, ktype="symmetric")
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
+        in_tensor = prepared_in_tensors[0]
+        weights = prepared_in_tensors[1]
+        biases = prepared_in_tensors[2]
 
         if details is not None:
             details['min_acc'] = float("Infinity")
@@ -88,11 +90,10 @@ class Conv2DSymmetric(KernelBase):
         out_h = ((in_h - dillated_filter_h + pad_h)) // params.stride.h + 1
 
         if params.has_bias:
-            biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="symmetric")
-            if qrec.acc_q != qrec.biases_q:
-                biases = qrec.acc_q.expand_from(biases, qrec.biases_q)
-            result = np.ones((out_c, out_h, out_w),
-                             dtype=qrec.acc_q.dtype) * biases.reshape(out_c, 1, 1)
+            # biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="symmetric")
+            if qrec.acc_q != qrec.in_qs[2]:
+                biases = qrec.acc_q.expand_from(biases, qrec.in_qs[2])
+            result = np.broadcast_to(biases.reshape(out_c, 1, 1), (out_c, out_h, out_w)).copy().astype(qrec.acc_q.dtype)
         else:
             result = np.zeros((out_c, out_h, out_w),
                               dtype=qrec.acc_q.dtype)

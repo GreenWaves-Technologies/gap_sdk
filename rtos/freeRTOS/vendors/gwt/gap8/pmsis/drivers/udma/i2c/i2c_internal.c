@@ -525,7 +525,7 @@ int32_t __pi_i2c_open(struct pi_i2c_conf *conf, struct i2c_cs_data_s **device_da
         /* Set up i2c cmd stop sequence. */
         driver_data->i2c_stop_seq[0] = I2C_CMD_STOP;
         driver_data->i2c_stop_seq[1] = I2C_CMD_WAIT;
-        driver_data->i2c_stop_seq[2] = 0xFF;
+        driver_data->i2c_stop_seq[2] = 0x1;
         driver_data->nb_events = 0;
         driver_data->device_id = conf->itf;
         /* Attach freq callback. */

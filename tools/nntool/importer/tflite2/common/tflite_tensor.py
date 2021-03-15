@@ -13,15 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from quantization.qtype import QType
 import numpy as np
-from quantization.multiplicative.asymmetric.asymmetric_mult_qtype import \
-    AsymmetricMultQType
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
-from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import \
-    SymmetricMultQTypeWrapper
 
 from ..tflite_schema_head import TensorType
+
+
+def expand_dims_to(value, other_value):
+    if len(value) <= 1:
+        return value
+    return np.reshape(value, list(value.shape) + [1] * (other_value.ndim - value.ndim))
 
 
 class TensorBase():
@@ -95,15 +96,20 @@ class TensorBase():
     def dont_link(self, val):
         self._dont_link = val
 
+NP_TYPES = {
+    'FLOAT16': np.float16,
+    'FLOAT32': np.float32,
+    'FLOAT64': np.float64,
+    'INT16': np.int16,
+    'INT32': np.int32,
+    'INT64': np.int64,
+    'INT8': np.int8,
+    'UINT8': np.uint8
+}
 
 class TFLiteTensorWrapper(TensorBase):
     TF_TO_NUMPY_TYPE = {
-        TensorType.TensorType.FLOAT32: np.float32,
-        TensorType.TensorType.FLOAT16: np.float16,
-        TensorType.TensorType.INT32: np.int32,
-        TensorType.TensorType.UINT8: np.uint8,
-        TensorType.TensorType.INT8: np.int8,
-        TensorType.TensorType.INT64: np.int64
+        getattr(TensorType.TensorType, key): NP_TYPES[key] for key in dir(TensorType.TensorType) if key in NP_TYPES
     }
 
     def __init__(self, tensor, model):
@@ -159,11 +165,9 @@ class TFLiteTensorWrapper(TensorBase):
                 np.all(quant.ZeroPointAsNumpy() == 128)
         return False
 
-
     @staticmethod
     def asymmetric_mult_qtype_from_tflite(tf_qps, dtype):
-        zero_point=tf_qps.ZeroPointAsNumpy() if tf_qps.ZeroPointLength() > 0 else None
-        res = AsymmetricMultQType(zero_point=zero_point)
+        zero_point = tf_qps.ZeroPointAsNumpy() if tf_qps.ZeroPointLength() > 0 else None
         scale = tf_qps.ScaleAsNumpy() if tf_qps.ScaleLength() > 0 else None
         if tf_qps.MinLength() == 0 or tf_qps.MaxLength():
             # Some tflite graphs seem to have records with scale and zero point but no min and max
@@ -177,55 +181,52 @@ class TFLiteTensorWrapper(TensorBase):
         else:
             min_val = tf_qps.MinAsNumpy()
             max_val = tf_qps.MaxAsNumpy()
-        res.min_val = min_val
-        res.max_val = max_val
-        res.scale = scale
-        res.zero_point = zero_point
-        res.quantized_dimension = tf_qps.QuantizedDimension()
-        res.dtype = dtype
-        return res
+        quantized_dimension = tf_qps.QuantizedDimension()
+        return QType(min_val=min_val, max_val=max_val, scale=scale, zero_point=zero_point,
+                     quantized_dimension=quantized_dimension, dtype=dtype)
 
     @staticmethod
     def symmetric_mult_qtype_from_tflite(tf_qps, dtype):
-        res = SymmetricMultQType()
-        res.min_val = tf_qps.MinAsNumpy() if tf_qps.MinLength() > 0 else None
-        res.max_val = tf_qps.MaxAsNumpy() if tf_qps.MaxLength() > 0 else None
-        if res.min_val is not None and res.max_val is not None \
-                                        and np.all(np.abs(res.min_val) == res.max_val):
-            res.narrow_range = True
-        res.scale = tf_qps.ScaleAsNumpy() if tf_qps.ScaleLength() > 0 else None
-        res.quantized_dimension = tf_qps.QuantizedDimension()
-        if dtype in SymmetricMultQType.SYMMETRIC_UINT:
-            zero_point, signed_dtype = SymmetricMultQType.SYMMETRIC_UINT[dtype]
-            assert np.all(tf_qps.ZeroPointAsNumpy() == zero_point)
-            res.dtype = signed_dtype
+        min_val = tf_qps.MinAsNumpy() if tf_qps.MinLength() > 0 else None
+        max_val = tf_qps.MaxAsNumpy() if tf_qps.MaxLength() > 0 else None
+        if min_val is not None and max_val is not None \
+                and np.all(np.abs(min_val) == max_val):
+            narrow_range = True
         else:
-            res.dtype = dtype
-        return res
+            narrow_range = False
+        scale = tf_qps.ScaleAsNumpy() if tf_qps.ScaleLength() > 0 else None
+        quantized_dimension = tf_qps.QuantizedDimension()
+        return QType(min_val=min_val, max_val=max_val, dtype=dtype,
+                     scale=scale, narrow_range=narrow_range,
+                     quantized_dimension=quantized_dimension)
 
     @property
     def qtype(self):
+        if issubclass(self.dtype, np.floating):
+            return QType(dtype=self.dtype)
         quant = self._tensor.Quantization()
         if quant is not None:
             if quant.ScaleLength() == 0 and quant.MinLength() == 0 and\
                     quant.MaxLength() == 0 and quant.ZeroPointLength() == 0:
                 return None
             if self.dtype == np.uint8 or self.dtype == np.uint16 or self.dtype == np.uint32:
-                if np.all(quant.ZeroPointAsNumpy() == 128):
-                    return self.symmetric_mult_qtype_from_tflite(quant, self.dtype)
-                asym_qtype = self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)
-                return SymmetricMultQTypeWrapper(asym_qtype)
+                return self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)
             elif self.dtype == np.int8 or self.dtype == np.int16 or self.dtype == np.int32:
                 if np.all(quant.ZeroPointAsNumpy() == 0):
                     return self.symmetric_mult_qtype_from_tflite(quant, self.dtype)
-                asym_qtype = self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)
-                return SymmetricMultQTypeWrapper(asym_qtype)
+                return self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)
             return None
         return None
 
     @property
     def is_constant(self):
         return self.buffer_idx != 0
+
+    @property
+    def dqvalue(self):
+        if self.qtype:
+            return self.qtype.dequantize(self.value)
+        return self.value
 
     @property
     def value(self):

@@ -30,9 +30,6 @@
 
 #if defined(HAVE_BRIDGE)
 #include "ImgIO.h"
-#if defined(__PULP_OS__)
-#include "bridge_stubs.h"
-#endif  /* __PULP_OS__ */
 #endif  /* HAVE_BRIDGE */
 
 #define IMG_WIDTH  ( 320 )

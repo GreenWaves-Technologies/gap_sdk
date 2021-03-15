@@ -139,7 +139,12 @@ pos_irq_c_handler_stub:
     csrr   t0, 0x342
     slli   t0, t0, 2
     la     t1, pos_irq_c_handlers
+#if !defined(ARCHI_CORE_HAS_PULPV2)
+    add    t1, t0, t1
+    lw     t1, 0x00(t1)
+#else
     p.lw   t1, t0(t1)
+#endif
 
     beqz   t1, pos_irq_no_handler
 

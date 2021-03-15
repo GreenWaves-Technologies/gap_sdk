@@ -16,7 +16,7 @@
 import argparse
 import logging
 from cmd2 import Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import (output_table, table_options, input_options,
                                      glob_input_files)
 from reports.activation_reporter import ActivationReporter
@@ -41,6 +41,7 @@ class AstatsCommand(NNToolShellBase):
     input_options(parser_astats)
 
     @with_argparser(parser_astats)
+    @no_history
     def do_astats(self, args: argparse.Namespace):
         """
 Calculate activation statistics on one or more input files."""

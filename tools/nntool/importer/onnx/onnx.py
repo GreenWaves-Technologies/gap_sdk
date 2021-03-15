@@ -14,21 +14,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.constant_store import ConstantStore
+from graph.dim import Dim
+from graph.matches.duplicate_constants import MatchDuplicateConstants
+from graph.nngraph import NNGraph
+from graph.types import ConstantInputParameters
+from graph.types.base import NNEdge
+from importer.common.clean_dangling_nodes import clean_dangling_nodes
+
 import onnx
 from onnx import defs, numpy_helper
 from onnx.helper import make_opsetid
 
-from graph.constant_store import ConstantStore
-from graph.dim import Dim
-from graph.nngraph import NNGraph
-from graph.types import ConstantInputParameters
-from graph.types.base import NNEdge
-
 from ..common.provisional_dim import ProvisionalDim
 from ..importer_base import ImporterBase
+from .common import logger
 from .common.handler_helper import get_all_backend_handlers
 from .common.onnx_node import OnnxNode
-from .common import logger
 
 # pylint: disable=E1101
 
@@ -39,6 +41,7 @@ class OnnxImporter(ImporterBase):
         self._name_cache = None
 
     def create_graph(self, filename, opts):
+        opts = self.get_opts(opts)
         model = onnx.load(filename)
         self._name_cache = {}
         if model.ir_version < 3:
@@ -48,12 +51,15 @@ class OnnxImporter(ImporterBase):
         G = NNGraph(filename=filename,
                     name=opts.get('name'),
                     constant_store=ConstantStore())
-        return self._import_onnx_model(G, model.graph, opset_import, opts)
+        G = self._import_onnx_model(G, model.graph, opset_import, opts)
+        clean_dangling_nodes(G)
+        MatchDuplicateConstants().match(G)
+        return G
 
     def _import_onnx_model(self, G, graph, opset, opts):
         handlers = self._get_handlers(opset)
         all_nodes = {}
-        constants = self._get_initializers(graph.initializer)
+        constants = self._get_initializers(G, graph.initializer)
         all_nodes.update(constants)
         inputs = self._get_input_nodes(G, graph.input, constants,
                                        batch_hint=opts.get('batch_hint', None))
@@ -84,15 +90,16 @@ class OnnxImporter(ImporterBase):
             val = val.reshape([1])
         return val
 
-    def _get_initializers(self, initializer):
+    def _get_initializers(self, G, initializer):
         return {
             init.name: (
                 ConstantInputParameters(
-                    self._validate_name(init.name),
+                    f'constant_{self._validate_name(init.name)}',
                     dims=Dim.unnamed(init.dims or [1]),
-                    value=self._get_numpy_array(init)),
+                    value=self._get_numpy_array(init),
+                    constant_store=G.constant_store),
                 0,
-                Dim.unnamed(init.dims)
+                ProvisionalDim(init.dims)
             )
             for init in initializer}
 
@@ -108,9 +115,18 @@ class OnnxImporter(ImporterBase):
         if batch_hint is not None:
             prov_dims = {idx: dim.eliminate_dimension(batch_hint)
                          for idx, dim in prov_dims.items()}
+
+        hints = {
+            idx: (['c', 'h', 'w'] if (len(dim.shape) == 4 and
+                                      (dim.shape[1] == 1 or dim.shape[1] == 3))
+                  else None)
+            for idx, dim in prov_dims.items()
+        }
         return {
             input.name: (
-                G.add_input(Dim.unnamed(prov_dims[idx].known_shape)),
+                G.add_input(Dim.unnamed(prov_dims[idx].known_shape).apply_naming_hints(hints[idx]),
+                            in_dim_hint=[hints[idx]] if hints[idx] else None,
+                            out_dim_hint=[hints[idx]] if hints[idx] else None),
                 0,
                 prov_dims[idx]
             )
@@ -146,7 +162,9 @@ class OnnxImporter(ImporterBase):
             handler = handlers[node.domain].get(
                 node.op_type, None) if node.domain in handlers else None
             if not handler:
-                raise ValueError("no handler found for %s" % node.op_type)
+                handler = handlers['__extensions'].get(node.op_type, None)
+                if not handler:
+                    raise ValueError(f"no handler found for '{node.op_type}' domain '{node.domain}'")
 
             params = handler.handle(OnnxNode(node), all_nodes=all_nodes, vars_dict=vars_dict,
                                     G=G, valid_name=self._node_name(node), opts=opts,

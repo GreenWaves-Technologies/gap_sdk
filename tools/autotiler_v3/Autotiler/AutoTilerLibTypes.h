@@ -51,6 +51,7 @@ typedef enum {
         KOP_GLOBAL_MAXPOOL_REDUCT,
         KOP_GLOBAL_AVGPOOL,
         KOP_GLOBAL_AVGPOOL_REDUCT,
+        KOP_ACT_NONE,
         KOP_RELU,
 	KOP_RELUN,
 	KOP_HSIGMOID,
@@ -977,6 +978,7 @@ typedef struct {
 	char ScaleN_L3;		/* if != 0 ScaleN forced to be in L3 memory */
 	char RNNUseHardActivation; /* if != -1 Overides the usage of HARD activations in RNNs/LSTMs Generator (default use Hard ones) */ 
 	char RNNSameInStateScales; /* if != -1 Overides the RNNs/LSTMs input and state Quantization handling (default they must be the same) */ 
+	char MFCCDbInsteadOfLog; /* if != 0 the MFCC will compute 10*log10(mel_spectrogram) instead of ln(mel_spectrogram) */
 } CNN_GenControl_T;
 
 typedef struct {

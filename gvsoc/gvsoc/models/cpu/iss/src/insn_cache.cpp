@@ -79,6 +79,8 @@ void iss_cache_flush(iss_t *iss)
     iss->cpu.prev_insn = insn_cache_get_decoded(iss, iss->cpu.prev_insn->addr);
   if (iss->cpu.stall_insn)
     iss->cpu.stall_insn = insn_cache_get_decoded(iss, iss->cpu.stall_insn->addr);
+
+  iss_irq_flush(iss);
 }
 
 

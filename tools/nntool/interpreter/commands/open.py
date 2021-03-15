@@ -14,10 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
-import os
 import logging
+import os
+
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-from utils.new_param_state import STATE_EXTENSION, load_state
+from importer.common.handler_options import HandlerOptions
 from importer.importer import create_graph
 from interpreter.nntool_shell_base import NNToolShellBase
 from quantization.cross_layer_range_eq import weight_equalization
@@ -30,53 +31,71 @@ NO_GRAPH = {
     'tensor_file': ""
 }
 
+def add_open_options(parser):
+    # add all the options defined by import handlers
+    # if a boolean option has a default of True then add a --no-option-name
+    # flag option
+    for option in HandlerOptions.get_all_handler_options().values():
+        add_kwargs = {}
+        if option['val_type'] == bool and option['default']:
+            add_args = [f'--no_{option["name"]}']
+            add_kwargs['help'] = f'disable option {option["name"]}: {option["desc"]}'
+        elif option['shortcut']:
+            add_args = [f'-{option["shortcut"]}', f'--{option["name"]}']
+            add_kwargs['help'] = option['desc']
+        else:
+            add_args = [f'--{option["name"]}']
+            add_kwargs['help'] = option['desc']
+        if option['val_type'] == bool:
+            add_kwargs['action'] = 'store_true'
+        else:
+            add_kwargs['type'] = option['val_type']
+            add_kwargs['default'] = option['default']
+
+        parser.add_argument(*add_args, **add_kwargs)
+
 class OpenCommand(NNToolShellBase):
+    STATE_EXTENSION = '.json'
+
 # OPEN COMMAND
     parser_open = Cmd2ArgumentParser("open a graph file")
     parser_open.add_argument('nnfile',
                              completer_method=Cmd.path_complete,
                              help='graph or state file',
                              metavar="INPUT_GRAPH or STATE_FILE")
-    parser_open.add_argument('tensor_file',
-                             nargs=argparse.OPTIONAL,
-                             completer_method=Cmd.path_complete,
-                             help='optional tensor file')
-    parser_open.add_argument('-q', '--load_quantization',
-                             help='load TFLite quantization information', action='store_true')
-    parser_open.add_argument('-d', '--load_dequantized',
-                             help='load dequantized constant values from TFLite quantized graph', action='store_true')
     parser_open.add_argument('-n', '--new',
                              help='open as new graph - keep existing graph open',
                              action='store_true')
+    add_open_options(parser_open)
 
-    def __open_graph(self, graph_file, tensor_file, load_quantization, load_dequantized):
+    def __get_opts(self, args):
+        return {k: getattr(args, k) if (option['val_type'] != bool or not option['default'])
+                else not getattr(args, f'no_{option["name"]}')
+                for k, option in HandlerOptions.get_all_handler_options().items()}
 
-        graph_file = os.path.expanduser(graph_file)
+    def __open_graph(self, args):
+
+        graph_file = os.path.expanduser(args.nnfile)
 
         _, ext = os.path.splitext(graph_file)
+        ext = ext.lower()
 
-        if ext == STATE_EXTENSION:
+        if ext == self.STATE_EXTENSION:
             LOG.info("opening state file %s", graph_file)
-            self.graph_file = graph_file
-            self.G, extra = load_state(graph_file, return_extra=True)
-            self.settings.update(extra)
+            self.load_state_file(graph_file)
         else:
-            LOG.info("opening graph file %s", graph_file)
-            opts = {
-                'load_tensors': True,
-                'load_quantization': load_quantization,
-                'load_dequantized': load_dequantized
-            }
+            opts = self.__get_opts(args)
+
+            LOG.info("opening graph file %s load_quantization = %s",
+                     graph_file, opts['load_quantization'])
 
             G = create_graph(graph_file, opts=opts)
             G.add_dimensions()
-            if tensor_file:
-                G.load_tensors(tensor_file)
             self.G = G
             self.graph_file = graph_file
-            if tensor_file is not None:
-                self.tensor_file = tensor_file
-            self.settings['load_quantization'] = bool(load_quantization)
+            self._reset_history()
+
+            self.settings['load_quantization'] = bool(opts['load_quantization'])
             if self.settings['adjust_order']:
                 LOG.info("adjusting order")
                 self.execute_adjust_order()
@@ -92,9 +111,10 @@ Open a graph or state file"""
             # reset the current graph
             self._graphs.append(NO_GRAPH.copy())
             self._graph_idx = len(self._graphs) - 1
+            self._reset_history()
         else:
             # reset the current graph
             self._graphs[self._graph_idx] = NO_GRAPH.copy()
-        self.__open_graph(args.nnfile, args.tensor_file, args.load_quantization, args.load_dequantized)
+        self.__open_graph(args)
         self._update_prompt()
         self.py_locals['G'] = self.G

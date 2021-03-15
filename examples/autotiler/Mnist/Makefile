@@ -59,7 +59,7 @@ all:: model
 
 # Build the code generator
 GenTile:
-	gcc -o GenMnist -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) MnistModel.c $(MODEL_GEN_POW2) $(TILER_LIB)
+	gcc -o GenMnist -fcommon -I$(TILER_INC) -I$(TILER_EMU_INC) -I$(CNN_AT_PATH) MnistModel.c $(MODEL_GEN_POW2) $(TILER_LIB)
 
 # Run the code generator
 MnistKernels.c: GenTile

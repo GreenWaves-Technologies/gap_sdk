@@ -170,7 +170,6 @@ private:
   static void delayed_handler(void *__this, vp::clock_event *event);
 
   static void qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id);
-  static void qspim_sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id);
   static void qspim_cs_sync(void *__this, bool active, int id);
   static void jtag_sync(void *__this, int tdo, int id);
   static void i2c_sync(void *__this, int scl, int sda, int id);
@@ -338,13 +337,12 @@ void dpi_wrapper::jtag_sync(void *__this, int tdo, int id)
 
 void dpi_wrapper::qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
-  printf("%s %d\n", __FILE__, __LINE__);
-}
-
-void dpi_wrapper::qspim_sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask, int id)
-{
   dpi_wrapper *_this = (dpi_wrapper *)__this;
-  dpi_qspim_edge(qspim_handles[id]->handle, _this->get_clock()->get_time(), data_0, data_1, data_2, data_3, mask);
+
+  if (sck == 1)
+  {
+    dpi_qspim_edge(qspim_handles[id]->handle, _this->get_clock()->get_time(), data_0, data_1, data_2, data_3, mask);
+  }
 }
 
 void dpi_wrapper::qspim_cs_sync(void *__this, bool active, int id)
@@ -450,7 +448,6 @@ int dpi_wrapper::build()
 
           vp::qspim_slave *itf = new vp::qspim_slave();
           itf->set_sync_meth_muxed(&dpi_wrapper::qspim_sync, id);
-          itf->set_sync_cycle_meth_muxed(&dpi_wrapper::qspim_sync_cycle, id);
           new_slave_port("spim" + std::to_string(itf_id) + "_cs" + std::to_string(itf_sub_id) + "_data", itf);
 
           vp::wire_slave<bool> *cs_itf = new vp::wire_slave<bool>();
@@ -767,13 +764,13 @@ extern "C" void dpi_gpio_set_data(void *handle, int data)
 extern "C" void dpi_qspim_set_data(void *handle, int data)
 {
   vp::qspim_slave *itf = qspim_handles[(int)(long)handle]->itf;
-  itf->sync(0, data, 0, 0, 0x2);
+  itf->sync(2, 0, data, 0, 0, 0x2);
 }
 
 extern "C" void dpi_qspim_set_qpi_data(void *handle, int data_0, int data_1, int data_2, int data_3, int mask)
 {
   vp::qspim_slave *itf = qspim_handles[(int)(long)handle]->itf;
-  itf->sync(data_0, data_1, data_2, data_3, mask);
+  itf->sync(2, data_0, data_1, data_2, data_3, mask);
 }
 
 extern "C" void dpi_create_task(void *handle, int id)

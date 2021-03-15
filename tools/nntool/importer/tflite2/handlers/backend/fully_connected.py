@@ -14,9 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.dim import FcFilterDim
+from graph.dim import Dim, FcFilterDim
 from graph.types import FcParameters
 from graph.types.base import NNEdge
+from graph.types.input_output import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import check
 from importer.tflite2.handlers.backend.filter_mixin import FilterMixin
@@ -47,6 +48,7 @@ class FullyConnected(FilterMixin, BackendHandler):
         x_known_shape = x[2].known_shape
         inp_sz = np.prod(np.array(x_known_shape))
         weights = inputs[1]
+        weights_node = weights[0]
         weights_shape = weights[2].shape
         out_c = weights_shape[0]
 
@@ -54,8 +56,13 @@ class FullyConnected(FilterMixin, BackendHandler):
         node.input[1].used = True
         check(filt_dim.sz == inp_sz, "filter doesn't match input size")
 
-        if len(node.input) > 2:
-            node.input[2].used = True
+        if len(inputs) > 2:
+            bias = inputs[2]
+            bias_node = bias[0]
+        else:
+            bias_node = ConstantInputParameters(f'{node.name}_bias',
+                                                dims=Dim.unnamed([out_c]),
+                                                value=np.zeros([out_c], dtype=np.float32))  # TODO - check
 
         keep_dims = node_opts.KeepNumDims()
 
@@ -63,15 +70,26 @@ class FullyConnected(FilterMixin, BackendHandler):
         out_hint = in_hint.copy() if keep_dims else ['c']
 
         params = FcParameters(node.name, filt=filt_dim, has_bias=True,
-                              in_dims_hint=SparseList([in_hint]),
+                              in_dims_hint=SparseList([in_hint, ['out_c', 'in_c'], ['out_c']]),
                               out_dims_hint=SparseList([out_hint]),
                               constant_store=G.constant_store,
                               keep_dims=keep_dims)
 
-        if opts.get('load_dequantized'):
-            cls.load_dequantized_filter_parameters(params, node.input)
-        else:
-            cls.load_filter_parameters(G, params, node.input, node.output, opts)
+        G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+        G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
+
+        cls.new_load_filter_parameters(G, params, node.input[0], weights_node,
+                                       bias_node, node.output[0], opts)
+
+        # if opts.get('load_dequantized'):
+        #     weights_node.value, bias_node.value = cls.load_dequantized_filter_parameters(
+        #         node.input, bias_node.value)
+        # else:
+        #     qrec, weights_node.value, bias_node.value = cls.load_filter_parameters(
+        #         G, params, node.input, bias_node.value, node.output, opts)
+        #     if qrec:
+        #         G.quantization[NodeId(weights_node)].out_qs[0] = qrec.in_qs[1]
+        #         G.quantization[NodeId(bias_node)].out_qs[0] = qrec.in_qs[2]
 
         if x_shape[0] is None:
             out_shape = x_shape[:-1:] + [out_c] if keep_dims else [x_shape[0], out_c]

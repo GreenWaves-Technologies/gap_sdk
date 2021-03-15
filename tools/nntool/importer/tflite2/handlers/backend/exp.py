@@ -13,8 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import Dim
-from graph.types import UnconvertedOpParameters
+from graph.types.others import UnaryOpParameters
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -26,17 +25,10 @@ class Exp(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
-        all_nodes = kwargs['all_nodes']
-        inputs = [all_nodes[t] for t in node.input]
-        x = inputs[0]
-        return super(Exp, cls)._common(
-            node,
-            params_class=UnconvertedOpParameters,
-            params_args={
-                'indicated_op_name': 'EXP',
-                'indicated_outputs': [Dim.unnamed(x[2].known_shape)]
-            },
-            **kwargs)
+        return super(Exp, cls)._common(node,
+                                       params_class=UnaryOpParameters,
+                                       params_args={'op_type': 'exp'},
+                                       **kwargs)
 
     @classmethod
     def version_1(cls, node, **kwargs):

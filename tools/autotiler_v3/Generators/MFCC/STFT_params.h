@@ -1,0 +1,10 @@
+#define	SAMPLERATE                16000
+#define	PREEMP_FACTOR               0.0
+#define	FRAME_SIZE                  480
+#define	FRAME_STEP                  160
+#define	N_FRAME                      49
+#define	N_FFT                       512
+#define	USE_RADIX_4                   0
+#define	DATA_TYPE                     0
+#define	USE_POWER                     1
+#define	OUT_FFT                       0

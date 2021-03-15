@@ -168,7 +168,15 @@ void iss_wrapper::exec_instr_check_all(void *__this, vp::clock_event *event)
   {
     _this->do_step.set(false);
     _this->hit_reg |= 1;
-    _this->set_halt_mode(true, HALT_CAUSE_STEP);
+    if (_this->gdbserver)
+    {
+      _this->halted.set(true);
+      _this->gdbserver->signal(_this);
+    }
+    else
+    {
+      _this->set_halt_mode(true, HALT_CAUSE_STEP);
+    }
     _this->check_state();
   }
 }
@@ -1038,6 +1046,7 @@ void iss_wrapper::insn_trace_callback()
 int iss_wrapper::build()
 {
   traces.new_trace("trace", &trace, vp::DEBUG);
+  traces.new_trace("gdbserver_trace", &gdbserver_trace, vp::DEBUG);
   traces.new_trace("decode_trace", &decode_trace, vp::DEBUG);
   traces.new_trace("insn", &insn_trace, vp::DEBUG);
   this->insn_trace.register_callback(std::bind(&iss_wrapper::insn_trace_callback, this));
@@ -1189,6 +1198,15 @@ void iss_wrapper::start()
 #endif
 
   this->leakage_power.power_on();
+
+  this->gdbserver = (vp::Gdbserver_engine *)this->get_service("gdbserver");
+
+  if (this->gdbserver)
+  {
+    this->gdbserver->register_core(this);
+    this->halted.set(true);
+    this->check_state();
+  }
 }
 
 void iss_wrapper::pre_reset()
@@ -1232,6 +1250,11 @@ void iss_wrapper::reset(bool active)
     iss_pc_set(this, this->bootaddr_reg.get() + this->bootaddr_offset);
     iss_irq_set_vector_table(this, this->bootaddr_reg.get() & ~((1<<8) - 1));
 
+    if (this->gdbserver)
+    {
+      this->halted.set(true);
+    }
+
     check_state();
   }
 }
@@ -1241,6 +1264,112 @@ iss_wrapper::iss_wrapper(js::config *config)
 : vp::component(config)
 {
 }
+
+
+int iss_wrapper::gdbserver_get_id()
+{
+  return this->cpu.config.mhartid;
+}
+
+
+std::string iss_wrapper::gdbserver_get_name()
+{
+  return this->get_name();
+}
+
+
+int iss_wrapper::gdbserver_reg_set(int reg, uint8_t *value)
+{
+    this->gdbserver_trace.msg(vp::trace::LEVEL_DEBUG, "Setting register from gdbserver (reg: %d, value: 0x%x)\n", reg, *(uint32_t *)value);
+
+    if (reg == 32)
+    {
+        iss_pc_set(this, *(uint32_t *)value);
+    }
+    else
+    {
+        this->gdbserver_trace.msg(vp::trace::LEVEL_ERROR, "Setting invalid register (reg: %d, value: 0x%x)\n", reg, *(uint32_t *)value);
+    }
+
+    return 0;
+}
+
+
+int iss_wrapper::gdbserver_reg_get(int reg, uint8_t *value)
+{
+  fprintf(stderr, "UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+  return 0;
+}
+
+
+int iss_wrapper::gdbserver_regs_get(int *nb_regs, int *reg_size, uint8_t *value)
+{
+    if (nb_regs)
+    {
+        *nb_regs = 33;
+    }
+
+    if (reg_size)
+    {
+        *reg_size = 4;
+    }
+
+    if (value)
+    {
+        uint32_t *regs = (uint32_t *)value;
+        for (int i=0; i<32; i++)
+        {
+            regs[i] = iss_get_reg(this, i);
+        }
+
+        if (this->cpu.current_insn)
+        {
+            regs[32] = this->cpu.current_insn->addr;
+        }
+        else
+        {
+            regs[32] = 0;
+        }
+    }
+
+    return 0;
+}
+
+
+int iss_wrapper::gdbserver_stop()
+{
+    this->halted.set(true);
+    this->gdbserver->signal(this);
+    this->check_state();
+    return 0;
+}
+
+
+int iss_wrapper::gdbserver_cont()
+{
+    this->halted.set(false);
+    this->check_state();
+
+    return 0;
+}
+
+
+int iss_wrapper::gdbserver_stepi()
+{
+    fprintf(stderr, "STEP\n");
+    this->step_mode.set(true);
+    this->halted.set(false);
+    this->check_state();
+    return 0;
+}
+
+
+int iss_wrapper::gdbserver_state()
+{
+    return vp::Gdbserver_core::state::running;
+}
+
+
 
 
 extern "C" vp::component *vp_constructor(js::config *config)

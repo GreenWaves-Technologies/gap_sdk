@@ -56,10 +56,10 @@ class LinearReluKernel(AutotilerKernel):
         at_linear_params = gen_linear_at_params(linear_params)
         in_dim = linear_params.in_dims[0]
         out_dim = linear_params.out_dims[0]
-        filter_q = linear_q.weights_q
+        filter_q = linear_q.in_qs[1]
         in_q = linear_q.in_qs[0]
         out_q = linear_q.out_qs[0]
-        bias_q = linear_q.biases_q
+        bias_q = linear_q.in_qs[2]
 
         if act_params is not None:
             at_act_params = gen_active_at_params(act_params)

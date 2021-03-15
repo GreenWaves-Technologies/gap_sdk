@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.others import ConcatParameters
 import logging
 import re
 
 import numpy as np
-from generation.generators.globals.global_names import BIASES, WEIGHTS
 from graph.types import InputParameters, OutputParameters, ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -193,16 +193,24 @@ def at_map_tensors(G, tensors):
                 add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
             elif tname == "s%s_output"%step_idx:
                 add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
-            elif tname.endswith(WEIGHTS):
-                add_result(result[step_idx], 1, tensor)
-            elif tname.endswith(BIASES):
-                add_result(result[step_idx], 2, tensor)
+            # elif tname.endswith(WEIGHTS):
+            #     add_result(result[step_idx], 1, tensor)
+            # elif tname.endswith(BIASES):
+            #     add_result(result[step_idx], 2, tensor)
             else:
                 match_tname = re_snum_tname.search(tname)
                 if not match_tname:
                     continue
                 tname_step_idx = int(match_tname.group('step'))
                 tname_node = steps[tname_step_idx]['node']
+                if isinstance(tname_node, ConcatParameters):
+                    # It's a Stacked tensor
+                    if node in [in_edge.from_node for in_edge in G.in_edges(tname_node.name)]:
+                        # It's the output of a concat input
+                        add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+                    if node in [out_edge.to_node for out_edge in G.out_edges(tname_node.name)]:
+                        # It's the output of the actual concat but it's grep only as the input of the following layer
+                        add_result(result[tname_step_idx], 0, tensor.reshape(tname_node.out_dims[0].shape))
                 if not isinstance(tname_node, ConstantInputParameters):
                     continue
                 # tensor is a combination of multiple values Hstacked

@@ -23,6 +23,8 @@
 
 #include "hal/pulp.h"
 
+extern volatile PI_FC_TINY unsigned int pos_soc_event_status[ARCHI_SOC_EVENT_NB_TOTAL/32];
+
 void pos_soc_event_init();
 
 static inline void pos_soc_event_register_callback_func(unsigned int channel_id, void (*callback)(int, void *))
@@ -39,6 +41,23 @@ static inline void pos_soc_event_register_callback(unsigned int channel_id, void
 {
     pos_soc_event_register_callback_func(channel_id, callback);
     pos_soc_event_register_callback_arg(channel_id, arg);
+}
+
+static inline void pos_soc_event_wait(int event)
+{
+    int reg = event >> 5;
+    int bit = event & 0x1f;
+    volatile uint32_t *status = (volatile uint32_t *)&pos_soc_event_status[reg];
+
+    int irq = hal_irq_disable();
+    while (__BITEXTRACTU_R(*status, 1, bit) == 0)
+    {
+        pos_irq_wait_for_interrupt();
+        hal_irq_enable();
+        hal_irq_disable();
+    }
+    *status = __BITCLR_R(*status, 1, bit);
+    hal_irq_restore(irq);
 }
 
 #endif

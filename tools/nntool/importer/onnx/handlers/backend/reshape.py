@@ -40,16 +40,6 @@ class Reshape(ConstantMixin, BackendHandler):
         else:  # since_version >= 5
             shape = cls.get_constant(inputs[1])
 
-        if cls.is_constant(inputs[0]):
-            logger.info("reducing %s to a constant", valid_name)
-            params = ConstantInputParameters(
-                valid_name,
-                value=cls.get_constant(inputs[0]).reshape(shape)
-            )
-            pshape = ProvisionalDim(shape)
-            all_nodes[node.output[0]] = (params, 0, pshape)
-            return params
-
         input_shape = np.array(inputs[0][2].shape)
         shape = [dim if dim != 0 else input_shape[idx] for idx, dim in enumerate(shape)]
         if -1 in shape:
@@ -60,6 +50,18 @@ class Reshape(ConstantMixin, BackendHandler):
                 raise ValueError('invalid reshape')
             shape[wild_index] = in_size // shape_size
         shape = np.array(shape)
+
+        if cls.is_constant(inputs[0]):
+            logger.info("reducing %s to a constant", valid_name)
+            params = ConstantInputParameters(
+                valid_name,
+                value=cls.get_constant(inputs[0]).reshape(shape),
+                dims=Dim.unnamed(shape),
+                constant_store=G.constant_store
+            )
+            pshape = ProvisionalDim(shape)
+            all_nodes[node.output[0]] = (params, 0, pshape)
+            return params
 
         # TODO - There must be a better way of doing this
         # This hacks around the fact that the batch dimension will be in the reshape

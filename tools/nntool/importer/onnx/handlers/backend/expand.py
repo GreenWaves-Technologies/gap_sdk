@@ -32,6 +32,7 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
     def _common(cls, node, **kwargs):
         all_nodes = kwargs['all_nodes']
         valid_name = kwargs['valid_name']
+        G = kwargs['G']
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
         y = inputs[1]
@@ -41,7 +42,7 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=x_val * np.ones(shape))
+            params = ConstantInputParameters(valid_name, value=x_val * np.ones(shape), constant_store=G.constant_store)
         else:
             raise ValueError("Expand is only implemented on constants")
         all_nodes[node.output[0]] = (params, 0, pshape)

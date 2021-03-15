@@ -44,9 +44,11 @@ class ReducerMixin(object):
             pout_shape = x_shape.copy()
         else:
             if keep_dims:
-                pout_shape = x_shape.copy()
+                pout_shape = [dim if idx not in axes else 1 for idx, dim in enumerate(x_shape)]
             else:
                 pout_shape = [dim for idx, dim in enumerate(x_shape) if idx not in axes]
+                if all(dim is None for dim in pout_shape):
+                    pout_shape.append(1)
 
             # subtract 1 from axis for all None's preceeding it and remove
             # axes that are not defined

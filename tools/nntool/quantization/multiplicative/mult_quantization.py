@@ -20,26 +20,28 @@ from typing import Mapping, Sequence, Tuple
 import numpy as np
 from graph.types import (FilterParameters, MultiplicativeBiasParameters,
                          Parameters)
-from quantization.multiplicative.mult_qtype_base import (MultQTypeBase,
-                                                         WrapperMixin)
-from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import (
-    MultMulBiasQType, MultMulBiasScaleQType)
-from quantization.multiplicative.symmetric.symmetric_mult_biases_qtype import \
-    SymmetricMultBiasesQType
 from quantization.qtype import QType
 from quantization.quantization_record_base import (
-    ConstantQuantizationRecordBase, HasConstantsBase,
-    InputOutputQuantizationRecordBase, QuantizationRecordBase,
-    ScalableFilterQuantizationRecordBase)
-from sympy import Symbol
+    ConstantQuantizationRecordBase, InputOutputQuantizationRecordBase,
+    QuantizationRecordBase, ScalableFilterQuantizationRecordBase,
+    default_scheme)
+
+from .scaling_qtypes import MultMulBiasScaleQType, ScalingQType
 
 
 class MultQuantizationRecordBase(QuantizationRecordBase):
+    TYPE = "SQ8"
+    DEFAULT = None
+
     def __init__(self, *args, quant_mode="symmetric", info=None, **kwargs):
         super(MultQuantizationRecordBase, self).__init__(*args, info=info, **kwargs)
         if info is None:
             self._info['quant_mode'] = quant_mode
         self._cache = {}
+
+    def dtype(self, ktype='float32'):
+        assert ktype == 'float32', "should only be called from float kernels"
+        return np.float32
 
     def clear_cache(self):
         self._cache = {}
@@ -59,20 +61,16 @@ class MultQuantizationRecordBase(QuantizationRecordBase):
             qtype = qtype[idx]
         return qtype.quantize(tensor)
 
-    def dequantize_wrapped(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
+    def dequantize_idx(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
         qtype = getattr(self, key_name)
         if idx is not None:
             qtype = qtype[idx]
-        if isinstance(qtype, WrapperMixin):
-            return qtype.wrapped.dequantize(tensor)
         return qtype.dequantize(tensor)
 
-    def quantize_wrapped(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
+    def quantize_idx(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
         qtype = getattr(self, key_name)
         if idx is not None:
             qtype = qtype[idx]
-        if isinstance(qtype, WrapperMixin):
-            return qtype.wrapped.quantize(tensor)
         return qtype.quantize(tensor)
 
     def requantize(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
@@ -80,10 +78,6 @@ class MultQuantizationRecordBase(QuantizationRecordBase):
         if idx is not None:
             qtype = qtype[idx]
 
-        if isinstance(qtype, WrapperMixin):
-            tensor_fp = self.dequantize_wrapped(tensor, key_name, idx=idx)
-            tensor_sym = qtype.quantize(tensor_fp)
-            return tensor_sym
         if tensor.dtype == np.float32:
             return qtype.quantize(tensor)
         return tensor
@@ -119,7 +113,7 @@ class InputQuantizationMixin(MultQuantizationRecordBase):
                        input_tensors: Sequence[np.ndarray], ktype: str = None) -> Sequence[np.ndarray]:
         del params
         if ktype == 'float32' and self.auto_dequantize_inputs:
-            return [self.dequantize_wrapped(input_tensor, "in_qs", idx=idx)
+            return [self.dequantize_idx(input_tensor, "in_qs", idx=idx)
                     for idx, input_tensor in enumerate(input_tensors)]
         if ktype == 'symmetric' and self.auto_quantize_inputs:
             return [self.quantize_as(input_tensor, "in_qs", idx=idx) for idx, input_tensor in enumerate(input_tensors)]
@@ -160,42 +154,27 @@ class OutputQuantizationMixin(MultQuantizationRecordBase):
         return output_tensors
 
 
-class MultExpressionQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin, InputOutputQuantizationRecordBase):
+class MultExpressionQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
+                                       InputOutputQuantizationRecordBase):
 
-    def __init__(self, *args, inputs=None, output_exprs=None, intermediate_exprs=None, info=None, **kwargs):
+    def __init__(self, *args, qfunc_col=None, info=None, **kwargs):
         super(MultExpressionQuantizationRecord, self).__init__(*args, info=info, **kwargs)
         if info is None:
-            self._info['inputs'] = inputs
-            self._info['output_exprs'] = output_exprs
-            self._info['intermediate_exprs'] = intermediate_exprs
+            self._info['qfunc_col'] = qfunc_col
 
     def _encapsulate(self):
-        rec = super(MultExpressionQuantizationRecord, self)._encapsulate()
-        rec['inputs'] = [sym.name for sym in self._info['inputs']]
-        return rec
+        return self.qfunc_col
 
     @classmethod
     def _dencapsulate(cls, val):
-        val['inputs'] = [Symbol(name) for name in val['inputs']]
-        return cls(info=val)
+        return cls(info={'qfunc_col': val})
 
     @property
-    def inputs(self):
-        return self._info['inputs']
-
-    @property
-    def outputs(self):
-        return self._info['outputs']
-
-    @property
-    def output_exprs(self):
-        return self._info['output_exprs']
-
-    @property
-    def intermediate_exprs(self):
-        return self._info['intermediate_exprs']
+    def qfunc_col(self):
+        return self._info['qfunc_col']
 
 
+@default_scheme
 class MultQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin, InputOutputQuantizationRecordBase):
     def __init__(self, *args, scale_mul_biases_q=None, info=None, **kwargs):
         super(MultQuantizationRecord, self).__init__(*args, info=info, **kwargs)
@@ -229,8 +208,9 @@ class MultQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin, In
 
 
 class MultAddQuantizationRecord(MultQuantizationRecord):
-    def __init__(self, *args, scale_in_mul_biases_q=None, info=None, **kwargs):
+    def __init__(self, *args, scale_in_mul_biases_q=None, scaled_idx=None, info=None, **kwargs):
         super(MultAddQuantizationRecord, self).__init__(*args, info=info, **kwargs)
+        self._scaled_idx = scaled_idx
         if info is None:
             self._info['scale_in_mul_biases_q'] = scale_in_mul_biases_q
 
@@ -248,7 +228,13 @@ class MultAddQuantizationRecord(MultQuantizationRecord):
 
     @property
     def scaled_idx(self):
+        if self._scaled_idx:
+            return self._scaled_idx
         return 1 if self.in_qs[1].scale > self.in_qs[0].scale else 0
+
+    @scaled_idx.setter
+    def scaled_idx(self, val):
+        self._scaled_idx = val
 
     def set_add_scale(self):
         self.set_scale(in_idx=0 if self.scaled_idx else 1)
@@ -262,41 +248,25 @@ class MultAddQuantizationRecord(MultQuantizationRecord):
 class MultConstantQuantizationRecord(InputQuantizationMixin, InputOutputQuantizationRecordBase,
                                      OutputQuantizationMixin, ConstantQuantizationRecordBase):
     def gen_value(self, value):
-        return self.out_qs[0].get_quantized(value, container_is_quantized=self.constants_are_quantized)
+        raise NotImplementedError()
 
 
 class FilterQuantizationMixin(MultQuantizationRecord):
     @property
-    def calc_q(self) -> MultQTypeBase:
+    def calc_q(self) -> QType:
         return QType(bits=32, q=0, signed=True)
 
     @property
-    def acc_q(self) -> MultQTypeBase:
+    def acc_q(self) -> QType:
         return QType(bits=32, q=0, signed=True)
-
-    @property
-    def biases_q(self) -> SymmetricMultBiasesQType:
-        return self._info.get('biases_q')
-
-    @property
-    def weights_q(self) -> MultQTypeBase:
-        return self._info.get('weights_q')
 
     @calc_q.setter
-    def calc_q(self, val: MultQTypeBase):
+    def calc_q(self, val: QType):
         pass
 
     @acc_q.setter
-    def acc_q(self, val: MultQTypeBase):
+    def acc_q(self, val: QType):
         pass
-
-    @biases_q.setter
-    def biases_q(self, val: SymmetricMultBiasesQType):
-        self._info['biases_q'] = val
-
-    @weights_q.setter
-    def weights_q(self, val: MultQTypeBase):
-        self._info['weights_q'] = val
 
     @staticmethod
     def rescale(arr, from_scale, to_scale):
@@ -305,9 +275,7 @@ class FilterQuantizationMixin(MultQuantizationRecord):
 
 class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilterQuantizationRecordBase):
     def __init__(self, *args,
-                 weights_q: MultQTypeBase = None,
-                 biases_q: SymmetricMultBiasesQType = None,
-                 mul_biases_q: Sequence[MultMulBiasQType] = None,
+                 mul_biases_q: Sequence[ScalingQType] = None,
                  calc_q: QType = None,
                  acc_q: QType = None,
                  enable_prenorm=False,
@@ -317,31 +285,20 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
         if info is None:
             self._info['calc_q'] = calc_q
             self._info['acc_q'] = acc_q
-            self._info['biases_q'] = biases_q
-            self._info['weights_q'] = weights_q
             self._info['mul_biases_q'] = mul_biases_q
             self._info['enable_prenorm'] = enable_prenorm
-        self.biases_q.link(self.weights_q, self.in_qs[0])
-
-    @property
-    def unwrap(self):
-        return self._unwrap
-
-    @unwrap.setter
-    def unwrap(self, val):
-        self._unwrap = val
-        self.biases_q.link(self.weights_q, self.in_qs[0])
+        self.in_qs[2].link_scales(self.in_qs[1], self.in_qs[0])
 
     def reorder_weigths(self, trans, dim):
-        if self.biases_q:
-            self.biases_q.reorder(trans, dim)
-        self.weights_q.reorder(trans, dim)
+        if self.in_qs[2]:
+            self.in_qs[2].reorder(trans, dim)
+        self.in_qs[1].reorder(trans, dim)
         self.mul_biases_q.reorder(trans, dim)
 
     def compute_prenorm(self, params: FilterParameters):
         if not self.enable_prenorm:
             return 0
-        max_bits = self.in_qs[0].bits - 1 + self.weights_q.bits - 1 + 1 + \
+        max_bits = self.in_qs[0].bits - 1 + self.in_qs[1].bits - 1 + 1 + \
             math.ceil(math.log2(params.filter.in_c * params.filter.h * params.filter.w))
         spare_bits = 31 - max_bits
         if self.mul_biases_q.dtype == np.int8:
@@ -361,11 +318,11 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
         self._info['enable_prenorm'] = val
 
     @property
-    def mul_biases_q(self) -> MultMulBiasQType:
+    def mul_biases_q(self) -> ScalingQType:
         return self._info.get('mul_biases_q')
 
     @mul_biases_q.setter
-    def mul_biases_q(self, val: MultMulBiasQType):
+    def mul_biases_q(self, val: ScalingQType):
         self._info['mul_biases_q'] = val
 
     def get_quantized_bias_offset(self, params, weights):
@@ -380,45 +337,11 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
     @property
     def biases_zero_correction(self):
         # output zero correction is So/(Si * Sw) * ZPo by out_c if weights are channel scaled
-        scale = self.out_qs[0].scale / (self.in_qs[0].scale * self.weights_q.scale)
+        scale = self.out_qs[0].scale / (self.in_qs[0].scale * self.in_qs[1].scale)
         return np.floor((self.out_qs[0].zero_point * scale) + 0.5).astype(np.int32)
 
-    def prepare_biases(self, params: Parameters, biases: np.ndarray,
-                       weights: np.ndarray, ktype: str = None) -> np.ndarray:
-        if ktype == 'float32':
-            return self.biases_q.get_dequantized(biases,
-                                                 container_is_quantized=self.constants_are_quantized).astype(np.float32)
-        if ktype == 'symmetric':
-            return self.gen_biases(params, biases, weights)
-        raise ValueError()
-
-    def prepare_weights(self, params: Parameters,
-                        weights: np.ndarray, ktype: str = None) -> np.ndarray:
-        self.confirm_dimension(params.filter.get_order_idx('out_c'), 'weights_q')
-        if ktype == 'float32':
-            weights = self.weights_q.get_dequantized(weights,
-                                                     container_is_quantized=self.constants_are_quantized)
-            return weights.astype(np.float32)
-        if ktype == 'symmetric':
-            return self.gen_weights(params, weights)
-        raise ValueError()
-
-    def gen_weights(self, params: Parameters, weights: np.ndarray) -> np.ndarray:
-        return self.weights_q.get_quantized(weights,
-                                            container_is_quantized=self.constants_are_quantized)
-
-    def gen_biases(self, params: Parameters, biases: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        biases = self.biases_q.get_quantized(
-            biases, container_is_quantized=self.constants_are_quantized)
-        if self.in_qs[0].zero_point != 0:
-            biases -= self.get_quantized_bias_offset(params,
-                                                     self.requantize(weights, 'weights_q'))
-        if self.out_qs[0].zero_point != 0:
-            biases += self.biases_zero_correction
-        return biases
-
     def gen_mul_biases(self, params: MultiplicativeBiasParameters) -> np.ndarray:
-        if isinstance(self.mul_biases_q, MultMulBiasQType):
+        if isinstance(self.mul_biases_q, MultMulBiasScaleQType):
             self.mul_biases_q.pre_normalization = self.compute_prenorm(params)
         return self.mul_biases_q.qbiases
 
@@ -427,10 +350,28 @@ class MultScalableFilterQuantizationRecord(FilterQuantizationMixin, ScalableFilt
         if ktype == 'float32':
             return input_tensor
         if ktype == 'symmetric':
-            if isinstance(self.mul_biases_q, MultMulBiasQType):
+            if isinstance(self.mul_biases_q, MultMulBiasScaleQType):
                 self.mul_biases_q.pre_normalization = self.compute_prenorm(params)
             input_tensor = self.mul_biases_q.apply_scales(input_tensor, axis)
             return input_tensor.astype(np.int32)
+
+    def prepare_inputs(self, params: Parameters,
+                       input_tensors: Sequence[np.ndarray], ktype: str = None) -> Sequence[np.ndarray]:
+        if ktype == 'float32' and self.auto_dequantize_inputs:
+            input_tensors = [in_q.dequantize(input_tensor)
+                             for in_q, input_tensor in zip(self.in_qs, input_tensors)]
+        elif ktype == 'symmetric' and self.auto_quantize_inputs:
+            input_tensors = [in_q.quantize(input_tensor)
+                             for in_q, input_tensor in zip(self.in_qs, input_tensors)]
+        else:
+            input_tensors = [t.copy() for t in input_tensors]
+
+        if ktype == 'symmetric':
+            if self.in_qs[0].zero_point != 0:
+                input_tensors[2] -= self.get_quantized_bias_offset(params, input_tensors[1])
+            if self.out_qs[0].zero_point != 0:
+                input_tensors[2] += self.biases_zero_correction
+        return input_tensors
 
 
 class MultSSDDetectorQuantizationRecord(MultQuantizationRecord):
@@ -547,11 +488,11 @@ class MultSSDDetectorQuantizationRecord(MultQuantizationRecord):
 
 
 class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
-                                        HasConstantsBase, InputOutputQuantizationRecordBase):
+                                        InputOutputQuantizationRecordBase):
     def __init__(self, *args,
-                 i_2_a_q: MultMulBiasQType = None,
-                 s_2_o_q: MultMulBiasQType = None,
-                 s_2_s_q: MultMulBiasQType = None,
+                 i_2_a_q: ScalingQType = None,
+                 s_2_o_q: ScalingQType = None,
+                 s_2_s_q: ScalingQType = None,
                  info=None,
                  **kwargs):
         super(MultScalableRnnQuantizationRecord, self).__init__(*args, info=info, **kwargs)
@@ -564,27 +505,27 @@ class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizati
             self._info['s_2_s_q'] = s_2_s_q
 
     @property
-    def i_2_a_q(self) -> MultMulBiasQType:
+    def i_2_a_q(self) -> ScalingQType:
         return self._info.get('i_2_a_q')
 
     @i_2_a_q.setter
-    def i_2_a_q(self, val: MultMulBiasQType):
+    def i_2_a_q(self, val: ScalingQType):
         self._info['i_2_a_q'] = val
 
     @property
-    def s_2_o_q(self) -> MultMulBiasQType:
+    def s_2_o_q(self) -> ScalingQType:
         return self._info.get('s_2_o_q')
 
     @s_2_o_q.setter
-    def s_2_o_q(self, val: MultMulBiasQType):
+    def s_2_o_q(self, val: ScalingQType):
         self._info['s_2_o_q'] = val
 
     @property
-    def s_2_s_q(self) -> MultMulBiasQType:
+    def s_2_s_q(self) -> ScalingQType:
         return self._info.get('s_2_s_q')
 
     @s_2_s_q.setter
-    def s_2_s_q(self, val: MultMulBiasQType):
+    def s_2_s_q(self, val: ScalingQType):
         self._info['s_2_s_q'] = val
 
     def scale_input(self,
@@ -593,7 +534,7 @@ class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizati
                     axis: int,
                     consts_and_qtypes: Mapping[str,
                                                Tuple[np.ndarray,
-                                                     MultMulBiasQType]],
+                                                     ScalingQType]],
                     ktype: str = None):
         del params, consts_and_qtypes
         if ktype != "symmetric" or self.i_2_a_q is None:
@@ -610,7 +551,7 @@ class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizati
                      axis: int,
                      consts_and_qtypes: Mapping[str,
                                                 Tuple[np.ndarray,
-                                                      MultMulBiasQType]],
+                                                      ScalingQType]],
                      ktype: str = None):
         if ktype != "symmetric" or self.s_2_o_q is None:
             return state_tensor
@@ -624,7 +565,7 @@ class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizati
                     axis: int,
                     consts_and_qtypes: Mapping[str,
                                                Tuple[np.ndarray,
-                                                     MultMulBiasQType]],
+                                                     ScalingQType]],
                     ktype: str = None):
         if ktype != "symmetric" or self.s_2_s_q is None:
             return state_tensor
@@ -633,19 +574,19 @@ class MultScalableRnnQuantizationRecord(InputQuantizationMixin, OutputQuantizati
 
 
 class MultScalableLstmQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
-                                         HasConstantsBase, InputOutputQuantizationRecordBase):
+                                         InputOutputQuantizationRecordBase):
     def __init__(self, *args,
-                 i_2_o_q: MultMulBiasQType = None,
-                 i_2_f_q: MultMulBiasQType = None,
-                 i_2_c_q: MultMulBiasQType = None,
-                 i_2_i_q: MultMulBiasQType = None,
-                 r_2_o_q: MultMulBiasQType = None,
-                 r_2_f_q: MultMulBiasQType = None,
-                 r_2_c_q: MultMulBiasQType = None,
-                 r_2_i_q: MultMulBiasQType = None,
-                 cell_in_q: MultMulBiasQType = None,
-                 cell_out_q: MultMulBiasQType = None,
-                 state_out_q: MultMulBiasQType = None,
+                 i_2_o_q: ScalingQType = None,
+                 i_2_f_q: ScalingQType = None,
+                 i_2_c_q: ScalingQType = None,
+                 i_2_i_q: ScalingQType = None,
+                 r_2_o_q: ScalingQType = None,
+                 r_2_f_q: ScalingQType = None,
+                 r_2_c_q: ScalingQType = None,
+                 r_2_i_q: ScalingQType = None,
+                 cell_in_q: ScalingQType = None,
+                 cell_out_q: ScalingQType = None,
+                 state_out_q: ScalingQType = None,
                  i_qtype: QType = None,
                  info=None,
                  **kwargs):
@@ -725,15 +666,16 @@ class MultScalableLstmQuantizationRecord(InputQuantizationMixin, OutputQuantizat
 
 
 class MultScalableGRUQuantizationRecord(InputQuantizationMixin, OutputQuantizationMixin,
-                                        HasConstantsBase, InputOutputQuantizationRecordBase):
+                                        InputOutputQuantizationRecordBase):
     def __init__(self, *args,
-                 i_2_z_WR_q: MultMulBiasQType = None,
-                 i_2_h_WR_q: MultMulBiasQType = None,
-                 i_2_r_WR_q: MultMulBiasQType = None,
-                 z_WR_2_int_q: MultMulBiasQType = None,
-                 h_WR_2_int_q: MultMulBiasQType = None,
-                 r_WR_2_int_q: MultMulBiasQType = None,
+                 i_2_z_WR_q: ScalingQType = None,
+                 i_2_h_WR_q: ScalingQType = None,
+                 i_2_r_WR_q: ScalingQType = None,
+                 z_WR_2_int_q: ScalingQType = None,
+                 h_WR_2_int_q: ScalingQType = None,
+                 r_WR_2_int_q: ScalingQType = None,
                  i_qtype: QType = None,
+                 scales=None,
                  info=None,
                  **kwargs):
 
@@ -749,6 +691,11 @@ class MultScalableGRUQuantizationRecord(InputQuantizationMixin, OutputQuantizati
             self._info['r_WR_2_int_q'] = r_WR_2_int_q
             # internal qtype which is also the output scale
             self._info['i_qtype'] = i_qtype or QType(bits=8, q=7, signed=True)
+            self._info['scales'] = scales
+
+    @property
+    def scales(self):
+        return self._info['scales']
 
     def __getattr__(self, attr):
         if '_info' not in vars(self):

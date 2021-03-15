@@ -15,7 +15,7 @@
  */
 
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -40,7 +40,8 @@
 // but last R/W bit is automatically added and 1 byte command must be shifter left by 1 byte
 #define APS25XXXN_SPI_CMD (0x20 | PI_OCTOSPI_CMD_AUTO_RW_BIT_EN | PI_OCTOSPI_CMD_ADDR_EVEN)
 
-#define APS25XXXN_REG_SPI_CMD 0x4000
+#define APS25XXXN_REG_SPI_READ_CMD (0x4000 | PI_OCTOSPI_CMD_ADDR_EVEN)
+#define APS25XXXN_REG_SPI_WRITE_CMD (0xC000 | PI_OCTOSPI_CMD_ADDR_EVEN)
 
 typedef struct
 {
@@ -96,6 +97,10 @@ static int aps25xxxn_open(struct pi_device *device)
       octospi_conf.baudrate = conf->baudrate;
   }
 
+#if defined(__GAP9__)
+  octospi_conf.aes_conf = &(conf->ram.aes_conf);
+#endif
+
   pi_open_from_conf(&aps25xxxn->octospi_device, &octospi_conf);
 
   int32_t error = pi_octospi_open(&aps25xxxn->octospi_device);
@@ -104,20 +109,31 @@ static int aps25xxxn_open(struct pi_device *device)
       goto error2;
   }
 
+#if defined(__GAP9__)
+  /* disable AES while writing to configuration registers */
+  pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_ENABLE_AES, (void*) 0);
+#endif
+
+// Only allow page-crossing setting on Pulpos, needs to be supported in freertos
   uint16_t reg = 0;
-  pi_octospi_op_conf_t op1 = { .cmd=APS25XXXN_REG_SPI_CMD, .latency=APS25XXXN_DEFAULT_LATENCY, .flags=APS25XXXN_OP_FLAGS };
+
+  pi_octospi_op_conf_t op1 = { .cmd=APS25XXXN_REG_SPI_READ_CMD, .latency=APS25XXXN_DEFAULT_LATENCY, .flags=APS25XXXN_OP_FLAGS };
   pi_octospi_read(&aps25xxxn->octospi_device, 8, &reg, 1, &op1);
 
   reg |= 1 << 3;
 
-  pi_octospi_op_conf_t op2 = { .cmd=APS25XXXN_REG_SPI_CMD, .latency=APS25XXXN_SET_REG_LATENCY, .flags=APS25XXXN_OP_FLAGS };
+  pi_octospi_op_conf_t op2 = { .cmd=APS25XXXN_REG_SPI_WRITE_CMD, .latency=APS25XXXN_SET_REG_LATENCY, .flags=APS25XXXN_OP_FLAGS };
   pi_octospi_write(&aps25xxxn->octospi_device, 8, &reg, 1, &op2);
+
 
   pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_SET_OP, (void *)&aps25xxxn_default_op);
   if(conf->xip_en)
   {
       pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_SET_XIP_OP, (void *)&aps25xxxn_default_op);
   }
+#if defined(__GAP9__)
+  pi_octospi_ioctl(&aps25xxxn->octospi_device, PI_OCTOSPI_IOCTL_ENABLE_AES, (void*) 1);
+#endif
 
   return 0;
 

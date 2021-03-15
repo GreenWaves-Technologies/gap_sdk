@@ -110,9 +110,10 @@ class Runner(runner.default_runner.Runner):
                 self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
 
-            full_config, gvsoc_config_path = gv.gvsoc.gen_config(args, self.config)
-            gv.gvsoc.prepare_exec(self.config, full_config)
-            gv.gvsoc.dump_config(full_config, gvsoc_config_path)
+            self.full_config, gvsoc_config_path = gv.gvsoc.gen_config(args, self.config)
+            gv.gvsoc.prepare_exec(self.config, self.full_config)
+            gv.gvsoc.dump_config(self.full_config, gvsoc_config_path)
+            self.gvsoc_config_path = gvsoc_config_path
         
             if self.platform_tool == 'vsim':
                 self.set_arg('+DPI_CONFIG_FILE=%s' % gvsoc_config_path)
@@ -128,6 +129,8 @@ class Runner(runner.default_runner.Runner):
                 else:
                     self.set_cmd_arg('-sv_lib %s' % dpi_path)
 
+            self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
+
         if self.args.cov or os.environ.get('GAPY_RTL_COVERAGE') is not None:
             test_name = os.environ.get('PLPTEST_NAME')
             if test_name is None:
@@ -137,10 +140,14 @@ class Runner(runner.default_runner.Runner):
             self.set_cmd_arg('-covoverwrite -covworkdir %s/cov_work -covtest %s' % (os.environ.get('XCSIM_PATH'), test_name))
 
 
-        self.full_config =  js.import_config(self.config.get_dict(), interpret=True, gen=True)
 
 
     def exec(self):
+        if self.config.get_bool('**/runner/gvsoc_dpi/enabled'):
+
+            gv.gvsoc.dump_config(self.full_config, self.gvsoc_config_path)
+        
+
         os.chdir(self.config.get_str('gapy/work_dir'))
 
         plt_path = self.__get_platform_path()
@@ -180,6 +187,10 @@ class Runner(runner.default_runner.Runner):
             if os.system('xmsdfc models/s26ks512s/bmod/s26ks512s.sdf'):
                 return -1
 
+        svcf_file = self.config.get('rtl/svcf_file')
+        if svcf_file is not None:
+            os.environ['GAPY_SVCF_FILE'] = ' '.join(svcf_file.get_dict())
+
         command = self.__get_platform_cmd()
 
         with open('rtl_config.json', 'w') as file:
@@ -217,10 +228,11 @@ class Runner(runner.default_runner.Runner):
         binary = self.config.get_str('runner/boot-loader')
 
         self.gen_stim_slm_64('vectors/stim.txt', [binary])
+        self.gen_stim_slm_32('slm_files/l2_stim.slm', [binary])
 
 
 
-    def __gen_stim_slm(self, filename, width):
+    def __gen_stim_slm(self, filename, width, format=None):
 
         #self.dump('  Generating to file: ' + filename)
 
@@ -231,7 +243,10 @@ class Runner(runner.default_runner.Runner):
 
         with open(filename, 'w') as file:
             for key in sorted(self.mem.keys()):
-                file.write('%X_%0*X\n' % (int(key), width*2, self.mem.get(key)))
+                if format == 'slm':
+                    file.write('@%X %0*X\n' % (int(key), width*2, self.mem.get(key)))
+                else:
+                    file.write('%X_%0*X\n' % (int(key), width*2, self.mem.get(key)))
 
 
 
@@ -316,6 +331,13 @@ class Runner(runner.default_runner.Runner):
         self.__gen_stim_slm(stim_file, 8)
 
 
+    def gen_stim_slm_32(self, stim_file, binaries):
+
+        self.__parse_binaries(4, binaries)
+
+        self.__gen_stim_slm(stim_file, 4, format='slm')
+
+
     def __process_args(self):
         if self.args.gui:
             self.config.set('rtl/mode', 'gui')
@@ -370,7 +392,12 @@ class Runner(runner.default_runner.Runner):
 
         plt_path = self.__get_platform_path()
 
-        self.set_env('VSIM_RUNNER_FLAGS', ' '.join(self.get_args()))
+        for arg in self.cmd_args:
+            self.set_arg(str(arg))
+
+
+        if self.platform_tool == 'vsim':
+            self.set_env('VSIM_RUNNER_FLAGS', ' '.join(self.get_args()))
         
         command = []
 

@@ -14,7 +14,7 @@ if install_dir is None:
 if target_install_dir is None:
   target_install_dir = 'install'
 
-files = [ 'hal/pulp.h', 'hal/utils.h', 'hal/pulp_io.h', 'hal/debug_bridge/debug_bridge.h' ]
+files = [ 'hal/pulp.h', 'hal/utils.h', 'hal/pulp_io.h', 'hal/debug_bridge/debug_bridge.h', 'debug_bridge/debug_bridge.h' ]
 files.append('hal/gvsoc/gvsoc.h')
 files.append('hal/tb/tb.h')
 

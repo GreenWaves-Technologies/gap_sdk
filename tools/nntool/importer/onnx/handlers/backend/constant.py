@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import Dim
 from onnx import numpy_helper
-from importer.common.provisional_dim import ProvisionalDim
-from graph.types.base import NNEdge
+
+from graph.dim import Dim
 from graph.types import ConstantInputParameters
+from importer.common.provisional_dim import ProvisionalDim
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
@@ -29,9 +29,11 @@ class Constant(BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
         all_nodes = kwargs['all_nodes']
+        G = kwargs['G']
         valid_name = kwargs['valid_name']
         value = numpy_helper.to_array(node.attrs['value'])
-        params = ConstantInputParameters(valid_name, dims=Dim.unnamed(value.shape), value=value)
+        params = ConstantInputParameters(valid_name, dims=Dim.unnamed(value.shape), value=value,
+                                         constant_store=G.constant_store)
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape))
         return params
 

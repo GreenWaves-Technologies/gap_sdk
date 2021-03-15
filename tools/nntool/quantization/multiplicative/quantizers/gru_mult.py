@@ -14,19 +14,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import math
+from copy import deepcopy
 
 import numpy as np
 from graph.types import ConstantInputParameters, GRUParameters
 from quantization.multiplicative.mult_quantization import \
     MultScalableGRUQuantizationRecord
-from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import \
-    MultMulBiasScaleQType
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.qtype import QType
-from quantization.quantization_handler import params_type
-from utils.node_id import NodeId
+from quantization.unified_quantization_handler import params_type
 
 from ..mult_quantization_handler import MultQuantizionHandler
 from .rescale_constant_mixin import RescaleConstantMixin
@@ -40,17 +36,21 @@ WEIGHTS_DTYPE = np.int8
 @params_type(GRUParameters)
 class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
-    def _quantize(cls, params, in_qs, out_dtype, stats, **kwargs):
-        qrecs = kwargs['qrecs']
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
+        if force_out_qs and any(force_out_q is not None for force_out_q in force_out_qs):
+            return None
+        in_qs = deepcopy(in_qs)
+        # qrecs = kwargs['qrecs']
         G = kwargs['G']
 
-        o_q = SymmetricMultQType.from_min_max(min_val=stats['range_out'][0]['min'],
-                                              max_val=stats['range_out'][0]['max'],
-                                              dtype=out_dtype)
+        o_q = QType.from_min_max_sq(min_val=stats['range_out'][0]['min'],
+                                    max_val=stats['range_out'][0]['max'],
+                                    dtype=out_dtype)
 
-        input_nodes = {GRUParameters.INPUT_NAMES[edge.to_idx]: edge.from_node
-                       for edge in G.in_edges(params.name)
-                       if isinstance(edge.from_node, ConstantInputParameters)}
+        # input_nodes = {GRUParameters.INPUT_NAMES[edge.to_idx]: edge.from_node
+        #                for edge in G.in_edges(params.name)
+        #                if isinstance(edge.from_node, ConstantInputParameters)}
 
         names = {val: idx for idx, val in enumerate(GRUParameters.INPUT_NAMES)}
 
@@ -64,9 +64,12 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
         #     G.node_options[NodeId(params)] = params.at_options
 
         if params.rnn_same_inout_scale:
-            wWz_scale = rWz_scale = np.maximum(in_qs[names['w_2_z_w']].scale, in_qs[names['r_2_z_w']].scale)
-            wWr_scale = rWr_scale = np.maximum(in_qs[names['w_2_r_w']].scale, in_qs[names['r_2_r_w']].scale)
-            wWh_scale = rWh_scale = np.maximum(in_qs[names['w_2_h_w']].scale, in_qs[names['r_2_h_w']].scale)
+            wWz_scale = rWz_scale = np.maximum(
+                in_qs[names['w_2_z_w']].scale, in_qs[names['r_2_z_w']].scale)
+            wWr_scale = rWr_scale = np.maximum(
+                in_qs[names['w_2_r_w']].scale, in_qs[names['r_2_r_w']].scale)
+            wWh_scale = rWh_scale = np.maximum(
+                in_qs[names['w_2_h_w']].scale, in_qs[names['r_2_h_w']].scale)
             i_2_z_WR_q = i_2_r_WR_q = i_2_h_WR_q = None
             in_q = state_q = QType(bits=8, q=7, signed=True, dtype=np.int8)
             in_scale = state_scale = in_q.scale
@@ -81,38 +84,52 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
             in_q = in_qs[0]
             state_q = QType(bits=8, q=7, signed=True, dtype=np.int8)
             state_scale = state_q.scale
-            i_2_z_WR_q = MultMulBiasScaleQType(scale=(wWz_scale * in_scale)/(rWz_scale * state_scale))
-            i_2_r_WR_q = MultMulBiasScaleQType(scale=(wWr_scale * in_scale)/(rWr_scale * state_scale))
-            i_2_h_WR_q = MultMulBiasScaleQType(scale=(wWh_scale * in_scale)/(rWh_scale * state_scale))
+        i_2_z_WR_q = MultMulBiasScaleQType(scale=(wWz_scale * in_scale)/(rWz_scale * state_scale))
+        i_2_r_WR_q = MultMulBiasScaleQType(scale=(wWr_scale * in_scale)/(rWr_scale * state_scale))
+        i_2_h_WR_q = MultMulBiasScaleQType(scale=(wWh_scale * in_scale)/(rWh_scale * state_scale))
 
-        if params.hard_act:
-            i_qtype = QType(bits=32, q=15, signed=True, dtype=np.int32)
-            h_WR_2_int_q = MultMulBiasScaleQType(scale=(rWh_scale * state_scale)/i_qtype.scale)
-            r_WR_2_int_q = MultMulBiasScaleQType(scale=(rWr_scale * state_scale)/i_qtype.scale)
-            z_WR_2_int_q = MultMulBiasScaleQType(scale=(rWz_scale * state_scale)/i_qtype.scale)
-        else:
-            i_qtype = QType(bits=32, q=12, signed=True, dtype=np.int32)
-            h_WR_2_int_q = MultMulBiasScaleQType(scale=(rWh_scale * state_scale)/(math.pow(2, -12)))
-            r_WR_2_int_q = MultMulBiasScaleQType(scale=(rWr_scale * state_scale)/(math.pow(2, -12)))
-            z_WR_2_int_q = MultMulBiasScaleQType(scale=(rWz_scale * state_scale)/(math.pow(2, -12)))
+        i_qtype = QType(bits=32, q=12, signed=True, dtype=np.int32)
+        h_WR_2_int_q = MultMulBiasScaleQType(scale=(rWh_scale * state_scale)/i_qtype.scale)
+        r_WR_2_int_q = MultMulBiasScaleQType(scale=(rWr_scale * state_scale)/i_qtype.scale)
+        z_WR_2_int_q = MultMulBiasScaleQType(scale=(rWz_scale * state_scale)/i_qtype.scale)
 
-        cls.rescale_constant(input_nodes['h_state'], state_q.scale, qrecs)
+        if not params.rnn_states_as_inputs:
+            in_qs[names['h_state']].scale = state_q.scale
+            # cls.rescale_constant(input_nodes['h_state'], state_q.scale, qrecs)
         in_qs[0].scale = in_scale
         o_q.scale = state_scale
 
-        cls.rescale_constant(input_nodes['w_z_b'], in_scale * wWz_scale, qrecs, dtype=BIAS_DTYPE)
-        cls.rescale_constant(input_nodes['w_r_b'], in_scale * wWr_scale, qrecs, dtype=BIAS_DTYPE)
-        cls.rescale_constant(input_nodes['w_h_b'], in_scale * wWh_scale, qrecs, dtype=BIAS_DTYPE)
-        cls.rescale_constant(input_nodes['r_z_b'], state_scale * rWz_scale, qrecs, dtype=BIAS_DTYPE)
-        cls.rescale_constant(input_nodes['r_r_b'], state_scale * rWr_scale, qrecs, dtype=BIAS_DTYPE)
-        cls.rescale_constant(input_nodes['r_h_b'], state_scale * rWh_scale, qrecs, dtype=BIAS_DTYPE)
+        in_qs[names['z_b']].scale = in_scale * rWz_scale
+        in_qs[names['z_b']].dtype = BIAS_DTYPE
+        # cls.rescale_constant(input_nodes['z_b'], in_scale * rWz_scale, qrecs, dtype=BIAS_DTYPE)
+        in_qs[names['r_b']].scale = in_scale * rWr_scale
+        in_qs[names['r_b']].dtype = BIAS_DTYPE
+        # cls.rescale_constant(input_nodes['r_b'], in_scale * rWr_scale, qrecs, dtype=BIAS_DTYPE)
+        in_qs[names['w_h_b']].scale = in_scale * wWh_scale
+        in_qs[names['w_h_b']].dtype = BIAS_DTYPE
+        # cls.rescale_constant(input_nodes['w_h_b'], in_scale * wWh_scale, qrecs, dtype=BIAS_DTYPE)
+        in_qs[names['r_h_b']].scale = in_scale * rWh_scale
+        in_qs[names['r_h_b']].dtype = BIAS_DTYPE
+        # cls.rescale_constant(input_nodes['r_h_b'], state_scale * rWh_scale, qrecs, dtype=BIAS_DTYPE)
 
-        cls.rescale_constant(input_nodes['w_2_z_w'], wWz_scale, qrecs, dtype=WEIGHTS_DTYPE)
-        cls.rescale_constant(input_nodes['w_2_r_w'], wWr_scale, qrecs, dtype=WEIGHTS_DTYPE)
-        cls.rescale_constant(input_nodes['w_2_h_w'], wWh_scale, qrecs, dtype=WEIGHTS_DTYPE)
-        cls.rescale_constant(input_nodes['r_2_z_w'], rWz_scale, qrecs, dtype=WEIGHTS_DTYPE)
-        cls.rescale_constant(input_nodes['r_2_r_w'], rWr_scale, qrecs, dtype=WEIGHTS_DTYPE)
-        cls.rescale_constant(input_nodes['r_2_h_w'], rWh_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['w_2_z_w']].scale = wWz_scale
+        in_qs[names['w_2_z_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['w_2_z_w'], wWz_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['w_2_r_w']].scale = wWr_scale
+        in_qs[names['w_2_r_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['w_2_r_w'], wWr_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['w_2_h_w']].scale = wWh_scale
+        in_qs[names['w_2_h_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['w_2_h_w'], wWh_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['r_2_z_w']].scale = rWz_scale
+        in_qs[names['r_2_z_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['r_2_z_w'], rWz_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['r_2_r_w']].scale = rWr_scale
+        in_qs[names['r_2_r_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['r_2_r_w'], rWr_scale, qrecs, dtype=WEIGHTS_DTYPE)
+        in_qs[names['r_2_h_w']].scale = rWh_scale
+        in_qs[names['r_2_h_w']].dtype = WEIGHTS_DTYPE
+        # cls.rescale_constant(input_nodes['r_2_h_w'], rWh_scale, qrecs, dtype=WEIGHTS_DTYPE)
 
         return MultScalableGRUQuantizationRecord(
             in_qs=in_qs,
@@ -123,5 +140,16 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
             h_WR_2_int_q=h_WR_2_int_q,
             r_WR_2_int_q=r_WR_2_int_q,
             z_WR_2_int_q=z_WR_2_int_q,
-            i_qtype=i_qtype
+            i_qtype=i_qtype,
+            scales={
+                'w_2_z_w': wWz_scale,
+                'w_2_r_w': wWr_scale,
+                'w_2_h_w': wWh_scale,
+                'r_2_z_w': rWz_scale,
+                'r_2_r_w': rWr_scale,
+                'r_2_h_w': rWh_scale,
+                'in': [in_scale],
+                'state': state_scale,
+                'out': [state_scale]
+            }
         )

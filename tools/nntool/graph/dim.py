@@ -136,7 +136,7 @@ class Dim():
         if first_missing:
             raise DimMissingKeyError("{} not in dim".format(first_missing))
 
-    def _verify_is_named(self, ):
+    def _verify_is_named(self):
         if not self._is_named:
             raise DimHasNoNamesError()
 

@@ -15,16 +15,15 @@
 
 import logging
 import math
+from copy import deepcopy
 
 import numpy as np
 from graph.types import ConstantInputParameters, RNNParameters
 from quantization.multiplicative.mult_quantization import \
     MultScalableRnnQuantizationRecord
-from quantization.multiplicative.symmetric.mult_mulbias_qtype_new import \
-    MultMulBiasScaleQType
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
-from quantization.quantization_handler import params_type, options
+from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
+from quantization.qtype import QType
+from quantization.unified_quantization_handler import options, params_type
 from utils.node_id import NodeId
 
 from ..mult_quantization_handler import MultQuantizionHandler
@@ -48,26 +47,24 @@ LOG = logging.getLogger('nntool.' + __name__)
         'choices': ['8', '16'],
         'help': 'sets width of recurrent state',
         'default': 8
-    },
-    {
-        'name': 'by_state',
-        'type': bool,
-        'help': 'sets width of recurrent state',
-        'default': False
     })
 class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
-    def _quantize(cls, params, in_qs, out_dtype, stats, **kwargs):
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
+        if force_out_qs and any(force_out_q is not None for force_out_q in force_out_qs):
+            return None
+        in_qs = deepcopy(in_qs)
         opts = kwargs['opts']
-        qrecs = kwargs['qrecs']
+        # qrecs = kwargs['qrecs']
         G = kwargs['G']
 
-        o_q = SymmetricMultQType.from_min_max(min_val=stats['range_out'][0]['min'],
-                                              max_val=stats['range_out'][0]['max'],
-                                              dtype=out_dtype)
-        input_nodes = {RNNParameters.INPUT_NAMES[edge.to_idx]: edge.from_node
-                       for edge in G.in_edges(params.name)
-                       if isinstance(edge.from_node, ConstantInputParameters)}
+        o_q = QType.from_min_max_sq(min_val=stats['range_out'][0]['min'],
+                                    max_val=stats['range_out'][0]['max'],
+                                    dtype=out_dtype)
+        # input_nodes = {RNNParameters.INPUT_NAMES[edge.to_idx]: edge.from_node
+        #                for edge in G.in_edges(params.name)
+        #                if isinstance(edge.from_node, ConstantInputParameters)}
         names = {val: idx for idx, val in enumerate(RNNParameters.INPUT_NAMES)}
         # quantization_mode: extended, autotiler
         # state_width: 16bit or 8bit
@@ -78,7 +75,9 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
             i_2_a_q = MultMulBiasScaleQType(scale=in_w_scale/state_w_scale)
             s_2_s_q = MultMulBiasScaleQType(scale=state_w_scale)
             s_2_o_q = MultMulBiasScaleQType(scale=1/o_q.scale)
-            cls.rescale_constant(input_nodes['i_b'], state_w_scale, qrecs, dtype=np.int32)
+            in_qs[names['i_b']].scale = state_w_scale
+            in_qs[names['i_b']].dtype = np.int32
+            # cls.rescale_constant(input_nodes['i_b'], state_w_scale, qrecs, dtype=np.int32)
             return MultScalableRnnQuantizationRecord(
                 in_qs=in_qs,
                 out_qs=[o_q],
@@ -99,17 +98,23 @@ class RNNMultMult(RescaleConstantMixin, MultQuantizionHandler):
                 in_and_state_scale = np.maximum(in_qs[0].scale, o_q.scale)
                 in_qs[0].scale = in_and_state_scale
                 o_q.scale = in_and_state_scale
-                cls.rescale_constant(input_nodes['i_state'], in_and_state_scale, qrecs)
+                if not params.rnn_states_as_inputs:
+                    in_qs[names['i_state']].scale = in_and_state_scale
+                    # cls.rescale_constant(input_nodes['i_state'], in_and_state_scale, qrecs)
                 i_state_scale = in_and_state_scale
                 i_2_a_q = MultMulBiasScaleQType(scale=1.0)  # will be ignored
             else:
                 i_state_scale = in_qs[names['i_state']].scale
                 i_2_a_q = MultMulBiasScaleQType(scale=in_qs[0].scale/i_state_scale)
 
-            cls.rescale_constant(input_nodes['i_2_i_w'], w_scales, qrecs)
-            cls.rescale_constant(input_nodes['r_2_i_w'], w_scales, qrecs)
+            in_qs[names['i_2_i_w']].scale = w_scales
+            # cls.rescale_constant(input_nodes['i_2_i_w'], w_scales, qrecs)
+            in_qs[names['r_2_i_w']].scale = w_scales
+            # cls.rescale_constant(input_nodes['r_2_i_w'], w_scales, qrecs)
             state_w_scale = i_state_scale * w_scales
-            cls.rescale_constant(input_nodes['i_b'], state_w_scale, qrecs, dtype=np.int32)
+            in_qs[names['i_b']].scale = state_w_scale
+            in_qs[names['i_b']].dtype = np.int32
+            # cls.rescale_constant(input_nodes['i_b'], state_w_scale, qrecs, dtype=np.int32)
             if params.hard_act:
                 s_2_s_q = MultMulBiasScaleQType(scale=state_w_scale/i_state_scale)
                 s_2_o_q = MultMulBiasScaleQType(scale=1.0)  # will be ignored

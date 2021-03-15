@@ -46,6 +46,9 @@ int pi_24xx1025_open(struct pi_device *device)
 {
     struct pi_24xx1025_conf *conf = (struct pi_24xx1025_conf *)device->config;
 
+    if (bsp_24xx1025_open(conf))
+        return -1;
+
     eeprom_t *eeprom = pi_l2_malloc(sizeof(eeprom_t));
     if (eeprom == NULL)
         return -1;

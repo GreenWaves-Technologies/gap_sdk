@@ -46,12 +46,12 @@ static inline uint64_t iss_get_field64(iss_opcode_t val, int shift, int bits)
 
 static inline int64_t iss_get_signed_value64(iss_opcode_t val, int bits)
 {
-  return ((int64_t)val) << (ISS_REG_WIDTH-bits) >> (ISS_REG_WIDTH-bits);
+  return ((int64_t)val) << (64-bits) >> (64-bits);
 }
 
 static inline uint64_t iss_get_zext_value64(iss_opcode_t val, int bits)
 {
-  return ((uint64_t)val) << (ISS_REG_WIDTH-bits) >> (ISS_REG_WIDTH-bits);
+  return ((uint64_t)val) << (64-bits) >> (64-bits);
 }
 
 #endif

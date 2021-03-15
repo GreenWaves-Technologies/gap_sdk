@@ -35,6 +35,7 @@ class Size(ConstantMixin, BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
         all_nodes = kwargs['all_nodes']
+        G = kwargs['G']
         valid_name = kwargs['valid_name']
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
@@ -43,7 +44,7 @@ class Size(ConstantMixin, BackendHandler):
             pass
         logger.info("reducing %s to a constant", valid_name)
         x_shape = [dim if dim else 1 for dim in x[2].shape]
-        params = ConstantInputParameters(valid_name, value=np.array(prod(x_shape)))
+        params = ConstantInputParameters(valid_name, value=np.array(prod(x_shape)), constant_store=G.constant_store)
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim([]))
         return params
 

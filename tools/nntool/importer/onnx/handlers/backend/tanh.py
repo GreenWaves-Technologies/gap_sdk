@@ -27,7 +27,7 @@ class Tanh(BasicMathMixin, BackendHandler):
     def _common(cls, node, **kwargs):
         return super(Tanh, cls)._common(node,
                                         params_class=TanHActivationParameters,
-                                        constant_operation=np.arctan,
+                                        constant_operation=np.tanh,
                                         **kwargs)
 
     @classmethod

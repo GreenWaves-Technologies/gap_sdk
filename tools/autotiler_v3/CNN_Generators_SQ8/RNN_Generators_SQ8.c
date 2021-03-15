@@ -82,8 +82,8 @@ void Load_RNN_SQ8_Library()
 			TCArg("signed char *__restrict__", "Wz"),
 			TCArg("int * __restrict__", "Bz"),
 			TCArg("signed char *__restrict__", "Wh"),
-			TCArg("int * __restrict__", "Bh"),
-			TCArg("signed char *__restrict__", "Sbuff"),
+			TCArg("int * __restrict__", "Bwh"),
+			TCArg("int * __restrict__", "Brh"),
 			TCArg("signed char *__restrict__", "Hout"),
 			TCArg("unsigned short int", "Nout"),
 			TCArg("signed char *__restrict__", "Infos"),
@@ -95,6 +95,7 @@ void Load_RNN_SQ8_Library()
 	);
         LibKernel("GRU_KerB32_SQ8", CALL_PARALLEL, 0, "KerGRU_SQ8_T", 0);
         LibKernel("GRU_ParKerB32_SQ8", CALL_PARALLEL, 0, "KerGRU_SQ8_T", 0);
+        LibKernel("GRU_ParKerB32_Hard_SQ8", CALL_PARALLEL, 0, "KerGRU_SQ8_T", 0);
 
 }
 
@@ -709,10 +710,10 @@ int LSTM_Stack_SQ8(
 	}
 
 	char *LSTMKerName = ParFeat?(UseHardAct? \
-								 (SameInStateScales?"LSTM_ParKerB32_Hard_SameInStateScale_SQ8":"LSTM_ParKerB32_Hard_SQ8"): \
-								 (SameInStateScales?"LSTM_ParKerB32_SameInStateScale_SQ8":"LSTM_ParKerB32_SQ8") \
-								): \
-						"LSTM_KerB32_SQ8";
+				     (SameInStateScales?"LSTM_ParKerB32_Hard_SameInStateScale_SQ8":"LSTM_ParKerB32_Hard_SQ8"): \
+				     (SameInStateScales?"LSTM_ParKerB32_SameInStateScale_SQ8":"LSTM_ParKerB32_SQ8") \
+				    ): \
+				    "LSTM_KerB32_SQ8";
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 	int DimOut = PerCell?NCells:1;
@@ -917,7 +918,7 @@ static int GRU_Stack_Seq_SQ8(
         Kernel_T *Kernel = UserKernel(Name,
                 KernelIterSpace(2, IterFixedSpace(D0, NCells), IterTiledSpace(T0)),
                 TileOrientation,
-                CArgs(12,
+                CArgs(13,
                       (!(FirstSeq&&AlwaysReset))?	TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Sin"):AT_NO_C_ARG,
                       (!(LastSeq&&AlwaysReset))?	TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Sout"):AT_NO_C_ARG,
 		      (UseIn)?				TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Xin"):AT_NO_C_ARG,
@@ -929,7 +930,8 @@ static int GRU_Stack_Seq_SQ8(
        							TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bz"),
 
 							TCArg(CNN_ArgDataType(1,1,1),            "Wh"),
-       							TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bh"),
+       							TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bwh"),
+       							TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Brh"),
 
 		      (ExposeSequence)?			TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Hout"):AT_NO_C_ARG,
 							TCArg(CNN_ArgDataType(1,1,1),            "Infos"),
@@ -944,14 +946,13 @@ static int GRU_Stack_Seq_SQ8(
 					Imm(DimState), Imm(DimIn),
 					K_Arg("Wr",  KER_ARG_TILE), K_Arg("Br",  KER_ARG_TILE),
 					K_Arg("Wz",  KER_ARG_TILE), K_Arg("Bz",  KER_ARG_TILE),
-					K_Arg("Wh",  KER_ARG_TILE), K_Arg("Bh",  KER_ARG_TILE),
-					K_Arg("Sbuff", KER_ARG_TILE),
+					K_Arg("Wh",  KER_ARG_TILE), K_Arg("Bwh",  KER_ARG_TILE), K_Arg("Brh",  KER_ARG_TILE),
 					(ExposeSequence)?K_Arg("Hout", KER_ARG_TILE):Imm(0),
-					K_Arg("Bh", KER_ARG_TILE_H),
+					K_Arg("Bwh", KER_ARG_TILE_H),
 					K_Arg("Infos", KER_ARG_TILE),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, D0),
 					K_ArgPred("Wr", KER_ARG_TILEFIRST, T0),
-					K_Arg("Bh",     KER_ARG_TILE_BASE),
+					K_Arg("Bwh",     KER_ARG_TILE_BASE),
 					AlwaysReset?(FirstSeq?Imm(1):Imm(0)):C_Arg("Reset")
 					)
 			)
@@ -982,9 +983,11 @@ static int GRU_Stack_Seq_SQ8(
                         KerArg("Wh",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,                 DimIn+DimState,  DimState, 1,            0, 0, 0, "Wh"):
                         KerArg("Wh",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 DimIn+DimState,  DimState, 1,            0, 0, 0, "Wh"),
 			(PerCell)?
-                        KerArg("Bh",      KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Bh"):
-                        KerArg("Bh",      KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Bh"),
-                        KerArg("Sbuff",   KerArgSpace(2,D0,T0), O_BUFF|O_ONETILE,                  1,               DimState, 1, 	    0, 0, 0, ""),
+                        KerArg("Bwh",     KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Bwh"):
+                        KerArg("Bwh",     KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Bwh"),
+			(PerCell)?
+                        KerArg("Brh",     KerArgSpace(2,D0,T0), O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Brh"):
+                        KerArg("Brh",     KerArgSpace(1,T0),    O_IN|O_DB|O_CONST,                 1,               DimState, BiasDataSize, 0, 0, 0, "Brh"),
 			(ExposeSequence)?
                         KerArg("Hout",    KerArgSpace(2,RD0,T0),O_OUT|O_DB,                        1,               DimState, FeatDataSize, 0, 0, 0, "Hout"):AT_NO_KER_ARG,
 			(PerCell)?
@@ -1004,7 +1007,8 @@ static int GRU_Stack_Seq_SQ8(
 						AddKernelArgDim(Name, "Wz",    4, DimOut, DimState, DimIn+DimState, 1);
 						AddKernelArgDim(Name, "Bz",    3, DimOut, DimState, BiasDataSize);
 						AddKernelArgDim(Name, "Wh",    4, DimOut, DimState, DimIn+DimState, 1);
-						AddKernelArgDim(Name, "Bh",    3, DimOut, DimState, BiasDataSize);
+						AddKernelArgDim(Name, "Bwh",   3, DimOut, DimState, BiasDataSize);
+						AddKernelArgDim(Name, "Brh",   3, DimOut, DimState, BiasDataSize);
 		if (ExposeSequence)		AddKernelArgDim(Name, "Hout",  3, NCells, DimState, FeatDataSize);
 						AddKernelArgDim(Name, "Infos", 3, DimOut, GRU_CELL_INFOS*DimInfos, 1);
 		if (Ctrl && (Ctrl->Filter_L3)) {
@@ -1046,7 +1050,15 @@ int GRU_Stack_SQ8(
 	int PerCell = 0;
 	int PerChanQuant = 0;
 
-	char *GRUKerName = ParFeat?"GRU_ParKerB32_SQ8":"GRU_KerB32_SQ8";
+	int UseHardAct = 1;
+	int SameInStateScales = 1;
+	if (Ctrl) {
+		if (Ctrl->RNNUseHardActivation != -1)    UseHardAct = Ctrl->RNNUseHardActivation;
+	}
+
+	char *GRUKerName;
+	GRUKerName = ParFeat?(UseHardAct?"GRU_ParKerB32_Hard_SQ8":"GRU_ParKerB32_SQ8"):"GRU_KerB32_SQ8";
+
 	char *G1_Name=0, *G2_Name=0, *G3_Name=0;
 	int N1, N2, N3, N2_IO, Seq = RNN_Sequence(NCells, K0, K1, &N1, &N2, &N3, &N2_IO);
 
@@ -1070,7 +1082,7 @@ int GRU_Stack_SQ8(
         CKernelCall_T **GroupCCalls;
         Object_T **GroupKerArgs;
 
-	GroupCArgs = AllocateCArgs(9 + (N1!=0) + (N2!=0 && N3!=0) + 2*(AlwaysReset==0));
+	GroupCArgs = AllocateCArgs(10 + (N1!=0) + (N2!=0 && N3!=0) + 2*(AlwaysReset==0));
 	int A= 0;
 
 	if (!AlwaysReset)	GroupCArgs[A++] = TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Hinout");
@@ -1082,7 +1094,8 @@ int GRU_Stack_SQ8(
 				GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1),            "Wz");
 				GroupCArgs[A++] = TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bz");
 				GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1),            "Wh");
-				GroupCArgs[A++] = TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bh");
+				GroupCArgs[A++] = TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Bwh");
+				GroupCArgs[A++] = TCArg(CNN_ArgDataType(BiasDataSize,1,1), "Brh");
 				GroupCArgs[A++] = TCArg(CNN_ArgDataType(FeatDataSize,1,1), "Hout");
 				GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1),            "Infos");
 	if (!AlwaysReset)	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,0,0),            "Reset");
@@ -1091,19 +1104,19 @@ int GRU_Stack_SQ8(
 	A=0;
 	if (N1>0)
 		GroupCCalls[A++] = UserKernelCall(G1_Name, LOC_GROUP,
-					Bindings(11,(!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
+					Bindings(12,(!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						    C_Arg("G1O"),
 						    Revert?KG_ArgOper("Xin",   '+', (N2_IO?N2:0)*DimIn):C_Arg("Xin"),
 						    C_Arg("Wr"), C_Arg("Br"),
 						    C_Arg("Wz"), C_Arg("Bz"),
-						    C_Arg("Wh"), C_Arg("Bh"),
+						    C_Arg("Wh"), C_Arg("Bwh"), C_Arg("Brh"),
 						    C_Arg("Infos"),
 						    (AlwaysReset==0)?C_Arg("Reset"):AT_IGNORE_ARG_BINDING
 						    )
 					);
 	if (N2>0&&N2_IO)
 		GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
-					Bindings(12,(N1)?C_Arg("G1O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
+					Bindings(13,(N1)?C_Arg("G1O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
                                                     (N3)?C_Arg("G2O"):((!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING),
 						    Revert?C_Arg("Xin"):KG_ArgOper("Xin",   '+', N1*DimIn),
 						    KG_ArgOper("Wr",    '+', PerCell*N1*(DimState+DimIn)*DimState),
@@ -1111,7 +1124,8 @@ int GRU_Stack_SQ8(
 						    KG_ArgOper("Wz",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bz",    '+', PerCell*N1*DimState),
 						    KG_ArgOper("Wh",    '+', PerCell*N1*(DimState+DimIn)*DimState),
-						    KG_ArgOper("Bh",    '+', PerCell*N1*DimState),
+						    KG_ArgOper("Bwh",   '+', PerCell*N1*DimState),
+						    KG_ArgOper("Brh",   '+', PerCell*N1*DimState),
 						    C_Arg("Hout"),
 						    KG_ArgOper("Infos", '+', PerCell*DimInfos*N1*GRU_CELL_INFOS),
 						    (!AlwaysReset)?((N1==0)?C_Arg("Reset"):Imm(0)):AT_NO_ARG_BINDING
@@ -1119,35 +1133,37 @@ int GRU_Stack_SQ8(
 				);
 	if (N2>0&&!N2_IO)
 		GroupCCalls[A++] = UserKernelCall(G2_Name, LOC_GROUP,
-					Bindings(10,C_Arg("G1O"),
+					Bindings(11,C_Arg("G1O"),
                                                     C_Arg("G2O"),
 						    KG_ArgOper("Wr",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Br",    '+', PerCell*N1*DimState),
 						    KG_ArgOper("Wz",    '+', PerCell*N1*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bz",    '+', PerCell*N1*DimState),
 						    KG_ArgOper("Wh",    '+', PerCell*N1*(DimState+DimIn)*DimState),
-						    KG_ArgOper("Bh",    '+', PerCell*N1*DimState),
+						    KG_ArgOper("Bwh",   '+', PerCell*N1*DimState),
+						    KG_ArgOper("Brh",   '+', PerCell*N1*DimState),
 						    KG_ArgOper("Infos", '+', PerCell*DimInfos*N1*GRU_CELL_INFOS),
 						    (!AlwaysReset)?Imm(0):AT_NO_ARG_BINDING
 						)
 				);
 	if (N3>0)
 		GroupCCalls[A++] = UserKernelCall(G3_Name, LOC_GROUP,
-					Bindings(11,(N2)?C_Arg("G2O"):C_Arg("G1O"),
+					Bindings(12,(N2)?C_Arg("G2O"):C_Arg("G1O"),
 						    (!AlwaysReset)?C_Arg("Hinout"):AT_NO_ARG_BINDING,
 						    KG_ArgOper("Wr",    '+', PerCell*(N1+N2)*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Br",    '+', PerCell*(N1+N2)*DimState),
 						    KG_ArgOper("Wz",    '+', PerCell*(N1+N2)*(DimState+DimIn)*DimState),
 						    KG_ArgOper("Bz",    '+', PerCell*(N1+N2)*DimState),
 						    KG_ArgOper("Wh",    '+', PerCell*(N1+N2)*(DimState+DimIn)*DimState),
-						    KG_ArgOper("Bh",    '+', PerCell*(N1+N2)*DimState),
+						    KG_ArgOper("Bwh",   '+', PerCell*(N1+N2)*DimState),
+						    KG_ArgOper("Brh",   '+', PerCell*(N1+N2)*DimState),
 						    KG_ArgOper("Hout",  '+', N2_IO?N2*DimState:0),
 						    KG_ArgOper("Infos", '+', PerCell*DimInfos*(N1+N2)*GRU_CELL_INFOS),
 						    (!AlwaysReset)?Imm(0):AT_NO_ARG_BINDING
 						)
 				);
 
-	GroupKerArgs = AllocateKerArgs(9 + (N1!=0) + (N2!=0 && N3!=0) + 2*(AlwaysReset==0));
+	GroupKerArgs = AllocateKerArgs(10 + (N1!=0) + (N2!=0 && N3!=0) + 2*(AlwaysReset==0));
 	A = 0;
 	if (!AlwaysReset)	GroupKerArgs[A++] = KerGroupArg("Hinout", O_IN|O_OUT,        DimState,                           FeatDataSize, "Hinout");
         if (N1!=0)		GroupKerArgs[A++] = KerGroupArg("G1O",    O_IN|O_OUT|O_BUFF, DimState,                           FeatDataSize, "G1O");
@@ -1158,7 +1174,8 @@ int GRU_Stack_SQ8(
 				GroupKerArgs[A++] = KerGroupArg("Wz",     O_IN,              DimOut*(DimState + DimIn)*DimState, 1,            "Wz");
 				GroupKerArgs[A++] = KerGroupArg("Bz",     O_IN,              DimOut*DimState,                    BiasDataSize, "Bz");
 				GroupKerArgs[A++] = KerGroupArg("Wh",     O_IN,              DimOut*(DimState + DimIn)*DimState, 1,            "Wh");
-				GroupKerArgs[A++] = KerGroupArg("Bh",     O_IN,              DimOut*DimState,                    BiasDataSize, "Bh");
+				GroupKerArgs[A++] = KerGroupArg("Bwh",    O_IN,              DimOut*DimState,                    BiasDataSize, "Bwh");
+				GroupKerArgs[A++] = KerGroupArg("Brh",    O_IN,              DimOut*DimState,                    BiasDataSize, "Brh");
 				GroupKerArgs[A++] = KerGroupArg("Hout",   O_OUT,             DimState*K1,                        FeatDataSize, "Hout");
 				GroupKerArgs[A++] = KerGroupArg("Infos",  O_IN,              DimOut*DimInfos*GRU_CELL_INFOS,     1,            "Infos");
 	if (!AlwaysReset)       GroupKerArgs[A++] = KerGroupArg("Reset",  O_IN,              1,                                  1,            "Reset");

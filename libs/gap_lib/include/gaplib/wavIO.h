@@ -31,5 +31,7 @@ typedef struct {
 
 int ReadWavFromFile(char *FileName, void* OutBuf, unsigned int BufSize, header_struct *HeaderInfo);
 int WriteWavToFile(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size);
+int WriteWavFromL3ToFile(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size, struct pi_device *ram);
+int WriteWavToFileNew(char *FileName, int BytesPerSample, int SampleRate, int NumChannels, void *data, int Size, int fromL3, struct pi_device *ram);
 
 #endif //__WAV_IO_H__

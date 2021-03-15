@@ -48,6 +48,9 @@ ifneq '$(udma/version)' ''
 CONFIG_UDMA = 1
 PULP_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version).c
 PULP_ASM_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version)_asm.S
+ifeq '$(TARGET_CHIP)' 'GAP9_V2'
+PULP_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version)_irq.c
+endif
 PULP_SRCS += drivers/octospi/octospi-v$(udma/hyper/version).c
 PULP_ASM_SRCS += drivers/octospi/octospi-v$(udma/hyper/version)_asm.S
 endif

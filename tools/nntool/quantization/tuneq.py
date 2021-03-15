@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from quantization.qtype import QType
-from quantization.symmetric.symmetric_quantizer import SymmetricQuantizer
+from quantization.unified_quantizer import UnifiedQuantizer
 from utils.node_id import NodeId
 from utils.stats_funcs import STATS_BITS
 from graph.types import ConvFusionParameters
@@ -27,18 +27,18 @@ def get_qtype(qparam1, qparam2):
         bits_idx = STATS_BITS.index(qparam1 + qparam2)
     except ValueError:
         raise TuneError("bit width is not valid")
-    return QType(STATS_BITS[bits_idx], qparam2, True)
+    return QType.Pow2(STATS_BITS[bits_idx], qparam2, True)
 
-def tuneq(G, qrecs, step_num, param, qparam1, qparam2, index=0):
+def tuneq(G, qrecs, node, param, qparam1, qparam2, index=0):
     del index
-    step = G.graph_state.steps[step_num]
-    node = step['node']
     if param == 'dp':
         raise ValueError("dp is deprecated. all layers are now double precision.")
 
     if param == "out":
         qtype = get_qtype(qparam1, qparam2)
-        SymmetricQuantizer.propagate(G, qrecs, node, qtype)
+        raise NotImplementedError()
+        #TODO - New propagation
+        # SymmetricQuantizer.propagate(G, qrecs, node, qtype)
     else:
         if isinstance(node, ConvFusionParameters):
             for subnode in node.contained_nodes():

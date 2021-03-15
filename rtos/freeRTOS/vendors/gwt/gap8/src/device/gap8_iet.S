@@ -464,9 +464,12 @@ _no_switch:
 
 
 /*******************************************************************************
-	TO DO : ILL_INS HANDLER
+	EXCEPTION HANDLER
 *******************************************************************************/
+        .extern _ill_insn_print
 	DECLARE ill_ins_handler
-	j ill_ins_handler
+        /* MEPC */
+        csrr a0, mepc
+	j _ill_insn_print
 	.endfunc
 /******************************************************************************/

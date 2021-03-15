@@ -13,13 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types import (ExpressionFusionParameters, FusionInputParameters,
-                         FusionOutputParameters)
+import numpy as np
+from graph.types import ExpressionFusionParameters
 from quantization.multiplicative.mult_quantization import \
     MultExpressionQuantizationRecord
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
-from quantization.quantization_handler import params_type
+from quantization.qtype import QType
+from quantization.unified_quantization_handler import params_type
+from utils.symbolic.q15_quantization.q15_scaled_quantization import \
+    Q15ScaledQuantization
+from utils.symbolic.symbol import SymbolStats
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
@@ -27,26 +29,17 @@ from ..mult_quantization_handler import MultQuantizionHandler
 @params_type(ExpressionFusionParameters)
 class ExpressionFusionMult(MultQuantizionHandler):
     @classmethod
-    def _quantize(cls, params, in_qs, out_dtype, stats, **kwargs):
-        o_qs = [SymmetricMultQType.from_min_max(min_val=orange['min'],
-                                                max_val=orange['max'],
-                                                dtype=out_dtype)
-                for orange in stats['range_out']]
-        fusion_inputs = sorted([n for n in params.subgraph.inputs()
-                                if isinstance(n, FusionInputParameters)],
-                               key=lambda x: x.idx)
-        fusion_outputs = sorted([n for n in params.subgraph.outputs()
-                                 if isinstance(n, FusionOutputParameters)],
-                                key=lambda x: x.idx)
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        force_out_qs, _ = cls.get_mult_opts(**kwargs)
+        if force_out_qs and any(force_q is not None for force_q in force_out_qs):
+            return None
+        symbol_control = SymbolStats(stats['expression'])
+        qfunc_col = params.func_col.quantize(Q15ScaledQuantization,
+                                             symbol_control,
+                                             quantize_inputs=False)
 
-        node_scale_map = {fnode: in_qs[idx].scale
-                          for idx, fnode in enumerate(fusion_inputs)}
-        for idx, fnode in enumerate(fusion_outputs):
-            node_scale_map[fnode] = o_qs[idx].scale
-        inp, outp, expr = params.decompose(node_scale_map=node_scale_map)
-
+        o_qs = [QType(scale=qfunc_col.qrecs[sym_name].scaledq, dtype=np.int8)
+                for sym_name in params.output_symbols]
         return MultExpressionQuantizationRecord(in_qs=in_qs,
                                                 out_qs=o_qs,
-                                                inputs=inp,
-                                                output_exprs=outp,
-                                                intermediate_exprs=expr)
+                                                qfunc_col=qfunc_col)

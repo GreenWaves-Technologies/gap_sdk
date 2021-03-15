@@ -14,12 +14,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from typing import Union
 from abc import abstractmethod
+from typing import Union
+
+from generation.at_types.gen_ctrl import CTRL_FEATURES, GenCtrl
+from quantization.quantization_record_base import (
+    FilterQuantizationRecordBase, InputOutputQuantizationRecordBase,
+    ScalableFilterQuantizationRecordBase)
 
 from utils.graph import Edge, Node
 from utils.option_list import OptionList
-from generation.at_types.gen_ctrl import GenCtrl, CTRL_FEATURES
+from utils.symbolic.symbol import Symbol
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -41,6 +46,7 @@ class NodeOptions(OptionList):
 
 class Parameters(Node):
     op_name = "unknown"
+    QREC_BASE = InputOutputQuantizationRecordBase
 
     def __init__(self, name, *args, in_dims_hint=None, out_dims_hint=None, constant_store=None, **kwargs):
         super().__init__(name, *args, **kwargs)
@@ -52,9 +58,17 @@ class Parameters(Node):
         self._step_idx = -1
         self._constant_store = constant_store
         self._valid_at_options = {"VCD_TRACE_ON": int, "DUMP_TENSORS": int,
-                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str}
+                                  "OUT_HOME_MEM_LOC": str, "OUT_EXEC_MEM_LOC": str,
+                                  "NODE_CNAME": str}
         self._at_options = NodeOptions(self._valid_at_options)
         self._meta = {}
+
+    @staticmethod
+    def qrec_base(qrec_base_cls):
+        def qrec_base_fn(cls):
+            setattr(cls, 'QREC_BASE', qrec_base_cls)
+            return cls
+        return qrec_base_fn
 
     def get_parameters(self):
         return {}
@@ -150,6 +164,14 @@ class Parameters(Node):
         LOG.debug("%s out dims set to %s", self.__class__.__name__, [str(val) for val in value])
         self._out_dims = value
 
+    @property
+    def node_cname(self):
+        return self.at_options.node_cname
+
+    @node_cname.setter
+    def node_cname(self, val):
+        self.at_options.node_cname = val
+
     @abstractmethod
     def get_parameter_size(self):
         pass
@@ -166,6 +188,20 @@ class Parameters(Node):
     @abstractmethod
     def clone(self, name, groupn=None):
         pass
+
+    def clone_dim_with_hint(self, dim, hint_idx, hint_dir="in"):
+        if hint_dir == "in":
+            hints = self._in_dims_hint
+        else:
+            hints = self._out_dims_hint
+        if dim.is_named and all(k in dim.keys for k in ['c', 'h', 'w']):
+            return dim.clone(['c', 'h', 'w'])
+        else:
+            cloned_dim = dim.clone()
+            hint = None if hints is None else hints[hint_idx]
+            if hint:
+                cloned_dim.apply_naming_hints(hint)
+            return cloned_dim
 
     def clone_dim_with_hints(self, dims, hint_dir="in", hint_idx=None):
         if hint_dir == "in":
@@ -193,6 +229,14 @@ class Parameters(Node):
     def __str__(self):
         pass
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.name})'
+
+# pylint: disable=invalid-name
+qrec_base = Parameters.qrec_base
+
+class InsensitiveToQuantization():
+    '''Mixin that indicates that node does not carry out arithmetic on tensor and is insenitive to quantization'''
 
 class SingleInputAndOutput():
     '''Mixin that indicates that node has a single input and output'''
@@ -205,6 +249,31 @@ class SensitiveToOrder():
 class SameNumberOfDimensionsForInputs():
     '''Mixin that indicates that the node has multiple inputs that have the same dimension length'''
 
+class CanFuseToExpression():
+    '''Mixin that indicates that the node can fuse into an expression'''
+    EXPRESSION_OP_CLS = None
+
+    def should_fuse(self, node_set):
+        return True
+
+    @staticmethod
+    def expression_op(op):
+        def fuse_op(cls):
+            if not issubclass(cls, CanFuseToExpression):
+                raise ValueError("a class decorated with expression_op must inherit CanFuseToExpression")
+            setattr(cls, 'EXPRESSION_OP_CLS', op)
+            return cls
+
+        return fuse_op
+
+    def get_expression(self, *args):
+        if not isinstance(self.EXPRESSION_OP_CLS, Symbol):
+            raise ValueError("class must be decorated with expression_op")
+#pylint: disable=not-callable
+        return self.EXPRESSION_OP_CLS(*args)
+
+#pylint: disable=invalid-name
+expression_op = CanFuseToExpression.expression_op
 
 class NoSizeChangeParameters(Parameters):
 
@@ -218,6 +287,13 @@ class NoSizeChangeParameters(Parameters):
     @abstractmethod
     def __str__(self):
         pass
+
+class ComparableParameters():
+    ''' Mixin that indicates that this operation can be compared with another of the same type
+    to determine redundancy. It is assumed that if A==B and B==C then A==C.'''
+
+    def is_same_operation_as(self, other):
+        return False
 
 #pylint: disable=abstract-method
 
@@ -306,77 +382,23 @@ class Transposable(Parameters):
 
 #pylint: disable=abstract-method
 
-
+@qrec_base(FilterQuantizationRecordBase)
 class FilterParameters(Parameters, SingleInputAndOutput):
 
     def __init__(self, *args, filt=None, has_bias=False, use_compressed=False, **kwargs):
         assert filt
         super(FilterParameters, self).__init__(*args, **kwargs)
-        self.has_bias = has_bias
+        self.has_bias = True
         self.filter = filt
         self._use_compressed = use_compressed
         self.stats = None
-        self._weights = None
-        self._biases = None
+        # self._weights = None
+        # self._biases = None
         self.details = None
         self.at_options.update_valid_options(CTRL_FEATURES)
 
-    @property
-    def weights(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 1, get_compressed=self._use_compressed)
-        else:
-            return self._weights
 
-    @weights.setter
-    def weights(self, val):
-        if self._constant_store:
-            self._constant_store.set(self, 1, val)
-        else:
-            self._weights = val
-
-    def get_uncompressed_weights(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 1, get_compressed=False)
-        else:
-            return self._weights
-
-    @property
-    def biases(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 2, get_compressed=self._use_compressed)
-        else:
-            return self._biases
-
-    @biases.setter
-    def biases(self, val):
-        if self._constant_store:
-            self._constant_store.set(self, 2, val)
-        else:
-            self._biases = val
-
-    def get_uncompressed_biases(self):
-        if self._constant_store:
-            return self._constant_store.get(self, 2, get_compressed=False)
-        else:
-            return self._biases
-
-    @property
-    def use_compressed(self):
-        return self._use_compressed
-
-    @use_compressed.setter
-    def use_compressed(self, val):
-        self._use_compressed = val
-
-    def get_parameters(self):
-        return {'weights': self.weights, 'biases': self.biases}
-
-    def set_parameters(self, val):
-        self.weights = val['weights']
-        self.biases = val['biases']
-
-
+@qrec_base(ScalableFilterQuantizationRecordBase)
 class MultiplicativeBiasParameters(FilterParameters):
     def __init__(self, *args, **kwargs):
         super(MultiplicativeBiasParameters, self).__init__(*args, **kwargs)

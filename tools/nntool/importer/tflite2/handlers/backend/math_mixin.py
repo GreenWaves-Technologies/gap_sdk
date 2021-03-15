@@ -14,9 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import copy
+from graph.dim import Dim
 
 from graph.types.base import NNEdge
 from graph.types.input_output import ConstantInputParameters
+from graph.types.tensor_arithmetic import Broadcastable
 from importer.common.broadcast_mixin import BroadcastMixin
 from importer.common.constant_mixin import ConstantMixin
 from importer.tflite2.common import LOG
@@ -72,14 +74,21 @@ class ArithmeticMixin(ConstantMixin, BroadcastMixin):
         if all(cls.is_constant(inp) for inp in inputs) and constant_operation:
             LOG.info("reducing %s to a constant", node.name)
             values = [cls.get_constant(inp) for inp in inputs]
-            params = ConstantInputParameters(node.name, value=constant_operation(*values))
+            output_shapes = cls.implied_broadcast(inputs)
+            params = ConstantInputParameters(node.name, value=constant_operation(*values),
+                                             dims=Dim.unnamed(output_shapes[0].known_shape), constant_store=G.constant_store)
         else:
             params = kwargs['params_class'](node.name, **params_args)
+            output_shapes = cls.implied_broadcast(inputs)
+            shapes = []
             for idx, inp in enumerate(inputs):
                 G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1], to_idx=idx))
+                shapes.append(inp[2].known_shape)
+            if isinstance(params, Broadcastable):
+                params.set_broadcast(shapes)
         if opts.get('load_quantization'):
-            G.quantization[NodeId(params)] = cls.load_tf_quantization(node.input, node.output, qrec_class=qrec_class)
-        output_shapes = cls.implied_broadcast(inputs)
+            G.quantization[NodeId(params)] = cls.load_tf_quantization(
+                node.input, node.output, qrec_class=qrec_class)
         all_nodes[node.output[0]] = (params, 0, output_shapes[0])
         return params
 

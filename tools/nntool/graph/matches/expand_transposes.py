@@ -17,7 +17,7 @@ import logging
 from copy import deepcopy
 from graph.matches.matcher import Matcher
 from graph.types import NNEdge, Transposable, TransposeParameters
-from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
+from utils.node_id import NodeId
 from utils.graph import GraphView
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -28,13 +28,16 @@ def apply_reverse_transpose_to_hint(hint, transpose):
     reversed_hint = [reverse_transpose[idx] for idx in range(len(hint))]
     return reversed_hint
 
+
 def apply_transpose_to_hint(hint, transpose):
     return [hint[idx] for idx in transpose]
+
 
 class ExpandTransposesMatcher(Matcher):
     NAME = "expand_transposes"
     DESCRIPTION = "Extract transposes from Transposable nodes for model generation"
     MODIFIES_DIMENSIONS = True
+
     def match(self, G: GraphView, set_identity: bool = True):
         # get a list of all the nodes that are transposable but not transposes
         # Need to do this first to avoid mutating it when doing the modifications
@@ -61,8 +64,10 @@ class ExpandTransposesMatcher(Matcher):
                         in_params.out_dims_hint = [out_hint.copy()]
                         node.in_dims_hint[edge.to_idx] = out_hint
                     if G.quantization:
-                        G.quantization.copy_to_node(node, in_params)
-                        G.quantization[NodeId(in_params)].out_qs = deepcopy(G.quantization[NodeId(in_params)].in_qs)
+                        qrec_node = G.quantization[NodeId(node)]
+                        G.quantization[NodeId(in_params)] = qrec_node.DEFAULT(
+                            in_qs=deepcopy([qrec_node.in_qs[edge.to_idx]]),
+                            out_qs=deepcopy([qrec_node.in_qs[edge.to_idx]]))
                     G.insert_node(in_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx,
                                   edge_class=NNEdge)
@@ -85,8 +90,10 @@ class ExpandTransposesMatcher(Matcher):
                         out_params.out_dims_hint = [out_hint.copy()]
                         node.out_dims_hint[edge.from_idx] = in_hint
                     if G.quantization:
-                        G.quantization.copy_to_node(node, out_params)
-                        G.quantization[NodeId(out_params)].in_qs = deepcopy(G.quantization[NodeId(out_params)].out_qs)
+                        qrec_node = G.quantization[NodeId(node)]
+                        G.quantization[NodeId(out_params)] = qrec_node.DEFAULT(
+                            in_qs=[deepcopy(qrec_node.out_qs[edge.from_idx])],
+                            out_qs=[deepcopy(qrec_node.out_qs[edge.from_idx])])
                     G.insert_node(out_params, edge.from_node.name, edge.to_node.name,
                                   from_idx=edge.from_idx, to_idx=edge.to_idx,
                                   edge_class=NNEdge)

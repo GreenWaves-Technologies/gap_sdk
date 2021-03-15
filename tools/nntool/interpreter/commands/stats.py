@@ -15,7 +15,7 @@
 
 import argparse
 from cmd2 import Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import output_table, table_options
 from reports.filter_reporter import (FilterDetailedStatsReporter,
                                      FilterStatsReporter)
@@ -36,6 +36,7 @@ class StatsCommand(NNToolShellBase):
     table_options(parser_stats, default_width=180)
 
     @with_argparser(parser_stats)
+    @no_history
     def do_stats(self, args: argparse.Namespace):
         """
 Display statistics on weights and biases"""

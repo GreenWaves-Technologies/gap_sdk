@@ -46,7 +46,7 @@
 /// @endcond
 
 /**
- * \struct pi_i2c_conf_t
+ * \struct pi_i2c_conf
  * \brief I2C master configuration structure.
  *
  * This structure is used to pass the desired I2C configuration to the runtime
@@ -63,6 +63,8 @@ typedef struct pi_i2c_conf
     uint16_t wait_cycles;
     uint32_t max_baudrate;   /*!< Maximum baudrate for the I2C bitstream which
       can be used with the opened device . */
+    uint8_t ts_ch;           /*!< Enable the timestamp on TX (0) or RX (1) */
+    uint8_t ts_evt_id;       /*!< UDMA Config Event ID for generating the timestamp */
 } pi_i2c_conf_t;
 
 
@@ -144,7 +146,15 @@ typedef enum
      *
      * \param timeout_id UDMA timeout channel ID.
      */
-    PI_I2C_IOCTL_DETACH_TIMEOUT_TX = 11
+    PI_I2C_IOCTL_DETACH_TIMEOUT_TX = 11,
+
+    /**
+     * \brief Enable the timestamp
+     *
+     * Enable the timestamp feature for the i2c interface.
+     */
+    PI_I2C_IOCTL_EN_TIMESTAMP = 12
+
 } pi_i2c_ioctl_e;
 
 /** \brief Initialize an I2C configuration with default values.

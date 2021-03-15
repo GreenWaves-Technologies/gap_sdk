@@ -15,8 +15,20 @@
 
 from abc import ABC, abstractmethod
 
+from importer.common.handler_options import HandlerOptions
+
+
 class ImporterBase(ABC):
 
     @abstractmethod
     def create_graph(self, filename, opts):
         pass
+
+    def get_opts(self, opts):
+        if opts is None:
+            opts = HandlerOptions.get_default_handler_options()
+        else:
+            default_opts = HandlerOptions.get_default_handler_options()
+            default_opts.update(opts)
+            opts = default_opts
+        return opts

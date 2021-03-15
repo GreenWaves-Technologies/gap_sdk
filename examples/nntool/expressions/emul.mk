@@ -22,7 +22,7 @@ QUANT_BITS=8
 
 NNTOOL_SCRIPT_PARAMETRIC = model/nntool_script_params_emul
 NNTOOL_SCRIPT=model/nntool_script_emul
-TRAINED_TFLITE_MODEL=model/expressions.tflite
+TRAINED_MODEL=model/expressions.tflite
 MODEL_SUFFIX = _$(QUANT_BITS)BIT_EMUL
 
 CLUSTER_STACK_SIZE=4096

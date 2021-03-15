@@ -29,7 +29,7 @@ from .stats_collector import StatsCollector
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def filter_stats(pnode, fnode, anode, channel_details=None, qrec=None):
+def filter_stats(G, pnode, fnode, anode, channel_details=None, qrec=None):
     stats = {}
     if isinstance(anode, MultiplicativeBiasParameters):
         if anode.has_mul_bias:
@@ -42,20 +42,14 @@ def filter_stats(pnode, fnode, anode, channel_details=None, qrec=None):
             mul_biases['qstats'] = calculate_qsnrs(qrec.mul_biases_fps,
                                                    mul_biases['ibits'],
                                                    force_ideal=False)
-    if anode.has_bias:
-        if qrec:
-            qbiases = qrec.prepare_biases(anode, anode.biases, anode.weights, ktype="float32")
-        else:
-            qbiases = anode.biases
+    in_edges = G.indexed_in_edges(pnode.name)
+    qweights = in_edges[1].from_node.dqvalue
+    qbiases = in_edges[2].from_node.dqvalue
 
-        stats['biases'] = biases = astats(qbiases)
-        biases['qstats'] = calculate_qsnrs(qbiases,
-                                           biases['ibits'],
-                                           force_ideal=False)
-    if qrec:
-        qweights = qrec.prepare_weights(anode, anode.weights, ktype="float32")
-    else:
-        qweights = anode.weights
+    stats['biases'] = biases = astats(qbiases)
+    biases['qstats'] = calculate_qsnrs(qbiases,
+                                       biases['ibits'],
+                                       force_ideal=False)
 
     stats['weights'] = weights = astats(
         qweights, channel_dim=anode.filter.get_order_idx('out_c'), channel_details=channel_details)
@@ -93,7 +87,7 @@ class FilterStatsCollector(StatsCollector):
             LOG.debug("collecting stats for %s step %s", anode.name, pnode.step_idx)
             if anode.__class__ in STATS_FUNCTIONS:
                 stats[nid] = STATS_FUNCTIONS[anode.__class__](
-                    pnode, fnode, anode, channel_details=step_idx is not None, qrec=qrec)
+                    G, pnode, fnode, anode, channel_details=step_idx is not None, qrec=qrec)
         return stats
 
 
@@ -105,15 +99,15 @@ class FilterDetailedStatsCollector(StatsCollector):
         stats = OrderedDict()
         for step_idx, node, _, fnode in G.nodes_iterator(True):
             key = NodeId(node, fnode)
-            node = fnode or node
-            if isinstance(node, (FcParameters, Conv2DParameters)):
-                stats[key] = self.detailed_stat(step_idx, node)
+            cnode = fnode or node
+            if isinstance(cnode, (FcParameters, Conv2DParameters)):
+                stats[key] = self.detailed_stat(G, step_idx, cnode)
         return stats
 
     @classmethod
-    def detailed_stat(cls, idx, node):
-        in_r, max_in_r = Ranges.range_input(node)
-        out_r, max_out_r = Ranges.range_output(node)
+    def detailed_stat(cls, G, idx, node):
+        in_r, max_in_r = Ranges.range_input(G, node)
+        out_r, max_out_r = Ranges.range_output(G, node)
         in_p = [in_elem/max_in_r for in_elem in in_r]
         out_p = [out_elem/max_out_r for out_elem in out_r]
         return [

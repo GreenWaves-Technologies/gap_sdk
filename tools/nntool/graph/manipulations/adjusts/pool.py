@@ -23,12 +23,6 @@ LOG = logging.getLogger("nntool." + __name__)
 
 @handles(PoolingParameters)
 class PoolAdjuster(AdjusterBase):
-    def adjust_input(self, G, node, names):
-        self.verify_chw(node, names)
-        trans = self.get_trans(names, ['c', 'h', 'w'])
-        self.apply_input_trans(node, trans)
-        self.apply_output_trans(node, self.invert(trans), index=0)
-
     def adjust(self, G, node):
         modified = False
         # check that the transposed input 0 matches autotiler order
@@ -36,7 +30,7 @@ class PoolAdjuster(AdjusterBase):
         if node.transpose_in is not None and node.transpose_in[0] is not None:
             names = self.trans_names(names, node.transpose_in[0])
         if names != ['c', 'h', 'w']:
-            self.adjust_input(G, node, names)
+            self.adjust_in_out_chw(G, node, names)
             modified = True
 
         return modified

@@ -14,13 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+
+import numpy as np
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          HSigmoidActivationParameters, MatrixAddParameters,
                          MatrixDivParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, TransposeParameters)
 from utils.graph import GraphView
-from utils.node_id import NodeId
 
 from .matcher import Matcher
 
@@ -100,18 +101,13 @@ class RemoveRelusMatch(Matcher):
             # check if constantinput. if is then check if positive and check max value
             if isinstance(node, ConstantInputParameters):
                 if node.value is not None:
-                    if G.has_quantized_parameters:
-                        qrec = G.quantization[NodeId(node)]
-                        qtype = qrec.out_qs[0]
-                        if hasattr(qtype, 'wrapped'):
-                            qtype = qtype.wrapped
-                        val = qtype.dequantize(node.value)
-                    else:
-                        val = node.value
-                    if val.min() >= 0:
-                        status = (True, val.max())
+                    val = node.dqvalue
+                    if np.min(val) >= 0:
+                        status = (True, np.max(val))
                     else:
                         status = (False, False)
+                else:
+                    status = (False, False)
             else:
                 status = (False, False)
 
@@ -121,6 +117,7 @@ class RemoveRelusMatch(Matcher):
         for node in nodes_to_remove:
             has_modified_graph = True
             # Only relus so only one in edge
+            LOG.info("removing redundant relu %s", node.name)
             in_edge = G.in_edges(node.name)[0]
             for edge in G.out_edges(node.name):
                 G.add_edge(NNEdge(from_node=in_edge.from_node,

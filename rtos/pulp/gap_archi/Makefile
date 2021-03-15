@@ -1,4 +1,4 @@
-DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip sfu fll riscv_dbg
+DOC_IP ?= rtc soc_eu efuse udma gpio adv_timer fc_mpu fc_icache_ctrl cluster_ctrl_unit apb_soc_ctrl cl_dma timer_unit ne16 i3c cluster_icache_ctrl fc_itc power_manager secured_riscv_debug non_secured_riscv_debug xip sfu fll riscv_dbg rom
 
 #TODO this doc has been removed: quiddikey
 #TODO add back udma AES when markdown is added
@@ -73,6 +73,13 @@ apb_soc_ctrl:
 		--header=include/archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl \
 		--rst=doc/ips/apb_soc_ctrl.rst
 
+rom:
+	./regmap/bin/regmap --name=rom \
+		--input=docs/IP_REFERENCES/GAP9_ROM.md \
+		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/GAP9_ROM.md \
+		--header=include/archi/chips/gap9_v2/rom/rom \
+		--rst=doc/ips/rom.rst
+
 cl_dma:
 	./regmap/bin/regmap --name=cl_dma \
 		--input=fe/ips/mchan/doc/CL_DMA_reference.md \
@@ -118,8 +125,8 @@ soc_eu:
 
 efuse:
 	./regmap/bin/regmap --name=efuse \
-		--input=fe/ips/apb/apb_efuse_if/doc/EFUSE_reference.md \
-		--input-md=$(GAP9_V2_HOME)/docs/IP_REFERENCES/EFUSE_reference.md \
+		--input=fe/ips/apb/apb_efuse_if/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/apb/apb_efuse_if/README.md \
 		--header=include/archi/chips/gap9_v2/efuse/efuse \
 		--rst=doc/ips/efuse.rst
 
@@ -146,8 +153,29 @@ sfu:
 		--name=sfu \
 		--input=fe/ips/udma/udma_anc/README.md \
 		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_anc/README.md \
-		--header=include/archi/chips/gap9_v2/sfu/sfu \
 		--rst=doc/ips/sfu.rst
+
+	./regmap/bin/regmap \
+		--name=sfu \
+		--input=fe/ips/udma/udma_anc/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_anc/README.md \
+		--header=include/archi/chips/gap9_v2/sfu/sfu \
+		--register=CLK_SETUP --register=CLK_EN --register=CLK_CFG_0 --register=CLK_CFG_1 --register=CLK_CFG_2 --register=GRAPH_MASK \
+		--register=MEM_IN_CFG_0 --register=MEM_IN_CFG_1 --register=STREAM_IN_CFG_0 --register=STREAM_IN_CFG_1 \
+		--register=PDM_IN_CFG0 --register=PDM_IN_CFG1 --register=MEM_OUT_CFG --register=STREAM_OUT_CFG --register=PDM_OUT_CFG \
+		--register=LIMITER_CFG --register=GFU_CFG --register=MIXER_CFG --register=SPLITTER_CFG --register=PIPELINE_CFG \
+		--register=RESAMPLER_CFG --register=POLYPHASE_CFG --register=ASRC_CFG --register=NORMSAT_CFG --register=GFU_GLOB \
+		--register=GFU_CFG_A --register=GFU_CFG_B --register=GFU_CFG_C --register=GFU_CFG_D --register=GFU_CFG_E \
+		--register=MIXER_GLOB --register=MIXER_CTX_OUT --register=MIXER_CTX_CFG --register=MIXER_CTX_INIT \
+		--register=MIXER_CTX_BIAS --register=MIXER_PORT_CFG \
+		--register=SPLITTER_GLOB --register=SPLITTER_CTX_CFG --register=SPLITTER_PORT_CFG \
+		--register=PIPE_GLOB --register=PIPE_INT_CFG \
+		--register=RESAMPLER_GLOB --register=RESAMPLER_CFG0 --register=RESAMPLER_CFG1 --register=RESAMPLER_CFG2 \
+		--register=LIMITER_INT_CFG --register=LIMITER_COEFF \
+		--register=POLYPHASE_GLOB --register=POLYPHASE_CFG_A --register=POLYPHASE_CFG_B --register=POLYPHASE_CFG_C \
+		--register=POLYPHASE_CFG_D --register=POLYPHASE_CFG_E --register=POLYPHASE_CFG_OD \
+		--register=FIFOMODE_GLOB --register=FIFOMODE_CFG_A --register=FIFOMODE_CFG_B --register=FIFOMODE_CFG_C --register=FIFOMODE_CFG_D \
+		--register=NORMSAT_GLOB --register=NORMSAT_INT_CFG
 
 udma_ffc:
 	./regmap/bin/regmap \
@@ -169,7 +197,13 @@ udma_i2s:
 	cd $(GAP9_V2_HOME)/fe/ips/udma/udma_i2s && make doc.ip HEADERS_PATH=$(CURDIR)/include/archi/chips/gap9_v2 RST_PATH=$(CURDIR)/doc/ips
 
 udma_uart:
-	cd $(GAP9_V2_HOME)/fe/ips/udma/udma_uart && make doc.ip HEADERS_PATH=$(CURDIR)/include/archi/chips/gap9_v2 RST_PATH=$(CURDIR)/doc/ips
+#	cd $(GAP9_V2_HOME)/fe/ips/udma/udma_uart && make doc.ip HEADERS_PATH=$(CURDIR)/include/archi/chips/gap9_v2 RST_PATH=$(CURDIR)/doc/ips
+	./regmap/bin/regmap \
+		--name=udma_uart \
+		--input=fe/ips/udma/udma_uart/docs/doc.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_uart/docs/doc.md \
+		--header=include/archi/chips/gap9_v2/udma_uart/udma_uart \
+		--rst=doc/ips/udma_uart.rst
 
 udma_cpi:
 	./regmap/bin/regmap \
@@ -178,6 +212,15 @@ udma_cpi:
 		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_camera/doc/CAM_CPI_reference.md \
 		--header=include/archi/chips/gap9_v2/udma_cpi/udma_cpi \
 		--rst=doc/ips/udma_cpi.rst
+
+udma_timestamp:
+	./regmap/bin/regmap \
+		--name=udma_timestamp \
+		--input=fe/ips/udma/fe/ips/udma/udma_timestamp/README.md \
+		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_timestamp/README.md \
+		--header=include/archi/chips/gap9_v2/udma_timestamp/udma_timestamp \
+		--rst=doc/ips/udma_timestamp.rst
+
 
 udma_i2c:
 	./regmap/bin/regmap \
@@ -200,7 +243,7 @@ udma_core_fifo:
 
 udma_core_lin:
 	./regmap/bin/regmap \
-		--name=udma_core_lin \
+		--name=udma_core_lin_addrgen \
 		--input=fe/ips/udma/udma_core/doc/UDMA_CORE_LIN_ADDRGEN_reference.md \
 		--input-md=$(GAP9_V2_HOME)/fe/ips/udma/udma_core/doc/UDMA_CORE_LIN_ADDRGEN_reference.md \
 		--header=include/archi/chips/gap9_v2/udma_core_lin/udma_core_lin \
@@ -230,7 +273,7 @@ udma_aes_dual_core:
 		--header=include/archi/chips/gap9_v2/udma_aes_dual_core/udma_aes_dual_core \
 		--rst=doc/ips/udma_aes_dual_core.rst
 
-udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_mram udma_i2s udma_uart udma_cpi udma_i2c udma_aes udma_aes_dual_core
+udma:  udma_filter udma_qspi udma_hyper udma_ctrl udma_core_fifo udma_core_lin udma_core_2d udma_mram udma_i2s udma_uart udma_cpi udma_i2c udma_aes udma_aes_dual_core udma_timestamp
 
 gpio:
 	./regmap/bin/regmap \

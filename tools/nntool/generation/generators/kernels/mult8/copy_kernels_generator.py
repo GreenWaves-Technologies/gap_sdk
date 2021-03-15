@@ -17,15 +17,18 @@ import logging
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generators.generator_decorators import generation_function
-from graph.types import CopyParameters
+from graph.types import CopyParameters, StridedSliceParameters
 
 from ..autotiler_kernel import AutotilerKernel
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@generation_function("kernels", (CopyParameters,))
+@generation_function("kernels", (CopyParameters, StridedSliceParameters))
 def copy_kernel_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
+    if isinstance(node, StridedSliceParameters):
+        assert all([act_slice[2] == 1 for act_slice in node.act_slice]), "Cannot generate strided slice layer with a copy if stride != 1"
+        assert all([act_slice[0] == 0 for act_slice in node.act_slice]), "Cannot generate strided slice layer with a copy if start != 0"
     gen.kernels.append(CopyKernel(node.name, cname, node, at_ver=gen.opts['at_ver']))
     return True
 
@@ -57,6 +60,6 @@ class CopyKernel(AutotilerKernel):
         else:
             gen_ctrl = "0"
 
-        gen_copy(code_block, self.cname, gen_ctrl, self.params.in_dims[0].size())
+        gen_copy(code_block, self.cname, gen_ctrl, self.params.out_dims[0].size())
 
         return code_block

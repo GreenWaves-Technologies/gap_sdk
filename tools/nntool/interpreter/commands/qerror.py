@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import (glob_input_files, input_options,
                                      output_table, table_options)
 from utils.data_importer import import_data
@@ -40,6 +40,7 @@ class QerrorCommand(NNToolShellBase):
     input_options(parser_qerror)
 
     @with_argparser(parser_qerror)
+    @no_history
     def do_qerror(self, args):
         """
 Show quantization error introduced by processing one or more input files."""

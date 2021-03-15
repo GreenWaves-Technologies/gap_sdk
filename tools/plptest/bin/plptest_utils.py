@@ -26,6 +26,7 @@ import re
 from prettytable import PrettyTable
 import math
 import plptest_bench
+import psutil
 
 class Command(object):
 
@@ -422,10 +423,14 @@ class TestRun(protocol.ProcessProtocol):
         return self.test.getPath()
 
     def close(self, kill=False):
-        if self.closed:
-            return True
 
-        os.killpg(self.pid, signal.SIGKILL)
+        try:
+            process = psutil.Process(pid=self.pid)
+    
+            for children in process.children(recursive=True):
+                os.kill(children.pid, signal.SIGKILL)
+        except:
+            pass
 
     def terminate(self):
         if self.callback is not None:

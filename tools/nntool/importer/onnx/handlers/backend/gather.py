@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import GatherParametters, NNEdge
+from graph.types import GatherParameters, NNEdge
 from graph.types.input_output import ConstantInputParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
@@ -43,10 +43,11 @@ class Gather(ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis))
+            params = ConstantInputParameters(valid_name, value=np.take(x_val, indices, axis=axis),
+                                             constant_store=G.constant_store)
         else:
             axis = cls._trim_axis(axis, x_shape)
-            params = GatherParametters(valid_name, axis=axis, indices=indices)
+            params = GatherParameters(valid_name, axis=axis, indices=indices)
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pshape)
         return params

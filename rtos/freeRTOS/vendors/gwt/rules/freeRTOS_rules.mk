@@ -259,6 +259,26 @@ GAP_LIB_INC_PATH   += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
 endif				# GAP_LIB
 
 
+ifdef CONFIG_TESTBENCH
+
+# Set of models connected to the RTL platform, capable of generating stimuli.
+# For example, on I2S it allows to generate samples, or capture them on I2S interfaces.
+# Models are dynamically controlled via UART.
+# A library in gap_lib is needed to control them.
+
+PMSIS_SRC += $(GAP_LIB_PATH)/testbench/testbench.c $(GAP_LIB_PATH)/testbench/testlib.c
+CONFIG_TESTBENCH_UART_ID ?= 1
+CONFIG_TESTBENCH_UART_BAUDRATE ?= 1000000
+CFLAGS += -DCONFIG_TESTBENCH_UART_ID=$(CONFIG_TESTBENCH_UART_ID) -DCONFIG_TESTBENCH_UART_BAUDRATE=$(CONFIG_TESTBENCH_UART_BAUDRATE)
+INC_PATH += $(GAP_LIB_PATH)/testbench
+
+export GVSOC_TESTBENCH=1
+override config_args += --config-opt=**/runner/gvsoc_dpi/enabled=true
+override config_args += --config-opt=**/testbench/testbench/uart_id=$(CONFIG_TESTBENCH_UART_ID)
+override config_args += --config-opt=**/testbench/testbench/uart_baudrate=$(CONFIG_TESTBENCH_UART_BAUDRATE)
+
+endif
+
 # OpenMP sources
 ifeq '$(CONFIG_OPENMP)' '1'
 OPENMP_SRC          = $(OPENMP_SRCS)
@@ -380,6 +400,9 @@ image: $(BIN)
 
 run: $(BIN)
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
+
+traces:
+	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) --no-run --extend-traces $(runner_args)
 
 disdump: $(OBJS_DUMP) $(BIN).s $(BIN).size
 

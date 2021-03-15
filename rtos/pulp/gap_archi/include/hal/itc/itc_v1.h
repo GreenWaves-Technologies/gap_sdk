@@ -23,64 +23,64 @@
 
 
 static inline void hal_itc_enable_value_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_MASK_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_MASK_OFFSET, mask);
 }
 
 static inline unsigned int hal_itc_enable_value_get() {
-  return pulp_read32(ARCHI_FC_ITC_ADDR + ITC_MASK_OFFSET);
+  return IP_READ(ARCHI_FC_ITC_ADDR, ITC_MASK_OFFSET);
 }
 
 static inline void hal_itc_enable_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_MASK_SET_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_MASK_SET_OFFSET, mask);
 }
 
 static inline void hal_itc_enable_clr(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_MASK_CLR_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_MASK_CLR_OFFSET, mask);
   asm volatile("nop");
 }
 
 
 static inline void hal_itc_ack_value_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_ACK_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_ACK_OFFSET, mask);
 }
 
 static inline unsigned int hal_itc_ack_value_get() {
-  return pulp_read32(ARCHI_FC_ITC_ADDR + ITC_ACK_OFFSET);
+  return IP_READ(ARCHI_FC_ITC_ADDR, ITC_ACK_OFFSET);
 }
 
 static inline void hal_itc_ack_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_ACK_SET_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_ACK_SET_OFFSET, mask);
 }
 
 static inline void hal_itc_ack_clr(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_ACK_CLR_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_ACK_CLR_OFFSET, mask);
 }
 
 
 
 static inline void hal_itc_status_value_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_STATUS_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_STATUS_OFFSET, mask);
 }
 
 static inline void hal_itc_status_value_set_remote(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_STATUS_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_STATUS_OFFSET, mask);
 }
 
 static inline unsigned int hal_itc_status_value_get() {
-  return pulp_read32(ARCHI_FC_ITC_ADDR + ITC_STATUS_OFFSET);
+  return IP_READ(ARCHI_FC_ITC_ADDR, ITC_STATUS_OFFSET);
 }
 
 static inline void hal_itc_status_set(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_STATUS_SET_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_STATUS_SET_OFFSET, mask);
 }
 
 static inline void hal_itc_status_clr(unsigned int mask) {
-  pulp_write32(ARCHI_FC_ITC_ADDR + ITC_STATUS_CLR_OFFSET, mask);
+  IP_WRITE(ARCHI_FC_ITC_ADDR, ITC_STATUS_CLR_OFFSET, mask);
 }
 
 
 static inline unsigned int hal_itc_fifo_pop() {
-  return pulp_read32(ARCHI_FC_ITC_ADDR + ITC_FIFO_OFFSET);
+  return IP_READ(ARCHI_FC_ITC_ADDR, ITC_FIFO_OFFSET);
 }
 
 

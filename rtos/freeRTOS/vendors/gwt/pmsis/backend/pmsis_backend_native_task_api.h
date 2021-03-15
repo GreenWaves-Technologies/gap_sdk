@@ -27,6 +27,11 @@ static inline int __os_native_api_disable_irq(void)
     return __disable_irq();
 }
 
+static inline void __os_native_api_enable_irq(void)
+{
+    return __enable_irq();
+}
+
 static inline void __os_native_api_restore_irq(int irq_enable)
 {
     return __restore_irq(irq_enable);
@@ -184,5 +189,66 @@ static inline void __os_native_task_suspend(__os_native_task_t *task)
     vTaskSuspend( (TaskHandle_t) task );
     vTaskDelete( (TaskHandle_t) task );
 }
+
+#if !defined(__GAP8__)
+extern void pi_irq_handler_wrapper(void);
+extern uint32_t pi_irq_handler_wrapper_vector[32];
+extern uint32_t pi_exception_vector[16];
+
+static uint32_t pi_irq_get_itvec(uint32_t ItBaseAddr, uint32_t ItIndex,
+        uint32_t ItHandler)
+{
+    /* Prepare 32bit container to be stored at
+     *    *(ItBaseAddr+ItIndex) containing a relative jump from
+     *        (ItBaseAddr+ItIndex) to Handler */
+
+    uint32_t S = ((uint32_t) ItHandler - (ItBaseAddr+ItIndex*4));
+    uint32_t R = 0x6F; /* Jal opcode with x0 as target, eg no return */
+
+    /* Forge JAL x0, Address: with Address = S => Bin[31:0] = [S20
+     *   | S10:1 | S11 | S19:12 | 00000 01101111] */
+
+    R = GAP_BINSERT(R, GAP_BEXTRACT(S,  1, 20),  1, 31);
+    R = GAP_BINSERT(R, GAP_BEXTRACT(S, 10,  1), 10, 21);
+    R = GAP_BINSERT(R, GAP_BEXTRACT(S,  1, 11),  1, 20);
+    R = GAP_BINSERT(R, GAP_BEXTRACT(S,  8, 12),  8, 12);
+
+    return R;
+}
+
+static inline void __os_native_irq_handler_set(int irq, void (*handler)())
+{
+    uint32_t mtvec = 0;
+    asm volatile ("csrr %0, mtvec\n"
+            : "=r" (mtvec));
+
+    mtvec &= ~0x1;
+    uint32_t *vector = (uint32_t*)mtvec;
+    vector[irq] = pi_irq_get_itvec(mtvec, irq, (uint32_t) handler);
+}
+
+static inline void __os_native_irq_wrapper_handler_set(int irq, void (*handler)())
+{
+    // set the redir vector
+    pi_irq_handler_wrapper_vector[irq] = (uint32_t)handler;
+    // set wrapper as handler in primary vector table
+    __os_native_irq_handler_set(irq, pi_irq_handler_wrapper);
+}
+
+static inline void __os_native_exception_handler_set(int cause, void (*handler)())
+{
+    pi_exception_vector[cause] = (uint32_t)handler;
+}
+
+static inline void __os_native_irq_unmask(int irq)
+{
+    NVIC_EnableIRQ(irq);
+}
+
+static inline void __os_native_irq_mask(int irq)
+{
+    NVIC_DisableIRQ(irq);
+}
+#endif  /* __GAP8__ */
 
 #endif

@@ -43,8 +43,10 @@
     #define __ALLOC_L2(__SIZE)                          malloc(__SIZE)
     #define __FREE_L2(__PTR, __SIZE)                    free((__PTR))
     #define __int_ssize_t ssize_t
+    typedef struct pi_device {};
 #else
     #include "bsp/fs.h"
+    #include "bsp/ram.h"
     typedef pi_fs_file_t * switch_file_t;
     typedef struct
     {

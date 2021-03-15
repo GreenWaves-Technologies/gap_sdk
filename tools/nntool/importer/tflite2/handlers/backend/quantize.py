@@ -14,14 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ..backend_handler import BackendHandler
-from ..handler import tflite_op, partial_support, ps_description
+from importer.tflite2.handlers.backend.quantize_mixin import QuantizeMixin
 
-from .no_op_mixin import NoOpMixin
+from ..backend_handler import BackendHandler
+from ..handler import tflite_op
 
 
 @tflite_op("QUANTIZE")
-@partial_support(True)
-@ps_description("imported but not used in calculations")
-class Quantize(NoOpMixin, BackendHandler):
-    pass
+class Quantize(BackendHandler, QuantizeMixin):
+    @classmethod
+    def _common(cls, node, **kwargs):
+        in_qtype = node.input[0].qtype
+        out_qtype = node.output[0].qtype
+        return cls.common_quantize(in_qtype, out_qtype, node, **kwargs)
+
+    @classmethod
+    def version_1(cls, node, **kwargs):
+        return cls._common(node, **kwargs)

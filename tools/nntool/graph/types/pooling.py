@@ -40,10 +40,10 @@ class PoolingParameters(FilterLikeParameters, Transposable):
     def get_output_size(self, in_dims):
 
         assert len(in_dims) == 1
-        self.in_dims = in_dims
-        in_dims = in_dims[0]
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        in_dims = self.in_dims[0]
 
-        if self.transpose_in:
+        if self.transpose_in and self.transpose_in[0]:
             in_dims = in_dims.calc_transpose(self.transpose_in[0])
 
         if self.filter is None:
@@ -57,7 +57,7 @@ class PoolingParameters(FilterLikeParameters, Transposable):
 
         out_dim.c = in_dims.c
         out_dim.impose_order(in_dims.order)
-        if self.transpose_out:
+        if self.transpose_out and self.transpose_out[0]:
             out_dim = out_dim.calc_transpose(self.transpose_out[0])
 
         return [out_dim]

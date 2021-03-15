@@ -2,7 +2,6 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <stdio.h>
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
@@ -23,7 +22,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
 	// k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -31,7 +30,7 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
 	return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 
 {
 	// k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S
@@ -805,7 +804,7 @@ static void __attribute__ ((noinline)) KerMaxPoolNxNStrideS_Body_fp(
 					v2s *Line1 = (v2s *) &In[(h*Stride-PadT+2*i+1)*W + (w*Stride-PadL)];
 					for (unsigned int j=0; j<(Fw/2); j++) {
 						v2s M0 = gap_max2(Line0[j], Line1[j]);
-						Acc = Max(M0[0], M0[1]);
+						Acc = Max(Acc,Max(M0[0], M0[1]));
 					}
 				}
 				Out[Wo*h+w] = Acc;
@@ -873,7 +872,7 @@ static void __attribute__ ((noinline)) KerMaxPoolNxMStrideSxSy_Body_fp(
 					v2s *Line1 = (v2s *) &In[(h*StrideY-PadT+2*i+1)*W + (w*StrideX-PadL)];
 					for (unsigned int j=0; j<(Fw/2); j++) {
 						v2s M0 = gap_max2(Line0[j], Line1[j]);
-						Acc = Max(M0[0], M0[1]);
+						Acc = Max(Acc,Max(M0[0], M0[1]));
 					}
 				}
 				Out[Wo*h+w] = Acc;

@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.base import NNEdge
+from utils.node_id import NodeId
+import numpy as np
 from graph.dim import Conv2DFilterDim, DilationDim, Dim, StrideDim
-from graph.types.conv2d import Conv2DParameters
-from importer.tflite2.common import LOG, check
+from graph.types import ConstantInputParameters, Conv2DParameters, NNEdge
 from importer.common.provisional_dim import ProvisionalDim
+from importer.tflite2.common import LOG, check
 from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.tflite_schema_head.DepthwiseConv2DOptions import \
     DepthwiseConv2DOptions
@@ -45,13 +46,12 @@ class DepthwiseConv2D(FilterMixin, BackendHandler):
         in_b, h, w, in_c = tuple(x_shape)
 
         filt = inputs[1]
-        filt_tensor = node.input[1]
+        weights_node = filt[0]
         filt_shape = filt[2].shape
         # ['in_c', 'h', 'w', 'out_c']
         filt_in_c, filt_h, filt_w, filt_out_c = tuple(filt_shape)
 
         # get filter dimensions
-        filt_tensor.used = True
         if filt_h > h or filt_w > w:
             LOG.warning("Filter %s of shape [%dx%d] is bigger than input of shape [%dx%d]",
                         node.name, filt_h, filt_w, h, w)
@@ -70,9 +70,13 @@ class DepthwiseConv2D(FilterMixin, BackendHandler):
         pad = cls.get_tf_padding(node_opts.Padding())
 
         # does it have biases
-        has_bias = len(inputs) > 2
-        if has_bias:
-            node.input[2].used = True
+        if len(inputs) > 2:
+            bias = inputs[2]
+            bias_node = bias[0]
+        else:
+            bias_node = ConstantInputParameters(f'{node.name}_bias',
+                                                dims=Dim.unnamed([filt_out_c]),
+                                                value=np.zeros([filt_out_c], dtype=np.float32))  # TODO - check
 
         # TFLITE produces single channel input DW convolutions with the
         # multiplier equal to the number of out channels. This is just
@@ -83,14 +87,16 @@ class DepthwiseConv2D(FilterMixin, BackendHandler):
 
         if convert_to_conv:
             filt_dim.impose_order(cls.TF_LITE_FILTER_ORDER)
+            # TODO - reorder weights for node converted to convolution (perhaps just dequantize)
             params = Conv2DParameters(node.name,
                                       filt=filt_dim,
                                       stride=StrideDim(node_opts.StrideH(), node_opts.StrideW()),
                                       dilation=DilationDim(node_opts.DilationHFactor(),
                                                            node_opts.DilationWFactor()),
                                       padding=pad,
-                                      has_bias=has_bias,
-                                      in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                      has_bias=True,
+                                      in_dims_hint=SparseList(
+                                          [['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy(), ['out_c']]),
                                       out_dims_hint=SparseList([['h', 'w', 'c']]),
                                       constant_store=G.constant_store)
         else:
@@ -103,21 +109,21 @@ class DepthwiseConv2D(FilterMixin, BackendHandler):
                                       padding=pad,
                                       groups=groups,
                                       multiplier=node_opts.DepthMultiplier(),
-                                      has_bias=has_bias,
+                                      has_bias=True,
                                       tf_depthwise=True,
-                                      in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                      in_dims_hint=SparseList(
+                                          [['h', 'w', 'c'], cls.TF_LITE_DW_FILTER_ORDER.copy(), ['out_c']]),
                                       out_dims_hint=SparseList([['h', 'w', 'c']]),
                                       constant_store=G.constant_store)
 
-        if opts.get('load_dequantized'):
-            cls.load_dequantized_filter_parameters(
-                params, node.input, convert_to_conv, is_dw=True)
-        else:
-            cls.load_filter_parameters(G, params, node.input, node.output, opts,
-                                       converted_to_conv=convert_to_conv)
+        G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+        G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
+        cls.new_load_filter_parameters(G, params, node.input[0], weights_node, bias_node,
+                                       node.output[0], opts, dw_to_pw=convert_to_conv)
 
         in_dim = Dim.named_ordered(h=h, w=w, c=in_c)
-        out_dims = params.get_output_size([in_dim])
+        out_dims = params.get_output_size(
+            [in_dim, Dim.unnamed(filt_dim.shape), Dim.unnamed([filt_out_c])])
         pout_dims = ProvisionalDim([in_b] + out_dims[0].shape)
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         params = cls.fuse_activation(node_opts, node.name, params, **kwargs)

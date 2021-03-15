@@ -106,7 +106,7 @@ else
 ifeq '$(TARGET_CHIP)' 'GAP9'
 all: dir header vega_bsp
 else
-all: dir header gapuino_bsp ai_deck_bsp gapoc_a_bsp gapoc_a_v2_bsp gapoc_b_bsp gapoc_b_v2_bsp
+all: dir header gapuino_bsp ai_deck_bsp gapoc_a_bsp gapoc_a_v2_bsp gapoc_b_bsp gapoc_b_v2_bsp 
 endif
 endif
 

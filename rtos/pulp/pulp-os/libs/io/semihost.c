@@ -12,6 +12,7 @@ int semihost_open(const char *name, int mode)
 {
     uint32_t len = strlen(name);
     uint32_t args[3] = {(uint32_t)name,mode,len};
+    __asm__ __volatile__ ("" : : : "memory");
     return __internal_semihost(SEMIHOSTING_SYS_OPEN, (long) args);
 }
 
@@ -24,18 +25,21 @@ int semihost_close(int fd)
 int semihost_read(int fd, uint8_t *buffer, int len)
 {
     uint32_t args[3] = {(uint32_t)fd,(uint32_t)buffer,(uint32_t)len};
+    __asm__ __volatile__ ("" : : : "memory");
     return __internal_semihost(SEMIHOSTING_SYS_READ, (long) args);
 }
 
 int semihost_write(int fd, uint8_t *buffer, int len)
 {
     uint32_t args[3] = {(uint32_t)fd,(uint32_t)buffer,(uint32_t)len};
+    __asm__ __volatile__ ("" : : : "memory");
     return __internal_semihost(SEMIHOSTING_SYS_WRITE, (long) args);
 }
 
 int semihost_seek(int fd, uint32_t pos)
 {
     uint32_t args[2] = {(uint32_t)fd,pos};
+    __asm__ __volatile__ ("" : : : "memory");
     return __internal_semihost(SEMIHOSTING_SYS_SEEK, (long) args);
 }
 

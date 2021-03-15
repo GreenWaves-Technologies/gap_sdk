@@ -59,6 +59,9 @@ struct pi_uart_conf
     uint8_t uart_id;        /*!< Uart interface ID. */
     uint8_t use_ctrl_flow;  /*!< 1 to activate control flow. */
     uint8_t is_usart;       /*!< 1 to activate usart */
+    uint8_t usart_polarity; /*!< If 1, the clock polarity is reversed. */
+    uint8_t usart_phase;    /*!< If 0, the data are sampled on the first clock
+        edge, otherwise on the second clock edge. */
 };
 
 /**

@@ -121,6 +121,7 @@ struct pi_spi_conf
                                   using copies. */
     int max_snd_chunk_size;     /*!< Specifies maximum chunk size for sending when
                                   using copies. */
+    int is_slave;               /*!< If 1, the SPI interface is configured as a slave. */
 };
 
 /** \enum pi_spi_ioctl_e
