@@ -386,6 +386,40 @@ int CNN_MatAddAct_SQ8(
 	);
 
 /*********************************************************************************************************************************************************************
+	Generator for Channel Padded Matrix Addition layers with input scale adjustment (tensor centric), output scaling (tensor centric) and optional activation
+
+	Template:
+		Name:		Name of the generated user kernel
+		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+		Feat:		Number of features
+		Width:		Width of a given feature
+		Height:		Height of a given feature
+		PadTop:		Top channel padding added to In2
+		PadBot:		Bottom channel padding added to In2
+
+		AddMatOper:	Should always be KOP_MATADD
+		ActOper:	Optional activation
+		Signature:	Name(In1, In2, Out, Infos, InfosPad)
+
+	CNN_MatAddPaddedAct_SQ8
+
+*********************************************************************************************************************************************************************/
+int CNN_MatAddPaddedAct_SQ8(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+
+	int Feat,
+	int Width,
+	int Height,
+	int PadTop,
+	int PadBot,
+
+	KernelOper_T AddMatOper,
+	KernelOper_T ActOper
+);
+
+/*********************************************************************************************************************************************************************
  	Generator for Tensor [CxHxW] by Vector [C] product with tensor centric scaling and optional Activation
 
 	Template:
@@ -601,5 +635,12 @@ int CNN_3DTensorPermute_SQ8(
 
 	KernelOper_T MatPermOper
 	);
+
+
+int CNN_Copy(
+	char *Name,
+    CNN_GenControl_T *Ctrl,
+	int Sz
+);
 
 #endif

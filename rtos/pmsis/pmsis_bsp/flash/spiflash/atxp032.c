@@ -24,6 +24,16 @@
 #include "bsp/bsp.h"
 #include "pmsis/drivers/octospi.h"
 
+#ifndef PI_LOCAL_CODE
+#define PI_LOCAL_CODE
+#endif
+
+#if defined(CONFIG_XIP)
+// For now we always activate XIP locking since we only have flash which do not support concurrent read and write.
+// This has to be deactivated for flash which support it (e.g. ATXP064R)
+#define ATXP032_LOCK_XIP
+#endif
+
 #define ATXP032_READ_STATUS_CMD 0x65
 #define ATXP032_READ_STATUS_LATENCY_SPI 8
 #define ATXP032_READ_STATUS_LATENCY_OCTO 3
@@ -32,7 +42,9 @@
 
 #define ATXP032_WRITE_STATUS_CMD 0x71
 #define ATXP032_WRITE_STATUS_LATENCY_SPI 0
+#define ATXP032_WRITE_STATUS_LATENCY_OCTO 0
 #define ATXP032_WRITE_STATUS_FLAGS_SPI (PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_ADDR_SIZE_1 | PI_OCTOSPI_FLAG_LINE_SINGLE | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_ADDR_STR | PI_OCTOSPI_FLAG_DATA_STR)
+#define ATXP032_WRITE_STATUS_FLAGS_OCTO (PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_ADDR_SIZE_0 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_ADDR_DTR | PI_OCTOSPI_FLAG_DATA_DTR)
 
 #define ATXP032_WRITE_ENABLE_CMD 0x6
 #define ATXP032_WRITE_ENABLE_LATENCY_SPI 0
@@ -146,6 +158,20 @@ static unsigned short atxp032_get_reg_exec(atxp032_t *atxp032, unsigned int addr
 }
 
 
+#ifdef CONFIG_XIP
+
+PI_LOCAL_CODE static uint32_t atxp032_get_status(atxp032_t *atxp032)
+{
+  struct pi_task task;
+  uint32_t data;
+  pi_octospi_op_conf_t op = { .cmd=ATXP032_READ_STATUS_CMD, .latency=ATXP032_READ_STATUS_LATENCY_OCTO, .flags=ATXP032_READ_STATUS_FLAGS_OCTO };
+  pi_octospi_read_async(&atxp032->octospi_device, 0, &data, 4, &op, pi_task_block(&task));
+  pi_task_wait_on_xip(&task);
+  return data;
+}
+
+#else
+
 static uint32_t atxp032_get_status(atxp032_t *atxp032)
 {
   uint32_t data;
@@ -154,8 +180,10 @@ static uint32_t atxp032_get_status(atxp032_t *atxp032)
   return data;
 }
 
+#endif
 
-static int atxp032_is_busy(atxp032_t *atxp032)
+
+PI_LOCAL_CODE static int atxp032_is_busy(atxp032_t *atxp032)
 {
     uint32_t value = atxp032_get_status(atxp032);
     return (value >> 8) & 1;
@@ -188,7 +216,7 @@ static int atxp032_open(struct pi_device *device)
     goto error;
   }
 
-  struct pi_octospi_conf octospi_conf = {0};
+  struct pi_octospi_conf octospi_conf;
   pi_octospi_conf_init(&octospi_conf);
 
   octospi_conf.id = (unsigned char) conf->spi_itf;
@@ -210,28 +238,37 @@ static int atxp032_open(struct pi_device *device)
   atxp032->erase_task = NULL;
   atxp032->erase_waiting_first = NULL;
 
-  uint32_t data;
 
-  pi_octospi_op_conf_t op1 = { .cmd=ATXP032_READ_STATUS_CMD, .latency=ATXP032_READ_STATUS_LATENCY_SPI, .flags=ATXP032_READ_STATUS_FLAGS_SPI };
-  pi_octospi_read(&atxp032->octospi_device, 0, &data, 4, &op1);
+  // First try to configure Octo DDR mode from single mode
+  {
+    pi_octospi_op_conf_t op_we = { .cmd=ATXP032_WRITE_ENABLE_CMD, .latency=ATXP032_WRITE_ENABLE_LATENCY_SPI, .flags=ATXP032_WRITE_ENABLE_FLAGS_SPI };
+    int dummy = 0;
+    pi_octospi_write(&atxp032->octospi_device, 0, &dummy, 1, &op_we);
 
-  pi_octospi_op_conf_t op2 = { .cmd=ATXP032_WRITE_ENABLE_CMD, .latency=ATXP032_WRITE_ENABLE_LATENCY_SPI, .flags=ATXP032_WRITE_ENABLE_FLAGS_SPI };
-  int dummy = 0;
-  pi_octospi_write(&atxp032->octospi_device, 0, &dummy, 1, &op2);
 
-  // Activate octospi mode and DTR
-  data |= (1 << 19) | (1 << 23);
-  // Unprotect all sectors
-  data &= ~(0x00000C00);
+    // Activate octospi mode and DTR and unprotect all sectors
+    uint32_t data = 0x1b880200;
 
-  pi_octospi_op_conf_t op3 = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_SPI, .flags=ATXP032_WRITE_STATUS_FLAGS_SPI };
-  pi_octospi_write(&atxp032->octospi_device, 0, &data, 4, &op3);
+    pi_octospi_op_conf_t op_ws = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_SPI, .flags=ATXP032_WRITE_STATUS_FLAGS_SPI };
+    pi_octospi_write(&atxp032->octospi_device, 0, &data, 4, &op_ws);
+  }
+
+  // Then try to do the same from octo DDR mode in case we rebooted with the flash kept on or the ROM already used the flash
+  {
+    pi_octospi_op_conf_t op_we = { .cmd=ATXP032_WRITE_ENABLE_CMD, .latency=ATXP032_WRITE_ENABLE_LATENCY_OCTO, .flags=ATXP032_WRITE_ENABLE_FLAGS_OCTO };
+    int dummy = 0;
+    pi_octospi_write(&atxp032->octospi_device, 0, &dummy, 1, &op_we);
+
+    // Activate octospi mode and DTR and unprotect all sectors
+    // Since the UDMA does not support 1 byte address in DDR mode, we pack it into the data
+    char status_regs[5] = { 0x00, 0x00, 0x02, 0x88, 0x1b };
+
+    pi_octospi_op_conf_t op_ws = { .cmd=ATXP032_WRITE_STATUS_CMD, .latency=ATXP032_WRITE_STATUS_LATENCY_OCTO, .flags=ATXP032_WRITE_STATUS_FLAGS_OCTO };
+    pi_octospi_write(&atxp032->octospi_device, 0, status_regs, 5, &op_ws);
+  }
 
   // In the spec writing to volatile status register should take 200ns but RTL model take 10us to update it
   pi_time_wait_us(20);
-
-  pi_octospi_op_conf_t op4 = { .cmd=ATXP032_READ_STATUS_CMD, .latency=ATXP032_READ_STATUS_LATENCY_OCTO, .flags=ATXP032_READ_STATUS_FLAGS_OCTO };
-  pi_octospi_read(&atxp032->octospi_device, 0, &data, 4, &op4);
 
   return 0;
 
@@ -473,8 +510,7 @@ static int atxp032_stall_erase_task(atxp032_t *atxp032, pi_task_t *task, uint32_
 }
 
 
-
-static void atxp032_program_resume(void *arg)
+PI_LOCAL_CODE static void atxp032_program_resume(void *arg)
 {
   struct pi_device *device = (struct pi_device *)arg;
   atxp032_t *atxp032 = (atxp032_t *)device->data;
@@ -485,6 +521,45 @@ static void atxp032_program_resume(void *arg)
   }
   else
   {
+#ifdef ATXP032_LOCK_XIP
+    // When XIP is active and flash does not support concurrent read and write, loop on the program operation until it is done
+    // Since XIP can not work at the same time.
+    // On multi-threaded systems, we should also put on hold any request to this driver and resume them after the program operation is done,
+    // since the octosp drover will let other requests execute between 2 operations, to let other devices being used.
+    while (atxp032->pending_size > 0)
+    {
+      atxp032_write_enable(atxp032);
+
+      unsigned int iter_size = 256 - (atxp032->pending_octospi_addr & 0xff);
+      if (iter_size > atxp032->pending_size)
+        iter_size = atxp032->pending_size;
+
+      uint32_t octospi_addr = atxp032->pending_octospi_addr;
+      uint32_t data = atxp032->pending_data;
+
+      atxp032->pending_octospi_addr += iter_size;
+      atxp032->pending_data += iter_size;
+      atxp032->pending_size -= iter_size;
+
+      // In XIP mode, we need to lock XIP refills to avoid having a read while the flash is doing the program operation.
+      pi_octospi_xip_lock(&atxp032->octospi_device);
+
+      // Even though the operation should be asynchronous, do everything synchronously to avoid XIP refills until the operation is done
+      struct pi_task task;
+      pi_octospi_write_async(&atxp032->octospi_device, octospi_addr, (void *)data, iter_size, &atxp032_program_op, pi_task_block(&task));
+      pi_task_wait_on_xip(&task);
+      while (atxp032_is_busy(atxp032))
+      {
+          for (int i=0; i<32768/1000; i++)
+          {
+            pos_wait_for_event(1<<ARCHI_FC_EVT_CLK_REF_RISE);
+          }
+      }
+      pi_octospi_xip_unlock(&atxp032->octospi_device);
+    }
+
+    atxp032_handle_pending_task(device);
+#else
     unsigned int iter_size = 256 - (atxp032->pending_octospi_addr & 0xff);
       if (iter_size > atxp032->pending_size)
         iter_size = atxp032->pending_size;
@@ -498,6 +573,7 @@ static void atxp032_program_resume(void *arg)
 
     atxp032_write_enable(atxp032);
     pi_octospi_write_async(&atxp032->octospi_device, octospi_addr, (void *)data, iter_size, &atxp032_program_op, pi_task_callback(&atxp032->task, atxp032_check_program, device));
+#endif
   }
 }
 
@@ -521,7 +597,7 @@ static void atxp032_check_program(void *arg)
 
 
 
-static void atxp032_program_async(struct pi_device *device, uint32_t octospi_addr, const void *data, uint32_t size, pi_task_t *task)
+PI_LOCAL_CODE static void atxp032_program_async(struct pi_device *device, uint32_t octospi_addr, const void *data, uint32_t size, pi_task_t *task)
 {
   atxp032_t *atxp032 = (atxp032_t *)device->data;
 
@@ -585,7 +661,7 @@ static void atxp032_erase_sector_async(struct pi_device *device, uint32_t addr, 
 
 
 
-static void atxp032_erase_resume(void *arg)
+PI_LOCAL_CODE static void atxp032_erase_resume(void *arg)
 {
   struct pi_device *device = (struct pi_device *)arg;
   atxp032_t *atxp032 = (atxp032_t *)device->data;
@@ -596,6 +672,45 @@ static void atxp032_erase_resume(void *arg)
   }
   else
   {
+#ifdef ATXP032_LOCK_XIP
+    // When XIP is active and flash does not support concurrent read and write, loop on the erase operation until it is done
+    // Since XIP can not work at the same time.
+    // On multi-threaded systems, we should also put on hold any request to this driver and resume them after the program operation is done,
+    // since the octosp drover will let other requests execute between 2 operations, to let other devices being used.
+    while (atxp032->pending_erase_size > 0)
+    {
+      atxp032_write_enable(atxp032);
+
+      // In XIP mode, we need to lock XIP refills to avoid having a read while the flash is doing the program operation.
+      pi_octospi_xip_lock(&atxp032->octospi_device);
+
+      unsigned int iter_size = SECTOR_SIZE - (atxp032->pending_erase_octospi_addr & (SECTOR_SIZE - 1));
+      if (iter_size > atxp032->pending_erase_size)
+        iter_size = atxp032->pending_erase_size;
+
+      uint32_t octospi_addr = atxp032->pending_erase_octospi_addr;
+
+      atxp032->pending_erase_octospi_addr += iter_size;
+      atxp032->pending_erase_size -= iter_size;
+
+      struct pi_task task;
+
+      // We don't need to send data but UDMA needs at least 1 byte, this will be ignored by the flash
+      pi_octospi_write_async(&atxp032->octospi_device, octospi_addr, atxp032->udma_buffer, 1, &atxp032_erase_op, pi_task_block(&task));
+      pi_task_wait_on_xip(&task);
+
+      while (atxp032_is_busy(atxp032))
+      {
+          for (int i=0; i<32768/100; i++)
+          {
+            pos_wait_for_event(1<<ARCHI_FC_EVT_CLK_REF_RISE);
+          }
+      }
+      pi_octospi_xip_unlock(&atxp032->octospi_device);
+    }
+
+    atxp032_handle_pending_erase_task(device);
+#else
     unsigned int iter_size = SECTOR_SIZE - (atxp032->pending_erase_octospi_addr & (SECTOR_SIZE - 1));
     if (iter_size > atxp032->pending_erase_size)
       iter_size = atxp032->pending_erase_size;
@@ -605,6 +720,7 @@ static void atxp032_erase_resume(void *arg)
 
     atxp032->pending_erase_octospi_addr += iter_size;
     atxp032->pending_erase_size -= iter_size;
+#endif
   }
 }
 

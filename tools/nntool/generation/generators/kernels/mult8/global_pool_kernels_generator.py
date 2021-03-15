@@ -66,7 +66,7 @@ class GlobalPoolKernel(AutotilerKernel):
         self.at_globalpool_params = gen_globalpool_at_params(pool_params)
         in_dim = pool_params.in_dims[0]
         reduce_sz = reduce(lambda x, y: x * y, (sz for idx, sz in enumerate(in_dim.shape)
-                                                if idx not in pool_params.axis))
+                                                if idx not in pool_params.axis), 1)
         #self.c = in_dim.size()/reduce_sz
         self.c = reduce_sz
         (self.h, self.w) = balanced_divisors(in_dim.size()/reduce_sz)

@@ -950,7 +950,7 @@ void Core_event_unit::check_state()
   uint32_t status_evt_masked = status.get() & evt_mask.get();
   int irq = status_irq_masked ? 31 - __builtin_clz(status_irq_masked) : -1;
 
-  top->trace.msg("Checking core state (coreId: %d, active: %d, status: 0x%llx, evtMask: 0x%llx, irqMask: 0x%llx)\n", core_id, this->is_active.get(), status, evt_mask, irq_mask);
+  top->trace.msg("Checking core state (coreId: %d, active: %d, status: 0x%llx, evtMask: 0x%llx, irqMask: 0x%llx)\n", core_id, this->is_active.get(), status, evt_mask.get(), irq_mask.get());
 
   if (this->is_active.get())
   {

@@ -18,7 +18,7 @@ export USE_PULPOS=1
 endif
 endif
 
-APP_INC += $(GAP_SDK_HOME)/tools/autotiler_v3/Emulation
+APP_INC += $(TILER_EMU_INC)
 
 ifndef USE_PULPOS
 ifeq ($(BOARD_NAME), gapuino)
@@ -75,6 +75,13 @@ APP_SRCS           += $(GAP_LIB_PATH)/jpeg/dct.c \
                       $(GAP_LIB_PATH)/jpeg/cluster.c
 APP_INC            += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
 endif				# CONFIG_GAP_LIB_JPEG
+
+ifeq '$(CONFIG_GAP_LIB_WAVIO)' '1'
+GAP_LIB_PATH        = $(GAP_SDK_HOME)/libs/gap_lib
+APP_SRCS           += $(GAP_LIB_PATH)/wav_io/wavIO.c
+APP_INC            += $(GAP_LIB_PATH)/include $(GAP_LIB_PATH)/include/gaplib
+endif				# CONFIG_GAP_LIB_WAVIO
+
 
 
 ifeq '$(PMSIS_OS)' 'freertos'
@@ -234,3 +241,10 @@ include $(GAP_SDK_HOME)/tools/gapy/rules/littlefs.mk
 include $(GAP_SDK_HOME)/tools/gapy/rules/flash.mk
 
 endif
+
+vscode:
+	mkdir -p .vscode
+	mkdir -p .vscode/scripts
+	cp -r $(GAP_SDK_HOME)/tools/rules/vscode/settings.json .vscode
+	cat $(GAP_SDK_HOME)/tools/rules/vscode/tasks.json | sed s#@GAP_TOOLCHAIN@#$(GAP_RISCV_GCC_TOOLCHAIN)#g | sed s#@GAP_SDK@#$(GAP_SDK_HOME)#g > .vscode/tasks.json
+	cat $(GAP_SDK_HOME)/tools/rules/vscode/launch.json | sed s#@BIN@#$(BIN)#g | sed s#@GDB@#`which riscv64-unknown-elf-gdb`# > .vscode/launch.json

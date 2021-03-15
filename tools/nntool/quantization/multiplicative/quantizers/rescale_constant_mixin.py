@@ -25,10 +25,9 @@ class RescaleConstantMixin():
         if (qtype.scale == scale.astype(qtype.scale.dtype) and
                 (dtype is None or dtype == qtype.dtype)):
             return
-        if node.value_quantization:
-            value = node.value_quantization.dequantize(node.value)
-            node.value = value
-            qrec.constants_are_quantized = False
+        if node.qtype:
+            node.value = node.dqvalue
+            node.qtype = None
 
         qtype.scale = scale
         if dtype:

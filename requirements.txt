@@ -3,3 +3,4 @@ prettytable==0.7.2
 configparser
 argcomplete
 requests
+six

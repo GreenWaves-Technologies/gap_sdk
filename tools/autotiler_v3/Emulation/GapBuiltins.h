@@ -223,6 +223,8 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 /* Static flags  to track viterbi max */
 static int _VitT0_Flag, _VitT1_Flag;
 
+#define PI_L2
+
 /* Packing of scalars into vectors */
 #define gap_pack2(x, y)			((v2s) {(signed short)   (x), (signed short)   (y)})
 #define gap_packu2(x, y)		((v2u) {(unsigned short) (x), (unsigned short) (y)})

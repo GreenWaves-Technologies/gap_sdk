@@ -37,7 +37,7 @@ class ConcatMixin(ConstantMixin):
         if all(cls.is_constant(inp) for inp in inputs):
             logger.info("reducing %s to a constant", valid_name)
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(valid_name, value=value)
+            params = ConstantInputParameters(valid_name, value=value, constant_store=G.constant_store)
         else:
             params = ConcatParameters(valid_name, axis=axis - none_dims)
             for idx, inp in enumerate(inputs):

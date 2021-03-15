@@ -55,7 +55,9 @@ from .kernels.mult8.linear_relu_kernels_generator import \
     linear_relu_kernels_generator
 from .kernels.mult8.mat_vect_mult_kernels_generator import \
     mat_vect_mult_kernel_generator
+from .kernels.mult8.mat_mul_kernels_generator import mat_mul_kernel_generator
 from .kernels.mult8.matadd_kernels_generator import matadd_kernel_generator
+from .kernels.mult8.padded_add_kernels_generator import padded_matadd_kernel_generator
 from .kernels.mult8.pool_relu_kernels_generator import \
     pool_act_kernels_generator as mult8_pool_act_kernels_generatoor
 from .kernels.mult8.rnn_kernels_generator import rnn_kernels_generator

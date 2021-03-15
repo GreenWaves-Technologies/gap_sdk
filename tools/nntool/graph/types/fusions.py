@@ -29,8 +29,9 @@ def insert_ext(l, elem, idx):
 
 class FusionInputOutputParameters(Parameters):
 
-    def __init__(self, *args, idx=0, **kwargs):
+    def __init__(self, *args, idx=0, dims=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.dims = dims
         self.idx = idx
 
     @property
@@ -38,7 +39,8 @@ class FusionInputOutputParameters(Parameters):
         return False
 
     def get_output_size(self, in_dims):
-        return [in_dims[0]]
+        self.dims = in_dims[0].clone()
+        return [self.dims]
 
     def get_parameter_size(self):
         return 0
@@ -61,7 +63,11 @@ class FusionOutputParameters(FusionInputOutputParameters):
 class FusionBase(Parameters):
     fusion_op_name = "!!NOT SET!!"
 
-    def __init__(self, name, *args, fusion_type=None, subgraph=None, input_mapping=None, output_mapping=None, inout_set=False, **kwargs):
+    def __init__(self, name, *args, fusion_type=None, subgraph=None,
+                 input_mapping=None,
+                 output_mapping=None,
+                 in_dims=None, out_dims=None,
+                 inout_set=False, **kwargs):
         # output_mapping [(int_node1, 1), (int_node2, 0), ....]
         # input mapping list of list inputs [[(int_node1, 1), (int_node2, 0)], ....]
         super(FusionBase, self).__init__(name, *args, **kwargs)
@@ -76,8 +82,10 @@ class FusionBase(Parameters):
 
             for from_idx, node_list in enumerate(input_mapping):
                 hint = [in_hints[from_idx]] if in_hints and len(in_hints) > from_idx else None
+                dims = in_dims[from_idx] if in_dims and len(in_dims) > from_idx else None
                 input_node = FusionInputParameters("%s_in_%s" % (name, from_idx),
                                                    idx=from_idx,
+                                                   dims=dims,
                                                    in_dims_hint=hint, out_dims_hint=hint)
                 for node, to_idx in node_list:
                     subgraph.add_edge(NNEdge(input_node, node, to_idx=to_idx))
@@ -92,10 +100,10 @@ class FusionBase(Parameters):
                                                      in_dims_hint=hint, out_dims_hint=hint)
                 subgraph.add_edge(NNEdge(node, output_node, from_idx=from_idx))
 
-        inputs_by_idx = sorted(list({node.idx: node for node in subgraph
+        inputs_by_idx = sorted(list({node.idx: node for node in subgraph.nodes()
                                      if isinstance(node, FusionInputParameters)}.values()),
                                key=lambda x: x.idx)
-        outputs_by_idx = sorted([node for node in subgraph
+        outputs_by_idx = sorted([node for node in subgraph.nodes()
                                  if isinstance(node, FusionOutputParameters)],
                                 key=lambda x: x.idx)
 
@@ -107,7 +115,8 @@ class FusionBase(Parameters):
                     self.in_dims_hint[idx] = edge.to_node.in_dims_hint[edge.to_idx]
             if all(hint is None for hint in self.in_dims_hint):
                 self.in_dims_hint = None
-
+        if in_dims is not None:
+            self.in_dims = in_dims
         if not self.out_dims_hint:
             self.out_dims_hint = [None]*len(outputs_by_idx)
             for idx, node in enumerate(outputs_by_idx):
@@ -116,6 +125,8 @@ class FusionBase(Parameters):
                     self.out_dims_hint[idx] = edge.from_node.out_dims_hint[edge.from_idx]
             if all(hint is None for hint in self.out_dims_hint):
                 self.out_dims_hint = None
+        if out_dims is not None:
+            self.out_dims = out_dims
 
         self.fusion_type = fusion_type
 
@@ -183,7 +194,7 @@ class FusionBase(Parameters):
         node_out_dims = []
         for node in self.subgraph.dfs():
             if isinstance(node, FusionInputParameters):
-                node_in_dims = self.clone_dim_with_hints([in_dims[node.idx]])
+                node_in_dims = [self.clone_dim_with_hint(in_dims[node.idx], node.idx)]
             else:
                 node_in_dims = []
                 for edge in self.subgraph.in_edges(node.name):
@@ -245,6 +256,64 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
         return sum([load if load else 0 for load in [node.compute_load()
                                                      for node in self.contained_nodes()]])
 
+class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
+    fusion_op_name = "padded_add_fusion"
+
+    def _init_at_options(self):
+        if self._at_options is None:
+            self._at_options = NodeOptions(None)
+        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
+
+    @property
+    def at_options(self):
+        self._init_at_options()
+        return self._at_options
+
+    @at_options.setter
+    def gen_ctrl(self, val):
+        self._init_at_options()
+        self._at_options = val
+
+    def get_parameter_size(self):
+        return 0
+
+    def __str__(self):
+        return "{} {}".format(", ".join([str(node).strip() for node in self.contained_nodes()]), self.gen_ctrl or "")
+
+    def compute_load(self):
+        return sum([load if load else 0 for load in [node.compute_load()
+                                                     for node in self.contained_nodes()]])
+
+class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
+    '''Fusion of operators. At present restricted to single input and output but
+    this could be removed perhaps'''
+
+    fusion_op_name = "fusion"
+
+    def _init_at_options(self):
+        if self._at_options is None:
+            self._at_options = NodeOptions(None)
+        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
+
+    @property
+    def at_options(self):
+        self._init_at_options()
+        return self._at_options
+
+    @at_options.setter
+    def gen_ctrl(self, val):
+        self._init_at_options()
+        self._at_options = val
+
+    def get_parameter_size(self):
+        return sum([node.get_parameter_size() for node in self.contained_nodes()])
+
+    def __str__(self):
+        return "{} {}".format(", ".join([str(node).strip() for node in self.contained_nodes()]), self.gen_ctrl or "")
+
+    def compute_load(self):
+        return sum([load if load else 0 for load in [node.compute_load()
+                                                     for node in self.contained_nodes()]])
 
 class ActivationFusion(FusionBase):
     fusion_op_name = "activation_fusion"

@@ -59,6 +59,9 @@ def gap_roundnorm(x, scale):
     rounding = np.array([1], dtype=np.int32) << (scale - 1)
     return (x.astype(np.int32) + rounding) >> scale
 
+def gap_roundnorm_reg(x, scale):
+    rounding = np.where(x != 0, np.array([1], dtype=np.int32) << (scale - 1), 0)
+    return (x.astype(np.int32) + rounding) >> scale
 
 def exp_fp_17_15(X):
     X = X.astype(np.uint32)

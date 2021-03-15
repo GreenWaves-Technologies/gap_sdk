@@ -44,11 +44,11 @@ VALID_DATA_IMPORT_EXTENSIONS = ['.npy', '.dat']
 def postprocess(img_in, h, w, c, **kwargs):
     if kwargs.get('transpose'):
         if c == 1:
-            img_in = img_in.transpose((1, 0)).reshape((c, h, w))
+            img_in = img_in.reshape((c, h, w))
         else:
             img_in = img_in.transpose((2, 0, 1)).copy()
-    elif c == 1:
-        img_in = img_in.reshape((c, w, h))
+    # elif c == 1:
+    #     img_in = img_in.reshape((c, h, w))
 
     divisor = kwargs.get('divisor') or 1
     offset = kwargs.get('offset') or 0

@@ -40,7 +40,7 @@
 #define PI_AT_NINA_B112_ECHO_ON             E1
 
 /*!< Factory reset. */
-#define PI_AT_NINA_B112_FACTORY_RESET      +FACTORY
+#define PI_AT_NINA_B112_FACTORY_RESET      +UFACTORY
 
 /*!< Unbound devices. */
 #define PI_AT_NINA_B112_DEVICE_UNBOND_SET  +UBTUB=

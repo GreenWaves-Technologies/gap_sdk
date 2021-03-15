@@ -13,11 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 from quantization.multiplicative.mult_quantization import \
     MultQuantizationRecord
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
-from quantization.quantization_handler import params_type
+from quantization.unified_quantization_handler import params_type
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
@@ -25,8 +24,18 @@ from ..mult_quantization_handler import MultQuantizionHandler
 @params_type('__default__')
 class NoChangeMult(MultQuantizionHandler):
     @classmethod
-    def _quantize(cls, params, in_qs, out_dtype, stats, **kwargs):
-        o_q = SymmetricMultQType.from_min_max(min_val=stats['range_out'][0]['min'],
-                                              max_val=stats['range_out'][0]['max'],
-                                              dtype=out_dtype)
-        return MultQuantizationRecord(in_qs=in_qs, out_qs=[o_q])
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        force_out_qs, _ = cls.get_mult_opts(**kwargs)
+        force_out_q = force_out_qs and force_out_qs[0]
+        backwards = kwargs.get('backwards')
+        if backwards:
+            # if output must be forced
+            assert force_out_q, f'going backwards at {params.name} but output is not forced'
+            return MultQuantizationRecord(in_qs=[deepcopy(force_out_q)] * len(in_qs), out_qs=[deepcopy(force_out_q)])
+
+        # if going forwards and our output is forced and does not match input then
+        # we cannot satisfy
+        if force_out_q and not all(in_q == force_out_q for in_q in in_qs):
+            return None
+
+        return MultQuantizationRecord(in_qs=in_qs, out_qs=[deepcopy(in_qs[0])])

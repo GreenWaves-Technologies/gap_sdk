@@ -31,7 +31,7 @@
  */
 
 /**
- * @addtogroup I2C_SLVA
+ * @addtogroup I2C_SLAVE
  * @{
  */
 

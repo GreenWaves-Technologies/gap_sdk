@@ -108,16 +108,57 @@ static int open_camera_himax(struct pi_device *device)
 #else
 static int open_camera_mt9v034(struct pi_device *device)
 {
-  struct pi_mt9v034_conf cam_conf;
+    #define MT9V034_BLACK_LEVEL_CTRL  0x47
+    #define MT9V034_BLACK_LEVEL_AUTO  (0 << 0)
+    #define MT9V034_AEC_AGC_ENABLE    0xaf
+    #define MT9V034_AEC_ENABLE_A      (1 << 0)
+    #define MT9V034_AGC_ENABLE_A      (1 << 1)
 
-  pi_mt9v034_conf_init(&cam_conf);
-  cam_conf.format = PI_CAMERA_QVGA;
+    uint16_t val;
+    struct pi_mt9v034_conf cam_conf;
 
-  pi_open_from_conf(device, &cam_conf);
-  if (pi_camera_open(device))
-    return -1;
+    pi_mt9v034_conf_init(&cam_conf);
 
-  return 0;
+    //cam_conf.column_flip = 1;
+    //cam_conf.row_flip    = 0;
+    #ifdef QVGA
+    cam_conf.format = CAMERA_QVGA;
+    #endif
+    #ifdef QQVGA
+    cam_conf.format = CAMERA_QQVGA;
+    #endif
+
+    pi_open_from_conf(device, &cam_conf);
+    if (pi_camera_open(device))
+        return -1;
+
+    val = MT9V034_BLACK_LEVEL_AUTO;
+    pi_camera_reg_set(device, MT9V034_BLACK_LEVEL_CTRL, (uint8_t *) &val);
+
+    val = MT9V034_AEC_ENABLE_A | MT9V034_AGC_ENABLE_A;
+    pi_camera_reg_set(device, MT9V034_AEC_AGC_ENABLE, (uint8_t *) &val);
+
+    //MAX and MIN AEC
+    //Minimum Coarse Shutter Width
+    val = 0x0000; //def 1
+    pi_camera_reg_set(device, 0xAC, (uint8_t *) &val);
+    //Maximum Coarse Shutter Width
+    val = 0x05E0; //def 480 0x01E0
+    pi_camera_reg_set(device, 0xAD, (uint8_t *) &val);
+
+    //MAX Analog Gain
+    val = 0x40; //def 64 0x40, value 16 to 64
+    pi_camera_reg_set(device, 0xAB, (uint8_t *) &val);
+
+    //AGC/AEC Pixel Count
+    val =0xABE0; //0-65535, def 44000 0xABE0
+    pi_camera_reg_set(device, 0xB0, (uint8_t *) &val);
+
+    //Desired luminance of the image by setting a desired bin
+    val = 32; //def 58
+    pi_camera_reg_set(device, 0xA5, (uint8_t *) &val);
+
+    return 0;
 }
 #endif  /* HIMAX */
 #endif  /* USE_CAMERA */

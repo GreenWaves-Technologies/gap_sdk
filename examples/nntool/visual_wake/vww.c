@@ -33,9 +33,9 @@
 AT_HYPERFLASH_FS_EXT_ADDR_TYPE __PREFIX(_L3_Flash) = 0;
 
 // Softmax always outputs Q15 short int even from 8 bit input
-signed short int Output_1[2];
+PI_L2 signed short int Output_1[2];
 typedef signed char IMAGE_IN_T;
-unsigned char Input_1[AT_INPUT_SIZE];
+PI_L2 unsigned char Input_1[AT_INPUT_SIZE];
 
 static void RunNetwork()
 {

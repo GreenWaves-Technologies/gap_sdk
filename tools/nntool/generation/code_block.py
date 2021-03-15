@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-quote = lambda s: '"'+s+'"'
+QUOTE = lambda s: '"'+s+'"'
 
 class CodeBlock():
     def __init__(self, starting_indent=0, indent_char="    "):

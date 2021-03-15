@@ -25,7 +25,7 @@ from graph.types import (ConvFusionParameters, FilterParameters,
                          HSwishActivationParameters, PoolingParameters,
                          SoftMaxParameters, ActivationFusion, MatrixMulParameters,
                          ReluActivationParameters, MatrixAddParameters, ActivationParameters,
-                         LeakyActivationParameters)
+                         LeakyActivationParameters, PaddedAddFusionParameters)
 from quantization.qtype import QType
 from quantization.symmetric.kernels.activations import (
     hsigmoid_mult_gen_factors, hswish_mult_gen_factors, leak_mult_gen_factor_q7)
@@ -36,17 +36,13 @@ from .global_names import *
 @generation_function("globals",
                      (FilterParameters, ConvFusionParameters, ActivationParameters,
                       GlobalPoolParameters, MatrixAddParameters, MatrixMulParameters,
-                      ActivationFusion, PoolingParameters, SoftMaxParameters),
+                      ActivationFusion, PoolingParameters, SoftMaxParameters, PaddedAddFusionParameters),
                      qrec_types=(QREC_MULT8,))
 def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     if fnode is not None:
         return False
     if isinstance(pnode, FilterParameters):
-        if pnode.has_bias:
-            bias_q = qrec.biases_q.q
-        else:
-            bias_q = qrec.biases_q.q
-        act_infos(gen, pnode, pnode, None, None, extra1=bias_q)
+        act_infos(gen, pnode, pnode, None, None, extra1=0)
     elif isinstance(pnode, (GlobalPoolParameters, PoolingParameters)):
         qrec.set_scale()
         act_infos(gen, pnode, pnode, None, qrec)
@@ -58,16 +54,12 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         for qrec in quants:
             qrec.set_scale()
         if node.fusion_type.startswith('linear') or node.fusion_type.startswith('conv'):
-            if cnodes[0].has_bias:
-                bias_q = quants[0].biases_q.q
-            else:
-                bias_q = quants[0].out_qs[0].q
             if node.fusion_type in ("conv_active_pool", "conv_active", "linear_active"):
-                act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1], extra1=bias_q)
+                act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1], extra1=0)
             elif node.fusion_type == "conv_pool_active":
-                act_infos(gen, pnode, cnodes[0], cnodes[2], quants[2], extra1=bias_q)
+                act_infos(gen, pnode, cnodes[0], cnodes[2], quants[2], extra1=0)
             elif node.fusion_type == "conv_pool":
-                act_infos(gen, pnode, cnodes[0], None, None, extra1=bias_q)
+                act_infos(gen, pnode, cnodes[0], None, None, extra1=0)
     elif isinstance(pnode, MatrixAddParameters):
         qrec.set_add_scale()
         act_infos(gen, pnode, pnode, None, None,
@@ -75,6 +67,21 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
                   extra2=qrec.scale_in_mul_biases_q.qnorms[0],
                   extra3=qrec.scale_mul_biases_q.qbiases[0],
                   extra4=qrec.scale_mul_biases_q.qnorms[0])
+    elif isinstance(pnode, PaddedAddFusionParameters):
+        cnodes = node.contained_nodes()
+        quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+        for qrec in quants:
+            qrec.set_scale()
+        act_node = [cnode for cnode in cnodes if isinstance(cnode, ActivationParameters)]
+        act_node = act_node[0] if act_node else None
+        act_qrec = quants[-1] if act_node else None
+        quants[1].set_add_scale()
+        act_infos(gen, pnode, pnode, act_node, act_qrec,
+                  extra1=quants[1].scale_in_mul_biases_q.qbiases[0],
+                  extra2=quants[1].scale_in_mul_biases_q.qnorms[0],
+                  extra3=quants[1].scale_mul_biases_q.qbiases[0],
+                  extra4=quants[1].scale_mul_biases_q.qnorms[0])
+        act_infos(gen, pnode, cnodes[0], act_node, act_qrec, extra_name="Pad")
     elif isinstance(pnode, MatrixMulParameters):
         qrec.set_scale(in_idx=(0, 1), out_idx=0)
         act_infos(gen, pnode, pnode, None, None,
@@ -109,16 +116,17 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     return True
 
 
-def gen_constant(gen, pnode, cache_node, const_type):
+def gen_constant(gen, pnode, cache_node, const_type, extra_name=''):
     cname = gen.naming_convension.get_global_name(pnode.name, pnode.step_idx,
                                                   pnode, const_type)
+    cname = cname + extra_name
     gen.name_cache.set(cache_node, const_type, cname)
     file_name = os.path.join(gen.opts['tensor_directory'],
                              cname+".tensor")
     return cname, file_name
 
 
-def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0, extra4=0):
+def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0, extra4=0, extra_name=''):
     if isinstance(pnode, FilterParameters):
         comment = str.format("BiasQ: {}", extra1)
     elif isinstance(pnode, MatrixAddParameters):
@@ -202,8 +210,8 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
                               act_q.in_qs[0].scale[0],
                               act_q.out_qs[0].scale[0])
 
-    cname, file_name = gen_constant(gen, pnode, fnode, INFOS)
-    const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True), contents=contents)
+    cname, file_name = gen_constant(gen, pnode, fnode, INFOS, extra_name)
+    const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True), contents=contents)
 
     gen.globals.append(GlobalArgInfo("int8", cname,
                                      gen.opts['default_global_home_location'],

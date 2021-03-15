@@ -15,10 +15,10 @@
 
 import numpy as np
 from graph.types import LSTMParameters
+from importer.common.constant_mixin import ConstantMixin
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 from .rnn_mixin import RNNMixin
 
 

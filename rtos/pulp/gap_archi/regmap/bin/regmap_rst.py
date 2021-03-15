@@ -3,6 +3,7 @@
 #
 
 import pytablewriter
+import os
 
 class Rst_file(object):
     def __init__(self, name, path):
@@ -125,11 +126,12 @@ class Register(object):
         writer.stream = rst.get_file()
         writer.write_table()
 
-        rst.dump_title('Generated headers', 6)
+        if os.environ.get('DUMP_C_HEADERS_TO_RST'):
+            st.dump_title('Generated headers', 6)
 
-        self.dump_c_headers_to_rst(rst=rst)
+            self.dump_c_headers_to_rst(rst=rst)
 
-        rst.file.write('|\n')
+            rst.file.write('|\n')
 
     def dump_to_reglist_rst(self, regmap, table):
         table.append([':ref:`%s<%s_%s>`' % (self.name, regmap.name, self.name), self.offset, self.width, self.desc])
@@ -159,11 +161,12 @@ class Regmap(object):
         writer.write_table()
 
 
-        rst.dump_title('Generated headers', 6)
+        if os.environ.get('DUMP_C_HEADERS_TO_RST'):
+            rst.dump_title('Generated headers', 6)
 
-        self.dump_regs_to_rst(rst=rst)
+            self.dump_regs_to_rst(rst=rst)
 
-        rst.file.write('|\n')
+            rst.file.write('|\n')
 
 
         for name, register in self.registers.items():

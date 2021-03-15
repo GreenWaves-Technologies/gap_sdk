@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from graph.types import GatherParametters, NNEdge, SplitParameters
+from graph.types import GatherParameters, NNEdge, SplitParameters
 from utils.graph import GraphView
 
 from .matcher import Matcher
@@ -28,7 +28,7 @@ class GatherToSplitMatch(Matcher):
     def match(self, G: GraphView, set_identity: bool = True) -> bool:
         has_modified_graph = False
         gathers_by_origin = {}
-        for gather in [node for node in G.nodes() if isinstance(node, GatherParametters)]:
+        for gather in [node for node in G.nodes() if isinstance(node, GatherParameters)]:
             in_edge = G.in_edges(gather.name)[0]
             group = gathers_by_origin.setdefault((in_edge.from_node, in_edge.from_idx), [])
             group.append(gather)

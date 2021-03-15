@@ -47,7 +47,7 @@ class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     @property
     def input_dtype(self):
         if self.format_change == "RGB565_RGB888":
-            return np.int16
+            return np.uint16
         if self.format_change in ("RGB888", "BW8", "BW16", "RGB16"):
             return np.uint8
         return None

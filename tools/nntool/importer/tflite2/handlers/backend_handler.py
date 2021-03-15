@@ -17,6 +17,8 @@
 from copy import deepcopy
 
 import numpy as np
+from numpy.lib.arraysetops import isin
+from numpy.lib.function_base import append
 from graph.dim import Dim
 from graph.types.activations import ActivationParameters
 from graph.types.base import NNEdge
@@ -25,6 +27,7 @@ from importer.common.provisional_dim import ProvisionalDim
 from quantization.multiplicative.mult_quantization import (
     MultConstantQuantizationRecord, MultQuantizationRecord,
     MultQuantizationRecordBase)
+from quantization.qtype import QType
 from utils.node_id import NodeId
 
 from ..tflite_schema_head.ActivationFunctionType import ActivationFunctionType
@@ -98,9 +101,8 @@ class BackendHandler(Handler):
                 # In between the fused operation and activation the
                 # transfer is in int32 representation
                 node_qrec = G.quantization[NodeId(params)]
-                outa_qtype = deepcopy(node_qrec.out_qs[0])
-                #node_qrec.out_qs[0].dtype = np.int32
                 ina_qtype = deepcopy(node_qrec.out_qs[0])
+                outa_qtype = deepcopy(ina_qtype)
                 G.quantization[NodeId(aparams)] = MultQuantizationRecord(
                     in_qs=[ina_qtype], out_qs=[outa_qtype])
             params = aparams
@@ -127,6 +129,7 @@ class BackendHandler(Handler):
             adjust_transposes = [None] * len(node.nputs)
         const_params = []
 
+        # TODO - this should just be picking up the existing constant nodes not creating new ones.
         for idx, tensor in enumerate(node.input):
             if tensor is None or idx in exclude or (skip_empty_tensors and not tensor.is_constant):
                 const_params.append(None)
@@ -139,7 +142,8 @@ class BackendHandler(Handler):
                 const_param = ConstantInputParameters(
                     tensor.name,
                     dims=Dim.unnamed(tensor.shape),
-                    value=tensor.value)
+                    value=tensor.value,
+                    constant_store=G.constant_store)
                 all_nodes[tensor] = (
                     const_param,
                     0,
@@ -157,16 +161,15 @@ class BackendHandler(Handler):
                 const_param.is_intermediate = node.is_intermediate(idx)
                 const_param.short_name = short_names[idx]
 
-                if opts.get('load_tensors'):
-                    const_param.value = np.reshape(tensor.value, tensor.shape)
+                const_param.value = np.reshape(tensor.value, tensor.shape)
 
-                if opts.get('load_quantization'):
-                    G.quantization[NodeId(const_param)] = MultConstantQuantizationRecord(
-                        in_qs=[tensor.qtype],
-                        out_qs=[tensor.qtype])
+                # if opts.get('load_quantization'):
+                #     G.quantization[NodeId(const_param)] = MultConstantQuantizationRecord(
+                #         in_qs=[tensor.qtype],
+                #         out_qs=[tensor.qtype])
 
-            if load_quantization_if_present and tensor.qtype:
-                const_param.value_quantization = tensor.qtype
+            # if load_quantization_if_present and tensor.qtype:
+            #     const_param.value_quantization = tensor.qtype
 
             const_params.append(const_param)
             G.add_edge(NNEdge(const_param, params, to_idx=idx))
@@ -189,11 +192,19 @@ class BackendHandler(Handler):
             inp[0].value = np.reshape(inp[0].value, new_shape)
             inp[0].dims = Dim.unnamed(new_shape)
 
+    @classmethod
+    def convert_to_symmetric(cls, qtypes):
+        return [QType.from_min_max_sq(qtype.min_val, qtype.max_val)
+                if qtype is not None and qtype.is_asymmetric else qtype for qtype in qtypes]
 
     @classmethod
     def load_tf_quantization(cls, input_tensors, output_tensors, in_qs=None, out_qs=None, qrec_class=None):
         if qrec_class is None:
             qrec_class = MultQuantizationRecord
-        qrec = qrec_class(in_qs=in_qs if in_qs is not None else [tensor.qtype for tensor in input_tensors],
-                          out_qs=out_qs if out_qs is not None else [tensor.qtype for tensor in output_tensors])
+
+        qrec = qrec_class(
+            in_qs=cls.convert_to_symmetric(
+                in_qs if in_qs is not None else [tensor.qtype for tensor in input_tensors]),
+            out_qs=cls.convert_to_symmetric(
+                out_qs if out_qs is not None else [tensor.qtype for tensor in output_tensors]))
         return qrec

@@ -40,7 +40,7 @@ class BilinearResizerSymmetric(KernelBase):
         wstep = ((w_in - 1) << 16) // w_out
         hstep = ((h_in - 1) << 16) // h_out
         hcoeff = wcoeff = 0
-        out_tensor = np.empty((h_out, w_out, c_out))
+        out_tensor = np.zeros((h_out, w_out, c_out), dtype=np.int32)
         for i in range(h_out):
             offsetY = hcoeff >> 16
             hc2 = (hcoeff >> 9) & 127
@@ -82,7 +82,7 @@ class NearestNeighbourResizerSymmetric(KernelBase):
         h_in = params.in_dims[0].h
         wstep = ((w_in - 1) << 16) // (w_out - 1)
         hstep = ((h_in - 1) << 16) // (h_out - 1)
-        out_tensor = np.empty((h_out, w_out, c_out))
+        out_tensor = np.zeros((h_out, w_out, c_out), dtype=np.int32)
         for i in range(h_out):
             h_rounded = ((hstep * i) + (1 << (16 - 1))) >> 16
             for j in range(w_out):

@@ -7,6 +7,14 @@
     "simulator": "xcelium",
     "mode": "shell",
     "args": [],
+    "svcf_file": [],
+    "verbosity": -1,
+
+    "testbench": {
+        "uart": {
+            "baudrate": 115200
+        }
+    },
 
     "vsim": {
         "profiles": {
@@ -58,7 +66,8 @@
                             "\"+frame_mode=Gen -nowarn RNDXCELON -sv_lib\"",
                             "os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/lib/64bit/libuvmdpi.so\"",
                             "\"-runmode -loadrun \" + os.environ.get(\"XCSIM_PATH\") + \"/xcelium.d/run.d/librunpost.so\"",
-                            "\"-INPUT \\\"@source \" + os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/files/tcl/uvm_sim.tcl\\\"\""
+                            "\"-INPUT \\\"@source \" + os.environ.get(\"XCELIUM_ROOT\") + \"/tools/methodology/UVM/CDNS-1.2/additions/sv/files/tcl/uvm_sim.tcl\\\"\"",
+                            "\"-input \" + os.environ.get(\"GAP_SDK_HOME\") + \"/tools/gapy/runner/rtl/run_gui.tcl\""
                         ]
                     }
                 }

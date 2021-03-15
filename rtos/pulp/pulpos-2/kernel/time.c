@@ -26,6 +26,20 @@ static PI_FC_L1 pos_cbsys_t pos_time_cbsys_poweroff;
 static PI_FC_L1 pos_cbsys_t pos_time_cbsys_poweron;
 
 
+#ifndef CONFIG_REF_CLOCK
+#define CONFIG_REF_CLOCK ARCHI_REF_CLOCK
+#endif
+
+#ifndef CONFIG_NO_FAST_OSC
+#define TIMER_CLOCK CONFIG_REF_CLOCK
+#define TIMER_SOURCE 1
+#else
+// In case no oscillator is available, this means we are in open loop, in this case, just take
+// FLL worst case frequency
+#define TIMER_CLOCK ARCHI_FLL_OPEN_LOOP_CLOCK
+#define TIMER_SOURCE 0
+#endif
+
 void pos_time_timer_handler_asm();
 
 
@@ -80,7 +94,7 @@ void pos_time_timer_handler()
         timer_conf_set(timer_base_fc(0, 1),
                        TIMER_CFG_LO_ENABLE(1) |
                            TIMER_CFG_LO_IRQEN(1) |
-                           TIMER_CFG_LO_CCFG(1));
+                           TIMER_CFG_LO_CCFG(TIMER_SOURCE));
     }
     else
     {
@@ -88,7 +102,7 @@ void pos_time_timer_handler()
         // no interrupt
         timer_conf_set(timer_base_fc(0, 1),
                        TIMER_CFG_LO_ENABLE(1) |
-                           TIMER_CFG_LO_CCFG(1));
+                           TIMER_CFG_LO_CCFG(TIMER_SOURCE));
 
         // Also clear timer interrupt as we might have a spurious one after
         // we entered the handler
@@ -106,7 +120,7 @@ unsigned long long pi_time_get_us()
     // Get 64 bit timer counter value and convert it to microseconds
     // as the timer input is connected to the ref clock.
     unsigned int count = timer_count_get(timer_base_fc(0, 1));
-    return ((unsigned long long)count) * 1000000 / ARCHI_REF_CLOCK;
+    return ((unsigned long long)count) * 1000000 / TIMER_CLOCK;
 }
 
 void pi_task_push_delayed_us(pi_task_t *event, uint32_t us)
@@ -121,11 +135,7 @@ void pi_task_push_delayed_us(pi_task_t *event, uint32_t us)
         // First compute the corresponding number of ticks.
         // The specified time is the minimum we must, so we have to round-up
         // the number of ticks.
-#if PULP_CHIP_FAMILY == CHIP_USOC_V1
-    ticks = us * ARCHI_REF_CLOCK / 1000000 + 1;
-#else
-    ticks = us / (1000000 / ARCHI_REF_CLOCK) + 1;
-#endif
+    ticks = ((uint64_t)us * TIMER_CLOCK + 999999) / 1000000;
 
     // In order to simplify time comparison, we sacrify the MSB to avoid overflow
     // as the given amount of time must be short
@@ -162,7 +172,7 @@ void pi_task_push_delayed_us(pi_task_t *event, uint32_t us)
         timer_conf_set(timer_base_fc(0, 1),
                        TIMER_CFG_LO_ENABLE(1) |
                            TIMER_CFG_LO_IRQEN(1) |
-                           TIMER_CFG_LO_CCFG(1));
+                           TIMER_CFG_LO_CCFG(TIMER_SOURCE));
     }
 
     hal_irq_restore(irq);
@@ -186,14 +196,14 @@ void __attribute__((constructor)) pos_time_init()
 
     // Configure the FC timer in 64 bits mode as it will be used as a common
     // timer for all virtual timers.
-    // We also use the ref clock to make the frequency stable.
+    // We also use the ref clock to make the frequency stable unless no oscillator is available
+
     timer_conf_set(timer_base_fc(0, 1),
                    TIMER_CFG_LO_ENABLE(1) |
                        TIMER_CFG_LO_RESET(1) |
-                       TIMER_CFG_LO_CCFG(1));
+                       TIMER_CFG_LO_CCFG(TIMER_SOURCE));
 
 #if defined(ARCHI_HAS_FC)
-    pos_irq_set_handler(ARCHI_FC_EVT_TIMER0_HI, pos_time_timer_handler_asm);
     pos_irq_mask_set(1 << ARCHI_FC_EVT_TIMER0_HI);
 #else
     pos_irq_set_handler(ARCHI_EVT_TIMER0_HI, pos_time_timer_handler_asm);

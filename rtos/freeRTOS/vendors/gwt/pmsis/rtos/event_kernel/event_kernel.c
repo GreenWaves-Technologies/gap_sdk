@@ -317,4 +317,29 @@ void pmsis_event_destroy_default_scheduler(struct pmsis_event_kernel_wrap *wrap)
     DBG_PRINTF("%s:%d\n",__func__,__LINE__);
     pmsis_event_kernel_destroy(&wrap);
 }
+
+void pi_event_kernel_task_remove(struct pmsis_event_kernel_wrap *ek_wrap,
+                                 pi_task_t *task)
+{
+    struct pmsis_event_scheduler *sched = pmsis_event_wrap_get_scheduler(ek_wrap);
+    pi_task_t *task_temp = sched->first, *task_prev = NULL;
+
+    /* Go through list, and remove the event task. */
+    while ((task_temp != NULL) && (task_temp != task))
+    {
+        task_prev = task_temp;
+        task_temp = task_temp->next;
+    }
+    if (task_temp)
+    {
+        if (task_prev != NULL)
+        {
+            task_prev->next = task_temp->next;
+        }
+        else
+        {
+            sched->first = task_temp->next;
+        }
+    }
+}
 #endif

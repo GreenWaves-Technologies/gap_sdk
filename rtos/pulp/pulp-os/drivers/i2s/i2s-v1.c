@@ -375,6 +375,22 @@ static inline void __pos_i2s_resume(pos_i2s_t *i2s)
     }
 }
 
+static inline void __i2s_clk_enable(pos_i2s_t *i2s) 
+{
+    int periph_freq = __rt_freq_periph_get();
+    int div = periph_freq / i2s->i2s_freq;
+    unsigned int conf = 
+        UDMA_I2S_CFG_CLKGEN0_BITS_WORD(i2s->conf.word_size - 1) | 
+        UDMA_I2S_CFG_CLKGEN0_CLK_EN(1) |
+        UDMA_I2S_CFG_CLKGEN0_CLK_DIV(((div>>1)-1));
+
+    hal_i2s_cfg_clkgen_set(i2s->conf.itf, i2s->clk, conf);
+}
+
+static inline void __i2s_clk_disable(pos_i2s_t *i2s) 
+{
+    hal_i2s_cfg_clkgen_set(i2s->conf.itf, i2s->clk, 0);
+}
 
 int pi_i2s_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
 {
@@ -390,6 +406,14 @@ int pi_i2s_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
 
         case PI_I2S_IOCTL_STOP:
             __pos_i2s_suspend(i2s);
+            break;
+
+        case PI_I2S_IOCTL_CLOCK_ENABLE:
+            __i2s_clk_enable(i2s);
+            break;
+
+        case PI_I2S_IOCTL_CLOCK_DISABLE:
+            __i2s_clk_disable(i2s);
             break;
 
         default:

@@ -15,7 +15,7 @@ APP_SRCS += MatAddKernels.c $(MATADD_KER_PATH)/MatAddBasicKernels.c
 APP_INC += . $(TILER_EMU_INC) $(TILER_INC) $(MATADD_KER_PATH)
 
 APP_CFLAGS += -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
-APP_CFLAGS += -Wall -Werror -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable
+APP_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-but-set-variable -Wno-unused-variable
 
 MODEL_SRC = MatAddModel.c
 MODEL_GEN = MatAddKernels

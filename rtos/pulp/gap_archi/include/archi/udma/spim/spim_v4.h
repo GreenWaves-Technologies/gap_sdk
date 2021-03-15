@@ -107,6 +107,12 @@
 #define SPI_CMD_TX_DATA_BITSWORD_OFFSET 16
 #define SPI_CMD_TX_DATA_BITSWORD_WIDTH  5
 
+// SLAVE_TX_DATA
+#define SPI_CMD_SLAVE_TX_DATA_SIZE_OFFSET          0
+#define SPI_CMD_SLAVE_TX_DATA_SIZE_WIDTH          16
+#define SPI_CMD_SLAVE_TX_DATA_IGNORE_CS_OFFSET 16
+#define SPI_CMD_SLAVE_TX_DATA_IGNORE_CS_WIDTH  1
+
 
 // RX_DATA
 #define SPI_CMD_RX_DATA_SIZE_OFFSET          0
@@ -174,8 +180,8 @@
 #define SPI_CMD_DUMMY(cycles)                                   ((SPI_CMD_DUMMY_ID<<SPI_CMD_ID_OFFSET)     | (((cycles)-1)<<SPI_CMD_DUMMY_CYCLE_OFFSET))
 #define SPI_CMD_SETUP_UCA(txrxen,ds,addr)                       ((SPI_CMD_SETUP_UCA_ID<<SPI_CMD_ID_OFFSET) | ((txrxen)<<SPI_CMD_SETUP_UC_TXRXEN_OFFSET) | ((int)addr & 0xFFFFF))
 #define SPI_CMD_SETUP_UCS(txrxen,ds,size)                       ((SPI_CMD_SETUP_UCS_ID<<SPI_CMD_ID_OFFSET) | ((txrxen)<<SPI_CMD_SETUP_UC_TXRXEN_OFFSET) | ((ds)<<SPI_CMD_SETUP_UC_DS_OFFSET)               | (size & 0xFFFF))
-#define SPI_CMD_TX_DATA(words,wordstrans,bitsword,qpi,lsbfirst) ((SPI_CMD_TX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((qpi)<<SPI_CMD_TX_DATA_QPI_OFFSET)        | ((wordstrans)<<SPI_CMD_TX_DATA_WORDTRANS_OFFSET) | ((bitsword-1)<<SPI_CMD_TX_DATA_BITSWORD_OFFSET) | (((words)-1) << SPI_CMD_TX_DATA_SIZE_OFFSET) | ((lsbfirst)<<SPI_CMD_TX_DATA_LSBFIRST_OFFSET))
-#define SPI_CMD_RX_DATA(words,wordstrans,bitsword,qpi,lsbfirst) ((SPI_CMD_RX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((qpi)<<SPI_CMD_RX_DATA_QPI_OFFSET)        | ((wordstrans)<<SPI_CMD_RX_DATA_WORDTRANS_OFFSET) | ((bitsword-1)<<SPI_CMD_RX_DATA_BITSWORD_OFFSET) | (((words)-1) << SPI_CMD_RX_DATA_SIZE_OFFSET) | ((lsbfirst)<<SPI_CMD_RX_DATA_LSBFIRST_OFFSET))
+#define SPI_CMD_TX_DATA(words,wordstrans,bitsword,qpi,lsbfirst) ((SPI_CMD_TX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((qpi)<<SPI_CMD_TX_DATA_QPI_OFFSET)        | ((wordstrans)<<SPI_CMD_TX_DATA_WORDTRANS_OFFSET) | (((bitsword)-1)<<SPI_CMD_TX_DATA_BITSWORD_OFFSET) | (((words)-1) << SPI_CMD_TX_DATA_SIZE_OFFSET) | ((lsbfirst)<<SPI_CMD_TX_DATA_LSBFIRST_OFFSET))
+#define SPI_CMD_RX_DATA(words,wordstrans,bitsword,qpi,lsbfirst) ((SPI_CMD_RX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((qpi)<<SPI_CMD_RX_DATA_QPI_OFFSET)        | ((wordstrans)<<SPI_CMD_RX_DATA_WORDTRANS_OFFSET) | (((bitsword)-1)<<SPI_CMD_RX_DATA_BITSWORD_OFFSET) | (((words)-1) << SPI_CMD_RX_DATA_SIZE_OFFSET) | ((lsbfirst)<<SPI_CMD_RX_DATA_LSBFIRST_OFFSET))
 #define SPI_CMD_RPT(iter)                                       ((SPI_CMD_RPT_ID<<SPI_CMD_ID_OFFSET)       | ((iter)<<SPI_CMD_RPT_NB_OFFSET))
 
 #define SPI_CMD_EOT(evt,cs_keep)    ((SPI_CMD_EOT_ID<<28) | ((evt)<<SPI_CMD_EOT_GEN_EVT_OFFSET) | ((cs_keep)<<SPI_CMD_EOT_CS_KEEP_OFFSET))
@@ -191,5 +197,10 @@
 #define SPI_CMD_WAIT(event)               ((SPI_CMD_WAIT_ID<<SPI_CMD_ID_OFFSET) | ((event) << SPI_CMD_WAIT_EVENT_OFFSET))
 #define SPI_CMD_RPT_END()                 ((SPI_CMD_RPT_END_ID<<SPI_CMD_ID_OFFSET))
 #define SPI_CMD_FUL(words,wordstrans,bitsword,lsbfirst) ((SPI_CMD_FUL_ID<<SPI_CMD_ID_OFFSET)   | ((wordstrans)<<SPI_CMD_FUL_WORDTRANS_OFFSET) | ((bitsword-1)<<SPI_CMD_FUL_BITSWORD_OFFSET) | (((words)-1) << SPI_CMD_FUL_SIZE_OFFSET) | ((lsbfirst)<<SPI_CMD_FUL_LSBFIRST_OFFSET))
+
+#define SPI_CMD_SLAVE_TX_DATA(words,ignore_cs) ((SPI_CMD_TX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((ignore_cs)<<SPI_CMD_SLAVE_TX_DATA_IGNORE_CS_OFFSET) | (((words)-1) << SPI_CMD_TX_DATA_SIZE_OFFSET))
+#define SPI_CMD_SLAVE_RX_DATA(words,ignore_cs) ((SPI_CMD_RX_DATA_ID<<SPI_CMD_ID_OFFSET)   | ((ignore_cs)<<SPI_CMD_SLAVE_TX_DATA_IGNORE_CS_OFFSET) | (((words)-1) << SPI_CMD_TX_DATA_SIZE_OFFSET))
+#define SPI_CMD_SLAVE_FUL(words,ignore_cs)     ((SPI_CMD_FUL_ID<<SPI_CMD_ID_OFFSET)   | ((ignore_cs)<<SPI_CMD_SLAVE_TX_DATA_IGNORE_CS_OFFSET) | (((words)-1) << SPI_CMD_TX_DATA_SIZE_OFFSET))
+#define SPI_CMD_SLAVE_EOT()                    (SPI_CMD_EOT_ID << SPI_CMD_ID_OFFSET)
 
 #endif

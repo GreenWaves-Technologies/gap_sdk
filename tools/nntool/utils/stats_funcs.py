@@ -18,8 +18,6 @@ import math
 import numpy as np
 import scipy.spatial.distance as dis
 
-from quantization.qtype import QType
-
 STATS_BITS = [8, 16, 32]
 
 def range_twos_complement(bits):
@@ -191,14 +189,14 @@ def closest_greater(v):
             return i
     return STATS_BITS[-1]
 
-def get_quantization(stats, min_qsnr, force_width):
-    qstats = stats['qstats']
-    if force_width is not None:
-        return QType(bits=force_width, q=qstats[force_width]['q'], signed=True)
-    for width in STATS_BITS:
-        if qstats[width]['qsnr'] > min_qsnr:
-            return QType(bits=width, q=qstats[width]['q'], signed=True)
-    raise ValueError("no solution for this QSNR could be found")
+# def get_quantization(stats, min_qsnr, force_width):
+#     qstats = stats['qstats']
+#     if force_width is not None:
+#         return QType(bits=force_width, q=qstats[force_width]['q'], signed=True)
+#     for width in STATS_BITS:
+#         if qstats[width]['qsnr'] > min_qsnr:
+#             return QType(bits=width, q=qstats[width]['q'], signed=True)
+#     raise ValueError("no solution for this QSNR could be found")
 
 def get_current_qsnr(stats, width):
     return stats['qstats'][width]['qsnr']

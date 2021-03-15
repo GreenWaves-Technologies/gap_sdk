@@ -22,8 +22,8 @@ from quantization.kernels.kernel_base import (KernelBase, params_type,
 from quantization.quantization_record_base import QuantizationRecordBase
 
 
-def softmax_func(v):
-    return scipy.special.softmax(v)
+def softmax_func(v, axis=None):
+    return scipy.special.softmax(v, axis=axis)
 
 
 @params_type(SoftMaxParameters)
@@ -38,6 +38,6 @@ class SoftMaxFloat32(KernelBase):
             qrec = Float32QuantizationRecord()
         old_err = np.seterr(over='raise')
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
-        in_tensor = softmax_func(in_tensor)
+        in_tensor = softmax_func(in_tensor, axis=params.axis)
         np.seterr(**old_err)
         return qrec.get_outputs(params, [in_tensor], ktype="float32")

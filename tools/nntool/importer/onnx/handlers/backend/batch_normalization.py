@@ -16,16 +16,33 @@
 from copy import deepcopy
 
 import numpy as np
+from graph.types import (BatchNormalizationParameters, Conv2DParameters,
+                         ReshapeParameters)
 from graph.types.base import NNEdge
-from graph.types.conv2d import BatchNormalizationParameters, Conv2DParameters
+from importer.common.constant_mixin import ConstantMixin
+from importer.common.handler_options import HandlerOptions, handler_option
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 
 
+@handler_option(
+    'fold_batchnorm',
+    val_type=bool,
+    default=True,
+    desc="fold batch norm operations into filters where possible in ONNX graphs"
+)
 @onnx_op("BatchNormalization")
-class BatchNormalization(ConstantMixin, BackendHandler):
+class BatchNormalization(ConstantMixin, BackendHandler, HandlerOptions):
+    @classmethod
+    def find_conv(cls, G, prev_node):
+        if isinstance(prev_node, Conv2DParameters):
+            return prev_node, False
+        if isinstance(prev_node, ReshapeParameters):
+            in_edges = G.in_edges(prev_node.name)
+            if len(in_edges) == 1 and isinstance(in_edges[0].from_node, Conv2DParameters):
+                return in_edges[0].from_node, True
+        return None, False
 
     @classmethod
     def _common(cls, node, **kwargs):
@@ -56,21 +73,23 @@ class BatchNormalization(ConstantMixin, BackendHandler):
         else:
             spatial = node.attrs.get("spatial", 1) == 1
 
-        if fold_batchnorm and isinstance(x[0], Conv2DParameters):
-            conv = x[0]
-            weights = conv.weights
-            if conv.has_bias:
-                biases = conv.biases
-            else:
-                biases = np.zeros([weights.shape[0]])
-                conv.has_bias = True
+        conv, is_1d = cls.find_conv(G, x[0])
+        if fold_batchnorm and conv:
+            if (is_1d and x_rank != 3) or (not is_1d and x_rank != 4):
+                raise ValueError(f'unable to fold batch normalization at {valid_name} rank is {x_rank}')
+            conv_in_edges = G.indexed_in_edges(conv.name)
+            weights_node = conv_in_edges[1].from_node
+            biases_node = conv_in_edges[2].from_node
+            weights = weights_node.value
+            assert conv.has_bias, "convolution should always have bias even if zero"
+            biases = biases_node.value
             # fold batch norm into conv weights and biases
             w_conv = weights.copy().reshape(weights.shape[0], -1)
             w_bn = np.diag(bn_scale / np.sqrt(epsilon + running_variance))
             w_conv = np.matmul(w_bn, w_conv).reshape(weights.shape)
             b_bn = bn_bias - bn_scale * running_mean / np.sqrt(running_variance + epsilon)
-            conv.weights = w_conv
-            conv.biases = biases + b_bn
+            weights_node.value = w_conv
+            biases_node.value = biases + b_bn
             all_nodes[node.output[0]] = x
         else:
             params = BatchNormalizationParameters(valid_name, scale=bn_scale, bias=bn_bias,

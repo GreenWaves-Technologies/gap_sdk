@@ -19,6 +19,7 @@
 #
 
 #include "archi/pulp.h"
+#include "pos/data/irq.h"
 
     .section .text_l2
     .global pos_init_entry
@@ -56,25 +57,9 @@ pos_init_entry:
     la   t0, pos_init_start
     jalr x1, t0
 
-
-
-.section .text_l2
-
-    # On all other chips we simply pass 0.
-    addi  a0, x0, 0
-    addi  a1, x0, 0
-
-    # Jump to main program entry point (argc = a0, argv = a1).
-    la    t2, main
-    jalr  x1, t2
-    mv    s0, a0
-
-    # If program returns from main, call exit routine
-    mv   a0, s0
-    la   t0, exit
-    jalr x1, t0
-
-
+    // Should never come back here
+pos_init_end:
+    j    pos_init_end
 
 
 .section .vectors, "ax"
@@ -82,53 +67,108 @@ pos_init_entry:
 
 
 #ifdef ARCHI_CORE_HAS_1_10
-    j pos_illegal_instr
+    j pos_illegal_instr_asm
 #else
     j pos_no_irq_handler
 #endif
 
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
-    j pos_no_irq_handler
+    j POS_IRQ_HANDLER1
+    j POS_IRQ_HANDLER2
+    j POS_IRQ_HANDLER3
+    j POS_IRQ_HANDLER4
+    j POS_IRQ_HANDLER5
+    j POS_IRQ_HANDLER6
+    j POS_IRQ_HANDLER7
+    j POS_IRQ_HANDLER8
+    j POS_IRQ_HANDLER9
+    j POS_IRQ_HANDLER10
+    j POS_IRQ_HANDLER11
+    j POS_IRQ_HANDLER12
+    j POS_IRQ_HANDLER13
+    j POS_IRQ_HANDLER14
+    j POS_IRQ_HANDLER15
+    j POS_IRQ_HANDLER16
+    j POS_IRQ_HANDLER17
+    j POS_IRQ_HANDLER18
+    j POS_IRQ_HANDLER19
+    j POS_IRQ_HANDLER20
+    j POS_IRQ_HANDLER21
+    j POS_IRQ_HANDLER22
+    j POS_IRQ_HANDLER23
+    j POS_IRQ_HANDLER24
+    j POS_IRQ_HANDLER25
+    j POS_IRQ_HANDLER26
+    j POS_IRQ_HANDLER27
+    j POS_IRQ_HANDLER28
+    j POS_IRQ_HANDLER29
+    j POS_IRQ_HANDLER30
+    j POS_IRQ_HANDLER31
 
 
-    .org 0x80
+.section .cluster_vectors, "ax"
+.option norvc;
+
+
+#ifdef ARCHI_CORE_HAS_1_10
+    j pos_illegal_instr_asm
+#else
+    j pos_no_irq_handler
+#endif
+
+    j POS_IRQ_HANDLER1
+    j POS_IRQ_HANDLER2
+    j POS_IRQ_HANDLER3
+    j POS_IRQ_HANDLER4
+    j POS_IRQ_HANDLER5
+    j POS_IRQ_HANDLER6
+    j POS_IRQ_HANDLER7
+    j POS_IRQ_HANDLER8
+    j POS_IRQ_HANDLER9
+    j POS_IRQ_HANDLER10
+    j POS_IRQ_HANDLER11
+    j POS_IRQ_HANDLER12
+    j POS_IRQ_HANDLER13
+    j POS_IRQ_HANDLER14
+    j POS_IRQ_HANDLER15
+    j POS_IRQ_HANDLER16
+    j POS_IRQ_HANDLER17
+    j POS_IRQ_HANDLER18
+    j POS_IRQ_HANDLER19
+    j POS_IRQ_HANDLER20
+    j POS_IRQ_HANDLER21
+    j POS_IRQ_HANDLER22
+    j POS_IRQ_HANDLER23
+    j POS_IRQ_HANDLER24
+    j POS_IRQ_HANDLER25
+    j POS_IRQ_HANDLER26
+    j POS_IRQ_HANDLER27
+    j POS_IRQ_HANDLER28
+    j POS_IRQ_HANDLER29
+    j POS_IRQ_HANDLER30
+    j POS_IRQ_HANDLER31
+
+
     .global _start
 _start:
     la  a0, pos_init_entry
     jalr x0, a0
 
+pos_illegal_instr_asm:
+    add sp, sp, -8
+    sw  x12, 0(sp)
+    sw  x9, 4(sp)
+    la   x12, pos_irq_illegal_instr
+    la   x9, pos_illegal_instr_asm_ret
+    j    pos_irq_call_external_c_function_full
 
-pos_illegal_instr:
-    j pos_illegal_instr
+pos_illegal_instr_asm_ret:
+    lw  x9, 4(sp)
+    lw  x12, 0(sp)
+    add sp, sp, 8
+    mret
+
+
+    j pos_illegal_instr_asm
 
 pos_no_irq_handler:
     mret

@@ -20,6 +20,32 @@ from .. import common
 from ..handlers.backend import *  # noqa
 from ..handlers.backend_handler import BackendHandler
 
+def get_opset_status():
+    ops = []
+    onnx_ops = {}
+
+    for op_schema in defs.get_all_schemas_with_history():
+        domain = onnx_ops.setdefault(op_schema.domain, {})
+        domain[op_schema.name] = op_schema.deprecated
+    for domain in onnx_ops:
+        onnx_ops[domain] = len(onnx_ops[domain])
+
+    counts_by_domain = {}
+    for handler in BackendHandler.__subclasses__():
+        handler.check_cls()
+        counts_by_domain.setdefault(handler.DOMAIN, [0, onnx_ops.get(handler.DOMAIN, 0)])
+        counts_by_domain[handler.DOMAIN][0] += 1
+        ops.append([
+            handler.DOMAIN,
+            handler.ONNX_OP,
+            handler.get_versions(),
+            handler.PS_DESCRIPTION
+        ])
+    ops.sort(key=lambda x: x[0] + x[1])
+    ops.insert(0, [
+        'Domain', 'Op', 'Versions', 'Notes'
+    ])
+    return ops, counts_by_domain
 
 def get_all_backend_handlers(opset_dict):
     """ Get a dict of all backend handler classes.

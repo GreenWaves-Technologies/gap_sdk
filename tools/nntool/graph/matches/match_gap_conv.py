@@ -17,148 +17,127 @@ import logging
 
 from graph.types import (ActivationParameters, Conv2DParameters,
                          ConvFusionParameters, PoolingParameters)
-from quantization.symmetric.symmetric_quantization import (
-    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
-from quantization.multiplicative.mult_quantization import (
-    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from graph.types.base import NNEdge
 from quantization.float32.float32_quantization import (
     Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
-from utils.graph import Edge, GraphView, MatchNode
+from quantization.multiplicative.mult_quantization import (
+    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.symmetric.symmetric_quantization import (
+    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
+from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from .matcher import DefaultMatcher, DontReplaceError, MatchGroup
+from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class MatchGapConv(DefaultMatcher):
+class FusionMatch():
+    def __init__(self) -> None:
+        self.conv = None
+        self.pool = None
+        self.active = None
+        self.order = []
 
-    def __init__(self, *args, match_activation=True, match_pool=False, pool_after_activation=False, **kwargs):
-        super(MatchGapConv, self).__init__(*args, **kwargs)
-        assert match_activation or match_pool, "not very interesting to just match conv"
-        self.match_activation = match_activation
-        self.match_pool = match_pool
-        self.pool_after_activation = pool_after_activation
-        if match_activation and match_pool:
-            if pool_after_activation:
-                self.fusion_type = "conv_active_pool"
-            else:
-                self.fusion_type = "conv_pool_active"
-        elif match_activation:
-            self.fusion_type = "conv_active"
+    def add_node(self, params):
+        if isinstance(params, Conv2DParameters):
+            if self.conv:
+                return None
+            self.order.append(params)
+            self.conv = params
+            return self
+        elif isinstance(params, ActivationParameters):
+            if self.active:
+                return None
+            self.order.append(params)
+            self.active = params
+            return self
+        elif isinstance(params, PoolingParameters):
+            if self.pool:
+                return None
+            self.order.append(params)
+            self.pool = params
+            return self
         else:
-            self.fusion_type = "conv_pool"
+            return None
 
     @property
-    def name(self):
-        return "match_" + self.fusion_type
-
-    def valid_convolution(self, node):
-        del node
-        return True
-
-    def valid_pooling(self, node):
-        del node
-        return True
-
-    def valid_activation(self, node):
-        del node
-        return True
-
-    def validate_match(self, subgraph: GraphView):
-        nodes = list(subgraph.nodes())
-        if self.match_pool and self.match_activation and len(nodes) == 3:
-            if self.pool_after_activation:
-                pool_node = nodes[2]
-                # standard fusion puts relu after the pool operation
-                if pool_node.pool_type == "average":
-                    return False
-            else:
-                pool_node = nodes[1]
-                act_node = nodes[2]
-                if pool_node.pool_type == "average" and act_node.activation != "relu":
-                    return False
-        return True
-
-    def add_pooling(self, i, sub):
-        sub.add_node(MatchNode(str(i),
-                               matcher=lambda node:
-                               isinstance(node, PoolingParameters) and
-                               self.valid_pooling(node)))
-
-    def add_activation(self, i, sub):
-        sub.add_node(MatchNode(str(i),
-                               matcher=lambda node:
-                               isinstance(node, ActivationParameters) and
-                               self.valid_activation(node)))
-
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:
-                               isinstance(node, Conv2DParameters) and
-                               self.valid_convolution(node)))
-        if self.match_activation and self.match_pool:
-            if self.pool_after_activation:
-                self.add_activation('1', sub)
-                self.add_pooling('2', sub)
-            else:
-                self.add_pooling('1', sub)
-                self.add_activation('2', sub)
-            sub.add_edge(Edge('0', '1'))
-            sub.add_edge(Edge('1', '2'))
-        elif self.match_activation:
-            self.add_activation('1', sub)
-            sub.add_edge(Edge('0', '1'))
-        elif self.match_pool:
-            self.add_pooling('1', sub)
-            sub.add_edge(Edge('0', '1'))
-
-        return G.match_fragment(sub)
-
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        if not self.validate_match(subgraph):
-            raise DontReplaceError()
-        step = 0
-        conv = None
-        for node in subgraph.nodes():
-            node.step_idx = step
-            step = step + 1
-            if isinstance(node, Conv2DParameters):
-                conv = node
-        LOG.info("fusing nodes %s", ",".join((node.name for node in subgraph.nodes())))
-        # simple node order is necessary because nodes() will not necessarily
-        # be in order
-        pnode = ConvFusionParameters(
-            conv.name + '_fusion',
-            fusion_type=self.fusion_type,
-            subgraph=subgraph,
-            in_dims_hint=conv.in_dims_hint,
-            out_dims_hint=conv.out_dims_hint)
-        if G.quantization:
-            qrecs = G.quantization.get_all(pnode.contained_nodes())
-            if qrecs:
-                prec = None
-                if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
-                    prec = SymmetricQuantizationRecord(
-                        in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
-                    prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
-                    prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                for node in pnode.contained_nodes():
-                    G.quantization.move_to_fusion(node, pnode)
-                G.quantization[NodeId(pnode)] = prec
-        return pnode, None, None
+    def fusion_type(self):
+        return '_'.join(['conv' if isinstance(params, Conv2DParameters)
+                         else 'active' if isinstance(params, ActivationParameters)
+                         else 'pool' for params in self.order])
 
 
-class MatchAllGapConv(MatchGroup):
+class MatchAllGapConv(Matcher):
     NAME = 'fuse_gap_convs'
     DESCRIPTION = 'Fuse convolutions, pools and activations to match GAP AutoTiler operations'
 
-    def __init__(self):
-        super().__init__(
-            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=True),
-            MatchGapConv(match_activation=True, match_pool=True, pool_after_activation=False),
-            MatchGapConv(match_activation=True, match_pool=False),
-            MatchGapConv(match_activation=False, match_pool=True)
-        )
+    def get_node_list(self, G, params, result=None):
+        if result is None:
+            result = FusionMatch()
+        if not result.add_node(params):
+            return result
+        out_edges = G.out_edges(params.name)
+        if len(out_edges) > 1:
+            return result
+        return self.get_node_list(G, out_edges[0].to_node, result=result)
+
+    def match(self, G: GraphView, set_identity: bool = True):
+        has_modified_graph = False
+        for conv_node in [params for params in G.nodes() if isinstance(params, Conv2DParameters)]:
+            node_list = self.get_node_list(G, conv_node)
+            if node_list is None or len(node_list.order) < 2:
+                continue
+            if node_list.fusion_type == 'conv_active_pool':
+                if node_list.pool.pool_type == "average":
+                    node_list.order = node_list.order[:2:]
+                    node_list.pool = None
+            elif node_list.fusion_type == 'conv_pool_active':
+                if node_list.pool.pool_type == "average" and node_list.active.activation != "relu":
+                    continue
+            LOG.info("fusing nodes %s", ",".join((node.name for node in node_list.order)))
+            has_modified_graph = True
+            subgraph = GraphView()
+            last_node = None
+            for node in node_list.order:
+                if last_node is not None:
+                    subgraph.add_edge(NNEdge(from_node=last_node, to_node=node))
+                last_node = node
+            input_mapping = [[(node_list.conv, idx)] for idx in range(3)]
+            output_mapping = [(last_node, 0)]
+            pnode = ConvFusionParameters(
+                node_list.conv.name + '_fusion',
+                fusion_type=node_list.fusion_type,
+                subgraph=subgraph,
+                in_dims_hint=node_list.conv.in_dims_hint,
+                out_dims_hint=node_list.conv.out_dims_hint,
+                input_mapping=input_mapping,
+                output_mapping=output_mapping)
+            if G.quantization:
+                qrecs = G.quantization.get_all(pnode.contained_nodes())
+                if qrecs:
+                    prec = None
+                    if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
+                        prec = SymmetricQuantizationRecord(
+                            in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                        prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
+                        prec = Float32QuantizationRecord(
+                            in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    for node in pnode.contained_nodes():
+                        G.quantization.move_to_fusion(node, pnode)
+                    G.quantization[NodeId(pnode)] = prec
+            in_edges = G.in_edges(node_list.conv.name)
+            out_edges = G.out_edges(last_node.name)
+            for node in node_list.order:
+                G.remove(node)
+            for edge in in_edges:
+                G.add_edge(NNEdge(edge.from_node, pnode, from_idx=edge.from_idx, to_idx=edge.to_idx))
+            for edge in out_edges:
+                G.add_edge(NNEdge(pnode, edge.to_node, from_idx=edge.from_idx, to_idx=edge.to_idx))
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph

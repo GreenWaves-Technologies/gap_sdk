@@ -231,6 +231,7 @@ void ff_acc(flexfloat_t *dest, const flexfloat_t *a);
 void ff_min(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b);
 void ff_max(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b);
 void ff_fma(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b, const flexfloat_t *c);
+void ff_fnma(flexfloat_t *dest, const flexfloat_t *a, const flexfloat_t *b, const flexfloat_t *c);
 
 
 // Relational operators

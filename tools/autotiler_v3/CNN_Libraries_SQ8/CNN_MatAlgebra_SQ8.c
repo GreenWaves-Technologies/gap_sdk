@@ -1679,6 +1679,174 @@ void KerParMatMulB32_SQ8(KerMatMul_SQ8_T *Arg)
 	}
 }
 
+void KerParMatMulB32_2x4_SQ8(KerMatMul_SQ8_T *Arg)
+
+{
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        int * __restrict__ Bias = Arg->Bias;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+	unsigned char * __restrict__ Scale = Arg->Scale;
+	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
+	unsigned int NormBias = Arg->NormBias;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        int ColFirst = Arg->ColFirst;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
+        unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H_In1), First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int Iter = Max(0, Last-First);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
+
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
+		}
+                gap_waitbarrier(0);
+                for (Line=0; Line<Iter/2; Line++) {
+                	int l1 = 2*Line + First;
+                        v4s *VIn1 = (v4s *) (&In1[(l1)*W_In1 + 0]);
+                        v4s *VIn2 = (v4s *) (&In1[(l1+1)*W_In1 + 0]);
+                        int S0 = (Bias[l1]<<NormBias), S1=S0, S2=S0, S3=S0;
+                        int S4 = (Bias[l1+1]<<NormBias), S5=S4, S6=S4, S7=S4;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+				v4s A = VBuff0[i];
+				v4s B = VBuff1[i];
+				v4s C = VBuff2[i];
+				v4s D = VBuff3[i];
+                                S0 = gap_sumdotp4(V0, A, S0);
+                                S1 = gap_sumdotp4(V0, B, S1);
+                                S2 = gap_sumdotp4(V0, C, S2);
+                                S3 = gap_sumdotp4(V0, D, S3);
+				v4s V1 = VIn2[i];
+                                S4 = gap_sumdotp4(V1, A, S4);
+                                S5 = gap_sumdotp4(V1, B, S5);
+                                S6 = gap_sumdotp4(V1, C, S6);
+                                S7 = gap_sumdotp4(V1, D, S7);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[l1*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+				int V1 = In1[(l1+1)*W_In1 + i];
+				S4 += V1 * BufferColIn2[i];
+				S5 += V1 * BufferColIn2[i+1*H_In2];
+				S6 += V1 * BufferColIn2[i+2*H_In2];
+				S7 += V1 * BufferColIn2[i+3*H_In2];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			unsigned int Sc1 = Scale[l1+1], ScN1 = ScaleN[l1+1];
+			v4s R1 = gap_pack4(gap_clip(AT_SCALE(S0, Sc, ScN), 7), gap_clip(AT_SCALE(S1, Sc, ScN), 7),
+					   gap_clip(AT_SCALE(S2, Sc, ScN), 7), gap_clip(AT_SCALE(S3, Sc, ScN), 7));
+			v4s R2 = gap_pack4(gap_clip(AT_SCALE(S4, Sc1, ScN1), 7), gap_clip(AT_SCALE(S5, Sc1, ScN1), 7),
+					   gap_clip(AT_SCALE(S6, Sc1, ScN1), 7), gap_clip(AT_SCALE(S7, Sc1, ScN1), 7));
+			*((v4s *) (Out+(l1+OffLine)*W_Out+4*Col+0+OffCol)) = R1;
+			*((v4s *) (Out+(l1+OffLine+1)*W_Out+4*Col+0+OffCol)) = R2;
+                }
+		if (Iter&0x1) {
+			int l1 = Last - 1;
+			v4s *VIn1 = (v4s *) (&In1[l1*W_In1 + 0]);
+			int S0 = (Bias[l1]<<NormBias), S1=S0, S2=S0, S3=S0;
+			for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+				v4s A = VBuff0[i]; S0 = gap_sumdotp4(V0, A, S0);;
+				v4s B = VBuff1[i]; S1 = gap_sumdotp4(V0, B, S1);;
+				v4s C = VBuff2[i]; S2 = gap_sumdotp4(V0, C, S2);;
+				v4s D = VBuff3[i]; S3 = gap_sumdotp4(V0, D, S3);;
+			}
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[l1*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			v4s R1 = gap_pack4(gap_clip(AT_SCALE(S0, Sc, ScN), 7), gap_clip(AT_SCALE(S1, Sc, ScN), 7),
+					   gap_clip(AT_SCALE(S2, Sc, ScN), 7), gap_clip(AT_SCALE(S3, Sc, ScN), 7));
+			*((v4s *) (Out+(l1+OffLine)*W_Out+4*Col+0+OffCol)) = R1;
+		}
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = (Bias[Line]<<NormBias), S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = gap_clip(AT_SCALE(S0, Sc, ScN), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = gap_clip(AT_SCALE(S1, Sc, ScN), 7);
+                }
+                gap_waitbarrier(0);
+	}
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = (Bias[Line]<<NormBias);
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = gap_clip(AT_SCALE(S0, Sc, ScN), 7);
+                }
+                gap_waitbarrier(0);
+	}
+}
+
 void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 
 {
@@ -1747,6 +1915,174 @@ void KerParMatMulB32_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
 					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
 			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
                 }
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = (Bias[Line]<<NormBias), S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
+                }
+                gap_waitbarrier(0);
+	}
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = (Bias[Line]<<NormBias);
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			unsigned int Sc = Scale[Line], ScN = ScaleN[Line];
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+                }
+                gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulB32_2x4_ReLU_SQ8(KerMatMul_SQ8_T *Arg)
+
+{
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        int * __restrict__ Bias = Arg->Bias;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+	unsigned char * __restrict__ Scale = Arg->Scale;
+	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
+	unsigned int NormBias = Arg->NormBias;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        int ColFirst = Arg->ColFirst;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
+        unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H_In1), First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int Iter = Max(0, Last-First);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
+
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
+		}
+                gap_waitbarrier(0);
+                for (Line=0; Line<Iter/2; Line++) {
+                	int l1 = 2*Line + First;
+                        v4s *VIn1 = (v4s *) (&In1[(l1)*W_In1 + 0]);
+                        v4s *VIn2 = (v4s *) (&In1[(l1+1)*W_In1 + 0]);
+                        int S0 = (Bias[l1]<<NormBias), S1=S0, S2=S0, S3=S0;
+                        int S4 = (Bias[l1+1]<<NormBias), S5=S4, S6=S4, S7=S4;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+				v4s A = VBuff0[i];
+				v4s B = VBuff1[i];
+				v4s C = VBuff2[i];
+				v4s D = VBuff3[i];
+                                S0 = gap_sumdotp4(V0, A, S0);
+                                S1 = gap_sumdotp4(V0, B, S1);
+                                S2 = gap_sumdotp4(V0, C, S2);
+                                S3 = gap_sumdotp4(V0, D, S3);
+				v4s V1 = VIn2[i];
+                                S4 = gap_sumdotp4(V1, A, S4);
+                                S5 = gap_sumdotp4(V1, B, S5);
+                                S6 = gap_sumdotp4(V1, C, S6);
+                                S7 = gap_sumdotp4(V1, D, S7);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[l1*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+				int V1 = In1[(l1+1)*W_In1 + i];
+				S4 += V1 * BufferColIn2[i];
+				S5 += V1 * BufferColIn2[i+1*H_In2];
+				S6 += V1 * BufferColIn2[i+2*H_In2];
+				S7 += V1 * BufferColIn2[i+3*H_In2];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			unsigned int Sc1 = Scale[l1+1], ScN1 = ScaleN[l1+1];
+			v4s R1 = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					   AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
+			v4s R2 = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S4, Sc1, ScN1), 7), AT_CLIP_POS_IMM(AT_SCALE(S5, Sc1, ScN1), 7),
+					   AT_CLIP_POS_IMM(AT_SCALE(S6, Sc1, ScN1), 7), AT_CLIP_POS_IMM(AT_SCALE(S7, Sc1, ScN1), 7));
+			*((v4s *) (Out+(l1+OffLine)*W_Out+4*Col+0+OffCol)) = R1;
+			*((v4s *) (Out+(l1+OffLine+1)*W_Out+4*Col+0+OffCol)) = R2;
+                }
+		if (Iter&0x1) {
+			int l1 = Last - 1;
+			v4s *VIn1 = (v4s *) (&In1[l1*W_In1 + 0]);
+			int S0 = (Bias[l1]<<NormBias), S1=S0, S2=S0, S3=S0;
+			for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+				v4s A = VBuff0[i]; S0 = gap_sumdotp4(V0, A, S0);;
+				v4s B = VBuff1[i]; S1 = gap_sumdotp4(V0, B, S1);;
+				v4s C = VBuff2[i]; S2 = gap_sumdotp4(V0, C, S2);;
+				v4s D = VBuff3[i]; S3 = gap_sumdotp4(V0, D, S3);;
+			}
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[l1*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			v4s R1 = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					   AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
+			*((v4s *) (Out+(l1+OffLine)*W_Out+4*Col+0+OffCol)) = R1;
+		}
                 gap_waitbarrier(0);
         }
 	if (W_In2&0x2) {
@@ -2721,6 +3057,113 @@ void KerParMatMulB32_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
 			int S0 = Bias[l1]<<NormBias, S1=S0, S2=S0, S3=S0;
 			for (int c=0; c<W_In1/4; c++) {
 				v4s C0 = pIn1[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
+				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1); S2 = gap_sumdotp4(C0, V2, S2); S3 = gap_sumdotp4(C0, V3, S3);
+			}
+			for (int c=(W_In1/4)*4; c<W_In1; c++) {
+				int C0 = In1[l1*W_In1+c];
+				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
+			*((v4s *) (Out+l1*H_In2 + l2)) = R;
+		}
+	}
+	if (Iter&0x2) {
+		int l2 = (4*(Iter/4)) + First;
+		v4s *pIn2_0 = (v4s *) (In2 + (l2+0)*W_In2);
+		v4s *pIn2_1 = (v4s *) (In2 + (l2+1)*W_In2);
+		for (int l1=0; l1<H_In1; l1++) {
+			v4s *pIn1 = (v4s *) (In1 + l1*W_In1);
+			int S0 = Bias[l1]<<NormBias, S1=S0;
+			for (int c=0; c<W_In1/4; c++) {
+				v4s C0 = pIn1[c], V0 = pIn2_0[c], V1 = pIn2_1[c];
+				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1);
+			}
+			for (int c=(W_In1/4)*4; c<W_In1; c++) {
+				int C0 = In1[l1*W_In1+c];
+				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+			Out[l1*H_In2 + l2+1] = AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7);
+		}
+	}
+	if (Iter&0x1) {
+		int l2 = Last-1;
+		v4s *pIn2 = (v4s *) (In2 + (l2+0)*W_In2);
+		for (int l1=0; l1<H_In1; l1++) {
+			v4s *pIn1 = (v4s *) (In1 + l1*W_In1);
+			int S0 = Bias[l1]<<NormBias;
+			for (int c=0; c<W_In1/(4*2); c++) {
+				v4s C0 = pIn1[2*c], C1 = pIn1[2*c+1], V0 = pIn2[2*c], V1 = pIn2[2*c+1];
+				S0 = gap_sumdotp4(C0, V0, S0); S0 = gap_sumdotp4(C1, V1, S0);
+			}
+			if (W_In1&0x4) S0 = gap_sumdotp4(pIn1[W_In1/4-1], pIn2[W_In1/4-1], S0);
+			for (int c=(W_In1/4)*4; c<W_In1; c++) {
+				int C0 = In1[l1*W_In1+c];
+				S0 += C0 * In2[(l2+0)*W_In2+c];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			Out[l1*H_In2 + l2+0] = AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7);
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParMatMulB32_2x4_ReLU_SF_SQ8(KerMatMul_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int H_In2 = Arg->W_In2;
+	unsigned int W_In2 = W_In1;
+	int * __restrict__ Bias = Arg->Bias;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned char * __restrict__ Scale = Arg->Scale;
+	unsigned char * __restrict__ ScaleN = Arg->ScaleN;
+	unsigned int NormBias = Arg->NormBias;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(H_In2), First = Chunk*CoreId, Last = Min(First+Chunk, H_In2);
+	unsigned int Iter = Max(0, Last-First);
+
+	for (int i=0; i<Iter/4; i++) {
+		int l2 = 4*i+First;
+		v4s *pIn2_0 = (v4s *) (In2 + (l2+0)*W_In2), *pIn2_1 = (v4s *) (In2 + (l2+1)*W_In2), *pIn2_2 = (v4s *) (In2 + (l2+2)*W_In2), *pIn2_3 = (v4s *) (In2 + (l2+3)*W_In2);
+		for (int j=0; j<H_In1/2; j++) {
+			int l1 = 2*j;
+			v4s *pIn1_0 = (v4s *) (In1 + l1*W_In1);
+			v4s *pIn1_1 = (v4s *) (In1 + (l1+1)*W_In1);
+			int S0 = Bias[l1]  <<NormBias, S1=S0, S2=S0, S3=S0;
+			int S4 = Bias[l1+1]<<NormBias, S5=S4, S6=S4, S7=S4;
+			for (int c=0; c<W_In1/4; c++) {
+				v4s C0 = pIn1_0[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
+				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1); S2 = gap_sumdotp4(C0, V2, S2); S3 = gap_sumdotp4(C0, V3, S3);
+				v4s C1 = pIn1_1[c];
+				S4 = gap_sumdotp4(C1, V0, S4); S5 = gap_sumdotp4(C1, V1, S5); S6 = gap_sumdotp4(C1, V2, S6); S7 = gap_sumdotp4(C1, V3, S7);
+			}
+			for (int c=(W_In1/4)*4; c<W_In1; c++) {
+				int C0 = In1[l1*W_In1+c];
+				S0 += C0 * In2[(l2+0)*W_In2+c]; S1 += C0 * In2[(l2+1)*W_In2+c]; S2 += C0 * In2[(l2+2)*W_In2+c]; S3 += C0 * In2[(l2+3)*W_In2+c];
+				int C1 = In1[(l1+1)*W_In1+c];
+				S4 += C1 * In2[(l2+0)*W_In2+c]; S5 += C1 * In2[(l2+1)*W_In2+c]; S6 += C1 * In2[(l2+2)*W_In2+c]; S7 += C1 * In2[(l2+3)*W_In2+c];
+			}
+			unsigned int Sc = Scale[l1], ScN = ScaleN[l1];
+			v4s R = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S0, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S1, Sc, ScN), 7),
+					  AT_CLIP_POS_IMM(AT_SCALE(S2, Sc, ScN), 7), AT_CLIP_POS_IMM(AT_SCALE(S3, Sc, ScN), 7));
+			*((v4s *) (Out+l1*H_In2 + l2)) = R;
+			unsigned int Sc1 = Scale[l1+1], ScN1 = ScaleN[l1+1];
+			v4s R1 = gap_pack4(AT_CLIP_POS_IMM(AT_SCALE(S4, Sc1, ScN1), 7), AT_CLIP_POS_IMM(AT_SCALE(S5, Sc1, ScN1), 7),
+					   AT_CLIP_POS_IMM(AT_SCALE(S6, Sc1, ScN1), 7), AT_CLIP_POS_IMM(AT_SCALE(S7, Sc1, ScN1), 7));
+			*((v4s *) (Out+(l1+1)*H_In2 + l2)) = R1;
+		}
+		if (H_In1&0x1) {
+			int l1 = H_In1 - 1;
+			v4s *pIn1_0 = (v4s *) (In1 + l1*W_In1);
+			int S0 = Bias[l1]<<NormBias, S1=S0, S2=S0, S3=S0;
+			for (int c=0; c<W_In1/4; c++) {
+				v4s C0 = pIn1_0[c], V0 = pIn2_0[c], V1 = pIn2_1[c], V2 = pIn2_2[c], V3 = pIn2_3[c];
 				S0 = gap_sumdotp4(C0, V0, S0); S1 = gap_sumdotp4(C0, V1, S1); S2 = gap_sumdotp4(C0, V2, S2); S3 = gap_sumdotp4(C0, V3, S3);
 			}
 			for (int c=(W_In1/4)*4; c<W_In1; c++) {

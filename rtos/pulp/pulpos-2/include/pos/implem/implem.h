@@ -52,15 +52,27 @@ static inline uint32_t pi_cluster_id()
 static inline int pi_cl_cluster_nb_cores()
 {
 #ifdef ARCHI_HAS_CC
+#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
+    return ((pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16) + 1);
+#else
     return __builtin_pulp_CoreCount() + 1;
+#endif
+#else
+#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
+    return (pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16);
 #else
     return __builtin_pulp_CoreCount();
+#endif
 #endif
 }
 
 static inline uint32_t pi_cl_cluster_nb_pe_cores()
 {
+#if !defined(ARCHI_CORE_HAS_PULPV2) || defined(PLP_NO_BUILTIN)
+    return (pulp_read32(ARCHI_APB_SOC_CTRL_ADDR)>>16);
+#else
     return __builtin_pulp_CoreCount();
+#endif
 }
 
 static inline uint32_t pi_is_fc()

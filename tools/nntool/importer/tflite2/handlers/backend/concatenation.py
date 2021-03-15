@@ -43,9 +43,11 @@ class Concatenation(ConstantMixin, BackendHandler):
         inp_shapes = [input[2].shape for input in inputs]
 
         buffer_idxes = [tensor.buffer_idx for tensor in node.input]
-        if len(set(buffer_idxes)) != len(buffer_idxes):
+        non_zero_idxes = [idx for idx in buffer_idxes if idx != 0]
+        if len(set(non_zero_idxes)) != len(non_zero_idxes):
             raise NotImplementedError(
-                "concats with multiple versions of the same input are not supported. This is normally a graph design problem.")
+                "concats with multiple versions of the same input are not supported. "
+                "This is normally a graph design problem.")
 
         axis = node_opts.Axis()
         if any(inp_shape[axis] is None for inp_shape in inp_shapes):
@@ -61,7 +63,7 @@ class Concatenation(ConstantMixin, BackendHandler):
         if all(cls.is_constant(inp) for inp in inputs):
             LOG.info("reducing %s to a constant", node.name)
             value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(node.name, value=value)
+            params = ConstantInputParameters(node.name, value=value, constant_store=G.constant_store)
         else:
             axis -= sum(1 if dim is None else 0 for dim in pout_shape[:axis:])
             params = ConcatParameters(node.name, axis=axis, axis_hint=None)

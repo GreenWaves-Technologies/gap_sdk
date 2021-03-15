@@ -12,6 +12,7 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from graph.types.others import QuantizeParameters
 from graph.matches.matcher import Matcher
 from graph.types import SoftMaxParameters, OutputParameters
 from quantization.multiplicative.mult_quantization import MultQuantizationRecord
@@ -36,7 +37,7 @@ class PropagateSoftmaxSymQrec(Matcher):
             for edge in G.in_edges(softmax.name):
                 propagate_qtype_up(G, in_q, edge)
             for edge in G.out_edges(softmax.name):
-                assert isinstance(edge.to_node, OutputParameters), "Softmax is supported only at the end of the graph"
+                assert isinstance(edge.to_node, (OutputParameters, QuantizeParameters)), "Softmax is supported only at the end of the graph"
                 out_qrec = G.quantization[NodeId(edge.to_node)]
                 out_qrec.in_qs[0] = qrec.out_qs[0]
                 out_qrec.out_qs[0] = qrec.out_qs[0]

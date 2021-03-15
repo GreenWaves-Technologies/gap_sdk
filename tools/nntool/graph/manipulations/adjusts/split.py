@@ -15,11 +15,13 @@
 
 import logging
 
-from ..adjust_base import AdjusterBase
+from graph.types.others import SplitParameters
+
+from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
+@handles(SplitParameters)
 class SplitAdjuster(AdjusterBase):
     def adjust(self, G, node):
         # if the split axis is already 0 nothing to do

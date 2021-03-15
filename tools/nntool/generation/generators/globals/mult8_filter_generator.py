@@ -12,10 +12,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
-
-import numpy as np
-
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.tc_arg_info import GlobalArgInfo
 from generation.generators.generator_decorators import (QREC_MULT8,
@@ -46,33 +42,6 @@ def mult8_filter_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
 
 
 def gen_filter_globals(gen, pnode, fnode, fqrec):
-    cname, file_name = gen_constant(gen, pnode, fnode, WEIGHTS)
-    weights_q = fqrec.weights_q
-    const_info = ConstantInfo(file_name, weights_q, contents=fqrec.gen_weights(fnode, fnode.weights))
-
-    gen.globals.append(GlobalArgInfo(weights_q.ctype, cname,
-                                     gen.opts['default_global_home_location'],
-                                     gen.opts['default_global_exec_location'],
-                                     const_info=const_info))
-
-    # biases are always generated even if they are 0
-    if fnode.has_bias:
-        biases_q = fqrec.biases_q
-        biases = fnode.biases
-    else:
-        biases_q = fqrec.out_qs[0]
-        biases = np.zeros((fnode.out_dims[0].c))
-
-    contents = fqrec.gen_biases(fnode, biases, fnode.weights)
-
-    cname, file_name = gen_constant(gen, pnode, fnode, BIASES)
-    const_info = ConstantInfo(file_name, biases_q, contents=contents)
-
-    gen.globals.append(GlobalArgInfo(biases_q.ctype, cname,
-                                     gen.opts['default_global_home_location'],
-                                     gen.opts['default_global_exec_location'],
-                                     const_info=const_info))
-
     cname_mul_scale, file_name_mul_scale = gen_constant(gen, pnode, fnode, MULSCALE)
     cname_mul_shift, file_name_mul_shift = gen_constant(gen, pnode, fnode, MULSHIFT)
 

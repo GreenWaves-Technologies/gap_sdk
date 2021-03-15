@@ -15,6 +15,8 @@
 
 from functools import reduce
 
+import numpy as np
+
 class ProvisionalDim():
     def __init__(self, shape) -> None:
         self.shape = list(shape)

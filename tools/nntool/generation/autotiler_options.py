@@ -68,6 +68,10 @@ AUTO_TILER_OPTIONS = [
         'descr': 'Trace selected tensors arguments at inference time, either all nodes or selected node', 'default': 0
     },
     {
+        'name': 'GRAPH_CHECKSUM', 'type': 'graph', 'var_type': int, 'choices': (0, 1),
+        'descr': 'Generate the checksum functions call in the C code and print the checksum values', 'default': 0
+    },
+    {
         'name': 'GRAPH_DUMP_ONE_NODE', 'type': 'graph', 'var_type': str, 'choices': None,
         'descr': 'Trace one specific graph node', 'default': None
     },

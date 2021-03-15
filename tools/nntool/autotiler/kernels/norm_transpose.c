@@ -200,11 +200,6 @@ void CNN_NormBW_fp(KerNormBW_fp_T *Arg)
 	for (int Idx=First; Idx<First+Diff; Idx++){
 		Out[Idx] = In[Idx] << 7;
 	}
-	// for (int Idx=First; Idx<First+(Diff*2)/2; Idx+=2) {
-	// 	*((v2s *) &Out[Idx]) = *((v2s *)&In[Idx]) << 7;
-	// }
-	// int Left = Diff&0x1;
-	// if (Left) Out[Last-1] = In[Last-1] << 7;
 	gap_waitbarrier(0);
 }
 

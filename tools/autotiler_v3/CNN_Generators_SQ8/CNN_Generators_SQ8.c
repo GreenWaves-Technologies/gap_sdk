@@ -197,6 +197,15 @@ void LoadCNN_SQ8_Library()
 			TCArg("signed char *__restrict__", "Infos")
 			)
 	);
+	LibKernel("CNN_Copy_fps", CALL_PARALLEL,
+		  CArgs(4,
+		  	TCArg("signed char *__restrict__", "In"),
+		  	TCArg("signed char *__restrict__", "Out"),
+		  	TCArg("unsigned int", "W"),
+		  	TCArg("unsigned int", "H")
+		       ),
+		  "KerCopy_fps_T", NULL
+	);
 
 	/****************************************************************************************************************/
 	/* Kernels for features and coefficients on 8 bits. Kernels for multiple output features evaluated in parallel  */
@@ -373,6 +382,7 @@ void LoadCNN_SQ8_Library()
 													  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
 	/* Activation wth tensor centric scaling */
+	LibKernel("KerPar_ActNone_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_ACT_NONE), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("KerPar_ReLU_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",			CNN_Match(CNN_OperList(1, KOP_RELU), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("KerPar_ReLUN_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",			CNN_Match(CNN_OperList(1, KOP_RELUN), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("KerPar_HSigmoid_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_HSIGMOID), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
@@ -464,8 +474,10 @@ void LoadCNN_SQ8_Library()
 	LibKernel("KerParMatMulSxSyB16_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 
 	/* 32b Bias */
-	LibKernel("KerParMatMulB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	//LibKernel("KerParMatMulB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	//LibKernel("KerParMatMulB32_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_ReLU_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulB32_ReLUN_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
 	LibKernel("KerParMatMulSxSyB32_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,-1,-1));
@@ -485,7 +497,8 @@ void LoadCNN_SQ8_Library()
 
 	/* 32b Bias */
 	LibKernel("KerParMatMulB32_SF_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_NONE), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
-	LibKernel("KerParMatMulB32_ReLU_SF_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	//LibKernel("KerParMatMulB32_ReLU_SF_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulB32_2x4_ReLU_SF_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELU), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 	LibKernel("KerParMatMulB32_ReLUN_SF_SQ8", CALL_PARALLEL, 0, "KerMatMul_SQ8_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_RELUN), 1, CNN_Type(1,1,4,0,1), 0,0,0,0,1,1));
 
 
@@ -672,6 +685,7 @@ void LoadCNN_SQ8_Library()
 												  CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
 	/* Activations with tensor centric scaling */
+	LibKernel("Ker_ActNone_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_ACT_NONE), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("Ker_ReLU_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_RELU), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("Ker_ReLUN_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_RELUN), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
         LibKernel("Ker_HSigmoid_SQ8", CALL_PARALLEL, 0, "KerActivation_SQ8_T",		CNN_Match(CNN_OperList(1, KOP_HSIGMOID), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,0,0));
@@ -913,7 +927,7 @@ int CNN_ConvolutionPoolAct_SQ8(
 	if (Ctrl && (Ctrl->EnableIm2Col==1) && (ConvOper==KOP_CONV) && (PoolOper==KOP_NONE) && (Fcx==1) && (Fcy==1) && (Dcx==1) && (Dcy==1)) {
 		AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 		// if ((InFeat+OutFeat)<80) {
-		if ((InFeat+OutFeat)<100) {
+		if ((InFeat+OutFeat)<100 && (Scx==1) && (Scy==1)) {
 			if (Log) printf("Mapping this convolution to matrix multiplication with small first operand\n");
 			int Ok = CNN_MatMulSmallM1Act_SQ8(Name, 0, Bias_DataSize, Scale_DataSize, InFeat, OutFeat, Width*Height, InFeat, Width, Height, Scx, Scy, KOP_MATMUL_SM1, ActOper);
 			if (!Ok&&Log) printf("Mapping this convolution to matrix multiplication with small first operand FAILED, trying with standard mult implementation\n");
@@ -1431,7 +1445,7 @@ int CNN_PoolAct_SQ8(
 		Width:		Number of columns of a given feature map
 		Height:		Number of lines of a given feature map
 
-		ActOper:	KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+		ActOper:	KOP_ACT_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
 
 		Signature:	Name(In, Out, Infos)
 
@@ -1465,8 +1479,8 @@ int CNN_Act_SQ8(
 	int StandAloneAct = (ActOper!=KOP_NONE);
 	int Log=1;
 
-	if (!(ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_HSIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
-		GenTilingError("CNN_Act_SQ8 Kernel: %s, ActOper, expecting KOP_RELU, KOP_RELUN, KOP_HSIGMOID, KOP_HSWISH or KOP_LEAKYRELU", Name);
+	if (!(ActOper == KOP_ACT_NONE || ActOper == KOP_RELU || ActOper == KOP_RELUN || ActOper == KOP_HSIGMOID || ActOper == KOP_HSWISH || ActOper == KOP_LEAKYRELU))
+		GenTilingError("CNN_Act_SQ8 Kernel: %s, ActOper, expecting KOP_ACT_NONE, KOP_RELU, KOP_RELUN, KOP_HSIGMOID, KOP_HSWISH or KOP_LEAKYRELU", Name);
 
 	ActKerName = CNN_FindMatchingKernel(ActOper, KOP_NONE, ParFeat, 1, 0, 0, 0, 1, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 	if (ActKerName==0) GenTilingError("CNN_Act_SQ8 Kernel: %s, Can't find a matching Activation basic kernel", Name);
@@ -2167,6 +2181,132 @@ int CNN_MatAddAct_SQ8(
 }
 
 /*********************************************************************************************************************************************************************
+	Generator for Channel Padded Matrix Addition layers with input scale adjustment (tensor centric), output scaling (tensor centric) and optional activation
+
+	Template:
+		Name:		Name of the generated user kernel
+		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+
+		Feat:		Number of features
+		Width:		Width of a given feature
+		Height:		Height of a given feature
+		PadTop:		Top channel padding added to In2
+		PadBot:		Bottom channel padding added to In2
+
+		AddMatOper:	Should always be KOP_MATADD
+		ActOper:	Optional activation
+		Signature:	Name(In1, In2, Out, Infos, InfosPad)
+
+	CNN_MatAddPaddedAct_SQ8
+
+*********************************************************************************************************************************************************************/
+
+int CNN_MatAddPaddedAct_SQ8(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+
+	int Feat,
+	int Width,
+	int Height,
+	int PadTop,
+	int PadBot,
+
+	KernelOper_T AddMatOper,
+	KernelOper_T ActOper
+)
+
+{
+	if (PadBot == 0 && PadTop == 0) return CNN_MatAddAct_SQ8(Name, Ctrl, Feat, Width, Height, AddMatOper, ActOper);
+	if (PadTop + PadBot > Feat) GenTilingError("int CNN_MatAddPaddedAct_SQ8 Kernel: %s, Padding exceeds channel size", Name);
+	int FeatBody = Feat - PadTop - PadBot;
+	int Ok = 1;
+
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
+	LayerOp += (Feat-PadTop-PadBot) * Width * Height;
+	LayerBandwidth += Width*Height*1*(Feat); 		// In1
+	LayerBandwidth += Width*Height*1*(Feat-PadTop-PadBot);	// In2
+	LayerBandwidth += Width*Height*1*(Feat);		// Out
+
+	OpenKernelGroup(Name);
+	char *TopName = NULL, *BotName = NULL, *BodyName = NULL;
+	Ok = Ok && CNN_MatAddAct_SQ8(BodyName = AppendNames(Name, "Body"), Ctrl, FeatBody, Width, Height, AddMatOper, ActOper);
+
+	if (PadTop) {
+		Ok = Ok && CNN_Act_SQ8(TopName = AppendNames(Name, "PadTop"), Ctrl, PadTop, Width, Height, ActOper==KOP_NONE?KOP_ACT_NONE:ActOper);
+	}
+	if (PadBot) {
+		Ok = Ok && CNN_Act_SQ8(BotName = AppendNames(Name, "PadBot"), Ctrl, PadBot, Width, Height, ActOper==KOP_NONE?KOP_ACT_NONE:ActOper);
+	}
+	CloseKernelGroupNoMerge();
+	if (Ok==0) return 0;
+	int A = 0;
+	CKernel_Arg_T **GroupCArgs = AllocateCArgs(5);
+	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1), "In1");
+	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1), "In2");
+	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1), "Out");
+	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1), "Infos");
+	GroupCArgs[A++] = TCArg(CNN_ArgDataType(1,1,1), "InfosPad");
+	A = 0;
+	CKernelCall_T **GroupCCalls;
+	GroupCCalls = AllocateCalls(1+(PadTop!=0?1:0)+(PadBot!=0?1:0));
+	if (PadTop) {
+		GroupCCalls[A++] = UserKernelCall(TopName, LOC_GROUP,
+				Bindings(3,
+					C_Arg("In1"),
+					C_Arg("Out"),
+					C_Arg("InfosPad")
+					)
+				);
+		GroupCCalls[A++] = UserKernelCall(BodyName, LOC_GROUP,
+				Bindings(4,
+					KG_ArgOper("In1", '+', PadTop*Width*Height),
+					C_Arg("In2"),
+					KG_ArgOper("Out", '+', PadTop*Width*Height),
+					C_Arg("Infos")
+					)
+				);
+	} else {
+		GroupCCalls[A++] = UserKernelCall(BodyName, LOC_GROUP,
+				Bindings(4,
+					C_Arg("In1"),
+					C_Arg("In2"),
+					C_Arg("Out"),
+					C_Arg("Infos")
+					)
+				);
+	}
+	if (PadBot) {
+		GroupCCalls[A++] = UserKernelCall(BotName, LOC_GROUP,
+				Bindings(3,
+					KG_ArgOper("In1", '+', (PadTop + FeatBody)*Width*Height),
+					KG_ArgOper("Out", '+', (PadTop + FeatBody)*Width*Height),
+					C_Arg("InfosPad")
+					)
+				);
+	}
+	A = 0;
+	int Sz  = Feat*Width*Height;
+	int Sz2 = Width*Height*(Feat-PadTop-PadBot);
+	Object_T **GroupKerArgs = AllocateKerArgs(5);
+	GroupKerArgs[A++] = KerGroupArg("In1", 		O_IN,	Sz,		1, "In1");
+	GroupKerArgs[A++] = KerGroupArg("In2", 		O_IN,	Sz2,		1, "In2");
+	GroupKerArgs[A++] = KerGroupArg("Out", 		O_OUT,	Sz,		1, "Out");
+	GroupKerArgs[A++] = KerGroupArg("Infos",	O_IN, 	AT_INF_DIM,	1, "Infos");
+	GroupKerArgs[A++] = KerGroupArg("InfosPad",	O_IN, 	AT_INF_DIM,	1, "InfosPad");
+	KernelGroup_T *UKGroup = UserKernelGroupK(
+		Name,
+		1,
+		GroupCArgs,
+		0,
+		GroupCCalls,
+		GroupKerArgs
+	);
+	return (UKGroup!=0);
+}
+
+
+/*********************************************************************************************************************************************************************
  	Generator for Tensor [CxHxW] by Vector [C] product with tensor centric scaling and optional Activation
 
 	Template:
@@ -2196,8 +2336,8 @@ int CNN_TensorVectMultAct_SQ8(
 	int Width,
 	int Height,
 
-        KernelOper_T MatOper,
-        KernelOper_T ActOper
+	KernelOper_T MatOper,
+	KernelOper_T ActOper
 )
 
 {
@@ -3054,6 +3194,57 @@ int CNN_3DTensorPermute_SQ8(
 				break;
 		}
 		AT_PrepareForTest_SQ8(Name, Feat,Feat,Width,Height, 1, MatPermOper, 0,0,0,0,0,0,(v4s)0, 0, 0,0,0,0,0,0,(v4s)0, 0);
+	}
+	return (Kernel!=0);
+}
+
+
+int CNN_Copy(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	int Sz
+)
+
+{
+	int Log = 1;
+	int Width = Sz;
+	int Height = Sz / Width;
+	unsigned long long int LayerOp = 0;
+	unsigned long long int LayerBandwidth = 0;
+
+	LayerBandwidth += Sz*2;
+
+	if (Log) {
+		printf("CNN_Copy: %s\n", Name);
+		printf("In  => Feat: 1 W: %4d, H: %4d\n", Width, Height);
+		printf("Out => Feat: 1, W: %4d, H: %4d\n", Width, Height);
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+
+	Object_T **PKerArgs = AllocateKerArgs(2);
+	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,  Width, Height, 1,  0, 0, 0, "In");
+	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width, Height, 1,  0, 0, 0, "Out");
+	Kernel_T *Kernel = UserKernel(Name,
+				KernelIterSpace(1, IterTiledSpace(T0)),
+				TILE_HOR,
+				CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
+				Calls(1,
+					Call("CNN_Copy_fps", LOC_LOOP,
+						Bindings(4,
+							K_Arg("In", KER_ARG_TILE),      /* Input tile */
+							K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
+							K_Arg("In", KER_ARG_TILE_W),    /* Input tile width */
+							K_Arg("In", KER_ARG_TILE_H)     /* Input tile height */
+						)
+					)
+				),
+				PKerArgs
+			);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+		AddKernelArgDim(Name, "In", 4, 1, Height, Width, 1);
+		AddKernelArgDim(Name, "Out", 4, 1, Height, Width, 1);
 	}
 	return (Kernel!=0);
 }

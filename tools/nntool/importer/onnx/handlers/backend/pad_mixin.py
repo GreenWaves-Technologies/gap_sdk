@@ -21,10 +21,9 @@ class PadMixin(object):
         return pad_val * (dlen - len(val)) + val
 
     @classmethod
-    def calc_pad_dim(cls, node, spatial_size):
-        pads = cls.pad_start_with(node.attrs.get("pads", [0, 0] * spatial_size), [0, 0], 2)
-
+    def calc_pad_dim(cls, node, expected_len):
         if "auto_pad" not in node.attrs or node.attrs["auto_pad"] == "NOTSET":
+            pads = cls.pad_start_with(node.attrs.get("pads", []), [0], expected_len)
             pad_dim = PadDim(*pads)
         elif node.attrs["auto_pad"] == "VALID":
             pad_dim = PadDim.valid()

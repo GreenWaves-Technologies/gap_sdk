@@ -18,7 +18,7 @@ import logging
 import numpy as np
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import print_comparison
 from utils.gap_tensor_file import read_gap_tensors, write_gap_tensor
 from utils.stats_funcs import qsnr
@@ -83,6 +83,7 @@ class TensorsCommand(NNToolShellBase):
                                 help='clears the tensor store')
 
     @with_argparser(parser_tensors)
+    @no_history
     def do_tensors(self, args):
         """
 Load and manipulate tensors. If no option is supplied the saved tensors will be listed.

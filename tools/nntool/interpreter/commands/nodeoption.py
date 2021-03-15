@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from cmd2 import Cmd2ArgumentParser, with_argparser
 from interpreter.nntool_shell_base import NNToolShellBase
 from generation.memory_device_info import AT_L3_FLASH_DEVICES, AT_L3_RAM_DEVICES
 from utils.node_id import NodeId
+
+LOG = logging.getLogger("nntool." + __name__)
 
 def nodeoption_choices_method(self, arg_tokens):
     step_num = arg_tokens['step'][0]
@@ -78,7 +81,7 @@ can be set refer to the autotiler documentation."""
                 except ValueError:
                     nodes = [self.G[args.step]]
             except IndexError:
-                self.perror("%s is not a valid step or node to set %s"%(args.step, args.parameter))
+                LOG.error("%s is not a valid step or node to set %s"%(args.step, args.parameter))
                 return
 
         if args.parameter is None:
@@ -89,7 +92,7 @@ can be set refer to the autotiler documentation."""
                 print("nothing set")
             return
         if not nodes:
-            self.perror("No nodes selected")
+            LOG.error("No nodes selected")
             return
 
         for node in nodes:
@@ -100,11 +103,17 @@ can be set refer to the autotiler documentation."""
                 try:
                     option_type = node_options.valid_options[args.parameter]
                 except:
-                    self.perror("%s is not a valid parameter for node %s"%(args.parameter, node.name))
+                    LOG.error("%s is not a valid parameter for node %s"%(args.parameter, node.name))
                     continue
                 val = option_type(args.value)
             try:
-                setattr(node_options, args.parameter, val)
+                if args.parameter in ["RNN_STATES_AS_INPUTS", "LSTM_OUTPUT_C_STATE"] and val:
+                    if args.parameter == "RNN_STATES_AS_INPUTS":
+                        node.rnn_states_as_inputs = (val, self.G)
+                    if args.parameter == "LSTM_OUTPUT_C_STATE":
+                        node.lstm_output_c_state = (val, self.G)
+                else:
+                    setattr(node_options, args.parameter, val)
                 self.G.node_options[NodeId(node)] = node_options
             except:
-                self.perror("%s is not a valid parameter for node %s"%(args.parameter, node.name))
+                LOG.error("%s is not a valid parameter for node %s"%(args.parameter, node.name))

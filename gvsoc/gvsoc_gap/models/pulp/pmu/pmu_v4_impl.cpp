@@ -336,6 +336,7 @@ private:
 
   vp::reg_32   r_dlc_pctrl;
   vp::reg_32   r_dlc_rdata;
+  vp::reg_32   r_dlc_ifr;
 };
 
 pmu::pmu(js::config *config)
@@ -510,6 +511,8 @@ void pmu::sequence_event_handle(void *__this, vp::clock_event *event)
     {
       _this->trace.msg("Finished sequence (sequence: %d)\n", _this->active_sequence);
 
+      _this->r_dlc_ifr.set_32(_this->r_dlc_ifr.get_32() | (1 << 7));
+
       for (int i=0; i<_this->wiu->nb_irq_regs; i++)
       {
         _this->wiu->r_ifr[i].set(0);
@@ -605,6 +608,19 @@ vp::io_req_status_e pmu::dlc_imr_req(int reg_offset, int size, bool is_write, ui
 
 vp::io_req_status_e pmu::dlc_ifr_req(int reg_offset, int size, bool is_write, uint8_t *data)
 {
+  uint32_t *ptr = (uint32_t *)data;
+
+  if (is_write)
+  {
+    uint32_t value =  this->r_dlc_ifr.get_32();
+    value &= ~(*ptr);
+    this->r_dlc_ifr.set_32(value);
+  }
+  else
+  {
+    *ptr = this->r_dlc_ifr.get_32();
+  }
+
   return vp::IO_REQ_OK;
 }
 
@@ -840,6 +856,7 @@ int pmu::build()
 
   this->new_reg("pctrl", &this->r_dlc_pctrl, 0x00000000);
   this->new_reg("rdata", &this->r_dlc_rdata, 0x00000000);
+  this->new_reg("dlc_ifr", &this->r_dlc_ifr, 0x00000000);
 
   new_master_port("event", &event_itf);
   new_master_port("scu_ok", &scu_irq_itf);

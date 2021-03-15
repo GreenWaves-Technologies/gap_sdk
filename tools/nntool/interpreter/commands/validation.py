@@ -22,7 +22,7 @@ from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from execution.execution_progress import ExecutionProgress
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import (glob_input_files,
                                      input_options)
 from utils.data_importer import import_data
@@ -66,6 +66,7 @@ class ValidationCommand(NNToolShellBase):
     input_options(parser_val)
 
     @with_argparser(parser_val)
+    @no_history
     def do_validate(self, args: argparse.Namespace):
         """
 Validate the model (quantized [-q] or not) in terms of prediction accuracy rate on a given dataset (images

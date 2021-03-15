@@ -279,7 +279,7 @@ class Spim_periph_v2 : public Udma_periph
 
 public:
   Spim_periph_v2(udma *top, int id, int itf_id);
-  static void slave_sync(void *_this, int data_0, int data_1, int data_2, int data_3, int mask);
+  static void slave_sync(void *_this, int sck, int data_0, int data_1, int data_2, int data_3, int mask);
   void reset(bool active);
 
 protected:

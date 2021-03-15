@@ -17,7 +17,7 @@ from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
 from generation.generators.generator_decorators import (QREC_MULT8,
                                                         generation_function)
-from generation.generators.globals.global_names import WEIGHTS, BIASES, MULSCALE, MULSHIFT, INFOS
+from generation.generators.globals.global_names import MULSCALE, MULSHIFT, INFOS
 from graph.types import ConvFusionParameters, FcParameters
 from utils.node_id import NodeId
 
@@ -44,12 +44,12 @@ def set_fc_bindings(gen, step_idx, in_eparams, out_eparams, cname,
         out_q = linear_q
     gen.bindings.append(
         CommentBindingList("Node {} inq {} weightsq {} outq {}", params.name,
-                           linear_q.in_qs[0], linear_q.weights_q, out_q.out_qs[0])
+                           linear_q.in_qs[0], linear_q.in_qs[1], out_q.out_qs[0])
     )
     gen.bindings.append(
         NodeBindingList(cname, GNodeArgEdge(in_eparams[0]),
-                        GNodeArgNode(params, WEIGHTS),
-                        GNodeArgNode(params, BIASES),
+                        GNodeArgEdge(in_eparams[1]),
+                        GNodeArgEdge(in_eparams[2]),
                         GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                         GNodeArgNode(params, MULSCALE),
                         GNodeArgNode(params, MULSHIFT),

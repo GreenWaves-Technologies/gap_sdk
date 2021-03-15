@@ -27,9 +27,6 @@ class AdjustCommand(NNToolShellBase):
 Adjust activation and parameter tensors to match AutoTiler order.
 Must be run before generating code."""
         self._check_graph()
-        if self.is_adjusted:
-            self.perror("graph is already adjusted")
-            return
         self.G.adjust_order(postprocess=not args.no_postprocess)
         self.G.add_dimensions()
         

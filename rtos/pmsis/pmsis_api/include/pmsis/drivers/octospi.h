@@ -151,6 +151,10 @@ typedef struct pi_octospi_conf
     interface. */
     uint32_t baudrate;   /*!< Baudrate (in bytes/second). */
     int32_t burst_length; /*< Maximum burst length in ns. */
+#if defined(__GAP9__)
+    pi_aes_utils_conf_t* aes_conf; /*!< pointer to the AES configuration for
+                                        on-the-fly encryption/decryption */
+#endif
 }pi_octospi_conf_t;
 
 /** \brief Octospi cluster request structure.
@@ -215,7 +219,14 @@ enum pi_octospi_ioctl_cmd
      * pi_octospi_op_conf_t.
      * NOTE: For flash, only set read command, as XIP flash is RO
      */
-    PI_OCTOSPI_IOCTL_SET_XIP_OP
+    PI_OCTOSPI_IOCTL_SET_XIP_OP,
+#if defined(__GAP9__)
+    /** @brief Enable AES
+     *
+     * This command can be used to enable/disable the on-the-fly AES at runtime
+     */
+    PI_OCTOSPI_IOCTL_ENABLE_AES,
+#endif
 };
 
 /**
@@ -609,6 +620,32 @@ static inline void pi_cl_octospi_copy(struct pi_device *device,
 static inline void pi_cl_octospi_copy_2d(struct pi_device *device,
   uint32_t octospi_addr, void *addr, uint32_t size, uint32_t stride,
   uint32_t length, int ext2loc, pi_octospi_op_conf_t *op, pi_cl_octospi_req_t *req);
+
+
+/** \brief Forbid XIP refills
+ *
+ * This function can be called to prevent the octospi from triggering any
+ * XIP refill transfer. This can be used to do an operation in a device which
+ * would make an XIP refill fail, like an erase operation.
+ * Be careful that locking XIP refills can lead to a deadlock if XIP code is
+ * executed so only local code must be execyted when the XIP refill
+ * is locked.
+ * This will only apply to the new transfer enqueued after calling this
+ * function, not to the pending transfers enqueued before.
+ *
+ * \param device    The device structure of the device to close.
+ */
+void pi_octospi_xip_lock(struct pi_device *device);
+
+
+/** \brief Allow XIP refills
+ *
+ * This function can be called to allow again XIP refills after they have been
+ * forbidden.
+ *
+ * \param device    The device structure of the device to close.
+ */
+void pi_octospi_xip_unlock(struct pi_device *device);
 
 
 //!@}

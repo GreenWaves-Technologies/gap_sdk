@@ -319,7 +319,7 @@ static void __pi_hyper_copy_exec(struct hyper_driver_fifo *fifo, struct pi_task 
     if ((((uint32_t) task->data[1] & 0x3) == 0) &&
         (((uint32_t) task->data[0] & 0x1) == 0) &&
         ((((uint32_t) task->data[2] & 0x3) == 0) ||
-         ((task->data[5] == TX_CHANNEL) && (((uint32_t) task->data[2] & 0x1) == 0))))
+        ((task->data[5] == TX_CHANNEL) && ((uint32_t) task->data[2] == 2))))
     {
         /* Aligned copy. */
         //fifo->pending_emu_hyper_addr = 0;

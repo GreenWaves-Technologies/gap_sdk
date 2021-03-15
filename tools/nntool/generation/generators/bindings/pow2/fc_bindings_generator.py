@@ -14,10 +14,9 @@
 
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
-                                 GNodeArgNode, NodeBindingList)
+                                 NodeBindingList)
 from generation.generators.generator_decorators import (QREC_POW2,
                                                         generation_function)
-from generation.generators.globals.global_names import WEIGHTS, BIASES
 from graph.types import ConvFusionParameters, FcParameters
 from utils.node_id import NodeId
 
@@ -36,15 +35,16 @@ def fc_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bo
         return False
     return True
 
+
 def set_fc_bindings(gen, step_idx, in_eparams, out_eparams, cname,
                     params, linear_q, out_q=None):
     if out_q is None:
         out_q = linear_q
     gen.bindings.append(
         CommentBindingList("Node {} inq {} weightsq {} outq {}", params.name,
-                           linear_q.in_qs[0].q, linear_q.weights_q.q, out_q.out_qs[0].q)
+                           linear_q.in_qs[0].q, linear_q.in_qs[1].q, out_q.out_qs[0].q)
     )
     gen.bindings.append(
-        NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgNode(params, WEIGHTS),
-                        GNodeArgNode(params, BIASES),
+        NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
+                        GNodeArgEdge(in_eparams[2]),
                         GNodeArgEdge(out_eparams[0], "GNA_OUT")))

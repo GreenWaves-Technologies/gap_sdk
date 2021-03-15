@@ -258,12 +258,8 @@ $(BIN).s: $(BIN)
 
 disdump: $(BIN).s
 
-version:
-	@$(GAP_SDK_HOME)/tools/version/record_version.sh
-
 clean::
 	@rm -rf $(OBJECTS) $(PROGRAM)
 	@rm -rf ./BUILD$(build_dir_ext) transcript *.wav __pycache__
-	@rm -rf version.log
 
 .PHONY: all run debug disdump gdbserver

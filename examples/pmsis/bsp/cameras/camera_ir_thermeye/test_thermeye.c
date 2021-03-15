@@ -38,11 +38,16 @@ void test_therm_eye()
 {
     printf("Entering main controller\n");
 
+
+
     if (open_camera_thermeye(&cam))
     {
         printf("Thermal Eye camera open failed !\n");
         pmsis_exit(-1);
     }
+
+    pi_camera_sensor_info(&cam);
+
 
     pi_task_t cb = {0};
     pi_task_block(&cb);

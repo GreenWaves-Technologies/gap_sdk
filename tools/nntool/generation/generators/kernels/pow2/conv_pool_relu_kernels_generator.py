@@ -98,10 +98,10 @@ class ConvPoolReluKernel(AutotilerKernel):
             at_conv_params = gen_conv_at_params(conv_params, conv_q, pad_compatibilities)
             in_dim = conv_params.in_dims[0]
             out_dim = conv_params.out_dims[0]
-            filter_q = conv_q.weights_q
+            filter_q = conv_q.in_qs[1]
             in_q = conv_q.in_qs[0]
             out_q = conv_q.out_qs[0]
-            bias_q = conv_q.biases_q
+            bias_q = conv_q.in_qs[2]
             if conv_params.has_mul_bias:
                 mul_biases_q = conv_q.mul_biases_q
         else:

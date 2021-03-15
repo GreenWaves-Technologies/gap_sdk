@@ -15,13 +15,13 @@
 
 from utils.json_serializable import JsonSerializable
 
-
 class NodeId(JsonSerializable):
     def __init__(self, node, fnode=None):
         if isinstance(node, list):
             self._id = [None if not elem else elem for elem in node]
         else:
-            self._id = [node.name, "" if fnode is None else fnode.name]
+            fnode_name = None if fnode is None else fnode if isinstance(fnode, str) else fnode.name
+            self._id = [node.name, "" if fnode is None else fnode_name]
 
     @property
     def id(self):
@@ -58,6 +58,11 @@ class NodeId(JsonSerializable):
         if self._id[1]:
             return "_".join(self._id)
         return self._id[0]
+    
+    def __repr__(self) -> str:
+        if self._id[1]:
+            return f'NodeId({", ".join(self._id)})'
+        return f'NodeId({self._id[0]})'
 
 
 def convert_node_id_to_str(nodeid):

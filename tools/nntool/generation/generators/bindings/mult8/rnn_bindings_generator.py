@@ -18,16 +18,18 @@ from generation.at_types.tc_arg_info import LocalArgInfo
 from generation.generators.generator_decorators import (QREC_MULT8,
                                                         generation_function)
 from generation.generators.globals.global_names import (INFOS)
-from graph.types import RNNParameters, LSTMParameters, RNNBaseParameters
+from graph.types import RNNParameters, LSTMParameters, GRUParameters, RNNBaseParameters
 
 
-@generation_function("bindings", (RNNParameters, LSTMParameters), qrec_types=(QREC_MULT8,))
+@generation_function("bindings", (RNNParameters, LSTMParameters, GRUParameters), qrec_types=(QREC_MULT8,))
 def rnn_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, RNNParameters):
         set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname, node, qrec)
-    else:
+    elif isinstance(node, LSTMParameters):
         set_lstm_bindings(gen, step_idx, in_eparams, out_eparams, cname, node, qrec)
+    elif isinstance(node, GRUParameters):
+        set_gru_bindings(gen, step_idx, in_eparams, out_eparams, cname, node, qrec)
 
     return True
 
@@ -61,6 +63,7 @@ def set_lstm_bindings(gen, step_idx, in_eparams, out_eparams, cname,
         gen.locals.append(LocalArgInfo("int8", "S%s_CellInternal02"%step_idx))
         gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal02"%step_idx))
 
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(c_state_eparams, direction="GNA_INOUT"),
@@ -80,7 +83,7 @@ def set_lstm_bindings(gen, step_idx, in_eparams, out_eparams, cname,
                         GNodeArgEdge(in_eparams[names['o_b']]),
                         GNodeArgEdge(out_eparams[0], direction="GNA_OUT"),
                         GNodeArgNode(rnn_params, INFOS),
-                        GArgName(i_state_eparams.creating_node.reset_name)
+                        GArgName(reset_name)
                         ))
 
 
@@ -101,6 +104,7 @@ def set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname,
         gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal02"%step_idx))
 
     i_state_eparams = in_eparams[names['i_state']]
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),
@@ -111,5 +115,41 @@ def set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname,
                         GNodeArgEdge(in_eparams[names['i_b']]),
                         GNodeArgEdge(out_eparams[0], direction="GNA_OUT"),
                         GNodeArgNode(rnn_params, INFOS),
-                        GArgName(i_state_eparams.creating_node.reset_name)
+                        GArgName(reset_name)
+                        ))
+
+def set_gru_bindings(gen, step_idx, in_eparams, out_eparams, cname,
+                     rnn_params, rnn_q):
+    names = rnn_params.get_name_indexes()
+
+    gen.bindings.append(
+        CommentBindingList("Node {} inq {} outq {}", cname,
+                           rnn_q.in_qs[0],
+                           rnn_q.out_qs[0])
+    )
+    num_seq = num_sequences(rnn_params)
+    if num_seq > 1:
+        gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal01"%step_idx))
+
+    if num_seq > 2:
+        gen.locals.append(LocalArgInfo("int8", "S%s_StateInternal02"%step_idx))
+
+    i_state_eparams = in_eparams[names['h_state']]
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
+    gen.bindings.append(
+        NodeBindingList(cname,
+                        GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),
+                        GNodeArgEdge("S%s_StateInternal01"%step_idx, alias=i_state_eparams, direction="GNA_INOUT") if num_seq > 1 else NoArg(),
+                        GNodeArgEdge("S%s_StateInternal02"%step_idx, alias="S%s_CellInternal01"%step_idx, direction="GNA_INOUT") if num_seq > 2 else NoArg(),
+                        GNodeArgEdge(in_eparams[0]),
+                        GNodeArgEdge(in_eparams[names['r_2_r_w']]),
+                        GNodeArgEdge(in_eparams[names['r_b']]),
+                        GNodeArgEdge(in_eparams[names['r_2_z_w']]),
+                        GNodeArgEdge(in_eparams[names['z_b']]),
+                        GNodeArgEdge(in_eparams[names['r_2_h_w']]),
+                        GNodeArgEdge(in_eparams[names['w_h_b']]),
+                        GNodeArgEdge(in_eparams[names['r_h_b']]),
+                        GNodeArgEdge(out_eparams[0], direction="GNA_OUT"),
+                        GNodeArgNode(rnn_params, INFOS),
+                        GArgName(reset_name)
                         ))

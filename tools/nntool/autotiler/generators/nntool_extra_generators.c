@@ -106,15 +106,15 @@ void LoadNNTools_Extra_Library()
 			"KerNormBW_fp_T", NULL
 		 );
 
-	LibKernel("CNN_Copy_fps", CALL_PARALLEL,
-			CArgs(4,
-				TCArg("signed char *__restrict__", "In"),
-				TCArg("signed char *__restrict__", "Out"),
-				TCArg("unsigned int", "W"),
-				TCArg("unsigned int", "H")
-			     ),
-			"KerCopy_fps_T", NULL
-		 );
+	// LibKernel("CNN_Copy_fps", CALL_PARALLEL,
+	// 		CArgs(4,
+	// 			TCArg("signed char *__restrict__", "In"),
+	// 			TCArg("signed char *__restrict__", "Out"),
+	// 			TCArg("unsigned int", "W"),
+	// 			TCArg("unsigned int", "H")
+	// 		     ),
+	// 		"KerCopy_fps_T", NULL
+	// 	 );
 }
 
 /*********************************************************************************************************************************************************************
@@ -305,12 +305,13 @@ int CNN_Norm(
 // 	return 1;
 // }
 
-// int CNN_Copy_fps(
+// int CNN_Copy(
 // 		char *Name,
+//         CNN_GenControl_T *Ctrl,
 // 		int Sz)
 // {
 // 	int Log = 1;
-// 	int Width = largest_factor(Sz);
+// 	int Width = Sz;
 // 	int Height = Sz / Width;
 // 	unsigned long long int LayerOp = 0;
 // 	unsigned long long int LayerBandwidth = 0;
@@ -332,7 +333,7 @@ int CNN_Norm(
 // 					TILE_HOR,
 // 					CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
 // 					Calls(1,
-// 							Call(NormBWKerName, LOC_LOOP,
+// 							Call("CNN_Copy_fps", LOC_LOOP,
 // 									Bindings(4,
 // 											K_Arg("In", KER_ARG_TILE),      /* Input tile */
 // 											K_Arg("Out", KER_ARG_TILE),    	/* Output tile */

@@ -27,6 +27,7 @@
 #include "bsp/transport/nina_w10.h"
 
 #include "bsp/camera/himax.h"
+#include "bsp/camera/hm0360.h"
 #include "bsp/camera/ov7670.h"
 #include "bsp/camera/gc0308.h"
 #include "bsp/camera/ov5640.h"
@@ -100,7 +101,7 @@ void bsp_spiram_conf_init(struct pi_spiram_conf *conf)
 
 int bsp_spiram_open(struct pi_spiram_conf *conf)
 {
-    __bsp_init_pads();
+    //__bsp_init_pads();
     return 0;
 }
 
@@ -118,6 +119,23 @@ int bsp_himax_open(struct pi_himax_conf *conf)
     return 0;
 }
 
+void bsp_hm0360_conf_init(struct pi_hm0360_conf *conf)
+{
+    __bsp_init_pads();
+    conf->i2c_itf = CONFIG_HM0360_I2C_ITF;
+    conf->cpi_itf = CONFIG_HM0360_CPI_ITF;
+}
+
+int bsp_hm0360_open(struct pi_hm0360_conf *conf)
+{
+    __bsp_init_pads();
+    if (!conf->skip_pads_config)
+    {
+        printf("Initialize pad function\n");
+        pi_pad_set_function(PI_PAD_31_B11_TIMER0_CH0, PI_PAD_31_B11_GPIO_A17_FUNC1);
+    }
+    return 0;
+}
 
 void bsp_ov7670_conf_init(struct pi_ov7670_conf *conf)
 {
@@ -135,17 +153,37 @@ int bsp_ov7670_open(struct pi_ov7670_conf *conf)
 void bsp_gc0308_conf_init(struct pi_gc0308_conf *conf)
 {
     //__bsp_init_pads();
+    conf->skip_pads_config = 0;
     conf->i2c_itf = CONFIG_GC0308_I2C_ITF;
     conf->cpi_itf = CONFIG_GC0308_CPI_ITF;
-    conf->reset_gpio = PI_GPIO_A18_PAD_32_A13; //This is not reset but power-down
+    //conf->reset_gpio = PI_GPIO_A18_PAD_32_A13; //This is not connected on gapuino
+    conf->pwdn_gpio  = PI_GPIO_A17_PAD_31_B11;
 }
 
 int bsp_gc0308_open(struct pi_gc0308_conf *conf)
 {
     //__bsp_init_pads();
     if (!conf->skip_pads_config)
-    {
-        pi_pad_set_function(PI_PAD_32_A13_TIMER0_CH1, PI_PAD_32_A13_GPIO_A18_FUNC1);
+    {   
+           //Set camera PAD CPI + I2C
+        pi_pad_set_function(PI_PAD_18_A43_CAM_PCLK ,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_20_B39_CAM_DATA0,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_21_A42_CAM_DATA1,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_22_B38_CAM_DATA2,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_23_A41_CAM_DATA3,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_24_B37_CAM_DATA4,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_25_A40_CAM_DATA5,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_26_B36_CAM_DATA6,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_27_A38_CAM_DATA7,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_28_A36_CAM_VSYNC,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_19_A37_CAM_HSYNC,PI_PAD_FUNC0);
+
+        pi_pad_set_function(PI_PAD_30_D1_CAM_SCL_FUNC0 ,PI_PAD_FUNC0);
+        pi_pad_set_function(PI_PAD_29_B34_CAM_SDA_FUNC0 ,PI_PAD_FUNC0);
+
+        pi_pad_set_function(PI_PAD_31_B11_TIMER0_CH0, PI_PAD_31_B11_GPIO_A17_FUNC1);        
+        pi_gpio_pin_configure(0,conf->pwdn_gpio, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+
     }
     return 0;
 }

@@ -49,7 +49,7 @@ endif
 $(MODEL_BUILD):
 	mkdir $(MODEL_BUILD)
 
-$(MODEL_TFLITE): $(TRAINED_TFLITE_MODEL) | $(MODEL_BUILD)
+$(MODEL_TFLITE): $(TRAINED_MODEL) | $(MODEL_BUILD)
 	cp $< $@
 
 # Creates an NNTOOL state file by running the commands in the script

@@ -13,65 +13,111 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.dim import PadDim
 import logging
 
-from graph.types import (FilterLikeParameters, PadParameters)
-from utils.graph import MatchNode, GraphView, Edge
+from graph.dim import Dim, PadDim
+from graph.types import FilterLikeParameters, PadParameters
+from graph.types.base import NNEdge
+from graph.types.others import ReshapeParameters
+from utils.graph import GraphView
 
-from .matcher import DefaultMatcher, DontReplaceError
+from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class MatchFusePad(DefaultMatcher):
+class MatchFusePad(Matcher):
     NAME = 'fuse_pad'
     DESCRIPTION = 'Fuse pad operation to subsequent Convolution or Pool'
 
     @staticmethod
-    def has_no_padding(node):
-        return node.padding.size() == 0
+    def remove_padding(shape, padding):
+        return Dim.unnamed([dim - sum(padding[idx]) for idx, dim in enumerate(shape)])
 
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0', matcher=lambda node:
-                               isinstance(node, PadParameters)))
-        sub.add_node(MatchNode('1', matcher=lambda node:
-                               isinstance(node, FilterLikeParameters) and
-                               self.has_no_padding(node)))
-        sub.add_edge(Edge('0', '1'))
-        return G.match_fragment(sub)
+    @staticmethod
+    def find_conv(G, node):
+        if isinstance(node, FilterLikeParameters):
+            return node, False
+        if isinstance(node, ReshapeParameters):
+            out_edges = G.out_edges(node.name)
+            if len(out_edges) == 1 and isinstance(out_edges[0].to_node, FilterLikeParameters):
+                return out_edges[0].to_node, True
+        return None, False
 
-    def replace_function(self, G: GraphView, subgraph: GraphView):
-        filter_like_node, pad_node = None, None
-        for node in subgraph.nodes():
-            if isinstance(node, FilterLikeParameters):
-                filter_like_node = node
-            elif isinstance(node, PadParameters):
-                pad_node = node
-        assert filter_like_node and pad_node
-        LOG.debug("adding padding from: %s to filter: %s", pad_node.name, filter_like_node.name)
-        assert filter_like_node.in_dims_hint and filter_like_node.in_dims_hint[0], "filter doesn't have a hint"
-        in_hint = filter_like_node.in_dims_hint[0]
-        hinted_pad = {in_hint[idx]: pad for  idx, pad in enumerate(pad_node.padding) if sum(pad) > 0}
-        key_set = set(hinted_pad.keys())
-        key_set -= set(['h', 'w'])
+    def match(self, G: GraphView, set_identity: bool = True) -> bool:
+        has_modified_graph = False
+        for pad_params in [pad for pad in G.nodes() if isinstance(pad, PadParameters)]:
+            pad_in_edges = G.in_edges(pad_params.name)
+            pad_out_edges = G.out_edges(pad_params.name)
+            dont_delete = False
+            for pad_out_edge in pad_out_edges:
+                filter_like_node, is_1d = self.find_conv(G, pad_out_edge.to_node)
+                if not filter_like_node:
+                    dont_delete = True
+                    continue
+                if not filter_like_node.in_dims_hint or not filter_like_node.in_dims_hint[0]:
+                    raise ValueError(f"filter {filter_like_node.name} doesn't have a input hint")
+                in_hint = filter_like_node.in_dims_hint[0]
+                if is_1d:
+                    if len(pad_params.padding) != 2:
+                        LOG.warning("pad node %s is applied to 1d convolution but has length %s",
+                                    pad_params.name,
+                                    len(pad_params.padding))
+                        dont_delete = True
+                        continue
+                    expanded_padding = [pad_params.padding[0], (0, 0), pad_params.padding[1]]
+                else:
+                    if len(pad_params.padding) != 3:
+                        LOG.warning("pad node %s is applied to 2d convolution but has length %s",
+                                    pad_params.name,
+                                    len(pad_params.padding))
+                        dont_delete = True
+                        continue
+                    expanded_padding = pad_params.padding
 
-        if len(key_set) > 0:
-            LOG.error("node %s has padding on axes %s and cannot be fused with filter %s",
-                      pad_node.name, key_set, filter_like_node.name)
-            raise DontReplaceError()
-        if any(pval != 0 for val in pad_node.pad_vals for pval in val):
-            LOG.error("node %s has non zero pad values and cannot be fused with filter %s",
-                      pad_node.name, filter_like_node.name)
-            raise DontReplaceError()
+                hinted_pad = {in_hint[idx]: pad for idx,
+                              pad in enumerate(expanded_padding) if sum(pad) > 0}
+                key_set = set(hinted_pad.keys())
+                key_set -= set(['h', 'w'])
+                if len(key_set) > 0:
+                    dont_delete = True
+                    LOG.error("node %s has padding on axes %s and cannot be fused with filter %s",
+                              pad_params.name, key_set, filter_like_node.name)
+                    continue
+                if any(pval != 0 for val in pad_params.pad_vals for pval in val):
+                    dont_delete = True
+                    LOG.error("node %s has non zero pad values and cannot be fused with filter %s",
+                              pad_params.name, filter_like_node.name)
+                    continue
 
-        for key in ['h', 'w']:
-            if key not in hinted_pad:
-                hinted_pad[key] = (0, 0)
+                LOG.info("adding padding from: %s to %s filter: %s",
+                         pad_params.name, is_1d and "1D" or "2D", filter_like_node.name)
 
-        filter_like_node.padding = PadDim(*(list(hinted_pad['h']) + list(hinted_pad['w'])))
-        filter_like_node.pad_type = "zero"
-        if G.quantization:
-            G.quantization.remove_node(pad_node)
-        return filter_like_node, None, None
+                for key in ['h', 'w']:
+                    if key not in hinted_pad:
+                        hinted_pad[key] = (0, 0)
+
+                filter_like_node.padding = PadDim(*(list(hinted_pad['h']) + list(hinted_pad['w'])))
+                filter_like_node.pad_type = "zero"
+                has_modified_graph = True
+                G.remove_edge(pad_out_edge)
+                if is_1d:
+                    reshape_node = pad_out_edge.to_node
+                    reshape_node.old_shape = self.remove_padding(
+                        reshape_node.old_shape, pad_params.padding)
+                    reshape_node.shape = self.remove_padding(reshape_node.shape, expanded_padding)
+                for in_edge in pad_in_edges:
+                    G.add_edge(NNEdge(from_node=in_edge.from_node,
+                                      to_node=pad_out_edge.to_node,
+                                      from_idx=in_edge.from_idx,
+                                      to_idx=pad_out_edge.to_idx))
+
+            if not dont_delete:
+                G.remove(pad_params)
+                if G.quantization:
+                    G.quantization.remove_node(pad_params)
+
+        if set_identity:
+            self.set_identity(G)
+
+        return has_modified_graph

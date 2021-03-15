@@ -108,6 +108,35 @@ void test_parallel_loop_static(unsigned int nthreads)
     printf("PARALLEL FOR %d threads STATIC %d iter: %.3f cycle(s) per iteration\n", nthreads, LOOP_ITER, iteration_cost);
 }
 
+void test_parallel_single(unsigned int nthreads)
+{
+#pragma omp parallel num_threads(nthreads)
+        {
+        int i;
+        int j;
+
+        unsigned int start = startTimer();
+        float iteration_cost = 0;
+
+        for (i = 0; i < NB_ITER; i++)
+        {
+#pragma omp single
+            {
+                volatile int a = 0;
+            }
+        }
+
+        if (omp_get_thread_num() == 0)
+        {
+            iteration_cost = ((float) getTimer(start)/(NB_ITER * LOOP_ITER));
+            printf("PARALLEL SINGLE %d threads STATIC %d iter: %.3f cycle(s) per iteration\n",
+                    nthreads,
+                    LOOP_ITER,
+                    iteration_cost);
+        }
+    }
+}
+
 void test_entry()
 {
     for (int i = 1; i <= pi_cl_cluster_nb_cores(); i++)
@@ -125,6 +154,12 @@ void test_entry()
     for (int i = 1; i <= pi_cl_cluster_nb_cores(); i++)
     {
         test_parallel_loop_static (i);
+    }
+
+    printf("\n");
+    for (int i = 1; i <= pi_cl_cluster_nb_cores(); i++)
+    {
+        test_parallel_single(i);
     }
 }
 

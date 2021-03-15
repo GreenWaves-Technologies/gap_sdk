@@ -76,24 +76,25 @@ class PoolingSymmetric(KernelBase):
         else:
             pad_w = pad_h = 0
 
-        for in_c in range(out_dims.c):
+        out_h = 0
+        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                            params.stride.h):
+            out_w = 0
+            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                params.stride.w):
+                # accumulate - potentially with different Q
+                out_slice_args = out_dims.srange(h=out_h, w=out_w)
+                in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
+                                                h=[h_idx, h_idx + params.filter.h, 1],
+                                                w=[w_idx, w_idx + params.filter.w, 1])
 
-            out_h = 0
-            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                               params.stride.h):
-                out_w = 0
-                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                   params.stride.w):
-                    # accumulate - potentially with different Q
-                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                                   h=[h_idx, h_idx + params.filter.h, 1],
-                                                   w=[w_idx, w_idx + params.filter.w, 1])
-
-                    sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.int32)
-                    sum_filter = np.multiply(sum_filter, pool_factor, dtype=np.int32)
-                    out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
-                    out_w += 1
-                out_h += 1
+                res_shape = out_tensor[out_slice_args].shape
+                sum_filter = np.sum(in_tensor[in_slice_args], dtype=qrec.dtype(ktype="float32"),
+                                    axis=(out_dims.keys.index('h'), out_dims.keys.index('w'))).reshape(res_shape)
+                sum_filter = np.multiply(sum_filter, pool_factor)
+                out_tensor[out_slice_args] = sum_filter
+                out_w += 1
+            out_h += 1
 
         return qrec.get_outputs(params, [qrec.out_qs[0].clip(at_norm(out_tensor, 16),
                                                              qrec.out_qs[0].dtype)],
@@ -122,24 +123,135 @@ class PoolingSymmetric(KernelBase):
         else:
             pad_w = pad_h = 0
 
-        for in_c in range(out_dims.c):
-            out_h = 0
-            for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                               params.stride.h):
-                out_w = 0
-                for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                   params.stride.w):
-                    # accumulate - potentially with different Q
-                    out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
-                    in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-                                                   h=[h_idx, h_idx + params.filter.h, 1],
-                                                   w=[w_idx, w_idx + params.filter.w, 1])
+        out_h = 0
+        for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+                            params.stride.h):
+            out_w = 0
+            for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+                                params.stride.w):
+                # accumulate - potentially with different Q
+                out_slice_args = out_dims.srange(h=out_h, w=out_w)
+                in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
+                                                h=[h_idx, h_idx + params.filter.h, 1],
+                                                w=[w_idx, w_idx + params.filter.w, 1])
 
-                    out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
-                    out_w += 1
-                out_h += 1
+                res_shape = out_tensor[out_slice_args].shape
+                out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray),
+                                                    axis=(out_dims.keys.index('h'), out_dims.keys.index('w'))).reshape(res_shape)
+                out_w += 1
+            out_h += 1
 
         return qrec.get_outputs(params, [out_tensor], ktype="symmetric")
+
+# @params_type(PoolingParameters)
+# @quantization('symmetric')
+# class PoolingSymmetric(KernelBase):
+#     @classmethod
+#     def execute(cls, params,
+#                 in_tensors,
+#                 qrec: QuantizationRecordBase,
+#                 **kwargs):
+#         if params.pool_type == "average":
+#             return cls.average_execute(params,
+#                                        in_tensors,
+#                                        qrec)
+#         elif params.pool_type == "max":
+#             return cls.max_execute(params,
+#                                    in_tensors,
+#                                    qrec)
+#         else:
+#             ValueError("unknown pool type")
+
+#     @classmethod
+#     def average_execute(cls, params,
+#                         in_tensors,
+#                         qrec: QuantizationRecordBase):
+
+#         # Prepare the quantization levels
+
+#         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+#         in_dims = params.in_dims[0]
+#         out_dims = params.out_dims[0]
+#         filter_sz = params.filter.h * params.filter.w
+
+#         pool_factor = (1 << 16)//filter_sz
+
+#         out_tensor = np.zeros(out_dims.shape, dtype=np.int32)
+
+#         if params.padding.h + params.padding.w > 0:
+#             in_tensor = np.pad(in_tensor,
+#                                params.padding.numpy_pad_shape(in_dims),
+#                                mode='constant',
+#                                constant_values=qrec.in_qs[0].pad_zero_point)
+#             pad_w = params.padding.w
+#             pad_h = params.padding.h
+#         else:
+#             pad_w = pad_h = 0
+
+#         for in_c in range(out_dims.c):
+
+#             out_h = 0
+#             for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+#                                params.stride.h):
+#                 out_w = 0
+#                 for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+#                                    params.stride.w):
+#                     # accumulate - potentially with different Q
+#                     in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+#                                                    h=[h_idx, h_idx + params.filter.h, 1],
+#                                                    w=[w_idx, w_idx + params.filter.w, 1])
+
+#                     sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.int32)
+#                     sum_filter = np.multiply(sum_filter, pool_factor, dtype=np.int32)
+#                     out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
+#                     out_w += 1
+#                 out_h += 1
+
+#         return qrec.get_outputs(params, [qrec.out_qs[0].clip(at_norm(out_tensor, 16),
+#                                                              qrec.out_qs[0].dtype)],
+#                                 ktype="symmetric")
+
+#     @classmethod
+#     def max_execute(cls, params,
+#                     in_tensors,
+#                     qrec: QuantizationRecordBase):
+
+#         # Prepare the quantization levels
+
+#         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+#         in_dims = params.in_dims[0]
+#         out_dims = params.out_dims[0]
+
+#         out_tensor = np.zeros(out_dims.shape, dtype=qrec.out_qs[0].dtype)
+
+#         if params.padding.h + params.padding.w > 0:
+#             in_tensor = np.pad(in_tensor,
+#                                params.padding.numpy_pad_shape(in_dims),
+#                                mode='constant',
+#                                constant_values=qrec.in_qs[0].pad_zero_point)
+#             pad_w = params.padding.w
+#             pad_h = params.padding.h
+#         else:
+#             pad_w = pad_h = 0
+
+#         for in_c in range(out_dims.c):
+#             out_h = 0
+#             for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
+#                                params.stride.h):
+#                 out_w = 0
+#                 for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
+#                                    params.stride.w):
+#                     # accumulate - potentially with different Q
+#                     out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
+#                     in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
+#                                                    h=[h_idx, h_idx + params.filter.h, 1],
+#                                                    w=[w_idx, w_idx + params.filter.w, 1])
+
+#                     out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
+#                     out_w += 1
+#                 out_h += 1
+
+#         return qrec.get_outputs(params, [out_tensor], ktype="symmetric")
 
 
 def gap_clb(sum_):

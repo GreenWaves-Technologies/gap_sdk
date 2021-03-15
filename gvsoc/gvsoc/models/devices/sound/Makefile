@@ -3,6 +3,9 @@ ifdef udma/i2s/version
 IMPLEMENTATIONS += devices/sound/i2s_microphone
 devices/sound/i2s_microphone_SRCS = devices/sound/i2s_microphone.cpp
 
+IMPLEMENTATIONS += devices/sound/i2s_clock
+devices/sound/i2s_clock_SRCS = devices/sound/i2s_clock.cpp
+
 IMPLEMENTATIONS += devices/sound/i2s_speaker
 devices/sound/i2s_speaker_SRCS = devices/sound/i2s_speaker.cpp
 

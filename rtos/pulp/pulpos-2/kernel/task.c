@@ -31,7 +31,7 @@ PI_FC_TINY pi_task_t *pos_sched_last;
 POS_TEXT_L2 void pos_task_handle_blocking(void *arg)
 {
     pi_task_t *task = arg;
-    task->done = 1;
+    task->arg[0] = 0;
 }
 
 POS_TEXT_L2 void pos_task_handle()
@@ -69,6 +69,15 @@ POS_TEXT_L2 void pos_task_handle()
 }
 
 
+POS_TEXT_L2 void pos_task_flush()
+{
+    while(pos_sched_first)
+    {
+        pos_task_handle();
+    }
+}
+
+
 void pos_task_cancel(pi_task_t *task)
 {
     pi_task_t *current = pos_sched_first, *prev = NULL;
@@ -87,11 +96,15 @@ void pos_task_cancel(pi_task_t *task)
         }
         else
         {
-            pos_sched_first = current;
+            pos_sched_first = current->next;
         }
     }
 }
 
+void pi_task_abort(pi_task_t *task)
+{
+    pos_task_cancel(task);
+}
 
 void pos_sched_init()
 {

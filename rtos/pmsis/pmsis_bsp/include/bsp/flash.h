@@ -52,6 +52,10 @@ typedef struct __pi_flash_api_t pi_flash_api_t;
 struct pi_flash_conf {
   pi_flash_api_t *api;    /*!< Pointer to specific flash methods. Reserved for 
     internal runtime usage. */
+#if defined(__GAP9__)
+    pi_aes_utils_conf_t aes_conf; /*!< AES configuration for on-the-fly
+                                       encryption/decryption */
+#endif
 };
 
 /** \enum pi_flash_ioctl_e
@@ -59,9 +63,10 @@ struct pi_flash_conf {
  *
  */
 typedef enum {
-  PI_FLASH_IOCTL_INFO   /*!< Command for getting flash information. The argument
+  PI_FLASH_IOCTL_INFO,   /*!< Command for getting flash information. The argument
     must be a pointer to a variable of type struct pi_flash_info so that the
     call is returning information there. */
+  PI_FLASH_IOCTL_AES_ENABLE   /*!< Command for setting aes enable state*/
 } pi_flash_ioctl_e;
 
 /** \struct pi_flash_info

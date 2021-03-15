@@ -14,9 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+
 # import math
 import numpy as np
-
 from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
                          MatrixAddParameters,
                          MatrixBroadcastedLinearOpParameters,
@@ -24,8 +24,6 @@ from graph.types import (ConstantInputParameters, HSigmoidActivationParameters,
 from quantization.float32.float32_quantization import Float32QuantizationRecord
 from quantization.multiplicative.mult_quantization import (
     MultQuantizationRecord, MultQuantizationRecordBase)
-from quantization.multiplicative.symmetric.symmetric_mult_qtype_wrapper import \
-    SymmetricMultQTypeWrapper
 from quantization.symmetric.symmetric_quantization import \
     SymmetricQuantizationRecord
 from utils.graph import Edge, GraphView
@@ -40,15 +38,8 @@ def check_equals(G, node, val):
     if node.value is None or len(node.value) != 1:
         return False
 
-    if G.has_quantized_parameters:
-        qrec = G.quantization[NodeId(node)]
-        if isinstance(qrec.out_qs[0], SymmetricMultQTypeWrapper):
-            node_val = qrec.out_qs[0].wrapped.dequantize(node.value)
-        else:
-            node_val = qrec.out_qs[0].dequantize(node.value)
-    else:
-        node_val = node.value
-    node_val = node_val.flatten()
+    node_val = node.dqvalue.flatten()
+
     if val < 0:
         node_val = 1.0/node_val
         val = 1.0/val

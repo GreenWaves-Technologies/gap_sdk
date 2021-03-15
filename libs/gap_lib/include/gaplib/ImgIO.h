@@ -31,7 +31,7 @@ typedef enum {
 
 int ReadImageFromFile(char *ImageName, unsigned int DesiredW, unsigned int DesiredH, unsigned int DesiredBytesPerPixel, void *InBuffer, unsigned int BuffSize, img_io_out_t out_type, int Transpose2CHW);
 int WriteImageToFile(char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned char *OutBuffer, unsigned char imgFormat);
-
+int WriteImageToFileL3(struct pi_device *l3_mem, char *ImageName, unsigned int W, unsigned int H, unsigned char PixelSize, unsigned int OutBuffer, unsigned char imgFormat);
 
 #endif //__IMG_IO_H__
 

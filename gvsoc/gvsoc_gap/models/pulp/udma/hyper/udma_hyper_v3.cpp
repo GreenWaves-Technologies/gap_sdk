@@ -40,6 +40,7 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     top->new_master_port(this, itf_name, &this->hyper_itf);
 
     this->pending_word_event = top->event_new(this, Hyper_periph::handle_pending_word);
+    this->check_state_event = top->event_new(this, Hyper_periph::handle_check_state);
     this->pending_channel_event = top->event_new(this, Hyper_periph::handle_pending_channel);
 
     this->pending_bytes = 0;
@@ -61,6 +62,16 @@ Hyper_periph::Hyper_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->top->new_master_port(itf_name + "_irq", &this->irq_itf);
 
     this->regmap.trans_cfg.register_callback(std::bind(&Hyper_periph::trans_cfg_req, this, _1, _2, _3, _4));
+
+    // HW is having 4 entries for outstanding requests and 8 entries for dc fifo, just model it as 12 entries
+    int fifo_size = 12;
+    this->read_req_free = new Udma_queue<Hyper_read_request>(fifo_size);
+    for (int i=0; i<fifo_size; i++)
+    {
+         this->read_req_free->push(new Hyper_read_request());
+    }
+    this->read_req_waiting = new Udma_queue<Hyper_read_request>(-1);
+    this->read_req_ready = new Udma_queue<Hyper_read_request>(-1);
 }
 
 
@@ -74,7 +85,7 @@ void Hyper_periph::trans_cfg_req(uint64_t reg_offset, int size, uint8_t *value, 
 
         if (this->channel_state == HYPER_CHANNEL_STATE_IDLE)
         {
-            if (this->regmap.burst_enable._2d_enable_get() & 1)
+            if (this->regmap.burst_enable.qspi_2d_enable_get() & 1)
             {
                 this->trace.msg(vp::trace::LEVEL_DEBUG, "Starting 2D transfer (addr: 0x%x, size: 0x%x, length: 0x%x, stride: 0x%x, is_tx: %d)\n",
                     this->regmap.trans_addr.addr_get(), this->regmap.trans_size.size_get(),
@@ -92,6 +103,16 @@ void Hyper_periph::trans_cfg_req(uint64_t reg_offset, int size, uint8_t *value, 
             }
 
             this->channel_state = HYPER_CHANNEL_STATE_SEND_ADDR;
+            this->pending_is_write = !this->regmap.trans_cfg.rxtx_get();
+            this->transfer_size = this->regmap.trans_size.size_get();
+            if (!this->pending_is_write)
+            {
+                this->pending_bytes = this->transfer_size;
+            }
+            else
+            {
+                this->nb_bytes_to_read = this->transfer_size;
+            }
             this->top->event_enqueue(this->pending_channel_event, 1);
         }
         else
@@ -113,15 +134,16 @@ vp::io_req_status_e Hyper_periph::custom_req(vp::io_req *req, uint64_t offset)
 {
     this->regmap.access(offset, req->get_size(), req->get_data(), req->get_is_write());
 
+    // TODO properly clean-up the mask once other fields of these registers are modeled
     if (offset == UDMA_HYPER_RX_DEST_OFFSET)
     {
         if (req->get_is_write())
-            this->top->channel_register(*(uint32_t *)req->get_data(), this->channel0);
+            this->top->channel_register((*(uint32_t *)req->get_data()) & 0xFF, this->channel0);
     }
     else if (offset == UDMA_HYPER_TX_DEST_OFFSET)
     {
         if (req->get_is_write())
-            this->top->channel_register(*(uint32_t *)req->get_data(), this->channel1);
+            this->top->channel_register((*(uint32_t *)req->get_data()) & 0xFF, this->channel1);
     }
 
     return vp::IO_REQ_OK;
@@ -136,16 +158,45 @@ void Hyper_periph::reset(bool active)
     {
         this->pending_tx = false;
         this->pending_rx = false;
-        this->current_cmd = NULL;
         this->transfer_size = 0;
+        this->pending_word_ready = false;
+        this->pending_word_size = 0;
+        this->nb_bytes_to_read = 0;
     }
 }
 
 
+bool Hyper_periph::push_to_udma()
+{
+    if (this->rx_channel->is_ready())
+    {    
+        this->trace.msg(vp::trace::LEVEL_DEBUG, "Pushing word to udma channel (value: 0x%x)\n", this->pending_word);
+        this->rx_channel->push_data((uint8_t *)&this->pending_word, this->pending_word_size);
+        this->pending_word_size = 0;
+        this->pending_word_ready = false;
+        return true;
+    }
+
+    return false;
+}
+
 void Hyper_periph::rx_sync(void *__this, int data)
 {
     Hyper_periph *_this = (Hyper_periph *)__this;
-    (static_cast<Hyper_rx_channel *>(_this->channel0))->handle_rx_data(data);
+
+    _this->trace.msg(vp::trace::LEVEL_DEBUG, "Received byte (value: 0x%x)\n", data);
+
+    _this->pending_word = (_this->pending_word & ((1 << (_this->pending_word_size * 8)) - 1)) | (data << (_this->pending_word_size * 8));
+
+    _this->pending_word_size++;
+
+    if (_this->pending_word_size == 4 || _this->transfer_size == 0)
+    {
+        if (!_this->push_to_udma())
+        {
+            _this->pending_word_ready = true;
+        }
+    }
 }
 
 
@@ -166,6 +217,12 @@ void Hyper_periph::handle_pending_channel(void *__this, vp::clock_event *event)
         case HYPER_CHANNEL_STATE_SEND_SIZE:
             value = _this->regmap.trans_size.size_get();
             channel->access(UDMA_CORE_LIN_ADDRGEN_CFG_SIZE_OFFSET, 4, (uint8_t *)&value, true);
+            _this->channel_state = HYPER_CHANNEL_STATE_SEND_LENGTH;
+            break;
+
+        case HYPER_CHANNEL_STATE_SEND_LENGTH:
+            value = _this->regmap.trans_size.size_get();
+            channel->access(UDMA_CORE_2D_CFG_ROW_LEN_OFFSET, 4, (uint8_t *)&value, true);
             _this->channel_state = HYPER_CHANNEL_STATE_SEND_CFG;
             break;
 
@@ -186,6 +243,8 @@ void Hyper_periph::handle_pending_channel(void *__this, vp::clock_event *event)
     {
         _this->top->event_enqueue(_this->pending_channel_event, 1);
     }
+
+    _this->check_state();
 }
 
 
@@ -239,7 +298,7 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
 
             _this->ca.burst_type = 0;
             _this->ca.address_space = _this->regmap.ext_addr.reg_access_get();
-            _this->ca.read = _this->pending_rx ? 1 : 0;
+            _this->ca.read = !_this->pending_is_write;
 
             bool burst_enable = cs == 0 ? _this->regmap.burst_enable.cs0_auto_burst_enable_get() : _this->regmap.burst_enable.cs1_auto_burst_enable_get();
 
@@ -250,14 +309,6 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
             else
             {
                 _this->pending_burst = 0;
-            }
-
-            if (_this->transfer_size == 0)
-            {
-                if (_this->ca.read)
-                    _this->transfer_size = _this->rx_channel->current_cmd->size;
-                else
-                    _this->transfer_size = _this->tx_channel->current_cmd->size;
             }
         }
     }
@@ -287,8 +338,15 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
     else if (_this->state == HYPER_STATE_DATA && _this->pending_bytes > 0)
     {
         send_byte = true;
-        byte = _this->pending_word & 0xff;
-        _this->pending_word >>= 8;
+        if (_this->pending_is_write)
+        {
+            byte = _this->pending_word & 0xff;
+            _this->pending_word >>= 8;
+        }
+        else
+        {
+            byte = 0;
+        }
         _this->pending_bytes--;
         _this->transfer_size--;
 
@@ -379,8 +437,6 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
         if (!_this->ca.read)
         {
             _this->pending_tx = false;
-            _this->tx_channel->handle_ready_req_end(_this->pending_req);
-            _this->tx_channel->handle_ready_reqs();
         }
         else
             _this->pending_rx = false;
@@ -390,26 +446,43 @@ void Hyper_periph::handle_pending_word(void *__this, vp::clock_event *event)
 }
 
 
-void Hyper_periph::check_state()
+void Hyper_periph::handle_check_state(void *__this, vp::clock_event *event)
 {
-    if (this->pending_bytes == 0)
+    Hyper_periph *_this = (Hyper_periph *)__this;
+
+    if (_this->channel_state != HYPER_CHANNEL_STATE_IDLE)
+        return;
+
+    if (_this->pending_is_write && _this->pending_bytes == 0 && !_this->read_req_ready->is_empty())
     {
-        if (!this->tx_channel->ready_reqs->is_empty() && (this->pending_tx || !this->pending_rx))
-        {
-            this->pending_tx = true;
-            vp::io_req *req = this->tx_channel->ready_reqs->pop();
-            this->pending_req = req;
-            this->pending_word = *(uint32_t *)req->get_data();
-            this->pending_bytes = req->get_size();
-        }
-        else if (this->rx_channel->current_cmd && (this->pending_rx || !this->pending_tx))
-        {
-            this->pending_rx = true;
-            this->pending_bytes = rx_channel->current_cmd->size;
-        }
+        Hyper_read_request *req = _this->read_req_ready->pop();
+        _this->pending_word = req->data;
+        _this->pending_bytes = req->size;
+        _this->read_req_free->push(req);
     }
 
-    if (this->pending_bytes != 0 || this->state == HYPER_STATE_CS_OFF)
+    if (!_this->pending_is_write && _this->pending_word_ready)
+    {
+        _this->push_to_udma();
+    }
+
+    if (_this->nb_bytes_to_read > 0 && !_this->read_req_free->is_empty() && _this->tx_channel->is_ready())
+    {
+        int size = _this->nb_bytes_to_read > 4 ? 4 : _this->nb_bytes_to_read;
+        Hyper_read_request *req = _this->read_req_free->pop();
+        _this->nb_bytes_to_read -= size;
+        _this->read_req_waiting->push(req);
+        _this->tx_channel->get_data(size);
+    }
+
+    _this->check_state();
+}
+
+
+void Hyper_periph::check_state()
+{
+
+    if ((this->pending_bytes > 0 && (this->pending_is_write || !this->pending_is_write && !this->pending_word_ready)) || this->state == HYPER_STATE_CS_OFF)
     {
         if (!this->pending_word_event->is_enqueued())
         {
@@ -421,11 +494,25 @@ void Hyper_periph::check_state()
             this->top->get_periph_clock()->enqueue_ext(this->pending_word_event, latency);
         }
     }
+
+
+    if (this->pending_bytes > 0 && !this->pending_is_write && this->pending_word_ready || this->nb_bytes_to_read > 0 && !this->read_req_free->is_empty() || this->pending_is_write && this->pending_bytes == 0 && !this->read_req_ready->is_empty())
+    {
+        if (!this->check_state_event->is_enqueued())
+        {
+            this->top->event_enqueue(this->check_state_event, 1);
+        }
+    }
+
 }
 
 
-void Hyper_periph::handle_ready_reqs()
+void Hyper_periph::push_data(uint8_t *data, int size)
 {
+    Hyper_read_request *req = this->read_req_waiting->pop();
+    req->data = *(uint32_t *)data;
+    req->size = size;
+    this->read_req_ready->push(req);
     this->check_state();
 }
 
@@ -436,48 +523,12 @@ Hyper_tx_channel::Hyper_tx_channel(udma *top, Hyper_periph *periph, string name)
 }
 
 
-void Hyper_tx_channel::reset(bool active)
+void Hyper_tx_channel::push_data(uint8_t *data, int size)
 {
-    Udma_tx_channel::reset(active);
-}
-
-
-void Hyper_tx_channel::handle_ready_reqs()
-{
-    this->periph->handle_ready_reqs();
+    this->periph->push_data(data, size);
 }
 
 
 Hyper_rx_channel::Hyper_rx_channel(udma *top, Hyper_periph *periph, string name) : Udma_rx_channel(top, name), periph(periph)
 {
-}
-
-
-void Hyper_rx_channel::reset(bool active)
-{
-    Udma_rx_channel::reset(active);
-}
-
-
-void Hyper_rx_channel::handle_rx_data(int data)
-{
-    this->push_data((uint8_t *)&data, 1);
-}
-
-
-void Hyper_rx_channel::handle_ready()
-{
-    this->periph->handle_ready_reqs();
-}
-
-
-void Hyper_rx_channel::handle_transfer_end()
-{
-    Udma_rx_channel::handle_transfer_end();
-}
-
-
-void Hyper_tx_channel::handle_transfer_end()
-{
-    Udma_tx_channel::handle_transfer_end();
 }

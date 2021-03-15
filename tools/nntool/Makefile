@@ -71,7 +71,8 @@ schema_ui/__init__.py: schema_ui/tflite_$(SCHEMA_HEAD_NAME)
 	cat schema_ui/tflite_$(SCHEMA_HEAD_NAME)/*.py > $@
 
 req:
-	python3 -m pip install -r requirements.txt
+	# Hack to order the requirements
+	cat requirements.txt | xargs -n 1 -L 1 python3 -m pip install
 
 gen_req: clean
 	pipreqs --force . 

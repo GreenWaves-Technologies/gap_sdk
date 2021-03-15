@@ -65,8 +65,8 @@ class ActivationStatsCollector(ReductionStatsCollector):
                 stat['min_acc'] = details['min_acc']
                 stat['max_acc'] = details['max_acc']
                 if isinstance(node, MultiplicativeBiasParameters) and node.has_mul_bias:
-                    stat['pre_mul_bias_min'] = details['pre_mul_bias_min']
-                    stat['pre_mul_bias_max'] = details['pre_mul_bias_max']
+                    stat['min_pre_mul_bias'] = details['min_pre_mul_bias']
+                    stat['max_pre_mul_bias'] = details['max_pre_mul_bias']
 
             stats[key] = stat
 
@@ -104,9 +104,9 @@ class ActivationStatsCollector(ReductionStatsCollector):
             base['min_acc'] = min(stat['min_acc'], base['min_acc'])
             base['max_acc'] = max(stat['max_acc'], base['max_acc'])
 
-        if 'pre_mul_bias_min' in stat:
-            stat['pre_mul_bias_min'] = min(stat['pre_mul_bias_min'], base['pre_mul_bias_min'])
-            stat['pre_mul_bias_max'] = max(stat['pre_mul_bias_max'], base['pre_mul_bias_min'])
+        if 'min_pre_mul_bias' in stat:
+            stat['min_pre_mul_bias'] = min(stat['min_pre_mul_bias'], base['min_pre_mul_bias'])
+            stat['max_pre_mul_bias'] = max(stat['max_pre_mul_bias'], base['min_pre_mul_bias'])
 
     def _reduce(self, _, base: Mapping, stat: Mapping):
         self.reduce_elem(base, stat)

@@ -25,4 +25,6 @@ class FusionNoopKernel(KernelBase):
                 in_tensors,
                 qrec: QuantizationRecordBase,
                 **kwargs):
-        return in_tensors
+        in_tensor = in_tensors[params.idx]
+        in_tensor = in_tensor.reshape(params.dims.shape)
+        return [in_tensor]

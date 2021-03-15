@@ -91,16 +91,32 @@ static inline void pi_yield()
     __os_native_yield();
 }
 
-static inline int disable_irq(void)
+static inline int pi_irq_disable(void)
 {
     hal_compiler_barrier();
     return __os_native_api_disable_irq();
 }
 
-static inline void restore_irq(int irq_enable)
+static inline void pi_irq_enable()
+{
+    hal_compiler_barrier();
+    __os_native_api_enable_irq();
+}
+
+static inline void pi_irq_restore(int irq_enable)
 {
     hal_compiler_barrier();
     __os_native_api_restore_irq(irq_enable);
+}
+
+static inline int disable_irq(void)
+{
+    return pi_irq_disable();
+}
+
+static inline void restore_irq(int irq_enable)
+{
+    pi_irq_restore(irq_enable);
 }
 
 static inline int pi_sem_init(pi_sem_t *sem)
@@ -209,5 +225,41 @@ static inline void pmsis_spinlock_release(pmsis_spinlock_t *spinlock)
     hal_compiler_barrier();
     restore_irq(irq_enabled);
 }
+
+#if !defined(__GAP8__)
+static inline void pi_irq_handler_set(int irq, void (*handler)())
+{
+    // use a wrapper to create C context
+    __os_native_irq_wrapper_handler_set(irq, handler);
+}
+
+static inline void pi_irq_handler_fast_set(int irq, void (*handler)())
+{
+    // jump directly
+    __os_native_irq_handler_set(irq, handler);
+}
+
+static inline void pi_irq_exception_handler_set(int cause, void (*handler)())
+{
+    // use a wrapper to create C context
+    __os_native_exception_handler_set(cause, handler);
+}
+
+static inline void pi_irq_mask_enable(int irq)
+{
+    __os_native_irq_unmask(irq);
+}
+
+static inline void pi_irq_mask_disable(int irq)
+{
+    __os_native_irq_mask(irq);
+}
+
+static inline void pi_os_reboot(void)
+{
+    hal_soc_ctrl_sw_reset();
+}
+
+#endif  /* __GAP8__ */
 
 #endif  /* __PI_RTOS_IMPLEM_OS_H__ */

@@ -15,7 +15,7 @@
 
 import logging
 
-from graph.dim import Conv2DFilterDim
+from graph.dim import Conv2DFilterDim, Dim
 from graph.matches.matcher import Matcher
 from graph.types import PoolingParameters, Conv2DParameters, ConvFusionParameters
 from utils.graph import GraphView
@@ -29,12 +29,13 @@ class FilterBiggerThanInput(Matcher):
     def match(self, G: GraphView, set_identity: bool = True):
         something_changed = False
         filt_nodes = [node for node in G.nodes()
-                        if isinstance(node, (PoolingParameters, Conv2DParameters, ConvFusionParameters))]
+                        if isinstance(node, (Conv2DParameters, ConvFusionParameters))]
         for filt_node in filt_nodes:
+            pnode = filt_node
             if isinstance(filt_node, ConvFusionParameters):
                 cnodes = filt_node.contained_nodes()
                 filt_node = cnodes[0]
-            if not isinstance(filt_node, (PoolingParameters, Conv2DParameters)):
+            if not isinstance(filt_node, Conv2DParameters):
                 continue
             in_dim = filt_node.in_dims
             filt_dim = filt_node.filter
@@ -68,7 +69,9 @@ class FilterBiggerThanInput(Matcher):
                         new_w_idxs.append(slice(filt_node.padding.l, filt_node.padding.l + 1))
                     else:
                         new_w_idxs.append(slice(0, new_filt_dim.w))
-            filt_node.weights = filt_node.weights[tuple(new_w_idxs)]
+            weights_node = G.indexed_in_edges(pnode.name)[1].from_node
+            weights_node.value = weights_node.value[tuple(new_w_idxs)]
+            weights_node.dims = Dim.unnamed(weights_node.value.shape)
             something_changed = True
 
         if set_identity:

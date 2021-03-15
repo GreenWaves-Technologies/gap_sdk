@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "vp/itf/clock.hpp"
+
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_regs.h"
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_regfields.h"
 #include "archi/chips/gap9_v2/apb_soc_ctrl/apb_soc_ctrl_gvsoc.h"
@@ -56,6 +58,10 @@ private:
   vp::io_req_status_e l1_pwr_ctrl_req(int reg_offset, int size, bool is_write, uint8_t *data);
   vp::io_req_status_e l2_pwr_ctrl_req(int reg_offset, int size, bool is_write, uint8_t *data);
   void dbg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void clk_div_ref_fast_pow2_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+
+  static void ref_clock_sync(void *__this, bool value);
+  static void fast_clock_sync(void *__this, bool value);
 
 
   static void bootsel_sync(void *__this, int value);
@@ -101,6 +107,8 @@ private:
   uint32_t l1_power;
   uint32_t l1_standby;
   int nb_harts;
+  int fast_clock_div_counter;
+  int fast_clock_divided_value;
 
   unsigned int extwake_sync;
 
@@ -115,6 +123,10 @@ private:
   vp_regmap_apb_soc_ctrl regmap;
 
   int wakeup;
+
+  vp::clock_slave ref_clock_itf;
+  vp::clock_slave fast_clock_itf;
+  vp::clock_master ref_clock_muxed_itf;
 };
 
 apb_soc_ctrl::apb_soc_ctrl(js::config *config)
@@ -130,6 +142,53 @@ void apb_soc_ctrl::set_wakeup(int value)
     this->wakeup = value;
     this->wakeup_out_itf.sync(value);
   }
+}
+
+
+void apb_soc_ctrl::ref_clock_sync(void *__this, bool value)
+{
+    apb_soc_ctrl *_this = (apb_soc_ctrl *)__this;
+
+    if (_this->regmap.ref_clk_mux.get() == 0)
+    {
+        _this->ref_clock_muxed_itf.sync(value);
+    }
+}
+
+
+void apb_soc_ctrl::fast_clock_sync(void *__this, bool value)
+{
+    apb_soc_ctrl *_this = (apb_soc_ctrl *)__this;
+    int limit = 1 << _this->regmap.clk_div_ref_fast_pow2.divider_get();
+    bool reached = true;
+
+    _this->trace.msg(vp::trace::LEVEL_TRACE, "Updating counter due to fast clock raising edge (counter: %d, limit: %d)\n", _this->fast_clock_div_counter, limit);
+
+    if (_this->regmap.clk_div_ref_fast_pow2.en_get())
+    {
+        _this->fast_clock_div_counter++;
+        if (_this->fast_clock_div_counter == limit)
+        {
+            _this->fast_clock_div_counter = 0;            
+        }
+        else
+        {
+            reached = false;
+        }
+    }
+
+    if (reached)
+    {
+        _this->trace.msg(vp::trace::LEVEL_TRACE, "Reached limit, raising fast divided edge (value: %d)\n", _this->fast_clock_divided_value);
+
+        if (_this->regmap.ref_clk_mux.get())
+        {
+            _this->trace.msg(vp::trace::LEVEL_TRACE, "Propagating to muxed ref clock\n");
+
+            _this->ref_clock_muxed_itf.sync(_this->fast_clock_divided_value);
+            _this->fast_clock_divided_value ^= 1;
+        }
+    }
 }
 
 
@@ -673,6 +732,15 @@ int apb_soc_ctrl::build()
 
   this->regmap.build(this, &this->trace);
   this->regmap.dbg_ctrl.register_callback(std::bind(&apb_soc_ctrl::dbg_ctrl_req, this, _1, _2, _3, _4));
+  this->regmap.clk_div_ref_fast_pow2.register_callback(std::bind(&apb_soc_ctrl::clk_div_ref_fast_pow2_req, this, _1, _2, _3, _4));
+
+  this->fast_clock_itf.set_sync_meth(&apb_soc_ctrl::fast_clock_sync);
+  this->new_slave_port("fast_clock", &fast_clock_itf);
+
+  this->ref_clock_itf.set_sync_meth(&apb_soc_ctrl::ref_clock_sync);
+  this->new_slave_port("ref_clock", &ref_clock_itf);
+
+  this->new_master_port("ref_clock_muxed", &this->ref_clock_muxed_itf);
 
   return 0;
 }
@@ -700,12 +768,25 @@ void apb_soc_ctrl::dbg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, b
 }
 
 
+void apb_soc_ctrl::clk_div_ref_fast_pow2_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write)
+{
+    this->regmap.clk_div_ref_fast_pow2.update(reg_offset, size, value, is_write);
+
+    if (is_write)
+    {
+        this->fast_clock_div_counter = 0;
+    }
+}
+
+
 void apb_soc_ctrl::reset(bool active)
 {
   if (active)
   {
-    cluster_power = false;
-    cluster_clock_gate = false;
+    this->cluster_power = false;
+    this->cluster_clock_gate = false;
+    this->fast_clock_div_counter = 0;
+    this->fast_clock_divided_value = 0;
 
     this->sync_dm_available(this->regmap.dbg_ctrl.get_32());
   }

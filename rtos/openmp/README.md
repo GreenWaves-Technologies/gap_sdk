@@ -12,3 +12,4 @@ GAP OpenMP only support static scheduling and the following directives (pragma):
 - `for`
 - `barrier`
 - `atomic`
+- `single`

@@ -114,7 +114,6 @@ protected:
 private:
 
   static void sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask);
-  static void sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask);
   static void cs_sync(void *__this, bool active);
 
   void handle_data(int data_0, int data_1, int data_2, int data_3);
@@ -346,14 +345,14 @@ void spiflash::send_bits()
       unsigned int value = (this->pending_word >> 7) & 0x1;
       this->pending_word <<= 1;
       this->trace.msg(vp::trace::LEVEL_TRACE, "Sending single data (data_0: %d)\n", value);
-      this->in_itf.sync(0, value, 0, 0, 2);
+      this->in_itf.sync(2, 0, value, 0, 0, 2);
     }
     else
     {
       unsigned int value = (this->pending_word >> 4) & 0xf;
       this->pending_word <<= 4;
       this->trace.msg(vp::trace::LEVEL_TRACE, "Sending quad data (data_0: %d, data_1: %d, data_2: %d, data_3: %d)\n", (value >> 0) & 1, (value >> 1) & 1, (value >> 2) & 1, (value >> 3) & 1);
-      this->in_itf.sync((value >> 0) & 1, (value >> 1) & 1, (value >> 2) & 1, (value >> 3) & 1, 0xf);
+      this->in_itf.sync(2, (value >> 0) & 1, (value >> 1) & 1, (value >> 2) & 1, (value >> 3) & 1, 0xf);
     }
   }
 }
@@ -431,11 +430,6 @@ void spiflash::sync(void *__this, int sck, int data_0, int data_1, int data_2, i
     _this->handle_data(data_0, data_1, data_2, data_3);
 }
 
-void spiflash::sync_cycle(void *__this, int data_0, int data_1, int data_2, int data_3, int mask)
-{
-  spiflash *_this = (spiflash *)__this;
-  _this->handle_data(data_0, data_1, data_2, data_3);
-}
 
 void spiflash::cs_sync(void *__this, bool active)
 {
@@ -455,7 +449,6 @@ int spiflash::build()
   traces.new_trace("trace", &trace, vp::DEBUG);
 
   this->in_itf.set_sync_meth(&spiflash::sync);
-  this->in_itf.set_sync_cycle_meth(&spiflash::sync_cycle);
   this->new_slave_port("input", &this->in_itf);
 
   this->cs_itf.set_sync_meth(&spiflash::cs_sync);

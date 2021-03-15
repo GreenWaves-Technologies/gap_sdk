@@ -64,7 +64,7 @@ void Spim_periph_v2::reset(bool active)
 }
 
   
-void Spim_periph_v2::slave_sync(void *__this, int data_0, int data_1, int data_2, int data_3, int mask)
+void Spim_periph_v2::slave_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask)
 {
   Spim_periph_v2 *_this = (Spim_periph_v2 *)__this;
   (static_cast<Spim_rx_channel *>(_this->channel0))->handle_rx_bits(data_0, data_1, data_2, data_3, mask);
@@ -190,8 +190,10 @@ void Spim_tx_channel::handle_spi_pending_word(void *__this, vp::clock_event *eve
     else
     {
       if (!_this->periph->is_full_duplex)
-        _this->periph->qspim_itf.sync_cycle(0, 0, 0, 0, 0
-      );
+      {
+        _this->periph->qspim_itf.sync(0, 0, 0, 0, 0, 0);
+        _this->periph->qspim_itf.sync(1, 0, 0, 0, 0, 0);
+      }
     }
 
     if (_this->periph->spi_rx_pending_bits <= 0)
@@ -256,8 +258,11 @@ void Spim_tx_channel::handle_spi_pending_word(void *__this, vp::clock_event *eve
     }
     else
     {
-      _this->periph->qspim_itf.sync_cycle(
-        (bits >> 0) & 1, (bits >> 1) & 1, (bits >> 2) & 1, (bits >> 3) & 1, (1<<nb_bits)-1
+      _this->periph->qspim_itf.sync(
+        0, (bits >> 0) & 1, (bits >> 1) & 1, (bits >> 2) & 1, (bits >> 3) & 1, (1<<nb_bits)-1
+      );
+      _this->periph->qspim_itf.sync(
+        1, (bits >> 0) & 1, (bits >> 1) & 1, (bits >> 2) & 1, (bits >> 3) & 1, (1<<nb_bits)-1
       );
     }
     _this->spi_tx_pending_bits -= nb_bits;
@@ -395,7 +400,8 @@ void Spim_tx_channel::handle_data(uint32_t data)
         {
           if (this->periph->qspim_itf.is_bound())
           {
-            this->periph->qspim_itf.sync_cycle(0, 0, 0, 0, 0);
+            this->periph->qspim_itf.sync(0, 0, 0, 0, 0, 0);
+            this->periph->qspim_itf.sync(1, 0, 0, 0, 0, 0);
           }
           this->periph->cmd_pending_bits--;
           handled_all = false;

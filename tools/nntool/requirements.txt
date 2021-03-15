@@ -4,12 +4,12 @@ pytest==5.0.1
 XlsxWriter==1.1.5
 texttable==1.6.2
 cmd2==1.0.2
-numpy==1.16.2
-Pillow==6.2.0
+numpy==1.16.5
+Pillow==7.2.0
 Keras==2.3.1
-numpy==1.16.2
 argcomplete==1.10.0
-scikit-image==0.15.0
+scikit-image==0.17.2
 scikit-learn==0.21.3
-sympy==1.4
 onnx==1.8.0
+prettytable==0.7.2
+./extern/bfloat16-1.0.tar.gz

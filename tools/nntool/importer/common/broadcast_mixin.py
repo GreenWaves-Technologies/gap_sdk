@@ -31,7 +31,7 @@ class BroadcastMixin(object):
 
         assert all(elem_x == elem_y or (elem_x == 1 or elem_y == 1) for elem_x, elem_y in zip(x, y)
                    if elem_x is not None and elem_y is not None),\
-            "{} and {} cannot be broadcasted".format(",".join(x), ",".join(y))
+            "{} and {} cannot be broadcasted".format(x, y)
 
         def broad(elem_x, elem_y):
             if elem_x is None or elem_y is None:
@@ -41,15 +41,31 @@ class BroadcastMixin(object):
 
     @classmethod
     def _fix_constant_inputs(cls, inputs, shape):
+        #TODO - This should be checked again
+        # this fixes constant inputs to the broadcasted shape
+        # this may not be a good thing to do if the input is connected to more than one node
+        # since the shape change could cause problems
+        # Two possible solutions:
+        # 1) insert a rehape in between the constant and the broadcasted node
+        # 2) make the broadcast node adjust more complete
         none_axes = tuple([idx for idx, dim in enumerate(shape) if dim is None])
-        const_inputs = set([inp[0] for inp in inputs if isinstance(inp[0], ConstantInputParameters)])
+        const_inputs = list([inp
+                             for inp in inputs if isinstance(inp[0], ConstantInputParameters)])
         if not const_inputs:
             return
         for inp in const_inputs:
-            inp.value = np.reshape(inp.value, [1] * (len(shape) - len(inp.value.shape)) + list(inp.value.shape))
+            node = inp[0]
+            node.value = np.reshape(
+                node.value, [1] * (len(shape) - len(node.value.shape)) + list(node.value.shape))
             if none_axes:
-                inp.value = np.squeeze(inp.value, axis=none_axes)
-            inp.dims = Dim.unnamed(inp.value.shape)
+                node.value = np.squeeze(node.value, axis=none_axes)
+            # setting the provisional shape here is a little dangerous
+            # if the unknown axis is first then it works but if it is
+            # in the middle and this value is connected to another node then
+            # could be problematic (but it is problematic anyway since it won't
+            # expect something broadcasted)
+            inp[2].shape = list(node.value.shape)
+            node.dims = Dim.unnamed(node.value.shape)
 
     @classmethod
     def implied_broadcast(cls, inputs):

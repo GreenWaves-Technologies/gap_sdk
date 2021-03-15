@@ -55,7 +55,7 @@ void Uart_periph::rx_dest_req(uint64_t reg_offset, int size, uint8_t *value, boo
     if (is_write)
     {
         this->trace.msg(vp::trace::LEVEL_INFO, "Setting RX channel (id: %d)\n", this->regmap.rx_dest.rx_dest_get());
-        this->top->channel_register(this->regmap.rx_dest.rx_dest_get(), this->channel0);
+        //this->top->channel_register(this->regmap.rx_dest.rx_dest_get(), this->channel0);
     }
 }
 
@@ -67,7 +67,7 @@ void Uart_periph::tx_dest_req(uint64_t reg_offset, int size, uint8_t *value, boo
     if (is_write)
     {
         this->trace.msg(vp::trace::LEVEL_INFO, "Setting TX channel (id: %d)\n", this->regmap.tx_dest.tx_dest_get());
-        this->top->channel_register(this->regmap.tx_dest.tx_dest_get(), this->channel1);
+        //this->top->channel_register(this->regmap.tx_dest.tx_dest_get(), this->channel1);
     }
 }
 

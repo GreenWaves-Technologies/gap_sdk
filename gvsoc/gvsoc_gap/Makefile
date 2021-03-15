@@ -1,6 +1,6 @@
 export VP_ROOT_DIR = $(CURDIR)
 
-GV_MAKEFLAGS ?= -j 4
+GV_MAKEFLAGS ?= -j 2
 
 clean:
 	make -C models clean

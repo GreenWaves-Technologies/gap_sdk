@@ -117,13 +117,7 @@ static int pos_get_div(pos_mram_t *mram, int freq)
         // Round-up the divider to obtain a frequency which is below the maximum.
         int div = (periph_freq + freq - 1) / freq;
         mram->freq = periph_freq / div;
-
-        if (div <= 1)
-            return 0;
-        else if (div & 1)
-            return div - 2;
-        else
-            return div;
+        return div;
     }
 }
 
@@ -436,6 +430,13 @@ static void mram_close(struct pi_device *device)
         hal_udma_ctrl_cg_enable(mram->periph_id);
         hal_udma_ctrl_reset_enable(mram->periph_id);
 #endif
+
+#ifndef PMSIS_DRIVERS
+#ifndef CONFIG_XIP_MRAM
+        pos_pmu_change_domain_power(NULL, RT_PMU_MRAM_ID, RT_PMU_STATE_OFF, 0);
+#endif
+#endif /* PMSIS_DRIVERS */
+
     }
 }
 

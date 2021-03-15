@@ -59,7 +59,7 @@ class Split(ConstantMixin, BackendHandler):
                 assert sum(split) == split_dim, "split sizes should add up to total size %s" % valid_name
                 assert np.all(split > 0), "split sizes should be greater than zero %s" % valid_name
             else:
-                num_outputs = len(node.outputs)
+                num_outputs = len(node.output)
                 assert split_dim % num_outputs == 0,\
                     "no split attribute or value and dimension is not divisible by number of outputs %s" % valid_name
                 split = np.array([split_dim // num_outputs] * num_outputs)
@@ -90,7 +90,7 @@ class Split(ConstantMixin, BackendHandler):
             logger.info("reducing %s to %s constant(s)", valid_name, len(out_shapes))
             values = params.numpy_split(cls.get_constant(x))
             for idx, out_pshape in enumerate(out_pshapes):
-                cparams = ConstantInputParameters(valid_name, value=values[idx])
+                cparams = ConstantInputParameters(valid_name, value=values[idx], constant_store=G.constant_store)
                 all_nodes[node.output[idx]] = (cparams, 0, out_pshape)
             return None
 

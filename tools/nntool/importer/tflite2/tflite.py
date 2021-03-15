@@ -15,23 +15,28 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
+from copy import deepcopy
 
 from graph.constant_store import ConstantStore
 from graph.dim import Dim
+from graph.matches.duplicate_constants import MatchDuplicateConstants
+from graph.matches.remove_quantize_operators import RemoveQuantizeOperators
 from graph.nngraph import NNGraph
 from graph.types import ConstantInputParameters
 from graph.types.base import NNEdge
+from importer.common.clean_dangling_nodes import clean_dangling_nodes
 from importer.tflite2.common.tflite_graph import TFLiteGraph
 from importer.tflite2.tflite_schema_head.Model import Model
-from quantization.multiplicative.mult_quantization import \
-    MultConstantQuantizationRecord
+from quantization.multiplicative.mult_quantization import (
+    MultConstantQuantizationRecord, MultQuantizationRecord)
+from quantization.qtype import QType
 from quantization.quantization_set import QuantizationSet
 from utils.add_sys_path import add_sys_path
 from utils.node_id import NodeId
 
 from ..common.provisional_dim import ProvisionalDim
 from ..importer_base import ImporterBase
-from .common import LOG, check, get_unique_suffix
+from .common import LOG, check
 from .common.handler_helper import get_all_backend_handlers
 from .fix_split_in_edges import fix_split_in_edges
 from .remove_concats import remove_concats
@@ -40,10 +45,6 @@ from .remove_concats import remove_concats
 
 
 class TFLiteImporter(ImporterBase):
-    DEFAULT_OPTS = {
-        'rescale_perchannel': True
-    }
-
     def __init__(self, *args, **kwargs) -> None:
         super(TFLiteImporter, self).__init__(*args, **kwargs)
         self._name_cache = {}
@@ -54,7 +55,7 @@ class TFLiteImporter(ImporterBase):
         return self._provisional_outputs
 
     def create_graph(self, filename, opts):
-        opts = dict(self.DEFAULT_OPTS, **opts)
+        opts = self.get_opts(opts)
         self._name_cache = {}
         add_sys_path(os.path.dirname(__file__))
         buf = open(filename, "rb").read()
@@ -68,13 +69,26 @@ class TFLiteImporter(ImporterBase):
         if opts.get('load_quantization'):
             G.quantization = QuantizationSet()
             G.has_quantized_parameters = True
-            G.graph_identity.quantization_type = 'SQ8'
+            G.graph_identity.quantization_types.add('SQ8')
 
         self._import_tflite_graph(G, TFLiteGraph.from_model(model, 0), opts)
-
+        clean_dangling_nodes(G)
         fix_split_in_edges(G)
+        MatchDuplicateConstants().match(G)
         G.add_dimensions()
         remove_concats(G)
+        if opts['remove_quantize_ops']:
+            RemoveQuantizeOperators().match(G)
+            G.add_dimensions()
+
+        if opts.get('load_quantization'):
+            # get rid of qrecs on nodes that were not used
+            to_remove = []
+            for nid in G.quantization:
+                if nid.node_name not in G:
+                    to_remove.append(nid)
+            for nid in to_remove:
+                del G.quantization[nid]
 
         return G
 
@@ -100,8 +114,10 @@ class TFLiteImporter(ImporterBase):
                 text = text.replace(i, '_')
             return text
         new_name = replace_all(name, [":", "/"])
-        if new_name != name:
-            new_name += "_" + get_unique_suffix()
+        # This doesn't work since the stats nids will not match in
+        # a saved state
+        # if new_name != name:
+        #     new_name += "_" + get_unique_suffix()
         return new_name
 
     @staticmethod
@@ -117,6 +133,9 @@ class TFLiteImporter(ImporterBase):
         for tensor in node_recs:
             qtype = tensor.qtype
             if qtype:
+                if qtype.is_sq and qtype.is_asymmetric:
+                    qtype = QType.from_min_max_sq(qtype.min_val, qtype.max_val,
+                                                  quantized_dimension=qtype.quantized_dimension)
                 qrecs[NodeId(node_recs[tensor][0])] = MultConstantQuantizationRecord(
                     in_qs=[qtype], out_qs=[qtype])
 
@@ -126,7 +145,9 @@ class TFLiteImporter(ImporterBase):
                 ConstantInputParameters(
                     self._validate_name(tensor.name),
                     dims=Dim.unnamed(tensor.shape),
-                    value=tensor.value),
+                    value=tensor.value if load_quantization else tensor.dqvalue,
+                    qtype=tensor.qtype if load_quantization else None,
+                    constant_store=G.constant_store),
                 0,
                 ProvisionalDim.from_tflite_shape(tensor.shape)
             )
@@ -183,7 +204,8 @@ class TFLiteImporter(ImporterBase):
             if node.is_custom and handler:
                 handler = handler.get(node.custom_op_name, None)
                 if not handler:
-                    raise ValueError("no handler found for custom operation %s" % node.custom_op_name)
+                    raise ValueError("no handler found for custom operation %s" %
+                                     node.custom_op_name)
 
             params = handler.handle(node, all_nodes=all_nodes, G=G, opts=opts, importer=self)
             if params is None:
@@ -194,3 +216,9 @@ class TFLiteImporter(ImporterBase):
                     continue
                 G.add_edge(NNEdge(from_node=params,
                                   to_node=output[0], from_idx=idx, to_idx=output[1]))
+                if opts.get('load_quantization'):
+                    qtype = deepcopy(G.quantization[NodeId(params)].out_qs[idx])
+                    G.quantization[NodeId(output[0])] = MultQuantizationRecord(
+                        in_qs=[qtype],
+                        out_qs=[qtype]
+                    )

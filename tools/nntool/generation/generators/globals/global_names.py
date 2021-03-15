@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-WEIGHTS = "weights"
-BIASES = "biases"
 MULSCALE = "mul_scale"
 MULSHIFT = "mul_shift"
 INFOS = "infos"
@@ -21,4 +19,4 @@ ANCHORS = "anchors"
 SSD_SCALES = "ssd_scales"
 SSD_NORMS = "ssd_norms"
 
-__all__ = ['WEIGHTS', 'BIASES', 'MULSCALE', 'MULSHIFT', 'INFOS', 'ANCHORS', 'SSD_SCALES', 'SSD_NORMS']
+__all__ = ['MULSCALE', 'MULSHIFT', 'INFOS', 'ANCHORS', 'SSD_SCALES', 'SSD_NORMS']

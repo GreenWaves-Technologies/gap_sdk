@@ -11,6 +11,7 @@
   "config": {
     "type": "dpi",
     "module": "spiram.so",
-    "mem_size": "0x00800000"
+    "mem_size": "0x00800000",
+    "cross_page_size": "0"
   }
 }

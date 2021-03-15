@@ -14,7 +14,6 @@ export PATH="$GAP_RISCV_GCC_TOOLCHAIN/bin":"$GAP_SDK_HOME/tools/bin":$PATH
 
 export TARGET_INSTALL_DIR=$GAP_SDK_HOME/install/$TARGET_CHIP
 export INSTALL_DIR=$GAP_SDK_HOME/install/workstation
-export OPENOCD_SCRIPTS=$GAP_SDK_HOME/install/workstation/share/openocd/scripts
 export DEP_DIRS=$INSTALL_DIR
 export RULES_DIR=$GAP_SDK_HOME/tools/rules
 
@@ -29,13 +28,16 @@ export OPENMP_DIR="$GAP_SDK_HOME/rtos/openmp"
 
 # PulpOS 2
 export PULPOS_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2
-export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/pmsis_bsp $OPENMP_DIR"
+export PULPOS_MODULES="$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8 $GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9 $GAP_SDK_HOME/rtos/pmsis/pmsis_bsp $OPENMP_DIR $GAP_SDK_HOME/rtos/sfu"
 export PULPOS_GAP8_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap8
 export PULPOS_GAP9_HOME=$GAP_SDK_HOME/rtos/pulp/pulpos-2_gap9
 export GAP_PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/gap_archi
 export PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/archi_pulp
 export PULPOS_HAL=$GAP_SDK_HOME/rtos/pulp/hal_pulp
 export PMSIS_API=$GAP_SDK_HOME/rtos/pmsis/pmsis_api
+
+# SFU runtime
+export SFU_RUNTIME=$GAP_SDK_HOME/rtos/sfu
 
 # For pulp os
 export PULP_LIB_DIR=$TARGET_INSTALL_DIR/lib
@@ -55,6 +57,8 @@ export PULP_CONFIGS_PATH=$INSTALL_DIR/configs
 export PULP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN
 export PULP_SDK_INSTALL=$INSTALL_DIR
 export GVSOC_PATH=$INSTALL_DIR/python
+export XTENSOR_INCLUDE_DIR=$GAP_SDK_HOME/ext/xtensor/include
+export GVSOC_SFU_PATH=$GAP_SDK_HOME/gvsoc/gvsoc_gap_sfu
 source $GAP_SDK_HOME/gvsoc/setup_gvsoc.sh
 
 # Autotiler

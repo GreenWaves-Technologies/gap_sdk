@@ -36,7 +36,7 @@ class Squeeze(ConstantMixin, BackendHandler):
         axes = cls._resolve_negative_ranks(kwargs['axes'], len(x_shape))
         if axes:
             if any(x_shape[axis] != 1 for axis in axes):
-                raise ValueError("axis parameter in node %s is invalid %s"%(valid_name, axes))
+                raise ValueError("axis parameter in node %s is invalid %s" % (valid_name, axes))
             new_shape = [dim for idx, dim in enumerate(x_shape) if idx not in axes]
         else:
             new_shape = [dim for dim in x_shape if dim != 1]
@@ -45,7 +45,8 @@ class Squeeze(ConstantMixin, BackendHandler):
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape))
+            params = ConstantInputParameters(valid_name, value=x_val.reshape(new_shape),
+                                             constant_store=G.constant_store)
         else:
             old_shape = cls._get_real_dim(x_shape)
             shape = cls._get_real_dim(new_shape)

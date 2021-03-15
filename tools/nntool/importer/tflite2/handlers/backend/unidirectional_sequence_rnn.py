@@ -72,9 +72,8 @@ class UnidirectionalSequenceRNN(BackendHandler):
         # trim batch dimension from state values
         for state_node_name in ['i_state']:
             state_node = constant_nodes[RNNParameters.INPUT_NAMES.index(state_node_name)]
-            if opts.get('load_tensors'):
-                state_node.value = state_node.value[0]
-                state_node.dims = Dim(list(state_node.value.shape), is_ordered=True)
+            state_node.value = state_node.value[0]
+            state_node.dims = Dim(list(state_node.value.shape), is_ordered=True)
             # set by default as allocated
             state_node.at_options.allocate = True
             state_node.is_constant = False

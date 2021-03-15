@@ -18,6 +18,7 @@ from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.tc_arg_info import GlobalArgInfo, InputArgInfo, GlobalResetArgInfo
 from generation.generators.generator_decorators import generation_function, QREC_POW2, QREC_MULT8
 from graph.types import ConstantInputParameters
+from utils.node_id import NodeId
 
 
 @generation_function("globals", (ConstantInputParameters,), qrec_types=(QREC_POW2, QREC_MULT8))
@@ -49,14 +50,14 @@ def constant_input_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
     elif pnode.is_global:
         file_name = os.path.join(gen.opts['tensor_directory'],
                                  cname+".tensor")
+        value = pnode.value_as(qrec.out_qs[0])
         if pnode.concated_nodes:
-            values = [pnode.value] + [other_node.value for other_node in pnode.concated_nodes]
+            values = [value]
+            concated_qrecs = [gen.G.quantization.get(NodeId(pn, None))
+                              for pn in pnode.concated_nodes]
+            for other_node, concated_qrec in zip(pnode.concated_nodes, concated_qrecs):
+                values += [other_node.value_as(concated_qrec.out_qs[0])]
             value = np.hstack(tuple(values))
-        else:
-            value = pnode.value
-        value = qrec.out_qs[0].get_quantized(
-            value,
-            container_is_quantized=qrec.constants_are_quantized)
         const_info = ConstantInfo(file_name, qrec.out_qs[0],
                                   contents=value)
         gen.globals.append(GlobalArgInfo(qrec.out_qs[0].ctype, cname,

@@ -108,3 +108,7 @@ endif
 ifeq '$(CONFIG_BSP)' '1'
 PULP_SRCS += bsp/$(PULPOS_BOARD).c
 endif
+
+ifeq '$(CONFIG_BLE_NINA_B112)' '1'
+PULP_SRCS += $(BSP_BLE_NINA_B112_SRC)
+endif

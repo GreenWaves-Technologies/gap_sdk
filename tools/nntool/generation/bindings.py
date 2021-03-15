@@ -16,14 +16,6 @@
 from abc import ABC, abstractmethod
 from graph.types import EdgeParameters
 
-TT_TENSOR_TYPES = {
-    'TT_INPUT': 0,
-    'TT_OUTPUT': 1,
-    'TT_WEIGHTS': 2,
-    'TT_BIASES': 3
-}
-
-
 def gen_gnode_arg(direction, name, alias=None):
     if direction == "GNA_INOUT":
         return 'GNodeArg({}, "{}", "{}")'.format(direction, name, alias or name)

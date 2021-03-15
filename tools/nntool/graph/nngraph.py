@@ -15,6 +15,7 @@
 
 import logging
 import os
+import numpy as np
 from typing import Generator, Sequence, Union
 
 from graph.dim import Dim
@@ -27,7 +28,8 @@ from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
                          RecurrentOutputParameters, ResizerParameters,
-                         SSDDetectorParameters, TransposeParameters)
+                         SSDDetectorParameters, TransposeParameters,
+                         PaddedAddFusionParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from interpreter.commands.imageformat import insert_formatter
 from quantization.quantization_set import QuantizationSet
@@ -301,9 +303,9 @@ class NNGraph(Graph):
         self.add_node(node)
         return node
 
-    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None) -> InputParameters:
+    def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None, name=None) -> InputParameters:
         self.num_inputs += 1
-        node_name = "input_"+str(self.num_inputs)
+        node_name = "input_"+str(self.num_inputs) if not name else name
         node = InputParameters(node_name, dims=dim)
         node.in_dims_hint = in_dim_hint
         node.out_dim_hint = out_dim_hint
@@ -319,7 +321,8 @@ class NNGraph(Graph):
                                        adjust_transpose=adjust_transpose,
                                        is_intermediate=is_intermediate,
                                        is_mutated=is_mutated,
-                                       short_name=short_name)
+                                       short_name=short_name,
+                                       constant_store=self.constant_store)
         self.add_node(node)
         return node
 
@@ -337,7 +340,7 @@ class NNGraph(Graph):
     def nodes_iterator(self, yield_fusions=True):
         for step_idx, step in enumerate(self.graph_state.steps):
             node = step['node']
-            if isinstance(node, ConvFusionParameters):
+            if isinstance(node, (ConvFusionParameters, PaddedAddFusionParameters)):
                 if yield_fusions:
                     for fusion_idx, fnode in enumerate(node.contained_nodes()):
                         yield (step_idx, node, fusion_idx, fnode)
@@ -379,23 +382,30 @@ class NNGraph(Graph):
             balance_all_filters(self, precision_threshold=precision_threshold)
 
     def print_intermediates(self, outputs, limit=None, width=8,
-                            precision=4, channel=None, order=None):
-        def print_step(step, outs):
+                            precision=4, channel=None, order=None,
+                            checksum=False, print_constants=False):
+        def print_step(step, outs, index):
             node = step['node']
-            print(node.name)
-            for out_idx, out in enumerate(outs):
-                dims = node.out_dims[out_idx]
-                if order is not None and dims.is_named and order != dims.order and all(k in dims.order
-                                                                                       for k in order):
-                    transpose = dims.transpose_to_order(order)
-                    out = out.transpose(transpose)
-                if channel is not None:
-                    out = out[channel:channel+1:1, ...]
-                dump_tensor(out, PrintDumper(out, width=width, precision=precision))
+            if checksum:
+                for out_idx, out in enumerate(outs):
+                    if isinstance(node, ConstantInputParameters):
+                        continue
+                    print(f"S{index} - {node.name}\n\tChecksum = {np.sum(out)}")
+            else:
+                print(node.name)
+                for out_idx, out in enumerate(outs):
+                    dims = node.out_dims[out_idx]
+                    if order is not None and dims.is_named and order != dims.order and all(k in dims.order
+                                                                                        for k in order):
+                        transpose = dims.transpose_to_order(order)
+                        out = out.transpose(transpose)
+                    if channel is not None:
+                        out = out[channel:channel+1:1, ...]
+                    dump_tensor(out, PrintDumper(out, width=width, precision=precision))
 
         if limit is not None:
             print_step(self.graph_state.steps[limit], outputs[limit])
         else:
             for idx, out in enumerate(outputs):
-                print_step(self.graph_state.steps[idx], out)
+                print_step(self.graph_state.steps[idx], out, idx)
         print()

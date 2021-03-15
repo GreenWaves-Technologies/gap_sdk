@@ -332,9 +332,11 @@ class GraphView(Mapping):
         '''Names of nodes with inputs to node_name'''
         return set([node.name for node in self.predecessors(node_name)])
 
-    def nodes(self):
+    def nodes(self, node_classes=None):
         '''All the nodes in the graph. GraphView.values() also works.'''
-        return self._nodes.values()
+        if not node_classes:
+            return list(self._nodes.values())
+        return [val for val in self._nodes.values() if isinstance(val, node_classes)]
 
     def contains(self, node):
         return node in self._nodes.values()
@@ -441,6 +443,49 @@ class GraphView(Mapping):
         self._out_edges[edge.from_node.name][edge.to_node.name]\
             = list(filter(edge_match, edge_list))
 
+    def insert_node_at_edge(self, node, at_edge, edge_class=Edge):
+        self.remove_edge(at_edge)
+        self.add_edge(edge_class(from_node=at_edge.from_node, to_node=node, from_idx=at_edge.from_idx))
+        self.add_edge(edge_class(from_node=node, to_node=at_edge.to_node, to_idx=at_edge.to_idx))
+
+    def insert_node_before(self, from_node, to_node, from_idx=0, to_idx=0, from_node_in_idx=0, edge_class=Edge):
+        in_edges = self.indexed_in_edges(to_node.name)
+        if len(in_edges) <= to_idx:
+            raise ValueError(f"node {to_node.name} doesn't have edge {to_idx}")
+        in_edge = in_edges[to_idx]
+        self.remove_edge(in_edge)
+        self.add_edge(edge_class(from_node=from_node, from_idx=from_idx, to_node=to_node, to_idx=to_idx))
+        self.add_edge(edge_class(from_node=in_edge.from_node, from_idx=in_edge.from_idx, to_node=from_node, to_idx=from_node_in_idx))
+
+    def insert_node_after(self, from_node, to_node, from_idx=0, to_idx=0, to_node_out_idx=0, edge_class=Edge):
+        out_edges = self.indexed_out_edges(from_node.name)
+        if len(out_edges) <= from_idx:
+            raise ValueError(f"node {from_node.name} doesn't have edge {from_idx}")
+        out_edges = out_edges[from_idx]
+        for edge in out_edges:
+            self.remove_edge(edge)
+        self.add_edge(edge_class(from_node=from_node, from_idx=from_idx, to_node=to_node, to_idx=to_idx))
+        for edge in out_edges:
+            self.add_edge(edge_class(from_node=to_node, from_idx=to_node_out_idx, to_node=edge.to_node, to_idx=edge.to_idx))
+
+    def remove_and_reconnect(self, node_or_name, edge_class=Edge):
+        node_name = node_or_name.name if isinstance(node_or_name, Node) else node_or_name
+        in_edges = self.in_edges(node_name)
+        out_edges = self.out_edges(node_name)
+        if not all(edge.to_idx == 0 for edge in in_edges):
+            raise ValueError(f'remove_and_reconnect on {node_name} invalid. in idxes > 0 found.')
+        if not all(edge.from_idx == 0 for edge in out_edges):
+            raise ValueError(f'remove_and_reconnect on {node_name} invalid. out idxes > 0 found.')
+        self.remove(node_or_name)
+        for in_edge in in_edges:
+            for out_edge in out_edges:
+                self.add_edge(
+                    edge_class(
+                        from_node=in_edge.from_node,
+                        to_node=out_edge.to_node,
+                        from_idx=in_edge.from_idx,
+                        to_idx=out_edge.to_idx))
+
     def replace_node(self, node_name: str, new_node: Node):
         '''Replaces a single node with a new node'''
         del self._nodes[node_name]
@@ -472,10 +517,10 @@ class GraphView(Mapping):
             edge_class = Edge
         if frag_in_edges is None:
             frag_in_edges = [in_edge for input_node in frag.inputs()
-                            for in_edge in self.in_edges(input_node.name)]
+                             for in_edge in self.in_edges(input_node.name)]
         if frag_out_edges is None:
             frag_out_edges = [out_edge for output_node in frag.outputs()
-                            for out_edge in self.out_edges(output_node.name)]
+                              for out_edge in self.out_edges(output_node.name)]
 
         for node in frag.nodes():
             if self.contains(node):

@@ -45,8 +45,8 @@ class ConcatFromSequence(ConcatMixin, BackendHandler):
         # reduce to a constant if we can
         if all(cls.is_constant(inp) for inp in inputs):
             logger.info("reducing %s to a constant", valid_name)
-            value = np.pack([cls.get_constant(inp) for inp in inputs], axis=axis)
-            params = ConstantInputParameters(valid_name, value=value)
+            value = np.concatenate([cls.get_constant(inp) for inp in inputs], axis=axis)
+            params = ConstantInputParameters(valid_name, value=value, constant_store=G.constant_store)
             all_nodes[node.output[0]] = (params, 0, ProvisionalDim(value.shape))
             return params
 

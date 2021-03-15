@@ -1,8 +1,10 @@
-GVSOC documentation
-===================
+.. _gvsoc:
+
+GVSOC
+=====
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    usage
@@ -14,13 +16,6 @@ GVSOC documentation
    profiling
    timing_models
    power_models
-   devices
+   devices/index.rst
    commands
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

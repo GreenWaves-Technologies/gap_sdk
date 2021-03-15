@@ -15,6 +15,7 @@
 
 import numpy as np
 from graph.dim import Dim
+from graph.types import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common.tflite_node import TFLiteNode
 
@@ -27,15 +28,17 @@ class Shape(BackendHandler):
 
     @classmethod
     def _common(cls, node: TFLiteNode, **kwargs):
-        G = kwargs['G']
         all_nodes = kwargs['all_nodes']
+        G = kwargs['G']
 
         inputs = [all_nodes[t] for t in node.input]
         x = inputs[0]
         x_shape = x[2].shape
         node.input[0].used = True
-        params = G.add_constant(Dim.unnamed([len(x_shape)]))
-        params.value = np.array([1 if dim is None else dim for dim in x_shape])
+        params = ConstantInputParameters(node.name,
+                                         dims=Dim.unnamed([len(x_shape)]),
+                                         value=np.array([1 if dim is None else dim for dim in x_shape]),
+                                         constant_store=G.constant_store)
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim([len(x_shape)]))
         return params
 

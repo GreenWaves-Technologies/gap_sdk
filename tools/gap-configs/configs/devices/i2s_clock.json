@@ -1,0 +1,26 @@
+{
+    "vp_comps": [
+        "i2s_clock", "clock"
+    ],
+
+    "vp_ports": [
+        "i2s"
+    ],
+
+    "vp_bindings": [
+        ["i2s_clock->i2s", "self->i2s"],
+        ["clock->out", "i2s_clock->clock"],
+        ["i2s_clock->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "0"
+    },
+
+    "i2s_clock": {
+        "vp_component": "devices.sound.i2s_clock",
+        "frequency": "0",
+        "is_ws": false
+    }
+}

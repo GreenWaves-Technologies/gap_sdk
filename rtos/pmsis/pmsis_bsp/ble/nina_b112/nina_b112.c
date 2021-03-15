@@ -67,6 +67,7 @@ typedef enum
  */
 typedef struct
 {
+    uint8_t has_error_code;
     nina_b112_t *nina;
     struct pi_task *task;
 } cb_args_t;
@@ -136,13 +137,31 @@ static void __pi_nina_b112_data_received(void *arg)
     cb_args_t *param = (cb_args_t *) arg;
     static uint32_t index = 0;
     static unsigned char prev_byte = 0;
+
+    uint8_t end = 0;
     if ((g_at_resp_state == PI_AT_RESP_IN_PROGRESS) &&
         (prev_byte == S3char) && (*(g_param.nina->byte) == S4char))
     {
-        g_param.nina->buffer[--index] = '\0';
-        g_at_resp_state = PI_AT_RESP_DONE;
+        /* check if ERROR or OK */
+        if ((0 == g_param.has_error_code) ||
+            (((g_param.nina->buffer[index - 3] == 'O') &&
+             (g_param.nina->buffer[index - 2] == 'K')
+            ) ||
+            ((g_param.nina->buffer[index - 6] == 'E') &&
+             (g_param.nina->buffer[index - 5] == 'R') &&
+             (g_param.nina->buffer[index - 4] == 'R') &&
+             (g_param.nina->buffer[index - 3] == 'O') &&
+             (g_param.nina->buffer[index - 2] == 'R'))
+            )
+           )
+        {
+            g_param.nina->buffer[--index] = '\0';
+            g_at_resp_state = PI_AT_RESP_DONE;
+            end = 1;
+        }
     }
-    else
+
+    if (0 == end)
     {
         pi_task_callback(g_param.task, __pi_nina_b112_data_received, &g_param);
         pi_uart_read_async(&(g_param.nina->uart_device),
@@ -167,6 +186,7 @@ static int32_t __pi_nina_b112_wait_for_event(nina_b112_t *nina, char *resp)
 {
     g_at_resp_state = PI_AT_RESP_NOT_STARTED;
     pi_task_t rx_cb = {0};
+    g_param.has_error_code = 0;
     g_param.nina = nina;
     g_param.task = &rx_cb;
     pi_task_callback(&rx_cb, __pi_nina_b112_data_received, &g_param);
@@ -184,11 +204,15 @@ static int32_t __pi_nina_b112_wait_for_event(nina_b112_t *nina, char *resp)
 
 static int32_t __pi_nina_b112_data_mode_exit(nina_b112_t *nina)
 {
+#ifndef __PLATFORM_RTL__
     pi_time_wait_us(1000 * 1000);
+#endif
     pi_uart_write(&(nina->uart_device), (void *) '+', 1);
     pi_uart_write(&(nina->uart_device), (void *) '+', 1);
     pi_uart_write(&(nina->uart_device), (void *) '+', 1);
+#ifndef __PLATFORM_RTL__
     pi_time_wait_us(1000 * 1000);
+#endif
     return 0;
 }
 
@@ -365,6 +389,7 @@ static int __pi_nina_b112_open(struct pi_device *device)
     uart_conf.enable_rx = 1;
     uart_conf.enable_tx = 1;
     pi_open_from_conf(&(nina->uart_device), &uart_conf);
+
     if (pi_uart_open(&(nina->uart_device)))
     {
         pi_l2_free(nina->buffer, sizeof(sizeof(char) * (uint32_t) PI_AT_RESP_ARRAY_LENGTH));
@@ -372,11 +397,14 @@ static int __pi_nina_b112_open(struct pi_device *device)
         pi_l2_free(nina, sizeof(nina_b112_t));
         return -4;
     }
+
     /* Enable Nina_B112. */
     pi_gpio_pin_write(NULL, GPIO_NINA17_DSR, 0);
     pi_gpio_pin_write(NULL, GPIO_NINA_PWRON, 1);
     /* Wait some time for stability. */
+#ifndef __PLATFORM_RTL__
     pi_time_wait_us(1 * 1000 * 1000);
+#endif
 
     /* Test if NINA_B112 is active. */
     cmd_res_e nina_active = __pi_nina_b112_at_cmd(device, "", NULL, 0);
@@ -441,7 +469,28 @@ static int __pi_nina_b112_ioctl(struct pi_device *device, uint32_t cmd, void *ar
     case PI_NINA_B112_UART_CONFIGURE :
     {
         struct pi_nina_b112_conf *conf = (struct pi_nina_b112_conf *) arg;
-        __pi_nina_b112_uart_settings_set(device, conf);
+        cmd_res_e res = __pi_nina_b112_uart_settings_set(device, conf);
+        if (CMD_RES_OK == res)
+        {
+            struct pi_uart_conf uart_conf = {0};
+            pi_uart_conf_init(&uart_conf);
+            uart_conf.uart_id = conf->uart_itf;
+            uart_conf.baudrate_bps = PI_NINA_B112_UART_BAUDRATE;
+            uart_conf.enable_rx = 1;
+            uart_conf.enable_tx = 1;
+            /* modify baudrate, parity & stop */
+            uart_conf.baudrate_bps = conf->baudrate;
+            uart_conf.parity_mode = (conf->parity_bits != 1) ? 1 : 0;
+            uart_conf.stop_bit_count = conf->stop_bits;
+            pi_uart_ioctl(&(nina->uart_device), PI_UART_IOCTL_ABORT_RX, NULL);
+            pi_uart_ioctl(&(nina->uart_device), PI_UART_IOCTL_ABORT_TX, NULL);
+            pi_uart_ioctl(&(nina->uart_device), PI_UART_IOCTL_CONF_SETUP,
+                    &uart_conf);
+        }
+#ifndef __PLATFORM_RTL__
+        /* wait 40ms for module to update */
+        pi_time_wait_us(40000);
+#endif
     }
         break;
 
@@ -477,6 +526,7 @@ static int32_t __pi_nina_b112_at_cmd(struct pi_device *device, const char *cmd,
     nina_b112_t *nina = (nina_b112_t *) device->data;
     g_at_resp_state = PI_AT_RESP_NOT_STARTED;
     pi_task_t rx_cb = {0};
+    g_param.has_error_code = 1;
     g_param.nina = nina;
     g_param.task = &rx_cb;
     pi_task_callback(&rx_cb, __pi_nina_b112_data_received, &g_param);
@@ -491,24 +541,24 @@ static int32_t __pi_nina_b112_at_cmd(struct pi_device *device, const char *cmd,
 
     cmd_res_e cmd_res = CMD_RES_NA;
     uint32_t last_char_pos = strlen((const char *) nina->buffer);
-    if ((nina->buffer[last_char_pos - 1] == 'O') &&
-        (nina->buffer[last_char_pos - 0] == 'K'))
+    if ((nina->buffer[last_char_pos - 2] == 'O') &&
+        (nina->buffer[last_char_pos - 1] == 'K'))
     {
         DEBUG_PRINTF("OK response received !\n");
         cmd_res = CMD_RES_OK;
     }
-    else if((nina->buffer[last_char_pos - 4] == 'E') &&
+    else if((nina->buffer[last_char_pos - 5] == 'E') &&
+            (nina->buffer[last_char_pos - 4] == 'R') &&
             (nina->buffer[last_char_pos - 3] == 'R') &&
-            (nina->buffer[last_char_pos - 2] == 'R') &&
-            (nina->buffer[last_char_pos - 1] == 'O') &&
-            (nina->buffer[last_char_pos - 0] == 'R'))
+            (nina->buffer[last_char_pos - 2] == 'O') &&
+            (nina->buffer[last_char_pos - 1] == 'R'))
     {
         DEBUG_PRINTF("ERROR response received !\n");
         cmd_res = CMD_RES_ERR;
     }
     else
     {
-        DEBUG_PRINTF("Unsolicited/unrecognised response received: %s !\n", nina->buffer);
+        DEBUG_PRINTF("Unsolicited/unrecognised response received: \"%s\" (len: %ld) !\n", nina->buffer, last_char_pos);
         cmd_res = CMD_RES_UNSOL;
     }
     if (size)

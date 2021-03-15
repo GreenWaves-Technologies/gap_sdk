@@ -320,6 +320,7 @@ namespace vp {
     std::vector<reg *> get_registers() { return this->registers; }
     void build(vp::component *comp, vp::trace *trace, std::string name="");
     bool access(uint64_t offset, int size, uint8_t *value, bool is_write);
+    void reset(bool active);
 
     vp::trace *trace;
 
@@ -425,6 +426,7 @@ namespace vp {
     virtual vp::time_engine *get_time_engine() ;
 
     string get_path() { return path; }
+    string get_name() { return name; }
 
 
     void conf(string name, string path, vp::component *parent);
@@ -525,6 +527,7 @@ namespace vp {
     std::map<std::string, slave_port *> slave_ports;
 
     string path;
+    string name;
 
     component *parent = NULL;
 

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import table_options, output_table
 from stats.temps_stats_collector import TempsStatsCollector
 from reports.temps_reporter import TempsReporter
@@ -25,6 +25,7 @@ class TempsCommand(NNToolShellBase):
     table_options(parser_temps, default_width=140)
 
     @with_argparser(parser_temps)
+    @no_history
     def do_temps(self, args):
         """
 Show statistics on activations."""

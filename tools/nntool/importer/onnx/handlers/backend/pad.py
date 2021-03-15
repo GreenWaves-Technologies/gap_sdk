@@ -49,7 +49,7 @@ class Pad(ConstantMixin, BackendHandler):
                 val = np.pad(val, apads, mode=mode, constant_values=constant_value)
             else:
                 val = np.pad(val, apads, mode=mode)
-            params = ConstantInputParameters(valid_name, value=val)
+            params = ConstantInputParameters(valid_name, value=val, constant_store=G.constant_store)
             all_nodes[node.output[0]] = (params, 0, ProvisionalDim(x_shape))
             return params
 
@@ -58,14 +58,16 @@ class Pad(ConstantMixin, BackendHandler):
         if constant_value != 0:
             raise ValueError('%s - only zero padding is supported'%valid_name)
 
-        pads = [tuple(apads[idx]) for idx, dim in enumerate(x_shape) if dim is not None]
-        if all(sum(pad) == 0 for pad in pads):
+        trimmed_pads = tuple([pad for idx, pad in enumerate(apads) if x_shape[idx] is not None])
+        
+        if all(sum(trimmed_pad) == 0 for trimmed_pad in trimmed_pads):
             params = NoOPParameters(valid_name, desc="eliminated pad of 0")
             pshape = x_shape
         else:
-            pshape = [None if dim is None else dim + sum(apads[idx]) for idx, dim in enumerate(x_shape)]
-            padvals = [(constant_value, constant_value)] * len(pads)
-            params = PadParameters(valid_name, padding=pads, pad_vals=padvals)
+            pshape = [dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
+            # pshape = [None if dim is None else dim + sum(apads[idx]) for idx, dim in enumerate(x_shape)]
+            padvals = [(constant_value, constant_value)] * len(trimmed_pads)
+            params = PadParameters(valid_name, padding=trimmed_pads, pad_vals=padvals)
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pshape))
         return params

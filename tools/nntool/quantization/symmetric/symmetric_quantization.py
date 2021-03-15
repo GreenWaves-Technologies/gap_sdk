@@ -23,16 +23,22 @@ from graph.types import (Conv2DParameters, MatrixAddParameters,
                          Parameters, GlobalPoolParameters)
 from quantization.qtype import QType
 from quantization.quantization_record_base import (
-    FilterQuantizationRecordBase, InputOutputQuantizationRecordBase,
-    ScalableFilterQuantizationRecordBase)
+    ConstantQuantizationRecordBase, FilterQuantizationRecordBase, InputOutputQuantizationRecordBase,
+    ScalableFilterQuantizationRecordBase, default_scheme)
 from utils.at_norm import at_norm
 
 
 class SymmetricQuantizationBase(InputOutputQuantizationRecordBase):
+    TYPE="POW2"
+    DEFAULT = None
     def __init__(self, *args, auto_quantize_inputs=False, auto_dequantize_outputs=False, **kwargs):
         super(SymmetricQuantizationBase, self).__init__(*args, **kwargs)
         self._auto_quantize_inputs = auto_quantize_inputs
         self._auto_dequantize_outputs = auto_dequantize_outputs
+
+    def dtype(self, ktype='float32'):
+        assert ktype == 'float32', "should only be called from float kernels"
+        return np.float32
 
     def dequantize_as(self, tensor: np.ndarray, key_name: str, idx: int = None) -> np.ndarray:
         qtype = self._info[key_name]
@@ -73,10 +79,10 @@ class SymmetricQuantizationBase(InputOutputQuantizationRecordBase):
                     output_tensors: Sequence[np.ndarray], ktype: str = None) -> Sequence[np.ndarray]:
         if ktype == "symmetric":
             if isinstance(params, (MatrixAddParameters, MatrixSubParameters)):
-                q_calc = QType(bits=32, q=min(self.in_qs[0].q, self.in_qs[1].q), signed=True)
+                q_calc = QType.Pow2(bits=32, q=min(self.in_qs[0].q, self.in_qs[1].q), signed=True)
                 output_tensors = [self.out_qs[0].reduce_from(output_tensors[0], q_calc)]
             elif isinstance(params, (MatrixMulParameters, MatrixDivParameters)):
-                q_calc = QType(bits=32, q=self.in_qs[0].q+self.in_qs[1].q, signed=True)
+                q_calc = QType.Pow2(bits=32, q=self.in_qs[0].q+self.in_qs[1].q, signed=True)
                 output_tensors = [self.out_qs[0].reduce_from(output_tensors[0], q_calc)]
             elif isinstance(params, GlobalPoolParameters) and params.pool_type == "sum":
                 output_tensors = [self.out_qs[0].reduce_from(output_tensors[0], self.in_qs[0])]
@@ -84,12 +90,27 @@ class SymmetricQuantizationBase(InputOutputQuantizationRecordBase):
                 return [self.out_qs[idx].dequantize(output_tensor) for idx, output_tensor in enumerate(output_tensors)]
         return output_tensors
 
+class SymmetricConstantQuantizationRecord(SymmetricQuantizationBase, ConstantQuantizationRecordBase):
+    def gen_value(self, value):
+        raise NotImplementedError()
 
+@default_scheme
 class SymmetricQuantizationRecord(SymmetricQuantizationBase):
     pass
 
 
 class FilterSymmetricQuantizationBase(SymmetricQuantizationBase):
+
+    def __init__(self, *args,
+                 calc_q: QType = None,
+                 acc_q: QType = None,
+                 info=None,
+                 **kwargs):
+        super(FilterSymmetricQuantizationBase, self).__init__(*args, info=info, **kwargs)
+        if info is None:
+            self._info['calc_q'] = calc_q
+            self._info['acc_q'] = acc_q
+
     @property
     def calc_q(self) -> QType:
         return self._info.get('calc_q')
@@ -97,14 +118,6 @@ class FilterSymmetricQuantizationBase(SymmetricQuantizationBase):
     @property
     def acc_q(self) -> QType:
         return self._info.get('acc_q')
-
-    @property
-    def biases_q(self) -> QType:
-        return self._info.get('biases_q')
-
-    @property
-    def weights_q(self) -> QType:
-        return self._info.get('weights_q')
 
     @calc_q.setter
     def calc_q(self, val: QType):
@@ -114,71 +127,20 @@ class FilterSymmetricQuantizationBase(SymmetricQuantizationBase):
     def acc_q(self, val: QType):
         self._info['acc_q'] = val
 
-    @biases_q.setter
-    def biases_q(self, val: QType):
-        self._info['biases_q'] = val
-
-    @weights_q.setter
-    def weights_q(self, val: QType):
-        self._info['weights_q'] = val
-
-    def gen_weights(self, params, weights: np.ndarray) -> np.ndarray:
-        return self.quantize_as(weights, 'weights_q')
-
-    def gen_biases(self, params: Parameters, biases: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        del params, weights
-        return self.quantize_as(biases, 'biases_q')
-
-    def prepare_weights(self, params: Parameters, weights: np.ndarray, ktype: str = None) -> np.ndarray:
-        if ktype == "symmetric":
-            return self.gen_weights(params, weights)
-        if ktype == "float32":
-            return weights
-        raise NotImplementedError()
-
-    def prepare_biases(self, params: Parameters, biases: np.ndarray,
-                       weights: np.ndarray, ktype: str = None) -> np.ndarray:
-        if ktype == "symmetric":
-            return self.gen_biases(params, biases, weights)
-        if ktype == "float32":
-            return biases
-        raise NotImplementedError()
-
 
 class SymmetricFilterQuantizationRecord(FilterSymmetricQuantizationBase, FilterQuantizationRecordBase):
-    def __init__(self, *args,
-                 weights_q: QType = None,
-                 biases_q: QType = None,
-                 calc_q: QType = None,
-                 acc_q: QType = None,
-                 info=None,
-                 **kwargs):
-        super(SymmetricFilterQuantizationRecord, self).__init__(*args, info=info, **kwargs)
-        if info is None:
-            self._info['calc_q'] = calc_q
-            self._info['acc_q'] = acc_q
-            self._info['biases_q'] = biases_q
-            self._info['weights_q'] = weights_q
-            self._info['weights_q'] = weights_q
-
+    def dtype(self, ktype='float32'):
+        assert ktype == 'float32', "should only be called from float kernels"
+        return np.float32
 
 class SymmetricScalableFilterQuantizationRecord(FilterSymmetricQuantizationBase, ScalableFilterQuantizationRecordBase):
     def __init__(self, *args,
-                 weights_q: QType = None,
-                 biases_q: QType = None,
                  mul_biases_q: QType = None,
-                 calc_q: QType = None,
-                 acc_q: QType = None,
                  info=None,
                  **kwargs):
         super(SymmetricScalableFilterQuantizationRecord, self).__init__(*args, info=info, **kwargs)
         if info is None:
-            self._info['calc_q'] = calc_q
-            self._info['acc_q'] = acc_q
-            self._info['biases_q'] = biases_q
-            self._info['weights_q'] = weights_q
             self._info['mul_biases_q'] = mul_biases_q
-            self._info['weights_q'] = weights_q
 
     @property
     def mul_biases_q(self) -> QType:

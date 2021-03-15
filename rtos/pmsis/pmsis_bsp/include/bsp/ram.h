@@ -19,6 +19,10 @@
 
 #include "pmsis.h"
 
+#if defined(__GAP9__)
+#include "pmsis/drivers/aes_utils.h"
+#endif
+
 /// @cond IMPLEM
 
 typedef struct __pi_ram_api_t pi_ram_api_t;
@@ -50,8 +54,12 @@ typedef struct __pi_ram_api_t pi_ram_api_t;
  * configuration.
  */
 struct pi_ram_conf {
-    pi_ram_api_t *api;   /*!< Pointer to specific RAM methods. Reserved for 
-    internal runtime usage. */
+    pi_ram_api_t *api; /*!< Pointer to specific RAM methods. Reserved for
+                            internal runtime usage. */
+#if defined(__GAP9__)
+    pi_aes_utils_conf_t aes_conf; /*!< AES configuration for on-the-fly
+                                       encryption/decryption */
+#endif
 };
 
 /** \brief RAM cluster copy request structure.

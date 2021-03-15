@@ -16,8 +16,9 @@
 import argparse
 from cmd2 import Cmd2ArgumentParser, with_argparser, CompletionItem
 from interpreter.shell_utils import output_table, table_options
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from reports.graph_reporter import GraphReporter
+
 
 class GraphCommand(NNToolShellBase):
     # GRAPH COMMAND
@@ -44,6 +45,7 @@ class GraphCommand(NNToolShellBase):
                               help='graph to select or nothing to show open graphs')
 
     @with_argparser(parser_graph)
+    @no_history
     def do_graph(self, args: argparse.Namespace):
         """
 Select actuve graphs"""
@@ -63,8 +65,11 @@ Select actuve graphs"""
     parser_show = Cmd2ArgumentParser("display graph")
     table_options(parser_show, default_width=180)
     parser_show.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
+    parser_show.add_argument('-s', '--show_constants', action='store_true',
+                             help='Show constant parameters nodes')
 
     @with_argparser(parser_show)
+    @no_history
     def do_show(self, args: argparse.Namespace):
         """
 Display the structure of the graph"""
@@ -72,6 +77,7 @@ Display the structure of the graph"""
         fmt = ('tab' if args.output is None else args.output['fmt'])
         split_dims = fmt == "xls"
         do_totals = fmt != "csv"
-        tab = GraphReporter(split_dims=split_dims, do_totals=do_totals,
-                            step=args.step).report(self.G, None)
+        tab = GraphReporter(do_totals=do_totals,
+                            split_dims=split_dims,
+                            step=args.step).report(self.G, None, args.show_constants)
         output_table(tab, args)

@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 from typing import Sequence, Optional
 
 from utils.json_serializable import JsonSerializable
 
-from .code_block import CodeBlock, quote
+from .code_block import CodeBlock, QUOTE
 
 AT_L3_RAM_DEVICES = ('AT_MEM_L3_HRAM', 'AT_MEM_L3_QSPIRAM', 'AT_MEM_L3_OSPIRAM')
 AT_L3_FLASH_DEVICES = ('AT_MEM_L3_HFLASH', 'AT_MEM_L3_QSPIFLASH', 'AT_MEM_L3_OSPIFLASH', 'AT_MEM_L3_MRAMFLASH')
@@ -31,19 +32,21 @@ AT_L3_FLASH_DEVICES = ('AT_MEM_L3_HFLASH', 'AT_MEM_L3_QSPIFLASH', 'AT_MEM_L3_OSP
 
 class MemoryDeviceInfo():
     def __init__(self, memory_area: str, size_var: str, name: str,
-                 ext_managed: bool = False, filename: Optional[str] = None):
-        super().__setattr__('info', {
-            'memory_area': memory_area,
-            'size_var': size_var,
-            'name': name,
-            'ext_managed': ext_managed,
-            'filename': filename
-        })
+                 ext_managed: bool = False, filename: Optional[str] = None, info=None):
+        if info:
+            super().__setattr__('info', info)
+        else:
+            super().__setattr__('info', {
+                'memory_area': memory_area,
+                'size_var': size_var,
+                'name': name,
+                'ext_managed': ext_managed,
+                'filename': filename
+            })
 
     @classmethod
     def fromdict(cls, info):
-        obj = cls(None, None, None)
-        super(cls, obj).__setattr__('info', info)
+        obj = cls(None, None, None, info=info)
         return obj
 
     def todict(self):
@@ -59,6 +62,10 @@ class MemoryDeviceInfo():
             self.info[k] = val
         else:
             raise AttributeError()
+
+    def __deepcopy__(self, memo):
+        return MemoryDeviceInfo.fromdict(deepcopy(self.info, memo=memo))
+
 
 class MemoryDeviceInfos(JsonSerializable):
     def __init__(self, infos: Sequence[MemoryDeviceInfo]):
@@ -118,7 +125,7 @@ class MemoryDeviceInfos(JsonSerializable):
                              info.size_var,
                              info.name.format(graphname=graphname),
                              0 if info.filename is None else\
-                                 quote(info.filename.format(graphname=graphname)),
+                                 QUOTE(info.filename.format(graphname=graphname)),
                              1 if info.ext_managed else 0)
         code_block.deindent()
         code_block.write(');')

@@ -679,6 +679,12 @@ def get_config(tp):
       if tp.get_child_bool('**/apb_soc_ctrl/has_pmu_bypass'):
         soc.apb_soc_ctrl.cluster_reset = soc.cluster_reset
 
+  if tp.get('**/gdbserver') is not None:
+    gdbserver_config = OrderedDict([('@includes@', ["ips/gdbserver/gdbserver.json"])])
+    if tp.get('**/gdbserver/config') is not None:
+      gdbserver_config.update(tp.get('**/gdbserver/config').get_dict())
+
+    soc.gdbserver = Component(properties=gdbserver_config)
 
   if taps_conf is None:
     adv_dbg_unit_config = OrderedDict([('@includes@', ["ips/adv_dbg_unit/adv_dbg_unit.json"])])
@@ -727,8 +733,9 @@ def get_config(tp):
         soc.apb_ico.debug_rom = soc.debug_rom.input
         soc.apb_ico.fc_dbg_unit = tap.input
 
-        for i in range(0, 10):
-          soc.apb_soc_ctrl.set('dm_hart_available_' + str(i), tap.new_itf('hart_available_' + str(i)))
+        if chip == 'gap9_v2':
+          for i in range(0, 10):
+            soc.apb_soc_ctrl.set('dm_hart_available_' + str(i), tap.new_itf('hart_available_' + str(i)))
 
 
         tap.set_property('harts', [])
@@ -845,7 +852,11 @@ def get_config(tp):
 
 
   if has_fc:
-    soc.ref_clock = soc.timer.ref_clock
+
+    if has_fast_clock:
+      soc.apb_soc_ctrl.ref_clock_muxed = soc.timer.ref_clock
+    else:
+      soc.ref_clock = soc.timer.ref_clock
 
     if has_soc_events:
       soc.ref_clock = soc.soc_eu.ref_clock
@@ -901,6 +912,9 @@ def get_config(tp):
       soc.apb_ico.rtc = soc.rtc_input
 
   # APB SOC
+  if has_fast_clock:
+    soc.fast_clock = soc.apb_soc_ctrl.fast_clock
+    soc.ref_clock = soc.apb_soc_ctrl.ref_clock
   if has_fc:
     soc.apb_soc_ctrl.bootaddr = soc.fc.bootaddr
   if has_udma:
@@ -1017,6 +1031,9 @@ def get_config(tp):
           else:
             soc.set(itf_name, soc.udma.new_itf(itf_name))
 
+
+  if tp.get('**/gdbserver') is not None:
+    soc.gdbserver.out = soc.soc_ico.debug
 
   # Soc EU
   if has_fc:

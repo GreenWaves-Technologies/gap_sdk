@@ -15,73 +15,110 @@
 
 import logging
 
-from graph.nngraph import NNGraph
 from graph.types import (ActivationParameters, ConvFusionParameters,
-                         FcParameters)
-from quantization.symmetric.symmetric_quantization import (
-    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
-from quantization.multiplicative.mult_quantization import (
-    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+                         FcParameters, NNEdge)
 from quantization.float32.float32_quantization import (
     Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)
-from utils.graph import Edge, GraphView, MatchNode
+from quantization.multiplicative.mult_quantization import (
+    MultQuantizationRecord, MultScalableFilterQuantizationRecord)
+from quantization.symmetric.symmetric_quantization import (
+    SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)
+from utils.graph import GraphView
 from utils.node_id import NodeId
 
-from .matcher import DefaultMatcher
+from .matcher import Matcher
 
 LOG = logging.getLogger("nntool." + __name__)
 
+class FusionMatch():
+    def __init__(self) -> None:
+        self.linear = None
+        self.active = None
+        self.order = []
 
-class MatchGapLinear(DefaultMatcher):
+    def add_node(self, params):
+        if isinstance(params, FcParameters):
+            if self.linear:
+                return None
+            self.order.append(params)
+            self.linear = params
+            return self
+        elif isinstance(params, ActivationParameters):
+            if self.active:
+                return None
+            self.order.append(params)
+            self.active = params
+            return self
+        else:
+            return None
+
+    @property
+    def fusion_type(self):
+        return '_'.join(['linear' if isinstance(params, FcParameters)
+                         else 'active' for params in self.order])
+
+
+class MatchGapLinear(Matcher):
     NAME = 'fuse_gap_linear'
     DESCRIPTION = 'Fuse linear layers and activations to match GAP AutoTiler operations'
 
-    def valid_linear(self, node):
-        del node
-        # TODO - Add specific pool parameter checking here
-        return True
+    def get_node_list(self, G, params, result=None):
+        if result is None:
+            result = FusionMatch()
+        if not result.add_node(params):
+            return result
+        out_edges = G.out_edges(params.name)
+        if len(out_edges) > 1:
+            return result
+        return self.get_node_list(G, out_edges[0].to_node, result=result)
 
-    def valid_activation(self, node):
-        del node
-        # TODO - Add specific pool parameter checking here
-        return True
+    def match(self, G: GraphView, set_identity: bool = True):
+        has_modified_graph = False
+        for fc_node in [params for params in G.nodes() if isinstance(params, FcParameters)]:
+            node_list = self.get_node_list(G, fc_node)
+            if node_list is None or len(node_list.order) < 2:
+                continue
+            LOG.info("fusing nodes %s", ",".join((node.name for node in node_list.order)))
+            has_modified_graph = True
+            subgraph = GraphView()
+            last_node = None
+            for node in node_list.order:
+                if last_node is not None:
+                    subgraph.add_edge(NNEdge(from_node=last_node, to_node=node))
+                last_node = node
+            input_mapping = [[(node_list.linear, idx)] for idx in range(3)]
+            output_mapping = [(last_node, 0)]
+            pnode = ConvFusionParameters(
+                node_list.linear.name + '_fusion',
+                fusion_type=node_list.fusion_type,
+                subgraph=subgraph,
+                input_mapping=input_mapping,
+                output_mapping=output_mapping)
+            if G.quantization:
+                qrecs = G.quantization.get_all(pnode.contained_nodes())
+                if qrecs:
+                    prec = None
+                    if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
+                        prec = SymmetricQuantizationRecord(
+                            in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                        prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
+                        prec = Float32QuantizationRecord(
+                            in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
+                    for node in pnode.contained_nodes():
+                        G.quantization.move_to_fusion(node, pnode)
+                    G.quantization[NodeId(pnode)] = prec
+            in_edges = G.in_edges(node_list.linear.name)
+            out_edges = G.out_edges(last_node.name)
+            for node in node_list.order:
+                G.remove(node)
+            for edge in in_edges:
+                G.add_edge(NNEdge(edge.from_node, pnode, from_idx=edge.from_idx, to_idx=edge.to_idx))
+            for edge in out_edges:
+                G.add_edge(NNEdge(pnode, edge.to_node, from_idx=edge.from_idx, to_idx=edge.to_idx))
 
-    def match_function(self, G: GraphView):
-        sub = GraphView()
-        sub.add_node(MatchNode('0',
-                               matcher=lambda node:
-                               isinstance(node, FcParameters) and
-                               self.valid_linear(node)))
-        sub.add_node(MatchNode('1', matcher=lambda node:
-                               isinstance(node, ActivationParameters) and
-                               self.valid_activation(node)))
-        sub.add_edge(Edge('0', '1'))
-        return G.match_fragment(sub)
+        if set_identity:
+            self.set_identity(G)
 
-    def replace_function(self, G: NNGraph, subgraph: GraphView):
-        step = 0
-        for node in subgraph.nodes():
-            node.step_idx = step
-            step = step + 1
-            if isinstance(node, FcParameters):
-                linear_name = node.name + "_fusion"
-                break
-        LOG.info("fusing nodes %s", ",".join(
-            (node.name for node in subgraph.nodes())))
-        # simple node order is necessary because nodes() will not necessarily
-        # be in order
-        pnode = ConvFusionParameters(linear_name, fusion_type="linear_active", subgraph=subgraph)
-        if G.quantization:
-            qrecs = G.quantization.get_all(pnode.contained_nodes())
-            if qrecs:
-                if isinstance(qrecs[0], (SymmetricQuantizationRecord, SymmetricScalableFilterQuantizationRecord)):
-                    prec = SymmetricQuantizationRecord(
-                        in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                elif isinstance(qrecs[0], (MultQuantizationRecord, MultScalableFilterQuantizationRecord)):
-                    prec = MultQuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                elif isinstance(qrecs[0], (Float32QuantizationRecord, Float32ScalableFilterQuantizationRecord)):
-                    prec = Float32QuantizationRecord(in_qs=qrecs[0].in_qs, out_qs=qrecs[-1].out_qs)
-                for node in pnode.contained_nodes():
-                    G.quantization.move_to_fusion(node, pnode)
-                G.quantization[NodeId(pnode)] = prec
-        return pnode, None, None
+        return has_modified_graph

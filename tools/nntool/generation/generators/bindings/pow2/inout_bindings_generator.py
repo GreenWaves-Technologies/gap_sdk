@@ -29,7 +29,8 @@ from utils.node_id import NodeId
                                   GlobalPoolParameters, TransposeParameters,
                                   ImageFormatParameters, ResizerParameters), qrec_types=(QREC_POW2, ))
 def in_out_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-    if isinstance(node, (PoolingParameters, ActivationParameters, GlobalPoolParameters, CopyParameters, TransposeParameters, ImageFormatParameters)):
+    if isinstance(node, (PoolingParameters, ActivationParameters, GlobalPoolParameters,\
+                         CopyParameters, TransposeParameters, ImageFormatParameters, ResizerParameters)):
         set_in_out_bindings(gen, in_eparams, out_eparams, cname, node, qrec)
     elif isinstance(node, ConvFusionParameters) and node.fusion_type == "pool_active":
         cnodes = node.contained_nodes()

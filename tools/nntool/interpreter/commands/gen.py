@@ -17,7 +17,7 @@ import argparse
 import logging
 import os
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from utils.data_importer import import_data
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
@@ -64,6 +64,7 @@ class GenCommand(NNToolShellBase):
                             help='file to write to, otherwise output to terminal')
 
     @with_argparser(parser_gen)
+    @no_history
     def do_gen(self, args):
         """
 Generate AutoTiler model C code and optionally dump tensors. If no destination file is

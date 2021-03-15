@@ -43,8 +43,6 @@ MODEL_SUFFIX = _SQ8BIT
 
 $(info Building GAP8 mode with $(QUANT_BITS) bit quantization)
 
-TRAINED_TFLITE_MODEL=model/rnn.tflite
-
 include ../common/model_decl.mk
 include common_rules.mk
 

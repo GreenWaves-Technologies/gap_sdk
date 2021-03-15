@@ -44,17 +44,19 @@ class Conv2DFloat32(KernelBase):
             qrec = Float32ScalableFilterQuantizationRecord()
         in_dims = params.in_dims[0]
         out_dims = params.out_dims[0]
-        weights = qrec.prepare_weights(params, params.get_uncompressed_weights(), ktype="float32")
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
+        in_tensor = prepared_in_tensors[0]
+        weights = prepared_in_tensors[1]
+        biases = prepared_in_tensors[2]
 
         if details is not None:
             details['min_acc'] = float("Infinity")
             details['max_acc'] = float("-Infinity")
-            details['pre_mul_bias_min'] = float("Infinity")
-            details['pre_mul_bias_max'] = float("-Infinity")
+            details['min_pre_mul_bias'] = float("Infinity")
+            details['max_pre_mul_bias'] = float("-Infinity")
 
         in_tensor = in_tensor.transpose(
-            in_dims.transpose_to_order(['h', 'w', 'c'])).astype(np.float32)
+            in_dims.transpose_to_order(['h', 'w', 'c']))
         if params.padding.h + params.padding.w > 0:
             in_tensor = np.pad(in_tensor,
                                ([params.padding.t,
@@ -70,7 +72,7 @@ class Conv2DFloat32(KernelBase):
             pad_w = pad_h = 0
 
         weights = weights.transpose(params.filter.transpose_to_order(
-            ['out_c', 'h', 'w', 'in_c'])).astype(np.float32)
+            ['out_c', 'h', 'w', 'in_c']))
 
         filt_w = params.filter.w
         filt_h = params.filter.h
@@ -91,13 +93,12 @@ class Conv2DFloat32(KernelBase):
         out_h = ((in_h - dillated_filter_h + pad_h)) // params.stride.h + 1
 
         if params.has_bias:
-            biases = qrec.prepare_biases(params, params.get_uncompressed_biases(),
-                                         params.get_uncompressed_weights(), ktype="float32")
-            result = np.ones((out_c, out_h, out_w),
-                             dtype=np.float32) * biases.reshape(out_c, 1, 1)
+            # biases = qrec.prepare_biases(params, params.get_uncompressed_biases(),
+            #                              params.get_uncompressed_weights(), ktype="float32")
+            result = np.broadcast_to(biases.reshape(out_c, 1, 1), (out_c, out_h, out_w)).copy().astype(qrec.dtype(ktype="float32"))
         else:
             result = np.zeros((out_c, out_h, out_w),
-                              dtype=np.float32)
+                              dtype=qrec.dtype(ktype="float32"))
 
         const_h = pad_h + in_h - dillated_filter_h + 1
         const_w = pad_w + in_w - dillated_filter_w + 1
@@ -116,7 +117,7 @@ class Conv2DFloat32(KernelBase):
                                                    in_c_off + in_c_per_group:
                                                    1],
                                          weights[out_c_i, cur_h, cur_w],
-                                         dtype=np.float32)
+                                         dtype=qrec.dtype(ktype="float32"))
 
                     # add depthwise
                     slabhw = slabhw.sum(axis=-1)
@@ -133,8 +134,8 @@ class Conv2DFloat32(KernelBase):
                 in_c_off += in_c_per_group
 
         if details is not None:
-            details['pre_mul_bias_min'] = min(np.min(result), details['pre_mul_bias_min'])
-            details['pre_mul_bias_max'] = max(np.max(result), details['pre_mul_bias_max'])
+            details['min_pre_mul_bias'] = min(np.min(result), details['min_pre_mul_bias'])
+            details['max_pre_mul_bias'] = max(np.max(result), details['max_pre_mul_bias'])
 
         result = qrec.apply_multiplicative_bias(params, result, axis=0, ktype="float32")
 

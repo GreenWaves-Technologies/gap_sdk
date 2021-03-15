@@ -13,14 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.base import NNEdge
+import numpy as np
 from graph.dim import Conv2DFilterDim, DilationDim, Dim, StrideDim
+from graph.types.base import NNEdge
 from graph.types.conv2d import Conv2DParameters
-from importer.tflite2.common import LOG
+from graph.types.input_output import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
+from importer.tflite2.common import LOG
 from importer.tflite2.common.tflite_node import TFLiteNode
-from importer.tflite2.tflite_schema_head.Conv2DOptions import \
-    Conv2DOptions
+from importer.tflite2.tflite_schema_head.Conv2DOptions import Conv2DOptions
 from utils.sparse_list import SparseList
 
 from ..backend_handler import BackendHandler
@@ -45,13 +46,12 @@ class Conv2D(FilterMixin, BackendHandler):
         in_b, h, w, in_c = tuple(x_shape)
 
         filt = inputs[1]
-        filt_tensor = node.input[1]
+        weights_node = filt[0]
         filt_shape = filt[2].shape
         # ['in_c', 'h', 'w', 'out_c']
         filt_out_c, filt_h, filt_w, filt_in_c = tuple(filt_shape)
 
         # get filter dimensions
-        filt_tensor.used = True
         if filt_h > h or filt_w > w:
             LOG.warning("Filter %s of shape [%dx%d] is bigger than input of shape [%dx%d]",
                         node.name, filt_h, filt_w, h, w)
@@ -64,9 +64,13 @@ class Conv2D(FilterMixin, BackendHandler):
         pad = cls.get_tf_padding(node_opts.Padding())
 
         # does it have biases
-        has_bias = len(inputs) > 2
-        if has_bias:
-            node.input[2].used = True
+        if len(inputs) > 2:
+            bias = inputs[2]
+            bias_node = bias[0]
+        else:
+            bias_node = ConstantInputParameters(f'{node.name}_bias',
+                                                dims=Dim.unnamed([filt_out_c]),
+                                                value=np.zeros([filt_out_c], dtype=np.float32))  # TODO - check
 
         params = Conv2DParameters(node.name,
                                   filt=filt_dim,
@@ -74,18 +78,27 @@ class Conv2D(FilterMixin, BackendHandler):
                                   dilation=DilationDim(node_opts.DilationHFactor(),
                                                        node_opts.DilationWFactor()),
                                   padding=pad,
-                                  has_bias=has_bias,
-                                  in_dims_hint=SparseList([['h', 'w', 'c']]),
+                                  has_bias=True,
+                                  in_dims_hint=SparseList(
+                                      [['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy(), ['out_c']]),
                                   out_dims_hint=SparseList([['h', 'w', 'c']]),
                                   constant_store=G.constant_store)
-
-        if opts.get('load_dequantized'):
-            cls.load_dequantized_filter_parameters(params, node.input)
-        else:
-            cls.load_filter_parameters(G, params, node.input, node.output, opts)
+        G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
+        G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
+        cls.new_load_filter_parameters(G, params, node.input[0], weights_node, bias_node, node.output[0], opts)
+        # if opts.get('load_dequantized'):
+        #     weights_node.value, bias_node.value = cls.load_dequantized_filter_parameters(
+        #         node.input, bias_node.value)
+        # else:
+        #     qrec, weights_node.value, bias_node.value = cls.load_filter_parameters(G, params, node.input, bias_node.value,
+        #                                                                            node.output, opts)
+        #     if qrec:
+        #         G.quantization[NodeId(weights_node)].out_qs[0] = qrec.in_qs[1]
+        #         G.quantization[NodeId(bias_node)].out_qs[0] = qrec.in_qs[2]
 
         in_dim = Dim.named_ordered(h=h, w=w, c=in_c)
-        out_dims = params.get_output_size([in_dim])
+        out_dims = params.get_output_size(
+            [in_dim, Dim.unnamed(filt_dim.shape), Dim.unnamed([filt_out_c])])
         pout_dims = ProvisionalDim([in_b] + out_dims[0].shape)
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         params = cls.fuse_activation(node_opts, node.name, params, **kwargs)

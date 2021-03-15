@@ -58,6 +58,15 @@ endif
 
 override disopt ?= -d
 
+# Objdump options
+OBJDUMP_OPT         = -d -h -S -t -w --show-raw-insn
+
+# NM options.
+NM_OPT              = -a -A -l -S --size-sort --special-syms
+
+# Size options.
+SIZE_OPT            = -B -x --common
+
 PULP_CFLAGS += -D__PULPOS2__
 
 ifeq '$(platform)' 'gvsoc'
@@ -231,6 +240,7 @@ $(TARGET_INSTALL_DIR)/bin/$(1): $(TARGET_BUILD_DIR)/$(1)/$(1)
 
 TARGETS += $(TARGET_BUILD_DIR)/$(1)/$(1)
 INSTALL_TARGETS += $(TARGET_INSTALL_DIR)/bin/$(1)
+BIN = $(TARGET_BUILD_DIR)/$(1)/$(1)
 
 endef
 
@@ -245,6 +255,13 @@ $(foreach app, $(PULP_APPS), $(eval $(call declare_app,$(app))))
 
 conf:
 
+$(BIN).s: $(BIN)
+	$(PULP_OBJDUMP) $(OBJDUMP_OPT) $< > $@
+	$(PULP_SIZE) $(SIZE_OPT) $< > $(BIN).size
+	$(PULP_NM) $(NM_OPT) $< >> $(BIN).size
+
+disdump: $(BIN).s
+
 build: $(TARGETS)
 
 image:
@@ -253,7 +270,7 @@ image:
 flash:
 	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --flash --binary=$(TARGETS) $(runner_args)
 
-all:: build image flash
+all:: build disdump image flash
 
 clean::
 	@echo "RM  $(TARGET_BUILD_DIR)"

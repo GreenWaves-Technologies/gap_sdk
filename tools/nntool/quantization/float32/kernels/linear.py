@@ -41,20 +41,21 @@ class LinearFloat32(KernelBase):
 
         in_dims = params.in_dims[0]
         out_dims = params.out_dims[0]
-        weights = qrec.prepare_weights(params, params.get_uncompressed_weights(), ktype="float32")
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+
+        prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
+        in_tensor = prepared_in_tensors[0]
+        weights = prepared_in_tensors[1]
+        biases = prepared_in_tensors[2]
 
         if details is not None:
             details['min_acc'] = float("Infinity")
             details['max_acc'] = float("-Infinity")
 
         if params.has_bias:
-            biases = qrec.prepare_biases(params, params.get_uncompressed_biases(),
-                                         params.get_uncompressed_weights(), ktype="float32")
-            acc_tensor = np.ones(out_dims.shape, dtype=np.float32) * biases
+            acc_tensor = np.ones(out_dims.shape, dtype=qrec.dtype(ktype="float32")) * biases
         else:
             acc_tensor = np.zeros(out_dims.shape,
-                                  dtype=np.float32)
+                                  dtype=qrec.dtype(ktype="float32"))
 
         in_tensor = in_tensor.reshape((in_dims.size()))
         filt = params.filter.get_filter_dims()

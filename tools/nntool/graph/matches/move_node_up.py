@@ -37,7 +37,9 @@ class MoveNodeUpMatcher(Matcher):
     ValidFusions = None
     ValidNodes = None
 
-    def execute_tests(self, tests, node):
+    def execute_tests(self, G, tests, node):
+        if len(G.out_edges(node.name)) > 1:
+            return False
         return any(isinstance(node, test) if inspect.isclass(test) else test(node) for test in tests)
 
     def find_home_for_node(self,
@@ -49,7 +51,7 @@ class MoveNodeUpMatcher(Matcher):
             yield from self.find_home_for_node(G,
                                                node,
                                                edge=in_edge)
-        elif self.execute_tests(self.ValidNodesToPass, edge.from_node):
+        elif self.execute_tests(G, self.ValidNodesToPass, edge.from_node):
             if isinstance(edge.from_node, ConcatParameters):
                 for in_edge in G.in_edges(edge.from_node.name):
                     yield from self.find_home_for_node(G,
@@ -60,7 +62,7 @@ class MoveNodeUpMatcher(Matcher):
                 yield from self.find_home_for_node(G,
                                                    node,
                                                    edge=in_edge)
-        elif self.execute_tests(self.ValidFusions, edge.from_node):
+        elif self.execute_tests(G, self.ValidFusions, edge.from_node):
             yield edge
         else:
             raise LocationNotFoundError()
@@ -101,7 +103,7 @@ class MoveNodeUpMatcher(Matcher):
 
     def match(self, G: GraphView, set_identity: bool = True):
         target_nodes = [node for node in G.nodes(
-        ) if self.execute_tests(self.ValidNodes, node)]
+        ) if self.execute_tests(G, self.ValidNodes, node)]
         target_nodes = filter(lambda n: not isinstance(
             G.in_edges(n.name)[0].from_node, self.ValidFusions), target_nodes)
         can_be_moved = []

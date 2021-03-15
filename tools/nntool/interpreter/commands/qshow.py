@@ -17,7 +17,7 @@ import logging
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
 
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import output_table, table_options
 from reports.quantization_reporter import QuantizationReporter
 
@@ -28,17 +28,13 @@ class QshowCommand(NNToolShellBase):
     parser_qshow = Cmd2ArgumentParser()
     table_options(parser_qshow)
     parser_qshow.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
-    parser_qshow.add_argument('-s', '--show_wrapped',
-                              action='store_true',
-                              help='show original quantization parameters on multiplicative quantization')
 
     @with_argparser(parser_qshow)
+    @no_history
     def do_qshow(self, args):
         """
 Show current quantization settings."""
         self._check_graph()
         self._check_quantized()
-        tab = QuantizationReporter(step=args.step,
-                                   emit_wrapped=args.show_wrapped).report(self.G,
-                                                                          self.G.quantization)
+        tab = QuantizationReporter(step=args.step).report(self.G, self.G.quantization)
         output_table(tab, args)

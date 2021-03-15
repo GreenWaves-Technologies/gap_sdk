@@ -26,8 +26,6 @@ class Ranges():
 
     @classmethod
     def conv2d_range_input(cls, node, weights=None):
-        if weights is None:
-            weights = node.weights
         maxes = [None] * node.in_dims[0].c
         if node.tf_depthwise:
             for in_c in range(node.in_dims[0].c):
@@ -46,8 +44,6 @@ class Ranges():
 
     @classmethod
     def conv2d_range_output(cls, node, weights=None):
-        if weights is None:
-            weights = node.weights
         maxes = [None] * node.filter.out_c
         assert node.groups == 1 or node.tf_depthwise,\
             "this needs checking for grouped convs"
@@ -59,8 +55,6 @@ class Ranges():
 
     @classmethod
     def linear_range_input(cls, node, weights=None):
-        if weights is None:
-            weights = node.weights
         in_c_weights = weights.reshape(node.filter.shape)
         maxes = [np.max(np.abs(in_c_weights[node.filter.srange(in_c=i)]))
                  for i in range(node.in_dims[0].c)]
@@ -69,8 +63,6 @@ class Ranges():
 
     @classmethod
     def linear_range_output(cls, node, weights=None):
-        if weights is None:
-            weights = node.weights
         filt = node.filter.get_filter_dims()
         maxes = [np.max(np.abs(weights[node.filter.srange(out_c=i)]))
                  for i in range(filt.out_c)]
@@ -78,17 +70,23 @@ class Ranges():
         return cls.get_ranges(maxes)
 
     @classmethod
-    def range_input(cls, node, weights=None):
+    def range_input(cls, G, node, weights=None):
+        if not isinstance(node, (Conv2DParameters, FcParameters)):
+            raise ValueError()
+        if weights is None:
+            weights = G.indexed_in_edges(node.name)[1].from_node.dqvalue.copy()
         if isinstance(node, Conv2DParameters):
             return cls.conv2d_range_input(node, weights)
         if isinstance(node, FcParameters):
             return cls.linear_range_input(node, weights)
-        raise ValueError()
 
     @classmethod
-    def range_output(cls, node, weights=None):
+    def range_output(cls, G, node, weights=None):
+        if not isinstance(node, (Conv2DParameters, FcParameters)):
+            raise ValueError()
+        if weights is None:
+            weights = G.indexed_in_edges(node.name)[1].from_node.dqvalue.copy()
         if isinstance(node, Conv2DParameters):
             return cls.conv2d_range_output(node, weights)
         if isinstance(node, FcParameters):
             return cls.linear_range_output(node, weights)
-        raise ValueError()

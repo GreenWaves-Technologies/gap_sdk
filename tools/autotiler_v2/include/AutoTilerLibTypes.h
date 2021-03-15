@@ -622,8 +622,12 @@ typedef struct {
 
 #define Q2F(V, N)               ((float) (((float) (V))/((1<<(N))-0)))
 #define MultRndu(x,y, scale)    ((unsigned int)(((x)*(y)) + (1<<((scale)-1)))>>(scale))
+#ifndef Max
 #define Max(a, b)               (((a)>(b))?(a):(b))
+#endif
+#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
+#endif
 
 /* Return aligned value, alignment is 2^Size */
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))

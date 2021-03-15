@@ -14,18 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import numpy as np
 
+import numpy as np
 from graph.dim import Dim
 
-from .base import (NoSizeChangeParameters, Parameters,
-                   SensitiveToOrder,
-                   SingleInputAndOutput, Transposable)
+from utils.symbolic.basic import Abs, Exp, Log, Max, Min, Neg, Pow, Sqrt
+
+from .base import (CanFuseToExpression, ComparableParameters, InsensitiveToQuantization,
+                   NoSizeChangeParameters, Parameters, SensitiveToOrder,
+                   SingleInputAndOutput, Transposable, expression_op)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class TransposeParameters(Transposable, SingleInputAndOutput):
+class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization):
     op_name = "transpose"
 
     def __init__(self, *args, transpose=None, **kwargs):
@@ -67,7 +69,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
 
     @property
     def transpose_out(self):
-        return self._transpose_in
+        return None
 
     @transpose_out.setter
     def transpose_out(self, val):
@@ -91,7 +93,7 @@ class TransposeParameters(Transposable, SingleInputAndOutput):
         )
 
 
-class CopyParameters(Parameters):
+class CopyParameters(Parameters, InsensitiveToQuantization):
     op_name = "copy"
 
     def __init__(self, *args, **kwargs):
@@ -113,8 +115,31 @@ class CopyParameters(Parameters):
     def __str__(self):
         return ""
 
+class QuantizeParameters(Parameters):
+    op_name = "quantize"
 
-class ReverseParameters(Parameters):
+    def __init__(self, *args, from_qtype=None, to_qtype=None, **kwargs):
+        super(QuantizeParameters, self).__init__(*args, **kwargs)
+        self.from_qtype = from_qtype
+        self.to_qtype = to_qtype
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        return [in_dims[0].clone()]
+
+    def clone(self, name, groupn=None):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return ""
+
+class ReverseParameters(Parameters, InsensitiveToQuantization):
     op_name = "reverse"
 
     def __init__(self, *args, axis=0, **kwargs):
@@ -270,7 +295,8 @@ class SplitParameters(Transposable):
             self.at_options
         )
 
-class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
+
+class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, InsensitiveToQuantization):
     op_name = "gather"
 
     def __init__(self, *args,
@@ -278,7 +304,7 @@ class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
                  indices=None,
                  **kwargs):
 
-        super(GatherParametters, self).__init__(*args, **kwargs)
+        super(GatherParameters, self).__init__(*args, **kwargs)
         self.axis = axis
         self.indices = np.array(indices)
 
@@ -288,7 +314,8 @@ class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     def get_output_size(self, in_dims):
         in_dim = in_dims[0].clone()
         self.in_dims = [in_dim]
-        new_shape = in_dim.shape[:self.axis:] + list(self.indices.shape) + in_dim.shape[self.axis + 1:]
+        new_shape = in_dim.shape[:self.axis:] + \
+            list(self.indices.shape) + in_dim.shape[self.axis + 1:]
         return [Dim.unnamed(new_shape)]
 
     @property
@@ -303,9 +330,10 @@ class GatherParametters(Parameters, SingleInputAndOutput, SensitiveToOrder):
         raise NotImplementedError()
 
     def __str__(self):
-        return "A %s I %s"%(self.axis, self.indices)
+        return "A %s I %s" % (self.axis, self.indices)
 
-class StridedSliceParameters(Parameters, SingleInputAndOutput):
+
+class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParameters, InsensitiveToQuantization):
 
     op_name = "strided_slice"
 
@@ -336,6 +364,15 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
             return slce[1] - slce[0] == 1 and slce[2] == 1
         else:
             return slce[0] - slce[1] == 2 and slce[2] == -1
+
+    def is_same_operation_as(self, other):
+        if not isinstance(other, StridedSliceParameters):
+            return False
+        if tuple(self.out_shape) != tuple(other.out_shape):
+            return False
+        if len(self.act_slice) != len(other.act_slice):
+            return False
+        return all(tuple(elem) == tuple(oelem) for elem, oelem in zip(self.act_slice, other.act_slice))
 
     @staticmethod
     def get_slice(in_shape, spec, begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask):
@@ -390,6 +427,10 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput):
                 can_reshape = False
             in_idx += 1
         return act_slice, out_shape, can_reshape
+
+    def only_slices(self, axis):
+        return all(dim == self.act_slice[idx][1] and self.act_slice[idx][0] == 0 and self.act_slice[idx][2] == 1
+                   for idx, dim in enumerate(self.in_dims[0].shape) if axis != idx)
 
     @property
     def post_slice_shape(self):
@@ -557,8 +598,15 @@ class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
         )
 
 
-class BinaryOpParameters(Parameters):
+class BinaryOpParameters(CanFuseToExpression, Parameters):
     op_name = "binary"
+
+    def __new__(cls, *args, op_type="maximum", **kwargs):
+        if cls is BinaryOpParameters:
+            for subcls in BinaryOpParameters.__subclasses__():
+                if op_type == subcls.op_name:
+                    return super(BinaryOpParameters, cls).__new__(subcls)
+            raise ValueError(f'binary op {op_type} not found')
 
     def __init__(self, *args, op_type="maximum", **kwargs):
         super(BinaryOpParameters, self).__init__(*args, **kwargs)
@@ -581,7 +629,7 @@ class BinaryOpParameters(Parameters):
         return False
 
     def clone(self, name, groupn=None):
-        raise NotImplementedError()
+        raise ValueError('cannot clone')
 
     def __str__(self):
         return "{} {}".format(
@@ -590,8 +638,31 @@ class BinaryOpParameters(Parameters):
         )
 
 
-class UnaryOpParameters(Parameters):
+@expression_op(Max)
+class MaxOpParameters(BinaryOpParameters, InsensitiveToQuantization):
+    op_name = 'maximum'
+
+
+@expression_op(Min)
+class MinOpParameters(BinaryOpParameters, InsensitiveToQuantization):
+    op_name = 'minimum'
+
+
+@expression_op(Pow)
+class PowOpParameters(BinaryOpParameters):
+    op_name = 'pow'
+
+
+class UnaryOpParameters(CanFuseToExpression, Parameters):
     op_name = "unary"
+
+    def __new__(cls, *args, op_type="sqrt", **kwargs):
+        if cls == UnaryOpParameters:
+            for subcls in UnaryOpParameters.__subclasses__():
+                if op_type == subcls.op_name:
+                    return super(UnaryOpParameters, cls).__new__(subcls)
+            raise ValueError(f'unary op {op_type} not found')
+        return super(UnaryOpParameters, cls).__new__(cls)
 
     def __init__(self, *args, op_type=None, **kwargs):
         super(UnaryOpParameters, self).__init__(*args, **kwargs)
@@ -621,6 +692,31 @@ class UnaryOpParameters(Parameters):
             self._op_type,
             self.at_options
         )
+
+
+@expression_op(Sqrt)
+class SqrtOpParameters(UnaryOpParameters):
+    op_name = 'sqrt'
+
+
+@expression_op(Exp)
+class ExpOpParameters(UnaryOpParameters):
+    op_name = 'exp'
+
+
+@expression_op(Log)
+class LogOpParameters(UnaryOpParameters):
+    op_name = 'log'
+
+
+@expression_op(Abs)
+class AbsOpParameters(UnaryOpParameters, InsensitiveToQuantization):
+    op_name = 'abs'
+
+
+@expression_op(Neg)
+class NegOpParameters(UnaryOpParameters, InsensitiveToQuantization):
+    op_name = 'neg'
 
 
 class GlobalPoolParameters(Transposable, SingleInputAndOutput):
@@ -686,7 +782,8 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
             self.at_options
         )
 
-class ReshapeParameters(Transposable, SingleInputAndOutput):
+
+class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization):
     '''This class covers reshapes and transposes'''
 
     op_name = "reshape"
@@ -751,7 +848,7 @@ class ReshapeParameters(Transposable, SingleInputAndOutput):
 # pylint: disable=abstract-method
 
 
-class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput):
+class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput, InsensitiveToQuantization):
     op_name = "noop"
 
     def __init__(self, name, desc=""):

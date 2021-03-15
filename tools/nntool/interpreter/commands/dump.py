@@ -24,7 +24,7 @@ from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 from execution.graph_executer import GraphExecuter
 from execution.quantization_mode import QuantizationMode
 from graph.types import ConvFusionParameters, FilterParameters, SSDDetectorParameters
-from interpreter.nntool_shell_base import NNToolShellBase
+from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import (glob_input_files,
                                      input_options)
 from utils.data_importer import import_data
@@ -33,80 +33,6 @@ from utils.at_norm import set_do_rounding, get_do_rounding
 
 LOG = logging.getLogger('nntool.'+__name__)
 
-
-def format_dump_file(G, outputs, quantized, dequantize, quantize_step):
-    # simplify the output since we only have one for now and add weights
-    foutputs = []
-    for idx, out in enumerate(outputs):
-        if quantize_step == idx:
-            step_is_quantized = True
-            step_is_dequantized = True
-        elif quantized:
-            step_is_quantized = True
-            step_is_dequantized = dequantize
-        else:
-            step_is_quantized = False
-            step_is_dequantized = False
-
-        tensors = [out[0]]
-        node = G.graph_state.steps[idx]['node']
-        if isinstance(node, ConvFusionParameters):
-            for filt in node.contained_filters():
-                if step_is_quantized:
-                    qrec = G.quantization[NodeId(node, filt)]
-                    if G.has_quantized_parameters:
-                        if step_is_dequantized:
-                            qrec = G.quantization[NodeId(node, filt)]
-                            tensors.append(qrec.weights_q.get_dequantized(filt.weights))
-                            tensors.append(qrec.biases_q.get_dequantized(filt.biases))
-                        else:
-                            tensors.append(np.copy(filt.weights))
-                            tensors.append(qrec.biases_q.get_quantized(filt.biases))
-                    else:
-                        if step_is_dequantized:
-                            tensors.append(np.copy(filt.weights))
-                            tensors.append(np.copy(filt.biases))
-                        else:
-                            tensors.append(qrec.weights_q.quantize(filt.weights))
-                            tensors.append(qrec.biases_q.quantize(filt.biases))
-                else:
-                    if G.has_quantized_parameters:
-                        qrec = G.quantization[NodeId(node, filt)]
-                        tensors.append(qrec.weights_q.get_dequantized(filt.weights))
-                        tensors.append(qrec.biases_q.get_dequantized(filt.biases))
-                    else:
-                        tensors.append(np.copy(filt.weights))
-                        tensors.append(np.copy(filt.biases))
-        elif isinstance(node, FilterParameters):
-            if step_is_quantized:
-                qrec = G.quantization[NodeId(node, None)]
-                if G.has_quantized_parameters:
-                    if step_is_dequantized:
-                        tensors.append(qrec.weights_q.get_dequantized(node.weights))
-                        tensors.append(qrec.biases_q.get_dequantized(node.biases))
-                    else:
-                        tensors.append(np.copy(node.weights))
-                        tensors.append(qrec.biases_q.get_quantized(node.biases))
-                else:
-                    if step_is_dequantized:
-                        tensors.append(np.copy(node.weights))
-                        tensors.append(np.copy(node.biases))
-                    else:
-                        tensors.append(qrec.weights_q.quantize(node.weights))
-                        tensors.append(qrec.biases_q.quantize(node.biases))
-            else:
-                if G.has_quantized_parameters:
-                    qrec = G.quantization[NodeId(node, None)]
-                    tensors.append(qrec.weights_q.dequantize(node.weights))
-                    tensors.append(qrec.biases_q.dequantize(node.biases))
-                else:
-                    tensors.append(np.copy(node.weights))
-                    tensors.append(np.copy(node.biases))
-        else:
-            tensors.append(None)
-            tensors.append(None)
-        foutputs.append(tuple(tensors))
-    return foutputs
 
 
 class DumpCommand(NNToolShellBase):
@@ -142,9 +68,11 @@ class DumpCommand(NNToolShellBase):
                              help='save the tensor to the tensors list')
     parser_dump.add_argument('-v', '--visualize_detection',
                              action='store_true', help='visualize input images and detection predictions')
+    parser_dump.add_argument('--checksum', action='store_true', help='print checksums')
     input_options(parser_dump)
 
     @with_argparser(parser_dump)
+    @no_history
     def do_dump(self, args: argparse.Namespace):
         """
 Dump the activations resulting from running an input file through the graph.
@@ -192,12 +120,11 @@ specific step of the graph."""
                                        qmode=qmode)
 
             if args.pickle or self._in_py or args.save:
-                pickles.append(format_dump_file(self.G, outputs, not qmode.is_none,
-                                                args.dequantize, args.quantize_step))
+                pickles.append(outputs)
             else:
                 self.G.print_intermediates(outputs, limit=step, width=args.number_width,
                                            precision=args.precision, channel=args.channel,
-                                           order=['c', 'h', 'w'])
+                                           order=['c', 'h', 'w'], checksum=args.checksum)
 
             if args.visualize_detection:
                 img_in = Image.open(file_per_input[0]).convert('RGBA')
@@ -236,6 +163,9 @@ specific step of the graph."""
                 with open(args.pickle, 'wb') as pickle_fp:
                     pickle.dump(pickles, pickle_fp)
             if args.save:
+                if len(args.input_files) != self.G.num_inputs:
+                    self.perror("can only save dumps on one input to tensor store")
+                    return
                 self.tensor_store[args.save] = pickles
 
         if self._in_py:

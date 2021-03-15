@@ -72,9 +72,7 @@ static int32_t open_camera_himax(struct pi_device *device)
     }
 
     /* Let the camera AEG work for 100ms */
-    /* Can be optimized */
-    pi_time_wait_us(100000);
-    pi_camera_control(&cam, PI_CAMERA_CMD_STOP, 0);
+    pi_camera_control(&cam, PI_CAMERA_CMD_AEG_INIT, 0);
 
     return 0;
 }

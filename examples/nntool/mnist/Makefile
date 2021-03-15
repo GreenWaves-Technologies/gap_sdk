@@ -52,8 +52,6 @@ endif
 
 $(info Building GAP8 mode with $(QUANT_BITS) bit quantization)
 
-TRAINED_TFLITE_MODEL=model/$(MODEL_PREFIX).tflite
-
 include ../common/model_decl.mk
 
 # Here we set the memory allocation for the generated kernels

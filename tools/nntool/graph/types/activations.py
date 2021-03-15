@@ -13,9 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 import logging
 
-from .base import NoSizeChangeParameters, SingleInputAndOutput
+from utils.symbolic.basic import HSigmoid, Relu, HTanh
+
+from .base import (CanFuseToExpression, NoSizeChangeParameters,
+                   SingleInputAndOutput, Transposable, expression_op)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -39,6 +43,10 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
             return TanHActivationParameters(name)
         raise ValueError("don't know how to create %s"%activation_type)
 
+    def should_fuse(self, node_set):
+        # activation should fuse into an expression if there are several elements
+        return len(node_set) > 1
+
     @property
     def activation(self):
         return self.op_name
@@ -55,7 +63,8 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
             self.at_options
         )
 
-class ReluActivationParameters(ActivationParameters):
+@expression_op(Relu)
+class ReluActivationParameters(CanFuseToExpression, ActivationParameters):
     def __init__(self, name, lower_bound=0, upper_bound=None):
         super(ReluActivationParameters, self).__init__(name)
         self._lower_bound = lower_bound
@@ -87,6 +96,9 @@ class ReluActivationParameters(ActivationParameters):
     def upper_bound(self, val):
         self._upper_bound = val
 
+    def get_expression(self, *args):
+        return Relu(*args, lower_bound=self.lower_bound, upper_bound=self.upper_bound)
+
     def clone(self, name, groupn=None):
         return ReluActivationParameters(name, self._lower_bound, self._upper_bound)
 
@@ -114,7 +126,8 @@ class LeakyActivationParameters(ActivationParameters):
     def can_equalize(self):
         return False
 
-class HSigmoidActivationParameters(ActivationParameters):
+@expression_op(HSigmoid)
+class HSigmoidActivationParameters(CanFuseToExpression, ActivationParameters):
     def __init__(self, name, offset=3):
         super(HSigmoidActivationParameters, self).__init__(name)
         self._offset = offset
@@ -157,7 +170,8 @@ class HSwishActivationParameters(ActivationParameters):
     def can_equalize(self):
         return False
 
-class TanHActivationParameters(ActivationParameters):
+@expression_op(HTanh)
+class TanHActivationParameters(CanFuseToExpression, ActivationParameters):
     @property
     def op_name(self):
         return "tanh"
@@ -169,13 +183,26 @@ class TanHActivationParameters(ActivationParameters):
     def can_equalize(self):
         return False
 
-class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
+class SigmoidActivationParameters(CanFuseToExpression, ActivationParameters):
+    @property
+    def op_name(self):
+        return "sigmoid"
+
+    def clone(self, name, groupn=None):
+        return SigmoidActivationParameters(name)
+
+    @property
+    def can_equalize(self):
+        return False
+
+class SoftMaxParameters(Transposable, SingleInputAndOutput):
 
     op_name = "softmax"
 
-    def __init__(self, name, beta=None):
+    def __init__(self, name, beta=None, axis=None):
         super(SoftMaxParameters, self).__init__(name)
         self.beta = 0.0 if beta is None else beta
+        self.axis = axis
 
     def get_parameter_size(self):
         return 0
@@ -190,8 +217,19 @@ class SoftMaxParameters(NoSizeChangeParameters, SingleInputAndOutput):
     def compute_load(self):
         return self.in_dims[0].size() * 2
 
+    def get_output_size(self, in_dims):
+        self.in_dims = self.clone_dim_with_hints(in_dims)
+        if self.axis is None:
+            self.axis = len(in_dims[0]) - 1
+        if self.transpose_in:
+            in_dims = [dim.calc_transpose(trans) if trans is not None else dim
+                       for dim, trans in zip(self.in_dims, self.transpose_in)]
+        else:
+            in_dims = self.in_dims
+        out_dim = self.in_dims[0]
+        if self.transpose_out and self.transpose_out[0]:
+            out_dim.transpose(self.transpose_out[0])
+        return [out_dim]
+
     def __str__(self):
-        return "BETA {} {}".format(
-            self.beta,
-            self.at_options
-        )
+        return f"Beta {self.beta} Axis {self.axis} {self.at_options}"

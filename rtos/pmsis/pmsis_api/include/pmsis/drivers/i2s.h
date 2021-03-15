@@ -167,6 +167,22 @@ typedef uint16_t pi_i2s_opt_t;
 
 #define PI_I2S_OPT_WS_SRC_SHIFT                   ( 7 )
 #define PI_I2S_OPT_WS_SRC_MASK                    ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
+
+#define PI_I2S_OPT_CLK_INT_ROUTED_SHIFT           ( 8 )
+#define PI_I2S_OPT_CLK_INT_ROUTED_MASK            ( 1 << PI_I2S_OPT_CLK_INT_ROUTED_SHIFT )
+
+#define PI_I2S_OPT_WS_INT_ROUTED_SHIFT            ( 9 )
+#define PI_I2S_OPT_WS_INT_ROUTED_MASK             ( 1 << PI_I2S_OPT_WS_INT_ROUTED_SHIFT )
+
+#define PI_I2S_OPT_CLK_POLARITY_SHIFT             ( 10 )
+#define PI_I2S_OPT_CLK_POLARITY_MASK              ( 1 << PI_I2S_OPT_CLK_POLARITY_SHIFT )
+
+#define PI_I2S_OPT_WS_POLARITY_SHIFT              ( 11 )
+#define PI_I2S_OPT_WS_POLARITY_MASK               ( 1 << PI_I2S_OPT_WS_POLARITY_SHIFT )
+
+#define PI_I2S_OPT_REF_CLK_FAST_SHIFT             ( 12 )
+#define PI_I2S_OPT_REF_CLK_FAST_MASK              ( 1 << PI_I2S_OPT_REF_CLK_FAST_SHIFT )
+
 /**
  * \endcond
  */
@@ -305,6 +321,56 @@ typedef uint16_t pi_i2s_opt_t;
  */
 #define PI_I2S_OPT_EXT_WS                         ( 1 << PI_I2S_OPT_WS_SRC_SHIFT )
 
+/**
+ * \brief Use internally routed ext clk
+ *
+ * If this option is specified, the clk of SAI1 or SAI2 is routed internnally from SAI0
+ */
+#define PI_I2S_OPT_EXT_CLK_INT_ROUTED              ( 1 << PI_I2S_OPT_CLK_INT_ROUTED_SHIFT )
+
+/**
+ * \brief Use internally routed ext ws
+ *
+ * If this option is specified, the ws of SAI1 or SAI2 is routed internnally from SAI0
+ */
+#define PI_I2S_OPT_EXT_WS_INT_ROUTED              ( 1 << PI_I2S_OPT_WS_INT_ROUTED_SHIFT )
+
+/**
+ * \brief Data sampling on rising edge of the clock
+ *
+ * If this option is specified, the data are sampled and generated on the rising edge of the clock
+ */
+#define PI_I2S_OPT_CLK_POLARITY_RISING_EDGE              ( 0 << PI_I2S_OPT_CLK_POLARITY_SHIFT )
+
+/**
+ * \brief Data sampling on falling edge of the clock
+ *
+ * If this option is specified, the data are sampled and generated on the falling edge of the clock
+ */
+#define PI_I2S_OPT_CLK_POLARITY_FALLING_EDGE              ( 1 << PI_I2S_OPT_CLK_POLARITY_SHIFT )
+
+/**
+ * \brief WS sampling on rising edge of the clock
+ *
+ * If this option is specified, the WS is sampled and generated on the rising edge of the clock.
+ */
+#define PI_I2S_OPT_WS_POLARITY_RISING_EDGE              ( 0 << PI_I2S_OPT_WS_POLARITY_SHIFT )
+
+/**
+ * \brief Data sampling on falling edge of the clock
+ *
+ * If this option is specified, the WS is sampled and generated on the falling edge of the clock
+ */
+#define PI_I2S_OPT_WS_POLARITY_FALLING_EDGE              ( 1 << PI_I2S_OPT_WS_POLARITY_SHIFT )
+
+
+/**
+ * \brief Enable the ref clk fast
+ *
+ * If this option is specified, the clk will be based on the ref clk fast, but not the FLL.
+ */
+#define PI_I2S_OPT_REF_CLK_FAST                          ( 1 << PI_I2S_OPT_REF_CLK_FAST_SHIFT )
+
 
 /**
  * \enum pi_i2s_ioctl_cmd_e
@@ -332,6 +398,21 @@ typedef enum
      * it stopped.
      */
     PI_I2S_IOCTL_STOP,
+
+    /**
+     * \brief Synchronize transmission / reception of data between different
+     * interfaces.
+     *
+     * This command can be used when the sampling over different I2S interfaces
+     * has to be synchronized. The argument is an integer which specifies the
+     * list of interfaces which must be synchronized (one bit per interface).
+     * Once called, all further PI_I2S_IOCTL_START and PI_I2S_IOCTL_STOP as well
+     * as calls to pi_i2s_channel_enable on other interfaces are put on hold
+     * until a PI_I2S_IOCTL_START or PI_I2S_IOCTL_STOP command is issued on the
+     * interface where PI_I2S_IOCTL_SYNC was called, which commits the commands
+     * on all involved interfaces at the same time.
+     */
+    PI_I2S_IOCTL_SYNC,
 
     /**
      * \brief Configure a channel in TDM mode.
@@ -372,13 +453,13 @@ typedef enum
      * Disable clock for the i2s interface.
      */
     PI_I2S_IOCTL_CLOCK_DISABLE,
-    
+
     /**
      * \brief Enable the timestamp
      *
      * Enable the timestamp feature for the i2s interface.
      */
-    PI_I2S_IOCTL_EN_TIMESTAMP,
+    PI_I2S_IOCTL_EN_TIMESTAMP
 
 } pi_i2s_ioctl_cmd_e;
 
@@ -409,12 +490,16 @@ struct pi_i2s_conf
     uint8_t word_size;          /*!< Number of bits representing one data word. */
     int8_t mem_word_size;       /*!< Number of bits representing one data word in memory.
                                   If it is -1, this is equal to word_size. */
+    uint8_t ws_delay;           /*!< Sets the distance (in bits) in i2s cycles from the WS 
+                                  rising edge to the first bit of the frame */
     uint8_t channels;           /*!< Number of words per frame. */
     uint8_t itf;                /*!< I2S device ID. */
     pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
     int8_t pdm_shift;           /*!< In PDM mode, the shift value to shift data
                                   when applying filter. */
     uint8_t pdm_filter_ena;     /*!< When using PDM mode, enable PDM filter. */
+    uint8_t pdm_polarity;
+    uint8_t pdm_diff;
     uint8_t channel_id;         /*!< Channel ID, from 0 to the number of channels minus 1.
                                   In TDM mode this gives the ID of the slot to be configured.
                                   The options field can be used to specify if the RX or TX
@@ -422,6 +507,36 @@ struct pi_i2s_conf
     int8_t asrc_channel;        /*!< If different from -1, this redirect the specified
                                   stream(can be input or output) to/from the ASRC block with
                                   the channel specified here. */
+    uint32_t ref_clk_freq;       /*!< Configure the ref clk fast value. */
+    uint8_t ts_evt_id;           /*!< UDMA Config Event ID for generating the timestamp */
+};
+
+
+/**
+ * \struct pi_i2s_channel_conf
+ *
+ * \brief Interface channel configuration options. This configuration has to be
+ * used when configuring a channel in TDM mode.
+ */
+struct pi_i2s_channel_conf
+{
+    size_t block_size;          /*!< Size of one RX/TX memory block(buffer) in bytes.
+                                  On some chips, this size may have to be set under a
+                                  maximum size, check the chip-specific section. */
+    pi_mem_slab_t *mem_slab;    /*!< memory slab to store RX/TX data. */
+    void *pingpong_buffers[2];  /*!< Pair of buffers used in double-bufferin
+                                  mode to capture the incoming samples.  */
+    pi_i2s_fmt_t format;        /*!< Data stream format as defined by PI_I2S_FMT_* constants. */
+    uint8_t word_size;          /*!< Number of bits representing one data word. */
+    int8_t mem_word_size;       /*!< Number of bits representing one data word in memory.
+                                  If it is -1, this is equal to word_size. */
+    pi_i2s_opt_t options;       /*!< Configuration options as defined by PI_I2S_OPT_* constants. */
+    int8_t asrc_channel;        /*!< If different from -1, this redirect the specified
+                                  stream(can be input or output) to/from the ASRC block with
+                                  the channel specified here. */
+    uint8_t ts_evt_id;           /*!< UDMA Config Event ID for generating the timestamp */
+    uint8_t slot_enable;        /*!< Specifies if the corresponding slot must be enabled or not.
+        It is by default set to 1. */
 };
 
 
@@ -608,6 +723,149 @@ int pi_i2s_write(struct pi_device *dev, void *mem_block,
  */
 int pi_i2s_write_async(struct pi_device *dev,
     void *mem_block, size_t size, pi_task_t *task);
+
+
+/**
+ * \brief Initialize an I2S channel configuration with default values.
+ *
+ * This function can be called to get default values for all parameters before
+ * setting some of them.
+ * The structure containing the configuration must be kept alive until the I2S
+ * channel is configured.
+ *
+ * \param conf A pointer to the I2S channel configuration.
+ */
+void pi_i2s_channel_conf_init(struct pi_i2s_channel_conf *conf);
+
+
+/**
+ * \brief Configure a channel in TDM mode.
+ *
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple channels, and each channel can have a specific
+ * configuration. This function can be used to give the configuration
+ * of one channel.
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param conf A pointer to the I2S channel configuration.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+int pi_i2s_channel_conf_set(struct pi_device *dev, int channel,
+    struct pi_i2s_channel_conf *conf);
+
+
+/**
+ * \brief Get the current configuration of a channel in TDM mode.
+ *
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple channels, and each channel can have a specific
+ * configuration. This function can be used to get the current configuration
+ * of one channel
+ * 
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param channel ID of the slot, from 0 to the number of channels minus 1.
+ * @param conf A pointer to the I2S channel configuration.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+int pi_i2s_channel_conf_get(struct pi_device *dev, int channel,
+    struct pi_i2s_channel_conf *conf);
+
+
+/**
+ * \brief Enable the timestamp
+ *
+ * Enable the timestamp feature for the i2s interface.
+ * 
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param channel ID of the channel, from 0 to the number of channels minus 1.
+ * @param conf A pointer to the I2S channel configuration.
+ */
+int pi_i2s_channel_timestamp_set(struct pi_device *dev, int channel,
+    struct pi_i2s_channel_conf *conf);
+
+
+/**
+ * \brief Enable or disable slots in TDM mode.
+ *
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple slots of time. Each slot can send and receive data at the same
+ * time in full-duplex mode, and is thus made of one 1 RX channels and 1 TX
+ * channel. This function can be called to enable or disable the 2 channels
+ * of a slot, for example for muting the channels to reconfigure them.
+ * The slot is by default enabled when the channel configuration is
+ * initialized.
+ * Enabling slots will allow them to received or send data, while disabling
+ * them will allow it.
+ * These operations are not immediate and can take up to 2 frame periods to be
+ * effective.
+ * When disabling a slot, the buffers are kept, and data continues from the 
+ * same buffer position after the slot is reenabled.
+ * 
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param slots Bitfield of the slots to enable or disable, with one bit per
+ * slot. Each slot whose bit is set to 1 will be configured.
+ * @param enabled 1 if the specified slots should be enabled, 0 if they should
+ * be disabled.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+int pi_i2s_slots_enable(struct pi_device *dev, uint32_t slots, int enabled);
+
+
+/**
+ * \brief Stop slots in TDM mode.
+ *
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple slots of time. Each slot can send and receive data at the same
+ * time in full-duplex mode, and is thus made of one 1 RX channels and 1 TX
+ * channel. This function can be called to enable or disable the 2 channels
+ * of a slot, for example for muting the channels to reconfigure them.
+ * Stopping a slot will first disable it, and will also cancel all pending
+ * buffers. If some samples were already present in the current buffer,
+ * the buffer is considered finished and its associated task is triggered.
+ * The size of the data already sent or received is notified in the buffer task.
+ * Since stopping requires waiting for 2 frame periods, this operation can take
+ * some time and is asynchronous.
+ * 
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param slots Bitfield of the slots to stop, with one bit per
+ * slot. Each slot whose bit is set to 1 will be stopped.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+int pi_i2s_slots_stop_async(struct pi_device *dev, uint32_t slots, pi_task_t *task);
+
+
+/**
+ * \brief Stop slots in TDM mode.
+ *
+ * In TDM mode, the same interface is time-multiplexed to transmit data
+ * for multiple slots of time. Each slot can send and receive data at the same
+ * time in full-duplex mode, and is thus made of one 1 RX channels and 1 TX
+ * channel. This function can be called to enable or disable the 2 channels
+ * of a slot, for example for muting the channels to reconfigure them.
+ * Stopping a slot will first disable it, and will also cancel all pending
+ * buffers. If some samples were already present in the current buffer,
+ * the buffer is considered finished and its associated task is triggered.
+ * The size of the data already sent or received is notified in the task.
+ * Since stopping requires waiting for 2 frame periods, this operation can take
+ * some time and is blocking.
+ * 
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param slots Bitfield of the slots to stop, with one bit per
+ * slot. Each slot whose bit is set to 1 will be stopped.
+ *
+ * @retval 0 If successful.
+ * @retval -1 An error occured.
+ */
+int pi_i2s_slots_stop(struct pi_device *dev, uint32_t slots);
+
 
 /**
  * @brief Read data from the RX queue of a channel in TDM mode.

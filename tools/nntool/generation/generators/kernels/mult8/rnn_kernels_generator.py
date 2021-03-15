@@ -19,14 +19,14 @@ from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generators.generator_decorators import generation_function, QREC_MULT8
-from graph.types import RNNParameters, LSTMParameters
+from graph.types import RNNParameters, LSTMParameters, GRUParameters
 
 from ..autotiler_kernel import AutotilerKernel
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (RNNParameters, LSTMParameters), qrec_types=(QREC_MULT8, ))
+@generation_function("kernels", (RNNParameters, LSTMParameters, GRUParameters), qrec_types=(QREC_MULT8, ))
 def rnn_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
     gen.kernels.append(RNNKernel(node.name, cname, node,
@@ -62,6 +62,19 @@ def rnn_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
 #         int Revert
 #         );
 
+# int GRU_Stack_SQ8(
+#         char *Name,
+#         CNN_GenControl_T *Ctrl,
+#         int BiasDataSize,
+#         int FeatDataSize,
+#         int NCells,
+#         int K0,
+#         int K1,
+#         int DimState,
+#         int DimIn,
+#         int AlwaysReset,
+#         int Revert
+#         );
 
 def gen_rnn_sq8(code_block, kname, cname, ctrl, ncells, k0, k1, dim_state, dim_in, revert):
     code_block.write(
@@ -84,6 +97,11 @@ class RNNKernel(AutotilerKernel):
             self.kname = "RNN_Stack_SQ8"
         elif isinstance(rnn_params, LSTMParameters):
             self.kname = "LSTM_Stack_SQ8"
+        elif isinstance(rnn_params, GRUParameters):
+            self.kname = "GRU_Stack_SQ8"
+            if not rnn_params.linear_before_reset:
+                # gen_ctrl.linear_before_reset = 0
+                raise ValueError("In {} linear_before_reset == 0 not supported by the Autotiler kernels")
         else:
             raise ValueError("unknown RNN parameter type")
         self.n_cells = rnn_params.n_cells
@@ -92,9 +110,9 @@ class RNNKernel(AutotilerKernel):
         self.n_input_cells = rnn_params.n_input_cells
         self.n_output_cells = rnn_params.n_output_cells
         self.revert = rnn_params.revert
-        if not rnn_params.hard_act and gen_ctrl.rnn_use_hardact is None:
+        if not rnn_params.hard_act:
             gen_ctrl.rnn_use_hardact = 0
-        if not rnn_params.rnn_same_inout_scale and gen_ctrl.rnn_same_inout_scale is None:
+        if not rnn_params.rnn_same_inout_scale:
             gen_ctrl.rnn_same_inout_scale = 0
         self.cname = cname
         self.node_name = node_name

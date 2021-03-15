@@ -25,6 +25,16 @@ static inline unsigned int hal_soc_eu_addr(void)
   return ARCHI_SOC_EU_ADDR;
 }
 
+static inline void soc_eu_fc_mask_set(unsigned int event)
+{
+  pulp_write32(ARCHI_SOC_EU_ADDR + 0x94, event);
+}
+
+static inline void soc_eu_fc_mask_clr(unsigned int event)
+{
+  pulp_write32(ARCHI_SOC_EU_ADDR + 0x98, event);
+}
+
 
 static inline void soc_eu_eventMask_set(unsigned int reg, unsigned int value) {
   pulp_write32(ARCHI_SOC_EU_ADDR + reg, value);
@@ -42,14 +52,14 @@ static inline void soc_eu_eventMask_reset(unsigned int first_reg) {
 }
 
 static inline void soc_eu_eventMask_setEvent(int evt, unsigned int first_reg) {
-  unsigned int reg = first_reg + (evt / 32 * 4);
-  evt = evt % 32;
+  unsigned int reg = first_reg + ((evt >> 5) << 2);
+  evt = evt & 0x1f;
   soc_eu_eventMask_set(reg, soc_eu_eventMask_get(reg) & ~(1 << evt));
 }
 
 static inline void soc_eu_eventMask_clearEvent(int evt, unsigned int first_reg) {
-  unsigned int reg = first_reg + (evt / 32 * 4);
-  evt = evt % 32;
+  unsigned int reg = first_reg + ((evt >> 5) << 2);
+  evt = evt & 0x1f;
   soc_eu_eventMask_set(reg, soc_eu_eventMask_get(reg) | (1 << evt));
 }
 

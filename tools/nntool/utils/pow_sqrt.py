@@ -15,11 +15,14 @@
 
 # square root coefficients in 17.15 fixed point format
 
-import math
+import logging
 
 import numpy as np
 
-from utils.exp_17_15 import exp_fp_17_15, gap_mulsRN, gap_roundnorm
+from utils.exp_17_15 import (exp_fp_17_15, gap_roundnorm,
+                             gap_roundnorm_reg)
+
+LOG = logging.getLogger('nntool.'+__name__)
 
 SqrtCoeffTable = np.array([
     0x00001A91, 0x0000BA3A, 0xFFFF53DA, 0x00008DAC,
@@ -48,20 +51,39 @@ LognCoeffTable = np.array([
     0x00000404
 ], dtype=np.int32)
 
+PI_Q17_15 = 102944 # int(math.floor(0.5 + math.pi * math.pow(2, 15)))
+PI_Q17_15_DIV4 = 25736 # int(math.floor(0.5 + PI_Q17_15 / 4))
+PI_Q1_30_DIV4 = 843314857 # int(math.floor(0.5 + math.pi * math.pow(2, 30) / 4))
+ARCTAN_FAC_Q17_15 = 8946 # int(math.floor(0.5 + 0.273 * math.pow(2, 15)))
+ONE_Q17_15 = 32768 # 1 << 15
 
 def gap_clb(sum_):
-    '''Count Leading 0s or 1s'''
+    '''Count Leading 0s or 1s in numpy!'''
     sum_bin = [np.binary_repr(sum_elem, width=32) for sum_elem in sum_.flatten()]
     return [len(s) - len(s.lstrip(s[0])) - 1 for s in sum_bin]
 
 
+def arctan_17_15(x):
+    """Valid for 1 > x > -1"""
+    # This can use p.mulsRN and p.adduRN on GAP so 5 cycles
+    # p.adduRN(PI_Q17_15_DIV4 * x, ARCTAN_FAC_Q17_15 * p.mulsRN(x * (ONE_Q17_15 - x))
+    return gap_roundnorm(PI_Q17_15_DIV4 * x + ARCTAN_FAC_Q17_15 * gap_roundnorm(x * (ONE_Q17_15 - x), 15), 15)
+
+def arctan_17_15alt(x):
+    """Valid for 1 > x > -1"""
+    # This can use p.mulsRN and p.adduRN on GAP so 4 cycles
+    # p.mulsRN(x, p.adduRN(PI_Q1_30_DIV4, ARCTAN_FAC_Q17_15 * (ONE_Q17_15 - x)))
+    return gap_roundnorm_reg(x * gap_roundnorm_reg(PI_Q1_30_DIV4 + ARCTAN_FAC_Q17_15 * (ONE_Q17_15 - x), 15), 15)
+
 def sqrt_17_15(x):
     x = x.astype(np.uint32)
+    if not x.shape:
+        x = x.reshape([1])
     mask = np.logical_and(x != 0, x <= 0x7FFFFFFF)
     result = np.zeros_like(x, dtype=np.int32)
 
     exponent = np.array(gap_clb(x), dtype=np.uint32).reshape(x.shape)
-    y = ((x << exponent) >> 16).astype(np.int32)
+    y = np.array(((x << exponent) >> 16)).astype(np.int32)
 
     # sqrt(x) = 0.2075806 + 1.454895 * x - 1.34491 * x^2 + 1.106812 * x^3 - 0.536499 * x^4 + 0.1121216 * x^5
     z = y.copy()
@@ -84,6 +106,8 @@ def logn_17_15(x):
         # register int32_t        result, y, z;
 
     x = x.astype(np.uint32)
+    if not x.shape:
+        x = x.reshape([1])
     mask = np.logical_and(x != 0, x <= 0x7FFFFFFF)
     result = np.zeros_like(x, dtype=np.int32)
     result[np.logical_not(mask)] = 0x80000000
@@ -141,10 +165,15 @@ def pow_alt_17_15(x, y):
 
 # a**x = e**(x*ln(a))
 def pow_17_15(x, y):
+    x = np.atleast_1d(x)
+    y = np.atleast_1d(y)
     if isinstance(y, int):
         y = np.full_like(x, y)
     elif y.size == 1 and x.size > 1:
         y = np.full_like(x, y[0])
     assert np.all(y >= 0), "only postive exponents currently supported"
     assert np.all(y >> 15 == 0), "only fractional exponents currently supported"
-    return exp_fp_17_15(gap_roundnorm(y * logn_17_15(x), 15))
+    return np.where(x == 0, np.where(y == 0, 1<<15, 0), exp_fp_17_15(gap_roundnorm(y * logn_17_15(x), 15)))
+
+def square_17_15(x):
+    return gap_roundnorm_reg(x * x, 15)

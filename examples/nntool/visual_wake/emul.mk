@@ -20,7 +20,7 @@ $(info Building emulation mode with 8 bit quantization)
 NNTOOL_SCRIPT=model/nntool_script_emul
 
 include ../common/model_decl.mk
-TRAINED_TFLITE_MODEL=model/visual_wake_quant.tflite
+TRAINED_MODEL=model/visual_wake_quant.tflite
 
 MODEL_GEN_EXTRA_FLAGS= -f $(MODEL_BUILD)
 NNTOOL_EXTRA_FLAGS= -q

@@ -20,13 +20,12 @@ void SetupTwiddlesLUT_f16(float16 *Twiddles, float *Twiddlesf, int N);
 void Dmp_twid(float16 *Twid, int N, int size);
 #endif
 
-char *__FP(int X, int Prec, char *Out);
+char *__FP(int X, int Precision, char *Out);
 
 typedef struct {
   float r;
   float i;
 } complex_fp;
-
 
 typedef int cmplx __attribute__((vector_size (8)));
 
@@ -97,6 +96,11 @@ typedef struct {
         short int * __restrict__ L1_SwapLUT;    /**< Pointer to Swap LUT table copy in shared L1 */
 } FFT_InstallArg_T;
 
+typedef struct {
+        void *__restrict__ Data;
+        short *__restrict__ SwapTable;
+        int Ni;
+} FFT_SwapSamples_T;
 
 
 //static void Radix4FFTKernelDIF_FP(complex_fp *InOutA, complex_fp *InOutB, complex_fp *InOutC, complex_fp *InOutD,    complex_fp W1, complex_fp W2, complex_fp W3, unsigned int Inverse);
@@ -141,30 +145,38 @@ void Radix4FFT_DIF_Par        (FFT_Arg_T *Arg);		/* OK */
 void RadixMixedFFT_DIF_Par        (FFT_Arg_T *Arg);		/* OK */
 
 void Radix2FFT_DIF_Par(FFT_Arg_T *Arg);
-
-
-void SwapSamples    (SwapSamples_Arg_T *Arg);			/* OK */
-void SwapSamples_Par(SwapSamples_Arg_T *Arg);			/* OK */
-
-
-void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
-
-void printout(void *Data, int N);
- 
-void SwapSamples_args(        v2s *__restrict__ Data,
-                              short int *__restrict__ SwapTable ,
-                              int Ni);
 void Radix2FFT_DIF_args(short int *__restrict__ Data,short int *__restrict__ Twiddles, int N_FFT2);
-
 void Radix2FFT_DIF_INT_Scal_Par(FFT_scal_Arg_T *Arg);
 
-#ifdef BUILD_LUT
-void SetupTwiddlesLUT(signed short *Twiddles, int Nfft, int Inverse);
-void SetupScalarTwiddlesLUT(signed short *Twiddles, int Nfft, int Inverse);
+// void SwapSamples    (SwapSamples_Arg_T *Arg);			/* OK */
+// void SwapSamples_Par(SwapSamples_Arg_T *Arg);			/* OK */
+// void SwapSamples_args(        v2s *__restrict__ Data,
+//                               short int *__restrict__ SwapTable ,
+//                               int Ni);
 
-void SetupR4SwapTable (short int *SwapTable, int Ni);
-void SetupR2SwapTable (short int *SwapTable, int Ni);
+
+extern void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, unsigned int N_fft, int Inverse);
+extern void Radix4FFT_DIF_Par(FFT_Arg_T *Arg);
+
+#ifdef __gap9__
+extern void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg);
+extern void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg);
+extern void SwapSamples_Par_f16  (FFT_SwapSamples_T *Arg);
+extern void Conjugate_Float16_Par(FFT_SwapSamples_T *Arg);
 #endif
+extern void Radix4FFT_DIF_Par_f32(FFT_Arg_T *Arg);
+extern void Radix2FFT_DIF_Par_f32(FFT_Arg_T *Arg);
+
+extern void Radix2FFT_DIF_Scalar(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_FFT2);
+extern void Radix2FFT_DIF_Seq   (signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_FFT2);
+extern void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg);
+extern void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg);
+extern void SwapSamples_Par(FFT_SwapSamples_T *Arg);
+extern void SwapSamples_Par_f32(FFT_SwapSamples_T *Arg);
+
+extern void Conjugate_Fix16_Par(FFT_SwapSamples_T *Arg);
+extern void Conjugate_Fix32_Par(FFT_SwapSamples_T *Arg);
+extern void Conjugate_Float32_Par(FFT_SwapSamples_T *Arg);
 
 #define FFT4_SAMPLE_DYN 12
 #define FFT2_SAMPLE_DYN 13
@@ -172,6 +184,5 @@ void SetupR2SwapTable (short int *SwapTable, int Ni);
 
 #define FFT4_SCALEDOWN 2
 #define FFT2_SCALEDOWN 1
-
 
 #endif

@@ -14,15 +14,18 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from graph.types.others import GatherParameters
 from graph.types import (ConcatParameters, Conv2DParameters, FcParameters,
                          SoftMaxParameters, ConvFusionParameters, PoolingParameters,
                          ActivationParameters, MatrixAddParameters, ActivationFusion,
-                         MatrixMulParameters, GlobalPoolParameters, ConstantInputParameters)
+                         MatrixMulParameters, GlobalPoolParameters, ConstantInputParameters,
+                         SplitParameters)
 
 class NamingConvension(ABC):
 
     def __init__(self, G):
         self.G = G
+        self.multi_out_edges = {}
 
     @abstractmethod
     def get_node_name(self, node_name, step_idx, params):
@@ -113,13 +116,19 @@ class DefaultNamingConvension(NamingConvension):
             ename = "S{}_{}".format(step_idx, node.short_name.capitalize())
             return ename
         if edge_type == "in":
-            return node_name.capitalize()
+            return "S{}_{}".format(step_idx, node_name.capitalize())
         if edge_type == "out":
             if self.G.num_out_edges(node_name):
                 return self.G.out_edges(node_name)[0].to_node.name.capitalize()
             return node_name.capitalize()
         if edge_type == "in_out":
             ename = "S{}_Output".format(step_idx)
+            if isinstance(node, (SplitParameters, GatherParameters)):
+                if node in self.multi_out_edges:
+                    self.multi_out_edges[node] += 1
+                else:
+                    self.multi_out_edges[node] = 0
+                return ename + "_{}".format(self.multi_out_edges[node])
             return ename
         assert False, "unknown edge type"
         return None

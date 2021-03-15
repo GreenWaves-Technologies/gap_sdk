@@ -13,8 +13,32 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ..quantization_handler import QuantizionHandler
+import numpy as np
+from ..unified_quantization_handler import QuantizionHandler, options
+from .mult_quantization import MultQuantizationRecordBase
+
 
 #pylint: disable=abstract-method
+@options(
+    {
+        'name': 'bits',
+        'type': int,
+        'choices': [8],
+        'help': 'bits for inputs and outputs',
+        'default': 8
+    })
 class MultQuantizionHandler(QuantizionHandler):
-    pass
+    DEFAULT_QREC = MultQuantizationRecordBase
+    NAME = "SQ8"
+
+    BITS_TO_DTYPE = {
+        8: np.int8,
+        16: np.int16
+    }
+
+    @classmethod
+    def get_mult_opts(cls, **kwargs):
+        force_out_qs = kwargs.get('force_out_qs', None)
+        opts = kwargs.get('opts', {})
+        bits = opts.get('bits', 8)
+        return force_out_qs, cls.BITS_TO_DTYPE[bits]

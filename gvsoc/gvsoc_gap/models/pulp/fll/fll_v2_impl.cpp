@@ -179,7 +179,7 @@ void Dco::update_fcr2()
 {
     if (this->is_open_loop)
     {
-        this->dco_input_code = this->fcr2->dco_code_get();
+        this->dco_input_code = this->fcr2->dcod_olm_get();
     }
 }
 
@@ -504,8 +504,8 @@ void Fll::drr_update_dcos()
 {
     for (int i=0; i<FLL_NB_DCOS; i++)
     {
-        this->dcos[i]->set_dco_min_code(this->regmap.drr.dco_min_get());
-        this->dcos[i]->set_dco_max_code(this->regmap.drr.dco_max_get());
+        this->dcos[i]->set_dco_min_code(this->regmap.drr.dcod_min_get());
+        this->dcos[i]->set_dco_max_code(this->regmap.drr.dcod_max_get());
     }
 }
 

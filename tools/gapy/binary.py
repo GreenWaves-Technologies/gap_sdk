@@ -210,7 +210,11 @@ class SSBL(Binary):
 
 
         if os.environ.get('TARGET_CHIP') == 'GAP9_V2':
-            flashOffset += 4*11 + 16 * 4 * len(self.segments)
+            # flash_header_t is 13*int + 1024 bytes AC, 128 for KC
+            if os.environ.get('GAP9_OLD_ROM') is not None:
+                flashOffset += 4*16 + 16 * 4 * len(self.segments)
+            else:
+                flashOffset += 4*13 + 1024 + 128 + 16 * 4 * len(self.segments)
         else:
             flashOffset += 4 + 4 + 4 + 4 + 16 * 4 * len(self.segments)
         
@@ -270,6 +274,17 @@ class SSBL(Binary):
             header.appendInt(flash_nb_pages) # Flash nb pages
             header.appendInt(xip_l2_addr) # L2 address
             header.appendInt(xip_l2_nb_pages) # L2 nb pages
+            header.appendInt(0) # kc_length
+            header.appendInt(0) # key_length
+
+            if os.environ.get('GAP9_OLD_ROM') is not None:
+                header.appendInt(0) # secure boot
+                header.appendInt(0) # for now
+            else:
+                for i in range(1024):
+                    header.appendByte(0) # AC
+                for i in range(128):
+                    header.appendByte(0) # KC
 
         for area in self.segments:
             header.appendInt(area.offset)

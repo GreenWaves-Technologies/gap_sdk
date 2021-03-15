@@ -17,10 +17,10 @@ import os
 import numpy as np
 
 from generation.at_types.constant_info import ConstantInfo
-from generation.at_types.tc_arg_info import GlobalArgInfo
+from generation.at_types.tc_arg_info import GlobalArgInfo, GlobalResetArgInfo
 from generation.generators.generator_decorators import (QREC_MULT8,
                                                         generation_function)
-from graph.types import (RNNParameters, LSTMParameters)
+from graph.types import (RNNParameters, LSTMParameters, GRUParameters)
 from quantization.qtype import QType
 from utils.node_id import NodeId
 from .global_names import *
@@ -28,7 +28,7 @@ from .mult8_infos_generator import gen_constant
 
 
 @generation_function("globals",
-                     (RNNParameters, LSTMParameters),
+                     (RNNParameters, LSTMParameters, GRUParameters),
                      qrec_types=(QREC_MULT8,))
 def mult8_rnn_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     del pnode
@@ -38,8 +38,12 @@ def mult8_rnn_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         rnn_infos(gen, node, qrec)
     elif isinstance(node, LSTMParameters):
         lstm_infos(gen, node, qrec)
+    elif isinstance(node, GRUParameters):
+        gru_infos(gen, node, qrec)
     else:
         raise ValueError()
+    if node.rnn_states_as_inputs:
+        gen.globals.append(GlobalResetArgInfo("Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
     return True
 
 def sigmoid_infos(gate_name, mult_qtype, qtype):
@@ -79,6 +83,12 @@ LSTM_INFOS_ORDER = {
     'i': 'sigmoid',
     'c': 'htanh',
     'o': 'sigmoid',
+}
+
+GRU_INFOS_ORDER = {
+    'r': 'sigmoid',
+    'z': 'sigmoid',
+    'h': 'htanh',
 }
 
 INFOS_FUNCS = {
@@ -179,7 +189,7 @@ def lstm_infos(gen, node, qrec):
         comments.append(comment)
 
     cname, file_name = gen_constant(gen, node, node, INFOS)
-    const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True),
+    const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True),
                               contents=np.hstack(tuple(contents)))
 
     gen.globals.append(GlobalArgInfo("int8", cname,
@@ -222,7 +232,7 @@ def rnn_infos(gen, node, qrec):
     comments.append(comment)
 
     cname, file_name = gen_constant(gen, node, node, INFOS)
-    const_info = ConstantInfo(file_name, QType(bits=8, q=0, signed=True),
+    const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True),
                               contents=np.hstack(tuple(contents)))
 
     gen.globals.append(GlobalArgInfo("int8", cname,
@@ -230,3 +240,93 @@ def rnn_infos(gen, node, qrec):
                                      gen.opts['default_global_exec_location'],
                                      const_info=const_info,
                                      comment=comment))
+
+#define GRU_R_INF              4
+#define GRU_R_OFF              0
+#define GRU_R_INT_SCALE        0
+#define GRU_R_INT_SCALEN       1
+#define GRU_R_IN_SCALE         2
+#define GRU_R_IN_SCALEN        3
+
+#define GRU_Z_INF              4
+#define GRU_Z_OFF              (GRU_R_OFF+GRU_R_INF)
+#define GRU_Z_INT_SCALE        (0 + GRU_Z_OFF)
+#define GRU_Z_INT_SCALEN       (1 + GRU_Z_OFF)
+#define GRU_Z_IN_SCALE         (2 + GRU_Z_OFF)
+#define GRU_Z_IN_SCALEN        (3 + GRU_Z_OFF)
+
+#define GRU_HT_INF              2
+#define GRU_HT_OFF              (GRU_Z_OFF+GRU_Z_INF)
+#define GRU_HT_IN_SCALE         (0 + GRU_HT_OFF)
+#define GRU_HT_IN_SCALEN        (1 + GRU_HT_OFF)
+
+#define GRU_H_INF				2
+#define GRU_H_OFF				(GRU_HT_OFF+GRU_HT_INF)
+#define GRU_H_INT_SCALE			(0 + GRU_H_OFF)
+#define GRU_H_INT_SCALEN		(1 + GRU_H_OFF)
+
+#define GRU_INT_INF             3
+#define GRU_INT_OFF             (GRU_H_OFF+GRU_H_INF)
+#define GRU_INT_A0              (2 + GRU_INT_OFF)
+#define GRU_INT_B0              (3 + GRU_INT_OFF)
+#define GRU_INT_C0              (4 + GRU_INT_OFF)
+
+#define GRU_CELL_INFOS (GRU_R_INF+GRU_Z_INF+GRU_HT_INF+GRU_H_INF+GRU_INT_INF)
+
+def gru_infos(gen, node, qrec):
+    internal_qtype = qrec.internal_qtype
+    contents = []
+    comments = []
+    r_to_int_scale = qrec.r_WR_2_int_q.qbiases[0]
+    r_to_int_scalen = qrec.r_WR_2_int_q.qnorms[0]
+    r_to_in_scale = qrec.i_2_r_WR_q.qbiases[0]
+    r_to_in_scalen = qrec.i_2_r_WR_q.qnorms[0]
+    z_to_int_scale = qrec.z_WR_2_int_q.qbiases[0]
+    z_to_int_scalen = qrec.z_WR_2_int_q.qnorms[0]
+    z_to_in_scale = qrec.i_2_z_WR_q.qbiases[0]
+    z_to_in_scalen = qrec.i_2_z_WR_q.qnorms[0]
+    ht_to_in_scale = qrec.i_2_h_WR_q.qbiases[0]
+    ht_to_in_scalen = qrec.i_2_h_WR_q.qnorms[0]
+    h_to_int_scale = qrec.h_WR_2_int_q.qbiases[0]
+    h_to_int_scalen = qrec.h_WR_2_int_q.qnorms[0]
+
+    # GRU_R_INFOS
+    comments.append(str.format("r_to_int_scale: {} r_to_int_scalen: {} r_to_in_scale: {} r_to_in_scalen: {}",
+                               r_to_int_scale, r_to_int_scalen, r_to_in_scale, r_to_in_scalen,))
+    contents.append(np.array([r_to_int_scale, r_to_int_scalen, r_to_in_scale, r_to_in_scalen], dtype=np.int8))
+
+    # GRU_Z_INFOS
+    comments.append(str.format("z_to_int_scale: {} z_to_int_scalen: {} z_to_in_scale: {} z_to_in_scalen: {}",
+                               z_to_int_scale, z_to_int_scalen, z_to_in_scale, z_to_in_scalen,))
+    contents.append(np.array([z_to_int_scale, z_to_int_scalen, z_to_in_scale, z_to_in_scalen], dtype=np.int8))
+
+    # GRU_HT_INFOS
+    comments.append(str.format("ht_to_in_scale: {} ht_to_in_scalen: {}",
+                               ht_to_in_scale, ht_to_in_scalen,))
+    contents.append(np.array([ht_to_in_scale, ht_to_in_scalen], dtype=np.int8))
+
+    # GRU_H_INFOS
+    comments.append(str.format("h_to_int_scale: {} h_to_int_scalen: {}",
+                               h_to_int_scale, h_to_int_scalen,))
+    contents.append(np.array([h_to_int_scale, h_to_int_scalen], dtype=np.int8))
+
+    three = internal_qtype.quantize(np.array([3]))[0]
+    six = internal_qtype.quantize(np.array([6]))[0]
+    sixth = internal_qtype.quantize(np.array([1/6]))[0]
+
+    comments.append(str.format("int_q: {} A0: {} B0: {} C0: {}",
+                               internal_qtype.q, six, three, sixth))
+    contents.append(np.array([lowb(six), highb(six),
+                              lowb(three), highb(three),
+                              lowb(sixth), highb(sixth), internal_qtype.q],
+                             dtype=np.int8))
+
+    cname, file_name = gen_constant(gen, node, node, INFOS)
+    const_info = ConstantInfo(file_name, QType.Pow2(bits=8, q=0, signed=True),
+                              contents=np.hstack(tuple(contents)))
+
+    gen.globals.append(GlobalArgInfo("int8", cname,
+                                     gen.opts['default_global_home_location'],
+                                     gen.opts['default_global_exec_location'],
+                                     const_info=const_info,
+                                     comment=" ".join(comments)))

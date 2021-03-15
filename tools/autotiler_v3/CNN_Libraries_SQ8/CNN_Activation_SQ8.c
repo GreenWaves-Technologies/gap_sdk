@@ -21,6 +21,26 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
         return Chunk;
 }
 
+#define B_CLR(x, bits)	((x)&(~((1<<(bits))-1)))
+void CNN_Copy_fps(KerCopy_fps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *__restrict__ From = Arg->In;
+	signed char *__restrict__ To = Arg->Out;
+
+	int *pFrom = (int *) (From+First), *pTo = (int *) (To+First);
+	for (int i=0; i<Iter/8; i++) {
+		int V0 = pFrom[2*i], V1 = pFrom[2*i+1];
+		pTo[2*i] = V0; pTo[2*i+1] = V1;
+	}
+	if (Iter & 0x4) *((int *) (To + First + B_CLR(Iter, 3))) = *((int *) (From + First + B_CLR(Iter, 3)));
+	if (Iter & 0x2) *((short int *) (To + First + B_CLR(Iter, 2))) = *((short int *) (From + First + B_CLR(Iter, 2)));
+	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = *((signed char *) (From + First + Iter - 1));
+}
+
 /*
  * Standalone activation
 */
@@ -1082,6 +1102,22 @@ void KerReductIO_CC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
  * Standalone Scaled Activation, Features are evaluated in parallel
 */
 
+void KerPar_ActNone_SQ8(KerActivation_SQ8_T *Arg)
+
+{
+	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	unsigned int Size = Arg->W*Arg->H;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_NONE, ActScale, ActScaleN, A0, B0, C0);
+	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_NONE, A0);
+	gap_waitbarrier(0);
+}
+
 void KerPar_ReLU_SQ8(KerActivation_SQ8_T *Arg)
 
 {
@@ -1162,6 +1198,23 @@ void KerPar_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg)
 /*
  * Standalone Scaled Activation, Features are evaluated one after the other in parallel
 */
+
+void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg)
+
+{
+	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+
+	if (ActScale) Ker_Activation_SQ8(In+First, Out+First, Size, ACT_NONE, ActScale, ActScaleN, A0, B0, C0);
+	else Ker_ActivationScale1_SQ8(In+First, Out+First, Size, ACT_NONE, A0);
+	gap_waitbarrier(0);
+}
 
 void Ker_ReLU_SQ8(KerActivation_SQ8_T *Arg)
 

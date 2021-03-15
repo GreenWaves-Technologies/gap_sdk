@@ -14,8 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from copy import deepcopy
 
 from graph.types import Conv2DParameters
+from quantization.qtype import QType
+from utils.node_id import NodeId
 
 from ..adjust_base import AdjusterBase, handles
 
@@ -25,12 +28,6 @@ AT_CONVFILTER_ORD = ['out_c', 'in_c', 'h', 'w']
 
 @handles(Conv2DParameters)
 class ConvAdjuster(AdjusterBase):
-    def adjust_input(self, G, node, names):
-        self.verify_chw(node, names)
-        trans = self.get_trans(names, ['c', 'h', 'w'])
-        self.apply_input_trans(node, trans)
-        self.apply_output_trans(node, self.invert(trans), index=0)
-
     def adjust(self, G, node):
         modified = False
         # check that the transposed input 0 matches autotiler order
@@ -38,7 +35,7 @@ class ConvAdjuster(AdjusterBase):
         if node.transpose_in is not None and node.transpose_in[0] is not None:
             names = self.trans_names(names, node.transpose_in[0])
         if names != ['c', 'h', 'w']:
-            self.adjust_input(G, node, names)
+            self.adjust_in_out_chw(G, node, names)
             modified = True
 
         # if it doesn't then insert transpose before and after
@@ -46,9 +43,21 @@ class ConvAdjuster(AdjusterBase):
         if node.filter.order != AT_CONVFILTER_ORD:
             LOG.debug("step %s: %s adjust weights %s => %s",
                       node.step_idx, node.name, node.filter, " x ".join(AT_CONVFILTER_ORD))
-            if node.weights is not None and self.opts.get('reshape_weights'):
-                node.weights = self.maybe_transpose(node.filter, AT_CONVFILTER_ORD,
-                                                    node.weights)
+            trans = self.get_trans(node.filter.order, AT_CONVFILTER_ORD)
+            self.apply_input_trans(node, trans, index=1)
             node.filter.impose_order(AT_CONVFILTER_ORD)
+            if G.quantization:
+                qrec = G.quantization.get(NodeId(node), None)
+                if qrec is None:
+                    LOG.warning(
+                        'quantization set on graph but quantization parameters '
+                        'for %s not found during adjust', node.name)
+                else:
+                    wqtype = qrec.in_qs[1]
+                    # if the weights are channel quantized we need to update the qrec
+                    if isinstance(wqtype, QType) and wqtype.quantized_dimension is not None:
+                        wqtype = deepcopy(wqtype)
+                        wqtype.quantized_dimension = trans.index(wqtype.quantized_dimension)
+                        qrec.in_qs[1] = wqtype
 
         return modified

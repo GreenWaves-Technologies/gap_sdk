@@ -21,12 +21,12 @@
 #endif
 #endif
 
-typedef struct {
-	signed char *__restrict__ In;           /**< Input matrix */
-	signed char *__restrict__ Out;          /**< Output matrix */
-	unsigned int W;                         /**< Tile width */
-	unsigned int H;                         /**< Tile height */
-} KerCopy_fps_T;
+// typedef struct {
+// 	signed char *__restrict__ In;           /**< Input matrix */
+// 	signed char *__restrict__ Out;          /**< Output matrix */
+// 	unsigned int W;                         /**< Tile width */
+// 	unsigned int H;                         /**< Tile height */
+// } KerCopy_fps_T;
 
 typedef struct {
 	unsigned short *__restrict__ In;           /**< Input matrix */
@@ -77,6 +77,6 @@ void CNN_NormRGB16_fp(KerNormRGB16_fp_T *Arg);
 void CNN_NormBW_offset_fps(KerNormBW_fps_T *Arg);
 void CNN_NormBW_shift_fps(KerNormBW_fps_T *Arg);
 void CNN_NormBW_fp(KerNormBW_fp_T *Arg);
-void CNN_Copy_fps(KerCopy_fps_T * args);
+// void CNN_Copy_fps(KerCopy_fps_T * args);
 
 #endif

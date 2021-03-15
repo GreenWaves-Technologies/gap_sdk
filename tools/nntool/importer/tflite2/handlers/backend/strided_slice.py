@@ -70,7 +70,7 @@ class StridedSlice(ConstantMixin, BackendHandler):
             x_val = cls.get_constant(x)
             params = StridedSliceParameters(node.name, act_slice=act_slice, out_shape=out_shape)
             x_val = params.numpy_slice(x_val)
-            params = ConstantInputParameters(node.name, value=x_val)
+            params = ConstantInputParameters(node.name, value=x_val, constant_store=G.constant_store)
         else:
             if can_reshape:
                 if list(x_shape) == list(out_shape):

@@ -15,12 +15,12 @@
 
 import numpy as np
 from graph.types import ConstantInputParameters
+from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
-from importer.common.constant_mixin import ConstantMixin
 
 
 @onnx_op("Shape")
@@ -33,12 +33,12 @@ class Shape(ConstantMixin, BackendHandler):
         valid_name = kwargs['valid_name']
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
-        if not cls.is_constant(x):
-            # TODO - clear unique paths to this node here
-            pass
+        # this process can leave dangling nodes without outputs
+        # we clean them after we have finished loading
         logger.info("reducing %s to a constant", valid_name)
         x_shape = [dim if dim else 1 for dim in x[2].shape]
-        params = ConstantInputParameters(valid_name, value=np.array(x_shape))
+        params = ConstantInputParameters(valid_name, value=np.array(x_shape),
+                                         constant_store=G.constant_store)
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim([len(x_shape)]))
         return params
 

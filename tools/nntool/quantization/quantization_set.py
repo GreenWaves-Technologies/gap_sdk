@@ -41,6 +41,8 @@ class QuantizationSet(MutableMapping, JsonSerializable):
         del self.qset[key]
 
     def __getitem__(self, key):
+        if key not in self.qset:
+            raise KeyError()
         item = self.qset[key]
         if self.unwrap:
             item.unwrap = self.unwrap
@@ -61,6 +63,9 @@ class QuantizationSet(MutableMapping, JsonSerializable):
     def sorted_iterator(self, G):
         node_ids = [NodeId(pnode, fnode) for _, pnode, _, fnode in G.nodes_iterator()]
         return [(nid, self.qset[nid]) if nid in self.qset else (nid, None) for nid in node_ids]
+
+    def all_out_qs_scale(self):
+        return [(nid, qrec.out_qs[0].scale) if qrec.out_qs else None for nid, qrec in self.qset.items()]
 
     @classmethod
     def _dencapsulate(cls, val):

@@ -14,13 +14,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import (ExpressionFusionParameters, MatrixAddParameters,
-                         MatrixDivParameters, MatrixMulParameters,
-                         MatrixSubParameters, MatScaleFusionParameters)
+from graph.types import (ExpOpParameters, ExpressionFusionParameters,
+                         MatrixAddParameters, MatrixDivParameters,
+                         MatrixMulParameters, MatrixSubParameters,
+                         MatScaleFusionParameters)
+from graph.types.tensor_arithmetic import Broadcastable, MatMulOpParameters
 from quantization.float32.float32_quantization import Float32QuantizationRecord
 from quantization.kernels.kernel_base import (KernelBase, params_type,
                                               quantization)
 from quantization.quantization_record_base import QuantizationRecordBase
+from utils.symbolic.symbol import Symbol, SymbolStats
 
 
 class PieceWiseFloat32Mixin():
@@ -34,7 +37,16 @@ class PieceWiseFloat32Mixin():
         if qrec is None:
             qrec = Float32QuantizationRecord()
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
-        return qrec.get_outputs(params, [op(in_tensors[0], in_tensors[1])], ktype="float32")
+        if params.transpose_in:
+            in_tensors = [(np.transpose(in_tensor, params.transpose_in[idx]) if params.transpose_in[idx] else in_tensor)
+                          for idx, in_tensor in enumerate(in_tensors)]
+        if isinstance(params, Broadcastable) and params.is_broadcasted:
+            in_tensors = params.broadcast_inputs(in_tensors)
+
+        out_tensor = op(in_tensors[0], in_tensors[1])
+        if params.transpose_out:
+            out_tensor = np.transpose(out_tensor, params.transpose_out[0])
+        return qrec.get_outputs(params, [out_tensor], ktype="float32")
 
 
 @params_type(MatrixAddParameters)
@@ -105,6 +117,26 @@ class MatrixDivFloat32(PieceWiseFloat32Mixin, KernelBase):
         )
 
 
+@params_type(MatMulOpParameters)
+@quantization('float32')
+class MatMulFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
+        if len(in_tensors) > 2:
+            biases = in_tensors[2]
+        else:
+            biases = 0
+
+        return qrec.get_outputs(params, [np.matmul(in_tensors[0], in_tensors[1]) + biases], ktype="float32")
+
+
 @params_type(MatScaleFusionParameters)
 @quantization('float32')
 class MatScaleFloat32(KernelBase):
@@ -132,5 +164,39 @@ class ExpressionFloat32(KernelBase):
                 **kwargs):
         if qrec is None:
             qrec = Float32QuantizationRecord()
+        details = kwargs.get('details')
+        if details is not None:
+            current_control = SymbolStats()
+            Symbol.set_default_control(current_control)
+            results = {}
+        else:
+            results = None
+            current_control = None
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float32")
-        return qrec.get_outputs(params, params.execute(in_tensors), ktype="float32")
+        in_vars = {params.input_symbols[i]: in_tensor
+                   for i, in_tensor in enumerate(in_tensors)}
+        out_vars = params.func_col(**in_vars,
+                                   calculate_ranges=current_control is not None,
+                                   track_results=results)
+        out_tensors = [out_vars[out_sym_name]
+                       for out_sym_name in params.output_symbols]
+        if current_control:
+            details.update(current_control.stats)
+            details['results'] = results
+        return qrec.get_outputs(params, out_tensors, ktype="float32")
+
+
+@params_type(ExpOpParameters)
+@quantization('float32')
+class ExpFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        if qrec is None:
+            qrec = Float32QuantizationRecord()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float32")[0]
+        output = np.exp(in_tensor)
+        return qrec.get_outputs(params, [output], ktype="float32")

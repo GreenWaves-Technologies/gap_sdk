@@ -2,7 +2,6 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "Gap.h"
 #include "CNN_BasicKernels.h"
 
@@ -22,7 +21,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
 	// k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -30,7 +29,7 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
 	return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 
 {
 	// k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S

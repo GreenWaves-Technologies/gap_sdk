@@ -16,10 +16,12 @@
 import logging
 
 import numpy as np
-from graph.types import (MatrixAddParameters, MatrixDivParameters,
-                         MatrixMulParameters, MatrixSubParameters)
+from graph.types import (MatMulOpParameters, MatrixAddParameters,
+                         MatrixDivParameters, MatrixMulParameters,
+                         MatrixSubParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import MatScaleFusionParameters
+from graph.types.tensor_arithmetic import Broadcastable
 from quantization.kernels.kernel_base import (KernelBase, params_type,
                                               qrec_type, quantization)
 from quantization.multiplicative.mult_quantization import (
@@ -49,13 +51,18 @@ class PieceWiseSymmetricMult(KernelBase):
                 qrec: QuantizationRecordBase,
                 **kwargs):
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
+        if params.transpose_in:
+            in_tensors = [(np.transpose(in_tensor, params.transpose_in[idx]) if params.transpose_in[idx] else in_tensor)
+                          for idx, in_tensor in enumerate(in_tensors)]
+        if isinstance(params, Broadcastable) and params.is_broadcasted:
+            in_tensors = params.broadcast_inputs(in_tensors)
         func = PIECEWISE_OPS[params.__class__]
         op = func['op']
         if func['is_mult']:
             qrec.set_scale(in_idx=(0, 1), out_idx=0)
             i1 = in_tensors[0].astype(np.int32)
             i2 = in_tensors[1].astype(np.int32)
-            res = qrec.scale_mul_biases_q.apply_scales(op(i1, i2, np.int32))
+            out_tensor = qrec.scale_mul_biases_q.apply_scales(op(i1, i2, np.int32))
         else:
             # larger scale should be scaled
             qrec.set_add_scale()
@@ -66,8 +73,10 @@ class PieceWiseSymmetricMult(KernelBase):
                 i1 = qrec.scale_in_mul_biases_q.apply_scales(in_tensors[0])
                 i2 = in_tensors[1].astype(np.int32)
 
-            res = qrec.scale_mul_biases_q.apply_scales(op(i1, i2, None))
-        return qrec.get_outputs(params, [qrec.out_qs[0].clip(res)], ktype="symmetric")
+            out_tensor = qrec.scale_mul_biases_q.apply_scales(op(i1, i2, None))
+        if params.transpose_out:
+            out_tensor = np.transpose(out_tensor, params.transpose_out[0])
+        return qrec.get_outputs(params, [qrec.out_qs[0].clip(out_tensor)], ktype="symmetric")
 
 
 @params_type(MatrixAddParameters, MatrixDivParameters,
@@ -120,18 +129,18 @@ class MatSCaleSymmetric(KernelBase):
         assert qrec.in_qs[0].bits == qrec.in_qs[1].bits
         assert qrec.in_qs[1].bits == qrec.in_qs[2].bits
         if qrec.in_qs[0].bits == 8:
-            q_calc = QType(bits=32, q=qrec.in_qs[0].q +
-                           qrec.in_qs[1].q + qrec.in_qs[2].q, signed=True)
+            q_calc = QType.Pow2(bits=32, q=qrec.in_qs[0].q +
+                                qrec.in_qs[1].q + qrec.in_qs[2].q, signed=True)
             res = np.multiply(np.multiply(in_tensors[0], in_tensors[1],
                                           dtype=np.int32),
                               in_tensors[2],
                               dtype=np.int32)
             res = qrec.out_qs[0].reduce_from(res, q_calc)
         elif qrec.in_qs[0].bits == 16:
-            q_calc = QType(bits=32, q=qrec.in_qs[0].q + qrec.in_qs[1].q, signed=True)
+            q_calc = QType.Pow2(bits=32, q=qrec.in_qs[0].q + qrec.in_qs[1].q, signed=True)
             res = np.multiply(in_tensors[0], in_tensors[1], dtype=np.int32)
             res = qrec.out_qs[0].reduce_from(res, q_calc)
-            q_calc = QType(bits=32, q=qrec.in_qs[2].q + qrec.out_qs[0].q, signed=True)
+            q_calc = QType.Pow2(bits=32, q=qrec.in_qs[2].q + qrec.out_qs[0].q, signed=True)
             res = np.multiply(res, in_tensors[2], dtype=np.int32)
             res = qrec.out_qs[0].reduce_from(res, q_calc)
         else:
@@ -141,7 +150,7 @@ class MatSCaleSymmetric(KernelBase):
     @classmethod
     def matscale2(cls, in_tensors, qrec=None):
         assert qrec.in_qs[0].bits == qrec.in_qs[1].bits
-        q_calc = QType(bits=32, q=qrec.in_qs[0].q + qrec.in_qs[1].q, signed=True)
+        q_calc = QType.Pow2(bits=32, q=qrec.in_qs[0].q + qrec.in_qs[1].q, signed=True)
         res = np.multiply(in_tensors[0], in_tensors[1], dtype=np.int32)
         res = qrec.out_qs[0].reduce_from(res, q_calc)
         return res
@@ -157,10 +166,35 @@ class ExpressionSymmetric(KernelBase):
                 **kwargs):
         in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")]
-        out_tensors = params.execute(in_tensors,
-                                     input_symbols=qrec.inputs,
-                                     expr_inter=qrec.intermediate_exprs,
-                                     expr_outputs=qrec.output_exprs,
-                                     details=kwargs.get('details'))
-        out_tensors = [out_tensor.astype(np.int8) for out_tensor in out_tensors]
+        details = kwargs.get('details')
+        if details is not None:
+            results = {}
+        else:
+            results = None
+
+        in_vars = {params.input_symbols[i]: in_tensor
+                   for i, in_tensor in enumerate(in_tensors)}
+        out_vars = qrec.qfunc_col(**in_vars, track_results=results)
+        out_tensors = [out_vars[out_sym_name]
+                       for out_sym_name in params.output_symbols]
+        if details is not None:
+            details['results'] = results
         return qrec.get_outputs(params, out_tensors, ktype="symmetric")
+
+@params_type(MatMulOpParameters)
+@quantization('symmetric')
+class MatMulFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QuantizationRecordBase,
+                **kwargs):
+
+        in_tensors = [in_tensor.astype(np.int32) for in_tensor in qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")]
+        if len(in_tensors) > 2:
+            biases = in_tensors[2]
+        else:
+            biases = 0
+
+        return qrec.get_outputs(params, [np.matmul(in_tensors[0], in_tensors[1]) + biases], ktype="symmetric")

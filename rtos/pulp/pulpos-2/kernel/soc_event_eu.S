@@ -135,7 +135,13 @@ pos_soc_event_store_asm:
     lw      x12, %tiny(pos_soc_event_status)(x11)
     andi    x10, x10, 0x1f
 
+#if !defined(ARCHI_CORE_HAS_PULPV2)
+    li      x9, 0x01
+    sll     x10, x9, x10
+    or      x12, x12, x10
+#else
     p.bsetr x12, x12, x10
+#endif
 
     sw      x12, %tiny(pos_soc_event_status)(x11)
 

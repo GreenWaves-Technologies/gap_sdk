@@ -30,8 +30,10 @@ def set_multi_in_out_bindings(gen, in_eparams, out_eparams, cname, node, qrec):
                            ",".join(str(in_q) for in_q in qrec.in_qs),
                            ",".join(str(out_q) for out_q in qrec.out_qs))
     )
-    params = [GNodeArgEdge(in_eparam) for in_eparam in in_eparams] + \
-        [GNodeArgEdge(out_eparam, "GNA_OUT") for out_eparam in out_eparams]
+
+    # the input order of the generated function can vary since it passes through a set
+    params = [GNodeArgEdge(in_eparams[idx]) for idx in node.input_shuffle] + \
+        [GNodeArgEdge(out_eparams[idx], "GNA_OUT") for idx in node.output_shuffle]
     gen.bindings.append(
         NodeBindingList(cname, *params)
     )

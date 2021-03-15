@@ -15,19 +15,21 @@
 
 from copy import deepcopy
 
-from graph.types import CastParameters, ConstantInputParameters, NNEdge
-from importer.common.constant_mixin import ConstantMixin
-from importer.tflite2.common import LOG
+from graph.types import NNEdge
+from graph.types.others import NoOPParameters
+from importer.common.handler_options import HandlerOptions
 from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.common.tflite_tensor import TFLiteTensorWrapper
+from importer.tflite2.handlers.backend.quantize_mixin import QuantizeMixin
 from importer.tflite2.tflite_schema_head.CastOptions import CastOptions
+from quantization.qtype import QType
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
 
 
 @tflite_op("CAST")
-class Cast(ConstantMixin, BackendHandler):
+class Cast(BackendHandler, QuantizeMixin):
 
     @classmethod
     def _common(cls, node: TFLiteNode, **kwargs):
@@ -39,19 +41,12 @@ class Cast(ConstantMixin, BackendHandler):
         x = inputs[0]
 
         if node_opts:
-            in_dtype = TFLiteTensorWrapper.TF_TO_NUMPY_TYPE[node_opts.InDataType()]
-            out_dtype = TFLiteTensorWrapper.TF_TO_NUMPY_TYPE[node_opts.OutDataType()]
-        else:
-            in_dtype = out_dtype = None
-        if cls.is_constant(x):
-            LOG.info("reducing %s to a constant", node.name)
-            val = cls.get_constant(x)
-            if out_dtype:
-                val = val.astype(out_dtype)
-            params = ConstantInputParameters(node.name, value=val)
-        else:
-            params = CastParameters(node.name, in_dtype=in_dtype, out_dtype=out_dtype)
-            G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+            in_qtype = QType(dtype=TFLiteTensorWrapper.TF_TO_NUMPY_TYPE[node_opts.InDataType()])
+            out_qtype = QType(dtype=TFLiteTensorWrapper.TF_TO_NUMPY_TYPE[node_opts.OutDataType()])
+            return cls.common_quantize(in_qtype, out_qtype, node, **kwargs)
+
+        params = NoOPParameters(node.name, desc='cast with no type information')
+        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
 
         all_nodes[node.output[0]] = (params, 0, deepcopy(x[2]))
         return params

@@ -22,7 +22,7 @@ ifdef ARCHI_DIR
 VP_COMP_CFLAGS += -I$(ARCHI_DIR)
 endif
 
-VP_COMP_CPPFLAGS=-std=c++11
+VP_COMP_CPPFLAGS=-std=c++14
 VP_COMP_LDFLAGS=-O2 -g -shared -L$(INSTALL_DIR)/lib
 VP_COMP_STD_LDFLAGS=-lpulpvp
 VP_COMP_DBG_LDFLAGS=-lpulpvp-debug

@@ -15,17 +15,15 @@
 
 import numpy as np
 from graph.types import NNEdge, SSDDetectorParameters
-from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.common.tflite_tensor import TensorBase
 from quantization.multiplicative.mult_quantization import \
     MultSSDDetectorQuantizationRecord
-from quantization.multiplicative.symmetric.symmetric_mult_qtype import \
-    SymmetricMultQType
+from quantization.qtype import QType
 from utils.node_id import NodeId
 
 from ..backend_handler import BackendHandler
-from ..handler import tflite_op, tflite_custom_op
+from ..handler import tflite_custom_op, tflite_op
 
 
 @tflite_op("CUSTOM")
@@ -67,12 +65,15 @@ class TFLiteDetectionPostProcess(BackendHandler):
             G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1], to_idx=idx))
 
         if opts.get('load_quantization'):
-            o_boxes_qtype = SymmetricMultQType(
-                min_val=-2, max_val=2, dtype=np.int16, scale=2**(-14))
+            in_qtypes = [QType.from_min_max_sq(tensor.qtype.min_val, tensor.qtype.max_val)
+                         if tensor.qtype.is_asymmetric else tensor.qtype
+                         for tensor in node.input]
+            o_boxes_qtype = QType(min_val=-2, max_val=2, dtype=np.int16, scale=2**(-14))
             o_scores_qtype = node.input[1].qtype
-            o_class_qtype = SymmetricMultQType(scale=1, dtype=np.int8)
-            qrec = MultSSDDetectorQuantizationRecord(in_qs=[tensor.qtype for tensor in node.input],
-                                                     out_qs=[o_boxes_qtype, o_class_qtype, o_scores_qtype, o_class_qtype])
+            o_class_qtype = QType(scale=1, dtype=np.int8)
+            qrec = MultSSDDetectorQuantizationRecord(in_qs=in_qtypes,
+                                                     out_qs=[o_boxes_qtype, o_class_qtype,
+                                                             o_scores_qtype, o_class_qtype])
             G.quantization[NodeId(params)] = qrec
 
         return params

@@ -23,15 +23,15 @@ from utils.stats_funcs import astats
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def balance_filter(pnode, precision_threshold=None, small_value_threshold=0.0000000001, fnode=None, G=None):
+def balance_filter(weights, biases, pnode, precision_threshold=None,
+                   small_value_threshold=0.0000000001, fnode=None, G=None):
     node = pnode if fnode is None else fnode
     channel_dim = node.filter.get_order_idx('out_c')
-
-    stats = astats(node.weights, channel_dim=channel_dim, channel_details=True)
+    stats = astats(weights, channel_dim=channel_dim, channel_details=True)
     if precision_threshold:
         if not any(stat['avg_prec'] < precision_threshold for stat in stats['channel_stats']):
             LOG.info("layer %s doesn't have any weights below precision threshold", node.name)
-        return False
+        return False, None, None
 
     LOG.info("balancing weights of layer %s", node.name)
     if node.has_mul_bias and node.mul_biases is not None:
@@ -45,22 +45,31 @@ def balance_filter(pnode, precision_threshold=None, small_value_threshold=0.0000
     threshold_idx = scale < small_value_threshold
     scale[threshold_idx] = 1
     weights_shape = [1 if idx != channel_dim else size
-                     for idx, size in enumerate(node.weights.shape)]
-    node.weights /= scale.reshape(weights_shape)
-    if node.has_bias:
-        node.biases /= scale
-
+                     for idx, size in enumerate(weights.shape)]
+    weights /= scale.reshape(weights_shape)
+    biases /= scale
     mul_bias *= scale
     if G:
         G.changes.modify(pnode, 'has_mul_bias', True, fnode=fnode)
     else:
         node.has_mul_bias = True
     node.mul_biases = mul_bias
-    return True
+    return True, weights, biases
 
 
 def balance_all_filters(G, precision_threshold=0.20):
     for _, node, _, fnode in G.nodes_iterator(yield_fusions=True):
         anode = node if fnode is None else fnode
         if isinstance(anode, MultiplicativeBiasParameters):
-            balance_filter(node, precision_threshold=precision_threshold, fnode=fnode, G=G)
+            in_edges = G.indexed_in_edges(node.name)[1]
+            weights_node = in_edges[1].from_node
+            biases_node = in_edges[1].from_node
+            weights = weights_node.dqvalue.copy()
+            biases = biases_node.dqvalue.copy()
+            modified, weights, biases = balance_filter(
+                weights, biases,
+                node, precision_threshold=precision_threshold,
+                fnode=fnode, G=G)
+            if modified:
+                weights_node.dqvalue = weights
+                biases_node.dqvalue = biases

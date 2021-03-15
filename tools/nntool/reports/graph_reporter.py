@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.nngraph import NNGraph
+from graph.types import ConstantInputParameters
 from utils.tabular import Tabular, TabularColumn, TabularColumnGroup
 
 from .reporter import Reporter
@@ -85,12 +86,12 @@ def get_graph_memory_usage(steps, liveness):
 
 class GraphReporter(Reporter):
     def __init__(self, do_totals=False, split_dims=False, step=None):
-        super().__init__()
+        super(GraphReporter, self).__init__()
         self._do_totals = do_totals
         self._split_dims = split_dims
         self._step = step
 
-    def report(self, G: NNGraph, stats) -> Tabular:
+    def report(self, G: NNGraph, stats, show_constants=False) -> Tabular:
         del stats
         steps = G.graph_state.steps
         liveness = G.graph_state.liveness
@@ -112,7 +113,8 @@ class GraphReporter(Reporter):
             if active > max_active:
                 max_active = active
 
-            self.do_operation(node, G, tab, i, active, params_size, ops)
+            if show_constants or not isinstance(node, ConstantInputParameters):
+                self.do_operation(node, G, tab, i, active, params_size, ops)
 
         if self._step is None:
             self.check_do_totals(tab, max_active, tot_params, tot_ops)
@@ -123,7 +125,7 @@ class GraphReporter(Reporter):
 
         in_edges = G.in_edges(node.name)
         in_edges.sort(key=lambda edge: edge.to_idx)
-        in_steps = [edge.from_node.step_idx for edge in in_edges]
+        in_steps = "\n".join([f'{edge.from_node.step_idx}/{edge.from_idx}' for edge in in_edges])
 
         if self._split_dims:
             s_in = str_dim_xl(node, 'in_dims', 0)
@@ -139,7 +141,7 @@ class GraphReporter(Reporter):
                 get_dim(s_out, 0),
                 get_dim(s_out, 1),
                 get_dim(s_out, 2),
-                ",".join([str(in_step) for in_step in in_steps]),
+                in_steps,
                 active,
                 params_size,
                 scale_num(ops),
@@ -153,7 +155,7 @@ class GraphReporter(Reporter):
                 operation,
                 str_dims(node, 'in_dims'),
                 str_dims(node, 'out_dims'),
-                "\n".join([str(in_step) for in_step in in_steps]),
+                in_steps,
                 active,
                 params_size,
                 scale_num(ops),

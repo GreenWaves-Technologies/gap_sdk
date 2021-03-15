@@ -34,6 +34,11 @@ class InputSymmetric(KernelBase):
         # params.index indicates the index of the input that this node should output
         in_tensor = in_tensors[params.index]
         if in_tensor.size == params.dims.size():
+            if len(in_tensor.shape) == len(params.dims.shape):
+                in_shape = tuple(dim for dim in in_tensor.shape if dim > 1)
+                expected_shape = tuple(dim for dim in params.dims.shape if dim > 1)
+                if in_shape != expected_shape:
+                    raise ValueError(f'{params.name} received input of shape {in_tensor.shape} but expecting {params.dims.shape}')
             in_tensor = in_tensor.reshape(params.dims.shape)
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
@@ -67,6 +72,4 @@ class ConstantInputSymmetric(KernelBase):
                 qrec: QuantizationRecordBase,
                 **kwargs):
         del in_tensors
-
-        return [qrec.out_qs[0].get_quantized(params.value,
-                                             container_is_quantized=qrec.constants_are_quantized)]
+        return [params.value_as(qrec.out_qs[0])]

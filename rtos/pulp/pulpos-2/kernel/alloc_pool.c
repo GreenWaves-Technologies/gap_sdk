@@ -23,8 +23,9 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #if defined(ARCHI_HAS_L1)
-pos_alloc_t *pos_alloc_l1;
+pos_alloc_t pos_alloc_l1[ARCHI_NB_CLUSTER];
 #endif
 
 #if defined(ARCHI_HAS_FC_TCDM)
@@ -70,17 +71,17 @@ void pos_allocs_init()
     pos_alloc_init(&pos_alloc_l2[1], pos_l2_shared_base(), pos_l2_shared_size());
 
 #ifdef CONFIG_ALLOC_L2_PWD_NB_BANKS
-    pos_alloc_l2[2].track_pwd = 1;
-    pos_alloc_l2[2].pwd_count = pos_alloc_account_0;
-    pos_alloc_l2[2].ret_count = pos_alloc_account_0;
+    pos_alloc_l2[1].track_pwd = 1;
+    pos_alloc_l2[1].pwd_count = pos_alloc_account_0;
+    pos_alloc_l2[1].ret_count = pos_alloc_account_1;
     for (int i=0; i<CONFIG_ALLOC_L2_PWD_NB_BANKS; i++)
     {
-        pos_alloc_l2[2].pwd_count[i] = 0;
-        pos_alloc_l2[2].ret_count[i] = 0;
+        pos_alloc_l2[1].pwd_count[i] = 0;
+        pos_alloc_l2[1].ret_count[i] = 0;
     }
-    pos_alloc_l2[2].bank_size_log2 = CONFIG_ALLOC_L2_PWD_BANK_SIZE_LOG2;
-    pos_alloc_l2[2].first_bank_addr = ARCHI_L2_SHARED_ADDR;
-    pos_alloc_account_free(&pos_alloc_l2[2], pos_l2_shared_base() - sizeof(pos_alloc_chunk_t), pos_l2_shared_size() + sizeof(pos_alloc_chunk_t));
+    pos_alloc_l2[1].bank_size_log2 = CONFIG_ALLOC_L2_PWD_BANK_SIZE_LOG2;
+    pos_alloc_l2[1].first_bank_addr = ARCHI_L2_SHARED_ADDR;
+    pos_alloc_account_free(&pos_alloc_l2[1], pos_l2_shared_base() + sizeof(pos_alloc_chunk_t), pos_l2_shared_size() - sizeof(pos_alloc_chunk_t));
 #endif
 #else
   //pos_trace(//pos_trace_INIT, "Initializing L2 allocator (base: 0x%8x, size: 0x%8x)\n", (int)pos_l2_base(), pos_l2_size());
@@ -91,10 +92,6 @@ void pos_allocs_init()
 #if defined(ARCHI_HAS_FC_TCDM)
   //pos_trace(//pos_trace_INIT, "Initializing FC TCDM allocator (base: 0x%8x, size: 0x%8x)\n", (int)pos_fc_tcdm_base(), pos_fc_tcdm_size());
     pos_alloc_init(&pos_alloc_fc_tcdm, pos_fc_tcdm_base(), pos_fc_tcdm_size());
-#endif
-
-#if defined(ARCHI_HAS_L1)
-    pos_alloc_l1 = pos_alloc(get_fc_alloc(), sizeof(pos_alloc_t)*pos_nb_cluster());
 #endif
 }
 
@@ -215,3 +212,50 @@ void pi_fc_l1_free(void *_chunk, int size)
 }
 
 #endif
+
+
+void pi_l2_ret_ctrl(void *chunk, int size, int retentive)
+{
+    pos_alloc_t *a = &pos_alloc_l2[1];
+
+#ifdef ARCHI_MEMORY_POWER
+    if (a->track_pwd)
+    {
+        if (retentive)
+            pos_alloc_account(a, chunk, size, 1, 1);
+        else
+            pos_alloc_account(a, chunk, size, -1, 1);
+    }
+#endif
+}
+
+void pi_l2_pwd_ctrl(void *chunk, int size, int up)
+{
+    pos_alloc_t *a = &pos_alloc_l2[1];
+
+#ifdef ARCHI_MEMORY_POWER
+    if (a->track_pwd)
+    {
+        if (up)
+            pos_alloc_account(a, chunk, size, -1, 0);
+        else
+            pos_alloc_account(a, chunk, size, 1, 0);
+    }
+#endif
+}
+
+void pi_l2_malloc_dump(void)
+{
+    pos_alloc_dump(&pos_alloc_l2[1]);
+}
+
+void pi_fc_l1_malloc_dump(void)
+{
+    pos_alloc_dump(&pos_alloc_l2[0]);
+}
+
+void pi_cl_l1_malloc_dump(struct pi_device *device)
+{
+    int cid = 0;
+    pos_alloc_dump(&pos_alloc_l1[cid]);
+}
