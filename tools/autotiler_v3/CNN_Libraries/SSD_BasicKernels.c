@@ -99,7 +99,7 @@ void Ker_SSD_Init(Ker_SSD_Init_ArgT  *KerArg0 )
 {    
     // Initialize the output bounding boxes
     *(KerArg0->bbox_idx) = 0;
-    bbox_t * bbox = KerArg0->bbox_out;
+    bbox_t * bbox = KerArg0->bbox_buf;
     int n_max_bb  = KerArg0->n_max_bb;
     for (int i=0; i<n_max_bb; i++){
         bbox[i].score = 0;
@@ -120,7 +120,7 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
     unsigned int Chunk  = ChunkSize(KerArg0->H);
     unsigned int First  = CoreId*Chunk;
     unsigned int Last   = (First+Chunk > KerArg0->H) ? (KerArg0->H) : (First+Chunk);
-    bbox_t * bbox       = KerArg0->bbox_out;
+    bbox_t * bbox       = KerArg0->bbox_buf;
     int8_t * scores     = KerArg0->classes_in;
     int initial_idx     = KerArg0->bbox_idx[0];
     int num_classes     = KerArg0->Class_W;
@@ -271,7 +271,8 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
     int16_t bbox_idx_max = *(KerArg0->bbox_idx);
     int16_t bbox_max     = KerArg0->n_max_bb;
     int max_detections   = KerArg0->infos[2];
-    bbox_t * bbox        = KerArg0->bbox_out;
+    bbox_t * bbox        = KerArg0->bbox_buf;
+    bbox_t * out_bbox    = KerArg0->bbox_out;
     float non_max_thres  = FIX2FP((int) KerArg0->infos[0], 7);
     bbox_t temp;
 
@@ -309,6 +310,7 @@ void Ker_SSD_NMS(Ker_SSD_NMS_ArgT  *KerArg0 )
 
     //Applying max output from TFLITE
     for(int i=0; i<bbox_max; i++){
+        out_bbox[i] = bbox[i];
         if  (bbox[i].alive==1 && max_detections) max_detections--;
         else bbox[i].alive=0;
     }

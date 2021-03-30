@@ -31,10 +31,10 @@
 #endif
 
 typedef struct{
-	int32_t x;
-	int32_t y;
-	int32_t w;
-	int32_t h;
+	int16_t x;
+	int16_t y;
+	int16_t w;
+	int16_t h;
 	int16_t  score;
 	uint16_t class;
 	uint8_t  alive;
@@ -42,7 +42,7 @@ typedef struct{
 
 typedef struct {
     int16_t *bbox_idx;
-    bbox_t * bbox_out;
+    bbox_t * bbox_buf;
     int16_t n_max_bb;
 }Ker_SSD_Init_ArgT;
 
@@ -53,7 +53,7 @@ typedef struct {
 	int8_t * __restrict__ boxes_in;
     int8_t * __restrict__ classes_in;
     int8_t * __restrict__ anchors_in;
-    bbox_t * bbox_out;
+    bbox_t * bbox_buf;
     int16_t Box_W;
     int16_t Class_W;
     int16_t H;
@@ -67,6 +67,7 @@ typedef struct {
 void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT *Arg);
 
 typedef struct {
+    bbox_t * bbox_buf;
     bbox_t * bbox_out;
     int8_t * infos;
     int16_t n_max_bb;
