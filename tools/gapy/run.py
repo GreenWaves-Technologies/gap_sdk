@@ -98,6 +98,18 @@ def appendArgs(top_parser: argparse.ArgumentParser, parser: argparse.ArgumentPar
                         action = "store_true",
                         help = "Upload all images on the target (e.g. write flash image to the flash)")
 
+    parser.add_argument("--encrypt", dest = "encrypt",
+                        action = "store_true",
+                        help = "Enable the AES 128 encryption")
+
+    parser.add_argument("--aes_key", dest = "aes_key",
+                        default = None,
+                        help = "16 bytes (128 bits) aes key")
+
+    parser.add_argument("--aes_iv", dest = "aes_iv",
+                        default = None,
+                        help = "8 bytes aes IV")
+
     parser.add_argument("--force", dest = "force",
                         action = "store_true",
                         help = "Force flash operation")
@@ -124,7 +136,6 @@ def operationFunc(args, config = None):
 
     #if args.target is None:
     #    raise InputError('The target must be specified')
-
     config.set('runner/platform', args.platform)
 
     if args.binary is not None:

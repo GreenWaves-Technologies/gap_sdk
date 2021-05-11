@@ -151,12 +151,16 @@ class App(Binary):
 
 
 class SSBL(Binary):
-    def __init__(self, flashType, *args, **kargs):
+    def __init__(self, flashType, encrypt = False, aesKey = None, aesIv = None, *args, **kargs):
+
         if flashType == 'hyper':
             romBlockSize = 1024
             self.xip_dev = 0
         elif flashType == 'spi':
-            romBlockSize = 4096
+            if os.environ.get('TARGET_CHIP_FAMILY') in ['PULP', 'GAP8']:
+                romBlockSize = 4096
+            else:
+                romBlockSize = 1024
             self.xip_dev = 1
         elif flashType == 'mram':
             romBlockSize = 1024
@@ -164,8 +168,12 @@ class SSBL(Binary):
         else:
             raise FatalError(
                 'Flash type %s not suported. ROM boot loader supports hyper and spi flash type' % flashType)
-        
-        super().__init__(romBlockSize, *args, **kargs)
+
+        self.encrypt = encrypt
+        self.aesKey = aesKey
+        self.aesIv = aesIv
+       
+        super().__init__(romBlockSize, encrypt=encrypt, aesKey=aesKey, aesIv=aesIv, *args, **kargs)
     
     def get_crc(self, buff):
         crc = 0xffffffff
@@ -182,7 +190,8 @@ class SSBL(Binary):
         return (crc ^ 0xffffffff)
     
     def __append(self, buffer, padToOffset = None):
-        if self.encrypt:
+        if self.encrypt == True:
+            traces.info("encrypt with key: %s Iv: %s" % (self.aesKey, self.aesIv))
             cmd = 'aes_encode %s %s' % (self.aesKey, self.aesIv)
             
             crc = self.get_crc(buffer)
@@ -214,7 +223,7 @@ class SSBL(Binary):
             if os.environ.get('GAP9_OLD_ROM') is not None:
                 flashOffset += 4*16 + 16 * 4 * len(self.segments)
             else:
-                flashOffset += 4*13 + 1024 + 128 + 16 * 4 * len(self.segments)
+                flashOffset += 4*13 + 1024 + 128*2 + 16 * 4 * len(self.segments)
         else:
             flashOffset += 4 + 4 + 4 + 4 + 16 * 4 * len(self.segments)
         
@@ -283,8 +292,8 @@ class SSBL(Binary):
             else:
                 for i in range(1024):
                     header.appendByte(0) # AC
-                for i in range(128):
-                    header.appendByte(0) # KC
+                for i in range(256):
+                    header.appendByte(0) # KC * 2
 
         for area in self.segments:
             header.appendInt(area.offset)
