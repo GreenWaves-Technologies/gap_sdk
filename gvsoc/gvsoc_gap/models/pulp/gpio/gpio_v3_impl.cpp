@@ -264,7 +264,7 @@ void Gpio::gpio_sync(void *__this, bool value, int gpio)
 
       _this->get_trace()->msg("Raising interrupt (intstatus: 0x%x)\n", _this->r_intstatus.get());
 
-      if (_this->event_itf.is_bound())
+      if (_this->event_itf.is_bound() && _this->soc_event != -1)
         _this->event_itf.sync(_this->soc_event);
 
       if (_this->irq_itf.is_bound())

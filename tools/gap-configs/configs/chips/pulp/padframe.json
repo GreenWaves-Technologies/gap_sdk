@@ -48,6 +48,11 @@
       "type": "i2s",
       "is_slave": true
     },
+    "hyper0": {
+      "type": "hyper",
+      "nb_cs": 2,
+      "is_master": true
+    },
     "gpio0": { "type": "gpio", "is_master": true },
     "gpio1": { "type": "gpio", "is_master": true },
     "gpio2": { "type": "gpio", "is_master": true },
@@ -518,6 +523,28 @@
       "id": 0,
       "position": null,
       "alternates": [ 
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_hyper_rx": {
+      "id": 0,
+      "position": null,
+      "alternates": [
+        {},
+        {},
+        {},
+        {}
+      ]
+    },
+
+    "pad_hyper_tx": {
+      "id": 0,
+      "position": null,
+      "alternates": [
         {},
         {},
         {},

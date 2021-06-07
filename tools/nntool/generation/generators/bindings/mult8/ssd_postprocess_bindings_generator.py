@@ -12,15 +12,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from generation.bindings import (CommentBindingList, GNodeArgEdge, GNodeArgNode,
-                                 NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.bindings import (CommentBindingList, GNodeArgEdge,
+                                 GNodeArgNode, NodeBindingList)
+from generation.generator_decorators import QREC_MULT8, generation_function
+from generation.generators.globals.global_names import (INFOS, SSD_NORMS,
+                                                        SSD_SCALES)
 from graph.types import SSDDetectorParameters
-from generation.generators.globals.global_names import (SSD_SCALES, SSD_NORMS, INFOS)
+
 
 @generation_function("bindings", (SSDDetectorParameters, ), qrec_types=(QREC_MULT8, ))
 def ssd_postprocess_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-    set_ssd_postprocess_bindings(gen, in_eparams, out_eparams, cname, node, qrec)
+    set_ssd_postprocess_bindings(
+        gen, in_eparams, out_eparams, cname, node, qrec)
     return True
 
 

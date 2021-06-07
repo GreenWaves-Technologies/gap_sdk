@@ -4,7 +4,7 @@
 
   "board": {
     "devices": {
-      "flash": {
+      "spiflash": {
         "@includes@": ["devices/spiflash.json"],
         "interface": "spim0",
         "cs": 0
@@ -20,6 +20,16 @@
         "@include@": "devices/camera.json",
         "interface": "cpi0",
         "ctrl_interface": "i2c1"
+      },
+      "flash": {
+        "includes": ["devices/hyperflash.json"],
+        "interface": "hyper0",
+        "cs": 1
+      },
+      "hyperram": {
+        "includes": ["devices/hyperram.json"],
+        "interface": "hyper0",
+        "cs": 0
       }
     }
   },
@@ -103,6 +113,12 @@
         "size": "0x00000400"
       },
 
+      "ima": {
+        "base": "0x10202000",
+        "size": "0x00000400",
+        "version": 1
+      },
+
       "dbg_unit": {
         "base": "0x10300000",
         "size"  : "0x00008000"
@@ -177,7 +193,7 @@
     "riscv_tap": {
       "riscv_debug": true,
       "config": {
-        "@includes@": ["ips/debug/riscv_dtm.json"]
+        "@includes@": ["ips/debug/riscv_dtm_old.json"]
       }
     },
 

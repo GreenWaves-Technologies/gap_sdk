@@ -1,3 +1,20 @@
+/*
+ * Copyright 2021 GreenWaves Technologies, SAS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
@@ -202,5 +219,42 @@ void CNN_NormBW_fp(KerNormBW_fp_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+
+static void Int8toUint8(signed char *__restrict__ In, signed char *__restrict__ Out, unsigned char Offset, unsigned int N)
+{
+	v4u *pIn = (v4u *) In, *pOut = (v4u *) Out;
+	v4u Off  = (v4u) {Offset, Offset, Offset, Offset};
+	v4u Off1 = (v4u) {Offset, Offset, 0, 0};
+
+	for (int i=0; i<N/8; i++) {
+		v4u V0 = pIn[2*i], V1 = pIn[2*i+1];
+		V0 = V0 + Off; V1 = V1 + Off;
+		pOut[2*i] = V0; pOut[2*i+1] = V1;
+	}
+	for (int i=(N-N%8); i<=N; i++) {
+		((unsigned char *)Out)[i] = ((unsigned char *)In)[i] + Offset;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFpu(CNN_FpsFpu_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	Int8toUint8((Arg->In + First), (signed char *)(Arg->Out + First), (unsigned char) Arg->Infos[0], Iter);
+}
+
+void CNN_FpuFps(CNN_FpuFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char Offset = (unsigned char) Arg->Infos[0];
+	Int8toUint8((signed char *)(Arg->In + First), (Arg->Out + First), (unsigned char) Arg->Infos[0], Iter);
+}
+
 
 #pragma GCC diagnostic pop

@@ -79,13 +79,13 @@ def generate_code(args):
         opts['model_directory'] = args.model_directory
     if args.tensor_directory:
         opts['tensor_directory'] = args.tensor_directory
-    opts['basic_kernel_header_file'] = args.model_file
-    opts['basic_kernel_source_file'] = args.model_file
+    opts['basic_kernel_header_file'] = args.basic_kernel_header_file
+    opts['basic_kernel_source_file'] = args.basic_kernel_source_file
 
     os.makedirs(os.path.abspath(opts['model_directory']), mode=0o750, exist_ok=True)
     os.makedirs(os.path.abspath(opts['tensor_directory']), mode=0o750, exist_ok=True)
 
-    code_gen = CodeGenerator(G, DefaultNamingConvension(G), opts)
+    code_gen = CodeGenerator(G, DefaultNamingConvension(G, anonymise=opts.get('anonymise')), opts)
     if args.template_file:
         code_template = dynamic_template(args.template_file)
     else:

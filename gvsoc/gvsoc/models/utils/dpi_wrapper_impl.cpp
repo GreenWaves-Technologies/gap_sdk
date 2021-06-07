@@ -173,7 +173,6 @@ private:
   static void qspim_cs_sync(void *__this, bool active, int id);
   static void jtag_sync(void *__this, int tdo, int id);
   static void i2c_sync(void *__this, int scl, int sda, int id);
-  static void i2c_sync_cycle(void *__this, int sda, int id);
   static void uart_sync(void *__this, int data, int id);
   static void i2s_sync(void *__this, int sck, int ws, int sd, int id);
   static void gpio_sync(void *__this, bool data, int id);
@@ -379,13 +378,6 @@ void dpi_wrapper::i2c_sync(void *__this, int scl, int sda, int id)
   dpi_i2c_edge(i2c_handles[id]->handle, _this->get_clock()->get_time(), scl, sda);
 }
 
-void dpi_wrapper::i2c_sync_cycle(void *__this, int sda, int id)
-{
-  dpi_wrapper *_this = (dpi_wrapper *)__this;
-  i2c_handles[id]->sda_trace.event((uint8_t *)&sda);
-  dpi_i2c_edge(i2c_handles[id]->handle, _this->get_clock()->get_time(), 0, sda);
-}
-
 int dpi_wrapper::build()
 {
   traces.new_trace("trace", &trace, vp::DEBUG);
@@ -518,7 +510,6 @@ int dpi_wrapper::build()
         {
           i2c_handle_t *handle = new i2c_handle_t;
           handle->itf.set_sync_meth_muxed(&dpi_wrapper::i2c_sync, itf_id);
-          handle->itf.set_sync_cycle_meth_muxed(&dpi_wrapper::i2c_sync_cycle, itf_id);
           new_slave_port(itf_name + std::to_string(itf_id), &handle->itf);
           i2c_handles.reserve(itf_id + 1);
           i2c_handles[itf_id] = handle;
@@ -637,10 +628,10 @@ extern "C" void dpi_uart_rx_edge(void *handle, int data)
   itf->sync(data);
 }
 
-extern "C" void dpi_i2c_rx_edge(void *handle, int sda)
+extern "C" void dpi_i2c_rx_edge(void *handle, int scl, int sda)
 {
   vp::i2c_slave *itf = &i2c_handles[(int)(long)handle]->itf;
-  itf->sync(sda);
+  itf->sync(scl, sda);
 }
 
 extern "C" void dpi_i2s_rx_edge(void *handle, int sck, int ws, int sd)

@@ -16,17 +16,17 @@
 from graph.types.others import PadParameters
 import numpy as np
 
-from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.new_qrec import QRec
 
 from quantization.kernels.kernel_base import (KernelBase, params_type,
-                                              quantization)
+                                              qrec_type)
 @params_type(PadParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled')
 class PadSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         pad_vals = [(qrec.in_qs[0].quantize(val[0])[0], qrec.in_qs[0].quantize(val[1])[0])
                     for val in params.pad_vals]

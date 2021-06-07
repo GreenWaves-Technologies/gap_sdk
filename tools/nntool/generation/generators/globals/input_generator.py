@@ -13,7 +13,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from generation.at_types.tc_arg_info import InputArgInfo
-from generation.generators.generator_decorators import generation_function
+from generation.generator_decorators import generation_function
 from graph.types import InputParameters
 
 

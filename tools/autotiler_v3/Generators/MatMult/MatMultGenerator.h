@@ -12,4 +12,5 @@
 extern void LoadMatMultLibrary();
 extern void ParMatMultGenerator(char *Name, unsigned int LineM1, unsigned int ColM1, unsigned int LineM2, unsigned int ColM2, int Type);
 extern void ParVectMatMultGenerator(char *Name, unsigned int LineM1, unsigned int ColM1, unsigned int LineM2, unsigned int ColM2, int Type);
+extern void ParVectMatMultTransGenerator(char *Name, unsigned int LineM1, unsigned int ColM1, unsigned int LineM2, unsigned int ColM2, int Type);
 #endif

@@ -78,8 +78,8 @@ endif
 
 ifeq '$(CONFIG_I2C_ENABLED)' '1'
 ifneq '$(udma/i2c/version)' ''
-PULP_LIB_FC_SRCS_rt += drivers_deprecated/i2c/i2c-v$(udma/i2c/version).c
-PULP_LIB_FC_SRCS_rt += drivers_deprecated/i2c/eeprom.c
+#PULP_LIB_FC_SRCS_rt += drivers_deprecated/i2c/i2c-v$(udma/i2c/version).c
+#PULP_LIB_FC_SRCS_rt += drivers_deprecated/i2c/eeprom.c
 endif
 endif
 

@@ -135,6 +135,19 @@ cl_master_loop:
 
         or t1, sp, zero                                         // Stack for slaves
 
+        // Workers barrier sync(application)
+cl_master_slave_barrier_sync_config:
+        ori a2, t5, (1 << ARCHI_CLUSTER_MASTER_CORE)
+        beqz t5, cl_master_master_slave_barrier_sync_config
+        sw t5, CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK(s2)          // Set workers barrier sync
+        sw t5, CL_DEMUX_EU_HW_BARRIER_TARGET_MASK(s2)           // Set workers barrier sync
+
+        // Master and workers barrier sync
+cl_master_master_slave_barrier_sync_config:
+        //ori a2, t5, (1 << ARCHI_CLUSTER_MASTER_CORE)
+        sw a2, CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK(s7)          // Set master workers barrier sync
+        sw a2, CL_DEMUX_EU_HW_BARRIER_TARGET_MASK(s7)           // Set master workers barrier sync
+
 cl_master_dispatch_stack:
         xori t6, t5, (1 << ARCHI_CLUSTER_MASTER_CORE)
         beqz t4, cl_master_core_only                            // Only core master execute task

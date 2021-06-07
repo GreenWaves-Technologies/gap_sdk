@@ -20,47 +20,6 @@ from .utils import at_bits
 
 GEN_CONV_POOL_RELU = "CNN_ConvolutionPoolReLU"
 
-# extern void CNN_ConvolutionPoolReLU(
-# 	char         *Name,
-
-# 	CNN_GenControl_T *Ctrl,
-
-# 	int In_DataSize,
-# 	int Filter_DataSize,
-# 	int Bias_DataSize,
-# 	int Out_DataSize,
-
-# 	int In_InL3,           // 1 if In comes from L3, 0 if it comes from L2
-# 	int Filter_InL3,
-# 	int Bias_InL3,
-# 	int Out_InL3,
-
-# 	int InFeat,
-# 	int OutFeat,
-# 	int Width,
-# 	int Height,
-
-# 	KernelOper_T ConvOper,
-# 	int Fcx,
-# 	int Fcy,
-# 	int Dcx,
-# 	int Dcy,
-# 	int Scx,
-# 	int Scy,
-# 	int          ConvPad,
-
-# 	KernelOper_T PoolOper,
-# 	int Fpx,
-# 	int Fpy,
-# 	int Dpx,
-# 	int Dpy,
-# 	int Spx,
-# 	int Spy,
-# 	int          PoolPad,
-
-#        	KernelOper_T ReLUOper
-# 	);
-
 # pylint: disable=too-many-arguments
 
 ConvATParam = namedtuple('ConvATParam', [
@@ -172,12 +131,14 @@ def gen_activation_op(activation):
         aop = "KOP_RELUN"
     elif activation == "relun":
         aop = "KOP_RELUN"
-    elif activation == "sigmoid" or activation == "hsigmoid":
+    elif activation == "hsigmoid":
         aop = "KOP_HSIGMOID"
     elif activation == "swish" or activation == "hswish":
         aop = "KOP_HSWISH"
     elif activation == 'leaky':
         aop = "KOP_LEAKYRELU"
+    elif activation == "sigmoid":
+        aop = "KOP_SIGMOID"
     else:
         raise NotImplementedError("activation type %s not implemented" % activation)
     return aop
@@ -189,28 +150,3 @@ def gen_active_at_params(params):
     )
 
 
-def gen_at_conv_pool_relu(code_block, name, in_q, out_q,
-                          filt_q, bias_q, in_dim, out_dim,
-                          at_conv: ConvATParam, at_pool: PoolATParam,
-                          at_active: ActivationATParam, gen_ctrl=None, at_ver=3):
-    del at_ver
-    if gen_ctrl is None:
-        gen_ctrl = "0"
-    else:
-        gen_ctrl = gen_ctrl.ctrl_name
-
-    code_block.write('{}("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, 1, 1, 1, 1, {}, {}, {}, {},',
-                     GEN_CONV_POOL_RELU, name, gen_ctrl,
-                     at_bits(in_q), at_bits(filt_q), at_bits(bias_q), at_bits(out_q),
-                     in_q.q, filt_q.q, bias_q.q, out_q.q,
-                     in_dim.c, out_dim.c, in_dim.w, in_dim.h)
-    code_block.indent()
-    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
-                     at_conv.ConvOper, at_conv.Fcx, at_conv.Fcy,
-                     at_conv.Dcx, at_conv.Dcy, at_conv.Scx, at_conv.Scy,
-                     at_conv.ConvPad)
-    code_block.write('{}, {}, {}, {}, {}, {}, {}, {}, {});',
-                     at_pool.PoolOper, at_pool.Fpx, at_pool.Fpy,
-                     at_pool.Dpx, at_pool.Dpy, at_pool.Spx, at_pool.Spy,
-                     at_pool.PoolPad, at_active.ReLUOper)
-    code_block.deindent()

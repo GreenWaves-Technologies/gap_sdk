@@ -115,6 +115,12 @@ void bsp_24xx1025_conf_init(struct pi_24xx1025_conf *conf);
 int bsp_24xx1025_open(struct pi_24xx1025_conf *conf);
 #endif
 
+#if defined(CONFIG_M24C02)
+#include "bsp/eeprom/m24c02.h"
+void bsp_m24c02_conf_init(struct pi_m24c02_conf *conf);
+int bsp_m24c02_open(struct pi_m24c02_conf *conf);
+#endif
+
 #if defined(CONFIG_VIRTUAL_EEPROM)
 #include "bsp/eeprom/virtual_eeprom.h"
 void bsp_virtual_eeprom_conf_init(struct pi_virtual_eeprom_conf *conf);

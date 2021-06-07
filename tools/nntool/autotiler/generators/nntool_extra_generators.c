@@ -5,6 +5,73 @@
 #include "nntool_extra_generators.h"
 #include "Gap.h"
 
+// Returns floor of square root of x
+int floorSqrt(int x)
+{
+    // Base cases
+    if (x == 0 || x == 1)
+    return x;
+ 
+    // Staring from 1, try all numbers until
+    // i*i is greater than or equal to x.
+    int i = 1, result = 1;
+    while (result <= x)
+    {
+      i++;
+      result = i * i;
+    }
+    return i - 1;
+}
+
+int primeFactors(int n) 
+{
+	int original_n = n;
+	int W = 1;
+    // Print the number of 2s that divide n 
+    while (n % 2 == 0 && W < n) 
+    { 
+        W *= 2;
+        n = n/2; 
+    } 
+  
+    // n must be odd at this point. So we can skip 
+    // one element (Note i = i +2) 
+    for (int i = 3; i <= floorSqrt(n); i = i + 2) 
+    { 
+        // While i divides n, print i and divide n 
+        while (n % i == 0 && W < n) 
+        { 
+            W *= i;
+            n = n/i; 
+        } 
+    } 
+  
+    // This condition is to handle the case when n 
+    // is a prime number greater than 2 
+    if (n > 2 && W < n) 
+        W = n;
+
+	return Max(W, n);
+}
+
+int largest_factor(int sz)
+{
+	int limit = floorSqrt(sz);
+	for (int i=2; i<=limit; i++)
+    {
+        int c=0;
+        for (int j=1; j<=i; j++)
+        {
+            if (i%j==0)
+            {
+                c++;
+            }
+        }
+	    if (c==2 && sz%i==0) return sz/i;
+    }
+	return 1;
+}
+
 #define D0	KER_ITER_D0
 #define D1	KER_ITER_D1
 #define D2	KER_ITER_D2
@@ -105,6 +172,28 @@ void LoadNNTools_Extra_Library()
 			     ),
 			"KerNormBW_fp_T", NULL
 		 );
+
+    LibKernel("CNN_FpsFpu", CALL_PARALLEL,
+			CArgs(5,
+				TCArg("signed char *__restrict__", "In"),
+				TCArg("unsigned char *__restrict__", "Out"),
+				TCArg("unsigned short int", "W"),
+				TCArg("unsigned short int", "H"),
+				TCArg("signed char *__restrict__", "Infos")
+			),
+			"CNN_FpsFpu_T", NULL
+		);
+
+    LibKernel("CNN_FpuFps", CALL_PARALLEL,
+			CArgs(5,
+				TCArg("unsigned char *__restrict__", "In"),
+				TCArg("signed char *__restrict__", "Out"),
+				TCArg("unsigned short int", "W"),
+				TCArg("unsigned short int", "H"),
+				TCArg("signed char *__restrict__", "Infos")
+			),
+			"CNN_FpuFps_T", NULL
+		);
 
 	// LibKernel("CNN_Copy_fps", CALL_PARALLEL,
 	// 		CArgs(4,
@@ -287,23 +376,70 @@ int CNN_Norm(
 	}
 }
 
-// int largest_factor(int sz)
-// {
-// 	int limit = (int) floor(sqrt(sz));
-// 	for (int i=2; i<=limit; i++)
-//     {
-//         int c=0;
-//         for (int j=1; j<=i; j++)
-//         {
-//             if (i%j==0)
-//             {
-//                 c++;
-//             }
-//         }
-// 	    if (c==2 && sz%i==0) return sz/i;
-//     }
-// 	return 1;
-// }
+int CNN_SignedUnsigned(
+	char *Name,
+    int In_DataSize,
+	int Out_DataSize,
+	int Sz
+)
+{
+	int Log = 1;
+	int Width = primeFactors(Sz);
+	int Height = Sz / Width;
+	unsigned long long int LayerOp = 1 * Sz;
+	unsigned long long int LayerBandwidth = 0;
+    char * kop;
+    if (In_DataSize == 1 && Out_DataSize == -1) {
+        kop = "CNN_FpsFpu";
+    } else if (In_DataSize == -1 && Out_DataSize == 1) {
+        kop = "CNN_FpuFps";
+    } else {
+        GenTilingError("CNN_SignedUnsigned Kernel: %s, Invalid input data size", Name);
+    }
+
+	LayerBandwidth += Sz*2;
+
+	if (Log) {
+		printf("CNN_SignedUnsigned: %s\n", Name);
+		printf("In  => Feat: 1 W: %4d, H: %4d\n", Width, Height);
+		printf("Out => Feat: 1, W: %4d, H: %4d\n", Width, Height);
+		printf("Nb Oper : %lld\n", LayerOp);
+	}
+
+	Object_T **PKerArgs = AllocateKerArgs(3);
+	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,            Width, Height, 1,  0, 0, 0, "In");
+	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB,           Width, Height, 1,  0, 0, 0, "Out");
+    PKerArgs[2] = KerArg("Infos",KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED, 1,     1,      1,  0, 0, 0, "Infos");
+	Kernel_T *Kernel = UserKernel(Name,
+				KernelIterSpace(1, IterTiledSpace(T0)),
+				TILE_HOR,
+				CArgs(3,
+                    TCArg(CNN_ArgDataType(1,1,1), "In"),
+                    TCArg(CNN_ArgDataType(1,1,1), "Out"),
+                    TCArg(CNN_ArgDataType(1,1,1), "Infos")
+                ),
+				Calls(1,
+					Call(kop, LOC_LOOP,
+						Bindings(5,
+							K_Arg("In", KER_ARG_TILE),      /* Input tile */
+							K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
+							K_Arg("In", KER_ARG_TILE_W),    /* Input tile width */
+							K_Arg("In", KER_ARG_TILE_H),    /* Input tile height */
+                            K_Arg("Infos", KER_ARG_TILE)
+						)
+					)
+				),
+				PKerArgs
+			);
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+		AddKernelArgDim(Name, "In",    4, 1, Height, Width, 1);
+		AddKernelArgDim(Name, "Out",   4, 1, Height, Width, 1);
+        AddKernelArgDim(Name, "Infos", 2, 1, 1);
+	}
+	return (Kernel!=0);
+}
 
 // int CNN_Copy(
 // 		char *Name,

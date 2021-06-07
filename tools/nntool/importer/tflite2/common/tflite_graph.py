@@ -50,18 +50,20 @@ class TFliteIterator():
 
 
 class TFLiteGraph():
-    def __init__(self, model: Model, subgraph: SubGraph, subgraph_idx: int) -> None:
+    def __init__(self, model: Model, subgraph: SubGraph, subgraph_idx: int, name_cache=None, anonymise=False) -> None:
         self._model = model
         self._subgraph = subgraph
         self._subgraph_idx = subgraph_idx
         self._tensors = [TFLiteTensorWrapper(self._subgraph.Tensors(
             idx), self._model) for idx in range(self._subgraph.TensorsLength())]
-        self._nodes = [TFLiteNode(self._subgraph.Operators(idx), idx, self._model, self)
+        self._nodes = [TFLiteNode(self._subgraph.Operators(idx), idx, self._model,
+                                  self, name_cache=name_cache, anonymise=anonymise)
                        for idx in range(self._subgraph.OperatorsLength())]
 
     @classmethod
-    def from_model(cls, model: Model, subgraph_idx: int):
-        return cls(model, model.Subgraphs(subgraph_idx), subgraph_idx)
+    def from_model(cls, model: Model, subgraph_idx: int, name_cache=None, anonymise=False):
+        return cls(model, model.Subgraphs(subgraph_idx), subgraph_idx,
+                   name_cache=name_cache, anonymise=anonymise)
 
     @property
     def model_version(self) -> int:

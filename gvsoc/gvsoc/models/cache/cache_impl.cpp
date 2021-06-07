@@ -103,7 +103,7 @@ private:
   inline unsigned int get_line_offset(unsigned int addr) {return addr & ((1 << line_size_bits) - 1);}
   inline unsigned int getAddr(unsigned int index, unsigned int tag) {return (tag << (line_size_bits + nb_sets_bits)) | (index << line_size_bits);}
 
-  cache_line_t *refill(int line_index, unsigned int addr, unsigned int tag, vp::io_req *req);
+  cache_line_t *refill(int line_index, unsigned int addr, unsigned int tag, vp::io_req *req, bool *pending);
 
   unsigned int stepLru();
   bool ioReq(vp::io_req *req, int i);
@@ -194,7 +194,7 @@ void Cache::start()
 
 
 
-cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag, vp::io_req *req)
+cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag, vp::io_req *req, bool *pending)
 {
   unsigned int refillWay;
 
@@ -238,8 +238,16 @@ cache_line_t *Cache::refill(int line_index, unsigned int addr, unsigned int tag,
   vp::io_req_status_e err = this->refill_itf.req(refill_req);
   if (err != vp::IO_REQ_OK)
   {
-    this->warning.force_warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
-    return NULL;
+    if (err == vp::IO_REQ_PENDING)
+    {
+      *pending = true;
+      return NULL;
+    }
+    else
+    {
+      this->warning.force_warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+      return NULL;
+    }
   }
 
   req->set_latency(refill_req->get_full_latency());
@@ -337,9 +345,15 @@ vp::io_req_status_e Cache::req(void *__this, vp::io_req *req, int port)
   {
     _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
     _this->refill_event.event((uint8_t *)&offset);
-    hit_line = _this->refill(line_index, offset, tag, req);
+    bool pending = false;
+    hit_line = _this->refill(line_index, offset, tag, req, &pending);
     if (hit_line == NULL)
-      return vp::IO_REQ_INVALID;
+    {
+      if (pending)
+        return vp::IO_REQ_PENDING;
+      else
+        return vp::IO_REQ_INVALID;
+    }
   }
 
   if (data)
@@ -397,8 +411,14 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
     {
       _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
       _this->refill_event.event((uint8_t *)&offset);
-      if (_this->refill(line_index, offset, tag, req) == NULL)
-        return vp::IO_REQ_INVALID;
+      bool pending = false;
+      if (_this->refill(line_index, offset, tag, req, &pending) == NULL)
+      {
+        if (pending)
+          return vp::IO_REQ_PENDING;
+        else
+          return vp::IO_REQ_INVALID;
+      }
     }
   }
   else
@@ -413,9 +433,15 @@ vp::io_req_status_e Cache::req_l16_w4(void *__this, vp::io_req *req, int port)
     {
       _this->trace.msg(vp::trace::LEVEL_DEBUG, "Cache miss\n");
       _this->refill_event.event((uint8_t *)&offset);
-      hit_line = _this->refill(line_index, offset, tag, req);
+      bool pending = false;
+      hit_line = _this->refill(line_index, offset, tag, req, &pending);
       if (hit_line == NULL)
-        return vp::IO_REQ_INVALID;
+      {
+        if (pending)
+          return vp::IO_REQ_PENDING;
+        else
+          return vp::IO_REQ_INVALID;
+      }
     }
 
     if (!is_write) {

@@ -43,13 +43,13 @@ static void cluster_main()
 
     StartTime = rt_perf_read(RT_PERF_CYCLES);
 #endif
-    ParMatMult(M1, M2, Out1, 0);
+    ParMatMultfixedp16(M1, M2, Out1, 0);
 #ifndef __EMUL__
     ElapsedTime[0] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 
     StartTime = rt_perf_read(RT_PERF_CYCLES);
 #endif
-    ParVectMatMult(M1, M2, Out2, 0);
+    ParVectMatMultfixedp16(M1, M2, Out2, 0);
 #ifndef __EMUL__
     ElapsedTime[1] = rt_perf_read(RT_PERF_CYCLES)-StartTime;
 

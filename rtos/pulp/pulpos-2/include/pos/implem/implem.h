@@ -138,8 +138,10 @@ static inline void pmsis_exit(int err)
 #include "lock.h"
 
 #ifdef ARCHI_UDMA_HAS_HYPER
+#if defined(__GAP9__)
 #include "pos/implem/hyperbus-v2.h"
 #include "pos/implem/octospi-v2.h"
+#endif
 #endif
 
 #ifdef CONFIG_PWM

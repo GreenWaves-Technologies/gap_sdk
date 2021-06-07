@@ -167,13 +167,16 @@ def pow_alt_17_15(x, y):
 def pow_17_15(x, y):
     x = np.atleast_1d(x)
     y = np.atleast_1d(y)
+    clip_bits = np.array(gap_clb(y))
+    limit_high = (1 << clip_bits) - 1
+    limit_low = -(1 << clip_bits)
     if isinstance(y, int):
         y = np.full_like(x, y)
     elif y.size == 1 and x.size > 1:
         y = np.full_like(x, y[0])
     assert np.all(y >= 0), "only postive exponents currently supported"
     assert np.all(y >> 15 == 0), "only fractional exponents currently supported"
-    return np.where(x == 0, np.where(y == 0, 1<<15, 0), exp_fp_17_15(gap_roundnorm(y * logn_17_15(x), 15)))
+    return np.where(x == 0, np.where(y == 0, 1<<15, 0), exp_fp_17_15(gap_roundnorm(y * np.clip(logn_17_15(x), limit_low, limit_high), 15)))
 
 def square_17_15(x):
     return gap_roundnorm_reg(x * x, 15)

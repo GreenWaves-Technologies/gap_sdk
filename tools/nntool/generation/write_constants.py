@@ -14,11 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-import numpy as np
-
-from utils.node_id import NodeId
-
-from graph.types import FilterParameters, ConstantInputParameters, MultiplicativeBiasParameters
 
 
 def write_constants(global_recs, tensor_directory=None):

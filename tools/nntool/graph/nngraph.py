@@ -15,27 +15,26 @@
 
 import logging
 import os
-import numpy as np
 from typing import Generator, Sequence, Union
+
+import numpy as np
+from quantization.quantization_set import QuantizationSet
+from utils.graph import Graph, Node
 
 from graph.dim import Dim
 from graph.dump_tensor import PrintDumper, dump_tensor
 from graph.graph_identity import GraphIdentity
 from graph.manipulations import (add_dimensions, adjust_order,
-                                 balance_all_filters, balance_filter,
-                                 calculate_liveness)
+                                 balance_all_filters, calculate_liveness)
+from graph.manipulations.balance_filter import balance_filter_with_constants
 from graph.types import (ConstantInputParameters, ConvFusionParameters,
                          InputBaseParameters, InputParameters,
                          MultiplicativeBiasParameters, OutputParameters,
-                         RecurrentOutputParameters, ResizerParameters,
-                         SSDDetectorParameters, TransposeParameters,
-                         PaddedAddFusionParameters)
+                         PaddedAddFusionParameters, ResizerParameters,
+                         RNNBaseParameters, SSDDetectorParameters)
+from graph.types.base import Transposable
 from graph.types.expression_fusion import ExpressionFusionParameters
-from interpreter.commands.imageformat import insert_formatter
-from quantization.quantization_set import QuantizationSet
-from utils.graph import Graph, Node
-from utils.json_serializable import JsonSerializable
-from utils.node_id import NodeId
+from graph.types.others import TransposeParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -46,64 +45,6 @@ class NNGraphError(Exception):
 
 class GraphStepsNotCalculatedError(NNGraphError):
     pass
-
-
-class NNGraphChanges(JsonSerializable):
-    def __init__(self, init=None):
-        if init is not None:
-            self._changes = init['changes']
-            self._image_format = init.get('image_format') or {}
-            self._input_resizer = init.get('input_resizer') or {}
-            return
-        self._changes = []
-        self._image_format = {}
-        self._input_resizer = {}
-
-    def _encapsulate(self):
-        return {'changes': self._changes,
-                'image_format': self._image_format,
-                'input_resizer': self._input_resizer}
-
-    @classmethod
-    def _dencapsulate(cls, val):
-        return cls(init=val)
-
-    def image_format(self, input_node_name, formatter, normalizer):
-        if formatter is None and normalizer is None:
-            if input_node_name in self._image_format:
-                del self._image_format[input_node_name]
-            return
-        self._image_format[input_node_name] = {"formatter": formatter, "normalizer": normalizer}
-
-    def input_resizer(self, input_node_name, resize_op, new_shape):
-        if resize_op is None:
-            if input_node_name in self._input_resizer:
-                del self._input_resizer[input_node_name]
-            return
-        self._input_resizer[input_node_name] = {"resize_op": resize_op, "new_shape": new_shape}
-
-    def modify(self, node, attr, val, fnode=None):
-        nid = NodeId(node, fnode)
-        self._changes.append({
-            'nid': nid,
-            'attr': attr,
-            'val': val
-        })
-        if fnode is not None:
-            node = fnode
-        setattr(node, attr, val)
-
-    def replay(self, G):
-        for change in self._changes:
-            node = change['nid'].get_node(G)
-            setattr(node, change['attr'], change['val'])
-        graph_changed = False
-        for input_node_name, params in self._image_format.items():
-            graph_changed = True
-            input_node = G[input_node_name]
-            insert_formatter(G, input_node, params["formatter"], params["normalizer"])
-        if graph_changed:
-            G.add_dimensions()
 
 
 class NNGraphState():
@@ -168,7 +109,6 @@ class NNGraph(Graph):
         self.graph_identity = GraphIdentity(filename)
         self._info = {
             'quantization': None,
-            'changes': NNGraphChanges()
         }
 
     @property
@@ -196,13 +136,10 @@ class NNGraph(Graph):
         self._info['has_quantized_parameters'] = val
 
     @property
-    def changes(self):
-        return self._info['changes']
-
-    @property
     def name(self) -> str:
         if self.graphname is None:
-            base, _ = os.path.splitext(os.path.basename(self.graph_identity.filename))
+            base, _ = os.path.splitext(
+                os.path.basename(self.graph_identity.filename))
             return base
         return self.graphname
 
@@ -213,6 +150,12 @@ class NNGraph(Graph):
     @property
     def outputs_dim(self) -> list:
         return [out_node.out_dims[0].shape for out_node in self.output_nodes()]
+
+    @property
+    def has_transposes(self) -> bool:
+        return any([isinstance(node, Transposable) and not isinstance(node, TransposeParameters) and
+                    (node.transpose_in or node.transpose_out)
+                    for node in self.nodes()])
 
     @name.setter
     def name(self, val):
@@ -229,6 +172,10 @@ class NNGraph(Graph):
     @property
     def has_expressions(self):
         return self.has_node_type(ExpressionFusionParameters)
+
+    @property
+    def has_rnn(self):
+        return self.has_node_type(RNNBaseParameters)
 
     @property
     def all_expressions(self):
@@ -264,9 +211,8 @@ class NNGraph(Graph):
         return res
 
     def get_out_params(self, name: str) -> set:
-        out_edges = self.out_edges(name)
-        out_edges.sort(key=lambda edge: edge.from_idx)
-        return [edge.params for edge in out_edges]
+        out_edges = self.indexed_out_edges(name)
+        return [edge_list[0].params for edge_list in out_edges]
 
     def all_inputs(self) -> Generator[Node, None, None]:
         return (node for node in self.nodes() if isinstance(node, (InputBaseParameters)))
@@ -294,14 +240,6 @@ class NNGraph(Graph):
         self.num_inputs = 0
         self.num_outputs = 0
         self.num_constants = 0
-        self.num_rinputs = 0
-        self.num_routputs = 0
-
-    def add_routput(self, name: str, rinput: ConstantInputParameters) -> RecurrentOutputParameters:
-        self.num_routputs += 1
-        node = RecurrentOutputParameters(name, input_node=rinput)
-        self.add_node(node)
-        return node
 
     def add_input(self, dim: Dim, in_dim_hint=None, out_dim_hint=None, name=None) -> InputParameters:
         self.num_inputs += 1
@@ -348,16 +286,21 @@ class NNGraph(Graph):
             else:
                 yield (step_idx, node, None, None)
 
-    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None):
-        adjust_order(self, reshape_weights=reshape_weights, postprocess=postprocess, debug_function=debug_function)
+    def adjust_order(self, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False):
+        adjust_order(self, reshape_weights=reshape_weights,
+                     postprocess=postprocess, debug_function=debug_function, one_cycle=one_cycle)
         LOG.info("adjusted order")
         self.graph_identity.is_adjusted = True
 
-    def add_dimensions(self):
-        LOG.info("update graph dimensions")
+    def add_dimensions(self, quiet=False):
+        if not quiet:
+            LOG.info("update graph dimensions")
         self.graph_state.steps = add_dimensions(self)
-        LOG.info("calculate liveness")
-        self.graph_state.liveness = calculate_liveness(self, self.graph_state.steps)
+        if not quiet:
+            LOG.info("calculate liveness")
+        self.graph_state.liveness = calculate_liveness(
+            self,
+            self.graph_state.steps)
 
     def balance_filters(self, step_idx=None, precision_threshold=0.20):
         if step_idx is not None:
@@ -377,7 +320,8 @@ class NNGraph(Graph):
             if not isinstance(node, MultiplicativeBiasParameters):
                 raise ValueError(
                     "weights can only be balanced on nodes that support multiplicative bias")
-            balance_filter(pnode, fnode=fnode, G=self)
+            balance_filter_with_constants(
+                self, pnode, fnode=fnode, precision_threshold=precision_threshold)
         else:
             balance_all_filters(self, precision_threshold=precision_threshold)
 
@@ -396,15 +340,16 @@ class NNGraph(Graph):
                 for out_idx, out in enumerate(outs):
                     dims = node.out_dims[out_idx]
                     if order is not None and dims.is_named and order != dims.order and all(k in dims.order
-                                                                                        for k in order):
+                                                                                           for k in order):
                         transpose = dims.transpose_to_order(order)
                         out = out.transpose(transpose)
                     if channel is not None:
                         out = out[channel:channel+1:1, ...]
-                    dump_tensor(out, PrintDumper(out, width=width, precision=precision))
+                    dump_tensor(out, PrintDumper(
+                        out, width=width, precision=precision))
 
         if limit is not None:
-            print_step(self.graph_state.steps[limit], outputs[limit])
+            print_step(self.graph_state.steps[limit], outputs[limit], limit)
         else:
             for idx, out in enumerate(outputs):
                 print_step(self.graph_state.steps[idx], out, idx)

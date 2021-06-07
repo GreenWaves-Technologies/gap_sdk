@@ -86,7 +86,7 @@ class Pack(ConstantMixin, BackendHandler):
                                             old_shape=reshape_in_shape,
                                             shape=concat_in_shape)
                 G.add_edge(NNEdge(from_node=inp[0], to_node=rparams, from_idx=inp[1]))
-                G.add_edge(NNEdge(from_node=rparams, to_node=params))
+                G.add_edge(NNEdge(from_node=rparams, to_node=params, to_idx=idx))
                 if opts.get('load_quantization'):
                     G.quantization[NodeId(rparams)] = cls.load_tf_quantization([node.input[idx]], [node.input[idx]])
 

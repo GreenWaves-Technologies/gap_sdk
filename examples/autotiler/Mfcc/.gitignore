@@ -1,0 +1,4 @@
+.ipynb*
+BUILD*
+results.txt
+mfcc_emul

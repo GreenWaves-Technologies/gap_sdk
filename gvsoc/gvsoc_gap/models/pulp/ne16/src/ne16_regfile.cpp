@@ -21,7 +21,21 @@
 #include <ne16.hpp>
 
 int Ne16::regfile_rd(int addr) {
-  if(addr < NE16_NB_REG) {
+  if(addr == NE16_SPECIAL_TRACE_REG) {
+    if(this->trace_level == L0_JOB_START_END) {
+      return 0;
+    }
+    else if(this->trace_level == L1_CONFIG) {
+      return 1;
+    }
+    else if(this->trace_level == L2_ACTIV_INOUT) {
+      return 2;
+    }
+    else {
+      return 3;
+    }
+  }
+  else if(addr < NE16_NB_REG) {
     if (this->cxt_cfg_ptr == 0) {
       return this->cxt0[addr];
     }
@@ -38,8 +52,21 @@ int Ne16::regfile_rd(int addr) {
 }
 
 void Ne16::regfile_wr(int addr, int value) {
-  if(addr < NE16_NB_REG) {
-    // this->regfile_wr_cxt(addr, value);
+  if(addr == NE16_SPECIAL_TRACE_REG) {
+    if(value == 0) {
+      this->trace_level = L0_JOB_START_END;
+    }
+    else if(value == 1) {
+      this->trace_level = L1_CONFIG;
+    }
+    else if(value == 2) {
+      this->trace_level = L2_ACTIV_INOUT;
+    }
+    else {
+      this->trace_level = L3_ALL;
+    }
+  }
+  else if(addr < NE16_NB_REG) {
     if (this->cxt_cfg_ptr == 0) {
       this->cxt0[addr] = value;
     }
@@ -49,15 +76,9 @@ void Ne16::regfile_wr(int addr, int value) {
   }
   else if (addr < 2*NE16_NB_REG) {
     this->cxt0[addr - NE16_NB_REG] = value;
-    if (this->cxt_cfg_ptr == 0) {
-      // this->regfile_wr_cxt(addr - NE16_NB_REG, value);
-    }
   }
   else {
     this->cxt1[addr - 2*NE16_NB_REG] = value;
-    if (this->cxt_cfg_ptr == 1) {
-      // this->regfile_wr_cxt(addr - 2*NE16_NB_REG, value);
-    }
   }
 }
 
@@ -227,61 +248,61 @@ void Ne16::printout() {
   this->trace.msg(vp::trace::LEVEL_DEBUG, "(archi) OVERHEAD_MV=%d\n", this->OVERHEAD_MV);
   this->trace.msg(vp::trace::LEVEL_DEBUG, "(archi) QUANT_PER_CYCLE=%d\n", this->QUANT_PER_CYCLE);
   // REGISTER FILE and HWPE CTRL
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(ctrl) cxt_cfg_ptr=%d\n", this->cxt_cfg_ptr);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(ctrl) cxt_use_ptr=%d\n", this->cxt_use_ptr);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(ctrl) job_pending=%d\n", this->job_pending);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(ctrl) job_state=%d\n", this->job_state);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(ctrl) job_id=%d\n", this->job_id);
+  this->trace.msg(vp::trace::LEVEL_INFO, "(ctrl) cxt_cfg_ptr=%d\n", this->cxt_cfg_ptr);
+  this->trace.msg(vp::trace::LEVEL_INFO, "(ctrl) cxt_use_ptr=%d\n", this->cxt_use_ptr);
+  this->trace.msg(vp::trace::LEVEL_INFO, "(ctrl) job_pending=%d\n", this->job_pending);
+  this->trace.msg(vp::trace::LEVEL_INFO, "(ctrl) job_state=%d\n", this->job_state);
+  this->trace.msg(vp::trace::LEVEL_INFO, "(ctrl) job_id=%d\n", this->job_id);
   // REGISTER FILE configuration parameters
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) weights_ptr=%p\n", this->weights_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) infeat_ptr=%p\n", this->infeat_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) outfeat_ptr=%p\n", this->outfeat_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) scale_ptr=%p\n", this->scale_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) scale_shift_ptr=%p\n", this->scale_shift_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) scale_bias_ptr=%p\n", this->scale_bias_ptr); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) infeat_d0_stride=%d\n", this->infeat_d0_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) infeat_d1_stride=%d\n", this->infeat_d1_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) infeat_d2_stride=%d\n", this->infeat_d2_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) weights_d0_stride=%d\n", this->weights_d0_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) weights_d1_stride=%d\n", this->weights_d1_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) weights_d2_stride=%d\n", this->weights_d2_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) outfeat_d0_stride=%d\n", this->outfeat_d0_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) outfeat_d1_stride=%d\n", this->outfeat_d1_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) outfeat_d2_stride=%d\n", this->outfeat_d2_stride); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_nb_ko=%d\n", this->subtile_nb_ko); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_ko=%d\n", this->subtile_rem_ko); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_nb_ki=%d\n", this->subtile_nb_ki); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_ki=%d\n", this->subtile_rem_ki); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_nb_ho=%d\n", this->subtile_nb_ho); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_ho=%d\n", this->subtile_rem_ho); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_nb_wo=%d\n", this->subtile_nb_wo); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_wo=%d\n", this->subtile_rem_wo); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_hi=%d\n", this->subtile_rem_hi); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) subtile_rem_wi=%d\n", this->subtile_rem_wi); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) padding_top=%d\n", this->padding_top); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) padding_right=%d\n", this->padding_right); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) padding_bottom=%d\n", this->padding_bottom); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) padding_left=%d\n", this->padding_left); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) padding_value=%d\n", this->padding_value); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) Wmin=%d\n", this->Wmin); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) norm_option_shift=%s\n", this->norm_option_shift ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) norm_option_bias=%s\n", this->norm_option_bias ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) fs=%d\n", this->fs); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) output_quant=%d\n", this->output_quant); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) normalization_bits=%d\n", this->normalization_bits); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) quantization_bits=%d\n", this->quantization_bits); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) quantization_right_shift=%d\n", this->quantization_right_shift); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) use_relu=%s\n", this->use_relu ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) streamin=%s\n", this->streamin ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) filter_mask_top=%d\n", this->filter_mask_top); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) filter_mask_right=%d\n", this->filter_mask_right); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) filter_mask_bottom=%d\n", this->filter_mask_bottom); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) filter_mask_left=%d\n", this->filter_mask_left); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) mode16=%s\n", this->mode16 ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) mode_linear=%s\n", this->mode_linear ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) strided2x2=%s\n", this->strided2x2 ? "true" : "false"); //bool
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) qw=%d\n", this->qw); //int
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "(cfg) depthwise=%s\n", this->depthwise ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) weights_ptr=%p\n", this->weights_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) infeat_ptr=%p\n", this->infeat_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) outfeat_ptr=%p\n", this->outfeat_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) scale_ptr=%p\n", this->scale_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) scale_shift_ptr=%p\n", this->scale_shift_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) scale_bias_ptr=%p\n", this->scale_bias_ptr); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) infeat_d0_stride=%d\n", this->infeat_d0_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) infeat_d1_stride=%d\n", this->infeat_d1_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) infeat_d2_stride=%d\n", this->infeat_d2_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) weights_d0_stride=%d\n", this->weights_d0_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) weights_d1_stride=%d\n", this->weights_d1_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) weights_d2_stride=%d\n", this->weights_d2_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) outfeat_d0_stride=%d\n", this->outfeat_d0_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) outfeat_d1_stride=%d\n", this->outfeat_d1_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) outfeat_d2_stride=%d\n", this->outfeat_d2_stride); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_nb_ko=%d\n", this->subtile_nb_ko); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_ko=%d\n", this->subtile_rem_ko); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_nb_ki=%d\n", this->subtile_nb_ki); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_ki=%d\n", this->subtile_rem_ki); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_nb_ho=%d\n", this->subtile_nb_ho); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_ho=%d\n", this->subtile_rem_ho); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_nb_wo=%d\n", this->subtile_nb_wo); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_wo=%d\n", this->subtile_rem_wo); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_hi=%d\n", this->subtile_rem_hi); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) subtile_rem_wi=%d\n", this->subtile_rem_wi); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) padding_top=%d\n", this->padding_top); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) padding_right=%d\n", this->padding_right); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) padding_bottom=%d\n", this->padding_bottom); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) padding_left=%d\n", this->padding_left); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) padding_value=%d\n", this->padding_value); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) Wmin=%d\n", this->Wmin); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) norm_option_shift=%s\n", this->norm_option_shift ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) norm_option_bias=%s\n", this->norm_option_bias ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) fs=%d\n", this->fs); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) output_quant=%d\n", this->output_quant); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) normalization_bits=%d\n", this->normalization_bits); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) quantization_bits=%d\n", this->quantization_bits); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) quantization_right_shift=%d\n", this->quantization_right_shift); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) use_relu=%s\n", this->use_relu ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) streamin=%s\n", this->streamin ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) filter_mask_top=%d\n", this->filter_mask_top); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) filter_mask_right=%d\n", this->filter_mask_right); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) filter_mask_bottom=%d\n", this->filter_mask_bottom); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) filter_mask_left=%d\n", this->filter_mask_left); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) mode16=%s\n", this->mode16 ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) mode_linear=%s\n", this->mode_linear ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) strided2x2=%s\n", this->strided2x2 ? "true" : "false"); //bool
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) qw=%d\n", this->qw); //int
+  this->trace.msg(vp::trace::LEVEL_INFO, "(cfg) depthwise=%s\n", this->depthwise ? "true" : "false"); //bool
   // CONVENIENCE configuration
   this->trace.msg(vp::trace::LEVEL_DEBUG, "(model) h_out=%d\n", this->h_out);
   this->trace.msg(vp::trace::LEVEL_DEBUG, "(model) w_out=%d\n", this->w_out);

@@ -15,7 +15,7 @@
 
 import logging
 
-from .base import SingleInputAndOutput, Transposable
+from .base import SingleInputAndOutput, Transposable, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -35,11 +35,10 @@ class ResizerParameters(SingleInputAndOutput, Transposable):
         return self._new_shape
 
     def get_output_size(self, in_dims):
-        in_dims = self.clone_dim_with_hints(in_dims)
         if self.transpose_in and self.transpose_in[0]:
             out_dim = in_dims[0].calc_transpose(self.transpose_in[0])
         else:
-            out_dim = in_dims[0]
+            out_dim = in_dims[0].clone()
         out_dim.h = self.new_shape[0]
         out_dim.w = self.new_shape[1]
         if self.transpose_out and self.transpose_out[0]:
@@ -56,19 +55,14 @@ class ResizerParameters(SingleInputAndOutput, Transposable):
             self.at_options
         )
 
+@cls_op_name('nearest_neighbor')
 class NearestNeighborResizerParameters(ResizerParameters):
-    @property
-    def op_name(self):
-        return "nearest_neighbor"
 
     def compute_load(self):
         return self.new_shape[0] * self.new_shape[1] * 3 # 2 rounding (2op) + 1 ass
 
+@cls_op_name('bilinear')
 class BilinearResizerParameters(ResizerParameters):
-
-    @property
-    def op_name(self):
-        return "bilinear"
 
     def compute_load(self):
         return self.new_shape[0] * self.new_shape[1] * 19

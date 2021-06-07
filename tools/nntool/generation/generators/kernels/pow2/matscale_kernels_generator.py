@@ -17,7 +17,7 @@ import logging
 from generation.at_generators import (gen_matscale_at_params, gen_at_matscale)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generator_decorators import generation_function, QREC_POW2
 from graph.types import MatScaleFusionParameters
 
 from ..autotiler_kernel import AutotilerKernel

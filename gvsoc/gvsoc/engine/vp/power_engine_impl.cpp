@@ -41,7 +41,7 @@ public:
 
     void step(int64_t timestamp);
 
-    void quit();
+    void quit(int status);
 
     void pause();
 
@@ -75,9 +75,9 @@ void power_manager::step(int64_t timestamp)
 
 
 
-void power_manager::quit()
+void power_manager::quit(int status)
 {
-    this->time_engine->quit();
+    this->time_engine->quit(status);
 }
 
 

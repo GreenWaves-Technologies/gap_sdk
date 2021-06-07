@@ -13,42 +13,88 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.qtype import QType
+import logging
+
+import numpy as np
+from bfloat16 import bfloat16
+from graph.matches.matchers.remove_unnecessary_quantize_operators import \
+    RemoveUnnecessaryQuantizeOperators
+from graph.types.fusions import FusionBase
+
 from quantization.unified_quantizer import UnifiedQuantizer
-from utils.node_id import NodeId
-from utils.stats_funcs import STATS_BITS
-from graph.types import ConvFusionParameters
+
+LOG = logging.getLogger('nntool.' + __name__)
+
+FLOAT_DTYPES = {
+    'float16': np.float16,
+    'float32': np.float32,
+    'bfloat16': bfloat16,
+}
+
+POW2_DTYPES = {
+    'int16': np.int16,
+    'int8': np.int8,
+}
+
 
 class TuneError(Exception):
     pass
 
-def get_qtype(qparam1, qparam2):
-    try:
-        bits_idx = STATS_BITS.index(qparam1 + qparam2)
-    except ValueError:
-        raise TuneError("bit width is not valid")
-    return QType.Pow2(STATS_BITS[bits_idx], qparam2, True)
+# set dtype
+# set bits
+# set scheme
+# out or in and out
+# out forces out
+# in forces all outs above
+# forces are stored with quantization
 
-def tuneq(G, qrecs, node, param, qparam1, qparam2, index=0):
-    del index
-    if param == 'dp':
-        raise ValueError("dp is deprecated. all layers are now double precision.")
 
-    if param == "out":
-        qtype = get_qtype(qparam1, qparam2)
-        raise NotImplementedError()
-        #TODO - New propagation
-        # SymmetricQuantizer.propagate(G, qrecs, node, qtype)
-    else:
-        if isinstance(node, ConvFusionParameters):
-            for subnode in node.contained_nodes():
-                qrec = qrecs[NodeId(node, subnode)]
-                if hasattr(qrec, param + '_q'):
-                    setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
-                    return
-            raise TuneError("parameter " + param + " not found")
+def tune_options(G, nodes, options):
+    all_nodes = get_nodes_and_fusion_nodes(nodes)
+    force_options = {node: options for node in all_nodes}
+    quantizer = UnifiedQuantizer.from_quantized_graph(G)
+    quantizer.quantize(
+        G, start_nodes=nodes, force_options=force_options)
+    RemoveUnnecessaryQuantizeOperators().match(G)
+    G.add_dimensions()
 
-        qrec = qrecs[NodeId(node, None)]
-        if not hasattr(qrec, param + '_q'):
-            raise TuneError("parameter " + param + " not found")
-        setattr(qrec, param + '_q', get_qtype(qparam1, qparam2))
+
+def tune_float(G, nodes, float_type):
+    all_nodes = get_nodes_and_fusion_nodes(nodes)
+    force_scheme = {node: 'float' for node in all_nodes}
+    force_options = {node: {'float_type': float_type} for node in all_nodes}
+    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['float'])
+    quantizer.quantize(
+        G, start_nodes=nodes, force_scheme=force_scheme, force_options=force_options)
+    RemoveUnnecessaryQuantizeOperators().match(G)
+    G.add_dimensions()
+
+
+def get_nodes_and_fusion_nodes(nodes):
+    all_nodes = []
+    for node in nodes:
+        all_nodes.append(node)
+        if isinstance(node, FusionBase) and node.quantize_internals:
+            all_nodes.extend(node.subgraph.nodes())
+    return all_nodes
+
+
+def tune_scaled(G, nodes):
+    all_nodes = get_nodes_and_fusion_nodes(nodes)
+    force_scheme = {node: 'SQ8' for node in all_nodes}
+    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['SQ8'])
+    quantizer.quantize(G, start_nodes=nodes, force_scheme=force_scheme)
+    RemoveUnnecessaryQuantizeOperators().match(G)
+    G.add_dimensions()
+
+
+def tune_pow2(G, nodes, pow2_type):
+    all_nodes = get_nodes_and_fusion_nodes(nodes)
+    force_scheme = {node: 'POW2' for node in all_nodes}
+    force_options = {node: {'bits': 16 if pow2_type == 'int16' else 8}
+                     for node in all_nodes}
+    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['POW2'])
+    quantizer.quantize(
+        G, start_nodes=nodes, force_scheme=force_scheme, force_options=force_options)
+    RemoveUnnecessaryQuantizeOperators().match(G)
+    G.add_dimensions()

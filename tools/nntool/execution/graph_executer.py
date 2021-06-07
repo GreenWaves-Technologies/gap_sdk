@@ -17,17 +17,18 @@ import logging
 from typing import Mapping, Optional, Sequence
 
 import numpy as np
+from graph.types import (ActivationFusion, ConstantInputParameters,
+                         ConvFusionParameters, FusionInputParameters,
+                         FusionOutputParameters, InputParameters,
+                         MatMulOpFusionParameters, PaddedAddFusionParameters,
+                         Parameters)
+from quantization.kernels.kernel_executer import KernelExecuter
+from quantization.new_qrec import QRec
+from utils.graph import Graph
+from utils.node_id import NodeId
 
 from execution.execution_progress import ExecutionProgress
 from execution.quantization_mode import QuantizationMode
-from graph.types import (ActivationFusion, ConstantInputParameters,
-                         ConvFusionParameters, FusionInputParameters, PaddedAddFusionParameters,
-                         FusionOutputParameters, InputParameters, Parameters, MatMulOpFusionParameters)
-from quantization.quantization_record_base import QuantizationRecordBase
-from quantization.kernels.kernel_executer import KernelExecuter
-
-from utils.graph import Graph
-from utils.node_id import NodeId
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -35,11 +36,9 @@ LOG = logging.getLogger('nntool.'+__name__)
 class GraphExecuter():
     def __init__(self,
                  G: Graph,
-                 qrecs: Optional[Mapping[NodeId, QuantizationRecordBase]] = None):
+                 qrecs: Optional[Mapping[NodeId, QRec]] = None):
         self._G = G
         self._qrecs = qrecs
-        self._kernel_switch = KernelExecuter('float32')
-        self._quantized_kernel_switch = KernelExecuter('symmetric')
 
     @staticmethod
     def collect_outputs(G, saved_outputs, node):
@@ -116,25 +115,26 @@ class GraphExecuter():
             else:
                 if isinstance(node, (InputParameters, ConstantInputParameters)):
                     details = {}
-                    output = self._kernel_switch.execute(node, in_tensors,
-                                                         qrec if self._G.has_quantized_parameters else None,
-                                                         details=details)
+                    output = KernelExecuter.execute(node, in_tensors,
+                                                    None,
+                                                    details=details)
                     qdetails = {}
-                    qoutput = self._quantized_kernel_switch.execute(
+                    qoutput = KernelExecuter.execute(
                         node, in_tensors, qrec, details=qdetails)
                 else:
                     qoutput = []
                     for val_idx, val in enumerate(output):
                         qoutput.append(qrec.in_qs[val_idx].quantize(val))
                     details = {}
-                    output = self._kernel_switch.execute(node, output,
-                                                         qrec if self._G.has_quantized_parameters else None,
-                                                         details=details)
+                    output = KernelExecuter.execute(node, output,
+                                                    None,
+                                                    details=details)
                     qdetails = {}
-                    qoutput = self._quantized_kernel_switch.execute(
+                    qoutput = KernelExecuter.execute(
                         node, qoutput, qrec, details=qdetails)
 
-                qoutput = [qrec.out_qs[i].dequantize(out) for i, out in enumerate(qoutput)]
+                qoutput = [qrec.out_qs[i].dequantize(
+                    out) for i, out in enumerate(qoutput)]
 
             yield step_idx, node, output, details, qoutput, qdetails, None
             self.save_output(saved_outputs, node, output)
@@ -192,23 +192,19 @@ class GraphExecuter():
                                           for output_tensor in output_tensors]
             if isinstance(node, (FusionInputParameters, FusionOutputParameters)):
                 qrec = None
-                switch = self._kernel_switch
             else:
-                if self._qrecs:
+                if self._qrecs and qmode.get_quantized(node, step_idx):
                     if nid not in self._qrecs:
-                        LOG.warning("no quantization parameters on %s", node.name)
+                        LOG.warning(
+                            "no quantization parameters on %s", node.name)
                         qrec = None
                     else:
                         qrec = self._qrecs[nid]
-                else:
-                    qrec = None
-                if qmode.get_quantized(node, step_idx):
-                    switch = self._quantized_kernel_switch
                     if qmode.is_step and output_tensors:
                         output_tensors = [qrec.in_qs[i].quantize(
                             output_tensor) for i, output_tensor in enumerate(output_tensors)]
                 else:
-                    switch = self._kernel_switch
+                    qrec = None
 
             details = {} if yield_details and (
                 not only_yield_step or step_idx == step_idx_limit) else None
@@ -234,9 +230,11 @@ class GraphExecuter():
                     output_tensors[f_output.idx] = saved_outputs[f_output][0]
 
             elif isinstance(node, (InputParameters, FusionInputParameters)):
-                output_tensors = switch.execute(node, in_tensors, qrec, details)
+                output_tensors = KernelExecuter.execute(
+                    node, in_tensors, qrec, details)
             else:
-                output_tensors = switch.execute(node, output_tensors, qrec, details)
+                output_tensors = KernelExecuter.execute(
+                    node, output_tensors, qrec, details)
 
             if qmode.dequantize and qrec:
                 qoutput_tensors = [qrec.out_qs[i].dequantize(
@@ -310,7 +308,8 @@ class GraphExecuter():
                         })
                         fusion_details.clear()
             elif fnode is None:
-                outputs.append([output_tensor.copy() for output_tensor in qoutput])
+                outputs.append([output_tensor.copy()
+                                for output_tensor in qoutput])
                 if all_details is not None:
                     all_details.append(qdetails)
         return outputs
@@ -375,7 +374,8 @@ class GraphExecuter():
                         })
                         fusion_details.clear()
             else:
-                outputs.append([output_tensor.copy() for output_tensor in output_tensors])
+                outputs.append([output_tensor.copy()
+                                for output_tensor in output_tensors])
                 if all_details is not None:
                     all_details.append(details)
         return outputs

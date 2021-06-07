@@ -226,7 +226,7 @@ static inline void pmsis_spinlock_release(pmsis_spinlock_t *spinlock)
     restore_irq(irq_enabled);
 }
 
-#if !defined(__GAP8__)
+#if !defined(__GAP8__) && !defined(__VEGA__)
 static inline void pi_irq_handler_set(int irq, void (*handler)())
 {
     // use a wrapper to create C context

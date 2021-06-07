@@ -74,7 +74,6 @@ class OpenCommand(NNToolShellBase):
                 for k, option in HandlerOptions.get_all_handler_options().items()}
 
     def __open_graph(self, args):
-
         graph_file = os.path.expanduser(args.nnfile)
 
         _, ext = os.path.splitext(graph_file)
@@ -85,6 +84,7 @@ class OpenCommand(NNToolShellBase):
             self.load_state_file(graph_file)
         else:
             opts = self.__get_opts(args)
+            opts['anonymise'] = self.settings['anonymise']
 
             LOG.info("opening graph file %s load_quantization = %s",
                      graph_file, opts['load_quantization'])

@@ -11,6 +11,8 @@
 
 /* Tiler internal */
 
+extern int ByteConvert(int IsBit, int64_t X);
+
 extern void SetSymbolDefaultNames();
 
 extern Kernel_T *GetCurrentKernel();
@@ -53,7 +55,11 @@ extern char *StrToUpper(char *Str);
 
 extern char *FileNamePrefix(char *Name);
 
-extern int GetDynamicSymbolValue(NameT *Sym, int *Index);
+extern int GetUserSymbolValue(NameT *Sym, int *Index);
+extern UserSymbol_T *UserSymbolLookup(
+	Kernel_T *Ker,
+	NameT *Sym,
+	int *Index);
 
 extern void InitKernelIterInfos(int OldStyle);
 
@@ -74,6 +80,10 @@ extern KernelArgOneDimDescrT *ContainsTiledSpace(
 	Object_T *Obj,
 	Kernel_Arg_T *Arg,
 	KernelIteratorT *TiledSpace);
+
+extern int IterSpaceIsDefined(
+	Kernel_T *Ker,
+	KernelIteratorT ItSpace);
 
 /* Deprecated */
 extern CKernel_Arg_T *CArg(

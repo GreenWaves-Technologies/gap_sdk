@@ -47,7 +47,7 @@ public:
 
     void run();
 
-    void quit();
+    void quit(int status);
 
     int join();
 
@@ -63,9 +63,7 @@ public:
 
     inline void unlock();
 
-    inline void stop_engine(bool force = false);
-
-    inline void stop_engine(int status);
+    inline void stop_engine(int status=0, bool force = true);
 
     inline void pause();
 
@@ -154,8 +152,12 @@ protected:
 
 // This can be called from anywhere so just propagate the stop request
 // to the main python thread which will take care of stopping the engine.
-inline void vp::time_engine::stop_engine(bool force)
+inline void vp::time_engine::stop_engine(int status, bool force)
 {
+    stop_status = status;
+#ifdef __VP_USE_SYSTEMC
+    sync_event.notify();
+#endif
     if (force || !this->no_exit)
     {
         // In case the vp is connected to an external bridge, prevent the platform
@@ -166,15 +168,6 @@ inline void vp::time_engine::stop_engine(bool force)
         pthread_cond_broadcast(&cond);
         pthread_mutex_unlock(&mutex);
     }
-}
-
-inline void vp::time_engine::stop_engine(int status)
-{
-    stop_status = status;
-#ifdef __VP_USE_SYSTEMC
-    sync_event.notify();
-#endif
-    stop_engine();
 }
 
 

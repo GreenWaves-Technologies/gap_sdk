@@ -30,12 +30,16 @@ typedef struct
     uint8_t clk_polarity;
     uint8_t ws_polarity;
     int options;
-    uint64_t rx_slots_width;
-    uint64_t tx_slots_width;
+    uint64_t rx_slots_width_0;
+    uint64_t rx_slots_width_1;
+    uint64_t tx_slots_width_0;
+    uint64_t tx_slots_width_1;
     uint64_t rx_slots_format;
     uint64_t tx_slots_format;
     uint8_t  use_fast_clk;
     uint64_t fast_clk_freq;
+    uint8_t ws_delay;
+    uint8_t elem_size;
 } i2s_config_t;
 
 
@@ -55,6 +59,7 @@ typedef struct
     int random_mute;
     int ts_evt_en;
     int slot_disable;
+    int bypass;
     union
     {
         struct
@@ -124,6 +129,7 @@ typedef struct
     int mute_delay_current;
     int mute;
     int random_mute;
+    int bypass;
     int mute_ack;
     void *buffers[2];
 }
@@ -148,17 +154,23 @@ typedef struct
     uint8_t is_sai0_ws;
     uint8_t clk_polarity;
     uint8_t ws_polarity;
-    uint64_t rx_slots_width;
-    uint64_t tx_slots_width;
+    uint64_t rx_slots_width_0;
+    uint64_t rx_slots_width_1;
+    uint64_t tx_slots_width_0;
+    uint64_t tx_slots_width_1;
     uint64_t rx_slots_format;
     uint64_t tx_slots_format;
     uint8_t  use_fast_clk;
     uint64_t fast_clk_freq;
     uint32_t test_id;
     int random_mute;
+    uint32_t rx_slots_bypass;
+    uint32_t tx_slots_bypass;
     uint32_t ts_evt;
     pi_device_t * timestamp;
     uint32_t fifo_id;
+    int8_t ws_delay;
+    uint32_t incr;
 }
 i2s_test_config_t;
 
@@ -183,6 +195,7 @@ pi_device_t *i2s_init(struct pi_device *i2s, i2s_config_t *config);
 int i2s_deinit(struct pi_device *i2s, int itf);
 
 int i2s_slot_init(i2s_slot_test_t *i2s_slot, struct pi_device *i2s, i2s_slot_config_t *config);
+void i2s_slot_deinit(i2s_slot_test_t *i2s_slot);
 int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config);
 int i2s_slot_stop(i2s_slot_test_t *i2s_slot);
 void i2s_slot_end(i2s_slot_test_t *i2s_slot);

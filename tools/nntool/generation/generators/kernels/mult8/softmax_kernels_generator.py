@@ -17,7 +17,7 @@ import logging
 from generation.at_types.at_params import gen_softmax_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import SoftMaxParameters
 
 from ..autotiler_kernel import AutotilerKernel
@@ -32,21 +32,24 @@ GEN_SOFTMAX = "CNN_SoftMax_SQ8"
 #         KernelOper_T SoftMaxOper
 #         );
 
-def gen_at_softmax(code_block, name, in_dim, at_softmax_params, gen_ctrl=None, at_ver=3):
-    if gen_ctrl is None:
-        gen_ctrl = "0"
+def gen_at_softmax(code_block, name, in_dim, at_softmax_params, gen_ctrl=None, is_2d=False, axis=1, at_ver=3):
+    if is_2d:
+        code_block.write('CNN_SoftMax2D_SQ8("{}", {}, {}, {}, {});',
+                         name, gen_ctrl,
+                         in_dim.shape[axis],
+                         in_dim.size() // in_dim.shape[axis],
+                         at_softmax_params)
     else:
-        raise NotImplementedError("genctrl is not yet implemented")
-
-    code_block.write('{}("{}", {}, {}, {});',
-                     GEN_SOFTMAX, name, gen_ctrl,
-                     in_dim.size(), at_softmax_params)
+        code_block.write('CNN_SoftMax_SQ8("{}", {}, {}, {});',
+                         name, gen_ctrl,
+                         in_dim.size(), at_softmax_params)
 
 
 @generation_function("kernels", (SoftMaxParameters, ), qrec_types=(QREC_MULT8, ))
 def softmax_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
-    gen.kernels.append(SoftmaxKernel(cname, node, qrec, at_ver=gen.opts['at_ver']))
+    gen_ctrl = node.get_gen_ctrl() if node.at_options.out_8bits == 1 else None
+    gen.kernels.append(SoftmaxKernel(cname, node, qrec, gen_ctrl, at_ver=gen.opts['at_ver']))
     return True
 
 
@@ -61,6 +64,9 @@ class SoftmaxKernel(AutotilerKernel):
 
         self.at_softmax_params = gen_softmax_at_params(params)
         self.in_dim = params.in_dims[0]
+        self.softmax_axis = params.axis
+        in_size = self.in_dim.size()
+        self.softmax2d = (in_size // self.in_dim.shape[params.axis]) != 1
         self.cname = cname
         self.node_name = params.name
         self.at_ver = at_ver
@@ -75,5 +81,8 @@ class SoftmaxKernel(AutotilerKernel):
             self.gen_ctrl.gen_ctrl_decl(code_block)
 
         gen_at_softmax(code_block, self.cname, self.in_dim,
-                       self.at_softmax_params.SoftMaxOper, at_ver=self.at_ver)
+                       self.at_softmax_params.SoftMaxOper,
+                       self.gen_ctrl.ctrl_name,
+                       self.softmax2d, self.softmax_axis,
+                       at_ver=self.at_ver)
         return code_block

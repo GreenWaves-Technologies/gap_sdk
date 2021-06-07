@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.multiplicative.mult_quantization import MultAddQuantizationRecord
 from graph.types.tensor_arithmetic import MatrixSubParameters
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
 from .math_mixin import ArithmeticMixin
+from importer.tflite2.tflite_schema_head.SubOptions import SubOptions
 
 
 @tflite_op("SUB")
@@ -26,10 +26,11 @@ class Sub(ArithmeticMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        node_opts = node.get_options(SubOptions)
+        kwargs['node_opts'] = node_opts
         return super(Sub, cls)._common(node,
                                        params_class=MatrixSubParameters,
                                        constant_operation=lambda x, y: x - y,
-                                       qrec_class=MultAddQuantizationRecord,
                                        **kwargs)
 
     @classmethod

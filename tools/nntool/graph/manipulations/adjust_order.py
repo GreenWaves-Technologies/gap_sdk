@@ -15,7 +15,7 @@
 
 import logging
 
-#pylint: disable=wildcard-import
+#pylint: disable=wildcard-import, unused-wildcard-import
 from .adjusts import *
 from .adjust_base import AdjusterBase
 from .dimensions import add_dimensions
@@ -24,16 +24,16 @@ from .eliminate_transposes import eliminate_transposes
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None):
+def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None, one_cycle=False):
     opts = {'reshape_weights': reshape_weights}
     selector = AdjusterBase.get_all_handlers(opts)
     LOG.info("adding transposes to correct tensor order for AT kernels")
-    for node in [n for n in G.nodes() if n.__class__ in selector]:
+    for node in G.nodes(node_classes=tuple(selector)):
         adjuster = selector[node.__class__]
         adjuster.adjust(G, node)
     add_dimensions(G)
     if debug_function:
         debug_function(G)
     if postprocess:
-        eliminate_transposes(G, debug_function=debug_function)
+        eliminate_transposes(G, debug_function=debug_function, one_cycle=one_cycle)
         add_dimensions(G)

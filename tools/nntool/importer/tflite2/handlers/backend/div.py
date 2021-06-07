@@ -18,6 +18,7 @@ from graph.types.tensor_arithmetic import MatrixDivParameters
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
 from .math_mixin import ArithmeticMixin
+from importer.tflite2.tflite_schema_head.DivOptions import DivOptions
 
 
 @tflite_op("DIV")
@@ -25,6 +26,8 @@ class Div(ArithmeticMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        node_opts = node.get_options(DivOptions)
+        kwargs['node_opts'] = node_opts
         return super(Div, cls)._common(node,
                                        params_class=MatrixDivParameters,
                                        constant_operation=lambda x, y: x / y,

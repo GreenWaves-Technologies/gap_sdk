@@ -58,6 +58,9 @@ def create_parser():
     parser.add_argument('-d', '--dont_dump_tensors',
                         action='store_true',
                         help='don\'t dump tensors')
+    parser.add_argument('--anonymise',
+                        action='store_true',
+                        help='try to make names anonymous')
     parser.add_argument('-l', '--log_level', choices=['debug', 'info', 'warning'],
                         help='set logging level', default=None)
     parser.add_argument('-v', '--version',

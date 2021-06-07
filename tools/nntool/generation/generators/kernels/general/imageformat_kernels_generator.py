@@ -15,29 +15,29 @@
 import logging
 
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function
+from generation.generator_decorators import generation_function
 from graph.types import ImageFormatParameters
 
 from ..autotiler_kernel import AutotilerKernel
 
 LOG = logging.getLogger("nntool." + __name__)
 
-NNTOOL_KOP = {"RGB565_RGB888": "NNTOOL_KOP_RGB565",
-              "RGB888": "NNTOOL_KOP_RGB888",
-              "RGB16": "NNTOOL_KOP_RGB16",
-              "BW8": "NNTOOL_KOP_BW",
-              "BW16": "NNTOOL_KOP_BW16"}
+KOP_NORM = {"RGB565_RGB888": "KOP_NORM_RGB565",
+              "RGB888": "KOP_NORM_RGB888",
+              "RGB16": "KOP_NORM_RGB16",
+              "BW8": "KOP_NORM_BW",
+              "BW16": "KOP_NORM_BW16"}
 
 
-def gen_at_imageformat(code_block, name, in_dim, do_offset, nntool_kop):
+def gen_at_imageformat(code_block, name, in_dim, do_offset, kop_norm):
     if in_dim.has_key('w') and in_dim.has_key('h'):
         code_block.write('CNN_Norm("{}", {}, {}, {}, {});',
-                         name, in_dim.w, in_dim.h, do_offset and "1" or "0", nntool_kop)
+                         name, in_dim.w, in_dim.h, do_offset and "1" or "0", kop_norm)
     else:
         if len(in_dim.shape) > 2:
             LOG.warning(f"Input Dim has no hints -> we are assuming HxWxC order in this case -> {in_dim.shape[0]}x{in_dim.shape[1]}x{in_dim.shape[2]}, for .onnx graphs may not be the case")
         code_block.write('CNN_Norm("{}", {}, {}, {}, {});',
-                         name, in_dim.shape[1], in_dim.shape[0], do_offset and "1" or "0", nntool_kop)
+                         name, in_dim.shape[1], in_dim.shape[0], do_offset and "1" or "0", kop_norm)
 
 
 @generation_function("kernels", (ImageFormatParameters, ))
@@ -66,5 +66,5 @@ class ImageFormatKernel(AutotilerKernel):
         code_block.comment("generator for {}", self.node_name)
 
         gen_at_imageformat(code_block, self.cname, self.in_dim,
-                           self.do_offset, NNTOOL_KOP[self.in_format])
+                           self.do_offset, KOP_NORM[self.in_format])
         return code_block

@@ -18,21 +18,27 @@ from collections import Counter
 
 from graph.types.input_output import ConstantInputParameters
 
-from utils.symbolic.function_collection import FunctionCollection
-from utils.symbolic.symbol import Constant, Variable
+from utils.node_id import NodeId
+from expressions.symbolic.function_collection import FunctionCollection
+from expressions.symbolic.symbol import Constant, Variable
 
-from .fusions import FusionBase, FusionInputParameters, FusionOutputParameters
+from .base import cls_op_name
+from .fusions import (FusionBase, FusionInputParameters,
+                      FusionOutputParameters, dont_quantize_internals)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
+@dont_quantize_internals
+@cls_op_name('expression')
 class ExpressionFusionParameters(FusionBase):
-    fusion_op_name = "expression"
+    fusion_op_name = "Expression"
 
-    def __init__(self, *args, constant_inputs=None, **kwargs):
+    def __init__(self, *args, constant_inputs=None, qrecs=None, **kwargs):
         super(ExpressionFusionParameters, self).__init__(*args, **kwargs)
         self._constant_inputs = constant_inputs
-        self._input_symbols, self._output_symbols, self._func_col = self.decompose()
+        self._input_symbols, self._output_symbols, self._func_col = self.decompose(
+            qrecs=qrecs)
         self._qfunc_col = None
 
     @property
@@ -69,38 +75,55 @@ class ExpressionFusionParameters(FusionBase):
                     if isinstance(node, FusionInputParameters)])
 
     @staticmethod
-    def compose_expression(subgraph, node, inter_vars, variable=None):
+    def compose_expression(subgraph, node, inter_vars, variable=None, qrecs=None):
         # this is an assignment
         if variable:
             return (variable,
-                    ExpressionFusionParameters.compose_expression(subgraph, node, inter_vars))
+                    ExpressionFusionParameters.compose_expression(subgraph, node, inter_vars, qrecs=qrecs))
         # this node is contained in a previous expression
         if node in inter_vars:
             return inter_vars[node]
         # if it is an output then it's an assignment
         if isinstance(node, FusionOutputParameters):
             edge = subgraph.indexed_in_edges(node.name)[0]
-            return (Variable(node.name, shape=edge.from_node.out_dims[edge.from_idx].shape),
+            out_var = Variable(
+                node.name, shape=edge.from_node.out_dims[edge.from_idx].shape)
+            ExpressionFusionParameters.set_min_max(qrecs, out_var, node)
+            return (out_var,
                     ExpressionFusionParameters.compose_expression(subgraph,
                                                                   edge.from_node,
-                                                                  inter_vars))
+                                                                  inter_vars,
+                                                                  qrecs=qrecs))
         # input so variable with the same name
         if isinstance(node, FusionInputParameters):
-            return Variable(node.name, shape=node.dims.shape)
+            out_sym = Variable(node.name, shape=node.dims.shape)
         # constant so get value - it's a scalar so flatten it
-        if isinstance(node, ConstantInputParameters):
-            return Constant(node.value.flatten())
+        elif isinstance(node, ConstantInputParameters):
+            out_sym = Constant(node.value.flatten())
         # return the symbol of the current node with all its arguments in it
-        return node.EXPRESSION_OP_CLS(*(ExpressionFusionParameters.compose_expression(subgraph,
-                                                                                      edge.from_node,
-                                                                                      inter_vars)
-                                        for edge in subgraph.indexed_in_edges(node.name)),
-                                      name=node.name)
+        else:
+            out_sym = node.EXPRESSION_OP_CLS(*(ExpressionFusionParameters.compose_expression(subgraph,
+                                                                                             edge.from_node,
+                                                                                             inter_vars, qrecs=qrecs)
+                                               for edge in subgraph.indexed_in_edges(node.name)),
+                                             name=node.name)
+        ExpressionFusionParameters.set_min_max(qrecs, out_sym, node)
+        return out_sym
 
-    def decompose(self):
+    @staticmethod
+    def set_min_max(qrecs, symbol, node):
+        if not qrecs:
+            return
+        qrec = qrecs.get(NodeId(node))
+        if not qrec:
+            return
+        qtype = qrec.out_qs[0]
+        symbol.control.add_min_max(symbol, qtype.min_val, qtype.max_val)
+
+    def decompose(self, qrecs=None):
         # assumption - only single output nodes for all nodes in an expression
         intermediates = set([node for node in self.subgraph.nodes()
-                             if len(self.subgraph.out_edges(node.name)) > 1 and not isinstance(node, ConstantInputParameters)])
+                             if len(self.subgraph.out_edges(node.name)) > 1 and not isinstance(node, (ConstantInputParameters, FusionInputParameters))])
         outputs = sorted([node for node in self.subgraph.nodes()
                           if isinstance(node, FusionOutputParameters)], key=lambda x: x.idx)
         inputs = set([node for node in self.subgraph.nodes()
@@ -110,21 +133,26 @@ class ExpressionFusionParameters(FusionBase):
                  len(intermediates), len(outputs))
 
         expressions = []
-        inter_vars = {}
+        inter_vars = {node: Variable(
+            node.name, shape=node.dims.shape) for node in inputs}
         # TODO - Intermediates are not sorted here so there may be interdependences
         for node in intermediates:
             # This assumes that all contained nodes output on idx 0 which is
             # ok for now
-            variable = Variable(node.name, shape=node.out_dims[0].shape)
+            variable = Variable(
+                f'inter_{node.name}', shape=node.out_dims[0].shape)
+            self.set_min_max(qrecs, variable, node)
             expr = self.compose_expression(self.subgraph,
                                            node,
                                            inter_vars,
-                                           variable=variable)
+                                           variable=variable,
+                                           qrecs=qrecs)
             inter_vars[node] = variable
             expressions.append(expr)
 
         for node in outputs:
-            expr = self.compose_expression(self.subgraph, node, inter_vars)
+            expr = self.compose_expression(
+                self.subgraph, node, inter_vars, qrecs=qrecs)
             expressions.append(expr)
 
         # sort the inputs by idx
@@ -134,38 +162,7 @@ class ExpressionFusionParameters(FusionBase):
 
         return [node.name for node in inputs], [node.name for node in outputs], func_col
 
-    # def execute(self, input_tensors, input_symbols=None, expr_inter=None, expr_outputs=None, details=None, use_imps=True):
-    #     if input_symbols is None:
-    #         input_symbols = self._input_symbols
-    #     if expr_inter is None:
-    #         expr_inter = self._expr_inter
-    #     if expr_outputs is None:
-    #         expr_outputs = self._expr_outputs
-    #     assert len(input_tensors) == len(input_symbols)
-    #     # keep track of the symbols that need to be substituted
-    #     subs = {symbol.name: input_tensors[idx] for idx, symbol in enumerate(input_symbols)}
-    #     # execute the already ordered sub expressions
-    #     if details is not None:
-    #         detail = details.get('subexpressions')
-    #         if not detail:
-    #             detail = [{'min': float('inf'), 'max': -float('inf')} for _ in expr_inter]
-    #             details['subexpressions'] = detail
-    #     else:
-    #         detail = None
-    #     for idx, expression in enumerate(expr_inter):
-    #         subs[expression.symbol.name] = expression.execute(subs, use_imps=use_imps)
-    #         if detail:
-    #             det = detail[idx]
-    #             det['min'] = min(det['min'], np.min(subs[expression.symbol.name]))
-    #             det['max'] = max(det['max'], np.max(subs[expression.symbol.name]))
-    #             det['res'] = subs[expression.symbol.name]
-
-    #     res = []
-    #     # now execute the output expressions ordered by output idx
-    #     for expression in expr_outputs:
-    #         res.append(expression.execute(subs, use_imps=use_imps))
-    #     return res
-
     def __str__(self):
-        occurrences = Counter([node.op_name for node in self.contained_nodes()])
+        occurrences = Counter(
+            [node.op_name for node in self.contained_nodes()])
         return ", ".join(["%s: %s" % (op, cnt) for op, cnt in occurrences.items()])

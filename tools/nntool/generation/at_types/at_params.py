@@ -22,28 +22,40 @@ ActivationATParam = namedtuple('ActivationATParam', [
 
 NO_ACTIVATION = ActivationATParam(ReLUOper='KOP_NONE')
 
-def gen_activation_op(activation, force_relu=False):
+def gen_activation_op(activation, force_relu=False, asymmetric=False):
     if activation is None or activation == "none":
         aop = "KOP_NONE"
     elif activation == "relu":
-        aop = "KOP_RELU"
+        aop = "KOP_RELUM" if asymmetric else "KOP_RELU"
     elif activation == "relu6":
-        aop = "KOP_RELUN" if not force_relu else "KOP_RELU"
+        if asymmetric:
+            aop = "KOP_RELUMN" if not force_relu else "KOP_RELUM"
+        else:
+            aop = "KOP_RELUN" if not force_relu else "KOP_RELU"
     elif activation == "relun":
-        aop = "KOP_RELUN" if not force_relu else "KOP_RELU"
-    elif activation == "sigmoid" or activation == "hsigmoid":
+        if asymmetric:
+            aop = "KOP_RELUMN" if not force_relu else "KOP_RELUM"
+        else:
+            aop = "KOP_RELUN" if not force_relu else "KOP_RELU"
+    elif activation == "hsigmoid":
+        assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_HSIGMOID"
     elif activation == "swish" or activation == "hswish":
+        assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_HSWISH"
     elif activation == "leaky":
+        assert not asymmetric, 'asymmetric not supported'
         aop = "KOP_LEAKYRELU"
+    elif activation == "sigmoid":
+        assert not asymmetric, 'asymmetric not supported'
+        aop = "KOP_SIGMOID"
     else:
         raise NotImplementedError("activation type %s not implemented" % activation)
     return aop
 
-def gen_active_at_params(params, force_relu=False):
+def gen_active_at_params(params, force_relu=False, asymmetric=False):
     return ActivationATParam(
-        ReLUOper=gen_activation_op(params.activation, force_relu=force_relu)
+        ReLUOper=gen_activation_op(params.activation, force_relu=force_relu, asymmetric=asymmetric)
     )
 
 # CONV

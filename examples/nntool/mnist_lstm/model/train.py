@@ -6,13 +6,19 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
-from tensorflow.keras.layers import Dense, Input, LSTM, Cropping1D, Flatten, Lambda
+from tensorflow.keras.layers import Dense, Input, LSTM, Cropping1D, Flatten, Lambda, Bidirectional
 
 # BUILD AND TRAIN LSTM MODEL
+BIDIRECTIONAL = True
 
 inputs = Input(shape=(28, 28), name='input')
-x = LSTM(28, return_sequences=True)(inputs)
-x = LSTM(64, return_sequences=True)(x)
+
+if BIDIRECTIONAL:
+	x = Bidirectional(LSTM(20, time_major=False, return_sequences=True))(inputs)
+else:
+	x = LSTM(28, return_sequences=True)(inputs)
+	x = LSTM(64, return_sequences=True)(x)
+
 splits = Lambda(lambda x: tf.split(x, num_or_size_splits=(27, 1), axis=1))(x)
 x = Flatten()(x)
 outputs = Dense(10, activation="softmax", name='output')(x)

@@ -18,12 +18,15 @@ from functools import reduce
 from generation.at_types.at_params import NO_ACTIVATION, gen_active_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import (QREC_MULT8,
+from generation.generator_decorators import (QREC_MULT8,
                                                         generation_function)
 from graph.types import ActivationFusion, GlobalPoolParameters
 from utils.largest_factor import balanced_divisors
 
-from ..autotiler_kernel import AutotilerKernel
+from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
+                                gen_includes, gen_sources,
+                                kernel_include_paths, kernel_includes,
+                                kernel_sources)
 from ..pow2.global_pool_kernels_generator import gen_globalpool_at_params
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -39,7 +42,8 @@ def global_pool_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
                 node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
             return True
         return False
-    gen.kernels.append(GlobalPoolKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
+    gen.kernels.append(GlobalPoolKernel(node.name, cname, node,
+                                        None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
 
@@ -50,6 +54,21 @@ def gen_cnn_globalpool_sq8(code_block, cname, ctrl, feat, width, height, poolope
                                                                                    actoper))
 
 
+@kernel_sources(
+    '$(TILER_CNN_KERNEL_PATH_SQ8)/CNN_Pooling_SQ8.c')
+@kernel_include_paths(
+    '$(TILER_CNN_KERNEL_PATH)',
+    '$(TILER_CNN_KERNEL_PATH_SQ8)')
+@kernel_includes(
+    'CNN_BasicKernels_SQ8.h')
+@gen_sources(
+    '$(TILER_CNN_GENERATOR_PATH)/CNN_Generator_Util.c',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)/CNN_Generators_SQ8.c')
+@gen_include_paths(
+    '$(TILER_CNN_GENERATOR_PATH)',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)')
+@gen_includes(
+    'CNN_Generators_SQ8.h')
 class GlobalPoolKernel(AutotilerKernel):
     def __init__(self, node_name, cname, pool_params, act_params, gen_ctrl=None, at_ver=3, force_relu=True):
         if gen_ctrl is None:
@@ -59,7 +78,8 @@ class GlobalPoolKernel(AutotilerKernel):
             self.gen_ctrl = gen_ctrl
 
         if act_params is not None:
-            self.at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
+            self.at_act_params = gen_active_at_params(
+                act_params, force_relu=force_relu)
         else:
             self.at_act_params = NO_ACTIVATION
 

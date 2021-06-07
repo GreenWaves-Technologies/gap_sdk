@@ -15,14 +15,11 @@
 
 import numpy as np
 from graph.dim import Conv2DFilterDim, DilationDim, Dim, StrideDim
-from graph.types.base import NNEdge
-from graph.types.conv2d import Conv2DParameters
-from graph.types.input_output import ConstantInputParameters
+from graph.types import ConstantInputParameters, Conv2DParameters, NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import LOG
 from importer.tflite2.common.tflite_node import TFLiteNode
 from importer.tflite2.tflite_schema_head.Conv2DOptions import Conv2DOptions
-from utils.sparse_list import SparseList
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -42,6 +39,7 @@ class Conv2D(FilterMixin, BackendHandler):
         inputs = [all_nodes[t] for t in node.input]
 
         x = inputs[0]
+        x = cls.remove_known_batch_dimension(G, x, node)
         x_shape = x[2].shape
         in_b, h, w, in_c = tuple(x_shape)
 
@@ -71,36 +69,34 @@ class Conv2D(FilterMixin, BackendHandler):
             bias_node = ConstantInputParameters(f'{node.name}_bias',
                                                 dims=Dim.unnamed([filt_out_c]),
                                                 value=np.zeros([filt_out_c], dtype=np.float32))  # TODO - check
-
+        groups = in_c // filt_in_c
         params = Conv2DParameters(node.name,
                                   filt=filt_dim,
-                                  stride=StrideDim(node_opts.StrideH(), node_opts.StrideW()),
+                                  stride=StrideDim(
+                                      node_opts.StrideH(), node_opts.StrideW()),
                                   dilation=DilationDim(node_opts.DilationHFactor(),
                                                        node_opts.DilationWFactor()),
+                                  groups=groups,
                                   padding=pad,
                                   has_bias=True,
-                                  in_dims_hint=SparseList(
-                                      [['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy(), ['out_c']]),
-                                  out_dims_hint=SparseList([['h', 'w', 'c']]),
+                                  in_dims_hint=[['h', 'w', 'c'], cls.TF_LITE_FILTER_ORDER.copy(), [
+                                      'out_c']],
+                                  out_dims_hint=[['h', 'w', 'c']],
                                   constant_store=G.constant_store)
+
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
         G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
-        cls.new_load_filter_parameters(G, params, node.input[0], weights_node, bias_node, node.output[0], opts)
-        # if opts.get('load_dequantized'):
-        #     weights_node.value, bias_node.value = cls.load_dequantized_filter_parameters(
-        #         node.input, bias_node.value)
-        # else:
-        #     qrec, weights_node.value, bias_node.value = cls.load_filter_parameters(G, params, node.input, bias_node.value,
-        #                                                                            node.output, opts)
-        #     if qrec:
-        #         G.quantization[NodeId(weights_node)].out_qs[0] = qrec.in_qs[1]
-        #         G.quantization[NodeId(bias_node)].out_qs[0] = qrec.in_qs[2]
+        cls.new_load_filter_parameters(
+            G, params, params.filter.actual_shape, params.filter.get_order_idx(
+                'out_c'),
+            node.input[0], weights_node, bias_node, node.output[0], opts)
 
         in_dim = Dim.named_ordered(h=h, w=w, c=in_c)
         out_dims = params.get_output_size(
             [in_dim, Dim.unnamed(filt_dim.shape), Dim.unnamed([filt_out_c])])
-        pout_dims = ProvisionalDim([in_b] + out_dims[0].shape)
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        params = cls.fuse_activation(node_opts, node.name, params, **kwargs)
-        all_nodes[node.output[0]] = (params, 0, pout_dims)
+        pout_dims = ProvisionalDim([None] + out_dims[0].shape)
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        oparams = cls.fuse_activation(node_opts, node.name, params, **kwargs)
+        all_nodes[node.output[0]] = (oparams, 0, pout_dims)
         return params

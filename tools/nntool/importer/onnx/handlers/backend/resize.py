@@ -46,14 +46,17 @@ class Resize(ConstantMixin, BackendHandler):
         in_c = x_shape[1]
         in_w = x_shape[-1]
         if scales is not None:
-            sizes = np.array(x_shape) * np.array(scales)
-        sizes = [None if x_shape[idx] is None else dim
-                 for idx, dim in enumerate(sizes)]
+            sizes = [int(shape * scale) if shape is not None else None
+                     for shape, scale in zip(x_shape, scales)]
+        else:
+            sizes = [None if x_shape[idx] is None else dim
+                    for idx, dim in enumerate(sizes)]
         if spatial_size == 1:
             sizes.insert(-1, 1)
 
         if nearest_mode != 'round_prefer_ceil':
-            logger.warning('only round_prefer_ceil is supported for nearest mode')
+            logger.warning(
+                'only round_prefer_ceil is supported for nearest mode')
 
         if spatial_size != 2 and spatial_size != 1:
             raise ValueError('resize only supports 4D tensor in NCHW mode or 3D tensor in NCF mode'
@@ -81,16 +84,21 @@ class Resize(ConstantMixin, BackendHandler):
                                           old_shape=Dim.unnamed([in_c, in_w]),
                                           shape=Dim.unnamed([in_c, 1, in_w]))
             r2_params = ReshapeParameters(f'{valid_name}_reshape1d',
-                                          old_shape=Dim.unnamed([in_c, 1, sizes[-1]]),
+                                          old_shape=Dim.unnamed(
+                                              [in_c, 1, sizes[-1]]),
                                           shape=Dim.unnamed([in_c, sizes[-1]]))
-            G.add_edge(NNEdge(from_node=x[0], to_node=r1_params, from_idx=x[1], to_idx=0))
-            G.add_edge(NNEdge(from_node=r1_params, to_node=params, from_idx=0, to_idx=0))
-            G.add_edge(NNEdge(from_node=params, to_node=r2_params, from_idx=0, to_idx=0))
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=r1_params, from_idx=x[1], to_idx=0))
+            G.add_edge(NNEdge(from_node=r1_params,
+                              to_node=params, from_idx=0, to_idx=0))
+            G.add_edge(NNEdge(from_node=params,
+                              to_node=r2_params, from_idx=0, to_idx=0))
             pout_dims = ProvisionalDim(sizes[:-2:] + sizes[-1::])
             params = r2_params
         else:
             pout_dims = ProvisionalDim(sizes)
-            G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+            G.add_edge(
+                NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
 
         all_nodes[node.output[0]] = (params, 0, pout_dims)
         return params
@@ -108,9 +116,11 @@ class Resize(ConstantMixin, BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
         nearest_mode = node.attrs.get('nearest_mode', 'round_prefer_floor')
-        coord_transmode = node.attrs.get('coordinate_transformation_mode', 'half_pixel')
+        coord_transmode = node.attrs.get(
+            'coordinate_transformation_mode', 'half_pixel')
         if coord_transmode != 'align_corners':
-            logger.warning('only align_corners is supported as coordinate_transformation_mode')
+            logger.warning(
+                'only align_corners is supported as coordinate_transformation_mode')
 
         scales_inp = inputs[2]
         scales_shape = scales_inp[2].shape if scales_inp else None
@@ -121,7 +131,8 @@ class Resize(ConstantMixin, BackendHandler):
             sizes_inp = inputs[2]
             sizes_shape = sizes_inp[2].shape if sizes_inp else None
             if not sizes_inp or len(sizes_shape) < 1 or sizes_shape[0] == len(x_shape):
-                raise ValueError('neither sizes nor scales input is valid for reshape')
+                raise ValueError(
+                    'neither sizes nor scales input is valid for reshape')
             sizes = cls.get_constant(inputs[3])
             return cls._common(node, None, sizes, nearest_mode=nearest_mode, **kwargs)
 

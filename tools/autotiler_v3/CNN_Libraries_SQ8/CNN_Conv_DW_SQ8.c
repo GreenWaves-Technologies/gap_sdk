@@ -2,6 +2,8 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
 

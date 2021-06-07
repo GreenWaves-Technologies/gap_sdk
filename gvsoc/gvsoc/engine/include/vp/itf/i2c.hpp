@@ -33,13 +33,11 @@ namespace vp {
 
 
   typedef void (i2c_sync_meth_t)(void *, int scl, int sda);
-  typedef void (i2c_sync_cycle_meth_t)(void *, int sda);
-
   typedef void (i2c_sync_meth_muxed_t)(void *, int scl, int sda, int id);
-  typedef void (i2c_sync_cycle_meth_muxed_t)(void *, int sda, int id);
+  typedef void (i2c_sync_meth_demuxed_t)(void *, int scl, int sda, int id);
 
-  typedef void (i2c_slave_sync_meth_t)(void *, int sda);
-  typedef void (i2c_slave_sync_meth_muxed_t)(void *, int sda, int id);
+  typedef void (i2c_slave_sync_meth_t)(void *, int scl, int sda);
+  typedef void (i2c_slave_sync_meth_muxed_t)(void *, int scl, int sda, int id);
 
 
 
@@ -56,11 +54,6 @@ namespace vp {
       return sync_meth(this->get_remote_context(), scl, sda);
     }
 
-    inline void sync_cycle(int sda)
-    {
-      return sync_cycle_meth(this->get_remote_context(), sda);
-    }
-
     void bind_to(vp::port *port, vp::config *config);
 
     inline void set_sync_meth(i2c_slave_sync_meth_t *meth);
@@ -72,17 +65,14 @@ namespace vp {
   private:
 
     static inline void sync_muxed_stub(i2c_master *_this, int scl, int sda);
-    static inline void sync_cycle_muxed_stub(i2c_master *_this, int sda);
 
-    void (*slave_sync)(void *comp, int sda);
-    void (*slave_sync_mux)(void *comp, int sda, int id);
+    void (*slave_sync)(void *comp, int scl, int sda);
+    void (*slave_sync_mux)(void *comp, int scl, int sda, int id);
 
     void (*sync_meth)(void *, int scl, int sda);
     void (*sync_meth_mux)(void *, int scl, int sda, int mux);
-    void (*sync_cycle_meth)(void *, int sda);
-    void (*sync_cycle_meth_mux)(void *, int sda, int mux);
 
-    static inline void sync_default(void *, int sda);
+    static inline void sync_default(void *, int scl, int sda);
 
 
     vp::component *comp_mux;
@@ -103,40 +93,34 @@ namespace vp {
 
     inline i2c_slave();
 
-    inline void sync(int sda)
+    inline void sync(int scl, int sda)
     {
-      slave_sync_meth(this->get_remote_context(), sda);
+      slave_sync_meth(this->get_remote_context(), scl, sda);
     }
 
     inline void set_sync_meth(i2c_sync_meth_t *meth);
     inline void set_sync_meth_muxed(i2c_sync_meth_muxed_t *meth, int id);
-
-    inline void set_sync_cycle_meth(i2c_sync_cycle_meth_t *meth);
-    inline void set_sync_cycle_meth_muxed(i2c_sync_cycle_meth_muxed_t *meth, int id);
+    inline void set_sync_meth_demuxed(i2c_sync_meth_demuxed_t *meth);
 
     inline void bind_to(vp::port *_port, vp::config *config);
 
   private:
 
-    static inline void sync_muxed_stub(i2c_slave *_this, int sda);
+    static inline void sync_muxed_stub(i2c_slave *_this, int scl, int sda);
 
 
-    void (*slave_sync_meth)(void *, int sda);
-    void (*slave_sync_meth_mux)(void *, int sda, int mux);
+    void (*slave_sync_meth)(void *, int scl, int sda);
+    void (*slave_sync_meth_mux)(void *, int scl, int sda, int mux);
 
     void (*sync_meth)(void *comp, int scl, int sda);
     void (*sync_mux_meth)(void *comp, int scl, int sda, int mux);
-    void (*sync_cycle_meth)(void *comp, int sda);
-    void (*sync_cycle_mux_meth)(void *comp, int sda, int mux);
 
     static inline void sync_default(i2c_slave *, int scl, int sda);
-    static inline void sync_cycle_default(i2c_slave *, int sda);
 
     vp::component *comp_mux;
     int sync_mux;
     int mux_id;
-
-
+    int demux_id;
   };
 
 
@@ -154,11 +138,6 @@ namespace vp {
 
 
 
-  inline void i2c_master::sync_cycle_muxed_stub(i2c_master *_this, int sda)
-  {
-    return _this->sync_cycle_meth_mux(_this->comp_mux, sda, _this->sync_mux);
-  }
-
 
 
   inline void i2c_master::bind_to(vp::port *_port, vp::config *config)
@@ -167,20 +146,25 @@ namespace vp {
     if (port->sync_mux_meth == NULL)
     {
       sync_meth = port->sync_meth;
-      sync_cycle_meth = port->sync_cycle_meth;
       this->set_remote_context(port->get_context());
     }
     else
     {
       sync_meth_mux = port->sync_mux_meth;
-      sync_meth = (i2c_sync_meth_t *)&i2c_master::sync_muxed_stub;
-
-      sync_cycle_meth_mux = port->sync_cycle_mux_meth;
-      sync_cycle_meth = (i2c_sync_cycle_meth_t *)&i2c_master::sync_cycle_muxed_stub;
-
       this->set_remote_context(this);
       comp_mux = (vp::component *)port->get_context();
-      sync_mux = port->mux_id;
+      sync_meth = (i2c_sync_meth_t *)&i2c_master::sync_muxed_stub;
+      if (port->demux_id >= 0)
+      {
+        sync_mux = port->demux_id;
+        port->demux_id++;
+      }
+      else
+      {
+        this->set_remote_context(this);
+        comp_mux = (vp::component *)port->get_context();
+        sync_mux = port->mux_id;
+      }
     }
   }
 
@@ -196,13 +180,13 @@ namespace vp {
     mux_id = id;
   }
 
-  inline void i2c_master::sync_default(void *, int sda)
+  inline void i2c_master::sync_default(void *, int scl, int sda)
   {
   }
 
-  inline void i2c_slave::sync_muxed_stub(i2c_slave *_this, int sda)
+  inline void i2c_slave::sync_muxed_stub(i2c_slave *_this, int scl, int sda)
   {
-    return _this->slave_sync_meth_mux(_this->comp_mux, sda, _this->sync_mux);
+    return _this->slave_sync_meth_mux(_this->comp_mux, scl, sda, _this->sync_mux);
   }
 
   inline void i2c_slave::bind_to(vp::port *_port, vp::config *config)
@@ -218,7 +202,7 @@ namespace vp {
     else
     {
       this->slave_sync_meth_mux = port->slave_sync_mux;
-      this->slave_sync_meth = (i2c_sync_cycle_meth_t *)&i2c_slave::sync_muxed_stub;
+      this->slave_sync_meth = (i2c_sync_meth_t *)&i2c_slave::sync_muxed_stub;
 
       set_remote_context(this);
       comp_mux = (vp::component *)port->get_context();
@@ -228,19 +212,13 @@ namespace vp {
 
   inline i2c_slave::i2c_slave() : sync_meth(NULL), sync_mux_meth(NULL) {
     sync_meth = (i2c_sync_meth_t *)&i2c_slave::sync_default;
-    sync_cycle_meth = (i2c_sync_cycle_meth_t *)&i2c_slave::sync_cycle_default;
+    demux_id = -1;
   }
 
   inline void i2c_slave::set_sync_meth(i2c_sync_meth_t *meth)
   {
     sync_meth = meth;
     sync_mux_meth = NULL;
-  }
-
-  inline void i2c_slave::set_sync_cycle_meth(i2c_sync_cycle_meth_t *meth)
-  {
-    sync_cycle_meth = meth;
-    sync_cycle_mux_meth = NULL;
   }
 
   inline void i2c_slave::set_sync_meth_muxed(i2c_sync_meth_muxed_t *meth, int id)
@@ -250,18 +228,14 @@ namespace vp {
     mux_id = id;
   }
 
-  inline void i2c_slave::set_sync_cycle_meth_muxed(i2c_sync_cycle_meth_muxed_t *meth, int id)
+  inline void i2c_slave::set_sync_meth_demuxed(i2c_sync_meth_muxed_t *meth)
   {
-    sync_cycle_mux_meth = meth;
-    sync_cycle_meth = NULL;
-    mux_id = id;
+    sync_mux_meth = meth;
+    sync_meth = NULL;
+    demux_id = 0;
   }
 
   inline void i2c_slave::sync_default(i2c_slave *, int scl, int sda)
-  {
-  }
-
-  inline void i2c_slave::sync_cycle_default(i2c_slave *, int sda)
   {
   }
 

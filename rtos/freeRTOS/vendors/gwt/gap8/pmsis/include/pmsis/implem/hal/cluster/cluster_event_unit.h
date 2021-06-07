@@ -51,14 +51,13 @@
  * \return               The loaded value, after the core has been waken-up.
  *                       This value depends on the feature which is accessed.
  */
-static inline uint32_t hal_eu_read32(uint32_t base, uint32_t offset)
-{
-    uint32_t value = 0;
-    hal_compiler_barrier();
-    value = __builtin_pulp_event_unit_read((void *) base, offset);
-    hal_compiler_barrier();
-    return value;
-}
+//static inline uint32_t hal_eu_read32(uint32_t base, uint32_t offset)
+#define hal_eu_read32(base, offset)                                     \
+    ({                                                                  \
+        uint32_t value = 0;                                             \
+        value = __builtin_pulp_event_unit_read_fenced((void *) base, offset); \
+        value;                                                          \
+    })
 
 
 /**
@@ -311,48 +310,52 @@ static inline void hal_cl_eu_glob_sw_trig(uint32_t cluster_id, uint32_t sw_event
  * Trigger barrier with core_id of core calling func and sleep.
  * Trigger barrier with core_id of core calling func and sleep and clear buffer.
  */
-static inline void hal_cl_eu_barrier_setup(uint32_t barrier_id, uint32_t core_mask)
+static inline uint32_t hal_cl_eu_barrier_addr_get(uint32_t barrier_id)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK), core_mask);
-    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TARGET_MASK), core_mask);
+    return (uint32_t) cl_demux_eu_barrier(barrier_id);
 }
 
-static inline uint32_t hal_cl_eu_barrier_team_get(uint32_t barrier_id)
+static inline uint32_t hal_cl_eu_barrier_id_get(uint32_t bar_addr)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    uint32_t team_mask = hal_read32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK));
+    return CL_DEMUX_EU_HW_BARRIER_ID_GET(bar_addr);
+}
+
+static inline void hal_cl_eu_barrier_setup(uint32_t barrier, uint32_t core_mask)
+{
+    hal_write32((volatile void *) (barrier + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK), core_mask);
+    hal_write32((volatile void *) (barrier + CL_DEMUX_EU_HW_BARRIER_TARGET_MASK), core_mask);
+}
+
+static inline uint32_t hal_cl_eu_barrier_team_get(uint32_t barrier)
+{
+    uint32_t team_mask = hal_read32((volatile void *) (barrier + CL_DEMUX_EU_HW_BARRIER_TRIGGER_MASK));
     return team_mask;
 }
 
-static inline uint32_t hal_cl_eu_barrier_status(uint32_t barrier_id)
+static inline uint32_t hal_cl_eu_barrier_status(uint32_t barrier)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    return hal_eu_read32(base, CL_DEMUX_EU_HW_BARRIER_STATUS);
+    return hal_eu_read32(barrier, CL_DEMUX_EU_HW_BARRIER_STATUS);
 }
 
-static inline void hal_cl_eu_barrier_trigger(uint32_t barrier_id, uint32_t core_mask)
+static inline void hal_cl_eu_barrier_trigger(uint32_t barrier, uint32_t core_mask)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    hal_write32((volatile void *) (base + CL_DEMUX_EU_HW_BARRIER_TRIGGER), core_mask);
+    hal_write32((volatile void *) (barrier + CL_DEMUX_EU_HW_BARRIER_TRIGGER), core_mask);
 }
 
-static inline uint32_t hal_cl_eu_barrier_trigger_self(uint32_t barrier_id)
+static inline uint32_t hal_cl_eu_barrier_trigger_self(uint32_t barrier)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    return hal_eu_read32(base, CL_DEMUX_EU_HW_BARRIER_TRIGGER_SELF);
+    return hal_eu_read32(barrier, CL_DEMUX_EU_HW_BARRIER_TRIGGER_SELF);
 }
 
-static inline uint32_t hal_cl_eu_barrier_trigger_wait(uint32_t barrier_id)
+static inline uint32_t hal_cl_eu_barrier_trigger_wait(uint32_t barrier)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    return hal_eu_read32(base, CL_DEMUX_EU_HW_BARRIER_TRIGGER_WAIT);
+    return hal_eu_read32(barrier, CL_DEMUX_EU_HW_BARRIER_TRIGGER_WAIT);
 }
 
-static inline uint32_t hal_cl_eu_barrier_trigger_wait_clear(uint32_t barrier_id)
+static inline uint32_t hal_cl_eu_barrier_trigger_wait_clear(uint32_t barrier)
 {
-    uint32_t base = (uint32_t) cl_demux_eu_barrier(barrier_id);
-    return hal_eu_read32(base, CL_DEMUX_EU_HW_BARRIER_TRIGGER_WAIT_CLEAR);
+    return hal_eu_read32(barrier, CL_DEMUX_EU_HW_BARRIER_TRIGGER_WAIT_CLEAR);
 }
+
 
 #endif  /* __PMSIS_IMPLEM_HAL_CLUSTER_CLUSTER_EVENT_UNIT_H__ */

@@ -56,7 +56,7 @@ void SwapSamples_scal( SwapSamples_scal_Arg_T *Arg)
   int i;
   
   cmplx *__restrict__ Datav = (cmplx *) Arg->Data;
-  signed char *scale = (signed char*) Arg->shift_BF;
+  signed char *scale = (signed char*) Arg->shift_fft;
   short *__restrict__ SwapTable = Arg->SwapTable;
   int Ni = Arg->Ni;
 
@@ -95,43 +95,43 @@ void SwapSamples_scal( SwapSamples_scal_Arg_T *Arg)
   #endif
 }
 
+void SwapSamples_Par_Fix32( FFT_SwapSamples_T *Arg)
+{
+  int i;
+  
+  cmplx *__restrict__ Datav = (cmplx *) Arg->Data;
+  short *__restrict__ SwapTable = Arg->SwapTable;
+  int Ni = Arg->Ni;
 
-/*
-void SwapSamples_Par(SwapSamples_Arg_T *Arg)
-  {
-    TYPE_GENERIC *__restrict__ Data = (TYPE_GENERIC *) Arg->Data;
-    short *__restrict__ SwapTable = Arg->SwapTable;
-    int Ni = Arg->Ni;
-    int i;
-    unsigned int CoreId;
-    int First, Last, Chunk;
+  unsigned int CoreId;
+  int First, Last, Chunk;
 
-    CoreId = gap_coreid();
+  CoreId = gap_coreid();
 
-    Chunk = ChunkSize(Ni); First =  CoreId*Chunk; Last = Min(First+Chunk, Ni);
-    // for (i = 0; i < Ni; i++) {
-    for (i = First; i < Last; i++) {
-      int SwapIndex = SwapTable[i];
-      if (i < SwapIndex) {
-        TYPE_GENERIC S = Data[i];
-        Data[i] = Data[SwapIndex]; Data[SwapIndex] = S;
-      }
+  Chunk = ChunkSize(Ni); First =  CoreId*Chunk; Last = Min(First+Chunk, Ni);
+  
+  for (i = First; i < Last; i++) {
+    cmplx S =  Datav[i];
+    int SwapIndex = SwapTable[i];
+    if (i < SwapIndex) {
+        Datav[i] = Datav[SwapIndex]; Datav[SwapIndex] = S;
     }
-    // Synchronize all cores for current layer of the trellis
-    gap_waitbarrier(0);
-
-    #ifdef PRINTDEB
-      if (CoreId==0){
-        printf("\nout_swapped_fft = np.array([\n\t");
-        for (int j=0; j<Ni; j++) {
-          if (Data[j][1]<0) printf("%d%dj, ",  Data[j][0], Data[j][1]);
-          else              printf("%d+%dj, ", Data[j][0], Data[j][1]);
-        }
-        printf("])\n");
-      }
-    #endif
   }
-*/
+
+  gap_waitbarrier(0);
+
+  #ifdef PRINTDEB
+    if (CoreId==0) {
+      printf("\nout_swapped_fft = np.array([\n\t");
+      for (int j=0; j<Ni; j++) {
+        if (Datav[j][1]<0) printf("%d%dj, ",  Datav[j][0], Datav[j][1]);
+        else               printf("%d+%dj, ", Datav[j][0], Datav[j][1]);
+      }
+      printf("])\n");
+    }
+    gap_waitbarrier(0);
+  #endif
+}
 
 static void Radix4FFTKernel_Twiddle0(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD, int Inverse)
 
@@ -370,6 +370,173 @@ static void Radix4FFTKernelDIF(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOut
         *InOutA = A1; *InOutB = B1; *InOutC = C1; *InOutD = D1;
 }
 
+static void Radix4FFTKernelDIF_NoScale(v2s *InOutA, v2s *InOutB, v2s *InOutC, v2s *InOutD,
+    v2s W1, v2s W2, v2s W3, unsigned int Inverse)
+
+{
+  v2s A1, B1, C1, D1;
+  v2s A = *InOutA, B = *InOutB, C = *InOutC, D = *InOutD;
+
+  if (Inverse) {
+    A1 = ((A + C) +               (B + D));
+    B1 = ((A - C) - gap_sub2rotmj(B,  D));
+    C1 = ((A + C) -               (B + D));
+    D1 = ((A - C) + gap_sub2rotmj(B,  D));
+  } else {
+    A1 = ((A + C) +               (B + D));
+    B1 = ((A - C) + gap_sub2rotmj(B,  D));
+    C1 = ((A + C) -               (B + D));
+    D1 = ((A - C) - gap_sub2rotmj(B,  D));
+  }
+
+  B1 = gap_cplxmuls(B1, W1); C1 = gap_cplxmuls(C1, W2); D1 = gap_cplxmuls(D1, W3);
+  *InOutA = A1; *InOutB = B1; *InOutC = C1; *InOutD = D1;
+}
+
+static void Radix4FFTKernelDIF_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
+                                     short int W1r, short int W1i, short int W2r, short int W2i, short int W3r, short int W3i, unsigned int Inverse)
+
+{
+        int Ar = InOutA[0];
+        int Ai = InOutA[1];
+        int Br = InOutB[0];
+        int Bi = InOutB[1];
+        int Cr = InOutC[0];
+        int Ci = InOutC[1];
+        int Dr = InOutD[0];
+        int Di = InOutD[1];
+
+        int A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
+        int Tmp; //B2r, B2i, D2r, D2i,
+
+        // B2r = Bi; B2i = -Br;
+        // D2r = Di; D2i = -Dr;
+
+        if (Inverse) {
+                A1r = ((Ar + Cr) + (Br  +  Dr));
+                A1i = ((Ai + Ci) + (Bi  +  Di));
+                B1r = ((Ar - Cr) - (Bi  -  Di));
+                B1i = ((Ai - Ci) + (Br  -  Dr));
+                C1r = ((Ar + Cr) - (Br  +  Dr));
+                C1i = ((Ai + Ci) - (Bi  +  Di));
+                D1r = ((Ar - Cr) + (Bi  -  Di));
+                D1i = ((Ai - Ci) - (Br  -  Dr));
+        } else {
+                A1r = ((Ar + Cr) + (Br  +  Dr));
+                A1i = ((Ai + Ci) + (Bi  +  Di));
+                B1r = ((Ar - Cr) + (Bi  -  Di));
+                B1i = ((Ai - Ci) - (Br  -  Dr));
+                C1r = ((Ar + Cr) - (Br  +  Dr));
+                C1i = ((Ai + Ci) - (Bi  +  Di));
+                D1r = ((Ar - Cr) - (Bi  -  Di));
+                D1i = ((Ai - Ci) + (Br  -  Dr));
+        }
+
+        Tmp = B1r >> FFT4_SCALEDOWN; B1r = (((B1r*W1r)>>15) - ((B1i*W1i)>>15)) >> FFT4_SCALEDOWN; B1i = (((Tmp*W1i)>>15) + ((B1i*W1r)>>15)) >> FFT4_SCALEDOWN;
+        Tmp = C1r >> FFT4_SCALEDOWN; C1r = (((C1r*W2r)>>15) - ((C1i*W2i)>>15)) >> FFT4_SCALEDOWN; C1i = (((Tmp*W2i)>>15) + ((C1i*W2r)>>15)) >> FFT4_SCALEDOWN;
+        Tmp = D1r >> FFT4_SCALEDOWN; D1r = (((D1r*W3r)>>15) - ((D1i*W3i)>>15)) >> FFT4_SCALEDOWN; D1i = (((Tmp*W3i)>>15) + ((D1i*W3r)>>15)) >> FFT4_SCALEDOWN;
+
+        InOutA[0] = A1r;
+        InOutA[1] = A1i;
+        InOutB[0] = B1r;
+        InOutB[1] = B1i;
+        InOutC[0] = C1r;
+        InOutC[1] = C1i;
+        InOutD[0] = D1r;
+        InOutD[1] = D1i;
+
+}
+static void Radix4FFTKernelDIF_Fix32_NoScale(int *InOutA, int *InOutB, int *InOutC, int *InOutD,
+                                             short int W1r, short int W1i, short int W2r, short int W2i, short int W3r, short int W3i, unsigned int Inverse)
+
+{
+        int Ar = InOutA[0];
+        int Ai = InOutA[1];
+        int Br = InOutB[0];
+        int Bi = InOutB[1];
+        int Cr = InOutC[0];
+        int Ci = InOutC[1];
+        int Dr = InOutD[0];
+        int Di = InOutD[1];
+
+        int A1r, A1i, B1r, B1i, C1r, C1i, D1r, D1i;
+        int Tmp; //B2r, B2i, D2r, D2i,
+
+        // B2r = Bi; B2i = -Br;
+        // D2r = Di; D2i = -Dr;
+
+        if (Inverse) {
+                A1r = ((Ar + Cr) + (Br  +  Dr));
+                A1i = ((Ai + Ci) + (Bi  +  Di));
+                B1r = ((Ar - Cr) - (Bi  -  Di));
+                B1i = ((Ai - Ci) + (Br  -  Dr));
+                C1r = ((Ar + Cr) - (Br  +  Dr));
+                C1i = ((Ai + Ci) - (Bi  +  Di));
+                D1r = ((Ar - Cr) + (Bi  -  Di));
+                D1i = ((Ai - Ci) - (Br  -  Dr));
+        } else {
+                A1r = ((Ar + Cr) + (Br  +  Dr));
+                A1i = ((Ai + Ci) + (Bi  +  Di));
+                B1r = ((Ar - Cr) + (Bi  -  Di));
+                B1i = ((Ai - Ci) - (Br  -  Dr));
+                C1r = ((Ar + Cr) - (Br  +  Dr));
+                C1i = ((Ai + Ci) - (Bi  +  Di));
+                D1r = ((Ar - Cr) - (Bi  -  Di));
+                D1i = ((Ai - Ci) + (Br  -  Dr));
+        }
+
+        Tmp = B1r; B1r = (((B1r*W1r)>>15) - ((B1i*W1i)>>15)); B1i = (((Tmp*W1i)>>15) + ((B1i*W1r)>>15));
+        Tmp = C1r; C1r = (((C1r*W2r)>>15) - ((C1i*W2i)>>15)); C1i = (((Tmp*W2i)>>15) + ((C1i*W2r)>>15));
+        Tmp = D1r; D1r = (((D1r*W3r)>>15) - ((D1i*W3i)>>15)); D1i = (((Tmp*W3i)>>15) + ((D1i*W3r)>>15));
+
+        InOutA[0] = A1r;
+        InOutA[1] = A1i;
+        InOutB[0] = B1r;
+        InOutB[1] = B1i;
+        InOutC[0] = C1r;
+        InOutC[1] = C1i;
+        InOutD[0] = D1r;
+        InOutD[1] = D1i;
+}
+static void Radix4FFTKernel_Twiddle0_Fix32(int *InOutA, int *InOutB, int *InOutC, int *InOutD, unsigned int Inverse)
+
+{
+        int Ar = InOutA[0];
+        int Ai = InOutA[1];
+        int Br = InOutB[0];
+        int Bi = InOutB[1];
+        int Cr = InOutC[0];
+        int Ci = InOutC[1];
+        int Dr = InOutD[0];
+        int Di = InOutD[1];
+
+        int B1r, D1r;
+        int B1i, D1i;
+
+        B1r = Bi; B1i = -Br;
+        D1r = Di; D1i = -Dr;
+
+        if (Inverse) {
+                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
+                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
+                InOutB[0] = ((Ar - Cr) - (B1r - D1r));
+                InOutB[1] = ((Ai - Ci) - (B1i - D1i));
+                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
+                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
+                InOutD[0] = ((Ar - Cr) + (B1r - D1r));
+                InOutD[1] = ((Ai - Ci) + (B1i - D1i));
+        } else {
+                InOutA[0] = ((Ar + Cr) + (Br  + Dr ));
+                InOutA[1] = ((Ai + Ci) + (Bi  + Di ));
+                InOutB[0] = ((Ar - Cr) + (B1r - D1r));
+                InOutB[1] = ((Ai - Ci) + (B1i - D1i));
+                InOutC[0] = ((Ar + Cr) - (Br  + Dr ));
+                InOutC[1] = ((Ai + Ci) - (Bi  + Di ));
+                InOutD[0] = ((Ar - Cr) - (B1r - D1r));
+                InOutD[1] = ((Ai - Ci) - (B1i - D1i));
+        }
+}
+
 /*
   Radix 4, Decimated in Frequency, fft. Sequential implementation.
   Input are natural order, output is digitally-reversed.
@@ -428,7 +595,7 @@ void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
 */
 
 // void Radix4FFT_DIF_Par(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, unsigned int N_fft)
-void Radix4FFT_DIF_Par(FFT_Arg_T *Arg)
+void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
 
 {
         signed short *__restrict__ Data = (signed short *__restrict__) Arg->Data;
@@ -479,9 +646,9 @@ void Radix4FFT_DIF_Par(FFT_Arg_T *Arg)
                 First =  CoreId*Chunk; Last = First+Chunk;
                 iA = iCnt2 + Chunk*CoreId*4*iM;
                 for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
-                        Radix4FFTKernelDIF((v2s *) (DataV + iA       ), (v2s *) (DataV + iA + iM), 
-                                           (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM),
-                                           W1, W2, W3, Inverse);
+                        Radix4FFTKernelDIF_NoScale((v2s *) (DataV + iA       ), (v2s *) (DataV + iA + iM), 
+                                                   (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM),
+                                                   W1, W2, W3, Inverse);
                         iA = iA + 4 * iM;
                 }
                 iQ += iL;
@@ -497,6 +664,83 @@ void Radix4FFT_DIF_Par(FFT_Arg_T *Arg)
         for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
                 Radix4FFTKernel_Twiddle0((v2s *) (DataV + iA       ), (v2s *) (DataV + iA +   iM),
                                          (v2s *) (DataV + iA + 2*iM), (v2s *) (DataV + iA + 3*iM), Inverse);
+                iA =  iA + 4 * iM;
+        }
+        // Synchronize all cores for last layer of the trellis
+        gap_waitbarrier(0);
+}
+
+void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
+
+{
+        int *__restrict__ Data = (int *) Arg->Data;
+        short int *__restrict__ Twiddles = (short int *) Arg->Twiddles;
+        unsigned int N_fft = Arg->N_fft;
+        int Inverse = Arg->Inverse;
+
+        int iCnt1, iCnt2, iCnt3,
+            iL,    iM,    iQ,
+            iA,    iB,    iC,     iD;
+        unsigned int iLog4N  = (gap_fl1(N_fft))>>1;
+        unsigned int CoreId;
+        int First, Last, Chunk;
+        int Off[] ={1,-1};
+
+        int i;
+
+        CoreId = gap_coreid();
+
+        // Layers 0,1, ... , (iLog4N-2)
+        iM = N_fft >> 2; iL = 1;
+        for (iCnt1 = 0; iCnt1 < (iLog4N-2); ++iCnt1) {
+                Chunk = (iM/gap_ncore());
+                First = CoreId*Chunk; Last = First+Chunk;
+                iQ    = First*iL;
+                for (iCnt2 = First; iCnt2 < Last; ++iCnt2) {
+                        short int W1r = Twiddles[2*  iQ], W1i = Twiddles[2*  iQ + 1],
+                                  W2r = Twiddles[2*2*iQ], W2i = Twiddles[2*2*iQ + 1],
+                                  W3r = Twiddles[2*3*iQ], W3i = Twiddles[2*3*iQ + 1];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; ++iCnt3) {
+                                Radix4FFTKernelDIF_Fix32((Data + 2*(iA       )), (Data + 2*(iA +   iM)), 
+                                                         (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)),
+                                                         W1r, W1i, W2r, W2i, W3r, W3i, Inverse);
+                                iA = iA + 4 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 2; iM >>= 2;
+                // Synchronize all cores for current layer of the trellis
+                gap_waitbarrier(0);
+        }
+        // Layer iLog4N - 2
+        iM = 4; iL = (N_fft>>(2+2)); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                short int W1r = Twiddles[2*  iQ], W1i = Twiddles[2*  iQ + 1],
+                          W2r = Twiddles[2*2*iQ], W2i = Twiddles[2*2*iQ + 1],
+                          W3r = Twiddles[2*3*iQ], W3i = Twiddles[2*3*iQ + 1];
+                Chunk = (iL/gap_ncore()); //  + Off[CoreId&0x1];
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*4*iM;
+                for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
+                        Radix4FFTKernelDIF_Fix32_NoScale((Data + 2*(iA       )), (Data + 2*(iA +   iM)), 
+                                                         (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)),
+                                                         W1r, W1i, W2r, W2i, W3r, W3i, Inverse);
+                        iA = iA + 4 * iM;
+                }
+                iQ += iL;
+                // Synchronize all cores for current layer of the trellis
+                gap_waitbarrier(0);
+        }
+
+        // Layer iLog4N - 1
+        iM = 1; iL = (N_fft>>2);
+        Chunk = iL/gap_ncore();
+        First =  CoreId*Chunk; Last = First+Chunk;
+        iA =  CoreId*Chunk*4*iM;
+        for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
+                Radix4FFTKernel_Twiddle0_Fix32((Data + 2*(iA       )), (Data + 2*(iA +   iM)),
+                                               (Data + 2*(iA + 2*iM)), (Data + 2*(iA + 3*iM)), Inverse);
                 iA =  iA + 4 * iM;
         }
         // Synchronize all cores for last layer of the trellis
@@ -755,6 +999,7 @@ void Radix2FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict
         }
 }
 
+#if 0
 void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
 
 {
@@ -858,6 +1103,102 @@ void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
         // Synchronize all cores for current layer of the trellis
         gap_waitbarrier(0);
 }
+#endif
+
+
+void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg)
+{
+        unsigned int N_FFT2 = Arg->N_fft;
+        unsigned int Inverse = Arg->Inverse;
+        unsigned int iLog2N  = gap_fl1(N_FFT2);
+        unsigned int iCnt1, iCnt2, iCnt3,
+        iQ,    iL,    iM,
+        iA,    iB;
+        v2s *CoeffV = (v2s *) Arg->Twiddles;
+        v2s *DataV  = (v2s *) Arg->Data;
+        unsigned int CoreId;
+        unsigned int First, Last, Chunk;
+
+        CoreId = gap_coreid();
+        iL = 1;
+        iM = N_FFT2 / 2;
+        for (iCnt1 = 0; iCnt1 < (iLog2N-3); iCnt1++) {
+                Chunk = (iM/gap_ncore());
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iQ = First*iL;
+                for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
+                        v2s W = CoeffV[iQ];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
+                                v2s Tmp;
+                                iB = iA + iM;
+                                Tmp = DataV[iA] - DataV[iB];
+                                DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
+                                DataV[iB] = (v2s) gap_cplxmulsdiv2(Tmp, W) ;
+                                iA = iA + 2 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 1;
+                iM >>= 1;
+                gap_waitbarrier(0);
+        }
+
+        // Layer iLog2N - 3
+        iM = 4; iL = (N_FFT2>>(1+1+1)); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                v2s W = CoeffV[  iQ];
+                Chunk = (iL/gap_ncore()); 
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
+                        v2s Tmp;
+                        iB = iA + iM;
+                        //printf("core %d stage %d iL %d idx %d %d\n",CoreId,iCnt1,iL,iA,iB);
+                        Tmp = (DataV[iA]) - (DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]);
+                        DataV[iB] = (v2s) gap_cplxmuls(Tmp, W);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+                // Synchronize all cores for current layer of the trellis
+        }
+        gap_waitbarrier(0);
+
+        // Layer iLog2N - 2
+        iM = 2; iL = (N_FFT2>>(1+1)); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                v2s W = CoeffV[  iQ];
+                Chunk = (iL/gap_ncore()); 
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
+                        v2s Tmp;
+                        iB = iA + iM;
+                        //printf("core %d stage %d iL %d idx %d %d\n",CoreId,iCnt1+1,iL,iA,iB);
+                        Tmp = (DataV[iA]) - (DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]);
+                        DataV[iB] = (v2s) gap_cplxmuls(Tmp, W);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+                // Synchronize all cores for current layer of the trellis
+        }
+        gap_waitbarrier(0);
+
+        /* Last Layer: W = (1, 0) */
+        Chunk = ((N_FFT2>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_FFT2>>1));
+        iA = 2*Chunk*CoreId;
+        for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                v2s A= DataV[iA];
+                v2s B= DataV[iA+1];
+                DataV[iA] = A + B;
+                DataV[iA+1] = A - B;
+                iA = iA + 2;
+        }
+        gap_waitbarrier(0);
+}
+
 
 #ifdef __gap9__
 void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
@@ -879,7 +1220,7 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
         CoreId = gap_coreid();
         iL = 1;
         iM = N_fft / 2;
-        for (iCnt1 = 0; iCnt1 < Min((iLog2N-1), 4); iCnt1++) {
+        for (iCnt1 = 0; iCnt1 < (iLog2N-3); iCnt1++) {
                 Chunk = (iM/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
                 iQ = First*iL;
                 for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
@@ -900,28 +1241,49 @@ void Radix2FFT_DIF_Par_f16(FFT_Arg_T *Arg)
                 // Synchronize all cores for current layer of the trellis
                 gap_waitbarrier(0);
         }
-        for (iCnt1 = 4; iCnt1 < (iLog2N-1); iCnt1++) {
-                iQ = 0;
-                for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
-                        v2h W = CoeffV[iQ];
-                        Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
-                        iA = iCnt2 + Chunk*CoreId*2*iM;
 
-                        for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                                v2h Tmp;
-                                iB = iA + iM;
-                                Tmp       = (DataV[iA] - DataV[iB]);
-                                DataV[iA] = (DataV[iA] + DataV[iB]);
-                                DataV[iB] = CplxMult_f16(Tmp, W);
-                                iA = iA + 2 * iM;
-                        }
-                        iQ += iL;
-                // Synchronize all cores for current layer of the trellis
-                gap_waitbarrier(0);
+        iM = 4;
+        iL = N_fft >> 3;
+        iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                v2h W = CoeffV[iQ];
+                Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+
+                for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                        v2h Tmp;
+                        iB = iA + iM;
+                        Tmp       = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]);
+                        DataV[iB] = CplxMult_f16(Tmp, W);
+                        iA = iA + 2 * iM;
                 }
-                iL <<= 1;
-                iM >>= 1;
+                iQ += iL;
         }
+        // Synchronize all cores for current layer of the trellis
+        gap_waitbarrier(0);
+
+        iM = 2;
+        iL = N_fft >> 2;
+        iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                v2h W = CoeffV[iQ];
+                Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+
+                for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                        v2h Tmp;
+                        iB = iA + iM;
+                        Tmp       = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]);
+                        DataV[iB] = CplxMult_f16(Tmp, W);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+        }
+        // Synchronize all cores for current layer of the trellis
+        gap_waitbarrier(0);
+
         /* Last Layer: W = (1, 0) */
         Chunk = ((N_fft>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_fft>>1));
         iA = 2*Chunk*CoreId;
@@ -955,7 +1317,7 @@ void Radix2FFT_DIF_Par_f32(FFT_Arg_T *Arg)
         CoreId = gap_coreid();
         iL = 1;
         iM = N_fft / 2;
-        for (iCnt1 = 0; iCnt1 < Min((iLog2N-1), 4); iCnt1++) {
+        for (iCnt1 = 0; iCnt1 < (iLog2N-3); iCnt1++) {
                 Chunk = (iM/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
                 iQ = First*iL;
                 for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
@@ -979,28 +1341,51 @@ void Radix2FFT_DIF_Par_f32(FFT_Arg_T *Arg)
                 // Synchronize all cores for current layer of the trellis
                 gap_waitbarrier(0);
         }
-        for (iCnt1 = 4; iCnt1 < (iLog2N-1); iCnt1++) {
-                iQ = 0;
-                for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
-                        float Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
-                        Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
-                        iA = iCnt2 + Chunk*CoreId*2*iM;
 
-                        for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                                float Tmpr, Tmpi;
-                                iB = iA + iM;
-                                Tmpr = Data[2*iA  ] - Data[2*iB  ];
-                                Tmpi = Data[2*iA+1] - Data[2*iB+1];
-                                Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
-                                Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
-                                Data[2*iB  ] = (Tmpr*Wr - Tmpi*Wi);
-                                Data[2*iB+1] = (Tmpr*Wi + Tmpi*Wr);
-                                iA = iA + 2 * iM;
-                        }
-                        iQ += iL;
+        // Layer iLog2N - 3
+        iM = 4;
+        iL = N_fft >> 3;
+        iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                float Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                Chunk = (iL/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                        float Tmpr, Tmpi;
+                        iB = iA + iM;
+                        Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                        Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                        Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                        Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                        Data[2*iB  ] = (Tmpr*Wr - Tmpi*Wi);
+                        Data[2*iB+1] = (Tmpr*Wi + Tmpi*Wr);
+                        iA = iA + 2 * iM;
                 }
-                iL <<= 1;
-                iM >>= 1;
+                iQ += iL;
+        }
+        // Synchronize all cores for current layer of the trellis
+        gap_waitbarrier(0);
+
+        // Layer iLog2N - 2
+        iM = 2;
+        iL = N_fft >> 2;
+        iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
+                float Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                Chunk = (iL/gap_ncore()); First = CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                        float Tmpr, Tmpi;
+                        iB = iA + iM;
+                        Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                        Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                        Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                        Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                        Data[2*iB  ] = (Tmpr*Wr - Tmpi*Wi);
+                        Data[2*iB+1] = (Tmpr*Wi + Tmpi*Wr);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
         }
         // Synchronize all cores for current layer of the trellis
         gap_waitbarrier(0);
@@ -1043,13 +1428,16 @@ void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg)
         iM = N_fft / 2;
 
         // Layer 0
-        Chunk = (iM/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk; iQ = First*iL;
+        Chunk = (iM/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
+        iQ = First*iL;
         for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
-                v2s W = CoeffV[iQ], A = DataV[iCnt2], B = DataV[iCnt2+iM];
+                v2s W = CoeffV[iQ];
                 iA = iCnt2;
                 for (iCnt3 = 0; iCnt3 < iL; iCnt3++) { // 1
-                        v2s Tmp   = (A - B); DataV[iA] = (A + B) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
-                        A = DataV[iA + 2*iM]; B = DataV[iA + 3*iM];
+                        v2s Tmp;
+                        iB = iA + iM;
+                        Tmp       = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                         DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
                         iA = iA + 2 * iM;
                 }
@@ -1058,13 +1446,15 @@ void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg)
         iL <<= 1; iM >>= 1;
         gap_waitbarrier(0);
         // Layer 1
-        Chunk = (iM/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk; iQ = First*iL;
+        Chunk = (iM/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
+        iQ = First*iL;
         for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
-                v2s W = CoeffV[iQ], A = DataV[iCnt2], B = DataV[iCnt2+iM];
+                v2s W = CoeffV[iQ];
                 iA = iCnt2;
                 for (iCnt3 = 0; iCnt3 < iL; iCnt3++) { // 2
-                        v2s Tmp   = (A - B); DataV[iA] = (A + B) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
-                        A = DataV[iA + 2*iM]; B = DataV[iA + 3*iM];
+                        iB = iA + iM;
+                        v2s Tmp   = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                         DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
                         iA = iA + 2 * iM;
                 }
@@ -1078,8 +1468,9 @@ void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg)
                 v2s W = CoeffV[iQ], A = DataV[iCnt2], B = DataV[iCnt2+iM];
                 iA = iCnt2;
                 for (iCnt3 = 0; iCnt3 < iL; iCnt3++) { // 4
-                        v2s Tmp   = (A - B); DataV[iA] = (A + B) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
-                        A = DataV[iA + 2*iM]; B = DataV[iA + 3*iM];
+                        iB = iA + iM;
+                        v2s Tmp   = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                         DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
                         iA = iA + 2 * iM;
                 }
@@ -1093,28 +1484,25 @@ void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg)
                 v2s W = CoeffV[iQ], A = DataV[iCnt2], B = DataV[iCnt2+iM];
                 iA = iCnt2;
                 for (iCnt3 = 0; iCnt3 < iL; iCnt3++) { // 8
-                        v2s Tmp   = (A - B); DataV[iA] = (A + B) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
-                        A = DataV[iA + 2*iM]; B = DataV[iA + 3*iM];
+                        iB = iA + iM;
+                        v2s Tmp   = (DataV[iA] - DataV[iB]);
+                        DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                         DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
-                        iA = iA + 2 * iM;
-                }
+                        iA = iA + 2 * iM;                }
                 iQ += iL;
         }
         iL <<= 1; iM >>= 1;
         gap_waitbarrier(0);
 
-        for (iCnt1 = 4; iCnt1 < (iLog2N-1); iCnt1++) {
+        for (iCnt1 = 4; iCnt1 < (iLog2N-2); iCnt1++) {
                 iQ = 0;
                 for (iCnt2 = 0; iCnt2 < iM; iCnt2++) {
                         v2s W = CoeffV[iQ];
                         iA = iCnt2;
                         Chunk = (iL/gap_ncore()); First =  CoreId*Chunk; Last = First+Chunk;
-
-                        // for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
                         for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                                v2s Tmp;
                                 iB = iA + iM;
-                                Tmp       = (DataV[iA] - DataV[iB]);
+                                v2s Tmp   = (DataV[iA] - DataV[iB]);
                                 DataV[iA] = (DataV[iA] + DataV[iB]) >> (v2s) {FFT2_SCALEDOWN, FFT2_SCALEDOWN};
                                 DataV[iB] = gap_cplxmulsdiv2(Tmp, W);
                                 iA = iA + 2 * iM;
@@ -1126,31 +1514,15 @@ void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg)
         }
         // Synchronize all cores for current layer of the trellis
         gap_waitbarrier(0);
-        iA = 0;
         /* Last Layer: W = (1, 0) */
         Chunk = ((N_fft>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_fft>>1));
-        // for (iCnt3 = 0; iCnt3 < (N_fft>>1); iCnt3++) {
-/*
+        iA = 2*Chunk*CoreId;
         for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
-                v2s Tmp     = (DataV[iA] - DataV[iA+1]);
-                DataV[iA]   = (DataV[iA] + DataV[iA+1]);
-                DataV[iA+1] = Tmp;
+                v2s A= DataV[iA];
+                v2s B= DataV[iA+1];
+                DataV[iA] = A + B;
+                DataV[iA+1] = A - B;
                 iA = iA + 2;
-        }
-*/
-        {
-                v2s A = DataV[iA  ];
-                v2s B = DataV[iA+1];
-                for (iCnt3 = First; iCnt3 < Last; iCnt3+=2) {
-                        v2s A1 = DataV[iA+2];
-                        v2s B1 = DataV[iA+3];
-                        DataV[iA  ] = A + B;
-                        DataV[iA+1] = A - B;
-                        DataV[iA+3] = A1 + B1;
-                        DataV[iA+4] = A1 - B1;
-                        iA = iA + 4;
-                        A = DataV[iA  ]; B = DataV[iA+1];
-                }
         }
         // Synchronize all cores for current layer of the trellis
         gap_waitbarrier(0);
@@ -1488,12 +1860,12 @@ void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format)
 	LUTSize = Arg->Nfft*sizeof(short);
 
 
-	AT_L2_COPY((AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, 0, &DmaR_Evt2);
-	AT_L2_COPY((AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, 0, &DmaR_Evt1);
+	AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->SwapLUT, (AT_L2_INT_ADDR_TYPE) Arg->L1_SwapLUT,  LUTSize,  0, &DmaR_Evt2);
+	AT_L2_COPY(0, (AT_L2_EXT_ADDR_TYPE) Arg->Twiddles, (AT_L2_INT_ADDR_TYPE)Arg->L1_Twiddles, TwidSize, 0, &DmaR_Evt1);
 
 	AT_L2_WAIT(0, &DmaR_Evt1);
 	AT_L2_WAIT(0, &DmaR_Evt2);
-  }
+}
 
 
 static void kernel_fftrad2_scal(cmplx *DataV, v2s W, signed char *shift_fft, int iA, int iB) {
@@ -1669,6 +2041,112 @@ void Radix2FFT_DIF_INT_Scal_Par(FFT_scal_Arg_T *Arg)
         gap_waitbarrier(0);
 }
 
+void Radix2FFT_DIF_Par_Fix32(FFT_Arg_T *Arg)
+
+{
+        int *__restrict__ Data = (int * __restrict__) Arg->Data;
+        short int *__restrict__ Twiddles = (short int * __restrict__) Arg->Twiddles;
+        unsigned int N_fft = Arg->N_fft;
+
+        int iLog2N  = gap_fl1(N_fft);
+        int iCnt1, iCnt2, iCnt3,
+            iQ,    iL,    iM,
+            iA,    iB;
+        unsigned int CoreId;
+        int First, Last, Chunk;
+
+        CoreId = gap_coreid();
+        iL = 1;
+        iM = N_fft / 2;
+        for (iCnt1 = 0; iCnt1 < (iLog2N-3); iCnt1++) {
+                Chunk = (iM/gap_ncore()); 
+                First = CoreId*Chunk; Last = Min(First+Chunk, iM);
+                iQ = First*iL;
+                for (iCnt2 = First; iCnt2 < Last; iCnt2++) {
+                        short int Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                        iA = iCnt2;
+                        for (iCnt3 = 0; iCnt3 < iL; iCnt3++) {
+                                int Tmpr, Tmpi;
+                                iB = iA + iM;
+                                Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                                Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                                Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]) >> 1;
+                                Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]) >> 1;
+                                Data[2*iB  ] = (((Tmpr*Wr) - (Tmpi*Wi)) >> 15) >> 1;
+                                Data[2*iB+1] = (((Tmpr*Wi) + (Tmpi*Wr)) >> 15) >> 1;
+                                iA = iA + 2 * iM;
+                        }
+                        iQ += iL;
+                }
+                iL <<= 1;
+                iM >>= 1;
+                // Synchronize all cores for current layer of the trellis
+                gap_waitbarrier(0);
+        }
+        // Layer iLog2N - 3
+        iM = 4; iL = (N_fft>>3); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                short int Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                Chunk = (iL/gap_ncore()); 
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                        int Tmpr, Tmpi;
+                        iB = iA + iM;
+                        Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                        Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                        Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                        Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                        Data[2*iB  ] = (((Tmpr*Wr) - (Tmpi*Wi)) >> 15);
+                        Data[2*iB+1] = (((Tmpr*Wi) + (Tmpi*Wr)) >> 15);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+                // Synchronize all cores for current layer of the trellis
+        }
+        gap_waitbarrier(0);
+
+        // Layer iLog2N - 2
+        iM = 2; iL = (N_fft>>(2)); iQ = 0;
+        for (iCnt2 = 0; iCnt2 < iM; ++iCnt2) {
+                short int Wr = Twiddles[2*iQ], Wi = Twiddles[2*iQ+1];
+                Chunk = (iL/gap_ncore()); 
+                First =  CoreId*Chunk; Last = First+Chunk;
+                iA = iCnt2 + Chunk*CoreId*2*iM;
+                for (iCnt3 = First; iCnt3 < Last; ++iCnt3) {
+                        int Tmpr, Tmpi;
+                        iB = iA + iM;
+                        Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                        Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                        Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                        Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                        Data[2*iB  ] = (((Tmpr*Wr) - (Tmpi*Wi)) >> 15);
+                        Data[2*iB+1] = (((Tmpr*Wi) + (Tmpi*Wr)) >> 15);
+                        iA = iA + 2 * iM;
+                }
+                iQ += iL;
+                // Synchronize all cores for current layer of the trellis
+        }
+        gap_waitbarrier(0);
+
+        /* Last Layer: W = (1, 0) */
+        Chunk = ((N_fft>>1)/gap_ncore()); First =  CoreId*Chunk; Last = Min(First+Chunk, (N_fft>>1));
+        iA = 2*Chunk*CoreId;
+        for (iCnt3 = First; iCnt3 < Last; iCnt3++) {
+                short int Tmpr, Tmpi;
+                iB = iA + 1;
+                Tmpr = Data[2*iA  ] - Data[2*iB  ];
+                Tmpi = Data[2*iA+1] - Data[2*iB+1];
+                Data[2*iA  ] = (Data[2*iA  ] + Data[2*iB  ]);
+                Data[2*iA+1] = (Data[2*iA+1] + Data[2*iB+1]);
+                Data[2*iB  ] = Tmpr;
+                Data[2*iB+1] = Tmpi;
+                iA = iA + 2;
+        }
+        // Synchronize all cores for current layer of the trellis
+        gap_waitbarrier(0);
+}
+
 extern void Conjugate_Fix16_Par(FFT_SwapSamples_T *Arg){
         v2s *Data = (v2s *) Arg->Data;
         int Ni = Arg->Ni;
@@ -1758,3 +2236,17 @@ void Radix2FFT_DIF_Par(FFT_Arg_T *Arg) {
   Arg->Inverse = 0;
   Radix2FFT_DIF_Par_Ker(Arg);
 }
+/*
+void RFFT_DIF_Par_f32(RFFT_Arg_T *Arg){
+        float *__restrict__ Data = (float * __restrict__) Arg->Data;
+        float *__restrict__ Twiddles = (float * __restrict__) Arg->Twiddles;
+        unsigned int N_fft = Arg->N_fft;
+
+        int iLog2N  = gap_fl1(N_fft);
+        int iCnt1, iCnt2, iCnt3,
+            iQ,    iL,    iM,
+            iA,    iB;
+        unsigned int CoreId;
+        int First, Last, Chunk;
+
+}*/

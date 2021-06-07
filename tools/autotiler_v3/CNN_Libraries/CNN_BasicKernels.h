@@ -20,6 +20,8 @@
 #define __CNN_BASIC_KERNELS_H__
 #include "Gap.h"
 #include "CNN_Defines.h"
+#include "CNN_CopyBasicKernels.h"
+#include "../CNN_Libraries_SQ8/CNN_AT_Misc.h"
 
 #define MAXDPPREC
 #ifdef MAXDPPREC
@@ -33,6 +35,7 @@
 /******************* Autotiler Internal calls *********************************************************************************/
 /******************************************************************************************************************************/
 
+#ifdef OLD
 typedef struct {
 	char *__restrict__ In;  /**< Tile */
 	short int W;		/**< Tile width */
@@ -71,6 +74,25 @@ void AT_DumpTensor(
         void *Addr			/**< Address of Arg */
 	);
 
+
+void AT_ChecksumTensor(
+	char *NodeName,			/**< Graph Node Name, a User Kernel */
+	char *ArgName,			/**< Argument name of this user kernel */
+	int Loc,			/**< Exec location if this argument, AT_MEM_xyz */
+	void *L3_Device,		/**< Pointer to device descriptor in case Loc is external */
+	void *L3_Event,			/**< Pointer to a read event for this device descriptor if any */
+	int ItemSize,			/**< Data type size in bytes */
+	int Dim,			/**< Number of dimensions, up to 5, from D0 most outer to D4 most inner */
+	int D0,				/**< Actual value of this dimension if defined, 1 otherwise */
+	int D1,				/**< Actual value of this dimension if defined, 1 otherwise */
+	int D2,				/**< Actual value of this dimension if defined, 1 otherwise */
+	int D3,				/**< Actual value of this dimension if defined, 1 otherwise */
+	int D4,				/**< Actual value of this dimension if defined, 1 otherwise */
+	void *L2_BufferAddr,		/**< In case exec loc is external pointer to a buffer in L2 to host partial copy of Arg */
+	unsigned int L2_BufferSize,	/**< Size of this buffer */
+	void *Addr			/**< Address of Arg */
+	);
+#endif
 
 /********************************************************************************************************************************************************************/
 /****************** Bias setting. ***********************************************************************************************************************************/
@@ -138,9 +160,9 @@ typedef struct {
 /* Single precision */
 typedef struct {
 	short int * __restrict__ In;    	/**< Pointer to input tile  */
-	unsigned short int W;	   	/**< Width of the input tile */
+	unsigned short int W;	   		/**< Width of the input tile */
 	unsigned short int UsedW;	   	/**< Part of the input width to be used */
-	unsigned short int H;	   	/**< Height of the input tile */
+	unsigned short int H;	   		/**< Height of the input tile */
 	unsigned short int UsedH;	   	/**< Part of the input height to be used */
 	unsigned short int InFeatures;		/**< Number of input features, used for channel parallel kernels */
 	unsigned short int OutFeatures;		/**< Number of output features, used for channel parallel kernels */
@@ -162,9 +184,9 @@ typedef KerConv_fp_T KerConvDW_fp_T;		/* Alias to separate regular conv from dep
 
 typedef struct {
 	signed char * __restrict__ In;    	/**< Pointer to input tile  */
-	unsigned short int W;	   	/**< Width of the input tile */
+	unsigned short int W;	   		/**< Width of the input tile */
 	unsigned short int UsedW;	   	/**< Part of the input width to be used */
-	unsigned short int H;	   	/**< Height of the input tile */
+	unsigned short int H;	   		/**< Height of the input tile */
 	unsigned short int UsedH;	   	/**< Part of the input height to be used */
 	unsigned short int InFeatures;		/**< Number of input features, used for channel parallel kernels */
 	unsigned short int OutFeatures;		/**< Number of output features, used for channel parallel kernels */
@@ -183,7 +205,6 @@ typedef struct {
 	unsigned char Dy;			/**< Dilation Dy, used only if Dx!=Dy */
 } KerConv_fps_T;
 typedef KerConv_fps_T KerConvDW_fps_T;		/* Alias to separate regular conv from depth wise convolution */
-
 
 /* Double precision */
 typedef struct {
@@ -657,26 +678,6 @@ typedef struct {
 	unsigned short int H;			/**< When used for 1x1 convolution In2 is a feature maps [H_In2=W_In1=InFeat, W_In2=W*H], H */
 } KerMatMul_fp_fps_T;
 
-typedef struct {
-	short int *__restrict__ In;		/**< Input matrix */
-	short int *__restrict__ Out;		/**< Output matrix */
-	unsigned int Feat;			/**< Number of matrices */
-	unsigned int W;				/**< Matrix width */
-	unsigned int H;				/**< Matrix height */
-	unsigned char Sx;			/**< Stride for W dimension */
-	unsigned char Sy;			/**< Stride for H dimension */
-} KerMatTranspose_fp_T;
-
-typedef struct {
-	signed char *__restrict__ In;		/**< Input matrix */
-	signed char *__restrict__ Out;		/**< Output matrix */
-	unsigned int Feat;			/**< Number of matrices */
-	unsigned int W;				/**< Matrix width */
-	unsigned int H;				/**< Matrix height */
-	unsigned char Sx;			/**< Stride for W dimension */
-	unsigned char Sy;			/**< Stride for H dimension */
-} KerMatTranspose_fps_T;
-
 /******************************************************************************************************************************/
 /******************* SOFT MAX *************************************************************************************************/
 /******************************************************************************************************************************/
@@ -880,6 +881,9 @@ extern void KerParConv5x5Stride2_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerParConv5x5StrideS_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerParConv7x7StrideS_DP_fp(KerConv_DP_fp_T *Arg);
 
+extern void KerParConv1D_NStrideS_DP_fp(KerConv_DP_fp_T *Arg);
+extern void KerParConvNx1StrideSxS1_DP_fp(KerConv_DP_fp_T *Arg);
+
 extern void KerParConvNxNStrideS_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerParConvNxMStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg);
 
@@ -1042,6 +1046,9 @@ extern void KerParConv5x5Stride2_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerParConv5x5StrideS_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerParConv7x7StrideS_DP_fps(KerConv_DP_fps_T *Arg);
 
+extern void KerParConv1D_NStrideS_DP_fps(KerConv_DP_fps_T *Arg);
+extern void KerParConvNx1StrideSxS1_DP_fps(KerConv_DP_fps_T *Arg);
+
 extern void KerParConvNxNStrideS_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerParConvNxMStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg);
 
@@ -1151,6 +1158,9 @@ extern void KerConv5x5Stride1_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerConv5x5Stride2_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerConv5x5StrideS_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerConv7x7StrideS_DP_fp(KerConv_DP_fp_T *Arg);
+
+extern void KerConv1D_NStrideS_DP_fp(KerConv_DP_fp_T *Arg);
+extern void KerConvNx1StrideSxS1_DP_fp(KerConv_DP_fp_T *Arg);
 
 extern void KerConvNxNStrideS_DP_fp(KerConv_DP_fp_T *Arg);
 extern void KerConvNxMStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg);
@@ -1262,6 +1272,9 @@ extern void KerConv5x5Stride2_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerConv5x5StrideS_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerConv7x7StrideS_DP_fps(KerConv_DP_fps_T *Arg);
 
+extern void KerConv1D_NStrideS_DP_fps(KerConv_DP_fps_T *Arg);
+extern void KerConvNx1StrideSxS1_DP_fps(KerConv_DP_fps_T *Arg);
+
 extern void KerConvNxNStrideS_DP_fps(KerConv_DP_fps_T *Arg);
 extern void KerConvNxMStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg);
 
@@ -1320,9 +1333,15 @@ extern void KerDP_IO_hswish_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_hsigmoid_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output are disjoints
+   out is Sigmoid(x) */
+extern void KerDP_sigmoid_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output point to the same location,
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_IO_hsigmoid_fp(KerDP_fp_T *Arg);
+/* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Q15, input and output point to the same location,
+   out is Sigmoid(x) */
+extern void KerDP_IO_sigmoid_fp(KerDP_fp_T *Arg);
 /* Input is Double precision on 32 bits Qx.2N, Output is Single precision on 16 bits Qx.N, input and output are disjoints
    out is clip((x<0)?(x*0.1):x, 15) */
 extern void KerDP_leakyrelu_fp(KerDP_fp_T *Arg);
@@ -1355,9 +1374,16 @@ extern void KerDP_IO_hswish_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_hsigmoid_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output are disjoints
+   out is Sigmoid(x) */
+extern void KerDP_sigmoid_fps(KerDP_fps_T *Arg);
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output point to the same location,
    out is Max(0, Min(1, (x+1)/2)) */
 extern void KerDP_IO_hsigmoid_fps(KerDP_fps_T *Arg);
+/* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Q7, input and output point to the same location,
+   out is Sigmoid(x) */
+extern void KerDP_IO_sigmoid_fps(KerDP_fps_T *Arg);
+
 /* Input is Double precision on 16 or 32 bits Qx.2N, Output is Single precision on 8 bits Qx.N, input and output are disjoints
    out is clip((x<0)?(x*0.1):x, 7) */
 extern void KerDP_leakyrelu_fps(KerDP_fps_T *Arg);
@@ -1477,6 +1503,15 @@ extern void KerParMatMul_fp(KerMatMul_fp_T *Arg);
 
 extern void KerParMatMulSxSy_fp(KerMatMul_fp_T *Arg);
 
+extern void KerParMatMul_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulSxSy_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulHswish_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulHswishSxSy_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulHsigmoid_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulHsigmoidSxSy_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulLeakyrelu_NoBias_fp(KerMatMul_fp_T *Arg);
+extern void KerParMatMulLeakyreluSxSy_NoBias_fp(KerMatMul_fp_T *Arg);
+
 extern void KerParMatMul_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 
 extern void KerParMatMulSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
@@ -1500,6 +1535,15 @@ extern void KerParMatMulScaleSxSy_fpd_fp(KerMatMul_fpd_fp_T *Arg);
 extern void KerParMatMul_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMulSxSy_fps(KerMatMul_fps_T *Arg);
+
+extern void KerParMatMul_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulSxSy_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulHswish_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulHswishSxSy_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulHsigmoid_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulHsigmoidSxSy_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulLeakyrelu_NoBias_fps(KerMatMul_fps_T *Arg);
+extern void KerParMatMulLeakyreluSxSy_NoBias_fps(KerMatMul_fps_T *Arg);
 
 extern void KerParMatMul_fp_fps(KerMatMul_fp_fps_T *Arg);
 
@@ -1566,28 +1610,6 @@ extern void KerParMatScaleScalar_fps(KerMatScale_fps_T *Arg);
 extern void KerParMatScaleVectorScalar_fp(KerMatScale_fp_T *Arg);
 
 extern void KerParMatScaleVectorScalar_fps(KerMatScale_fps_T *Arg);
-
-extern void CNN_ParTranspose_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_ParTransposeSxSy_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_Transpose_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_TransposeSxSy_fps(KerMatTranspose_fps_T *Arg);
-
-extern void CNN_ParTranspose_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_ParTransposeSxSy_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_Transpose_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_TransposeSxSy_fp(KerMatTranspose_fp_T *Arg);
-
-extern void CNN_MatPermCHW2CWH_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_MatPermCHW2HWC_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_MatPermCHW2WHC_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_MatPermCHW2WCH_fp(KerMatTranspose_fp_T *Arg);
-extern void CNN_MatPermCHW2HCW_fp(KerMatTranspose_fp_T *Arg);
-
-extern void CNN_MatPermCHW2CWH_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_MatPermCHW2HWC_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_MatPermCHW2WHC_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_MatPermCHW2WCH_fps(KerMatTranspose_fps_T *Arg);
-extern void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg);
 
 /******************************************************************************************************************************/
 /******************* SOFT MAX *************************************************************************************************/

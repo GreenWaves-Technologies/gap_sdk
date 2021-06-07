@@ -23,6 +23,7 @@
 #define __PULP_UDMA_UDMA_HYPER_V3_IMPL_HPP__
 
 #include <vp/vp.hpp>
+#include "../udma_impl.hpp"
 #include <vp/itf/io.hpp>
 #include <vp/itf/qspim.hpp>
 #include <vp/itf/uart.hpp>
@@ -35,6 +36,7 @@
 #include <udma_hyper/udma_hyper_regs.h>
 #include <udma_hyper/udma_hyper_regfields.h>
 #include <udma_hyper/udma_hyper_gvsoc.h>
+#include "udma_hyper_v3_refill.hpp"
 
 
 typedef enum
@@ -68,6 +70,7 @@ public:
 
     uint32_t data;
     int size;
+    int requested_size;
 };
 
 
@@ -111,6 +114,7 @@ public:
   static void rx_sync(void *__this, int data);
   bool push_to_udma();
   void reset(bool active);
+  static void refill_req(void *__this, udma_refill_req_t *req);
   static void handle_pending_word(void *__this, vp::clock_event *event);
   static void handle_check_state(void *__this, vp::clock_event *event);
   static void handle_pending_channel(void *__this, vp::clock_event *event);
@@ -118,6 +122,7 @@ public:
   void push_data(uint8_t *data, int size);
 
 protected:
+  vp::wire_slave<udma_refill_req_t *> refill_itf;
   vp::hyper_master hyper_itf;
   Hyper_tx_channel *tx_channel;
   Hyper_rx_channel *rx_channel;
@@ -125,6 +130,7 @@ protected:
 
 private:
   void trans_cfg_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+  void enqueue_transfer(uint32_t ext_addr, uint32_t l2_addr, uint32_t transfer_size, uint32_t length, uint32_t stride, bool is_write, int address_space);
 
   vp_regmap_udma_hyper regmap;
 
@@ -154,8 +160,15 @@ private:
   bool pending_tx;
   bool pending_rx;
   uint32_t pending_length;
+  uint32_t length;
+  uint32_t stride;
   uint32_t pending_burst;
-  uint32_t pending_2d_addr;
+  uint32_t l2_addr;
+  uint32_t pending_ext_addr;
+  uint32_t ext_addr;
+  udma_refill_req_t *pending_refill_req;
+  bool is_refill_req;
+  int address_space;
   union
   {
     struct {

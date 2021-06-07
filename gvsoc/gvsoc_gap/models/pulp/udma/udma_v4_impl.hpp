@@ -60,18 +60,20 @@ class Udma_channel;
 class Udma_addrgen
 {
 public:
-    Udma_addrgen(udma *top, int id, int event_id) : top(top), id(id), event_id(event_id) {}
+    Udma_addrgen(udma *top, int id, int event_id) : top(top), id(id), event_id(event_id), channel(NULL) {}
     virtual vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write) = 0;
     virtual void get_next_transfer(uint32_t *addr, int *size) = 0;
     virtual void reset(bool active) = 0;
-    virtual bool is_active() = 0;
-    void register_channel(Udma_channel *channel) { this->channel = channel; }
+    bool is_active() { return this->active_transfer; }
+    void register_channel(Udma_channel *channel);
+    void set_active_transfer(bool active);
 
     int id;
     udma *top;
     vp::trace trace;
     Udma_channel *channel;
     int event_id;
+    bool active_transfer;
 };
 
 
@@ -83,7 +85,6 @@ public:
     vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
     void get_next_transfer(uint32_t *addr, int *size);
     void reset(bool active);
-    bool is_active() { return this->active_transfer; }
 
 private:
     void cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
@@ -98,7 +99,6 @@ private:
     uint32_t current_size;
 
     int nb_pending_transfers;
-    bool active_transfer;
 };
 
 
@@ -110,7 +110,6 @@ public:
     vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
     void get_next_transfer(uint32_t *addr, int *size);
     void reset(bool active);
-    bool is_active() { return this->active_transfer; }
 
 private:
     void cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
@@ -130,7 +129,6 @@ private:
     uint32_t remaining_length;
 
     int nb_pending_transfers;
-    bool active_transfer;
 };
 
 
@@ -148,6 +146,7 @@ public:
     }
     T *pop();
     inline void push(T *cmd);
+    void remove(T *cmd);
     void push_from_latency(T *cmd);
     bool is_full() { return nb_cmd >= size; }
     bool is_empty() { return nb_cmd == 0; }
@@ -163,6 +162,25 @@ private:
 };
 
 
+template <class T>
+class Udma_fifo
+{
+public:
+    Udma_fifo(int size) : size(size) { }
+    T pop();
+    inline void push(T cmd);
+    bool is_full() { return this->queue.size() >= this->size; }
+    bool is_empty() { return this->queue.empty(); }
+    T get_first() { return this->queue.front(); }
+    T get_size() { return this->queue.size(); }
+    void reset() { this->size = 0; while (!this->queue.empty()) {this->queue.pop(); } }
+
+private:
+    std::queue<T> queue;
+    int size;
+
+};
+
 
 class Udma_request
 {
@@ -175,6 +193,7 @@ public:
     int size;
     int offset;
     Udma_addrgen *addrgen;
+    int addrgen_id;
     Udma_tx_channel *tx_channel;
 };
 
@@ -188,15 +207,22 @@ public:
     virtual vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
     virtual void reset(bool active);
     void set_addrgen(Udma_addrgen *addrgen);
+    void unset_addrgen();
     Udma_addrgen *get_addrgen() { return this->addrgen; }
     virtual bool is_ready() { return false; }
     virtual void check_state() {}
-    bool is_active() { return this->addrgen ? this->addrgen->is_active() : false; }
+    virtual bool is_active() { return this->active; }
+    virtual void set_active(bool active) { this->active = active; }
+    virtual bool is_rx() = 0;
+
+    bool is_stream;
+    int stream_id;
 
 protected:
     vp::trace trace;
     udma *top;
     Udma_addrgen *addrgen;
+    bool active;
 
 private:
     void cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
@@ -214,11 +240,29 @@ public:
 
     void reset(bool active);
 
+    bool is_rx() { return true; }
+
     // Can be called to push data to be sent to L2. Channel must be ready when calling it.
-    void push_data(uint8_t *data, int size);
+    void push_data(uint8_t *data, int size, int addrgen_id=-1);
+
+    // Can be called to wait until the channel gets ready
+    void wait_active();
+
+    // Can be called to cancel the request to wait fot the channel to get ready
+    void wait_active_cancel();
+
+    // Called when the channel gets ready after waiting for it
+    virtual void wait_active_done() {}
 
     // Tell if the channel is ready for sending L2 data (push_data can be called)
     bool is_ready();
+
+    bool is_active();
+
+    void set_active(bool active);
+
+private:
+    bool waiting_active;
 };
 
 
@@ -230,6 +274,8 @@ public:
     Udma_tx_channel(udma *top, string name) : Udma_channel(top, name) {}
 
     void reset(bool active);
+
+    bool is_rx() { return false; }
 
     // Is called when data has been read from L2 and is ready to be pushed to device.
     // Can be overloaded by the device to forward the data
@@ -245,8 +291,10 @@ public:
 
     void req_data();
 
+    void set_active(bool active);
 
     int requested_size;
+    int enqueued;
 };
 
 
@@ -257,10 +305,12 @@ class Udma_rx_channels
 public:
     Udma_rx_channels(udma *top, int fifo_size);
     bool is_ready();
-    void push_data(uint8_t *data, int size, Udma_addrgen *addrgen);
+    void push_data(uint8_t *data, int size, Udma_addrgen *addrgen, int addrgen_id);
     void check_state();
     static void handle_pending(void *__this, vp::clock_event *event);
     static void handle_waiting(void *__this, vp::clock_event *event);
+    static void stream_in_ready_sync(void *__this, bool ready, int id);
+    std::vector<Udma_rx_channel *> stream_in_channels;
 
 private:
     udma *top;
@@ -273,6 +323,11 @@ private:
 
     vp::clock_event *send_reqs_event;    // Event used for sending fifo entries to L2
     vp::clock_event *waiting_reqs_event; // Event used for processing l2 requests waiting for completion
+
+    std::vector<vp::wire_master<uint32_t> *> stream_in_data_itf;
+    std::vector<vp::wire_slave<bool> *> stream_in_ready_itf;
+
+
 };
 
 
@@ -286,6 +341,10 @@ public:
     static void handle_pending(void *__this, vp::clock_event *event);
     static void handle_waiting(void *__this, vp::clock_event *event);
     void push_ready_channel(Udma_tx_channel *channel);
+    void pop_ready_channel(Udma_tx_channel *channel);
+    static void stream_out_data_sync(void *__this, uint32_t data, int id);
+    std::vector<vp::wire_master<bool> *> stream_out_ready_itf;
+    std::vector<Udma_tx_channel *> stream_out_channels;
 
 private:
     udma *top;
@@ -297,6 +356,8 @@ private:
 
     vp::clock_event *send_reqs_event;
     vp::clock_event *waiting_reqs_event;
+
+    std::vector<vp::wire_slave<uint32_t> *> stream_out_data_itf;
 };
 
 
@@ -439,6 +500,40 @@ void Udma_queue<T>::push_from_latency(T *cmd)
     nb_cmd++;
 }
 
+template <class T>
+void Udma_queue<T>::remove(T *cmd)
+{
+    T *current = first, *prev = NULL;
+    while (current != cmd)
+    {
+        prev = current;
+        current = current->get_next();
+    }
+
+    if (prev)
+        prev->set_next(cmd->get_next());
+    else
+        first = cmd;
+    nb_cmd--;
+}
+
+
+template <class T>
+inline void Udma_fifo<T>::push(T cmd)
+{
+    this->queue.push(cmd);
+}
+
+
+
+template <class T>
+T Udma_fifo<T>::pop()
+{
+    T result = this->queue.front();
+    this->queue.pop();
+    return result;
+}
+
 
 
 class udma : public vp::component
@@ -459,6 +554,8 @@ public:
 
     vp::trace *get_trace() { return &this->trace; }
     vp::clock_engine *get_periph_clock() { return this->periph_clock; }
+    vp::clock_engine *get_periph_clock_dual_edges() { return this->periph_clock_dual_edges; }
+    vp::clock_engine *get_fast_clock() { return this->fast_clock; }
 
     void channel_register(int id, Udma_channel *channel);
     void channel_unregister(int id, Udma_channel *channel);
@@ -470,6 +567,8 @@ public:
 
 protected:
     vp::trace trace;
+    int nb_udma_stream_in;
+    int nb_udma_stream_out;
 
 private:
     vp_regmap_udma_ctrl ctrl_regmap;
@@ -487,10 +586,16 @@ private:
     static void l2_grant(void *__this, vp::io_req *req);
     static void l2_response(void *__this, vp::io_req *req);
     static void clk_reg(component *_this, component *clock);
+    static void dual_edges_clk_reg(component *_this, component *clock);
+    static void fast_clk_reg(component *_this, component *clock);
 
     vp::io_slave in;
     vp::clk_slave periph_clock_itf;
     vp::clock_engine *periph_clock;
+    vp::clk_slave periph_clock_dual_edges_itf;
+    vp::clock_engine *periph_clock_dual_edges;
+    vp::clk_slave fast_clock_itf;
+    vp::clock_engine *fast_clock;
 
     int nb_periphs;
     int l2_read_fifo_size;
@@ -515,15 +620,7 @@ private:
 #endif
 
 #ifdef HAS_UART
-#include "uart/udma_uart_v2.hpp"
-#endif
-
-//#ifdef HAS_I2S
-#include "i2s/udma_i2s_v3.hpp"
-//#endif
-
-#ifdef HAS_HYPER
-#include "hyper/udma_hyper_v3.hpp"
+#include "uart/v2/udma_uart.hpp"
 #endif
 
 #ifdef HAS_CPI

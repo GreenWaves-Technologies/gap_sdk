@@ -389,7 +389,7 @@ void Spiram::handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, 
     {
       if (this->current_addr >= this->mem_size)
       {
-        this->fatal("Trying to read outside memory range (addr: 0x%x, mem size: 0x%x)\n", this->current_addr, this->mem_size);
+        //this->fatal("Trying to read outside memory range (addr: 0x%x, mem size: 0x%x)\n", this->current_addr, this->mem_size);
       }
       else
       {

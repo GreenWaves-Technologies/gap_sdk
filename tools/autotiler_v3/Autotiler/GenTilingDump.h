@@ -24,6 +24,7 @@ extern char *TileOrientImage(Tile_Orientation_T Orientation);
 extern char *ObjTypeImage(Object_T *O, unsigned int BuffCount);
 extern char *ArgTypeImage(Kernel_Arg_T *O);
 extern void DumpObjects(Kernel_T *Ker, char *Message, Object_T **ObjList, unsigned int NObj);
+extern void DumpObjSpaces(Kernel_T *Ker, Object_T **ObjList, unsigned int NObj, int BitMode, char *Mess);
 extern void KernelMemoryStatistics(Object_T **ObjList, unsigned int NObj, unsigned int Iter,
 				   unsigned int *MoveIn, unsigned int *MoveOut,
 				   unsigned int *TotalL2Mem, unsigned int *TotalL2MemInOut);
@@ -75,7 +76,8 @@ extern void AT_DumpGraphNodeArg(CNNGraph_T *Graph, GraphNode_T *Node,
                          unsigned int Filter, int *Collect, char **EventHandle,
                          char *L2_Buffer, unsigned int L2_BufferSize,
                          FILE *Fi);
-
-
+extern void AT_DumpChecksum(CNNGraph_T *Graph, GraphNode_T *Node, int *Collect, char **EventHandle,
+                         char *L2_Buffer, unsigned int L2_BufferSize,
+                         FILE *Fi);
 
 #endif

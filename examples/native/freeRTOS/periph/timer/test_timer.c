@@ -1,7 +1,7 @@
 /* PMSIS includes */
 #include "pmsis.h"
-#include "pmsis/implem/drivers/pmsis_it.h"
 
+/* Variables used. */
 #define NB_ITER          ( 5 )
 
 static volatile uint32_t done = 0;
@@ -12,6 +12,7 @@ static void timer_handler()
     printf("Timer IRQ: %d, val=%d\n", done, pi_timer_value_read(FC_TIMER_1));
 }
 
+/* Handler wrapper */
 HANDLER_WRAPPER_LIGHT(timer_handler);
 
 void test_timer(void)

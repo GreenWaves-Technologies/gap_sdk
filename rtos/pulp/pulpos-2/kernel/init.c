@@ -55,6 +55,7 @@ static void pos_init_do_dtors(void)
 
 static void pos_init_bss()
 {
+#ifdef __GAP9__
     if (pi_pmu_get_prev_state(PI_PMU_DOMAIN_CHIP) != PI_PMU_DOMAIN_STATE_DEEP_SLEEP_RETENTIVE)
     {
         unsigned int *bss = (unsigned int *)pos_bss_start();
@@ -67,6 +68,7 @@ static void pos_init_bss()
             *bss++ = 0;
         }
     }
+#endif
 }
 
 

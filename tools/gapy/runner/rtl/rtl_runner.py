@@ -26,6 +26,7 @@ try:
 except:
     pass
 from errors import FatalError
+import shlex
 
 
 def appendArgs(parser: argparse.ArgumentParser, runnerConfig: js.config) -> None:
@@ -73,6 +74,9 @@ class Runner(runner.default_runner.Runner):
 
         self.areas = []
         self.cmd_args = self.config.get('rtl/args').get_dict()
+
+        if os.environ.get('GAPY_RTL_SIMULATOR_ARGS') is not None:
+            self.cmd_args += shlex.split(os.environ.get('GAPY_RTL_SIMULATOR_ARGS'))
 
         self.plt_args = []
         self.env = {}
@@ -410,8 +414,21 @@ class Runner(runner.default_runner.Runner):
 
         command += self.cmd_args
 
-        for arg in commands.get("args_eval").get_dict():
-            command.append(eval(arg))
+        if os.environ.get('TARGET_CHIP') == 'GAP9':
+            if self.config.get_str("rtl/mode") == 'shell':
+                command.append("-64")
+                command.append("-c")
+                command.append("-do 'source %s/tcl_files/disable_tcheck_fll.do'" % self.__get_platform_path())
+                command.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_platform_path())
+                command.append("-do 'source %s/tcl_files/run.tcl; set_tcheck; run_and_exit'" % self.__get_platform_path())
+            else:
+                command.append("-64")
+                command.append("-do 'source %s/tcl_files/disable_tcheck_fll.do'" % self.__get_platform_path())
+                command.append("-do 'source %s/tcl_files/config/run_and_exit.tcl'" % self.__get_platform_path())
+                command.append("-do 'source %s/tcl_files/run.tcl; set_tcheck;'" % self.__get_platform_path())
+        else:
+            for arg in commands.get("args_eval").get_dict():
+                command.append(eval(arg))
 
         return ' '.join(command)
 

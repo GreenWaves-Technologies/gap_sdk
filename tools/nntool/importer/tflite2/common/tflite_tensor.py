@@ -104,7 +104,8 @@ NP_TYPES = {
     'INT32': np.int32,
     'INT64': np.int64,
     'INT8': np.int8,
-    'UINT8': np.uint8
+    'UINT8': np.uint8,
+    'COMPLEX64': np.complex64 
 }
 
 class TFLiteTensorWrapper(TensorBase):
@@ -169,7 +170,7 @@ class TFLiteTensorWrapper(TensorBase):
     def asymmetric_mult_qtype_from_tflite(tf_qps, dtype):
         zero_point = tf_qps.ZeroPointAsNumpy() if tf_qps.ZeroPointLength() > 0 else None
         scale = tf_qps.ScaleAsNumpy() if tf_qps.ScaleLength() > 0 else None
-        if tf_qps.MinLength() == 0 or tf_qps.MaxLength():
+        if tf_qps.MinLength() == 0 or tf_qps.MaxLength() == 0:
             # Some tflite graphs seem to have records with scale and zero point but no min and max
             # values. This causes problems to determine symmetric scalling
             # This recreates min and max from the scale and zeropoint values
@@ -203,7 +204,12 @@ class TFLiteTensorWrapper(TensorBase):
     @property
     def qtype(self):
         if issubclass(self.dtype, np.floating):
-            return QType(dtype=self.dtype)
+            if self.is_constant:
+                min_val = np.atleast_1d(self.value.min())
+                max_val = np.atleast_1d(self.value.max())
+            else:
+                min_val = max_val = None
+            return QType(dtype=self.dtype, min_val=min_val, max_val=max_val)
         quant = self._tensor.Quantization()
         if quant is not None:
             if quant.ScaleLength() == 0 and quant.MinLength() == 0 and\

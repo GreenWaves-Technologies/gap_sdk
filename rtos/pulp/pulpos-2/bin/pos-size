@@ -112,6 +112,8 @@ groups = [
         Group('PulpOS:pmu', ['pos_pmu.*']),
         Group('PulpOS:spim', ['pos_spim.*', 'pi_spi_.*']),
         Group('PulpOS:hyper', ['pos_hyper.*', 'pi_hyper_.*']),
+        Group('PulpOS:flash', ['hyperflash_.*']),
+        Group('PulpOS:fs', ['__pi_read_.*', '__pi_host_.*', '__pi_fs_.*']),
         Group('PulpOS:octospi', ['pos_octospi.*', 'pi_octospi_.*']),
         Group('PulpOS:uart', ['pos_uart.*', 'pi_uart_.*']),
         Group('PulpOS:init', ['pos_init.*']),

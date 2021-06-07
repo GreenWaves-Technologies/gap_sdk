@@ -60,6 +60,11 @@ class Reshape(BackendHandler):
             inp_size = reduce(lambda x, y: x * y if y is not None else x, x_shape, 1)
             new_shape[new_shape.index(-1)] = inp_size // new_shape_size
 
+        if x[2].known_shape == new_shape:
+            LOG.info('reshape %s removed since it appears just to remove unknown dimensions', node.name)
+            all_nodes[node.output[0]] = (x[0], x[1], ProvisionalDim(new_shape))
+            return x[0]
+
         if None in x_shape:
             if 1 in new_shape:
                 old_batch_dim = x_shape.index(None)

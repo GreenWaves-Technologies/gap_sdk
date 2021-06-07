@@ -55,7 +55,7 @@ static inline void pos_freq_set_value(pi_freq_domain_e domain, uint32_t freq)
     pos_freq_domains[pos_freq_get_fll(domain)] = freq;
 }
 
-
+#ifdef __GAP9__
 static inline uint32_t pi_fll_mult_get(int fll)
 {
     uint32_t base = pos_fll_offset_get(fll);
@@ -84,6 +84,6 @@ static inline void pi_fll_div_set(int fll, int div)
     ccr1 = __BITINSERT_R(ccr1, div, 8, 8*fll);
     fll_ccr1_set(ARCHI_FLL_ADDR, ccr1);
 }
-
+#endif
 
 #endif

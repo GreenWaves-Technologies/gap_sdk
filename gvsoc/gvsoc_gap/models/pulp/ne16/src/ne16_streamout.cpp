@@ -33,18 +33,15 @@ void Ne16::streamout_setup() {
                                                                              (streamout_k_out_lim <= 24) ? 27 : 36;
 
   this->col_enable = xt::zeros<int32_t>({3,3});
-  if(this->strided2x2) {
-    xt::view(this->col_enable, 0, 0) = 1;
-    xt::view(this->col_enable, 0, 2) = 1;
-    xt::view(this->col_enable, 2, 0) = 1;
-    xt::view(this->col_enable, 2, 2) = 1;
-  }
-  else {
-    for(auto i=0; i<this->h_size_out; i++) {
-      for(auto j=0; j<this->w_size_out; j++) {
-        xt::view(this->col_enable, i, j) = 1;
-      }
+  for(auto i=0; i<this->h_size_out; i++) {
+    for(auto j=0; j<this->w_size_out; j++) {
+      xt::view(this->col_enable, i, j) = 1;
     }
+  }
+  if(this->strided2x2) {
+    xt::view(this->col_enable, 0, 1) = 0;
+    xt::view(this->col_enable, 1, xt::all()) = 0;
+    xt::view(this->col_enable, 2, 1) = 0;
   }
 
   this->vst_y = Ne16VectorStore<uint8_t>(
@@ -83,14 +80,16 @@ void Ne16::streamout_setup() {
     this->debug_accum();
   }
 
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   k_out=%d\n", this->k_out);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   w_out=%d\n", this->w_out);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   h_size_out=%d\n", this->h_size_out);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   w_size_out=%d\n", this->w_size_out);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   i_major=%d\n", this->i_major);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   j_major=%d\n", this->j_major);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   k_out_major=%d\n", this->k_out_major);
-  this->trace.msg(vp::trace::LEVEL_DEBUG, "   tp=%d\n", tp);
+  if(this->trace_level == L3_ALL) {
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   k_out=%d\n", this->k_out);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   w_out=%d\n", this->w_out);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   h_size_out=%d\n", this->h_size_out);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   w_size_out=%d\n", this->w_size_out);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   i_major=%d\n", this->i_major);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   j_major=%d\n", this->j_major);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   k_out_major=%d\n", this->k_out_major);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "   tp=%d\n", tp);
+  }
 }
 
 int Ne16::streamout_cycle() { 

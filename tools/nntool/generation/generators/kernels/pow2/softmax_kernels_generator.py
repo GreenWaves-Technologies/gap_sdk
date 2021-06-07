@@ -18,7 +18,7 @@ from generation.at_generators import gen_at_softmax
 from generation.at_types.at_params import gen_softmax_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generator_decorators import generation_function, QREC_POW2
 from graph.types import SoftMaxParameters
 
 from ..autotiler_kernel import AutotilerKernel

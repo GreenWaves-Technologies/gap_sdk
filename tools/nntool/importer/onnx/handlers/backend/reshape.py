@@ -86,3 +86,7 @@ class Reshape(ConstantMixin, BackendHandler):
     @classmethod
     def version_5(cls, node, **kwargs):
         return cls._common(node, **kwargs)
+
+    @classmethod
+    def version_13(cls, node, **kwargs):
+        return cls._common(node, **kwargs)

@@ -21,6 +21,7 @@
 
 #include <vp/vp.hpp>
 #include <vp/itf/io.hpp>
+#include <vp/itf/wire.hpp>
 #include <stdio.h>
 #include <string.h>
 
@@ -40,6 +41,7 @@ public:
 private:
 
   static void power_callback(void *__this, vp::clock_event *event);
+  static void power_ctrl_sync(void *__this, bool value);
 
   vp::trace     trace;
   vp::io_slave in;
@@ -53,7 +55,10 @@ private:
 
   int64_t next_packet_start;
 
-  bool power_trigger; 
+  vp::wire_slave<bool> power_ctrl_itf;
+
+  bool power_trigger;
+  bool powered_up;
 
   vp::power_trace power_trace;
   vp::power_source idle_power;
@@ -91,6 +96,12 @@ vp::io_req_status_e memory::req(void *__this, vp::io_req *req)
   uint64_t offset = req->get_addr();
   uint8_t *data = req->get_data();
   uint64_t size = req->get_size();
+
+  if (!_this->powered_up)
+  {
+    _this->trace.force_warning("Accessing memory while it is down (offset: 0x%x, size: 0x%x, is_write: %d)\n", offset, size, req->get_is_write());
+    return vp::IO_REQ_INVALID;
+  }
 
   _this->trace.msg("Memory access (offset: 0x%x, size: 0x%x, is_write: %d)\n", offset, size, req->get_is_write());
 
@@ -188,14 +199,25 @@ void memory::reset(bool active)
   if (active)
   {
     this->next_packet_start = 0;
+    this->powered_up = true;
   }
 }
+
+void memory::power_ctrl_sync(void *__this, bool value)
+{
+    memory *_this = (memory *)__this;
+    _this->powered_up = value;
+}
+
 
 int memory::build()
 {
   traces.new_trace("trace", &trace, vp::DEBUG);
   in.set_req_meth(&memory::req);
   new_slave_port("input", &in);
+
+  this->power_ctrl_itf.set_sync_meth(&memory::power_ctrl_sync);
+  new_slave_port("power_ctrl", &this->power_ctrl_itf);
 
   js::config *config = get_js_config()->get("power_trigger");
   this->power_trigger = config != NULL && config->get_bool();
@@ -248,18 +270,21 @@ void memory::start()
   if (stim_file_conf != NULL)
   {
     string path = stim_file_conf->get_str();
-    trace.msg("Preloading memory with stimuli file (path: %s)\n", path.c_str());
+    if (path != "")
+    {
+      trace.msg("Preloading memory with stimuli file (path: %s)\n", path.c_str());
 
-    FILE *file = fopen(path.c_str(), "rb");
-    if (file == NULL)
-    {
-      this->trace.fatal("Unable to open stim file: %s, %s\n", path.c_str(), strerror(errno));
-      return;
-    }
-    if (fread(this->mem_data, 1, size, file) == 0)
-    {
-      this->trace.fatal("Failed to read stim file: %s, %s\n", path.c_str(), strerror(errno));
-      return;
+      FILE *file = fopen(path.c_str(), "rb");
+      if (file == NULL)
+      {
+        this->trace.fatal("Unable to open stim file: %s, %s\n", path.c_str(), strerror(errno));
+        return;
+      }
+      if (fread(this->mem_data, 1, size, file) == 0)
+      {
+        this->trace.fatal("Failed to read stim file: %s, %s\n", path.c_str(), strerror(errno));
+        return;
+      }
     }
   }
 

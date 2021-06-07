@@ -37,6 +37,8 @@ static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 	return ((DimIn - ((F-1)/2 - PadL + (F/2)) + Stride-1)/Stride);
 }
 
+#ifdef OLD
+/* Now in CNN_AT_Misc.c */
 /* Tensor Dump */
 typedef enum {
         AT_MEM_UNDEF,
@@ -150,7 +152,7 @@ void AT_DumpTensor(
 						}
 						switch (ItemSize) {
 							case 1:
-								Val = *((char *) (Addr+Item));
+								Val = *((signed char *) (Addr+Item));
 								break;
 							case 2:
 								Val = *((short int *) (Addr+Item));
@@ -172,6 +174,68 @@ void AT_DumpTensor(
 			}
 		}
 	}
+}
+
+void AT_ChecksumTensor(
+	char *NodeName,
+	char *ArgName,
+	int Loc,
+	void *L3_Device,
+	void *L3_Event,
+	int ItemSize,
+	int Dim,
+	int D0,
+	int D1,
+	int D2,
+	int D3,
+	int D4,
+	void *L2_BufferAddr,
+	unsigned int L2_BufferSize,
+	void *Addr)
+{
+	long int Checksum = 0;
+	int MAX_PER_LINE = 30;
+	int SizeToRead = D0*D1*D2*D3*D4*ItemSize;
+	int InBuffer=0;
+	if (L2_BufferSize==0) L2_BufferSize = SizeToRead;
+	int Item = 0;
+	int ReadSoFar = 0;
+	void *BaseAddr = Addr;
+
+	for (int d0=0; d0<D0; d0++) {
+		for (int d1=0; d1<D1; d1++) {
+			for (int d2=0; d2<D2; d2++) {
+				for (int d3=0; d3<D3; d3++) {
+					for (int d4=0; d4<D4; d4++) {
+						int Val = 0;
+						if (InBuffer==0) {
+							int Size = Min(L2_BufferSize, SizeToRead);
+							Addr = AT_TensorGetNextPage(Loc, L3_Device, L3_Event, Size, L2_BufferAddr, BaseAddr, ReadSoFar);
+							InBuffer = Size;
+							SizeToRead -= Size;
+							ReadSoFar += Size;
+							Item = 0;
+						}
+						switch (ItemSize) {
+							case 1:
+								Val = *((signed char *) (Addr+Item));
+								break;
+							case 2:
+								Val = *((short int *) (Addr+Item));
+								break;
+							case 4:
+								Val = *((int *) (Addr+Item));
+								break;
+						}
+						InBuffer -= ItemSize;
+						Item += ItemSize;
+						Checksum += Val;
+					}
+				}
+			}
+		}
+	}
+	printf("Node: %s Argument: %s Size: %d ItemSize: %d\n\tChecksum = %lld\n", NodeName, ArgName, D0*D1*D2*D3*D4, ItemSize, Checksum);
 }
 
 /* Tile Padding */
@@ -260,7 +324,7 @@ void AT_TileClear(
 		__CALL(AT_KerTileClear, &Arg);
 	}
 }
-
+#endif
 /* Padded Convolution Border processing
 
 	Zero padding support. Implementation is based on partial convolutions derived from the original filter

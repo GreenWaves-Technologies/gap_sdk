@@ -203,17 +203,23 @@ def get_config(tp):
     system.system_tree.board.fast_clock_clock = Component(OrderedDict([
     ('vp_class', "vp/clock_domain"),
     ('vp_component', 'vp.clock_domain_impl'),
-    ('frequency', 24000000*2)
+    ('frequency', 24576063*2)
     ]))
 
     system.system_tree.board.fast_clock = Component(OrderedDict([
-      ('@includes@', [ "ips/misc/clock.json" ])
+      ('@includes@', [ "ips/misc/clock.json" ]),
+      ('powered_on', False),
+      ('powerup_time', 200000000)
     ]))
 
     system.system_tree.board.fast_clock_clock.out = system.system_tree.board.fast_clock.clock
 
+    system.system_tree.board.fast_clock_clock.out = system.system_tree.board.chip.fast_clock_out
     system.system_tree.board.fast_clock.clock_sync = system.system_tree.board.chip.fast_clock
+    system.system_tree.board.fast_clock.clock_ctrl = system.system_tree.board.fast_clock_clock.clock_in
 
+    system.system_tree.board.chip.fast_clk_ctrl = system.system_tree.board.fast_clock.power
+    system.system_tree.board.chip.ref_clk_ctrl = system.system_tree.board.ref_clock.power
 
 
   if tp.get('soc/peripherals/pmu') is not None:

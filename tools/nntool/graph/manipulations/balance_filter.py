@@ -49,27 +49,26 @@ def balance_filter(weights, biases, pnode, precision_threshold=None,
     weights /= scale.reshape(weights_shape)
     biases /= scale
     mul_bias *= scale
-    if G:
-        G.changes.modify(pnode, 'has_mul_bias', True, fnode=fnode)
-    else:
-        node.has_mul_bias = True
+    node.has_mul_bias = True
     node.mul_biases = mul_bias
     return True, weights, biases
-
 
 def balance_all_filters(G, precision_threshold=0.20):
     for _, node, _, fnode in G.nodes_iterator(yield_fusions=True):
         anode = node if fnode is None else fnode
         if isinstance(anode, MultiplicativeBiasParameters):
-            in_edges = G.indexed_in_edges(node.name)[1]
-            weights_node = in_edges[1].from_node
-            biases_node = in_edges[1].from_node
-            weights = weights_node.dqvalue.copy()
-            biases = biases_node.dqvalue.copy()
-            modified, weights, biases = balance_filter(
-                weights, biases,
-                node, precision_threshold=precision_threshold,
-                fnode=fnode, G=G)
-            if modified:
-                weights_node.dqvalue = weights
-                biases_node.dqvalue = biases
+            balance_filter_with_constants(G, node, precision_threshold, fnode)
+
+def balance_filter_with_constants(G, node, precision_threshold, fnode=None):
+    in_edges = G.indexed_in_edges(node.name)[1]
+    weights_node = in_edges[1].from_node
+    biases_node = in_edges[1].from_node
+    weights = weights_node.dqvalue.copy()
+    biases = biases_node.dqvalue.copy()
+    modified, weights, biases = balance_filter(
+        weights, biases,
+        node, precision_threshold=precision_threshold,
+        fnode=fnode, G=G)
+    if modified:
+        weights_node.dqvalue = weights
+        biases_node.dqvalue = biases

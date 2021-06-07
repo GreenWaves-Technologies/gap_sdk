@@ -1,14 +1,16 @@
 # User Test
 #------------------------------------
-include ../../../bsp_src.mk
+include $(CUSTOM_BSP_PATH)/bsp_src.mk
 
 APP              = test
 APP_SRCS        += hm0360_capture_simple.c $(GAP_LIB_PATH)/img_io/ImgIO.c
 APP_SRCS        += $(GAPOC_C_SRC)
 APP_INC         += . $(GAP_LIB_PATH)/include $(TILER_INC)
-APP_INC         += ../../../bsp $(PMSIS_BSP_PATH)/include
+APP_INC         += $(CUSTOM_BSP_PATH)/bsp $(PMSIS_BSP_PATH)/include
 APP_CFLAGS      += $(GAPOC_C_BSP_FLAGS)
-APP_CFLAGS      += -O3 -g
+APP_CFLAGS      += -O3 -g -DIMG_QVGA
+
+
 
 CUSTOM_BSP = 1
 

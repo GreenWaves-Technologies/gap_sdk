@@ -89,6 +89,14 @@ class Edge():
 
     def __init__(self, from_node: Union[str, Node], to_node: Union[str, Node],
                  from_idx: int = 0, to_idx: int = 0):
+        if not isinstance(from_node, (Node, str)):
+            raise ValueError('expecting node or string for from_node')
+        if not isinstance(to_node, (Node, str)):
+            raise ValueError('expecting node or string for to_node')
+        if not isinstance(from_idx, int):
+            raise ValueError('expecting int for from_idx')
+        if not isinstance(to_idx, int):
+            raise ValueError('expecting int for to_idx')
         self._link = [from_node, from_idx, to_node, to_idx]
 
     @property
@@ -99,6 +107,8 @@ class Edge():
     @from_node.setter
     def from_node(self, val):
         '''Edge start node'''
+        if not isinstance(val, (Node, str)):
+            raise ValueError('expecting node or string for from_node')
         self._link[0] = val
 
     @property
@@ -109,6 +119,8 @@ class Edge():
     @to_node.setter
     def to_node(self, val):
         '''Edge end node'''
+        if not isinstance(val, (Node, str)):
+            raise ValueError('expecting node or string for to_node')
         self._link[2] = val
 
     @property
@@ -129,6 +141,8 @@ class Edge():
     @from_idx.setter
     def from_idx(self, val):
         '''Edge start output index'''
+        if not isinstance(val, int):
+            raise ValueError('expecting int for from_idx')
         self._link[1] = val
 
     @property
@@ -139,10 +153,12 @@ class Edge():
     @to_idx.setter
     def to_idx(self, val):
         '''Edge end input index'''
+        if not isinstance(val, int):
+            raise ValueError('expecting int for from_idx')
         self._link[3] = val
 
     def clone(self):
-        return Edge(self.from_node, self.to_node, from_idx=self.from_idx, to_idx=self.to_idx)
+        return self.__class__(self.from_node, self.to_node, from_idx=self.from_idx, to_idx=self.to_idx)
 
     def __eq__(self, value):
         if not isinstance(value, Edge):
@@ -209,8 +225,13 @@ class GraphView(Mapping):
             if update:
                 edge_list[edge_idx] = edge
             else:
-                raise EdgeExistsError()
+                raise EdgeExistsError(
+                    f'node {edge.to_node.name} already has an input on {edge.to_idx}')
         else:
+            # useful for testing but will cause tests to fail since some fusions
+            # use the ability to add a new edge before deleting an old
+            # if any(existing_edge.to_idx == edge.to_idx for existing_edge in self.in_edges(edge.to_node.name)):
+            #     raise EdgeExistsError(f'node {edge.to_node.name} already has an input on {edge.to_idx}')
             edge_list.append(edge)
 
     def __add_out_edge(self, edge: Edge, update=False):
@@ -231,7 +252,7 @@ class GraphView(Mapping):
         else:
             edge_list.append(edge)
 
-    def verify_edges(self):
+    def verify_edges(self, check_connected=True):
         problems = []
         for node_name in self.keys():
             in_idxes = {}
@@ -240,6 +261,8 @@ class GraphView(Mapping):
                     problems.append(
                         "edge {0!s} connects to the same input as edge {1!s}"
                         .format(in_idxes[edge.to_idx], edge))
+            if check_connected and self.num_in_edges(node_name) == 0 and self.num_out_edges(node_name) == 0:
+                problems.append(f"{node_name} isn't connected")
         return problems
 
     def add_edge(self, edge: Edge):
@@ -272,7 +295,8 @@ class GraphView(Mapping):
             from_node_name = from_node_name.name
         if isinstance(to_node_name, Node):
             to_node_name = to_node_name.name
-        existing_edge = self.edge(from_node_name, to_node_name, from_idx=from_idx, to_idx=to_idx)
+        existing_edge = self.edge(
+            from_node_name, to_node_name, from_idx=from_idx, to_idx=to_idx)
         self.remove_edge(existing_edge)
         self.add_edge(edge_class(from_node_name, node_to_insert,
                                  from_idx=from_idx, to_idx=node_input_idx))
@@ -285,7 +309,8 @@ class GraphView(Mapping):
         edge = self._out_edges.get(from_node_name)
         if edge:
             edge_list = edge.get(to_node_name)
-            edges = [i for i in edge_list if (i.from_idx == from_idx and i.to_idx == to_idx)]
+            edges = [i for i in edge_list if (
+                i.from_idx == from_idx and i.to_idx == to_idx)]
             if len(edges) > 1:
                 raise InternalGraphError()
             return edges[0] if edges else None
@@ -381,7 +406,12 @@ class GraphView(Mapping):
         indexed_edges = []
         for edge in edges:
             if edge.to_idx >= len(indexed_edges):
-                indexed_edges += [None] * (edge.to_idx + 1 - len(indexed_edges))
+                indexed_edges += [None] * \
+                    (edge.to_idx + 1 - len(indexed_edges))
+            if indexed_edges[edge.to_idx]:
+                cur_edge = indexed_edges[edge.to_idx]
+                raise ValueError(f'{edge.to_node.name} already has an edge '
+                                 f'on {edge.to_idx} from {cur_edge.from_node}:{cur_edge.from_idx}')
             assert not indexed_edges[edge.to_idx], "only one connection is allowed"
             indexed_edges[edge.to_idx] = edge
         return indexed_edges
@@ -415,7 +445,8 @@ class GraphView(Mapping):
 
     def remove(self, node_or_name: Union[str, Node]):
         '''Removes a node and all its connected edges'''
-        node_name = node_or_name.name if isinstance(node_or_name, Node) else node_or_name
+        node_name = node_or_name.name if isinstance(
+            node_or_name, Node) else node_or_name
         del self._nodes[node_name]
         node_names_to_look_at = set()
         if node_name in self._in_edges:
@@ -435,18 +466,25 @@ class GraphView(Mapping):
     def remove_edge(self, edge: Edge):
         '''Removes an edge from the graph'''
         def edge_match(x):
-            return not(x.to_node == edge.to_node and x.from_node == edge.from_node)
+            return not(x.to_node == edge.to_node and x.from_node == edge.from_node and
+                       x.to_idx == edge.to_idx and x.from_idx == edge.from_idx)
         edge_list = self._in_edges[edge.to_node.name][edge.from_node.name]
         self._in_edges[edge.to_node.name][edge.from_node.name]\
             = list(filter(edge_match, edge_list))
+        if not self._in_edges[edge.to_node.name][edge.from_node.name]:
+            del self._in_edges[edge.to_node.name][edge.from_node.name]
         edge_list = self._out_edges[edge.from_node.name][edge.to_node.name]
         self._out_edges[edge.from_node.name][edge.to_node.name]\
             = list(filter(edge_match, edge_list))
+        if not self._out_edges[edge.from_node.name][edge.to_node.name]:
+            del self._out_edges[edge.from_node.name][edge.to_node.name]
 
     def insert_node_at_edge(self, node, at_edge, edge_class=Edge):
         self.remove_edge(at_edge)
-        self.add_edge(edge_class(from_node=at_edge.from_node, to_node=node, from_idx=at_edge.from_idx))
-        self.add_edge(edge_class(from_node=node, to_node=at_edge.to_node, to_idx=at_edge.to_idx))
+        self.add_edge(edge_class(from_node=at_edge.from_node,
+                                 to_node=node, from_idx=at_edge.from_idx))
+        self.add_edge(edge_class(from_node=node,
+                                 to_node=at_edge.to_node, to_idx=at_edge.to_idx))
 
     def insert_node_before(self, from_node, to_node, from_idx=0, to_idx=0, from_node_in_idx=0, edge_class=Edge):
         in_edges = self.indexed_in_edges(to_node.name)
@@ -454,28 +492,36 @@ class GraphView(Mapping):
             raise ValueError(f"node {to_node.name} doesn't have edge {to_idx}")
         in_edge = in_edges[to_idx]
         self.remove_edge(in_edge)
-        self.add_edge(edge_class(from_node=from_node, from_idx=from_idx, to_node=to_node, to_idx=to_idx))
-        self.add_edge(edge_class(from_node=in_edge.from_node, from_idx=in_edge.from_idx, to_node=from_node, to_idx=from_node_in_idx))
+        self.add_edge(edge_class(from_node=from_node,
+                                 from_idx=from_idx, to_node=to_node, to_idx=to_idx))
+        self.add_edge(edge_class(from_node=in_edge.from_node,
+                                 from_idx=in_edge.from_idx, to_node=from_node, to_idx=from_node_in_idx))
 
     def insert_node_after(self, from_node, to_node, from_idx=0, to_idx=0, to_node_out_idx=0, edge_class=Edge):
         out_edges = self.indexed_out_edges(from_node.name)
         if len(out_edges) <= from_idx:
-            raise ValueError(f"node {from_node.name} doesn't have edge {from_idx}")
+            raise ValueError(
+                f"node {from_node.name} doesn't have edge {from_idx}")
         out_edges = out_edges[from_idx]
         for edge in out_edges:
             self.remove_edge(edge)
-        self.add_edge(edge_class(from_node=from_node, from_idx=from_idx, to_node=to_node, to_idx=to_idx))
+        self.add_edge(edge_class(from_node=from_node,
+                                 from_idx=from_idx, to_node=to_node, to_idx=to_idx))
         for edge in out_edges:
-            self.add_edge(edge_class(from_node=to_node, from_idx=to_node_out_idx, to_node=edge.to_node, to_idx=edge.to_idx))
+            self.add_edge(edge_class(from_node=to_node, from_idx=to_node_out_idx,
+                                     to_node=edge.to_node, to_idx=edge.to_idx))
 
     def remove_and_reconnect(self, node_or_name, edge_class=Edge):
-        node_name = node_or_name.name if isinstance(node_or_name, Node) else node_or_name
+        node_name = node_or_name.name if isinstance(
+            node_or_name, Node) else node_or_name
         in_edges = self.in_edges(node_name)
         out_edges = self.out_edges(node_name)
         if not all(edge.to_idx == 0 for edge in in_edges):
-            raise ValueError(f'remove_and_reconnect on {node_name} invalid. in idxes > 0 found.')
+            raise ValueError(
+                f'remove_and_reconnect on {node_name} invalid. in idxes > 0 found.')
         if not all(edge.from_idx == 0 for edge in out_edges):
-            raise ValueError(f'remove_and_reconnect on {node_name} invalid. out idxes > 0 found.')
+            raise ValueError(
+                f'remove_and_reconnect on {node_name} invalid. out idxes > 0 found.')
         self.remove(node_or_name)
         for in_edge in in_edges:
             for out_edge in out_edges:
@@ -498,6 +544,14 @@ class GraphView(Mapping):
             self.remove_edge(edge)
             edge._link[2] = new_node
             self.add_edge(edge)
+
+    def unique_name(self, prefix):
+        if prefix not in self:
+            return prefix
+        idx = 0
+        while f'{prefix}_{idx}' in self:
+            idx += 1
+        return f'{prefix}_{idx}'
 
     def replace_fragment(self,
                          frag: 'Graph',
@@ -529,7 +583,8 @@ class GraphView(Mapping):
         self.add_node(new_node)
         if edge_in_mapping:
             for to_idx, (from_node, from_idx) in enumerate(edge_in_mapping):
-                self.add_edge(edge_class(from_node, new_node, from_idx=from_idx, to_idx=to_idx))
+                self.add_edge(edge_class(from_node, new_node,
+                                         from_idx=from_idx, to_idx=to_idx))
         else:
             connections = set()
             for edge in frag_in_edges:
@@ -541,7 +596,8 @@ class GraphView(Mapping):
         if edge_out_mapping:
             for from_idx, edge_bundle in enumerate(edge_out_mapping):
                 for (to_node, to_idx) in edge_bundle:
-                    self.add_edge(edge_class(new_node, to_node, from_idx=from_idx, to_idx=to_idx))
+                    self.add_edge(edge_class(new_node, to_node,
+                                             from_idx=from_idx, to_idx=to_idx))
         else:
             connections = set()
             for edge in frag_out_edges:
@@ -554,7 +610,8 @@ class GraphView(Mapping):
     def remove_fragment(self, frag: 'Graph'):
         '''Removes a fragment and then connects all the input edges that have
         a single from node to all the outputs'''
-        nodes_not_in_graph = [node_name for node_name in frag if node_name not in self]
+        nodes_not_in_graph = [
+            node_name for node_name in frag if node_name not in self]
         # find the edges in the self graph that point to input nodes that have not been added in
         # the fragment
         frag_in_edges = set(in_edge for input_node in frag.inputs(ignore_names=nodes_not_in_graph)
@@ -638,7 +695,8 @@ class GraphView(Mapping):
             visited_nodes.add(node)
             out_edges = self.out_edges(node.name)
             # Edges are visited in a repeatable order
-            out_edges.sort(key=lambda x: str(x.from_idx) + x.to_node.name + str(x.to_idx))
+            out_edges.sort(key=lambda x: str(x.from_idx) +
+                           x.to_node.name + str(x.to_idx))
             for edge in out_edges:
                 visited_edges.add(edge)
 
@@ -686,7 +744,8 @@ class GraphView(Mapping):
         node in the fragment"""
         # try to match down. Since a single out edge index can have multiple edges from it
         # bundle them together and try to match any of the matches on that edge index
-        match_node_out_edges = self.index_edges_by_from(fragment.out_edges(match_node.name))
+        match_node_out_edges = self.index_edges_by_from(
+            fragment.out_edges(match_node.name))
 
         # if there are no match edges then this is an exit node from the match
         # so it matches straight away
@@ -733,7 +792,8 @@ class GraphView(Mapping):
         node in the fragment"""
         # Now try to match up. This is easier because each in idx can only have one edge going to it
         for real_edge in self.in_edges(graph_node.name):
-            up_match_edge = self.match_semantics(fragment.in_edges(match_node.name), real_edge)
+            up_match_edge = self.match_semantics(
+                fragment.in_edges(match_node.name), real_edge)
             if up_match_edge is None or up_match_edge == exclude_edge:
                 continue
             if isinstance(match_node, MatchNode) and not match_node._match(self, graph_node, real_edge):
@@ -818,13 +878,15 @@ class GraphView(Mapping):
         def match_start_points(G, from_node, to_node, unused1):
             del unused1
             nonlocal inputs, start_points
-            edge = None if from_node is None else G.edge(from_node.name, to_node.name)
+            edge = None if from_node is None else G.edge(
+                from_node.name, to_node.name)
             for fragment_input_node in inputs:
                 if isinstance(fragment_input_node, MatchNode) and fragment_input_node._match(G, to_node, edge):
                     start_points[to_node] = fragment_input_node
             return True
 
-        _ = list(self.dfs(condition=match_start_points, node_or_name=node_or_name))
+        _ = list(self.dfs(condition=match_start_points,
+                          node_or_name=node_or_name))
         # start points will now be a list of pairs with the start_node name in the graph and the
         # corresponding node in the fragment. The start points have all matched an input none in the
         # fragment

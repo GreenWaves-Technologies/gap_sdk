@@ -13,16 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 from graph.types import ConstantInputParameters
-from quantization.symmetric.symmetric_quantization import SymmetricConstantQuantizationRecord
+from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type, can_dequantize
+from quantization.unified_quantization_handler import params_type
 
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
 
 @params_type(ConstantInputParameters)
-@can_dequantize(True)
 class ConstantInputPow2(Pow2QuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -32,13 +32,9 @@ class ConstantInputPow2(Pow2QuantizionHandler):
         if force_out_q:
             o_q = force_out_q
         else:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             o_q = QType.from_min_max_pow2(stats['range_out'][0]['min'],
                                           stats['range_out'][0]['max'],
                                           dtype=out_dtype)
-
-        return SymmetricConstantQuantizationRecord(in_qs=None, out_qs=[o_q])
-
-    @classmethod
-    def _dequantize(cls, params, qrec):
-        params.value = params.dqvalue
-        params.dtype = None
+        o_q.is_constant = True
+        return QRec.symmetric(in_qs=None, out_qs=[o_q])

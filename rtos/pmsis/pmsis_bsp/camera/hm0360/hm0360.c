@@ -27,6 +27,7 @@ typedef struct {
 
 
 typedef struct {
+    struct pi_hm0360_conf conf;
     struct pi_device cpi_device;
     struct pi_device i2c_device;
     i2c_req_t i2c_req;
@@ -49,11 +50,12 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     //{HM0360_STROBE_CFG, 0x1}, // enable strobe
     //{HM0360_PMU_CFG_7, 0x1}, // frame output number
     //{HM0360_COMMAND_UPDATE, 0x1}, // command update
-    {0x0103, 0x00},
-    {0x0350, 0xE0},
+    //{0x0103, 0x00}, //Sw Reset
+    {0x0350, 0xE0}, //?not in datasheet
     {0x0370, 0x00},
     {0x0371, 0x00},
     {0x0372, 0x01},
+    //Black Level Control Registers
     {0x1000, 0x43},
     {0x1001, 0x80},
     {0x1003, 0x20},
@@ -61,6 +63,7 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     {0x1007, 0x01},
     {0x1008, 0x20},
     {0x1009, 0x20},
+    
     {0x100A, 0x05},
     {0x100B, 0x20},
     {0x100C, 0x20},
@@ -73,6 +76,7 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     {0x1020, 0x01},
     {0x1021, 0x5D},
     {0x102F, 0x08},
+    //Tone Mapping Registers    
     {0x1030, 0x04},
     {0x1031, 0x08},
     {0x1032, 0x10},
@@ -89,13 +93,16 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     {0x103D, 0xA0},
     {0x103E, 0xC0},
     {0x103F, 0xE0},
-    {0x1041, 0x00},
+    
+    {0x1041, 0x00}, //?not in datasheet
+    //Automatic Exposure
     {0x2000, 0x7F},
     {0x202B, 0x03},
     {0x202C, 0x03},
     {0x202D, 0x00},
     {0x2031, 0x60},
     {0x2032, 0x08},
+    {0x2034, 0xA0}, //AE Target this is adviced by Himax to improve brightness
     {0x2036, 0x19},
     {0x2037, 0x08},
     {0x2038, 0x10},
@@ -124,6 +131,7 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     {0x2061, 0x00},
     {0x2062, 0x00},
     {0x2063, 0xC8},
+
     {0x2080, 0x41},
     {0x2081, 0xE0},
     {0x2082, 0xF0},
@@ -191,6 +199,7 @@ static hm0360_reg_init_t __hm0360_reg_init[] = {
     {0x302D, 0x03},
     {0x302E, 0x00},
     {0x302F, 0x00},
+    {0x3030, 0x01}, //output 640x480
     {0x3031, 0x01},
     {0x3034, 0x00},
     {0x3035, 0x01},
@@ -567,7 +576,7 @@ static inline int is_i2c_active()
 
     // I2C driver is not yet working on some chips, at least this works on gvsoc.
     // Also there is noI2C connection to camera model on RTL
-#if PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1
+#if defined(PULP_CHIP) && (PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1)
     return 0;
 #else
     return rt_platform() != ARCHI_PLATFORM_RTL;
@@ -670,6 +679,8 @@ int32_t __hm0360_open(struct pi_device *device)
     hm0360_t *hm0360 = (hm0360_t *)pmsis_l2_malloc(sizeof(hm0360_t));
     if (hm0360 == NULL) return -1;
 
+    memcpy(&hm0360->conf, conf, sizeof(*conf));
+  
     device->data = (void *)hm0360;
 
     if (bsp_hm0360_open(conf))
@@ -717,14 +728,24 @@ int32_t __hm0360_open(struct pi_device *device)
     pi_gpio_pin_configure(&gpio_port, gpio_xsleep, PI_GPIO_OUTPUT);
     pi_gpio_pin_write(&gpio_port, gpio_xshdown, 1);
     /* According to datasheet, need at least 200 us after power up */
-    pi_time_wait_us(500);
+    pi_time_wait_us(250);
     pi_gpio_pin_write(&gpio_port, gpio_xsleep, 1);
 
-    printf("[HM0360] Reseting...\n");
     __hm0360_reset(hm0360);
 
-    printf("[HM0360] Initializing regs...\n");
     __hm0360_init_regs(hm0360);
+    
+    if (hm0360->conf.format == PI_CAMERA_QVGA)
+    {
+        //Setting Vertical and Horizontal Sub2 for QVGA 
+        __hm0360_reg_write(hm0360, 0x3507,0x1);
+        __hm0360_reg_write(hm0360, 0x3508,0x1);
+    }
+    else if(hm0360->conf.format == PI_CAMERA_QQVGA){
+        //Setting Vertical and Horizontal Sub4 for QQVGA 
+        __hm0360_reg_write(hm0360, 0x3507,0x2);
+        __hm0360_reg_write(hm0360, 0x3508,0x2);
+    }
 
     return 0;
 
@@ -764,13 +785,13 @@ static int32_t __hm0360_control(struct pi_device *device, pi_camera_cmd_e cmd, v
             break;
 
         case PI_CAMERA_CMD_START:
-            pi_cpi_control_start(&hm0360->cpi_device);
             __hm0360_wakeup(hm0360);
+            pi_cpi_control_start(&hm0360->cpi_device);
             break;
 
         case PI_CAMERA_CMD_STOP:
-            __hm0360_standby(hm0360);
             pi_cpi_control_stop(&hm0360->cpi_device);
+            __hm0360_standby(hm0360);
             break;
 
         default:

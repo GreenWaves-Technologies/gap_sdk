@@ -28,8 +28,10 @@ TILER_CNN_GENERATOR_PATH     = os.environ.get('TILER_CNN_GENERATOR_PATH')
 TILER_CNN_KERNEL_PATH        = os.environ.get('TILER_CNN_KERNEL_PATH')
 TILER_CNN_GENERATOR_PATH_SQ8 = os.environ.get('TILER_CNN_GENERATOR_PATH_SQ8')
 TILER_CNN_KERNEL_PATH_SQ8    = os.environ.get('TILER_CNN_KERNEL_PATH_SQ8')
-NNTOOL_GENERATOR_PATH        = os.environ.get('NNTOOL_GENERATOR_PATH')
-NNTOOL_KERNEL_PATH           = os.environ.get('NNTOOL_KERNEL_PATH')
+TILER_CNN_GENERATOR_PATH_FP16 = os.environ.get('TILER_CNN_GENERATOR_PATH_FP16')
+TILER_CNN_KERNEL_PATH_FP16    = os.environ.get('TILER_CNN_KERNEL_PATH_FP16')
+#NNTOOL_GENERATOR_PATH        = os.environ.get('NNTOOL_GENERATOR_PATH')
+#NNTOOL_KERNEL_PATH           = os.environ.get('NNTOOL_KERNELS_PATH')
 
 
 class CompileCommand(NNToolShellBase):
@@ -67,23 +69,32 @@ class CompileCommand(NNToolShellBase):
         cc.add_include_dir(TILER_EMU_INC)
         cc.add_include_dir(TILER_CNN_GENERATOR_PATH)
         cc.add_include_dir(TILER_CNN_KERNEL_PATH)
-        cc.add_include_dir(NNTOOL_GENERATOR_PATH)
-        cc.add_include_dir(NNTOOL_KERNEL_PATH)
-        if "SQ8" in self.G.graph_identity.quantization_types:
+        # cc.add_include_dir(NNTOOL_GENERATOR_PATH)
+        # cc.add_include_dir(NNTOOL_KERNEL_PATH)
+        if "SQ8" in self.G.quantization.schemes_present:
             cc.add_include_dir(TILER_CNN_GENERATOR_PATH_SQ8)
             cc.add_include_dir(TILER_CNN_KERNEL_PATH_SQ8)
+        if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
+            cc.add_include_dir(TILER_CNN_GENERATOR_PATH_FP16)
+            cc.add_include_dir(TILER_CNN_KERNEL_PATH_FP16)
         if args.add_sdl:
             cc.add_library("SDL2")
             cc.add_library("SDL2_ttf")
         
         srcs = [model_file]
         at_gen_srcs = [os.path.join(TILER_CNN_GENERATOR_PATH, "CNN_Generator_Util.c")]
-        at_gen_srcs.append(os.path.join(NNTOOL_GENERATOR_PATH, "nntool_extra_generators.c"))
-        if "SQ8" in self.G.graph_identity.quantization_types:
+        at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH, "CNN_Copy_Generators.c"))
+        # at_gen_srcs.append(os.path.join(NNTOOL_GENERATOR_PATH, "nntool_extra_generators.c"))
+        if "SQ8" in self.G.quantization.schemes_present:
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_SQ8, "CNN_Generators_SQ8.c"))
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_SQ8, "RNN_Generators_SQ8.c"))
-        if "POW2" in self.G.graph_identity.quantization_types:
+        if "POW2" in self.G.quantization.schemes_present:
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH, "CNN_Generators.c"))
+        if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
+            at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_FP16, "CNN_Generators_fp16.c"))
+            at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_FP16, "RNN_Generators_fp16.c"))
+        if self.G.has_ssd_postprocess:
+            at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH, "SSD_Generators.c"))
 
         objs = cc.compile(
             srcs + at_gen_srcs,

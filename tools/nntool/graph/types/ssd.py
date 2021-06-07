@@ -17,12 +17,13 @@ import logging
 
 from graph.dim import Dim
 
-from .base import (Parameters, SensitiveToOrder)
+from .base import Parameters, SensitiveToOrder, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
+
+@cls_op_name('ssd_detector')
 class SSDDetectorParameters(Parameters, SensitiveToOrder):
-    op_name = "ssd_detector"
 
     INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
 
@@ -106,9 +107,6 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
             Dim(shape=[num_detected_boxes], is_ordered=True),
             Dim(shape=[num_detected_boxes], is_ordered=True),
         ]
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def __str__(self):
         return "{} SCORE_THR {:.2f} IOU_THR {:.2f}".format(

@@ -619,10 +619,13 @@ static inline iss_insn_t *ebreak_exec(iss_t *iss, iss_insn_t *insn)
   if (next)
   {
     next = iss_decode_pc_noexec(iss, next);
+    iss_addr_t addr = next->addr;
     if (insn->next && insn->next->opcode == 0x40705013)
     {
       iss_handle_riscv_ebreak(iss, insn);
-      return insn->next;
+
+      // Be careful to decode again the instruction since it may have changed
+      return insn_cache_get_decoded(iss, addr);
     }
   }
 

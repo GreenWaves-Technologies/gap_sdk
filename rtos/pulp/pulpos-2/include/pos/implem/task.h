@@ -32,6 +32,9 @@ void pos_task_remote_enqueue();
 void pos_task_cancel(pi_task_t *task);
 
 
+void pos_time_task_cancel(pi_task_t *task);
+
+
 static inline void pi_task_destroy(pi_task_t *task)
 {
 }

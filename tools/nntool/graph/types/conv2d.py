@@ -16,15 +16,15 @@
 import logging
 
 from ..dim import DilationDim
-from .base import (FilterLikeParameters, MultiplicativeBiasParameters,
-                   NoSizeChangeParameters, SingleInputAndOutput, Transposable)
+from .base import (ComparableParameters, FilterLikeParameters, FilterParameters,
+                   MultiplicativeBiasParameters, NoSizeChangeParameters,
+                   SingleInputAndOutput, Transposable, cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
+@cls_op_name('batchnorm')
 class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput, Transposable):
-
-    op_name = "batchnorm"
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, name, scale=None, bias=None, running_mean=None,
@@ -51,15 +51,15 @@ class BatchNormalizationParameters(NoSizeChangeParameters, SingleInputAndOutput,
             self.at_options or ""
         )
 
-class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Transposable):
 
-    op_name = "conv2d"
+@cls_op_name('conv2d')
+class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Transposable, ComparableParameters):
 
     #pylint: disable-msg=too-many-arguments
     def __init__(self, name, dilation=None, groups=None, multiplier=1,
-                 custom=None, tf_depthwise=False, **kwargs):
+                 custom=None, tf_depthwise=False, has_bias=True, **kwargs):
 
-        super(Conv2DParameters, self).__init__(name, **kwargs)
+        super(Conv2DParameters, self).__init__(name, has_bias=True, **kwargs)
 
         if dilation is None:
             dilation = DilationDim(1)
@@ -90,39 +90,30 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         else:
             self.custom = dict(custom)
 
+        self._ker_in_order = [['c', 'h', 'w'], [
+            'out_c', 'in_c', 'h', 'w'], ['out_c']]
+        self._ker_out_order = [['c', 'h', 'w']]
+
         LOG.debug("created CON2D %s", str(self))
 
-    # @property
-    # def can_equalize(self):
-    #     return not self.tf_depthwise
+    @property
+    def graph_label(self):
+        label = [self.name, f'Filter {self.filter}']
+        if self.stride.size() != 1:
+            label.append(f'Stride {self.stride}')
+        if self.padding.has_padding:
+            label.append(f'Pad {self.padding}')
+        if self.dilation.size() != 1:
+            label.append(f'Dilate {self.dilation}')
+        return label
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-        # """ Clones conv parameters for a specific group number
-        # """
-        # if groupn is None:
-        #     new_conv = Conv2DParameters(name, filter=self.filter, stride=self.stride, padding=self.padding,
-        #                                 dilation=self.dilation, pad_type=self.pad_type, groups=self.groups,
-        #                                 multiplier=self.multiplier, has_bias=self.has_bias)
-        # else:
-        #     assert groupn < self.groups, "incorrect group number"
-        #     c_per_g = self.filter.out_c//self.groups
-        #     offset = c_per_g * groupn
-        #     new_filter = self.filter.clone()
-        #     new_filter.out_c = c_per_g
-        #     new_conv = Conv2DParameters(name, filter=new_filter, stride=self.stride, padding=self.padding,
-        #                                 dilation=self.dilation, pad_type=self.pad_type, groups=1,
-        #                                 multiplier=self.multiplier, has_bias=self.has_bias)
-        #     num_out = c_per_g * self.multiplier
-        #     if self.biases is not None:
-        #         new_conv.biases = self.biases[offset:offset + num_out - 1]
-
-        #     if self.weights is not None:
-        #         # TODO - THIS IS NOT CORRECT BUT UNUSED AT PRESENT. CHECK ORDER.
-        #         new_conv.weights = self.weights[offset:offset +
-        #                                         num_out - 1, ...]
-
-        # return new_conv
+    def can_be_grouped_with(self, other):
+        if not isinstance(other, Conv2DParameters):
+            return False
+        return (self.filter == other.filter and self.padding == other.padding and
+                self.stride == other.stride and self.dilation == other.dilation and
+                all(d1.shape == d2.shape for d1, d2 in zip(self.in_dims, other.in_dims)) and
+                self.out_dims[0].shape == other.out_dims[0].shape)
 
     def is_grouped_conv(self):
         return self.groups > 1
@@ -131,7 +122,8 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         # this does not cope with TFLITE DW convs with a multiplier but the
         # generator is going to need to split those up into multiple per channel
         # normal convolutions
-        return self.groups == self.filter.out_c and self.filter.in_c == 1 and self.multiplier == 1 and not self.cannot_be_dw
+        return (self.groups == self.filter.out_c and self.filter.in_c == 1 and
+                self.multiplier == 1 and not self.cannot_be_dw)
 
     def get_weights_count(self):
         return self.filter.size() * self.multiplier // self.groups
@@ -140,34 +132,30 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         return self.multiplier * self.filter.out_c
 
     def get_parameter_size(self):
-        if self.filter.in_c is None:
-            return 0
-        return self.get_weights_count() + self.get_bias_count()
+        return 0
 
     @property
     def at_options(self):
         return self._at_options
 
     def get_output_size(self, in_dims):
-
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        in_dims = self.in_dims[0]
-
+        in_dim = in_dims[0]
         if self.transpose_in and self.transpose_in[0]:
-            in_dims = in_dims.calc_transpose(self.transpose_in[0])
+            in_dim = in_dim.calc_transpose(self.transpose_in[0])
 
-        assert in_dims.c >= self.groups,\
+        assert in_dim.c >= self.groups,\
             "The number of groups cannot be larger than the amount of input channels"
-        self.filter.in_c = in_dims.c // self.groups
+        self.filter.in_c = in_dim.c // self.groups
         if self.padding.is_same:
-            self.padding.calculate_same(in_dims, self.filter, self.stride, dilation=self.dilation)
+            self.padding.calculate_same(
+                in_dim, self.filter, self.stride, dilation=self.dilation)
         filter_d = self.filter + (self.filter - 1) * (self.dilation - 1)
 
         pad = self.padding.height_width()
 
-        out_dim = ((in_dims - filter_d + pad)//self.stride) + 1
+        out_dim = ((in_dim - filter_d + pad)//self.stride) + 1
         out_dim.c = self.filter.out_c
-        out_dim.impose_order(in_dims.order)
+        out_dim.impose_order(in_dim.order)
         if self.transpose_out and self.transpose_out[0]:
             out_dim = out_dim.calc_transpose(self.transpose_out[0])
         return [out_dim]
@@ -183,6 +171,54 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
             self.dilation,
             self.groups,
             self.multiplier,
+            self.padding,
+            self.pad_type,
+            Transposable.__str__(self),
+            self.at_options or ""
+        )
+
+
+@cls_op_name('transpose_conv2d')
+class TransposeConv2DParameters(FilterParameters, FilterLikeParameters, Transposable):
+
+    def __init__(self, name, **kwargs):
+        super(TransposeConv2DParameters, self).__init__(
+            name, has_bias=False, **kwargs)
+
+    def get_weights_count(self):
+        return self.filter.size()
+
+    def get_bias_count(self):
+        return 0
+
+    def get_parameter_size(self):
+        if self.filter.in_c is None:
+            return 0
+        return self.get_weights_count() + self.get_bias_count()
+
+    def get_output_size(self, in_dims):
+
+        in_dims = in_dims[0]
+
+        if self.transpose_in and self.transpose_in[0]:
+            in_dims = in_dims.calc_transpose(self.transpose_in[0])
+
+        pad = self.padding.height_width()
+
+        out_dim = (in_dims - 1) * self.stride - pad + self.filter
+        out_dim.c = self.filter.out_c
+        out_dim.impose_order(in_dims.order)
+        if self.transpose_out and self.transpose_out[0]:
+            out_dim = out_dim.calc_transpose(self.transpose_out[0])
+        return [out_dim]
+
+    def compute_load(self):
+        return self.out_dims[0].c * self.filter.h * self.filter.w * self.in_dims[0].size()
+
+    def __str__(self):
+        return "F {} S {} P {} {} {} {}".format(
+            self.filter,
+            self.stride,
             self.padding,
             self.pad_type,
             Transposable.__str__(self),

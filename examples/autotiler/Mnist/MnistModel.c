@@ -27,6 +27,8 @@ void MnistModel(unsigned int L1Memory)
     SetGeneratedFilesNames("MnistKernels.c", "MnistKernels.h");
     // L1 shared memory given to Auto Tiler
     SetL1MemorySize(L1Memory);
+    // To use the Reordering you need to define a graph
+    AT_SetGraphCtrl(AT_GRAPH_REORDER_CONSTANT_IN, AT_OPT_OFF);
 
     LoadCNNLibrary();
 

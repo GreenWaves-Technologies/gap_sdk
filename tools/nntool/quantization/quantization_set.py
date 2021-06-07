@@ -13,25 +13,73 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from collections.abc import MutableMapping
 from copy import deepcopy
 from typing import Sequence
 
 from graph.types import Parameters
+from graph.types.fusions import FusionBase
 from utils.json_serializable import JsonSerializable
 from utils.node_id import NodeId, convert_keys_to_str, convert_str_to_keys
-from quantization.quantization_record_base import QuantizationRecordBase
+
+from quantization.new_qrec import QRec
+
+LOG = logging.getLogger(__name__)
 
 class QuantizationSet(MutableMapping, JsonSerializable):
-    def __init__(self, *args, unwrap=False, init: dict = None, **kwargs):
+    def __init__(self, *args, init: dict = None, **kwargs):
         super(QuantizationSet, self).__init__(*args, **kwargs)
         if init is None:
             self._init = {
-                'unwrap': unwrap,
-                'qset': {}
+                'qset': {},
+                'schemes_present': set(),
+                'scheme_priority': [],
+                'stats': None,
+                'frozen_qs': None,
+                'options': {}
             }
         else:
             self._init = init
+
+    def clear_qrecs(self):
+        self._init['qset'] = {}
+
+    @property
+    def schemes_present(self):
+        return self._init['schemes_present']
+
+    @property
+    def scheme_priority(self):
+        return self._init['scheme_priority']
+
+    @scheme_priority.setter
+    def scheme_priority(self, val):
+        self._init['scheme_priority'] = val
+
+    @property
+    def frozen_qs(self):
+        return self._init['frozen_qs']
+
+    @frozen_qs.setter
+    def frozen_qs(self, val):
+        self._init['frozen_qs'] = val
+
+    @property
+    def stats(self):
+        return self._init['stats']
+
+    @stats.setter
+    def stats(self, val):
+        self._init['stats'] = val
+
+    @property
+    def options(self):
+        return self._init['options']
+
+    @options.setter
+    def options(self, val):
+        self._init['options'] = val
 
     @property
     def qset(self):
@@ -44,8 +92,6 @@ class QuantizationSet(MutableMapping, JsonSerializable):
         if key not in self.qset:
             raise KeyError()
         item = self.qset[key]
-        if self.unwrap:
-            item.unwrap = self.unwrap
         return item
 
     def __iter__(self):
@@ -61,7 +107,8 @@ class QuantizationSet(MutableMapping, JsonSerializable):
         return convert_keys_to_str(self._init)
 
     def sorted_iterator(self, G):
-        node_ids = [NodeId(pnode, fnode) for _, pnode, _, fnode in G.nodes_iterator()]
+        node_ids = [NodeId(pnode, fnode)
+                    for _, pnode, _, fnode in G.nodes_iterator()]
         return [(nid, self.qset[nid]) if nid in self.qset else (nid, None) for nid in node_ids]
 
     def all_out_qs_scale(self):
@@ -71,19 +118,28 @@ class QuantizationSet(MutableMapping, JsonSerializable):
     def _dencapsulate(cls, val):
         return cls(init=convert_str_to_keys(val))
 
-    @property
-    def unwrap(self):
-        return self._init['unwrap']
-
-    @unwrap.setter
-    def unwrap(self, val):
-        self._init['unwrap'] = val
+    def copy_qrec(self, from_node, from_dir, from_idx, to_node):
+        from_qrec = self.qset.get(NodeId(from_node))
+        if from_qrec is None:
+            raise ValueError(f'trying to copy qrec from {from_node.name} to {to_node.name} - node has no qrec')
+        qtype = deepcopy(getattr(from_qrec, f'{from_dir}_qs')[from_idx])
+        self.qset[NodeId(to_node)] = QRec.copy_ktype(from_qrec, in_qs=[qtype], out_qs=[qtype])
 
     def verify_quantization(self, G):
         """Verify that all nodes have a quantization record"""
-        return all(NodeId(pnode, fnode) in self.qset for _, pnode, _, fnode in G.nodes_iterator())
+        is_quantized = True
+        for node in G.nodes():
+            if isinstance(node, FusionBase) and not node.dont_quantize_internals:
+                for fnode in node.contained_nodes():
+                    if NodeId(node, fnode) not in self.qset:
+                        LOG.info('%s:%s does not have a quantization record', node.name, fnode.name)
+                        is_quantized = False
+            if NodeId(node) not in self.qset:
+                LOG.info('%s does not have a quantization record', node.name)
+                is_quantized = False
+        return is_quantized
 
-    def get_all(self, nodes: Sequence[Parameters]) -> Sequence[QuantizationRecordBase]:
+    def get_all(self, nodes: Sequence[Parameters]) -> Sequence[QRec]:
         """Get all the quantization records for a sequence of nodes"""
         if self.all_have_quantization(nodes):
             return [self.qset[NodeId(node)] for node in nodes]
@@ -103,7 +159,8 @@ class QuantizationSet(MutableMapping, JsonSerializable):
             if from_idx is None or edge.from_idx == from_idx:
                 transit_node_qrec = self.qset[NodeId(edge.to_node)]
                 transit_node_qrec.in_qs[edge.to_idx] = deepcopy(qtype)
-                transit_node_qrec.out_qs = [deepcopy(qtype)] * len(transit_node_qrec.out_qs)
+                transit_node_qrec.out_qs = [
+                    deepcopy(qtype)] * len(transit_node_qrec.out_qs)
                 if edge.to_node != to_node:
                     self.propagate(G, edge.to_node, to_node, qtype=qtype)
 

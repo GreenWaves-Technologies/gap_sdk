@@ -65,7 +65,20 @@ static inline iss_insn_t *div_exec(iss_t *iss, iss_insn_t *insn)
   else if (dividend == (1<<31) && divider == -1) result = (1<<31);
   else result = dividend / divider;
   REG_SET(0, result);
-  //setRegTimed(cpu, pc, pc->outReg[0], result);
+
+  int cycles;
+  
+  if (divider >= 0)
+  {
+    cycles = __builtin_clz(divider) + 3;
+  }
+  else
+  {
+    cycles = __builtin_clz((~divider) + 1) + 2;
+  }
+
+  iss_perf_account_dependency_stall(iss, cycles);
+
   return insn->next;
 }
 
@@ -77,7 +90,9 @@ static inline iss_insn_t *divu_exec(iss_t *iss, iss_insn_t *insn)
   if (divider == 0) result = -1;
   else result = dividend / divider;
   REG_SET(0, result);
-  //setRegTimed(cpu, pc, pc->outReg[0], result);
+
+  iss_perf_account_dependency_stall(iss, __builtin_clz(divider) + 3);
+
   return insn->next;
 }
 
@@ -91,7 +106,20 @@ static inline iss_insn_t *rem_exec(iss_t *iss, iss_insn_t *insn)
   else if (dividend == (1<<31) && divider == -1) result = 0;
   else result = dividend % divider;
   REG_SET(0, result);
-  //setRegTimed(cpu, pc, pc->outReg[0], result);
+
+  int cycles;
+  
+  if (divider >= 0)
+  {
+    cycles = __builtin_clz(divider) + 3;
+  }
+  else
+  {
+    cycles = __builtin_clz((~divider) + 1) + 2;
+  }
+
+  iss_perf_account_dependency_stall(iss, cycles);
+
   return insn->next;
 }
 
@@ -103,8 +131,11 @@ static inline iss_insn_t *remu_exec(iss_t *iss, iss_insn_t *insn)
   uint32_t result;
   if (divider == 0) result = dividend;
   else result = dividend % divider;
-  //setRegTimed(cpu, pc, pc->outReg[0], result);
+  
   REG_SET(0, result);
+
+  iss_perf_account_dependency_stall(iss, __builtin_clz(divider) + 3);
+
   return insn->next;
 }
 

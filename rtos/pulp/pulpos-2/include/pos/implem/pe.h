@@ -205,7 +205,7 @@ static inline void pi_cl_team_barrier_cc()
     pos_team_cc_barrier();
 }
 
-
+#ifdef __GAP9__
 static inline int pi_cl_bitfield_nb_available()
 {
     return __builtin_popcount(eu_bitfield_value_get(POS_BITFIELD_ALLOC_ID));
@@ -326,7 +326,7 @@ static inline uint32_t pi_cl_sem_load_inc(uint32_t sem)
 {
     return eu_sem_load_inc(sem);
 }
-
+#endif
 
 
 #endif

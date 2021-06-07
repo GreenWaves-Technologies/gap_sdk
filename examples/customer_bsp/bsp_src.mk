@@ -1,4 +1,4 @@
-GAPOC_C_BSP = $(GAPOC_C_PROJECT_PATH)
+GAPOC_C_BSP = $(CUSTOM_BSP_PATH)
 PMSIS_BSP_PATH = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_bsp
 
 BSP_READFS_SRC = $(PMSIS_BSP_PATH)/fs/read_fs/read_fs.c

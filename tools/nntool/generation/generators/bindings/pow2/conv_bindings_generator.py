@@ -14,9 +14,8 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.generator_decorators import (QREC_POW2,
-                                                        generation_function)
-from generation.generators.globals.global_names import (MULSCALE)
+from generation.generator_decorators import QREC_POW2, generation_function
+from generation.generators.globals.global_names import MULSCALE
 from graph.types import Conv2DParameters, ConvFusionParameters
 from utils.node_id import NodeId
 
@@ -25,7 +24,8 @@ from utils.node_id import NodeId
 def conv_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, Conv2DParameters):
-        set_conv_bindings(gen, step_idx, in_eparams, out_eparams, cname, node, qrec)
+        set_conv_bindings(gen, step_idx, in_eparams,
+                          out_eparams, cname, node, qrec)
     elif isinstance(node, ConvFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
@@ -47,6 +47,7 @@ def conv_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> 
         return False
     return True
 
+
 def set_conv_bindings(gen, step_idx, in_eparams, out_eparams, cname, params, conv_q,
                       out_q=None):
     if out_q is None:
@@ -58,7 +59,8 @@ def set_conv_bindings(gen, step_idx, in_eparams, out_eparams, cname, params, con
     if params.has_mul_bias:
         gen.bindings.append(
             NodeBindingList(cname, GNodeArgEdge(in_eparams[0]), GNodeArgEdge(in_eparams[1]),
-                            GNodeArgEdge(in_eparams[2]), GNodeArgNode(params, MULSCALE),
+                            GNodeArgEdge(in_eparams[2]), GNodeArgNode(
+                                params, MULSCALE),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT")))
     else:
         gen.bindings.append(

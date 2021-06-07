@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import numpy as np
 from graph.types.tensor_arithmetic import MatrixDivParameters
 
 from ..backend_handler import BackendHandler
@@ -26,7 +27,8 @@ class Div(ArithmeticMixin, BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
         return super(Div, cls)._common(node, params_class=MatrixDivParameters,
-                                       constant_operation=lambda x, y: x / y,
+                                       constant_operation=np.true_divide,
+                                       constant_int_operation=np.floor_divide,
                                        **kwargs)
 
     @classmethod

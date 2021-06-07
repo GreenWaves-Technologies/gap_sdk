@@ -14,9 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from quantization.qtype import QType
 from graph.dim import Dim
 from graph.types import ConstantInputParameters, NNEdge
-from graph.types.others import CastParameters
+from graph.types.others import QuantizeParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.onnx.common import logger, onnx2np
@@ -37,15 +38,18 @@ class Cast(ConstantMixin, BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
         to_dtype = node.attrs['to']
-
+        logger.error('has_cast!!!!!!!!')
         if cls.is_constant(x):
-            logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
             x_val = x_val.astype(to_dtype)
+            if x_val.size < 10:
+                logger.info("reducing %s to a constant %s", valid_name, x_val)
+            else:
+                logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val,
                                              constant_store=G.constant_store)
         else:
-            params = CastParameters(valid_name, out_dtype=to_dtype)
+            params = QuantizeParameters(valid_name, to_qtype=QType(dtype=to_dtype))
             G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, ProvisionalDim(x_shape))
         return params

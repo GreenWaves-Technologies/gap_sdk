@@ -19,4 +19,5 @@ ANCHORS = "anchors"
 SSD_SCALES = "ssd_scales"
 SSD_NORMS = "ssd_norms"
 
-__all__ = ['MULSCALE', 'MULSHIFT', 'INFOS', 'ANCHORS', 'SSD_SCALES', 'SSD_NORMS']
+__all__ = ['MULSCALE', 'MULSHIFT', 'INFOS',
+           'ANCHORS', 'SSD_SCALES', 'SSD_NORMS']

@@ -35,13 +35,14 @@ public:
 
     void start(pi_testbench_i2s_verif_start_config_t *config);
     void slot_setup(pi_testbench_i2s_verif_slot_config_t *config);
-    void slot_start(pi_testbench_i2s_verif_slot_start_config_t *config);
+    void slot_start(pi_testbench_i2s_verif_slot_start_config_t *config, std::vector<int> slots);
     void slot_stop(pi_testbench_i2s_verif_slot_stop_config_t *config);
     void sync(int sck, int ws, int sd);
     void sync_sck(int sck);
     void sync_ws(int ws);
     int64_t exec();
 
+    Testbench *top;
     vp::trace trace;
     vp::i2s_master *itf;
     pi_testbench_i2s_verif_config_t config;
@@ -52,11 +53,13 @@ public:
     bool frame_active;
     int  current_ws_delay;
     int  active_slot;
+    bool zero_delay_start;
     int  pending_bits;
 
     bool is_pdm;
     bool is_full_duplex;
 
+    bool clk_active;
     int64_t clk_period;
     bool is_ext_clk;
     int clk;
@@ -68,6 +71,8 @@ public:
     int ws_count;
     int ws_value;
     bool pdm_lanes_is_out[2];
+    int64_t prev_frame_start_time;
+    int64_t sampling_period;
 
     std::vector<Slot *> slots;
 };

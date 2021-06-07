@@ -9,9 +9,10 @@ import sys
 
 import numpy as np
 
-from .base import InsensitiveToQuantization, Transposable
+from .base import InsensitiveToQuantization, Transposable, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
+
 
 class InputOutputParameters(Transposable):
 
@@ -24,6 +25,10 @@ class InputOutputParameters(Transposable):
         self.at_options.valid_options['ALLOCATE'] = int
         self.at_options.valid_options['FIXED_ORDER'] = int
         self.fixed_order = fixed_order
+
+    @property
+    def graph_anon_label(self):
+        return [self.name]
 
     @property
     def short_name(self):
@@ -66,9 +71,6 @@ class InputOutputParameters(Transposable):
     def get_parameter_size(self):
         return 0
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
 
 class InputBaseParameters(InputOutputParameters):
 
@@ -99,12 +101,23 @@ class InputBaseParameters(InputOutputParameters):
         return [out_dim]
 
 
+@cls_op_name('input')
 class InputParameters(InputBaseParameters, InsensitiveToQuantization):
-    op_name = "input"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.at_options.valid_options['EXTERN_INPUT_POINTER'] = int
+
+    def verify(self, G):
+        problems = []
+        for edge in G.in_edges(self.name):
+            problems.append(
+                f'input node {self.name} has input edge from {edge.from_node.name}:{edge.from_idx}')
+        for edge in G.out_edges(self.name):
+            if edge.from_idx > 0:
+                problems.append(f'input node {self.name} has output edge on idx {edge.from_idx} '
+                                f'to {edge.to_node.name}:{edge.to_idx}')
+        return problems
 
     def set_input(self, value):
         try:
@@ -112,26 +125,14 @@ class InputParameters(InputBaseParameters, InsensitiveToQuantization):
         except ValueError as ex:
             trace_back = sys.exc_info()[2]
             raise ValueError(
-                "Input data dimensions are not compatible with graph input: {!s}".format(ex)
+                "Input data dimensions are not compatible with graph input: {!s}".format(
+                    ex)
             ).with_traceback(trace_back)
         self.output_value = value
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
-    # @property
-    # def can_promoteq(self):
-    #     return self.out_q.bits < STATS_BITS[-1]
-
-    # def promoteq(self):
-    #     if self.out_q.bits == STATS_BITS[-1]:
-    #         raise ValueError("can't step further")
-    #     self.out_q = get_quantization(self.activation_stats, None, self.out_q.bits * 2)
-    #     return True
-
-
+@cls_op_name('constant')
 class ConstantInputParameters(InputBaseParameters):
-    op_name = "constant"
 
     def __init__(self, *args, adjust_transpose=None, is_mutated=False,
                  is_intermediate=False, always_copy=False, value=None, qtype=None, **kwargs):
@@ -150,6 +151,23 @@ class ConstantInputParameters(InputBaseParameters):
         self._always_copy = always_copy
         self._use_compressed = False
         self._qtype = qtype
+
+    def verify(self, G):
+        problems = []
+        for edge in G.in_edges(self.name):
+            problems.append(
+                f'constant input node {self.name} has input edge from {edge.from_node.name}:{edge.from_idx}')
+        for edge in G.out_edges(self.name):
+            if edge.from_idx > 0:
+                problems.append(f'constant input node {self.name} has output edge on idx {edge.from_idx} '
+                                f'to {edge.to_node.name}:{edge.to_idx}')
+        if self.value is None:
+            problems.append(f'constant node {self.name} has no value')
+        return problems
+
+    @property
+    def graph_anon_label(self):
+        return ['Constant']
 
     @property
     def qtype(self):
@@ -171,9 +189,15 @@ class ConstantInputParameters(InputBaseParameters):
         self.value = val
 
     @property
+    def constant_store(self):
+        return self._constant_store
+
+    @property
     def value(self):
         if self._constant_store:
-            value = self._constant_store.get(self, 0, get_compressed=self._use_compressed)
+            # compressed returns the real value with the error induced by the compression
+            value = self._constant_store.get(
+                self, 0, compressed=self._use_compressed)
         else:
             value = self._value
 
@@ -188,7 +212,7 @@ class ConstantInputParameters(InputBaseParameters):
         else:
             self._value = val
 
-    def value_as(self, qtype):
+    def value_as(self, qtype, generation=False):
         # handles both None or both equal
         if self._qtype == qtype:
             return self.value
@@ -235,6 +259,18 @@ class ConstantInputParameters(InputBaseParameters):
         self._adjust_transpose = val
 
     @property
+    def is_compressed(self):
+        return self._use_compressed
+
+    @property
+    def use_compressed(self):
+        return self._use_compressed
+
+    @use_compressed.setter
+    def use_compressed(self, val):
+        self._use_compressed = val
+
+    @property
     def is_constant(self):
         return self._is_constant
 
@@ -266,10 +302,9 @@ class ConstantInputParameters(InputBaseParameters):
     def is_intermediate(self, val):
         self._is_intermediate = val
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def get_parameter_size(self):
+        if self._use_compressed and self._constant_store:
+            return self._constant_store.get_compressed_size(self, 0)
         return self.dims.size()
 
     def get_parameters(self):
@@ -279,7 +314,8 @@ class ConstantInputParameters(InputBaseParameters):
         self.value = val['value']
 
     def __str__(self):
-        props = [param for param in ["is_mutated", "is_intermediate"] if getattr(self, param)]
+        props = [param for param in ["is_mutated", "is_intermediate",
+                                     "is_compressed"] if getattr(self, param)]
         return "Const {} {} {} {}".format(
             self.dims,
             " ".join(props),
@@ -288,12 +324,23 @@ class ConstantInputParameters(InputBaseParameters):
         )
 
 
+@cls_op_name('output')
 class OutputParameters(InputOutputParameters, InsensitiveToQuantization):
-    op_name = "output"
 
     def __init__(self, *args, **kwargs):
         super(OutputParameters, self).__init__(*args, **kwargs)
         self.at_options.valid_options['EXTERN_OUTPUT_POINTER'] = int
+
+    def verify(self, G):
+        problems = []
+        for edge in G.out_edges(self.name):
+            problems.append(
+                f'output node {self.name} has output edge to {edge.to_node.name}:{edge.to_idx}')
+        for edge in G.in_edges(self.name):
+            if edge.to_idx > 0:
+                problems.append(f'output node {self.name} has input edge on idx {edge.to_idx} '
+                                f'from {edge.from_node.name}:{edge.from_idx}')
+        return problems
 
     def get_output_size(self, in_dims):
         out_dim = in_dims[0].clone()
@@ -315,6 +362,3 @@ class OutputParameters(InputOutputParameters, InsensitiveToQuantization):
             Transposable.__str__(self),
             self.at_options
         )
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()

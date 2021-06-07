@@ -1,0 +1,4 @@
+{
+    "vp_component": "devices.i2c.i2c_bus",
+    "pullup": true
+}

@@ -173,7 +173,11 @@ static void __pi_uart_copy_enqueue(pi_uart_t *uart, uint32_t l2_buf, uint32_t si
   int irq = disable_irq();
   task->implem.data[0] = l2_buf; /* l2 buffer */
   task->implem.data[1] = uart->conf.use_ctrl_flow ? 1 : size; /* size to enqueue */
+#if PULP_CHIP == CHIP_VEGA
+  task->implem.data[2] = hal_udma_channel_base(2*uart->channel + channel); /* periph base(rx or tx) */
+#else
   task->implem.data[2] = hal_udma_channel_base(uart->channel + channel); /* periph base(rx or tx) */
+#endif
   task->implem.data[3] = uart->conf.use_ctrl_flow ? size : 0; /* repeat size ? */
   task->implem.data[4] = 0;       /* l2 buffer pointer offset */
   task->implem.data[5] = channel;                             /* channel(rx or tx) */
@@ -350,7 +354,11 @@ int pi_uart_open(struct pi_device *device)
   uart->open_count++;
   //uart->baudrate = baudrate;
   memcpy(&(uart->conf), conf, sizeof(struct pi_uart_conf));
+#if PULP_CHIP == CHIP_VEGA
+  uart->channel = periph_id;
+#else
   uart->channel = channel;
+#endif
   uart->tx_channel.pendings[0] = NULL;
   uart->tx_channel.pendings[1] = NULL;
   uart->tx_channel.waitings_first = NULL;

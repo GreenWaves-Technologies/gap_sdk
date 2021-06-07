@@ -39,9 +39,13 @@ class Floor(ConstantMixin, BackendHandler):
         x_shape = x[2].shape
 
         if cls.is_constant(x):
-            logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
-            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=np.floor(x_val),
+            res = np.floor(x_val)
+            if x_val.size < 10:
+                logger.info("reducing %s to a constant %s", valid_name, x_val)
+            else:
+                logger.info("reducing %s to a constant", valid_name)
+            params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=res,
                                              constant_store=G.constant_store)
         else:
             raise ValueError("ONNX floor operator is not implemented")

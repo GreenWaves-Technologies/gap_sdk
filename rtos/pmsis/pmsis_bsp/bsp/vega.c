@@ -22,6 +22,8 @@
 #include "bsp/flash/hyperflash.h"
 #include "bsp/ram/hyperram.h"
 #include "bsp/ram/spiram.h"
+#include "bsp/eeprom/24xx1025.h"
+#include "bsp/eeprom/m24c02.h"
 
 
 
@@ -34,6 +36,30 @@ static void __bsp_init_pads()
   {
     __bsp_init_pads_done = 1;
   }
+}
+
+int bsp_24xx1025_open(struct pi_24xx1025_conf *conf)
+{
+    return 0;
+}
+
+
+void bsp_24xx1025_conf_init(struct pi_24xx1025_conf *conf)
+{
+  conf->i2c_addr = CONFIG_24XX1025_I2C_ADDR;
+  conf->i2c_itf = CONFIG_24XX1025_I2C_ITF;
+}
+
+int bsp_m24c02_open(struct pi_m24c02_conf *conf)
+{
+    return 0;
+}
+
+
+void bsp_m24c02_conf_init(struct pi_m24c02_conf *conf)
+{
+  conf->i2c_addr = CONFIG_M24C02_I2C_ADDR;
+  conf->i2c_itf = CONFIG_M24C02_I2C_ITF;
 }
 
 

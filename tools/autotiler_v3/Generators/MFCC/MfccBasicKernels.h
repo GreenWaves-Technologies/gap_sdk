@@ -177,6 +177,7 @@ void MFCC_ComputeMFCC_BFF(MFCC_MF_New_T *Arg);
 void MFCC_ComputeMFCC_f16(MFCC_MF_New_T *Arg);
 void MFCC_ComputeMFCC_f32(MFCC_MF_New_T *Arg);
 void MFCC_ComputeDCT(DCT_Arg_T *Args) ;
+void MFCC_ComputeDB( MFCC_Log_T *Arg) ;
 void norm_clip_16(Norm_Clip_args_T *Args);
 void norm_clip_32_melspect(MFCC_Clip_32_T *Args);
 void norm_clip_32_spect(MFCC_Clip_32_T *Args);

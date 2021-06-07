@@ -22,37 +22,31 @@ ifdef CONFIG_KERNEL
 PULP_SRCS += kernel/init.c kernel/kernel.c kernel/device.c kernel/task.c kernel/alloc.c \
 	kernel/alloc_pool.c kernel/irq.c kernel/soc_event.c kernel/log.c kernel/time.c
 
-PULP_ASM_SRCS += kernel/irq_asm.S kernel/task_asm.S kernel/time_asm.S
+PULP_ASM_SRCS += kernel/irq_asm.S kernel/time_asm.S
 
 endif
-
-# SOC EVENT
-
-ifdef CONFIG_KERNEL
-ifneq '$(soc_eu/version)' ''
-ifneq '$(fc_itc/version)' ''
-PULP_ASM_SRCS += kernel/soc_event_v$(soc_eu/version)_itc.S
-else
-PULP_ASM_SRCS += kernel/soc_event_eu.S
-endif
-endif
-endif
-
-
 
 
 # HYPER
 
 ifeq '$(CONFIG_HYPER)' '1'
 ifneq '$(udma/version)' ''
+ifeq '$(TARGET_CHIP_FAMILY)' 'GAP8'
+HYPER_HAS_ASM = 1
+HYPER_HAS_OCTOSPI = 1
+endif
 CONFIG_UDMA = 1
 PULP_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version).c
+ifeq '$(HYPER_HAS_ASM)' '1'
 PULP_ASM_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version)_asm.S
+endif
 ifeq '$(TARGET_CHIP)' 'GAP9_V2'
 PULP_SRCS += drivers/hyperbus/hyperbus-v$(udma/hyper/version)_irq.c
 endif
+ifeq '$(HYPER_HAS_OCTOSPI)' '1'
 PULP_SRCS += drivers/octospi/octospi-v$(udma/hyper/version).c
 PULP_ASM_SRCS += drivers/octospi/octospi-v$(udma/hyper/version)_asm.S
+endif
 endif
 endif
 

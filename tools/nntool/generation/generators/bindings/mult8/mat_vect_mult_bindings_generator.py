@@ -14,8 +14,8 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
-from graph.types import MatrixMulParameters, ActivationFusion
+from generation.generator_decorators import QREC_MULT8, generation_function
+from graph.types import ActivationFusion, MatrixMulParameters
 from utils.node_id import NodeId
 
 
@@ -30,7 +30,8 @@ def mat_vect_mul_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cn
                                       cname, quants[0], out_q=quants[1])
             return True
         return False
-    set_mat_vect_mul_bindings(gen, node, step_idx, in_eparams, out_eparams, cname, qrec)
+    set_mat_vect_mul_bindings(
+        gen, node, step_idx, in_eparams, out_eparams, cname, qrec)
     return True
 
 

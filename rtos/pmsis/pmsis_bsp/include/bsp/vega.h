@@ -22,6 +22,8 @@
 #define CONFIG_HYPERRAM
 #define CONFIG_SPIRAM
 #define CONFIG_SPIFLASH
+#define CONFIG_24XX1025
+#define CONFIG_M24C02
 
 #define CONFIG_HIMAX_CPI_ITF 0
 #define CONFIG_HIMAX_I2C_ITF 1
@@ -44,5 +46,11 @@
 #define CONFIG_SPIFLASH_START       0
 #define CONFIG_SPIFLASH_SIZE        (1<<24)
 #define CONFIG_SPIFLASH_SECTOR_SIZE (1<<12)
+
+#define CONFIG_24XX1025_I2C_ADDR         0xA0
+#define CONFIG_24XX1025_I2C_ITF          0
+
+#define CONFIG_M24C02_I2C_ADDR         0xA0
+#define CONFIG_M24C02_I2C_ITF          0
 
 #endif

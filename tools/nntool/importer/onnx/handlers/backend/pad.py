@@ -50,7 +50,8 @@ class Pad(ConstantMixin, BackendHandler):
             else:
                 val = np.pad(val, apads, mode=mode)
             params = ConstantInputParameters(valid_name, value=val, constant_store=G.constant_store)
-            all_nodes[node.output[0]] = (params, 0, ProvisionalDim(x_shape))
+            pshape = [dim + sum(apads[idx]) if dim is not None else None for idx, dim in enumerate(x_shape)]
+            all_nodes[node.output[0]] = (params, 0, ProvisionalDim(pshape))
             return params
 
         if mode != 'constant':
@@ -58,6 +59,8 @@ class Pad(ConstantMixin, BackendHandler):
         if constant_value != 0:
             raise ValueError('%s - only zero padding is supported'%valid_name)
 
+        if any(sum(pad) > 0 and x_shape[idx] is None for idx, pad in enumerate(apads)):
+            raise ValueError(f'batch axis is being padded in {valid_name}. Manipulation of batch axis is not supported')
         trimmed_pads = tuple([pad for idx, pad in enumerate(apads) if x_shape[idx] is not None])
         
         if all(sum(trimmed_pad) == 0 for trimmed_pad in trimmed_pads):

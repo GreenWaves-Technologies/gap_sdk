@@ -45,6 +45,8 @@ private:
   vp::clock_slave clock_in;
 
   vp::trace clock_trace;
+
+  int factor;
 };
 
 
@@ -57,7 +59,7 @@ clock_domain::clock_domain(js::config *config)
 void clock_domain::set_frequency(void *__this, int64_t frequency)
 {
   clock_domain *_this = (clock_domain *)__this;
-  _this->apply_frequency(frequency);
+  _this->apply_frequency(frequency * _this->factor);
   _this->clock_trace.event_real(_this->period);
 }
 
@@ -71,6 +73,13 @@ int clock_domain::build()
   this->traces.new_trace_event_real("period", &this->clock_trace);
 
   this->traces.new_trace_event_real("cycles", &this->cycles_trace);
+
+  this->factor = this->get_js_config()->get_child_int("factor");
+
+  if (this->factor == 0)
+  {
+    this->factor = 1;
+  }
 
   this->set_time_engine((vp::time_engine*)this->get_service("time"));
 

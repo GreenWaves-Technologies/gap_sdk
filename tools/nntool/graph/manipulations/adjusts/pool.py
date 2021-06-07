@@ -15,22 +15,23 @@
 
 import logging
 
-from graph.types import PoolingParameters
+from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
 
 from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@handles(PoolingParameters)
+@handles(MaxPoolParameters, AveragePoolParameters)
 class PoolAdjuster(AdjusterBase):
     def adjust(self, G, node):
         modified = False
         # check that the transposed input 0 matches autotiler order
         names = node.in_dims[0].order
+        # TODO - once pooling is integrated into NE16 kernel check for presence here
         if node.transpose_in is not None and node.transpose_in[0] is not None:
             names = self.trans_names(names, node.transpose_in[0])
-        if names != ['c', 'h', 'w']:
-            self.adjust_in_out_chw(G, node, names)
+        if names != node.ker_in_order[0]:
+            self.adjust_in_out_order(G, node, names, node.ker_in_order[0])
             modified = True
 
         return modified

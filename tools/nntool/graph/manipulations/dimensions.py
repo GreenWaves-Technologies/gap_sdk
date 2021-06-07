@@ -14,55 +14,34 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
 from typing import Sequence
 
 from generation.naming_convension import (DefaultNamingConvension,
                                           NamingConvension)
 
-from ..dim import Dim, MoreThanOneInputError
-from ..types import (ConcatParameters, EdgeParameters, InputParameters,
-                     OutputParameters, Parameters, SingleInputAndOutput,
-                     ConstantInputParameters)
-
+from ..dim import Dim, MissMatchedInputsError, MoreThanOneInputError
+from ..types import (ConcatParameters, ConstantInputParameters, EdgeParameters,
+                     InputParameters, OutputParameters, Parameters,
+                     SingleInputAndOutput)
 from .set_aliases import set_aliases
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-def clone_dims(dims: Sequence[Dim], hints: Sequence[Dim]):
-    cloned_dims = []
-    for dim_idx, dim in enumerate(dims):
-        if dim is None:
-            cloned_dims.append(None)
-            continue
-        assert hasattr(dim, 'clone'), "no clone attribute - probably not a dim"
-        cloned_dim = dim.clone()
-        if not cloned_dim.is_named and hints and hints[dim_idx]:
-            cloned_dim.apply_naming_hints(hints[dim_idx])
-        cloned_dims.append(cloned_dim)
-    return cloned_dims
-
-
-def set_input_size(node: Parameters, dims: Sequence[Dim]):
-    node.in_dims = clone_dims(dims, node.in_dims_hint)
-    return node.in_dims
-
-
-def set_output_size(node: Parameters, dims: Sequence[Dim]):
-    node.out_dims = clone_dims(dims, node.out_dims_hint)
-    return node.out_dims
-
-
 def set_out_edges_multi(G, node: Parameters, dims: Sequence[Dim], step_idx: int,
                         naming_convension: NamingConvension, edge_type: str = "in_out"):
     # clone the dims first so that the edge dims are the same objects as the node output dims
-    dims = set_output_size(node, dims)
-    for edge_idx, edge_group in enumerate(G.indexed_out_edges(node.name)):
+    dims = node.set_output_size(dims)
+    out_edges = G.indexed_out_edges(node.name)
+    is_multi_out = len(out_edges) > 1
+    for edge_idx, edge_group in enumerate(out_edges):
         if not edge_group:
             continue
-        ename = naming_convension.get_edge_name(node, step_idx, edge_type, edge_order=edge_idx)
-        eparams = EdgeParameters(ename, dims[edge_idx], node, edge_idx, step_idx, edge_type)
+        edge_order = edge_idx if is_multi_out else None
+        ename = naming_convension.get_edge_name(
+            node, step_idx, edge_type, edge_order=edge_order)
+        eparams = EdgeParameters(
+            ename, dims[edge_idx], node, edge_idx, step_idx, edge_type, edge_order=edge_order)
         for edge in edge_group:
             edge.params = eparams
         LOG.debug("%s %s", node.name, ename)
@@ -76,17 +55,21 @@ def set_out_edges_one(G, node: Parameters, dim: Dim, step_idx: int,
         assert edge.from_idx == 0, "Only for use with nodes that have one output"
         edge.params = eparams
     LOG.debug("%s %s", node.name, ename)
-    set_output_size(node, [dim])
+    eparams.dims = node.set_output_size([dim])[0]
 
 
 def validate_one_in_edge(G, node: Parameters, expect_named: bool = True):
     edges = G.in_edges(node.name)
     if len(edges) != 1:
-        raise MoreThanOneInputError()
+        if len(edges) > 1:
+            raise MoreThanOneInputError(f'more than one edge on {node.name}')
+        else:
+            raise ValueError(f'{node.name} is not connected')
     eparams = edges[0].params
     assert eparams is not None, "edge parameters not yet set"
-    assert not expect_named or eparams.dims.has_keys(['c', 'h', 'w']), "dimensions not yet set"
-    set_input_size(node, [eparams.dims])
+    assert not expect_named or eparams.dims.has_keys(
+        ['c', 'h', 'w']), "dimensions not yet set"
+    eparams.dims = node.set_input_size([eparams.dims])[0]
     return eparams
 
 
@@ -98,10 +81,13 @@ def validate_multi_in_edge(G, node: Parameters, expect_named: bool = True):
             continue
         eparams = edge.params
         assert eparams is not None, "edge parameters not yet set"
-        assert not expect_named or eparams.dims.has_keys(['c', 'h', 'w']), "dimensions not yet set"
+        assert not expect_named or eparams.dims.has_keys(
+            ['c', 'h', 'w']), "dimensions not yet set"
         dims.append(eparams.dims)
-
-    set_input_size(node, dims)
+    try:
+        dims = node.set_input_size(dims)
+    except MissMatchedInputsError as exc:
+        raise ValueError(f'missmatched inputs on node {node.name}') from exc
     return dims
 
 
@@ -127,7 +113,7 @@ def add_dimensions_input(G, node: Parameters, step_idx: int,
     node.index = indexes['input']
     indexes['input'] += 1
     input_dims = node.get_output_size(None)
-    set_input_size(node, input_dims)
+    node.set_input_size(input_dims)
     set_out_edges_one(G, node, input_dims[0], step_idx,
                       naming_convension, edge_type="in")
 
@@ -140,7 +126,7 @@ def add_dimensions_output(G, node: Parameters, step_idx: int,
     eparams.edge_type = "out"
     eparams.name = naming_convension.get_edge_name(node, step_idx, "out")
     # set the dimensions of the output node
-    set_output_size(node, node.get_output_size([eparams.dims]))
+    node.set_output_size(node.get_output_size([eparams.dims]))
 
 
 def add_dimensions_unknown_single(G, node: Parameters, step_idx: int,
@@ -183,8 +169,10 @@ def add_dimensions(G, naming_convension: NamingConvension = None) -> list:
         node.step_idx = len(steps)
         steps.append({'node': node})
         if node.__class__ in OP_ROUTINES:
-            OP_ROUTINES[node.__class__](G, node, node.step_idx, naming_convension, indexes)
+            OP_ROUTINES[node.__class__](
+                G, node, node.step_idx, naming_convension, indexes)
         else:
             add_dimensions_unknown(G, node, node.step_idx, naming_convension)
     set_aliases(G)
+    # verify_graph(G, throw_exception=True)
     return steps

@@ -22,107 +22,146 @@
 #ifndef __PULP_UDMA_I2S_UDMA_I2S_V3_HPP__
 #define __PULP_UDMA_I2S_UDMA_I2S_V3_HPP__
 
+
 #include <vp/vp.hpp>
 #include "../udma_impl.hpp"
-#include "archi/udma/i2s/v3/udma_i2s_v3.h"
-#include "archi/udma/i2s/v3/udma_i2s_v3_gvsoc.h"
+#include <udma_i2s/udma_i2s_regs.h>
+#include <udma_i2s/udma_i2s_regfields.h>
+#include <udma_i2s/udma_i2s_gvsoc.h>
+#include <vp/itf/wire.hpp>
 
 
-/*
- * I2S
- */
-
-#ifdef HAS_I2S
+#define I2S_NB_PDM_IN  4
+#define I2S_NB_PDM_OUT 2
 
 class I2s_periph;
 
-class I2s_cic_filter {
-public:
-  I2s_cic_filter();
-
-  bool handle_bit(int din, int pdm_decimation, int pdm_shift, uint32_t *dout);
-  void reset();
-
-  int     pdm_pending_bits;
-  int64_t pdm_y1_old;
-  int64_t pdm_y2_old;
-  int64_t pdm_y3_old;
-  int64_t pdm_y4_old;
-  int64_t pdm_y5_old;
-  int64_t pdm_z1_old;
-  int64_t pdm_z2_old;
-  int64_t pdm_z3_old;
-  int64_t pdm_z4_old;
-  int64_t pdm_z5_old;
-  int64_t pdm_zin1_old;
-  int64_t pdm_zin2_old;
-  int64_t pdm_zin3_old;
-  int64_t pdm_zin4_old;
-  int64_t pdm_zin5_old;
-};
 
 class I2s_rx_channel : public Udma_rx_channel
 {
 public:
-  I2s_rx_channel(udma *top, I2s_periph *periph, int id, int event_id, string name);
-  void handle_rx_bit(int sck, int ws, int bit);
-  void reset(bool active);
+    I2s_rx_channel(udma *top, I2s_periph *periph, int id, string name);
+    void reset(bool active);
+    void update_word_size();
+
+    vp_udma_i2s_slot_cfg_0 *slot_cfg;
+    int word_size;
 
 private:
-  I2s_periph *periph;
+    I2s_periph *periph;
 
-  I2s_cic_filter *filters[2];
-  int id;
-  uint32_t pending_samples[2];
-  int pending_bits[2];
+    int id;
 };
+
+
+class I2s_tx_channel : public Udma_tx_channel
+{
+public:
+    I2s_tx_channel(udma *top, I2s_periph *periph, int id, string name);
+    void reset(bool active);
+    void update_word_size();
+    void push_data(uint8_t *data, int size);
+
+    vp_udma_i2s_slot_cfg_0 *slot_cfg;
+    int word_size;
+
+private:
+    I2s_periph *periph;
+
+    int id;
+};
+
 
 class I2s_periph : public Udma_periph
 {
-  friend class I2s_rx_channel;
+    friend class I2s_rx_channel;
+    friend class I2s_tx_channel;
 
 public:
-  I2s_periph(udma *top, int id, int itf_id);
-  vp::io_req_status_e custom_req(vp::io_req *req, uint64_t offset);
-  void reset(bool active);
+    I2s_periph(udma *top, int id, int itf_id);
+    vp::io_req_status_e custom_req(vp::io_req *req, uint64_t offset);
+    void reset(bool active);
 
 protected:
-  static void rx_sync(void *, int sck, int ws, int sd, int channel);
 
 private:
 
-  vp::io_req_status_e i2s_clkcfg_setup_req(int reg_offset, int size, bool is_write, uint8_t *data);
-  vp::io_req_status_e i2s_slv_setup_req(int reg_offset, int size, bool is_write, uint8_t *data);
-  vp::io_req_status_e i2s_mst_setup_req(int reg_offset, int size, bool is_write, uint8_t *data);
-  vp::io_req_status_e i2s_pdm_setup_req(int reg_offset, int size, bool is_write, uint8_t *data);
+    static void clk_in_sync(void *__this, int value);
+    static void ws_in_sync(void *__this, int value);
+    void handle_clk_edge();
+    uint32_t handle_tx_format(I2s_tx_channel *channel, uint32_t sample);
+    uint32_t handle_rx_format(I2s_rx_channel *channel, uint32_t sample);
+    static void handle_clk(void *__this, vp::clock_event *event);
+    static void handle_rx_fifo(void *__this, vp::clock_event *event);
+    static void rx_sync(void *, int sck, int ws, int sd);
+    void err_status_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void glb_setup_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write, int slot_id);
+    void slot_cfg_0_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_1_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_2_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_3_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_4_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_5_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_6_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_7_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_8_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_9_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_10_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_11_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_12_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_13_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_14_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_cfg_15_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_0_1_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_2_3_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_4_5_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_6_7_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_8_9_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_10_11_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_12_13_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void word_size_14_15_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void slot_en_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+    void check_state();
+    void handle_clk_ws_update();
+    void start_frame();
 
-  static void clkgen_event_routine(void *__this, vp::clock_event *event);
-  vp::io_req_status_e check_clkgen0();
-  vp::io_req_status_e check_clkgen1();
-  vp::io_req_status_e reset_clkgen0();
-  vp::io_req_status_e reset_clkgen1();
-  void handle_clkgen_tick(int clkgen, int itf);
-
-  vp::trace     trace;
-  vp::i2s_slave ch_itf[2];
-
-  vp_udma_i2s_i2s_clkcfg_setup  r_i2s_clkcfg_setup;
-  vp_udma_i2s_i2s_slv_setup     r_i2s_slv_setup;
-  vp_udma_i2s_i2s_mst_setup     r_i2s_mst_setup;
-  vp_udma_i2s_i2s_pdm_setup     r_i2s_pdm_setup;
-
-  vp::clock_event *clkgen0_event;
-  vp::clock_event *clkgen1_event;
-
-  int sck[2];
-  int current_channel;
-  int current_bit;
-
-  int nb_tdm_channels;
-  std::vector<I2s_rx_channel *>tdm_channels;
+    vp::trace trace;
+    vp::wire_master<int> clk_out_itf;
+    vp::wire_slave<int> clk_in_itf;
+    vp::wire_master<int> ws_out_itf;
+    vp::wire_slave<int> ws_in_itf;
+    vp::wire_master<int> pdm_in_itf[I2S_NB_PDM_IN];
+    vp::wire_master<int> pdm_out_itf[I2S_NB_PDM_OUT];
+    vp_regmap_udma_i2s regmap;
+    vp::i2s_slave i2s_itf;
+    vp::clock_event *clk_event;
+    vp::clock_event *rx_fifo_event;
+    int clk_value;
+    int ws_value;
+    int ws_count;
+    int ws_delay;
+    uint32_t rx_pending_value;
+    uint32_t rx_sync_value;
+    int rx_pending_bits;
+    int tx_pending_bits;
+    uint32_t tx_pending_value;
+    std::vector<I2s_rx_channel *> rx_channels;
+    std::vector<I2s_tx_channel *> tx_channels;
+    int active_channel;
+    Udma_fifo<uint32_t> *rx_fifo;
+    Udma_fifo<uint32_t> *rx_fifo_slot_id;
+    std::queue<uint32_t> tx_fifo;
+    std::queue<int> tx_fifo_slot_id;
+    uint32_t slot_en;
+    uint32_t slot_en_sync;
+    uint32_t global_en;
+    uint32_t global_en_sync;
+    int prev_ws_value;
+    int prev_sck_value;
+    int current_ws_delay;
+    int sd;
+    uint32_t tx_wait_data_init;
 };
-
-#endif
-
 
 #endif

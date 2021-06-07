@@ -16,7 +16,7 @@
 
 from graph.constant_store import ConstantStore
 from graph.dim import Dim
-from graph.matches.duplicate_constants import MatchDuplicateConstants
+from graph.matches.matchers.duplicate_constants import MatchDuplicateConstants
 from graph.nngraph import NNGraph
 from graph.types import ConstantInputParameters
 from graph.types.base import NNEdge

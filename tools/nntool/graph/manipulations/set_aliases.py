@@ -23,6 +23,12 @@ LOG = logging.getLogger("nntool." + __name__)
 
 
 def walk_up(G, edge, concat_node):
+    if edge is None:
+        raise ValueError('edge is None')
+    if edge.params is None:
+        raise ValueError(f'edge {edge.from_node.name}[{edge.from_idx}] -> '
+                         f'{edge.to_node.name}[{edge.to_idx}] has no edge params set')
+
     LOG.debug("edge %s %s[%s] -> %s[%s] is an alias",
               edge.params.name, edge.from_node.name, edge.from_idx,
               edge.to_node.name, edge.to_idx)
@@ -44,6 +50,11 @@ def walk_up(G, edge, concat_node):
 
 
 def walk_down(G, edge, split_node):
+    if edge is None:
+        raise ValueError('edge is None')
+    if edge.params is None:
+        raise ValueError(f'edge {edge.from_node.name}[{edge.from_idx}] -> '
+                         f'{edge.to_node.name}[{edge.to_idx}] has no edge params set')
     LOG.debug("edge %s %s[%s] -> %s[%s] is an alias",
               edge.params.name, edge.from_node.name, edge.from_idx,
               edge.to_node.name, edge.to_idx)
@@ -72,14 +83,15 @@ def set_aliases(G):
     """
     errors = False
     LOG.info("looking for aliased edges")
-    all_concats = [node for node in G.nodes() if isinstance(node, ConcatParameters)]
-    for concat in all_concats:
+    for concat in G.nodes(node_classes=ConcatParameters):
+        LOG.debug("looking at concat %s", concat.name)
         for edge in G.in_edges(concat.name):
             errors = errors or walk_up(G, edge, concat)
-    all_splits = [node for node in G.nodes() if isinstance(node, SplitParameters)]
-    for split in all_splits:
+    for split in G.nodes(node_classes=SplitParameters):
+        LOG.debug("looking at split %s", split.name)
         for edge in G.out_edges(split.name):
             errors = errors or walk_down(G, edge, split)
     if errors:
-        LOG.warning("splits connected to concats directly in graph - this will not generate correctly")
+        LOG.warning(
+            "splits connected to concats directly in graph - this will not generate correctly")
     return errors

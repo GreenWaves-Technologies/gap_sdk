@@ -15,12 +15,15 @@
 
 import logging
 
+import numpy as np
 from graph.types import ActivationParameters
+from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import can_dequantize, params_type
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricQuantizationRecord
-from utils.stats_funcs import bits, calc_bits
+from quantization.unified_quantization_handler import (can_dequantize,
+                                                       in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
+from utils.stats_funcs import calc_bits
 
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
@@ -29,11 +32,17 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(ActivationParameters)
 @can_dequantize(True)
+@in_qs_constraint({'dtype': set([np.int8, np.int16, np.int32])})
+@out_qs_constraint({'dtype': set([np.int8, np.int16])})
 class ActivationPow2(Pow2QuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_pow2_opts(**kwargs)
-        force_out_q = force_out_qs and force_out_qs[0]            
+        force_out_q = force_out_qs and force_out_qs[0]
+
+        fusion = kwargs.get('fusion', None)
+        if not fusion and in_qs[0].dtype == np.int32:
+            return None
 
         if params.activation == "relu6":
             int_bits = calc_bits(6)
@@ -42,10 +51,21 @@ class ActivationPow2(Pow2QuantizionHandler):
             if isinstance(relun, list):
                 relun = max(relun)
             int_bits = calc_bits(relun)
-        elif params.activation == "relu" or params.activation == "hswish" or params.activation == "hsigmoid" or params.activation == "leaky":
-            int_bits = bits(stats['range_out'][0]['max'], stats['range_out'][0]['min'])
+        elif params.activation in ["relu", "hswish", "hsigmoid", "leaky", "htanh"]:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+            int_bits = calc_bits(stats['range_out'][0]['max'], stats['range_out'][0]['min'])
+        elif params.activation == "sigmoid" or params.activation == "tanh":
+            if force_out_q is None:
+                q = 7 if out_dtype == np.int8 else 15
+                return QRec.symmetric(in_qs=[in_qs[0]], out_qs=[QType(q=q, dtype=out_dtype)])
+            else:
+                q = 7 if force_out_q.dtype == np.int8 else 15
+                if force_out_q.q != q:
+                    return None
+                return QRec.symmetric(in_qs=[in_qs[0]], out_qs=[force_out_q])
         else:
-            raise ValueError(f'no support for activation {params.activation} in POW2 quantizer')
+            LOG.error(f'no support for activation {params.activation} in POW2 quantizer')
+            return None
 
         in_q = in_qs[0]
         if force_out_q is None:
@@ -55,4 +75,4 @@ class ActivationPow2(Pow2QuantizionHandler):
             if force_out_q.bits - force_out_q.q < int_bits:
                 LOG.warning('quantization is forcing node %s to have an output that may clip', params.name)
             out_q = force_out_q
-        return SymmetricQuantizationRecord(in_qs=[in_q], out_qs=[out_q])
+        return QRec.symmetric(in_qs=[in_q], out_qs=[out_q])

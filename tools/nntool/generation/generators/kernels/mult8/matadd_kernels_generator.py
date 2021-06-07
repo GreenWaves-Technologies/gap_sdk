@@ -18,10 +18,14 @@ import logging
 from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import MatrixAddParameters, ActivationFusion
 
-from ..autotiler_kernel import AutotilerKernel
+from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
+                                gen_includes, gen_sources,
+                                kernel_include_paths, kernel_includes,
+                                kernel_sources)
+
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -69,6 +73,21 @@ def make_three_dims(dims):
     factors = balanced_factors(prod)
     return (dims[0], factors[0], factors[1])
 
+@kernel_sources(
+    '$(TILER_CNN_KERNEL_PATH_SQ8)/CNN_MatAlgebra_SQ8.c')
+@kernel_include_paths(
+    '$(TILER_CNN_KERNEL_PATH)',
+    '$(TILER_CNN_KERNEL_PATH_SQ8)')
+@kernel_includes(
+    'CNN_BasicKernels_SQ8.h')
+@gen_sources(
+    '$(TILER_CNN_GENERATOR_PATH)/CNN_Generator_Util.c',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)/CNN_Generators_SQ8.c')
+@gen_include_paths(
+    '$(TILER_CNN_GENERATOR_PATH)',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)')
+@gen_includes(
+    'CNN_Generators_SQ8.h')
 class MatAddKernel(AutotilerKernel):
     def __init__(self, node_name, cname, matrixadd_params, act_params, at_ver=3, gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:

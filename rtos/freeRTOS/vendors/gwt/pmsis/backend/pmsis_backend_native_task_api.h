@@ -42,6 +42,7 @@ static inline void __os_native_api_sem_take(void *sem_object)
     int irq = __disable_irq();
     if (pi_is_fc())
     {
+#ifndef __VEGA__
         if (__get_MCAUSE() & MCAUSE_IRQ_Msk)
         {
             /* This case should never happen ! */
@@ -49,6 +50,7 @@ static inline void __os_native_api_sem_take(void *sem_object)
             xSemaphoreTakeFromISR(sem_object, &ret);
         }
         else
+#endif
         {
             xSemaphoreTake(sem_object, portMAX_DELAY);
         }
@@ -190,7 +192,7 @@ static inline void __os_native_task_suspend(__os_native_task_t *task)
     vTaskDelete( (TaskHandle_t) task );
 }
 
-#if !defined(__GAP8__)
+#if !defined(__GAP8__) && !defined(__VEGA__)
 extern void pi_irq_handler_wrapper(void);
 extern uint32_t pi_irq_handler_wrapper_vector[32];
 extern uint32_t pi_exception_vector[16];
@@ -250,5 +252,12 @@ static inline void __os_native_irq_mask(int irq)
     NVIC_DisableIRQ(irq);
 }
 #endif  /* __GAP8__ */
+
+static inline int pi_platform(void)
+{
+    return (int) __PLATFORM__;
+}
+
+#define rt_platform pi_platform
 
 #endif

@@ -342,7 +342,7 @@ protected:
 private:
   vp::io_req_status_e status_req(vp::io_req *req);
   vp::io_req_status_e setup_req(vp::io_req *req);
-  static void rx_sync(void *, int data);
+  static void rx_sync(void *, int scl, int data);
 
   vp::trace     trace;
 };

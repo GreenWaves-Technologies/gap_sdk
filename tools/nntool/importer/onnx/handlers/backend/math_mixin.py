@@ -14,8 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import copy
-from graph.dim import Dim
 
+import numpy as np
+from graph.dim import Dim
 from graph.types.base import NNEdge
 from graph.types.input_output import ConstantInputParameters
 from graph.types.tensor_arithmetic import Broadcastable
@@ -35,8 +36,12 @@ class BasicMathMixin(ConstantMixin, BroadcastMixin):
         # may have more than one input i.e. clip
         x = inputs[0]
         if cls.is_constant(x) and constant_operation:
-            logger.info("reducing %s to a constant", valid_name)
-            params = ConstantInputParameters(valid_name, value=constant_operation(cls.get_constant(x)),
+            res = constant_operation(cls.get_constant(x))
+            if res.size < 10:
+                logger.info("reducing %s to a constant %s", valid_name, res)
+            else:
+                logger.info("reducing %s to a constant", valid_name)
+            params = ConstantInputParameters(valid_name, value=res,
                                              constant_store=G.constant_store)
         else:
             params_args = kwargs.get('params_args', {})
@@ -53,13 +58,21 @@ class ArithmeticMixin(ConstantMixin, BroadcastMixin):
         valid_name = kwargs['valid_name']
         G = kwargs['G']
         constant_operation = kwargs.get('constant_operation')
+        constant_int_operation = kwargs.get('constant_int_operation')
         inputs = [all_nodes[inp] for inp in node.input]
         assert len(inputs) == 2
         if all(cls.is_constant(inp) for inp in inputs) and constant_operation:
-            logger.info("reducing %s to a constant", valid_name)
             values = [cls.get_constant(inp) for inp in inputs]
             outputs = cls.implied_broadcast(inputs)
-            params = ConstantInputParameters(valid_name, value=constant_operation(*values),
+            if constant_int_operation and all(np.issubdtype(val.dtype, np.integer) for val in values):
+                res = constant_int_operation(*values)
+            else:
+                res = constant_operation(*values)
+            if res.size < 10:
+                logger.info("reducing %s to a constant %s", valid_name, res)
+            else:
+                logger.info("reducing %s to a constant", valid_name)
+            params = ConstantInputParameters(valid_name, value=res,
                                              dims=Dim.unnamed(outputs[0].known_shape),
                                              constant_store=G.constant_store)
         else:

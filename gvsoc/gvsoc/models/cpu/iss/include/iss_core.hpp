@@ -39,11 +39,14 @@ static inline void iss_exec_insn_terminate(iss_t *iss);
 #include "irq.hpp"
 #include "exceptions.hpp"
 #include "exec.hpp"
+#include "resource.hpp"
 
 
 int iss_open(iss_t *iss);
 void iss_reset(iss_t *iss, int active);
 void iss_start(iss_t *iss);
+
+iss_decoder_item_t *iss_isa_get(iss_t *iss, const char *name);
 
 void iss_register_debug_info(iss_t *iss, const char *binary);
 
@@ -62,5 +65,12 @@ bool iss_csr_read(iss_t *iss, iss_reg_t reg, iss_reg_t *value);
 bool iss_csr_write(iss_t *iss, iss_reg_t reg, iss_reg_t value);
 
 int iss_trace_pc_info(iss_addr_t addr, const char **func, const char **inline_func, const char **file, int *line);
+
+extern iss_isa_set_t __iss_isa_set;
+
+static inline iss_isa_set_t *iss_get_isa_set()
+{
+    return &__iss_isa_set;
+}
 
 #endif

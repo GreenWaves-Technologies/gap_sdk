@@ -134,6 +134,15 @@ static inline int iss_irq_ack(iss_t *iss, int irq)
 {
 }
 
+/* load from special purpose register */
+static inline void iss_lsu_load_spr(iss_t *iss, iss_insn_t *insn, iss_addr_t addr, int size, int spreg)
+{
+  if (addr + size > iss->mem_size)
+    return;
+
+  iss_set_spec_purp_reg(iss, spreg, iss_get_zext_value(*(iss_reg_t *)(iss->mem_array + addr), size*8));
+}
+
 static inline void iss_lsu_load(iss_t *iss, iss_insn_t *insn, iss_addr_t addr, int size, int reg)
 {
   if (addr + size > iss->mem_size)

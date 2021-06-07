@@ -14,14 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-
 from collections import OrderedDict
 
 from graph.types import (Conv2DParameters, FcParameters,
                          MultiplicativeBiasParameters)
 from utils.node_id import NodeId
 from utils.stats_funcs import astats, calculate_qsnrs
-from quantization.multiplicative.mult_quantization import MultScalableFilterQuantizationRecord
 
 from .ranges import Ranges
 from .stats_collector import StatsCollector
@@ -37,7 +35,7 @@ def filter_stats(G, pnode, fnode, anode, channel_details=None, qrec=None):
             mul_biases['qstats'] = calculate_qsnrs(anode.mul_biases,
                                                    mul_biases['ibits'],
                                                    force_ideal=False)
-        elif isinstance(qrec, MultScalableFilterQuantizationRecord):
+        elif qrec and qrec.ktype.startswith('scaled'):
             stats['mul_biases'] = mul_biases = astats(qrec.mul_biases_fps)
             mul_biases['qstats'] = calculate_qsnrs(qrec.mul_biases_fps,
                                                    mul_biases['ibits'],
@@ -84,7 +82,8 @@ class FilterStatsCollector(StatsCollector):
                 qrec = None
 
             anode = pnode if fnode is None else fnode
-            LOG.debug("collecting stats for %s step %s", anode.name, pnode.step_idx)
+            LOG.debug("collecting stats for %s step %s",
+                      anode.name, pnode.step_idx)
             if anode.__class__ in STATS_FUNCTIONS:
                 stats[nid] = STATS_FUNCTIONS[anode.__class__](
                     G, pnode, fnode, anode, channel_details=step_idx is not None, qrec=qrec)

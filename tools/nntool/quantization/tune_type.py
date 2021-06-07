@@ -16,36 +16,7 @@
 from graph.types.fusions import FusionBase
 from utils.node_id import NodeId
 
-from quantization.float32.bfloat16_quantization import (
-    Bfloat16FilterQuantizationRecord, Bfloat16QuantizationRecord,
-    Bfloat16ScalableFilterQuantizationRecord)
-from quantization.float32.float16_quantization import (
-    Float16FilterQuantizationRecord, Float16QuantizationRecord,
-    Float16ScalableFilterQuantizationRecord)
-from quantization.float32.float32_quantization import (
-    Float32FilterQuantizationRecord, Float32QuantizationRecord,
-    Float32ScalableFilterQuantizationRecord)
-from quantization.quantization_record_base import (
-    FilterQuantizationRecordBase, InputOutputQuantizationRecordBase,
-    ScalableFilterQuantizationRecordBase)
-
 QREC_TYPES = {
-    InputOutputQuantizationRecordBase: {
-        'ieee32': Float32QuantizationRecord,
-        'ieee16': Float16QuantizationRecord,
-        'bfloat16': Bfloat16QuantizationRecord
-    },
-    FilterQuantizationRecordBase: {
-        'ieee32': Float32FilterQuantizationRecord,
-        'ieee16': Float16FilterQuantizationRecord,
-        'bfloat16': Bfloat16FilterQuantizationRecord
-
-    },
-    ScalableFilterQuantizationRecordBase: {
-        'ieee32': Float32ScalableFilterQuantizationRecord,
-        'ieee16': Float16ScalableFilterQuantizationRecord,
-        'bfloat16': Bfloat16ScalableFilterQuantizationRecord
-    }
 }
 
 def tune_type(G, qrecs, node, qdtype):

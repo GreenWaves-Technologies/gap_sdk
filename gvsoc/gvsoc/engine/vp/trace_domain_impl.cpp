@@ -55,7 +55,7 @@ public:
     int build();
     void start();
     void run();
-    void quit();
+    void quit(int status);
     void pause();
     int join();
 
@@ -123,9 +123,9 @@ void trace_domain::step(int64_t timestamp)
     this->power_engine->step(timestamp);
 }
 
-void trace_domain::quit()
+void trace_domain::quit(int status)
 {
-    this->power_engine->quit();
+    this->power_engine->quit(status);
 }
 
 void trace_domain::pause()
@@ -143,6 +143,7 @@ void trace_domain::check_trace_active(vp::trace *trace, int event)
     std::string full_path = trace->get_full_path();
 
     trace->set_event_active(false);
+    trace->set_active(false);
 
     if (event)
     {

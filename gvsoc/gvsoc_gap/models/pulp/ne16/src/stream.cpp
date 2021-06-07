@@ -29,6 +29,10 @@
 #include "xtensor/xpad.hpp"
 #include <ne16.hpp>
 
+// the NE16 can only access L1 memory in the range 0xY000_0000 -- 0xY001_FFFC, where Y=1 or 0
+// in the model, Y is ignored
+#define NE16_STREAM_L1_MASK 0x0001FFFF
+
 Ne16StreamAccess::Ne16StreamAccess(
   Ne16 *ne16,
   int base_addr,
@@ -79,7 +83,7 @@ int Ne16StreamAccess::get_d2_stride() {
 }
 
 void Ne16StreamAccess::print_config() {
-  std::cout << "[STREAMER] base_addr="  << this->base_addr << std::endl;
+  std::cout << "[STREAMER] base_addr="  << std::hex << this->base_addr << std::dec << std::endl;
   std::cout << "[STREAMER] tot_length=" << this->d0_length << std::endl;
   std::cout << "[STREAMER] d0_stride="  << this->d0_stride << std::endl;
   std::cout << "[STREAMER] d0_length="  << this->d1_length << std::endl;
@@ -163,7 +167,7 @@ xt::xarray<T> Ne16VectorLoad<T>::ex(int width, int64_t& cycles) {
   int64_t max_latency = 0;
   for(auto i=0; i<width_words; i++) {
     this->ne16->io_req.init();
-    this->ne16->io_req.set_addr(addr_padded+i*4 & 0x0fffffff);
+    this->ne16->io_req.set_addr(addr_padded+i*4 & NE16_STREAM_L1_MASK);
     this->ne16->io_req.set_size(4);
     this->ne16->io_req.set_data(load_data+i*4);
     this->ne16->io_req.set_is_write(false);
@@ -177,28 +181,29 @@ xt::xarray<T> Ne16VectorLoad<T>::ex(int width, int64_t& cycles) {
     else {
       this->ne16->trace.fatal("Unsupported asynchronous reply\n");
     }
-    // this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, " LD @%08x ==> %08x\n", addr_padded+i*4 & 0x0fffffff, *(uint32_t *)(load_data+i*4));
   }
   if(width_rem) {
     this->ne16->io_req.init();
-    this->ne16->io_req.set_addr(addr_padded+width_words*4 & 0x0fffffff);
+    this->ne16->io_req.set_addr(addr_padded+width_words*4 & NE16_STREAM_L1_MASK);
     this->ne16->io_req.set_size(width_rem);
     this->ne16->io_req.set_data(load_data+width_words*4);
     this->ne16->io_req.set_is_write(false);
     int err = this->ne16->out.req(&this->ne16->io_req);
     if (err == vp::IO_REQ_OK) {
-      int64_t latency = this->ne16->io_req.get_latency();
-      if (latency > max_latency) {
-        max_latency = latency;
-      }
+      // int64_t latency = this->ne16->io_req.get_latency();
+      // if (latency > max_latency) {
+      //   max_latency = latency;
+      // }
     }
     else {
       this->ne16->trace.fatal("Unsupported asynchronous reply\n");
     }
-    // this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, " LD @%08x ==> %08x\n", addr_padded+width_words*4 & 0x0fffffff, *(uint8_t *)(load_data+width_words*4));
   }
   std::ostringstream stringStream;
-  this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing read request (addr=0x%08x, size=%dB, latency=%d)\n", addr & 0x0fffffff, width*sizeof(T), cycles+1);
+
+  if (this->ne16->trace_level == L3_ALL) {
+    this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing read request (addr=0x%08x, size=%dB, latency=%d)\n", addr & NE16_STREAM_L1_MASK, width*sizeof(T), cycles+1);
+  }
   xt::xarray<T> x = xt::zeros<T>({width});
   for(auto i=0; i<width; i++) {
     xt::view(x, i) = *(T *)(load_data + (addr & 0x3) + i*sizeof(T));
@@ -206,7 +211,9 @@ xt::xarray<T> Ne16VectorLoad<T>::ex(int width, int64_t& cycles) {
   xt::print_options::set_line_width(1000);
   stringStream << "Read data: " << std::hex << x << std::dec << "\n";
   string s = stringStream.str();
-  this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+  if (this->ne16->trace_level == L3_ALL) {
+    this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+  }
   cycles += max_latency + 1;
   return x;
 }
@@ -238,42 +245,48 @@ xt::xarray<T> Ne16VectorStore<T>::ex(xt::xarray<T> data, int width, int64_t& cyc
   }
   for(auto i=0; i<width; i++) {
     *(T *)(store_data + i*sizeof(T)) = data(i);
-    // this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, " %d <== %08x\n", i, data(i));
   }
   auto width_bytes = width*sizeof(T);
   int64_t max_latency = 0;
   if(enable) {
     for(auto i=0; i<width_bytes; i++) {
       this->ne16->io_req.init();
-      this->ne16->io_req.set_addr(addr+i & 0x0fffffff);
+      this->ne16->io_req.set_addr(addr+i & NE16_STREAM_L1_MASK);
       this->ne16->io_req.set_size(1);
       this->ne16->io_req.set_data(store_data+i);
       this->ne16->io_req.set_is_write(true);
       int err = this->ne16->out.req(&this->ne16->io_req);
       if (err == vp::IO_REQ_OK) {
-        int64_t latency = this->ne16->io_req.get_latency();
-        if (latency > max_latency) {
-          max_latency = latency;
+        if(i%4 == 0) {  // apparently, for non-aligned bytes we get garbage latency
+          int64_t latency = this->ne16->io_req.get_latency();
+          if (latency > max_latency) {
+            max_latency = latency;
+          }
         }
       }
       else {
         this->ne16->trace.fatal("Unsupported asynchronous reply\n");
       }
-      // this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, " ST @%08x <== %02x\n", addr+i & 0x0fffffff, *(uint8_t *)(store_data+i));
     }
   }
   std::ostringstream stringStream;
-  this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing write request (addr=0x%08x, size=%dB, latency=%d)\n", addr & 0x0fffffff, width*sizeof(T), cycles+1);
+  if (this->ne16->trace_level == L3_ALL) {
+    this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing write request (addr=0x%08x, size=%dB, latency=%d)\n", addr & NE16_STREAM_L1_MASK, width*sizeof(T), cycles+max_latency+1);
+  }
   xt::print_options::set_line_width(1000);
   if(enable) {
     stringStream << "Write data: " << std::hex << data << std::dec << "\n";
     string s = stringStream.str();
-    this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+    if (this->ne16->trace_level == L3_ALL) {
+      this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+    }
   }
   else {
     stringStream << "Write disabled" << "\n";
     string s = stringStream.str();
-    this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+    if (this->ne16->trace_level == L3_ALL) {
+      this->ne16->trace.msg(vp::trace::LEVEL_DEBUG, s.c_str());
+    }
   }
   cycles += max_latency + 1;
   return data;

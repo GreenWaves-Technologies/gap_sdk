@@ -14,8 +14,10 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
-from graph.types import MatrixAddParameters, ActivationFusion, PaddedAddFusionParameters
+from generation.generator_decorators import QREC_MULT8, generation_function
+from graph.types import (ActivationFusion, MatrixAddParameters,
+                         PaddedAddFusionParameters)
+from quantization.multiplicative.mulbias import set_add_in_scale
 from utils.node_id import NodeId
 
 
@@ -24,9 +26,11 @@ def matadd_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -
     step_idx = node.step_idx
     if isinstance(node, PaddedAddFusionParameters):
         cnodes = node.contained_nodes()
-        add_node = [node for node in cnodes if isinstance(node, MatrixAddParameters)]
+        add_node = [node for node in cnodes if isinstance(
+            node, MatrixAddParameters)]
         if add_node:
-            quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
+            quants = [gen.G.quantization[NodeId(
+                node, fnode)] for fnode in cnodes]
             set_matadd_bindings(gen, node, step_idx, in_eparams, out_eparams,
                                 cname, quants[1], out_q=quants[-1])
             return True
@@ -39,7 +43,8 @@ def matadd_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -
                                 cname, quants[0], out_q=quants[1])
             return True
         return False
-    set_matadd_bindings(gen, node, step_idx, in_eparams, out_eparams, cname, qrec)
+    set_matadd_bindings(gen, node, step_idx, in_eparams,
+                        out_eparams, cname, qrec)
     return True
 
 
@@ -47,7 +52,8 @@ def set_matadd_bindings(gen, node, step_idx, in_eparams, out_eparams, cname, qre
     del step_idx
     if out_q is None:
         out_q = qrec
-    scaled_idx = qrec.scaled_idx
+    set_add_in_scale(qrec)
+    scaled_idx = qrec.cache['scaled_idx']
     not_scaled_idx = 0 if scaled_idx else 1
     gen.bindings.append(
         CommentBindingList("Node {} in1q {} in2q {} outq {}", cname,
@@ -60,11 +66,11 @@ def set_matadd_bindings(gen, node, step_idx, in_eparams, out_eparams, cname, qre
                             GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                             GNodeArgNode(node, 'infos'),
                             GNodeArgNode(node.contained_nodes()[0], 'infos')
-        ))
+                            ))
     else:
         gen.bindings.append(
             NodeBindingList(cname, GNodeArgEdge(in_eparams[scaled_idx]),
                             GNodeArgEdge(in_eparams[not_scaled_idx]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT"),
                             GNodeArgNode(node, 'infos')
-        ))
+                            ))

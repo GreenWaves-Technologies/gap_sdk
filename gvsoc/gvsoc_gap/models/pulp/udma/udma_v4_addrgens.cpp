@@ -33,6 +33,27 @@
 using namespace std::placeholders;
 
 
+void Udma_addrgen::register_channel(Udma_channel *channel)
+{
+    this->channel = channel;
+    if (channel)
+    {
+        channel->set_active(this->active_transfer);
+    }
+}
+
+
+void Udma_addrgen::set_active_transfer(bool active)
+{
+    this->active_transfer = active;
+
+    if (this->channel)
+    {
+        this->channel->set_active(active);
+    }
+}
+
+
 Udma_addrgen_linear::Udma_addrgen_linear(udma *top, int id, int event_id) : Udma_addrgen(top, id, event_id)
 {
     std::string name = "addrgen_linear_" + std::to_string(id);
@@ -45,7 +66,8 @@ Udma_addrgen_linear::Udma_addrgen_linear(udma *top, int id, int event_id) : Udma
 void Udma_addrgen_linear::reset(bool active)
 {
     this->nb_pending_transfers = 0;
-    this->active_transfer = false;
+    this->channel = NULL;
+    this->set_active_transfer(false);
 }
 
 
@@ -54,10 +76,12 @@ void Udma_addrgen_linear::check_pending_transfer()
     if (!this->active_transfer && this->nb_pending_transfers)
     {
         this->nb_pending_transfers--;
-        this->active_transfer = true;
+        this->set_active_transfer(true);
 
         this->current_addr = this->pending_addr;
         this->current_size = this->pending_size;
+
+        this->regmap.cfg_bytes_left.set(this->current_size);
     }
 }
 
@@ -70,7 +94,8 @@ void Udma_addrgen_linear::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *v
     {
         if (this->regmap.cfg_ctrl.stop_get())
         {
-            trace.msg(vp::trace::LEVEL_TRACE, "UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+            this->nb_pending_transfers = 0;
+            this->set_active_transfer(false);
         }
         else if (this->regmap.cfg_ctrl.en_get())
         {
@@ -117,9 +142,11 @@ void Udma_addrgen_linear::get_next_transfer(uint32_t *addr, int *size)
         this->current_size -= iter_size;
         this->current_addr += iter_size;
 
+        this->regmap.cfg_bytes_left.set(this->current_size);
+
         if (this->current_size == 0)
         {
-            this->active_transfer = false;
+            this->set_active_transfer(false);
             this->top->trigger_event(this->event_id);
             this->check_pending_transfer();
         }
@@ -149,7 +176,7 @@ Udma_addrgen_2d::Udma_addrgen_2d(udma *top, int id, int event_id) : Udma_addrgen
 void Udma_addrgen_2d::reset(bool active)
 {
     this->nb_pending_transfers = 0;
-    this->active_transfer = false;
+    this->set_active_transfer(false);
 }
 
 
@@ -158,7 +185,7 @@ void Udma_addrgen_2d::check_pending_transfer()
     if (!this->active_transfer && this->nb_pending_transfers)
     {
         this->nb_pending_transfers--;
-        this->active_transfer = true;
+        this->set_active_transfer(true);
 
         this->current_addr = this->pending_addr;
         this->current_size = this->pending_size;
@@ -177,7 +204,8 @@ void Udma_addrgen_2d::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value
     {
         if (this->regmap.cfg_ctrl.stop_get())
         {
-            trace.msg(vp::trace::LEVEL_TRACE, "UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+            this->nb_pending_transfers = 0;
+            this->set_active_transfer(false);
         }
         else if (this->regmap.cfg_ctrl.en_get())
         {
@@ -233,7 +261,7 @@ void Udma_addrgen_2d::get_next_transfer(uint32_t *addr, int *size)
 
         if (this->current_size == 0)
         {
-            this->active_transfer = false;
+            this->set_active_transfer(false);
             this->top->trigger_event(this->event_id);
             this->check_pending_transfer();
         }

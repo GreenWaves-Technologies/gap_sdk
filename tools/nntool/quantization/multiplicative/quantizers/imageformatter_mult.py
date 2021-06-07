@@ -14,17 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import numpy as np
 from graph.types import ImageFormatParameters
-from quantization.multiplicative.mult_quantization import \
-    MultQuantizationRecord
-from quantization.qtype import \
-    QType
-from quantization.unified_quantization_handler import params_type
+from quantization.new_qrec import QRec
+from quantization.qtype import QType
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
 @params_type(ImageFormatParameters)
+@in_qs_constraint({'dtype': set([np.int8, np.uint8, np.int16, np.uint16])})
+@out_qs_constraint({'dtype': np.int8})
 class ImageFormatterMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -36,6 +39,7 @@ class ImageFormatterMult(MultQuantizionHandler):
         out_dtype = params.output_dtype
         in_dtype = params.input_dtype
         in_q = QType(scale=1, dtype=in_dtype)
-        out_q = QType.from_min_max_sq(-1, 1, dtype=out_dtype, narrow_range=True)
+        out_q = QType.from_min_max_sq(-1, 1,
+                                      dtype=out_dtype, narrow_range=True)
 
-        return MultQuantizationRecord(in_qs=[in_q], out_qs=[out_q])
+        return QRec.scaled(in_qs=[in_q], out_qs=[out_q])

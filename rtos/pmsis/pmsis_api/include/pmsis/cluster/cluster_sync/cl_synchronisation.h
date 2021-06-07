@@ -32,7 +32,7 @@
 /**
  * \brief Return the number of available bitfields.
  *
- * This will return the number of bitfields which can be allocated. This is 
+ * This will return the number of bitfields which can be allocated. This is
  * equal to the number of physical bitfields minus the ones already allocated,
  * including the ones allocated for runtime usage.
  *
@@ -58,8 +58,6 @@ static inline uint32_t pi_cl_bitfield_alloc();
  * This will free a bitfield and make it available for allocation.
  *
  * \param bitfield    Bitfield descriptor returned when it was allocated.
- *
- * \return The bitfield address  or 0 if no bitfield was available.
  */
 static inline void pi_cl_bitfield_free(uint32_t bitfield);
 
@@ -131,7 +129,7 @@ static inline void pi_cl_bitfield_bits_clr(uint32_t bitfield, uint32_t mask);
  * and sets it to 0
  *
  * \param bitfield    Bitfield descriptor returned when it was allocated.
- * 
+ *
  * \return The allocated bit.
  */
 static inline uint32_t pi_cl_bitfield_bit_alloc(uint32_t bitfield);
@@ -140,7 +138,7 @@ static inline uint32_t pi_cl_bitfield_bit_alloc(uint32_t bitfield);
 /**
  * \brief Return the number of available semaphores.
  *
- * This will return the number of semaphores which can be allocated. This is 
+ * This will return the number of semaphores which can be allocated. This is
  * equal to the number of physical semaphores minus the ones already allocated,
  * including the ones allocated for runtime usage.
  *
@@ -166,8 +164,6 @@ static inline uint32_t pi_cl_sem_alloc();
  * This will free a semaphore and make it available for allocation.
  *
  * \param semaphore    Semaphore descriptor returned when it was allocated.
- *
- * \return The semaphore address  or 0 if no semaphore was available.
  */
 static inline void pi_cl_sem_free(uint32_t sem);
 

@@ -92,12 +92,14 @@ public:
     void reset(bool active);
 
     static vp::io_req_status_e req(void *__this, vp::io_req *req);
+    static void ref_clock_set_frequency(void *__this, int64_t frequency);
     static void ref_clock_sync(void *__this, bool value);
     void set_frequency(int dco, int dco_frequency, bool is_locked);
 
 protected:
 
     vp_regmap_fll     regmap;
+    bool stable_oscillator;
 
 private:
 
@@ -129,6 +131,11 @@ private:
     int               req_wait_ref_clk_count;
     vp::io_req       *pending_reqs_first;
     vp::io_req       *pending_reqs_last;
+
+    int64_t prev_period;
+    int64_t prev_time;
+    float oscillator_period;
+
 };
 
 
@@ -139,9 +146,6 @@ Dco::Dco(Fll *top, int id, vp::reg_32 *fcr1, vp::reg_32 *fcr2)
 
     this->id = id;
     this->top = top;
-    this->is_on = false;
-    this->is_open_loop = true;
-    this->is_locked = false;
     this->fcr1 = (vp_fll_f0cr1 *)fcr1;
     this->fcr2 = (vp_fll_f0cr2 *)fcr2;
 }
@@ -151,6 +155,9 @@ void Dco::reset()
 {
     this->integration_period_count = 0;
     this->integrator = 0x44 << 10; // This is the initial value in the HW
+    this->is_on = false;
+    this->is_open_loop = true;
+    this->is_locked = false;
 }
 
 
@@ -172,6 +179,14 @@ void Dco::update_fcr1()
         this->dco_update_timestamp = -1;
     }
     this->is_open_loop = is_new_open_loop;
+
+    if (!this->is_open_loop)
+    {
+        if (!this->top->stable_oscillator)
+        {
+            this->top->get_trace()->fatal("Trying to lock a DCO while the oscillator is unstable\n");
+        }
+    }
 }
 
 
@@ -414,9 +429,37 @@ void Fll::set_frequency(int dco, int dco_frequency, bool is_locked)
 }
 
 
+void Fll::ref_clock_set_frequency(void *__this, int64_t frequency)
+{
+    Fll *_this = (Fll *)__this;
+    _this->oscillator_period = 1000000000000 / (2*frequency);
+}
+
+
 void Fll::ref_clock_sync(void *__this, bool value)
 {
     Fll *_this = (Fll *)__this;
+
+    if (_this->prev_time)
+    {
+        int64_t period = _this->get_time() - _this->prev_time;
+
+        if (_this->prev_period)
+        {
+            float diff = period - _this->prev_period;
+            if (diff < 0)
+            {
+                diff = -diff;
+            }
+            float error = diff * 100 / _this->prev_period;
+            _this->stable_oscillator = error < 0.01;
+        }
+
+        _this->prev_period = period;
+    }
+
+    _this->prev_time = _this->get_time();
+
 
     _this->get_trace()->msg(vp::trace::LEVEL_TRACE, "Ref clock sync\n");
     
@@ -595,6 +638,7 @@ int Fll::build()
     new_slave_port("input", &in);
 
     ref_clock_itf.set_sync_meth(&Fll::ref_clock_sync);
+    ref_clock_itf.set_set_frequency_meth(&Fll::ref_clock_set_frequency);
     new_slave_port("ref_clock", &this->ref_clock_itf);
 
     new_master_port("clock_0", &this->out_clock0_itf);
@@ -627,8 +671,11 @@ void Fll::reset(bool active)
 {
     if (active)
     {
+        this->prev_period = 0;
+        this->prev_time = 0;
         this->req_wait_ref_clk_count = 0;
         this->pending_reqs_first = NULL;
+        this->stable_oscillator = false;
 
         for (int i=0; i<FLL_NB_DCOS; i++)
         {

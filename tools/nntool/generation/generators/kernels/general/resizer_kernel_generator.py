@@ -15,7 +15,7 @@
 import logging
 
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function
+from generation.generator_decorators import generation_function
 from graph.types import ResizerParameters
 
 from ..autotiler_kernel import AutotilerKernel

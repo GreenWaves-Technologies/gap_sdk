@@ -167,6 +167,7 @@ int CNN_SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int
 
 {
 	if (DataSize==4) {
+		*LB = 0x80000000; *UB = 0x7fffffff;
 		if (DoReLU) {
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 0x7fffffff;
@@ -174,10 +175,9 @@ int CNN_SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int
 				*LB = 0; *UB = ReluN<<Precision;
 				if (!CNN_CheckIfRepresentable(*UB, 31)) return 1;
 			}
-		} else {
-			*LB = 0x80000000; *UB = 0x7fffffff;
 		}
 	} else if (DataSize==2) {
+		*LB = -32768; *UB = 32767;
 		if (DoReLU) {
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 32767;
@@ -185,10 +185,9 @@ int CNN_SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int
 				*LB = 0; *UB = ReluN<<Precision;
 				if (!CNN_CheckIfRepresentable(*UB, 15)) return 1;
 			}
-		} else {
-			*LB = -32768; *UB = 32767;
 		}
 	} else if (DataSize==1) {
+		*LB = -128; *UB = 127;
 		if (DoReLU) {
 			if (ReLUOper == KOP_RELU) {
 				*LB = 0; *UB = 127;
@@ -196,8 +195,6 @@ int CNN_SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int
 				*LB = 0; *UB = ReluN<<Precision;
 				if (!CNN_CheckIfRepresentable(*UB, 7)) return 1;
 			}
-		} else {
-			*LB = -128; *UB = 127;
 		}
 	}
 	return 0;

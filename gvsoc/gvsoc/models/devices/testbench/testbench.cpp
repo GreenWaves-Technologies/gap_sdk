@@ -19,6 +19,7 @@
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
+
 #include "testbench.hpp"
 #include "spim_verif.hpp"
 #include "i2s_verif.hpp"
@@ -181,7 +182,10 @@ void Uart_flow_control_checker::handle_received_byte(uint8_t byte)
                     // Randomize a bit
                     cycles = cycles * (rand() % 100) / 100;
 
-                    this->uart->clock->enqueue(this->bw_limiter_event, cycles);
+                    if (!this->bw_limiter_event->is_enqueued())
+                    {
+                        this->uart->clock->enqueue(this->bw_limiter_event, cycles);
+                    }
                 }
 
             }
@@ -297,7 +301,13 @@ void Uart::set_control(bool active, int baudrate)
 
 void Uart::handle_received_byte(uint8_t byte)
 {
-    if (this->is_control)
+    if (this->proxy_file)
+    {
+        fprintf(this->proxy_file, "uart rx %d\n", this->id);
+        fwrite(&byte, 1, 1, this->proxy_file);
+        fflush(NULL);
+    }
+    else if (this->is_control)
     {
         this->top->handle_received_byte(uart_byte);
     }
@@ -358,6 +368,27 @@ void Uart::check_send_byte()
 }
 
 
+void Uart::send_buffer(uint8_t *buffer, int size)
+{
+    if (this->pending_buffers.size() == 0 && this->tx_pending_bits == 0)
+    {
+        for (int i=1; i<size; i++)
+        {
+            this->pending_buffers.push(buffer[i]);
+        }
+
+        this->send_byte(buffer[0]);
+    }
+    else
+    {
+        for (int i=0; i<size; i++)
+        {
+            this->pending_buffers.push(buffer[i]);
+        }
+    }
+}
+
+
 void Uart::send_byte(uint8_t byte)
 {
     this->trace.msg(vp::trace::LEVEL_TRACE, "Send byte (value: 0x%x)\n", byte);
@@ -404,6 +435,7 @@ Uart::Uart(Testbench *top, int id)
     this->is_usart = 0;
 
     this->is_control_active = false;
+    this->proxy_file = NULL;
 }
 
 
@@ -468,7 +500,7 @@ void Uart::sync(void *__this, int data)
 {
     Uart *_this = (Uart *)__this;
 
-    if (!_this->is_control && !_this->dev)
+    if (!_this->is_control && !_this->dev && !_this->proxy_file)
         return;
 
     _this->trace.msg(vp::trace::LEVEL_TRACE, "UART control sync (value: %d, waiting_start: %d)\n", data, _this->uart_tx_wait_start);
@@ -577,7 +609,13 @@ void Uart::send_bit()
             if (this->tx_current_stop_bits == 0)
             {
                 this->tx_state = UART_TX_STATE_START;
-                if (this->dev)
+                if (this->pending_buffers.size())
+                {
+                    uint8_t byte = this->pending_buffers.front();
+                    this->pending_buffers.pop();
+                    this->send_byte(byte);
+                }
+                else if (this->dev)
                 {
                     this->dev->send_byte_done();
                 }
@@ -681,6 +719,10 @@ void Testbench::handle_received_byte(uint8_t byte)
                 this->state = STATE_WAITING_REQUEST;
                 this->req_size = cmd >> 16;
                 this->current_req_size = 0;
+                if (this->req_size == 0)
+                {
+                    this->trace.fatal("Received zero size\n");
+                }
                 break;
 
 
@@ -746,7 +788,7 @@ void Testbench::handle_received_byte(uint8_t byte)
 
                 case PI_TESTBENCH_CMD_I2S_VERIF_SLOT_START:
                 {
-                    this->handle_i2s_verif_slot_start();
+                    this->handle_i2s_verif_slot_start(std::vector<int>());
                     break;
                 }
 
@@ -862,7 +904,7 @@ void I2C::sync(int scl, int sda)
             if (this->pending_send_ack)
             {
                 this->pending_send_ack = false;
-                this->itf.sync(1);
+                this->itf.sync(2, 1);
             }
         }
         else
@@ -911,7 +953,7 @@ void I2C::sync(int scl, int sda)
                 {
                     this->top->trace.msg(vp::trace::LEVEL_TRACE, "Generate I2C ack (id: %d)\n", id);
 
-                    this->itf.sync(0);
+                    this->itf.sync(2, 0);
                     this->state = I2C_STATE_GET_DATA;
                     break;
                 }
@@ -952,7 +994,9 @@ void Testbench::handle_set_status()
 {
     pi_testbench_req_t *req = (pi_testbench_req_t *)this->req;
 
+#ifdef __VP_USE_SYSTEMV
     dpi_set_status(req->set_status.status);
+#endif
 }
 
 
@@ -1086,7 +1130,7 @@ void Testbench::handle_i2s_verif_slot_setup()
 }
 
 
-void Testbench::handle_i2s_verif_slot_start()
+void Testbench::handle_i2s_verif_slot_start(std::vector<int> slots)
 {
     pi_testbench_i2s_verif_slot_start_config_t *req = (pi_testbench_i2s_verif_slot_start_config_t *)this->req;
     int itf = req->itf;
@@ -1097,7 +1141,7 @@ void Testbench::handle_i2s_verif_slot_start()
         return;
     }
 
-    this->i2ss[itf]->i2s_verif_slot_start(req);
+    this->i2ss[itf]->i2s_verif_slot_start(req, slots);
 }
 
 
@@ -1113,6 +1157,390 @@ void Testbench::handle_i2s_verif_slot_stop()
     }
 
     this->i2ss[itf]->i2s_verif_slot_stop(req);
+}
+
+
+std::string Testbench::handle_command(FILE *req_file, FILE *reply_file, std::vector<std::string> args)
+{
+    bool error = false;
+    string error_str = "";
+
+    try
+    {
+        if (args[0] == "i2s")
+        {
+            if (args[1] == "setup")
+            {
+                pi_testbench_i2s_verif_config_t *config = (pi_testbench_i2s_verif_config_t *)this->req;
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 3, args.end()};
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->itf = value;
+                    }
+                    else if (name == "enabled")
+                    {
+                        config->enabled = value;
+                    }
+                    else if (name == "sampling_freq")
+                    {
+                        config->sampling_freq = value;   
+                    }
+                    else if (name == "word_size")
+                    {
+                        config->word_size = value;
+                    }
+                    else if (name == "nb_slots")
+                    {
+                        config->nb_slots = value;
+                    }
+                    else if (name == "is_pdm")
+                    {
+                        config->is_pdm = value;
+                    }
+                    else if (name == "is_full_duplex")
+                    {
+                        config->is_full_duplex = value;
+                    }
+                    else if (name == "is_ext_clk")
+                    {
+                        config->is_ext_clk = value;
+                    }
+                    else if (name == "is_ext_ws")
+                    {
+                        config->is_ext_ws = value;
+                    }
+                    else if (name == "is_sai0_clk")
+                    {
+                        config->is_sai0_clk = value;
+                    }
+                    else if (name == "is_sai0_ws")
+                    {
+                        config->is_sai0_ws = value;
+                    }
+                    else if (name == "clk_polarity")
+                    {
+                        config->clk_polarity = value;
+                    }
+                    else if (name == "ws_polarity")
+                    {
+                        config->ws_polarity = value;
+                    }
+                }
+
+                this->handle_i2s_verif_setup();
+            }
+            else if (args[1] == "clk_start" || args[1] == "clk_stop")
+            {
+                pi_testbench_i2s_verif_start_config_t *config = (pi_testbench_i2s_verif_start_config_t *)this->req;
+
+                *config = {};
+
+                int id = strtol(args[1].c_str(), NULL, 0);
+
+                config->itf = id;
+                config->start = args[1] == "clk_start";
+
+                this->handle_i2s_verif_start();
+            }
+            else if (args[1] == "slot_setup")
+            {
+                pi_testbench_i2s_verif_slot_config_t *config = (pi_testbench_i2s_verif_slot_config_t *)this->req;
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 3, args.end()};
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->itf = value;
+                    }
+                    else if (name == "slot")
+                    {
+                        config->slot = value;
+                    }
+                    else if (name == "is_rx")
+                    {
+                        config->is_rx = value;   
+                    }
+                    else if (name == "enabled")
+                    {
+                        config->enabled = value;
+                    }
+                    else if (name == "word_size")
+                    {
+                        config->word_size = value;
+                    }
+                    else if (name == "format")
+                    {
+                        config->format = value;
+                    }
+                }
+
+                this->handle_i2s_verif_slot_setup();
+            }
+            else if (args[1] == "slot_rx_file_reader")
+            {
+                pi_testbench_i2s_verif_slot_start_config_t *config = (pi_testbench_i2s_verif_slot_start_config_t *)this->req;
+                char *filepath = (char *)config + sizeof(pi_testbench_i2s_verif_slot_start_config_t);
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 3, args.end()};
+                std::vector<int> slots;
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->itf = value;
+                    }
+                    else if (name == "slot")
+                    {
+                        config->slot = value;
+                        slots.push_back(value);
+                    }
+                    else if (name == "filepath")
+                    {
+                        strcpy(filepath, value_str.c_str());
+                    }
+                    else if (name == "filetype")
+                    {
+                        if (value_str == "wav")
+                        {
+                            config->rx_file_reader.type = PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_WAV;
+                        }
+                        else if (value_str == "au")
+                        {
+                            config->rx_file_reader.type = PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_AU;
+                        }
+                        else
+                        {
+                            config->rx_file_reader.type = 0;
+                        }
+                    }
+                }
+
+                config->type = PI_TESTBENCH_I2S_VERIF_RX_FILE_READER;
+                config->rx_file_reader.nb_samples = -1;
+                config->rx_file_reader.filepath_len = strlen(filepath) + 1;
+
+                this->handle_i2s_verif_slot_start(slots);
+            }
+            else if (args[1] == "slot_tx_file_dumper")
+            {
+                pi_testbench_i2s_verif_slot_start_config_t *config = (pi_testbench_i2s_verif_slot_start_config_t *)this->req;
+                char *filepath = (char *)config + sizeof(pi_testbench_i2s_verif_slot_start_config_t);
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 3, args.end()};
+                std::vector<int> slots;
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->itf = value;
+                    }
+                    else if (name == "slot")
+                    {
+                        config->slot = value;
+                        slots.push_back(value);
+                    }
+                    else if (name == "filepath")
+                    {
+                        strcpy(filepath, value_str.c_str());
+                    }
+                    else if (name == "filetype")
+                    {
+                        if (value_str == "wav")
+                        {
+                            config->tx_file_dumper.type = PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_WAV;
+                        }
+                        else if (value_str == "au")
+                        {
+                            config->tx_file_dumper.type = PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_AU;
+                        }
+                        else
+                        {
+                            config->tx_file_dumper.type = 0;
+                        }
+                    }
+                }
+
+                config->type = PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER;
+                config->tx_file_dumper.nb_samples = -1;
+                config->tx_file_dumper.filepath_len = strlen(filepath) + 1;
+
+                this->handle_i2s_verif_slot_start(slots);
+            }
+            else if (args[1] == "slot_stop")
+            {
+                pi_testbench_i2s_verif_slot_stop_config_t *config = (pi_testbench_i2s_verif_slot_stop_config_t *)this->req;
+                char *filepath = (char *)config + sizeof(pi_testbench_i2s_verif_slot_stop_config_t);
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 3, args.end()};
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->itf = value;
+                    }
+                    else if (name == "slot")
+                    {
+                        config->slot = value;
+                    }
+                    else if (name == "stop_rx")
+                    {
+                        config->stop_rx = value;
+                    }
+                    else if (name == "stop_tx")
+                    {
+                        config->stop_tx = value;
+                    }
+                }
+
+                this->handle_i2s_verif_slot_stop();
+            }
+        }
+        if (args[0] == "uart")
+        {
+            if (args[1] == "setup")
+            {
+                pi_testbench_req_uart_checker_t *config = (pi_testbench_req_uart_checker_t *)this->req;
+
+                *config = {};
+
+                std::vector<std::string> params = {args.begin() + 2, args.end()};
+
+                for (std::string x: params)
+                {
+                    int pos = x.find_first_of("=");
+                    std::string name = x.substr(0, pos);
+                    std::string value_str = x.substr(pos + 1);
+                    int value = strtol(value_str.c_str(), NULL, 0);
+
+                    if (name == "itf")
+                    {
+                        config->id = value;
+                    }
+                    else if (name == "enabled")
+                    {
+                        config->enabled = value;
+                    }
+                    else if (name == "word_size")
+                    {
+                        config->word_size = value;
+                    }
+                    else if (name == "baudrate")
+                    {
+                        config->baudrate = value;
+                    }
+                    else if (name == "stop_bits")
+                    {
+                        config->stop_bits = value;
+                    }
+                    else if (name == "parity_mode")
+                    {
+                        config->parity = value;
+                    }
+                    else if (name == "ctrl_flow")
+                    {
+                        config->flow_control = value;
+                    }
+                    else if (name == "usart_polarity")
+                    {
+                        config->polarity = value;
+                    }
+                    else if (name == "is_usart")
+                    {
+                        config->usart = value;
+                    }
+                    else if (name == "usart_phase")
+                    {
+                        config->phase = value;
+                    }
+                    else
+                    {
+                        return "err=1;msg=invalid option: " + name;
+                    }
+                }
+
+                this->handle_uart_checker();
+            }
+            else if (args[1] == "tx")
+            {
+                int itf = strtol(args[2].c_str(), NULL, 0);
+                int size = strtol(args[3].c_str(), NULL, 0);
+                uint8_t *buffer = new uint8_t[size];
+                int read_size = fread(buffer, 1, size, req_file);
+                this->uarts[itf]->send_buffer(buffer, size);
+            }
+            else if (args[1] == "rx")
+            {
+                int itf = strtol(args[2].c_str(), NULL, 0);
+                int enabled = strtol(args[3].c_str(), NULL, 0);
+
+                if (enabled)
+                {
+                    this->uarts[itf]->proxy_file = reply_file;
+                }
+                else
+                {
+                    this->uarts[itf]->proxy_file = NULL;
+                }
+            }
+        }
+    }
+    catch (std::invalid_argument& e)
+    {
+        return "err=1;msg=" + std::string(e.what());
+    }
+
+    if (error)
+    {
+        return "err=1";
+    }
+    else
+    {
+        return "err=0";
+    }
 }
 
 
@@ -1203,7 +1631,7 @@ I2s::I2s(Testbench *top, int itf) : top(top)
 }
 
 
-void I2s::i2s_verif_slot_start(pi_testbench_i2s_verif_slot_start_config_t *config)
+void I2s::i2s_verif_slot_start(pi_testbench_i2s_verif_slot_start_config_t *config, std::vector<int> slots)
 {
     if (!this->i2s_verif)
     {
@@ -1211,7 +1639,7 @@ void I2s::i2s_verif_slot_start(pi_testbench_i2s_verif_slot_start_config_t *confi
         return;
     }
 
-    this->i2s_verif->slot_start(config);
+    this->i2s_verif->slot_start(config, slots);
 }
 
 
@@ -1231,9 +1659,15 @@ void I2s::sync(void *__this, int sck, int ws, int sd)
 {
     I2s *_this = (I2s *)__this;
 
-    if (_this->i2s_verif)
+    if (_this->ws_propagate)
     {
-        _this->i2s_verif->sync(sck, ws, sd);
+        for (int i=0; i<_this->top->nb_i2s; i++)
+        {
+            if ((_this->ws_propagate >> i) & 1)
+            {
+                _this->top->i2ss[i]->sync_ws(ws);
+            }
+        }
     }
 
     if (_this->clk_propagate)
@@ -1247,15 +1681,9 @@ void I2s::sync(void *__this, int sck, int ws, int sd)
         }
     }
 
-    if (_this->ws_propagate)
+    if (_this->i2s_verif)
     {
-        for (int i=0; i<_this->top->nb_i2s; i++)
-        {
-            if ((_this->ws_propagate >> i) & 1)
-            {
-                _this->top->i2ss[i]->sync_ws(ws);
-            }
-        }
+        _this->i2s_verif->sync(sck, ws, sd);
     }
 }
 
@@ -1278,8 +1706,8 @@ void I2s::sync_ws(int ws)
 
 void I2s::i2s_verif_setup(pi_testbench_i2s_verif_config_t *config)
 {
-    this->trace.msg(vp::trace::LEVEL_INFO, "I2S verif setup (enabled: %d, sampling_rate: %d, word_size: %d, nb_slots: %d)\n",
-        config->enabled, config->sampling_freq, config->word_size, config->nb_slots);
+    this->trace.msg(vp::trace::LEVEL_INFO, "I2S verif setup (enabled: %d, sampling_rate: %d, word_size: %d, nb_slots: %d, ext_clk: %d, ext_ws: %d, pdm: %d)\n",
+        config->enabled, config->sampling_freq, config->word_size, config->nb_slots, config->is_ext_clk, config->is_ext_ws, config->is_pdm);
 
     if (this->i2s_verif)
     {
@@ -1311,8 +1739,8 @@ void I2s::i2s_verif_start(pi_testbench_i2s_verif_start_config_t *config)
 
 void I2s::i2s_verif_slot_setup(pi_testbench_i2s_verif_slot_config_t *config)
 {
-    this->trace.msg(vp::trace::LEVEL_INFO, "I2S verif slot setup (slot: %d, is_rx: %d, enabled: %d, word_size: %d)\n",
-        config->slot, config->is_rx, config->enabled, config->word_size);
+    this->trace.msg(vp::trace::LEVEL_INFO, "I2S verif slot setup (slot: %d, is_rx: %d, enabled: %d, word_size: %d, format: %x)\n",
+        config->slot, config->is_rx, config->enabled, config->word_size, config->format);
 
     if (!this->i2s_verif)
     {

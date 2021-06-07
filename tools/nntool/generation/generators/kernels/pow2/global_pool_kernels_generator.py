@@ -19,7 +19,7 @@ from functools import reduce
 from generation.at_generators.utils import at_bits
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import (QREC_POW2,
+from generation.generator_decorators import (QREC_POW2,
                                                         generation_function)
 from graph.types import GlobalPoolParameters
 from utils.largest_factor import balanced_divisors

@@ -60,19 +60,38 @@ int __os_native_kickoff(void *arg)
 void pi_time_wait_us(int time_us)
 {
     /* Wait less than 1 ms. */
-    if (time_us < 1000)
+    if(time_us)
     {
-        uint32_t irq = disable_irq();
-        uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
-        uint32_t freq_us = freq_fc / 1000000;
-        uint32_t counter = (((uint32_t) time_us) - 1) * freq_us;
-        for (volatile uint32_t i=0; i<counter; i++);
-        restore_irq(irq);
+        if (time_us < 1000)
+        {
+            uint32_t irq = disable_irq();
+            uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
+            uint32_t freq_us = freq_fc / 1000000;
+            uint32_t counter = (((uint32_t) time_us) - 1) * freq_us;
+            restore_irq(irq);
+            for (volatile uint32_t i=0; i<counter; i++);
+        }
+        else
+        {
+            vTaskDelay((time_us/1000)/portTICK_PERIOD_MS);
+        }
     }
-    else
-    {
-        vTaskDelay((time_us/1000)/portTICK_PERIOD_MS);
-    }
+}
+
+unsigned long long int pi_time_get_us()
+{
+    uint64_t time = 0;
+    uint32_t irq = pi_irq_disable();
+    uint32_t cur_tick = xTaskGetTickCount();
+    uint64_t cur_timer_val = pi_timer_value_read(SYS_TIMER);
+    uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
+    uint32_t freq_us = freq_fc / 1000000;
+    cur_timer_val /= freq_us;
+    time = (cur_tick * 1000);
+    time += cur_timer_val;
+    time += 95; /* Around 95us between main() and kernel start. */
+    pi_irq_restore(irq);
+    return time;
 }
 
 PI_FC_L1 struct pi_task_delayed_s delayed_task = {0};

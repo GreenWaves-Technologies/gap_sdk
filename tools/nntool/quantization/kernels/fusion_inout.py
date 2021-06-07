@@ -13,17 +13,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.new_qrec import QRec
 from graph.types import FusionInputParameters, FusionOutputParameters
-from .kernel_base import KernelBase, quantization, params_type
+from .kernel_base import KernelBase, qrec_type, params_type
 
 @params_type(FusionInputParameters, FusionOutputParameters)
-@quantization('any')
+@qrec_type('any')
 class FusionNoopKernel(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         in_tensor = in_tensors[params.idx]
         in_tensor = in_tensor.reshape(params.dims.shape)

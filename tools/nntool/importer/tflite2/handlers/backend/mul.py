@@ -18,6 +18,7 @@ from graph.types.tensor_arithmetic import MatrixMulParameters
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
 from .math_mixin import ArithmeticMixin
+from importer.tflite2.tflite_schema_head.MulOptions import MulOptions
 
 
 @tflite_op("MUL")
@@ -25,6 +26,8 @@ class Mul(ArithmeticMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        node_opts = node.get_options(MulOptions)
+        kwargs['node_opts'] = node_opts
         return super(Mul, cls)._common(node,
                                        params_class=MatrixMulParameters,
                                        constant_operation=lambda x, y: x * y,

@@ -76,11 +76,14 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack,
                                     TaskFunction_t pxCode,
                                     void *pvParameters )
 {
+    uint32_t stack_size = ( uint32_t ) portGAP8_FULL_CONTEXT_SIZE;
+
     /* Few bytes on the bottom of the stack. May be useful for debugging. */
-    pxTopOfStack--;
     *pxTopOfStack = ( uint32_t ) 0xFEED51AC;
-    pxTopOfStack -= ( uint32_t ) portGAP8_FULL_CONTEXT_SIZE;
-    for (uint32_t reg = 0; reg < ( uint32_t ) portGAP8_FULL_CONTEXT_SIZE; reg++)
+    pxTopOfStack--;
+    pxTopOfStack = ( StackType_t *) ( (uint32_t) pxTopOfStack & (uint32_t) ~portGAP8_STACKALIGN_MASK );
+    pxTopOfStack -= stack_size;
+    for (uint32_t reg = 0; reg < stack_size; reg++)
     {
         /* GAP8 extensions : Hardware Loop registers.
          * Control and status registers saved if R/W.
@@ -115,7 +118,9 @@ StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack,
  * *-----------*
  * *  HW loop  *
  * *===========*
- * * deedfeed  *
+ * *  ALIGN    *
+ * *===========*
+ * * FEED51AC  *
  * *************
  *    HIGH
  */

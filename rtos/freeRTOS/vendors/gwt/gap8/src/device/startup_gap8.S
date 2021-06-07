@@ -28,7 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-        .file "startup_GAP8.S"
+        .file "startup_gap8.S"
 
 /*******************************************************************************
         This file contains the Bootcode and initializes the Interrupt Vector
@@ -56,6 +56,7 @@
         .extern systick_handler
         .extern cluster_notify_fc_handler
         .extern fc_event_handler
+        .extern dma_irq_handler
 /******************************************************************************/
 
 
@@ -126,45 +127,59 @@ _jump2main: /* Jump to main */
 
 /*******************************************************************************
         INTERRUPT VECTOR TABLE
+        -----------------------------
+         ADDR   |  Desc
+        0x00      Interrupt 0
+         -        Interrupt [1-30]
+        0x7C      Interrupt 31
+        0x80      Reset
+        0x84      Illegal Instruction
+        0x88      ECALL Instruction Executed
 *******************************************************************************/
         .section .vectors_irq, "ax"
         .option norvc;
 
-        /* Cluster Notify FC Handler. */
-        .org 0x10
-        j cluster_notify_fc_handler
+        j default_handler           /* IRQ=0 : undefined */
+        j pendSV_handler            /* IRQ=1 : PendSV Handler. */
+        j cluster_notify_fc_handler /* IRQ=2 : Cluster to FC notify Handler. */
+        j default_handler           /* IRQ=3 : undefined */
+        j default_handler           /* IRQ=4 : undefined */
+        j default_handler           /* IRQ=5 : undefined */
+        j default_handler           /* IRQ=6 : undefined */
+        j default_handler           /* IRQ=7 : undefined */
+        j default_handler           /* IRQ=8 : undefined */
+        j dma_irq_handler           /* IRQ=9 : DMA IRQ Handler. */
+        j systick_handler           /* IRQ=10 : Systick Handler. */
+        j default_handler           /* IRQ=11 : undefined */
+        j default_handler           /* IRQ=12 : undefined */
+        j default_handler           /* IRQ=13 : undefined */
+        j default_handler           /* IRQ=14 : undefined */
+        j default_handler           /* IRQ=15 : undefined */
+        j default_handler           /* IRQ=16 : undefined */
+        j default_handler           /* IRQ=17 : undefined */
+        j default_handler           /* IRQ=18 : undefined */
+        j default_handler           /* IRQ=19 : undefined */
+        j default_handler           /* IRQ=20 : undefined */
+        j default_handler           /* IRQ=21 : undefined */
+        j default_handler           /* IRQ=22 : undefined */
+        j default_handler           /* IRQ=23 : undefined */
+        j default_handler           /* IRQ=24 : undefined */
+        j default_handler           /* IRQ=25 : undefined */
+        j default_handler           /* IRQ=26 : undefined */
+        j fc_event_handler          /* IRQ=27 : FC SoC event Handler. */
+        j default_handler           /* IRQ=28 : undefined */
+        j default_handler           /* IRQ=29 : undefined */
+        j default_handler           /* IRQ=30 : undefined */
+        j default_handler           /* IRQ=31 : undefined */
 
-        /* PendSV Handler. */
-        .org 0x1c
-        j pendSV_handler
+        j reset_handler             /* After IRQ=31, Reset Handler. */
 
-        /* DMA IRQ. */
-        .extern cluster_dma_2d_handler
-        .org 0x24
-        j cluster_dma_2d_handler
+        j ill_ins_handler           /* After Reset : Illegal Instruction Handler. */
 
-        /* Systick Handler. */
-        .org 0x28
-        j systick_handler
+        j ecall_handler             /* After Illegal : Ecall Handler. */
 
-        /* FC SoC event Handler. */
-        .org 0x6c
-        j fc_event_handler
-
-        /* Reset Handler. */
-        .org 0x80
-        j reset_handler
-
-        /* Illegal Instruction Handler. */
-        .org 0x84
-        j ill_ins_handler
-
-        /* Ecall Handler. */
-        .org 0x88
-        j ecall_handler
 
         .org 0x90
         .global __rt_debug_struct_ptr
         __rt_debug_struct_ptr:
         .word 0xdeadbeef
-/******************************************************************************/

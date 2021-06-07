@@ -19,7 +19,7 @@ from generation.at_generators import (NO_ACTIVATION, NO_POOL,
                                       gen_pool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generator_decorators import generation_function, QREC_POW2
 from graph.dim import PadDim
 from graph.types import ConvFusionParameters
 from utils.node_id import NodeId

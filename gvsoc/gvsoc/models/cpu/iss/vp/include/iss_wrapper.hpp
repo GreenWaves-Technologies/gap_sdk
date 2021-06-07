@@ -45,6 +45,8 @@ public:
   void pre_reset();
   void reset(bool active);
 
+  virtual void target_open() {}
+
   static void data_grant(void *_this, vp::io_req *req);
   static void data_response(void *_this, vp::io_req *req);
 

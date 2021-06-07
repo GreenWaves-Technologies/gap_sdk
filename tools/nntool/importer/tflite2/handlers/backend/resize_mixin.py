@@ -40,10 +40,19 @@ class ResizeMixin():
                               in_dims_hint=[['h', 'w', 'c']],
                               out_dims_hint=[['h', 'w', 'c']])
 
-        out_shape = params.get_output_size([Dim.unnamed(x[2].known_shape)])[0]
+        out_shape = params.get_output_size(
+            [
+                Dim(
+                    shape=x[2].known_shape,
+                    names=['h', 'w', 'c'],
+                    is_ordered=True)
+            ]
+        )[0]
         if opts.get('load_quantization'):
             G.quantization[NodeId(params)] = cls.load_tf_quantization(
                 [node.input[0]], [node.output[0]])
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
-        all_nodes[node.output[0]] = (params, 0, x[2].infer_mapping(out_shape.shape))
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        all_nodes[node.output[0]] = (
+            params, 0, x[2].infer_mapping(out_shape.shape))
         return params

@@ -12,10 +12,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
-
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import QREC_MULT8, generation_function
 from graph.types import SoftMaxParameters
 
 

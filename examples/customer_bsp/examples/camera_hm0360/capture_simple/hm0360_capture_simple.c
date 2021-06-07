@@ -15,9 +15,16 @@
 #include "gaplib/ImgIO.h"
 
 /* constants */
-
+#ifdef IMG_QVGA
+#define CAMERA_WIDTH  ( 320 )
+#define CAMERA_HEIGHT ( 240 )
+#elif defined IMG_QQVGA
+#define CAMERA_WIDTH  ( 160 )
+#define CAMERA_HEIGHT ( 120 )
+#else 
 #define CAMERA_WIDTH  ( 640 )
 #define CAMERA_HEIGHT ( 480 )
+#endif
 //#define CAMERA_HEIGHT ( 100 )
 #define CAMERA_PIXEL_SIZE (1)
 #define ITER_SIZE  (0x12C00)
@@ -96,7 +103,13 @@ static int32_t open_camera_hm0360(struct pi_device *device)
 {
     struct pi_hm0360_conf cam_conf;
     pi_hm0360_conf_init(&cam_conf);
+    #ifdef IMG_QVGA
+    cam_conf.format = PI_CAMERA_QVGA;
+    #elif defined IMG_QQVGA
+    cam_conf.format = PI_CAMERA_QQVGA;
+    #else
     cam_conf.format = PI_CAMERA_VGA;
+    #endif
     pi_open_from_conf(device, &cam_conf);
     if (pi_camera_open(device))
     {
@@ -172,7 +185,7 @@ static void test_camera_double_buffer(void)
 
 #ifdef FRAME_DROP
     unsigned int cfg_glob = (*(volatile unsigned int *)(long)(0x1A1024A0));
-    cfg_glob |= ((0x3<<1)|0x1); // enable frame drop, and drop 1 image
+    cfg_glob |= ((0x3<<3)|0x1); // enable frame drop, and drop 1 image
     (*(volatile unsigned int *)(long)(0x1A1024A0)) = cfg_glob;
 #endif
 

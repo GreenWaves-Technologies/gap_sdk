@@ -147,24 +147,24 @@ void timer::check_state_counter(bool is_64, int counter)
 {
   if (is_enabled[counter] && get_compare_value(is_64, counter) == get_value(is_64, counter))
   {
-    trace.msg("Reached compare value (timer: %d)\n", counter);
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "Reached compare value (timer: %d)\n", counter);
 
     if (cmp_clr[counter]) {
-      trace.msg("Clearing timer due to compare value (timer: %d)\n", counter);
+      this->trace.msg(vp::trace::LEVEL_DEBUG, "Clearing timer due to compare value (timer: %d)\n", counter);
       set_value(is_64, counter, 0);
     }
 
     if (irq_enabled[counter])
     {
-      trace.msg("Raising interrupt (timer: %d)\n", counter);
+      this->trace.msg(vp::trace::LEVEL_DEBUG, "Raising interrupt (timer: %d)\n", counter);
       if (!irq_itf[counter].is_bound())
-        trace.warning("Trying to send timer interrupt while irq port is not connected (irq: %d)\n", counter);
+        this->trace.warning("Trying to send timer interrupt while irq port is not connected (irq: %d)\n", counter);
       else
         irq_itf[counter].sync(true);
     }
 
     if (one_shot[counter]) {
-      trace.msg("Reached one-shot end (timer: %d)\n", counter);
+      this->trace.msg(vp::trace::LEVEL_DEBUG, "Reached one-shot end (timer: %d)\n", counter);
       is_enabled[counter] = false;
     }
 
@@ -175,7 +175,7 @@ void timer::check_state_counter(bool is_64, int counter)
     int64_t cycles = get_remaining_cycles(is_64, counter);
 
     if (cycles != 0) {
-      trace.msg("Timer is enabled, reenqueueing event (timer: %d, diffCycles: 0x%lx)\n", counter, cycles);
+      this->trace.msg(vp::trace::LEVEL_DEBUG, "Timer is enabled, reenqueueing event (timer: %d, diffCycles: 0x%lx)\n", counter, cycles);
       event_reenqueue(event, cycles);
     }
 
@@ -211,14 +211,14 @@ void timer::ref_clock_sync(void *__this, bool value)
   {
     if (_this->ref_clock[0])
     {
-      _this->trace.msg("Updating counter due to ref clock raising edge (counter: 0)\n");
+      _this->trace.msg(vp::trace::LEVEL_TRACE, "Updating counter due to ref clock raising edge (counter: 0)\n");
       _this->value[0]++;
       check = true;
     }
 
     if (_this->ref_clock[1])
     {
-      _this->trace.msg("Updating counter due to ref clock raising edge (counter: 1)\n");
+      _this->trace.msg(vp::trace::LEVEL_TRACE, "Updating counter due to ref clock raising edge (counter: 1)\n");
       _this->value[1]++;
       check = true;
     }
@@ -233,7 +233,7 @@ void timer::ref_clock_sync(void *__this, bool value)
 
 void timer::timer_reset(int counter)
 {
-  trace.msg("Resetting timer (timer: %d)\n", counter);
+  this->trace.msg(vp::trace::LEVEL_INFO, "Resetting timer (timer: %d)\n", counter);
 
   if (is_64) *(int64_t *)value = 0;
   else value[counter] = 0;
@@ -246,7 +246,7 @@ vp::io_req_status_e timer::handle_configure(int counter, uint32_t *data, unsigne
     config[counter] = *data;
     depack_config(counter, config[counter]);
 
-    trace.msg("Modified configuration (timer: %d, enabled: %d, irq: %d, iem: %d, cmp-clr: %d, one-shot: %d, prescaler: %d, prescaler value: 0x%x, is64: %d)\n", 
+    this->trace.msg(vp::trace::LEVEL_INFO, "Modified configuration (timer: %d, enabled: %d, irq: %d, iem: %d, cmp-clr: %d, one-shot: %d, prescaler: %d, prescaler value: 0x%x, is64: %d)\n", 
       counter, is_enabled[counter], irq_enabled[counter], iem[counter], cmp_clr[counter], one_shot[counter], prescaler[counter], prescaler_value[counter], is_64);
 
     if ((config[counter] >> TIMER_CFG_LO_RESET_BIT) & 1) timer_reset(counter);
@@ -271,7 +271,7 @@ vp::io_req_status_e timer::handle_value(int counter, uint32_t *data, unsigned in
 {
   if (is_write)
   {
-    trace.msg("Modified value (timer: %d, value: 0x%x)\n", counter, *data);
+    this->trace.msg(vp::trace::LEVEL_INFO, "Modified value (timer: %d, value: 0x%x)\n", counter, *data);
     value[counter] = *data;
     check_state();
   }
@@ -286,7 +286,7 @@ vp::io_req_status_e timer::handle_compare(int counter, uint32_t *data, unsigned 
 {
   if (is_write)
   {
-    trace.msg("Modified compare value (timer: %d, value: 0x%x)\n", counter, *data);
+    this->trace.msg(vp::trace::LEVEL_INFO, "Modified compare value (timer: %d, value: 0x%x)\n", counter, *data);
     compare_value[counter] = *data;
     check_state();
   }
@@ -320,7 +320,7 @@ vp::io_req_status_e timer::req(void *__this, vp::io_req *req)
   uint64_t size = req->get_size();
   bool is_write = req->get_is_write();
 
-  _this->trace.msg("Timer access (offset: 0x%x, size: 0x%x, is_write: %d)\n", offset, size, is_write);
+  _this->trace.msg(vp::trace::LEVEL_DEBUG,  "Timer access (offset: 0x%x, size: 0x%x, is_write: %d)\n", offset, size, is_write);
 
   if (size > 4) return vp::IO_REQ_INVALID;
 

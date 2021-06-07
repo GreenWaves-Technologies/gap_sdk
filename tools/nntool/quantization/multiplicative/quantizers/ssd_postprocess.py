@@ -15,16 +15,15 @@
 
 import numpy as np
 from graph.types import SSDDetectorParameters
-from quantization.multiplicative.mult_quantization import \
-    MultSSDDetectorQuantizationRecord
-from quantization.qtype import \
-    QType
-from quantization.unified_quantization_handler import params_type
+from quantization.new_qrec import QRec
+from quantization.qtype import QType
+from quantization.unified_quantization_handler import params_type, in_qs_constraint
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
 @params_type(SSDDetectorParameters)
+@in_qs_constraint({'dtype': np.int8})
 class SSDDetectorParametersMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -32,7 +31,12 @@ class SSDDetectorParametersMult(MultQuantizionHandler):
         force_out_q = force_out_qs and force_out_qs[0]
         if force_out_q:
             return None
-        o_boxes_qtype = QType(min_val=-2, max_val=2, dtype=np.int16, scale=2**(-14))
+
+        in_qs = cls.force_symmetric_and_dtype(in_qs, dtype=np.int8)
+        if in_qs is None:
+            return None
+        o_boxes_qtype = QType(min_val=-2, max_val=2,
+                              dtype=np.int16, scale=2**(-14))
         o_scores_qtype = in_qs[1]
         o_class_qtype = QType(scale=1, dtype=np.int8)
-        return MultSSDDetectorQuantizationRecord(in_qs=in_qs, out_qs=[o_boxes_qtype, o_scores_qtype, o_class_qtype, o_class_qtype])
+        return QRec.scaled(in_qs=in_qs, out_qs=[o_boxes_qtype, o_class_qtype, o_scores_qtype, o_class_qtype])

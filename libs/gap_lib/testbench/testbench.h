@@ -73,6 +73,7 @@ typedef struct
     uint8_t is_sai0_ws;
     uint8_t clk_polarity;
     uint8_t ws_polarity;
+    uint8_t ws_delay;
 }
 __attribute__((packed)) pi_testbench_i2s_verif_config_t;
 
@@ -123,12 +124,14 @@ typedef struct
             int32_t nb_samples;
             uint32_t filepath;
             uint32_t filepath_len;
+            uint32_t type;
         } tx_file_dumper;
         struct
         {
             int32_t nb_samples;
             uint32_t filepath;
             uint32_t filepath_len;
+            uint32_t type;
         } rx_file_reader;
     };
 
@@ -142,6 +145,8 @@ typedef struct
 {
     uint8_t itf;   // Reserved for runtime
     uint8_t slot;  // Reserved for runtime
+    uint8_t stop_rx;
+    uint8_t stop_tx;
 }
 __attribute__((packed)) pi_testbench_i2s_verif_slot_stop_config_t;
 
@@ -204,6 +209,7 @@ int pi_testbench_spim_verif_spi_wakeup(pi_device_t *device, int itf, int cs, pi_
  * I2S verif
  */
 
+void pi_testbench_i2s_verif_init(pi_testbench_i2s_verif_config_t *config);
 int pi_testbench_i2s_verif_open(pi_device_t *device, int itf, pi_testbench_i2s_verif_config_t *config);
 int pi_testbench_i2s_verif_start(pi_device_t *device, int itf);
 int pi_testbench_i2s_verif_close(pi_device_t *device, int itf);

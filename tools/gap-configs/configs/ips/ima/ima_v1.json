@@ -1,0 +1,19 @@
+{
+  "version": 1,
+
+  "hal_files" : [ "hal/ima/ima_v1.h" ],
+  "archi_files" : [ "archi/ima/ima_v1.h" ],
+
+  "vp_class": "pulp/ima/ima_v1",
+  "vp_component": "pulp.ima.ima_v1_impl",
+
+  "nb_masters": 32,
+  "xbar_x": 1000,
+  "xbar_y": 1000,
+
+  "eval_ns": 69,
+  "plot_write_ns": 1000,
+  "plot_read_ns": 10,
+
+  "statistics": false
+}

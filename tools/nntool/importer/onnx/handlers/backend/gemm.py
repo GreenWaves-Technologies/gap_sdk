@@ -13,12 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.input_output import ConstantInputParameters
 import numpy as np
 from graph.dim import Dim, FcFilterDim
 from graph.types import FcParameters, NNEdge
+from graph.types.input_output import ConstantInputParameters
 from importer.common.provisional_dim import ProvisionalDim
-from utils.sparse_list import SparseList
 
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op, partial_support, ps_description
@@ -71,20 +70,24 @@ class Gemm(PromoteLinearMixin, BackendHandler):
         weights = cls.get_constant(y) * alpha
         if not trans_b:
             weights = np.transpose(weights, [1, 0])
-        weights_params = ConstantInputParameters(f'{valid_name}_weights', dims=Dim.unnamed(weights.shape), value=weights)
+        weights_params = ConstantInputParameters(
+            f'{valid_name}_weights', dims=Dim.unnamed(weights.shape), value=weights)
         biases = biases * beta
-        biases_params = ConstantInputParameters(f'{valid_name}_biases', dims=Dim.unnamed(biases.shape), value=biases)
+        biases_params = ConstantInputParameters(
+            f'{valid_name}_biases', dims=Dim.unnamed(biases.shape), value=biases)
 
         params = FcParameters(valid_name, filt=filt_dim, has_bias=True,
-                              in_dims_hint=SparseList([['c']]),
-                              out_dims_hint=SparseList([['c']]),
+                            #   in_dims_hint=[['c']],
+                              in_dims_hint=[None, ['out_c', 'in_c'], ['out_c']],
+                              out_dims_hint=[['c']],
                               constant_store=G.constant_store)
 
         G.add_edge(NNEdge(from_node=weights_params, to_node=params, to_idx=1))
         G.add_edge(NNEdge(from_node=biases_params, to_node=params, to_idx=2))
 
         out_dims = params.get_output_size([Dim.unnamed(real_x_shape)])
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         if isinstance(x[2], ProvisionalDim):
             out_dim = x[2].infer_mapping(out_dims[0].shape)
         else:

@@ -44,6 +44,9 @@ class TCArgInfo():
         "short int": "short int * __restrict__",
         "unsigned int": "unsigned int * __restrict__",
         "signed int": "signed int * __restrict__",
+        "float32": "float * __restrict__",
+        "bfloat16": "F16 * __restrict__",
+        "float16": "F16 * __restrict__",
     }
     ARG_SCOPES = [
         "ARG_SCOPE_UNDEF", "ARG_SCOPE_ARG", "ARG_SCOPE_ARG_ALLOC", "ARG_SCOPE_GLOBAL", "ARG_SCOPE_LOCAL"

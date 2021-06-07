@@ -17,12 +17,11 @@ import logging
 
 import numpy as np
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
-
 from interpreter.nntool_shell_base import NNToolShellBase, no_history
 from interpreter.shell_utils import print_comparison
-from utils.gap_tensor_file import read_gap_tensors, write_gap_tensor
-from utils.stats_funcs import qsnr
+from texttable import Texttable
 from utils.at_tensor_loader import at_map_tensors, at_tensor_loader
+from utils.stats_funcs import cos_similarity, qsnr
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -41,6 +40,9 @@ class TensorsCommand(NNToolShellBase):
     parser_outexclu.add_argument('-Q', '--compare_qsnr',
                                  action='store_true',
                                  help='compare two tensors QSNR')
+    parser_outexclu.add_argument('-C', '--compare_cos_similarity',
+                                 action='store_true',
+                                 help='compare two tensors cosine similarity')
     parser_outexclu.add_argument('-E', '--compare_error',
                                  action='store_true',
                                  help='compare two tensors error (first - second)')
@@ -96,7 +98,8 @@ error or QSNR displayed. If a step is selected then the error by channel will be
             return
         if args.gap_load:
             store_name = args.gap_load if not args.name else args.name
-            self.tensor_store[store_name] = at_map_tensors(self.G, at_tensor_loader(args.gap_load))
+            self.tensor_store[store_name] = at_map_tensors(
+                self.G, at_tensor_loader(args.gap_load))
             return
         if args.tensors:
             if len(args.tensors) == 1:
@@ -109,10 +112,12 @@ error or QSNR displayed. If a step is selected then the error by channel will be
                     self.perror("you must select a step")
                     return
                 if args.step >= len(tensors):
-                    self.perror("{} doesn't have that step".format(tensor_name))
+                    self.perror(
+                        "{} doesn't have that step".format(tensor_name))
                     return
                 if tensors[args.step] is None:
-                    self.perror("{} doesn't have this tensor for that step".format(tensor_name))
+                    self.perror(
+                        "{} doesn't have this tensor for that step".format(tensor_name))
                     return
                 tensor = tensors[args.step]
 
@@ -145,7 +150,8 @@ error or QSNR displayed. If a step is selected then the error by channel will be
             if args.step is not None:
                 for i in range(2):
                     if args.step >= len(tensors[i]):
-                        self.perror("{} doesn't have that step".format(compare[i]))
+                        self.perror(
+                            "{} doesn't have that step".format(compare[i]))
                         return
                     if tensors[i][args.step] is None:
                         self.perror(
@@ -157,38 +163,63 @@ error or QSNR displayed. If a step is selected then the error by channel will be
                 for i in range(2):
                     for j, tensor in enumerate(tensors[i]):
                         if len(tensor.shape) <= len(args.channel):
-                            self.perror("selected too many channels for this tensor")
+                            self.perror(
+                                "selected too many channels for this tensor")
                         for c in args.channel:
                             tensor = tensor[c]
                         tensors[i][j] = tensor
 
-            if args.compare_qsnr or args.compare_error:
+            if args.compare_qsnr or args.compare_error or args.compare_cos_similarity:
                 if args.compare_qsnr:
+                    etype = "QSNR"
+                    tdtype = "f"
                     def func(x, y):
                         if x is not None and y is not None:
                             return qsnr(x.astype(np.float), y.astype(np.float))
                         return float('nan')
-                else:
+                elif args.compare_cos_similarity:
+                    etype = "COS similarity"
+                    tdtype = "f"
                     def func(x, y):
                         if x is not None and y is not None:
-                            return np.abs(x - y)
+                            return cos_similarity(x.astype(np.float), y.astype(np.float))
+                        return float('nan')
+                else:
+                    etype = "Max abs error"
+                    tdtype = "f"
+                    def func(x, y):
+                        if x is not None and y is not None:
+                            return np.max(np.abs(x - y))
                         return float('nan')
 
                 if args.step is not None:
-                    print("error for step %s" % args.step)
+                    print(f"{etype} for step {args.step}")
                     if args.channel is not None:
-                        print("error for dimensions [%s]" %
-                              (",".join([str(chan) for chan in args.channel])))
+                        print(f"{etype} for dimensions [{','.join([str(chan) for chan in args.channel])}]")
 #pylint: disable=unsubscriptable-object
                     out = [func(tensors[0][0][i], tensors[1][0][i])
                            for i in range(len(tensors[0][0]))]
                 else:
                     out = [func(t1, t2)
                            for t1, t2 in zip(*tensors)]
-                for idx, val in enumerate(out):
+
+                table = Texttable()
+                # table.set_cols_align(['l']+(['r']*10))
+                table.set_cols_dtype(['a']+([tdtype]*10))
+                table.header(['']+[str(x) for x in range(0, 10)])
+                table.set_max_width(0)
+                row = None
+                idx = 0
+                for val in out:
                     if idx % 10 == 0:
-                        print("\n{:03d} {:03d}:  ".format(idx, idx+9), end='')
-                    print('{}{}'.format(val, "" if (idx + 1) % 10 == 0 else ", "), end='')
+                        if row is not None:
+                            table.add_row(row)
+                        row = [f'{idx}']
+                    row.append(val)
+                    idx += 1
+                if row and len(row) > 1:
+                    table.add_row(row + ([''] * (11-len(row))))
+                print(table.draw())
                 print()
             else:
                 self.ppaged("\n".join(print_comparison(tensors)))

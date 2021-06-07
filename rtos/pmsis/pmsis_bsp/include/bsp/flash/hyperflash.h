@@ -62,6 +62,10 @@ struct pi_hyperflash_conf
  */
 void pi_hyperflash_conf_init(struct pi_hyperflash_conf *conf);
 
+void pi_hyperflash_deep_sleep_enter(pi_device_t *device);
+
+void pi_hyperflash_deep_sleep_exit(pi_device_t *device);
+
 //!@}
 
 /**

@@ -24,9 +24,12 @@
 #include <archi/chips/gap9_v2/udma_aes/udma_aes_structs.h>
 #include <archi/chips/gap9_v2/udma_aes/udma_aes_gvsoc.h>
 #include "../udma_impl.hpp"
+#include "udma_aes_model_v1.hpp"
 
 
 class Aes_periph;
+
+#define AES_BLOCK_SIZE_BYTES (AES_BLOCKLEN)
 
 
 /**
@@ -63,11 +66,12 @@ class Aes_tx_channel : public Udma_tx_channel
          * \param name channel name
          */
         Aes_tx_channel(udma *top, Aes_periph *periph, string name);
+
         /**
-         * \brief TODO
+         * \brief called when data is given to the channel, forwards to AES
          *
-         * \param data TODO
-         * \param size TODO
+         * \param data pointer to the data
+         * \param size size of the data in bytes
          */
         void push_data(uint8_t *data, int size);
 
@@ -94,35 +98,114 @@ class Aes_periph : public Udma_periph
         Aes_periph(udma *top, int id, int itf_id);
 
         /**
-         * \brief TODO
+         * \brief used to reset the peripheral
          *
-         * \param active TODO
+         * \param active whether reset is active or not
          */
         void reset(bool active);
 
+        /**
+         * \brief processing incoming data
+         *
+         * \param data data to process
+         * \param size size of the data in bytes
+         */
+        void process_data(uint8_t* data, int size);
+
     private:
         /**
-         * \brief TODO
+         * \brief custom register request callback
          *
-         * \param req TODO
-         * \param offset TODO
+         * \param req request details
+         * \param offset offset
          *
-         * \returns TODO
+         * \returns whether request was valid or not
          */
         vp::io_req_status_e custom_req(vp::io_req *req, uint64_t offset);
 
         /**
-         * \brief TODO
+         * \brief channels register callback
          *
-         * \param reg_offset TODO
-         * \param size TODO
-         * \param value TODO
-         * \param is_write TODO
+         * \param reg_offset register offset
+         * \param size size of the request
+         * \param value value of the request
+         * \param is_write flag to indicate whether request is write or not
          */
         void dest_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
 
+        /**
+         * \brief setup register callback
+         *
+         * used to trigger key init and block reset
+         *
+         * \param reg_offset register offset
+         * \param size size of the request
+         * \param value value of the request
+         * \param is_write flag to indicate whether request is write or not
+         */
+        void setup_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
+
+        /**
+         * \brief AES processing event handler
+         *
+         * called when processing event is done, convert data and
+         * trigger a sending event
+         */
+        static void processing_handler(void* __this, vp::clock_event* event);
+
+        /**
+         * \brief AES sending event handler
+         *
+         * called when a sending event is done, send data to rx channel if possible
+         * until there is no data left to send. If it is not possible to send now,
+         * reenqueues a sending event.
+         * Once all data has been sent, request a new AES block.
+         */
+        static void sending_handler(void* __this, vp::clock_event* event);
+
+        /**
+         * \brief AES key init handler
+         *
+         * called when a key init event is done. Initializes the AES key.
+         */
+        static void key_init_handler(void* __this, vp::clock_event* event);
+
+        /** trace utility */
         vp::trace         trace;
+
+        /** AES register map */
         vp_regmap_udma_aes regmap;
+
+        /**
+         * event used to mimic the time taken by an AES conversion (encryption/decryption).
+         * Duration of the event varies according to key size.
+         */
+        vp::clock_event* processing_event;
+
+        /**
+         * event used to trigger the sending of data to rx channel
+         */
+        vp::clock_event* sending_event;
+
+        /**
+         * event used to initialize AES key. Mimics the time taken by real key initialization.
+         */
+        vp::clock_event* key_init_event;
+
+        /** queue used to store incoming data while waiting for a complete
+         *  block to start processing */
+        std::queue<uint8_t> incoming_data;
+
+        /** queue used to store data to send */
+        std::queue<uint8_t> outgoing_data;
+
+        /** block currently being processed */
+        uint8_t current_block[AES_BLOCK_SIZE_BYTES];
+        /** used for CBC mode, starts as the IV (block_rst) */
+        uint8_t previous_block[AES_BLOCK_SIZE_BYTES];
+
+        /** Internal AES model context */
+        AES_ctx aes_ctx;
 
         /** AES RX channel, used to transmit data from the AES */
         Aes_rx_channel *rx_channel;

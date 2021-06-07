@@ -34,3 +34,4 @@ Contents
    rtos.rst
    drivers.rst
    chips.rst
+   platforms.rst

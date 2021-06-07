@@ -19,7 +19,6 @@
 #include "bsp/camera/pixart.h"
 #include "pixart.h"
 
-
 typedef struct {
   uint32_t addr;
   uint32_t value;
@@ -71,12 +70,12 @@ static pixart_reg_init_t __pixart_reg_init[] =
   {0x3A, 0x28},
   {0x45, 0x17},
   {0x46, 0x17},
-  //{0x48, 0x00}, // Expo[7:0]
-  //{0x49, 0x00}, // Expo[15:8]
-  //{0x4A, 0x00}, // Expo[23:16]
-  {0x48, 0x10}, // Expo[7:0]
-  {0x49, 0x51}, // Expo[15:8]
+  {0x48, 0x00}, // Expo[7:0]
+  {0x49, 0x00}, // Expo[15:8]
   {0x4A, 0x00}, // Expo[23:16]
+  //{0x48, 0x10}, // Expo[7:0]
+  //{0x49, 0x51}, // Expo[15:8]
+  //{0x4A, 0x00}, // Expo[23:16]
   {0x4D, 0x0D},
   {0x4E, 0x20},
   {0x62, 0x12},
@@ -89,9 +88,9 @@ static pixart_reg_init_t __pixart_reg_init[] =
   {0x73, 0x1D},
   {0x75, 0x1E},
   {0x77, 0x0B},
-  //{0x7A, 0x80}, // R_FrameTime[7:0, test for 5fps
-  //{0x7B, 0x4F}, // R_FrameTime[15:8]
-  //{0x7C, 0x12}, // R_FrameTime[23:16]
+  {0x7A, 0x80}, // R_FrameTime[7:0, test for 5fps
+  {0x7B, 0x4F}, // R_FrameTime[15:8]
+  {0x7C, 0x12}, // R_FrameTime[23:16]
   //{0x7A, 0xA0}, // R_FrameTime[7:0, test for 60fps
   //{0x7B, 0x86}, // R_FrameTime[15:8]
   //{0x7C, 0x01}, // R_FrameTime[23:16]
@@ -113,7 +112,8 @@ static pixart_reg_init_t __pixart_reg_init[] =
   {0x18, 0xD0},
   {0x21, 0x14},
   {0x22, 0x80},
-  {0x23, 0x80}, // Mode select trigger/exit low power mode
+  //{0x23, 0x80}, // Mode select trigger/exit low power mode
+  {0x23, 0xC0}, // Mode select trigger/keep low power mode
   {0x2F, 0x30},
   {0x35, 0x64},
   {0x39, 0x03},
@@ -302,7 +302,7 @@ static inline int is_spi_active(void)
 
   // SPI driver is not yet working on some chips, at least this works on gvsoc.
   // Also there is noSPI connection to camera model on RTL
-#if PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1
+#if defined(PULP_CHIP) && (PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1)
   return 0;
 #else
   return rt_platform() != ARCHI_PLATFORM_RTL;
@@ -377,35 +377,41 @@ static void __pixart_mode(pixart_t *pixart, uint8_t mode)
 static int __pixart_start(pixart_t *pixart)
 {
   /* poweron camera. */
-  __pixart_on(pixart);
+  //__pixart_on(pixart);
 
   /* wait time > 500us to complete poweron process. */
   pi_time_wait_us(500);
 
   /* reset camera from pad. */
-  //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 1);
+  pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 1);
 
   /* wait time > 500us to complete reset process. */
-  //pi_time_wait_us(500);
+  pi_time_wait_us(500);
+
+  /* enable clock to pixart. */
+  pi_pwm_timer_start(&pixart->pwm_device);
+
+  /* wait time > 200us to complete reset process. */
+  pi_time_wait_us(200);
+
+  /* switch bank 0. */
+  __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x00);
 
   uint16_t id = 0xFFFF;
   do
   {
     /* soft reset pixart. */
-    __pixart_reg_write(pixart, PIXART_GLOBAL_RESET_REG, PIXART_SOFT_RESET);
+    //__pixart_reg_write(pixart, PIXART_GLOBAL_RESET_REG, PIXART_SOFT_RESET);
 
     /* update */
-    __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x01);
-    __pixart_reg_write(pixart, PIXART_UPDATE_REG, 0x01);
+    //__pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x01);
+    //__pixart_reg_write(pixart, PIXART_UPDATE_REG, 0x01);
 
     pi_time_wait_us(100);
 
-    /* switch bank 0. */
-    __pixart_reg_write(pixart, PIXART_BANK_SELECT_REG, 0x00);
-
     id = ((__pixart_reg_read(pixart, PIXART_CHIP_ID_REG_H) << 8) | __pixart_reg_read(pixart, PIXART_CHIP_ID_REG_L));
 
-  } while (id == 0xFFFF); //while (id != PIXART_CHIP_ID);
+  } while (id != PIXART_CHIP_ID);
 
   /* init register for pixart and then pixart is ready. */
   __pixart_regs_init(pixart);
@@ -437,7 +443,7 @@ static int32_t __pixart_open(struct pi_device *device)
   struct pi_pixart_conf *conf = (struct pi_pixart_conf *)device->config;
 
   /* init bsp gpio. */
-  bsp_pixart_open(conf);
+  //bsp_pixart_open(conf); // shao
 
   pixart_t *pixart = (pixart_t *)pmsis_l2_malloc(sizeof(pixart_t));
   if (pixart == NULL)
@@ -470,6 +476,19 @@ static int32_t __pixart_open(struct pi_device *device)
   if (pi_spi_open(&pixart->spi_device))
     goto error2;
 
+  /* configure gpio to control power and reset functions. */
+  struct pi_gpio_conf gpio_conf;
+  pi_gpio_conf_init(&gpio_conf);
+  pi_open_from_conf(&pixart->gpio_port, &gpio_conf);
+  if (pi_gpio_open(&pixart->gpio_port))
+    goto error3;
+
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_4V, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_2V5, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //__pixart_off(pixart);
+  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_reset, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 0);
+
   /* configure pwm to support clk to camera. */
   struct pi_pwm_conf pwm_conf;
   pi_pwm_conf_init(&pwm_conf);
@@ -479,23 +498,19 @@ static int32_t __pixart_open(struct pi_device *device)
   pwm_conf.timer_conf |= PI_PWM_CLKSEL_FLL;
   pi_open_from_conf(&pixart->pwm_device, &pwm_conf);
   if (pi_pwm_open(&pixart->pwm_device))
-    goto error3;
-
-  pi_pwm_duty_cycle_set(&pixart->pwm_device, PIXART_MCLK_FREQ, 50);
-  pi_pwm_timer_start(&pixart->pwm_device);
-
-  /* configure gpio to control power and reset functions. */
-  struct pi_gpio_conf gpio_conf;
-  pi_gpio_conf_init(&gpio_conf);
-  pi_open_from_conf(&pixart->gpio_port, &gpio_conf);
-  if (pi_gpio_open(&pixart->gpio_port))
     goto error4;
 
-  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_4V, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_2V5, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_reset, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  __pixart_off(pixart);
+  pi_pwm_duty_cycle_set(&pixart->pwm_device, PIXART_MCLK_FREQ, 50);
+  //pi_pwm_timer_start(&pixart->pwm_device);
+
+  //while (1)
+  //{
   //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 0);
+  //pi_time_wait_us(100*1000);
+  //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 1);
+  //pi_time_wait_us(100*1000);
+  //}
+  //pi_time_wait_us(10*1000000);
 
   /* init camera. */
   if (__pixart_start(pixart) != 0)
@@ -509,10 +524,10 @@ static int32_t __pixart_open(struct pi_device *device)
   return 0;
 
 error5:
+  pi_pwm_close(&pixart->pwm_device);
+error4:
   // TODO does not exist yet
   //pi_gpio_close(&pixart->gpio_port);
-error4:
-  pi_pwm_close(&pixart->pwm_device);
 error3:
   pi_spi_close(&pixart->spi_device);
 error2:
@@ -528,7 +543,7 @@ static int32_t __pixart_reopen(struct pi_device *device, pi_camera_opts_e opts)
   struct pi_pixart_conf *conf = (struct pi_pixart_conf *)device->config;
 
   /* init bsp gpio. */
-  bsp_pixart_open(conf);
+  //bsp_pixart_open(conf);
 
   pixart_t *pixart = (pixart_t *)pmsis_l2_malloc(sizeof(pixart_t));
   if (pixart == NULL)
@@ -561,6 +576,19 @@ static int32_t __pixart_reopen(struct pi_device *device, pi_camera_opts_e opts)
   if (pi_spi_open(&pixart->spi_device))
     goto error2;
 
+  /* configure gpio to control power and reset functions. */
+  //struct pi_gpio_conf gpio_conf;
+  //pi_gpio_conf_init(&gpio_conf);
+  //pi_open_from_conf(&pixart->gpio_port, &gpio_conf);
+  //if (pi_gpio_open(&pixart->gpio_port))
+  //  goto error3;
+
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_reset, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 0);
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_4V, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_2V5, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
+  //__pixart_off(pixart);
+
   /* configure pwm to support clk to camera. */
   struct pi_pwm_conf pwm_conf;
   pi_pwm_conf_init(&pwm_conf);
@@ -570,29 +598,18 @@ static int32_t __pixart_reopen(struct pi_device *device, pi_camera_opts_e opts)
   pwm_conf.timer_conf |= PI_PWM_CLKSEL_FLL;
   pi_open_from_conf(&pixart->pwm_device, &pwm_conf);
   if (pi_pwm_open(&pixart->pwm_device))
+  //  goto error4;
     goto error3;
 
   pi_pwm_duty_cycle_set(&pixart->pwm_device, PIXART_MCLK_FREQ, 50);
-  pi_pwm_timer_start(&pixart->pwm_device);
-
-  /* configure gpio to control power and reset functions. */
-  struct pi_gpio_conf gpio_conf;
-  pi_gpio_conf_init(&gpio_conf);
-  pi_open_from_conf(&pixart->gpio_port, &gpio_conf);
-  if (pi_gpio_open(&pixart->gpio_port))
-    goto error4;
-
-  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_4V, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_power_2V5, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  //pi_gpio_pin_configure(&pixart->gpio_port, conf->gpio_ctl.gpio_reset, PI_GPIO_OUTPUT | PI_GPIO_PULL_DISABLE);
-  __pixart_off(pixart);
-  //pi_gpio_pin_write(&pixart->gpio_port, pixart->conf.gpio_ctl.gpio_reset, 0);
+  //pi_pwm_timer_start(&pixart->pwm_device);
 
   if (opts != PI_CAMERA_OPT_NO_REG_INIT)
   {
     /* init camera. */
     if (__pixart_start(pixart) != 0)
-      goto error5;
+    //  goto error5;
+      goto error4;
   }
 
   if (pixart->conf.format == PI_CAMERA_QQVGA)
@@ -602,11 +619,11 @@ static int32_t __pixart_reopen(struct pi_device *device, pi_camera_opts_e opts)
 
   return 0;
 
-error5:
-  // TODO does not exist yet
-  //pi_gpio_close(&pixart->gpio_port);
 error4:
   pi_pwm_close(&pixart->pwm_device);
+//error4:
+  // TODO does not exist yet
+  //pi_gpio_close(&pixart->gpio_port);
 error3:
   pi_spi_close(&pixart->spi_device);
 error2:
@@ -636,6 +653,10 @@ static int32_t __pixart_control(struct pi_device *device, pi_camera_cmd_e cmd, v
 
   switch (cmd)
   {
+    case PI_CAMERA_CMD_PWM_CLK:
+      pi_pwm_timer_start(&pixart->pwm_device);
+      break;
+
     case PI_CAMERA_CMD_ON:
       __pixart_reopen(device, open_opt);
       break;
@@ -663,8 +684,11 @@ static int32_t __pixart_control(struct pi_device *device, pi_camera_cmd_e cmd, v
 
     case PI_CAMERA_CMD_POWERDOWN_MODE:
       __pixart_mode(pixart, PIXART_POWERDOWN_MODE);
-      // TODO
-      // disable 6M sys_clk
+      pi_pwm_timer_stop(&pixart->pwm_device); // disable 6M sys_clk
+      break;
+
+    case PI_CAMERA_CMD_SNAPSHOT:
+      __pixart_trigger_snapshot(pixart);
       break;
 
     default:
@@ -683,6 +707,7 @@ static void __pixart_capture_async(struct pi_device *device, void *buffer, uint3
   pi_cpi_capture_async(&pixart->cpi_device, buffer, bufferlen, task);
 
   /* switch to continue mode and start output datastream. */
+  __pixart_mode(pixart, PIXART_TRIGGER_MODE);
   __pixart_trigger_snapshot(pixart);
 }
 

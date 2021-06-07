@@ -46,6 +46,12 @@ class CodeBlock():
         self._lines.append(fmt.format(*args))
         return self
 
+    def write_lines(self, lines):
+        indent = self.get_indent()
+        for line in lines.split('\n'):
+            self._lines.append(indent + line)
+        return self
+
     def write_start(self, fmt, *args):
         fmt = self.get_indent() + fmt
         self._lines.insert(0, fmt.format(*args))

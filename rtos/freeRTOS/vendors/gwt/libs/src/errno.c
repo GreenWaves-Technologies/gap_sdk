@@ -28,9 +28,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdint.h>
 
-int errno;
+static int errno;
 
 int *__errno()
 {

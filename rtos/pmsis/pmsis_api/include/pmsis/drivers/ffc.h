@@ -138,7 +138,7 @@ void pi_ffc_close(pi_device_t *device);
  *
  * \brief Commands for pi_ffc_ioctl.
  */
-enum
+typedef enum
 {
     /**
      * \brief Set the IO mode

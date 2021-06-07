@@ -32,12 +32,10 @@
 #include "pmsis.h"
 #include "gap_common.h"
 
-/* Printf buffer size. */
-#define PRINTF_BUFFER_SIZE    ( 128 )
+extern struct cluster_driver_data *__per_cluster_data[];
+
 /* TAS offset. GAP8 : TAS in cluster L1. */
 #define PRINTF_TAS_OFFSET     ( ARCHI_CL_L1_TS_OFFSET )
-/* IRQ used to wake up cores. */
-#define PRINTF_LOCK_IRQN      ( CL_IRQ_SW_EVT(6) )
 
 /*
  * This should be used in case of printf via uart before scheduler has started.
@@ -60,75 +58,10 @@ volatile uint32_t *g_lock = (volatile uint32_t *) (((uint32_t) &__printf_lock_pt
 /* Address to release TAS lock. */
 volatile uint32_t *g_unlock = (volatile uint32_t *) &__printf_lock_ptr;
 
-#if defined(PRINTF_SEMIHOST)  /* PRINTF_UART */
-#include "semihost.h"
-
-static uint8_t g_printf_semihost_index = 0;
-static char g_printf_semihost_buffer[PRINTF_BUFFER_SIZE];
-
-struct semihost_putc_req_s
-{
-    char *buffer;               /*!< Buffer to send. */
-    uint32_t size;              /*!< Buffer size. */
-    pi_task_t cb;               /*!< Callback pi_task. */
-};
-
-static void __semihost_buffer_write_exec(char *buffer, uint32_t size)
-{
-    semihost_write0((const char *) buffer);
-}
-
-static void __semihost_putc_cluster_req(void *arg)
-{
-    struct semihost_putc_req_s *req = (struct semihost_putc_req_s *) arg;
-    __semihost_buffer_write_exec(req->buffer, req->size);
-}
-
-static void __semihost_putc(char c)
-{
-    g_printf_semihost_buffer[g_printf_semihost_index] = c;
-    g_printf_semihost_index++;
-    if ((g_printf_semihost_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
-        (c == '\n'))
-    {
-        #if defined(FEATURE_CLUSTER)
-        if (!__native_is_fc())
-        {
-            struct semihost_putc_req_s req = {0};
-            req.buffer = g_printf_semihost_buffer;
-            req.size = g_printf_semihost_index;
-            pi_task_callback(&(req.cb), (void *) __semihost_putc_cluster_req, &req);
-            req.cb.core_id = pi_cluster_id();
-            pi_cl_send_task_to_fc(&(req.cb));
-            pi_cl_pi_task_wait(&(req.cb));
-        }
-        else
-        #endif  /* FEATURE_CLUSTER */
-        {
-            __semihost_buffer_write_exec(g_printf_semihost_buffer,
-                                         g_printf_semihost_index);
-        }
-        g_printf_semihost_index = 0;
-        memset(g_printf_semihost_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
-    }
-}
-
-static void __semihost_printf_flush(char c)
-{
-    if ((g_printf_semihost_index > 0) &&
-        (g_printf_semihost_index < (uint32_t) PRINTF_BUFFER_SIZE))
-    {
-        g_printf_semihost_buffer[g_printf_semihost_index++] = c;
-        __semihost_buffer_write_exec(g_printf_semihost_buffer,
-                                     g_printf_semihost_index);
-    }
-}
-#endif  /* PRINTF_SEMIHOST */
-
 #if defined(PRINTF_UART)
 
 static uint8_t g_printf_uart_index = 0;
-static char g_printf_uart_buffer[PRINTF_BUFFER_SIZE];
+PI_L2 static char g_printf_uart_buffer[PRINTF_BUFFER_SIZE];
 
 static struct pi_device g_printf_uart_dev = {0};
 
@@ -176,53 +109,132 @@ static void __uart_putc_cluster_req(void *arg)
 
 static void __uart_putc(char c)
 {
-    g_printf_uart_buffer[g_printf_uart_index] = c;
-    g_printf_uart_index++;
-    if ((g_printf_uart_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
-        (c == '\n'))
+    #if defined(FEATURE_CLUSTER)
+    if (!__native_is_fc())
     {
-        #if defined(FEATURE_CLUSTER)
-        if (!__native_is_fc())
+        uint8_t core_id = pi_core_id();
+        uint8_t cluster_id = pi_cluster_id();
+        uint8_t *buffer = &(__per_cluster_data[cluster_id]->printf_buffer[core_id * PRINTF_BUFFER_SIZE]);
+        uint32_t *index = &(__per_cluster_data[cluster_id]->printf_buffer_index[core_id]);
+        buffer[*index] = c;
+        (*index)++;
+        if ((*index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) || (c == '\n'))
         {
             struct uart_putc_req_s req = {0};
-            req.buffer = g_printf_uart_buffer;
-            req.size = g_printf_uart_index;
+            req.buffer = (char *) buffer;
+            req.size = *index;
             pi_task_callback(&(req.cb), (void *) __uart_putc_cluster_req, &req);
-            req.cb.core_id = pi_cluster_id();
+            req.cb.core_id = cluster_id;
             pi_cl_send_task_to_fc(&(req.cb));
             pi_cl_pi_task_wait(&(req.cb));
+            *index = 0;
         }
-        else
-        #endif  /* FEATURE_CLUSTER */
+    }
+    else
+    #endif  /* FEATURE_CLUSTER */
+    {
+        g_printf_uart_buffer[g_printf_uart_index] = c;
+        g_printf_uart_index++;
+        if ((g_printf_uart_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
+            (c == '\n'))
         {
             __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
+            g_printf_uart_index = 0;
         }
-        g_printf_uart_index = 0;
     }
 }
 
 static void __uart_printf_flush(char c)
 {
-    if (g_printf_uart_index > 0)
+    if ((g_printf_uart_index > 0) &&
+        (g_printf_uart_index < (uint32_t) PRINTF_BUFFER_SIZE))
     {
-        if ((g_printf_uart_index < (uint32_t) PRINTF_BUFFER_SIZE))
+        g_printf_uart_buffer[g_printf_uart_index++] = c;
+        __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
+        g_printf_uart_index = 0;
+    }
+    pi_uart_close(&g_printf_uart_dev);
+}
+
+#elif defined(PRINTF_SEMIHOST)  /* PRINTF_UART */
+#include "semihost.h"
+
+static uint8_t g_printf_semihost_index = 0;
+static char g_printf_semihost_buffer[PRINTF_BUFFER_SIZE];
+
+struct semihost_putc_req_s
+{
+    char *buffer;               /*!< Buffer to send. */
+    uint32_t size;              /*!< Buffer size. */
+    pi_task_t cb;               /*!< Callback pi_task. */
+};
+
+static void __semihost_buffer_write_exec(char *buffer, uint32_t size)
+{
+    semihost_write0((const char *) buffer);
+}
+
+static void __semihost_putc_cluster_req(void *arg)
+{
+    struct semihost_putc_req_s *req = (struct semihost_putc_req_s *) arg;
+    __semihost_buffer_write_exec(req->buffer, req->size);
+}
+
+static void __semihost_putc(char c)
+{
+    #if defined(FEATURE_CLUSTER)
+    if (!__native_is_fc())
+    {
+        uint8_t core_id = pi_core_id();
+        uint8_t cluster_id = pi_cluster_id();
+        uint8_t *buffer = &(__per_cluster_data[cluster_id]->printf_buffer[core_id * PRINTF_BUFFER_SIZE]);
+        uint32_t *index = &(__per_cluster_data[cluster_id]->printf_buffer_index[core_id]);
+        buffer[*index] = c;
+        (*index)++;
+        if ((*index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) || (c == '\n'))
         {
-            g_printf_uart_buffer[g_printf_uart_index++] = c;
-            __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
-            g_printf_uart_index = 0;
-        }
-        else
-        {
-            __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
-            g_printf_uart_index = 0;
-            g_printf_uart_buffer[g_printf_uart_index++] = c;
-            __uart_write_exec(g_printf_uart_buffer, g_printf_uart_index);
+            struct semihost_putc_req_s req = {0};
+            req.buffer = (char *) buffer;
+            req.size = *index;
+            pi_task_callback(&(req.cb), (void *) __semihost_putc_cluster_req, &req);
+            __io_lock();
+            req.cb.core_id = pi_cluster_id();
+            pi_cl_send_task_to_fc(&(req.cb));
+            pi_cl_pi_task_wait(&(req.cb));
+            __io_unlock();
+            *index = 0;
+            memset(buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
         }
     }
-    pi_time_wait_us(1000);
+    else
+    #endif  /* FEATURE_CLUSTER */
+    {
+        g_printf_semihost_buffer[g_printf_semihost_index] = c;
+        g_printf_semihost_index++;
+        if ((g_printf_semihost_index == ((uint32_t) PRINTF_BUFFER_SIZE - 1)) ||
+            (c == '\n'))
+        {
+            __io_lock();
+            __semihost_buffer_write_exec(g_printf_semihost_buffer,
+                                         g_printf_semihost_index);
+            __io_unlock();
+            g_printf_semihost_index = 0;
+            memset(g_printf_semihost_buffer, 0, (uint32_t) PRINTF_BUFFER_SIZE);
+        }
+    }
 }
-#endif  /* PRINTF_UART */
 
+static void __semihost_printf_flush(char c)
+{
+    if ((g_printf_semihost_index > 0) &&
+        (g_printf_semihost_index < (uint32_t) PRINTF_BUFFER_SIZE))
+    {
+        g_printf_semihost_buffer[g_printf_semihost_index++] = c;
+        __semihost_buffer_write_exec(g_printf_semihost_buffer,
+                                     g_printf_semihost_index);
+    }
+}
+#else  /* PRINTF_SEMIHOST */
 #if defined(PRINTF_RTL)
 
 static void __stdout_putc(char c)
@@ -239,6 +251,7 @@ static void __stdout_putc(char c)
     }
 }
 #endif  /* PRINTF_RTL */
+#endif  /* PRINTF_UART */
 
 static uint32_t __is_irq_mode()
 {
@@ -304,6 +317,7 @@ __attribute__((noinline)) void __io_unlock()
         *g_unlock = 0;
         #if defined(FEATURE_CLUSTER)
         hal_eu_cluster_evt_trig_set((uint32_t) PRINTF_LOCK_IRQN, 0);
+        hal_eu_evt_clr(1 << (uint32_t) PRINTF_LOCK_IRQN);
         #endif  /* FEATURE_CLUSTER */
     }
     else
@@ -327,10 +341,10 @@ static void tfp_putc(void *data, char c)
     {
         __uart_putc(c);
     }
-    else
-    {
-        __semihost_putc(c);
-    }
+    /* else */
+    /* { */
+    /*     __semihost_putc(c); */
+    /* } */
     #elif defined(PRINTF_SEMIHOST)
     __semihost_putc(c);
     #elif defined(PRINTF_RTL)
@@ -348,7 +362,7 @@ void _putchar(char character)
 int puts(const char *s)
 {
     char c;
-    __io_lock();
+    //__io_lock();
     do
     {
         c = *s;
@@ -360,7 +374,7 @@ int puts(const char *s)
         tfp_putc(NULL, c);
         s++;
     } while (1);
-    __io_unlock();
+    //__io_unlock();
     return 0;
 }
 

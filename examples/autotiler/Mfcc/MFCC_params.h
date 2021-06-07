@@ -1,0 +1,10 @@
+#define	SAMPLERATE                16000
+#define	FRAME_SIZE                 1024
+#define	FRAME_STEP                  160
+#define	N_FFT                      1024
+#define	DATA_TYPE                     0
+#define	MFCC_BANK_CNT                40
+#define	FMIN                       20.0
+#define	FMAX                     4000.0
+#define	MFCC_COEFF_CNT              492
+#define	N_DCT                        40

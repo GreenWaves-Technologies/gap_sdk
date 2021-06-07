@@ -44,13 +44,13 @@ Overview
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
     |:ref:`CL_MASK_6<soc_eu_CL_MASK_6>`        |    60|     |Cluster event dispatch mask configuration register for events 192 to 223.      |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`CL_MASK_7<soc_eu_CL_MASK_7>`        |    64|     |Cluster event dispatch mask configuration register for events 224 to 255.      |
+    |:ref:`CL_MASK_7<soc_eu_CL_MASK_7>`        |    48|     |Cluster event dispatch mask configuration register for events 224 to 255.      |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_0<soc_eu_PR_MASK_0>`        |    68|     |uDMA event dispatch mask configuration registerfor events 0 to 31.             |
+    |:ref:`PR_MASK_0<soc_eu_PR_MASK_0>`        |    52|     |uDMA event dispatch mask configuration registerfor events 0 to 31.             |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_1<soc_eu_PR_MASK_1>`        |    72|     |uDMA event dispatch mask configuration registerfor events 32 to 63.            |
+    |:ref:`PR_MASK_1<soc_eu_PR_MASK_1>`        |    56|     |uDMA event dispatch mask configuration registerfor events 32 to 63.            |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
-    |:ref:`PR_MASK_2<soc_eu_PR_MASK_2>`        |    76|     |uDMA event dispatch mask configuration registerfor events 64 to 95.            |
+    |:ref:`PR_MASK_2<soc_eu_PR_MASK_2>`        |    60|     |uDMA event dispatch mask configuration registerfor events 64 to 95.            |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+
     |:ref:`PR_MASK_3<soc_eu_PR_MASK_3>`        |    80|     |uDMA event dispatch mask configuration registerfor events 96 to 127.           |
     +------------------------------------------+------+-----+-------------------------------------------------------------------------------+

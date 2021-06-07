@@ -288,7 +288,7 @@ int Mchan_channel::unpack_command(Mchan_cmd *cmd)
 
     if (!cmd->is_2d) 
     {
-     top->trace.msg("New 1D command ready (input: %d, source: 0x%lx, dest: 0x%lx, size: 0x%x, loc2ext: %d, counter: %d)\n", id, cmd->source, cmd->dest, cmd->size, cmd->loc2ext, cmd->counter_id);
+     top->trace.msg(vp::trace::LEVEL_DEBUG, "New 1D command ready (input: %d, source: 0x%lx, dest: 0x%lx, size: 0x%x, loc2ext: %d, counter: %d)\n", id, cmd->source, cmd->dest, cmd->size, cmd->loc2ext, cmd->counter_id);
      goto unpackDone;
    }
  }
@@ -300,7 +300,7 @@ int Mchan_channel::unpack_command(Mchan_cmd *cmd)
     cmd->source_chunk = cmd->source;
     cmd->dest_chunk = cmd->dest;
 
-   top->trace.msg("New 2D command ready (input: %d, source: 0x%lx, dest: 0x%lx, size: 0x%x, loc2ext: %d, stride: 0x%x, len: 0x%x)\n", id, cmd->source, cmd->dest, cmd->size, cmd->loc2ext, cmd->stride, cmd->length);
+   top->trace.msg(vp::trace::LEVEL_DEBUG, "New 2D command ready (input: %d, source: 0x%lx, dest: 0x%lx, size: 0x%x, loc2ext: %d, stride: 0x%x, len: 0x%x)\n", id, cmd->source, cmd->dest, cmd->size, cmd->loc2ext, cmd->stride, cmd->length);
    goto unpackDone;
  }
  return 0;
@@ -393,7 +393,7 @@ bool Mchan_channel::check_command(Mchan_cmd *cmd)
 
   top->pending_bytes[current_counter] += cmd->size;
 
-  top->trace.msg("Incrementing counter (id: %d, bytes: %d, remaining bytes: %d)\n", current_counter, cmd->size, top->pending_bytes[current_counter]);
+  top->trace.msg(vp::trace::LEVEL_TRACE, "Incrementing counter (id: %d, bytes: %d, remaining bytes: %d)\n", current_counter, cmd->size, top->pending_bytes[current_counter]);
 
   // Enqueue the command to the core queue
   uint8_t one = 1;
@@ -416,7 +416,7 @@ void Mchan_channel::handle_req(vp::io_req *req, uint32_t *value)
   if (current_cmd == NULL) {
     // No on-going command, allocate a new one
     current_cmd = top->get_command();
-    top->trace.msg("Starting new command\n");
+    top->trace.msg(vp::trace::LEVEL_TRACE, "Starting new command\n");
   }
 
   current_cmd->content[current_cmd->step++] = *value;
@@ -430,12 +430,12 @@ void Mchan_channel::handle_req(vp::io_req *req, uint32_t *value)
 
 vp::io_req_status_e Mchan_channel::handle_queue_write(vp::io_req *req, uint32_t *value)
 {
-  top->trace.msg("Pushing word to queue (queue: %d, value: 0x%x, pending_cmd: %d)\n", this->id, *value, pending_cmd);
+  top->trace.msg(vp::trace::LEVEL_TRACE, "Pushing word to queue (queue: %d, value: 0x%x, pending_cmd: %d)\n", this->id, *value, pending_cmd);
 
   // In case the core command queue is full, stall the calling core
   if (pending_cmd == top->core_queue_depth)
   {
-    top->trace.msg("Core queue is full, stalling calling core\n");
+    top->trace.msg(vp::trace::LEVEL_TRACE, "Core queue is full, stalling calling core\n");
     pending_req = req;
     return vp::IO_REQ_PENDING;
   }
@@ -465,13 +465,13 @@ vp::io_req_status_e Mchan_channel::handle_status_req(vp::io_req *req, bool is_wr
 {
   if (is_write)
   {
-    top->trace.msg("Freeing counters (mask: 0x%x)\n", *value);
+    top->trace.msg(vp::trace::LEVEL_TRACE, "Freeing counters (mask: 0x%x)\n", *value);
     top->free_counters(*value);
   }
   else
   {
     *value = top->get_status();
-    top->trace.msg("Getting status (status: 0x%x)\n", *value);
+    top->trace.msg(vp::trace::LEVEL_TRACE, "Getting status (status: 0x%x)\n", *value);
   }
   return vp::IO_REQ_OK;
 }
@@ -495,7 +495,7 @@ vp::io_req_status_e Mchan_channel::req(vp::io_req *req)
   uint64_t size = req->get_size();
   bool is_write = req->get_is_write();
 
-  top->trace.msg("mchan access (channel: %d, offset: 0x%x, size: 0x%x, is_write: %d)\n", id, offset, size, is_write);
+  top->trace.msg(vp::trace::LEVEL_TRACE, "mchan access (channel: %d, offset: 0x%x, size: 0x%x, is_write: %d)\n", id, offset, size, is_write);
 
   if (size != 4) return vp::IO_REQ_INVALID;
 
@@ -509,18 +509,18 @@ void Mchan_channel::trigger_event(Mchan_cmd *cmd)
 {
   if (id == top->nb_channels - 1)
   {
-    top->trace.msg("Raising external irq line (channel: %d)\n", id);
+    top->trace.msg(vp::trace::LEVEL_TRACE, "Raising external irq line (channel: %d)\n", id);
     ext_irq_itf.sync(true);
   }
   else
   {
     if (cmd->raise_irq) {
-      top->trace.msg("Raising irq line (channel: %d)\n", id);
+      top->trace.msg(vp::trace::LEVEL_TRACE, "Raising irq line (channel: %d)\n", id);
       irq_itf.sync(true);
     }
 
     if (cmd->raise_event) {
-      top->trace.msg("Raising event line (channel: %d)\n", id);
+      top->trace.msg(vp::trace::LEVEL_TRACE, "Raising event line (channel: %d)\n", id);
       event_itf.sync(true);
     }
   }

@@ -29,7 +29,7 @@ PMSIS_BSP_SRC = $(GAPOC_B_SRC)
 else ifeq ($(BOARD_NAME), gapoc_b_revb)
 PMSIS_BSP_SRC = $(GAPOC_B_SRC)
 else ifeq ($(BOARD_NAME), vega)
-PMSIS_BSP_SRC = $(GAP9_SRC)
+PMSIS_BSP_SRC = $(VEGA_SRC)
 else ifeq ($(BOARD_NAME), gap9_v2)
 PMSIS_BSP_SRC = $(GAP9_SRC)
 endif

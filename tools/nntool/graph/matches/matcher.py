@@ -12,12 +12,15 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import logging
 from abc import ABC, abstractmethod
 from typing import Generator, Sequence
 
-from utils.graph import GraphView, Node, MatchNode
+from utils.graph import GraphView, MatchNode, Node
+
 LOG = logging.getLogger("nntool." + __name__)
+
 
 class MatchNodeType(MatchNode):
     def __init__(self, name, node_class):
@@ -30,9 +33,13 @@ class MatchNodeType(MatchNode):
 
 
 class Matcher(ABC):
-    NAME = '__NOT_SET__'
-    DESCRIPTION = '__NOT_SET__'
+    NAME = None
+    DESCRIPTION = None
     NEEDS_VALID_DIMENSION = False
+    MODIFIES_DIMENSIONS = True
+    RUN_BEFORE = []
+    RUN_AFTER = []
+    GROUPS = []
 
     def __init__(self, identity: str = None):
         if identity is None:
@@ -45,13 +52,60 @@ class Matcher(ABC):
         return self.NAME
 
     def set_identity(self, G):
-        if hasattr(G, 'graph_identity') and self._identity != '__NOT_SET__':
+        if hasattr(G, 'graph_identity') and self._identity is not None:
             G.graph_identity.fusions.append(self._identity)
 
     @abstractmethod
-    def match(self, G: GraphView, set_identity: bool = True) -> bool:
+    def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
         pass
 
+    def match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
+        return self._match(G, set_identity, **kwargs)
+
+    @staticmethod
+    def match_name(val):
+        return Matcher.property_register("NAME", val)
+
+    @staticmethod
+    def description(val):
+        return Matcher.property_register("DESCRIPTION", val)
+
+    @staticmethod
+    def needs_valid_dimension(val):
+        return Matcher.property_register("DESCRIPTION", val)
+
+    @staticmethod
+    def modifies_dimensions(val):
+        return Matcher.property_register("MODIFIES_DIMENSIONS", val)
+
+    @staticmethod
+    def run_before(*args):
+        return Matcher.property_register("RUN_BEFORE", args)
+
+    @staticmethod
+    def run_after(*args):
+        return Matcher.property_register("RUN_AFTER", args)
+
+    @staticmethod
+    def groups(*args):
+        return Matcher.property_register("GROUPS", args)
+
+    @staticmethod
+    def property_register(name, value):
+
+        def deco(cls):
+            setattr(cls, name, value)
+            return cls
+
+        return deco
+
+match_name = Matcher.match_name
+description = Matcher.description
+needs_valid_dimension = Matcher.needs_valid_dimension
+modifies_dimensions = Matcher.modifies_dimensions
+run_before = Matcher.run_before
+run_after = Matcher.run_after
+groups = Matcher.groups
 
 class DontReplaceError(Exception):
     pass
@@ -66,7 +120,7 @@ class DefaultMatcher(Matcher):
     def replace_function(self, G: GraphView, subgraph: GraphView) -> Node:
         pass
 
-    def match(self, G: GraphView, set_identity: bool = True) -> bool:
+    def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:
         replaced = True
         has_modified_graph = False
         while replaced:
@@ -79,7 +133,8 @@ class DefaultMatcher(Matcher):
                 out_edges = [out_edge for output_node in subgraph.outputs()
                              for out_edge in G.out_edges(output_node.name)]
                 try:
-                    replacement, edge_in_mapping, edge_out_mapping = self.replace_function(G, subgraph)
+                    replacement, edge_in_mapping, edge_out_mapping = self.replace_function(
+                        G, subgraph)
                     if replacement is None:
                         G.remove_fragment(subgraph)
                         has_modified_graph = True
@@ -93,7 +148,8 @@ class DefaultMatcher(Matcher):
                                            edge_out_mapping=edge_out_mapping)
                         has_modified_graph = True
                     else:
-                        raise TypeError("unexcepted return value from replace_function")
+                        raise TypeError(
+                            "unexcepted return value from replace_function")
                     replaced = True
                     break
                 except DontReplaceError:
@@ -117,20 +173,25 @@ class MatchGroup(Matcher):
     def add_match(self, match: Matcher):
         self.matches.append(match)
 
-    def match(self, G: GraphView, set_identity: bool = True):
+    def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         # Note: assumption is that dimensions are valid when a match is called
+        found_match = True
         dimensions_set = True
-        for match_instance in self.matches:
-            LOG.info("fusions - start %s", match_instance.name)
-            if match_instance.NEEDS_VALID_DIMENSION and not dimensions_set:
-                G.add_dimensions()
-                dimensions_set = True
-            has_modified_graph = match_instance.match(G, set_identity=False)
-            if has_modified_graph:
-                LOG.info("fusions - %s modified graph", match_instance.name)
-                G.add_dimensions()
-            if dimensions_set and has_modified_graph:
-                dimensions_set = False
+        while found_match:
+            found_match = False
+            for match_instance in self.matches:
+                LOG.debug("fusions - start %s", match_instance.name)
+                if match_instance.NEEDS_VALID_DIMENSION and not dimensions_set:
+                    G.add_dimensions(quiet=True)
+                    dimensions_set = True
+                has_modified_graph = match_instance.match(
+                    G, set_identity=False, group_identity=self._identity)
+                if has_modified_graph:
+                    LOG.info("++ fusion %s modified graph", match_instance.name)
+                    found_match = True
+                    G.add_dimensions(quiet=True)
+                if dimensions_set and has_modified_graph:
+                    dimensions_set = False
         if set_identity:
             self.set_identity(G)
 

@@ -78,7 +78,14 @@ void time_domain::pre_pre_build()
 
 int time_domain::build()
 {
-    this->new_component("sys", this->get_js_config()->get("**/system_tree"));
+    if (this->get_js_config()->get("**/system_tree") != NULL)
+    {
+        this->new_component("sys", this->get_js_config()->get("**/system_tree"));
+    }
+    else
+    {
+        this->new_component("sys", this->get_js_config()->get("**/target"));
+    }
     return 0;
 }
 
@@ -103,7 +110,7 @@ static void *signal_routine(void *arg)
     do
     {
         sigwait(&sigs_to_catch, &caught);
-        engine->stop_engine(true);
+        engine->stop_engine(-1, true);
     } while (1);
     return NULL;
 }
@@ -185,15 +192,15 @@ void vp::time_engine::run()
 
 
 
-void vp::time_engine::quit()
+void vp::time_engine::quit(int status)
 {
-    this->stop_engine(true);
+    this->stop_engine(status, true);
 }
 
 
 int vp::time_engine::join()
 {
-    int result = 0;
+    int result = -1;
 
     pthread_mutex_lock(&mutex);
 
@@ -289,11 +296,13 @@ void vp::time_engine::wait_ready()
 }
 
 
-void vp::time_engine::step(int64_t timestamp)
+void vp::time_engine::step(int64_t duration)
 {
     time_engine_client *current = first_client;
 
     time_engine_client *client = first_client;
+
+    int64_t timestamp = this->time + duration;
 
     while (current && this->time <= timestamp)
     {

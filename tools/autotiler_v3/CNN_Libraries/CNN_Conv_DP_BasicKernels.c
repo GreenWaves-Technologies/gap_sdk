@@ -1002,7 +1002,7 @@ static void __attribute__ ((noinline)) KerConv5x4from5x5StrideS_H_DP_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxNStrideS_Border_DP_fps(
+static void __attribute__ ((noinline)) KerConvNxNStrideS_Border_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -1153,7 +1153,110 @@ void __attribute__ ((noinline)) KerConvNxNStrideS_Border_DP_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_DP_fps(
+static void __attribute__ ((noinline)) KerConv1D_NStrideS_Border_DP_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh = 1;
+	int StrideY = 1;
+	int PadLOrg = PadOrg[0];
+	int PadROrg = PadOrg[1];
+	int PadL = Pad[0], PadR = Pad[1];
+	int Fw2 = (Fw-1)/2;
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			int Acc = Out[w];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[(w*StrideX-PadLOrg+i)]*Filter[i];
+			Out[w] = Acc;
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+		       	int Acc = Out[w];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[(w*StrideX-PadLOrg+i)]*Filter[i];
+			Out[w] = Acc;
+			wr -= StrideX;
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Border_DP_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	int Fw,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh = 1;
+	int StrideY = 1;
+	int PadLOrg = PadOrg[0], PadTOrg = 0;
+	int PadROrg = PadOrg[1], PadBOrg = 0;
+	int PadL = Pad[0], PadR = Pad[1];
+	int PadT = 0, PadB = 0;
+	int Fw2 = (Fw-1)/2, Fh2 = (Fh-1)/2;
+	int Hi_F = Fh2 - PadTOrg;
+	int Hi_L = Hi_F + (Ho_L-1)*StrideY;	// iff Hi_L>Hi_F
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+				int Acc = Out[Wo*h+w];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[h*W + (w*StrideX-PadLOrg+i)]*Filter[i];
+				Out[Wo*h+w] = Acc;
+			}
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+		       		int Acc = Out[Wo*h+w];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[h*W + (w*StrideX-PadLOrg+i)]*Filter[i];
+				Out[Wo*h+w] = Acc;
+			}
+			wr -= StrideX;
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -1305,7 +1408,7 @@ void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Border_DP_fps(
 	}
 }
 
-void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_DP_fps(
+static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
 	signed char *__restrict__ Filter,
@@ -2487,6 +2590,234 @@ static void __attribute__ ((noinline)) KerConvNxNStrideS_Border_DP_fp(
 				}
 				hb -= Stride;
 			}
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConv1D_NStrideS_Border_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh=1;
+	int StrideY=1;
+	int PadLOrg = PadOrg[0], PadROrg = PadOrg[1];
+	int PadL = Pad[0], PadR = Pad[1];
+	int Fw2 = (Fw-1)/2;
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			int Acc = Out[w];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[(w*StrideX-PadLOrg+i)]*Filter[i];
+			Out[w] = Acc;
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+		      	int Acc = Out[w];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[(w*StrideX-PadLOrg+i)]*Filter[i];
+			Out[w] = Acc;
+			wr -= StrideX;
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConv1D_4Out_NStrideS_Border_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int FilterOffset,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh=1;
+	int StrideY=1;
+	int PadLOrg = PadOrg[0], PadROrg = PadOrg[1];
+	int PadL = Pad[0], PadR = Pad[1];
+	int Fw2 = (Fw-1)/2;
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			int Acc0 = Out[w], Acc1 = Out[w+1*Wo], Acc2 = Out[w+2*Wo], Acc3 = Out[w+3*Wo];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) {
+				int V0 = In[(w*StrideX-PadLOrg+i)];
+				Acc0 += V0*Filter[i+Fw+0*FilterOffset];
+				Acc1 += V0*Filter[i+Fw+1*FilterOffset];
+				Acc2 += V0*Filter[i+Fw+2*FilterOffset];
+				Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+			}
+			Out[w] = Acc0; Out[w+1*Wo] = Acc1; Out[w+2*Wo] = Acc2; Out[w+3*Wo] = Acc3;
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+			int Acc0 = Out[w], Acc1 = Out[w+1*Wo], Acc2 = Out[w+2*Wo], Acc3 = Out[w+3*Wo];
+			for (unsigned int i=Wh_min; i<Wh_max; i++) {
+				int V0 = In[(w*StrideX-PadLOrg+i)];
+				Acc0 += V0*Filter[i+Fw+0*FilterOffset];
+				Acc1 += V0*Filter[i+Fw+1*FilterOffset];
+				Acc2 += V0*Filter[i+Fw+2*FilterOffset];
+				Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+			}
+			Out[w] = Acc0; Out[w+1*Wo] = Acc1; Out[w+2*Wo] = Acc2; Out[w+3*Wo] = Acc3;
+			wr -= StrideX;
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConv_4Out_Nx1StrideSxS1_Border_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int FilterOffset,
+	int Fw,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh=1;
+	int StrideY=1;
+	int PadLOrg = PadOrg[0], PadTOrg = 0;
+	int PadROrg = PadOrg[1], PadBOrg = 0;
+	int PadL = Pad[0], PadR = Pad[1], PadT = 0, PadB = 0;
+	int Fw2 = (Fw-1)/2, Fh2 = (Fh-1)/2;
+	int Hi_F = Fh2 - PadTOrg;
+	int Hi_L = Hi_F + (Ho_L-1)*StrideY;	// iff Hi_L>Hi_F
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+				int Acc0 = Out[Wo*h+w+0*Wo*Ho], Acc1 = Out[Wo*h+w+1*Wo*Ho], Acc2 = Out[Wo*h+w+2*Wo*Ho], Acc3 = Out[Wo*h+w+3*Wo*Ho];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) {
+					int V0 = In[h*W + (w*StrideX-PadLOrg+i)];
+					Acc0 += V0*Filter[i+Fw+0*FilterOffset];
+					Acc1 += V0*Filter[i+Fw+1*FilterOffset];
+					Acc2 += V0*Filter[i+Fw+2*FilterOffset];
+					Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+				}
+				Out[Wo*h+w+0*Wo*Ho] = Acc0; Out[Wo*h+w+1*Wo*Ho] = Acc1; Out[Wo*h+w+2*Wo*Ho] = Acc2; Out[Wo*h+w+3*Wo*Ho] = Acc3;
+			}
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+				int Acc0 = Out[Wo*h+w+0*Wo*Ho], Acc1 = Out[Wo*h+w+1*Wo*Ho], Acc2 = Out[Wo*h+w+2*Wo*Ho], Acc3 = Out[Wo*h+w+3*Wo*Ho];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) {
+					int V0 = In[h*W + (w*StrideX-PadLOrg+i)];
+					Acc0 += V0*Filter[i+Fw+0*FilterOffset];
+					Acc1 += V0*Filter[i+Fw+1*FilterOffset];
+					Acc2 += V0*Filter[i+Fw+2*FilterOffset];
+					Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+				}
+				Out[Wo*h+w+0*Wo*Ho] = Acc0; Out[Wo*h+w+1*Wo*Ho] = Acc1; Out[Wo*h+w+2*Wo*Ho] = Acc2; Out[Wo*h+w+3*Wo*Ho] = Acc3;
+			}
+			wr -= StrideX;
+		}
+	}
+}
+
+static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Border_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int Fw,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	int StrideX,
+	v4s Pad,
+	v4s PadOrg
+	)
+
+{
+	int Fh=1;
+	int StrideY=1;
+	int PadLOrg = PadOrg[0], PadTOrg = 0;
+	int PadROrg = PadOrg[1], PadBOrg = 0;
+	int PadL = Pad[0], PadR = Pad[1], PadT = 0, PadB = 0;
+	int Fw2 = (Fw-1)/2, Fh2 = (Fh-1)/2;
+	int Hi_F = Fh2 - PadTOrg;
+	int Hi_L = Hi_F + (Ho_L-1)*StrideY;	// iff Hi_L>Hi_F
+	int Wi_F = Fw2 - PadLOrg;
+	int Wi_L = Wi_F + (Wo_L-1)*StrideX;	// iff Wi_L>Wi_F
+
+	if (PadL) { /* Left */
+		int wl = PadLOrg, wr = W - Wi_F + Fw2;
+	       	for (unsigned int w=0; w<Wo_F; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // wh Can't be < 0 by definition of Wo_F so we can remove and use wl only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+				int Acc = Out[Wo*h+w];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[h*W + (w*StrideX-PadLOrg+i)]*Filter[i];
+				Out[Wo*h+w] = Acc;
+			}
+			wl -= StrideX; wr -= StrideX;
+		}
+	}
+	if (PadR) { /* Right */
+		int wl = 0, wr = W - (Wi_L+StrideX) + Fw2;
+	       	for (unsigned int w=Wo_L; w<Wo; w++) {
+			int Wh_min = wl, Wh_max = AT_CLIP_POS(wr, Fw); // ht Can't be > F by definition of Ho_L so we can remove and use ht only
+			for (unsigned int h=Ho_F; h<Ho_L; h++) {
+		       		int Acc = Out[Wo*h+w];
+				for (unsigned int i=Wh_min; i<Wh_max; i++) Acc += In[h*W + (w*StrideX-PadLOrg+i)]*Filter[i];
+				Out[Wo*h+w] = Acc;
+			}
+			wr -= StrideX;
 		}
 	}
 }
@@ -4492,6 +4823,64 @@ static void __attribute__ ((noinline)) KerConvNxNStrideS_Body_DP_fps(
 	}
 }
 
+static void __attribute__ ((noinline)) KerConv1D_NStrideS_Body_DP_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad
+	)
+{
+	unsigned short int PadL = Pad[0];
+
+	DP_fps_T *PtO = Out+Wo_F;
+	for (unsigned int w=Wo_F; w<Wo_L; w++) {
+		int Acc = *PtO;
+		for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) In)[(w*StrideX-PadL+i)], ((v4s *)Filter)[i], Acc);
+		for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += In[(w*StrideX-PadL+i)]*Filter[i];
+		*PtO = Acc; PtO++;
+	}
+}
+
+static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Body_DP_fps(
+	signed char *__restrict__ In,
+	DP_fps_T *__restrict__ Out,
+	signed char *__restrict__ Filter,
+	int Fw,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	int StrideX,
+	v4s Pad
+	)
+{
+	int Fh=1;
+	int StrideY=1;
+	unsigned short int PadL = Pad[0], PadT = 0;
+
+	DP_fps_T *PtO = Out+Wo*Ho_F+Wo_F;
+	signed char *PtC = Filter;
+	for (unsigned int h=Ho_F; h<Ho_L; h++) {
+		for (unsigned int w=Wo_F; w<Wo_L; w++) {
+			int Acc = *PtO;
+			for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) In)[h*W + (w*StrideX-PadL+i)], ((v4s *)Filter)[i], Acc);
+			for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += In[h*W + (w*StrideX-PadL+i)]*Filter[i];
+			*PtO = Acc; PtO++;
+		}
+		PtO = PtO + (Wo-Wo_L)+Wo_F;
+	}
+}
+
 static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Body_DP_fps(
 	signed char *__restrict__ In,
 	DP_fps_T *__restrict__ Out,
@@ -5449,6 +5838,163 @@ static void __attribute__ ((noinline)) KerConvNxNStrideS_Body_DP_fp(
 	}
 }
 
+static void __attribute__ ((noinline)) KerConv1D_NStrideS_Body_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad
+	)
+{
+	unsigned short int PadL = Pad[0];
+
+	int *PtO = Out+Wo_F;
+	short int *pIn = In + Wo_F*StrideX - PadL;
+	for (unsigned int w=Wo_F; w<Wo_L; w++) {
+		int Acc = *PtO;
+		for (unsigned int i=0; i<Fw/4; i++) {
+			Acc = gap_sumdotp2(((v2s *)pIn)[2*i], ((v2s *)Filter)[2*i], Acc);
+			Acc = gap_sumdotp2(((v2s *)pIn)[2*i+1], ((v2s *)Filter)[2*i+1], Acc);
+		}
+		if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/4], ((v2s *)Filter)[Fw/4], Acc);
+		if (Fw&0x1) Acc += In[(w*StrideX-PadL+Fw-1)]*Filter[Fw-1];
+		*PtO = Acc; PtO++; pIn += StrideX;
+	}
+}
+
+
+static void __attribute__ ((noinline)) KerConv1D_4Out_NStrideS_Body_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int FilterOffset,
+	int Fw,
+	int W,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int StrideX,
+	v4s Pad
+	)
+{
+	unsigned short int PadL = Pad[0];
+
+	int *PtO = Out+Wo_F;
+	short int *__restrict__ pIn = In + Wo_F*StrideX - PadL;
+	short int *__restrict__ pF0 = Filter, *__restrict__ pF1 = Filter+1*FilterOffset, *__restrict__ pF2 = Filter+2*FilterOffset, *__restrict__ pF3 = Filter+3*FilterOffset;
+	int C0=0, C1=0, C2=0, C3=0;
+	if (Fw&0x1) {
+		C0 = pF0[Fw-1]; C1 = pF1[Fw-1]; C2 = pF2[Fw-1]; C3 = pF3[Fw-1];
+	}
+	for (unsigned int w=Wo_F; w<Wo_L; w++) {
+		int Acc0 = *PtO, Acc1 = *(PtO+1*Wo), Acc2 = *(PtO+2*Wo), Acc3 = *(PtO+3*Wo);
+		for (unsigned int i=0; i<Fw/2; i++) {
+			v2s V0 = ((v2s *)pIn)[i];
+			Acc0 = gap_sumdotp2(V0, ((v2s *)pF0)[i], Acc0);
+			Acc1 = gap_sumdotp2(V0, ((v2s *)pF1)[i], Acc1);
+			Acc2 = gap_sumdotp2(V0, ((v2s *)pF2)[i], Acc2);
+			Acc3 = gap_sumdotp2(V0, ((v2s *)pF3)[i], Acc3);
+		}
+		int V0 = pIn[Fw-1];
+		Acc0 += V0*C0; Acc1 += V0*C1; Acc2 += V0*C2; Acc3 += V0*C3;
+
+		*PtO = Acc0; *(PtO+1*Wo) = Acc1; *(PtO+2*Wo) = Acc2; *(PtO+3*Wo) = Acc3;
+		PtO++; pIn += StrideX;
+	}
+}
+
+static void __attribute__ ((noinline)) KerConv_4Out_Nx1StrideSxS1_Body_DP_fp(
+        short int *__restrict__ In,
+        int *__restrict__ Out,
+        short int *__restrict__ Filter,
+        int FilterOffset,
+        int Fw,
+        int W,
+        int H,
+        int Wo,
+        int Wo_F,
+        int Wo_L,
+        int Ho,
+        int Ho_F,
+        int Ho_L,
+        int StrideX,
+        v4s Pad
+        )
+{
+        unsigned short int PadL = Pad[0];
+
+        int *PtO = Out+Wo*Ho_F+Wo_F;
+        short int *__restrict__ pF0 = Filter, *__restrict__ pF1 = Filter+1*FilterOffset, *__restrict__ pF2 = Filter+2*FilterOffset, *__restrict__ pF3 = Filter+3*FilterOffset;
+        int C0=0, C1=0, C2=0, C3=0;
+        if (Fw&0x1) {
+                C0 = pF0[Fw-1]; C1 = pF1[Fw-1]; C2 = pF2[Fw-1]; C3 = pF3[Fw-1];
+        }
+
+        for (unsigned int h=Ho_F; h<Ho_L; h++) {
+                short int *pIn = In + h*W + Wo_F*StrideX - PadL;
+                for (unsigned int w=Wo_F; w<Wo_L; w++) {
+                        int Acc0 = *PtO, Acc1 = *(PtO+1*Wo*Ho), Acc2 = *(PtO+2*Wo*Ho), Acc3 = *(PtO+3*Wo*Ho);
+                        for (unsigned int i=0; i<Fw/2; i++) {
+                                v2s V0 = ((v2s *)pIn)[i];
+                                Acc0 = gap_sumdotp2(V0, ((v2s *)pF0)[i], Acc0);
+                                Acc1 = gap_sumdotp2(V0, ((v2s *)pF1)[i], Acc1);
+                                Acc2 = gap_sumdotp2(V0, ((v2s *)pF2)[i], Acc2);
+                                Acc3 = gap_sumdotp2(V0, ((v2s *)pF3)[i], Acc3);
+                        }
+                        int V0 = pIn[Fw-1];
+                        Acc0 += V0*C0; Acc1 += V0*C1; Acc2 += V0*C2; Acc3 += V0*C3;
+
+                        *PtO = Acc0; *(PtO+1*Wo*Ho) = Acc1; *(PtO+2*Wo*Ho) = Acc2; *(PtO+3*Wo*Ho) = Acc3;
+                        PtO++; pIn += StrideX;
+                }
+                PtO = PtO + (Wo-Wo_L)+Wo_F;
+        }
+}
+
+static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Body_DP_fp(
+	short int *__restrict__ In,
+	int *__restrict__ Out,
+	short int *__restrict__ Filter,
+	int Fw,
+	int W,
+	int H,
+	int Wo,
+	int Wo_F,
+	int Wo_L,
+	int Ho,
+	int Ho_F,
+	int Ho_L,
+	int StrideX,
+	v4s Pad
+	)
+{
+	int Fh = 1;
+	int StrideY = 1;
+	unsigned short int PadL = Pad[0], PadT = 0;
+
+	int *PtO = Out+Wo*Ho_F+Wo_F;
+	short int *PtC = Filter;
+	for (unsigned int h=Ho_F; h<Ho_L; h++) {
+		short int *pIn = In + h*W + Wo_F*StrideX - PadL;
+		for (unsigned int w=Wo_F; w<Wo_L; w++) {
+			int Acc = *PtO;
+			for (unsigned int i=0; i<Fw/4; i++) {
+				Acc = gap_sumdotp2(((v2s *)pIn)[2*i], ((v2s *)Filter)[2*i], Acc);
+				Acc = gap_sumdotp2(((v2s *)pIn)[2*i+1], ((v2s *)Filter)[2*i+1], Acc);
+			}
+			if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/4], ((v2s *)Filter)[Fw/4], Acc);
+			if (Fw&0x1) Acc += In[h*W + (w*StrideX-PadL+Fw-1)]*Filter[Fw-1];
+			*PtO = Acc; PtO++; pIn += StrideX;
+		}
+		PtO = PtO + (Wo-Wo_L)+Wo_F;
+	}
+}
+
 static void __attribute__ ((noinline)) KerConvNxMStrideSxSy_Body_DP_fp(
 	short int *__restrict__ In,
 	int *__restrict__ Out,
@@ -6262,6 +6808,98 @@ void KerParConvNxNStrideS_DP_fp(KerConv_DP_fp_T *Arg)
 			KerConvNxNStrideS_Body_DP_fp(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn);
 			if ((int)PadIn) KerConvNxNStrideS_Border_DP_fp(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn);
 		}
+	gap_waitbarrier(0);
+}
+
+void KerParConv1D_NStrideS_DP_fp(KerConv_DP_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	int TotalInFeatures = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+
+	unsigned int InFeatures = Arg->InFeatures;
+
+	unsigned int Iter = Max(0, Last-First);
+	for (unsigned int i=0; i<Iter/4; i++) {
+		unsigned int of = 4*i+First;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			short int *in = In+W*If, *filter = Filter+FSx*(TotalInFeatures*of + If);
+			int *out = Out+Wo*(of);
+			KerConv1D_4Out_NStrideS_Body_DP_fp(in, out, filter, FSx*TotalInFeatures, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn);
+			if ((int)PadIn) KerConv1D_4Out_NStrideS_Border_DP_fp(in, out, filter, FSx*TotalInFeatures, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn, PadIn);
+		}
+	}
+	for (unsigned int i=4*(Iter/4); i<Iter; i++) {
+		unsigned int of = i+First;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			short int *in = In+W*If, *filter = Filter+FSx*(TotalInFeatures*of + If);
+			int *out = Out+Wo*(of);
+			KerConv1D_NStrideS_Body_DP_fp(in, out, filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn);
+			if ((int)PadIn) KerConv1D_NStrideS_Border_DP_fp(in, out, filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn, PadIn);
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void KerParConvNx1StrideSxS1_DP_fp(KerConv_DP_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int TotalInFeatures = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+	unsigned int InFeatures = Arg->InFeatures;
+	unsigned int Iter = Max(0, Last-First);
+	for (unsigned int i=0; i<Iter/4; i++) {
+		unsigned int of = 4*i+First;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			short int *in = In+W*H*If, *filter = Filter+FSx*(TotalInFeatures*of + If);
+			int *out = Out+Wo*Ho*(of);
+			KerConv_4Out_Nx1StrideSxS1_Body_DP_fp(in, out, filter, FSx*TotalInFeatures, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn);
+			if ((int)PadIn) KerConv_4Out_Nx1StrideSxS1_Border_DP_fp(in, out, filter, FSx*TotalInFeatures, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn, PadIn);
+		}
+	}
+	for (unsigned int i=4*(Iter/4); i<Iter; i++) {
+		unsigned int of = i+First;
+		for (unsigned int If=0; If<InFeatures; If++) {
+			short int *in = In+W*H*If, *filter = Filter+FSx*(TotalInFeatures*of + If);
+			int *out = Out+Wo*Ho*(of);
+			KerConvNx1StrideSxS1_Body_DP_fp(in, out, filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn);
+			if ((int)PadIn) KerConvNx1StrideSxS1_Border_DP_fp(in, out, filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn, PadIn);
+		}
+	}
 	gap_waitbarrier(0);
 }
 
@@ -7118,6 +7756,75 @@ void KerParConvNxNStrideS_DP_fps(KerConv_DP_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void KerParConv1D_NStrideS_DP_fps(KerConv_DP_fps_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	int TotalInFeatures = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Filter = Arg->Filter;
+	DP_fps_T * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+
+	unsigned int InFeatures = Arg->InFeatures;
+		
+	for (unsigned int of=First; of<Last; of++) 
+		for (unsigned int If=0; If<InFeatures; If++) {
+			signed char *in = In+W*If, *filter = Filter+FSx*(TotalInFeatures*of + If);
+			DP_fps_T *out = Out+Wo*(of);
+			KerConv1D_NStrideS_Body_DP_fps(in, out, filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn);
+			if ((int)PadIn) KerConv1D_NStrideS_Border_DP_fps(in, out, filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn, PadIn);
+		}
+	gap_waitbarrier(0);
+}
+
+void KerParConvNx1StrideSxS1_DP_fps(KerConv_DP_fps_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	int TotalInFeatures = Arg->TotalInFeatures;
+	unsigned int OutFeatures = Arg->OutFeatures;
+	signed char * __restrict__ Filter = Arg->Filter;
+	DP_fps_T * __restrict__ Out = Arg->Out;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(OutFeatures);
+	unsigned int First = Chunk*CoreId;
+	unsigned int Last = Min(First+Chunk, OutFeatures);
+	v4s PadIn = Arg->Pad;
+
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+
+	unsigned int InFeatures = Arg->InFeatures;
+		
+	for (unsigned int of=First; of<Last; of++) 
+		for (unsigned int If=0; If<InFeatures; If++) {
+			signed char *in = In+W*H*If, *filter = Filter+FSx*FSy*(TotalInFeatures*of + If);
+			DP_fps_T *out = Out+Wo*Ho*(of);
+			KerConvNx1StrideSxS1_Body_DP_fps(in, out, filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn);
+			if ((int)PadIn) KerConvNx1StrideSxS1_Border_DP_fps(in, out, filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn, PadIn);
+		}
+	gap_waitbarrier(0);
+}
+
 void KerParConvNxMStrideSxSy_DP_fps(KerConv_DP_fps_T *Arg)
 
 {
@@ -7912,6 +8619,67 @@ void KerConvNxNStrideS_DP_fp(KerConv_DP_fp_T *Arg)
 }
 
 
+void KerConv1D_NStrideS_DP_fp(KerConv_DP_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Out = Arg->Out;
+	v4s PadIn = Arg->Pad;
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	unsigned int CoreId = gap_coreid();
+	v4s PadOrg = PadIn;
+	unsigned int Chunk, First, Last;
+
+	Chunk = ChunkSize(Wo); First = Chunk*CoreId; Last = Min(First+Chunk, Wo);
+	PadIn[0] *= (First==0); PadIn[1] *= (Last==Wo);
+	Wo_F = Max(First, Wo_F); Wo_L = Min(Last, Wo_L);
+	if (First<Last) {
+		KerConv1D_NStrideS_Body_DP_fp(In, Out, Filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadOrg);
+		if ((int)PadIn) KerConv1D_NStrideS_Border_DP_fp(In, Out, Filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn, PadOrg);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerConvNx1StrideSxS1_DP_fp(KerConv_DP_fp_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	short int * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	short int * __restrict__ Filter = Arg->Filter;
+	int * __restrict__ Out = Arg->Out;
+	v4s PadIn = Arg->Pad;
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+	unsigned int CoreId = gap_coreid();
+	v4s PadOrg = PadIn;
+	unsigned int Chunk, First, Last;
+
+	if (Arg->Orientation) { // Horizontal
+		Chunk = ChunkSize(Wo); First = Chunk*CoreId; Last = Min(First+Chunk, Wo);
+		PadIn[0] *= (First==0); PadIn[1] *= (Last==Wo);
+		Wo_F = Max(First, Wo_F); Wo_L = Min(Last, Wo_L);
+	} else {
+		Chunk = ChunkSize(Ho); First = Chunk*CoreId; Last = Min(First+Chunk, Ho);
+		PadIn[2] *= (First==0); PadIn[3] *= (Last==Ho);
+		Ho_F = Max(First, Ho_F); Ho_L = Min(Last, Ho_L);
+	}
+	if (First<Last) {
+		KerConvNx1StrideSxS1_Body_DP_fp(In, Out, Filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadOrg);
+		if ((int)PadIn) KerConvNx1StrideSxS1_Border_DP_fp(In, Out, Filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn, PadOrg);
+	}
+	gap_waitbarrier(0);
+}
+
 void KerConvNxMStrideSxSy_DP_fp(KerConv_DP_fp_T *Arg)
 
 {
@@ -8697,6 +9465,67 @@ void KerConvNxNStrideS_DP_fps(KerConv_DP_fps_T *Arg)
 	if (First<Last) {
 		KerConvNxNStrideS_Body_DP_fps(In, Out, Filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadOrg);
 		if ((int)PadIn) KerConvNxNStrideS_Border_DP_fps(In, Out, Filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadOrg);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerConv1D_NStrideS_DP_fps(KerConv_DP_fps_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	signed char * __restrict__ Filter = Arg->Filter;
+	DP_fps_T * __restrict__ Out = Arg->Out;
+	v4s PadIn = Arg->Pad;
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	unsigned int CoreId = gap_coreid();
+	v4s PadOrg = PadIn;
+	unsigned int Chunk, First, Last;
+
+	Chunk = ChunkSize(Wo); First = Chunk*CoreId; Last = Min(First+Chunk, Wo);
+	PadIn[0] *= (First==0); PadIn[1] *= (Last==Wo);
+	Wo_F = Max(First, Wo_F); Wo_L = Min(Last, Wo_L);
+	if (First<Last) {
+		KerConv1D_NStrideS_Body_DP_fps(In, Out, Filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadOrg);
+		if ((int)PadIn) KerConv1D_NStrideS_Border_DP_fps(In, Out, Filter, FSx, W, Wo, Wo_F, Wo_L, Sx, PadIn, PadOrg);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerConvNx1StrideSxS1_DP_fps(KerConv_DP_fps_T *Arg)
+
+{
+	unsigned int FSx=Arg->N, Sx=Arg->S;
+	unsigned int FSy=1, Sy=1;
+	signed char * __restrict__ In = Arg->In;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	signed char * __restrict__ Filter = Arg->Filter;
+	DP_fps_T * __restrict__ Out = Arg->Out;
+	v4s PadIn = Arg->Pad;
+	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
+	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
+	int Ho = (Arg->UsedH-FSy+PadIn[2]+PadIn[3])/Sy + 1;
+	int Ho_F = Min(Ho, FirstDefinedOutput(FSy, PadIn[2], Sy)), Ho_L = Max(Ho_F, LastDefinedOutput(Arg->UsedH, FSy, PadIn[2], Sy));
+	unsigned int CoreId = gap_coreid();
+	v4s PadOrg = PadIn;
+	unsigned int Chunk, First, Last;
+
+	if (Arg->Orientation) { // Horizontal
+		Chunk = ChunkSize(Wo); First = Chunk*CoreId; Last = Min(First+Chunk, Wo);
+		PadIn[0] *= (First==0); PadIn[1] *= (Last==Wo);
+		Wo_F = Max(First, Wo_F); Wo_L = Min(Last, Wo_L);
+	} else {
+		Chunk = ChunkSize(Ho); First = Chunk*CoreId; Last = Min(First+Chunk, Ho);
+		PadIn[2] *= (First==0); PadIn[3] *= (Last==Ho);
+		Ho_F = Max(First, Ho_F); Ho_L = Min(Last, Ho_L);
+	}
+	if (First<Last) {
+		KerConvNx1StrideSxS1_Body_DP_fps(In, Out, Filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadOrg);
+		if ((int)PadIn) KerConvNx1StrideSxS1_Border_DP_fps(In, Out, Filter, FSx, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, PadIn, PadOrg);
 	}
 	gap_waitbarrier(0);
 }

@@ -14,21 +14,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from ..unified_quantization_handler import QuantizionHandler, options
-from .symmetric_quantization import SymmetricQuantizationBase
+from quantization.qtype import QType
+
+from ..unified_quantization_handler import QuantizionHandler, options, scheme
+
 
 #pylint: disable=abstract-method
 @options(
     {
         'name': 'bits',
+        'shortcut': 'b',
         'type': int,
         'choices': [8, 16],
         'help': 'bits for inputs and outputs',
         'default': 16
     })
+@scheme('POW2')
 class Pow2QuantizionHandler(QuantizionHandler):
-    DEFAULT_QREC = SymmetricQuantizationBase
-    NAME = "POW2"
     BITS_TO_DTYPE = {
         8: np.int8,
         16: np.int16
@@ -46,3 +48,23 @@ class Pow2QuantizionHandler(QuantizionHandler):
         opts = kwargs.get('opts', {})
         bits = opts.get('bits', 16)
         return bits
+
+    @classmethod
+    def force_pow2(cls, in_qs, idx=None):
+        return [QType.from_min_max_pow2(in_q.min_val, in_q.max_val,
+                                        dtype=in_q.dtype, forced=True)
+                if in_q and (idx is None or idx == in_q_idx) and not in_q.is_pow2 else in_q
+                for in_q_idx, in_q in enumerate(in_qs)]
+
+    @classmethod
+    def get_prefered_input_dtypes(cls, params, **kwargs):
+        dtype = np.int16 if cls.get_pow2_bits(**kwargs) == 16 else np.int8
+        return [dtype if dim is not None else None for dim in params.in_dims]
+
+    @classmethod
+    def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
+        return [QType.from_min_max_pow2(stats['range_in'][idx]['min'],
+                                        stats['range_in'][idx]['max'],
+                                        dtype=dtype)
+                if dtype is not None else None
+                for idx, dtype in enumerate(cls.get_prefered_input_dtypes(params, **kwargs))]

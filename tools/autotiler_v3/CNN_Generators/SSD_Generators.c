@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "AutoTilerLib.h"
+#include "SSD_Generators.h"
 #include "SSD_BasicKernels.h"
 //#include "AutoTilerLibTypes.h"
 /*#include "CNN_Generators.h"
@@ -12,7 +13,7 @@ void LoadSSDLibrary(){
     LibKernel("Ker_SSD_Init", CALL_SEQUENTIAL_STRUCT,
         CArgs(3,
             TCArg("int16_t *", "bbox_idx"),
-            TCArg("bbox_t *" , "bbox_out"),
+            TCArg("bbox_t *" , "bbox_buf"),
             TCArg("int16_t " , "n_max_bb")
             ),
         "Ker_SSD_Init_ArgT", NULL
@@ -22,7 +23,7 @@ void LoadSSDLibrary(){
         	TCArg("int8_t * __restrict__", "boxes_in"  ),
             TCArg("int8_t * __restrict__", "classes_in"),
             TCArg("int8_t * __restrict__", "anchors_in"),
-            TCArg("bbox_t *"             , "bbox_out"  ),
+            TCArg("bbox_t *"             , "bbox_buf"  ),
             TCArg("int16_t "             , "Box_W"     ),
             TCArg("int16_t "             , "Class_W"   ),
             TCArg("int16_t "             , "H"         ),
@@ -36,7 +37,8 @@ void LoadSSDLibrary(){
     );
 
     LibKernel("Ker_SSD_NMS", CALL_SEQUENTIAL_STRUCT,
-        CArgs(4,
+        CArgs(5,
+            TCArg("bbox_t *" , "bbox_buf"),
 			TCArg("bbox_t *" , "bbox_out"),
 			TCArg("int8_t *" , "infos"   ),
             TCArg("int16_t " , "n_max_bb"),
@@ -86,7 +88,7 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
           TCArg("int8_t * __restrict__", "boxes_in"  ),
           TCArg("int8_t * __restrict__", "classes_in"),
           TCArg("int8_t * __restrict__", "anchors_in"),
-          TCArg("short int *"          , "bbox_out"  ),
+          TCArg("bbox_t *"             , "bbox_out"  ),
           TCArg("uint8_t * "           , "in_scales" ),
           TCArg("uint8_t * "           , "in_norms"  ),
           TCArg("int8_t * "            , "infos"     )
@@ -95,7 +97,7 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
             Call("Ker_SSD_Init", LOC_LOOP_PROLOG,
                 Bindings(3,
                     K_Arg("bbox_idx",KER_ARG),
-                    K_Arg("bbox_out",KER_ARG),
+                    K_Arg("bbox_buf",KER_ARG),
                     Imm(max_bb_before_nn_max)
                 )
             ),
@@ -104,7 +106,7 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
                     K_Arg("boxes_in"  , KER_ARG_TILE  ),
                     K_Arg("classes_in", KER_ARG_TILE  ),
                     K_Arg("anchors_in", KER_ARG_TILE  ),
-                    K_Arg("bbox_out"  , KER_ARG       ),
+                    K_Arg("bbox_buf"  , KER_ARG       ),
                     K_Arg("boxes_in"  , KER_ARG_TILE_W),
                     K_Arg("classes_in", KER_ARG_TILE_W),
                     K_Arg("classes_in", KER_ARG_TILE_H),
@@ -116,7 +118,8 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
                 )
             ),
             Call("Ker_SSD_NMS", LOC_LOOP_EPILOG,
-                Bindings(4,
+                Bindings(5,
+                    K_Arg("bbox_buf", KER_ARG),
                     K_Arg("bbox_out", KER_ARG),
                     K_Arg("infos",KER_ARG),
                     Imm(max_bb_before_nn_max),
@@ -124,11 +127,12 @@ int CNN_SSD_PostProcess_SQ8(char *Name, CNN_GenControl_T *Ctrl, int n_anchors, i
                 )
             )
         ),
-		KerArgs(8,
+		KerArgs(9,
 			KerArg("boxes_in"  , KerArgSpace(1,KER_ITER_TILE0), O_IN|O_DB            , 4                   , n_anchors, sizeof(int8_t) , 0, 0, 0, "boxes_in"   ),
 			KerArg("classes_in", KerArgSpace(1,KER_ITER_TILE0), O_IN|O_DB            , n_classes           , n_anchors, sizeof(int8_t) , 0, 0, 0, "classes_in" ),
 			KerArg("anchors_in", KerArgSpace(1,KER_ITER_TILE0), O_IN|O_CONST|O_DB    , 4                   , n_anchors, sizeof(int8_t) , 0, 0, 0, "anchors_in" ),
-			KerArg("bbox_out"  , KerArgSpace(1,KER_ITER_D0)   , O_OUT                , max_bb_before_nn_max, 1        , sizeof(bbox_t) , 0, 0, 0, "bbox_out"   ),
+			KerArg("bbox_buf",   KerArgSpace(1,KER_ITER_D0)   , O_BUFF|O_NDB|O_NTILED, max_bb_before_nn_max, 1        , sizeof(bbox_t) , 0, 0, 0, ""           ),
+            KerArg("bbox_out",   KerArgSpace(1,KER_ITER_D0)   , O_OUT                , n_outbox            , 1        , sizeof(bbox_t) , 0, 0, 0, "bbox_out"   ),
 			KerArg("bbox_idx"  , KerArgSpace(1,KER_ITER_D0)   , O_BUFF|O_NDB|O_NTILED, 1                   , 1        , sizeof(int16_t), 0, 0, 0, ""           ),
             KerArg("in_scales" , KerArgSpace(1,KER_ITER_D0)   , O_IN|O_CONST         , 8                   , 1        , sizeof(uint8_t), 0, 0, 0, "in_scales"  ),
 			KerArg("in_norms"  , KerArgSpace(1,KER_ITER_D0)   , O_IN|O_CONST         , 8                   , 1        , sizeof(uint8_t), 0, 0, 0, "in_norms"   ),

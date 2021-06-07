@@ -62,7 +62,6 @@ class InputResizerCommand(NNToolShellBase):
             self.pfeedback("no from_shape arguments set")
             return
         from_shape = (args.from_h, args.from_w)
-        self.G.changes.input_resizer(input_node.name, args.resize_op, from_shape)
         insert_resizer(self.G, out_edge, args.resize_op, from_shape)
         self.G.add_dimensions()
 

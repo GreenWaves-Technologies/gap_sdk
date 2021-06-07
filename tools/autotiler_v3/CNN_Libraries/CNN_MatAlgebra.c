@@ -3169,6 +3169,7 @@ void KerParMatMulLeakyreluSxSy_fps(KerMatMul_fps_T *Arg)
 	}
 }
 
+
 /* Matrix mult for small first matrix in the product, goal is to improve parallelism in this specific situation */
 
 /* In1 fits completly in shared L1, usually conv weights
@@ -4177,590 +4178,1260 @@ void KerParMatScaleVectorScalar_fps(KerMatScale_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
-/* Matrix transposition */
 
-static void CNN_Transpose_Body_fps(
-	signed char *__restrict__ In,
-	signed char *__restrict__ Out,
-	unsigned int W,
-	unsigned int Wo_F,
-	unsigned int Wo_L,
-	unsigned int H,
-	unsigned int Ho_F,
-	unsigned int Ho_L
-	)
-       
+void KerParMatMul_NoBias_fp(KerMatMul_fp_T *Arg)
+
 {
-	int IterL = Ho_L-Ho_F;
-	int IterW = Wo_L-Wo_F;
-	for (int l=0; l<IterL/4; l++) {
-		v4s *pV0 = (v4s *) (In + (Ho_F+4*l+0)*W + Wo_F);
-		v4s *pV1 = (v4s *) (In + (Ho_F+4*l+1)*W + Wo_F);
-		v4s *pV2 = (v4s *) (In + (Ho_F+4*l+2)*W + Wo_F);
-		v4s *pV3 = (v4s *) (In + (Ho_F+4*l+3)*W + Wo_F);
-		signed char *pO  = (Out + Ho_F + 4*l + Wo_F*H);
-		for (int c=0; c<IterW/4; c++) {
-			v4s X, Y;
-			v4s A = pV0[c], B = pV1[c], C = pV2[c], D = pV3[c];
-			v4s rA, rB, rC, rD;
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
 
-			X  = __builtin_shuffle(A, B, (v4s) {0,4,1,5});
-			Y  = __builtin_shuffle(C, D, (v4s) {0,4,1,5});
-			rA = __builtin_shuffle(X, Y, (v4s) {0,1,4,5});
-			rB = __builtin_shuffle(X, Y, (v4s) {2,3,6,7});
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
 
-			X  = __builtin_shuffle(A, B, (v4s) {2,6,3,7});
-			Y  = __builtin_shuffle(C, D, (v4s) {2,6,3,7});
-			rC = __builtin_shuffle(X, Y, (v4s) {0,1,4,5});
-			rD = __builtin_shuffle(X, Y, (v4s) {2,3,6,7});
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
 
-			*((v4s *) (pO+(4*c+0)*H)) = rA;
-			*((v4s *) (pO+(4*c+1)*H)) = rB;
-			*((v4s *) (pO+(4*c+2)*H)) = rC;
-			*((v4s *) (pO+(4*c+3)*H)) = rD;
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		// for (Line=0; Line<H_In1; Line++) {
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		       	Out[(Line+OffLine)*W_Out+Col+OffCol] = Min(Max(AT_NORM(S, Norm), LB), UB);
 		}
-		for (int c=4*(IterW/4); c<IterW; c++) {
-			int X0 = In[(Ho_F+4*l+0)*W + (Wo_F+c)], X1 = In[(Ho_F+4*l+1)*W + (Wo_F+c)], X2 = In[(Ho_F+4*l+2)*W + (Wo_F+c)], X3 = In[(Ho_F+4*l+3)*W + (Wo_F+c)];
-			Out[Ho_F+4*l+0 + (Wo_F+c)*H] = X0; Out[Ho_F+4*l+1 + (Wo_F+c)*H] = X1; Out[Ho_F+4*l+2 + (Wo_F+c)*H] = X2; Out[Ho_F+4*l+3 + (Wo_F+c)*H] = X3;
-		}
-	}
-	for (int l=4*(IterL/4); l<IterL; l++) {
-		for (int c=0; c<IterW/2; c++) {
-			signed char X0 = In[(Ho_F+l)*W + Wo_F+2*c+0], X1 = In[(Ho_F+l)*W + Wo_F+2*c+1];
-			Out[Ho_F+l + (Wo_F+2*c+0)*H] = X0;
-			Out[Ho_F+l + (Wo_F+2*c+1)*H] = X1;
-		}
-		if (IterW&0x1) Out[Ho_F+l+ (Wo_L-1)*H] = In[(Ho_F+l)*W+Wo_L-1];
+		gap_waitbarrier(0);
 	}
 }
 
-static void CNN_Transpose_Body_fp(
-	short int *__restrict__ In,
-	short int *__restrict__ Out,
-	unsigned int W,
-	unsigned int Wo_F,
-	unsigned int Wo_L,
-	unsigned int H,
-	unsigned int Ho_F,
-	unsigned int Ho_L
-	)
-       
-{
-	int IterL = Ho_L-Ho_F;
-	int IterW = Wo_L-Wo_F;
-	for (int l=0; l<IterL/2; l++) {
-		v2s *pV0 = (v2s *) (In + (Ho_F+2*l+0)*W + Wo_F);
-		v2s *pV1 = (v2s *) (In + (Ho_F+2*l+1)*W + Wo_F);
-		short int *pO  = (Out + Ho_F + 4*l + Wo_F*H);
-		for (int c=0; c<IterW/2; c++) {
-			v2s A = pV0[c], B = pV1[c];
-			v2s rA, rB;
-			rA = __builtin_shuffle(A, B, (v2s) {0,2});
-			rB = __builtin_shuffle(A, B, (v2s) {1,3});
-			*((v2s *) (pO+(2*c+0)*H)) = rA;
-			*((v2s *) (pO+(2*c+1)*H)) = rB;
-		}
-		if (IterW&0x1) {
-			int c = IterW-1;
-			int X0 = In[(Ho_F+2*l+0)*W + (Wo_F+c)], X1 = In[(Ho_F+2*l+1)*W + (Wo_F+c)];
-			Out[Ho_F+2*l+0 + (Wo_F+c)*H] = X0; Out[Ho_F+2*l+1 + (Wo_F+c)*H] = X1;
-		}
-	}
-	if (IterL&0x1) {
-		int l = IterL-1;
-		for (int c=0; c<IterW/2; c++) {
-			int X0 = In[(Ho_F+l)*W + Wo_F+2*c+0], X1 = In[(Ho_F+l)*W + Wo_F+2*c+1];
-			Out[Ho_F+l + (Wo_F+2*c+0)*H] = X0;
-			Out[Ho_F+l + (Wo_F+2*c+1)*H] = X1;
-		}
-		if (IterW&0x1) Out[Ho_F+l+ (Wo_L-1)*H] = In[(Ho_F+l)*W+Wo_L-1];
-	}
-}
+void KerParMatMulSxSy_NoBias_fp(KerMatMul_fp_T *Arg)
 
-static void CNN_TransposeSxSy_Body_fp(
-	short int *__restrict__ In,
-	short int *__restrict__ Out,
-	unsigned int W,
-	unsigned int Wo_F,
-	unsigned int Wo_L,
-	unsigned int Ho_F,
-	unsigned int Ho_L,
-	unsigned int Ho,
-	unsigned int Sx,
-	unsigned int Sy
-	)
 {
-	for (int l=Ho_F; l<Ho_L; l++) {
-		int IterW = Wo_L-Wo_F;
-		for (int c=0; c<IterW/2; c++) {
-			short int X0 = In[Sy*l*W + Sx*(Wo_F+2*c+0)], X1 = In[Sy*l*W + Sx*(Wo_F+2*c+1)];
-			Out[l + (Wo_F+2*c+0)*Ho] = X0;
-			Out[l + (Wo_F+2*c+1)*Ho] = X1;
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+	       		Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
 		}
-		if (IterW&0x1) Out[l+ (Wo_L-1)*Ho] = In[Sy*l*W+Sx*(Wo_L-1)];
+	       	gap_waitbarrier(0);
 	}
 }
 
-static void CNN_Transpose2_Body_fps(
-	signed char *__restrict__ In,
-	signed char *__restrict__ Out,
-	unsigned int W,
-	unsigned int Wo_F,
-	unsigned int Wo_L,
-	unsigned int H,
-	unsigned int Ho_F,
-	unsigned int Ho_L
-	)
-{
-	for (int l=Ho_F; l<Ho_L; l++) {
-		int IterW = Wo_L-Wo_F;
-		for (int c=0; c<IterW/2; c++) {
-			signed char X0 = In[l*W + Wo_F+2*c+0], X1 = In[l*W + Wo_F+2*c+1];
-			Out[l + (Wo_F+2*c+0)*H] = X0;
-			Out[l + (Wo_F+2*c+1)*H] = X1;
-		}
-		if (IterW&0x1) Out[l+ (Wo_L-1)*H] = In[l*W+Wo_L-1];
-	}
-}
 
-static void CNN_TransposeSxSy_Body_fps(
-	signed char *__restrict__ In,
-	signed char *__restrict__ Out,
-	unsigned int W,
-	unsigned int Wo_F,
-	unsigned int Wo_L,
-	unsigned int Ho,
-	unsigned int Ho_F,
-	unsigned int Ho_L,
-	unsigned int Sx,
-	unsigned int Sy
-	)
-{
-	for (int l=Ho_F; l<Ho_L; l++) {
-		int IterW = Wo_L-Wo_F;
-		for (int c=0; c<IterW/2; c++) {
-			signed char X0 = In[Sy*l*W + Sx*(Wo_F+2*c+0)], X1 = In[Sy*l*W + Sx*(Wo_F+2*c+1)];
-			Out[l + (Wo_F+2*c+0)*Ho] = X0;
-			Out[l + (Wo_F+2*c+1)*Ho] = X1;
-		}
-		if (IterW&0x1) Out[l+ (Wo_L-1)*Ho] = In[Sy*l*W+Sx*(Wo_L-1)];
-	}
-}
-
-void CNN_ParTranspose_fp(KerMatTranspose_fp_T *Arg)
+void KerParMatMul_NoBias_fps(KerMatMul_fps_T *Arg)
 
 {
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat;
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        unsigned int Norm = Arg->Norm;
+        int LB = Arg->LB, UB = Arg->UB;
+        int ColFirst = Arg->ColFirst;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
         unsigned int CoreId = gap_coreid();
-        unsigned int Chunk = ChunkSize(Feat);
-        unsigned int First = Chunk*CoreId;
-        unsigned int Last = Min(First+Chunk, Feat);
+        unsigned int ChunkCell = ChunkSize(H_In1);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
 
-	for (int f=First; f<Last; f++) CNN_Transpose_Body_fp(In+W*H*f, Out+W*H*f, W, 0, W, H, 0, H);
-	gap_waitbarrier(0);
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0, S2=S0, S3=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                                S2 = gap_sumdotp4(V0, VBuff2[i], S2);
+                                S3 = gap_sumdotp4(V0, VBuff3[i], S3);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			v4s R = gap_pack4(Min(Max(AT_NORM(S0, Norm), LB), UB), Min(Max(AT_NORM(S1, Norm), LB), UB), Min(Max(AT_NORM(S2, Norm), LB), UB), Min(Max(AT_NORM(S3, Norm), LB), UB));
+			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
+                }
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = Min(Max(AT_NORM(S0, Norm), LB), UB);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = Min(Max(AT_NORM(S1, Norm), LB), UB);
+                }
+                gap_waitbarrier(0);
+	}
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = Min(Max(AT_NORM(S0, Norm), LB), UB);
+                }
+                gap_waitbarrier(0);
+	}
 }
 
-void CNN_ParTransposeSxSy_fp(KerMatTranspose_fp_T *Arg)
+void KerParMatMulSxSy_NoBias_fps(KerMatMul_fps_T *Arg)
 
 {
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat;
-	unsigned int Sx = Arg->Sx;
-	unsigned int Sy = Arg->Sy;
-	unsigned int Wo = (W+Sx-1)/Sx;
-	unsigned int Ho = (H+Sy-1)/Sy;
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int LB = Arg->LB, UB = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = 0;
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+		   	Out[(Line+OffLine)*W_Out+Oo] = Min(Max(AT_NORM(S, Norm), LB), UB);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswish_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		// for (Line=0; Line<H_In1; Line++) {
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			S = AT_NORM(S, Norm);
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB) * S, NormOut) * C2, 15);
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswishSxSy_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			S = AT_NORM(S, Norm);
+			Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB) * S, NormOut) * C2, 15);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHswish_NoBias_fps(KerMatMul_fps_T *Arg)
+
+{
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut, LB=0;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
         unsigned int CoreId = gap_coreid();
-        unsigned int Chunk = ChunkSize(Feat);
-        unsigned int First = Chunk*CoreId;
-        unsigned int Last = Min(First+Chunk, Feat);
+        unsigned int ChunkCell = ChunkSize(H_In1);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
 
-	for (int f=First; f<Last; f++) CNN_TransposeSxSy_Body_fp(In+W*H*f, Out+Wo*Ho*f, W, 0, Wo, Ho, 0, Ho, Sx, Sy);
-	gap_waitbarrier(0);
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0, S2=S0, S3=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                                S2 = gap_sumdotp4(V0, VBuff2[i], S2);
+                                S3 = gap_sumdotp4(V0, VBuff3[i], S3);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			v4s R = gap_pack4(AT_NORM(AT_NORM(gap_min(gap_max(S0 + C1, 0), UB) * S0, NormOut) * C2, 15),
+					  AT_NORM(AT_NORM(gap_min(gap_max(S1 + C1, 0), UB) * S1, NormOut) * C2, 15),
+					  AT_NORM(AT_NORM(gap_min(gap_max(S2 + C1, 0), UB) * S2, NormOut) * C2, 15),
+					  AT_NORM(AT_NORM(gap_min(gap_max(S3 + C1, 0), UB) * S3, NormOut) * C2, 15));
+			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
+                }
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_NORM(AT_NORM(gap_min(gap_max(S0 + C1, 0), UB) * S0, NormOut) * C2, 15);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_NORM(AT_NORM(gap_min(gap_max(S1 + C1, 0), UB) * S0, NormOut) * C2, 15);
+                }
+                gap_waitbarrier(0);
+	}
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_NORM(AT_NORM(gap_min(gap_max(S0 + C1, 0), UB) * S0, NormOut) * C2, 15);
+                }
+                gap_waitbarrier(0);
+	}
 }
 
-void CNN_ParTranspose_fps(KerMatTranspose_fps_T *Arg)
+void KerParMatMulHswishSxSy_NoBias_fps(KerMatMul_fps_T *Arg)
 
 {
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat;
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = 0;
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			S = AT_NORM(S, Norm);
+		       	Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(AT_NORM(gap_min(gap_max(S + C1, 0), UB) * S, NormOut) * C2, 15);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+
+
+void KerParMatMulHsigmoid_NoBias_fps(KerMatMul_fps_T *Arg)
+
+{
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut, LB=0;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
         unsigned int CoreId = gap_coreid();
-        unsigned int Chunk = ChunkSize(Feat);
-        unsigned int First = Chunk*CoreId;
-        unsigned int Last = Min(First+Chunk, Feat);
+        unsigned int ChunkCell = ChunkSize(H_In1);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
 
-	for (int f=First; f<Last; f++) CNN_Transpose_Body_fps(In+W*H*f, Out+W*H*f, W, 0, W, H, 0, H);
-	gap_waitbarrier(0);
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0, S2=S0, S3=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                                S2 = gap_sumdotp4(V0, VBuff2[i], S2);
+                                S3 = gap_sumdotp4(V0, VBuff3[i], S3);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			v4s R = gap_pack4(AT_NORM(gap_max(0, gap_min(AT_NORM(S0, Norm)+C1, UB))*C2, 15),
+					  AT_NORM(gap_max(0, gap_min(AT_NORM(S1, Norm)+C1, UB))*C2, 15),
+					  AT_NORM(gap_max(0, gap_min(AT_NORM(S2, Norm)+C1, UB))*C2, 15),
+					  AT_NORM(gap_max(0, gap_min(AT_NORM(S3, Norm)+C1, UB))*C2, 15));
+			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
+                }
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = AT_NORM(gap_max(0, gap_min(AT_NORM(S0, Norm)+C1, UB))*C2, 15);
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = AT_NORM(gap_max(0, gap_min(AT_NORM(S1, Norm)+C1, UB))*C2, 15);
+                }
+                gap_waitbarrier(0);
+	}
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = AT_NORM(gap_max(0, gap_min(AT_NORM(S0, Norm)+C1, UB))*C2, 15);
+                }
+                gap_waitbarrier(0);
+	}
 }
 
-void CNN_ParTransposeSxSy_fps(KerMatTranspose_fps_T *Arg)
+void KerParMatMulHsigmoidSxSy_NoBias_fps(KerMatMul_fps_T *Arg)
 
 {
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat;
-	unsigned int Sx = Arg->Sx;
-	unsigned int Sy = Arg->Sy;
-	unsigned int Wo = (W+Sx-1)/Sx;
-	unsigned int Ho = (H+Sy-1)/Sy;
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = 0;
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(gap_max(0, gap_min(AT_NORM(S, Norm)+C1, UB))*C2, 15);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+
+void KerParMatMulHsigmoid_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		// for (Line=0; Line<H_In1; Line++) {
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Col+OffCol] = AT_NORM(gap_max(0, gap_min(AT_NORM(S, Norm)+C1, UB))*C2, 15);
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulHsigmoidSxSy_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int NormOut = Arg->UB;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+        int C1 = 3<<NormOut;
+        int C2 = (1<<15)/6; // 1/6 in Q15
+        int UB = 6<<NormOut;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			Out[(Line+OffLine)*W_Out+Oo] = AT_NORM(gap_max(0, gap_min(AT_NORM(S, Norm)+C1, UB))*C2, 15);
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyrelu_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	unsigned int OutFirstCol = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+	int OffLine = 0, OffCol = 0;
+
+	if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+	for (Col=0; Col<W_In2; Col++) {
+		for (i=F;i<L; i++) BufferColIn2[i] = In2[i*W_In2+Col];
+		gap_waitbarrier(0);
+		for (Line=First; Line<Last; Line++) {
+			v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+			for (i=0; i<W_In1/4; i++) {
+				S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+				S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+			}
+			for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 15);
+		       		Out[(Line+OffLine)*W_Out+Col+OffCol] = Acc0;
+			}
+		}
+		gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyreluSxSy_NoBias_fp(KerMatMul_fp_T *Arg)
+
+{
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
+
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	short int * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	short int * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2; 	/* H_In2 = W_In1 by construction */
+	short int * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	short int *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v2s *VBuff = (v2s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At=0; OffLine=0; Oo=0;
+	if (ColFirst) OffLine=Pi; else Oo=Pi;
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v2s *VIn1 = (v2s *) (&In1[Line*W_In1 + 0]);
+			int S = 0;
+		       	for (i=0; i<W_In1/4; i++) {
+			       	S = gap_sumdotp2(VIn1[2*i  ], VBuff[2*i  ], S);
+			       	S = gap_sumdotp2(VIn1[2*i+1], VBuff[2*i+1], S);
+		       	}
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 15);
+				Out[(Line+OffLine)*W_Out+Oo] = Acc0;
+			}
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
+		}
+	       	gap_waitbarrier(0);
+	}
+}
+
+void KerParMatMulLeakyrelu_NoBias_fps(KerMatMul_fps_T *Arg)
+
+{
+	/*
+	 	Column buffer has to be sized in order to be able to accomodate up to 4 columns of size H_In2
+	*/
+        signed char * __restrict__ In1 = Arg->In1;
+        unsigned int W_In1 = Arg->W_In1;
+        unsigned int H_In1 = Arg->H_In1;
+        signed char * __restrict__ In2 = Arg->In2;
+        unsigned int W_In2 = Arg->W_In2;
+        signed char * __restrict__ Out = Arg->Out;
+        unsigned int W_Out = Arg->W_Out;
+        unsigned int OutFirstCol = Arg->OutFirstCol;
+        signed char * __restrict__ BufferColIn2 = Arg->BufferColIn2;
+        unsigned int Norm = Arg->Norm;
+	int ColFirst = Arg->ColFirst;
+
+        unsigned int H_In2 = W_In1;
+        unsigned int H_Out = H_In1;
+        unsigned int Line, Col, i;
+        v4s * __restrict__ VBuff0 = (v4s *) BufferColIn2;
+        v4s * __restrict__ VBuff1 = (v4s *) (BufferColIn2+H_In2);
+        v4s * __restrict__ VBuff2 = (v4s *) (BufferColIn2+2*H_In2);
+        v4s * __restrict__ VBuff3 = (v4s *) (BufferColIn2+3*H_In2);
+
         unsigned int CoreId = gap_coreid();
-        unsigned int Chunk = ChunkSize(Feat);
-        unsigned int First = Chunk*CoreId;
-        unsigned int Last = Min(First+Chunk, Feat);
+        unsigned int ChunkCell = ChunkSize(H_In1);
+        unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+        unsigned int C = ChunkSize(H_In2), F = CoreId*C, L  = Min(H_In2, F+C);
+        int OffLine = 0, OffCol = 0;
 
-	for (int f=First; f<Last; f++) CNN_TransposeSxSy_Body_fps(In+W*H*f, Out+Wo*Ho*f, W, 0, Wo, Ho, 0, Ho, Sx, Sy);
-	gap_waitbarrier(0);
-}
-
-void CNN_Transpose_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo_F, Wo_L, Ho_F, Ho_L;
-	unsigned int Feat = Arg->Feat;
-        unsigned int Chunk, CoreId = gap_coreid();
-
-	if (H>W) {
-		/* Tile horizontally */
-		Chunk = ChunkSize(H); Ho_F = Chunk*CoreId; Ho_L = Min(Ho_F+Chunk, H); Wo_F = 0; Wo_L = W;
-	} else {
-		/* Tile vertically */
-		Chunk = ChunkSize(W); Wo_F = Chunk*CoreId; Wo_L = Min(Wo_F+Chunk, W); Ho_F = 0; Ho_L = H;
-	}
-	if (Wo_F<Wo_L && Ho_F<Ho_L) {
-		for (int f=0; f<Feat; f++) CNN_Transpose_Body_fp(In+W*H*f, Out+W*H*f, W, Wo_F, Wo_L, H, Ho_F, Ho_L); 
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_TransposeSxSy_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo_F, Wo_L, Ho_F, Ho_L;
-	unsigned int Sx = Arg->Sx;
-	unsigned int Sy = Arg->Sy;
-	unsigned int Wo = (W+Sx-1)/Sx;
-	unsigned int Ho = (H+Sy-1)/Sy;
-	unsigned int Feat = Arg->Feat;
-        unsigned int Chunk, CoreId = gap_coreid();
-
-	if (Ho>Wo) {
-		/* Tile horizontally */
-		Chunk = ChunkSize(Ho); Ho_F = Chunk*CoreId; Ho_L = Min(Ho_F+Chunk, Ho); Wo_F = 0; Wo_L = Wo;
-	} else {
-		/* Tile vertically */
-		Chunk = ChunkSize(Wo); Wo_F = Chunk*CoreId; Wo_L = Min(Wo_F+Chunk, Wo); Ho_F = 0; Ho_L = Ho;
-	}
-	if (Wo_F<Wo_L && Ho_F<Ho_L) {
-		for (int f=0; f<Feat; f++) CNN_TransposeSxSy_Body_fp(In+W*H*f, Out+Wo*Ho*f, W, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy); 
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_Transpose_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo_F, Wo_L, Ho_F, Ho_L;
-	unsigned int Feat = Arg->Feat;
-        unsigned int Chunk, CoreId = gap_coreid();
-
-	if (H>W) {
-		/* Tile horizontally */
-		Chunk = ChunkSize(H); Ho_F = Chunk*CoreId; Ho_L = Min(Ho_F+Chunk, H); Wo_F = 0; Wo_L = W;
-	} else {
-		/* Tile vertically */
-		Chunk = ChunkSize(W); Wo_F = Chunk*CoreId; Wo_L = Min(Wo_F+Chunk, W); Ho_F = 0; Ho_L = H;
-	}
-	if (Wo_F<Wo_L && Ho_F<Ho_L) {
-		for (int f=0; f<Feat; f++) CNN_Transpose_Body_fps(In+W*H*f, Out+W*H*f, W, Wo_F, Wo_L, H, Ho_F, Ho_L); 
-	}
-	gap_waitbarrier(0);
-}
-
-
-void CNN_TransposeSxSy_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Wo_F, Wo_L, Ho_F, Ho_L;
-	unsigned int Sx = Arg->Sx;
-	unsigned int Sy = Arg->Sy;
-	unsigned int Wo = (W+Sx-1)/Sx;
-	unsigned int Ho = (H+Sy-1)/Sy;
-	unsigned int Feat = Arg->Feat;
-        unsigned int Chunk, CoreId = gap_coreid();
-
-	if (Ho>Wo) {
-		/* Tile horizontally */
-		Chunk = ChunkSize(Ho); Ho_F = Chunk*CoreId; Ho_L = Min(Ho_F+Chunk, Ho); Wo_F = 0; Wo_L = Wo;
-	} else {
-		/* Tile vertically */
-		Chunk = ChunkSize(Wo); Wo_F = Chunk*CoreId; Wo_L = Min(Wo_F+Chunk, Wo); Ho_F = 0; Ho_L = Ho;
-	}
-	if (Wo_F<Wo_L && Ho_F<Ho_L) {
-		for (int f=0; f<Feat; f++) CNN_TransposeSxSy_Body_fps(In+W*H*f, Out+Wo*Ho*f, W, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy); 
-	}
-	gap_waitbarrier(0);
-}
-
-/* 3D Tensor permutations */
-
-void CNN_MatPermCHW2CWH_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[c*H*W + (w+0)*H + h] = V0;
-				Out[c*H*W + (w+1)*H + h] = V1;
-			}
-			if (W&0x1) Out[c*H*W + (W-1)*H + h] = In[c*H*W+h*W+W-1];
+        if (ColFirst) OffLine = OutFirstCol; else OffCol = OutFirstCol;
+        for (Col=0; Col<W_In2/4; Col++) {
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+4*Col+0];
+			int X1 = In2[i*W_In2+4*Col+1];
+			int X2 = In2[i*W_In2+4*Col+2];
+			int X3 = In2[i*W_In2+4*Col+3];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+4*Col+1];
+			BufferColIn2[i+2*H_In2] = X2; // In2[i*W_In2+4*Col+2];
+			BufferColIn2[i+3*H_In2] = X3; // In2[i*W_In2+4*Col+3];
 		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0, S2=S0, S3=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                                S2 = gap_sumdotp4(V0, VBuff2[i], S2);
+                                S3 = gap_sumdotp4(V0, VBuff3[i], S3);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+				S2 += V0 * BufferColIn2[i+2*H_In2];
+				S3 += V0 * BufferColIn2[i+3*H_In2];
+			}
+			{
+				int Input, Neg, Pos, Input1;
+				Input = AT_NORM(S0, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S0 = gap_clip(Neg*Input1+Pos*Input, 7);
+				Input = AT_NORM(S1, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S1 = gap_clip(Neg*Input1+Pos*Input, 7);
+				Input = AT_NORM(S2, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S2 = gap_clip(Neg*Input1+Pos*Input, 7);
+				Input = AT_NORM(S3, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S3 = gap_clip(Neg*Input1+Pos*Input, 7);
+			}
+			v4s R = gap_pack4(S0, S1, S2, S3);
+			*((v4s *) (Out+(Line+OffLine)*W_Out+4*Col+0+OffCol)) = R;
+                }
+                gap_waitbarrier(0);
+        }
+	if (W_In2&0x2) {
+		Col = W_In2/2 - 1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+2*Col+0];
+			int X1 = In2[i*W_In2+2*Col+1];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+2*Col+0];
+			BufferColIn2[i+1*H_In2] = X1; // In2[i*W_In2+2*Col+1];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0, S1=S0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                                S1 = gap_sumdotp4(V0, VBuff1[i], S1);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+				S1 += V0 * BufferColIn2[i+1*H_In2];
+			}
+			{
+				int Input, Neg, Pos, Input1;
+				Input = AT_NORM(S0, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S0 = gap_clip(Neg*Input1+Pos*Input, 7);
+				Input = AT_NORM(S1, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S1 = gap_clip(Neg*Input1+Pos*Input, 7);
+			}
+			Out[(Line+OffLine)*W_Out+2*Col+0+OffCol] = S0;
+			Out[(Line+OffLine)*W_Out+2*Col+1+OffCol] = S1;
+                }
+                gap_waitbarrier(0);
 	}
-	gap_waitbarrier(0);
+	if (W_In2&0x1) {
+		Col = W_In2-1;
+                for (i=F;i<L; i++) {
+			int X0 = In2[i*W_In2+1*Col+0];
+			BufferColIn2[i+0*H_In2] = X0; // In2[i*W_In2+4*Col+0];
+		}
+                gap_waitbarrier(0);
+                for (Line=First; Line<Last; Line++) {
+                        v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+                        int S0 = 0;
+                        for (i=0; i<(W_In1/4); i++) {
+				v4s V0 = VIn1[i];
+                                S0 = gap_sumdotp4(V0, VBuff0[i], S0);
+                        }
+                        for (i=(W_In1/4)*4; i<W_In1; i++) {
+				int V0 = In1[Line*W_In1 + i];
+				S0 += V0 * BufferColIn2[i];
+			}
+			{
+				int Input, Neg, Pos, Input1;
+				Input = AT_NORM(S0, Norm); Neg = (Input<0); Pos = (Input>=0); Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT); S0 = gap_clip(Neg*Input1+Pos*Input, 7);
+			}
+			Out[(Line+OffLine)*W_Out+1*Col+0+OffCol] = S0;
+                }
+                gap_waitbarrier(0);
+	}
 }
 
-void CNN_MatPermCHW2HWC_fp(KerMatTranspose_fp_T *Arg)
+void KerParMatMulLeakyreluSxSy_NoBias_fps(KerMatMul_fps_T *Arg)
 
 {
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+/*
+	In1 is usually the Conv1x1 filter set, e,g In1 is [OutFeat][InFeat]
+	In2 is  [InFeat][Width*Height]
 
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[h*W*C + (w+0)*C + c] = V0;
-				Out[h*W*C + (w+1)*C + c] = V1;
+	When we receive tiles In2 and if StrideY is != 1 tile is always [OutFeat][K*(Width*Scy)]
+*/
+	signed char * __restrict__ In1 = Arg->In1;
+	unsigned int W_In1 = Arg->W_In1;
+	unsigned int H_In1 = Arg->H_In1;
+	signed char * __restrict__ In2 = Arg->In2;
+	unsigned int W_In2 = Arg->W_In2;
+	signed char * __restrict__ Out = Arg->Out;
+	unsigned int W_Out = Arg->W_Out;
+	int Pi = Arg->OutFirstCol;
+	signed char *BufferColIn2 = Arg->BufferColIn2;
+	unsigned int Norm = Arg->Norm;
+	int Wi = Arg->W, Hi = Arg->H;
+	int Sx = Arg->Sx, Sy = Arg->Sy;
+	int ColFirst = Arg->ColFirst;
+
+	unsigned int H_In2 = W_In1;
+	unsigned int H_Out = H_In1;
+
+	int Wo  = (Wi+Sx-1)/Sx, Ho = (Hi+Sy-1)/Sy;
+	int Oo, OffLine;
+	int At, F=0, L = W_In2;
+
+	unsigned int Line, Col, i;
+	v4s *VBuff = (v4s *) BufferColIn2;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(H_In1);
+	unsigned int First = CoreId*ChunkCell, Last  = Min(H_In1, First+ChunkCell);
+	unsigned int Ci = ChunkSize(H_In2), Fi = CoreId*Ci, Li  = Min(H_In2, Fi+Ci);
+
+	At = 0; OffLine = 0; Oo = 0;
+	if (ColFirst) OffLine = Pi; else Oo = Pi;
+
+	while (L>0) {
+	       	for (i=Fi;i<Li; i++) BufferColIn2[i] = In2[i*W_In2+At];
+	       	gap_waitbarrier(0);
+	       	for (Line=First; Line<Last; Line++) {
+		       	v4s *VIn1 = (v4s *) (&In1[Line*W_In1 + 0]);
+		       	int S = 0;
+		       	for (i=0; i<(W_In1/(4*2)); i++) {
+				S = gap_sumdotp4(VIn1[2*i], VBuff[2*i], S);
+				S = gap_sumdotp4(VIn1[2*i+1], VBuff[2*i+1], S);
 			}
-			if (W&0x1) Out[h*W*C + (W-1)*C + c] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2WHC_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[(w+0)*H*C + h*C + c] = V0;
-				Out[(w+1)*H*C + h*C + c] = V1;
+			if (W_In1&0x4) S = gap_sumdotp4(VIn1[W_In1/4-1], VBuff[W_In1/4-1], S);
+		       	for (i=(W_In1/4)*4; i<W_In1; i++) S += In1[Line*W_In1 + i] * BufferColIn2[i];
+			{
+				int Input = AT_NORM(S, Norm);
+				int Neg = (Input<0), Pos = (Input>=0);
+				int Input1 = AT_NORM(Input*LEAK_CONSTANT, LEAK_CONSTANT_FORMAT);
+				int Acc0 = gap_clip(Neg*Input1+Pos*Input, 7);
+		       		Out[(Line+OffLine)*W_Out+Oo] = Acc0;
 			}
-			if (W&0x1) Out[(W-1)*H*C + h*C + c] = In[c*H*W+h*W+W-1];
+	       	}
+		int nF = F+Sx;
+		if (nF<Wi) {
+			F = nF; At += Sx; L -= Sx; Oo++;
+		} else {
+			int d = Wi-F+(Sy-1)*Wi;
+			F = 0; L -= d; At += d; Oo++;
 		}
+	       	gap_waitbarrier(0);
 	}
-	gap_waitbarrier(0);
 }
-
-void CNN_MatPermCHW2WCH_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[(w+0)*C*H + c*H + h] = V0;
-				Out[(w+1)*C*H + c*H + h] = V1;
-			}
-			if (W&0x1) Out[(W-1)*C*H + c*H + h] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2HCW_fp(KerMatTranspose_fp_T *Arg)
-
-{
-	short int *__restrict__ In = Arg->In;
-	short int *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[h*C*W + c*W + (w+0)] = V0;
-				Out[h*C*W + c*W + (w+1)] = V1;
-			}
-			if (W&0x1) Out[h*C*W + c*W + (W-1)] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-
-void CNN_MatPermCHW2CWH_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W + h*W + (w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[c*H*W + (w+0)*H + h] = V0;
-				Out[c*H*W + (w+1)*H + h] = V1;
-			}
-			if (W&0x1) Out[c*H*W + (W-1)*H + h] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2HWC_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[h*W*C + (w+0)*C + c] = V0;
-				Out[h*W*C + (w+1)*C + c] = V1;
-			}
-			if (W&0x1) Out[h*W*C + (W-1)*C + c] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2WHC_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[(w+0)*H*C + h*C + c] = V0;
-				Out[(w+1)*H*C + h*C + c] = V1;
-			}
-			if (W&0x1) Out[(W-1)*H*C + h*C + c] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2WCH_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[(w+0)*C*H + c*H + h] = V0;
-				Out[(w+1)*C*H + c*H + h] = V1;
-			}
-			if (W&0x1) Out[(W-1)*C*H + c*H + h] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg)
-
-{
-	signed char *__restrict__ In = Arg->In;
-	signed char *__restrict__ Out = Arg->Out;
-	unsigned int W = Arg->W;
-	unsigned int H = Arg->H;
-	unsigned int Feat = Arg->Feat, C = Feat;
-        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
-
-	for (int c=First; c<Last; c++) {
-		for (int h=0; h<H; h++) {
-			for (int w=0; w<((W/2)*2); w+=2) {
-				int V0 = In[c*H*W+h*W+(w+0)], V1 = In[c*H*W+h*W+(w+1)];
-				Out[h*C*W + c*W + (w+0)] = V0;
-				Out[h*C*W + c*W + (w+1)] = V1;
-			}
-			if (W&0x1) Out[h*C*W + c*W + (W-1)] = In[c*H*W+h*W+W-1];
-		}
-	}
-	gap_waitbarrier(0);
-}
-
-
 
 #pragma GCC diagnostic pop

@@ -32,7 +32,11 @@
 #if defined(__GAP8__)
 #include "system_gap8.h"
 #else
+#if defined(__VEGA__)
+#include "system_vega.h"
+#else
 #include "system_gap9.h"
+#endif
 #endif  /* __GAP8__ */
 
 int32_t abs(int32_t x)
@@ -43,4 +47,6 @@ int32_t abs(int32_t x)
 void exit(int32_t status)
 {
     system_exit(status);
+    /* Wait forever... */
+    while (1);
 }

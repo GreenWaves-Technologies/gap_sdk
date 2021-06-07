@@ -14,11 +14,11 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
-from generation.generators.generator_decorators import (QREC_MULT8,
-                                                        generation_function)
-from generation.generators.globals.global_names import (INFOS,
-                                                        MULSCALE, MULSHIFT)
-from graph.types import Conv2DParameters, ConvFusionParameters, ActivationParameters
+from generation.generator_decorators import QREC_MULT8, generation_function
+from generation.generators.globals.global_names import (INFOS, MULSCALE,
+                                                        MULSHIFT)
+from graph.types import (ActivationParameters, Conv2DParameters,
+                         ConvFusionParameters)
 from utils.node_id import NodeId
 
 

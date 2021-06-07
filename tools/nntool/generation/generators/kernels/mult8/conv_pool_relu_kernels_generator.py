@@ -16,17 +16,22 @@ import logging
 
 from generation.at_types.at_params import (NO_ACTIVATION, NO_CONV, NO_POOL,
                                            ConvATParam, GroupedConvATParam,
-                                           gen_active_at_params, gen_conv_at_params,
+                                           gen_active_at_params,
+                                           gen_conv_at_params,
                                            gen_pool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import (QREC_MULT8,
+                                             generation_function)
 from graph.dim import PadDim
 from graph.types import (ActivationParameters, Conv2DParameters,
                          ConvFusionParameters)
 from utils.node_id import NodeId
 
-from ..autotiler_kernel import AutotilerKernel
+from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
+                                gen_includes, gen_sources,
+                                kernel_include_paths, kernel_includes,
+                                kernel_sources)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -71,6 +76,10 @@ def conv_pool_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, c
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[1], quants[1], None,
                                                   None, at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(),
                                                   force_relu=gen.force_relu))
+        elif node.fusion_type == "pool_active":
+            gen.kernels.append(ConvPoolReluKernel(node.name, cname,  None, None, cnodes[0], quants[0],
+                                                  cnodes[1], quants[1], at_ver=gen.opts['at_ver'],
+                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
         else:
             return False
     else:
@@ -89,6 +98,32 @@ def gen_cnn_conv_pool_act_qs8(code_block, cname,
                      gen_ctrl,
                      bias_size,
                      1,
+                     in_feat,
+                     out_feat,
+                     width,
+                     height)
+    code_block.indent()
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
+                     conv_oper, fcx, fcy, dcx, dcy, scx, scy, conv_pad)
+    code_block.write('{}, {}, {}, {}, {}, {}, {}, {},',
+                     pool_oper, fpx, fpy, dpx, dpy, spx, spy, pool_pad)
+    code_block.write('{});', act_oper)
+    code_block.deindent()
+
+
+def gen_cnn_conv_pool_act_ne16_qs8(code_block, cname, in_size, filter_bits,
+                                   in_feat, out_feat, width, height, bias_size,
+                                   conv_oper, fcx, fcy, dcx, dcy, scx, scy, conv_pad,
+                                   pool_oper, fpx, fpy, dpx, dpy, spx, spy, pool_pad,
+                                   act_oper, gen_ctrl, at_ver=3):
+    del at_ver
+    code_block.write('CNN_ConvolutionNE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {},',
+                     cname,
+                     gen_ctrl,
+                     in_size,
+                     bias_size,
+                     1,
+                     filter_bits,
                      in_feat,
                      out_feat,
                      width,
@@ -132,6 +167,7 @@ class ConvPoolReluKernel(AutotilerKernel):
     def __init__(self, node_name, cname, conv_params, conv_q,
                  pool_params, pool_q, act_params, act_q, at_ver=3,
                  gen_ctrl=None, force_relu=True):
+        self.ne16 = False
         if gen_ctrl is None:
             self.gen_ctrl = gen_ctrl = GenCtrl(None, cname=cname)
         else:
@@ -142,7 +178,8 @@ class ConvPoolReluKernel(AutotilerKernel):
         in_dim = out_dim = None
         pad_compatibilities = []
         if conv_params is not None:
-            at_conv_params = gen_conv_at_params(conv_params, pad_compatibilities)
+            at_conv_params = gen_conv_at_params(
+                conv_params, pad_compatibilities)
             in_dim = conv_params.in_dims[0]
             out_dim = conv_params.out_dims[0]
             # Set ENABLEIM2COL on 1x1 filters by default
@@ -154,11 +191,13 @@ class ConvPoolReluKernel(AutotilerKernel):
             bias_q = conv_q.in_qs[2]
             if conv_params.has_mul_bias:
                 mul_biases_q = conv_q.mul_biases_q
+            self.ne16 = conv_q.cache.get('ne16')
         else:
             at_conv_params = NO_CONV
 
         if pool_params is not None:
-            at_pool_params = gen_pool_at_params(pool_params, pad_compatibilities)
+            at_pool_params = gen_pool_at_params(
+                pool_params, pad_compatibilities)
             if in_dim is None:
                 in_dim = pool_params.in_dims[0]
             out_dim = pool_params.out_dims[0]
@@ -169,13 +208,14 @@ class ConvPoolReluKernel(AutotilerKernel):
             at_pool_params = NO_POOL
 
         if act_params is not None:
-            at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
+            if in_q is None:
+                in_q = act_q.in_qs[0]
+            at_act_params = gen_active_at_params(
+                act_params, force_relu=force_relu, asymmetric=act_q.in_qs[0].zero_point != 0)
             if in_dim is None:
                 in_dim = act_params.in_dims[0].expand_to_chw()
             if out_dim is None:
                 out_dim = act_params.out_dims[0].expand_to_chw()
-            if in_q is None:
-                in_q = act_q.in_qs[0]
             out_q = act_q.out_qs[0]
 
         else:
@@ -230,17 +270,44 @@ class ConvPoolReluKernel(AutotilerKernel):
             pp = self.at_pool_params
             ap = self.at_act_params
             if isinstance(self.at_conv_params, ConvATParam):
-                LOG.debug("%s: conv pool relu inq %s outq %s control block",
-                          self.node_name, self.in_q, self.out_q)
-                gen_cnn_conv_pool_act_qs8(code_block, self.cname, self.in_dim.c,
-                                          self.out_dim.c, self.in_dim.w, self.in_dim.h,
-                                          self.bias_q.bits//8,
-                                          cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
-                                          cp.Scx, cp.Scy, cp.ConvPad,
-                                          pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
-                                          pp.Spx, pp.Spy, pp.PoolPad,
-                                          ap.ReLUOper, gen_ctrl,
-                                          at_ver=self.at_ver)
+                if self.ne16:
+                    LOG.debug("NE16 !!! %s: conv pool relu inq %s outq %s control block",
+                              self.node_name, self.in_q, self.out_q)
+                    gen_cnn_conv_pool_act_ne16_qs8(code_block, self.cname, self.in_q.bits//8,
+                                                   self.filter_q.bits, self.in_dim.c,
+                                                   self.out_dim.c, self.in_dim.w, self.in_dim.h,
+                                                   self.bias_q.bits//8,
+                                                   cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
+                                                   cp.Scx, cp.Scy, cp.ConvPad,
+                                                   pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
+                                                   pp.Spx, pp.Spy, pp.PoolPad,
+                                                   ap.ReLUOper, gen_ctrl,
+                                                   at_ver=self.at_ver)
+                else:
+                    if self.in_dim.w == 1 and self.at_conv_params.Fcx == 1:
+                        LOG.debug("%s: conv pool relu inq %s outq %s control block",
+                                self.node_name, self.in_q, self.out_q)
+                        gen_cnn_conv_pool_act_qs8(code_block, self.cname, self.in_dim.c,
+                                                self.out_dim.c, self.in_dim.h, 1,
+                                                self.bias_q.bits//8,
+                                                cp.ConvOper, cp.Fcy, 1, cp.Dcy, 1,
+                                                cp.Scy, 1, cp.ConvPad,
+                                                pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
+                                                pp.Spx, pp.Spy, pp.PoolPad,
+                                                ap.ReLUOper, gen_ctrl,
+                                                at_ver=self.at_ver)
+                    else:
+                        LOG.debug("%s: conv pool relu inq %s outq %s control block",
+                                self.node_name, self.in_q, self.out_q)
+                        gen_cnn_conv_pool_act_qs8(code_block, self.cname, self.in_dim.c,
+                                                self.out_dim.c, self.in_dim.w, self.in_dim.h,
+                                                self.bias_q.bits//8,
+                                                cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
+                                                cp.Scx, cp.Scy, cp.ConvPad,
+                                                pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
+                                                pp.Spx, pp.Spy, pp.PoolPad,
+                                                ap.ReLUOper, gen_ctrl,
+                                                at_ver=self.at_ver)
             elif isinstance(self.at_conv_params, GroupedConvATParam):
                 LOG.debug("%s: grouped mulconv pool relu inq %s outq %s control block",
                           self.node_name, self.in_q, self.out_q)

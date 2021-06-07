@@ -15,10 +15,13 @@
 #
 
 import array
+
 from flatbuffers.flexbuffers import GetRoot
-from ..tflite_schema_head.Operator import Operator
-from ..tflite_schema_head.Model import Model
+from importer.common.get_reasonable_name import get_reasonable_name
+
 from ..tflite_schema_head.BuiltinOperator import BuiltinOperator
+from ..tflite_schema_head.Model import Model
+from ..tflite_schema_head.Operator import Operator
 
 TFLITE_BUILTIN_OPERATOR_NAMES = {
     getattr(BuiltinOperator, attr): attr
@@ -27,19 +30,21 @@ TFLITE_BUILTIN_OPERATOR_NAMES = {
 
 
 class TFLiteNode():
-    def __init__(self, operator: Operator, op_idx, model: Model, graph) -> None:
+    def __init__(self, operator: Operator, op_idx, model: Model, graph, name_cache=None, anonymise=False) -> None:
         self._op = operator
         self._op_idx = op_idx
         self._model = model
         self._graph = graph
         self._overriden_outputs = None
+        self._name = get_reasonable_name(f"{self.op_name}_{self._graph.idx}_{self._op_idx}",
+                                         name_cache=name_cache, anonymise=anonymise, length=40)
 
     def override_outputs(self, val):
         self._overriden_outputs = val
 
     @property
     def name(self):
-        return "{}_{}_{}".format(self.op_name, self._graph.idx, self._op_idx)
+        return self._name
 
     @property
     def idx(self):
@@ -104,10 +109,12 @@ class TFLiteNode():
     def get_options(self, options_class):
         if self._op.BuiltinOptions():
             opts = options_class()
-            opts.Init(self._op.BuiltinOptions().Bytes, self._op.BuiltinOptions().Pos)
+            opts.Init(self._op.BuiltinOptions().Bytes,
+                      self._op.BuiltinOptions().Pos)
             return opts
         return None
 
     def get_custom_options(self):
-        flex_buffer = GetRoot(array.array('B', self._op.CustomOptionsAsNumpy()).tobytes()).AsMap
+        flex_buffer = GetRoot(array.array(
+            'B', self._op.CustomOptionsAsNumpy()).tobytes()).AsMap
         return flex_buffer.Value

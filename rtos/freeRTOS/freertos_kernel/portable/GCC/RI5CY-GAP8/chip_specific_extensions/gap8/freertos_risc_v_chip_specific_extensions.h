@@ -73,3 +73,7 @@ extern uint8_t __irq_vector_base_m__;
 #define portGAP8_REG_A0_POS      ( 1 )
 #define portGAP8_REG_MSTATUS_POS ( 28 )
 #define portGAP8_REG_MEPC_POS    ( 29 )
+
+/* Stack alignment. */
+#define portGAP8_STACKALIGN_BYTE ( 16 )
+#define portGAP8_STACKALIGN_MASK ( portGAP8_STACKALIGN_BYTE - 1 )

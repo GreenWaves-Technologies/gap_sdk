@@ -123,8 +123,10 @@ static void RunMnist(void *arg)
     uint8_t * digit = (uint8_t *) arg;
     int16_t highest = Out_Layer[2][0];
     *digit = 0;
+    printf("0: Confidence: %d\n", Out_Layer[2][0]);
     for (uint8_t i = 1; i < 10; i++)
     {
+        printf("%d: Confidence: %d\n", i, Out_Layer[2][i]);
         if (highest < Out_Layer[2][i])
         {
             highest = Out_Layer[2][i];

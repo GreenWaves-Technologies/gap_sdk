@@ -24,8 +24,6 @@ from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-AT_CONVFILTER_ORD = ['out_c', 'in_c', 'h', 'w']
-
 @handles(Conv2DParameters)
 class ConvAdjuster(AdjusterBase):
     def adjust(self, G, node):
@@ -34,18 +32,18 @@ class ConvAdjuster(AdjusterBase):
         names = node.in_dims[0].order
         if node.transpose_in is not None and node.transpose_in[0] is not None:
             names = self.trans_names(names, node.transpose_in[0])
-        if names != ['c', 'h', 'w']:
-            self.adjust_in_out_chw(G, node, names)
+        if names != node.ker_in_order[0]:
+            self.adjust_in_out_order(G, node, names, order=node.ker_in_order[0])
             modified = True
 
         # if it doesn't then insert transpose before and after
         # check that the filter and bias match autotiler order
-        if node.filter.order != AT_CONVFILTER_ORD:
+        if node.filter.order != node.ker_in_order[1]:
             LOG.debug("step %s: %s adjust weights %s => %s",
-                      node.step_idx, node.name, node.filter, " x ".join(AT_CONVFILTER_ORD))
-            trans = self.get_trans(node.filter.order, AT_CONVFILTER_ORD)
+                      node.step_idx, node.name, node.filter, " x ".join(node.ker_in_order[1]))
+            trans = self.get_trans(node.filter.order, node.ker_in_order[1])
             self.apply_input_trans(node, trans, index=1)
-            node.filter.impose_order(AT_CONVFILTER_ORD)
+            node.filter.impose_order(node.ker_in_order[1])
             if G.quantization:
                 qrec = G.quantization.get(NodeId(node), None)
                 if qrec is None:

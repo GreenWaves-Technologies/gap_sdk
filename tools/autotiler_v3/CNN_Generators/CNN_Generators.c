@@ -293,17 +293,6 @@ void LoadCNNLibrary()
 			TCArg("unsigned short int", "H")
 			)
 	);
-	LibKernelTemplate("KerMatTranspose_fp_T",
-                  CArgs(7,
-			TCArg("short int *__restrict__", "In"),
-			TCArg("short int *__restrict__", "Out"),
-			TCArg("unsigned short int", "Feat"),
-			TCArg("unsigned short int", "W"),
-			TCArg("unsigned short int", "H"),
-			TCArg("unsigned char", "Sx"),
-			TCArg("unsigned char", "Sy")
-			)
-	);
 	LibKernelTemplate("KerSoftMax_fp_T",
                   CArgs(4,
 			TCArg("short int *__restrict__", "In"),
@@ -552,17 +541,6 @@ void LoadCNNLibrary()
 			TCArg("unsigned char", "Sy"),
 			TCArg("unsigned short int", "W"),
 			TCArg("unsigned short int", "H")
-			)
-	);
-	LibKernelTemplate("KerMatTranspose_fps_T",
-                  CArgs(7,
-			TCArg("signed char *__restrict__", "In"),
-			TCArg("signed char *__restrict__", "Out"),
-			TCArg("unsigned short int", "Feat"),
-			TCArg("unsigned short int", "W"),
-			TCArg("unsigned short int", "H"),
-			TCArg("unsigned char", "Sx"),
-			TCArg("unsigned char", "Sy")
 			)
 	);
 	LibKernelTemplate("KerSoftMax_fps_T",
@@ -839,6 +817,9 @@ void LoadCNNLibrary()
         LibKernel("KerParConv7x7StrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(2,2,2,0,4), 7,7,1,1,-1,-2));
 
         LibKernel("KerParConvNxNStrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(2,2,2,0,4), -1,-2,1,1,-1,-2));
+
+        LibKernel("KerParConv1D_NStrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV1D_DP), 0, 1, CNN_Type(2,2,2,0,4), -1,1,1,1,-1,1));
+        LibKernel("KerParConvNx1StrideSxS1_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(2,2,2,0,4), -1,1,1,1,-1,1));
         LibKernel("KerParConvNxMStrideSxSy_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(2,2,2,0,4), -1,-1,1,1,-1,-1));
 
         LibKernel("KerParConvNxMDxDyStrideSxSy_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(2,2,2,0,4), -1,-1,-1,-1,-1,-1));
@@ -902,6 +883,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(2,2,4,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulSxSy_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication, output scaled, single scalar for all channels */
 	LibKernel("KerParMatMulScaleScalar_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
@@ -934,6 +919,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulHswishSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHswish_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHswishSxSy_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication with H Sigmoid reduction */
 	LibKernel("KerParMatMulHsigmoid_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
@@ -942,6 +931,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulHsigmoidSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHsigmoid_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHsigmoidSxSy_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication with Leaky ReLU reduction */
 	LibKernel("KerParMatMulLeakyrelu_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
@@ -950,22 +943,14 @@ void LoadCNNLibrary()
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulLeakyreluSmallFeat_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_LEAKYRELU),
 													  1, CNN_Type(2,2,2,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyrelu_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyreluSxSy_NoBias_fp", CALL_PARALLEL, 0, "KerMatMul_fp_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(2,2,0,0,2), 0,0,0,0,-1,-1));
 
-	/* Matrix Transposition */
-	LibKernel("CNN_ParTranspose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_ParTransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
-	LibKernel("CNN_Transpose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_TransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
-
-	/* Tensor Permutation */
-	LibKernel("CNN_MatPermCHW2CWH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2HWC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2WHC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2WCH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2HCW_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 
 	/* SoftMax */
-	LibKernel("KerParSoftMax_fp", CALL_PARALLEL, 0, "KerSoftMax_fp_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParSoftMax_fp", CALL_PARALLEL, 0, "KerSoftMax_fp_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, -1, CNN_Type(2,0,0,0,2), 0,0,0,0,0,0));
 
 
 	/****************************************************************************************************************/
@@ -1085,6 +1070,9 @@ void LoadCNNLibrary()
         LibKernel("KerConv7x7StrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(2,2,2,0,4), 7,7,1,1,-1,-2));
 
         LibKernel("KerConvNxNStrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(2,2,2,0,4), -1,-2,1,1,-1,-2));
+
+        LibKernel("KerConv1D_NStrideS_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV1D_DP), 0, 0, CNN_Type(2,2,2,0,4), -1,1,1,1,-1,1));
+        LibKernel("KerConvNx1StrideSxS1_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(2,2,2,0,4), -1,1,1,1,-1,1));
         LibKernel("KerConvNxMStrideSxSy_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(2,2,2,0,4), -1,-1,1,1,-1,-1));
 
         LibKernel("KerConvNxMDxDyStrideSxSy_DP_fp", CALL_PARALLEL, 0, "KerConv_DP_fp_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(2,2,2,0,4), -1,-1,-1,-1,-1,-1));
@@ -1286,6 +1274,9 @@ void LoadCNNLibrary()
         LibKernel("KerParConv7x7StrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(1,1,1,0,DP_fps_S), 7,7,1,1,-1,-2));
 
         LibKernel("KerParConvNxNStrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(1,1,1,0,DP_fps_S), -1,-2,1,1,-1,-2));
+
+        LibKernel("KerParConv1D_NStrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV1D_DP), 0, 1, CNN_Type(1,1,1,0,4), -1,1,1,1,-1,1));
+        LibKernel("KerParConvNx1StrideSxS1_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(1,1,1,0,4), -1,1,1,1,-1,1));
         LibKernel("KerParConvNxMStrideSxSy_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(1,1,1,0,DP_fps_S), -1,-1,1,1,-1,-1));
 
         LibKernel("KerParConvNxMDxDyStrideSxSy_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 1, CNN_Type(1,1,1,0,DP_fps_S), -1,-1,-1,-1,-1,-1));
@@ -1356,6 +1347,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(1,1,2,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMul_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulSxSy_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication, output scaled, single scalar for all channels */
 	LibKernel("KerParMatMulScaleScalar_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_SCALE_SCALAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE),
@@ -1388,6 +1383,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulHswishSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSWISH),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHswish_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHswishSxSy_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSWISH),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication with H Sigmoid reduction */
 	LibKernel("KerParMatMulHsigmoid_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_HSIGMOID),
@@ -1396,6 +1395,10 @@ void LoadCNNLibrary()
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulHsigmoidSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_HSIGMOID),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHsigmoid_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulHsigmoidSxSy_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_HSIGMOID),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,-1,-1));
 
 	/* Matrix multiplication with Leaky ReLU reduction */
 	LibKernel("KerParMatMulLeakyrelu_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATMUL), CNN_OperList(1, KOP_LEAKYRELU),
@@ -1404,22 +1407,13 @@ void LoadCNNLibrary()
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,-1,-1));
 	LibKernel("KerParMatMulLeakyreluSmallFeat_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_SM1), CNN_OperList(1, KOP_LEAKYRELU),
 													  1, CNN_Type(1,1,1,0,1), 0,0,0,0,1,1));
-
-	/* Matrix Transposition */
-	LibKernel("CNN_ParTranspose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_ParTransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
-	LibKernel("CNN_Transpose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_TransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
-
-	/* Tensor Permutation */
-	LibKernel("CNN_MatPermCHW2CWH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2HWC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2WHC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2WCH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
-	LibKernel("CNN_MatPermCHW2HCW_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyrelu_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,1,1));
+	LibKernel("KerParMatMulLeakyreluSxSy_NoBias_fps", CALL_PARALLEL, 0, "KerMatMul_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATMUL_NOBIAS), CNN_OperList(1, KOP_LEAKYRELU),
+													  1, CNN_Type(1,1,0,0,1), 0,0,0,0,-1,-1));
 
 	/* SoftMax */
-	LibKernel("KerParSoftMax_fps", CALL_PARALLEL, 0, "KerSoftMax_fps_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, 0, CNN_Type(1,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerParSoftMax_fps", CALL_PARALLEL, 0, "KerSoftMax_fps_T",			CNN_Match(CNN_OperList(1, KOP_SOFTMAX), 0, -1, CNN_Type(1,0,0,0,2), 0,0,0,0,0,0));
 
 	/****************************************************************************************************************/
 	/* Kernels for features and coefficients on 8 bits. Kernels for a single feature evaluated in parallel          */
@@ -1538,6 +1532,9 @@ void LoadCNNLibrary()
         LibKernel("KerConv7x7StrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), 7,7,1,1,-1,-2));
 
         LibKernel("KerConvNxNStrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), -1,-2,1,1,-1,-2));
+
+        LibKernel("KerConv1D_NStrideS_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV1D_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), -1,1,1,1,-1,1));
+        LibKernel("KerConvNx1StrideSxS1_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), -1,1,1,1,-1,1));
         LibKernel("KerConvNxMStrideSxSy_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",		CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), -1,-1,1,1,-1,-1));
 
         LibKernel("KerConvNxMDxDyStrideSxSy_DP_fps", CALL_PARALLEL, 0, "KerConv_DP_fps_T",	CNN_Match(CNN_OperList(1, KOP_CONV_DP), 0, 0, CNN_Type(1,1,1,0,DP_fps_S), -1,-1,-1,-1,-1,-1));
@@ -1597,6 +1594,11 @@ void LoadCNNLibrary()
 	LibKernel("KerDP_IO_hsigmoid_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
 
+	LibKernel("KerDP_sigmoid_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_SIGMOID), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_sigmoid_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_SIGMOID), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
+
 	LibKernel("KerDP_leakyrelu_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,2), 0,0,0,0,0,0));
 	LibKernel("KerDP_IO_leakyrelu_fp", CALL_PARALLEL, 0, "KerDP_fp_T",
@@ -1631,6 +1633,11 @@ void LoadCNNLibrary()
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 	LibKernel("KerDP_IO_hsigmoid_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_HSIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+
+	LibKernel("KerDP_sigmoid_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_SIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
+	LibKernel("KerDP_IO_sigmoid_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
+		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT_IO), CNN_OperList(1, KOP_SIGMOID), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
 
 	LibKernel("KerDP_leakyrelu_fps", CALL_PARALLEL, 0, "KerDP_fps_T",
 		  CNN_Match(CNN_OperList(1, KOP_DP_REDUCT),    CNN_OperList(1, KOP_LEAKYRELU), -1, CNN_Type(4,0,0,0,1), 0,0,0,0,0,0));
@@ -1675,207 +1682,8 @@ void LoadCNNLibrary()
 
 	LibKernel("KerLinearLayerReLU_fp_fp_fpd", CALL_PARALLEL, 0, "KerLinearLayerReLU_fp_fp_fpd_T", CNN_Match(CNN_OperList(1, KOP_LINEAR), CNN_OperList(3, KOP_RELU, KOP_RELUN, KOP_NONE), 0,
 														CNN_Type(2,2,2,0,4), 0,0,0,0,0,0));
+	LoadCNN_Copy_Library();
 }
-#ifdef OLD
-static int CNN_EncodePoolOperation(KernelOper_T PoolOper, KernelOper_T ReLUOper)
-
-{
-	int Pool=0;
-	int ReLU = (ReLUOper==KOP_RELU)?1:0;
-
-	switch (PoolOper) {
-		case KOP_GLOBAL_MAXPOOL:
-		case KOP_MAXPOOL: Pool = 0; break;
-		case KOP_GLOBAL_AVGPOOL:
-		case KOP_AVGPOOL: Pool = 1; break;
-	}
-	return ((Pool<<1)|ReLU);
-}
-
-static int CNN_EncodeActivation(KernelOper_T Oper)
-
-{
-	switch (Oper) {
-		case KOP_RELU: return 1;
-		case KOP_RELUN: return 2;
-		case KOP_HSIGMOID: return 3;
-		case KOP_HSWISH: return 4;
-		case KOP_LEAKYRELU: return 5;
-		default: return 0;
-	}
-}
-
-static int CNN_Gcd(int a, int b)
-
-{
-	int x, y, z;
-
-	x = Abs (a); y = Abs (b);
-	while (x > 0) {
-		z = y % x; y = x; x = z;
-	}
-	return y;
-}
-
-static int CNN_Scm(int a, int b)
-
-{
-        return ((a*b)/CNN_Gcd(a,b));
-}
-
-static int CNN_UsedInputDimension(int Dim, int F, int S, int D, int Pad)
-
-{
-	/* Dim: input dimension, F: Filter dim, S: Stride, D: Dilation, Pad: pad values (sum of both sides) */
-	return ((Dim-1)*S+(D*(F-1)+1)-Pad);
-}
-
-static int CNN_TotalPaddingValue(int Dim, int F, int S, int D)
-
-{
-	/* F: Filter dim, S: Stride, D: Dilation */
-	return ((Dim%S) == 0)?Max((D*(F-1)+1)-S, 0):Max((D*(F-1)+1) - (Dim%S), 0);
-}
-
-static v4s CNN_EdgePaddingValue(AT_PadType PadType, int Padw, int Padh)
-
-{
-	v4s Pad;
-        switch (PadType) {
-		case PAD_LEFT: Pad = (v4s) {Padw, 0, Padh, 0}; break;
-		case PAD_RIGHT: Pad = (v4s) {0, Padw, 0, Padh}; break;
-		case PAD_BALANCED_LEFT: Pad = (v4s) {Padw-Padw/2, Padw/2, Padh-Padh/2, Padh/2}; break;
-		case PAD_BALANCED_RIGHT: Pad = (v4s) {Padw/2, Padw-Padw/2, Padh/2, Padh-Padh/2}; break;
-		default: GenTilingError("CNN_EdgePaddingValue: unknown padding method %d", PadType);
-        }
-	return Pad;
-}
-
-static void CNN_LayerOutputDim(	int Width, int Height,
-			KernelOper_T ConvOper, int Fcx, int Fcy, int Dcx, int Dcy, int Scx, int Scy, int ConvPad,
-			KernelOper_T PoolOper, int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy, int PoolPad,
-			int *Wc, int *Hc, int *Wo, int *Ho,
-			int *Pcw, int *Pch, int *Ppw, int *Pph)
-
-{
-	/* Convolution: Fc = Filter dim, Sc = Stride, Dc = Dilation
-	   Pooling    : Fp = Filter dim, Sp = Stride, Dp = Dilation
-	   3 different configurations:
-	   	Convolution then Pooling
-	   	Convolution
-	   	Pooling
-	   Wc, Hc  : convolution output dimension if present, otherwise returns Width, Eight
-	   Wo, Ho  : If conv then pool output dimension after conv and pooling, if pool only pool out dim, if conv only conv out dim
-	   Pcw, Pch: Horizontal and vertical padding for convolution
-	   Ppw, Pph: Horizontal and vertical padding for pooling
-	*/
-        int PadCw=0, PadCh=0;
-        int PadPw=0, PadPh=0;
-
-	if (ConvOper==KOP_NONE) {
-		Fcx=1; Dcx=1; Scx=1; Fcy=1; Dcy=1; Scy=1;
-	}
-	if (PoolOper==KOP_NONE) {
-		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
-	}
-        if (ConvOper!=KOP_NONE && ConvPad) {
-		PadCw = CNN_TotalPaddingValue(Width, Fcx, Scx, Dcx); PadCh = CNN_TotalPaddingValue(Height, Fcy, Scy, Dcy);
-        }
-	int ConvW = (Width  - (Dcx*(Fcx-1)+1) + PadCw)/Scx + 1;
-	int ConvH = (Height - (Dcy*(Fcy-1)+1) + PadCh)/Scy + 1;
-
-	if (Wc) *Wc = ConvW; else ConvW = Width;
-	if (Hc) *Hc = ConvH; else ConvH = Height;
-
-        if (PoolOper!=KOP_NONE && PoolPad) {
-		PadPw = CNN_TotalPaddingValue(ConvW, Fpx, Spx, Dpx); PadPh = CNN_TotalPaddingValue(ConvH, Fpy, Spy, Dpy);
-        }
-
-        if (Wo) *Wo = (ConvW - (Dpx*(Fpx-1)+1) + PadPw)/Spx + 1;
-	if (Ho) *Ho = (ConvH - (Dpy*(Fpy-1)+1) + PadPh)/Spy + 1;
-	if (Pcw) *Pcw = PadCw;
-	if (Pch) *Pch = PadCh;
-	if (Ppw) *Ppw = PadPw;
-	if (Pph) *Pph = PadPh;
-}
-
-static void CNN_TileOverlap(Tile_Orientation_T TileOrientation,
-			int Fcx, int Fcy, int Dcx, int Dcy, int Scx, int Scy,
-			int Fpx, int Fpy, int Dpx, int Dpy, int Spx, int Spy,
-			int *OverlapC, int *OverlapP
-		)
-
-{
-	/* Convolution: Fc = Filter dim, Sc = Stride, Dc = Dilation
-	   Pooling    : Fp = Filter dim, Sp = Stride, Dp = Dilation
-	   3 different configurations:
-	   	Convolution then Pooling
-	   	Convolution
-	   	Pooling
-	*/
-	if (OverlapC == 0) {
-		Fcx = Scx = Dcx = 1; Fcy = Scy = Dcy = 1;
-	}
-	if (OverlapP == 0) {
-		Fpx = Spx = Dpx = 1; Fpy = Spy = Dpy = 1;
-	}
-	int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1);
-	int OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
-	int OverlapPx = (Dpx*(Fpx-1)+1)-Spx;
-	int OverlapPy = (Dpy*(Fpy-1)+1)-Spy;
-
-	if (OverlapC) *OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
-	if (OverlapP) *OverlapP = (TileOrientation==TILE_HOR)?OverlapPy:OverlapPx;
-
-
-}
-
-static int CNN_CheckIfRepresentable(int Value, int Nbits)
-
-{
-	return ((Abs(Value)&((1<<Nbits)-1)) == Value);
-}
-
-static int CNN_SetUpperLowerBounds(KernelOper_T ReLUOper, int DataSize, int DoReLU, int *LB, int *UB, int ReluN, int Precision)
-
-{
-	if (DataSize==4) {
-		if (DoReLU) {
-			if (ReLUOper == KOP_RELU) {
-				*LB = 0; *UB = 0x7fffffff;
-			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN<<Precision;
-				if (!CNN_CheckIfRepresentable(*UB, 31)) return 1;
-			}
-		} else {
-			*LB = 0x80000000; *UB = 0x7fffffff;
-		}
-	} else if (DataSize==2) {
-		if (DoReLU) {
-			if (ReLUOper == KOP_RELU) {
-				*LB = 0; *UB = 32767;
-			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN<<Precision;
-				if (!CNN_CheckIfRepresentable(*UB, 15)) return 1;
-			}
-		} else {
-			*LB = -32768; *UB = 32767;
-		}
-	} else if (DataSize==1) {
-		if (DoReLU) {
-			if (ReLUOper == KOP_RELU) {
-				*LB = 0; *UB = 127;
-			} else if (ReLUOper == KOP_RELUN) {
-				*LB = 0; *UB = ReluN<<Precision;
-				if (!CNN_CheckIfRepresentable(*UB, 7)) return 1;
-			}
-		} else {
-			*LB = -128; *UB = 127;
-		}
-	}
-	return 0;
-}
-#endif
 
 /*********************************************************************************************************************************************************************
  	Generator for Convolutions, followed by an optional pooling (Max or Average), followed by an optional linear rectification (ReLU).
@@ -1986,7 +1794,7 @@ int CNN_ConvolutionPoolReLU(
 	int FilterL3 = Filter_InL3?O_L2DB:0;
 	int BiasL3 = Bias_InL3?O_L2DB:0;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
-	int OutLB, OutUB, ReluN = 6;
+	int OutLB = 0, OutUB = 0, ReluN = 6;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
 	}
@@ -2005,6 +1813,7 @@ int CNN_ConvolutionPoolReLU(
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 	}
+	KernelOper_T COper = ConvOper;
         int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1), OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
 	int OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
         int OverlapPx = (Dpx*(Fpx-1)+1)-Spx, OverlapPy = (Dpy*(Fpy-1)+1)-Spy;
@@ -2037,7 +1846,8 @@ int CNN_ConvolutionPoolReLU(
 	SetBiasKerName = CNN_FindMatchingKernel(ConvDP?KOP_SETBIAS_DP:KOP_SETBIAS, KOP_NONE, ParFeat, Bias_DataSize, 0, 0, 0, ConvOut_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 
 	if (SetBiasKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching Set Bias basic kernel", Name);
-	ConvKerName = CNN_FindMatchingKernel(ConvOper, KOP_NONE, ParFeat,
+	if (COper == KOP_CONV_DP && Height == 1 && Fcx == 1 && Fcy != 1) COper = KOP_CONV1D_DP;
+	ConvKerName = CNN_FindMatchingKernel(COper, KOP_NONE, ParFeat,
 					 In_DataSize, Filter_DataSize, 0 /* Bias_DataSize */, 0, ConvOut_DataSize,
 					 Fcx, Fcy, Dcx, Dcy, Scx, Scy,
 					 &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
@@ -2462,7 +2272,7 @@ int CNN_ConvolutionMulBiasPoolReLU(
 	int BiasL3 = Bias_InL3?O_L2DB:0;
 	int MulBiasL3 = MulBias_InL3?O_L2DB:0;
 	AT_PadType PadType = PAD_BALANCED_LEFT;
-	int OutLB, OutUB, ReluN = 6;
+	int OutLB = 0, OutUB = 0, ReluN = 6;
 	int MulBiasScalar = 0;
 	if (PoolOper==KOP_NONE) {
 		Fpx=1; Dpx=1; Spx=1; Fpy=1; Dpy=1; Spy=1;
@@ -2483,6 +2293,7 @@ int CNN_ConvolutionMulBiasPoolReLU(
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 		if (Ctrl->MulBiasScalar != -1) MulBiasScalar = Ctrl->MulBiasScalar;
 	}
+	KernelOper_T COper = ConvOper;
         int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1), OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
 	int OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
         int OverlapPx = (Dpx*(Fpx-1)+1)-Spx, OverlapPy = (Dpy*(Fpy-1)+1)-Spy;
@@ -2513,7 +2324,8 @@ int CNN_ConvolutionMulBiasPoolReLU(
 	if (DWConv && (InFeat != OutFeat)) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Depth wise convolution requested with InFeat:%d != OutFeat:%d", Name, InFeat, OutFeat);
 	SetBiasKerName = CNN_FindMatchingKernel(ConvDP?KOP_SETBIAS_DP:KOP_SETBIAS, KOP_NONE, ParFeat, Bias_DataSize, 0, 0, 0, ConvOut_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 	if (SetBiasKerName==0) GenTilingError("CNN_ConvolutionMulBiasPoolReLU Kernel: %s, Can't find a matching Set Bias basic kernel", Name);
-	ConvKerName = CNN_FindMatchingKernel(ConvOper, KOP_NONE, ParFeat,
+	if (COper == KOP_CONV_DP && Height == 1 && Fcx == 1 && Fcy != 1) COper = KOP_CONV1D_DP;
+	ConvKerName = CNN_FindMatchingKernel(COper, KOP_NONE, ParFeat,
 					 In_DataSize, Filter_DataSize, 0, 0, ConvOut_DataSize,
 					 Fcx, Fcy, Dcx, Dcy, Scx, Scy,
 					 &NeedFcx, &NeedFcy, &NeedDcx, &NeedDcy, &NeedScx, &NeedScy, 0);
@@ -4605,11 +4417,16 @@ int CNN_MatScale(
 		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
 		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-		MatMulOper:	Should always be KOP_MATMUL
+		MatMulOper:	Should always be KOP_MATMUL, KOP_MATMUL_NOBIAS
 		ReLUOper:	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
-		Signature:	Name(In2, In1, Bias, Out)
+		Signature:	
+			KOP_MATMUL
+				Name(In2, In1, Bias, Out)
 				Name(In2, In1, Bias, ReLUN, Out)
+			KOP_MATMUL_NOBIAS:
+				Name(In2, In1, Out)
+				Name(In2, In1, ReLUN, Out)
 
 	CNN_MatMul
 	
@@ -4666,17 +4483,18 @@ int CNN_MatMul(
 	int OutLB, OutUB, ReluN = 6;
 	int ConsT0 = Scx;
 	int Nbuff;
+	Bias_DataSize = (MatMulOper == KOP_MATMUL_NOBIAS)?0:Bias_DataSize;
 
 	if (Ctrl) {
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 	}
-	if (!(MatMulOper == KOP_MATMUL)) GenTilingError("CNN_MatMul Kernel: %s, MatMulOper should be KOP_MATMUL", Name);
+	if (!(MatMulOper == KOP_MATMUL||MatMulOper == KOP_MATMUL_NOBIAS)) GenTilingError("CNN_MatMul Kernel: %s, MatMulOper should be KOP_MATMUL or KOP_MATMUL_NOBIAS", Name);
 
 	if (!(ReLUOper == KOP_NONE || ReLUOper == KOP_RELU || ReLUOper == KOP_RELUN || ReLUOper == KOP_HSWISH || ReLUOper == KOP_HSIGMOID || ReLUOper == KOP_LEAKYRELU))
 		GenTilingError("CNN_MatMul Kernel: %s, ReLUOper should be KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID or KOP_LEAKYRELU", Name);
 
 	KernelOper_T KernelOper = CNN_CompositeKernel(MatMulOper, ReLUOper, KOP_NONE);
-	if (ColM1 != LineM2) GenTilingError("CNN_MatMul: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d] %s", Name, LineM1, ColM1, LineM2, ColM2);
+	if (ColM1 != LineM2) GenTilingError("CNN_MatMul: %s, Incorrect input matrices dimensions for a matrix multiplication: [%d x %d]*[%d x %d]", Name, LineM1, ColM1, LineM2, ColM2);
 	if (Width==0||Height==0) {
 		Width = ColM2; Height=1; Scx = 1; Scy = 1;
 	}
@@ -4727,7 +4545,7 @@ int CNN_MatMul(
                 CArgs(4,
                       TCArg(CNN_ArgDataType(In2_DataSize,1,1),  "In2"),
                       TCArg(CNN_ArgDataType(In1_DataSize,1,1),  "In1"),
-                      TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"),
+                      Bias_DataSize?TCArg(CNN_ArgDataType(Bias_DataSize,1,1), "Bias"):AT_NO_C_ARG,
                       TCArg(CNN_ArgDataType(Out_DataSize,1,1),  "Out")
                 ),
 		Calls(1,
@@ -4735,7 +4553,7 @@ int CNN_MatMul(
 				Bindings(21,
 					K_Arg("In1",  KER_ARG_TILE), K_Arg("In1",  KER_ARG_TILE_W), K_Arg("In1",  KER_ARG_TILE_H),
 					K_Arg("In2",  KER_ARG_TILE), K_Arg("In2",  KER_ARG_TILE_W),
-					K_Arg("Bias",KER_ARG_TILE),  AT_IGNORE_ARG_BINDING,
+					Bias_DataSize?K_Arg("Bias",KER_ARG_TILE):AT_IGNORE_ARG_BINDING,  AT_IGNORE_ARG_BINDING,
 					K_Arg("Out", KER_ARG_TILE),  K_Arg("Out", KER_ARG_TILE_W), K_Arg(ColFirst?"In1":"In2",  KER_ARG_TILE_BASE),
 					K_Arg("KerBuff", KER_ARG_TILE),
 					Imm(OutLB),
@@ -4743,7 +4561,7 @@ int CNN_MatMul(
 					Imm(Out_Q):						/* Output fixed point format */
 					Imm(OutUB),						/* Activation upper bound, clip or relu */
 					Imm(In1_Q+In2_Q-Out_Q),					/* Out fixed point adjust */
-					Imm(In1_Q+In2_Q-Bias_Q),				/* Bias fixed point adjust */
+					Bias_DataSize?Imm(In1_Q+In2_Q-Bias_Q):AT_IGNORE_ARG_BINDING, /* Bias fixed point adjust */
 					AT_IGNORE_ARG_BINDING,					/* MulBias fixed point format, unused */
 					Imm(ColFirst),
 					NeedScx?Imm(Scx):AT_IGNORE_ARG_BINDING,
@@ -4758,14 +4576,14 @@ int CNN_MatMul(
 			KerArg("KerBuff",KerArgSpace(1, T1), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
 			KerArg("In1",    KerArgSpace(1, T0), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T1), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-			KerArg("Bias",   KerArgSpace(1, T0), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
-			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
+	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, T0), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
+			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, 0, "Out")
 		):
 		KerArgs(5,
 			KerArg("KerBuff",KerArgSpace(1, T0), O_BUFF|O_NTILED,    Nbuff*ColM1,  1,      In2_DataSize,  0, 0,                                                0, 0),
 			KerArg("In1",    KerArgSpace(1, T1), O_IN|O_DB|O_CONST|In1L3,  ColM1,  LineM1, In1_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          8, "In1"),
 			KerArg("In2",    KerArgSpace(1, T0), O_IN|O_DB|In2L3,          ColM2,  LineM2, In2_DataSize,  0, OBJ_CONSTRAINTS_TILE_VER|OBJ_CONSTRAINTS_PAD_REM, ConsT0, "In2"),
-			KerArg("Bias",   KerArgSpace(1, T1), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"),
+	  Bias_DataSize?KerArg("Bias",   KerArgSpace(1, T1), O_IN|O_DB|O_CONST|BiasL3,     1,  LineO,  Bias_DataSize, 0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Bias"):AT_NO_KER_ARG,
 			KerArg("Out",    KerArgSpace(1, T1), O_OUT|O_DB|OutL3,          ColO,  LineO,  Out_DataSize,  0, OBJ_CONSTRAINTS_PAD_REM,                          0, "Out")
 		)
 	);
@@ -4775,7 +4593,9 @@ int CNN_MatMul(
 
 		AddKernelArgDim(Name, "In1", 3, LineM1, ColM1, In1_DataSize);
 		AddKernelArgDim(Name, "In2", 4, LineM2, Height, Width, In2_DataSize);
-		AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		if (MatMulOper == KOP_MATMUL) {
+			AddKernelArgDim(Name, "Bias", 2, LineO, Bias_DataSize);
+		}
 		AddKernelArgDim(Name, "Out", 3, LineO, ColO, Out_DataSize);
 
 		AT_PrepareForTest(Name,
@@ -5502,257 +5322,6 @@ int CNN_MatMulScaleSmallM1(
 			  	0,0, 0,0, 0,0, (v4s) Height,
 			  	KernelOper,
 			  	(In1_DataSize==1)?7:15, 0);
-	}
-	return (Kernel!=0);
-}
-
-
-/*********************************************************************************************************************************************************************
- 	Generator for Matrix Transposition
-
-	Template:
-		Name:		Name of the generated user kernel
-
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
-
-		In_DataSize:	1: byte, 2: half word,
-		Out_DataSize:	1: byte, 2: half word
-
-		In_Q:		In fixed point format
-		Out_Q:		Out fixed point format
-
-		In_InL3:	0: In is in L2, 1: In is in L3 memory
-		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
-
-		InFeat		Number of matrices
-		Width		For 1x1 convolution, width of an input feature map
-		Height		For 1x1 convolution, height of an input feature map
-
-		Signature:	Name(In, Out)
-
-	CNN_MatTranspose
-	
-*********************************************************************************************************************************************************************/
-
-
-int CNN_MatTranspose(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int In_DataSize,
-	int Out_DataSize,
-
-	int In_Q,
-	int Out_Q,
-
-	int In_InL3,
-	int Out_InL3,
-
-	int InFeat,
-	int Width,
-	int Height
-)
-
-{
-	int Log = 1;
-	Tile_Orientation_T TileOrientation = TILE_HOR;
-	unsigned int OutTileOrientation;
-	int ParFeat = 1;
-	if (Ctrl) {
-		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
-		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
-	}
-	unsigned int InL3 = In_InL3?O_L2DB:0;
-	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	KernelOper_T MatTransOper = KOP_MATTRANSP;
-	unsigned long long int LayerOp = Width*Height*InFeat;
-	unsigned long long int LayerBandwidth = 0;
-
-	char *MatTransKerName = CNN_FindMatchingKernel(MatTransOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
-
-	if (MatTransKerName==0) GenTilingError("CNN_MatTranspose Kernel: %s, Can't find a matching basic kernel", Name);
-
-	if (TileOrientation==TILE_HOR) OutTileOrientation = OBJ_CONSTRAINTS_TILE_VER; else OutTileOrientation = OBJ_CONSTRAINTS_TILE_HOR;
-	LayerBandwidth += Width*Height*In_DataSize;
-	LayerBandwidth += Width*Height*Out_DataSize;
-
-	if (Log) {
-		printf("CNN_MatTranspose: %s %s\n", Name, ParFeat?"Par Feat":"");
-		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
-	}
-
-	Kernel_T *Kernel =
-		UserKernel(Name,
-			(ParFeat)?
-			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)):
-			KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)),
-	        	TileOrientation,
-                	CArgs(2,
-                      		TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"),
-                      		TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")
-                	),
-			Calls(1,
-				Call(MatTransKerName, LOC_LOOP,
-					Bindings(7,
-						K_Arg("In", KER_ARG_TILE),			/* Input tile */
-						K_Arg("Out", KER_ARG_TILE),			/* Output tile */
-						(ParFeat)?
-						K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0):	/* Number of Matrices involved */
-						Imm(1),						/* A single matrix */
-						K_Arg("In", KER_ARG_TILE_W),			/* Input tile width */
-						K_Arg("In", KER_ARG_TILE_H),			/* Input tile height */
-						AT_IGNORE_ARG_BINDING,				/* StrideX */
-						AT_IGNORE_ARG_BINDING				/* StrideY */
-					)
-				)
-			),
-	                KerArgs(2,
-	                        KerArg("In",   KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,  Width, Height, In_DataSize,  0, 0, 0, "In"),
-	                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|InL3, Height, Width, Out_DataSize, 0, OutTileOrientation, 0, "Out")
-			)
-		);
-	if (Kernel) {
-		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-		AddKernelArgDim(Name, "In",  4, InFeat, Height, Width, In_DataSize);
-		AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
-	}
-	return (Kernel!=0);
-}
-
-/*********************************************************************************************************************************************************************
- 	Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}
-
-	Template:
-		Name:		Name of the generated user kernel
-
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
-
-		In_DataSize:	1: byte, 2: half word,
-		Out_DataSize:	1: byte, 2: half word
-
-		In_Q:		In fixed point format
-		Out_Q:		Out fixed point format
-
-		In_InL3:	0: In is in L2, 1: In is in L3 memory
-		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
-
-		InFeat		Number of channels of the tensor
-		Width		Tensor width
-		Height		Tensor height
-		MatPermOper	Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
-
-		Signature:	Name(In, Out)
-
-	CNN_3DTensorPermute
-	
-*********************************************************************************************************************************************************************/
-
-int CNN_3DTensorPermute(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int In_DataSize,
-	int Out_DataSize,
-
-	int In_Q,
-	int Out_Q,
-
-	int In_InL3,
-	int Out_InL3,
-
-	int InFeat,
-	int Width,
-	int Height,
-	KernelOper_T MatPermOper
-)
-
-{
-	int Log = 1;
-	int ParFeat = 1;
-	unsigned int InL3 = In_InL3?O_L2DB:0;
-	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	unsigned long long int LayerOp = Width*Height*InFeat;
-	unsigned long long int LayerBandwidth = 0;
-
-	char *MatPermKerName = CNN_FindMatchingKernel(MatPermOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
-
-	LayerBandwidth += InFeat*Width*Height*In_DataSize;
-	LayerBandwidth += InFeat*Width*Height*Out_DataSize;
-	if (Log) {
-		printf("CNN_MatPermute: %s %s\n", Name, ParFeat?"Par Feat":"");
-		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		if (MatPermKerName) printf("%20s: %s\n", "MatPermKerName", MatPermKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
-	}
-
-	Object_T **PKerArgs = AllocateKerArgs(2);
-	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB|InL3,  Width, Height*InFeat, In_DataSize,  0, 0, 0, "In");
-	switch (MatPermOper) {
-		case KOP_MATPERM_CHW2CWH:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*Height, InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
-			break;
-		case KOP_MATPERM_CHW2HWC:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*InFeat, Height, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
-			break;
-		case KOP_MATPERM_CHW2WHC:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
-			break;
-		case KOP_MATPERM_CHW2WCH:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
-			break;
-		case KOP_MATPERM_CHW2HCW:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width, Height*InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
-			break;
-	}
-	Kernel_T *Kernel = UserKernel(Name,
-			KernelIterSpace(1, IterTiledSpace(T0)),
-	        	TILE_VER,
-                	CArgs(2, TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"), TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")),
-			Calls(1,
-				Call(MatPermKerName, LOC_LOOP,
-					Bindings(7,
-						K_Arg("In", KER_ARG_TILE),	/* Input tile */
-						K_Arg("Out", KER_ARG_TILE),	/* Output tile */
-						Imm(InFeat), 			/* Number of Channels */
-						K_Arg("In", KER_ARG_TILE_W),	/* Input tile width */
-						Imm(Height),			/* Input tile height */
-						AT_IGNORE_ARG_BINDING,		/* StrideX */
-						AT_IGNORE_ARG_BINDING		/* StrideY */
-					)
-				)
-			),
-			PKerArgs
-		);
-	if (Kernel) {
-		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
-		switch (MatPermOper) {
-			case KOP_MATPERM_CHW2CWH:
-				AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
-				break;
-			case KOP_MATPERM_CHW2HWC:
-				AddKernelArgDim(Name, "Out", 4, Height, Width, InFeat, Out_DataSize);
-				break;
-			case KOP_MATPERM_CHW2WHC:
-				AddKernelArgDim(Name, "Out", 4, Width, Height, InFeat, Out_DataSize);
-				break;
-			case KOP_MATPERM_CHW2WCH:
-				AddKernelArgDim(Name, "Out", 4, Width, InFeat, Height, Out_DataSize);
-				break;
-			case KOP_MATPERM_CHW2HCW:
-				AddKernelArgDim(Name, "Out", 4, Height, InFeat, Width, Out_DataSize);
-				break;
-		}
 	}
 	return (Kernel!=0);
 }

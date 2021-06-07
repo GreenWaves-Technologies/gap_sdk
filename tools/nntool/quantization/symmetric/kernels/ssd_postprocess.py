@@ -16,8 +16,9 @@
 import numpy as np
 from graph.types import SSDDetectorParameters
 from quantization.kernels.kernel_base import (KernelBase, params_type,
-                                              quantization)
-from quantization.quantization_record_base import QuantizationRecordBase
+                                              qrec_type)
+from quantization.multiplicative.mulbias import set_ssd_scales
+from quantization.new_qrec import QRec
 from utils.exp_17_15 import exp_fp_17_15
 from utils.ssd_utils import (CNTX_IDX, CNTY_IDX, H_IDX, W_IDX, XMAX_IDX,
                              XMIN_IDX, YMAX_IDX, YMIN_IDX, convert_cors2cnts,
@@ -25,12 +26,12 @@ from utils.ssd_utils import (CNTX_IDX, CNTY_IDX, H_IDX, W_IDX, XMAX_IDX,
 
 
 @params_type(SSDDetectorParameters)
-@quantization('symmetric')
+@qrec_type('scaled')
 class SSDDetectorSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
         offsets = in_tensors[0]
@@ -41,7 +42,7 @@ class SSDDetectorSymmetric(KernelBase):
         decoded_bboxes, valid_scores = cls.decoder(
             params, qrec, offsets, anchors, scores, anchors_type='centers')
         out_boxes, out_scores, out_classes = cls.nms(params, qrec, decoded_bboxes, valid_scores)
-        out_count = np.array([len(out_classes)])
+        out_count = np.array([sum(out_classes != 0)])
         return qrec.get_outputs(params, [out_boxes, out_classes, out_scores, out_count], ktype="symmetric")
 
     @classmethod
@@ -63,33 +64,33 @@ class SSDDetectorSymmetric(KernelBase):
         valid_offsets = offsets[valid_indices]
         valid_anchors = anchors_cnts[valid_indices]
 
-        qrec.set_scales(params)
+        set_ssd_scales(qrec, params)
         #  xcnt, ycnt --> Q14
         #  xcnt = (So*O * Sa*Aw)/params.x_scale + Sa*Ax = So*Sa/params.x_scale (O*Aw + x_scale/So * Ax) =
         #           (scale_x * (O*Aw + (scale_x_anc*Ax)>>scale_x_ancNorm))>>scale_xNorm =
         #           at_norm(scale_x*(O*Aw + at_norm(scale_x_anc*Ax, scale_x_ancNorm)), scale_xNorm)
-        xcenter = qrec.scale_x_q.apply_scales(
+        xcenter = qrec.cache['scale_x_q'].apply_scales(
             np.multiply(valid_offsets[:, CNTX_IDX], valid_anchors[:, W_IDX], dtype=np.int32) +
-            qrec.scale_x_anc_q.apply_scales(valid_anchors[:, CNTX_IDX])
+            qrec.cache['scale_x_anc_q'].apply_scales(valid_anchors[:, CNTX_IDX])
         )
-        ycenter = qrec.scale_y_q.apply_scales(
+        ycenter = qrec.cache['scale_y_q'].apply_scales(
             np.multiply(valid_offsets[:, CNTY_IDX], valid_anchors[:, H_IDX], dtype=np.int32) +
-            qrec.scale_y_anc_q.apply_scales(valid_anchors[:, CNTY_IDX])
+            qrec.cache['scale_y_anc_q'].apply_scales(valid_anchors[:, CNTY_IDX])
         )
 
         #  half_h, half_w --> Q14
         #  half_h = exp(So*Off / params.h_scale) * Sa*A = Sa/So * exp(So/params.h_scale *O) * A =
         #           (scale_ao * (A* exp17.15(scale_h*O<<15-scale_hNorm))>>scale_aoNorm) =
         #           at_norm(scale_ao*(A*exp17.15(scale_h*O<<15-scale_hNorm)), scale_aoNorm)
-        norm_h = 15 - qrec.scale_h_q.qnorms
-        norm_w = 15 - qrec.scale_w_q.qnorms
+        norm_h = 15 - qrec.cache['scale_h_q'].qnorms
+        norm_w = 15 - qrec.cache['scale_w_q'].qnorms
         exp_h = exp_fp_17_15(np.multiply(valid_offsets[:, H_IDX], int(
-            qrec.scale_h_q.qbiases), dtype=np.int32) << norm_h)
+            qrec.cache['scale_h_q'].qbiases), dtype=np.int32) << norm_h)
         exp_w = exp_fp_17_15(np.multiply(valid_offsets[:, W_IDX], int(
-            qrec.scale_w_q.qbiases), dtype=np.int32) << norm_w)
-        half_h = qrec.scale_ao_q.apply_scales(np.multiply(
+            qrec.cache['scale_w_q'].qbiases), dtype=np.int32) << norm_w)
+        half_h = qrec.cache['scale_ao_q'].apply_scales(np.multiply(
             exp_h, valid_anchors[:, H_IDX], dtype=np.int32)) >> 1
-        half_w = qrec.scale_ao_q.apply_scales(np.multiply(
+        half_w = qrec.cache['scale_ao_q'].apply_scales(np.multiply(
             exp_w, valid_anchors[:, W_IDX], dtype=np.int32)) >> 1
 
         # min-max or corners format: required for nms
@@ -144,8 +145,10 @@ class SSDDetectorSymmetric(KernelBase):
             out_scores = np.concatenate(out_scores)
             # keep only the max_detection most probables
             args = np.argsort(out_scores)[::-1]
+            if len(args) < params.max_detections:
+                return np.pad(out_boxes[args], ((0, params.max_detections-len(args)), (0, 0)), 'constant'), \
+                    np.pad(out_scores[args], (0, params.max_detections-len(args)), 'constant'), \
+                    np.pad(out_classes[args], (0, params.max_detections-len(args)), 'constant')
             args = args[:params.max_detections]
-            out_boxes = out_boxes[args]
-            out_scores = out_scores[args]
-            out_classes = out_classes[args]
-        return out_boxes, out_scores, out_classes
+            return out_boxes[args], out_scores[args], out_classes[args]
+        return np.zeros((params.max_detections, 4)), np.zeros(params.max_detections), np.zeros(params.max_detections)

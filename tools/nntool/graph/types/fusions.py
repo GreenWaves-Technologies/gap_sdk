@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.pooling import PoolingParameters
+from graph.types.others import PadParameters
 import logging
+
 from ..dim import Dim
-from .base import (Parameters, NodeOptions, FilterParameters,
-                   SensitiveToOrder, SingleInputAndOutput, NNEdge)
+from .base import (FilterParameters, NNEdge, NodeOptions, Parameters,
+                   SensitiveToOrder, SingleInputAndOutput, Transposable, cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -45,23 +48,23 @@ class FusionInputOutputParameters(Parameters):
     def get_parameter_size(self):
         return 0
 
-    def clone(self, name, groupn=None):
-        return self.__class__(name)
-
     def __str__(self):
         return ""
 
 
+@cls_op_name('fusion_input')
 class FusionInputParameters(FusionInputOutputParameters):
-    op_name = "fusion_input"
+    pass
 
 
+@cls_op_name('fusion_output')
 class FusionOutputParameters(FusionInputOutputParameters):
-    op_name = "fusion_output"
+    pass
 
 
 class FusionBase(Parameters):
     fusion_op_name = "!!NOT SET!!"
+    quantize_internals = True
 
     def __init__(self, name, *args, fusion_type=None, subgraph=None,
                  input_mapping=None,
@@ -81,8 +84,10 @@ class FusionBase(Parameters):
                 input_mapping = [[(nodes[0], 0)]]
 
             for from_idx, node_list in enumerate(input_mapping):
-                hint = [in_hints[from_idx]] if in_hints and len(in_hints) > from_idx else None
-                dims = in_dims[from_idx] if in_dims and len(in_dims) > from_idx else None
+                hint = [in_hints[from_idx]] if in_hints and len(
+                    in_hints) > from_idx else None
+                dims = in_dims[from_idx] if in_dims and len(
+                    in_dims) > from_idx else None
                 input_node = FusionInputParameters("%s_in_%s" % (name, from_idx),
                                                    idx=from_idx,
                                                    dims=dims,
@@ -94,7 +99,8 @@ class FusionBase(Parameters):
                 output_mapping = [(nodes[-1], 0)]
 
             for to_idx, (node, from_idx) in enumerate(output_mapping):
-                hint = [out_hints[to_idx]] if out_hints and len(out_hints) > to_idx else None
+                hint = [out_hints[to_idx]] if out_hints and len(
+                    out_hints) > to_idx else None
                 output_node = FusionOutputParameters("%s_out_%s" % (name, to_idx),
                                                      idx=to_idx,
                                                      in_dims_hint=hint, out_dims_hint=hint)
@@ -183,34 +189,37 @@ class FusionBase(Parameters):
                 insert_ext(orig, (node, from_idx), to_idx)
         return orig
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def get_parameter_size(self):
         return 0
 
     def get_output_size(self, in_dims):
-        self.in_dims = self.clone_dim_with_hints(in_dims)
         node_out_dims = []
         for node in self.subgraph.dfs():
             if isinstance(node, FusionInputParameters):
-                node_in_dims = [self.clone_dim_with_hint(in_dims[node.idx], node.idx)]
+                node_in_dims = [self.clone_dim_with_hint(
+                    in_dims[node.idx], node.idx)]
             else:
                 node_in_dims = []
                 for edge in self.subgraph.in_edges(node.name):
-                    insert_ext(node_in_dims, edge.from_node.out_dims[edge.from_idx], edge.to_idx)
-            node.in_dims = [dim.clone() if dim else None for dim in node_in_dims]
+                    insert_ext(
+                        node_in_dims, edge.from_node.out_dims[edge.from_idx], edge.to_idx)
+            node.in_dims = [
+                dim.clone() if dim else None for dim in node_in_dims]
             out_dims = node.get_output_size(node.in_dims)
             node.out_dims = out_dims
             if isinstance(node, FusionOutputParameters):
                 insert_ext(node_out_dims, out_dims[0], node.idx)
-        self.out_dims = node_out_dims
         return node_out_dims
+
+    @staticmethod
+    def dont_quantize_internals(deco_cls):
+        setattr(deco_cls, 'quantize_internals', False)
+        return deco_cls
 
     def __str__(self):
         return "{}".format(", ".join([str(node).strip() for node in self.contained_nodes()]))
 
-
+@cls_op_name('matrix_scale')
 class MatScaleFusionParameters(FusionBase, SensitiveToOrder):
     fusion_op_name = "matscale"
 
@@ -222,7 +231,8 @@ class MatScaleFusionParameters(FusionBase, SensitiveToOrder):
         return [Dim.broadcast(in_dims)]
 
 
-class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
+@cls_op_name('conv_fusion')
+class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, Transposable):
     '''Fusion of operators. At present restricted to single input and output but
     this could be removed perhaps'''
 
@@ -231,7 +241,8 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
     def _init_at_options(self):
         if self._at_options is None:
             self._at_options = NodeOptions(None)
-        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
+        self._at_options.extend(
+            *[node.at_options for node in self.contained_nodes()])
 
     @property
     def at_options(self):
@@ -246,6 +257,16 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
     def contained_filters(self):
         return [x for x in self.contained_nodes() if isinstance(x, FilterParameters)]
 
+    @property
+    def graph_label(self):
+        label = [self.name]
+        for node in self.contained_nodes():
+            inner_label = node.graph_label[1::]
+            if isinstance(node, PoolingParameters):
+                inner_label = [f'Pool {label}' for label in inner_label]
+            label.extend(inner_label)
+        return label
+
     def get_parameter_size(self):
         return sum([node.get_parameter_size() for node in self.contained_nodes()])
 
@@ -256,13 +277,16 @@ class ConvFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
         return sum([load if load else 0 for load in [node.compute_load()
                                                      for node in self.contained_nodes()]])
 
+
+@cls_op_name('padded_add_fusion')
 class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
     fusion_op_name = "padded_add_fusion"
 
     def _init_at_options(self):
         if self._at_options is None:
             self._at_options = NodeOptions(None)
-        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
+        self._at_options.extend(
+            *[node.at_options for node in self.contained_nodes()])
 
     @property
     def at_options(self):
@@ -273,6 +297,10 @@ class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
     def gen_ctrl(self, val):
         self._init_at_options()
         self._at_options = val
+
+    def padding_dim(self):
+        pad_node = [node for node in self.contained_nodes() if isinstance(node, PadParameters)]
+        return pad_node[0].padding
 
     def get_parameter_size(self):
         return 0
@@ -284,16 +312,36 @@ class PaddedAddFusionParameters(FusionBase, SensitiveToOrder):
         return sum([load if load else 0 for load in [node.compute_load()
                                                      for node in self.contained_nodes()]])
 
-class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder):
+
+@cls_op_name('matmulop_fusion')
+class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrder, Transposable):
     '''Fusion of operators. At present restricted to single input and output but
     this could be removed perhaps'''
 
-    fusion_op_name = "fusion"
+    fusion_op_name = "matmulop_fusion"
 
     def _init_at_options(self):
         if self._at_options is None:
             self._at_options = NodeOptions(None)
-        self._at_options.extend(*[node.at_options for node in self.contained_nodes()])
+        self._at_options.extend(
+            *[node.at_options for node in self.contained_nodes()])
+
+    def get_output_size(self, in_dims):
+        in_dims = self.apply_transposes('in', in_dims)
+        out_dims = super(MatMulOpFusionParameters, self).get_output_size(in_dims)
+        out_dims = self.apply_transposes('out', out_dims)
+        return out_dims
+
+    @property
+    def graph_label(self):
+        label = [self.name]
+        for node in self.contained_nodes():
+            inner_label = node.graph_label[1::]
+            if inner_label:
+                label.extend(inner_label)
+            else:
+                label.append(node.CLS_OP_NAME)
+        return label
 
     @property
     def at_options(self):
@@ -315,9 +363,17 @@ class MatMulOpFusionParameters(FusionBase, SingleInputAndOutput, SensitiveToOrde
         return sum([load if load else 0 for load in [node.compute_load()
                                                      for node in self.contained_nodes()]])
 
+
+@cls_op_name('activation_fusion')
 class ActivationFusion(FusionBase):
     fusion_op_name = "activation_fusion"
 
+    @property
+    def graph_label(self):
+        label = [self.name]
+        for node in self.contained_nodes():
+            inner_label = node.graph_label[1::]
+            label.extend(inner_label)
+        return label
 
-class PieceWiseFusion(FusionBase):
-    fusion_op_name = "activation_fusion"
+dont_quantize_internals = FusionBase.dont_quantize_internals

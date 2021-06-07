@@ -17,17 +17,17 @@ import argparse
 import logging
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
-
-# from graph.matches.propagate_softmax_sym_mult_qrec import PropagateSoftmaxSymQrec
-# from graph.matches.propagate_rnn_sym_mult_qrec import PropagateUpRNNInputQ
-# from graph.matches.propagate_sig_tan_mult_qrec import PropagateUpSigSwishInputQ
-# from graph.matches.equalize_sym_mult_concats import EqualizeSymmetricMultiplicativeQuantivedConcats
-from interpreter.nntool_shell_base import NNToolShellBase, store_once_in_history
-from interpreter.shell_utils import (glob_input_files, input_options)
+from interpreter.nntool_shell_base import (NNToolShellBase,
+                                           store_once_in_history)
+from interpreter.shell_utils import glob_input_files, input_options
+from quantization.handlers_helpers import (add_options_to_parser,
+                                           get_options_from_args)
 from quantization.unified_quantizer import UnifiedQuantizer
-from stats.activation_ranges_collector import ActivationRangesCollector
 from utils.data_importer import import_data
 from utils.stats_funcs import STATS_BITS
+
+from graph.matches.matchers.remove_unnecessary_quantize_operators import RemoveUnnecessaryQuantizeOperators
+from stats.activation_ranges_collector import ActivationRangesCollector
 
 LOG = logging.getLogger('nntool.'+__name__)
 
@@ -37,19 +37,15 @@ QUANTIZATION_SCHEMES = ['SQ8', 'POW2']
 class AquantCommand(NNToolShellBase):
     # AQUANT COMMAND
     parser_aquant = Cmd2ArgumentParser()
-    parser_aquant_group = parser_aquant.add_mutually_exclusive_group(required=False)
-    parser_aquant_group.add_argument('-f', '--force_width',
-                                     choices=STATS_BITS, type=int, default=16,
-                                     help='force all layers to this bit-width in case of POW2 scheme, ' +
-                                     'SQ8 will automatically force 8-bits')
+    parser_aquant.add_argument('-f',
+                               '--force_width',
+                               choices=STATS_BITS, type=int, default=0,
+                               help='force all layers to this bit-width in case of POW2 scheme, ' +
+                               'SQ8 will automatically force 8-bits')
     parser_aquant.add_argument('-s', '--scheme',
                                type=str, choices=QUANTIZATION_SCHEMES, default='SQ8',
                                help='quantize with scaling factors (TFlite quantization-like) [default] or POW2')
-    parser_aquant.add_argument('-d', '--quant_dimension',
-                               choices=['tensor', 'channel'], default='channel')
-    parser_aquant.add_argument('-n', '--no_narrow_weights',
-                               action='store_true', help='Don\'t quantize weights uniformly over negative/positive ' +
-                               'range. i.e. Avoid -128 vs 127')
+    add_options_to_parser(parser_aquant)
     input_options(parser_aquant)
 
     @with_argparser(parser_aquant)
@@ -60,10 +56,7 @@ Attempt to calculate quantization for graph using one or more sample input files
         self._check_graph()
         stats_collector = ActivationRangesCollector()
         # if replaying state file then load the activation stats if they are present
-        if args.scheme == 'SQ8':
-            bits = 8
-        else:
-            bits = args.force_width
+        opts = get_options_from_args(args)
         if self.replaying_history and self.history_stats:
             astats = self.history_stats
         else:
@@ -72,7 +65,8 @@ Attempt to calculate quantization for graph using one or more sample input files
             for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
                 LOG.info("input file %s", file_per_input)
                 processed_input = True
-                data = [import_data(input_file, **input_args) for input_file in file_per_input]
+                data = [import_data(input_file, **input_args)
+                        for input_file in file_per_input]
                 stats_collector.collect_stats(self.G, data)
             if not processed_input:
                 self.perror("No input files found")
@@ -80,21 +74,15 @@ Attempt to calculate quantization for graph using one or more sample input files
             astats = stats_collector.stats
             self._record_stats(astats)
 
-        quantizer = UnifiedQuantizer(args.scheme, astats,
-                                     quantized_dimension=args.quant_dimension,
-                                     narrow_weights=not args.no_narrow_weights,
-                                     bits=bits)
+        if args.force_width:
+            opts['bits'] = args.force_width
 
+        quantizer = UnifiedQuantizer(args.scheme, astats,
+                                     **opts)
+        # clear the existing quantization
+        self.G.quantization = None
         qrecs = quantizer.quantize(self.G)
         self.G.quantization = qrecs
-        # These should now be unnecessary
-        # if args.scheme == 'SQ8':
-        #     concats_matcher = EqualizeSymmetricMultiplicativeQuantivedConcats()
-        #     concats_matcher.match(self.G, set_identity=False)
-        #     rnns_matcher = PropagateUpRNNInputQ()
-        #     rnns_matcher.match(self.G, set_identity=False)
-        #     softmax_qrec_matcher = PropagateSoftmaxSymQrec()
-        #     softmax_qrec_matcher.match(self.G, set_identity=False)
-        #     sig_swish_qrec_matcher = PropagateUpSigSwishInputQ()
-        #     sig_swish_qrec_matcher.match(self.G, set_identity=False)
+        RemoveUnnecessaryQuantizeOperators().match(self.G)
+        self.G.add_dimensions()
         LOG.info("Quantization set. Use qshow command to see it.")

@@ -62,110 +62,68 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
 {
     Ne16 *_this = (Ne16 *)__this;
 
-    _this->trace.msg(vp::trace::LEVEL_DEBUG, "Received request (addr: 0x%x, size: 0x%x, is_write: %d, data: %p\n", req->get_addr(), req->get_size(), req->get_is_write(), req->get_data());
+    if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+      _this->trace.msg(vp::trace::LEVEL_DEBUG, "Received request (addr: 0x%x, size: 0x%x, is_write: %d, data: %p\n", req->get_addr(), req->get_size(), req->get_is_write(), req->get_data());
+    }
     uint8_t *data = req->get_data(); // size depends on data get_size
 
     // Dispatch the register file access to the correct function
     if(req->get_is_write()) {
-        if((req->get_addr() & 0x17f) == 0x0) {
+        if(((req->get_addr() & 0xfff) - 0x20) >> 2 == NE16_SPECIAL_TRACE_REG) {
+            if(*data == 0) {
+                _this->trace_level = L0_JOB_START_END;
+                _this->trace.msg("Setting tracing level to L0_JOB_START_END\n");
+            }
+            else if(*data == 1) {
+                _this->trace_level = L1_CONFIG;
+                _this->trace.msg("Setting tracing level to L1_CONFIG\n");
+            }
+            else if(*data == 2) {
+                _this->trace_level = L2_ACTIV_INOUT;
+                _this->trace.msg("Setting tracing level to L2_ACTIV_INOUT\n");
+            }
+            else {
+                _this->trace_level = L3_ALL;
+                _this->trace.msg("Setting tracing level to L3_ALL\n");
+            }
+            return vp::IO_REQ_OK;
+        }
+        else if((req->get_addr() & 0x17f) == 0x0) {
             _this->commit();
             if (!_this->fsm_start_event->is_enqueued() && *(uint32_t *) data == 0) {
                 _this->event_enqueue(_this->fsm_start_event, 1);
             }
         }
         else {
-            _this->trace.msg(vp::trace::LEVEL_DEBUG, "offset: %d data: %08x\n", ((req->get_addr() & 0x17f) - 0x20) >> 2, *(uint32_t *) data);
+            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+                _this->trace.msg(vp::trace::LEVEL_DEBUG, "offset: %d data: %08x\n", ((req->get_addr() & 0x17f) - 0x20) >> 2, *(uint32_t *) data);
+            }
             _this->regfile_wr(((req->get_addr() & 0x17f) - 0x20)>> 2, *(uint32_t *) data);
         }
     }
     else {
         if((req->get_addr() & 0x17f) == 0x4) {
             *(uint32_t *) data = _this->acquire();
-            _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+                _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            }
         }
         else if((req->get_addr() & 0x17f) == 0xc) {
             *(uint32_t *) data = _this->status() ? 1 : 0;
-            _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+                _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            }
         }
         else {
             *(uint32_t *) data = _this->regfile_rd(((req->get_addr() & 0x17f) - 0x20) >> 2);
-            _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+                _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            }
         }
     }
 
     return vp::IO_REQ_OK;
 }
-
-void Ne16::data_access_test_handler(void *__this, vp::clock_event *event)
-{
-    Ne16 *_this = (Ne16 *)__this;
-
-    // uint32_t data[4];
-    uint8_t data[16];
-
-    // Several requests can be done on the same port at same cycle, the reported latency will just be cumulated, then
-    // just take the bigger one
-    int max_latency = 0;
-
-    int size = 4;
-    for (int i=0; i<(16/size); i++)
-    {
-        _this->io_req.init();
-        _this->io_req.set_addr((_this->infeat_ptr+i*size) & 0x0fffffff);
-        _this->io_req.set_size(size);
-        _this->io_req.set_data((uint8_t *) (data + i*size));
-        _this->io_req.set_is_write(false);
-        _this->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing read requests (infeat_ptr=0x%08x)\n", (_this->infeat_ptr+i*size) & 0x0fffffff);
-
-        int err = _this->out.req(&_this->io_req);
-        if (err == vp::IO_REQ_OK)
-        {
-            int64_t latency = _this->io_req.get_latency();
-            if (latency > max_latency)
-            {
-                max_latency = latency;
-            }
-
-            // DO something with the latency
-        }
-        else
-        {
-            // This should never happen when ne16 is accessing L1
-            _this->trace.fatal("Unsupported asynchronous reply\n");
-        }
-    }
-    
-    for (int i=0; i<(16/size); i++)
-    {
-        _this->io_req.init();
-        _this->io_req.set_addr((_this->outfeat_ptr+i*size) & 0x0fffffff);
-        _this->io_req.set_size(size);
-        _this->io_req.set_data((uint8_t *) (data + i*size));
-        _this->io_req.set_is_write(true);
-        _this->trace.msg(vp::trace::LEVEL_DEBUG, "Issuing write requests (outfeat_ptr=0x%08x, data=0x%08x)\n", (_this->outfeat_ptr+i*size) & 0x0fffffff, data[i]);
-
-        int err = _this->out.req(&_this->io_req);
-        if (err == vp::IO_REQ_OK)
-        {
-            int64_t latency = _this->io_req.get_latency();
-            if (latency > max_latency)
-            {
-                max_latency = latency;
-            }
-
-            // DO something with the latency
-        }
-        else
-        {
-            // This should never happen when ne16 is accessing L1
-            _this->trace.fatal("Unsupported asynchronous reply\n");
-        }
-    }
-
-    _this->trace.msg(vp::trace::LEVEL_DEBUG, "Got response (latency: %ld)\n", max_latency);
-
-}
-
 
 int Ne16::build()
 {
@@ -181,9 +139,8 @@ int Ne16::build()
     this->fsm_start_event = this->event_new(&Ne16::fsm_start_handler);
     this->fsm_event = this->event_new(&Ne16::fsm_handler);
     this->fsm_end_event = this->event_new(&Ne16::fsm_end_handler);
-    this->data_access_test_event = this->event_new(&Ne16::data_access_test_handler);
 
-    this->trace.msg(vp::trace::LEVEL_DEBUG, "Is there anybody out there?\n");
+    this->trace_level = L0_JOB_START_END;
 
     return 0;
 }

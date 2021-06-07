@@ -14,12 +14,14 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generators.generator_decorators import (QREC_MULT8,
-                                                        generation_function)
-from graph.types import ImageFormatParameters, TransposeParameters, CopyParameters, ResizerParameters, StridedSliceParameters
+from generation.generator_decorators import QREC_MULT8, generation_function
+from graph.types import (CopyParameters, ImageFormatParameters,
+                         ResizerParameters, StridedSliceParameters,
+                         TransposeParameters)
 
 
-@generation_function("bindings", (TransposeParameters, ImageFormatParameters, CopyParameters, ResizerParameters, StridedSliceParameters), qrec_types=(QREC_MULT8, ))
+@generation_function("bindings", (TransposeParameters, ImageFormatParameters, CopyParameters,
+                                  ResizerParameters, StridedSliceParameters), qrec_types=(QREC_MULT8, ))
 def in_out_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     if isinstance(node, TransposeParameters):
         _, real_transpose = node.real_shape()

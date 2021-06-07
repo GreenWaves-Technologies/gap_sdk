@@ -15,29 +15,41 @@
 
 from copy import deepcopy
 
-from graph.types import (GlobalPoolParameters, ImageFormatParameters,
-                         InputParameters, MatrixBroadcastedLinearOpParameters,
-                         MatScaleFusionParameters)
-from quantization.multiplicative.mult_quantization import \
-    MultQuantizationRecord
+import numpy as np
+from graph.types import (BinaryOpParameters, GlobalPoolParameters,
+                         MatrixBroadcastedLinearOpParameters,
+                         MatScaleFusionParameters, UnaryOpParameters)
+from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type
+from quantization.qtype_constraint import MatchAll
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
-@params_type(MatrixBroadcastedLinearOpParameters, InputParameters,
-             MatScaleFusionParameters, GlobalPoolParameters, ImageFormatParameters)
+@params_type(MatrixBroadcastedLinearOpParameters,
+             BinaryOpParameters, UnaryOpParameters,
+             MatScaleFusionParameters, GlobalPoolParameters)
+@in_qs_constraint(MatchAll({'dtype': np.int8}))
+@out_qs_constraint(MatchAll({'dtype': np.int8}))
 class FromStatsMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
+        in_qs = cls.force_symmetric_and_dtype(in_qs, dtype=np.int8)
+        if in_qs is None:
+            return None
         if force_out_q:
             o_q = deepcopy(force_out_q)
+            if o_q.is_asymmetric:
+                return None
         else:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                         stats['range_out'][0]['max'],
                                         dtype=out_dtype)
 
-        return MultQuantizationRecord(in_qs=in_qs, out_qs=[o_q])
+        return QRec.scaled(in_qs=in_qs, out_qs=[o_q])

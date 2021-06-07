@@ -47,4 +47,7 @@
 #define SIM_GET(index) insn->sim[index]
 #define UIM_GET(index) insn->uim[index]
 
+#define SPR_SET(reg,val) iss_set_spec_purp_reg(iss, reg, val)
+#define SPR_GET(reg) iss_get_spec_purp_reg(iss, reg)
+
 #endif

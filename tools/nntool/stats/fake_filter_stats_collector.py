@@ -13,13 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from collections import OrderedDict
 
 from graph.types import Conv2DParameters, FcParameters
 from utils.node_id import NodeId
-from utils.stats_funcs import STATS_BITS, bits
+from utils.stats_funcs import STATS_BITS, calc_bits
 
-from .ranges import Ranges
 from .stats_collector import StatsCollector
 
 def astats(size, do_bits=True):
@@ -37,7 +35,7 @@ def astats(size, do_bits=True):
         'max_out' : 0,
     }
     if do_bits:
-        ret['ibits'] = bits(0.9, -0.9)
+        ret['ibits'] = calc_bits(0.9, -0.9)
     return ret
 
 def calculate_qsnrs(ideal_ibits):

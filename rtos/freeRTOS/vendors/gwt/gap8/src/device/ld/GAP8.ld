@@ -107,7 +107,7 @@ SECTIONS
     /* This section holds IRQ vectors table. */
     .vectors_irq :
     {
-        . = ALIGN(4);
+        . = ALIGN(256);
         __irq_vector_base_m__ = .;
         KEEP(*(.vectors_irq))
     } > L2

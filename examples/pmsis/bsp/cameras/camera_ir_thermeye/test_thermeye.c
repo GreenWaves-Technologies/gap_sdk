@@ -46,9 +46,6 @@ void test_therm_eye()
         pmsis_exit(-1);
     }
 
-    pi_camera_sensor_info(&cam);
-
-
     pi_task_t cb = {0};
     pi_task_block(&cb);
 

@@ -13,33 +13,66 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
+
 import numpy as np
-from graph.types import ExpressionFusionParameters
-from quantization.multiplicative.mult_quantization import \
-    MultExpressionQuantizationRecord
-from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type
-from utils.symbolic.q15_quantization.q15_scaled_quantization import \
+from expressions.symbolic.q15_quantization.q15_scaled_quantization import \
     Q15ScaledQuantization
-from utils.symbolic.symbol import SymbolStats
+from expressions.symbolic.symbol import SymbolStats
+from graph.types import ExpressionFusionParameters
+from quantization.new_qrec import QRec
+from quantization.qtype import QType
+from quantization.qtype_constraint import MatchAll
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
+LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(ExpressionFusionParameters)
+@in_qs_constraint(MatchAll({'dtype': np.int8}))
+@out_qs_constraint(MatchAll({'dtype': np.int8}))
 class ExpressionFusionMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, _ = cls.get_mult_opts(**kwargs)
-        if force_out_qs and any(force_q is not None for force_q in force_out_qs):
+
+        if stats is None or 'expression' not in stats:
+            raise ValueError(
+                f'no valid range information is present for {params.name}')
+
+        # expressions need a symmetric input
+        in_qs = cls.force_symmetric(in_qs)
+
+        if in_qs is None:
+            LOG.info('expression quantizer for {params.name} was not able to force input symmetric')
             return None
+
         symbol_control = SymbolStats(stats['expression'])
+        # preload the input and output quantization
+        # This will force variables to the right scales in the expression quantizer
+        # first the input
+        prequant = {params.input_symbols[idx]: in_q for idx, in_q in enumerate(in_qs)}
+        # now the output
+        o_qs = []
+        for idx, sym_name in enumerate(params.output_symbols):
+            if force_out_qs and force_out_qs[idx]:
+                o_q = force_out_qs[idx]
+            else:
+                cls.check_valid_ranges(params, stats, idx=idx, dirs='out')
+                o_q = QType.from_min_max_sq(stats['range_out'][idx]['min'],
+                                            stats['range_out'][idx]['max'],
+                                            dtype=np.int8)
+            prequant[sym_name] = o_q
+            o_qs.append(o_q)
+
         qfunc_col = params.func_col.quantize(Q15ScaledQuantization,
                                              symbol_control,
-                                             quantize_inputs=False)
+                                             quantize_inputs=False,
+                                             qtypes=prequant)
 
-        o_qs = [QType(scale=qfunc_col.qrecs[sym_name].scaledq, dtype=np.int8)
-                for sym_name in params.output_symbols]
-        return MultExpressionQuantizationRecord(in_qs=in_qs,
-                                                out_qs=o_qs,
-                                                qfunc_col=qfunc_col)
+        return QRec.scaled(in_qs=in_qs,
+                           out_qs=o_qs,
+                           qfunc_col=qfunc_col)

@@ -17,7 +17,6 @@ from graph.dim import Dim, PoolFilterDim, StrideDim
 from graph.types import GlobalPoolParameters, PoolingParameters
 from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
-from utils.sparse_list import SparseList
 
 from ..handler import partial_support, ps_description
 from .pad_mixin import PadMixin
@@ -63,8 +62,8 @@ class PoolMixin(PadMixin):
                                           pool_type=pool_type,
                                           axis=[1, 2],
                                           keep_dims=True,
-                                          in_dims_hint=SparseList([['c', 'h', 'w']]),
-                                          out_dims_hint=SparseList([['c', 'h', 'w']]))
+                                          in_dims_hint=[['c', 'h', 'w']],
+                                          out_dims_hint=[['c', 'h', 'w']])
         else:
             params = PoolingParameters(valid_name,
                                        filt=PoolFilterDim(kernel_shape[0],
@@ -73,12 +72,13 @@ class PoolMixin(PadMixin):
                                                         strides[1]),
                                        padding=pad_dim,
                                        pool_type=pool_type,
-                                       in_dims_hint=SparseList([['c', 'h', 'w']]),
-                                       out_dims_hint=SparseList([['c', 'h', 'w']]))
+                                       in_dims_hint=[['c', 'h', 'w']],
+                                       out_dims_hint=[['c', 'h', 'w']])
 
         in_dim = Dim.named_ordered(c=in_c, h=h, w=w)
         out_dims = params.get_output_size([in_dim])
         pout_dims = ProvisionalDim([x_shape[0]] + out_dims[0].shape)
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pout_dims)
         return params

@@ -99,6 +99,8 @@ void pos_task_cancel(pi_task_t *task)
             pos_sched_first = current->next;
         }
     }
+
+    pos_time_task_cancel(task);
 }
 
 void pi_task_abort(pi_task_t *task)

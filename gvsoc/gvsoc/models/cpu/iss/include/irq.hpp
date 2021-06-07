@@ -133,6 +133,7 @@ static inline void iss_irq_build(iss_t *iss)
 
 static inline void iss_irq_init(iss_t *iss)
 {
+  iss->cpu.irq.vector_base = 0;
   iss->cpu.state.elw_interrupted = 0;
   iss->cpu.irq.irq_enable = 0;
   iss->cpu.irq.req_irq = -1;

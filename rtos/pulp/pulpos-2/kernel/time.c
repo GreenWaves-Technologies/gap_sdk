@@ -61,6 +61,30 @@ static int pos_time_poweron(void *arg)
 }
 
 
+void pos_time_task_cancel(pi_task_t *task)
+{
+    pi_task_t *event = pos_time_first_delayed, *prev=NULL;
+
+    while (event)
+    {
+        if (event == task)
+        {
+            if (prev)
+            {
+                prev->next = event->next;
+            }
+            else
+            {
+                pos_time_first_delayed = event->next;
+            }
+            break;
+        }
+
+        event = event->next;
+    }
+}
+
+
 void pos_time_timer_handler()
 {
     pi_task_t *event = pos_time_first_delayed;

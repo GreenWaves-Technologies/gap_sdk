@@ -28,7 +28,11 @@ int main(int argc, char **argv)
 	LoadResizeLibrary();
 	// Call Resize generator, here image is [322x242]
 	unsigned int W = 322, H = 242;
-	GenerateResize("ResizeImage", W, H, W/2, H/2);
+	// GenerateResize("ResizeImage", W, H, W/2, H/2);
+	// GenerateResizeMultiChannel("S155_Op_Resize_432", 256, 1, 1024, 1, 16, 1, KOP_NEAREST_NEIGHBOR_RESIZE);
+	// void GenerateResizeNew(char *Name, unsigned int Win, unsigned int Hin, unsigned int Wout, unsigned int Hout, resize_kop_t Type)
+
+	GenerateResizeNew("S155_Op_Resize_432", 256, 2, 1024, 1, KOP_NEAREST_NEIGHBOR_RESIZE);
 	// Now that we are done with model parsing we generate the code
 	GenerateTilingCode();
 	return 0;

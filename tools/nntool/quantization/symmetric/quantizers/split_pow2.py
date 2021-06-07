@@ -9,16 +9,18 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
 import logging
-from graph.types import (SplitParameters)
-from quantization.unified_quantization_handler import params_type
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricQuantizationRecord
+
+import numpy as np
+from graph.types import SplitParameters
+from quantization.qtype_constraint import MatchAll
+from quantization.quantizers.split_mixin import SplitMixin
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
@@ -26,26 +28,9 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 
 @params_type(SplitParameters)
-class SplitPow2(Pow2QuantizionHandler):
+@in_qs_constraint({'dtype': set([np.int8, np.int16])})
+@out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
+class SplitPow2(Pow2QuantizionHandler, SplitMixin):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
-        o_q = in_qs[0]
-        force_out_qs, _ = cls.get_pow2_opts(**kwargs)
-        first_forced_q = force_out_qs and next(iter(out_q for out_q in force_out_qs if out_q is not None), None)
-        if first_forced_q and not all(out_q == first_forced_q
-                                      for out_q in force_out_qs if out_q is not None):
-            LOG.error('split %s is being forced to have different output qtypes', params.name)
-            return None
-
-        if first_forced_q:
-            backwards = kwargs.get('backwards', None)
-            if backwards:
-                # if going backwards and forced then we force our input
-                return SymmetricQuantizationRecord(in_qs=first_forced_q, out_qs=[deepcopy(first_forced_q)
-                                                                                 for _ in range(params.num_splits)])
-            elif o_q != first_forced_q:
-                LOG.error('split %s is being forced to have different output to input', params.name)
-                return None
-            # continue here if forced since o_q == forced_q
-
-        return SymmetricQuantizationRecord(in_qs=in_qs, out_qs=[deepcopy(o_q) for _ in range(params.num_splits)])
+        return cls._handle(params, in_qs, stats, 'symmetric', **kwargs)

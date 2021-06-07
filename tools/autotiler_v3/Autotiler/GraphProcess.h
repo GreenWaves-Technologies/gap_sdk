@@ -8,6 +8,8 @@
 #include "AutoTilerLibTypes.h"
 #include "AutoTilerLib.h"
 
+extern CKernel_Arg_T *CNNGraphArgLookup(CNNGraph_T *Graph, NameT *Name, int *Pos);
+extern CKernel_Arg_T *CNNGraphLocalLookup(CNNGraph_T *Graph, NameT *Name, int *Pos);
 extern GraphEdgeWeb_T *EquivGroupRep(GraphEdgeWeb_T *E);
 extern int IsEquivGroupRep(GraphEdgeWeb_T *E);
 extern void ExtractGraphStatistics(CNNGraph_T *Graph, int *TotalSize, int *TotalL3Move, int *TotalL2Move,

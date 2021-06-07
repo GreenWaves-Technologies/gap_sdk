@@ -16,7 +16,8 @@
 import logging
 
 from graph.dim import Dim
-from graph.types.base import NNEdge, Parameters, SensitiveToOrder, SingleInputAndOutput
+from graph.types.base import (NNEdge, Parameters, SensitiveToOrder,
+                              SingleInputAndOutput, cls_op_name)
 from graph.types.input_output import ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -50,6 +51,14 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
         self.rnn_states_as_inputs = (False, None)
         self.output_directions = output_directions
 
+    @property
+    def graph_label(self):
+        return [self.name, f'Cells {self.n_cells} States {self.n_states}']
+
+    @property
+    def graph_anon_label(self):
+        return ["Filt"]
+
     def get_parameter_size(self):
         return 0
 
@@ -63,7 +72,8 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     def get_param(self, G, name):
         const_node = self.get_param_node(G, name)
-        assert isinstance(const_node, ConstantInputParameters), "parameter is not a constant"
+        assert isinstance(
+            const_node, ConstantInputParameters), "parameter is not a constant"
         return const_node.value if const_node else None
 
     def get_params(self, G, names):
@@ -82,7 +92,8 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     def set_param(self, G, name, value):
         const_node = self.get_param_node(G, name)
-        assert isinstance(const_node, ConstantInputParameters), "parameter is not a constant"
+        assert isinstance(
+            const_node, ConstantInputParameters), "parameter is not a constant"
         const_node.value = value
 
     def get_output_size(self, in_dims):
@@ -94,9 +105,10 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
 
     def set_states_as_inputs(self, G):
         input_nodes = {self.INPUT_NAMES[edge.to_idx]: edge.from_node
-                        for edge in G.in_edges(self.name)
-                        if isinstance(edge.from_node, ConstantInputParameters)}
-        state_node_names = [name for name in self.INPUT_NAMES if "state" in name]
+                       for edge in G.in_edges(self.name)
+                       if isinstance(edge.from_node, ConstantInputParameters)}
+        state_node_names = [
+            name for name in self.INPUT_NAMES if "state" in name]
         for state_node_name in state_node_names:
             state_node_idx = self.INPUT_NAMES.index(state_node_name)
             state_node = input_nodes[state_node_name]
@@ -155,8 +167,8 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
         )
 
 
+@cls_op_name('rnn')
 class RNNParameters(RNNBaseParameters):
-    op_name = "rnn"
 
     INPUT_NAMES = [
         "input",
@@ -171,14 +183,9 @@ class RNNParameters(RNNBaseParameters):
     def get_parameter_size(self):
         return ((self.n_inputs + self.n_states) * (self.n_inputs + 1)) + self.n_states
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
-
-
-
+@cls_op_name('gru')
 class GRUParameters(RNNBaseParameters):
-    op_name = "gru"
 
     INPUT_NAMES = [
         "input",
@@ -215,9 +222,6 @@ class GRUParameters(RNNBaseParameters):
 
     def get_parameter_size(self):
         return 3 * ((self.n_inputs + self.n_states) * (self.n_inputs + 1)) + self.n_states
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def __str__(self):
         return "{}{} {} {}{}".format(

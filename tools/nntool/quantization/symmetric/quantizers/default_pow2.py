@@ -13,31 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
-
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricQuantizationRecord
-from quantization.unified_quantization_handler import params_type
+import numpy as np
+from quantization.qtype_constraint import MatchAll
+from quantization.quantizers.no_change_mixin import NoChangeMixin
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
 
 @params_type('__default__')
-class NoChangePow2(Pow2QuantizionHandler):
+@in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
+@out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
+class NoChangePow2(Pow2QuantizionHandler, NoChangeMixin):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
-        force_out_qs, _ = cls.get_pow2_opts(**kwargs)
-        force_out_q = force_out_qs and force_out_qs[0]
-        backwards = kwargs.get('backwards')
-        # if we are going backwards
-        if backwards:
-            # if output must be forced
-            assert force_out_q, f'going backwards at {params.name} but output is not forced'
-            return SymmetricQuantizationRecord(in_qs=[force_out_q] * len(in_qs), out_qs=[deepcopy(force_out_q)])
-
-        # if going forwards and our output is forced and does not match input then
-        # we cannot satisfy
-        if force_out_q and not all(in_q == force_out_q for in_q in in_qs):
-            return None
-
-        return SymmetricQuantizationRecord(in_qs=in_qs, out_qs=[deepcopy(in_qs[0])])
+        return cls._handle(params, in_qs, stats, 'symmetric', **kwargs)

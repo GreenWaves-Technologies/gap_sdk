@@ -19,7 +19,6 @@ from graph.types.lstm import LSTMParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.UnidirectionalSequenceLSTMOptions import \
     UnidirectionalSequenceLSTMOptions
-from utils.sparse_list import SparseList
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -36,17 +35,17 @@ class UnidirectionalSequenceLSTM(BackendHandler):
         all_nodes = kwargs['all_nodes']
 
         inputs = [all_nodes.get(t) for t in node.input]
-        x = inputs[0]
+        time_major = node_opts.TimeMajor()
+        x = cls.remove_known_batch_dimension(G, inputs[0], node, batch_axis=1 if time_major else 0)
         x_shape = x[2].shape
 
-        time_major = node_opts.TimeMajor()
         max_time = int(x_shape[0 if time_major else 1])
         n_cells = int(node.input[2].shape[0])
         n_inputs = int(x_shape[2])
         pout_dims = ProvisionalDim([x_shape[0], x_shape[1], n_cells])
         params = LSTMParameters(node.name,
-                                in_dims_hint=SparseList([['sz', 'c']]),
-                                out_dims_hint=SparseList([['sz', 'c']]),
+                                in_dims_hint=[['sz', 'c']],
+                                out_dims_hint=[['sz', 'c']],
                                 constant_store=G.constant_store,
                                 cell_clip=node_opts.CellClip(),
                                 proj_clip=node_opts.ProjClip(),
@@ -73,9 +72,11 @@ class UnidirectionalSequenceLSTM(BackendHandler):
 
         # trim batch dimension from state values
         for state_node_name in ['i_state', 'c_state']:
-            state_node = constant_nodes[LSTMParameters.INPUT_NAMES.index(state_node_name)]
+            state_node = constant_nodes[LSTMParameters.INPUT_NAMES.index(
+                state_node_name)]
             state_node.value = state_node.value[0]
-            state_node.dims = Dim(list(state_node.value.shape), is_ordered=True)
+            state_node.dims = Dim(
+                list(state_node.value.shape), is_ordered=True)
             # set by default as allocated
             state_node.at_options.allocate = True
             state_node.is_constant = False
@@ -88,12 +89,15 @@ class UnidirectionalSequenceLSTM(BackendHandler):
         # The autotiler expects the state and input weights to be
         # concatenated. This tells the constant code generator to do this
         for gate in ['i', 'o', 'c', 'f']:
-            i_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index('i_2_%s_w' % gate)]
-            r_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
+            i_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index(
+                'i_2_%s_w' % gate)]
+            r_w_node = constant_nodes[LSTMParameters.INPUT_NAMES.index(
+                'r_2_%s_w' % gate)]
             r_w_node.concated_nodes.append(i_w_node)
             i_w_node.generate_value = False
 
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pout_dims)
         return params
 

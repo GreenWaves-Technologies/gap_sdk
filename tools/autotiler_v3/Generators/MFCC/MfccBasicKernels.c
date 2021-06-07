@@ -454,51 +454,6 @@ void MFCC_Power_f32(MFCC_EP_BFF_T *Arg)
   #endif
 }
 
-#define ARRAYSIZE(x)    (sizeof(x) / sizeof(x[ 0 ]))
-/* square root coefficients in 17.15 fixed point format */
-int SqrtCoeffTable[] =
-{
-  0x00001A91, 0x0000BA3A, 0xFFFF53DA, 0x00008DAC,
-  0xFFFFBB54, 0x00000E5A
-};
-
-/* square root of 2 powered to (index - 15) in 17.15 format */
-int Sqrt2Powers[] =
-{
-  0x000000B5, 0x00000100, 0x0000016A, 0x00000200,
-  0x000002D4, 0x00000400, 0x000005A8, 0x00000800,
-  0x00000B50, 0x00001000, 0x000016A1, 0x00002000,
-  0x00002D41, 0x00004000, 0x00005A82, 0x00008000,
-  0x0000B505, 0x00010000, 0x00016A0A, 0x00020000,
-  0x0002D414, 0x00040000, 0x0005A828, 0x00080000,
-  0x000B504F, 0x00100000, 0x0016A09E, 0x00200000,
-  0x002D413D, 0x00400000, 0x005A827A, 0x00800000
-};
-
-unsigned int sqrt_17_15(unsigned int x) {
-  unsigned int   exponent;
-  int            result, y, z;
-
-  if (!x)
-    return 0;
-  if (x > 0x7FFFFFFF) return 0; /* negative value */
-  exponent = (unsigned int) gap_clb ((int) x);
-  y = ((x << exponent) >> 16);
-
-  /* sqrt(x) = 0.2075806 + 1.454895 * x - 1.34491 * x^2 + 1.106812 * x^3 - 0.536499 * x^4 + 0.1121216 * x^5 */
-  z = y;
-  result = 0;
-  for (int i = 1; i < ARRAYSIZE (SqrtCoeffTable); i++) {
-    result += z * SqrtCoeffTable[ i ];
-    z = ((z * y) >> 15);
-  }
-  result >>= 15;
-  result += SqrtCoeffTable[ 0 ];
-  if (exponent != 16) result = ((result * Sqrt2Powers[ 31 - exponent ]) >> 15);
-
-  return (unsigned int) result;
-}
-
 void MFCC_Abs(MFCC_EP_BFF_T *Arg)
 {
   int          *__restrict__ FrameIn     = (int *) Arg->FrameIn;
@@ -1263,8 +1218,8 @@ void MFCC_ComputeLog_f16( MFCC_Log_T *Arg) {
   First = CoreId*Chunk; Last = Min(First + Chunk, size);
 
   for (i=First;i<Last;i++){
-    #ifdef LOG_OFFSET
-      frameIn[i] = (f16) logf((float) frameIn[i] + LOG_OFFSET);
+    #ifdef LOG_OFFSET_FLOAT
+      frameIn[i] = (f16) logf((float) frameIn[i] + LOG_OFFSET_FLOAT);
     #else
       frameIn[i] = (f16) logf((float) frameIn[i] + 1e-6);
     #endif
@@ -1336,8 +1291,8 @@ void MFCC_ComputeLog_f32( MFCC_Log_T *Arg) {
   First = CoreId*Chunk; Last = Min(First + Chunk, size);
 
   for (i=First;i<Last;i++){
-    #ifdef LOG_OFFSET
-      frameIn[i] = (float) logf((float) frameIn[i] + LOG_OFFSET);
+    #ifdef LOG_OFFSET_FLOAT
+      frameIn[i] = (float) logf((float) frameIn[i] + LOG_OFFSET_FLOAT);
     #else
       frameIn[i] = (float) logf((float) frameIn[i] + 1e-6);
     #endif

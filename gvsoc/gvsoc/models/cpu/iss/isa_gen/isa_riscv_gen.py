@@ -22,27 +22,12 @@
 #
 
 
-
 from isa_gen import *
 import argparse
 import os.path
-
-fpuGroup      = IsaGroup('fpu', offload=['shfpu_offload', '--shared-fpu'], timingTable=TimingTable(name='fpu', option='--fpu-timing', default='timing_fpu_private.cfg'))
-rv32mGroup     = IsaGroup('rv32m', timingTable=TimingTable(name='rv32m', option='--rv32m-timing', default='timing_rv32m_ri5cy.cfg'))
-
-fpuGroupOther = InstrGroup(fpuGroup, 'INSTR_GROUP_OTHER')
-fpuGroupAdd   = InstrGroup(fpuGroup, 'INSTR_GROUP_FPU_ADD')
-fpuGroupMul   = InstrGroup(fpuGroup, 'INSTR_GROUP_FPU_MUL')
-fpuGroupDiv   = InstrGroup(fpuGroup, 'INSTR_GROUP_FPU_DIV')
-fpuGroupFmadd = InstrGroup(fpuGroup, 'INSTR_GROUP_FPU_FMADD')
-fpuGroupConv  = InstrGroup(fpuGroup, 'INSTR_GROUP_FPU_CONV')
+import importlib
 
 
-
-rv32mGroupOther   = InstrGroup(rv32mGroup, 'INSTR_GROUP_RV32M_OTHER')
-rv32mGroupMul     = InstrGroup(rv32mGroup, 'INSTR_GROUP_RV32M_MUL')
-rv32mGroupMulh    = InstrGroup(rv32mGroup, 'INSTR_GROUP_RV32M_MULH')
-rv32mGroupDiv     = InstrGroup(rv32mGroup, 'INSTR_GROUP_RV32M_DIV')
 
 class R5(Instr):
     def __init__(self, label, format, encoding, decode=None, N=None, L=None, mapTo=None, group=None, fast_handler=False, tags=[], isa_tags=[]):
@@ -266,6 +251,11 @@ class R5(Instr):
                             InReg (0, Range(15, 5)),
                             InReg (1, Range(20, 5)),
                             ]
+        elif format == 'LRR':
+            self.args = [   OutReg(0, Range(7,  5)),
+                            InReg (0, Range(15, 5)),
+                            Indirect(InReg (1, Range(20, 5)), SignedImm(0, Ranges([]))),
+                        ]
         elif format == 'RRRR64':
             self.args = [   OutReg64(0, Range(7,  5)),
                             InReg64 (2, Range(7,  5), dumpName=False),
@@ -295,6 +285,12 @@ class R5(Instr):
                             InReg (0, Range(15, 5)),
                             InReg (1, Range(20, 5)),
                             UnsignedImm(0, Range(25, 5)),
+                            ]
+        elif format == 'RRRU3':
+            self.args = [   OutReg(0, Range(7,  5)),
+                            InReg (0, Range(7,  5)),
+                            InReg (1, Range(15, 5)),
+                            UnsignedImm(0, Range(20, 5)),
                             ]
         elif format == 'RRRRU':
             self.args = [   OutReg(0, Range(7,  5)),
@@ -1796,6 +1792,127 @@ pulp_v2_insns = [
 
 ]
 
+# created list for pulp_nn isa extension
+pulp_nn_insns = [
+    #add vector instruction ((missing scalar version))
+    R5('pv.add.n',         'R',     '0000000 ----- ----- 010 ----- 1010111'),
+    R5('pv.add.sc.n',      'R',     '0000000 ----- ----- 011 ----- 1010111'),
+    R5('pv.add.c',         'R',     '0000001 ----- ----- 010 ----- 1010111'),
+    R5('pv.add.sc.c',      'R',     '0000001 ----- ----- 011 ----- 1010111'),
+    #sub vector instruction ((missing scalar version))
+    R5('pv.sub.n',         'R',     '0000100 ----- ----- 010 ----- 1010111'),
+    R5('pv.sub.sc.n',      'R',     '0000100 ----- ----- 011 ----- 1010111'),
+    R5('pv.sub.c',         'R',     '0000101 ----- ----- 010 ----- 1010111'),
+    R5('pv.sub.sc.c',      'R',     '0000101 ----- ----- 011 ----- 1010111'),
+    # avg signed operands
+    R5('pv.avg.n',        'R',   '0001000 ----- ----- 010 ----- 1010111'),
+    R5('pv.avg.sc.n',     'R',   '0001000 ----- ----- 011 ----- 1010111'),
+    R5('pv.avg.c',        'R',   '0001001 ----- ----- 010 ----- 1010111'),
+    R5('pv.avg.sc.c',     'R',   '0001001 ----- ----- 011 ----- 1010111'),
+    # avg unsigned operands
+    R5('pv.avgu.n',        'R',   '0001100 ----- ----- 010 ----- 1010111'),
+    R5('pv.avgu.sc.n',     'R',   '0001100 ----- ----- 011 ----- 1010111'),
+    R5('pv.avgu.c',        'R',   '0001101 ----- ----- 010 ----- 1010111'),
+    R5('pv.avgu.sc.c',     'R',   '0001101 ----- ----- 011 ----- 1010111'),
+    # max signed operands
+    R5('pv.max.n',        'R',   '0011000 ----- ----- 010 ----- 1010111'),
+    R5('pv.max.sc.n',     'R',   '0011000 ----- ----- 011 ----- 1010111'),
+    R5('pv.max.c',        'R',   '0011001 ----- ----- 010 ----- 1010111'),
+    R5('pv.max.sc.c',     'R',   '0011001 ----- ----- 011 ----- 1010111'),
+    # max unsigned operands
+    R5('pv.maxu.n',        'R',   '0011100 ----- ----- 010 ----- 1010111'),
+    R5('pv.maxu.sc.n',     'R',   '0011100 ----- ----- 011 ----- 1010111'),
+    R5('pv.maxu.c',        'R',   '0011101 ----- ----- 010 ----- 1010111'),
+    R5('pv.maxu.sc.c',     'R',   '0011101 ----- ----- 011 ----- 1010111'),
+    # min signed operands
+    R5('pv.min.n',        'R',   '0010000 ----- ----- 010 ----- 1010111'),
+    R5('pv.min.sc.n',     'R',   '0010000 ----- ----- 011 ----- 1010111'),
+    R5('pv.min.c',        'R',   '0010001 ----- ----- 010 ----- 1010111'),
+    R5('pv.min.sc.c',     'R',   '0010001 ----- ----- 011 ----- 1010111'),
+    # min unsigned operands
+    R5('pv.minu.n',        'R',   '0010100 ----- ----- 010 ----- 1010111'),
+    R5('pv.minu.sc.n',     'R',   '0010100 ----- ----- 011 ----- 1010111'),
+    R5('pv.minu.c',        'R',   '0010101 ----- ----- 010 ----- 1010111'),
+    R5('pv.minu.sc.c',     'R',   '0010101 ----- ----- 011 ----- 1010111'),
+    # srl vector operations
+    R5('pv.srl.n',        'R',   '0100000 ----- ----- 010 ----- 1010111'),
+    R5('pv.srl.sc.n',     'R',   '0100000 ----- ----- 011 ----- 1010111'),
+    R5('pv.srl.c',        'R',   '0100001 ----- ----- 010 ----- 1010111'),
+    R5('pv.srl.sc.c',     'R',   '0100001 ----- ----- 011 ----- 1010111'),
+    # sra vector operations
+    R5('pv.sra.n',        'R',   '0100100 ----- ----- 010 ----- 1010111'),
+    R5('pv.sra.sc.n',     'R',   '0100100 ----- ----- 011 ----- 1010111'),
+    R5('pv.sra.c',        'R',   '0100101 ----- ----- 010 ----- 1010111'),
+    R5('pv.sra.sc.c',     'R',   '0100101 ----- ----- 011 ----- 1010111'),
+    # sll vector operations
+    R5('pv.sll.n',        'R',   '0101000 ----- ----- 010 ----- 1010111'),
+    R5('pv.sll.sc.n',     'R',   '0101000 ----- ----- 011 ----- 1010111'),
+    R5('pv.sll.c',        'R',   '0101001 ----- ----- 010 ----- 1010111'),
+    R5('pv.sll.sc.c',     'R',   '0101001 ----- ----- 011 ----- 1010111'),
+    # or vector operations
+    R5('pv.or.n',        'R',   '0101100 ----- ----- 010 ----- 1010111'),
+    R5('pv.or.sc.n',     'R',   '0101100 ----- ----- 011 ----- 1010111'),
+    R5('pv.or.c',        'R',   '0101101 ----- ----- 010 ----- 1010111'),
+    R5('pv.or.sc.c',     'R',   '0101101 ----- ----- 011 ----- 1010111'),
+    # xor vector operations
+    R5('pv.xor.n',        'R',   '0110000 ----- ----- 010 ----- 1010111'),
+    R5('pv.xor.sc.n',     'R',   '0110000 ----- ----- 011 ----- 1010111'),
+    R5('pv.xor.c',        'R',   '0110001 ----- ----- 010 ----- 1010111'),
+    R5('pv.xor.sc.c',     'R',   '0110001 ----- ----- 011 ----- 1010111'),
+    # and vector operations
+    R5('pv.and.n',        'R',   '0110100 ----- ----- 010 ----- 1010111'),
+    R5('pv.and.sc.n',     'R',   '0110100 ----- ----- 011 ----- 1010111'),
+    R5('pv.and.c',        'R',   '0110101 ----- ----- 010 ----- 1010111'),
+    R5('pv.and.sc.c',     'R',   '0110101 ----- ----- 011 ----- 1010111'),
+    # abs vector operations
+    R5('pv.abs.n',        'R',   '0111000 ----- ----- 010 ----- 1010111'),
+    R5('pv.abs.c',        'R',   '0111001 ----- ----- 010 ----- 1010111'),
+    #dotup
+    R5('pv.dotup.n',     'RRRR','1000000 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotup.n.sc',  'RRRR','1000000 ----- ----- 011 ----- 1010111'),
+    R5('pv.dotup.c',     'RRRR','1000001 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotup.c.sc',  'RRRR','1000001 ----- ----- 011 ----- 1010111'),
+    R5('pv.dotusp.n',     'RRRR','1000100 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotusp.n.sc',  'RRRR','1000100 ----- ----- 011 ----- 1010111'),
+    R5('pv.dotusp.c',     'RRRR','1000101 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotusp.c.sc',  'RRRR','1000101 ----- ----- 011 ----- 1010111'),
+    R5('pv.dotsp.n',     'RRRR','1001100 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotsp.n.sc',  'RRRR','1001100 ----- ----- 011 ----- 1010111'),
+    R5('pv.dotsp.c',     'RRRR','1001101 ----- ----- 010 ----- 1010111'),
+    R5('pv.dotsp.c.sc',  'RRRR','1001101 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotup.n',     'RRRR','1010000 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotup.n.sc',  'RRRR','1010000 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotup.c',     'RRRR','1010001 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotup.c.sc',  'RRRR','1010001 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotusp.n',     'RRRR','1010100 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotusp.n.sc',  'RRRR','1010100 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotusp.c',     'RRRR','1010101 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotusp.c.sc',  'RRRR','1010101 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotsp.n',     'RRRR','1011100 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotsp.n.sc',  'RRRR','1011100 ----- ----- 011 ----- 1010111'),
+    R5('pv.sdotsp.c',     'RRRR','1011101 ----- ----- 010 ----- 1010111'),
+    R5('pv.sdotsp.c.sc',  'RRRR','1011101 ----- ----- 011 ----- 1010111'),
+    # quantization
+    R5('pv.qnt.n',       'LRR','1110000 ----- ----- 010 ----- 1010111'),
+    # mac & load
+    R5('pv.mlsdotup.h', 'RRRU3', '1110000 ----- ----- 000 ----- 1110111'),
+    R5('pv.mlsdotusp.h', 'RRRU3', '1110100 ----- ----- 000 ----- 1110111'),
+    R5('pv.mlsdotsup.h', 'RRRU3', '1101100 ----- ----- 000 ----- 1110111'),
+    R5('pv.mlsdotsp.h', 'RRRU3', '1111100 ----- ----- 000 ----- 1110111'),
+    R5('pv.mlsdotup.b', 'RRRU3', '1110000 ----- ----- 001 ----- 1110111'),
+    R5('pv.mlsdotusp.b', 'RRRU3', '1110100 ----- ----- 001 ----- 1110111'),
+    R5('pv.mlsdotsup.b', 'RRRU3', '1101100 ----- ----- 001 ----- 1110111'),
+    R5('pv.mlsdotsp.b', 'RRRU3', '1111100 ----- ----- 001 ----- 1110111'),
+    R5('pv.mlsdotup.n', 'RRRU3', '1110000 ----- ----- 010 ----- 1110111'),
+    R5('pv.mlsdotusp.n', 'RRRU3', '1110100 ----- ----- 010 ----- 1110111'),
+    R5('pv.mlsdotsup.n', 'RRRU3', '1101100 ----- ----- 010 ----- 1110111'),
+    R5('pv.mlsdotsp.n', 'RRRU3', '1111100 ----- ----- 010 ----- 1110111'),
+    R5('pv.mlsdotup.c', 'RRRU3', '1110000 ----- ----- 011 ----- 1110111'),
+    R5('pv.mlsdotusp.c', 'RRRU3', '1110100 ----- ----- 011 ----- 1110111'),
+    R5('pv.mlsdotsup.c', 'RRRU3', '1101100 ----- ----- 011 ----- 1110111'),
+    R5('pv.mlsdotsp.c', 'RRRU3', '1111100 ----- ----- 011 ----- 1110111'),
+]
+
 rnnext = [
     R5('pl.sdotsp.h.0', 'LRRRR','101110- ----- ----- 000 ----- 1110111'),
     R5('pl.sdotsp.h.1', 'LRRRR','101111- ----- ----- 000 ----- 1110111'),
@@ -1805,6 +1922,7 @@ rnnext = [
 
 
 pulp_v2 = IsaSubset('pulpv2', pulp_v2_insns + pulp_common_insns)
+pulp_nn = IsaSubset('pulpnn', pulp_nn_insns)
 pulp_v2_rnnext = IsaSubset('rnnext', rnnext)
 
 
@@ -1921,126 +2039,3 @@ int64 = IsaSubset('int64',
     R5('p.mulsh.d',  'R2x32_W64',      '0111001 ----- ----- 110 ----- 0110011'),
     R5('p.muluh.d',  'R2x32_W64',      '0111001 ----- ----- 111 ----- 0110011'),
 ])
-
-
-#if args.version == 1:
-#    isa = Isa('riscv', [IsaSubset('rv32i', rv32i),
-#                        IsaSubset('rv32m', rv32m),
-#                        IsaSubset('rv32c', rv32c),
-#                        IsaSubset('priv', priv),
-#                        IsaSubset('priv_pulp', priv_pulp, file=None, active='--priv_pulp'),
-#                        IsaSubset('priv_1_9', priv_1_9, file=None, active='--priv_1_9'),
-#                        IsaSubset('pulp', pulp),
-#                        IsaSubset('fpu', rv32f, active='--fpu', file=None),
-#                        IsaSubset('fpud', rv32d, active='--fpud', file=None),
-#                        IsaSubset('pulp_v1', pulp_v1, file=None)
-#                        ], options=commonOptions, power='pe.instr')
-#    isaName = 'riscv'
-
-
-
-isa = Isa(
-    'riscv',
-    [
-        IsaDecodeTree('pulp_v2', [priv_pulp_v2]),
-        IsaDecodeTree('i', [rv32i]),
-        IsaDecodeTree('m', [rv32m]),
-        IsaDecodeTree('c', [rv32c]),
-        IsaDecodeTree('priv', [priv]),
-        IsaDecodeTree('pulp_v2', [pulp_v2]),
-        IsaDecodeTree('rnnext', [pulp_v2_rnnext]),
-        IsaDecodeTree('f', [rv32f]),
-        IsaDecodeTree('sfloat', [Xf16, Xf16alt, Xf8, Xfvec, Xfaux]),
-        IsaDecodeTree('gap8', [gap8]),
-        IsaDecodeTree('gap9', [gap9]),
-        IsaDecodeTree('int64', [int64]),
-        #IsaTree('fpud', rv32d),
-        #IsaTree('gap8', gap8),
-        #IsaTree('priv_pulp_v2', priv_pulp_v2),
-        #IsaTree('priv_1_9', priv_1_9)
-        #IsaTree('rv32a', rv32a),
-        #IsaTree('pulp_zeroriscy', pulp_zeroriscy),
-    ]
-)
-
-
-
-if __name__ == "__main__":    
-    parser = argparse.ArgumentParser(description='Generate ISA for RISCV')
-
-    parser.add_argument("--version", dest="version", default=1, type=int, metavar="VALUE", help="Specify ISA version")
-    parser.add_argument("--header-file", dest="header_file", default=None, metavar="PATH", help="Specify header output file")
-    parser.add_argument("--source-file", dest="source_file", default=None, metavar="PATH", help="Specify source output file")
-    parser.add_argument("--implem", dest="implem", default=None, help="Specify implementation name")
-
-    args = parser.parse_args()
-
-    commonOptions = ["--pulp-perf-counters", "--pulp-hw-loop", "--itc-internal", "--itc-external-req", "--itc-external-wire", "--is-secured"]
-
-    try:
-        os.makedirs(os.path.dirname(args.header_file))
-    except Exception:
-        pass
-
-    try:
-        os.makedirs(os.path.dirname(args.source_file))
-    except Exception:
-        pass
-
-    with open(args.header_file, 'w') as isaFileHeader:
-        with open(args.source_file, 'w') as isaFile:
-
-            for insn in isa.get_insns():
-
-                if args.implem is None:
-
-                    if "load" in insn.tags:
-                        insn.get_out_reg(0).set_latency(2)
-                    elif "fdiv" in insn.tags:
-                        insn.get_out_reg(0).set_latency(9)
-                    elif "sfdiv" in insn.tags:
-                        insn.get_out_reg(0).set_latency(4)
-                    elif "mul" in insn.tags:
-                        insn.get_out_reg(0).set_latency(2)
-                    elif "mulh" in insn.tags:
-                        insn.set_latency(5)
-                    elif "div" in insn.tags:
-                        insn.get_out_reg(0).set_latency(31)
-
-
-                elif args.implem == 'zeroriscy':
-
-                    if "load" in insn.tags:
-                        insn.get_out_reg(0).set_latency(2)
-                    elif "fdiv" in insn.tags:
-                        insn.get_out_reg(0).set_latency(9)
-                    elif "sfdiv" in insn.tags:
-                        insn.get_out_reg(0).set_latency(4)
-                    elif "mul" in insn.tags:
-                        insn.get_out_reg(0).set_latency(3)
-                    elif "mulh" in insn.tags:
-                        insn.set_latency(5)
-                    elif "div" in insn.tags:
-                        insn.get_out_reg(0).set_latency(37)
-
-
-            # TODO these are the old timings, find a way to make that more configurable        
-            # for insn in isa.get_insns():
-            #     if "load" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(2)
-            #     elif "fmul" in insn.tags or "fadd" in insn.tags or "fconv" in insn.tags or "fother" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(2)
-            #     elif "fmadd" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(3)
-            #     elif "fdiv" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(9)
-            #     elif "sfdiv" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(4)
-            #     elif "mul" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(2)
-            #     elif "mulh" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(3)
-            #     elif "div" in insn.tags:
-            #         insn.get_out_reg(0).set_latency(8)
-
-            isa.gen(isaFile, isaFileHeader)

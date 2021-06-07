@@ -115,7 +115,8 @@ specific step of the graph."""
         for file_per_input in glob_input_files(args.input_files, self.G.num_inputs):
             LOG.info("input file %s", file_per_input)
             data = [import_data(input_file, **input_args) for input_file in file_per_input]
-            executer = GraphExecuter(self.G, qrecs=self.G.quantization)
+            qrecs = None if qmode.is_none else self.G.quantization
+            executer = GraphExecuter(self.G, qrecs=qrecs)
             outputs = executer.execute(data, step_idx_limit=step,
                                        qmode=qmode)
 

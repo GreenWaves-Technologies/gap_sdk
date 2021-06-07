@@ -2,8 +2,22 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #include "Gap.h"
-#include "CNN_BasicKernels_SQ8.h"
+#include "../CNN_Libraries_fp16/CNN_FloatType.h"
+
+
+#ifdef __pulp__
+#define Abs(a)          __builtin_pulp_abs((a))
+#define Min(a, b)       __builtin_pulp_minsi((a), (b))
+#define Max(a, b)       __builtin_pulp_maxsi((a), (b))
+#else
+#define Abs(a)          (((int)(a)<0)?(-(a)):(a))
+#define Min(a, b)       (((a)<(b))?(a):(b))
+#define Max(a, b)       (((a)>(b))?(a):(b))
+#endif
+
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
@@ -110,6 +124,11 @@ void AT_DumpTensor(
 	int Item = 0;
 	int ReadSoFar = 0;
 	void *BaseAddr = Addr;
+	int IsFloat = 0;
+	if (ItemSize<0) {
+		IsFloat = 1;
+		ItemSize = -ItemSize;
+	}
 
 	printf("Node: %s, Argument: %s, Dim: %d, [%d][%d][%d][%d][%d] ItemSize: %d\n", NodeName, ArgName, Dim, D0,D1,D2,D3,D4, ItemSize);
 	for (int d0=0; d0<D0; d0++) {
@@ -124,6 +143,7 @@ void AT_DumpTensor(
 					else printf("D%d:0..%d\n", Dim-1, D4);
 					for (int d4=0; d4<D4; d4++) {
 						int Val = 0;
+						float FVal;
 						if (InBuffer==0) {
 							int Size = Min(L2_BufferSize, SizeToRead);
 							Addr = AT_TensorGetNextPage(Loc, L3_Device, L3_Event, Size, L2_BufferAddr, BaseAddr, ReadSoFar);
@@ -134,18 +154,18 @@ void AT_DumpTensor(
 						}
 						switch (ItemSize) {
 							case 1:
-								Val = *((char *) (Addr+Item));
+								Val = *((signed char *) (Addr+Item));
 								break;
 							case 2:
-								Val = *((short int *) (Addr+Item));
+								if (IsFloat) FVal = *((F16 *) (Addr+Item)); else Val = *((short int *) (Addr+Item));
 								break;
 							case 4:
-								Val = *((int *) (Addr+Item));
+								if (IsFloat) FVal = *((float *) (Addr+Item)); else Val = *((int *) (Addr+Item));
 								break;
 						}
 						InBuffer -= ItemSize;
 						Item += ItemSize;
-						printf(" %d", Val);
+						if (IsFloat) printf(" %f", FVal); else printf(" %d", Val);
 						Nprinted++;
 						if (Nprinted==MAX_PER_LINE) {
 							printf("\n"); Nprinted=0;
@@ -156,6 +176,77 @@ void AT_DumpTensor(
 			}
 		}
 	}
+}
+
+void AT_ChecksumTensor(
+	char *NodeName,
+	char *ArgName,
+	int Loc,
+	void *L3_Device,
+	void *L3_Event,
+	int ItemSize,
+	int Dim,
+	int D0,
+	int D1,
+	int D2,
+	int D3,
+	int D4,
+	void *L2_BufferAddr,
+	unsigned int L2_BufferSize,
+	void *Addr)
+{
+	long int Checksum = 0;
+	float FChecksum = 0.0;
+	int MAX_PER_LINE = 30;
+	int SizeToRead = D0*D1*D2*D3*D4*ItemSize;
+	int InBuffer=0;
+	if (L2_BufferSize==0) L2_BufferSize = SizeToRead;
+	int Item = 0;
+	int ReadSoFar = 0;
+	void *BaseAddr = Addr;
+	int IsFloat = 0;
+	if (ItemSize<0) {
+		IsFloat = 1;
+		ItemSize = -ItemSize;
+	}
+
+	for (int d0=0; d0<D0; d0++) {
+		for (int d1=0; d1<D1; d1++) {
+			for (int d2=0; d2<D2; d2++) {
+				for (int d3=0; d3<D3; d3++) {
+					for (int d4=0; d4<D4; d4++) {
+						int Val = 0;
+						float FVal = 0.0;
+						if (InBuffer==0) {
+							int Size = Min(L2_BufferSize, SizeToRead);
+							Addr = AT_TensorGetNextPage(Loc, L3_Device, L3_Event, Size, L2_BufferAddr, BaseAddr, ReadSoFar);
+							InBuffer = Size;
+							SizeToRead -= Size;
+							ReadSoFar += Size;
+							Item = 0;
+						}
+						switch (ItemSize) {
+							case 1:
+								Val = *((signed char *) (Addr+Item));
+								break;
+							case 2:
+								if (IsFloat) FVal = *((F16 *) (Addr+Item)); else Val = *((short int *) (Addr+Item));
+								break;
+							case 4:
+								if (IsFloat) FVal = *((float *) (Addr+Item)); else Val = *((int *) (Addr+Item));
+								break;
+						}
+						InBuffer -= ItemSize;
+						Item += ItemSize;
+						if (IsFloat) FChecksum += FVal;
+						else         Checksum  += Val;
+					}
+				}
+			}
+		}
+	}
+	if (IsFloat) printf("Node: %s Argument: %s Size: %d ItemSize: %d\n\tChecksum = %f\n", NodeName, ArgName, D0*D1*D2*D3*D4, ItemSize, FChecksum);
+	else         printf("Node: %s Argument: %s Size: %d ItemSize: %d\n\tChecksum = %ld\n", NodeName, ArgName, D0*D1*D2*D3*D4, ItemSize, Checksum);
 }
 
 /* Tile Padding */

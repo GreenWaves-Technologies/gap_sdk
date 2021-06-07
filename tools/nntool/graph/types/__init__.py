@@ -16,23 +16,26 @@
 from graph.types.activations import (ActivationParameters,
                                      HSigmoidActivationParameters,
                                      HSwishActivationParameters,
+                                     HTanHActivationParameters,
                                      LeakyActivationParameters,
                                      ReluActivationParameters,
                                      SigmoidActivationParameters,
-                                     SoftMaxParameters)
+                                     SoftMaxParameters,
+                                     TanHActivationParameters)
 from graph.types.base import (EdgeParameters, FilterLikeParameters,
                               FilterParameters, MultiplicativeBiasParameters,
                               NNEdge, NodeOptions, Parameters,
                               SameNumberOfDimensionsForInputs,
                               SensitiveToOrder, SingleInputAndOutput)
-from graph.types.conv2d import BatchNormalizationParameters, Conv2DParameters
+from graph.types.conv2d import (BatchNormalizationParameters, Conv2DParameters,
+                                TransposeConv2DParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
 from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
                                  FusionBase, FusionInputParameters,
                                  FusionOutputParameters,
+                                 MatMulOpFusionParameters,
                                  MatScaleFusionParameters,
-                                 PaddedAddFusionParameters,
-                                 MatMulOpFusionParameters)
+                                 PaddedAddFusionParameters)
 from graph.types.image_formatter import ImageFormatParameters
 from graph.types.input_output import (ConstantInputParameters,
                                       InputBaseParameters,
@@ -40,10 +43,9 @@ from graph.types.input_output import (ConstantInputParameters,
                                       OutputParameters)
 from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
-from graph.types.others import (BinaryOpParameters, CastParameters,
-                                ConcatParameters, CopyParameters,
-                                ExpOpParameters, GatherParameters,
-                                GlobalPoolParameters, GroupParameters,
+from graph.types.others import (BinaryOpParameters, ConcatParameters,
+                                CopyParameters, ExpOpParameters,
+                                GatherParameters, GlobalPoolParameters,
                                 LogOpParameters, MaxOpParameters,
                                 MinOpParameters, NegOpParameters,
                                 NoOPParameters, PadParameters, PowOpParameters,
@@ -52,10 +54,9 @@ from graph.types.others import (BinaryOpParameters, CastParameters,
                                 StridedSliceParameters, Transposable,
                                 TransposeParameters, UnaryOpParameters,
                                 UnconvertedOpParameters,
-                                UnexecutableOpParameters, UnknownOpParameters,
-                                UpsampleParameters)
-from graph.types.pooling import PoolingParameters
-from graph.types.recurrent import RecurrentOutputParameters
+                                UnexecutableOpParameters, UnknownOpParameters)
+from graph.types.pooling import (AveragePoolParameters, MaxPoolParameters,
+                                 PoolingParameters)
 from graph.types.resizers import (BilinearResizerParameters,
                                   NearestNeighborResizerParameters,
                                   ResizerParameters)

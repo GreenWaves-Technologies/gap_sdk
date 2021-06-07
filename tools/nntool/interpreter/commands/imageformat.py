@@ -17,15 +17,11 @@ import argparse
 from copy import deepcopy
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
+from interpreter.nntool_shell_base import NNToolShellBase
+from quantization.qtype import QType
+from utils.node_id import NodeId
 
 from graph.types import ImageFormatParameters, NNEdge, TransposeParameters
-from interpreter.nntool_shell_base import NNToolShellBase
-from quantization.multiplicative.mult_quantization import \
-    MultQuantizationRecordBase
-from quantization.qtype import QType
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricQuantizationBase
-from utils.node_id import NodeId
 
 
 class ImageFormatCommand(NNToolShellBase):
@@ -41,7 +37,8 @@ class ImageFormatCommand(NNToolShellBase):
         return [fmt.lower() for fmt in ImageFormatParameters.NORMALIZATIONS] + ['none']
 
     # IMAGEFORMAT COMMAND
-    parser_imageformat = Cmd2ArgumentParser("inserts image format node into graphs")
+    parser_imageformat = Cmd2ArgumentParser(
+        "inserts image format node into graphs")
     parser_imageformat.add_argument('input_node',
                                     choices_method=inputs_choices,
                                     help='input node name to format')
@@ -62,17 +59,19 @@ class ImageFormatCommand(NNToolShellBase):
         input_node = self.G[args.input_node]
         out_edges = self.G.out_edges(input_node.name)
         if len(out_edges) == 1 and isinstance(out_edges[0].to_node, ImageFormatParameters):
-            self.G.changes.image_format(input_node.name, None, None)
             remove_formatter(self.G, out_edges[0].to_node)
             self.G.add_dimensions()
+            self.pfeedback(f'removed image formatter {out_edges[0].to_node.name}')
             return
         if args.image_formatter == "none" and args.image_normalizer == "none":
             self.pfeedback("no formatting set")
             self.G.add_dimensions()
             return
-        self.G.changes.image_format(input_node.name, args.image_formatter, args.image_normalizer)
-        insert_formatter(self.G, input_node, args.image_formatter, args.image_normalizer)
+        insert_formatter(self.G, input_node,
+                         args.image_formatter, args.image_normalizer)
         self.G.add_dimensions()
+        self.pfeedback(f'inserted image formatter after node {input_node.name} with'
+                       f'format {args.image_formatter} and normalization {args.image_normalizer}')
 
 
 def insert_formatter(G, input_node, formatter, normalizer):
@@ -136,9 +135,10 @@ def insert_formatter(G, input_node, formatter, normalizer):
                     "current graph input output quantization does not match formatter output")
             formatter_qrec = deepcopy(input_qrec)
             formatter_qrec.out_qs[0] = deepcopy(formatter_qrec.out_qs[0])
-            if isinstance(formatter_qrec, MultQuantizationRecordBase):
-                formatter_in_q = QType(scale=1, zero_point=0, dtype=format_node.input_dtype)
-            elif isinstance(formatter_qrec, SymmetricQuantizationBase):
+            if formatter_qrec.ktype.startswith('scaled'):
+                formatter_in_q = QType(
+                    scale=1, zero_point=0, dtype=format_node.input_dtype)
+            elif formatter_qrec.ktype.startswith('symmetric'):
                 formatter_in_q = QType(q=0, dtype=format_node.input_dtype)
             else:
                 raise NotImplementedError("quantization has unknown type")

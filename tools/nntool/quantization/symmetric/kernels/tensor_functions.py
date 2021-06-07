@@ -14,21 +14,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from skimage.transform import resize
 from graph.types import (ConstantInputParameters, InputParameters,
                          OutputParameters)
-from quantization.kernels.kernel_base import (KernelBase, params_type,
-                                              quantization)
-from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
+from quantization.new_qrec import QRec
+from skimage.transform import resize
 
 
 @params_type(InputParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled')
 class InputSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         # all graph inputs are passed all of the inputs of the graph
         # params.index indicates the index of the input that this node should output
@@ -36,9 +35,11 @@ class InputSymmetric(KernelBase):
         if in_tensor.size == params.dims.size():
             if len(in_tensor.shape) == len(params.dims.shape):
                 in_shape = tuple(dim for dim in in_tensor.shape if dim > 1)
-                expected_shape = tuple(dim for dim in params.dims.shape if dim > 1)
+                expected_shape = tuple(
+                    dim for dim in params.dims.shape if dim > 1)
                 if in_shape != expected_shape:
-                    raise ValueError(f'{params.name} received input of shape {in_tensor.shape} but expecting {params.dims.shape}')
+                    raise ValueError(
+                        f'{params.name} received input of shape {in_tensor.shape} but expecting {params.dims.shape}')
             in_tensor = in_tensor.reshape(params.dims.shape)
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
@@ -49,12 +50,12 @@ class InputSymmetric(KernelBase):
 
 
 @params_type(OutputParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled')
 class OutputSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         del qrec
         in_tensor = in_tensors[0]
@@ -64,12 +65,12 @@ class OutputSymmetric(KernelBase):
 
 
 @params_type(ConstantInputParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled')
 class ConstantInputSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         del in_tensors
         return [params.value_as(qrec.out_qs[0])]

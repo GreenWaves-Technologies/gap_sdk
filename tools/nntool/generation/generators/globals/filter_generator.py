@@ -16,8 +16,7 @@ import os
 
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.tc_arg_info import GlobalArgInfo
-from generation.generators.generator_decorators import (QREC_POW2,
-                                                        generation_function)
+from generation.generator_decorators import QREC_POW2, generation_function
 from generation.generators.globals.global_names import MULSCALE
 from graph.types import FilterParameters, MultiplicativeBiasParameters
 
@@ -31,7 +30,7 @@ def filter_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
         cname = gen.naming_convension.get_global_name(pnode.name, pnode.step_idx,
                                                       pnode, MULSCALE)
         file_name = os.path.join(gen.opts['tensor_directory'],
-                                cname+".tensor")
+                                 cname+".tensor")
         gen.name_cache.set(node, MULSCALE, cname)
 
         contents = mul_biases_q.quantize(node.mul_biases).astype(mul_biases_q.dtype,

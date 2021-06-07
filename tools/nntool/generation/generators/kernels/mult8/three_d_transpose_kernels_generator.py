@@ -16,7 +16,7 @@ import logging
 
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import TransposeParameters
 
 from ..autotiler_kernel import AutotilerKernel
@@ -27,8 +27,6 @@ LOG = logging.getLogger("nntool." + __name__)
 @generation_function("kernels", (TransposeParameters, ), qrec_types=(QREC_MULT8, ))
 def three_d_transpose_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
-    LOG.info("generating for transpose in %s out %s trans %s",
-             node.in_dims[0], node.out_dims[0], node.transpose_in[0])
     real_in_shape, real_transpose = node.real_shape()
     if len(real_transpose) <= 1:
         return True
@@ -40,6 +38,8 @@ def three_d_transpose_kernels_generator(gen, node, qrec, in_eparams, out_eparams
                                                     real_transpose, qrec, at_ver=gen.opts['at_ver']))
     else:
         raise NotImplementedError("only 2D or 3D transposes are currently supported")
+    LOG.info("generating for transpose in %s out %s trans %s",
+             node.in_dims[0], node.out_dims[0], node.transpose_in[0])
     return True
 
 # int CNN_MatTranspose_SQ8(

@@ -11,6 +11,7 @@
 #include "testbench.h"
 #include "testlib.h"
 #include <bsp/ram/hyperram.h>
+#include <string.h>
 
 
 static pi_device_t * timestamp;
@@ -33,7 +34,7 @@ struct pi_device *i2s_init(struct pi_device *i2s, i2s_config_t *config)
         .sampling_freq=config->sampling_freq, .word_size=config->word_size, .nb_slots=config->nb_slots,
         .is_full_duplex=config->full_duplex, .is_ext_clk=config->is_ext_clk, .is_ext_ws=config->is_ext_ws,
         .is_sai0_clk=config->is_sai0_clk, .is_sai0_ws=config->is_sai0_ws, .clk_polarity=config->clk_polarity,
-        .ws_polarity=config->ws_polarity
+        .ws_polarity=config->ws_polarity, .ws_delay=config->ws_delay
     };
 
     if (pi_testbench_i2s_verif_open(pi_testbench_get(), config->itf, &i2s_config))
@@ -48,6 +49,7 @@ struct pi_device *i2s_init(struct pi_device *i2s, i2s_config_t *config)
     i2s_conf.word_size = config->word_size;
     i2s_conf.channels = config->nb_slots;
     i2s_conf.options = PI_I2S_OPT_TDM | config->options;
+    i2s_conf.ws_delay = config->ws_delay;
 
     if(config->use_fast_clk)
     {
@@ -106,12 +108,12 @@ struct pi_device *i2s_init(struct pi_device *i2s, i2s_config_t *config)
     return i2s;
 }
 
-static uint32_t slot_iter_next(i2s_slot_test_t *i2s_slot)
+static uint32_t slot_iter_next(i2s_slot_test_t *i2s_slot, int is_tx)
 {
-    uint32_t current_value = i2s_slot->current_value;
+    uint32_t current_value = i2s_slot->current_value & (1ULL << i2s_slot->word_size) - 1;
 
     // Convert the reduced element to the memory size, according to format (sign extension and shift)
-    if ((i2s_slot->format >> 2) & 1)
+    if (!is_tx && ((i2s_slot->format >> 2) & 1))
     {
         uint32_t sign_value = 0;
         if ((current_value >> (i2s_slot->word_size - 1)) & 1)
@@ -138,6 +140,7 @@ static uint32_t slot_iter_next(i2s_slot_test_t *i2s_slot)
 
 static int slot_iter_find_first(i2s_slot_test_t *i2s_slot, uint32_t value)
 {
+    value &= (1ULL << i2s_slot->word_size) - 1;
     int fact = (value - i2s_slot->incr_start) / i2s_slot->incr_value;
     int result;
     uint32_t new_current_value = i2s_slot->incr_value * fact + i2s_slot->incr_start;
@@ -166,7 +169,7 @@ static void set_buffer_elem(void *buffer, int index, uint32_t value, int word_si
 
 static void set_buffer_elem_iter(i2s_slot_test_t *i2s_slot, void *buffer, int index)
 {
-    uint32_t current_value = slot_iter_next(i2s_slot);
+    uint32_t current_value = slot_iter_next(i2s_slot, 1);
 
     // Fill element with radnom values on upper part to better check that the HW cutting the useless part
     current_value = (0xAAAAAAAA & ~((1ULL<<i2s_slot->word_size) - 1)) | current_value;
@@ -177,8 +180,16 @@ static void set_buffer_elem_iter(i2s_slot_test_t *i2s_slot, void *buffer, int in
 
 void i2s_slot_deinit(i2s_slot_test_t *i2s_slot)
 {
-    pi_l2_free(i2s_slot->buffers[0], i2s_slot->buffer_size);
-    pi_l2_free(i2s_slot->buffers[1], i2s_slot->buffer_size);
+    if (!i2s_slot->bypass || !i2s_slot->is_rx)
+    {
+        struct pi_i2s_channel_conf i2s_conf;
+        pi_i2s_channel_conf_init(&i2s_conf);
+        i2s_conf.options = PI_I2S_OPT_DISABLED | (i2s_slot->is_rx ? PI_I2S_OPT_IS_RX: PI_I2S_OPT_IS_TX);
+        pi_i2s_channel_conf_set(i2s_slot->i2s, i2s_slot->slot, &i2s_conf);
+
+        pi_l2_free(i2s_slot->buffers[0], i2s_slot->buffer_size);
+        pi_l2_free(i2s_slot->buffers[1], i2s_slot->buffer_size);
+    }
 }
 
 
@@ -197,108 +208,116 @@ int i2s_slot_init(i2s_slot_test_t *i2s_slot, struct pi_device *i2s, i2s_slot_con
     i2s_slot->mute_delay_end = slot_config->mute_delay_end;
     i2s_slot->random_mute = slot_config->random_mute;
     i2s_slot->format = slot_config->format;
-    pi_task_block(&i2s_slot->end_task);
+    i2s_slot->bypass = slot_config->bypass;
 
-    struct pi_i2s_channel_conf i2s_conf;
-    pi_i2s_channel_conf_init(&i2s_conf);
+    if (!i2s_slot->bypass || !i2s_slot->is_rx)
+    {
+        pi_task_block(&i2s_slot->end_task);
 
-    int buffer_size = slot_config->nb_elem * slot_config->elem_size;
-    i2s_slot->buffer_size= buffer_size;
-    i2s_slot->nb_elem = slot_config->nb_elem;
+        struct pi_i2s_channel_conf i2s_conf;
+        pi_i2s_channel_conf_init(&i2s_conf);
 
-    if (slot_config->is_rx)
-    {
-        i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_RX | PI_I2S_OPT_ENABLED;
-    }
-    else
-    {
-        i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_TX | PI_I2S_OPT_ENABLED;
-    }
-    i2s_slot->buffers[0] = pi_l2_malloc(buffer_size);
-    if (i2s_slot->buffers[0] == NULL)
-    {
-        printf("Failed to allocate\n");
-        return -1;
-    }
-    i2s_slot->buffers[1] = pi_l2_malloc(buffer_size);
-    if (i2s_slot->buffers[1] == NULL)
-    {
-        printf("Failed to allocate\n");
-        return -1;
-    }
-    i2s_conf.pingpong_buffers[0] = i2s_slot->buffers[0];
-    i2s_conf.pingpong_buffers[1] = i2s_slot->buffers[1];
+        int buffer_size = slot_config->nb_elem * slot_config->elem_size;
+        i2s_slot->buffer_size= buffer_size;
+        i2s_slot->nb_elem = slot_config->nb_elem;
 
-    i2s_conf.block_size = buffer_size;
-    i2s_conf.word_size = slot_config->word_size;
-    i2s_conf.format = PI_I2S_FMT_DATA_FORMAT_I2S;
-    
-    if ((slot_config->format >> 0) & 1)
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_ORDER_MSB;
-    }
-    else
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_ORDER_LSB;
-    }
-
-    if ((slot_config->format >> 1) & 1)
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_ALIGN_LEFT;
-    }
-    else
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_ALIGN_RIGHT;
-    }
-
-    if ((slot_config->format >> 2) & 1)
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_SIGN_EXTEND;
-    }
-    else
-    {
-        i2s_conf.format |= PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND;
-    }
-
-    if (slot_config->slot_disable)
-    {
-        i2s_conf.slot_enable = 0;
-    }
-
-    if (pi_i2s_channel_conf_set(i2s, slot_config->slot, &i2s_conf))
-        return -1;
-
-    if (slot_config -> ts_evt_en)
-    {
-        pi_timestamp_event_t evt;
-        evt.ts_evt_id = 0xFF;
-        pi_udma_timestamp_ioctl(timestamp, PI_UDMA_TIMESTAMP_IOCTL_EVT_ALLOC, &evt);
-        if (evt.ts_evt_id == 0xFF)
+        if (slot_config->is_rx)
         {
-            return -2;
+            i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_RX | PI_I2S_OPT_ENABLED;
+        }
+        else
+        {
+            i2s_conf.options = PI_I2S_OPT_PINGPONG | PI_I2S_OPT_IS_TX | PI_I2S_OPT_ENABLED;
+        }
+        i2s_slot->buffers[0] = pi_l2_malloc(buffer_size);
+        if (i2s_slot->buffers[0] == NULL)
+        {
+            printf("Failed to allocate\n");
+            return -1;
+        }
+        i2s_slot->buffers[1] = pi_l2_malloc(buffer_size);
+        if (i2s_slot->buffers[1] == NULL)
+        {
+            printf("Failed to allocate\n");
+            return -1;
         }
 
-        i2s_conf.ts_evt_id = evt.ts_evt_id;
+        i2s_conf.pingpong_buffers[0] = i2s_slot->buffers[0];
+        i2s_conf.pingpong_buffers[1] = i2s_slot->buffers[1];
 
-        pi_i2s_channel_timestamp_set(i2s, slot_config->slot, &i2s_conf);
-        evt.dest_id = fifo_id;
-        pi_udma_timestamp_ioctl(timestamp, PI_UDMA_TIMESTAMP_IOCTL_SET_EVT, &evt);
+        i2s_conf.block_size = buffer_size;
+        i2s_conf.word_size = slot_config->word_size;
+        i2s_conf.format = PI_I2S_FMT_DATA_FORMAT_I2S;
+        i2s_conf.mem_word_size = slot_config->elem_size * 8;
+        
+        if (slot_config->bypass)
+        {
+            i2s_conf.options |= PI_I2S_OPT_LOOPBACK;
+        }
+
+        if ((slot_config->format >> 0) & 1)
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_ORDER_MSB;
+        }
+        else
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_ORDER_LSB;
+        }
+
+        if ((slot_config->format >> 1) & 1)
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_ALIGN_LEFT;
+        }
+        else
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_ALIGN_RIGHT;
+        }
+
+        if ((slot_config->format >> 2) & 1)
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_SIGN_EXTEND;
+        }
+        else
+        {
+            i2s_conf.format |= PI_I2S_CH_FMT_DATA_SIGN_NO_EXTEND;
+        }
+
+        if (slot_config->slot_disable)
+        {
+            i2s_conf.slot_enable = 0;
+        }
+
+        if (pi_i2s_channel_conf_set(i2s, slot_config->slot, &i2s_conf))
+            return -1;
+
+        if (slot_config -> ts_evt_en)
+        {
+            pi_timestamp_event_t evt;
+            evt.ts_evt_id = 0xFF;
+            pi_udma_timestamp_ioctl(timestamp, PI_UDMA_TIMESTAMP_IOCTL_EVT_ALLOC, &evt);
+            if (evt.ts_evt_id == 0xFF)
+            {
+                return -2;
+            }
+
+            i2s_conf.ts_evt_id = evt.ts_evt_id;
+
+            pi_i2s_channel_timestamp_set(i2s, slot_config->slot, &i2s_conf);
+            evt.dest_id = fifo_id;
+            pi_udma_timestamp_ioctl(timestamp, PI_UDMA_TIMESTAMP_IOCTL_SET_EVT, &evt);
+        }
+
+        pi_testbench_i2s_verif_slot_config_t config = { .is_rx=slot_config->is_rx, .word_size=slot_config->word_size, .format=slot_config->format };
+        if (pi_testbench_i2s_verif_slot_open(pi_testbench_get(), slot_config->itf, slot_config->slot, &config))
+            return -1;
+
+        if (!slot_config->is_rx)
+        {
+            i2s_slot->tx_buffers[0] = i2s_conf.pingpong_buffers[0];
+            i2s_slot->tx_buffers[1] = i2s_conf.pingpong_buffers[1];
+            i2s_slot->tx_buffer = 0;
+        }
     }
-
-    pi_testbench_i2s_verif_slot_config_t config = { .is_rx=slot_config->is_rx, .word_size=slot_config->word_size, .format=slot_config->format };
-    if (pi_testbench_i2s_verif_slot_open(pi_testbench_get(), slot_config->itf, slot_config->slot, &config))
-        return -1;
-
-    if (!slot_config->is_rx)
-    {
-        i2s_slot->tx_buffers[0] = i2s_conf.pingpong_buffers[0];
-        i2s_slot->tx_buffers[1] = i2s_conf.pingpong_buffers[1];
-        i2s_slot->tx_buffer = 0;
-    }
-
-    if (pi_i2s_slots_enable(i2s, slot_config->slot, 1))
-        return -1;
-
 
     return 0;
 }
@@ -355,6 +374,13 @@ static uint32_t buffer_get_elem(void *buffer, int index, int word_size, void **a
         *address = addr;
         return *addr;
     }
+    else if (word_size == 3)
+    {
+        uint32_t result = 0;
+        uint8_t *src = &((uint8_t *)buffer)[index*3];
+        memcpy((void *)&result, (void *)src, 3);
+        return result;
+    }
     else
     {
         uint32_t *addr = &((uint32_t *)buffer)[index];
@@ -396,7 +422,7 @@ void i2s_slot_callback_rx_iter(void *arg)
             }
         }
 
-        uint32_t current_value = slot_iter_next(i2s_slot);
+        uint32_t current_value = slot_iter_next(i2s_slot, 0);
 
         if (value != current_value)
         {
@@ -432,40 +458,43 @@ void i2s_slot_end(i2s_slot_test_t *i2s_slot)
 
 int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config)
 {
-    if (config->type == I2S_VERIF_RX_ITER)
+    if (!i2s_slot->bypass)
     {
-        i2s_slot->incr_start = config->testbench_config.rx_iter.incr_start & ((1ULL<<i2s_slot->word_size) - 1);
-        i2s_slot->incr_end = config->testbench_config.rx_iter.incr_end & ((1ULL<<i2s_slot->word_size) - 1);
-        i2s_slot->incr_value = config->testbench_config.rx_iter.incr_value;
-        i2s_slot->current_value = config->testbench_config.rx_iter.incr_start;
-        i2s_slot->nb_sample = config->nb_samples;
-
-        if (i2s_slot->incr_value >= i2s_slot->incr_end)
-            i2s_slot->incr_value = 0;
-
-        pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
-    }
-    else if (config->type == I2S_VERIF_TX_ITER)
-    {
-        i2s_slot->incr_start = config->tx_iter.incr_start & ((1ULL<<i2s_slot->word_size) - 1);
-        i2s_slot->incr_end = config->tx_iter.incr_end & ((1ULL<<i2s_slot->word_size) - 1);
-        i2s_slot->incr_value = config->tx_iter.incr_value;
-        i2s_slot->current_value = config->tx_iter.incr_start;
-        i2s_slot->nb_sample = config->tx_iter.nb_samples;
-
-        if (i2s_slot->incr_value >= i2s_slot->incr_end)
-            i2s_slot->incr_value = 0;
-
-        for (int i=0; i<i2s_slot->nb_elem; i++)
+        if (config->type == I2S_VERIF_RX_ITER)
         {
-            set_buffer_elem_iter(i2s_slot, i2s_slot->tx_buffers[0], i);
-        }
-        for (int i=0; i<i2s_slot->nb_elem; i++)
-        {
-            set_buffer_elem_iter(i2s_slot, i2s_slot->tx_buffers[1], i);
-        }
+            i2s_slot->incr_start = config->testbench_config.rx_iter.incr_start & ((1ULL<<i2s_slot->word_size) - 1);
+            i2s_slot->incr_end = config->testbench_config.rx_iter.incr_end & ((1ULL<<i2s_slot->word_size) - 1);
+            i2s_slot->incr_value = config->testbench_config.rx_iter.incr_value;
+            i2s_slot->current_value = config->testbench_config.rx_iter.incr_start;
+            i2s_slot->nb_sample = config->nb_samples;
 
-        pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, NULL, i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+            if (i2s_slot->incr_value >= i2s_slot->incr_end)
+                i2s_slot->incr_value = 0;
+
+            pi_i2s_channel_read_async(i2s_slot->i2s, i2s_slot->slot, pi_task_callback(&i2s_slot->task, i2s_slot_callback_rx_iter, (void *)i2s_slot));
+        }
+        else if (config->type == I2S_VERIF_TX_ITER)
+        {
+            i2s_slot->incr_start = config->tx_iter.incr_start & ((1ULL<<i2s_slot->word_size) - 1);
+            i2s_slot->incr_end = config->tx_iter.incr_end & ((1ULL<<i2s_slot->word_size) - 1);
+            i2s_slot->incr_value = config->tx_iter.incr_value;
+            i2s_slot->current_value = config->tx_iter.incr_start;
+            i2s_slot->nb_sample = config->tx_iter.nb_samples;
+
+            if (i2s_slot->incr_value >= i2s_slot->incr_end)
+                i2s_slot->incr_value = 0;
+
+            for (int i=0; i<i2s_slot->nb_elem; i++)
+            {
+                set_buffer_elem_iter(i2s_slot, i2s_slot->tx_buffers[0], i);
+            }
+            for (int i=0; i<i2s_slot->nb_elem; i++)
+            {
+                set_buffer_elem_iter(i2s_slot, i2s_slot->tx_buffers[1], i);
+            }
+
+            pi_i2s_channel_write_async(i2s_slot->i2s, i2s_slot->slot, NULL, i2s_slot->buffer_size, pi_task_callback(&i2s_slot->task, i2s_slot_callback_tx_file_dumper, (void *)i2s_slot));
+        }
     }
 
     if (pi_testbench_i2s_verif_slot_start(pi_testbench_get(), i2s_slot->itf, i2s_slot->slot, &config->testbench_config))
@@ -477,8 +506,15 @@ int i2s_slot_start(i2s_slot_test_t *i2s_slot, i2s_slot_start_config_t *config)
 
 int i2s_slot_wait(i2s_slot_test_t *i2s_slot)
 {
-    pi_task_wait_on(&i2s_slot->end_task);
-    return i2s_slot->retval;
+    if (i2s_slot->bypass)
+    {
+        return 0;
+    }
+    else
+    {
+        pi_task_wait_on(&i2s_slot->end_task);
+        return i2s_slot->retval;
+    }
 }
 
 
@@ -506,7 +542,8 @@ int i2s_test_init(i2s_test_t *test, i2s_test_config_t *config)
         .itf=config->itf, .sampling_freq=config->sampling_freq, .word_size=config->word_size, .nb_slots=config->nb_slots,
         .full_duplex=config->full_duplex, .is_ext_clk=config->is_ext_clk, .is_ext_ws=config->is_ext_ws,
         .is_sai0_clk=config->is_sai0_clk, .is_sai0_ws=config->is_sai0_ws, .clk_polarity=config->clk_polarity,
-        .ws_polarity=config->ws_polarity, .use_fast_clk=config->use_fast_clk, .fast_clk_freq=config->fast_clk_freq
+        .ws_polarity=config->ws_polarity, .use_fast_clk=config->use_fast_clk, .fast_clk_freq=config->fast_clk_freq,
+        .ws_delay=config->ws_delay, .elem_size=config->elem_size
     };
     if (i2s_init(&test->i2s, &i2s_config) == NULL)
         return -1;
@@ -526,7 +563,7 @@ int i2s_test_init(i2s_test_t *test, i2s_test_config_t *config)
 
         if ((config->rx_slots >> i) & 1)
         {
-            int slot_width = ((config->rx_slots_width >> (i*4)) & 0xF) + 1;
+            int slot_width = (((i < 8 ? config->rx_slots_width_0 : config->rx_slots_width_1) >> (i*8)) & 0x1F) + 1;
             int slot_format = (config->rx_slots_format >> (i*4)) & 0xF;
             int random_mute = (config->random_mute >> i) & 1;
             int ts_evt_en = (config->ts_evt >> i) & 1;
@@ -551,7 +588,7 @@ int i2s_test_init(i2s_test_t *test, i2s_test_config_t *config)
                 .nb_samples=config->nb_samples,
                 .testbench_config={
                     .type=PI_TESTBENCH_I2S_VERIF_RX_ITER,
-                    .rx_iter= { .nb_samples=-1, .incr_start=i*2+config->itf*32, .incr_end=(1ULL << config->word_size) - 1, .incr_value=iter*3 }
+                    .rx_iter= { .nb_samples=-1, .incr_start=i*2+config->itf*32, .incr_end=(1ULL << config->word_size) - 1, .incr_value=iter*3 + config->incr }
                 }
             };
 
@@ -567,14 +604,15 @@ int i2s_test_init(i2s_test_t *test, i2s_test_config_t *config)
 
         if ((config->tx_slots >> i) & 1)
         {
-            int slot_width = ((config->tx_slots_width >> (i*4)) & 0xF) + 1;
+            int slot_width = (((i < 8 ? config->tx_slots_width_0 : config->tx_slots_width_1) >> (i*8)) & 0x1F) + 1;
             int slot_format = ((config->tx_slots_format >> (i*4)) & 0xF);
             int random_mute = (config->random_mute >> i) & 1;
             int ts_evt_en = (config->ts_evt >> (16+i)) & 1;
+            int bypass = (config->tx_slots_bypass >> i) & 1;
 
             i2s_slot_config_t i2s_slot_config = {
                 .itf=config->itf, .slot=i, .is_rx=0, .word_size=slot_width, .nb_elem=config->buffer_nb_elem, .elem_size=config->elem_size, .format=slot_format,
-                .mute_delay_start=30, .mute_delay_incr=20, .mute_delay_end=150, .random_mute=random_mute, .ts_evt_en=ts_evt_en
+                .mute_delay_start=30, .mute_delay_incr=20, .mute_delay_end=150, .random_mute=random_mute, .ts_evt_en=ts_evt_en, .bypass=bypass
             };
 
             if (i2s_slot_init(&test->slot_test_tx[i], &test->i2s, &i2s_slot_config))

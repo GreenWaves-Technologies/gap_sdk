@@ -29,7 +29,11 @@ typedef struct {
   uint32_t pending_step;
   uint32_t pending_next_step;
   unsigned int udma_stop_cmd;
+#if PULP_CHIP == CHIP_VEGA
+  uint32_t udma_cmd[16];
+#else
   unsigned char udma_cmd[16];
+#endif
   int channel;
   unsigned char open_count;
   char cs;

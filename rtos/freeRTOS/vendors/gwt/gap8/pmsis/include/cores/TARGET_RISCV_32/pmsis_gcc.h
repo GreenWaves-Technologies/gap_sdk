@@ -590,6 +590,8 @@ __attribute__((always_inline)) __STATIC_INLINE uint32_t __ExtInsMaskSafe(uint32_
 
 /*! @brief Position of the most significant bit of x */
 #define __FL1(x)                 __builtin_pulp_fl1(x)
+/*! @brief Position of the least significant bit of x */
+#define __FF1(x)                 __builtin_pulp_ff1(x)
 
 /*! @brief Number of sign bits */
 #define __CLB(x)                 __builtin_pulp_clb(x)

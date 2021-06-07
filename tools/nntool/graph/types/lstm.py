@@ -13,19 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from utils.node_id import NodeId
-from graph.dim import Dim
-from graph.types.base import NNEdge
-from quantization.multiplicative.mult_quantization import MultQuantizationRecord
 import logging
+from quantization.new_qrec import QRec
+
+from graph.dim import Dim
+from graph.types.base import NNEdge, cls_op_name
+
+from utils.node_id import NodeId
 
 from .rnn import RNNBaseParameters
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
+@cls_op_name('lstm')
 class LSTMParameters(RNNBaseParameters):
-    op_name = "lstm"
 
     INPUT_NAMES = [
         "input",
@@ -72,7 +73,7 @@ class LSTMParameters(RNNBaseParameters):
             c_state_idx = self.INPUT_NAMES.index('c_state')
             in_q = lstm_qrec.in_qs[c_state_idx]
             lstm_qrec.out_qs.append(in_q)
-            c_state_q = MultQuantizationRecord(in_qs=[in_q], out_qs=[in_q])
+            c_state_q = QRec.scaled(in_qs=[in_q], out_qs=[in_q])
             G.quantization[NodeId(output_c_state)] = c_state_q
 
         G.add_edge(NNEdge(self, output_c_state, from_idx=1))
@@ -106,14 +107,17 @@ class LSTMParameters(RNNBaseParameters):
             output_dims.append(Dim.unnamed([1, self.n_states]))
         return output_dims
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
-        return "{} Cell {} Prj {} {} {}".format(
+        return "Number of cells: {}/{}, {} Cell {} Prj {} {} {}".format(
+            self.n_input_cells, self.n_cells,
             ("Reversed " if self.revert else ""),
             self.cell_clip,
             self.proj_clip,
             self.activation,
             self.at_options
         )
+
+    def compute_load(self):
+        in_sizes = {self.INPUT_NAMES[idx]: self.in_dims[idx] for idx in range(len(self.in_dims))}
+        return in_sizes["i_state"].size() * (self.n_cells*in_sizes["i_state"].size()*4 + self.n_input_cells*in_sizes["input"].size()*4) + \
+            self.n_cells*(in_sizes["i_state"].size()*4 + in_sizes["c_state"].size()*3)

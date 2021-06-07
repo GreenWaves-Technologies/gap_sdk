@@ -91,8 +91,11 @@ do { \
   iss->cpu.state.insn_cycles = 1; \
   iss_insn_t *insn = iss->cpu.current_insn; \
   prefetcher_fetch(iss, insn->addr); \
-  iss->cpu.prev_insn = insn; \
-  iss->cpu.current_insn = func(iss, insn); \
+  if (iss->cpu.state.insn_cycles > 0) \
+  { \
+    iss->cpu.prev_insn = insn; \
+    iss->cpu.current_insn = func(iss, insn); \
+  } \
 } while(0)
 
 

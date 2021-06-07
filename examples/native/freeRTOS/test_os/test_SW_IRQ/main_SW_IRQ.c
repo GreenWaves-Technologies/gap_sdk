@@ -1,9 +1,6 @@
 /* PMSIS includes */
 #include "pmsis.h"
 
-/* App includes. */
-#include "gap_handler_wrapper.h"
-
 /* Variables used. */
 TaskHandle_t xHandler[2] = {NULL};
 
@@ -12,8 +9,8 @@ volatile uint32_t count = 0;
 
 void sw_IRQ_handler();
 
-/* Handler wrapper  */
-Handler_Wrapper_Light(sw_IRQ_handler);
+/* Handler wrapper */
+HANDLER_WRAPPER_LIGHT(sw_IRQ_handler);
 void sw_IRQ_handler()
 {
     printf("%s handling SW_IRQ.\n", pcTaskGetName( NULL ));

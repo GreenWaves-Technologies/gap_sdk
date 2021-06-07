@@ -17,13 +17,11 @@ import logging
 from functools import reduce
 
 import numpy as np
-from graph.types import PoolingParameters
 from graph.types.others import GlobalPoolParameters
-from quantization.kernels.kernel_base import (KernelBase, params_type,
-                                              quantization)
-from quantization.multiplicative.mult_quantization import \
-    MultQuantizationRecord
-from quantization.quantization_record_base import QuantizationRecordBase
+from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
+from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
+from quantization.multiplicative.mulbias import compute_in_out_scale
+from quantization.new_qrec import QRec
 from utils.at_norm import at_norm
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -31,35 +29,19 @@ LOG = logging.getLogger("nntool." + __name__)
 # pylint: disable=too-many-arguments, too-many-locals
 
 
-@params_type(PoolingParameters)
-@quantization('symmetric')
-class PoolingSymmetric(KernelBase):
+@params_type(AveragePoolParameters)
+@qrec_type('symmetric', 'scaled')
+class AveragePoolingSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
-        if params.pool_type == "average":
-            return cls.average_execute(params,
-                                       in_tensors,
-                                       qrec)
-        elif params.pool_type == "max":
-            return cls.max_execute(params,
-                                   in_tensors,
-                                   qrec)
-        else:
-            ValueError("unknown pool type")
-
-    @classmethod
-    def average_execute(cls, params,
-                        in_tensors,
-                        qrec: QuantizationRecordBase):
-
         # Prepare the quantization levels
 
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-        in_dims = params.in_dims[0]
-        out_dims = params.out_dims[0]
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
+        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
         filter_sz = params.filter.h * params.filter.w
 
         pool_factor = (1 << 16)//filter_sz
@@ -78,18 +60,19 @@ class PoolingSymmetric(KernelBase):
 
         out_h = 0
         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                            params.stride.h):
+                           params.stride.h):
             out_w = 0
             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                params.stride.w):
+                               params.stride.w):
                 # accumulate - potentially with different Q
                 out_slice_args = out_dims.srange(h=out_h, w=out_w)
                 in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
-                                                h=[h_idx, h_idx + params.filter.h, 1],
-                                                w=[w_idx, w_idx + params.filter.w, 1])
+                                               h=[h_idx, h_idx +
+                                                   params.filter.h, 1],
+                                               w=[w_idx, w_idx + params.filter.w, 1])
 
                 res_shape = out_tensor[out_slice_args].shape
-                sum_filter = np.sum(in_tensor[in_slice_args], dtype=qrec.dtype(ktype="float32"),
+                sum_filter = np.sum(in_tensor[in_slice_args], dtype=np.int32,
                                     axis=(out_dims.keys.index('h'), out_dims.keys.index('w'))).reshape(res_shape)
                 sum_filter = np.multiply(sum_filter, pool_factor)
                 out_tensor[out_slice_args] = sum_filter
@@ -100,16 +83,22 @@ class PoolingSymmetric(KernelBase):
                                                              qrec.out_qs[0].dtype)],
                                 ktype="symmetric")
 
+
+@params_type(MaxPoolParameters)
+@qrec_type('symmetric', 'scaled')
+class MaxPoolingSymmetric(KernelBase):
+
     @classmethod
-    def max_execute(cls, params,
-                    in_tensors,
-                    qrec: QuantizationRecordBase):
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
 
         # Prepare the quantization levels
 
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-        in_dims = params.in_dims[0]
-        out_dims = params.out_dims[0]
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
+        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
 
         out_tensor = np.zeros(out_dims.shape, dtype=qrec.out_qs[0].dtype)
 
@@ -125,15 +114,16 @@ class PoolingSymmetric(KernelBase):
 
         out_h = 0
         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-                            params.stride.h):
+                           params.stride.h):
             out_w = 0
             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-                                params.stride.w):
+                               params.stride.w):
                 # accumulate - potentially with different Q
                 out_slice_args = out_dims.srange(h=out_h, w=out_w)
                 in_slice_args = in_dims.srange(c=[0, out_dims.c, 1],
-                                                h=[h_idx, h_idx + params.filter.h, 1],
-                                                w=[w_idx, w_idx + params.filter.w, 1])
+                                               h=[h_idx, h_idx +
+                                                   params.filter.h, 1],
+                                               w=[w_idx, w_idx + params.filter.w, 1])
 
                 res_shape = out_tensor[out_slice_args].shape
                 out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray),
@@ -149,7 +139,7 @@ class PoolingSymmetric(KernelBase):
 #     @classmethod
 #     def execute(cls, params,
 #                 in_tensors,
-#                 qrec: QuantizationRecordBase,
+#                 qrec: QRec,
 #                 **kwargs):
 #         if params.pool_type == "average":
 #             return cls.average_execute(params,
@@ -165,7 +155,7 @@ class PoolingSymmetric(KernelBase):
 #     @classmethod
 #     def average_execute(cls, params,
 #                         in_tensors,
-#                         qrec: QuantizationRecordBase):
+#                         qrec: QRec):
 
 #         # Prepare the quantization levels
 
@@ -214,7 +204,7 @@ class PoolingSymmetric(KernelBase):
 #     @classmethod
 #     def max_execute(cls, params,
 #                     in_tensors,
-#                     qrec: QuantizationRecordBase):
+#                     qrec: QRec):
 
 #         # Prepare the quantization levels
 
@@ -261,16 +251,16 @@ def gap_clb(sum_):
 
 
 @params_type(GlobalPoolParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled')
 class GlobalPoolingSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
 
         if params.pool_type == "average":
-            if isinstance(qrec, MultQuantizationRecord):
+            if qrec.ktype == 'scaled':
                 return cls.average_execute_mult(params,
                                                 in_tensors,
                                                 qrec)
@@ -292,19 +282,21 @@ class GlobalPoolingSymmetric(KernelBase):
     @classmethod
     def average_execute_mult(cls, params,
                              in_tensors,
-                             qrec: MultQuantizationRecord):
+                             qrec: QRec):
 
         # Prepare the quantization levels
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
         out_dims = params.out_dims[0]
-        qrec.set_scale(in_idx=0, out_idx=0)
+        compute_in_out_scale(qrec, in_idx=0, out_idx=0)
 
         sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=tuple(
             params.axis), keepdims=params.keep_dims)
         sz = reduce(lambda x, y: x * y, [i for idx,
                                          i in enumerate(in_tensor.shape) if idx in params.axis])
         res = at_norm(((sum_by_chan << 7) / sz).astype(np.int32), 7)
-        res = out_tensor = qrec.scale_mul_biases_q.apply_scales(res)
+        scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
+        res = out_tensor = scale_mul_biases_q.apply_scales(res)
         return qrec.get_outputs(params,
                                 [out_tensor.reshape(out_dims.shape)],
                                 ktype="symmetric")
@@ -312,36 +304,41 @@ class GlobalPoolingSymmetric(KernelBase):
     @classmethod
     def average_execute(cls, params,
                         in_tensors,
-                        qrec: MultQuantizationRecord):
+                        qrec: QRec):
 
         # Prepare the quantization levels
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
         out_dims = params.out_dims[0]
 
         sum_by_chan = np.sum(in_tensor, dtype=np.int32, axis=tuple(
             params.axis), keepdims=params.keep_dims)
 
-        norm = (np.array([31], dtype=np.int32) - gap_clb(sum_by_chan.flatten())).astype(np.int32)
+        norm = (np.array([31], dtype=np.int32) -
+                gap_clb(sum_by_chan.flatten())).astype(np.int32)
         sz = reduce(lambda x, y: x * y, [i for idx,
                                          i in enumerate(in_tensor.shape) if idx in params.axis])
         inv_wh = ((1 << norm) // sz).reshape(sum_by_chan.shape)
-        out_tensor = at_norm((inv_wh * sum_by_chan), norm.reshape(sum_by_chan.shape))
+        out_tensor = at_norm((inv_wh * sum_by_chan),
+                             norm.reshape(sum_by_chan.shape))
         return qrec.get_outputs(params,
-                                [qrec.out_qs[0].clip(out_tensor).reshape(out_dims.shape)],
+                                [qrec.out_qs[0].clip(
+                                    out_tensor).reshape(out_dims.shape)],
                                 ktype="symmetric")
 
     @classmethod
     def max_execute(cls, params,
                     in_tensors,
-                    qrec: QuantizationRecordBase,
+                    qrec: QRec,
                     details=None):
 
         del details
 
         # Prepare the quantization levels
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-        if isinstance(qrec, MultQuantizationRecord):
-            qrec.set_scale(in_idx=0, out_idx=0)
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
+        if qrec.ktype == 'scaled':
+            compute_in_out_scale(qrec, in_idx=0, out_idx=0)
         return qrec.get_outputs(params, [np.max(in_tensor,
                                                 axis=tuple(params.axis),
                                                 keepdims=params.keep_dims)], ktype="symmetric")
@@ -349,15 +346,19 @@ class GlobalPoolingSymmetric(KernelBase):
     @classmethod
     def sum_execute(cls, params,
                     in_tensors,
-                    qrec: QuantizationRecordBase):
-        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")[0]
-        if isinstance(qrec, MultQuantizationRecord):
-            qrec.set_scale(in_idx=0, out_idx=0)
+                    qrec: QRec):
+        in_tensor = qrec.prepare_inputs(
+            params, in_tensors, ktype="symmetric")[0]
+        if qrec.ktype == 'scaled':
+            compute_in_out_scale(qrec, in_idx=0, out_idx=0)
         res = np.sum(in_tensor,
                      axis=tuple(params.axis),
                      keepdims=params.keep_dims,
                      dtype=np.int32)
 
-        if isinstance(qrec, MultQuantizationRecord):
-            res = qrec.scale_mul_biases_q.apply_scales(res)
+        if qrec.ktype.startswith('scaled'):
+            res = qrec.cache['scale_mul_biases_q'].apply_scales(res)
+        elif qrec.ktype.startswith('symmetric'):
+            res = qrec.out_qs[0].reduce_from(res, qrec.in_qs[0])
+
         return qrec.get_outputs(params, [res], ktype="symmetric")

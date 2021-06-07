@@ -162,20 +162,24 @@ sfu:
 		--header=include/archi/chips/gap9_v2/sfu/sfu \
 		--register=CLK_SETUP --register=CLK_EN --register=CLK_CFG_0 --register=CLK_CFG_1 --register=CLK_CFG_2 --register=GRAPH_MASK \
 		--register=MEM_IN_CFG_0 --register=MEM_IN_CFG_1 --register=STREAM_IN_CFG_0 --register=STREAM_IN_CFG_1 \
-		--register=PDM_IN_CFG0 --register=PDM_IN_CFG1 --register=MEM_OUT_CFG --register=STREAM_OUT_CFG --register=PDM_OUT_CFG \
+		--register=PDM_IN_CFG0 --register=PDM_IN_CFG1 --register=MEM_OUT_CFG --register=STREAM_OUT_CFG \
+		--register=PDM_OUT_CFG --register=PDM_OUT_INT_CFG --register=PDM_OUT_COE_I --register=PDM_OUT_SHIFTS --register=PDM_OUT_COE_M \
+		--register=PDM_OUT_SHIFTS_M --register=PDM_OUT_DLY_I --register=PDM_OUT_DLY_M_MSB --register=PDM_OUT_DLY_M_LSB \
 		--register=LIMITER_CFG --register=GFU_CFG --register=MIXER_CFG --register=SPLITTER_CFG --register=PIPELINE_CFG \
 		--register=RESAMPLER_CFG --register=POLYPHASE_CFG --register=ASRC_CFG --register=NORMSAT_CFG --register=GFU_GLOB \
 		--register=GFU_CFG_A --register=GFU_CFG_B --register=GFU_CFG_C --register=GFU_CFG_D --register=GFU_CFG_E \
 		--register=MIXER_GLOB --register=MIXER_CTX_OUT --register=MIXER_CTX_CFG --register=MIXER_CTX_INIT \
 		--register=MIXER_CTX_BIAS --register=MIXER_PORT_CFG \
 		--register=SPLITTER_GLOB --register=SPLITTER_CTX_CFG --register=SPLITTER_PORT_CFG \
-		--register=PIPE_GLOB --register=PIPE_INT_CFG \
+		--register=PIPE_GLOB --register=PIPE_INT_CFG --register=PIPE_PRELOAD \
 		--register=RESAMPLER_GLOB --register=RESAMPLER_CFG0 --register=RESAMPLER_CFG1 --register=RESAMPLER_CFG2 \
 		--register=LIMITER_INT_CFG --register=LIMITER_COEFF \
 		--register=POLYPHASE_GLOB --register=POLYPHASE_CFG_A --register=POLYPHASE_CFG_B --register=POLYPHASE_CFG_C \
 		--register=POLYPHASE_CFG_D --register=POLYPHASE_CFG_E --register=POLYPHASE_CFG_OD \
 		--register=FIFOMODE_GLOB --register=FIFOMODE_CFG_A --register=FIFOMODE_CFG_B --register=FIFOMODE_CFG_C --register=FIFOMODE_CFG_D \
-		--register=NORMSAT_GLOB --register=NORMSAT_INT_CFG
+		--register=NORMSAT_GLOB --register=NORMSAT_INT_CFG \
+		--register=ASRC_CTRL_CFG --register=ASRC_DC_COEFF --register=ASRC_LANE_CFG --register=ASRC_LANE_IDOUT \
+		--register=ASRC_PARAMS --register=ASRC_BUF_COEF_SIZE --register=ASRC_FIR_COEFF
 
 udma_ffc:
 	./regmap/bin/regmap \

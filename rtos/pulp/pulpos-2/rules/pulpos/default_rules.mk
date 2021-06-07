@@ -22,14 +22,17 @@ APP_BUILD_DIR = $(TARGET_BUILD_DIR)/$(APP)
 ifdef PULP_RISCV_GCC_TOOLCHAIN_CI
 PULP_CC := $(PULP_RISCV_GCC_TOOLCHAIN_CI)/bin/$(PULP_CC)
 PULP_LD := $(PULP_RISCV_GCC_TOOLCHAIN_CI)/bin/$(PULP_LD)
+PULP_AR := $(PULP_RISCV_GCC_TOOLCHAIN_CI)/bin/$(PULP_AR)
 else
 ifdef PULP_RUNTIME_GCC_TOOLCHAIN
 PULP_CC := $(PULP_RUNTIME_GCC_TOOLCHAIN)/bin/$(PULP_CC)
 PULP_LD := $(PULP_RUNTIME_GCC_TOOLCHAIN)/bin/$(PULP_LD)
+PULP_AR := $(PULP_RUNTIME_GCC_TOOLCHAIN)/bin/$(PULP_AR)
 else
 ifdef PULP_RISCV_GCC_TOOLCHAIN
 PULP_CC := $(PULP_RISCV_GCC_TOOLCHAIN)/bin/$(PULP_CC)
 PULP_LD := $(PULP_RISCV_GCC_TOOLCHAIN)/bin/$(PULP_LD)
+PULP_AR := $(PULP_RISCV_GCC_TOOLCHAIN)/bin/$(PULP_AR)
 endif
 endif
 endif
@@ -253,7 +256,57 @@ endif
 
 $(foreach app, $(PULP_APPS), $(eval $(call declare_app,$(app))))
 
+
+define declare_static_lib
+
+$(eval PULP_STATIC_LIB_SRCS_$(1) += $(PULP_STATIC_LIB_SRCS) $(PULP_STATIC_LIB_FC_SRCS)  $(PULP_STATIC_LIB_CL_SRCS) )
+$(eval PULP_STATIC_LIB_ASM_SRCS_$(1) += $(PULP_STATIC_LIB_ASM_SRCS) $(PULP_STATIC_LIB_FC_ASM_SRCS)  $(PULP_STATIC_LIB_CL_ASM_SRCS))
+$(eval PULP_STATIC_LIB_OBJS_$(1) += $(patsubst %.c,$(TARGET_BUILD_DIR)/$(1)/%.o,$(PULP_STATIC_LIB_SRCS_$(1))))
+$(eval PULP_STATIC_LIB_OBJS_$(1) += $(patsubst %.S,$(TARGET_BUILD_DIR)/$(1)/%.o,$(PULP_STATIC_LIB_ASM_SRCS_$(1))))
+
+$(eval PULP_STATIC_LIB_CFLAGS_$(1) += $(PULP_ARCH_CFLAGS) $(PULP_CFLAGS) $(PULP_APP_CFLAGS))
+
+-include $(PULP_STATIC_LIB_OBJS_$(1):.o=.d)
+
+$(TARGET_BUILD_DIR)/$(1)/%.o: %.c
+	@echo "CC  $$<"
+	$(V)mkdir -p `dirname $$@`
+	$(V)$(PULP_CC) -c $$< -o $$@ -MMD -MP $(PULP_STATIC_LIB_CFLAGS_$(1))
+
+$(TARGET_BUILD_DIR)/$(1)/%.o: %.cpp
+	@echo "CXX $$<"
+	$(V)mkdir -p `dirname $$@`
+	$(V)$(PULP_CC) -c $< -o $@ -MMD -MP $(PULP_STATIC_LIB_CFLAGS_$(1))
+
+$(TARGET_BUILD_DIR)/$(1)/%.o: %.S
+	@echo "CC  $$<"
+	$(V)mkdir -p `dirname $$@`
+	$(V)$(PULP_CC) -c $$< -o $$@ -MMD -MP -DLANGUAGE_ASSEMBLY $(PULP_STATIC_LIB_CFLAGS_$(1))
+
+$(TARGET_BUILD_DIR)/lib/lib$(1).a: $(PULP_STATIC_LIB_OBJS_$(1))
+	@echo "AR  $$@"
+	$(V)mkdir -p `dirname $$@`
+	$(V)$(PULP_AR) -r $$@ $$^
+
+STATIC_LIB_TARGETS += $(TARGET_BUILD_DIR)/lib/lib$(1).a
+
+endef
+
+
+ifdef PULP_STATIC_LIB
+PULP_STATIC_LIBS += $(PULP_STATIC_LIB)
+endif
+
+$(foreach static_lib, $(PULP_STATIC_LIBS), $(eval $(call declare_static_lib,$(static_lib))))
+
 conf:
+
+
+ifdef GAPY_PY_TARGET
+GAPY_TARGET_OPT = --py-target=$(GAPY_PY_TARGET)
+else
+GAPY_TARGET_OPT = --target=$(GAPY_TARGET)
+endif
 
 $(BIN).s: $(BIN)
 	$(PULP_OBJDUMP) $(OBJDUMP_OPT) $< > $@
@@ -265,10 +318,10 @@ disdump: $(BIN).s
 build: $(TARGETS)
 
 image:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --image --binary=$(TARGETS) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --image --binary=$(TARGETS) $(runner_args)
 
 flash:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --flash --binary=$(TARGETS) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --flash --binary=$(TARGETS) $(runner_args)
 
 all:: build disdump image flash
 
@@ -277,31 +330,40 @@ clean::
 	$(V)rm -rf $(TARGET_BUILD_DIR)
 
 run.prepare:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec-prepare --binary=$(TARGETS) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec-prepare --binary=$(TARGETS) $(runner_args)
 
 run.exec:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec --binary=$(TARGETS) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec --binary=$(TARGETS) $(runner_args)
 
 run:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(TARGETS) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(TARGETS) $(runner_args)
 
 traces:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec --binary=$(TARGETS) --no-run --extend-traces $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec --binary=$(TARGETS) --no-run --extend-traces $(runner_args)
 
 dis:
 	$(PULP_OBJDUMP) $(PULP_ARCH_OBJDFLAGS) $(disopt) $(TARGETS)
+
+build-lib: $(STATIC_LIB_TARGETS)
+
+install-lib: build-lib
+	@echo "INSTALL  $(STATIC_LIB_TARGETS)"
+	$(V)mkdir -p $(PULP_EXT_LIBS)
+	$(V)mkdir -p $(PULP_EXT_LIBS)/include
+	$(V)cp $(STATIC_LIB_TARGETS) $(PULP_EXT_LIBS)
+	$(V)cp -t $(PULP_EXT_LIBS)/include  $(PULP_STATIC_LIB_HEADERS)
 
 size:
 	$(PULPOS_HOME)/bin/pos-size --binary=$(TARGETS) --depth=10
 
 profiler:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) --event=.*@all.bin --event-format=raw $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/debug-mode=true" --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) --event-format=raw --event=.*@all.bin $(runner_args)
 	cd $(BUILDDIR) && if [ -e all.bin ]; then rm all.bin; fi; mkfifo all.bin
 	cd $(BUILDDIR) && export PULP_CONFIG_FILE=$(BUILDDIR)/gvsoc_config.json && profiler $(BUILDDIR) $(BIN) gvsoc_config.json
 
-help:
-	@echo "Makefile options:"
-	@echo "  CONFIG_TRACE_LEVEL=<level>    Activate traces for the specified level (0=none, 1=fatal, 2=error, 3=warning, 4=info, 5=debug, 6=trace)."
-	@echo "  CONFIG_TRACE_ALL=1            Activate all traces. Other traces can be individually activated with CONFIG_TRACE_<NAME>."
+#help:
+#	@echo "Makefile options:"
+#	@echo "  CONFIG_TRACE_LEVEL=<level>    Activate traces for the specified level (0=none, 1=fatal, 2=error, 3=warning, 4=info, 5=debug, 6=trace)."
+#	@echo "  CONFIG_TRACE_ALL=1            Activate all traces. Other traces can be individually activated with CONFIG_TRACE_<NAME>."
 
-.PHONY: image flash exec run dis size help clean all conf
+.PHONY: image flash exec run dis size help clean all conf build-lib install-lib

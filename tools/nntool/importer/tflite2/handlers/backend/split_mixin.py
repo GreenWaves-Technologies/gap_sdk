@@ -33,8 +33,9 @@ class SplitMixin(object):
 
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[input_idx]
-
         x_shape = x[2].shape
+        if axis and axis < 0:
+            axis = axis + len(x_shape)
         act_slices, pout_shapes, axis = SplitParameters.get_splits(
             x_shape, axis, splits=splits,
             num_splits=num_splits)

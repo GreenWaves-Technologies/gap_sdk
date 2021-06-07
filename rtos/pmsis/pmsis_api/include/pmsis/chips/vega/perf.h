@@ -35,17 +35,25 @@
 /**        
  * @defgroup VEGA_INFO VEGA information
  *
- * The closest memory for the FC is the L2 memory and is referred in the API as
+ * The closest memory for the FC is the FC TCDM and is referred in the API as
  * the FC L1 memory.
  *  
  * All functions transfering data between an external device and a chip memory
  * must use the L2 memory for the chip memory.
  *
- * The cluster controller is core 8 of the cluster. Core 0 to 7 are the slave
+ * The cluster controller is core 0 of the cluster. Core 1 to 7 are the slave
  * cores.
  *
  * Up to 8 cluster DMA counters can be allocated at the same time. Trying to
  * allocate one more will stall the core.
+ *
+ * With the I2S driver, When using 2 RX channels on the same interface (left and
+ * right), the buffer contains the samples for both channels interleaved one by
+ * one.
+ * 
+ * I2S buffers size must be a most 64KB - 4.
+ * 
+ * PI_SPI_WORDSIZE_16 is not supported.
  */
 
 /**
@@ -80,7 +88,7 @@
  * cache miss, etc).
  */
 typedef enum {
-  PI_PERF_CYCLES        = 17, /*!< Total number of cycles (also includes the
+  PI_PERF_CYCLES        = 16, /*!< Total number of cycles (also includes the
     cycles where the core is sleeping). Be careful that this event is using a
     timer shared within the cluster, so resetting, starting or stopping it on
     one core will impact other cores of the same cluster. */
@@ -103,17 +111,17 @@ typedef enum {
   PI_PERF_BTAKEN        = 9, /*!< Number of taken branches. */
   PI_PERF_RVC           = 10, /*!< Number of compressed instructions
     executed. */
-  PI_PERF_LD_EXT        = 12, /*!< Number of memory loads to EXT executed.
+  PI_PERF_LD_EXT        = 11, /*!< Number of memory loads to EXT executed.
     Misaligned accesses are counted twice. Every non-TCDM access is considered
     external (cluster only). */
-  PI_PERF_ST_EXT        = 13, /*!< Number of memory stores to EXT executed.
+  PI_PERF_ST_EXT        = 12, /*!< Number of memory stores to EXT executed.
     Misaligned accesses are counted twice. Every non-TCDM access is considered
     external (cluster only). */
-  PI_PERF_LD_EXT_CYC    = 14, /*!< Cycles used for memory loads to EXT.
+  PI_PERF_LD_EXT_CYC    = 13, /*!< Cycles used for memory loads to EXT.
   Every non-TCDM access is considered external (cluster only). */
-  PI_PERF_ST_EXT_CYC    = 15, /*!< Cycles used for memory stores to EXT.
+  PI_PERF_ST_EXT_CYC    = 14, /*!< Cycles used for memory stores to EXT.
   Every non-TCDM access is considered external (cluster only). */
-  PI_PERF_TCDM_CONT     = 16, /*!< Cycles wasted due to TCDM/log-interconnect
+  PI_PERF_TCDM_CONT     = 15, /*!< Cycles wasted due to TCDM/log-interconnect
   contention (cluster only). */
 } pi_perf_event_e;
 

@@ -86,7 +86,12 @@ class Chip(object):
     ]))
 
 
-    chip.soc = soc.get_config(tp)
+    soc_gen_module = tp.get_str('soc/generator')
+
+    if soc_gen_module is not None:
+      chip.soc = importlib.import_module(soc_gen_module).Soc(tp).gen()
+    else:
+      chip.soc = soc.Soc(tp).gen()
 
     if has_cluster:
       for cid in range(0, nb_cluster):

@@ -211,18 +211,14 @@ int bsp_nina_b112_open_old()
     return 0;
 }
 
-
 void bsp_init()
 {
     __bsp_init_pads();
 }
 
-
 void pi_bsp_init_profile(int profile)
 {
 }
-
-
 
 void pi_bsp_init()
 {

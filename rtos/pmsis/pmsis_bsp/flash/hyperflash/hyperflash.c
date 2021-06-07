@@ -196,6 +196,30 @@ static unsigned int hyperflash_get_status_reg(hyperflash_t *hyperflash)
 }
 
 
+void pi_hyperflash_deep_sleep_enter(pi_device_t *device)
+{
+    hyperflash_t *hyperflash = (hyperflash_t *)device->data;
+    hyperflash_set_reg_exec(hyperflash, 0x555<<1, 0xAA);
+    hyperflash_set_reg_exec(hyperflash, 0x2AA<<1, 0x55);
+    hyperflash_set_reg_exec(hyperflash, 0x000<<1, 0xB9);
+}
+
+
+void pi_hyperflash_deep_sleep_exit(pi_device_t *device)
+{
+    hyperflash_t *hyperflash = (hyperflash_t *)device->data;
+
+    // Execute dummy command to wakeup the flash
+    hyperflash_set_reg_exec(hyperflash, 0x000<<1, 0x00);
+
+    // Wait wakeup time
+    pi_time_wait_us(300);
+
+    // Don't know why on RTL, the flash model needs a SW reset
+    hyperflash_set_reg_exec(hyperflash, 0x000<<1, 0xF0);
+}
+
+
 
 static int hyperflash_open(struct pi_device *device)
 {

@@ -40,6 +40,7 @@ typedef struct
 Spim_verif::Spim_verif(Testbench *top, Spi *spi, vp::qspim_slave *itf, pi_testbench_req_spim_verif_setup_t *config)
   : vp::time_engine_client(NULL)
 {
+    this->slave_boot_jump = false;
     ::memcpy(&this->config, config, sizeof(pi_testbench_req_spim_verif_setup_t));
     int itf_id = config->itf;
     int cs = config->cs;

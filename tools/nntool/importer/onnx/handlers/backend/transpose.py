@@ -46,9 +46,12 @@ class Transpose(ConstantMixin, BackendHandler):
             if dim is not None:
                 new_axes[idx] = len(new_axes)
         if cls.is_constant(x):
-            logger.info("reducing %s to a constant", valid_name)
             x_val = cls.get_constant(x)
             x_val = x_val.transpose(transpose)
+            if x_val.size < 10:
+                logger.info("reducing %s to a constant %s", valid_name, x_val)
+            else:
+                logger.info("reducing %s to a constant", valid_name)
             params = ConstantInputParameters(valid_name, dims=Dim.unnamed(x_val.shape), value=x_val,
                                              constant_store=G.constant_store)
         else:

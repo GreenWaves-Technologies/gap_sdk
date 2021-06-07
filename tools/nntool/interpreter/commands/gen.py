@@ -48,6 +48,9 @@ class GenCommand(NNToolShellBase):
     parser_gen.add_argument('-t', '--output_tensors',
                             action='store_true',
                             help='write constants (weights, biases)')
+    parser_gen.add_argument('--anonymise',
+                            action='store_true',
+                            help='make variable and function names cryptic to hide function')
     parser_gen.add_argument('-c', '--checksums',
                             completer_method=Cmd.path_complete,
                             help='generate checksum tests in code for the given file')
@@ -88,7 +91,8 @@ settings related to code generation."""
             self.settings['model_directory'] = args.model_directory
         self.settings['basic_kernel_source_file'] = args.basic_kernel_source_file
         self.settings['basic_kernel_header_file'] = args.basic_kernel_header_file
-        code_gen = CodeGenerator(self.G, DefaultNamingConvension(self.G), self.settings)
+        self.settings['anonymise'] = args.anonymise
+        code_gen = CodeGenerator(self.G, DefaultNamingConvension(self.G, anonymise=args.anonymise), self.settings)
 
         if self.settings['template_file']:
             code_template = dynamic_template(self.settings['template_file'])

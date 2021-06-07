@@ -12,52 +12,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from generation.at_types.constant_info import ConstantInfo
-from generation.at_types.tc_arg_info import GlobalArgInfo
-from generation.generators.generator_decorators import (QREC_MULT8,
-                                                        generation_function)
-from graph.types import (ConvFusionParameters, FilterParameters)
-
+from generation.generator_decorators import QREC_MULT8, generation_function
+from generation.helpers.gen_scales import gen_scales
+from graph.types import ConvFusionParameters, FilterParameters
 from utils.node_id import NodeId
 
-from .mult8_infos_generator import gen_constant
+# pylint: disable=wildcard-import, unused-wildcard-import
 from .global_names import *
+
 
 @generation_function("globals", (FilterParameters, ConvFusionParameters), qrec_types=(QREC_MULT8,))
 def mult8_filter_globals_generator(gen, node, qrec, pnode, fnode) -> bool:
     if fnode is not None:
         return False
     if isinstance(pnode, FilterParameters):
-        gen_filter_globals(gen, pnode, pnode, qrec)
+        gen_scales(gen, pnode, pnode, qrec)
     elif isinstance(pnode, ConvFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         if node.fusion_type in ("conv_active_pool", "conv_active", "linear_active", "conv_pool_active", "conv_pool"):
-            gen_filter_globals(gen, pnode, cnodes[0], quants[0])
+            gen_scales(gen, pnode, cnodes[0], quants[0])
         else:
             return False
     else:
         return False
     return True
-
-
-def gen_filter_globals(gen, pnode, fnode, fqrec):
-    cname_mul_scale, file_name_mul_scale = gen_constant(gen, pnode, fnode, MULSCALE)
-    cname_mul_shift, file_name_mul_shift = gen_constant(gen, pnode, fnode, MULSHIFT)
-
-    mul_biases_q = fqrec.mul_biases_q
-
-    const_info_mul_scale = ConstantInfo(
-        file_name_mul_scale, mul_biases_q, contents=fqrec.gen_mul_biases(fnode))
-    const_info_mul_shift = ConstantInfo(
-        file_name_mul_shift, mul_biases_q.shift_qtype, contents=fqrec.mul_biases_q.qnorms)
-
-    gen.globals.append(GlobalArgInfo(mul_biases_q.ctype, cname_mul_scale,
-                                     gen.opts['default_global_home_location'],
-                                     gen.opts['default_global_exec_location'],
-                                     const_info=const_info_mul_scale))
-
-    gen.globals.append(GlobalArgInfo(mul_biases_q.shift_ctype, cname_mul_shift,
-                                     gen.opts['default_global_home_location'],
-                                     gen.opts['default_global_exec_location'],
-                                     const_info=const_info_mul_shift))

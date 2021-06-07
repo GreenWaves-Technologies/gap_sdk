@@ -11,4 +11,5 @@ Tools
    gap-configs/README.rst
    gapy/README.rst
    docs/gvsoc/index.rst
+   docs/profiler/index.rst
    littlefs/README.rst

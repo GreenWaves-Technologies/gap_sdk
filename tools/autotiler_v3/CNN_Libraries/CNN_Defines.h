@@ -36,4 +36,5 @@
 /* R = Max(n, Min(x, -(n+1)) */
 #define AT_CLIP_(x, n)          gap_clipr((x), (n))
 
+#define AT_CLIP(x, n)		gap_clip((x), (n))
 #endif

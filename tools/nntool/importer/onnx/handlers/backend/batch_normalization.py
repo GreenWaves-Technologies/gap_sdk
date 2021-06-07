@@ -87,9 +87,9 @@ class BatchNormalization(ConstantMixin, BackendHandler, HandlerOptions):
             w_conv = weights.copy().reshape(weights.shape[0], -1)
             w_bn = np.diag(bn_scale / np.sqrt(epsilon + running_variance))
             w_conv = np.matmul(w_bn, w_conv).reshape(weights.shape)
-            b_bn = bn_bias - bn_scale * running_mean / np.sqrt(running_variance + epsilon)
+            b_bn = bn_bias + ((biases - running_mean) *  bn_scale  / np.sqrt(running_variance + epsilon))
             weights_node.value = w_conv
-            biases_node.value = biases + b_bn
+            biases_node.value = b_bn
             all_nodes[node.output[0]] = x
         else:
             params = BatchNormalizationParameters(valid_name, scale=bn_scale, bias=bn_bias,

@@ -67,6 +67,9 @@
 
 #define NE16_NB_REG 24
 
+#define NE16_SPECIAL_TRACE_REG NE16_NB_REG
+#define DEFAULT_TRACE_LEVEL L0_JOB_START_END
+
 enum Ne16State {
     START,
     START_STREAMIN,
@@ -80,6 +83,13 @@ enum Ne16State {
     NORMQUANT_BIAS,
     STREAMOUT,
     END
+};
+
+enum Ne16TraceLevel {
+    L0_JOB_START_END,
+    L1_CONFIG,
+    L2_ACTIV_INOUT,
+    L3_ALL
 };
 
 // forward definitions
@@ -183,6 +193,7 @@ public:
     vp::io_req io_req;
     vp::trace trace;
     vp::io_master out;
+    Ne16TraceLevel trace_level;
 
 private:
 
@@ -205,13 +216,13 @@ private:
     int QUANT_PER_CYCLE;
 
     static vp::io_req_status_e hwpe_slave(void *__this, vp::io_req *req);
-    static void data_access_test_handler(void *__this, vp::clock_event *event);
 
     // DEBUG settings
     bool fsm_traces;
     bool accum_traces;
     bool accum_traces_postmatrixvec;
     bool accum_traces_normquant;
+    bool accum_traces_streamout;
     bool psum_block_traces;
     bool x_buffer_traces;
     bool x_buffer_traces_postload;
@@ -355,7 +366,7 @@ private:
     bool matrixvec_to_load_idx();
     bool matrixvec_to_matrixvec_idx();
     // internal functions
-    void __BinConvArray(xt::xarray<uint8_t>&, int, int, xt::xarray<int32_t>, xt::xarray<int32_t>, bool=false, bool=false, bool=false, bool=false, bool=false);
+    void __BinConvArray(xt::xarray<uint8_t>&, int, int, xt::xarray<int32_t>, xt::xarray<int32_t>, xt::xarray<int32_t>, bool=false, bool=false, bool=false, bool=false, bool=false);
     void __weightoffs(int, xt::xarray<int32_t>, xt::xarray<int32_t>);
     
     // NORMQUANT
@@ -458,7 +469,6 @@ private:
     vp::io_slave in;
     vp::wire_master<bool> irq;
 
-    vp::clock_event *data_access_test_event;
     vp::clock_event *fsm_start_event;
     vp::clock_event *fsm_event;
     vp::clock_event *fsm_end_event;

@@ -14,35 +14,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from cmd2 import Cmd2ArgumentParser, with_argparser
-from interpreter.nntool_shell_base import NNToolShellBase
-from generation.memory_device_info import AT_L3_FLASH_DEVICES, AT_L3_RAM_DEVICES
+
+from cmd2 import with_argparser
+from generation.memory_device_info import (AT_L3_FLASH_DEVICES,
+                                           AT_L3_RAM_DEVICES)
+from interpreter.nntool_shell_base import (NODE_SELECTOR_HELP,
+                                           NNToolArguementParser,
+                                           NNToolShellBase)
 from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
-def nodeoption_choices_method(self, arg_tokens):
-    step_num = arg_tokens['step'][0]
-    if step_num == '*':
-        keys = []
-        for step in self.G.graph_state.steps:
-            node = step['node']
-            keys.extend(node.at_options.valid_options.keys())
-        return keys
-    try:
-        step_num = int(step_num)
-        node = self.G.graph_state.steps[step_num]['node']
-    except ValueError:
-        node = self.G[step_num]
-    return node.at_options.valid_options.keys()
 
-def nodename_choices_method(self, arg_tokens):
-    step_start = arg_tokens['step'][0]
-    try:
-        _ = int(step_start)
-        return []
-    except ValueError:
-        return [step['node'].name for step in self.G.graph_state.steps if step['node'].name.startswith(step_start)] + ["*"]
+def nodeoption_choices_method(self, arg_tokens):
+    step = arg_tokens['step'][0]
+    nodes = self.get_node_step_or_name(step, show_errors=False)[0]
+    keys = set()
+    for node in nodes:
+        keys |= set(node.at_options.valid_options.keys())
+    return tuple(keys)
+
 
 def nodeoption_value_choices_method(arg_tokens):
     parameter = arg_tokens['parameter'][0]
@@ -50,11 +41,12 @@ def nodeoption_value_choices_method(arg_tokens):
         return AT_L3_RAM_DEVICES + AT_L3_FLASH_DEVICES + ("AT_MEM_UNDEF", )
     return []
 
+
 class NodeoptionCommand(NNToolShellBase):
     # nodeoption COMMAND
-    parser_nodeoption = Cmd2ArgumentParser()
-    parser_nodeoption.add_argument('step', nargs=(0, 1), choices_method=nodename_choices_method,
-                                   help='Set this step number or name')
+    parser_nodeoption = NNToolArguementParser()
+    parser_nodeoption.add_argument('step', nargs=(0, 1), completer_method=NNToolShellBase.node_step_or_name_completer,
+                                   help='Set this step number or name. ' + NODE_SELECTOR_HELP)
     parser_nodeoption.add_argument('parameter', nargs=(0, 1), choices_method=nodeoption_choices_method,
                                    help='Set this parameter')
     parser_nodeoption.add_argument('value', nargs=(0, 1), choices_function=nodeoption_value_choices_method,
@@ -66,33 +58,27 @@ class NodeoptionCommand(NNToolShellBase):
 options such as the location of inputs and outputs. For a complete set of the parameters that
 can be set refer to the autotiler documentation."""
         self._check_graph()
-        if args.step is None or (args.step == '*' and args.parameter is None):
+        if args.step is None and args.parameter is None:
             for nodeid, elem in self.G.node_options.items():
                 print("{}: {}".format(nodeid, elem))
             return
 
-        if args.step == '*':
-            nodes = [step['node'] for step in self.G.graph_state.steps]
-        else:
-            try:
-                try:
-                    step = int(args.step)
-                    nodes = [self.G.graph_state.steps[step]['node']]
-                except ValueError:
-                    nodes = [self.G[args.step]]
-            except IndexError:
-                LOG.error("%s is not a valid step or node to set %s"%(args.step, args.parameter))
-                return
+        nodes = self.get_node_step_or_name(args.step)[0]
 
         if args.parameter is None:
-            node_options = self.G.node_options.get(NodeId(nodes[0]))
-            if node_options:
-                print(node_options)
-            else:
-                print("nothing set")
+            nothing = True
+            for node in nodes:
+                node_options = self.G.node_options.get(NodeId(node))
+                if node_options:
+                    nothing = False
+                    self.poutput(f'Node: {node.name}:')
+                    print(node_options)
+            if nothing:
+                self.poutput("no nodeoptions set")
             return
+
         if not nodes:
-            LOG.error("No nodes selected")
+            self.perror("No nodes selected")
             return
 
         for node in nodes:
@@ -102,8 +88,9 @@ can be set refer to the autotiler documentation."""
             else:
                 try:
                     option_type = node_options.valid_options[args.parameter]
-                except:
-                    LOG.error("%s is not a valid parameter for node %s"%(args.parameter, node.name))
+                except KeyError:
+                    self.perror(
+                        f"{args.parameter} is not a valid parameter for node {node.name}")
                     continue
                 val = option_type(args.value)
             try:
@@ -114,6 +101,9 @@ can be set refer to the autotiler documentation."""
                         node.lstm_output_c_state = (val, self.G)
                 else:
                     setattr(node_options, args.parameter, val)
+                self.pfeedback(
+                    f'set option {args.parameter} on node {node.name} to {val}')
                 self.G.node_options[NodeId(node)] = node_options
-            except:
-                LOG.error("%s is not a valid parameter for node %s"%(args.parameter, node.name))
+            except KeyError:
+                self.perror(
+                    f"{args.parameter} is not a valid parameter for node {node.name}")

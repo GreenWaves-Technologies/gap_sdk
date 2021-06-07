@@ -283,7 +283,7 @@ class CSVRenderer(TabularRenderer):
             row_elem_idx = 0
             for header in current_header:
                 for header_elem in header.contents:
-                    orow.append(header.fmt.apply(row[row_elem_idx]))
+                    orow.append(header.header_fmt.apply(row[row_elem_idx]))
                     row_elem_idx += 1
             writer.writerow(orow)
 

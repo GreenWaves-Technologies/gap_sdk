@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+import argparse
+import gv.gvsoc_control as gvsoc
+
+parser = argparse.ArgumentParser(description='Control GVSOC')
+
+parser.add_argument("--host", dest="host", default="localhost", help="Specify host name")
+parser.add_argument("--port", dest="port", default=42951, type=int, help="Specify host port")
+parser.add_argument("--trace-add", dest="trace_add", default=[], action="append", help="Enable trace")
+parser.add_argument("--trace-remove", dest="trace_remove", default=[], action="append", help="Disable trace")
+parser.add_argument("--step", dest="step", default=None, type=int, help="Step execution with a duration in picoseconds")
+parser.add_argument("--run", dest="run", action="store_true", help="Run until the end")
+
+args = parser.parse_args()
+
+
+gv = gvsoc.Telnet_proxy(args.host, args.port)
+
+for trace in args.trace_add:
+    gv.trace_add(trace)
+
+for trace in args.trace_remove:
+    gv.trace_remove(trace)
+
+if args.step is not None:
+    gv.run(args.step)
+
+if args.run:
+    gv.run()

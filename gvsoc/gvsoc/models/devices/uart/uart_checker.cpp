@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -64,7 +64,7 @@ private:
     void start_rx_sampling(int baudrate);
     void stop_rx_sampling();
 
-    static void sync(void *__this, int data);
+    static void sync(void *__this, int data, int sck, int rts);
 
     static void event_handler(void *__this, vp::clock_event *event);
 
@@ -122,7 +122,7 @@ int Uart_checker::build()
     stdin = get_js_config()->get("stdin")->get_bool();
     telnet = get_js_config()->get("telnet")->get_bool();
 
-    this->in.set_sync_meth(&Uart_checker::sync);
+    this->in.set_sync_full_meth(&Uart_checker::sync);
     new_slave_port("input", &in);
 
     this->event = event_new(Uart_checker::event_handler);
@@ -209,7 +209,7 @@ void Uart_checker::event_handler(void *__this, vp::clock_event *event)
 }
 
 
-void Uart_checker::sync(void *__this, int data)
+void Uart_checker::sync(void *__this, int data, int sck, int rts)
 {
     Uart_checker *_this = (Uart_checker *)__this;
 
@@ -217,7 +217,7 @@ void Uart_checker::sync(void *__this, int data)
 
     if (_this->loopback)
     {
-        _this->in.sync(data);
+        _this->in.sync_full(data, 2, 2);
     }
 
     _this->current_tx = data;
@@ -262,7 +262,7 @@ void Uart_checker::start_tx_sampling(int baudrate)
 void Uart_checker::stop_tx_sampling(void)
 {
     this->sampling_tx = 0;
-    
+
     if (this->event->is_enqueued())
     {
         this->event_cancel(this->event);

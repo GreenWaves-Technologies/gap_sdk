@@ -17,9 +17,10 @@ import logging
 
 import numpy as np
 from graph.types import Conv2DParameters
-from quantization.kernels.kernel_base import (KernelBase, params_type,
-                                              quantization)
-from quantization.quantization_record_base import QuantizationRecordBase
+from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
+from quantization.multiplicative.mulbias import (apply_multiplicative_bias,
+                                                 apply_zero_offset_bias)
+from quantization.new_qrec import QRec
 
 FORCE_INT64 = False
 
@@ -29,28 +30,35 @@ LOG = logging.getLogger("nntool." + __name__)
 
 
 @params_type(Conv2DParameters)
-@quantization('symmetric')
+@qrec_type('symmetric', 'scaled', 'scaled_ne16')
 class Conv2DSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
-                qrec: QuantizationRecordBase,
+                qrec: QRec,
                 **kwargs):
         '''3D convolution by sub-matrix summing.
         '''
         details = kwargs.get('details')
-        in_dims = params.in_dims[0]
-        out_dims = params.out_dims[0]
+
+        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
         prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
+        # if zero offset is already applied in biases by constant quantizer this does nothing
+        prepared_in_tensors = apply_zero_offset_bias(qrec, params, prepared_in_tensors, ktype="symmetric")
         in_tensor = prepared_in_tensors[0]
-        weights = prepared_in_tensors[1]
+        # expand the weights to apply the zero offset
+        weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point
         biases = prepared_in_tensors[2]
+
+        acc_q = qrec.cache.get('acc_q') or qrec.in_qs[2]
+        calc_q = qrec.cache.get('calc_q') or qrec.in_qs[2]
 
         if details is not None:
             details['min_acc'] = float("Infinity")
             details['max_acc'] = float("-Infinity")
 
-        in_tensor = in_tensor.transpose(in_dims.transpose_to_order(['h', 'w', 'c']))
+        in_tensor = in_tensor.transpose(
+            in_dims.transpose_to_order(['h', 'w', 'c']))
         if params.padding.h + params.padding.w > 0:
             if hasattr(qrec.in_qs[0], 'zero_point'):
                 const_pad = qrec.in_qs[0].zero_point[0]
@@ -69,7 +77,8 @@ class Conv2DSymmetric(KernelBase):
         else:
             pad_w = pad_h = 0
 
-        weights = weights.transpose(params.filter.transpose_to_order(['out_c', 'h', 'w', 'in_c']))
+        weights = weights.transpose(
+            params.filter.transpose_to_order(['out_c', 'h', 'w', 'in_c']))
 
         filt_w = params.filter.w
         filt_h = params.filter.h
@@ -91,12 +100,13 @@ class Conv2DSymmetric(KernelBase):
 
         if params.has_bias:
             # biases = qrec.prepare_biases(params, params.biases, params.weights, ktype="symmetric")
-            if qrec.acc_q != qrec.in_qs[2]:
-                biases = qrec.acc_q.expand_from(biases, qrec.in_qs[2])
-            result = np.broadcast_to(biases.reshape(out_c, 1, 1), (out_c, out_h, out_w)).copy().astype(qrec.acc_q.dtype)
+            if acc_q != qrec.in_qs[2]:
+                biases = acc_q.expand_from(biases, qrec.in_qs[2])
+            result = np.broadcast_to(biases.reshape(
+                out_c, 1, 1), (out_c, out_h, out_w)).copy().astype(acc_q.dtype)
         else:
             result = np.zeros((out_c, out_h, out_w),
-                              dtype=qrec.acc_q.dtype)
+                              dtype=acc_q.dtype)
 
         const_h = pad_h + in_h - dillated_filter_h + 1
         const_w = pad_w + in_w - dillated_filter_w + 1
@@ -117,31 +127,35 @@ class Conv2DSymmetric(KernelBase):
                                                    in_c_off + in_c_per_group:
                                                    1],
                                          weights[out_c_i, cur_h, cur_w],
-                                         dtype=np.int64 if FORCE_INT64 else qrec.calc_q.dtype)
+                                         dtype=np.int64 if FORCE_INT64 else calc_q.dtype)
 
-                    if qrec.calc_q != qrec.acc_q:
-                        slabhw = qrec.acc_q.reduce_from(slabhw, qrec.calc_q)
+                    if calc_q != acc_q:
+                        slabhw = acc_q.reduce_from(slabhw, calc_q)
 
                     # add depthwise
                     slabhw = slabhw.sum(
-                        axis=-1, dtype=np.int64 if FORCE_INT64 else qrec.calc_q.dtype)
+                        axis=-1, dtype=np.int64 if FORCE_INT64 else calc_q.dtype)
                     # add to the previous filter elements
                     result[out_c_i] += slabhw
 
                     if details is not None:
-                        details['min_acc'] = min(np.min(result[out_c_i]), details['min_acc'])
-                        details['max_acc'] = max(np.max(result[out_c_i]), details['max_acc'])
+                        details['min_acc'] = min(
+                            np.min(result[out_c_i]), details['min_acc'])
+                        details['max_acc'] = max(
+                            np.max(result[out_c_i]), details['max_acc'])
 
             out_c_cnt += 1
             if out_c_cnt >= out_c_per_group:
                 out_c_cnt = 0
                 in_c_off += in_c_per_group
 
-        result = qrec.apply_multiplicative_bias(params, result, 0, ktype="symmetric")
+        result = apply_multiplicative_bias(
+            qrec, params, result, 0, ktype="symmetric")
 
-        result = result.transpose(out_dims.transpose_from_order(['c', 'h', 'w']))
+        result = result.transpose(
+            out_dims.transpose_from_order(['c', 'h', 'w']))
 
-        if qrec.out_qs[0] != qrec.acc_q:
-            result = qrec.out_qs[0].reduce_from(result, qrec.acc_q)
+        if qrec.out_qs[0] != acc_q:
+            result = qrec.out_qs[0].reduce_from(result, acc_q, allow_zero_adjust=True)
 
         return qrec.get_outputs(params, [result], ktype="symmetric")

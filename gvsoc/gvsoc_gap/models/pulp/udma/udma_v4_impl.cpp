@@ -30,11 +30,27 @@
 #include "udma_ctrl/udma_ctrl_regfields.h"
 #include "udma_ctrl/udma_ctrl_gvsoc.h"
 
+#ifdef HAS_I2S
+#include "i2s/udma_i2s_v3.hpp"
+#endif
+
+#ifdef HAS_I2C
+#include "i2c/v4/udma_i2c.hpp"
+#endif
+
+#ifdef HAS_HYPER
+#include "hyper/udma_hyper_v3.hpp"
+#endif
+
 using namespace std::placeholders;
 
 
 void Udma_channel::reset(bool active)
 {
+    if (active)
+    {
+        this->active = false;
+    }
 }
 
 
@@ -42,6 +58,16 @@ void Udma_channel::set_addrgen(Udma_addrgen *addrgen)
 {
     this->addrgen = addrgen;
     addrgen->register_channel(this);
+}
+
+
+void Udma_channel::unset_addrgen()
+{
+    if (this->addrgen)
+    {
+        this->addrgen->register_channel(NULL);
+    }
+    this->addrgen = NULL;
 }
 
 
@@ -236,8 +262,24 @@ vp::io_req_status_e udma::channel_req(vp::io_req *req, uint64_t offset)
 
 void udma::channel_register(int id, Udma_channel *channel)
 {
+    if (channel->is_stream)
+    {
+        if (channel->is_rx())
+        {
+            this->rx_channels->stream_in_channels[channel->stream_id] = NULL;
+        }
+        else
+        {
+            this->tx_channels->stream_out_ready_itf[channel->stream_id]->sync(false);
+            this->tx_channels->stream_out_channels[channel->stream_id] = NULL;
+        }
+    }
+
+    channel->is_stream = false;
+
     if (id == 0xff)
     {
+        channel->unset_addrgen();
         return;
     }
 
@@ -250,6 +292,24 @@ void udma::channel_register(int id, Udma_channel *channel)
         // TODO switch to 2d channels
         channel->set_addrgen(this->addrgen_2d[id - this->nb_addrgen_linear]);
     }
+    else if (id >= 0xe0)
+    {
+        channel->is_stream = true;
+        channel->stream_id = id - 0xe0;
+        if (channel->is_rx())
+        {
+            this->rx_channels->stream_in_channels[channel->stream_id] = (Udma_rx_channel *)channel;
+        }
+        else
+        {
+            this->tx_channels->stream_out_ready_itf[channel->stream_id]->sync(true);
+            this->tx_channels->stream_out_channels[channel->stream_id] = (Udma_tx_channel *)channel;
+        }
+        channel->unset_addrgen();
+    }
+    else if (id >= 0x60)
+    {
+    }
     else
     {
         trace.force_warning("Registering invalid channel (id: %d)\n", id);
@@ -258,7 +318,7 @@ void udma::channel_register(int id, Udma_channel *channel)
 
 void udma::channel_unregister(int id, Udma_channel *channel)
 {
-    channel->set_addrgen(NULL);
+    this->channel_register(0xff, NULL);
 }
 
 vp::io_req_status_e udma::periph_req(vp::io_req *req, uint64_t offset)
@@ -328,6 +388,19 @@ void udma::clk_reg(component *__this, component *clock)
     _this->periph_clock = (vp::clock_engine *)clock;
 }
 
+
+void udma::dual_edges_clk_reg(component *__this, component *clock)
+{
+    udma *_this = (udma *)__this;
+    _this->periph_clock_dual_edges = (vp::clock_engine *)clock;
+}
+
+void udma::fast_clk_reg(component *__this, component *clock)
+{
+    udma *_this = (udma *)__this;
+    _this->fast_clock = (vp::clock_engine *)clock;
+}
+
 int udma::build()
 {
     traces.new_trace("trace", &trace, vp::DEBUG);
@@ -338,6 +411,12 @@ int udma::build()
 
     this->periph_clock_itf.set_reg_meth(&udma::clk_reg);
     new_slave_port("periph_clock", &this->periph_clock_itf);
+
+    this->periph_clock_dual_edges_itf.set_reg_meth(&udma::dual_edges_clk_reg);
+    new_slave_port("periph_clock_dual_edges", &this->periph_clock_dual_edges_itf);
+
+    this->fast_clock_itf.set_reg_meth(&udma::fast_clk_reg);
+    new_slave_port("fast_clock", &this->fast_clock_itf);
 
     nb_periphs = get_config_int("nb_periphs");
     periphs.reserve(nb_periphs);
@@ -355,6 +434,9 @@ int udma::build()
 
     this->nb_addrgen_linear = this->get_config_int("nb_addrgen_linear");
     this->nb_addrgen_2d = this->get_config_int("nb_addrgen_2d");
+    
+    this->nb_udma_stream_in = this->get_config_int("nb_udma_stream_in");
+    this->nb_udma_stream_out = this->get_config_int("nb_udma_stream_out");
 
     for (int i=0; i<this->nb_addrgen_linear; i++)
     {
@@ -472,6 +554,21 @@ int udma::build()
                 }
             }
 #endif
+#ifdef HAS_I2C
+            else if (strcmp(name.c_str(), "i2c") == 0)
+            {
+                trace.msg(vp::trace::LEVEL_INFO, "Instantiating I2C channel (id: %d, offset: 0x%x)\n", id, offset);
+                if (version == 4)
+                {
+                    I2c_periph *periph = new I2c_periph(this, id, j);
+                    periphs[id] = periph;
+                }
+                else
+                {
+                    throw logic_error("Non-supported udma version: " + std::to_string(version));
+                }
+            }
+#endif
 #ifdef HAS_CPI
             else if (strcmp(name.c_str(), "cpi") == 0)
             {
@@ -559,12 +656,6 @@ void udma::start()
 
 void udma::reset(bool active)
 {
-    for (int i = 0; i < this->nb_periphs; i++)
-    {
-        if (this->periphs[i] != NULL && this->periphs[i]->id == i)
-            this->periphs[i]->reset(active);
-    }
-
     for (auto x: this->addrgen_linear)
     {
         x->reset(active);

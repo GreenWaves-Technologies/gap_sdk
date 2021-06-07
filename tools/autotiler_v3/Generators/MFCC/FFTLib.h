@@ -62,7 +62,7 @@ typedef struct {
 
 typedef struct {
         void *__restrict__ Data;			/**< Pointer to input data (I, Q) pairs, I and Q fixed point format */
-        signed char *__restrict__ shift_BF;
+        signed char *__restrict__ shift_fft;
         short *__restrict__ SwapTable;		/**< Pointer to lookup table for bit reverse to/from natural order reordering of Data */
         int Ni;					/**< FFT dimension */
 } SwapSamples_scal_Arg_T;
@@ -156,7 +156,8 @@ void Radix2FFT_DIF_INT_Scal_Par(FFT_scal_Arg_T *Arg);
 
 
 extern void Radix4FFT_DIF_Seq(signed short *__restrict__ Data, signed short *__restrict__ Twiddles, unsigned int N_fft, int Inverse);
-extern void Radix4FFT_DIF_Par(FFT_Arg_T *Arg);
+extern void Radix4FFT_DIF_Par_Fix16(FFT_Arg_T *Arg);
+extern void Radix4FFT_DIF_Par_Fix32(FFT_Arg_T *Arg);
 
 #ifdef __gap9__
 extern void Radix4FFT_DIF_Par_f16(FFT_Arg_T *Arg);
@@ -171,12 +172,15 @@ extern void Radix2FFT_DIF_Scalar(signed short *__restrict__ Data, signed short *
 extern void Radix2FFT_DIF_Seq   (signed short *__restrict__ Data, signed short *__restrict__ Twiddles, int N_FFT2);
 extern void Radix2FFT_DIF_Par_Fix16_Fast(FFT_Arg_T *Arg);
 extern void Radix2FFT_DIF_Par_Fix16(FFT_Arg_T *Arg);
+extern void Radix2FFT_DIF_Par_Fix32(FFT_Arg_T *Arg);
 extern void SwapSamples_Par(FFT_SwapSamples_T *Arg);
 extern void SwapSamples_Par_f32(FFT_SwapSamples_T *Arg);
+extern void SwapSamples_Par_Fix32(FFT_SwapSamples_T *Arg);
 
 extern void Conjugate_Fix16_Par(FFT_SwapSamples_T *Arg);
 extern void Conjugate_Fix32_Par(FFT_SwapSamples_T *Arg);
 extern void Conjugate_Float32_Par(FFT_SwapSamples_T *Arg);
+extern void FFT_InstallTwiddlesAndSwapLUT(FFT_InstallArg_T *Arg, int format);
 
 #define FFT4_SAMPLE_DYN 12
 #define FFT2_SAMPLE_DYN 13

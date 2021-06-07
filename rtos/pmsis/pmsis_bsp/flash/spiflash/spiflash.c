@@ -30,9 +30,7 @@
 // select single or quad line
 //#define SINGLE_LINE
 
-
 #define SECTOR_SIZE (1<<12)
-#define QSPI_FLASH_CS 0
 
 #define QSPIF_BURST_LEN(x)      ((uint8_t)((x&0x3)<<0))
 #define QSPIF_BURST_ENA(x)      ((uint8_t)((x&0x1)<<1))
@@ -145,16 +143,17 @@ typedef struct {
 
 } spi_flash_t;
 
-
 // ------ globals for some regular operations
-PI_L2 static const uint8_t g_set_qspif_dummy[] = {QSPIF_WR_READ_REG_CMD,
+PI_L2 static const uint8_t g_set_qspif_dummy[]      = {QSPIF_WR_READ_REG_CMD,
     QSPIF_DUMMY_CYCLES};
-PI_L2 static const uint8_t g_enter_qpi_mode[] = {0x35,0};
-PI_L2 static const uint8_t g_exit_qpi_mode[]  = {0xf5,0};
-PI_L2 static const uint8_t g_chip_erase[]     = {0x60,0};
-PI_L2 static const uint8_t g_write_enable[]   = {QSPIF_WR_EN_CMD,0};
-PI_L2 static const uint8_t g_status_reg_init[] = {WRITE_STATUS_REG_CMD,0};
-
+PI_L2 static const uint8_t g_enter_qpi_mode[]       = {0x35,0};
+PI_L2 static const uint8_t g_enter_powerdown_mode[] = {0xB9,0};
+PI_L2 static const uint8_t g_exit_qpi_mode[]        = {0xf5,0};
+PI_L2 static const uint8_t g_chip_erase[]           = {0x60,0};
+PI_L2 static const uint8_t g_write_enable[]         = {QSPIF_WR_EN_CMD,0};
+PI_L2 static const uint8_t g_status_reg_init[]      = {WRITE_STATUS_REG_CMD,0};
+PI_L2 static const uint8_t g_nop_cmd[]              = {0x00,0};
+PI_L2 static const uint8_t g_rdp_cmd[]              = {0xAB,0};
 
 static void wait_wip(spi_flash_t *flash_dev);
 
@@ -199,9 +198,9 @@ static inline void qpi_flash_set_quad_enable(spi_flash_t *flash_dev)
     // read status register, and then write it back with QE bit = 1
     cmd_buf[0] = READ_STATUS_REG_CMD; // read status reg
     pi_spi_send(qspi_dev, (void*)&cmd_buf[0], 1*8,
-            PI_SPI_LINES_SINGLE | PI_SPI_CS_KEEP);
+            SPI_LINES_FLAG | PI_SPI_CS_KEEP);
     pi_spi_receive(qspi_dev, (void*)&status_reg[QE_STATUS_ID], 1*8,
-            PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
+            SPI_LINES_FLAG | PI_SPI_CS_AUTO);
     //printf("status = 0x%02X.\n", status_reg[QE_STATUS_ID] && 0x0FF);
 
     if(!((status_reg[QE_STATUS_ID] >> QE_BIT_POS)&1))
@@ -211,11 +210,11 @@ static inline void qpi_flash_set_quad_enable(spi_flash_t *flash_dev)
         // WREN before WRSR
         cmd_buf[0] = QSPIF_WR_EN_CMD;
         pi_spi_send(qspi_dev, (void*)cmd_buf, 1*8,
-                PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
+                SPI_LINES_FLAG | PI_SPI_CS_AUTO);
         cmd_buf[0] = WRITE_STATUS_REG_CMD; // write status reg (holds QE bit)
         cmd_buf[1] = status_reg[QE_STATUS_ID];
         pi_spi_send(qspi_dev, (void*)cmd_buf, 2*8,
-                PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
+                SPI_LINES_FLAG | PI_SPI_CS_AUTO);
 
         // flash takes some time to recover
         //pi_time_wait_us(100000);
@@ -226,6 +225,12 @@ static inline void qpi_flash_set_quad_enable(spi_flash_t *flash_dev)
 static inline void qpi_flash_pre_config(spi_flash_t *flash_dev)
 {
     pi_device_t *qspi_dev = &flash_dev->qspi_dev;
+
+    // wakeup or init for startup
+    // for MX25U3232F or other chip
+    //pi_spi_send(qspi_dev, (void*)g_nop_cmd, 8, PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
+    // for MX25L25645G or other chip
+    //pi_spi_send(qspi_dev, (void*)g_rdp_cmd, 8, PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
 
 #ifndef SPI_FLASH_USE_QUAD_IO
     // Enter QPI mode
@@ -249,6 +254,7 @@ static inline void qpi_flash_pre_config(spi_flash_t *flash_dev)
     //        SPI_LINES_FLAG | PI_SPI_CS_AUTO);
     //wait_wip(flash_dev);
 
+    // ensure into qaud mode
     qpi_flash_set_quad_enable(flash_dev);
 
 #ifndef MX25
@@ -417,9 +423,17 @@ error0:
 void spiflash_close(struct pi_device *bsp_flash_dev)
 {
     spi_flash_t *flash_dev = (spi_flash_t*)bsp_flash_dev->data;
+
     // wait for last operations
     wait_wip(flash_dev);
+
+    // enter into powerdown mode
+    // just only for mx25 series, other chips may need different command
+    //pi_spi_send(&flash_dev->qspi_dev, (void*)g_enter_powerdown_mode, 8, PI_SPI_LINES_SINGLE | PI_SPI_CS_AUTO);
+    //pi_time_wait_us(10);
+
     pi_spi_close(&flash_dev->qspi_dev);
+
     pi_l2_free(flash_dev, sizeof(spi_flash_t));
 }
 
@@ -522,7 +536,9 @@ static int32_t spiflash_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
                 // For now, leave 128 sectors (512KB) at the begining (max bin size)
                 flash_info->flash_start = flash_info->sector_size * 128;
             }
+            break;
     }
+
     return 0;
 }
 
@@ -830,8 +846,25 @@ static void spiflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
     // Typical sector erase time is 10-15s
     pi_task_push_delayed_us(pi_task_callback(&spiflash->task, spiflash_check_erase_chip, device), 5000);
 }
+/*
+static void spiflash_erase_chip_async(struct pi_device *device, pi_task_t *task)
+{
+    spi_flash_t *spiflash = (spi_flash_t *)device->data;
+    pi_device_t *qspi_dev = &spiflash->qspi_dev;
 
+    if (spiflash_stall_task(spiflash, task, STALL_TASK_ERASE_CHIP, 0, 0, 0, 0, 0))
+        return;
 
+    pi_spi_send(qspi_dev, (void*)g_write_enable, 8,
+            SPI_LINES_FLAG | PI_SPI_CS_AUTO);
+    pi_spi_send(qspi_dev, (void*)g_chip_erase, 8,
+            SPI_LINES_FLAG | PI_SPI_CS_AUTO);
+
+    wait_wip(spiflash);
+
+    spiflash_handle_pending_task(device);
+}
+*/
 
 // This callback is called either once aan erase operation is done or after a specific delay (to wait for erase
 // completion in flash) to check if the current erase operation can be resumed.

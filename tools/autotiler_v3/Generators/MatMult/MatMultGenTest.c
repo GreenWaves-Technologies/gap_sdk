@@ -33,8 +33,8 @@ void Model(unsigned int L1Memory, unsigned int L2Memory, unsigned int L3Memory)
 
 	LoadMatMultLibrary();
 	
-	ParMatMultGenerator    ("ParMatMult",     200, 70, 70, 150, 1); //Short int
-    ParVectMatMultGenerator("ParVectMatMult", 200, 70, 70, 150, 1); //Short int
+	ParMatMultGenerator    ("ParMatMultfixedp16",     200, 70, 70, 150, 1); //Short int
+    ParVectMatMultGenerator("ParVectMatMultfixedp16", 200, 70, 70, 150, 1); //Short int
 
 }
 

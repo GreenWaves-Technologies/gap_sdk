@@ -21,6 +21,69 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
+unsigned short int SIGMOID_ACT_LUT_uint16[256] = {
+    32768, 33451, 34133, 34813, 35493, 36169, 36843, 37513, 38180, 38841, 39498,
+    40149, 40794, 41432, 42064, 42688, 43304, 43912, 44511, 45102, 45683, 46255,
+    46817, 47369, 47911, 48443, 48964, 49475, 49975, 50464, 50942, 51409, 51865,
+    52311, 52745, 53169, 53581, 53983, 54374, 54755, 55125, 55485, 55834, 56174,
+    56503, 56823, 57133, 57433, 57724, 58007, 58280, 58544, 58800, 59048, 59288,
+    59519, 59743, 59959, 60168, 60370, 60565, 60753, 60935, 61110, 61279, 61441,
+    61599, 61750, 61896, 62036, 62172, 62302, 62428, 62549, 62666, 62778, 62886,
+    62990, 63090, 63186, 63279, 63368, 63454, 63536, 63615, 63691, 63765, 63835,
+    63903, 63968, 64030, 64090, 64148, 64204, 64257, 64308, 64357, 64405, 64450,
+    64494, 64536, 64576, 64614, 64652, 64687, 64721, 64754, 64786, 64816, 64845,
+    64873, 64900, 64926, 64950, 64974, 64997, 65019, 65039, 65060, 65079, 65097,
+    65115, 65132, 65149, 65164, 65179, 65194, 65208, 65221, 65234, 65246, 65258,
+    65269, 65280, 65291, 65301, 65310, 65319, 65328, 65337, 65345, 65352, 65360,
+    65367, 65374, 65381, 65387, 65393, 65399, 65404, 65410, 65415, 65420, 65425,
+    65429, 65433, 65438, 65442, 65445, 65449, 65453, 65456, 65459, 65462, 65465,
+    65468, 65471, 65474, 65476, 65479, 65481, 65483, 65485, 65488, 65489, 65491,
+    65493, 65495, 65497, 65498, 65500, 65501, 65503, 65504, 65505, 65507, 65508,
+    65509, 65510, 65511, 65512, 65513, 65514, 65515, 65516, 65517, 65517, 65518,
+    65519, 65520, 65520, 65521, 65522, 65522, 65523, 65523, 65524, 65524, 65525,
+    65525, 65526, 65526, 65526, 65527, 65527, 65528, 65528, 65528, 65529, 65529,
+    65529, 65529, 65530, 65530, 65530, 65530, 65531, 65531, 65531, 65531, 65531,
+    65532, 65532, 65532, 65532, 65532, 65532, 65533, 65533, 65533, 65533, 65533,
+    65533, 65533, 65533, 65534, 65534, 65534, 65534, 65534, 65534, 65534, 65534,
+    65534, 65534, 65535};
+
+#ifndef NEAREST
+#define NEAREST
+#endif
+
+int SigmoidLUT(int x){
+	/* Input x: Q12 [-8:8] range
+
+	   Output y = sig(x) -> Q15
+	*/
+#ifndef NEAREST
+	int result, ua, ub, ut;
+	int abs_x = (Abs(x) * 3) >> 9; // * 3/4 (*3 >>2) and clip it to [0:255] (>>7) ot be an index of the LUT
+	if (abs_x > 255) {
+		result = 0x1FFFC00; // result = 1 in Q25
+	} else {
+		ua = SIGMOID_ACT_LUT_uint16[abs_x];
+		ub = SIGMOID_ACT_LUT_uint16[abs_x+1];
+		ut = abs_x & 0xFF;
+		result = (ua << 9) + ut * (ub-ua); // LUT in Q16 * ut in Q9 = Q25
+	}
+	if (x>0) result = result;
+	else     result = (1<<25) - result;
+	return result >> 10;
+#else
+	int result;
+	int abs_x = (Abs(x) * 3) >> 9; // * 3/4 (*3 >>2) and clip it to [0:255] (>>7) ot be an index of the LUT
+	if (abs_x > 255) {
+		result = 0xFFFF; // result = 1 in Q16
+	} else {
+		result = SIGMOID_ACT_LUT_uint16[abs_x]; // LUT in Q16
+	}
+	if (x>0) result = result;
+	else     result = (1<<16) - result;
+	return result >> 1;
+#endif
+}
+
 
 /* Set output features maps initial bias group
  
@@ -1129,6 +1192,7 @@ typedef enum {
         KACT_RELU,
         KACT_RELUN,
         KACT_HSIGMOID,
+        KACT_SIGMOID,
         KACT_HSWISH,
         KACT_LEAKY,
 } CNN_ActivationOper_T;
@@ -1145,7 +1209,6 @@ void KerDPLinearLayerReduct_fp(KerDPLinearLayerReduct_fp_T *Arg)
 	int Norm = Arg->Norm;
 	int NormOut = (int) Arg->UB;
 	int Acc = Arg->Bias[0]<<Arg->NormBias;
-
 	for (int i=0; i<gap_ncore(); i++) Acc += In[i];
 	switch (Arg->Oper) {
 		case KACT_HSIGMOID:
@@ -1808,6 +1871,40 @@ void KerDP_hswish_fp(KerDP_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void KerDP_sigmoid_fp(KerDP_fp_T *Arg)
+
+{
+	/* Norm: w+i-o
+           o must be Q15
+	   o passed in Arg->UB
+	*/
+	int * __restrict__ In = Arg->In;
+	short int * __restrict__ Out = Arg->Out;
+	int S = Arg->InFeatures*Arg->W*Arg->H;
+        int Norm12 = Arg->Norm + 3;
+
+	int i, j;
+       	unsigned int CoreId = gap_coreid();
+       	unsigned int ChunkCell = ChunkSize(S);
+       	unsigned int First = CoreId*ChunkCell;
+       	unsigned int Last  = Min(First+ChunkCell, S);
+	int Size = Max(0, Last-First);
+
+	int * __restrict__ I = &In[First];
+	v2s * __restrict__ O = (v2s *)(&Out[First]);
+
+	for (i=0; i<(Size/2); i++) {
+		int Acc0 = AT_NORM(I[2*i], Norm12), Acc1 = AT_NORM(I[2*i+1], Norm12);
+		Acc0 = AT_CLIP(SigmoidLUT(Acc0), 15);
+		Acc1 = AT_CLIP(SigmoidLUT(Acc1), 15);
+		O[i] = (v2s) gap_pack2((short int)Acc0, (short int)Acc1);
+	}
+	if (Size&0x1) {
+		int Acc0 = AT_NORM(In[Last-1], Norm12);
+		Out[Last-1] = (short int) AT_CLIP(SigmoidLUT(Acc0), 15);
+	}
+	gap_waitbarrier(0);
+}
 
 void KerDP_hsigmoid_fp(KerDP_fp_T *Arg)
 
@@ -2019,6 +2116,65 @@ void KerDP_IO_hsigmoid_fp(KerDP_fp_T *Arg)
 	if (Size&0x1) {
 		int Acc0 = AT_NORM(In[Last-1], Norm);
 		Out[Last-1] = AT_NORM(AT_CLIP_POS(Acc0 + C1, UB) * C2, 15);
+	}
+	gap_waitbarrier(0);
+	/* Now this is the reduction phase */
+
+	KerReductIO_Compact_fp((short int *__restrict__)In, (short int *__restrict__)In, ChunkCell, S);
+#if 0
+	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
+	for (k=0; k<Log2Core; k++) {
+		if (CoreId<U) {
+			short int *__restrict__ OOs = ((short int *)In+(A*CoreId+B)*ChunkCell);
+			short int *__restrict__ IIs = ((short int *)In+(2*(A*CoreId+B))*ChunkCell);
+			int *__restrict__ II = (int *) IIs;
+			int *__restrict__ OO = (int *) OOs;
+			for (i=0;i<(Size/4);i++) {
+				int V0 = II[2*i], V1 = II[2*i+1];
+				OO[2*i] = V0; OO[2*i+1] = V1;
+			}
+			for (i=((Size/4)*4); i<Size; i++) OOs[i] = IIs[i];
+		}
+		U = U/2; A = A*2; B = B*2;
+		gap_waitbarrier(0);
+	}
+#endif
+}
+
+void KerDP_IO_sigmoid_fp(KerDP_fp_T *Arg)
+
+{
+	/* Norm: w+i-o
+	   Out norm always indicates norm to Q15
+	*/
+	int * __restrict__ In = Arg->In;
+	short int * __restrict__ Out = Arg->Out;
+	int S = Arg->W*Arg->H*Arg->InFeatures;
+	unsigned int Norm12 = Arg->Norm + 3;
+	int i,j,k,U,A,B,Log2Core;
+       	unsigned int CoreId = gap_coreid();
+       	unsigned int ChunkCell = ChunkSize(S);
+       	unsigned int First = CoreId*ChunkCell;
+       	unsigned int Last  = Min(First+ChunkCell, S);
+	int Size = Max(0, Last-First);
+
+	int *I = &In[First];
+	v2s *O = (v2s *)(&In[First]);
+
+	/* First normalize In, each parallel chunk overwrites it's own input
+	   After we are done In contains groups of contiguous normalized values
+	   each group beeing followed by an empty group of exactly the same size, these
+	   one need to be supressed, second step is taking care of this reduction */
+
+	for (i=0; i<(Size/2); i++) {
+		int Acc0 = AT_NORM(I[2*i], Norm12), Acc1 = AT_NORM(I[2*i+1], Norm12);
+		Acc0 = AT_CLIP(SigmoidLUT(Acc0), 15);
+		Acc1 = AT_CLIP(SigmoidLUT(Acc1), 15);
+		O[i] = (v2s) gap_pack2(Acc0, Acc1);
+	}
+	if (Size&0x1) {
+		int Acc0 = AT_NORM(In[Last-1], Norm12);
+		Out[Last-1] = AT_CLIP(SigmoidLUT(Acc0), 15);
 	}
 	gap_waitbarrier(0);
 	/* Now this is the reduction phase */
@@ -2404,6 +2560,57 @@ void KerDP_hsigmoid_fps(KerDP_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void KerDP_sigmoid_fps(KerDP_fps_T *Arg)
+
+{
+	/* Norm: w+i-o
+	   o is always Q7
+	*/
+	DP_fps_T * __restrict__ In = Arg->In;
+	signed char * __restrict__ Out = Arg->Out;
+	int S = Arg->W*Arg->H*Arg->InFeatures;
+	int Norm12 = Arg->Norm - 5; // Norm to Q7 - 5 to get to Q12
+	int i, j;
+       	unsigned int CoreId = gap_coreid();
+       	unsigned int ChunkCell = ChunkSize(S);
+       	unsigned int First = CoreId*ChunkCell;
+       	unsigned int Last  = Min(First+ChunkCell, S);
+	int Size = Max(0, Last-First);
+
+	DP_fps_T * __restrict__ I = &In[First];
+	v4s * __restrict__ O = (v4s *)(&Out[First]);
+	signed char *__restrict__ Os = &Out[First];
+	if (Norm12<0) {
+		Norm12 = -Norm12;
+		for (i=0; i<(Size/4); i++) {
+			int Acc0 = I[4*i] << Norm12, Acc1 = I[4*i+1] << Norm12, Acc2 = I[4*i+2] << Norm12, Acc3 = I[4*i+3] << Norm12;
+			Acc0 = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+			Acc1 = AT_CLIP(AT_NORM(SigmoidLUT(Acc1), 8), 7);
+			Acc2 = AT_CLIP(AT_NORM(SigmoidLUT(Acc2), 8), 7);
+			Acc3 = AT_CLIP(AT_NORM(SigmoidLUT(Acc3), 8), 7);
+			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
+		}
+		for (i=((Size/4)*4); i<Size; i++) {
+			int Acc0 = I[i] << Norm12;
+			Os[i] = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+		}
+	} else {
+		for (i=0; i<(Size/4); i++) {
+			int Acc0 = AT_NORM(I[4*i], Norm12), Acc1 = AT_NORM(I[4*i+1], Norm12), Acc2 = AT_NORM(I[4*i+2], Norm12), Acc3 = AT_NORM(I[4*i+3], Norm12);
+			Acc0 = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+			Acc1 = AT_CLIP(AT_NORM(SigmoidLUT(Acc1), 8), 7);
+			Acc2 = AT_CLIP(AT_NORM(SigmoidLUT(Acc2), 8), 7);
+			Acc3 = AT_CLIP(AT_NORM(SigmoidLUT(Acc3), 8), 7);
+			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
+		}
+		for (i=((Size/4)*4); i<Size; i++) {
+			int Acc0 = AT_NORM(I[i], Norm12);
+			Os[i] = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+		}
+	}
+	gap_waitbarrier(0);
+}
+
 void KerDPMulBiasScalar_fps(KerDP_fps_T *Arg)
 
 {
@@ -2640,7 +2847,7 @@ void KerDP_IO_hsigmoid_fps(KerDP_fps_T *Arg)
 	DP_fps_T * __restrict__ In = Arg->In;
 	signed char * __restrict__ Out = Arg->Out;
 	int S = Arg->W*Arg->H*Arg->InFeatures;
-	unsigned int Norm = Arg->Norm;
+	int Norm = Arg->Norm;
 	int NormOut = Arg->UB;
 	int i,j,k,U,A,B,Log2Core;
        	unsigned int CoreId = gap_coreid();
@@ -2673,6 +2880,82 @@ void KerDP_IO_hsigmoid_fps(KerDP_fps_T *Arg)
 	for (i=((Size/4)*4); i<Size; i++) {
 		int Acc0 = AT_NORM(I[i], Norm);
 		Os[i] = AT_NORM(AT_CLIP_POS(Acc0 + C1, UB) * C2, 15);
+	}
+	gap_waitbarrier(0);
+
+	KerReductIO_Compact_fps((signed char *__restrict__)In, (signed char *__restrict__)In, ChunkCell, S);
+#if 0
+	U = gap_ncore()/2; Log2Core = gap_fl1(gap_ncore()); A = 2; B = 1;
+	for (k=0; k<Log2Core; k++) {
+		if (CoreId<U) {
+			signed char *__restrict__ OOs = ((signed char *)In+(A*CoreId+B)*ChunkCell);
+			signed char *__restrict__ IIs = ((signed char *)In+((sizeof(DP_fps_T)/sizeof(signed char))*(A*CoreId+B))*ChunkCell);
+			int *__restrict__ II = (int *) IIs;
+			int *__restrict__ OO = (int *) OOs;
+			for (i=0;i<Size/8;i++) {
+				int V0 = II[2*i], V1 = II[2*i+1];
+				OO[2*i] = V0; OO[2*i+1] = V1;
+			}
+			for (i=((Size/8)*8); i<Size; i++) OOs[i] = IIs[i];
+		}
+		U = U/2; A = A*2; B = B*2;
+		gap_waitbarrier(0);
+	}
+#endif
+}
+
+void KerDP_IO_sigmoid_fps(KerDP_fps_T *Arg)
+
+{
+	/* Norm: w+i-o
+	   o is always Q7
+	*/
+	DP_fps_T * __restrict__ In = Arg->In;
+	signed char * __restrict__ Out = Arg->Out;
+	int S = Arg->W*Arg->H*Arg->InFeatures;
+	int Norm12 = Arg->Norm - 5;
+	int i,j,k,U,A,B,Log2Core;
+       	unsigned int CoreId = gap_coreid();
+       	unsigned int ChunkCell = ChunkSize(S);
+       	unsigned int First = CoreId*ChunkCell;
+       	unsigned int Last  = Min(First+ChunkCell, S);
+	int Size = Max(0, Last-First);
+
+	DP_fps_T *I = &In[First];
+	v4s *O = (v4s *)(&In[First]);
+	signed char *Os = (signed char *) (In + First);
+
+	/* First normalize In, each parallel chunk overwrites it's own input
+	   After we are done In contains groups of contiguous normalized values
+	   each group beeing followed by an empty group of exactly the same size, these
+	   one need to be supressed, second step is taking care of this reduction */
+
+	if (Norm12 < 0) {
+		for (i=0; i<(Size/4); i++) {
+			int Acc0 = I[4*i] << Norm12, Acc1 = I[4*i+1] << Norm12, Acc2 = I[4*i+2] << Norm12, Acc3 = I[4*i+3] << Norm12;
+			Acc0 = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+			Acc1 = AT_CLIP(AT_NORM(SigmoidLUT(Acc1), 8), 7);
+			Acc2 = AT_CLIP(AT_NORM(SigmoidLUT(Acc2), 8), 7);
+			Acc3 = AT_CLIP(AT_NORM(SigmoidLUT(Acc3), 8), 7);
+			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
+		}
+		for (i=((Size/4)*4); i<Size; i++) {
+			int Acc0 = I[i] << Norm12;
+			Os[i] = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+		}
+	} else {
+		for (i=0; i<(Size/4); i++) {
+			int Acc0 = AT_NORM(I[4*i], Norm12), Acc1 = AT_NORM(I[4*i+1], Norm12), Acc2 = AT_NORM(I[4*i+2], Norm12), Acc3 = AT_NORM(I[4*i+3], Norm12);
+			Acc0 = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+			Acc1 = AT_CLIP(AT_NORM(SigmoidLUT(Acc1), 8), 7);
+			Acc2 = AT_CLIP(AT_NORM(SigmoidLUT(Acc2), 8), 7);
+			Acc3 = AT_CLIP(AT_NORM(SigmoidLUT(Acc3), 8), 7);
+			O[i] = gap_pack4(Acc0, Acc1, Acc2, Acc3);
+		}
+		for (i=((Size/4)*4); i<Size; i++) {
+			int Acc0 = AT_NORM(I[i], Norm12);
+			Os[i] = AT_CLIP(AT_NORM(SigmoidLUT(Acc0), 8), 7);
+		}
 	}
 	gap_waitbarrier(0);
 

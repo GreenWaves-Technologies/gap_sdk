@@ -66,7 +66,7 @@ class ArithmeticMixin(ConstantMixin, BroadcastMixin):
         all_nodes = kwargs['all_nodes']
         G = kwargs['G']
         opts = kwargs['opts']
-        qrec_class = kwargs.get('qrec_class')
+        node_opts = kwargs.get("node_opts", None)
         params_args = kwargs.get('params_args', {})
         constant_operation = kwargs.get('constant_operation')
         inputs = [all_nodes[inp] for inp in node.input]
@@ -85,10 +85,19 @@ class ArithmeticMixin(ConstantMixin, BroadcastMixin):
                 G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1], to_idx=idx))
                 shapes.append(inp[2].known_shape)
             if isinstance(params, Broadcastable):
+                for idx, shape in enumerate(shapes.copy()):
+                    len_diff = len(shape) - len(output_shapes[0].known_shape)
+                    if len_diff > 0:
+                        if not all(dim is None or dim == 1 for dim in shape[:len_diff:]):
+                            in_shapes = ",".join(str(shape) for shape in shapes)
+                            raise ValueError(f'strange broadcast {in_shapes} -> {output_shapes[0].shape}')
+                        shapes[idx] = shape[len_diff::]
                 params.set_broadcast(shapes)
         if opts.get('load_quantization'):
             G.quantization[NodeId(params)] = cls.load_tf_quantization(
-                node.input, node.output, qrec_class=qrec_class)
+                node.input, node.output)
+        if node_opts is not None:
+            params = cls.fuse_activation(node_opts, node.name, params, **kwargs)
         all_nodes[node.output[0]] = (params, 0, output_shapes[0])
         return params
 

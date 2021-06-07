@@ -14,18 +14,21 @@
 
 import logging
 
-from generation.at_types.at_params import (gen_pool_at_params, gen_active_at_params, NO_ACTIVATION)
+from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
+                                           gen_pool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
-from graph.types import PoolingParameters, ActivationFusion
+from generation.generator_decorators import (QREC_MULT8,
+                                                        generation_function)
+from graph.types import ActivationFusion, PoolingParameters
+from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
 
 from ..autotiler_kernel import AutotilerKernel
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (PoolingParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
+@generation_function("kernels", (MaxPoolParameters, AveragePoolParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
 def pool_act_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
     if isinstance(node, ActivationFusion):

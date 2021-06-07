@@ -45,9 +45,13 @@ class BroadcastMixin(object):
         # this fixes constant inputs to the broadcasted shape
         # this may not be a good thing to do if the input is connected to more than one node
         # since the shape change could cause problems
-        # Two possible solutions:
+        # Three possible solutions:
         # 1) insert a rehape in between the constant and the broadcasted node
         # 2) make the broadcast node adjust more complete
+        # 3) Duplicate the constant in two different shapes - perhaps with a wrapper that shows
+        #    that it is actually one (I like this solution since it copes with other situations
+        #    where a constant is used in multiple places - needs to cope with quant differences
+        #    though)
         none_axes = tuple([idx for idx, dim in enumerate(shape) if dim is None])
         const_inputs = list([inp
                              for inp in inputs if isinstance(inp[0], ConstantInputParameters)])

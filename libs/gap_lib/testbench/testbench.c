@@ -492,6 +492,25 @@ int pi_testbench_spim_verif_spi_wakeup(pi_device_t *device, int itf, int cs, pi_
 }
 
 
+void pi_testbench_i2s_verif_init(pi_testbench_i2s_verif_config_t *config)
+{
+    config->itf = 0;
+    config->enabled = 0;
+    config->sampling_freq = -1;
+    config->word_size = 16;
+    config->nb_slots = 1;
+    config->is_pdm = 0;
+    config->is_full_duplex = 0;
+    config->is_ext_clk = 0;
+    config->is_ext_ws = 0;
+    config->is_sai0_clk = 0;
+    config->is_sai0_ws = 0;
+    config->clk_polarity = 0;
+    config->ws_polarity = 0;
+    config->ws_delay = 1;
+}
+
+
 int pi_testbench_i2s_verif_open(pi_device_t *device, int itf, pi_testbench_i2s_verif_config_t *config)
 {
     pi_testbench_t *bench = (pi_testbench_t *)device->data;
@@ -561,15 +580,26 @@ int pi_testbench_i2s_verif_slot_open(pi_device_t *device, int itf, int slot, pi_
 {
     pi_testbench_t *bench = (pi_testbench_t *)device->data;
 
-    pi_testbench_req_header_t header = { .cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_SETUP, .size=sizeof(pi_testbench_i2s_verif_slot_config_t) };
-    pi_uart_write(&bench->ctrl_dev, &header, sizeof(header));
+    int l2_buffer_size = sizeof(pi_testbench_req_header_t) + sizeof(pi_testbench_i2s_verif_slot_config_t);
+    uint8_t *l2_buffer = (uint8_t *)pi_l2_malloc(l2_buffer_size);
+    if (l2_buffer == NULL)
+        return -1;
 
-    config->itf = itf;
-    config->slot = slot;
-    config->enabled = 1;
-    pi_uart_write(&bench->ctrl_dev, config, sizeof(pi_testbench_i2s_verif_slot_config_t));
+    pi_testbench_req_header_t *header = (pi_testbench_req_header_t *)&l2_buffer[0];
+    header->cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_SETUP;
+    header->size = sizeof(pi_testbench_i2s_verif_slot_config_t);
+
+    pi_testbench_i2s_verif_slot_config_t *l2_config = (pi_testbench_i2s_verif_slot_config_t *)&l2_buffer[sizeof(pi_testbench_req_header_t)];
+    memcpy((void *)l2_config, (void *)config, sizeof(pi_testbench_i2s_verif_slot_config_t));
+    l2_config->itf = itf;
+    l2_config->slot = slot;
+    l2_config->enabled = 1;
+
+    pi_uart_write(&bench->ctrl_dev, l2_buffer, l2_buffer_size);
 
     pi_uart_ioctl(&bench->ctrl_dev, PI_UART_IOCTL_FLUSH, NULL);
+
+    pi_l2_free(l2_buffer, l2_buffer_size);
 
     return 0;
 }
@@ -597,39 +627,58 @@ int pi_testbench_i2s_verif_slot_close(pi_device_t *device, int itf, int slot)
 int pi_testbench_i2s_verif_slot_start(pi_device_t *device, int itf, int slot, pi_testbench_i2s_verif_slot_start_config_t *config)
 {
     pi_testbench_t *bench = (pi_testbench_t *)device->data;
+    int str_len = 0;
 
     int size = sizeof(pi_testbench_i2s_verif_slot_start_config_t);
 
     if (config->type == PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER)
     {
-        config->tx_file_dumper.filepath_len = strlen((char *)config->tx_file_dumper.filepath) + 1;
+        str_len = strlen((char *)config->tx_file_dumper.filepath) + 1;
+        config->tx_file_dumper.filepath_len = str_len;
         size += config->tx_file_dumper.filepath_len;
     }
 
     if (config->type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER)
     {
-        config->rx_file_reader.filepath_len = strlen((char *)config->rx_file_reader.filepath) + 1;
+        str_len = strlen((char *)config->rx_file_reader.filepath) + 1;
+        config->rx_file_reader.filepath_len = str_len;
         size += config->rx_file_reader.filepath_len;
     }
 
-    pi_testbench_req_header_t header = { .cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_START, .size=size };
-    pi_uart_write(&bench->ctrl_dev, &header, sizeof(header));
+    int l2_buffer_size = sizeof(pi_testbench_req_header_t) + sizeof(pi_testbench_i2s_verif_slot_start_config_t) + str_len;
 
-    config->itf = itf;
-    config->slot = slot;
-    pi_uart_write(&bench->ctrl_dev, config, sizeof(pi_testbench_i2s_verif_slot_start_config_t));
+    uint8_t *l2_buffer = (uint8_t *)pi_l2_malloc(l2_buffer_size);
+    if (l2_buffer == NULL)
+        return -1;
+
+    pi_testbench_req_header_t *header = (pi_testbench_req_header_t *)&l2_buffer[0];
+    header->cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_START;
+    header->size = size;
+
+    pi_testbench_i2s_verif_slot_start_config_t *l2_config = (pi_testbench_i2s_verif_slot_start_config_t *)&l2_buffer[sizeof(pi_testbench_req_header_t)];
+    memcpy((void *)l2_config, config, sizeof(pi_testbench_i2s_verif_slot_start_config_t));
+
+    l2_config->itf = itf;
+    l2_config->slot = slot;
+
+    uint8_t *l2_filepath = &l2_buffer[sizeof(pi_testbench_req_header_t) + sizeof(pi_testbench_i2s_verif_slot_start_config_t)];
 
     if (config->type == PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER)
     {
-        pi_uart_write(&bench->ctrl_dev, (void *)config->tx_file_dumper.filepath, config->tx_file_dumper.filepath_len);
+        memcpy(l2_filepath, (void *)config->tx_file_dumper.filepath, config->tx_file_dumper.filepath_len);
     }
 
     if (config->type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER)
     {
-        pi_uart_write(&bench->ctrl_dev, (void *)config->rx_file_reader.filepath, config->rx_file_reader.filepath_len);
+        memcpy(l2_filepath, (void *)config->rx_file_reader.filepath, config->rx_file_reader.filepath_len);
     }
 
+
+    pi_uart_write(&bench->ctrl_dev, l2_buffer, l2_buffer_size);
+
     pi_uart_ioctl(&bench->ctrl_dev, PI_UART_IOCTL_FLUSH, NULL);
+
+    pi_l2_free(l2_buffer, l2_buffer_size);
 
     return 0;
 }
@@ -638,18 +687,27 @@ int pi_testbench_i2s_verif_slot_start(pi_device_t *device, int itf, int slot, pi
 int pi_testbench_i2s_verif_slot_stop(pi_device_t *device, int itf, int slot)
 {
     pi_testbench_t *bench = (pi_testbench_t *)device->data;
-    pi_testbench_i2s_verif_slot_stop_config_t config;
+
+    int l2_buffer_size = sizeof(pi_testbench_req_header_t) + sizeof(pi_testbench_i2s_verif_slot_stop_config_t);
+    uint8_t *l2_buffer = (uint8_t *)pi_l2_malloc(l2_buffer_size);
+    if (l2_buffer == NULL)
+        return -1;
+
+    pi_testbench_i2s_verif_slot_stop_config_t *config = (pi_testbench_i2s_verif_slot_stop_config_t *)&l2_buffer[sizeof(pi_testbench_req_header_t)];
     int size = sizeof(pi_testbench_i2s_verif_slot_stop_config_t);
 
-    pi_testbench_req_header_t header = { .cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_STOP, .size=size };
-    pi_uart_write(&bench->ctrl_dev, &header, sizeof(header));
+    pi_testbench_req_header_t *header = (pi_testbench_req_header_t *)&l2_buffer[0];
+    header->cmd = PI_TESTBENCH_CMD_I2S_VERIF_SLOT_STOP;
+    header->size=size;
 
-    config.itf = itf;
-    config.slot = slot;
+    config->itf = itf;
+    config->slot = slot;
 
-    pi_uart_write(&bench->ctrl_dev, &config, sizeof(pi_testbench_i2s_verif_slot_stop_config_t));
+    pi_uart_write(&bench->ctrl_dev, l2_buffer, l2_buffer_size);
 
     pi_uart_ioctl(&bench->ctrl_dev, PI_UART_IOCTL_FLUSH, NULL);
+
+    pi_l2_free(l2_buffer, l2_buffer_size);
 
     return 0;
 }

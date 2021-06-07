@@ -91,7 +91,7 @@ void pi_free(void *_chunk)
     default :
         break;
     }
-    #elif defined(__GAP9__)
+    #elif defined(__GAP9__) || defined (__VEGA__)
     if ((uint32_t) real_chunk < (uint32_t) L2_SHARED_ADDR)
     {
         pi_fc_l1_free(real_chunk, size);

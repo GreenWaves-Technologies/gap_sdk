@@ -223,4 +223,3 @@ char * strchr( const char * s, int c )
     } while ( *s++ );
     return NULL;
 }
-

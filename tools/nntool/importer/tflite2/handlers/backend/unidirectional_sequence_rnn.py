@@ -18,7 +18,6 @@ from graph.types import NNEdge, RNNParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.SequenceRNNOptions import \
     SequenceRNNOptions
-from utils.sparse_list import SparseList
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -35,18 +34,18 @@ class UnidirectionalSequenceRNN(BackendHandler):
         all_nodes = kwargs['all_nodes']
 
         inputs = [all_nodes.get(t) for t in node.input]
-        x = inputs[0]
+        time_major = node_opts.TimeMajor()
+        x = cls.remove_known_batch_dimension(G, inputs[0], node, batch_axis=1 if time_major else 0)
         x_shape = x[2].shape
 
-        time_major = node_opts.TimeMajor()
         max_time = int(x_shape[0 if time_major else 1])
         n_cells = int(node.input[2].shape[0])
         n_inputs = int(x_shape[2])
         pout_dims = ProvisionalDim([x_shape[0], x_shape[1], n_cells])
 
         params = RNNParameters(node.name,
-                               in_dims_hint=SparseList([['sz', 'c']]),
-                               out_dims_hint=SparseList([['sz', 'c']]),
+                               in_dims_hint=[['sz', 'c']],
+                               out_dims_hint=[['sz', 'c']],
                                constant_store=G.constant_store,
                                n_input_cells=max_time,
                                n_cells=max_time,  # TF says max_time - we say cells

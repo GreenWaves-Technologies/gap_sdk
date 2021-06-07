@@ -238,6 +238,11 @@ class Dim():
             object.__setattr__(res, '_names', [self._names[i] for i in order])
         return res
 
+    def calc_reversed_transpose(self, order):
+        '''transpose dimension in the reverse of order which is a list of indexes'''
+        reversed_order = [order.index(idx) for idx in range(len(order))]
+        return self.calc_transpose(reversed_order)
+
     def move_last_to_first(self):
         self._verify_is_ordered()
         self._shape.insert(0, self._shape.pop())
@@ -404,6 +409,8 @@ class Dim():
 
             return base
         if isinstance(axis, int):
+            if axis >= len(base.shape):
+                ValueError(f'axis {axis} is invalid for a shape of len {len(base.shape)}')
             cnt = base.shape[axis]
             for i in range(1, len(dims)):
                 dim = dims[i]
@@ -781,6 +788,11 @@ class PadDim(Dim):
             return True
         raise AttributeError("Padding is not same so not compatible with AutoTiler")
 
+    def __str__(self):
+        if self._is_unknown:
+            return 'unknown'
+        shape = [(self.shape[idx], self.shape[idx+1]) for idx in range(0, len(self.shape), 2)]
+        return "x".join(str(dim) for dim in shape)
 
 DEFAULT_CONVFILTER_DIMS = ['out_c', 'in_c', 'h', 'w']
 

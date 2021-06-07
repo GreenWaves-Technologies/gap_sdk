@@ -1,0 +1,7 @@
+set debug true
+adjust
+fusions -a expression_matcher
+set input_norm_func 'x:x/128'
+aquant samples/input_0.npy samples/input_1.npy samples/input_2.npy samples/input_3.npy --nptype int8
+qshow
+save_state

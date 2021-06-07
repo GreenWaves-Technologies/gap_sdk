@@ -391,6 +391,12 @@ int RNN_Stack_SQ8(
 	int DimOut = PerCell?NCells:1;
 	int DimInfos = PerChanQuant?DimState:1;
 
+	/*
+		If dynamic cell count we accept only
+	       		All IN all OUT e.g NC=K0=K1 		=> N1=N3=0,  N2=NC => Single sequence
+			All IN single OUT e.g NC=K0, K1=1	=> N1=NC-1,  N2=1  => Two sequences
+	*/
+
 	if (Log) {
 		printf("RNN, %d Cells, DimState: %d, DimIn: %d, Input Cells: %d, Output Cells: %d, Order: %s\n", NCells, DimState, DimIn, K0, K1, Revert?"Reverse":"Regular");
 		printf("Basic Kernel: %s\n", RNNKerName);

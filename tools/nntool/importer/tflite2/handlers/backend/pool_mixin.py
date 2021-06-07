@@ -18,7 +18,6 @@ from graph.types import GlobalPoolParameters, PoolingParameters
 from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.Pool2DOptions import Pool2DOptions
-from utils.sparse_list import SparseList
 from utils.node_id import NodeId
 
 from .filter_pad_mixin import FilterPadMixin
@@ -35,6 +34,7 @@ class PoolMixin(FilterPadMixin):
 
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
+        x = cls.remove_known_batch_dimension(G, x, node)
         x_shape = x[2].shape
         in_c = x_shape[1]
 
@@ -55,24 +55,26 @@ class PoolMixin(FilterPadMixin):
                                           pool_type=pool_type,
                                           axis=[0, 1],
                                           keep_dims=True,
-                                          in_dims_hint=SparseList([['h', 'w', 'c']]),
-                                          out_dims_hint=SparseList([['h', 'w', 'c']]))
+                                          in_dims_hint=[['h', 'w', 'c']],
+                                          out_dims_hint=[['h', 'w', 'c']])
         else:
             params = PoolingParameters(node.name,
                                        filt=PoolFilterDim(filt_h, filt_w),
                                        stride=StrideDim(stride_h, stride_w),
                                        padding=pad,
                                        pool_type=pool_type,
-                                       in_dims_hint=SparseList([['h', 'w', 'c']]),
-                                       out_dims_hint=SparseList([['h', 'w', 'c']]))
+                                       in_dims_hint=[['h', 'w', 'c']],
+                                       out_dims_hint=[['h', 'w', 'c']])
 
         if opts.get('load_quantization'):
-            G.quantization[NodeId(params)] = cls.load_tf_quantization(node.input, node.output)
+            G.quantization[NodeId(params)] = cls.load_tf_quantization(
+                node.input, node.output)
 
         in_dim = Dim.named_ordered(h=h, w=w, c=in_c)
         out_dims = params.get_output_size([in_dim])
         pout_dims = ProvisionalDim([in_b] + out_dims[0].shape)
-        G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
+        G.add_edge(
+            NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         params = cls.fuse_activation(node_opts, node.name, params, **kwargs)
         all_nodes[node.output[0]] = (params, 0, pout_dims)
         return params

@@ -75,6 +75,7 @@ void KerMatMultParallel16(
 void KerMatMultParallelVectorial16(
         KerMatMultParallel16_ArgT *Arg
         );
+void KerMatMultParallelVectorial16_v2(KerMatMultParallel16_ArgT *Arg);
 
 typedef struct {
         signed char * __restrict__ In1;
@@ -96,4 +97,6 @@ void KerMatMultParallel8(
 void KerMatMultParallelVectorial8(
         KerMatMultParallel8_ArgT *Arg
         );
+void KerMatMultParallelVectorial8_4Buff(KerMatMultParallel8_ArgT *Arg);
+void KerMatMultParallelVectorial8_HWxWH(KerMatMultParallel8_ArgT *Arg);
 #endif

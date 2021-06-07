@@ -61,6 +61,12 @@ struct pi_atxp032_conf
  */
 void pi_atxp032_conf_init(struct pi_atxp032_conf *conf);
 
+
+void pi_atxp032_deep_sleep_enter(pi_device_t *device);
+
+void pi_atxp032_deep_sleep_exit(pi_device_t *device);
+
+
 //!@}
 
 /**

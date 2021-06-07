@@ -14,16 +14,22 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
+
+import numpy as np
 from graph.types import MatrixAddParameters, MatrixSubParameters
-from quantization.multiplicative.mult_quantization import \
-    MultAddQuantizationRecord
+from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
 @params_type(MatrixAddParameters, MatrixSubParameters)
+@in_qs_constraint({'dtype': np.int8},
+                  {'dtype': np.int8})
+@out_qs_constraint({'dtype': np.int8})
 class AddSubMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
@@ -31,12 +37,21 @@ class AddSubMult(MultQuantizionHandler):
         force_out_q = force_out_qs and force_out_qs[0]
         # NOTE: The autotiler kernel scales and clips after the operation and before the
         # activation so there is no change if this is in a fusion or not
-        scaled_idx = params.force_quantized_index if isinstance(params, MatrixAddParameters) else None
+        scaled_idx = params.force_quantized_index if isinstance(
+            params, MatrixAddParameters) else None
+        in_qs = cls.force_symmetric_and_dtype(in_qs)
+        if in_qs is None:
+            return None
 
         if force_out_q:
             o_q = deepcopy(force_out_q)
+            if o_q.is_asymmetric:
+                return None
         else:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                         stats['range_out'][0]['max'],
                                         dtype=out_dtype)
-        return MultAddQuantizationRecord(in_qs=in_qs, out_qs=[o_q], scaled_idx=scaled_idx)
+        o_q.set_forced(flags=['dtype', 'zero_point'])
+        in_qs = [in_q.set_forced(flags=['dtype', 'zero_point']) for in_q in in_qs]
+        return QRec.scaled(in_qs=in_qs, out_qs=[o_q], scaled_idx=scaled_idx)

@@ -233,4 +233,58 @@ void KerParSoftMax_SQ8(KerSoftMax_SQ8_T *Arg)
 	gap_waitbarrier(0);
 
 }
+
+void KerParSoftMax8Bits_SQ8(KerSoftMax_SQ8_T *Arg)
+
+{
+	signed char * __restrict__ In = Arg->In;
+	short int * __restrict__ Out = (short int *) Arg->Out;
+	int N = Arg->N;
+	int Norm = Arg->Infos[AT_INF_BIASL_SM];
+	static L1_CL_MEM int Reduct[8];
+	int M, Sum, InvSum;
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(N);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, N);
+	unsigned int *Red = &Reduct[CoreId];
+
+	/* Turns In into distribution */
+	/* Find max */
+	M = 0x80000000;
+	for (int i=First; i<Last; i++) M = Max(M, In[i]);
+	Reduct[CoreId] = M;
+	gap_waitbarrier(0);
+	if (CoreId==0) {
+		M = Reduct[0];
+		for (int i=1; i<gap_ncore(); i++) M = Max(M, Reduct[i]);
+		//for (int i=1; i<8; i++) M = Max(M, Reduct[i]);
+		Reduct[0] = M;
+
+	}
+	gap_waitbarrier(0);
+	/* Computes Exp(In[i]-M) for all in and sum results.
+	   Since we substract max from In[i] we always have exp(X) with X<=0 thus exp(X)<=1.0
+	   By definition of softmax Sum is <= 1
+	*/
+	M = Reduct[0];
+	Sum = 0;
+	for (int i=First; i<Last; i++) {
+		unsigned int Exp = Exp_fp_17_15((In[i]-M)<<(Norm));
+		Out[i] = Exp; Sum += Exp;
+	}
+	Reduct[CoreId] = Sum;
+	gap_waitbarrier(0);
+	if (CoreId==0) {
+		Sum = 0;
+		for (int i=0; i<gap_ncore(); i++) Sum += Reduct[i];
+		Reduct[0] = Sum;
+	}
+	gap_waitbarrier(0);
+	Sum = Reduct[0];
+	InvSum = ((FP2FIX(1.0, 15)<<15)/Sum);
+	for (int i=First; i<Last; i++) ((char *) Out)[i] = Abs(gap_roundnorm_reg(Out[i]*InvSum, 23));
+	gap_waitbarrier(0);
+
+}
 #pragma GCC diagnostic pop

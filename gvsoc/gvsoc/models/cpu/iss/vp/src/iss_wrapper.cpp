@@ -224,7 +224,7 @@ void iss_wrapper::fetch_grant(void *_this, vp::io_req *req)
 
 void iss_wrapper::fetch_response(void *_this, vp::io_req *req)
 {
-
+    printf("FETCH RESPONSE\n");
 }
 
 void iss_wrapper::bootaddr_sync(void *__this, uint32_t value)
@@ -755,6 +755,33 @@ void iss_wrapper::handle_riscv_ebreak()
     fstat(this->cpu.regfile.regs[11], &buf);
     this->cpu.regfile.regs[10] = buf.st_size;
   }
+  else if (id == 0x100)
+  {
+    iss_reg_t args[2];
+    if (this->user_access(this->cpu.regfile.regs[11], (uint8_t *)args, sizeof(args), false))
+    {
+      this->cpu.regfile.regs[10] = -1;
+      return;
+    }
+    int result = -1;
+    std::string path = this->read_user_string(args[0]);
+    if (path == "")
+    {
+      this->warning.force_warning("Invalid user string while opening trace (addr: 0x%x)\n", args[0]);
+    }
+    else
+    {
+      if (args[1])
+      {
+        this->traces.get_trace_manager()->add_trace_path(0, path);
+      }
+      else
+      {
+        this->traces.get_trace_manager()->add_exclude_trace_path(0, path);
+      }
+      this->traces.get_trace_manager()->check_traces();
+    }
+  }    
   else
   {
     this->warning.force_warning("Unknown ebreak call (id: %d)\n", id);
@@ -1142,6 +1169,7 @@ int iss_wrapper::build()
   {
     new_master_port("ext_counter[" + std::to_string(i) + "]", &ext_counter[i]);
   }
+  
 
   current_event = event_new(iss_wrapper::exec_first_instr);
   instr_event = event_new(iss_wrapper::exec_instr);
@@ -1151,6 +1179,7 @@ int iss_wrapper::build()
 
   this->riscv_dbg_unit = this->get_js_config()->get_child_bool("riscv_dbg_unit");
   this->bootaddr_offset = get_config_int("bootaddr_offset");
+
   this->cpu.config.mhartid = (get_config_int("cluster_id") << 5) | get_config_int("core_id");
   this->cpu.config.misa = this->get_js_config()->get_int("misa");
 
@@ -1181,6 +1210,8 @@ void iss_wrapper::start()
 
 
   if (iss_open(this)) throw logic_error("Error while instantiating the ISS");
+
+  this->target_open();
 
   this->iss_opened = true;
 
@@ -1370,9 +1401,11 @@ int iss_wrapper::gdbserver_state()
 }
 
 
-
+#ifndef EXTERNAL_ISS_WRAPPER
 
 extern "C" vp::component *vp_constructor(js::config *config)
 {
   return new iss_wrapper(config);
 }
+
+#endif

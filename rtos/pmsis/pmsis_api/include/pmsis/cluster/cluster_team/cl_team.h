@@ -42,12 +42,22 @@
 /**
  * \brief Return the number of cores of the cluster.
  *
- * This will return the number of slave cores present in the cluster, available
+ * This will return the number of worker cores present in the cluster, available
  * to share/fork a task.
  *
  * \return Number of cores.
  */
-static inline int pi_cl_cluster_nb_cores();
+PI_INLINE_CL_TEAM_0 int pi_cl_cluster_nb_cores();
+
+/**
+ * \brief Return the number of cores in the team.
+ *
+ * This will return the number of cores involved in the team created by the
+ * active fork operation.
+ *
+ * \return The number of cores of the team.
+ */
+PI_INLINE_CL_TEAM_0 int pi_cl_team_nb_cores();
 
 /**
  * \brief Fork the execution of the calling core.
@@ -68,7 +78,7 @@ static inline int pi_cl_cluster_nb_cores();
  * \note If the number of cores is not provided (i.e. is zero), the number of cores
  *       of the previous fork will be reused. Doing this has less runtime overhead.
  */
-void pi_cl_team_fork(int nb_cores, void (*entry)(void *), void *arg);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_fork(int nb_cores, void (*entry)(void *), void *arg);
 
 /**
  * \brief Prepare a team for a task.
@@ -100,7 +110,7 @@ void pi_cl_team_prepare_fork(int nb_cores);
  *       multiple calls to pi_cl_team_preset_fork().
  * \note Workers are exclusively slave cores.
  */
-void pi_cl_team_preset_fork(void (*entry)(void *), void *arg);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_preset_fork(void (*entry)(void *), void *arg);
 
 /**
  * \brief Fork the execution of the calling core using task.
@@ -113,7 +123,77 @@ void pi_cl_team_preset_fork(void (*entry)(void *), void *arg);
  *
  * \param fork_task      Task to be forked on slave cores.
  */
-void pi_cl_team_fork_task(struct pi_cl_team_task *fork_task);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_fork_task(struct pi_cl_team_task *fork_task);
+
+/**
+ * \brief Return number of available barriers.
+ *
+ * This function returns the number of barriers available for the user to alloc.
+ *
+ * \return NUMBER        Number of barriers.
+ */
+PI_INLINE_CL_TEAM_0 uint32_t pi_cl_team_barrier_nb_available(void);
+
+/**
+ * \brief Get barrier ID.
+ *
+ * This function returns the ID of given barrier address.
+ *
+ * \param barrier        Address of the barrier.
+ *
+ * \return BAR_ID        ID of barrier.
+ *
+ * \note The barrier ID goes from 0 to number of physical barriers minus 1.
+ */
+PI_INLINE_CL_TEAM_0 uint32_t pi_cl_team_barrier_id(uint32_t barrier);
+
+/**
+ * \brief Allocate a barrier.
+ *
+ * This function will allocate a barrier and return its address if available.
+ *
+ * \retval 0             If no barrier available.
+ * \retval BAR_ADDR      Address of the barrier allocated.
+ *
+ * \note A call to pi_cl_team_barrier_set() is needed in order to set number of
+ *       cores that will use the barrier and wait on it.
+ */
+PI_INLINE_CL_TEAM_0 uint32_t pi_cl_team_barrier_alloc(void);
+
+/**
+ * \brief Free a barrier.
+ *
+ * This function will free a barrier and make it available for allocation.
+ *
+ * \param barrier        Address of the barrier to free.
+ */
+PI_INLINE_CL_TEAM_0 void pi_cl_team_barrier_free(uint32_t barrier);
+
+/**
+ * \brief Set up a barrier.
+ *
+ * This function must be used after allocating a barrier in order to set up
+ * the barrier.
+ *
+ * \param barrier        Address of the barrier to configure.
+ * \param team_mask      Mask of the cores using the barrier.
+ */
+PI_INLINE_CL_TEAM_0 void pi_cl_team_barrier_set(uint32_t barrier,
+                                                uint32_t team_mask);
+
+/**
+ * \brief Execute a barrier between all cores of the team.
+ *
+ * This will block the execution of each calling core until all cores
+ * have reached the barrier.
+ * The set of cores participating in the barrier is the one created with the
+ * last fork.
+ * Each core of the team must execute the barrier exactly once for all cores
+ * to be able to go through the barrier.
+ *
+ * \param barrier        Address of the barrier to wait on.
+ */
+PI_INLINE_CL_TEAM_0 void pi_cl_team_barrier_wait(uint32_t barrier);
 
 /**
  * \brief Execute a barrier between all cores of the team.
@@ -146,16 +226,6 @@ PI_INLINE_CL_TEAM_0 void pi_cl_team_critical_enter(void);
  * This will exit the critical code and let other cores executing it.
  */
 PI_INLINE_CL_TEAM_0 void pi_cl_team_critical_exit(void);
-
-/**
- * \brief Return the number of cores in the team.
- *
- * This will return the number of cores involved in the team created by the
- * active fork operation.
- *
- * \return The number of cores of the team.
- */
-int pi_cl_team_nb_cores();
 
 
 /**

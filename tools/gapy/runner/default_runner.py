@@ -118,6 +118,10 @@ class Runner(object):
                 flash_config.set("content/stimuli/format", stim_format)
                 flash_config.set("content/stimuli/file", file_path)
 
+            if flash_config.get('fs/encrypt') is not None:
+                flash_config.set('fs/encrypt', self.args.encrypt)
+                flash_config.set('fs/aes_key', self.args.aes_key)
+                flash_config.set('fs/aes_iv', self.args.aes_iv)
 
 
     def image(self):

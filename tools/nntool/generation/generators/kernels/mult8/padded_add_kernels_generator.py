@@ -18,10 +18,13 @@ import logging
 from generation.at_types.at_params import (NO_ACTIVATION, gen_activation_op)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import PaddedAddFusionParameters
 
-from ..autotiler_kernel import AutotilerKernel
+from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
+                                gen_includes, gen_sources,
+                                kernel_include_paths, kernel_includes,
+                                kernel_sources)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -39,12 +42,27 @@ def padded_matadd_kernel_generator(gen, node, qrec, in_eparams, out_eparams, cna
     gen.kernels.append(PaddedMatAddKernel(node.name, cname, node, pad_node, act_node, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
-def gen_pad_mat_add_sq8(code_block, cname, ctrl, feat, width, height, padtop, padbot, act_oper):
-    code_block.write('CNN_MatAddPaddedAct_SQ8("{}", {}, {}, {}, {}, {}, {}, {}, {});'.format(cname, ctrl,
-                                                                                             feat, width, height,
-                                                                                             padtop, padbot,
-                                                                                             MAT_ADD_OPER,
-                                                                                             act_oper))
+@kernel_sources(
+    '$(TILER_CNN_KERNEL_PATH_SQ8)/CNN_MatAlgebra_SQ8.c')
+@kernel_include_paths(
+    '$(TILER_CNN_KERNEL_PATH)',
+    '$(TILER_CNN_KERNEL_PATH_SQ8)')
+@kernel_includes(
+    'CNN_BasicKernels_SQ8.h')
+@gen_sources(
+    '$(TILER_CNN_GENERATOR_PATH)/CNN_Generator_Util.c',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)/CNN_Generators_SQ8.c')
+@gen_include_paths(
+    '$(TILER_CNN_GENERATOR_PATH)',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)')
+@gen_includes(
+    'CNN_Generators_SQ8.h')
+def gen_pad_mat_add_sq8(code_block, cname, ctrl, feat, width, height, padtop, padbot, padded_idx, act_oper):
+    code_block.write('CNN_MatAddPaddedAct_SQ8("{}", {}, {}, {}, {}, {}, {}, {}, {}, {});'.format(cname, ctrl,
+                                                                                                 feat, width, height,
+                                                                                                 padtop, padbot, padded_idx,
+                                                                                                 MAT_ADD_OPER,
+                                                                                                 act_oper))
 
 def balanced_factors(num):
     factors = [(x, num//x) for x in range(2,int(num/2)+1) if num%x==0]
@@ -83,6 +101,7 @@ class PaddedMatAddKernel(AutotilerKernel):
 
         self.padtop = pad_params.padding[0][0]
         self.padbot = pad_params.padding[0][1]
+        self.padded_idx = 0 if matrixadd_params.in_dims[0].size() > matrixadd_params.in_dims[1].size() else 1
         self.matrixadd_params = matrixadd_params
         dimensions0 = make_three_dims(matrixadd_params.in_dims[0])
         dimensions1 = make_three_dims(matrixadd_params.in_dims[1])
@@ -104,6 +123,6 @@ class PaddedMatAddKernel(AutotilerKernel):
 
         gen_pad_mat_add_sq8(code_block, self.cname, gen_ctrl, self.feat_dim,
                             self.width, self.height, self.padtop, self.padbot,
-                            self.at_act_params)
+                            self.padded_idx, self.at_act_params)
 
         return code_block

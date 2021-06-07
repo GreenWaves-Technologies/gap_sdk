@@ -36,6 +36,7 @@
 
 #define GPIO_BUTTON   PI_GPIO_A0_PAD_12_A3
 
+
 // allocate ping pong buffer for sampling the 1 stereo channels
 static uint16_t buff[2][BUFF_SIZE];
 
@@ -63,10 +64,14 @@ PI_L2 short int *ResOut;
 #define STACK_SIZE      1024
 AT_HYPERFLASH_FS_EXT_ADDR_TYPE kws_L3_Flash = 0;
 
+extern unsigned int kwsPerf[3];
+
+
 static void Runkws_clust()
 
 {
-
+  gap_cl_starttimer();
+  gap_cl_resethwtimer();
     kwsCNN(pfeat_list, ResOut);
     int max=0x80000000;
     int indx=-1;
@@ -74,7 +79,9 @@ static void Runkws_clust()
         if (ResOut[i]>max) {max=ResOut[i]; indx=i;}
     }
     printf("found %d\n",indx);
-
+    printf("kwsPerf0 %d\n",kwsPerf[0]);
+    printf("kwsPerf1 %d\n",kwsPerf[1]);
+    printf("kwsPerf2 %d\n",kwsPerf[2]);
 }
 
 

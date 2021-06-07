@@ -17,6 +17,8 @@
 #ifndef __CNN_GENERATORS_H__
 #define __CNN_GENERATORS_H__
 
+#include "CNN_Copy_Generators.h"
+
 /** @addtogroup groupCNN
 @{ */
 
@@ -898,55 +900,61 @@ extern int CNN_MatScale(
         KernelOper_T ReLUOper
 );
 
+/*********************************************************************************************************************************************************************
+ 	Generator for Matrix Multiplication layers.
 
-/** \brief CNN_MatMul
+	Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
+	When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
+	Bias [OutFeat x 1] is added to each individual features
+	Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
 
-    Generator for Matrix Multiplication layers.
+	Template:
+		Name:		Name of the generated user kernel
 
-    Can be used for 1x1 convolutions with Filters in In1 [OutFeat x InFeat] and Features in In2 [InFeat x W*H]
-    When non unit strides are used they apply to In2, produced output is [OutFeat x Floor((W+Scx-1)/Scx)*Floor((H+Scy-1)/Scy)]
-    Bias [OutFeat x 1] is added to each individual features
-    Line x Col sum of products are evaluated on 32 bits therefore, when used for 1x1 convolution, this generator is equivalent to KOP_CONV_DP
+		Ctrl:		Overide generator default options (ReluN), Def=(6)
 
-    \param    Name:           Name of the generated user kernel
+		In1_DataSize:	1: byte, 2: half word,
+		In2_DataSize:	1: byte, 2: half word,
+		Bias_DataSize:	1: byte, 2: half word,
+		Out_DataSize:	1: byte, 2: half word
 
-    \param    Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+		In1_Q:		In1 fixed point format
+		In2_Q:		In2 fixed point format
+		Bias_Q:		Bias fixed point format
+		Out_Q:		Out fixed point format
 
-    \param    In1_DataSize:   1: byte, 2: half word,
-    \param    In2_DataSize:   1: byte, 2: half word,
-    \param    Bias_DataSize:  1: byte, 2: half word,
-    \param    Out_DataSize:   1: byte, 2: half word
+		In1_InL3:	0: In is in L2, 1: In is in L3 memory
+		In2_InL3:	0: In is in L2, 1: In is in L3 memory
+		Bias_InL3:	0: In is in L2, 1: In is in L3 memory
+		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
 
-    \param    In1_Q:          In1 fixed point format
-    \param    In2_Q:          In2 fixed point format
-    \param    Bias_Q:         Bias fixed point format
-    \param    Out_Q:          Out fixed point format
+		ColM1:		Number of colums for matrix In1, for 1x1 convolution this is InFeat
+		LineM1:		Number of lines for matrix In1, for 1x1 convolution this is OutFeat
+		ColM2:		Number of colums for matrix In2, for 1x1 convolution this is W*H
+		LineM2:		Number of lines for matrix In2, for 1x1 convolution this is InFeat
 
-    \param    In1_InL3:       0: In is in L2, 1: In is in L3 memory
-    \param    In2_InL3:       0: In is in L2, 1: In is in L3 memory
-    \param    Bias_InL3:      0: In is in L2, 1: In is in L3 memory
-    \param    Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
+		Width		For 1x1 convolution, width of an input feature map
+		Height		For 1x1 convolution, height of an input feature map
+		Scx:		stride x dimension for In2
+		Scy:		stride y dimension for In2
 
-    \param    ColM1:          Number of colums for matrix In1, for 1x1 convolution this is InFeat
-    \param    LineM1:         Number of lines for matrix In1, for 1x1 convolution this is OutFeat
-    \param    ColM2:          Number of colums for matrix In2, for 1x1 convolution this is Width*Height
-    \param    LineM2:         Number of lines for matrix In2, for 1x1 convolution this is InFeat
+		ReLU_LowerBound	In case ReLUOper!=KOP_NONE Lower bound to be used for activation
+		ReLU_UpperBound	In case ReLUOper!=KOP_NONE Upper bound to be used for activation
 
-    \param    Width           For 1x1 convolution, width of an input feature map
-    \param    Height          For 1x1 convolution, height of an input feature map
-    \param    Scx:            stride x dimension for In2
-    \param    Scy:            stride y dimension for In2
+		MatMulOper:	Should always be KOP_MATMUL, KOP_MATMUL_NOBIAS
+		ReLUOper:	Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
-    \param    ReLU_LowerBound In case ReLUOper!=KOP_NONE Lower bound to be used for activation
-    \param    ReLU_UpperBound In case ReLUOper!=KOP_NONE Upper bound to be used for activation
+		Signature:	
+			KOP_MATMUL
+				Name(In2, In1, Bias, Out)
+				Name(In2, In1, Bias, ReLUN, Out)
+			KOP_MATMUL_NOBIAS:
+				Name(In2, In1, Out)
+				Name(In2, In1, ReLUN, Out)
+	CNN_MatMul
+	
+*********************************************************************************************************************************************************************/
 
-    \param    MatMulOper:     Should always be KOP_MATMUL
-    \param    ReLUOper:	      Optionnal Activation (KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
-
-    \param    Signature:      Name(In2, In1, Bias, Out)
-    \param                    Name(In2, In1, Bias, ReLUN, Out)
-
-*/
         
 extern int CNN_MatMul(
         char *Name,
@@ -1255,97 +1263,6 @@ extern int CNN_MatMulScaleSmallM1(
         KernelOper_T MatMulOper,
         KernelOper_T ReLUOper
 	);
-
-/** \brief CNN_MatTranspose
-
-        Generator for Matrix Transposition
-
-        Template:
-        \param  Name:           Name of the generated user kernel
-
-        \param  Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
-
-        \param  In_DataSize:    1: byte, 2: half word,
-        \param  Out_DataSize:   1: byte, 2: half word
-
-    	\param  In_Q:           In fixed point format
-    	\param  Out_Q:          Out fixed point format
-
-        \param  In_InL3:        0: In is in L2, 1: In is in L3 memory
-        \param  Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
-
-        \param  InFeat          Number of matrices
-        \param  Width           For 1x1 convolution, width of an input feature map
-        \param  Height          For 1x1 convolution, height of an input feature map
-
-	\param  Signature:	Name(In, Out)
-*/
-int CNN_MatTranspose(
-        char *Name,
-
-        CNN_GenControl_T *Ctrl,
-
-        int In_DataSize,
-        int Out_DataSize,
-
-	int In_Q,
-	int Out_Q,
-
-        int In_InL3,
-        int Out_InL3,
-
-        int InFeat,
-        int Width,
-        int Height
-);
-
-
-/** \brief CNN_3DTensorPermute
- 
-        Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}
-
-        Template:
-	\param	Name:           Name of the generated user kernel
-
-	\param	Ctrl:           Overide generator default options
-
-	\param	In_DataSize:    1: byte, 2: half word,
-	\param	Out_DataSize:   1: byte, 2: half word
-
-	\param	In_Q:           In fixed point format
-	\param	Out_Q:          Out fixed point format
-
-	\param	In_InL3:        0: In is in L2, 1: In is in L3 memory
-	\param	Out_InL3:       0: Out is in L2, 1: Out is in L3 memory
-
-	\param	InFeat          Number of channels of the tensor
-	\param	Width           Tensor width
-	\param	Height          Tensor height
-
-	\param	MatPermOper     Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
-
-	\param  Signature:	Name(In, Out)
-
-*/
-int CNN_3DTensorPermute(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int In_DataSize,
-	int Out_DataSize,
-
-	int In_Q,
-	int Out_Q,
-
-	int In_InL3,
-	int Out_InL3,
-
-	int InFeat,
-	int Width,
-	int Height,
- 	KernelOper_T MatPermOper
-);
 
 int CNN_ConvNxN_HWCE(
         char *Name,

@@ -98,7 +98,7 @@
 // add lock and unlock functions to protect io operations
 // default: deactivated
 #ifdef PRINTF_ENABLE_LOCK
-#define PRINTF_IO_LOCK
+//#define PRINTF_IO_LOCK
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////

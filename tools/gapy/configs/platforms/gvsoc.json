@@ -9,6 +9,11 @@
     "debug-mode": false,
     "sa-mode": true,
 
+    "proxy": {
+        "enabled": false,
+        "port": 42951
+    },
+
     "launchers": {
         "default": "gvsoc_launcher",
         "debug": "gvsoc_launcher_debug"

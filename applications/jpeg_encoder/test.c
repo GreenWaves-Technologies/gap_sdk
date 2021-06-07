@@ -18,28 +18,25 @@
 
 #include <pmsis.h>
 #include "gaplib/jpeg_encoder.h"
-#include <bsp/fs.h>
-#include <bsp/flash/hyperflash.h>
-#include "ImgIO.h"
-
+#include "gaplib/ImgIO.h"
 
 
 static int test_entry()
 {
   jpeg_encoder_t enc;
-  unsigned int width, height;
-  int image_size;
+  unsigned int width=324, height=244;
+  int image_size = width*height;
   int pgm_header_size;
-
+  uint8_t *image = pmsis_l2_malloc(width*height);
 
   // First read input image
-  unsigned char *image = read_image("imgTest0.pgm", &width, &height, &image_size, &pgm_header_size);
-  if (image == NULL)
-    return -1;
-
-
+  if (ReadImageFromFile("../../../imgTest0.pgm", width, height, 1, image, width*height, IMGIO_OUTPUT_CHAR, 0)){
+    printf("Error reading input image");
+    pmsis_exit(-1);
+  }
+  
   // Allocate output jpeg image
-  uint8_t *jpeg_image = pi_l2_malloc(image_size);
+  uint8_t *jpeg_image = pi_l2_malloc(1024*20);
   if (jpeg_image == NULL)
     return -1;
 
@@ -51,15 +48,19 @@ static int test_entry()
 
   jpeg_encoder_conf_init(&enc_conf);
 
+  #if RUN_ENCODER_ON_CLUSTER
+  enc_conf.flags=JPEG_ENCODER_FLAGS_CLUSTER_OFFLOAD;
+  #else
+  enc_conf.flags=0x0;
+  #endif
   enc_conf.width = width;
   enc_conf.height = height;
-
+  
   if (jpeg_encoder_open(&enc, &enc_conf))
     return -1;
-
+  
   if (jpeg_encoder_start(&enc))
     return -1;
-
 
   // Get the header so that we can produce full JPEG image
   pi_buffer_t bitstream;
@@ -69,12 +70,11 @@ static int test_entry()
 
   if (jpeg_encoder_header(&enc, &bitstream, &header_size))
     return -1;
-
-
+  
   // Now get the encoded image
   pi_buffer_t buffer;
-  buffer.data = &image[pgm_header_size];
-  buffer.size = image_size - pgm_header_size;
+  buffer.data =image;
+  buffer.size = image_size;
   buffer.width = width;
   buffer.height = height;
   bitstream.data = &jpeg_image[header_size];
@@ -87,8 +87,7 @@ static int test_entry()
     return -1;
 
   pi_perf_stop();
-
-  printf("Done with %d cycles\n", pi_perf_read(PI_PERF_CYCLES));
+  printf("Jpeg encoding done! Performance: %d Cycles\n", pi_perf_read(PI_PERF_CYCLES));
 
 
   // An finally get the footer
@@ -98,7 +97,7 @@ static int test_entry()
 
   int bitstream_size = body_size + header_size + footer_size;
 
-  printf("Encoding done at addr %p size %d\n", jpeg_image, bitstream_size);
+  printf("Encoding done at addr %p size %d bytes\n", jpeg_image, bitstream_size);
 
   jpeg_encoder_stop(&enc);
   jpeg_encoder_close(&enc);
@@ -118,11 +117,23 @@ static int test_entry()
   if (pi_fs_mount(&host_fs))
     return -1;
 
-  void *File = pi_fs_open(&host_fs, "imgTest0.jpg", PI_FS_FLAGS_WRITE);
+  void *File = pi_fs_open(&host_fs, "../../../imgTest0.jpg", PI_FS_FLAGS_WRITE);
 
   pi_fs_write(File, jpeg_image, bitstream_size);
 
-  return 0;
+  int32_t check_sum = 0;
+  for(int i=0;i<bitstream_size;i++){
+    check_sum+=jpeg_image[i];
+  }
+  if(check_sum==653653)
+  {
+    printf("Check sum success! %d \n",check_sum);
+    return 0;
+  }
+  else{
+    printf("Check sum not success! %d \n",check_sum);
+    return -1;
+  } 
 }
 
 

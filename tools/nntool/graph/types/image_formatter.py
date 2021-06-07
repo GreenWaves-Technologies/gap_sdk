@@ -19,13 +19,12 @@ import numpy as np
 
 from utils.formatters import FORMAT_CHANGES, NORMALIZATIONS
 
-from .base import Parameters, SensitiveToOrder, SingleInputAndOutput
+from .base import Parameters, SensitiveToOrder, SingleInputAndOutput, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
-
+@cls_op_name('image_format')
 class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
-    op_name = "image_format"
     NORMALIZATIONS = NORMALIZATIONS
     FORMAT_CHANGES = FORMAT_CHANGES
 
@@ -97,8 +96,7 @@ class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims, hint_dir='in')
-        out_dim = self.clone_dim_with_hints(in_dims, hint_dir='out')[0]
+        out_dim = self.clone_dims_with_hints(in_dims, hint_dir='out')[0]
         if self.format_change == "RGB565_RGB888":
             assert out_dim.is_named and out_dim.c == 1
             out_dim.impose_order(self.out_dims_hint[0])
@@ -116,9 +114,6 @@ class ImageFormatParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
     @property
     def can_equalize(self):
         return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def __str__(self):
         return "FORMAT_CHANGE Fmt: {} Norm: {}".format(self.format_change, self.norm_func)

@@ -267,7 +267,7 @@ static int __himax_id_check(himax_t *himax)
 static void __himax_aeg_init(himax_t *himax)
 {
     __himax_wakeup(himax);
-    pi_time_wait_us(1000000);
+    pi_time_wait_us(100000);
     __himax_standby(himax);
 }
 

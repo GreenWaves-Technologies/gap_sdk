@@ -22,7 +22,6 @@
 #include "iss.hpp"
 #include <string.h>
 
-extern iss_isa_set_t __iss_isa_set;
 extern iss_isa_tag_t __iss_isa_tags[];
 
 static int decode_item(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_decoder_item_t *item);
@@ -71,6 +70,13 @@ static int decode_insn(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_de
   insn->hwloop_handler = NULL;
   insn->fast_handler = item->u.insn.fast_handler;
   insn->handler = item->u.insn.handler;
+
+  if (item->u.insn.resource_id != -1)
+  {
+    insn->resource_handler = insn->handler;
+    insn->fast_handler = iss_resource_offload;
+    insn->handler = iss_resource_offload;
+  }
 
   insn->decoder_item = item;
   insn->size = item->u.insn.size;
@@ -215,6 +221,23 @@ static int decode_opcode_group(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode
 
   return -1;
 }
+
+
+iss_decoder_item_t *iss_isa_get(iss_t *iss, const char *name)
+{
+    for (int i=0; i<__iss_isa_set.nb_isa; i++)
+    {
+        iss_isa_t *isa = &__iss_isa_set.isa_set[i];
+
+        if (strcmp(isa->name, name) == 0)
+        {
+            return isa->tree;
+        }
+    }
+
+    return NULL;
+}
+
 
 static int decode_item(iss_t *iss, iss_insn_t *insn, iss_opcode_t opcode, iss_decoder_item_t *item)
 {

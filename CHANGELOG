@@ -1,3 +1,10 @@
+On-going
+- GVSOC
+	- Testbench: added new proxy commands for interacting with uart.
+	- Testbench: added multi-channel support with libsnd file input and output files.
+	- ISS: Improved div timing model to take parameter value into account.
+	- ISS: Added shared FPU model (not yet calibrated)
+
 3.7.1
 
 Highlights of this release:

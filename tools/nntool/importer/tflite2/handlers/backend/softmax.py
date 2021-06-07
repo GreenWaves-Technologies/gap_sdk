@@ -13,10 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import numpy as np
 from graph.types.activations import SoftMaxParameters
 from importer.tflite2.tflite_schema_head.SoftmaxOptions import SoftmaxOptions
-from quantization.qtype import QType
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -29,15 +27,8 @@ class Softmax(BasicMathMixin, BackendHandler):
     @classmethod
     def _common(cls, node, **kwargs):
         node_opts = node.get_options(SoftmaxOptions)
-        if kwargs['opts'].get('load_quantization'):
-            iqtype = node.input[0].qtype
-            if iqtype.is_asymmetric:
-                iqtype = QType.from_min_max_sq(iqtype.min_val, iqtype.max_val,
-                                               quantized_dimension=iqtype.quantized_dimension)
-            iqtype.scale_to_pow2()
-            oqtype = QType(min_val=-1, max_val=1, dtype=np.int16, scale=2**(-15))
-            kwargs['in_qs'] = [iqtype]
-            kwargs['out_qs'] = [oqtype]
+        # quantization loaded by softmax from tflite will not be correct since
+        # we need it to be scaled to POW2 scaling. This is now taken care of after loading
         return super(Softmax, cls)._common(
             node,
             params_class=SoftMaxParameters,

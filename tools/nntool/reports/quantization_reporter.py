@@ -13,21 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricScalableFilterQuantizationRecord
-from quantization.multiplicative.mult_quantization import MultScalableFilterQuantizationRecord
 from graph.types import ConstantInputParameters
+from graph.types.base import FilterParameters
 from utils.node_id import NodeId
 from utils.tabular import Tabular, TabularColumn
-
-from .reporter import Reporter
 
 DEFAULT_ACC_BITS = 32
 
 
-class QuantizationReporter(Reporter):
+class QuantizationReporter():
     def __init__(self, step=None):
-        super(QuantizationReporter).__init__()
         self._step = step
 
     def emit_qs(self, qtypes, limit=True):
@@ -43,7 +38,10 @@ class QuantizationReporter(Reporter):
     def emit_q_chan(self, qtype, chan):
         return qtype.str_by_chan(chan)
 
-    def report(self, G, stats):
+    def report(self, G, stats, nodes=None):
+        if nodes is None:
+            nodes = G.nodes()
+        nodes = sorted(nodes, key=lambda x: x.step_idx)
         table = Tabular()
         table.add_row([
             TabularColumn("Step", fmt="^d"),
@@ -59,63 +57,72 @@ class QuantizationReporter(Reporter):
         ])
 
         # TODO - Fix report for weights_q
-
+        single = nodes[0].step_idx == nodes[-1].step_idx
         for key, qrec in stats.sorted_iterator(G):
             if not isinstance(key, NodeId):
                 continue
             node = G.node(key.node_name)
-            if self._step is not None and self._step != node.step_idx:
+            if node.step_idx < nodes[0].step_idx or node.step_idx > nodes[-1].step_idx:
                 continue
-            fnode = node.get_contained_node(key.fnode_name) if key.fnode_name else None
+            fnode = node.get_contained_node(
+                key.fnode_name) if key.fnode_name else None
             step_idx = node.step_idx
             node = fnode or node
             if qrec:
-                if self._step is None or not isinstance(qrec, MultScalableFilterQuantizationRecord) or len(qrec.in_qs[1].scale) == 1:
+                if (not single or not qrec.ktype == 'scaled' or not isinstance(node, FilterParameters) or
+                        len(qrec.in_qs[1].scale) == 1):
                     if isinstance(node, ConstantInputParameters):
-                        row = [step_idx, node.name, qrec.TYPE,
+                        row = [step_idx, node.name, qrec.ktype,
                                "",
                                self.emit_qs(qrec.out_qs,
                                             limit=self._step is None),
                                "", "", "", "", ""]
                     else:
-                        row = [step_idx, node.name, qrec.TYPE,
+                        row = [step_idx, node.name, qrec.ktype + (" NE16" if qrec.cache.get('ne16') else ""),
                                self.emit_qs(qrec.in_qs,
                                             limit=self._step is None),
                                self.emit_qs(qrec.out_qs,
                                             limit=self._step is None)]
-                        if isinstance(qrec, (SymmetricScalableFilterQuantizationRecord, MultScalableFilterQuantizationRecord)):
+                        if isinstance(node, FilterParameters):
                             for i in [1, 2]:
                                 row.append(self.emit_qs([qrec.in_qs[i]]))
                             for i in ["mul_biases", "calc", "acc"]:
-                                row.append(self.emit_qs([getattr(qrec, i+'_q')]))
+                                key = f'{i}_q'
+                                if key in qrec.cache:
+                                    row.append(self.emit_qs([qrec.cache[key]]))
+                                else:
+                                    row.append("")
                         else:
                             row += ["", "", "", "", ""]
                 else:
                     first = True
                     for chan in range(len(qrec.in_qs[1].scale)):
                         if first:
-                            row = [step_idx, node.name, qrec.TYPE,
+                            row = [step_idx, node.name, qrec.ktype,
                                    self.emit_qs(qrec.in_qs,
                                                 limit=self._step is None),
                                    self.emit_qs(qrec.out_qs,
                                                 limit=self._step is None),
                                    self.emit_q_chan(qrec.in_qs[1], chan),
                                    self.emit_q_chan(qrec.in_qs[2], chan),
-                                   self.emit_q_chan(qrec.mul_biases_q, chan),
-                                   str(qrec.calc_q),
-                                   str(qrec.acc_q),
+                                   self.emit_q_chan(
+                                       qrec.cache['mul_biases_q'], chan),
+                                   str(qrec.cache['calc_q']),
+                                   str(qrec.cache['acc_q']),
                                    ]
                             first = False
                         else:
                             row = [chan, "", "", "", "",
                                    self.emit_q_chan(qrec.in_qs[1], chan),
                                    self.emit_q_chan(qrec.in_qs[2], chan),
-                                   self.emit_q_chan(qrec.mul_biases_q, chan),
+                                   self.emit_q_chan(
+                                       qrec.cache['mul_biases_q'], chan),
                                    "", ""
                                    ]
                         table.add_row(row)
                     continue
             else:
-                row = [step_idx, node.name, "IEEE32", "None", "None", "", "", "", "", ""]
+                row = [step_idx, node.name, "IEEE32",
+                       "None", "None", "", "", "", "", ""]
             table.add_row(row)
         return table

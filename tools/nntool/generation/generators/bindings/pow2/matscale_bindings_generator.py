@@ -15,7 +15,7 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generator_decorators import QREC_POW2, generation_function
 from graph.types import MatScaleFusionParameters
 
 
@@ -34,7 +34,8 @@ def set_matscale_bindings(gen, in_eparams, out_eparams, cname, params, node_q):
         )
         gen.bindings.append(
             NodeBindingList(cname, GNodeArgEdge(in_eparams[0]),
-                            GNodeArgEdge(in_eparams[1]), GNodeArgEdge(in_eparams[2]),
+                            GNodeArgEdge(in_eparams[1]), GNodeArgEdge(
+                                in_eparams[2]),
                             GNodeArgEdge(out_eparams[0], "GNA_OUT")))
     else:
         gen.bindings.append(

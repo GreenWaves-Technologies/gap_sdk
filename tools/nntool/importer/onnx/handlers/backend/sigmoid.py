@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types.activations import HSigmoidActivationParameters
+from graph.types.activations import HSigmoidActivationParameters, SigmoidActivationParameters
 from ..backend_handler import BackendHandler
 from ..handler import onnx_op
 from .math_mixin import BasicMathMixin
@@ -25,8 +25,9 @@ class Sigmoid(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        params_class = SigmoidActivationParameters if kwargs['opts'].get('use_lut_sigmoid') else HSigmoidActivationParameters
         return super(Sigmoid, cls)._common(node,
-                                           params_class=HSigmoidActivationParameters,
+                                           params_class=params_class,
                                            constant_operation=lambda x: 1/(1 + np.exp(-x)),
                                            **kwargs)
 

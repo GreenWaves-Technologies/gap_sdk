@@ -37,7 +37,7 @@ PMSIS_DRIVER_SRC              = drivers/fc_event/fc_event.c \
                                 drivers/udma/uart/uart_internal.c \
                                 drivers/perf/perf_internal.c
 
-PMSIS_DRIVER_ASM_SRC          =
+PMSIS_DRIVER_ASM_SRC          = util/asm_util.S
 
 
 #$(info #### PMSIS IMPLEM GAP8 PATH : $(PMSIS_IMPLEM_DIR))

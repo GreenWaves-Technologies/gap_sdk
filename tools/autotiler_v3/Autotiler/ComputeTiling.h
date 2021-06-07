@@ -37,19 +37,19 @@ extern unsigned int ProcessKernelTiling(
 	Object_T **ObjList,
 	unsigned int NObj,
 	BasicObjectType_T IterSpace,
-	unsigned int BaseMemory,
-	unsigned int MemorySize,
+	uint64_t BaseMemory,
+	uint64_t MemorySize,
 	unsigned int *DimRem,
-	unsigned int *L1TopMemory);
+	uint64_t *L1TopMemory);
 
 extern void PartitionMemory(
 	Kernel_T *Ker,
 	Object_T **ObjList,
 	unsigned int NObj,
-	unsigned int MemorySize,
-	unsigned int *PartitionSize);
+	uint64_t MemorySize,
+	uint64_t *PartitionSize);
 
-int L3_PartitionUsage(
+uint64_t L3_PartitionUsage(
 	Kernel_T *Ker,
 	Object_T **ObjList,
 	unsigned int NObj,
@@ -104,9 +104,12 @@ extern int KerArgTileNDim(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg);
 extern int EvalArgTileSize(Kernel_T *Ker, Kernel_Arg_T *Arg, int WhichD1, int WhichD0, int EvalMinBufferSize, int AlignPadding);
 extern int EvalArgTileLength(Kernel_T *Ker, Kernel_Arg_T *Arg, int WhichD0);
 
-extern void KerArgTileSize(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int *Cst, KernelIteratorT *D0, KernelIteratorT *D1, int AfterBuffering);
-extern void KerArgTileLen(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int *Cst, KernelIteratorT *D0);
-extern void KerArgTileHeight(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int *Cst, KernelIteratorT *D0);
+extern void KerArgTileSize(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int64_t *Cst, KernelIteratorT *D0, KernelIteratorT *D1, int AfterBuffering);
+extern void KerArgTileSizePadded(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int64_t *Cst, KernelIteratorT *D0, KernelIteratorT *D1, int AfterBuffering, int Pure);
+extern void KerArgTileLen(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int64_t *Cst, KernelIteratorT *D0, int Pure);
+extern void KerArgTileHeight(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int64_t *Cst, KernelIteratorT *D0);
+
+extern int ArgIsPadded(Kernel_T *Ker, Object_T *Obj, Kernel_Arg_T *Arg, int *Pad);
 
 
 

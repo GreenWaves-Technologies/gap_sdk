@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from utils.node_id import NodeId
+from graph.types.fusions import PaddedAddFusionParameters
 from graph.types.others import ConcatParameters
 import logging
 import re
@@ -155,15 +157,21 @@ def at_tensor_loader(filename, exception_on_error=False):
                     continue
     return tensors
 
-def add_result(result, idx, val):
+def add_result(result, idx, val, shape=None, dtype=None, node=None):
     while len(result) < idx + 1:
         result.append(None)
-    result[idx] = val
+    try:
+        if shape:
+            val = val.reshape(shape)
+        result[idx] = val.astype(dtype)
+    except:
+        result[idx] = val.astype(dtype)
+        LOG.warning(f"Cannot reshape tensor {idx} for layer {node.name} loaded anyway with shape {val.shape}")
 
 def add_node_output(G, node, result, tensor):
     for edge in G.out_edges(node.name):
-        add_result(result[edge.to_node.step_idx], edge.to_idx, tensor.reshape(node.out_dims[0].shape))
-    add_result(result[node.step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+        add_result(result[edge.to_node.step_idx], edge.to_idx, tensor, node.out_dims[0].shape, node=node)
+    add_result(result[node.step_idx], 0, tensor, node.out_dims[0].shape, node=node)
 
 def at_map_tensors(G, tensors):
     re_snum = re.compile(
@@ -180,19 +188,40 @@ def at_map_tensors(G, tensors):
         node = steps[step_idx]['node']
         for tname, tensor in tset.items():
             tname = tname.lower()
+            if G.quantization:
+                in_q_type = G.quantization[NodeId(node)].in_qs[0].dtype
+                out_q_type = G.quantization[NodeId(node)].out_qs[0].dtype
+            else:
+                in_q_type = None
+                out_q_type = None
             if tname.startswith('input'):
                 for edge in G.in_edges(node.name):
                     if isinstance(edge.from_node, InputParameters):
-                        add_result(result[edge.from_node.step_idx], 0, tensor.reshape(node.in_dims[0].shape))
+                        add_result(result[edge.from_node.step_idx], 0, tensor, node.in_dims[0].shape, in_q_type, node)
                         break
             elif tname.startswith('output'):
                 for edge in G.out_edges(node.name):
                     if isinstance(edge.to_node, OutputParameters):
-                        add_result(result[edge.to_node.step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+                        add_result(result[edge.to_node.step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
                         break
-                add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+                add_result(result[step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
             elif tname == "s%s_output"%step_idx:
-                add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+                if isinstance(node, PaddedAddFusionParameters):
+                    if result[step_idx][0] is None:
+                        result[step_idx][0] = np.zeros(node.out_dims[0].shape)
+                    pad_top = node.padding_dim()[0][0]
+                    pad_bot = node.padding_dim()[0][1]
+                    if "Top" in cname:
+                        # here if tensor is the pad top part
+                        result[step_idx][0][:pad_top, :, :] = tensor.astype(out_q_type)
+                    elif "Bot" in cname:
+                        # here if tensor is pad bot part
+                        result[step_idx][0][-pad_bot:, :, :] = tensor.astype(out_q_type)
+                    else:
+                        # here the body
+                        result[step_idx][0][pad_top:-pad_bot, :, :] = tensor.astype(out_q_type)
+                else:
+                    add_result(result[step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
             # elif tname.endswith(WEIGHTS):
             #     add_result(result[step_idx], 1, tensor)
             # elif tname.endswith(BIASES):
@@ -203,14 +232,22 @@ def at_map_tensors(G, tensors):
                     continue
                 tname_step_idx = int(match_tname.group('step'))
                 tname_node = steps[tname_step_idx]['node']
+                if G.quantization:
+                    in_q_type = G.quantization[NodeId(node)].in_qs[0].dtype
+                    out_q_type = G.quantization[NodeId(node)].out_qs[0].dtype
+                else:
+                    in_q_type = None
+                    out_q_type = None
                 if isinstance(tname_node, ConcatParameters):
                     # It's a Stacked tensor
                     if node in [in_edge.from_node for in_edge in G.in_edges(tname_node.name)]:
                         # It's the output of a concat input
-                        add_result(result[step_idx], 0, tensor.reshape(node.out_dims[0].shape))
+                        add_result(result[step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
                     if node in [out_edge.to_node for out_edge in G.out_edges(tname_node.name)]:
                         # It's the output of the actual concat but it's grep only as the input of the following layer
-                        add_result(result[tname_step_idx], 0, tensor.reshape(tname_node.out_dims[0].shape))
+                        add_result(result[tname_step_idx], 0, tensor, tname_node.out_dims[0].shape, out_q_type, tname_node)
+                if isinstance(tname_node, InputParameters):
+                    add_result(result[tname_step_idx], 0, tensor, tname_node.out_dims[0].shape, out_q_type, tname_node)
                 if not isinstance(tname_node, ConstantInputParameters):
                     continue
                 # tensor is a combination of multiple values Hstacked

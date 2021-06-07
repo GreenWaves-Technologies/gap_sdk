@@ -21,12 +21,14 @@ class AdjustCommand(NNToolShellBase):
     parser_adjust = Cmd2ArgumentParser()
     parser_adjust.add_argument('-n', '--no_postprocess',
                                action='store_true', help='Don\'t try to eliminate transposes')
+    parser_adjust.add_argument('-o', '--one_cycle',
+                               action='store_true', help='Do one cycle of post processing')
     @with_argparser(parser_adjust)
     def do_adjust(self, args):
         """
 Adjust activation and parameter tensors to match AutoTiler order.
 Must be run before generating code."""
         self._check_graph()
-        self.G.adjust_order(postprocess=not args.no_postprocess)
+        self.G.adjust_order(postprocess=not args.no_postprocess, one_cycle=args.one_cycle)
         self.G.add_dimensions()
         

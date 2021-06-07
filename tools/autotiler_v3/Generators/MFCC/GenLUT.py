@@ -116,7 +116,7 @@ def main():
 	elif dtype == "float32":
 		data_type = "float"
 	else:
-		raise NotImplemented()
+		raise NotImplemented(f"dtype = {dtype} not implemeted, available 'int' 'float32' 'foat16'")
 
 	print(dtype)
 	win_func = getattr(np, window_fn)
@@ -239,7 +239,7 @@ def main():
 			f.write("#define\t{:21}{:>10}\n".format("N_FRAME", n_frame))
 			f.write("#define\t{:21}{:>10}\n".format("N_FFT", n_fft))
 			f.write("#define\t{:21}{:>10}\n".format("USE_RADIX_4", 1 if use_radix_4 else 0))
-			f.write("#define\t{:21}{:>10}\n".format("DATA_TYPE", 1 if use_high_prec else (2 if dtype=="float16" else (3 if dtype=="float32" else 0))))
+			f.write("#define\t{:21}{:>10}\n".format("DATA_TYPE", 2 if dtype=="float16" else (3 if dtype=="float32" else (1 if use_high_prec else 0))))
 			f.write("#define\t{:21}{:>10}\n".format("USE_POWER", 1 if use_power else 0))
 			f.write("#define\t{:21}{:>10}\n".format("OUT_FFT", 1 if out_fft else 0))
 			if not only_stft:

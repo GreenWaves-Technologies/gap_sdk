@@ -40,12 +40,8 @@
 #define From_Q(Val, Dyna)       ((float) (((float) (Val))/((float) (1<<Dyna))))
 #define To_Q(Val, Dyna)         ((int) ((float) Val * (float) (1<<Dyna)))
 
-#ifndef Max
 #define Max(a, b)               (((a)>(b))?(a):(b))
-#endif
-#ifndef Min
 #define Min(a, b)               (((a)<(b))?(a):(b))
-#endif
 
 #define ALIGN(Value, Size)      (((Value)&((1<<(Size))-1))?((((Value)>>(Size))+1)<<(Size)):(Value))
 /// @endcond

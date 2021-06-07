@@ -114,10 +114,12 @@
 /* Cores & cluster. */
 #define ARCHI_HAS_CLUSTER           (1)
 #define ARCHI_CL_CID(id)            (id)
+#define ARCHI_CLUSTER_NB_CORES      (8)
 #define ARCHI_CLUSTER_NB_PE         (8) /* Processing elements. */
 #define ARCHI_CLUSTER_PE_MASK       (((1 << ARCHI_CLUSTER_NB_PE) - 1))
 #define ARCHI_CLUSTER_MASTER_CORE   (0)
-#define ARCHI_CLUSTER_SYNC_BARR_ID  (7)
+#define ARCHI_CLUSTER_SYNC_BARR_ID  (1)
+#define ARCHI_CLUSTER_LEGCY_BARR_ID (0)
 
 #define ARCHI_CLUSTER_SIZE          (0x00400000)
 
@@ -131,6 +133,16 @@
 #define ARCHI_CL_L1_TS_OFFSET       (1 << 20)
 
 /* Cluster peripherals. */
+#define CL_NB_HW_MUTEX              (1)
+#define CL_NB_HW_BARRIER            (8)
+
+#define CL_EU_HW_BARRIER_RESERVED       (2)
+#define CL_EU_HW_BARRIER_RESERVED_MASK  ((1 << CL_EU_HW_BARRIER_RESERVED) - 1)
+
+#define CL_ALLOC_INIT_BARRIER           (((1 << CL_NB_HW_BARRIER) - 1) & \
+                                         ~CL_EU_HW_BARRIER_RESERVED_MASK)
+#define CL_ALLOC_INIT_MUTEX             ((1 << CL_NB_HW_MUTEX) - 1)
+
 #define CL_CTRL_OFFSET              (0x00000000)
 #define CL_TIMER_OFFSET             (0x00000400)
 #define CL_GLOB_EU_CORE_OFFSET      (0x00000800)
@@ -151,6 +163,9 @@
 #define CL_DEMUX_EU_SW_EVENT_OFFSET (CL_DEMUX_PERIPH_OFFSET + CLUSTER_DEMUX_EU_SW_EVENT_OFFSET)
 #define CL_DEMUX_EU_BARRIER_OFFSET  (CL_DEMUX_PERIPH_OFFSET + CLUSTER_DEMUX_EU_BARRIER_OFFSET)
 #define CL_DEMUX_DMA_OFFSET         (CL_DEMUX_PERIPH_OFFSET + 0x00000400)
+
+
+#define PRINTF_BUFFER_SIZE          ( 128 )
 
 
 #endif  /* __PMSIS_TARGETS_PROPERTIES_H__ */

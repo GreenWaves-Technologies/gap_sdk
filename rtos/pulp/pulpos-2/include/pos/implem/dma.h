@@ -65,7 +65,7 @@ static inline void __cl_dma_wait(pi_cl_dma_cmd_t *copy)
 }
 
 
-static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned short size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
+static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned int size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
 {
   eu_mutex_lock_from_id(0);
   
@@ -82,7 +82,7 @@ static inline void __cl_dma_memcpy(unsigned int ext, unsigned int loc, unsigned 
 }
 
 
-static inline void __cl_dma_memcpy_safe(unsigned int ext, unsigned int loc, unsigned short size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
+static inline void __cl_dma_memcpy_safe(unsigned int ext, unsigned int loc, unsigned int size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
 {
   int id = -1;
   if (!merge) id = plp_dma_counter_alloc();
@@ -96,7 +96,7 @@ static inline void __cl_dma_memcpy_safe(unsigned int ext, unsigned int loc, unsi
 
 
 #if 0
-static inline void __cl_dma_memcpy_irq(unsigned int ext, unsigned int loc, unsigned short size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
+static inline void __cl_dma_memcpy_irq(unsigned int ext, unsigned int loc, unsigned int size, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
 {
   eu_mutex_lock_from_id(0);
   
@@ -127,7 +127,7 @@ static inline void __cl_dma_memcpy_irq(unsigned int ext, unsigned int loc, unsig
 
 
 
-static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned int size, unsigned int stride, unsigned short length, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
+static inline void __cl_dma_memcpy_2d(unsigned int ext, unsigned int loc, unsigned int size, unsigned int stride, unsigned int length, pi_cl_dma_dir_e dir, int merge, pi_cl_dma_cmd_t *copy)
 {
   eu_mutex_lock_from_id(0);
   

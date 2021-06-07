@@ -33,6 +33,8 @@
 
 using namespace std::placeholders;
 
+#include <queue>
+
 
 class soc_eu;
 
@@ -40,11 +42,15 @@ class soc_eu;
 class soc_eu_target
 {
 public:
-    soc_eu_target(soc_eu *top, std::string name, std::string itf_name);
+    soc_eu_target(soc_eu *top, std::string name, std::string itf_name, int id);
+    static void soc_event_sync(void *_this, int ready, int id);
+    void reset(bool active);
 
     vp::wire_master<int> event_itf;
     std::vector<vp::reg_32 *> mask_regs;
     std::string name;
+    std::queue<int> fifo;
+    int nb_waiting_events[256];
 };
 
 
@@ -110,7 +116,26 @@ void soc_eu::trigger_event(int event)
             if (!target->event_itf.is_bound())
                 trace.msg("Trying to send event to %s while it is not instantiated\n", target->name.c_str());
             else
-                target->event_itf.sync(event);
+            {
+                int ready;
+                target->event_itf.sync_back(&ready);
+                if (!ready)
+                {
+                    if (target->nb_waiting_events[event] == 4)
+                    {
+                        trace.force_warning("Pushing too many events (event: %d)\n", event);
+                    }
+                    else
+                    {
+                        target->nb_waiting_events[event]++;
+                        target->fifo.push(event);
+                    }
+                }
+                else
+                {
+                    target->event_itf.sync(event);
+                }
+            }
         }
     }
 }
@@ -223,9 +248,9 @@ int soc_eu::build()
 
     new_master_port("ref_clock_event", &ref_clock_event_itf);
 
-    this->targets.push_back(new soc_eu_target(this, "FC", "fc_event_itf"));
-    this->targets.push_back(new soc_eu_target(this, "PR", "pr_event_itf"));
-    this->targets.push_back(new soc_eu_target(this, "CL", "cl_event_itf"));
+    this->targets.push_back(new soc_eu_target(this, "FC", "fc_event_itf", 0));
+    this->targets.push_back(new soc_eu_target(this, "PR", "pr_event_itf", 1));
+    this->targets.push_back(new soc_eu_target(this, "CL", "cl_event_itf", 2));
 
     this->regmap.build(this, &this->trace);
     this->regmap.sw_event.register_callback(std::bind(&soc_eu::sw_event_req, this, _1, _2, _3, _4));
@@ -290,6 +315,11 @@ int soc_eu::build()
 void soc_eu::reset(bool active)
 {
     this->regmap.reset(active);
+    
+    for (auto x: this->targets)
+    {
+        x->reset(active);
+    }
 }
 
 
@@ -298,10 +328,49 @@ void soc_eu::start()
 }
 
 
-soc_eu_target::soc_eu_target(soc_eu *top, std::string name, std::string itf_name)
+soc_eu_target::soc_eu_target(soc_eu *top, std::string name, std::string itf_name, int id)
     : name(name)
 {
-    top->new_master_port(itf_name, &this->event_itf);
+    this->event_itf.set_sync_meth_muxed(&soc_eu_target::soc_event_sync, id);
+    top->new_master_port(this, itf_name, &this->event_itf);
+}
+
+
+void soc_eu_target::reset(bool active)
+{
+    if (!active)
+    {
+        for (int i=0; i<256; i++)
+        {
+            this->nb_waiting_events[i] = 0;
+        }
+
+        while (!this->fifo.empty())
+        {
+            this->fifo.pop();
+        }
+    }
+}
+
+
+void soc_eu_target::soc_event_sync(void *__this, int ready, int id)
+{
+    soc_eu_target *_this = (soc_eu_target *)__this;
+
+    while (!_this->fifo.empty())
+    {
+        int ready;
+        _this->event_itf.sync_back(&ready);
+        if (!ready)
+        {
+            break;
+        }
+
+        int event = _this->fifo.front();
+        _this->fifo.pop();
+        _this->nb_waiting_events[event]--;
+        _this->event_itf.sync(event);
+    }
 }
 
 

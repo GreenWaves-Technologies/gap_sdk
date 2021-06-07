@@ -38,5 +38,6 @@
 #include "rvXgap9.hpp"
 #include "rvXint64.hpp"
 #include "rnnext.hpp"
+#include "pulp_nn.hpp"
 
 #endif

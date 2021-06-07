@@ -15,7 +15,7 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generators.generator_decorators import generation_function, QREC_POW2
+from generation.generator_decorators import QREC_POW2, generation_function
 from graph.types import SoftMaxParameters
 
 

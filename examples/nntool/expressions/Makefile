@@ -12,6 +12,8 @@ MODEL_PREFIX = expressions
 pulpChip = GAP
 RM=rm -f
 
+MODEL_SQ8=1
+IMAGES = samples
 INPUT_1=$(CURDIR)/samples/input_0.dat
 INPUT_2=$(CURDIR)/samples/input_1.dat
 INPUT_3=$(CURDIR)/samples/input_2.dat
@@ -52,7 +54,7 @@ MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
 MODEL_L2_MEMORY=350000
 MODEL_L3_MEMORY=6388608
 
-include common/model_decl.mk
+include ../common/model_decl.mk
 
 APP = expressions
 APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB) $(MODEL_BUILD)/Expression_Kernels.c
@@ -65,10 +67,7 @@ APP_CFLAGS += -DINPUT_1=$(INPUT_1) -DINPUT_2=$(INPUT_2) -DINPUT_3=$(INPUT_3) -DI
 # all depends on the model
 all:: model
 
-clean:: #clean_model
-
-clean_at_model:
-	$(RM) $(MODEL_GEN_EXE)
+clean:: clean_model
 
 at_model_disp:: $(MODEL_BUILD) $(MODEL_GEN_EXE)
 	$(MODEL_GEN_EXE) -o $(MODEL_BUILD) -c $(MODEL_BUILD) $(MODEL_GEN_EXTRA_FLAGS) --debug=Disp
@@ -76,7 +75,7 @@ at_model_disp:: $(MODEL_BUILD) $(MODEL_GEN_EXE)
 at_model:: $(MODEL_BUILD) $(MODEL_GEN_EXE)
 	$(MODEL_GEN_EXE) -o $(MODEL_BUILD) -c $(MODEL_BUILD) $(MODEL_GEN_EXTRA_FLAGS)
 
-include common/model_rules.mk
+include ../common/model_rules.mk
 
 include $(RULES_DIR)/pmsis_rules.mk
 

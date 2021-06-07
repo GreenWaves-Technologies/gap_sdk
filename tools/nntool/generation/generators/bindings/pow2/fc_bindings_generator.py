@@ -15,8 +15,7 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generators.generator_decorators import (QREC_POW2,
-                                                        generation_function)
+from generation.generator_decorators import QREC_POW2, generation_function
 from graph.types import ConvFusionParameters, FcParameters
 from utils.node_id import NodeId
 
@@ -25,7 +24,8 @@ from utils.node_id import NodeId
 def fc_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, FcParameters):
-        set_fc_bindings(gen, step_idx, in_eparams, out_eparams, cname, node, qrec)
+        set_fc_bindings(gen, step_idx, in_eparams,
+                        out_eparams, cname, node, qrec)
     elif isinstance(node, ConvFusionParameters) and node.fusion_type == "linear_active":
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]

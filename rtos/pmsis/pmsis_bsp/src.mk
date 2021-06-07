@@ -40,7 +40,9 @@ VEGA_SRC = \
   $(BSP_HYPERRAM_SRC) \
   $(BSP_SPIRAM_SRC) \
   $(BSP_SPIFLASH_SRC) \
-  $(BSP_RAM_SRC)
+  $(BSP_RAM_SRC) \
+  eeprom/m24c02.c \
+  $(BSP_24XX1025_SRC)
 
 GAP9_SRC = \
   $(COMMON_SRC) \

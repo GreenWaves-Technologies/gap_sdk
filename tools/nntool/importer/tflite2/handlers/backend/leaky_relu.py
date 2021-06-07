@@ -29,7 +29,7 @@ class LeakyRelu(BasicMathMixin, BackendHandler):
         return super(LeakyRelu, cls)._common(
             node,
             params_class=LeakyActivationParameters,
-            params_args={'leak_factor': node_opts.Alpha()}
+            params_args={'leak_factor': node_opts.Alpha()},
             **kwargs)
 
     @classmethod

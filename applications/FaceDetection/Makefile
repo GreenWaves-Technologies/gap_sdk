@@ -36,7 +36,7 @@ APP_CFLAGS += -DUSE_DISPLAY
 endif
 
 BOARD_NAME ?= gapoc_a
-PMSIS_OS ?= freertos
+#PMSIS_OS ?= freertos
 USE_PMSIS_BSP=1
 
 export GAP_USE_OPENOCD=1

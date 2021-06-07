@@ -165,13 +165,16 @@ static inline int iss_fetch_req_common(iss_t *_this, uint64_t addr, uint8_t *dat
   if (err != vp::IO_REQ_OK)
   {
     if (err == vp::IO_REQ_INVALID)
-      _this->trace.force_warning("Unimplemented invalid fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
+      _this->trace.force_warning("Invalid fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
     else
-      _this->trace.force_warning("Unimplemented pending fetch request (addr: 0x%x, size: 0x%x)\n", addr, size);
+    {
+      iss_exec_insn_stall(_this);
+    }
     return -1;
   }
 
   int64_t latency = req->get_latency();
+  
   if (latency)
   {
     _this->cpu.state.fetch_cycles += latency;

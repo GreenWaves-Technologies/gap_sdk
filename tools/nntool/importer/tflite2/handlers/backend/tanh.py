@@ -13,7 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.activations import TanHActivationParameters
+import numpy as np
+from graph.types.activations import (HTanHActivationParameters,
+                                     TanHActivationParameters)
+from quantization.qtype import QType
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
@@ -25,9 +28,12 @@ class Tanh(BasicMathMixin, BackendHandler):
 
     @classmethod
     def _common(cls, node, **kwargs):
+        if kwargs['opts'].get('load_quantization') and kwargs['opts'].get('use_lut_tanh'):
+            kwargs['in_qs'] = [QType.from_min_max_sq(-8, 8, dtype=np.int8)]
+        params_class = TanHActivationParameters if kwargs['opts'].get('use_lut_tanh') else HTanHActivationParameters
         return super(Tanh, cls)._common(
             node,
-            params_class=TanHActivationParameters,
+            params_class=params_class,
             **kwargs)
 
     @classmethod

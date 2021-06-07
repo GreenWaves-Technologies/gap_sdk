@@ -14,11 +14,9 @@
 
 import logging
 
-from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
-                                           gen_globalpool_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import RNNParameters, LSTMParameters, GRUParameters
 
 from ..autotiler_kernel import AutotilerKernel

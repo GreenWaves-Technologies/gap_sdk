@@ -24,7 +24,7 @@ class GraphIdentity():
     def __init__(self, filename):
         if filename is not None:
             filename = os.path.abspath(filename)
-        self._identity = {'filename': filename, 'fusions': [], 'quantization_types': set()}
+        self._identity = {'filename': filename, 'fusions': []}
 
     @property
     def extracted_step(self):
@@ -84,14 +84,6 @@ class GraphIdentity():
     @tflite_quantization.setter
     def tflite_quantization(self, val: bool):
         self._identity['tflite_quantization'] = val
-
-    @property
-    def quantization_types(self):
-        return self._identity.get('quantization_types')
-
-    @quantization_types.setter
-    def quantization_types(self, val: str):
-        self._identity['quantization_types'] = val
 
     @property
     def hexdigest(self):

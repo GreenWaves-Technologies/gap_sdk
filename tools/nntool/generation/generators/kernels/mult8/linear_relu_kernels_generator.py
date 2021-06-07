@@ -14,15 +14,19 @@
 
 import logging
 
-from generation.at_types.at_params import (NO_ACTIVATION,
-                                           gen_active_at_params, gen_linear_at_params)
+from generation.at_types.at_params import (NO_ACTIVATION, gen_active_at_params,
+                                           gen_linear_at_params)
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
-from graph.types import (FcParameters, ConvFusionParameters)
+from generation.generator_decorators import (QREC_MULT8,
+                                                        generation_function)
+from graph.types import ConvFusionParameters, FcParameters
 from utils.node_id import NodeId
 
-from ..autotiler_kernel import AutotilerKernel
+from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
+                                gen_includes, gen_sources,
+                                kernel_include_paths, kernel_includes,
+                                kernel_sources)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -57,7 +61,36 @@ def gen_at_linear_relu(code_block, cname, biases_ds, mulbiases_ds,
                      linear_oper,
                      act_oper)
 
+def gen_at_linear_relu_ne16(code_block, cname, in_size, filter_bits, biases_ds, mulbiases_ds,
+                            in_dim, out_dim, linear_oper, act_oper, gen_ctrl, at_ver=3):
+    del at_ver
+    code_block.write('CNN_LinearAct_NE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {});',
+                     cname,
+                     gen_ctrl,
+                     in_size,
+                     biases_ds,
+                     mulbiases_ds,
+                     filter_bits,
+                     in_dim,
+                     out_dim,
+                     linear_oper,
+                     act_oper)
 
+@kernel_sources(
+    '$(TILER_CNN_KERNEL_PATH_SQ8)/CNN_Bias_Linear_SQ8.c')
+@kernel_include_paths(
+    '$(TILER_CNN_KERNEL_PATH)',
+    '$(TILER_CNN_KERNEL_PATH_SQ8)')
+@kernel_includes(
+    'CNN_BasicKernels_SQ8.h')
+@gen_sources(
+    '$(TILER_CNN_GENERATOR_PATH)/CNN_Generator_Util.c',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)/CNN_Generators_SQ8.c')
+@gen_include_paths(
+    '$(TILER_CNN_GENERATOR_PATH)',
+    '$(TILER_CNN_GENERATOR_PATH_SQ8)')
+@gen_includes(
+    'CNN_Generators_SQ8.h')
 class LinearReluKernel(AutotilerKernel):
     def __init__(self, node_name, cname, linear_params, linear_q, act_params, act_q, at_ver=3, gen_ctrl=None, force_relu=True):
         if gen_ctrl is None:
@@ -74,7 +107,7 @@ class LinearReluKernel(AutotilerKernel):
         in_q = linear_q.in_qs[0]
         out_q = linear_q.out_qs[0]
         bias_q = linear_q.in_qs[2]
-        mulbiases_q = linear_q.mul_biases_q
+        mulbiases_q = linear_q.cache['mul_biases_q']
 
         if act_params is not None:
             at_act_params = gen_active_at_params(act_params, force_relu=force_relu)
@@ -100,6 +133,7 @@ class LinearReluKernel(AutotilerKernel):
         self.cname = cname
         self.node_name = node_name
         self.at_ver = at_ver
+        self.ne16 = linear_q.cache.get('ne16')
 
     def code(self, code_block=None):
         if code_block is None:
@@ -113,10 +147,18 @@ class LinearReluKernel(AutotilerKernel):
         else:
             gen_ctrl = "0"
 
-        gen_at_linear_relu(code_block, self.cname, self.bias_q.bits//8, self.mulbiases_q.bits//8,
-                           self.in_dim, self.out_dim,
-                           self.at_linear_params.LinearOper,
-                           self.at_act_params.ReLUOper,
-                           at_ver=self.at_ver, gen_ctrl=gen_ctrl)
+        if self.ne16:
+            gen_at_linear_relu_ne16(code_block, self.cname, self.in_q.bits//8,
+                                    self.filter_q.bits, self.bias_q.bits//8, 
+                                    self.mulbiases_q.bits//8, self.in_dim, self.out_dim,
+                                    self.at_linear_params.LinearOper,
+                                    self.at_act_params.ReLUOper,
+                                    at_ver=self.at_ver, gen_ctrl=gen_ctrl)
+        else:
+            gen_at_linear_relu(code_block, self.cname, self.bias_q.bits//8, self.mulbiases_q.bits//8,
+                               self.in_dim, self.out_dim,
+                               self.at_linear_params.LinearOper,
+                               self.at_act_params.ReLUOper,
+                               at_ver=self.at_ver, gen_ctrl=gen_ctrl)
 
         return code_block

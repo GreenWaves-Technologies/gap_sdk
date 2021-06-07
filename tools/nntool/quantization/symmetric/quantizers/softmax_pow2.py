@@ -14,22 +14,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from copy import deepcopy
+import numpy as np
 from graph.types import SoftMaxParameters
+from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type
-from quantization.symmetric.symmetric_quantization import \
-    SymmetricQuantizationRecord
+from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
 
 @params_type(SoftMaxParameters)
+@in_qs_constraint({'dtype': set([np.int8, np.int16])})
+@out_qs_constraint({'dtype': np.int16})
 class SoftmaxPow2(Pow2QuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, _ = cls.get_pow2_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
-        out_q = QType.Pow2(16, 15, True)
+        in_q = deepcopy(in_qs[0]).scale_to_pow2()
+        in_q.set_forced()
+        out_q = QType.Pow2(16, 15, True, forced=True)
         if force_out_q and force_out_q != out_q:
             return None
-        return SymmetricQuantizationRecord(in_qs=in_qs, out_qs=[QType.Pow2(16, 15, True)])
+        return QRec.symmetric(in_qs=[in_q], out_qs=[out_q])

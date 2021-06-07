@@ -16,7 +16,7 @@ import logging
 
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generators.generator_decorators import generation_function, QREC_MULT8
+from generation.generator_decorators import generation_function, QREC_MULT8
 from graph.types import SSDDetectorParameters
 
 from ..autotiler_kernel import AutotilerKernel

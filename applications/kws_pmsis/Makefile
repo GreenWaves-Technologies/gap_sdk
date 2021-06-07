@@ -66,9 +66,9 @@ APP_INC         += . ./helpers $(TILER_EMU_INC) $(TILER_INC) $(GEN_PATH) $(MODEL
 APP_CFLAGS += -O3 -s -mno-memcpy -fno-tree-loop-distribute-patterns -Wno-sign-compare -Wno-maybe-uninitialized -Wno-type-limits
 
 # -DKWS for KWS, -DALEXA for ALEXA
-APP_CFLAGS     += -DW_HALFCHAR -DTILED -DDOMFCC $(USE_HARDWARE_CE) -DCHECK_WAV  -DVOCAL   -lm  -DKWS   -DGAP_SOURCE_SCK0 #-DFORCE_INPUT -DDUMP_SCORE -DPYTHON_SYNC #-DDUMP_SCORE
+APP_CFLAGS     += -DPERFF -DW_HALFCHAR -DTILED -DDOMFCC $(USE_HARDWARE_CE) -DCHECK_WAV  -DVOCAL   -lm  -DKWS   -DGAP_SOURCE_SCK0 #-DFORCE_INPUT -DDUMP_SCORE -DPYTHON_SYNC #-DDUMP_SCORE
 
-
+io=host
 
 READFS_FILES = $(realpath $(MODEL_TENSORS))
 

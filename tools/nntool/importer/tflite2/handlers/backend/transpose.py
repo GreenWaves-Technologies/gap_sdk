@@ -13,6 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from importer.common.constant_mixin import ConstantMixin
+from graph.dim import Dim
+import numpy as np
+from importer.tflite2.common import LOG
+from graph.types.input_output import ConstantInputParameters
 from graph.types import NNEdge, TransposeParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common.tflite_node import TFLiteNode
@@ -23,7 +28,7 @@ from ..handler import tflite_op
 
 
 @tflite_op("TRANSPOSE")
-class Transpose(BackendHandler):
+class Transpose(BackendHandler, ConstantMixin):
 
     @classmethod
     def _common(cls, node: TFLiteNode, **kwargs):
@@ -44,7 +49,13 @@ class Transpose(BackendHandler):
         transpose = [new_axes[axis] for axis in ptranspose if x_shape[axis] is not None]
         node.input[1].used = True
 
-        params = TransposeParameters(node.name, transpose=transpose)
+        if cls.is_constant(x):
+            LOG.info("reducing %s to a constant", node.name)
+            val = np.transpose(cls.get_constant(x), ptranspose)
+            params = ConstantInputParameters(node.name, value=np.transpose(val, ptranspose),
+                                             dims=Dim.unnamed(val.shape), constant_store=G.constant_store)
+        else:
+            params = TransposeParameters(node.name, transpose=transpose)
 
         if opts.get('load_quantization'):
             G.quantization[NodeId(params)] = cls.load_tf_quantization([node.input[0]], node.output)

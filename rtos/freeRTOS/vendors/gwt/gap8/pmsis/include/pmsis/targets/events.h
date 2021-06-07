@@ -121,34 +121,41 @@
 
 
 /* SW IRQ used. */
-/* PendSV */
-#define PENDSV_IRQN                     FC_IRQ_SW_EVT(7) /*!< Pending Supervisor Call/SysCall. */
 #define SYSTICK_IRQN                    FC_IRQ_TIMER0_LO_EVT /*!< SysTick IRQ. */
-#define FC_SOC_EVENT_NOTIFY_IRQ         FC_IRQ_SW_EVT(3)
 
-
-/* IRQ used for FC and Cluster synchronisation. */
 /* FC_IRQ_SW_EVT(0)/CL_IRQ_SW_EVT(0) is not used. */
+
+#define PENDSV_IRQN                     FC_IRQ_SW_EVT(1) /*!< Pending Supervisor Call/SysCall. */
+#define CLUSTER_TO_FC_NOTIFY_IRQN       FC_IRQ_SW_EVT(2) /*!< IRQ sent by cluster to FC.
+                                                          *   IRQ handler is needed.
+                                                          *   Asynchronous.
+                                                          */
+#define FC_SOC_EVENT_NOTIFY_IRQ         FC_IRQ_SW_EVT(3) /*!< IRQ used by RTC. */
+
+
 #define FC_TO_CLUSTER_NOTIFY_EVENT      CL_IRQ_SW_EVT(1) /*!< Event sent by FC to cluster.
                                                           *   A cluster core is waiting for this
                                                           *   event.
                                                           *   Synchronous.
                                                           */
-#define DMA_SW_IRQN                     CL_IRQ_SW_EVT(5) /*!< Event used when emulating 2D DMA
+#define DMA_SW_IRQN                     CL_IRQ_SW_EVT(2) /*!< Event used when emulating 2D DMA
                                                           *   transfers or large 1D ttransfers.
                                                           *   Master core waits for this SW event,
                                                           *   triggered by CL_IRQ_DMA1 handler.
                                                           */
-
-#define CLUSTER_TO_FC_NOTIFY_IRQN       FC_IRQ_SW_EVT(4) /*!< IRQ sent by cluster to FC.
-                                                          *   IRQ handler is needed.
-                                                          *   Asynchronous.
+#define PRINTF_LOCK_IRQN                CL_IRQ_SW_EVT(3) /*!< IRQ used to sync FC and cluster cores
+                                                          *   to lock/unlock printf.
                                                           */
+#define CL_USER_EVENT                   CL_IRQ_SW_EVT(7) /*!< Event used by user to sync cluster with
+                                                          *   FC.
+                                                          */
+
 
 #define FC_NOTIFY_CLUSTER_EVENT         FC_TO_CLUSTER_NOTIFY_EVENT
 
 #define FC_SOC_EVENT_IRQN               FC_IRQ_SOC_EVENT_FIFO_EVT
 
 #define FC_SW_NOTIFY_EVENT              FC_SOC_EVENT_NOTIFY_IRQ
+
 
 #endif  /* __PMSIS_TARGETS_EVENTS_H__ */

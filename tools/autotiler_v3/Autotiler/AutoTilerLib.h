@@ -249,6 +249,8 @@ KernelLib_T *KerLibMatch(
         KernelOper_T KerOper1,		/**< Symbolic operation */
 	KernelOper_T KerOper2,		/**< Optional symbolic operation grouped with KerOper1 */
         int ParallelFeatures,		/**< If 0 one feature is evaluated by several cores, if not each core evaluates a different feature */
+	int FloatKer,			/**< If 1 kernel uses float arithmetic, int otherwise */
+	int HWCKer,			/**< If 1 kernel is based on HWC tensor, otherwise CHW */
         int I1_Type,			/**< Input1 data size in bytes or 0 if to be ignored */
 	int I2_Type,			/**< Input2 data size in bytes or 0 if to be ignored */
 	int I3_Type,			/**< Input3 data size in bytes or 0 if to be ignored */
@@ -301,9 +303,23 @@ void InitKernelIterInfos(
 
 Define one user defined symbol with associated value.
 */
-KernelDynamicSymbol_T *S_Dyn(
+UserSymbol_T *S_Dyn(
 	char *Name,	/**< Name of the user defined symbol */
 	int Value	/**< Value of the user defined symbol */
+	);
+
+UserSymbol_T *US_Int(
+	char *Name,	/**< Name of the user defined symbol */
+	int Value	/**< Value of the user defined symbol */
+	);
+
+UserSymbol_T *US_Float(
+	char *Name,	/**< Name of the user defined symbol */
+	float Value	/**< Value of the user defined symbol */
+	);
+
+UserSymbol_T *US_Type(
+	char *Name	/**< Name of the user defined symbol */
 	);
 
 /**
@@ -311,7 +327,7 @@ KernelDynamicSymbol_T *S_Dyn(
 
 Define user defined symbols with associated value. Used in non inlined code generation.
 */
-KernelDynamicSymbol_T **KerDynamicSymbols(
+UserSymbol_T **KerDynamicSymbols(
 	int SCount,	/**< Number of pairs (SymbolName, SymbolValue) */
 	...);
 
@@ -343,6 +359,13 @@ KernelIteratorDescrT *IterFixedSpace(
 	KernelIteratorT IterSpace,	/**< Which iteration dimension of the kernel iteration space, must be a non tiled iteration space */
 	unsigned int Dim		/**< Actual value for the given dimension, must be > 0 */
 	);
+
+KernelIteratorDescrT *IterFixedSpaceDynBound(
+	KernelIteratorT IterSpace,	/**< Which iteration dimension of the kernel iteration space, must be a non tiled iteration space */
+	unsigned int Dim,		/**< Actual static upper bound value for the given dimension, must be > 0 */
+	char *Name			/**< C Arg name through which dynamic value of the dimension is passed */
+	);
+
 
 /**
 @brief Define one iteration dimension of the current kernel iteration space, dimension must not be a tiled one. Actual dimension value is provided and subject to division.
@@ -692,6 +715,10 @@ ArgBindingDescr_T *Ker_IteratorIndex(
 	);
 
 
+ArgBindingDescr_T *BindKExpr(
+	char *Expr
+	);
+
 /**
 @brief Binds argument to a user kernel argument (a tiled argument).
 
@@ -715,6 +742,18 @@ Argument selection can be:
 ArgBindingDescr_T *K_Arg(
 	char *ArgName,			/**< A tiled user kernel argument name */
 	KernelArgSelect_T ArgSelect	/**< Select which user kernel argument property to be used */
+	);
+
+/**
+@brief Binds argument to a user kernel argument (a tiled argument) combined with Value through Oper.
+
+Binds argument to a user kernel argument (a tiled argument) combined with Value through Oper.
+*/
+ArgBindingDescr_T *K_ArgOp(
+	char *ArgName,			/**< A tiled user kernel argument name */
+	KernelArgSelect_T ArgSelect,	/**< Select which user kernel argument property to be used */
+	char Oper,			/**< Operation, see ArgBindingOper. Valid: + - * / %  */
+	int Value			/**< A signed immediate value */
 	);
 
 /**
@@ -821,18 +860,6 @@ Functions in this group should be used to capture user kernel arguments
 
 
 /**
-@brief Creates a tile dimension constraint for a kernel argument
-
-Creates a tile dimension constraint for a kernel argument, Tile dimension T must be equal to K * Div + Rem, Rem can be greater than Div
-
-@param Div Division factor
-@param Rem Constant term to be added to a multiple of Div to obtain tile dim
-*/
-unsigned int MkTCons(
-	unsigned int Div,
-	unsigned int Rem);
-
-/**
 @brief Creates a list of user kernel arguments.
 
 Creates a list of user kernel arguments.
@@ -919,6 +946,31 @@ Object_T *KerArgP(
 	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+
+/**
+@brief Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described. Top/Bottom extra space controllable.
+
+Creates one user kernel argument with padding on the boundaries. Kernel argument Space is explicitely described
+*/
+Object_T *KerArgPBuff(
+	char *KerArgName,			/**< Kernel argument name */
+	KernelArgDimDescrT *KerArgSpace,	/**< Kernel argument space descriptor */
+	Object_Type_T ObjType,			/**< Kernel argument type: logical OR of types (O_xxx) or pre defined types */
+	unsigned int W,				/**< Kernel argument Data plane width */
+	unsigned int H,				/**< Kernel argument Data plane height */
+	unsigned int UsedW,			/**< Used tile width after padding and striding */
+	unsigned int UsedH,			/**< Used tile height after padding and striding */
+	unsigned int BottomBuffer,		/**< Amount of buffer to be added before this kernel argument, unit is ItemSize */
+	unsigned int TopBuffer,			/**< Amount of buffer to be added after this kernel argument, unit is ItemSize */
+	v4s PadTile,				/**< Left, Right, Top, Bottom amount of pad, for dimension ratio evaluation, may be > Pad Exec if several kernels are cascaded */
+	v4s PadExec,				/**< Left, Right, Top, Bottom amount of pad, actual pad to be used at kernel exec time */
+	unsigned int ItemSize,			/**< Data plane basic data type size in bytes */
+        int TileOverlap,			/**< Amount of overlap between 2 adjacent tiles, applies to tiled 2D space if present, if not to most inner dim of this argument */
+	KernelArgConstraints_T Constraint,	/**< Kernel argument constraints */
+        unsigned int PreferedTileSize,		/**< Tile variable dimension must be a multiple of PreferedTileSize if not 0 */
+	char *CArgName				/**< To which user kernel C argument this kernel argument is related to */
+	);
+
 /**
 @brief Creates one user kernel argument, extra pad on variable dim for alignment sake. Kernel argument Space is explicitely described
 
@@ -986,6 +1038,16 @@ Object_T *KerArgPart(
 	char *CArgName			/**< To which user kernel C argument this kernel argument is related to */
 	);
 
+/**
+@brief Set minimum size on the variable dimension of a tile.
+
+Set minimum size on the variable dimension of a tile.
+	Applicable only to kernel arguments for which PreferedTileSize is defined.
+*/
+void SetKerArgMinTileSize(
+	Object_T *Obj,			/**< A Kernel argument */
+	unsigned int MinTileSize	/**< Minimum size for the variable dimension of this argument */
+	);
 
 /** @} */ // End of UserKArg group
 
@@ -1005,6 +1067,41 @@ Kernel_T *UserKernel(
 	);
 
 /**
+@brief Remove last created user kernel from stack
+
+Remove last created user kernel from stack
+*/
+void PopUserKernel();
+
+/**
+@brief Copy then Remove last created user kernel from stack. Return the copy
+
+Copy then Remove last created user kernel from stack. Return the copy
+*/
+
+Kernel_T *CopyAndPopUserKernel(
+	Kernel_T *Kernel
+	);
+
+/**
+@brief Push back to top of stack a user kernel obtained by CopyAndPopUserKernel().
+
+Push back to top of stack a user kernel obtained by CopyAndPopUserKernel().
+*/
+void PushBackUserKernel(
+	Kernel_T *Kernel
+	);
+
+/**
+@brief Free a user kernel obtained by CopyAndPopUserKernel
+
+Free a user kernel obtained by CopyAndPopUserKernel
+*/
+void ReleaseUserKerne(
+	Kernel_T *Kernel
+	);
+
+/**
 @brief Add informations to selected user kernel
 
 Add informations to selected user kernel
@@ -1017,11 +1114,23 @@ void AddKernelInfos(
 	);
 
 /**
-@brief Add informations to selected argument of selected user kernel
+@brief Add informations to selected argument of selected user kernel, int type
 
-Add informations to selected argument of selected user kernel
+Add informations to selected argument of selected user kernel, int type
 */
 void AddKernelArgDim(
+	char *Name,		/**< Kernel Name */
+	char *ArgName,		/**< Argument Name */
+	int Dim,		/**< Number of dimensions or -1 (in this case list must be 0 terminated */
+	...			/**< List of space dimensions from outer to inner, most inner is the item size */
+	);
+
+/**
+@brief Add informations to selected argument of selected user kernel, float type
+
+Add informations to selected argument of selected user kernel, float type
+*/
+void AddKernelFloatArgDim(
 	char *Name,		/**< Kernel Name */
 	char *ArgName,		/**< Argument Name */
 	int Dim,		/**< Number of dimensions or -1 (in this case list must be 0 terminated */
@@ -1069,6 +1178,16 @@ void *AT_GetKernelCtrl(
 	AT_GraphCtrl_T Ctrl	/**< Which option */
 	);
 
+int GetKernelTileSize(
+	Kernel_T *Ker,
+	char *ArgName,
+	int IterSpace
+	);
+
+int GetKernelArgTileSize(
+	Kernel_Arg_T *Arg,
+	int IterSpace
+	);
 
 /** @} */ // End of UserK group
 
@@ -1319,6 +1438,19 @@ ArgBindingDescr_T *GNodeArg(
 	);
 
 /**
+@brief Binds a given Graph node arg to a user kernel kernel argument combined with a C argument through an operation
+
+Binds a given Graph node arg to a user kernel kernel argument combined with a C argument through an operation
+*/
+ArgBindingDescr_T *GNodeArgCArgOper(
+	GraghNodeArgT Type,		/**< Direction: GNA_IN, GNA_OUT or GNA_INOUT*/
+       	char *ArgName,			/**< Argument name, should be in internal or external graph variables and a user kernel kernel argument */
+       	char *AliasedArgName,		/**< In case Direction is GNA_INOUT output ArgName is aliased to input AliasedArgName */
+	char Oper,			/**< Operation to be performed between ArgName and CArgName */
+	char *CArgName			/**< C Argument name */
+	);
+
+/**
 @brief Binds a given Graph node arg to a user kernel kernel C argument 
 
 Binds a given Graph node arg to a user kernel kernel C argument 
@@ -1431,10 +1563,10 @@ void CNN_SetGenCtrlList(
 
 
 /**
-@brief Create a CNN type size vector(4)
+@brief Create a CNN type size vector(5), ints
 
-Create a CNN type size vector(4).
-Usually the 4 operands are In,Filter,Bias,Out. Byte size currently limited to 4
+Create a CNN type size vector(5)
+Usually the 5 operands are In,Filter,Bias,Out. Byte size currently limited to 5
 */
 int *CNN_Type(
 	int I1,			/**< First operand type size in byte, 0 to ignore */
@@ -1442,8 +1574,6 @@ int *CNN_Type(
 	int I3,			/**< Third operand type size in byte, 0 to ignore */
 	int I4,			/**< Fourth operand type size in byte, 0 to ignore */
 	int O);			/**< Output operand type size in byte, 0 to ignore */
-
-
 
 /**
 @brief Create a list of N CNN operation
@@ -1456,7 +1586,7 @@ KernelOper_T *CNN_OperList(
 	);
 
 /**
-@brief Create a CNN matching condition for a Basic Kernel
+@brief Create a CNN matching condition for a Basic Kernel.
 
 Create a CNN matching condition for a Basic Kernel
 */
@@ -1473,9 +1603,8 @@ CNN_LayerOp_T *CNN_Match(
         int Sy			/**< Filter Y stride, 0 if don't care, -1 if match all input, -2 match all input by equal to Sx */
 	);
 
-
 /**
-@brief Look into KernelLibs operation descriptor, return best match if any
+@brief Look into KernelLibs operation descriptor, return best match if any. Matches int kernels
 
 Look into KernelLibs operation descriptor, return best match if any. When a basic kernel can perform 2 sucessive operations
 the 2nd operation can be specified.
@@ -1509,9 +1638,44 @@ char *CNN_FindMatchingKernel(
         );
 
 /**
-@brief Returns a signed C type for an argument given it's size in byte
+@brief Look into KernelLibs operation descriptor, return best match if any. Matches kernel lib attributes
 
-Returns a signed C type for an argument given it's size in byte
+Look into KernelLibs operation descriptor, return best match if any. When a basic kernel can perform 2 sucessive operations
+the 2nd operation can be specified.
+*/
+char *CNN_FindMatchingKernelAttr(
+        KernelOper_T KerOper1,	/**< Primary operation */
+        KernelOper_T KerOper2,	/**< Optional operation to be performed on the output of the primary one */
+
+        int ParallelOutFeat,	/**< Choose a kernel using channel centric parallelization, otherwise feature centric parallelization */
+	unsigned int Attr,	/**< Kerne lib attributes, CALL_FLOAT_KER, CALL_HWC_KER */
+
+        int I1Size,		/**< Size in byte of the first input operand, 0 if not relevant. Order assumption: In,Filter,Bias,Out */
+        int I2Size,		/**< Size in byte of the second input operand, 0 if not relevant */
+        int I3Size,		/**< Size in byte of the third input operand, 0 if not relevant */
+        int I4Size,		/**< Size in byte of the fourth input operand, 0 if not relevant */
+        int OSize,		/**< Size in byte of the output input operand, 0 if not relevant */
+
+        int FX,			/**< If this operation is a filter, Filter X dimension, 0: not relevant, -1: All value are matching, >0 a specific dimension */
+        int FY,			/**< If this operation is a filter, Filter Y dimension, 0: not relevant, -1: All value are matching, -2 all values but equal to FX, >0 a specific dimension */
+        int DX,			/**< If this operation is a filter, Filter dilation for X dimension, 0: not relevant, -1: All value are matching, >0 a specific dimension */
+        int DY,			/**< If this operation is a filter, Filter dilation for Y dimension, 0: not relevant, -1: All value are matching, -2 all values but equal to FX, >0 a specific dimension */
+        int SX,			/**< If this operation is a filter, Filter Stride for X dimension, 0: not relevant, -1: All value are matching, >0 a specific dimension */
+        int SY,			/**< If this operation is a filter, Filter Stride for Y dimension, 0: not relevant, -1: All value are matching, -2 all values but equal to FX, >0 a specific dimension */
+
+        int *NeedFx,		/**< FX should be explictly passed to the basic kernel */
+        int *NeedFy,		/**< FY should be explictly passed to the basic kernel */
+        int *NeedDx,		/**< DX should be explictly passed to the basic kernel */
+        int *NeedDy,		/**< DY should be explictly passed to the basic kernel */
+        int *NeedSx,		/**< SX should be explictly passed to the basic kernel */
+        int *NeedSy,		/**< SY should be explictly passed to the basic kernel */
+        int *ArgCount		/**< Nunber of arguments of the basic kernel implementing this CNN operation */
+        );
+
+/**
+@brief Returns a signed C type for an int argument given it's size in byte
+
+Returns a signed C type for an int argument given it's size in byte
 */
 char *CNN_ArgDataType(
 	int DataSize,		/**< Argument size in byte (1,2 or 4) */
@@ -1520,9 +1684,20 @@ char *CNN_ArgDataType(
 	);
 
 /**
-@brief Returns an unsigned C type for an argument given it's size in byte
+@brief Returns a signed C type for a float argument given it's size in byte
 
-Returns an unsigned C type for an argument given it's size in byte
+Returns a signed C type for a float argument given it's size in byte
+*/
+char *CNN_ArgDataTypeF(
+	int DataSize,		/**< Argument size in byte (1,2 or 4) */
+	int Pointer,		/**< Is this argument a pointer */
+	int Restrict		/**< In case this argument is a pointer can it be restricted? */
+	);
+
+/**
+@brief Returns an unsigned C type for an int argument given it's size in byte
+
+Returns an unsigned C type for an int argument given it's size in byte
 */
 char *CNN_ArgDataTypeUns(
 	int DataSize,		/**< Argument size in byte (1,2 or 4) */
@@ -1608,6 +1783,20 @@ Generates a warning message. Does not abort.
 void GenTilingWarning(
 	const char *Message,
 	...
+	);
+/**
+@brief malloc with return status check.
+*/
+extern void *AT_Malloc(
+	size_t Size
+	);
+
+/**
+@brief calloc with return status check.
+*/
+extern void *AT_Calloc(
+	size_t Nmemb,
+	size_t Size
 	);
 
 /** @} */ // End of BookKeeping group

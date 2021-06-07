@@ -31,7 +31,8 @@ class Cluster(object):
     has_cc            = tp.get_child_bool('cluster/has_cc')
     has_hwce          = tp.get('cluster/peripherals/hwce') is not None
     has_ne16          = tp.get('cluster/peripherals/ne16') is not None
-    has_hwacc          = tp.get('cluster/peripherals/hwacc') is not None
+    has_hwacc         = tp.get('cluster/peripherals/hwacc') is not None
+    has_ima           = tp.get('cluster/peripherals/ima') is not None
     dma_irq_0         = tp.get('cluster/pe/irq').get_dict().index('dma_0')
     dma_irq_1         = tp.get('cluster/pe/irq').get_dict().index('dma_1')
     dma_irq_ext       = tp.get('cluster/pe/irq').get_dict().index('dma_ext')
@@ -55,7 +56,13 @@ class Cluster(object):
     if has_hwacc:
       hwacc_irq         = tp.get('cluster/pe/irq').get_dict().index('acc_0')
 
-    core_conf = js.import_config_from_file("ips/riscv/%s.json" % cluster_core, find=True)
+    if has_ima:
+      ima_irq         = tp.get('cluster/pe/irq').get_dict().index('acc_0')
+
+    if cluster_core is not None:
+      core_conf = js.import_config_from_file("ips/riscv/%s.json" % cluster_core, find=True)
+    else:
+      core_conf = tp.get('cluster/core_config')
 
 
     nb_l1_banks = 1<<int(math.log(nb_pe * l1_banking_factor, 2.0))
@@ -145,6 +152,11 @@ class Cluster(object):
         ("hwacc", get_mapping_area(tp.get_child_dict("cluster/peripherals/hwacc"), cluster_size, cluster_id, True))
       ]))
 
+    if has_ima:
+      periph_ico_mappings.update(OrderedDict([
+        ("ima", get_mapping_area(tp.get_child_dict("cluster/peripherals/ima"), cluster_size, cluster_id, True))
+      ]))
+
     cluster.periph_ico = Component(properties=OrderedDict([
       ('@includes@', ["ips/interco/router.json"]),
       ('mappings', periph_ico_mappings)
@@ -208,6 +220,9 @@ class Cluster(object):
         ]))
       )
 
+    if has_ima:
+      ima_conf = js.import_config_from_file("ips/ima/ima_v%d.json" % tp.get_child_int('cluster/peripherals/ima/version'), find=True)
+
     l1_interleaver_nb_masters = nb_pe + 4
     if has_hwce:
       l1_interleaver_nb_masters += 4
@@ -215,6 +230,8 @@ class Cluster(object):
       l1_interleaver_nb_masters += 1
     if has_hwacc:
       l1_interleaver_nb_masters += 4
+    if has_ima:
+      l1_interleaver_nb_masters += ima_conf.get_int('nb_masters')
 
     cluster.l1_ico.interleaver = Component(properties=OrderedDict([
       ('@includes@', ["ips/interco/l1_interleaver.json"]),
@@ -310,6 +327,11 @@ class Cluster(object):
         ('@includes@', ["ips/hwacc/hwacc.json"])
       ]))
 
+    if has_ima:
+      cluster.ima = Component(properties=OrderedDict([
+        ('@includes@', ["ips/ima/ima_v%d.json" % tp.get_child_int('cluster/peripherals/ima/version')])
+      ]))
+
     cluster.icache_ctrl = Component(properties=OrderedDict([
       ('@includes@', ["ips/icache_ctrl/icache_ctrl_v2.json"])
     ]))
@@ -337,26 +359,41 @@ class Cluster(object):
     ))
 
     for i in range(0, nb_pe):
-      cluster.add_component(
+      if tp.get('cluster/core_config') is not None:
+        core_config_dict = tp.get('cluster/core_config').get_dict()
+        core_config_dict.update(OrderedDict([
+            ('cluster_id', cluster_id),
+            ('core_id', i),
+            ('fetch_enable', tp.get_child_bool("cluster%d/pe%d/fetch_enable" % (cluster_id, i))),
+            ('boot_addr', tp.get_child_str("cluster%d/pe%d/boot_addr" % (cluster_id, i)))
+          ]))
+
+
+        cluster.add_component(
+          'pe%d' % i,
+          Component(properties=core_config_dict)
+        )
+      else:
+        cluster.add_component(
         'pe%d' % i,
         Component(properties=OrderedDict([
           ('@includes@', ["ips/riscv/%s.json" % cluster_core]),
-          ('cluster_id', cluster_id),
-          ('core_id', i),
-          ('fetch_enable', tp.get_child_bool("cluster%d/pe%d/fetch_enable" % (cluster_id, i))),
-          ('boot_addr', tp.get_child_str("cluster%d/pe%d/boot_addr" % (cluster_id, i)))
-        ]))
-      )
-
-      cluster.add_component(
-        'pe',
-        Empty_Component(properties=OrderedDict([
-          ('@includes@', ["ips/riscv/%s.json" % cluster_core]),
-          ('cluster_id', cluster_id),
-          ('core_id', 0),
-          ('boot_addr', "0x1C000000")
-        ]))
-      )
+           ('cluster_id', cluster_id),
+           ('core_id', i),
+           ('fetch_enable', tp.get_child_bool("cluster%d/pe%d/fetch_enable" % (cluster_id, i))),
+           ('boot_addr', tp.get_child_str("cluster%d/pe%d/boot_addr" % (cluster_id, i)))
+          ]))
+        )
+ 
+        cluster.add_component(
+          'pe',
+          Empty_Component(properties=OrderedDict([
+            ('@includes@', ["ips/riscv/%s.json" % cluster_core]),
+            ('cluster_id', cluster_id),
+            ('core_id', 0),
+            ('boot_addr', "0x1C000000")
+          ]))
+        )
 
 
     cluster.dma.ext_irq_itf = cluster.dma_irq
@@ -373,6 +410,8 @@ class Cluster(object):
       cluster.periph_ico.hwce = cluster.hwce.input
     if has_hwacc:
       cluster.periph_ico.hwacc = cluster.hwacc.input
+    if has_ima:
+      cluster.periph_ico.ima = cluster.ima.input
     cluster.periph_ico.event_unit = cluster.event_unit.input
     cluster.periph_ico.cluster_ctrl = cluster.cluster_ctrl.input
     cluster.periph_ico.timer = cluster.timer.input
@@ -390,6 +429,10 @@ class Cluster(object):
     if has_hwacc:
       for i in range(0, nb_pe):
         cluster.hwacc.irq = cluster.event_unit.new_itf('in_event_%d_pe_%d' % (hwacc_irq, i))
+
+    if has_ima:
+      for i in range(0, nb_pe):
+        cluster.ima.irq = cluster.event_unit.new_itf('in_event_%d_pe_%d' % (ima_irq, i))
 
     for i in range(0, nb_pe):
       cluster.icache_ctrl.flush = cluster.get('pe%d' % i).flush_cache
@@ -451,11 +494,11 @@ class Cluster(object):
     for i in range(0, nb_pe):
       cluster.get('pe%d' % i).irq_ack = cluster.event_unit.new_itf('irq_ack_%d' % i)
 
-      first_ext_counter = core_conf.get_int('first_ext_counter')
-      if first_ext_counter is None:
-        first_ext_counter = 11
+      first_external_pcer = core_conf.get_int('first_external_pcer')
+      if first_external_pcer is None:
+        first_external_pcer = 11
 
-      for j in range(first_ext_counter, first_ext_counter+5):
+      for j in range(first_external_pcer, first_external_pcer+5):
         cluster.get('pe%d' % i).set('ext_counter[%d]' % j, cluster.l1_ico.new_itf('ext_counter_%d[%d]' % (i, j)))
 
     cluster.periph_ico.cluster_ico = cluster.cluster_ico.input
@@ -488,6 +531,11 @@ class Cluster(object):
       for i in range(0, 4):
         cluster.hwacc.set('out_%d' % i, cluster.l1_ico.new_itf('hwacc_in_%d' % i))
         cluster.l1_ico.set('hwacc_in_%d' % i, cluster.l1_ico.interleaver.new_itf('in_%d' % (nb_pe + 4 + i)))
+
+    if has_ima:
+      for i in range(0, ima_conf.get_int('nb_masters')):
+        cluster.ima.set('out_%d' % i, cluster.l1_ico.new_itf('ima_in_%d' % i))
+        cluster.l1_ico.set('ima_in_%d' % i, cluster.l1_ico.interleaver.new_itf('in_%d' % (nb_pe + 4 + i)))
 
     for i in range(0, nb_pe):
       cluster.l1_ico.get('pe%d_ico' % i).dma = cluster.l1_ico.new_itf('dma_%d'%i)

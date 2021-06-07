@@ -30,8 +30,8 @@ make -C $PULP_CONFIG_PATH all_scons BUILD_DIR=$build_dir/pulp-configs INSTALL_DI
 
 make -C $DPI_MODELS_PATH build install BUILD_DIR=$build_dir/archi INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
 
-make -C $GVSOC_PATH build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+#make -C $GVSOC_PATH build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
 
-make -C $GVSOC_GAP_PATH build BUILD_DIR=$build_dir/gvsoc_gap INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
+#make -C $GVSOC_GAP_PATH build BUILD_DIR=$build_dir/gvsoc_gap INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir
 
 make -C $RUNNER_PATH sdk.build BUILD_DIR=$build_dir/gvsoc INSTALL_DIR=$ws_install_dir TARGET_INSTALL_DIR=$install_dir

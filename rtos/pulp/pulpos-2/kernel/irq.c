@@ -68,8 +68,9 @@ void pos_irq_set_handler(int irq, void (*handler)())
 
   *(volatile unsigned int *)jmpAddr = pos_irq_get_itvec(base, irq, (unsigned int)handler);
 
+#ifdef ARCHI_FC_HAS_ICACHE
   fc_icache_ctrl_flush_set(ARCHI_FC_ICACHE_ADDR, -1);
-
+#endif
   //selective_flush_icache_addr(jmpAddr & ~(ICACHE_LINE_SIZE-1));
 
   //if (!rt_is_fc() || plp_pmu_cluster_isOn(0)) flush_all_icache_banks_common(plp_icache_cluster_remote_base(0));

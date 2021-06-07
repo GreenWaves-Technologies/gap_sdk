@@ -38,8 +38,32 @@ void Udma_tx_channel::reset(bool active)
     Udma_channel::reset(active);
 
     this->requested_size = 0;
+    this->enqueued = false;
 }
 
+
+void Udma_tx_channel::set_active(bool active)
+{
+    if (active)
+    {
+        if (this->requested_size && !this->enqueued)
+        {
+            this->top->tx_channels->push_ready_channel(this);
+        }
+
+    }
+    else
+    {
+        if (this->enqueued)
+        {
+            this->top->tx_channels->pop_ready_channel(this);
+        }
+    }
+
+    this->active = active;
+
+    this->check_state();
+}
 
 void Udma_tx_channel::check_state()
 {
@@ -50,9 +74,10 @@ void Udma_tx_channel::check_state()
 void Udma_tx_channel::get_data(int size)
 {
     this->requested_size += size;
-    if (this->requested_size == size)
+    if (this->requested_size == size && this->is_active() && !this->enqueued)
     {
         this->top->tx_channels->push_ready_channel(this);
+        this->check_state();
     }
 }
 
@@ -78,8 +103,33 @@ Udma_tx_channels::Udma_tx_channels(udma *top, int fifo_size) : top(top)
 
     this->send_reqs_event = top->event_new(this, Udma_tx_channels::handle_pending);
     this->waiting_reqs_event = top->event_new(this, Udma_tx_channels::handle_waiting);
+
+    this->stream_out_channels.resize(top->nb_udma_stream_in);
+
+    for (int i=0; i<top->nb_udma_stream_out; i++)
+    {
+        vp::wire_slave<uint32_t> *data_itf = new vp::wire_slave<uint32_t>();
+        data_itf->set_sync_meth_muxed(&Udma_tx_channels::stream_out_data_sync, i);
+        top->new_slave_port(this, "stream_out_data_" + std::to_string(i), data_itf);
+
+        vp::wire_master<bool> *ready_itf = new vp::wire_master<bool>();
+        this->stream_out_ready_itf.push_back(ready_itf);
+        top->new_master_port(this, "stream_out_ready_" + std::to_string(i), ready_itf);
+
+        this->stream_out_channels[i] = NULL;
+    }
 }
 
+
+void Udma_tx_channels::stream_out_data_sync(void *__this, uint32_t data, int id)
+{
+    Udma_tx_channels *_this = (Udma_tx_channels *)__this;
+
+    if (_this->stream_out_channels[id])
+    {
+        _this->stream_out_channels[id]->push_data((uint8_t *)&data, 4);
+    }
+}
 
 bool Udma_tx_channels::is_ready()
 {
@@ -87,11 +137,28 @@ bool Udma_tx_channels::is_ready()
 }
 
 
-
 void Udma_tx_channels::push_ready_channel(Udma_tx_channel *channel)
 {
+    channel->enqueued = true;
     this->pending_channels.push(channel);
-    this->check_state();
+}
+
+
+void Udma_tx_channels::pop_ready_channel(Udma_tx_channel *channel)
+{
+    std::queue<Udma_tx_channel *> new_queue;
+    channel->enqueued = false;
+    while(!this->pending_channels.empty())
+    {
+        Udma_tx_channel *channel_head = this->pending_channels.front();
+        this->pending_channels.pop();
+        if (channel_head != channel)
+        {
+            new_queue.push(channel_head);
+        }
+    }
+
+    this->pending_channels.swap(new_queue);
 }
 
 
@@ -103,26 +170,26 @@ void Udma_tx_channels::handle_pending(void *__this, vp::clock_event *event)
     {
         // Get the next request from the next channel
         Udma_tx_channel *channel = _this->pending_channels.front();
+
+        _this->pending_channels.pop();
+        channel->enqueued = false;
         int size = 4;
         if (size > channel->requested_size)
         {
             size = channel->requested_size;
         }
 
+        // Decrease next channel pending size and put it back at the tail if there is still something to send
+        channel->requested_size -= size;
+
+        if (channel->requested_size && !channel->enqueued)
+        {
+            _this->push_ready_channel(channel);
+        }
         // Get address and final size from address generator. Size can be less due to transfer
         uint32_t addr;
         channel->get_addrgen()->get_next_transfer(&addr, &size);
 
-        // Decrease next channel pending size and put it back at the tail if there is still something to send
-        channel->requested_size -= size;
-
-        _this->pending_channels.pop();
-
-        if (channel->requested_size)
-        {
-            _this->pending_channels.push(channel);
-        }
-    
         // Prepare L2 request
         vp::io_req *l2_req = _this->l2_free_reqs->pop();
 
@@ -135,6 +202,7 @@ void Udma_tx_channels::handle_pending(void *__this, vp::clock_event *event)
         _this->top->trace.msg(vp::trace::LEVEL_DEBUG, "Reading from memory (addr: 0x%x, size: %d)\n", l2_req->get_addr(), size);
 
         int err = _this->top->l2_itf.req(l2_req);
+
         if (err == vp::IO_REQ_OK)
         {
             l2_req->set_latency(l2_req->get_latency() + _this->top->get_cycles() + 1);

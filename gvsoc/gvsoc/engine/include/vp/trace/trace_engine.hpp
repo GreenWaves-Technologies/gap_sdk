@@ -47,6 +47,7 @@ namespace vp {
 
     virtual int get_max_path_len() = 0;
     virtual int get_trace_level() = 0;
+    virtual void set_trace_level(const char *trace_level) = 0;
 
     int get_format() { return this->trace_format; }
     

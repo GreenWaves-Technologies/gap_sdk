@@ -2,6 +2,9 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wswitch"
+
 #include <stdio.h>
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
@@ -1246,26 +1249,28 @@ static void KerParPoolActivation(signed char *__restrict__ InOut, int W, int H, 
 				 signed char *__restrict__ Infos, CNN_ActivationOper_T Activation)
 
 {
-	if (Infos[AT_INF_ACTSCALE]) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-		int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+	if(FirstFeat<LastFeat){
+		if (Infos[AT_INF_ACTSCALE]) {
+			unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
+			unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+			int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 
-		switch (Activation) {
-			case ACT_NONE:      Ker_Activation_SQ8(InOut+Off, Size, ACT_NONE,      ActScale, ActScaleN, A0, B0, C0); break;
-			case ACT_RELU:      Ker_Activation_SQ8(InOut+Off, Size, ACT_RELU,      ActScale, ActScaleN, A0, B0, C0); break;
-			case ACT_RELUN:     Ker_Activation_SQ8(InOut+Off, Size, ACT_RELUN,     ActScale, ActScaleN, A0, B0, C0); break;
-			case ACT_HSIGMOID:  Ker_Activation_SQ8(InOut+Off, Size, ACT_HSIGMOID,  ActScale, ActScaleN, A0, B0, C0); break;
-			case ACT_HSWISH:    Ker_Activation_SQ8(InOut+Off, Size, ACT_HSWISH,    ActScale, ActScaleN, A0, B0, C0); break;
-			case ACT_LEAKYRELU: Ker_Activation_SQ8(InOut+Off, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0); break;
+			switch (Activation) {
+				case ACT_NONE:      Ker_Activation_SQ8(InOut+Off, Size, ACT_NONE,      ActScale, ActScaleN, A0, B0, C0); break;
+				case ACT_RELU:      Ker_Activation_SQ8(InOut+Off, Size, ACT_RELU,      ActScale, ActScaleN, A0, B0, C0); break;
+				case ACT_RELUN:     Ker_Activation_SQ8(InOut+Off, Size, ACT_RELUN,     ActScale, ActScaleN, A0, B0, C0); break;
+				case ACT_HSIGMOID:  Ker_Activation_SQ8(InOut+Off, Size, ACT_HSIGMOID,  ActScale, ActScaleN, A0, B0, C0); break;
+				case ACT_HSWISH:    Ker_Activation_SQ8(InOut+Off, Size, ACT_HSWISH,    ActScale, ActScaleN, A0, B0, C0); break;
+				case ACT_LEAKYRELU: Ker_Activation_SQ8(InOut+Off, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0); break;
+			}
+		} else if (Activation == ACT_RELU) {
+			unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
+			Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELU, 0);
+		} else if (Activation == ACT_RELUN) {
+			unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
+			int A0 = Infos[AT_INF_A0];
+			Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUN, A0);
 		}
-	} else if (Activation == ACT_RELU) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELU, 0);
-	} else if (Activation == ACT_RELUN) {
-		unsigned int Off = W*H*FirstFeat, Size = W*H*(LastFeat-FirstFeat);
-		int A0 = Infos[AT_INF_A0];
-		Ker_ActivationScale1_SQ8(InOut+Off, Size, ACT_RELUN, A0);
 	}
 }
 
@@ -1576,7 +1581,7 @@ void KerParGlobalMaxPool_Reduct_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	int DoScale = Arg->DoScale;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
@@ -1593,7 +1598,7 @@ void KerParGlobalMaxPool_Reduct_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
 
@@ -1609,7 +1614,7 @@ void KerParGlobalMaxPool_Reduct_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = Infos[AT_INF_A0];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
@@ -1641,7 +1646,7 @@ void KerParGlobalAvgPool_Reduct_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	int DoScale = Arg->DoScale;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
@@ -1658,7 +1663,7 @@ void KerParGlobalAvgPool_Reduct_ReLU_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
 
@@ -1674,7 +1679,7 @@ void KerParGlobalAvgPool_Reduct_ReLUN_SQ8(KerGlobalPool_SQ8_T *Arg)
 	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int Feat = Arg->Feat;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	signed char *__restrict__ Infos;
+	signed char *__restrict__ Infos = Arg->Infos;
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
 	int A0 = Infos[AT_INF_A0];
 	unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);

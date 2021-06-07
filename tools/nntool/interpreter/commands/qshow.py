@@ -17,17 +17,20 @@ import logging
 
 from cmd2 import Cmd2ArgumentParser, with_argparser
 
-from interpreter.nntool_shell_base import NNToolShellBase, no_history
+from interpreter.nntool_shell_base import NNToolArguementParser, NNToolShellBase, NODE_SELECTOR_HELP, no_history
 from interpreter.shell_utils import output_table, table_options
 from reports.quantization_reporter import QuantizationReporter
 
 LOG = logging.getLogger('nntool.'+__name__)
 
+
 class QshowCommand(NNToolShellBase):
     # QSHOW COMMAND
-    parser_qshow = Cmd2ArgumentParser()
+    parser_qshow = NNToolArguementParser()
     table_options(parser_qshow)
-    parser_qshow.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
+    parser_qshow.add_argument('step', nargs=(0, 1),
+                              help='step to tune. ' + NODE_SELECTOR_HELP,
+                              completer_method=NNToolShellBase.node_step_or_name_completer)
 
     @with_argparser(parser_qshow)
     @no_history
@@ -36,5 +39,12 @@ class QshowCommand(NNToolShellBase):
 Show current quantization settings."""
         self._check_graph()
         self._check_quantized()
-        tab = QuantizationReporter(step=args.step).report(self.G, self.G.quantization)
+        if args.step:
+            nodes, _ = self.get_node_step_or_name(args.step)
+            if not nodes:
+                return
+        else:
+            nodes = None
+        tab = QuantizationReporter().report(
+            self.G, self.G.quantization, nodes)
         output_table(tab, args)

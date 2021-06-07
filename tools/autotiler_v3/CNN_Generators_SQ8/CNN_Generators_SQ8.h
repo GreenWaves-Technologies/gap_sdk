@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "AutoTilerLib.h"
 
+#include "../CNN_Generators/CNN_Copy_Generators.h"
+
 void LoadCNN_SQ8_Library();
 
 /*********************************************************************************************************************************************************************
@@ -215,23 +217,24 @@ int CNN_PoolAct_SQ8(
 	);
 
 /*********************************************************************************************************************************************************************
-        Generator for Activation with tensor centric scaling
+ 	Generator for Activation with tensor centric scaling
 
-        Template:
-                Name:           Name of the generated user kernel
+	Template:
+		Name:		Name of the generated user kernel
 
-                Ctrl:           Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
 
-                Feat:           Number of feature's maps
-                Width:          Number of columns of a given feature map
-                Height:         Number of lines of a given feature map
+		Feat:		Number of feature's maps
+		Width:		Number of columns of a given feature map
+		Height:		Number of lines of a given feature map
 
-                ActOper:        KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU
+		ActOper:	KOP_ACT_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU, KOP_SIGMOID
+				KOP_ACT_NONE_IN_SCALE, KOP_RELU_IN_SCALE, KOP_RELUN_IN_SCALE, KOP_HSIGMOID_IN_SCALE, KOP_HSWISH_IN_SCALE, KOP_LEAKYRELU_IN_SCALE, KOP_SIGMOID_IN_SCALE
 
-                Signature:      Name(In, Out, Infos)
+		Signature:	Name(In, Out, Infos)
 
-        CNN_Act_SQ8
-
+	CNN_Act_SQ8
+		
 *********************************************************************************************************************************************************************/
 
 int CNN_Act_SQ8(
@@ -351,6 +354,17 @@ int CNN_SoftMax_SQ8(
         KernelOper_T SoftMaxOper
 	);
 
+int CNN_SoftMax2D_SQ8(
+	char *Name,
+
+	CNN_GenControl_T *Ctrl,
+
+	int SoftmaxDim,
+	int N,
+
+        KernelOper_T SoftMaxOper
+	);
+
 /*********************************************************************************************************************************************************************
  	Generator for Matrix Addition layers with input scale adjustment (tensor centric), output scaling (tensor centric) and optional activation
 
@@ -385,6 +399,7 @@ int CNN_MatAddAct_SQ8(
         KernelOper_T ActOper
 	);
 
+
 /*********************************************************************************************************************************************************************
 	Generator for Channel Padded Matrix Addition layers with input scale adjustment (tensor centric), output scaling (tensor centric) and optional activation
 
@@ -395,8 +410,9 @@ int CNN_MatAddAct_SQ8(
 		Feat:		Number of features
 		Width:		Width of a given feature
 		Height:		Height of a given feature
-		PadTop:		Top channel padding added to In2
-		PadBot:		Bottom channel padding added to In2
+		PadTop:		Top channel padding added to InIdxPaddedIn
+		PadBot:		Bottom channel padding added to InIdxPaddedIn
+		IdxPaddedIn:	Which input is padded
 
 		AddMatOper:	Should always be KOP_MATADD
 		ActOper:	Optional activation
@@ -405,6 +421,7 @@ int CNN_MatAddAct_SQ8(
 	CNN_MatAddPaddedAct_SQ8
 
 *********************************************************************************************************************************************************************/
+
 int CNN_MatAddPaddedAct_SQ8(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
@@ -414,6 +431,7 @@ int CNN_MatAddPaddedAct_SQ8(
 	int Height,
 	int PadTop,
 	int PadBot,
+	int IdxPaddedIn,
 
 	KernelOper_T AddMatOper,
 	KernelOper_T ActOper
@@ -480,7 +498,7 @@ int CNN_TensorVectMultAct_SQ8(
 		Scx:		stride x dimension for In2
 		Scy:		stride y dimension for In2
 
-		MatMulOper:	Should always be KOP_MATMUL
+		MatMulOper:	Should always be KOP_MATMUL, KOP_MATMUL_NOBIAS, KOP_MATMUL_SCALE_SCALAR
 
 		ActOper:	Optionnal Activation (KOP_NONE, KOP_RELU, KOP_RELUN, KOP_HSWISH, KOP_HSIGMOID, KOP_LEAKYRELU)
 
@@ -571,76 +589,5 @@ int CNN_MatMulSmallM1Act_SQ8(
         KernelOper_T MatMulOper,
         KernelOper_T ActOper
 	);
-
-/*********************************************************************************************************************************************************************
- 	Generator for Matrix Transposition, no scaling
-
-	Template:
-		Name:		Name of the generated user kernel
-
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
-
-		Feat		Number of matrices
-		Width		For 1x1 convolution, width of an input feature map
-		Height		For 1x1 convolution, height of an input feature map
-
-		MatTransOper	KOP_MAT_TRANSPOSE
-
-		Signature:	Name(In, Out)
-
-	CNN_MatTranspose_SQ8
-	
-*********************************************************************************************************************************************************************/
-
-int CNN_MatTranspose_SQ8(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int Feat,
-	int Width,
-	int Height,
-
-	KernelOper_T MatTransOper
-	);
-
-/*********************************************************************************************************************************************************************
- 	Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}, no scaling
-
-	Template:
-		Name:		Name of the generated user kernel
-
-		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
-
-		Feat		Number of channels of the tensor
-		Width		Tensor width
-		Height		Tensor height
-
-		MatPermOper	Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
-
-		Signature:	Name(In, Out)
-
-	CNN_3DTensorPermute_SQ8
-	
-*********************************************************************************************************************************************************************/
-
-int CNN_3DTensorPermute_SQ8(
-	char *Name,
-
-	CNN_GenControl_T *Ctrl,
-
-	int Feat,
-	int Width,
-	int Height,
-
-	KernelOper_T MatPermOper
-	);
-
-
-int CNN_Copy(
-	char *Name,
-    CNN_GenControl_T *Ctrl,
-	int Sz
-);
 
 #endif

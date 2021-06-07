@@ -81,6 +81,11 @@ static void pi_24xx1025_close(struct pi_device *device)
 {
     eeprom_t *eeprom = device->data;
 
+    while(eeprom->waiting_page_flush)
+    {
+        pi_time_wait_us(1);
+    }
+
     pi_i2c_close(&eeprom->i2c_device);
 
     pi_l2_free(eeprom, sizeof(eeprom_t));
@@ -183,11 +188,18 @@ static void bsp_24xx1025_enqueue_copy(eeprom_t *eeprom, uint32_t eeprom_addr, vo
     }
     else
     {
+#if defined(PMSIS_DRIVERS) || defined(__PULPOS2__)
         // Save the copy to restore it later on
         task->data[0] = (int)eeprom;
         task->data[1] = (int)data;
         task->data[2] = size;
         task->data[3] = is_write;
+#else
+        task->implem.data[0] = (int)eeprom;
+        task->implem.data[1] = (int)data;
+        task->implem.data[2] = size;
+        task->implem.data[3] = is_write;
+#endif
 
         if (eeprom->waiting_first)
             eeprom->waiting_last->next = task;

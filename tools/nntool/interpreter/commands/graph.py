@@ -16,7 +16,7 @@
 import argparse
 from cmd2 import Cmd2ArgumentParser, with_argparser, CompletionItem
 from interpreter.shell_utils import output_table, table_options
-from interpreter.nntool_shell_base import NNToolShellBase, no_history
+from interpreter.nntool_shell_base import NNToolShellBase, NODE_SELECTOR_HELP, no_history, NNToolArguementParser
 from reports.graph_reporter import GraphReporter
 
 
@@ -62,9 +62,11 @@ Select actuve graphs"""
                 self.poutput("{:d} - {}".format(idx, rec['graph_file']))
 
     # SHOW COMMAND
-    parser_show = Cmd2ArgumentParser("display graph")
+    parser_show = NNToolArguementParser("display graph")
     table_options(parser_show, default_width=180)
-    parser_show.add_argument('step', type=int, nargs=(0, 1), help='Limit to step number')
+    parser_show.add_argument('step', nargs=(0, 1),
+        help='step to show or nothing to show all.' + NODE_SELECTOR_HELP,
+        completer_method=NNToolShellBase.node_step_or_name_completer)
     parser_show.add_argument('-s', '--show_constants', action='store_true',
                              help='Show constant parameters nodes')
 
@@ -74,10 +76,18 @@ Select actuve graphs"""
         """
 Display the structure of the graph"""
         self._check_graph()
+        if args.step:
+            nodes, _ = self.get_node_step_or_name(args.step)
+            if not nodes:
+                self.do_help('show')
+                return
+        else:
+            nodes = None
         fmt = ('tab' if args.output is None else args.output['fmt'])
         split_dims = fmt == "xls"
         do_totals = fmt != "csv"
+        show_constants = args.show_constants if args.step is None else True
         tab = GraphReporter(do_totals=do_totals,
                             split_dims=split_dims,
-                            step=args.step).report(self.G, None, args.show_constants)
+                            show_constants=show_constants).report(self.G, nodes=nodes)
         output_table(tab, args)

@@ -304,6 +304,31 @@ static int32_t atxp032_ioctl(struct pi_device *device, uint32_t cmd, void *arg)
 }
 
 
+void pi_atxp032_deep_sleep_enter(pi_device_t *device)
+{
+    atxp032_t *atxp032 = (atxp032_t *)device->data;
+    pi_octospi_op_conf_t op_we = {
+        .cmd=0xB9,
+        .latency=0,
+        .flags=PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_DATA_DTR
+    };
+    int dummy = 0;
+    pi_octospi_write(&atxp032->octospi_device, 0, &dummy, 1, &op_we);
+}
+
+
+void pi_atxp032_deep_sleep_exit(pi_device_t *device)
+{
+    atxp032_t *atxp032 = (atxp032_t *)device->data;
+    pi_octospi_op_conf_t op_we = {
+        .cmd=0xAB,
+        .latency=0,
+        .flags=PI_OCTOSPI_FLAG_CMD_SIZE_1 | PI_OCTOSPI_FLAG_LINE_OCTO | PI_OCTOSPI_FLAG_CMD_STR | PI_OCTOSPI_FLAG_DATA_DTR
+    };
+    int dummy = 0;
+    pi_octospi_write(&atxp032->octospi_device, 0, &dummy, 1, &op_we);
+}
+
 
 static void atxp032_reg_set_async(struct pi_device *device, uint32_t addr, uint8_t *value, pi_task_t *task)
 {

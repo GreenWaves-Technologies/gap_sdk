@@ -311,7 +311,7 @@ static inline int is_i2c_active()
 
   // I2C driver is not yet working on some chips, at least this works on gvsoc.
   // Also there is noI2C connection to camera model on RTL
-#if PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1
+#if defined(PULP_CHIP) && (PULP_CHIP == CHIP_GAP9 || PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_ARNOLD || PULP_CHIP == CHIP_PULPISSIMO || PULP_CHIP == CHIP_PULPISSIMO_V1)
   return 0;
 #else
   return rt_platform() != ARCHI_PLATFORM_RTL;

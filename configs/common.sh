@@ -20,8 +20,10 @@ export RULES_DIR=$GAP_SDK_HOME/tools/rules
 export NNTOOL_DIR=$GAP_SDK_HOME/tools/nntool
 export NNTOOL_PATH=$GAP_SDK_HOME/tools/nntool
 export NNTOOL_KERNELS_PATH=$NNTOOL_DIR/autotiler/kernels
+export NNTOOL_MATH_PATH=$NNTOOL_DIR/autotiler/math_funcs
 export NNTOOL_GENERATOR_PATH=$NNTOOL_DIR/autotiler/generators
-export PATH="$NNTOOL_DIR":$PATH
+export PATH=$PATH:"$GAP_SDK_HOME"
+export PATH=$PATH:"$NNTOOL_DIR"
 
 # OpenMP
 export OPENMP_DIR="$GAP_SDK_HOME/rtos/openmp"
@@ -36,8 +38,9 @@ export PULPOS_ARCHI=$GAP_SDK_HOME/rtos/pulp/archi_pulp
 export PULPOS_HAL=$GAP_SDK_HOME/rtos/pulp/hal_pulp
 export PMSIS_API=$GAP_SDK_HOME/rtos/pmsis/pmsis_api
 
-# SFU runtime
+# SFU
 export SFU_RUNTIME=$GAP_SDK_HOME/rtos/sfu
+export PATH=$GAP_SDK_HOME/tools/sfu_gen/install/bin:$PATH
 
 # For pulp os
 export PULP_LIB_DIR=$TARGET_INSTALL_DIR/lib
@@ -57,9 +60,14 @@ export PULP_CONFIGS_PATH=$INSTALL_DIR/configs
 export PULP_RISCV_GCC_TOOLCHAIN=$GAP_RISCV_GCC_TOOLCHAIN
 export PULP_SDK_INSTALL=$INSTALL_DIR
 export GVSOC_PATH=$INSTALL_DIR/python
+export GVSOC_ISS_PATH=$GAP_SDK_HOME/gvsoc/gvsoc/models/cpu/iss
 export XTENSOR_INCLUDE_DIR=$GAP_SDK_HOME/ext/xtensor/include
 export GVSOC_SFU_PATH=$GAP_SDK_HOME/gvsoc/gvsoc_gap_sfu
 source $GAP_SDK_HOME/gvsoc/setup_gvsoc.sh
+if [ -e "$GAP_SDK_HOME/configs/skip_udma_build" ]; then
+    export CONFIG_GVSOC_SKIP_UDMA_BUILD=1
+fi
+export PYTHONPATH=$GAP_SDK_HOME/gvsoc/gvsoc_gap/models:$PYTHONPATH
 
 # Autotiler
 export AT_HOME=$GAP_SDK_HOME/tools/autotiler_v3
@@ -78,8 +86,18 @@ export TILER_FFT2D_TWIDDLE_PATH=$TILER_GENERATOR_PATH/FFT2DModel
 export TILER_CNN_KERNEL_PATH=$TILER_PATH/CNN_Libraries
 export TILER_CNN_GENERATOR_PATH=$TILER_PATH/CNN_Generators
 export TILER_CNN_KERNEL_PATH_SQ8=$TILER_PATH/CNN_Libraries_SQ8
+export TILER_CNN_KERNEL_PATH_NE16=$TILER_PATH/CNN_Libraries_NE16
+export TILER_CNN_KERNEL_PATH_FP16=$TILER_PATH/CNN_Libraries_fp16
 export TILER_CNN_GENERATOR_PATH_SQ8=$TILER_PATH/CNN_Generators_SQ8
+export TILER_CNN_GENERATOR_PATH_NE16=$TILER_PATH/CNN_Generators_NE16
+export TILER_CNN_GENERATOR_PATH_FP16=$TILER_PATH/CNN_Generators_fp16
 
+export TILER_DSP_GENERATOR_PATH=$TILER_PATH/DSP_Generators
+export TILER_DSP_KERNEL_PATH=$TILER_PATH/DSP_Libraries
+export TILER_FFT_LUT_PATH=$TILER_PATH/DSP_Libraries/LUT_Tables
+export TILER_MFCC_GEN_LUT_SCRIPT=$TILER_PATH/DSP_Libraries/LUT_Tables/gen_scripts/GenMFCCLUT.py
+export TILER_FFT_GEN_LUT_SCRIPT=$TILER_PATH/DSP_Libraries/LUT_Tables/gen_scripts/GenFFTLUT.py
+export TILER_WIN_GEN_LUT_SCRIPT=$TILER_PATH/DSP_Libraries/LUT_Tables/gen_scripts/GenWinLUT.py
 
 # OpenOCD
 export GAP_OPENOCD_TOOLS=$GAP_SDK_HOME/tools/gap8-openocd-tools

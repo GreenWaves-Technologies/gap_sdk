@@ -1,3 +1,20 @@
+/*
+ * Copyright 2021 GreenWaves Technologies, SAS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
@@ -80,8 +97,7 @@ static unsigned short int ExpCoeffLUT[] = {
 uint32 sqrt_17_15(uint32 x)
 
 {
-	unsigned int   exponent;
-	int            result, y, z;
+	unsigned int exponent, y, result, z;
 
 	if (!x)
 		return 0;
@@ -98,7 +114,10 @@ uint32 sqrt_17_15(uint32 x)
 	}
 	result >>= 15;
 	result += SqrtCoeffTable[ 0 ];
-	if (exponent != 16) result = ((result * Sqrt2Powers[ 31 - exponent ]) >> 15);
+	if (exponent != 16) {
+		if (exponent < 12) 	result = (((result>>(12-exponent)) * Sqrt2Powers[ 31 - exponent ]) >> (15-(12-exponent)));
+		else            	result = ((result * Sqrt2Powers[ 31 - exponent ]) >> 15);
+	}
 
 	return (uint32) result;
 }
@@ -176,7 +195,8 @@ unsigned int exp_17_15(unsigned int X)
 uint32 pow_17_15(uint32 x, uint32 y)
 {
 	if (x==0) return (unsigned int)(y==0 ? 1<<15 : 0);
-    return exp_17_15((unsigned int)gap_roundnorm_reg((int)y * (int)logn_17_15(x), 15));
+	int expo = gap_clipr((int)logn_17_15(x), (1 << gap_clb(y)) - 1);
+    return exp_17_15((unsigned int)gap_roundnorm_reg((int)y * expo, 15));
 }
 
 int square_17_15(int x)
@@ -195,6 +215,36 @@ int arctan_17_15(int x)
     // This can use p.mulsRN and p.adduRN on GAP so 4 cycles
     // p.mulsRN(x, p.adduRN(PI_Q1_30_DIV4, ARCTAN_FAC_Q17_15 * (ONE_Q17_15 - x)))
     return gap_roundnorm_reg(x * gap_addroundnorm_reg(PI_Q1_30_DIV4, ARCTAN_FAC_Q17_15 * (ONE_Q17_15 - x), 15), 15);
+}
+
+int16 fpsin(int16 i)
+{
+    /* Convert (signed) input to a value between 0 and 8192. (8192 is pi/2, which is the region of the curve fit). */
+    /* ------------------------------------------------------------------- */
+    i <<= 1;
+    int c = i<0; //set carry for output pos/neg
+
+    if(i == (i|0x4000)) // flip input value to corresponding value in range [0..8192)
+        i = (1<<15) - i;
+    i = (i & 0x7FFF) >> 1;
+    /* ------------------------------------------------------------------- */
+
+    /* The following section implements the formula:
+     = y * 2^-n * ( A1 - 2^(q-p)* y * 2^-n * y * 2^-n * [B1 - 2^-r * y * 2^-n * C1 * y]) * 2^(a-q)
+    Where the constants are defined as follows:
+    */
+    enum {A1=3370945099UL, B1=2746362156UL, C1=292421UL};
+    enum {n=13, p=32, q=31, r=3, a=12};
+
+    uint32 y = (C1*((uint32)i))>>n;
+    y = B1 - (((uint32)i*y)>>r);
+    y = (uint32)i * (y>>n);
+    y = (uint32)i * (y>>n);
+    y = A1 - (y>>(p-q));
+    y = (uint32)i * (y>>n);
+    y = gap_roundnormu(y, (q-a)); // Rounding
+
+    return (c ? -((int16)y) : ((int16)y));
 }
 
 #pragma GCC diagnostic pop

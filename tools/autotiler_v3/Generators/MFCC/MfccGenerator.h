@@ -9,6 +9,7 @@ enum DataType{
 };
 
 void LoadMFCCLibrary();
+void PieceWiseGenerator(char *Name, CNN_GenControl_T *Ctrl, char *FunName, int Dim, int DataType, int Inplace);
 //void IMFCC_parallel(char *Name, int nbin, int n_fft,  int imfcc_coeff_cnt);
 void MFCC_Generator(
 	char *Name,				 /* Node Name */
@@ -25,7 +26,8 @@ void MFCC_Generator(
 	int use_power,			 /* If 1, the MelFilterBank will be applied to |STFT|^2, otherwise |STFT| */
 	int DataType,			 /* If 1, uses fake floatng point arithmetic for FFT and MFCC */
 	int MfccBankCnt,		 /* If !=0, the number of MFCC filters */
-	int OutMelspectrogram	 /* If 1, the output of the function will be the output of the MelFilter Bank */
+	int OutMelspectrogram,	 /* If 1, the output of the function will be the output of the MelFilter Bank */
+	int Out_FFT
 	);
 void STFT_Generator(
 	char *Name,				 /* Node Name */
@@ -49,4 +51,30 @@ void ISTFT_Generator(
 	int Nfft,
 	int use_radix_4_fft,
 	int DataType
+	);
+void FFT_Generator(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	int Dim,
+	int ForceRadix2,
+	int DataType,
+	int IntScal
+	);
+void MFCC_GeneratorV2(
+	char *Name,
+	CNN_GenControl_T *Ctrl,
+	int NFrames,
+	int FrameSize,
+	int FrameStride,
+	int Nfft,
+	int NMFCCCoeff,
+	int Ndct,
+	float PreempFactor,
+	int use_radix_4_fft,
+	int Power,
+	int UseDB,
+	int DataType,
+	int MfccBankCnt,
+	int OutMelspectrogram,
+	int OutFFT
 	);

@@ -5,17 +5,17 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -94,6 +94,8 @@ public:
   vp::uart_master master;
   vp::trace tx_trace;
   vp::trace rx_trace;
+  vp::trace rts_trace;
+  vp::trace cts_trace;
 };
 
 class I2s_group : public Pad_group
@@ -104,7 +106,16 @@ public:
   vp::i2s_master master;
   vp::trace sck_trace;
   vp::trace ws_trace;
-  vp::trace sd_trace;
+  vp::trace sdi_trace;
+  vp::trace sdo_trace;
+  int sck_in;
+  int ws_in;
+  int sdi_in;
+  int sdo_in;
+  int sck_out;
+  int ws_out;
+  int sdi_out;
+  int sdo_out;
 };
 
 class I2c_group : public Pad_group
@@ -168,21 +179,22 @@ private:
 
   static void jtag_chip_slave_sync(void *__this, int tck, int tdi, int tms, int trst, int id);
   static void jtag_chip_slave_sync_cycle(void *__this, int tdi, int tms, int trst, int id);
-  
+
   static void jtag_master_sync(void *__this, int tdo, int id);
 
   static void cpi_sync(void *__this, int pclk, int href, int vsync, int data, int id);
   static void cpi_sync_cycle(void *__this, int href, int vsync, int data, int id);
 
   static void uart_chip_sync(void *__this, int data, int id);
+  static void uart_chip_sync_full(void *__this, int data, int sck, int rts, int id);
   static void uart_master_sync(void *__this, int data, int id);
+  static void uart_master_sync_full(void *__this, int data, int sck, int rts, int id);
 
   static void i2s_internal_edge(void *__this, int sck, int ws, int sd, int id);
   static void i2s_external_edge(void *__this, int sck, int ws, int sd, int id);
 
   static void i2c_chip_sync(void *__this, int scl, int sda, int id);
-  static void i2c_chip_sync_cycle(void *__this, int sda, int id);
-  static void i2c_master_sync(void *__this, int data, int id);
+  static void i2c_master_sync(void *__this, int scl, int data, int id);
 
   static void hyper_master_sync_cycle(void *__this, int data, int id);
   static void hyper_sync_cycle(void *__this, int data, int id);
@@ -196,6 +208,8 @@ private:
 
   static void ref_clock_sync(void *__this, bool value);
   static void ref_clock_set_frequency(void *, int64_t value);
+
+  void set_pad(int *padin_value, int *padout_value, int *pad_value);
 
   vp::trace     trace;
   vp::io_slave in;
@@ -214,6 +228,38 @@ padframe::padframe(js::config *config)
 {
 
 }
+
+
+void padframe::set_pad(int *padin_value, int *padout_value, int *pad_value)
+{
+    if (*padin_value == 3 || *padout_value == 3)
+    {
+        *pad_value = 3;
+    }
+    else if (*padin_value == 2 || *padout_value == 2)
+    {
+        if (*padin_value == 2)
+        {
+            *pad_value = *padout_value;
+        }
+        else
+        {
+            *pad_value = *padin_value;
+        }
+    }
+    else
+    {
+        if (*padin_value != *padout_value)
+        {
+            *pad_value = 3;
+        }
+        else
+        {
+            *pad_value = *padin_value;
+        }
+    }
+}
+
 
 void padframe::qspim_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
@@ -267,7 +313,7 @@ void padframe::qspim_cs_sync(void *__this, int cs, int active, int id)
   {
     group->cs_master[cs]->sync(!active);
   }
-} 
+}
 
 void padframe::qspim_master_sync(void *__this, int sck, int data_0, int data_1, int data_2, int data_3, int mask, int id)
 {
@@ -373,7 +419,7 @@ void padframe::uart_chip_sync(void *__this, int data, int id)
   group->tx_trace.event((uint8_t *)&data);
   if (!group->master.is_bound())
   {
-    vp_warning_always(&_this->warning, "Trying to send UART stream while pad is not connected (interface: %s)\n", group->name.c_str());
+    //vp_warning_always(&_this->warning, "Trying to send UART stream while pad is not connected (interface: %s)\n", group->name.c_str());
   }
   else
   {
@@ -381,6 +427,21 @@ void padframe::uart_chip_sync(void *__this, int data, int id)
   }
 }
 
+void padframe::uart_chip_sync_full(void *__this, int data, int sck, int rts, int id)
+{
+  padframe *_this = (padframe *)__this;
+  Uart_group *group = static_cast<Uart_group *>(_this->groups[id]);
+  group->tx_trace.event((uint8_t *)&data);
+  group->rts_trace.event((uint8_t *)&rts);
+  if (!group->master.is_bound())
+  {
+    //vp_warning_always(&_this->warning, "Trying to send UART stream while pad is not connected (interface: %s)\n", group->name.c_str());
+  }
+  else
+  {
+    group->master.sync_full(data, sck, rts);
+  }
+}
 
 
 void padframe::uart_master_sync(void *__this, int data, int id)
@@ -393,13 +454,43 @@ void padframe::uart_master_sync(void *__this, int data, int id)
   group->slave.sync(data);
 }
 
+void padframe::uart_master_sync_full(void *__this, int data, int sck, int rts, int id)
+{
+  padframe *_this = (padframe *)__this;
+  Uart_group *group = static_cast<Uart_group *>(_this->groups[id]);
+
+  group->rx_trace.event((uint8_t *)&data);
+  group->cts_trace.event((uint8_t *)&rts);
+
+  group->slave.sync_full(data, sck, rts);
+}
+
 
 
 void padframe::i2s_internal_edge(void *__this, int sck, int ws, int sd, int id)
 {
   padframe *_this = (padframe *)__this;
   I2s_group *group = static_cast<I2s_group *>(_this->groups[id]);
-  //group->tx_trace.event((uint8_t *)&data);
+  int sdi = sd & 0x3;
+  int sdo = sd >> 2;
+
+  group->sck_in = sck;
+  group->ws_in = ws;
+  group->sdi_in = sdi;
+  group->sdo_in = sdo;
+
+  _this->set_pad(&group->sck_in, &group->sck_out, &sck);
+  _this->set_pad(&group->ws_in, &group->ws_out, &ws);
+  _this->set_pad(&group->sdi_in, &group->sdi_out, &sdi);
+  _this->set_pad(&group->sdo_in, &group->sdo_out, &sdo);
+
+  group->sck_trace.event((uint8_t *)&sck);
+  group->ws_trace.event((uint8_t *)&ws);
+  group->sdi_trace.event((uint8_t *)&sdi);
+  group->sdo_trace.event((uint8_t *)&sdo);
+
+  sd = sdi | (sdo << 2);
+
   if (!group->slave.is_bound())
   {
     //vp_warning_always(&_this->warning, "Trying to send I2S stream while pad is not connected (interface: %s)\n", group->name.c_str());
@@ -416,12 +507,33 @@ void padframe::i2s_external_edge(void *__this, int sck, int ws, int sd, int id)
 {
   padframe *_this = (padframe *)__this;
   I2s_group *group = static_cast<I2s_group *>(_this->groups[id]);
+  int sdi = sd & 0x3;
+  int sdo = sd >> 2;
+
+  group->sck_out = sck;
+  group->ws_out = ws;
+  group->sdi_out = sdi;
+  group->sdo_out = sdo;
+
+  _this->set_pad(&group->sck_in, &group->sck_out, &sck);
+  _this->set_pad(&group->ws_in, &group->ws_out, &ws);
+  _this->set_pad(&group->sdi_in, &group->sdi_out, &sdi);
+  _this->set_pad(&group->sdo_in, &group->sdo_out, &sdo);
 
   group->sck_trace.event((uint8_t *)&sck);
   group->ws_trace.event((uint8_t *)&ws);
-  group->sd_trace.event((uint8_t *)&sd);
+  group->sdi_trace.event((uint8_t *)&sdi);
+  group->sdo_trace.event((uint8_t *)&sdo);
+
+  sd = sdi | (sdo << 2);
 
   group->master.sync(sck, ws, sd);
+
+  // Resynchronized the pad value outside after they have been resolved between internal and external state
+  if (group->slave.is_bound())
+  {
+    group->slave.sync(sck, ws, sd);
+  }
 }
 
 
@@ -442,29 +554,15 @@ void padframe::i2c_chip_sync(void *__this, int scl, int sda, int id)
   }
 }
 
-void padframe::i2c_chip_sync_cycle(void *__this, int sda, int id)
-{
-  padframe *_this = (padframe *)__this;
-  I2c_group *group = static_cast<I2c_group *>(_this->groups[id]);
-  group->sda_trace.event((uint8_t *)&sda);
-  if (!group->master.is_bound())
-  {
-    vp_warning_always(&_this->warning, "Trying to send I2C stream while pad is not connected (interface: %s)\n", group->name.c_str());
-  }
-  else
-  {
-    group->master.sync_cycle(sda);
-  }
-}
-
-void padframe::i2c_master_sync(void *__this, int sda, int id)
+void padframe::i2c_master_sync(void *__this, int scl, int sda, int id)
 {
   padframe *_this = (padframe *)__this;
   I2c_group *group = static_cast<I2c_group *>(_this->groups[id]);
 
   group->sda_trace.event((uint8_t *)&sda);
+  group->scl_trace.event((uint8_t *)&scl);
 
-  group->slave.sync(sda);
+  group->slave.sync(scl, sda);
 }
 
 
@@ -523,28 +621,28 @@ void padframe::master_gpio_sync(void *__this, int value, int id)
 {
   padframe *_this = (padframe *)__this;
   Gpio_group *group = static_cast<Gpio_group *>(_this->groups[id]);
-  group->master.sync(value);  
+  group->master.sync(value);
 }
 
 void padframe::gpio_sync(void *__this, int value, int id)
 {
   padframe *_this = (padframe *)__this;
   Gpio_group *group = static_cast<Gpio_group *>(_this->groups[id]);
-  group->master.sync(value);  
+  group->master.sync(value);
 }
 
 void padframe::master_wire_sync(void *__this, int value, int id)
 {
   padframe *_this = (padframe *)__this;
   Wire_group *group = static_cast<Wire_group *>(_this->groups[id]);
-  group->slave.sync(value);  
+  group->slave.sync(value);
 }
 
 void padframe::wire_sync(void *__this, int value, int id)
 {
   padframe *_this = (padframe *)__this;
   Wire_group *group = static_cast<Wire_group *>(_this->groups[id]);
-  group->master.sync(value);  
+  group->master.sync(value);
 }
 
 
@@ -678,11 +776,18 @@ int padframe::build()
         Uart_group *group = new Uart_group(name);
         new_master_port(name + "_pad", &group->master);
         new_slave_port(name, &group->slave);
+
         group->master.set_sync_meth_muxed(&padframe::uart_master_sync, nb_itf);
+        group->master.set_sync_full_meth_muxed(&padframe::uart_master_sync_full, nb_itf);
+
         group->slave.set_sync_meth_muxed(&padframe::uart_chip_sync, nb_itf);
+        group->slave.set_sync_full_meth_muxed(&padframe::uart_chip_sync_full, nb_itf);
+
         this->groups.push_back(group);
         traces.new_trace_event(name + "/tx", &group->tx_trace, 1);
         traces.new_trace_event(name + "/rx", &group->rx_trace, 1);
+        traces.new_trace_event(name + "/cts", &group->cts_trace, 1);
+        traces.new_trace_event(name + "/rts", &group->rts_trace, 1);
         nb_itf++;
       }
       else if (type == "i2s")
@@ -692,10 +797,19 @@ int padframe::build()
         new_master_port(name, &group->master);
         group->master.set_sync_meth_muxed(&padframe::i2s_internal_edge, nb_itf);
         group->slave.set_sync_meth_muxed(&padframe::i2s_external_edge, nb_itf);
+        group->sck_in = 2;
+        group->ws_in = 2;
+        group->sdi_in = 2;
+        group->sdo_in = 2;
+        group->sck_out = 2;
+        group->ws_out = 2;
+        group->sdi_out = 2;
+        group->sdo_out = 2;
         this->groups.push_back(group);
         traces.new_trace_event(name + "/sck", &group->sck_trace, 1);
         traces.new_trace_event(name + "/ws", &group->ws_trace, 1);
-        traces.new_trace_event(name + "/sd", &group->sd_trace, 1);
+        traces.new_trace_event(name + "/sdi", &group->sdi_trace, 1);
+        traces.new_trace_event(name + "/sdo", &group->sdo_trace, 1);
         nb_itf++;
       }
       else if (type == "i2c")
@@ -705,7 +819,6 @@ int padframe::build()
         new_slave_port(name, &group->slave);
         group->master.set_sync_meth_muxed(&padframe::i2c_master_sync, nb_itf);
         group->slave.set_sync_meth_muxed(&padframe::i2c_chip_sync, nb_itf);
-        group->slave.set_sync_cycle_meth_muxed(&padframe::i2c_chip_sync_cycle, nb_itf);
         this->groups.push_back(group);
         traces.new_trace_event(name + "/scl", &group->scl_trace, 1);
         traces.new_trace_event(name + "/sda", &group->sda_trace, 1);

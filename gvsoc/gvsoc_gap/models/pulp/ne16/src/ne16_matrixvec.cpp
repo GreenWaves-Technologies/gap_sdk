@@ -45,13 +45,13 @@ xt::xarray<int64_t> __NormQuant(
 xt::xarray<uint8_t> __WeightUnpack(
   xt::xarray<uint8_t> w,
   int                 size,
-  bool                mode_linear16
+  bool                mode16
 ) {
   w = w.reshape({size,2,1});
   xt::xarray<uint8_t> wu = xt::zeros<uint8_t>({size,2,8});
   xt::view(wu, xt::all(), xt::all()) = xt::view(w, xt::all(), xt::all());
   wu = (wu >> xt::linspace(0, 7, 8).reshape({1, 1, 8})) & 0x1;
-  if(mode_linear16) {
+  if(mode16) {
     return xt::hstack(xt::xtuple(wu.reshape({size*2, 8}), wu.reshape({size*2, 8})));
   }
   return wu.reshape({size, 2*8});
@@ -64,6 +64,7 @@ xt::xarray<int64_t> __BinConvBlock(
   bool mode16=false
 ) {
   if(mode16) {
+    
     xt::xarray<int64_t> wx_lo = xt::view(w, xt::range(0, 8)) * xt::view(x, xt::range(0, 16, 2)); // FIXME size
     xt::xarray<int64_t> wx_hi = xt::view(w, xt::range(0, 8)) * xt::view(x, xt::range(1, 17, 2)); // FIXME size
     auto wx = wx_hi * 256 + wx_lo;
@@ -76,6 +77,7 @@ void Ne16::__BinConvArray(
   xt::xarray<uint8_t>& weight,
   int                  scale,
   int                  idx,
+  xt::xarray<int32_t>  block_enable_linear,
   xt::xarray<int32_t>  row_enable,
   xt::xarray<int32_t>  mac_enable,
   bool                 weight_shift,
@@ -114,7 +116,7 @@ void Ne16::__BinConvArray(
         else if(c==3 && mode16){
           xt::view(weight_lin, xt::range(0, 8)) = xt::view(weight, xt::range(24, 32));
         }
-        xt::view(this->psum_block, c, r) = __BinConvBlock(xt::view(weight_lin, r) * mac_enable, activ, scale_loc, mode16);
+        xt::view(this->psum_block, c, r) = __BinConvBlock(xt::view(weight_lin, r) * mac_enable * xt::view(block_enable_linear, c, r), activ, scale_loc, mode16);
       }
       if(weight_shift && weight_invert) {
         xt::view(this->psum_block, c, r) = -xt::view(this->psum_block, c, r);
@@ -159,13 +161,25 @@ void Ne16::__weightoffs(
     auto weight = __WeightUnpack(weight_ld, read_size, false); //this->mode16 & this->mode_linear);
     auto scale = this->Wmin;
 
-    this->__BinConvArray(weight, scale, this->depthwise ? dw_iter : 0, row_enable, mac_enable, !this->depthwise, false, false, this->mode16, this->mode_linear);
+    xt::xarray<int32_t> block_enable_linear = xt::ones<int32_t>({this->NR_COLUMN, this->COLUMN_SIZE});
+    if(this->mode16 && this->mode_linear) {
+      for(auto rr=0; rr<this->NR_COLUMN; rr++) {
+        for(auto cc=0; cc<this->COLUMN_SIZE; cc++) {
+          auto i_kin_16bit = (cc<8 && rr<4) ? rr*8 + cc :-1;
+          auto k_in_lim = this->load_k_in_lim;
+          xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < k_in_lim) ? 1 : 0);
+        }
+      }
+      std::cout << "block_enable_linear=" << block_enable_linear << "\n";
+    }
+
+    this->__BinConvArray(weight, scale, this->depthwise ? dw_iter : 0, block_enable_linear, row_enable, mac_enable, !this->depthwise, false, false, this->mode16, this->mode_linear);
     
   }
 }
 
 void Ne16::depthwise_setup() {
-  this->k_out_lim_dw = (this->k_out_major == this->subtile_nb_ko-1 && this->subtile_rem_ko != this->TP_OUT && this->subtile_rem_ko != 0) ? this->subtile_rem_ko : this->TP_OUT;
+  this->k_out_lim_dw = (this->k_in_major == this->subtile_nb_ki-1 && this->subtile_rem_ki != this->TP_IN && this->subtile_rem_ki != 0) ? this->subtile_rem_ki : this->TP_IN;
   this->dw_lim = this->depthwise ? this->k_out_lim_dw : 1;
   this->dw_iter = 0;
   this->mac_enable = xt::zeros<int32_t>({this->TP_IN});
@@ -206,7 +220,7 @@ void Ne16::matrixvec_setup() {
   );
   
   // 3x3 mode: layout is (k_out, subtile_nb_ki*qw, 9, TP_IN/8)
-  this->base_addr_W_3x3 = this->weights_ptr + (k_out_major*this->TP_OUT*this->subtile_nb_ki*this->qw + k_in_major*this->qw) * this->FILTER_SIZE*this->FILTER_SIZE * 2;
+  this->base_addr_W_3x3 = this->weights_ptr + (k_out_major*this->TP_OUT*this->subtile_nb_ki*this->qw + k_in_major*this->qw) * this->FILTER_SIZE*this->FILTER_SIZE * (this->mode16 ? 1 : 2);
   this->vld_W_3x3 = Ne16VectorLoad<uint8_t>(
     this,
     this->base_addr_W_3x3, // base_addr
@@ -220,7 +234,7 @@ void Ne16::matrixvec_setup() {
   );
 
   // 1x1 mode: layout is (k_out, subtile_nb_ki, qw, TP_IN/8)
-  this->base_addr_W_1x1 = this->weights_ptr + (k_out_major*this->TP_OUT*this->subtile_nb_ki*this->qw + k_in_major*this->qw) * 2;
+  this->base_addr_W_1x1 = this->weights_ptr + (k_out_major*this->TP_OUT*this->subtile_nb_ki*this->qw + k_in_major*this->qw) * (this->mode16 ? 1 : 2);
   this->vld_W_1x1 = Ne16VectorLoad<uint8_t>(
     this,
     this->base_addr_W_1x1, // base_addr
@@ -234,9 +248,9 @@ void Ne16::matrixvec_setup() {
   );
   
   // linear mode:
-  auto linear_d0_stride = 2 * this->k_in; // distance in QW = 2 * k_in
-  auto linear_d1_stride = this->qw * 2 * this->k_in; // distance in K_IN subtiles = 32
-  this->base_addr_W_linear = this->weights_ptr + this->k_out_major * this->qw * 2 * this->k_in * 32 + k_in_major * 32;
+  auto linear_d0_stride = (this->mode16 ? 1 : 2) * this->k_in; // distance in QW = 2 * k_in
+  auto linear_d1_stride = this->qw * (this->mode16 ? 1 : 2) * this->k_in; // distance in K_IN subtiles = 32
+  this->base_addr_W_linear = this->weights_ptr + this->k_out_major * this->qw * (this->mode16 ? 1 : 2) * this->k_in * 32 + k_in_major * 32;
   this->vld_W_linear = Ne16VectorLoad<uint8_t>(
     this,
     this->base_addr_W_linear, // base_addr
@@ -245,7 +259,7 @@ void Ne16::matrixvec_setup() {
     this->qw, // line_length
     linear_d1_stride, // line_stride
     -1, // block_length
-    32*this->k_in/(this->mode16 ? 2 : 1)*this->qw/8, // block_stride
+    32*this->k_in/(this->mode16 ? 1 : 1)*this->qw/8, // block_stride
     false
   );
 
@@ -264,12 +278,24 @@ int Ne16::matrixvec_cycle() {
   // load and unpack weight bits
   int64_t cycles = 0;
   xt::xarray<uint8_t> weight_ld = vld_W.ex(read_size*2, cycles); // each packet is composed of read_size x 16 bit
-  auto weight = __WeightUnpack(weight_ld, read_size, this->mode16 & this->mode_linear);
+  auto weight = __WeightUnpack(weight_ld, read_size, this->mode16);
   auto scale = 1 << this->mv_qw_iter;
 
   xt::xarray<int32_t> space = xt::logspace(0, 7, 8, 2);
   space = xt::reshape_view(space, {8, 1});
-  this->__BinConvArray(weight, scale, k_out, this->row_enable, this->mac_enable, false, false, this->fs==1 && !this->mode_linear, this->mode16, this->mode_linear);
+
+  xt::xarray<int32_t> block_enable_linear = xt::ones<int32_t>({NR_COLUMN, COLUMN_SIZE});
+  if(this->mode16 && this->mode_linear) {
+    for(auto rr=0; rr<this->NR_COLUMN; rr++) {
+      for(auto cc=0; cc<this->COLUMN_SIZE; cc++) {
+        auto i_kin_16bit = (cc<8 && rr<4) ? rr*8 + cc :-1;
+        auto k_in_lim = this->load_k_in_lim;
+        xt::view(block_enable_linear, rr, cc) = ((i_kin_16bit != -1 && i_kin_16bit < k_in_lim) ? 1 : 0);
+      }
+    }
+  }
+  
+  this->__BinConvArray(weight, scale, k_out, block_enable_linear, this->row_enable, this->mac_enable, false, false, this->fs==1 && !this->mode_linear, this->mode16, this->mode_linear);
 
   return (int) cycles;
 }

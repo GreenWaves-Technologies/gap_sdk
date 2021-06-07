@@ -36,7 +36,14 @@ static inline void pi_perf_conf(unsigned events)
 static inline void pi_perf_cl_reset()
 {
 #ifdef ARCHI_HAS_CLUSTER
-  timer_reset(timer_base_cl(0, 0, 0));
+#ifdef ARCHI_HAS_CC
+  if (pi_core_id() == ARCHI_CC_CORE_ID)
+#else
+  if (pi_core_id() == 0)
+#endif
+  {
+    timer_reset(timer_base_cl(0, 0, 0));
+  }
   cpu_perf_setall(0);
 #endif
 }
@@ -60,7 +67,14 @@ static inline void pi_perf_reset()
 static inline void pi_perf_cl_start()
 {
 #ifdef ARCHI_HAS_CLUSTER
-  timer_start(timer_base_cl(0, 0, 0));
+#ifdef ARCHI_HAS_CC
+  if (pi_core_id() == ARCHI_CC_CORE_ID)
+#else
+  if (pi_core_id() == 0)
+#endif
+  {
+    timer_start(timer_base_cl(0, 0, 0));
+  }
   cpu_perf_conf(PCMR_ACTIVE | PCMR_SATURATE);
 #endif
 }

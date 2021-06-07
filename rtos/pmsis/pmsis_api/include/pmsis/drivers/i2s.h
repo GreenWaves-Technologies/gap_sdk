@@ -509,6 +509,7 @@ struct pi_i2s_conf
                                   the channel specified here. */
     uint32_t ref_clk_freq;       /*!< Configure the ref clk fast value. */
     uint8_t ts_evt_id;           /*!< UDMA Config Event ID for generating the timestamp */
+    uint8_t ws_type;             /*!< Specifies the form of the WS: 0=pulse, 1=i2s stereo mode */
 };
 
 

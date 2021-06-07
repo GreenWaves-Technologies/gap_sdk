@@ -21,7 +21,7 @@ VP_DIRS=pulp pulp/fll pulp/stdout pulp/chips/pulpissimo \
   pulp/chips/multino pulp/efuse pulp/chips/arnold \
   vendor/dolphin pulp/chips/pulpissimo_v1 \
   pulp/rtc pulp/gpio pulp/chips/gap_rev1 pulp/chips/pulp_v1 pulp/chips/vivosoc3_1 \
-  pulp/mram pulp/hwce pulp/chips/gap8_revc pulp/hwacc pulp/ne16
+  pulp/mram pulp/hwce pulp/chips/gap8_revc pulp/hwacc pulp/ne16 pulp/xip gap9/cpu/iss
 
 
 $(info PROPOS  $(ROOT_VP_BUILD_DIR)/props.mk)

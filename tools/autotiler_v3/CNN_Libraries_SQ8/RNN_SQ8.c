@@ -6,8 +6,6 @@
 #include <math.h>
 #include "CNN_BasicKernels_SQ8.h"
 
-#define NEAREST //Use nearest LUT element instead of linearly interpolate
-
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
 
@@ -55,95 +53,6 @@ static inline void Zero(char *__restrict__ To, unsigned int Size, unsigned int C
 	if (Iter & 0x4) *((int *) (To + First + B_CLR(Iter, 3))) = 0;
 	if (Iter & 0x2) *((short int *) (To + First + B_CLR(Iter, 2))) = 0;
 	if (Iter & 0x1) *((signed char *) (To + First + Iter - 1)) = 0;
-}
-
-unsigned short int SIGMOID_LUT_uint16[256] = {
-    32768, 33451, 34133, 34813, 35493, 36169, 36843, 37513, 38180, 38841, 39498,
-    40149, 40794, 41432, 42064, 42688, 43304, 43912, 44511, 45102, 45683, 46255,
-    46817, 47369, 47911, 48443, 48964, 49475, 49975, 50464, 50942, 51409, 51865,
-    52311, 52745, 53169, 53581, 53983, 54374, 54755, 55125, 55485, 55834, 56174,
-    56503, 56823, 57133, 57433, 57724, 58007, 58280, 58544, 58800, 59048, 59288,
-    59519, 59743, 59959, 60168, 60370, 60565, 60753, 60935, 61110, 61279, 61441,
-    61599, 61750, 61896, 62036, 62172, 62302, 62428, 62549, 62666, 62778, 62886,
-    62990, 63090, 63186, 63279, 63368, 63454, 63536, 63615, 63691, 63765, 63835,
-    63903, 63968, 64030, 64090, 64148, 64204, 64257, 64308, 64357, 64405, 64450,
-    64494, 64536, 64576, 64614, 64652, 64687, 64721, 64754, 64786, 64816, 64845,
-    64873, 64900, 64926, 64950, 64974, 64997, 65019, 65039, 65060, 65079, 65097,
-    65115, 65132, 65149, 65164, 65179, 65194, 65208, 65221, 65234, 65246, 65258,
-    65269, 65280, 65291, 65301, 65310, 65319, 65328, 65337, 65345, 65352, 65360,
-    65367, 65374, 65381, 65387, 65393, 65399, 65404, 65410, 65415, 65420, 65425,
-    65429, 65433, 65438, 65442, 65445, 65449, 65453, 65456, 65459, 65462, 65465,
-    65468, 65471, 65474, 65476, 65479, 65481, 65483, 65485, 65488, 65489, 65491,
-    65493, 65495, 65497, 65498, 65500, 65501, 65503, 65504, 65505, 65507, 65508,
-    65509, 65510, 65511, 65512, 65513, 65514, 65515, 65516, 65517, 65517, 65518,
-    65519, 65520, 65520, 65521, 65522, 65522, 65523, 65523, 65524, 65524, 65525,
-    65525, 65526, 65526, 65526, 65527, 65527, 65528, 65528, 65528, 65529, 65529,
-    65529, 65529, 65530, 65530, 65530, 65530, 65531, 65531, 65531, 65531, 65531,
-    65532, 65532, 65532, 65532, 65532, 65532, 65533, 65533, 65533, 65533, 65533,
-    65533, 65533, 65533, 65534, 65534, 65534, 65534, 65534, 65534, 65534, 65534,
-    65534, 65534, 65535};
-
-
-int Sigmoid(int x){
-	/* Input x: Q12 [-8:8] range
-
-	   Output y = sig(x) -> Q15
-	*/
-#ifndef NEAREST
-	int result, ua, ub, ut;
-	int abs_x = (Abs(x) * 3) >> 9; // * 3/4 (*3 >>2) and clip it to [0:255] (>>7) ot be an index of the LUT
-	if (abs_x > 255) {
-		result = 0x1FFFC00; // result = 1 in Q25
-	} else {
-		ua = SIGMOID_LUT_uint16[abs_x];
-		ub = SIGMOID_LUT_uint16[abs_x+1];
-		ut = abs_x & 0xFF;
-		result = (ua << 9) + ut * (ub-ua); // LUT in Q16 * ut in Q9 = Q25
-	}
-	if (x>0) result = result;
-	else     result = (1<<25) - result;
-	return result >> 10;
-#else
-	int result;
-	int abs_x = (Abs(x) * 3) >> 9; // * 3/4 (*3 >>2) and clip it to [0:255] (>>7) ot be an index of the LUT
-	if (abs_x > 255) {
-		result = 0xFFFF; // result = 1 in Q16
-	} else {
-		result = SIGMOID_LUT_uint16[abs_x]; // LUT in Q16
-	}
-	if (x>0) result = result;
-	else     result = (1<<16) - result;
-	return result >> 1;
-#endif
-}
-
-int Tanh(int x){
-#ifndef NEAREST
-	int result, ua, ub, ut;
-	int abs_x = (Abs(x) * 3) >> 8; // 2*x
-	if (abs_x > 255) {
-	  result = 0xFFFF00;
-	} else {
-	  ua = SIGMOID_LUT_uint16[abs_x];
-	  ub = SIGMOID_LUT_uint16[abs_x+1];
-	  ut = abs_x & 0xFF;
-	  result = (ua << 8) + ut * (ub-ua);
-	}
-	if (x>0) result =  result - (1 << 23);
-	else     result = -result + (1 << 23);
-	return result >> 8; // back to 16 bits
-#else
-	int result;
-	int abs_x = (Abs(x) * 3) >> 8; // 2*x
-	if (abs_x > 255) {
-	  result = 0xFFFF;
-	} else {
-	  result = SIGMOID_LUT_uint16[abs_x];
-	}
-	if (x>0) result =  result - (1 << 15);
-	else     result = -result + (1 << 15);
-	return result; // back to 16 bits
-#endif
 }
 
 void RNN_ParKerB32_Hard_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
@@ -839,7 +748,7 @@ void LSTM_ParKerB32_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg)
 
 		int X1 = AT_SCALE(State[TileOff+o] * Of, ((unsigned char *)Infos)[LSTM_CIN_SCALE], ((unsigned char *)Infos)[LSTM_CIN_SCALEN]);
 		/* X1 = c_state = c_state*Of + Oi*Og */
-		X1 = (int) X1 + ((Oi * Og) >> 15+3);
+		X1 = (int) X1 + ((Oi * Og) >> (15+3));
 		
 		/* Write c_state */
 		if (StateInOut) StateInOut[TileOff+o] = gap_clip(AT_SCALE(X1, ((unsigned char *)Infos)[LSTM_COUT_SCALE], ((unsigned char *)Infos)[LSTM_COUT_SCALEN]), 7);
@@ -988,7 +897,7 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 
 		int X1 = AT_SCALE(State[TileOff+o] * Of, ((unsigned char *)Infos)[LSTM_CIN_SCALE], ((unsigned char *)Infos)[LSTM_CIN_SCALEN]);
 		/* X1 = c_state = c_state*Of + Oi*Og */
-		X1 = (int) X1 + ((Oi * Og) >> 15+3);
+		X1 = (int) X1 + ((Oi * Og) >> (15+3));
 		
 		/* Write c_state */
 		if (StateInOut) StateInOut[TileOff+o] = gap_clip(AT_SCALE(X1, ((unsigned char *)Infos)[LSTM_COUT_SCALE], ((unsigned char *)Infos)[LSTM_COUT_SCALEN]), 7);

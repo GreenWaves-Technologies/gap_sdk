@@ -241,6 +241,15 @@ static inline void pi_irq_handler_set(int irq, void (*handler)())
     pos_irq_set_handler(irq, handler);
 }
 
+static inline void pi_irq_mask_enable(int irq)
+{
+    pos_irq_mask_set(1 << irq);
+}
+
+static inline void pi_irq_mask_disable(int irq)
+{
+    pos_irq_mask_clr(1 << irq);
+}
 
 
 #endif

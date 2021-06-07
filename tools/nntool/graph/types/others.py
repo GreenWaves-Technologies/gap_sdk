@@ -16,23 +16,30 @@
 import logging
 
 import numpy as np
+from expressions.symbolic.basic import (Abs, Cos, Exp, Log, Max, Min, Neg, Pow,
+                                        Sin, Sqrt)
 from graph.dim import Dim
 
-from utils.symbolic.basic import Abs, Exp, Log, Max, Min, Neg, Pow, Sqrt
-
-from .base import (CanFuseToExpression, ComparableParameters, InsensitiveToQuantization,
-                   NoSizeChangeParameters, Parameters, SensitiveToOrder,
-                   SingleInputAndOutput, Transposable, expression_op)
+from .base import (CanFuseToExpression, ComparableParameters,
+                   InsensitiveToQuantization, NoSizeChangeParameters,
+                   Parameters, SensitiveToOrder, SingleInputAndOutput,
+                   Transposable, cls_op_name, expression_op)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization):
-    op_name = "transpose"
+@cls_op_name('transpose')
+class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
 
-    def __init__(self, *args, transpose=None, **kwargs):
+    def __init__(self, *args, transpose=None, block_search_up=False, block_search_down=False, **kwargs):
         super(TransposeParameters, self).__init__(*args, **kwargs)
         self.transpose_in = [transpose]
+        self.block_search_up = block_search_up
+        self.block_search_down = block_search_down
+
+    @property
+    def graph_anon_label(self):
+        return ['Transpose']
 
     def get_parameter_size(self):
         return 0
@@ -41,11 +48,23 @@ class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuant
         return [val[i] for i in self.transpose_in[0]]
 
     def does_nothing(self):
-        def not_one(x):
-            return x != 1
-        return list(
-            filter(not_one, self.in_dims[0].shape)) == list(
-                filter(not_one, self.permute(self.in_dims[0].shape)))
+        if not self.transpose_in or not self.transpose_in[0]:
+            return True
+        if not self.in_dims or not self.in_dims[0]:
+            return False
+        shape = self.in_dims[0].shape
+        trans = self.transpose_in[0]
+        shape_idx = [idx if dim > 1 else None for idx, dim in enumerate(shape)]
+        shape_trans = [shape_idx[idx]
+                       for idx in trans if shape_idx[idx] is not None]
+        return shape_trans == sorted(shape_trans)
+
+    def is_same_operation_as(self, other):
+        if self.transpose_in is None:
+            return other.transpose_in is None
+        if other.transpose_in is None:
+            return self.transpose_in is None
+        return tuple(self.transpose_in) == tuple(other.transpose_in)
 
     @property
     def can_equalize(self):
@@ -76,14 +95,10 @@ class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuant
         self._transpose_in = val
 
     def get_output_size(self, in_dims):
-        self.in_dims = self.clone_dim_with_hints(in_dims)
         out_dim = in_dims[0].clone()
         if self.transpose_in:
             out_dim = out_dim.transpose(self.transpose_in[0])
         return [out_dim]
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def __str__(self):
         return "T {} {}".format(
@@ -93,8 +108,8 @@ class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuant
         )
 
 
+@cls_op_name('copy')
 class CopyParameters(Parameters, InsensitiveToQuantization):
-    op_name = "copy"
 
     def __init__(self, *args, **kwargs):
         super(CopyParameters, self).__init__(*args, **kwargs)
@@ -109,19 +124,20 @@ class CopyParameters(Parameters, InsensitiveToQuantization):
     def get_output_size(self, in_dims):
         return [in_dims[0].clone()]
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return ""
 
-class QuantizeParameters(Parameters):
-    op_name = "quantize"
 
-    def __init__(self, *args, from_qtype=None, to_qtype=None, **kwargs):
+@cls_op_name('quantize')
+class QuantizeParameters(Parameters):
+
+    def __init__(self, *args, from_qtype=None, to_qtype=None,
+                 inserted_by_quantizer=False, **kwargs):
         super(QuantizeParameters, self).__init__(*args, **kwargs)
+
         self.from_qtype = from_qtype
         self.to_qtype = to_qtype
+        self.inserted_by_quantizer = inserted_by_quantizer
 
     def get_parameter_size(self):
         return 0
@@ -133,14 +149,12 @@ class QuantizeParameters(Parameters):
     def get_output_size(self, in_dims):
         return [in_dims[0].clone()]
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
-        return ""
+        return f"{self.from_qtype} --> {self.to_qtype}"
 
+
+@cls_op_name('reverse')
 class ReverseParameters(Parameters, InsensitiveToQuantization):
-    op_name = "reverse"
 
     def __init__(self, *args, axis=0, **kwargs):
         super(ReverseParameters, self).__init__(*args, **kwargs)
@@ -156,20 +170,25 @@ class ReverseParameters(Parameters, InsensitiveToQuantization):
     def get_output_size(self, in_dims):
         return [in_dims[0].clone()]
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "A {}".format(self.axis)
 
 
+@cls_op_name('concat')
 class ConcatParameters(Transposable):
-    op_name = "concat"
 
     def __init__(self, *args, axis=None, axis_hint=None, **kwargs):
         super(ConcatParameters, self).__init__(*args, **kwargs)
         self._axis = axis
         self._axis_hint = axis_hint
+
+    @property
+    def graph_label(self):
+        return [self.name, f'Axis {self.axis}']
+
+    @property
+    def graph_anon_label(self):
+        return ['Concat', f'Axis {self.axis}']
 
     @property
     def axis(self):
@@ -187,7 +206,6 @@ class ConcatParameters(Transposable):
         return False
 
     def get_output_size(self, in_dims):
-        self.in_dims = self.clone_dim_with_hints(in_dims)
         if self.transpose_in:
             in_dims = [(in_dim.clone() if self.transpose_in[idx] is None
                         else in_dim.clone().transpose(self.transpose_in[idx]))
@@ -199,9 +217,6 @@ class ConcatParameters(Transposable):
             out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "A {} {} {}".format(
             self.axis,
@@ -210,8 +225,8 @@ class ConcatParameters(Transposable):
         )
 
 
+@cls_op_name('split')
 class SplitParameters(Transposable):
-    op_name = "split"
 
     def __init__(self, *args,
                  act_slices=None,
@@ -223,6 +238,14 @@ class SplitParameters(Transposable):
         self.act_slices = act_slices
         self.out_shapes = out_shapes
         self.axis = axis
+
+    @property
+    def graph_label(self):
+        return [self.name, f'Axis {self.axis}']
+
+    @property
+    def graph_anon_label(self):
+        return ['Split', f'Axis {self.axis}']
 
     def numpy_split(self, arr: np.ndarray):
         slice_specs = [tuple([slice(elem[0], elem[1], elem[2])
@@ -285,9 +308,6 @@ class SplitParameters(Transposable):
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "A {} {} {}".format(
             self.axis,
@@ -296,8 +316,8 @@ class SplitParameters(Transposable):
         )
 
 
+@cls_op_name('gather')
 class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, InsensitiveToQuantization):
-    op_name = "gather"
 
     def __init__(self, *args,
                  axis=None,
@@ -312,8 +332,7 @@ class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, Insen
         return 0
 
     def get_output_size(self, in_dims):
-        in_dim = in_dims[0].clone()
-        self.in_dims = [in_dim]
+        in_dim = in_dims[0]
         new_shape = in_dim.shape[:self.axis:] + \
             list(self.indices.shape) + in_dim.shape[self.axis + 1:]
         return [Dim.unnamed(new_shape)]
@@ -326,16 +345,12 @@ class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, Insen
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "A %s I %s" % (self.axis, self.indices)
 
 
+@cls_op_name('strided_slice')
 class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParameters, InsensitiveToQuantization):
-
-    op_name = "strided_slice"
 
     def __init__(self, *args,
                  act_slice=None,
@@ -345,6 +360,14 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
         super(StridedSliceParameters, self).__init__(*args, **kwargs)
         self.act_slice = act_slice
         self.out_shape = out_shape
+
+    @property
+    def graph_label(self):
+        return [self.name] + ["(%s,%s,%s)" % elem for elem in self.act_slice]
+
+    @property
+    def graph_anon_label(self):
+        return ['Slice'] + ["(%s,%s,%s)" % elem for elem in self.act_slice]
 
     def numpy_slice(self, arr: np.ndarray):
         slice_spec = [slice(elem[0], elem[1], elem[2])
@@ -374,60 +397,6 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
             return False
         return all(tuple(elem) == tuple(oelem) for elem, oelem in zip(self.act_slice, other.act_slice))
 
-    @staticmethod
-    def get_slice(in_shape, spec, begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask):
-        # reduces the TFLITE specs and masks down to regularized slice list without any
-        # elipsises and an output reshape. If only the reshape is necessary returns a boolean
-        # indicating this. If can_reshape is true and inshape == outshape then its a noop
-
-        masks = [begin_mask, end_mask, ellipsis_mask, new_axis_mask, shrink_axis_mask]
-        act_slice = []
-        out_shape = []
-        in_idx = 0
-        can_reshape = True
-        for idx, sz in enumerate(spec):
-            mask = [elem & 0x1 for elem in masks]
-            masks = [elem >> 1 for elem in masks]
-            if in_shape[in_idx] is None:
-                in_idx += 1
-                continue
-
-            if mask[2]:
-                for _ in range(len(in_shape) - (len(spec) - idx) + 1):
-                    act_slice.append((0, in_shape[in_idx], 1))
-                    out_shape.append(in_shape[in_idx])
-                    in_idx += 1
-                continue
-            if mask[4]:
-                if in_shape[in_idx] > 1:
-                    can_reshape = False
-                if sz[0] < 0:
-                    act_idx = in_shape[in_idx] + sz[0]
-                else:
-                    act_idx = sz[0]
-                act_slice.append((act_idx, act_idx + 1, 1))
-                in_idx += 1
-                continue
-            if mask[3]:
-                out_shape.append(1)
-                continue
-
-            beg = 0 if mask[0] else (
-                sz[0] if sz[0] >= 0 else in_shape[in_idx] + sz[0])
-            end = in_shape[in_idx] if mask[1] else (
-                sz[1] if sz[1] >= 0 else in_shape[in_idx] + sz[1])
-
-            act_slice.append((
-                beg,
-                end,
-                sz[2]
-            ))
-            out_shape.append((end - beg)//abs(sz[2]))
-            if beg != 0 or end != in_shape[in_idx] or sz[2] != 1:
-                can_reshape = False
-            in_idx += 1
-        return act_slice, out_shape, can_reshape
-
     def only_slices(self, axis):
         return all(dim == self.act_slice[idx][1] and self.act_slice[idx][0] == 0 and self.act_slice[idx][2] == 1
                    for idx, dim in enumerate(self.in_dims[0].shape) if axis != idx)
@@ -450,82 +419,12 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return ",".join("(%s,%s,%s)" % elem for elem in self.act_slice)
 
 
-class GroupParameters(Parameters, SensitiveToOrder):
-
-    op_name = "group"
-
-    def __init__(self, name, groups, in_dims_hint=None, out_dims_hint=None):
-
-        super(GroupParameters, self).__init__(name,
-                                              in_dims_hint=in_dims_hint,
-                                              out_dims_hint=out_dims_hint)
-        self.groups = groups
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-        assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        in_dims = self.in_dims[0]
-        assert in_dims.c % self.groups == 0
-        out_edges = in_dims.c // self.groups
-        out_c = in_dims.c // out_edges
-        out_dim = in_dims.clone(['c', 'h', 'w'])
-        out_dim.c = out_c
-        out_dim.impose_order(in_dims.order)
-        return [out_dim]
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "GRPS {}".format(
-            self.groups
-        )
-
-
-class CastParameters(Parameters, SingleInputAndOutput):
-    op_name = "cast"
-
-    def __init__(self, *args, in_dtype=None, out_dtype=None, **kwargs):
-        super(CastParameters, self).__init__(*args, **kwargs)
-        self.in_dtype = in_dtype
-        self.out_dtype = out_dtype
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-        assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        out_dim = self.in_dims[0].clone()
-        return [out_dim]
-
-    @property
-    def can_equalize(self):
-        return True
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "%s -> %s" % (self.in_dtype, self.out_dtype)
-
-
+@cls_op_name('pad')
 class PadParameters(Parameters, SingleInputAndOutput):
-    op_name = "pad"
 
     def __init__(self, name, padding=None, pad_vals=None, in_dims_hint=None, out_dims_hint=None):
 
@@ -535,14 +434,20 @@ class PadParameters(Parameters, SingleInputAndOutput):
         self.padding = padding
         self.pad_vals = pad_vals
 
+    @property
+    def graph_label(self):
+        return [self.name, f'Pad {self.padding}']
+
+    @property
+    def graph_anon_label(self):
+        return ['Pad', f'{self.padding}']
+
     def get_parameter_size(self):
         return 0
 
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-
-        out_dim = self.in_dims[0].clone()
+        out_dim = in_dims[0].clone()
         for idx, vals in enumerate(self.padding):
             out_dim[idx] += sum(vals)
         return [out_dim]
@@ -551,60 +456,16 @@ class PadParameters(Parameters, SingleInputAndOutput):
     def can_equalize(self):
         return True
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "PAD {}".format(self.padding)
 
 
-class UpsampleParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
-
-    op_name = "upsample"
-
-    def __init__(self, name, algo, factor, in_dims_hint=None, out_dims_hint=None):
-
-        super(UpsampleParameters, self).__init__(name,
-                                                 in_dims_hint=in_dims_hint,
-                                                 out_dims_hint=out_dims_hint)
-        self.algo = algo
-        self.factor = factor
-
-    def get_parameter_size(self):
-        return 0
-
-    def get_output_size(self, in_dims):
-
-        assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        in_dims = in_dims[0]
-
-        out_dim = in_dims.clone()
-        out_dim = out_dim * self.factor
-        out_dim.impose_order(in_dims.order)
-        return [out_dim]
-
-    @property
-    def can_equalize(self):
-        return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "A {} factor {}".format(
-            self.algo,
-            self.factor
-        )
-
-
 class BinaryOpParameters(CanFuseToExpression, Parameters):
-    op_name = "binary"
 
     def __new__(cls, *args, op_type="maximum", **kwargs):
         if cls is BinaryOpParameters:
             for subcls in BinaryOpParameters.__subclasses__():
-                if op_type == subcls.op_name:
+                if op_type == subcls.CLS_OP_NAME:
                     return super(BinaryOpParameters, cls).__new__(subcls)
             raise ValueError(f'binary op {op_type} not found')
 
@@ -628,9 +489,6 @@ class BinaryOpParameters(CanFuseToExpression, Parameters):
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise ValueError('cannot clone')
-
     def __str__(self):
         return "{} {}".format(
             self._op_type,
@@ -638,28 +496,30 @@ class BinaryOpParameters(CanFuseToExpression, Parameters):
         )
 
 
+@cls_op_name('maximum')
 @expression_op(Max)
 class MaxOpParameters(BinaryOpParameters, InsensitiveToQuantization):
-    op_name = 'maximum'
+    pass
 
 
+@cls_op_name('minimum')
 @expression_op(Min)
 class MinOpParameters(BinaryOpParameters, InsensitiveToQuantization):
-    op_name = 'minimum'
+    pass
 
 
+@cls_op_name('pow')
 @expression_op(Pow)
 class PowOpParameters(BinaryOpParameters):
-    op_name = 'pow'
+    pass
 
 
 class UnaryOpParameters(CanFuseToExpression, Parameters):
-    op_name = "unary"
 
     def __new__(cls, *args, op_type="sqrt", **kwargs):
         if cls == UnaryOpParameters:
             for subcls in UnaryOpParameters.__subclasses__():
-                if op_type == subcls.op_name:
+                if op_type == subcls.CLS_OP_NAME:
                     return super(UnaryOpParameters, cls).__new__(subcls)
             raise ValueError(f'unary op {op_type} not found')
         return super(UnaryOpParameters, cls).__new__(cls)
@@ -684,9 +544,6 @@ class UnaryOpParameters(CanFuseToExpression, Parameters):
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "{} {}".format(
             self._op_type,
@@ -694,33 +551,50 @@ class UnaryOpParameters(CanFuseToExpression, Parameters):
         )
 
 
+@cls_op_name('sqrt')
 @expression_op(Sqrt)
 class SqrtOpParameters(UnaryOpParameters):
-    op_name = 'sqrt'
+    pass
 
 
+@cls_op_name('exp')
 @expression_op(Exp)
 class ExpOpParameters(UnaryOpParameters):
-    op_name = 'exp'
+    pass
 
 
+@cls_op_name('log')
 @expression_op(Log)
 class LogOpParameters(UnaryOpParameters):
-    op_name = 'log'
+    pass
 
 
+@cls_op_name('sin')
+@expression_op(Sin)
+class SinOpParameters(UnaryOpParameters):
+    pass
+
+
+@cls_op_name('cos')
+@expression_op(Cos)
+class CosOpParameters(UnaryOpParameters):
+    pass
+
+
+@cls_op_name('abs')
 @expression_op(Abs)
 class AbsOpParameters(UnaryOpParameters, InsensitiveToQuantization):
-    op_name = 'abs'
+    pass
 
 
+@cls_op_name('neg')
 @expression_op(Neg)
 class NegOpParameters(UnaryOpParameters, InsensitiveToQuantization):
-    op_name = 'neg'
+    pass
 
 
+@cls_op_name('global')
 class GlobalPoolParameters(Transposable, SingleInputAndOutput):
-    op_name = "global"
 
     def __init__(self, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
         super(GlobalPoolParameters, self).__init__(*args, **kwargs)
@@ -739,6 +613,10 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
     @property
     def pool_type(self):
         return self._pool_type
+
+    @keep_dims.setter
+    def keep_dims(self, val):
+        self._keep_dims = val
 
     @axis.setter
     def axis(self, val):
@@ -770,9 +648,6 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "{} A {}{} {} {}".format(
             self._pool_type,
@@ -783,10 +658,8 @@ class GlobalPoolParameters(Transposable, SingleInputAndOutput):
         )
 
 
-class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization):
-    '''This class covers reshapes and transposes'''
-
-    op_name = "reshape"
+@cls_op_name('reshape')
+class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
 
     def __init__(self, *args, old_shape=None, shape=None, **kwargs):
         super(ReshapeParameters, self).__init__(
@@ -796,15 +669,31 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
         self._shape = shape
         self._old_shape = old_shape
 
+    @property
+    def graph_label(self):
+        return [self.name, f'{self.old_shape} to {self.shape}']
+
+    @property
+    def graph_anon_label(self):
+        return ['Reshape', f'{self.old_shape} to {self.shape}']
+
     def does_nothing(self):
         return self.shape.layout_shape == self.old_shape.layout_shape
 
     def get_parameter_size(self):
         return 0
 
+    def is_same_operation_as(self, other):
+        if not isinstance(other, ReshapeParameters):
+            return False
+        if tuple(self.old_shape.shape) != tuple(other.old_shape.shape):
+            return False
+        if tuple(self.shape.shape) != tuple(other.shape.shape):
+            return False
+        return True
+
     def get_output_size(self, in_dims):
         assert len(in_dims) == 1
-        self.in_dims = self.clone_dim_with_hints(in_dims)
         in_dim = in_dims[0]
         self._old_shape = in_dim
         if in_dim.size() != self.shape.size():
@@ -835,9 +724,6 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
     def can_equalize(self):
         return False
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "SHAPE {} {}".format(
             self.shape,
@@ -847,9 +733,8 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
 
 # pylint: disable=abstract-method
 
-
+@cls_op_name('noop')
 class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput, InsensitiveToQuantization):
-    op_name = "noop"
 
     def __init__(self, name, desc=""):
         super(NoOPParameters, self).__init__(name)
@@ -861,9 +746,6 @@ class NoOPParameters(NoSizeChangeParameters, SingleInputAndOutput, InsensitiveTo
     @property
     def can_equalize(self):
         return False
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def compute_load(self):
         return 0
@@ -878,6 +760,7 @@ class UnexecutableOpParameters(Parameters):
     pass
 
 
+@cls_op_name('UNSUPPORTED')
 class UnconvertedOpParameters(UnexecutableOpParameters):
 
     def __init__(self, name, indicated_op_name=None, expected_inputs=None,
@@ -888,16 +771,11 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
         self.indicated_outputs = indicated_outputs
         self.indicated_op_name = indicated_op_name
 
-    @property
-    def op_name(self):
-        return "UNSUPPORTED"
-
     def get_output_size(self, in_dims):
         if self.indicated_outputs:
             return self.indicated_outputs
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        if len(self.in_dims) == 1:
-            return [self.in_dims[0]]
+        if len(in_dims) == 1:
+            return [in_dims[0]]
         return [Dim.unknown()]
 
     @property
@@ -907,13 +785,11 @@ class UnconvertedOpParameters(UnexecutableOpParameters):
     def get_parameter_size(self):
         return 0
 
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
-
     def __str__(self):
         return "UNSUPPORTED OP: %s" % self.indicated_op_name
 
 
+@cls_op_name('UNKNOWN')
 class UnknownOpParameters(UnexecutableOpParameters):
 
     def __init__(self, name, info):
@@ -921,9 +797,8 @@ class UnknownOpParameters(UnexecutableOpParameters):
         self.info = info
 
     def get_output_size(self, in_dims):
-        self.in_dims = self.clone_dim_with_hints(in_dims)
-        if len(self.in_dims) == 1:
-            return [self.in_dims[0]]
+        if len(in_dims) == 1:
+            return [in_dims[0]]
         return [Dim.unknown()]
 
     @property
@@ -932,9 +807,6 @@ class UnknownOpParameters(UnexecutableOpParameters):
 
     def get_parameter_size(self):
         return 0
-
-    def clone(self, name, groupn=None):
-        raise NotImplementedError()
 
     def __str__(self):
         return "Unknown"

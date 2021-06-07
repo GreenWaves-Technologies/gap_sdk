@@ -41,6 +41,7 @@
  *
  */
 typedef enum {
+  PI_CAMERA_CMD_PWM_CLK,            /*!< Clock into the camera. */
   PI_CAMERA_CMD_ON,             /*!< Power-up the camera. */
   PI_CAMERA_CMD_OFF,            /*!< Power-off the camera. */
   PI_CAMERA_CMD_START,          /*!< Start the camera, i.e. it will start sending data on the interface. */
@@ -49,6 +50,7 @@ typedef enum {
   PI_CAMERA_CMD_TRIGGER_MODE,   /*!< Switch to trigger mode in  the camera. */
   PI_CAMERA_CMD_POWERDOWN_MODE, /*!< Power-down the camera. */
   PI_CAMERA_CMD_AEG_INIT,       /*!< Enable and init the camera's AEG (Automatic Exposure and Gain). */
+  PI_CAMERA_CMD_SNAPSHOT        /*!< sanpshot mode. */
 } pi_camera_cmd_e;     /*!< */
 
 /** \enum pi_camera_opts_e
@@ -99,7 +101,7 @@ typedef struct
     uint16_t h;         /*!< Height of the ROI start */
     uint8_t slice_en;   /*!< Slice mode enable */
 } pi_camera_slicing_conf_t;
- 
+
 
 /** \brief Open an image sensor device.
  *

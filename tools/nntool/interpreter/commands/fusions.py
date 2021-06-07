@@ -13,10 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import texttable
 from cmd2 import Cmd2ArgumentParser, with_argparser
-
-from graph.matches.matches import get_fusion, get_fusions, get_pow2_match_group, get_scale8_match_group
 from interpreter.nntool_shell_base import NNToolShellBase
+
+from graph.matches.matches import (get_fusion, get_fusions,
+                                   get_pow2_match_group,
+                                   get_scale8_match_group)
 
 
 class FusionsCommand(NNToolShellBase):
@@ -45,14 +48,19 @@ class FusionsCommand(NNToolShellBase):
     def do_fusions(self, args):
         """
 Carry out the default set of fusions on the graph"""
-        self._check_graph()
         if args.list:
-            self.ppaged("\n".join(["%s - %s" % (name, desc) for name, desc in get_fusions()]))
+            table = texttable.Texttable()
+            table.set_cols_align(['l', 'l'])
+            table.set_max_width(120)
+            table.add_rows([['Name', 'Description']] + get_fusions())
+            self.ppaged(table.draw())
             return
+        self._check_graph()
         if args.apply:
             fusions = [get_fusion(name) for name in args.apply]
-            if not fusions:
-                self.perror('fusion %s not found' % args.apply)
+            invalid_names = [args.apply[idx] for idx, fusion in enumerate(fusions) if fusion is None]
+            if invalid_names:
+                self.perror(f'fusion{"s" if len(invalid_names) > 1 else ""} {", ".join(invalid_names)} not found')
                 return
         elif args.pow2:
             fusions = [get_pow2_match_group()]
