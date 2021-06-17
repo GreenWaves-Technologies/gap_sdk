@@ -143,7 +143,7 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
                 if(bbn - initial_idx >= n_max_bb){ // check if we reched n_max_bb
                     KerArg0->bbox_idx[0]--;
                     CL_CRITICAL_EXIT();
-                    return;
+                    goto exit_double_for;
                 }
                 CL_CRITICAL_EXIT();
                 // Valid BBOX --> alive
@@ -177,6 +177,7 @@ void Ker_SSD_Decoder(Ker_SSD_Decoder_ArgT  *KerArg0 )
             }
     	}
     }
+    exit_double_for:
     gap_waitbarrier(0);
     if (CoreId == 0) KerArg0->bbox_idx[0]--;
 }
