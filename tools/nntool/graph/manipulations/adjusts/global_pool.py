@@ -15,13 +15,13 @@
 
 import logging
 
-from graph.types import GlobalPoolParameters
+from graph.types import GlobalAveragePoolParameters, GlobalMaxPoolParameters
 
 from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@handles(GlobalPoolParameters)
+@handles(GlobalAveragePoolParameters, GlobalMaxPoolParameters)
 class GlobalPoolAdjuster(AdjusterBase):
     def adjust(self, G, node):
         # make sure that node.axis axes are at the RHS of the tensor

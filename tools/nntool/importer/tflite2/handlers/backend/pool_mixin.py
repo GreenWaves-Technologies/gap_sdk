@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.dim import Dim, PoolFilterDim, StrideDim
-from graph.types import GlobalPoolParameters, PoolingParameters
+from graph.types import GlobalPoolingParameters, PoolingParameters
 from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.Pool2DOptions import Pool2DOptions
@@ -51,7 +51,7 @@ class PoolMixin(FilterPadMixin):
         stride_is_one = stride_h == 1 and stride_w == 1
 
         if filter_matches_input and stride_is_one:
-            params = GlobalPoolParameters(node.name,
+            params = GlobalPoolingParameters(node.name,
                                           pool_type=pool_type,
                                           axis=[0, 1],
                                           keep_dims=True,

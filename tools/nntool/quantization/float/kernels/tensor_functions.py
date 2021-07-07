@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
 from typing import cast as typing_cast
+from utils.at_norm import at_norm
 
 import numpy as np
 from graph.types import (ConcatParameters, ConstantInputParameters,
@@ -99,6 +101,34 @@ class QuantizeAny(KernelBase):
         qname = kwargs['qname']
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype=qname)
         if qrec:
+            in_q = qrec.in_qs[0]
+            out_q = qrec.out_qs[0]
+            float_conversion = in_q.is_floating or out_q.is_floating
+            bit_conversion = in_q.bits != out_q.bits
+            if not float_conversion:
+                same_sign = in_q.signed == out_q.signed
+                if in_q.bits > out_q.bits:
+                    bit_diff = in_q.bits - out_q.bits
+                    same_scale = np.allclose(in_q.scale * np.power(2, bit_diff), out_q.scale, atol=0.0001)
+                    same_zeropoint = np.all(in_q.zero_point >> bit_diff == out_q.zero_point)
+                elif out_q.bits > in_q.bits:
+                    bit_diff = out_q.bits - in_q.bits
+                    same_scale = np.allclose(out_q.scale * np.power(2, bit_diff), in_q.scale, atol=0.0001)
+                    same_zeropoint = np.all(in_q.zero_point == out_q.zero_point >> bit_diff)
+                else:
+                    same_scale = np.allclose(out_q.scale, in_q.scale, atol=0.0001)
+                    same_zeropoint = np.all(in_q.zero_point == out_q.zero_point)
+
+                if same_scale and same_sign and bit_conversion and same_zeropoint:
+                    if in_q.bits > out_q.bits:
+                        if in_q.signed:
+                            out_tensor = out_q.clip(at_norm(in_tensors[0].astype(np.int32), in_q.bits - out_q.bits))
+                        else:
+                            out_tensor = out_q.clip(at_norm(in_tensors[0].astype(np.uint32), in_q.bits - out_q.bits))
+                    else:
+                        out_tensor = in_tensors[0].astype(out_q.dtype) << (out_q.bits - in_q.bits)
+                    return qrec.get_outputs(params, [out_tensor], ktype=qname)
+            # in all other conversions should be numerically equivalent to this (within 1 bit)
             out_tensor = qrec.out_qs[0].quantize_from(in_tensors[0], qrec.in_qs[0])
         else:
             out_tensor = in_tensors[0]

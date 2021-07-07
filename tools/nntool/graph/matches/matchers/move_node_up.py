@@ -15,7 +15,7 @@ import logging
 from copy import deepcopy
 
 from graph.types import (ActivationParameters, ConcatParameters,
-                         Conv2DParameters, FcParameters, GlobalPoolParameters,
+                         Conv2DParameters, FcParameters, GlobalPoolingParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
                          PoolingParameters, ReluActivationParameters,
                          ReshapeParameters, TransposeParameters)
@@ -138,7 +138,7 @@ class MoveActivationsMatcherScale8(MoveNodeUpMatcher):
     ValidNodesToPass = (ReshapeParameters,
                         TransposeParameters, ConcatParameters)
     ValidFusions = (Conv2DParameters, FcParameters, PoolingParameters, PoolingParameters,
-                    GlobalPoolParameters, MatrixAddParameters, MatrixMulParameters)
+                    GlobalPoolingParameters, MatrixAddParameters, MatrixMulParameters)
 
     ValidNodes = (ActivationParameters,)
 

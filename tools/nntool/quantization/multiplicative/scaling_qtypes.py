@@ -105,10 +105,19 @@ class MultMulBiasScaleQType(ScalingQType):
         'dtype',
     ]
 
-    def __init__(self, *args, scale=None, dtype=np.uint8, available_bits=8, **kwargs):
+    def __init__(self, *args, scale=None, dtype=np.uint8, available_bits=None, calc_dtype=np.int32, **kwargs):
         super(MultMulBiasScaleQType, self).__init__(*args, dtype=dtype, **kwargs)
+        if available_bits is None:
+            if dtype == np.uint8:
+                available_bits = 8
+            elif dtype == np.uint16:
+                available_bits = 16
+            else:
+                raise ValueError('unexpected dtype for scaling')
+
         self._available_bits = available_bits
         self._pre_normalization = 0
+        self._calc_dtype=np.int64
         self.scale = scale
 
     @classmethod
@@ -179,7 +188,8 @@ class MultMulBiasScaleQType(ScalingQType):
         return apply_scales(self.qbiases,
                             self.qnorms,
                             arr,
-                            axis=axis)
+                            axis=axis,
+                            calc_dtype=self._calc_dtype)
 
     def str_by_chan(self, chan: int):
         return "{}b>>{} {:0.3f}".format(self.bits, self.qnorms[chan], self.qbiases[chan])

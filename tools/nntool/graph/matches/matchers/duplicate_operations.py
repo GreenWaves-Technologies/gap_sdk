@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.dim import Dim
 import logging
 from copy import deepcopy
 from functools import partial
@@ -133,8 +134,10 @@ class MatchDuplicateOperations(Matcher):
                     # merge the weights and biases diwn output channel
                     weights_node.value = np.concatenate(
                         (weights_node.value, weights_other.value), axis=first_filter.get_order_idx('out_c'))
+                    weights_node.dims = Dim.unnamed(weights_node.value.shape)
                     biases_node.value = np.concatenate(
                         (biases_node.value, biases_other.value))
+                    biases_node.dims = Dim.unnamed(biases_node.value.shape)
                     first_filter.out_c += node_other.filter.out_c
                     # wire edge from split
                     out_edges = G.out_edges(node_other.name)

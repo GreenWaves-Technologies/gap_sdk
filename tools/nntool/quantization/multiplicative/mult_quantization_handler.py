@@ -63,7 +63,8 @@ class MultQuantizionHandler(QuantizionHandler):
             if update:
                 this_dtype = in_q.dtype if dtype is None else dtype
                 in_q = QType.from_min_max_sq(in_q.min_val, in_q.max_val,
-                                             dtype=this_dtype, forced=True)
+                                             dtype=this_dtype)
+                in_q.set_forced('zero_point')
             res_qs.append(in_q)
         return res_qs
 

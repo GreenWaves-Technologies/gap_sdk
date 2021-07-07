@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types import GlobalPoolParameters, NNEdge, NoOPParameters
+from graph.types import GlobalPoolingParameters, NNEdge, NoOPParameters
 from importer.common.provisional_dim import ProvisionalDim
 
 class ReducerMixin(object):
@@ -54,7 +54,7 @@ class ReducerMixin(object):
             # axes that are not defined
             axes = [ax - sum([1 if dim is None else 0 for dim in x_shape[:ax:]])
                     for ax in stripped_axes]
-            params = GlobalPoolParameters(valid_name, pool_type=reduce_type, axis=tuple(axes),
+            params = GlobalPoolingParameters(valid_name, pool_type=reduce_type, axis=tuple(axes),
                                           keep_dims=keep_dims)
 
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))

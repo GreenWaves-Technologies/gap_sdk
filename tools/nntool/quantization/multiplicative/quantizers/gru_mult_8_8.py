@@ -22,6 +22,7 @@ from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       option_constraint,
                                                        out_qs_constraint,
                                                        params_type, options)
 
@@ -42,12 +43,27 @@ WEIGHTS_DTYPE = np.int8
         'help': 'how many bits to use in weights',
         'choices' : list(range(2, 9)),
         'default': 8
-    }
+    },
+    {
+        'name': 'force_external_size',
+        'type': str,
+        'help': 'bits to use for features and state',
+        'choices': [8, 16],
+        'default': 8
+    },
+    {
+        'name': 'narrow_weights',
+        'shortcut': 'n',
+        'type': bool,
+        'help': 'scales filter weights with a representation of both 1 and -1 (i.e. -127 - 127 in 8 bits)',
+        'default': True
+    },
 )
 @params_type(GRUParameters)
 @in_qs_constraint({'dtype': np.int8})
 @out_qs_constraint({'dtype': np.int8})
-class GRUMult(RescaleConstantMixin, MultQuantizionHandler):
+@option_constraint(force_external_size={8, None})
+class GRUMult8x8(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -67,9 +83,11 @@ class GRUMult(RescaleConstantMixin, MultQuantizionHandler):
         names = {val: idx for idx, val in enumerate(GRUParameters.INPUT_NAMES)}
 
         for weight_name in ['w_2_z_w', 'w_2_r_w', 'w_2_h_w', 'r_2_z_w', 'r_2_r_w', 'r_2_h_w']:
-            in_qs[names[weight_name]] = deepcopy(in_qs[names[weight_name]])
-            in_qs[names[weight_name]].dtype = WEIGHTS_DTYPE
-            in_qs[names[weight_name]].bits = opts['weight_bits']
+            w_q = in_qs[names[weight_name]]
+            in_qs[names[weight_name]] = QType.from_min_max_sq(
+                w_q.min_val, w_q.max_val,
+                dtype=np.int8, bits=opts['weight_bits'],
+                narrow_range=opts.get('narrow_weights', True))
 
         if params.rnn_same_inout_scale:
             wWz_scale = rWz_scale = np.maximum(

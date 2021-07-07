@@ -133,7 +133,7 @@ class FilterMixin(FilterPadMixin, HandlerOptions):
             oqtype = QType.from_min_max_sq(
                 min_val=oqtype.min_val, max_val=oqtype.max_val)
         else:
-            oqtype = deepcopy(iqtype)
+            oqtype = deepcopy(oqtype)
 
         # dqbias = bias_node.dqvalue
         bias_scale = (iqtype.scale * wqtype.scale).astype(np.float32)

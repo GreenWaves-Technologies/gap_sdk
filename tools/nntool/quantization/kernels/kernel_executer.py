@@ -21,7 +21,6 @@ from graph.types import Parameters
 from graph.types.base import Transposable
 from quantization.handlers_helpers import get_all_subclasses
 from quantization.new_qrec import AllFloatQRec, QRec
-from sklearn.utils import Parallel
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from ..float.kernels import *  # noqa

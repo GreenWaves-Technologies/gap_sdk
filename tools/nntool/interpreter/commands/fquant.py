@@ -50,6 +50,9 @@ class FquantCommand(NNToolShellBase):
     parser_fquant.add_argument('--num_inference',
                                type=int, default=1,
                                help='How many inferences')
+    parser_fquant.add_argument('--seed',
+                               type=int, default=0,
+                               help='numpy random seed, default not set and inputs change every time')
     add_options_to_parser(parser_fquant)
 
     @with_argparser(parser_fquant)
@@ -63,6 +66,8 @@ weights and input data are avalaible."""
         if self.replaying_history and self.history_stats:
             astats = self.history_stats
         else:
+            if args.seed:
+                np.random.seed(args.seed)
             self.G.constant_store.fake = True
             stats_collector = ActivationRangesCollector()
             for _ in range(args.num_inference):

@@ -63,6 +63,10 @@ class OpenCommand(NNToolShellBase):
                              completer_method=Cmd.path_complete,
                              help='graph or state file',
                              metavar="INPUT_GRAPH or STATE_FILE")
+    parser_open.add_argument('--orgmodel_path',
+                             completer_method=Cmd.path_complete,
+                             help='graph file', default=None,
+                             metavar="INPUT_GRAPH or STATE_FILE")
     parser_open.add_argument('-n', '--new',
                              help='open as new graph - keep existing graph open',
                              action='store_true')
@@ -81,7 +85,7 @@ class OpenCommand(NNToolShellBase):
 
         if ext == self.STATE_EXTENSION:
             LOG.info("opening state file %s", graph_file)
-            self.load_state_file(graph_file)
+            self.load_state_file(graph_file, args.orgmodel_path)
         else:
             opts = self.__get_opts(args)
             opts['anonymise'] = self.settings['anonymise']

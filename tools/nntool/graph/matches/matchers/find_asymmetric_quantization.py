@@ -18,7 +18,7 @@
 # from graph.types import (ActivationParameters, ConcatParameters,
 #                          ConstantInputParameters, Conv2DParameters,
 #                          ConvFusionParameters, FcParameters,
-#                          GlobalPoolParameters, InputParameters,
+#                          GlobalPoolingParameters, InputParameters,
 #                          MatrixAddParameters, OutputParameters,
 #                          PoolingParameters, ReshapeParameters)
 
@@ -38,7 +38,7 @@
 # )
 
 # CAN_PROPAGATE_INPUT = (
-#     GlobalPoolParameters, ReshapeParameters, ConcatParameters, ActivationParameters, PoolingParameters
+#     GlobalPoolingParameters, ReshapeParameters, ConcatParameters, ActivationParameters, PoolingParameters
 # )
 
 # ARE_MULTI_INPUT = (

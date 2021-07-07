@@ -23,6 +23,7 @@ from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       option_constraint,
                                                        options,
                                                        out_qs_constraint,
                                                        params_type)
@@ -42,12 +43,27 @@ LOG = logging.getLogger('nntool.' + __name__)
         'help': 'how many bits to use in weights',
         'choices': list(range(2, 9)),
         'default': 8
-    }
+    },
+    {
+        'name': 'force_external_size',
+        'type': str,
+        'help': 'bits to use for features and state',
+        'choices': [8, 16],
+        'default': 8
+    },
+    {
+        'name': 'narrow_weights',
+        'shortcut': 'n',
+        'type': bool,
+        'help': 'scales filter weights with a representation of both 1 and -1 (i.e. -127 - 127 in 8 bits)',
+        'default': True
+    },
 )
 @params_type(LSTMParameters)
 @in_qs_constraint({'dtype': np.int8})
 @out_qs_constraint({'dtype': np.int8})
-class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
+@option_constraint(force_external_size={8, None})
+class LSTMMultMult8x8(RescaleConstantMixin, MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
@@ -56,7 +72,7 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
             return None
         in_qs = deepcopy(in_qs)
         G = kwargs['G']
-        opts = kwargs['opts']
+        opts = kwargs.get('opts', {})
 
         cls.check_valid_ranges(params, stats, idx=0, dirs='out')
         o_q = QType.from_min_max_sq(min_val=stats['range_out'][0]['min'],
@@ -79,10 +95,10 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
             cell_max = params.cell_clip
             ratio_c = cell_max / cell_stat
             if not (ratio_c > 0.9 and ratio_c < 1.1):
-                LOG.warning(
-                    f"C state is forced to a range [-{cell_max}:{cell_max}] different to the one calulated "
-                    f"from the inference statistic [-{cell_stat}:{cell_stat}], consider using nodeoption {params.name} "
-                    "QUANT_C_STATE_WITH_STAT 1 to force it to be the one calculated")
+                msg = (f"C state is forced to a range [-{cell_max}:{cell_max}] different to the one calulated "
+                       f"from the inference statistic [-{cell_stat}:{cell_stat}], consider using nodeoption {params.name} "
+                       "QUANT_C_STATE_WITH_STAT 1 to force it to be the one calculated")
+                LOG.warning('%s', msg)
         else:
             cell_max = cell_stat
 
@@ -110,8 +126,12 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
         scale_pairs = {chan: ('i_2_%s_w' % chan, 'r_2_%s_w' % chan)
                        for chan in ['i', 'o', 'c', 'f']}
         for weight_name in [weight_name for scale_pair in scale_pairs.values() for weight_name in scale_pair]:
-            in_qs[names[weight_name]] = deepcopy(in_qs[names[weight_name]])
-            in_qs[names[weight_name]].dtype = np.int8
+            in_q = in_qs[names[weight_name]]
+            in_qs[names[weight_name]] = QType.from_min_max_sq(
+                in_q.min_val,
+                in_q.max_val,
+                dtype=np.int8,
+                narrow_range=opts.get('narrow_weights'))
             in_qs[names[weight_name]].bits = opts['weight_bits']
 
         w_scales = [(in_qs[names[namei]].scale, in_qs[names[namer]].scale)
@@ -154,23 +174,31 @@ class LSTMMultMult(RescaleConstantMixin, MultQuantizionHandler):
                      i_state_scale for k in ['i', 'o', 'c', 'f']}
         scale_qtypes = {"r_2_%s_q" % k: MultMulBiasScaleQType(
             scale=r_pscale/int_scale) for k, r_pscale in r_pscales.items()}
+        scale_qtypes['r_pscales'] = r_pscales
+        r_pscales['int_scale'] = int_scale
 
         i_pscales = {k: in_qs[names["i_2_%s_w" % k]
                               ].scale * in_scale for k in ['i', 'o', 'c', 'f']}
+        scale_qtypes['i_pscales'] = i_pscales
         # if input and i_state have different scales -> scale the inputs before sum
         # otherwise do nothing and these scales will be ignored
         scale_qtypes.update({"i_2_%s_q" % k: MultMulBiasScaleQType(
             scale=i_pscale/r_pscale) for (k, i_pscale), r_pscale in zip(i_pscales.items(), r_pscales.values())})
 
         if params.hard_act:
-            cell_in_scale = in_qs[names['c_state']].scale/int_scale
+            # int_scale/int_scale because scaled after multiplied by forget
+            cell_in_scale = (in_qs[names['c_state']].scale * int_scale)/int2_scale
             cell_out_scale = int2_scale/in_qs[names['c_state']].scale
             state_out_scale = int3_scale/i_state_scale
+            r_pscales['act_out_scale'] = int_scale
+            r_pscales['c_before_scale'] = int2_scale
         else:
             cell_in_scale = in_qs[names['c_state']
                                   ].scale*out_tanh_sig_scale/int_scale
             cell_out_scale = int_scale/in_qs[names['c_state']].scale
             state_out_scale = out_tanh_sig_scale/i_state_scale
+            r_pscales['act_out_scale'] = out_tanh_sig_scale
+            r_pscales['c_before_scale'] = int_scale
 
         scale_qtypes['cell_in_q'] = MultMulBiasScaleQType(scale=cell_in_scale)
         # TODO - Check cell clip here

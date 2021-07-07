@@ -49,6 +49,16 @@ def verify_edges(G, check_connected=True):
     return problems
 
 
+def verify_edge_connections(G):
+    problems = []
+    for edge in G.edges():
+        if edge.from_node.name not in G:
+            problems.append(f"edge {edge} source node is not in graph")
+        if edge.to_node.name not in G:
+            problems.append(f"edge {edge} destination node is not in graph")
+    return problems
+
+
 def visit(G, in_edge, visited_edges, visited_nodes):
     visited_edges.add(in_edge)
     node = in_edge.to_node
@@ -113,6 +123,7 @@ def verify_node_verifiers(G):
 VERIFIERS = [
     verify_inputs_outputs,
     verify_edges,
+    verify_edge_connections,
     verify_no_cycles,
     verify_weakly_connected,
     verify_node_verifiers
@@ -130,11 +141,13 @@ def verify_graph(G, throw_exception=False):
                 raise GraphIntegrityError('\n'.join(problems))
     return problems
 
+
 def graph_statistics(G):
     node_counts = {}
     edge_count = 0
     for node in G.nodes():
-        node_counts[node.__class__] = node_counts.setdefault(node.__class__, 0) + 1
+        node_counts[node.__class__] = node_counts.setdefault(
+            node.__class__, 0) + 1
         edge_count += len(G.out_edges(node.name))
     for node in node_counts:
         if node.CLS_OP_NAME is None:

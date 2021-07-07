@@ -18,13 +18,15 @@ import logging
 
 from expressions.symbolic.basic import HSigmoid, HTanh, Relu, Sigmoid, TanH
 
-from .base import (CanFuseToExpression, NoSizeChangeParameters,
+from .base import (CanFuseToExpression, ComparableParameters, NoSizeChangeParameters,
                    SingleInputAndOutput, Transposable, expression_op, cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 #pylint: disable=abstract-method
-class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
+
+
+class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput, ComparableParameters):
 
     def __init__(self, name):
         super(ActivationParameters, self).__init__(name)
@@ -35,10 +37,11 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
             return ReluActivationParameters(name)
         if activation_type == "relu6":
             return ReluActivationParameters(name, upper_bound=6)
-        actnames = {act_class.CLS_OP_NAME: act_class for act_class in ActivationParameters.__subclasses__()}
+        actnames = {
+            act_class.CLS_OP_NAME: act_class for act_class in ActivationParameters.__subclasses__()}
         if activation_type in actnames:
             return actnames[activation_type](name)
-        raise ValueError("don't know how to create %s"%activation_type)
+        raise ValueError("don't know how to create %s" % activation_type)
 
     @property
     def graph_label(self):
@@ -58,11 +61,15 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput):
     def compute_load(self):
         return 0
 
+    def is_same_operation_as(self, other):
+        return isinstance(other, self.__class__)
+
     def __str__(self):
         return "Activation {} {}".format(
             self.op_name,
             self.at_options
         )
+
 
 @expression_op(Relu)
 @cls_op_name('relu')
@@ -101,9 +108,15 @@ class ReluActivationParameters(ActivationParameters, CanFuseToExpression):
     def get_expression(self, *args):
         return Relu(*args, lower_bound=self.lower_bound, upper_bound=self.upper_bound)
 
+    def is_same_operation_as(self, other):
+        return (isinstance(other, ReluActivationParameters) and
+                self.lower_bound == other.lower_bound and
+                self.upper_bound == other.upper_bound)
+
     @property
     def can_equalize(self):
         return self.activation == "relu"
+
 
 @cls_op_name('leaky')
 class LeakyActivationParameters(ActivationParameters):
@@ -118,6 +131,10 @@ class LeakyActivationParameters(ActivationParameters):
     @property
     def can_equalize(self):
         return False
+
+    def is_same_operation_as(self, other):
+        return (isinstance(other, LeakyActivationParameters) and self.leak_factor == other.leak_factor)
+
 
 @expression_op(HSigmoid)
 @cls_op_name('hsigmoid')
@@ -138,12 +155,16 @@ class HSigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
     def can_equalize(self):
         return False
 
+    def is_same_operation_as(self, other):
+        return (isinstance(other, HSigmoidActivationParameters) and self.offset == other.offset)
+
     def __str__(self):
         return "Activation {} offset={} {}".format(
             self.activation,
             self.offset,
             self.at_options
         )
+
 
 @cls_op_name('hswish')
 class HSwishActivationParameters(ActivationParameters):
@@ -155,12 +176,12 @@ class HSwishActivationParameters(ActivationParameters):
     def can_equalize(self):
         return False
 
+
 @expression_op(HTanh)
 @cls_op_name('htanh')
 class HTanHActivationParameters(ActivationParameters, CanFuseToExpression):
     def __init__(self, name):
         super(HTanHActivationParameters, self).__init__(name)
-        self.at_options.valid_options['OUT_8BITS'] = int
 
     @property
     def can_equalize(self):
@@ -169,6 +190,7 @@ class HTanHActivationParameters(ActivationParameters, CanFuseToExpression):
     def should_fuse(self, node_set, qrec=None):
         # TODO - HTanH is only supported in an expression currently
         return True
+
 
 @expression_op(TanH)
 @cls_op_name('tanh')
@@ -182,6 +204,7 @@ class TanHActivationParameters(ActivationParameters, CanFuseToExpression):
         # TODO - TanH is only supported in an expression currently
         return True
 
+
 @expression_op(Sigmoid)
 @cls_op_name('sigmoid')
 class SigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
@@ -190,6 +213,7 @@ class SigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
     def can_equalize(self):
         return False
 
+
 @cls_op_name('softmax')
 class SoftMaxParameters(Transposable, SingleInputAndOutput):
 
@@ -197,7 +221,6 @@ class SoftMaxParameters(Transposable, SingleInputAndOutput):
         super(SoftMaxParameters, self).__init__(name)
         self.beta = 0.0 if beta is None else beta
         self.axis = axis
-        self.at_options.valid_options['OUT_8BITS'] = int
 
     def get_parameter_size(self):
         return 0

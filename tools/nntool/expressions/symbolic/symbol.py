@@ -14,6 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from collections.abc import Iterable
+from functools import reduce
 
 import numpy as np
 
@@ -494,6 +495,15 @@ class Variable(Symbol):
             return "np.reshape(np.array(%s), %s)" % (self.name, self.shape)
         return "np.array(%s)" % self.name
 
+    @staticmethod
+    def gen_index(index_vars):
+        # generates d0*D1*D2+d1*D2+d2 from d0, d1, d2 and so on
+        names = sorted(x[0].name for x in index_vars)
+        return "+".join(
+            "*".join(elems)
+            for elems in reduce(
+                lambda s, x: [[x]+[s[0][0].upper()]+s[0][1::]] + s, reversed(names[0:-1:]), [[names[-1]]]))
+
 #pylint: disable=arguments-differ
     def _c_expr(self, *args, declare=False, dtype=None, **kwargs):
         if declare:
@@ -503,7 +513,8 @@ class Variable(Symbol):
                 return "%s %s%s"%(DTYPES_TO_CTYPES[self.dtype], "*" if self._ispointer else "", self.name)
         if self._index_vars is not None:
             if self._index_vars:
-                return "%s[%s]"%(self.name, "+".join("%s*%s"%(v[0].name, v[1]) for v in self._index_vars))
+                return f"{self.name}[{self.gen_index(self._index_vars)}]"
+                # return "%s[%s]"%(self.name, "+".join("%s*%s"%(v[0].name, v[1]) for v in self._index_vars))
             else:
                 if self._ispointer:
                     return "(*%s)"%self.name

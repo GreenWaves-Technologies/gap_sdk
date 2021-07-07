@@ -18,9 +18,10 @@ from functools import reduce
 from generation.at_types.at_params import NO_ACTIVATION, gen_active_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
-from generation.generator_decorators import (QREC_MULT8,
-                                                        generation_function)
-from graph.types import ActivationFusion, GlobalPoolParameters
+from generation.generator_decorators import QREC_MULT8, generation_function
+from graph.types import (ActivationFusion, GlobalAveragePoolParameters,
+                         GlobalMaxPoolParameters, GlobalPoolingParameters,
+                         GlobalSumPoolParameters)
 from utils.largest_factor import balanced_divisors
 
 from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
@@ -32,12 +33,12 @@ from ..pow2.global_pool_kernels_generator import gen_globalpool_at_params
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (GlobalPoolParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
+@generation_function("kernels", (GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
 def global_pool_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
     if isinstance(node, ActivationFusion):
         cnodes = node.contained_nodes()
-        if isinstance(cnodes[0], GlobalPoolParameters):
+        if isinstance(cnodes[0], GlobalPoolingParameters):
             gen.kernels.append(GlobalPoolKernel(
                 node.name, cname, cnodes[0], cnodes[1], at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
             return True
@@ -76,6 +77,8 @@ class GlobalPoolKernel(AutotilerKernel):
         else:
             gen_ctrl.cname = cname
             self.gen_ctrl = gen_ctrl
+        if pool_params.ker_in_order and pool_params.ker_in_order[0] == ["h", "w", "c"]:
+            self.gen_ctrl.hwc = 1
 
         if act_params is not None:
             self.at_act_params = gen_active_at_params(

@@ -348,9 +348,15 @@ class NNToolShellBase(NNToolShellSettings, Cmd):
         self.graph_history = {'history': commands, 'stats': None}
         self._replay_history()
 
-    def load_state_file(self, filepath):
+    def load_state_file(self, filepath, orgmodel_path=None):
         with open(filepath) as fp:
             history = json.load(fp, cls=JsonSerializableStateDecoder)
+        if orgmodel_path:
+            idxs = [i for i, cmd in enumerate(history['history']) if "open" in cmd]
+            for idx in idxs:
+                cmd_list = history['history'][1].split()
+                cmd_list[1] = orgmodel_path
+                history['history'][idx] = ' '.join([str(elem) for elem in cmd_list])
         self.graph_history = history
         self._replay_history()
 

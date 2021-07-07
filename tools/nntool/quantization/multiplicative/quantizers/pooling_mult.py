@@ -15,17 +15,16 @@
 
 import logging
 from copy import deepcopy
-from quantization.qtype import QType
 
 import numpy as np
 from graph.types import PoolingParameters
 from graph.types.pooling import MaxPoolParameters
 from quantization.new_qrec import QRec
+from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        options,
                                                        out_qs_constraint,
-                                                       params_type,
-                                                       priority)
+                                                       params_type, priority)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
@@ -53,7 +52,7 @@ class PoolingMult(MultQuantizionHandler):
         G = kwargs['G']
         in_q = in_qs[0]
 
-        if (in_q.is_asymmetric and params.padding.has_padding):
+        if (in_q.is_asymmetric and isinstance(params, PoolingParameters) and params.padding.has_padding):
             in_qs = cls.force_symmetric(in_qs)
             if in_qs is None:
                 return None
@@ -83,7 +82,7 @@ class PoolingMult(MultQuantizionHandler):
 
     @classmethod
     def can_handle_asymmetric_input(cls, params, **kwargs):
-        return not params.padding.has_padding
+        return not isinstance(params, PoolingParameters) or not params.padding.has_padding
 
     @classmethod
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
@@ -109,7 +108,7 @@ class PoolingMult(MultQuantizionHandler):
         'default': False
     }
 )
-@params_type(MaxPoolParameters)
+@params_type(PoolingParameters)
 @in_qs_constraint({'dtype': set([np.uint8])})
 @out_qs_constraint({'dtype': set([np.uint8])})
 @priority(2)
@@ -145,6 +144,7 @@ class NE16PoolingMult(MultQuantizionHandler):
                         "asymmetric" if o_q.is_asymmetric else "symmetric")
         else:
             o_q = deepcopy(in_q)
+        o_q.attr.ne16 = True
         cls.check_order(params, AT_NE16_KER_IN_ORDER, AT_NE16_KER_OUT_ORDER)
         return QRec.scaled(in_qs=[in_q],
                            out_qs=[o_q],
@@ -161,4 +161,4 @@ class NE16PoolingMult(MultQuantizionHandler):
 
     @classmethod
     def can_handle_asymmetric_input(cls, params, **kwargs):
-        return not params.padding.has_padding
+        return not isinstance(params, PoolingParameters) or not params.padding.has_padding

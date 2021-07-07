@@ -18,7 +18,7 @@ from interpreter.nntool_shell_base import (NODE_SELECTOR_HELP,
                                            NNToolArguementParser,
                                            NNToolShellBase)
 from quantization.handlers_helpers import (add_options_to_parser,
-                                           get_options_from_args)
+                                           get_set_options_from_args)
 from quantization.tuneq import (FLOAT_DTYPES, POW2_DTYPES, tune_float,
                                 tune_options, tune_pow2, tune_scaled)
 
@@ -55,7 +55,7 @@ class QtuneCommand(NNToolShellBase):
 
     def qtune_set_options(self, nodes, node_descr, args):
         self._check_quantized()
-        options = get_options_from_args(args)
+        options = get_set_options_from_args(args)
         tune_options(self.G, nodes, options)
         self.pfeedback(f'set options on {node_descr}')
 

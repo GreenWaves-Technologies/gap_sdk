@@ -13,18 +13,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
 import logging
 
 import numpy as np
 from graph.types import (Conv2DParameters, FcParameters,
-                         HSigmoidActivationParameters,
-                         HSwishActivationParameters, PoolingParameters,
-                         ReluActivationParameters, SigmoidActivationParameters,
-                         HTanHActivationParameters)
+                         HSigmoidActivationParameters, PoolingParameters,
+                         ReluActivationParameters, SigmoidActivationParameters)
 from quantization.multiplicative.scaling_qtypes import MultMulBiasScaleQType
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       option_constraint,
                                                        options,
                                                        out_qs_constraint,
                                                        params_type)
@@ -39,6 +39,44 @@ AT_SW_KER_OUT_ORDER = [['c', 'h', 'w']]
 AT_NE16_KER_IN_ORDER = [['h', 'w', 'c'], [
     'out_c', 'h', 'w', 'in_c'], ['out_c']]
 AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
+
+def can_ne16(fusion, params):
+    if not isinstance(params, (Conv2DParameters, FcParameters)):
+        return False
+    if fusion:
+        if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
+            if any(not isinstance(node, (Conv2DParameters, ReluActivationParameters, PoolingParameters))
+                    for node in fusion.contained_nodes()):
+                return False
+        else:
+            return False
+    if isinstance(params, Conv2DParameters):
+        # if (params.filter.w != params.filter.h or (params.filter.w != 1 and params.filter.w != 3)):
+        #     return False
+        if (params.is_depthwise_conv() and (params.filter.w != 3 or params.filter.h != 3)):
+            return False
+        if (params.stride.size() != 1 and params.stride.shape != [2, 2]):
+            return False
+    return True
+
+def check_option(option, val):
+    if isinstance(option, set):
+        return val in option
+    return val == option
+
+def check_filter_options(is_ne16, input_size, output_size):
+    def check_options(opts, params, **kwargs):
+        if not check_option(input_size, opts.get('force_input_size')):
+            return False
+        if not check_option(output_size, opts.get('force_output_size')):
+            return False
+        fusion = kwargs.get('fusion')
+        if opts.get('force_ne16'):
+            return is_ne16
+        if not opts.get('use_ne16'):
+            return not is_ne16
+        return is_ne16 and can_ne16(fusion, params)
+    return check_options
 
 
 @options(
@@ -81,12 +119,24 @@ AT_NE16_KER_OUT_ORDER = [['h', 'w', 'c']]
         'type': bool,
         'help': 'EXPERIMENTAL - allow soft kernels to use asymmetric quantization where possible',
         'default': False
+    },
+    {
+        'name': 'force_input_size',
+        'type': int,
+        'help': 'number of bits to use for input features',
+        'choices': [8, 16],
+        'default': 8
+    },
+    {
+        'name': 'force_output_size',
+        'type': int,
+        'help': 'number of bits to use for output features',
+        'choices': [8, 16],
+        'default': 8
     }
 )
-@params_type(FcParameters, Conv2DParameters)
-@in_qs_constraint({'dtype': set([np.int8, np.uint8])})
-@out_qs_constraint({'dtype': set([np.int8, np.uint8])})
-class FilterMult(MultQuantizionHandler):
+# pylint: disable=abstract-method
+class FilterMultBase(MultQuantizionHandler):
     @classmethod
     def get_quantized_dimension(cls, params, opts):
         if opts['quantized_dimension'] == 'tensor':
@@ -102,45 +152,71 @@ class FilterMult(MultQuantizionHandler):
             raise ValueError(f"didn't find 3 input edges on {params.name}")
         return edges[1].from_node
 
+    @staticmethod
+    def calculate_bias_offset(params, in_q, weights_node, weights_q, o_q):
+        # calculate bias offset - this will be added to the bias in the kernel
+        # it is already in quantized form
+        axis = tuple([idx for idx in range(len(params.filter.actual_shape)) if idx !=
+                      params.filter.get_order_idx('out_c')])
+        bias_offset = np.zeros((params.filter.out_c, ), dtype=np.int32)
+
+        if in_q.zero_point != 0:
+            # input zero correction is sum(W * Zin) by out_c if weights are channel scaled
+            bias_offset -= np.sum(np.multiply(in_q.zero_point,
+                                              weights_node.value_as(weights_q).astype(
+                                                  np.int32) - weights_q.zero_point,
+                                              dtype=np.int32),
+                                  dtype=np.int32,
+                                  axis=axis)
+        if o_q.zero_point != 0:
+            # output zero correction is So/(Si * Sw) * ZPo by out_c if weights are channel scaled
+            scale = o_q.scale / (in_q.scale * weights_q.scale)
+            bias_offset += np.floor((o_q.zero_point *
+                                     scale) + 0.5).astype(np.int32)
+        if np.all(bias_offset == 0):
+            return None
+        return bias_offset
+
     @classmethod
-    def can_ne16(cls, params, opts, fusion):
-        if opts.get('force_ne16'):
-            return True
-        if not opts.get('use_ne16'):
-            return False
-        if not isinstance(params, (Conv2DParameters, FcParameters)):
-            return False
+    def get_min_max(cls, fusion, stats, all_stats, params):
+        min_val, max_val = None, None
         if fusion:
+            # activation directly after filter
             if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
-                if any(not isinstance(node, (Conv2DParameters, ReluActivationParameters, PoolingParameters))
-                       for node in fusion.contained_nodes()):
-                    return False
+                act_node = fusion.contained_nodes()[1]
+            # activation after pool layer - if max will be swapped to conv_active_pool
+            elif fusion.fusion_type == 'conv_pool_active' and fusion.contained_nodes()[1].pool_type == 'max':
+                act_node = fusion.contained_nodes()[2]
             else:
-                return False
-        if isinstance(params, Conv2DParameters):
-            if (params.filter.w != params.filter.h or (params.filter.w != 1 and params.filter.w != 3)):
-                return False
-            if (params.stride.size() != 1 and params.stride.shape != [2, 2]):
-                return False
-        return True
+                act_node = None
+            if act_node:
+                if isinstance(act_node, HSigmoidActivationParameters):
+                    # Hard sigmoid implements a RELU, be sure 6 can be represented
+                    min_val, max_val = 0, 6
+                elif isinstance(act_node, SigmoidActivationParameters):
+                    # Guarantee Q12 input to sigmoid
+                    min_val, max_val = -8, 8
+                elif isinstance(act_node, ReluActivationParameters):
+                    # Take stats from activation after the convolution
+                    stats = all_stats.get(NodeId(fusion, act_node))
 
-    @classmethod
-    def get_prefered_input_dtypes(cls, params, **kwargs):
-        opts = kwargs['opts']
-        fusion = kwargs.get('fusion', None)
-        if cls.can_ne16(params, opts, fusion):
-            return [np.uint8, np.uint8, np.int32]
-        return [np.int8, np.int8, np.int32]
+        if min_val is None or max_val is None:
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
+        return min_val, max_val
 
+
+@params_type(FcParameters, Conv2DParameters)
+@in_qs_constraint({'dtype': np.int8})
+@out_qs_constraint({'dtype': np.int8})
+@option_constraint(check_filter_options(False, input_size=set([8, None]), output_size=set([8, None])))
+class FilterMult(FilterMultBase):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         # copy in_qs because we may modify it
         in_qs = in_qs.copy()
         opts = kwargs['opts']
         fusion = kwargs.get('fusion', None)
-        if cls.can_ne16(params, opts, fusion):
-            LOG.info('selecting USQ8 NE16 kernel filter quantizer')
-            return cls.quantize_ne16(params, in_qs, stats, **kwargs)
         LOG.info('selecting SQ8 software kernel filter quantizer')
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
@@ -212,7 +288,8 @@ class FilterMult(MultQuantizionHandler):
             params, in_q, weights_node, weights_q, o_q)
 
         if not (opts['allow_asymmetric'] or force_out_q or biases_q.offset is None):
-            raise ValueError(f'bias offset is set but asymmetric is disallowed in {params.name}')
+            raise ValueError(
+                f'bias offset is set but asymmetric is disallowed in {params.name}')
 
         # o_q.set_forced(flags=['dtype'])
         # in_q.set_forced(flags=['dtype'])
@@ -228,65 +305,34 @@ class FilterMult(MultQuantizionHandler):
 
     @classmethod
     def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
-        opts = kwargs['opts']
-        fusion = kwargs.get('fusion', None)
-        return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
-                                      stats['range_in'][idx]['max'],
-                                      dtype=np.uint8 if cls.can_ne16(params, opts, fusion) else np.int8,
-                                      asymmetric=in_qs[idx].is_asymmetric and cls.can_handle_asymmetric_input(params, **kwargs))
-                if dim is not None else None
-                for idx, dim in enumerate(params.in_dims)]
+        return [QType.from_min_max_sq(
+            stats['range_in'][idx]['min'],
+            stats['range_in'][idx]['max'],
+            dtype=np.int8,
+            asymmetric=in_qs[idx].is_asymmetric and cls.can_handle_asymmetric_input(params, **kwargs))
+            if dim is not None else None
+            for idx, dim in enumerate(params.in_dims)]
 
     @classmethod
     def can_handle_asymmetric_input(cls, params, **kwargs):
         if isinstance(params, FcParameters):
             return True
+        return not params.padding.has_padding
+
+
+class FilterMultNE16Base(FilterMultBase):
+    @classmethod
+    def _quantize_ne16(cls, params, in_qs, stats, input_dtype, **kwargs):
+        # copy in_qs because we may modify it
+        in_qs = in_qs.copy()
         opts = kwargs['opts']
         fusion = kwargs.get('fusion', None)
-        if cls.can_ne16(params, opts, fusion):
-            return True
-        return not params.padding.has_padding        
-
-    @classmethod
-    def get_min_max(cls, fusion, stats, all_stats, params):
-        min_val, max_val = None, None
-        if fusion:
-            # activation directly after filter
-            if fusion.fusion_type in ['conv_active_pool', 'conv_active']:
-                act_node = fusion.contained_nodes()[1]
-            # activation after pool layer - if max will be swapped to conv_active_pool
-            elif fusion.fusion_type == 'conv_pool_active' and fusion.contained_nodes()[1].pool_type == 'max':
-                act_node = fusion.contained_nodes()[2]
-            else:
-                act_node = None
-            if act_node:
-                if isinstance(act_node, HSigmoidActivationParameters):
-                    # Hard sigmoid implements a RELU, be sure 6 can be represented
-                    min_val, max_val = 0, 6
-                elif isinstance(act_node, SigmoidActivationParameters):
-                    # Guarantee Q12 input to sigmoid
-                    min_val, max_val = -8, 8
-                elif isinstance(act_node, ReluActivationParameters):
-                    # Take stats from activation after the convolution
-                    stats = all_stats.get(NodeId(fusion, act_node))
-
-        if min_val is None or max_val is None:
-            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
-            min_val, max_val = stats['range_out'][0]['min'], stats['range_out'][0]['max']
-        return min_val, max_val
-
-    @classmethod
-    def quantize_ne16(cls, params, in_qs, stats, **kwargs):
-        opts = kwargs['opts']
+        LOG.info('selecting USQ8 NE16 kernel filter quantizer')
         force_out_qs, _ = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
-        fusion = kwargs.get('fusion', None)
         G = kwargs['G']
         weights_node = cls.get_weights_node(G, fusion if fusion else params)
         min_val, max_val = None, None
-        # note that weights are signed since the zero point of weights is
-        # calculated by NE16. The zero point needs to be removed during
-        # code gen
         weights_q = QType.from_array_sq(arr=weights_node.dqvalue,
                                         quantized_dimension=cls.get_quantized_dimension(
                                             params, opts),
@@ -296,31 +342,33 @@ class FilterMult(MultQuantizionHandler):
                                         bits=opts['weight_bits'])
 
         in_q = in_qs[0]
-        # check input quantization and scale asymmetric uint8
-        if in_q.dtype != np.uint8:
-            # I ignore a force here which is not very clean
-            # if in_q.forced_dtype:
-            #     return None
+
+        # input dtype is either uint8 or int8
+        if in_q.dtype != input_dtype:
+            if in_q.forced_dtype:
+                return None
             cls.check_valid_ranges(params, stats, idx=0, dirs='in')
             in_q = QType.from_min_max_sq(stats['range_in'][0]['min'], stats['range_in'][0]['max'],
-                                         dtype=np.uint8,
-                                         asymmetric=True)
+                                         dtype=input_dtype,
+                                         asymmetric=False)
 
         min_val, max_val = cls.get_min_max(
             fusion, stats, kwargs['all_stats'], params)
 
         if force_out_q:
-            o_q = force_out_q
-            # can't be forced to something not np.uint8
-            if o_q.dtype != np.uint8:
-                return None
+            o_q = deepcopy(force_out_q)
+            o_q.dont_copy_attr = ['ne16']
             LOG.warning('node %s output forced to range %s/%s - actual range %s/%s',
                         params.name, o_q.min, o_q.max, min_val, max_val)
         else:
+            force_output_size = opts.get('force_output_size', 8)
+            output_dtype = np.uint8 if force_output_size == 8 else np.uint16
             o_q = QType.from_min_max_sq(min_val=min_val,
                                         max_val=max_val,
-                                        dtype=np.uint8,
+                                        dtype=output_dtype,
+                                        dont_copy_attr=['ne16'],
                                         asymmetric=True)
+        o_q.attr.ne16 = True
         biases_q = QType(
             dtype=np.int32, scale=weights_q.scale * in_q.scale, ne16_biases=True)
 
@@ -331,7 +379,6 @@ class FilterMult(MultQuantizionHandler):
         # it is already in quantized form
         biases_q.offset = FilterMult.calculate_bias_offset(
             params, in_q, weights_node, weights_q, o_q)
-        cls.check_order(params, AT_NE16_KER_IN_ORDER, AT_NE16_KER_OUT_ORDER)
         # returning the new weights and biases qs will force backprop
 
         cls.check_order(params, AT_NE16_KER_IN_ORDER, AT_NE16_KER_OUT_ORDER)
@@ -345,27 +392,31 @@ class FilterMult(MultQuantizionHandler):
                            mul_biases_q=mul_biases_q,
                            ne16=True)
 
-    @staticmethod
-    def calculate_bias_offset(params, in_q, weights_node, weights_q, o_q):
-        # calculate bias offset - this will be added to the bias in the kernel
-        # it is already in quantized form
-        axis = tuple([idx for idx in range(len(params.filter.actual_shape)) if idx !=
-                      params.filter.get_order_idx('out_c')])
-        bias_offset = np.zeros((params.filter.out_c, ), dtype=np.int32)
+    @classmethod
+    def _get_in_qs_from_stats(cls, params, stats, in_qs, **kwargs):
+        opts = kwargs['opts']
+        in_dtype = np.uint8 if opts.get('force_input_size', 8) == 8 else np.uint16
+        return [QType.from_min_max_sq(stats['range_in'][idx]['min'],
+                                      stats['range_in'][idx]['max'],
+                                      dtype=in_dtype,
+                                      asymmetric=len(stats['range_in'][idx]) == 1)
+                if dim is not None else None
+                for idx, dim in enumerate(params.in_dims)]
 
-        if in_q.zero_point != 0:
-            # input zero correction is sum(W * Zin) by out_c if weights are channel scaled
-            bias_offset -= np.sum(np.multiply(in_q.zero_point,
-                                              weights_node.value_as(weights_q).astype(
-                                                  np.int32) - weights_q.zero_point,
-                                              dtype=np.int32),
-                                  dtype=np.int32,
-                                  axis=axis)
-        if o_q.zero_point != 0:
-            # output zero correction is So/(Si * Sw) * ZPo by out_c if weights are channel scaled
-            scale = o_q.scale / (in_q.scale * weights_q.scale)
-            bias_offset += np.floor((o_q.zero_point *
-                                     scale) + 0.5).astype(np.int32)
-        if np.all(bias_offset == 0):
-            return None
-        return bias_offset
+@params_type(FcParameters, Conv2DParameters)
+@in_qs_constraint({'dtype': np.uint8})
+@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16])})
+@option_constraint(check_filter_options(True, input_size=set([8, None]), output_size=set([8, 16, None])))
+class FilterMultNE16Feat8x8(FilterMultNE16Base):
+    @classmethod
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        return cls._quantize_ne16(params, in_qs, stats, np.uint8, **kwargs)
+
+@params_type(FcParameters, Conv2DParameters)
+@in_qs_constraint({'dtype': np.uint16})
+@out_qs_constraint({'dtype': set([np.uint8, np.int8, np.uint16, np.int16])})
+@option_constraint(check_filter_options(True, input_size=set([16]), output_size=set([8, 16, None])))
+class FilterMultNE16Feat16x8(FilterMultNE16Base):
+    @classmethod
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        return cls._quantize_ne16(params, in_qs, stats, np.uint16, **kwargs)

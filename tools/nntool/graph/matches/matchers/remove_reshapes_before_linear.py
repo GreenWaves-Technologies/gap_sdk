@@ -24,7 +24,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 @match_name("remove_reshapes_before_linear")
 @description("Remove unnecessary reshapes that flatten linear inputs")
-@run_before('*')
+@run_before('fuse_gap_linear')
 @groups('*')
 class RemoveReshapesBeforeLinear(Matcher):
 

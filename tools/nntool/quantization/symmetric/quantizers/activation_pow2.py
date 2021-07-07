@@ -73,6 +73,6 @@ class ActivationPow2(Pow2QuantizionHandler):
             out_q = QType(q=q, dtype=out_dtype)
         else:
             if force_out_q.bits - force_out_q.q < int_bits:
-                LOG.warning('quantization is forcing node %s to have an output that may clip', params.name)
+                return None
             out_q = force_out_q
         return QRec.symmetric(in_qs=[in_q], out_qs=[out_q])

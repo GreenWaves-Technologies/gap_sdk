@@ -17,7 +17,7 @@ import logging
 from abc import abstractproperty
 
 from graph.types import (ActivationFusion, ActivationParameters,
-                         GlobalPoolParameters, HSigmoidActivationParameters,
+                         GlobalPoolingParameters, HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          MatMulOpFusionParameters, MatMulOpParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge,
@@ -61,7 +61,7 @@ VALID_FUSIONS = {
         'symmetric': (VALID_GEN_ACTIVATIONS_POW2, ActivationFusion),
         'float': (VALID_GEN_ACTIVATIONS_FLOAT, ActivationFusion),
     },
-    GlobalPoolParameters: {
+    GlobalPoolingParameters: {
         'scaled': (VALID_GEN_ACTIVATIONS_SQ8, ActivationFusion),
         'symmetric': (VALID_GEN_ACTIVATIONS_POW2, ActivationFusion),
         'float': (VALID_GEN_ACTIVATIONS_FLOAT, ActivationFusion),

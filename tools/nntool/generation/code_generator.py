@@ -15,19 +15,25 @@
 
 import logging
 
+import numpy as np
+from bfloat16 import bfloat16
+
 from expressions.symbolic.kernel_codegen import BasicKernel
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          InputParameters, OutputParameters, ReshapeParameters,
                          SplitParameters, SSDDetectorParameters,
                          TransposeParameters)
 from graph.types.lstm import LSTMParameters
+from graph.types.rnn import RNNBaseParameters
 from utils.node_id import NodeId
 
 from generation.generator_decorators import RegisteredGeneratorsMixin
-from generation.generators import *
+
 # pylint: disable=wildcard-import,unused-wildcard-import
+from generation.generators import *
 from generation.generators.globals.global_names import *
 from generation.name_cache import NameCache
+from generation.new_generators.generator_helpers import NewGenerator
 
 from .at_types.gen_ctrl import gen_graph_ctrl, gen_kernel_ctrl
 from .at_types.tc_arg_info import LocalArgInfo
@@ -47,9 +53,64 @@ CTYPE = {"int8": "signed char",
          "int32": "int",
          "uint32": "unsigned int"}
 
+def dtype2ctype(val):
+    if val.dtype == np.int8:
+        return 'signed char'
+    if val.dtype == np.uint8:
+        return 'unsigned char'
+    if val.dtype == np.int16:
+        return 'signed short'
+    if val.dtype == np.uint16:
+        return 'unsigned short'
+    if val.dtype == np.float32 or val.dtype == np.float64:
+        return 'float'
+    if val.dtype == np.float16:
+        return 'F16'
+    if val.dtype == bfloat16:
+        return 'F16'
+    assert False
 
-class CodeGenerator(RegisteredGeneratorsMixin):
+def dtype2typesuffix(val):
+    if val.dtype == np.int8:
+        return ''
+    if val.dtype == np.uint8:
+        return 'U'
+    if val.dtype == np.int16:
+        return ''
+    if val.dtype == np.uint16:
+        return 'U'
+    if val.dtype == np.float64:
+        return 'F'
+    if val.dtype == np.float32:
+        return 'F'
+    if val.dtype == np.float16:
+        return 'F'
+    if val.dtype == bfloat16:
+        return 'F'
+    assert False
+
+def dtype2fmtcode(val):
+    if val.dtype == np.int8:
+        return 'hhd'
+    if val.dtype == np.uint8:
+        return 'hhu'
+    if val.dtype == np.int16:
+        return 'hd'
+    if val.dtype == np.uint16:
+        return 'hu'
+    if val.dtype == np.float64:
+        return 'f'
+    if val.dtype == np.float32:
+        return 'f'
+    if val.dtype == np.float16:
+        return 'f'
+    if val.dtype == bfloat16:
+        return 'f'
+    assert False
+
+class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def __init__(self, G, naming_convension, opts=None):
+        super().__init__()
         self.G = G
         if self.G.has_transposes:
             raise ValueError(
@@ -309,7 +370,8 @@ class CodeGenerator(RegisteredGeneratorsMixin):
         for _, pnode, _, fnode in self.G.nodes_iterator():
             anode = pnode if not fnode else fnode
             qrec = self.G.quantization.get(NodeId(pnode, fnode))
-            self.execute_phase("globals", anode, qrec, pnode, fnode)
+            if not self.new_execute_phase("globals", anode, qrec, pnode, fnode):
+                self.execute_phase("globals", anode, qrec, pnode, fnode)
 
     def generate_inputs(self):
         inputs = set()
@@ -416,13 +478,18 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 continue
             elif isinstance(node, ConstantInputParameters):
                 # constants that are initializers need to do a binding
-                self.execute_phase("bindings", node, qrec,
-                                   in_eparams, out_eparams, cname)
+                if not self.new_execute_phase("bindings", node, qrec,
+                                              in_eparams, out_eparams, cname):
+                    self.execute_phase("bindings", node, qrec,
+                                       in_eparams, out_eparams, cname)
                 continue
             elif not isinstance(node, (ConcatParameters, SplitParameters)):
-                self.execute_phase("bindings", node, qrec,
-                                   in_eparams, out_eparams, cname)
-                if not self.execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname):
+                if not self.new_execute_phase("bindings", node, qrec,
+                                              in_eparams, out_eparams, cname):
+                    self.execute_phase("bindings", node, qrec,
+                                       in_eparams, out_eparams, cname)
+                if not (self.new_execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname) or
+                        self.execute_phase("kernels", node, qrec, in_eparams, out_eparams, cname)):
                     raise NotImplementedError(f"Don't know how to generate kernel for parameter type {node.name} {node.CLS_OP_NAME}. "
                                               "Perhaps you need to run fusions -a expression_matcher.")
 
@@ -590,15 +657,23 @@ class CodeGenerator(RegisteredGeneratorsMixin):
                 func_name+"_gen", func_name, code=code_block)
         return str(code_block)
 
-    def generate_main_appl_inout_def(self, indent=0):
+    def generate_main_appl_inout_def(self, test_inputs=None, test_outputs=None, indent=0):
         code_block = CodeBlock(starting_indent=indent)
         code_block.write("/* Inputs */")
-        for node in self.G.input_nodes():
+        for i, node in enumerate(self.G.input_nodes()):
             if node.at_options.allocate or node.at_options.extern_input_pointer:
                 continue
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
-            code_block.write(
-                f"L2_MEM {CTYPE[nodeq.ctype]} {node.name}[{node.out_dims[0].size()}];")
+            if test_inputs:
+                inp = nodeq.quantize(test_inputs[i])
+                code_block.write(
+                    'L2_MEM {} {}[] = {{{}}};',
+                    dtype2ctype(inp),
+                    node.name,
+                    ",".join(f'{elem}{dtype2typesuffix(inp)}' for elem in inp.flatten()))
+            else:
+                code_block.write(
+                    f"L2_MEM {CTYPE[nodeq.ctype]} {node.name}[{node.out_dims[0].size()}];")
         code_block.write("/* Outputs */")
         for node in self.G.output_nodes():
             if node.at_options.allocate:
@@ -606,6 +681,14 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
             code_block.write(
                 f"L2_MEM {CTYPE[nodeq.ctype]} {node.name}[{node.out_dims[0].size()}];")
+
+        if test_outputs:
+            for outp in test_outputs:
+                code_block.write(
+                    'L2_MEM {} {}_gt[] = {{{}}};',
+                    dtype2ctype(outp),
+                    node.name,
+                    ",".join(f'{elem}{dtype2typesuffix(outp)}' for elem in outp.flatten()))
         return str(code_block)
 
     def gen_inout_list(self):
@@ -614,8 +697,31 @@ class CodeGenerator(RegisteredGeneratorsMixin):
             if node.at_options.allocate or node.at_options.extern_input_pointer:
                 continue
             inout_str += f"{node.name}, "
+        rnn_present = any([isinstance(node, RNNBaseParameters)
+                           for node in self.G.nodes()])
+        if rnn_present:
+            inout_str += "1, "
         for node in self.G.output_nodes():
             if node.at_options.allocate:
                 continue
             inout_str += f"{node.name}, "
         return inout_str[:-2]
+
+    def generate_output_check(self, indent=0):
+        code = CodeBlock(starting_indent=indent)
+        code.write('int errors;')
+        for idx, out_node in enumerate(self.G.output_nodes()):
+            out_sz = out_node.out_dims[0].size()
+            code.write('errors = 0;')
+            code.write('for (int j=0; j<{}; j++) {{', out_sz)
+            code.indent()
+            code.write(f'if ({out_node.name}[j] != {out_node.name}_gt[j]) ' + '{{')
+            code.indent()
+            code.write('errors++;')
+            code.write(f'printf("Error @ %d: %d instead of %d\\n", j, {out_node.name}[j], {out_node.name}_gt[j]);')
+            code.deindent()
+            code.write("}}")
+            code.deindent()
+            code.write('}}')
+            code.write(f'printf("{out_node.name}: %d/{out_sz} errors\\n", errors);')
+        return str(code)

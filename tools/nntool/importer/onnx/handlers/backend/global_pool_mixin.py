@@ -13,8 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.base import NNEdge
-from graph.types.others import GlobalPoolParameters
+from graph.types import GlobalPoolingParameters, NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 
 
@@ -29,7 +28,7 @@ class GlobalPoolMixin(object):
         x = inputs[0]
         x_shape = x[2].shape
         unknown_dims = sum(1 if dim is None else 0 for dim in x_shape)
-        params = GlobalPoolParameters(
+        params = GlobalPoolingParameters(
             valid_name,
             pool_type=pool_type,
             axis=tuple(range(1, len(x_shape) - unknown_dims)),

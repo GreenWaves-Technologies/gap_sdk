@@ -14,14 +14,17 @@
 
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  NodeBindingList)
-from generation.generator_decorators import QREC_FLOAT, QREC_MULT8, generation_function
-from graph.types import (ResizerParameters, StridedSliceParameters, TransposeParameters,
-                         ActivationFusion, ActivationParameters, GlobalPoolParameters,
-                         PoolingParameters)
+from generation.generator_decorators import (QREC_FLOAT, QREC_MULT8,
+                                             generation_function)
+from graph.types import (ActivationFusion, ActivationParameters,
+                         GlobalAveragePoolParameters, GlobalMaxPoolParameters,
+                         GlobalSumPoolParameters, PoolingParameters,
+                         ResizerParameters, StridedSliceParameters,
+                         TransposeParameters)
 
 
 @generation_function("bindings", (PoolingParameters, ActivationParameters,
-                                  GlobalPoolParameters, ActivationFusion, TransposeParameters,
+                                  GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusion, TransposeParameters,
                                   ResizerParameters, StridedSliceParameters), qrec_types=(QREC_FLOAT, ))
 def in_out_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     if isinstance(node, TransposeParameters):

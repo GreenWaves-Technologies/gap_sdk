@@ -61,13 +61,14 @@ def gen_at_linear_relu(code_block, cname, biases_ds, mulbiases_ds,
                      linear_oper,
                      act_oper)
 
-def gen_at_linear_relu_ne16(code_block, cname, in_size, filter_bits, biases_ds, mulbiases_ds,
+def gen_at_linear_relu_ne16(code_block, cname, in_size, out_size, filter_bits, biases_ds, mulbiases_ds,
                             in_dim, out_dim, linear_oper, act_oper, gen_ctrl, at_ver=3):
     del at_ver
-    code_block.write('CNN_LinearAct_NE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {});',
+    code_block.write('CNN_LinearAct_NE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {});',
                      cname,
                      gen_ctrl,
                      in_size,
+                     out_size,
                      biases_ds,
                      mulbiases_ds,
                      filter_bits,
@@ -148,9 +149,11 @@ class LinearReluKernel(AutotilerKernel):
             gen_ctrl = "0"
 
         if self.ne16:
-            gen_at_linear_relu_ne16(code_block, self.cname, self.in_q.bits//8,
-                                    self.filter_q.bits, self.bias_q.bits//8, 
-                                    self.mulbiases_q.bits//8, self.in_dim, self.out_dim,
+            gen_at_linear_relu_ne16(code_block, self.cname,
+                                    self.in_q.bits//8 if self.in_q.signed else -self.in_q.bits//8,
+                                    self.out_q.bits//8 if self.out_q.signed else -self.out_q.bits//8,
+                                    self.filter_q.bits, self.bias_q.bits//8, self.mulbiases_q.bits//8,
+                                    self.in_dim, self.out_dim,
                                     self.at_linear_params.LinearOper,
                                     self.at_act_params.ReLUOper,
                                     at_ver=self.at_ver, gen_ctrl=gen_ctrl)

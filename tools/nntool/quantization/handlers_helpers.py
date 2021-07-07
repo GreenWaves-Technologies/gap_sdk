@@ -14,12 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from utils.subclasses import get_all_subclasses
 
 import numpy as np
 from iteration_utilities import duplicates
 
 from cmd2.argparse_custom import Cmd2ArgumentParser
-from graph.types import ConstantInputParameters
+from graph.types import ConstantInputParameters, ReluActivationParameters
 from graph.types.base import Parameters
 
 # pylint: disable=wildcard-import,unused-wildcard-import
@@ -32,12 +33,6 @@ from quantization.symmetric.quantizers import *
 from quantization.unified_quantization_handler import QuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
-
-
-def get_all_subclasses(cls):
-    for subclass in cls.__subclasses__():
-        yield from get_all_subclasses(subclass)
-        yield subclass
 
 
 def add_in_handlers(existing, new):
@@ -110,6 +105,24 @@ def get_all_options():
     return options
 
 
+def get_all_options_by_params():
+    options = {}
+    for handler in get_all_subclasses(QuantizionHandler):
+        if handler.PARAMS_TYPE is None or not handler.OPTIONS:
+            continue
+        for params in handler.PARAMS_TYPE:
+            if params == '__default__':
+                params = Parameters
+            options.setdefault(params, {}).update(handler.OPTIONS)
+    for params in get_all_subclasses(Parameters):
+        poptions = {}
+        for k, v in options.items():
+            if issubclass(params, k):
+                poptions.update(v)
+        options[params] = poptions
+    return options
+
+
 def add_options_to_parser(parser: Cmd2ArgumentParser):
     opts = get_all_options()
     shortcuts = [opt['shortcut'] for opt in opts.values() if 'shortcut' in opt]
@@ -130,15 +143,32 @@ def add_options_to_parser(parser: Cmd2ArgumentParser):
             parser.add_argument(*names, **parse_options)
         else:
             parse_options = {k: opt.get(k) for k in [
-                'type', 'choices', 'help', 'default']}
+                'type', 'choices', 'help']}
             names.append(f'--{opt_name}')
             parser.add_argument(*names, **parse_options)
 
 
+def get_arg_or_default(args, opt_name, opt):
+    arg = getattr(args, opt_name)
+    if arg is None:
+        arg = opt.get('default')
+    return arg
+
+
 def get_options_from_args(args):
     return {opt_name: (not getattr(args, f'no_{opt_name}'))
-            if opt.get('type') == bool and opt.get('default') else getattr(args, opt_name)
+            if opt.get('type') == bool and opt.get('default')
+            else get_arg_or_default(args, opt_name, opt)
             for opt_name, opt in get_all_options().items()}
+
+
+def get_set_options_from_args(args):
+    return {opt_name: (not getattr(args, f'no_{opt_name}'))
+            if opt.get('type') == bool and opt.get('default')
+            else getattr(args, opt_name)
+            for opt_name, opt in get_all_options().items()
+            if getattr(args, f'no_{opt_name}' if opt.get('type') == bool
+                       and opt.get('default') else opt_name) is not None}
 
 
 def match_qtype(constraint, qtype_or_dict):
@@ -157,7 +187,14 @@ def match_qtype(constraint, qtype_or_dict):
                 return False
             val = getattr(qtype_or_dict, k)
 
-        if isinstance(v, type(lambda: None)):
+        if k == 'attr':
+            assert isinstance(
+                v, dict), 'expecting dictionary for attribut match'
+            attr = qtype_or_dict.attr
+            if not all(hasattr(attr, attr_k) and getattr(attr, attr_k) == attr_val
+                       for attr_k, attr_val in v.items()):
+                return False
+        elif isinstance(v, type(lambda: None)):
             if not v(val):
                 return False
         elif isinstance(v, set):
@@ -228,6 +265,12 @@ def constrained_in_edges(G, name, in_qs, constraints):
             yield idx, edge, get_closest_qtype(constraints[idx], in_qs[idx])
 
 
+def add_handler(handlers, scheme, scheme_handler):
+    scheme_handlers = handlers.setdefault(scheme, [])
+    if scheme_handler not in scheme_handlers:
+        scheme_handlers.append(scheme_handler)
+
+
 def check_constraints(ignore_edge, handlers, scheme_priorities, in_qs_constraint, out_qs_constraint):
     if handlers is None:
         return None
@@ -239,7 +282,7 @@ def check_constraints(ignore_edge, handlers, scheme_priorities, in_qs_constraint
                 continue
             if out_qs_constraint and not match_out_qs(scheme_handler, out_qs_constraint):
                 continue
-            filtered_phandlers.setdefault(scheme, []).append(scheme_handler)
+            add_handler(filtered_phandlers, scheme, scheme_handler)
 
     # select the handler with the highest scheme priority
     for scheme in scheme_priorities:
@@ -251,34 +294,42 @@ def check_constraints(ignore_edge, handlers, scheme_priorities, in_qs_constraint
 
     return sorted(selected_handlers, key=lambda x: x.PRIORITY)[0]
 
-def check_option_constraints(handlers, params, options):
+
+def check_option_constraints(handlers, params, options, **kwargs):
     filtered_phandlers = {}
     for scheme, scheme_handlers in handlers.items():
         for scheme_handler in scheme_handlers:
             if scheme_handler.OPTION_CONSTRAINT:
                 for k, v in scheme_handler.OPTION_CONSTRAINT.items():
-                    if k not in options:
-                        break
-                    if callable(v):
-                        if not v(params):
+                    if k == '__function_constraint':
+                        if not v(options, params, **kwargs):
                             break
                     else:
-                        if v != options[k]:
+                        set_value = options.get(k)
+                        if callable(v):
+                            if not v(set_value, params, **kwargs):
+                                break
+                        elif isinstance(v, set):
+                            if set_value not in v:
+                                break
+                        elif set_value != v:
                             break
                 else:
-                    filtered_phandlers.setdefault(scheme, []).append(scheme_handler)
+                    add_handler(filtered_phandlers, scheme, scheme_handler)
             else:
-                filtered_phandlers.setdefault(scheme, []).append(scheme_handler)
+                add_handler(filtered_phandlers, scheme, scheme_handler)
     return filtered_phandlers
 
+
 def match_handler(cur_G, handlers, params, scheme_priorities, options,
-                  in_qs_constraint=None, out_qs_constraint=None):
+                  in_qs_constraint=None, out_qs_constraint=None, **kwargs):
     # don't run match on constants or unconnected edges
     ignore_edge = [isinstance(edge.from_node, ConstantInputParameters) if edge is not None else True
                    for edge in cur_G.indexed_in_edges(params.name)]
     # match the class
     params_handlers = handlers.get(params.__class__)
-    params_handlers = check_option_constraints(params_handlers, params, options)
+    params_handlers = check_option_constraints(
+        params_handlers, params, options, **kwargs)
     handler = check_constraints(
         ignore_edge, params_handlers, scheme_priorities, in_qs_constraint, out_qs_constraint)
 

@@ -57,15 +57,15 @@ class ConstraintBase():
 
 
     @staticmethod
-    def option_constraint(**values):
+    def option_constraint(*args, **values):
         def deco_fn(cls):
-            if cls.OPTION_CONSTRAINT is None:
-                constraints = {}
-                setattr(cls, 'OPTION_CONSTRAINT', constraints)
-            else:
-                constraints = getattr(cls, 'OPTION_CONSTRAINT')
-
-            constraints.update(values)
+            if args:
+                if len(args) != 1:
+                    raise ValueError('there should be only one option function constraint')
+                if not callable(args[0]):
+                    raise ValueError('function constraint should be a function')
+                values['__function_constraint'] = args[0]
+            setattr(cls, 'OPTION_CONSTRAINT', values)
             return cls
         return deco_fn
 

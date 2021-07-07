@@ -16,7 +16,7 @@ import logging
 from functools import reduce
 
 from graph.dim import Dim
-from graph.types import GlobalPoolParameters, NNEdge, ReshapeParameters
+from graph.types import GlobalPoolingParameters, NNEdge, ReshapeParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -57,7 +57,7 @@ class CombineReductions(Matcher):
     def reductions(G, node, first_node=None):
         if first_node is None:
             first_node = node
-        if isinstance(node, GlobalPoolParameters) and node.pool_type == first_node.pool_type:
+        if isinstance(node, GlobalPoolingParameters) and node.pool_type == first_node.pool_type:
             out_edges = G.out_edges(node.name)
             if len(out_edges) > 1:
                 return [node]
@@ -65,7 +65,7 @@ class CombineReductions(Matcher):
         return []
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
-        nodes = list(G.nodes(node_classes=GlobalPoolParameters))
+        nodes = list(G.nodes(node_classes=GlobalPoolingParameters))
         modified_graph = False
         while nodes:
             node = nodes.pop()

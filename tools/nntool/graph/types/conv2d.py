@@ -108,7 +108,7 @@ class Conv2DParameters(FilterLikeParameters, MultiplicativeBiasParameters, Trans
         return label
 
     def can_be_grouped_with(self, other):
-        if not isinstance(other, Conv2DParameters):
+        if not isinstance(other, Conv2DParameters) or self.is_grouped_conv() or other.is_grouped_conv():
             return False
         return (self.filter == other.filter and self.padding == other.padding and
                 self.stride == other.stride and self.dilation == other.dilation and

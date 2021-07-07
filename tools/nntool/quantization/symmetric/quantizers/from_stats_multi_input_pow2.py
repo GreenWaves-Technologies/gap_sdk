@@ -16,7 +16,7 @@
 import logging
 
 import numpy as np
-from graph.types import (BinaryOpParameters, GlobalPoolParameters,
+from graph.types import (BinaryOpParameters, GlobalPoolingParameters,
                          MatrixAddParameters,
                          MatrixBroadcastedLinearOpParameters,
                          MatrixSubParameters, MatScaleFusionParameters,
@@ -36,7 +36,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 @params_type(MatrixAddParameters, MatrixSubParameters,
              MatrixBroadcastedLinearOpParameters,
-             MatScaleFusionParameters, GlobalPoolParameters, BinaryOpParameters, UnaryOpParameters,
+             MatScaleFusionParameters, GlobalPoolingParameters, BinaryOpParameters, UnaryOpParameters,
              FusionInputParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
 @out_qs_constraint({'dtype': set([np.int8, np.int16])})

@@ -47,7 +47,7 @@ class GRU(RNNMixin, ConstantMixin, BackendHandler):
         num_directions = 2 if direction == "bidirectional" else 1
         linear_before_reset = bool(node.attrs.get("linear_before_reset", 0))
         if not linear_before_reset:
-            logger.warning("In {} linear_before_reset == 0 not supported by the Autotiler kernels".fromat(valid_name))
+            logger.warning("In %s linear_before_reset == 0 not supported by the Autotiler kernels", valid_name)
         # output_sequence = node.attrs.get("output_sequence", 0)
 
         i_weights = cls.get_constant(inputs[1])

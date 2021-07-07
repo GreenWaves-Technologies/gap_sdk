@@ -348,7 +348,6 @@ class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, Insen
     def __str__(self):
         return "A %s I %s" % (self.axis, self.indices)
 
-
 @cls_op_name('strided_slice')
 class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParameters, InsensitiveToQuantization):
 
@@ -593,69 +592,69 @@ class NegOpParameters(UnaryOpParameters, InsensitiveToQuantization):
     pass
 
 
-@cls_op_name('global')
-class GlobalPoolParameters(Transposable, SingleInputAndOutput):
+# @cls_op_name('global')
+# class GlobalPoolingParameters(Transposable, SingleInputAndOutput):
 
-    def __init__(self, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
-        super(GlobalPoolParameters, self).__init__(*args, **kwargs)
-        self._pool_type = pool_type
-        self._axis = axis
-        self._keep_dims = keep_dims
+#     def __init__(self, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
+#         super(GlobalPoolingParameters, self).__init__(*args, **kwargs)
+#         self._pool_type = pool_type
+#         self._axis = axis
+#         self._keep_dims = keep_dims
 
-    @property
-    def axis(self):
-        return self._axis
+#     @property
+#     def axis(self):
+#         return self._axis
 
-    @property
-    def keep_dims(self):
-        return self._keep_dims
+#     @property
+#     def keep_dims(self):
+#         return self._keep_dims
 
-    @property
-    def pool_type(self):
-        return self._pool_type
+#     @property
+#     def pool_type(self):
+#         return self._pool_type
 
-    @keep_dims.setter
-    def keep_dims(self, val):
-        self._keep_dims = val
+#     @keep_dims.setter
+#     def keep_dims(self, val):
+#         self._keep_dims = val
 
-    @axis.setter
-    def axis(self, val):
-        self._axis = val
+#     @axis.setter
+#     def axis(self, val):
+#         self._axis = val
 
-    def get_parameter_size(self):
-        return 0
+#     def get_parameter_size(self):
+#         return 0
 
-    def get_output_size(self, in_dims):
-        out_dim = in_dims[0].clone()
-        if self.transpose_in:
-            out_dim.transpose(self.transpose_in[0])
+#     def get_output_size(self, in_dims):
+#         out_dim = in_dims[0].clone()
+#         if self.transpose_in:
+#             out_dim.transpose(self.transpose_in[0])
 
-        if self.keep_dims:
-            names = out_dim.keys if out_dim.is_named else None
-            out_dim = Dim(shape=[1 if idx in self._axis else dim
-                                 for idx, dim in enumerate(out_dim.shape)],
-                          names=names, is_ordered=True)
-            if self.transpose_out:
-                out_dim.transpose(self.transpose_out[0])
-        else:
-            out_dim = Dim(shape=[dim for idx, dim in enumerate(out_dim.shape)
-                                 if idx not in self._axis],
-                          is_ordered=True)
+#         if self.keep_dims:
+#             names = out_dim.keys if out_dim.is_named else None
+#             out_dim = Dim(shape=[1 if idx in self._axis else dim
+#                                  for idx, dim in enumerate(out_dim.shape)],
+#                           names=names, is_ordered=True)
+#             if self.transpose_out:
+#                 out_dim.transpose(self.transpose_out[0])
+#         else:
+#             out_dim = Dim(shape=[dim for idx, dim in enumerate(out_dim.shape)
+#                                  if idx not in self._axis],
+#                           is_ordered=True)
 
-        return [out_dim]
+#         return [out_dim]
 
-    @property
-    def can_equalize(self):
-        return False
+#     @property
+#     def can_equalize(self):
+#         return False
 
-    def __str__(self):
-        return "{} A {}{} {} {}".format(
-            self._pool_type,
-            self._axis,
-            " keep_dims " if self._keep_dims else "",
-            Transposable.__str__(self),
-            self.at_options
-        )
+#     def __str__(self):
+#         return "{} A {}{} {} {}".format(
+#             self._pool_type,
+#             self._axis,
+#             " keep_dims " if self._keep_dims else "",
+#             Transposable.__str__(self),
+#             self.at_options
+#         )
 
 
 @cls_op_name('reshape')
@@ -682,6 +681,39 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
 
     def get_parameter_size(self):
         return 0
+
+    def exp_red_pattern(self):
+        """ If the reshape is an expand or reduce dim i.e. adds or removes 1 size axes then
+        return a pattern with True indicating an added axis, False a removed axis and None
+        an unchanged axis"""
+        if not self.does_nothing():
+            return None
+        res = []
+        s1 = self._old_shape.shape.copy()
+        s2 = self._shape.shape.copy()
+        while s1 and s2:
+            if not s1:
+                top = s2.pop(0)
+                assert top == 1
+                res.append(True)
+            elif not s2:
+                top = s1.pop(0)
+                assert top == 1
+                res.append(False)
+            else:
+                if s1[0] == s2[0]:
+                    s1.pop(0)
+                    s2.pop(0)
+                    res.append(None)
+                elif s1[0] == 1:
+                    s1.pop(0)
+                    res.append(False)
+                elif s2[0] == 1:
+                    s2.pop(0)
+                    res.append(True)
+                else:
+                    raise ValueError('shape issue in exp_red_pattern')
+        return res
 
     def is_same_operation_as(self, other):
         if not isinstance(other, ReshapeParameters):

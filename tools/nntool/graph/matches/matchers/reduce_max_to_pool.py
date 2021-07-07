@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# from graph.types import ReduceMaxParameters, GlobalPoolParameters
+# from graph.types import ReduceMaxParameters, GlobalPoolingParameters
 # from utils.graph import GraphView
 # from .matcher import DefaultMatcher, MatchNode, DontReplaceError
 
@@ -33,6 +33,6 @@
 #         for idx, in_dim in enumerate(reduce_max_node.in_dims[0].shape):
 #             if idx > 0 and idx not in reduce_max_node.axis and in_dim == 1:
 #                 raise DontReplaceError()
-#         return GlobalPoolParameters(reduce_max_node.name + "_GLOBAL_MAXPOOL", pool_type='max',
+#         return GlobalPoolingParameters(reduce_max_node.name + "_GLOBAL_MAXPOOL", pool_type='max',
 #                                     in_dims_hint=reduce_max_node.in_dims_hint,
 #                                     out_dims_hint=reduce_max_node.out_dims_hint), None, None

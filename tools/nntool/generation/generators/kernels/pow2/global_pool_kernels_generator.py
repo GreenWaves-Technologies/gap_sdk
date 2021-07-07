@@ -21,7 +21,7 @@ from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generator_decorators import (QREC_POW2,
                                                         generation_function)
-from graph.types import GlobalPoolParameters
+from graph.types import GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters
 from utils.largest_factor import balanced_divisors
 
 from ..autotiler_kernel import AutotilerKernel
@@ -36,7 +36,7 @@ POOL_OPERS = {
 
 
 @generation_function("kernels",
-                     (GlobalPoolParameters, ),
+                     (GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters),
                      qrec_types=(QREC_POW2, ))
 def global_pool_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams

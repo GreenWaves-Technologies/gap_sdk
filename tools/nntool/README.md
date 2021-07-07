@@ -69,7 +69,7 @@ or
 
 	nntool /path/to/model.onnx
 
-TFLite execution kernels use HxWxC order for the activations and C<sub>out</sub>xHxWxC<sub>in</sub> order for filters. On the other hand, the Autotiler, and therefore GAP execution kernels, use CxHxW activations and C<sub>out</sub>xC<sub>in</sub>xHxW filters. The adjust process also attempts to remove any unnecessary transposes in the agraph so even with ONNX graphs which are in CxHxW format it should be run.
+TFLite execution kernels use HxWxC order for the activations and C<sub>out</sub>xHxWxC<sub>in</sub> order for filters. On the other hand, the Autotiler, and therefore GAP execution kernels, use CxHxW activations and C<sub>out</sub>xC<sub>in</sub>xHxW filters. _adjust_ will convert all the HxWxC tensors into CxHxW and insert the proper transposes operations when needed. The _adjust_ process also attempts to remove any unnecessary transposes in the graph so even with ONNX graphs which are in CxHxW format it should be run.
 
 To increase the efficiency of the kernels, the Autotiler uses fused layers (e.g. Convolution followed by a pooling and a ReLU can be performed by a single AT layer: ConvPoolRelu). For these reasons, to generate the compatible AT model, the NNTOOL has to apply graph transformations and match the Autotiler features:
 
@@ -81,6 +81,10 @@ IMPORTANT: the _fusions_ type (scale8 vs pow2) must match the quantization schem
 To see the current NNTOOL model topology use:
 
 	show
+
+Another command useful to visualize the network topology is _draw_. It will display a graph topology with nodes and edges in a visual way:
+
+	draw [--quant_labels: to visualize each node output node]
 
 ## Operator Support
 

@@ -32,6 +32,10 @@ def find_next_dim(shape, next_idx):
     return None
 
 def at_tensor_loader(filename, exception_on_error=False):
+    with open(filename, "r") as pfile:
+        return at_tensor_loader_int(pfile, exception_on_error=exception_on_error)
+
+def at_tensor_loader_int(fp, exception_on_error=False):
     re_head = re.compile(
         r'^Node: (?P<node_name>[a-zA-Z_][a-zA-Z0-9_]*)'
         r', Argument: (?P<arg_name>[a-zA-Z_][a-zA-Z0-9_]*)'
@@ -55,106 +59,105 @@ def at_tensor_loader(filename, exception_on_error=False):
     state = 'start'
     tensors = {}
     line_num = -1
-    with open(filename, "r") as pfile:
-        for line in pfile:
-            line_num += 1
-            if state == 'start':
-                match = re_head.search(line)
-                if not match:
-                    continue
-                header = match.group('node_name', 'arg_name', 'dims', 'd0',
-                                     'd1', 'd2', 'd3', 'd4', 'item_size')
-                shape = [int(i) for i in [header[3], header[4], header[5],
-                                          header[6], header[7]]]
-                dims = int(header[2])
-                shape = shape[(5-dims):]
-                next_idx = [-1] * dims
-                node_name = header[0]
-                node_tensors = tensors.get(node_name)
-                if not node_tensors:
-                    node_tensors = {}
-                    tensors[node_name] = node_tensors
-                arg_name = header[1]
-                item_size = int(header[8])
-                dims_read = 0
-                value = []
+    for line in fp:
+        line_num += 1
+        if state == 'start':
+            match = re_head.search(line)
+            if not match:
+                continue
+            header = match.group('node_name', 'arg_name', 'dims', 'd0',
+                                    'd1', 'd2', 'd3', 'd4', 'item_size')
+            shape = [int(i) for i in [header[3], header[4], header[5],
+                                        header[6], header[7]]]
+            dims = int(header[2])
+            shape = shape[(5-dims):]
+            next_idx = [-1] * dims
+            node_name = header[0]
+            node_tensors = tensors.get(node_name)
+            if not node_tensors:
+                node_tensors = {}
+                tensors[node_name] = node_tensors
+            arg_name = header[1]
+            item_size = int(header[8])
+            dims_read = 0
+            value = []
+            state = 'read_dims'
+        elif state == 'read_dims' and dims >= 2 and (dims - dims_read) == 2:
+            match = re_last2.search(line)
+            if not match:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
+                state = 'start'
+                continue
+            header = [int(elem) for elem in match.group('dim_pen', 'dim_pen_start', 'dim_last',
+                                                        'dim_last_start', 'dim_last_end')]
+            if header[0] != dims_read or header[2] != dims_read + 1:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
+                state = 'start'
+                continue
+            next_idx[header[0]] = header[1] + 1
+            next_idx[header[2]] = header[4]
+            cur_block_len = header[4] - header[3]
+            cur_block_read = 0
+            state = 'read_data'
+        elif state == 'read_dims' and dims == 1 and dims_read == 0:
+            match = re_last1.search(line)
+            if not match:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
+                state = 'start'
+                continue
+            header = [int(elem) for elem in match.group(
+                'dim_last', 'dim_last_start', 'dim_last_end')]
+            if header[0] != dims_read:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
+                state = 'start'
+                continue
+            next_idx[header[0]] = header[2]
+            cur_block_len = header[2] - header[1]
+            cur_block_read = 0
+            state = 'read_data'
+        elif state == 'read_dims':
+            match = re_cont.search(line)
+            if not match:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting dim', line_num)
+                state = 'start'
+                continue
+            header = [int(elem) for elem in match.group('dim', 'dim_idx')]
+            if header[0] != dims_read:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
+                state = 'start'
+                continue
+            next_idx[header[0]] = header[1] + 1
+            dims_read += 1
+        elif state == 'read_data':
+            read = 0
+            try:
+                for i in line.split():
+                    value.append(int(i))
+                    read += 1
+            except ValueError:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - read error in state %s', line_num, state)
+                state = 'start'
+                continue
+
+            cur_block_read += read
+
+            if cur_block_read == cur_block_len:
                 state = 'read_dims'
-            elif state == 'read_dims' and dims >= 2 and (dims - dims_read) == 2:
-                match = re_last2.search(line)
-                if not match:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
+                dims_read = find_next_dim(shape, next_idx)
+                if dims_read is None:
                     state = 'start'
-                    continue
-                header = [int(elem) for elem in match.group('dim_pen', 'dim_pen_start', 'dim_last',
-                                                            'dim_last_start', 'dim_last_end')]
-                if header[0] != dims_read or header[2] != dims_read + 1:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
-                    state = 'start'
-                    continue
-                next_idx[header[0]] = header[1] + 1
-                next_idx[header[2]] = header[4]
-                cur_block_len = header[4] - header[3]
-                cur_block_read = 0
-                state = 'read_data'
-            elif state == 'read_dims' and dims == 1 and dims_read == 0:
-                match = re_last1.search(line)
-                if not match:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting last dim', line_num)
-                    state = 'start'
-                    continue
-                header = [int(elem) for elem in match.group(
-                    'dim_last', 'dim_last_start', 'dim_last_end')]
-                if header[0] != dims_read:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
-                    state = 'start'
-                    continue
-                next_idx[header[0]] = header[2]
-                cur_block_len = header[2] - header[1]
-                cur_block_read = 0
-                state = 'read_data'
-            elif state == 'read_dims':
-                match = re_cont.search(line)
-                if not match:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - expecting dim', line_num)
-                    state = 'start'
-                    continue
-                header = [int(elem) for elem in match.group('dim', 'dim_idx')]
-                if header[0] != dims_read:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong dim', line_num)
-                    state = 'start'
-                    continue
-                next_idx[header[0]] = header[1] + 1
-                dims_read += 1
-            elif state == 'read_data':
-                read = 0
-                try:
-                    for i in line.split():
-                        value.append(int(i))
-                        read += 1
-                except ValueError:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - read error in state %s', line_num, state)
-                    state = 'start'
-                    continue
-
-                cur_block_read += read
-
-                if cur_block_read == cur_block_len:
-                    state = 'read_dims'
-                    dims_read = find_next_dim(shape, next_idx)
-                    if dims_read is None:
-                        state = 'start'
-                        if arg_name in node_tensors.keys():
-                            node_tensors[arg_name] = np.concatenate((node_tensors[arg_name],
-                                np.array(value, dtype=np.dtype('i'+str(item_size))).reshape(shape)), axis=0)
-                        else:
-                            node_tensors[arg_name] = np.array(
-                                value, dtype=np.dtype('i'+str(item_size))).reshape(shape)
+                    if arg_name in node_tensors.keys():
+                        node_tensors[arg_name] = np.concatenate((node_tensors[arg_name],
+                            np.array(value, dtype=np.dtype('i'+str(item_size))).reshape(shape)), axis=0)
                     else:
-                        state = 'read_dims'
-                elif cur_block_read > cur_block_len:
-                    do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong number of elements in data block', line_num)
-                    state = 'start'
-                    continue
+                        node_tensors[arg_name] = np.array(
+                            value, dtype=np.dtype('i'+str(item_size))).reshape(shape)
+                else:
+                    state = 'read_dims'
+            elif cur_block_read > cur_block_len:
+                do_warning(node_tensors, arg_name, '[%s] bad_tensor - wrong number of elements in data block', line_num)
+                state = 'start'
+                continue
     return tensors
 
 def add_result(result, idx, val, shape=None, dtype=None, node=None):

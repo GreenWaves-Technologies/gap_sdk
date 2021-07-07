@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     if (TilerParseOptions(argc, argv)) {
             printf("Failed to initialize or incorrect output arguments directory.\\n"); return 1;
     }
-    ${gen.project_name}Model(52000, 300*1024, 8*1024*1024, 20*1024*1024);
+    ${gen.project_name}Model(${gen.opts['l1_size']}, ${gen.opts['l2_size']}, ${gen.opts['l3_size']}, 20*1024*1024);
     GenerateTilingCode();
     return 0;
 }
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     if (TilerParseOptions(argc, argv)) {
             printf("Failed to initialize or incorrect output arguments directory.\\n"); return 1;
     }
-    ${gen.project_name}Model(52000, 300*1024, 8*1024*1024, 20*1024*1024);
+    ${gen.project_name}Model(${gen.opts['l1_size']}, ${gen.opts['l2_size']}, ${gen.opts['l3_size']}, ${gen.opts['l3_flash_mb']}*1024*1024);
     GenerateTilingCode();
     return 0;
 }

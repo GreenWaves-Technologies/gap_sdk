@@ -42,6 +42,7 @@ class InputPow2(Pow2QuantizionHandler):
             if force_out_q.is_pow2 and force_out_q.bits - force_out_q.q < o_q.bits - o_q.q:
                 LOG.warning('%s is being forced to output in Q%s and may clip',
                             params.name, force_out_q.q)
+            # force_out_q.set_forced()
             o_q = force_out_q
 
         return QRec.symmetric(in_qs=in_qs, out_qs=[o_q])

@@ -70,6 +70,7 @@ class LeakySymmetricMult(KernelBase):
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
         compute_in_out_scale(qrec)
+        in_tensor = in_tensor.astype(np.int32)
         neg_in = at_norm(in_tensor * leak_mult_gen_factor_q7(params), 7)
         in_tensor = in_tensor * (in_tensor > 0) + neg_in * (in_tensor < 0)
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']

@@ -82,6 +82,7 @@ gen_req: clean
 vscode_env:
 	env | grep TILER > \.env
 	env | grep NNTOOL >> \.env
+	env | grep GAP_SDK_HOME >> \.env
 
 clean:
 	rm -rf build flatbuffers $(TFLITE_DIR)/tflite_$(SCHEMA_V3) $(TFLITE_DIR)/tflite_$(SCHEMA_HEAD_NAME)

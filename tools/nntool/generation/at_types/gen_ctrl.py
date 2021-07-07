@@ -64,7 +64,9 @@ CTRL_FEATURES = {
     "RELUNNONORM": int,
     "RNN_USE_HARDACT": int,
     "RNN_SAME_INOUT_SCALE": int,
-    "OUT_8BITS": int
+    "HWC": int,
+    "INPUT_DATASIZE": int,
+    "OUTPUT_DATASIZE": int
 }
 
 

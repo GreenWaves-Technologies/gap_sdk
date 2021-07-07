@@ -3,7 +3,7 @@ from graph.types.base import NNEdge
 
 from graph.types import FusionInputParameters
 from graph.types.fusions import FusionOutputParameters
-from utils.graph import Edge, GraphView
+from utils.graph import GraphView
 
 
 def match_connected_nodes(G, start_node, match_fn, visited=None, up=False):
@@ -94,7 +94,6 @@ def find_connected_groups_of_class(G, must_classes, may_classes, min_len=2):
         if len(connected_nodes) >= min_len and set(must_classes) & set([node.__class__ for node in connected_nodes]):
             groups.append(construct_subgraph(G, connected_nodes))
     return groups
-
 
 def find_connected_groups_of_nodes(G, nodes):
     groups = []
