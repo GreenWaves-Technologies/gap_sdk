@@ -16,14 +16,12 @@
 def at_bits(qtype):
     if qtype is None:
         return 0
-    # 1: byte, 2: half word, 4: word
-    if qtype.bits == 8:
-        return 1
-    if qtype.bits == 16:
-        return 2
-    if qtype.bits == 32:
-        return 4
-    raise NotImplementedError("unsupported number of bits")
+    if qtype.bits not in [8, 16, 32]:
+        raise NotImplementedError("unsupported number of bits")
+    size = qtype.bits // 8
+    if not qtype.signed:
+        return -size
+    return size
 
 
 def at_q(qtype):

@@ -22,10 +22,12 @@ from graph.dim import Dim
 from graph.matches.matchers.duplicate_constants import MatchDuplicateConstants
 from graph.matches.matchers.remove_quantize_operators import \
     RemoveQuantizeOperators
+from graph.matches.matchers.remove_reshapes_before_linear import \
+    RemoveReshapesBeforeLinear
 from graph.nngraph import NNGraph
-from graph.types import (ConcatParameters, ConstantInputParameters, NNEdge,
-                         SigmoidActivationParameters, SoftMaxParameters,
-                         SplitParameters)
+from graph.types import (ActivationParameters, ConcatParameters,
+                         ConstantInputParameters, NNEdge,
+                         SoftMaxParameters, SplitParameters)
 from importer.common.clean_dangling_nodes import clean_dangling_nodes
 from importer.common.get_reasonable_name import get_reasonable_name
 from importer.tflite2.common.tflite_graph import TFLiteGraph
@@ -104,6 +106,7 @@ class TFLiteImporter(ImporterBase):
         clean_dangling_nodes(G)
         fix_split_in_edges(G)
         MatchDuplicateConstants().match(G)
+        RemoveReshapesBeforeLinear().match(G)
         # DrawGraphReporter().report(G)
         G.add_dimensions()
         remove_concats(G)
@@ -130,8 +133,8 @@ class TFLiteImporter(ImporterBase):
                 ConcatParameters,
                 SoftMaxParameters,
                 SplitParameters,
-                SigmoidActivationParameters)))
-            G.quantization = quantizer.quantize(G, start_nodes=nodes_with_bad_quantization)
+                ActivationParameters)))
+            G.quantization = quantizer.quantize(G, start_nodes=nodes_with_bad_quantization, force_all=True)
             G.add_dimensions()
 
         return G

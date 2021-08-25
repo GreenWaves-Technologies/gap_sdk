@@ -17,8 +17,9 @@ import logging
 from functools import reduce
 
 import numpy as np
-from graph.types import GlobalPoolParameters
-from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
+from graph.types import (AveragePoolParameters, GlobalAveragePoolParameters,
+                         GlobalMaxPoolParameters, GlobalSumPoolParameters,
+                         MaxPoolParameters)
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
 
@@ -134,127 +135,16 @@ class MaxPoolingFloat(KernelBase):
 
         return qrec.get_outputs(params, [out_tensor], ktype="float")
 
-    # @classmethod
-    # def average_execute(cls, params,
-    #                     in_tensors,
-    #                     qrec: QRec,
-    #                     **kwargs):
-    #     if qrec is None:
-    #         qrec = AllFloatQRec()
 
-    #     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-    #     in_dims = params.in_dims[0]
-    #     out_dims = params.out_dims[0]
-    #     filter_sz = params.filter.h * params.filter.w
-
-    #     pool_factor = np.array(1.0/filter_sz, dtype=qrec.dtype(ktype="float"))
-
-    #     out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float"))
-
-    #     if params.padding.h + params.padding.w > 0:
-    #         in_tensor = np.pad(in_tensor,
-    #                            params.padding.numpy_pad_shape(in_dims),
-    #                            mode='constant',
-    #                            constant_values=0.0)
-    #         pad_w = params.padding.w
-    #         pad_h = params.padding.h
-    #     else:
-    #         pad_w = pad_h = 0
-
-    #     for in_c in range(out_dims.c):
-
-    #         out_h = 0
-    #         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-    #                            params.stride.h):
-    #             out_w = 0
-    #             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-    #                                params.stride.w):
-    #                 # accumulate - potentially with different Q
-    #                 in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-    #                                                h=[h_idx, h_idx + params.filter.h, 1],
-    #                                                w=[w_idx, w_idx + params.filter.w, 1])
-
-    #                 sum_filter = np.sum(in_tensor[in_slice_args], dtype=qrec.dtype(ktype="float"))
-    #                 sum_filter = np.multiply(sum_filter, pool_factor)
-    #                 out_tensor[out_dims.srange(c=in_c, h=out_h, w=out_w)] = sum_filter
-    #                 out_w += 1
-    #             out_h += 1
-
-    #     return qrec.get_outputs(params, [out_tensor], ktype="float")
-
-    # @classmethod
-    # def max_execute(cls, params,
-    #                 in_tensors,
-    #                 qrec: QRec,
-    #                 **kwargs):
-
-    #     if qrec is None:
-    #         qrec = AllFloatQRec()
-
-    #     in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-    #     in_dims = params.in_dims[0]
-    #     out_dims = params.out_dims[0]
-
-    #     out_tensor = np.zeros(out_dims.shape, dtype=qrec.dtype(ktype="float"))
-
-    #     if params.padding.h + params.padding.w > 0:
-    #         in_tensor = np.pad(in_tensor,
-    #                            params.padding.numpy_pad_shape(in_dims),
-    #                            mode='constant',
-    #                            constant_values=0.0)
-    #         pad_w = params.padding.w
-    #         pad_h = params.padding.h
-    #     else:
-    #         pad_w = pad_h = 0
-
-    #     for in_c in range(out_dims.c):
-    #         out_h = 0
-    #         for h_idx in range(0, in_dims.h - params.filter.h + pad_h + 1,
-    #                            params.stride.h):
-    #             out_w = 0
-    #             for w_idx in range(0, in_dims.w - params.filter.w + pad_w + 1,
-    #                                params.stride.w):
-    #                 # accumulate - potentially with different Q
-    #                 out_slice_args = out_dims.srange(c=in_c, h=out_h, w=out_w)
-    #                 in_slice_args = in_dims.srange(c=[in_c, in_c + 1, 1],
-    #                                                h=[h_idx, h_idx + params.filter.h, 1],
-    #                                                w=[w_idx, w_idx + params.filter.w, 1])
-
-    #                 out_tensor[out_slice_args] = np.max(in_tensor[in_slice_args].view(np.ndarray))
-    #                 out_w += 1
-    #             out_h += 1
-
-    #     return qrec.get_outputs(params, [out_tensor], ktype="float")
-
-
-@params_type(GlobalPoolParameters)
+@params_type(GlobalAveragePoolParameters)
 @qrec_type('float')
-class GlobalPoolingFloat32(KernelBase):
+class GlobalAveragePoolFloat32(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        if params.pool_type == "average":
-            return cls.average_execute(params,
-                                       in_tensors,
-                                       qrec)
-        elif params.pool_type == "max":
-            return cls.max_execute(params,
-                                   in_tensors,
-                                   qrec)
-        elif params.pool_type == "sum":
-            return cls.sum_execute(params,
-                                   in_tensors,
-                                   qrec)
-        else:
-            ValueError("unknown pool type")
 
-    @classmethod
-    def average_execute(cls, params,
-                        in_tensors,
-                        qrec: QRec,
-                        **kwargs):
         if qrec is None:
             qrec = AllFloatQRec()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
@@ -270,11 +160,15 @@ class GlobalPoolingFloat32(KernelBase):
                                 [(sum_by_chan / sz).reshape(params.out_dims[0].shape)],
                                 ktype="float")
 
+@params_type(GlobalMaxPoolParameters)
+@qrec_type('float')
+class GlobalMaxPoolFloat32(KernelBase):
     @classmethod
-    def max_execute(cls, params,
-                    in_tensors,
-                    qrec: QRec,
-                    **kwargs):
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
+
         if qrec is None:
             qrec = AllFloatQRec()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
@@ -283,11 +177,15 @@ class GlobalPoolingFloat32(KernelBase):
                                                 axis=tuple(params.axis),
                                                 keepdims=params.keep_dims)], ktype="float")
 
+@params_type(GlobalSumPoolParameters)
+@qrec_type('float')
+class GlobalSumPoolFloat32(KernelBase):
     @classmethod
-    def sum_execute(cls, params,
-                    in_tensors,
-                    qrec: QRec,
-                    **kwargs):
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
+
         if qrec is None:
             qrec = AllFloatQRec()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]

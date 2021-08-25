@@ -13,13 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import csv
+from utils.node_id import NodeId
+from execution.quantization_mode import QuantizationMode
+from execution.graph_executer import GraphExecuter
+from io import StringIO
 import logging
 import os
 import re
 import shutil
 import subprocess
 import tempfile
+import numpy as np
 import texttable
+import json
 
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
 from generation.code_generator import CodeGenerator
@@ -49,6 +56,12 @@ class GenProjectCommand(NNToolShellBase):
     parser_gen_proj.add_argument('-o', '--overwrite',
                                  action='store_true',
                                  help='overwrite existing files')
+    parser_gen_proj.add_argument('--test_results',
+                                 action='store_true',
+                                 help='generate fake inputs (in the quantization range and generate a check of the results')
+    parser_gen_proj.add_argument('--save_inputs',
+                                 action='store_true',
+                                 help='if test_results, save the inputs in files also')
 
     @with_argparser(parser_gen_proj)
     @no_history
@@ -64,8 +77,12 @@ added."""
                     self.settings,
                     args.project_folder,
                     self._cmd_history[self._graph_idx].copy(),
-                    overwrite=args.overwrite, performance=True)
+                    overwrite=args.overwrite, performance=True,
+                    quantized=self.settings['load_quantization'],
+                    test_results=args.test_results,
+                    save_inputs=args.save_inputs    )
         self.pfeedback(f'project generated in {args.project_folder}')
+
 
 class TexttableEx(texttable.Texttable):
     @classmethod
@@ -79,6 +96,18 @@ class PerformanceCommand(NNToolShellBase):
     parser_perf.add_argument('-j', '--jobs',
                              type=int,
                              help='number of jobs to use building the network')
+    parser_perf.add_argument('-s', '--show_stdout',
+                             action='store_true',
+                             help='show stdout of run')
+    parser_perf.add_argument('-e', '--show_stderr',
+                             action='store_true',
+                             help='show stderr of run')
+    parser_perf.add_argument('-f', '--format',
+                             choices=['table', 'json', 'csv'],
+                             help='output json')
+    parser_perf.add_argument('-p', '--platform',
+                             default='gvsoc',
+                             help='GAP SDK platform to run the resulting model on')
 
     @with_argparser(parser_perf)
     @no_history
@@ -89,28 +118,41 @@ This command can take a few minutes to complete."""
         self._check_graph()
         self._check_quantized()
         self._check_adjusted()
+        if "GAP_SDK_HOME" not in os.environ:
+            self.perror(
+                'you must run "source sourceme.sh" in the GAP SDK before using this command')
+            return
         with tempfile.TemporaryDirectory() as tempdir:
             self.pfeedback('generating project from graph')
             gen_project(self.G,
                         self.settings,
                         tempdir,
                         self._cmd_history[self._graph_idx].copy(),
-                        performance=True)
+                        performance=True,
+                        quantized=self.settings['load_quantization'])
             if not args.jobs:
                 jobs = int(subprocess.getoutput('nproc --all'))
             else:
                 jobs = args.jobs
-            self.pfeedback(f'compiling and running project with {jobs} threads')
+            self.pfeedback(
+                f'compiling and running project with {jobs} threads')
             with open(os.path.join(tempdir, 'run_make.sh'), 'w') as fp:
-                fp.write(make_script(tempdir, jobs))
+                fp.write(make_script(tempdir, jobs, platform=args.platform))
 
             res = subprocess.run(['/bin/bash', os.path.join(tempdir, 'run_make.sh')],
                                  capture_output=True, text=True,
                                  check=False, shell=False, cwd=tempdir)
+
+            if args.show_stdout:
+                self.ppaged(res.stdout)
+
+            if args.show_stderr:
+                self.ppaged(res.stderr)
+
             if res.returncode:
+                self.ppaged(f'STDERR\n\n{res.stderr}')
                 self.perror(
                     f'compile and run returned error code {res.returncode}')
-                self.ppaged(res.stderr)
                 return
 
             match_perf = r" +((?:S\d+|Tota)[^:]+): *Cycles: +(\d+)[^:]+: +(\d+)[^:]+: +([\d<.]+)"
@@ -121,18 +163,34 @@ This command can take a few minutes to complete."""
                 self.ppaged(res.stdout)
                 return
 
-            self.pfeedback('network performance')
-            table = TexttableEx()
-            table.header(['Layer', 'Cycles', 'Ops', 'Ops/Cycle'])
-            table.set_header_align(['l', 'c', 'c', 'c'])
-            table.set_cols_align(['l', 'r', 'r', 'r'])
-            table.set_max_width(0)
-            for row in [[elem[0], int(elem[1]), int(elem[2]), float(elem[3])] for elem in perf]:
-                table.add_row(row)
-            self.ppaged(table.draw())
+            total_cycles = int(perf[-1][1])
+            perf = [[n, int(c), int(o), float(p), int(c) * 100/total_cycles] for n, c, o, p in perf]
 
 
-def make_script(tempdir, jobs=1):
+            if args.format == 'json':
+                self.pfeedback(
+                    f'\n--- PERFORMANCE START ---\n{json.dumps(perf)}\n--- PERFORMANCE END ---\n')
+            elif args.format == 'csv':
+                with StringIO() as fp:
+                    writer = csv.writer(fp)
+                    writer.writerows(perf)
+                    self.pfeedback(
+                        f'\n--- PERFORMANCE START ---\n{fp.getvalue()}\n--- PERFORMANCE END ---\n')
+            else:
+                self.pfeedback('network performance')
+                table = TexttableEx()
+                table.header(['Layer', 'Cycles', 'Ops', 'Ops/Cycle', '% cycles'])
+                table.set_header_align(['l', 'c', 'c', 'c', 'c'])
+                table.set_cols_align(['l', 'r', 'r', 'r', 'r'])
+                table.set_max_width(0)
+                for row in perf:
+                    table.add_row(row)
+                self.ppaged(table.draw())
+
+
+def make_script(tempdir, jobs=1, platform=None):
+    if platform is None:
+        platform = 'gvsoc'
     script = [
         f'cd {tempdir}\n',
     ]
@@ -143,18 +201,47 @@ def make_script(tempdir, jobs=1):
                    for var in os.environ if var.startswith('TILER')])
     script.extend([
         f'export PATH={os.environ["NNTOOL_DIR"]}:$PATH',
-        f'make -j {jobs} clean all platform=gvsoc',
-        'make run platform=gvsoc'
+        f'make -j {jobs} clean all platform={platform}',
+        f'make run platform={platform}'
     ])
     return '\n'.join(script) + '\n'
 
+def get_rand(shape, low_high=None):
+    if low_high:
+        return (np.random.randint(low_high[0] * 127, low_high[1] * 127, size=shape).astype(np.float32))/127
+    return np.random.randn(*shape).astype(np.float32)
 
-def gen_project(G, settings, project_folder, script_commands, overwrite=False, performance=False):
+def gen_project(G, settings, project_folder, script_commands, overwrite=False, performance=False, quantized=False, test_results=False, save_inputs=False):
     code_gen = CodeGenerator(
         G, DefaultNamingConvension(G), settings)
 
     if not os.path.exists(project_folder):
         os.mkdir(project_folder)
+
+    finputs = None
+    qoutputs = None
+    if test_results:
+        np.random.seed(12345)
+        finputs = []
+        for i, node in enumerate(G.input_nodes()):
+            out_q = G.quantization[NodeId(node)].out_qs[0]
+            finput = get_rand(node.out_dims[0].shape, low_high=(out_q.min_val, out_q.max_val))
+            finputs.append(finput)
+        executer = GraphExecuter(G, qrecs=G.quantization)
+        qoutput_tensors = executer.execute(finputs.copy(),
+                                           qmode=QuantizationMode.all())
+        qoutputs = []
+        for params in G.outputs():
+            outp = qoutput_tensors[params.step_idx][0]
+            qoutputs.append(outp)
+        qinputs = []
+        for params in G.input_nodes():
+            inp = qoutput_tensors[params.step_idx][0]
+            qinputs.append(inp)
+            if save_inputs:
+                nodeq = G.quantization[NodeId(node, None)].out_qs[0]
+                np.save(os.path.join(project_folder, f"fake_input_{i}.npy"), nodeq.dequantize(inp))
+
     main = os.path.join(project_folder, f"{code_gen.project_name}")
     main_c = main + '.c'
     main_h = main + '.h'
@@ -162,13 +249,13 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
     nntool_script = os.path.join(project_folder, "nntool_script")
     if overwrite or not os.path.exists(main_c):
         with open(os.path.join(project_folder, f"{code_gen.project_name}.c"), "w") as output_fp:
-            output_fp.write(generate_main_appl_template(G, code_gen))
+            output_fp.write(generate_main_appl_template(G, code_gen, finputs, qoutputs))
     if overwrite or not os.path.exists(main_h):
         with open(os.path.join(project_folder, f"{code_gen.project_name}.h"), "w") as output_fp:
             output_fp.write(generate_main_appl_header(G, code_gen))
     if overwrite or not os.path.exists(common_mk):
         with open(os.path.join(project_folder, "common.mk"), "w") as output_fp:
-            output_fp.write(generate_main_appl_make(G, code_gen))
+            output_fp.write(generate_main_appl_make(G, code_gen, quantized))
     if overwrite or not os.path.exists(nntool_script):
         with open(nntool_script, 'w') as fp:
             # NOTE - gen_template_project is excluded so that tests work. Normally it will not be in the
@@ -185,5 +272,10 @@ def gen_project(G, settings, project_folder, script_commands, overwrite=False, p
                 fp.write('save_state\n')
     ignore_function = None if overwrite else skip_existing_files(
         project_folder)
-    shutil.copytree('generation/project_template', project_folder,
+    shutil.copytree(os.path.join(os.environ.get("NNTOOL_PATH"), 'generation/project_template'), project_folder,
                     dirs_exist_ok=True, ignore=ignore_function)
+
+    try:
+        shutil.copy(G.graph_identity.filename, os.path.join(project_folder, os.path.split(G.graph_identity.filename)[1]))
+    except shutil.SameFileError:
+        pass

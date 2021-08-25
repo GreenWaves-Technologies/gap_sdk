@@ -45,7 +45,7 @@ class SoftMaxSymmetric(KernelBase):
             params, in_tensors, ktype="symmetric")[0]
         # TODO - Implement properly quantized version
         in_tensor = qrec.in_qs[0].dequantize(in_tensor)
-        in_tensor = qrec.out_qs[0].quantize(softmax_func(in_tensor))
+        in_tensor = qrec.out_qs[0].quantize(softmax_func(in_tensor, axis=params.axis))
         np.seterr(**old_err)
         return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
 
@@ -58,11 +58,12 @@ class SoftMaxSymmetricMult(KernelBase):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        in_tensor = in_tensors[0].flatten()
-        max_val = np.max(in_tensor)
+        # in_tensor = in_tensors[0].flatten()
+        in_tensor = in_tensors[0].astype(np.int32)
+        max_val = np.max(in_tensor, axis=params.axis, keepdims=True)
         norm = 15 + np.ceil(np.log2(qrec.in_qs[0].scale)).astype(np.int32)
         exp = exp_fp_17_15((in_tensor.astype(np.int32) - max_val) << (norm))
-        sum_exp = np.sum(exp)
+        sum_exp = np.sum(exp, axis=params.axis, keepdims=True)
         inv_sum = (np.array([(1 << 15)-1], dtype=np.uint32) << 15)//sum_exp
         res = np.abs((exp * inv_sum + (1 << 14)) >> 15)
         iinfo = np.iinfo(np.int16)

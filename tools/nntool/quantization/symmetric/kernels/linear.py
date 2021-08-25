@@ -42,7 +42,7 @@ class LinearSymmetric(KernelBase):
             qrec, params, prepared_in_tensors, ktype="symmetric")
         in_tensor = prepared_in_tensors[0]
         # expand the weights to apply the zero offset
-        weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point
+        weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point.astype(np.int32)
         biases = prepared_in_tensors[2]
 
         if details is not None:

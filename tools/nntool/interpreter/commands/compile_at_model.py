@@ -15,6 +15,9 @@
 
 import argparse
 import distutils.ccompiler as compiler
+
+from attr import define
+from graph.types.others import QuantizeParameters
 import logging
 import os
 from cmd2 import Cmd, Cmd2ArgumentParser, with_argparser
@@ -47,6 +50,9 @@ class CompileCommand(NNToolShellBase):
                                 help='path to the executable, if not specified $MODEL_DIR/GenTile')
     parser_compile.add_argument('--add_sdl', action='store_true',
                                 help="add sdl library during compilation")
+    parser_compile.add_argument('--define_emul',
+                                action='store_true',
+                                help='Define __EMUL__ for test purposes')
 
     @with_argparser(parser_compile)
     def do_compile(self, args):
@@ -68,7 +74,11 @@ class CompileCommand(NNToolShellBase):
         cc.add_include_dir(TILER_INC)
         cc.add_include_dir(TILER_EMU_INC)
         cc.add_include_dir(TILER_CNN_GENERATOR_PATH)
+        cc.add_include_dir(TILER_CNN_KERNEL_PATH_FP16)
         cc.add_include_dir(TILER_CNN_KERNEL_PATH)
+        if args.define_emul:
+            cc.define_macro('__EMUL__')
+
         # cc.add_include_dir(NNTOOL_GENERATOR_PATH)
         # cc.add_include_dir(NNTOOL_KERNEL_PATH)
         if "SQ8" in self.G.quantization.schemes_present:
@@ -90,6 +100,9 @@ class CompileCommand(NNToolShellBase):
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_SQ8, "RNN_Generators_SQ8.c"))
         if "POW2" in self.G.quantization.schemes_present:
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH, "CNN_Generators.c"))
+        if self.G.nodes(node_classes=QuantizeParameters):
+            cc.add_include_dir(TILER_CNN_GENERATOR_PATH_FP16)
+            cc.add_include_dir(TILER_CNN_KERNEL_PATH_FP16)
         if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_FP16, "CNN_Generators_fp16.c"))
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_FP16, "RNN_Generators_fp16.c"))

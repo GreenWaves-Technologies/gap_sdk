@@ -30,15 +30,15 @@ LOG = logging.getLogger("nntool." + __name__)
 
 @generation_function("kernels", (MaxPoolParameters, AveragePoolParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
 def pool_act_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
-    del in_eparams, out_eparams, qrec
+    del in_eparams, out_eparams
     if isinstance(node, ActivationFusion):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], PoolingParameters):
-            gen.kernels.append(PoolKernel(node.name, cname, cnodes[0], cnodes[1],
+            gen.kernels.append(PoolKernel(node.name, cname, cnodes[0], cnodes[1], qrec,
                                           at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
             return True
         return False
-    gen.kernels.append(PoolKernel(node.name, cname, node, None, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
+    gen.kernels.append(PoolKernel(node.name, cname, node, None, qrec, at_ver=gen.opts['at_ver'], force_relu=gen.force_relu))
     return True
 
 
@@ -58,12 +58,18 @@ def gen_cnn_pool_act_sq8(code_block, cname, ctrl, feat, width, height, at_pool_p
 
 
 class PoolKernel(AutotilerKernel):
-    def __init__(self, node_name, cname, pool_params, act_params, gen_ctrl=None, at_ver=3, force_relu=True):
+    def __init__(self, node_name, cname, pool_params, act_params, qrec, gen_ctrl=None, at_ver=3, force_relu=True):
         if gen_ctrl is None:
             self.gen_ctrl = GenCtrl(None, cname=cname)
         else:
             gen_ctrl.cname = cname
             self.gen_ctrl = gen_ctrl
+        if pool_params.ker_in_order and pool_params.ker_in_order[0] == ["h", "w", "c"]:
+            self.gen_ctrl.hwc = 1
+        if not qrec.out_qs[0].signed:
+            self.gen_ctrl.output_datasize = - qrec.out_qs[0].bits//8
+        if not qrec.in_qs[0].signed:
+            self.gen_ctrl.input_datasize = - qrec.in_qs[0].bits//8
 
         if act_params is not None:
             self.at_act_params = gen_active_at_params(act_params, force_relu=force_relu)

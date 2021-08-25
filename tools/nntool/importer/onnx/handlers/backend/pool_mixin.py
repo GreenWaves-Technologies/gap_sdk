@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.dim import Dim, PoolFilterDim, StrideDim
-from graph.types import GlobalPoolParameters, PoolingParameters
+from graph.types import GlobalPoolingParameters, PoolingParameters
 from graph.types.base import NNEdge
 from importer.common.provisional_dim import ProvisionalDim
 
@@ -58,7 +58,7 @@ class PoolMixin(PadMixin):
                                     in zip(kernel_shape, x_feature_shape, [pad_dim.h, pad_dim.w])))
 
         if filter_matches_input and stride_is_one:
-            params = GlobalPoolParameters(valid_name,
+            params = GlobalPoolingParameters(valid_name,
                                           pool_type=pool_type,
                                           axis=[1, 2],
                                           keep_dims=True,

@@ -166,7 +166,7 @@ class Edge():
         return all((x == y for x, y in zip(self._link, value._link)))
 
     def __str__(self):
-        return "{}[{}]->{}[{}]".format(*self._link)
+        return "{}:{}->{}:{}".format(*self._link)
 
     def __hash__(self):
         return str(self).__hash__()
@@ -390,6 +390,15 @@ class GraphView(Mapping):
         edges = list(edge for edge_list in self._in_edges[node_name].values()
                      for edge in edge_list if edge.to_idx == to_idx)
         return edges[0] if len(edges) == 1 else None
+
+    def connected_nodes(self, node_or_node_name):
+        if isinstance(node_or_node_name, Node):
+            node_or_node_name = node_or_node_name.name
+        connected_nodes = set(
+            edge.from_node for edge in self.in_edges(node_or_node_name))
+        connected_nodes |= set(
+            edge.to_node for edge in self.out_edges(node_or_node_name))
+        return list(connected_nodes)
 
     @staticmethod
     def index_edges_by_from(edges):

@@ -47,7 +47,7 @@ class Conv2DSymmetric(KernelBase):
         prepared_in_tensors = apply_zero_offset_bias(qrec, params, prepared_in_tensors, ktype="symmetric")
         in_tensor = prepared_in_tensors[0]
         # expand the weights to apply the zero offset
-        weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point
+        weights = prepared_in_tensors[1].astype(np.int32) - qrec.in_qs[1].zero_point.astype(np.int32)
         biases = prepared_in_tensors[2]
 
         acc_q = qrec.cache.get('acc_q') or qrec.in_qs[2]
@@ -61,9 +61,9 @@ class Conv2DSymmetric(KernelBase):
             in_dims.transpose_to_order(['h', 'w', 'c']))
         if params.padding.h + params.padding.w > 0:
             if hasattr(qrec.in_qs[0], 'zero_point'):
-                const_pad = qrec.in_qs[0].zero_point[0]
+                const_pad = qrec.in_qs[0].zero_point[0].astype(np.int32)
             else:
-                const_pad = 0
+                const_pad = np.int32(0)
             in_tensor = np.pad(in_tensor,
                                ([params.padding.t,
                                  params.padding.b],

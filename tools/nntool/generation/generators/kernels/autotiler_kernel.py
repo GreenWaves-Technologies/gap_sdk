@@ -91,7 +91,7 @@ class NewAutoTilerKernel(AutotilerKernel):
         if code_block is None:
             code_block = CodeBlock()
 
-        if not self._gen_ctrl.is_unmodified:
+        if self._gen_ctrl and not self._gen_ctrl.is_unmodified:
             self._gen_ctrl.gen_ctrl_decl(code_block)
 
         global_vars = {

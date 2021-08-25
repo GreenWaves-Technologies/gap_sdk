@@ -53,7 +53,16 @@ class Norm(Function):
         return "({0} + (1 << ({1}.astype(np.int32) - 1))) >> {1}.astype(np.int32)".format(*args)
 
     def _c_expr(self, *args, **kwargs):
-        return "gap_roundnorm_reg(%s, %s)" % (args[0], args[1])
+        try:
+            num = int(args[1])
+            if num:
+                return "gap_roundnorm(%s, %s)" % (args[0], num)
+            return args[0]
+        except TypeError:
+            return "gap_roundnorm_reg(%s, %s)" % (args[0], args[1])
+        except ValueError:
+            return "gap_roundnorm_reg(%s, %s)" % (args[0], args[1])
+
 
     def _eval(self, *args, **kwargs):
         sym = args[0]

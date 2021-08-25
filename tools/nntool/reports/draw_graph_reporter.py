@@ -134,33 +134,53 @@ class DrawGraphReporter():
         self._name_cache[name_type] = next_idx + 1
         return next_id
 
-    def out_label(self, G, node, idx, quant_labels):
+    def out_label(self, G, edge, quant_labels):
+        node = edge.from_node
+        idx = edge.from_idx
         if quant_labels:
             qrec = G.quantization.get(NodeId(node))
             if qrec is None:
-                return 'no quant'
+                return 'no quant', True
             qtype = qrec.out_qs and qrec.out_qs[idx]
-            if qtype is None:
-                return 'no qtype'
-            return str(qtype)
+            if not qtype:
+                return 'no qtype', True
+            to_qrec = G.quantization.get(NodeId(edge.to_node))
+            if to_qrec is None:
+                return f'{qtype}/None', True
+            to_qtype = to_qrec.in_qs and to_qrec.in_qs[edge.to_idx]
+            if not to_qtype:
+                return f'{qtype}/None', True
+            if not to_qtype.quantization_equal(qtype):
+                return f'{qtype}/{to_qtype}', True
+            return str(qtype), False
         else:
             if node.out_dims:
-                return f'({node.out_dims[idx]})'
-            return 'not set'
+                return f'({node.out_dims[idx]})', False
+            return 'not set', True
 
-    def in_label(self, G, node, idx, quant_labels):
+    def in_label(self, G, edge, quant_labels):
+        node = edge.to_node
+        idx = edge.to_idx
         if quant_labels:
             qrec = G.quantization.get(NodeId(node))
             if qrec is None:
-                return 'no quant'
+                return 'no quant', True
             qtype = qrec.in_qs and qrec.in_qs[idx]
             if qtype is None:
-                return 'no qtype'
-            return str(qtype)
+                return 'no qtype', True
+            from_qrec = G.quantization.get(NodeId(edge.from_node))
+            if from_qrec is None:
+                return f'None/{qtype}', True
+            from_qtype = from_qrec.out_qs and from_qrec.out_qs[edge.from_idx]
+            if not from_qtype:
+                return f'None/{qtype}', True
+            if not from_qtype.quantization_equal(qtype):
+                return f'{from_qtype}/{qtype}', True
+            return str(qtype), False
         else:
             if node.in_dims:
-                return f'({node.in_dims[idx]})'
-            return 'not set'
+                return f'({node.in_dims[idx]})', False
+            return 'not set', True
 
     def report(self, G: NNGraph, nodes=None, graph_format='PDF', all_dims=False,
                filename=None, view=True, anonymise=False, expressions=False, quant_labels=False):
@@ -196,19 +216,23 @@ class DrawGraphReporter():
                 if edge.from_node in nodes:
                     from_node_id = self.get_from_id(all_ports, edge, out_port)
                     to_node_id = self.get_to_id(all_ports, edge, in_port)
+                    edge_label, edge_error = self.in_label(G, edge, quant_labels)
                     dot.edge(
                         from_node_id,
                         to_node_id,
-                        xlabel=self.in_label(G, node, edge.to_idx, quant_labels))
+                        xlabel=edge_label,
+                        color="red" if edge_error else "black")
                 else:
                     fake_name = f'fake_{fake_idx}'
                     fake_idx += 1
                     dot.node(fake_name, shape='point', fillcolor='black')
                     to_node_id = self.get_to_id(all_ports, edge, in_port)
+                    edge_label, edge_error = self.in_label(G, edge, quant_labels)
                     dot.edge(
                         fake_name,
                         to_node_id,
-                        xlabel=self.in_label(G, node, edge.to_idx, quant_labels))
+                        xlabel=edge_label,
+                        color="red" if edge_error else "black")
             if not all_dims:
                 continue
             for edge_group in G.indexed_out_edges(node.name):
@@ -221,10 +245,13 @@ class DrawGraphReporter():
                 dot.node(fake_name, shape='plaintext',
                          label=' ', fillcolor='black')
                 from_node_id = self.get_from_id(all_ports, edge, out_port)
+                edge_label, edge_error = self.out_label(G, edge, quant_labels)
                 dot.edge(
                     from_node_id,
                     fake_name,
-                    xlabel=self.out_label(G, node, edge.from_idx, quant_labels))
+                    xlabel=edge_label,
+                    color="red" if edge_error else "black")
+                x=0
 
         # dot = dot.unflatten(stagger=2)
         if filename:

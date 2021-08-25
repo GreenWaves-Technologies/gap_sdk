@@ -103,7 +103,7 @@ def filter_dirs(path: str) -> bool:
 def glob_input_files(input_files, graph_inputs=1):
     input_files_list = []
     for file in input_files:
-        for globbed_file in glob(file):
+        for globbed_file in glob(os.path.expanduser(file)):
             input_files_list.append(globbed_file)
     if len(input_files_list) % graph_inputs:
         raise ValueError("input files number is not divisible for graph inputs {}".format(graph_inputs))
@@ -141,13 +141,23 @@ def print_comparison(tensors):
     max_line_width = term_size.columns // 2 - 1
     printt = lambda x: np.array_str(x, max_line_width=max_line_width, precision=3, suppress_small=True).split('\n')
 # pylint: disable=not-an-iterable
-    out = [[printt(t) for t in tensors[i]] for i in range(2)]
-    max_len = max((len(l) for i in range(2) for o in out[i] for l in o))
+    out = [[printt(t) if t is not None else None for t in tensors[i]] for i in range(2)]
+    max_len = 0
+    for o1, o2 in zip(out[0], out[1]):
+        if o1 is None:
+            if o2 is not None:
+                max_len = max(max_len, max(len(o) for o in o2))
+        else:
+            if o2 is None:
+                max_len = max(max_len, max(len(o) for o in o1))
+            else:
+                max_len = max(max_len, max(len(o) for o in o1+o2))
+
     make_len = lambda a: a + " "*(max_len - len(a))
     combine = lambda a, b: a if b is None else " "*(max_len+1) + b if a is None\
         else make_len(a) + " " + b
     all_outs = [combine(l0, l1) for (o0, o1) in zip_longest(*out, fillvalue=[])\
-        for (l0, l1) in zip_longest(o0, o1)]
+        for (l0, l1) in zip_longest(o0 if o0 is not None else [], o1 if o1 is not None else [])]
     return all_outs
 
 def print_tensors(tensors):

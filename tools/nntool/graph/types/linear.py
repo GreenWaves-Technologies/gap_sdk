@@ -89,7 +89,7 @@ class FcParameters(MultiplicativeBiasParameters, SingleInputAndOutput):
         # transpose the filter dimensions
         if len(self.filter) > 2:
             assert len(self.filter) == len(
-                real_transpose), "strange filter length"
+                real_transpose), f"strange filter length {self.filter} vs {real_transpose}/{dim.shape} in {self.name}"
             self.filter.transpose(real_transpose)
         if self.in_dims_hint and self.in_dims_hint[0] and len(self.in_dims_hint[0]) > 1:
             assert len(self.in_dims_hint[0]) == len(

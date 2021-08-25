@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import math
 import numpy as np
 from generation.at_types.constant_info import ConstantInfo
 from generation.at_types.tc_arg_info import GlobalArgInfo
@@ -20,7 +21,9 @@ from generation.helpers.gen_constant import gen_constant
 from generation.helpers.gen_scales import gen_scales
 from graph.types import (ActivationFusion, ActivationParameters,
                          ConvFusionParameters, FilterParameters,
-                         GlobalPoolParameters, HSigmoidActivationParameters,
+                         GlobalAveragePoolParameters, GlobalMaxPoolParameters,
+                         GlobalPoolingParameters, GlobalSumPoolParameters,
+                         HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          MatMulOpFusionParameters, MatMulOpParameters,
                          MatrixAddParameters, MatrixMulParameters,
@@ -41,9 +44,9 @@ from .global_names import *
 
 @generation_function("globals",
                      (FilterParameters, ConvFusionParameters, ActivationParameters,
-                      GlobalPoolParameters, MatrixAddParameters, MatrixMulParameters,
+                      GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, MatrixAddParameters, MatrixMulParameters,
                       ActivationFusion, PoolingParameters, SoftMaxParameters, PaddedAddFusionParameters,
-                      QuantizeParameters, MatMulOpFusionParameters, MatMulOpParameters),
+                      MatMulOpFusionParameters, MatMulOpParameters),
                      qrec_types=(QREC_MULT8,))
 def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     if fnode is not None:
@@ -53,7 +56,7 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         in_zero_point = qrec.in_qs[0].zero_point
         act_infos(gen, pnode, pnode, None, None, extra1=0,
                   for_ne16=for_ne16, in_zero_point=in_zero_point)
-    elif isinstance(pnode, (GlobalPoolParameters, PoolingParameters)):
+    elif isinstance(pnode, (GlobalPoolingParameters, PoolingParameters)):
         compute_in_out_scale(qrec)
         act_infos(gen, pnode, pnode, None, qrec)
     elif isinstance(pnode, ActivationParameters):
@@ -115,7 +118,7 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         for qrec in quants:
             compute_in_out_scale(qrec)
-        if isinstance(cnodes[0], (GlobalPoolParameters, PoolingParameters)):
+        if isinstance(cnodes[0], (GlobalPoolingParameters, PoolingParameters)):
             act_infos(gen, pnode, cnodes[0], cnodes[1], quants[1])
         elif isinstance(cnodes[0], MatrixAddParameters):
             set_add_in_scale(quants[0])
@@ -156,13 +159,37 @@ def mult8_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
     elif isinstance(pnode, QuantizeParameters):
         in_q = qrec.in_qs[0]
         out_q = qrec.out_qs[0]
-        if not np.allclose(in_q.scale, out_q.scale):
-            raise ValueError(f"don't know how to change scale in {pnode.name}")
-        comment = f'in zp: {in_q.zero_point} out_zp: {out_q.zero_point}'
-        if in_q.dtype == np.int8 and out_q.dtype == np.uint8:
-            contents = ((256 + in_q.zero_point[0] - out_q.zero_point[0]) % 256).astype(np.uint8)
-        elif in_q.dtype == np.uint8 and out_q.dtype == np.int8:
-            contents = (256 - in_q.zero_point[0] + out_q.zero_point[0]).astype(np.uint8)
+        comment = f'in q: {in_q} out_q: {out_q}'
+        if qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FP_ZEROPOINT':
+            bits = 8 if in_q.dtype == np.int8 else 16
+            if in_q.signed:
+                contents = (
+                    (int(math.pow(2, bits)) + in_q.zero_point[0] - out_q.zero_point[0]) % int(math.pow(2, bits))).astype(np.uint8)
+            else:
+                contents = (
+                    int(math.pow(2, bits)) - in_q.zero_point[0] + out_q.zero_point[0]).astype(np.uint8)
+        # if in_q.dtype == np.int8 and out_q.dtype == np.uint8:
+        #     if not np.allclose(in_q.scale, out_q.scale):
+        #         return False
+        #     if not np.all(in_q.zero_point == (out_q.zero_point - 128)):
+        #         return False
+        #     contents = (
+        #         (256 + in_q.zero_point[0] - out_q.zero_point[0]) % 256).astype(np.uint8)
+        # elif in_q.dtype == np.uint8 and out_q.dtype == np.int8:
+        #     if not np.allclose(in_q.scale, out_q.scale):
+        #         return False
+        #     if not np.all(in_q.zero_point == (out_q.zero_point - 128)):
+        #         return False
+        #     contents = (
+        #         256 - in_q.zero_point[0] + out_q.zero_point[0]).astype(np.uint8)
+        elif in_q.dtype == np.int8 and out_q.dtype == np.int16:
+            if qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FP':
+                return True
+            raise NotImplementedError()
+        elif in_q.dtype == np.int16 and out_q.dtype == np.int8:
+            if qrec.cache['kernel_type'] == 'KOP_CONVERT_FP_FP':
+                return True
+            raise NotImplementedError()
         else:
             raise ValueError(f"strange dtype change in {pnode.name}")
         cname, file_name = gen_constant(gen, pnode, pnode, INFOS)
@@ -294,7 +321,7 @@ def act_infos(gen, pnode, fnode, act_params, act_q, extra1=0, extra2=0, extra3=0
     else:
         raise NotImplementedError("activation tye not implemented")
 
-    if isinstance(pnode, (GlobalPoolParameters, PoolingParameters)):
+    if isinstance(pnode, (GlobalPoolingParameters, PoolingParameters)):
         contents = np.array([act_q.cache['scale_mul_biases_q'].qbiases[0],
                              act_q.cache['scale_mul_biases_q'].qnorms[0],
                              0, 0, 0, extra1, extra2, extra3, extra4],

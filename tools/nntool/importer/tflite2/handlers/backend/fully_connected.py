@@ -13,15 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.tensor_arithmetic import MatMulOpParameters
-from graph.types.others import ReshapeParameters
 import numpy as np
 from graph.dim import Dim, FcFilterDim
 from graph.types import FcParameters
-from graph.types.base import NNEdge, Transposable
+from graph.types.base import NNEdge
 from graph.types.input_output import ConstantInputParameters
+from graph.types.others import ReshapeParameters
+from graph.types.tensor_arithmetic import MatMulOpParameters
 from importer.common.provisional_dim import ProvisionalDim
-from importer.tflite2.common import LOG, check
+from importer.tflite2.common import check
 from importer.tflite2.handlers.backend.filter_mixin import FilterMixin
 from importer.tflite2.tflite_schema_head.FullyConnectedOptions import \
     FullyConnectedOptions
@@ -32,7 +32,7 @@ from ..handler import partial_support, ps_description, tflite_op
 
 @tflite_op("FULLY_CONNECTED")
 @partial_support(True)
-@ps_description("weights_format and asymmetric_quantize_inputs parameters are ignored")
+@ps_description("weights_format and asymmetric_quantize_inputs parameters are ignored. keep_num_dims is not supported.")
 class FullyConnected(FilterMixin, BackendHandler):
 
     @classmethod
@@ -42,23 +42,23 @@ class FullyConnected(FilterMixin, BackendHandler):
         opts = kwargs['opts']
         all_nodes = kwargs['all_nodes']
 
+        keep_dims = node_opts.KeepNumDims()
+        check(not keep_dims,
+              f'keep dims on Fully Connected {node.name} is not supported')
+
         inputs = [all_nodes[t] for t in node.input]
 
         x = inputs[0]
-        x_shape = x[2].shape
         x_known_shape = x[2].known_shape
         inp_sz = np.prod(np.array(x_known_shape))
         weights = inputs[1]
         weights_node = weights[0]
         weights_shape = weights[2].shape
-        assert len(
-            weights_shape) == 2, f'bad filter shape {weights_shape} in {node.name}'
+        check(len(weights_shape) == 2,
+              f'bad filter shape {weights_shape} in {node.name}')
         out_c = weights_shape[0]
         batch_size = inp_sz // weights_shape[1]
-        if batch_size > 1:
-            filt_dim = FcFilterDim(weights_shape[0], weights_shape[1])
-        else:
-            filt_dim = FcFilterDim(weights_shape[0], *x_known_shape)
+        filt_dim = FcFilterDim(weights_shape[0], weights_shape[1])
 
         node.input[1].used = True
         check(filt_dim.sz * batch_size == inp_sz,
@@ -70,15 +70,10 @@ class FullyConnected(FilterMixin, BackendHandler):
         else:
             bias_node = ConstantInputParameters(f'{node.name}_bias',
                                                 dims=Dim.unnamed([out_c]),
-                                                value=np.zeros([out_c], dtype=np.float32))  # TODO - check
-
-        keep_dims = node_opts.KeepNumDims()
+                                                value=np.zeros([out_c],
+                                                dtype=np.float32))
 
         if batch_size > 1:
-            if keep_dims:
-                raise ValueError(
-                    f'keep dims on Fully Connected {node.name} with batch size > 1 is not supported')
-
             # add a reshape to force the size of the input to batch * in_c
             input_shape = (batch_size, weights_shape[1])
             if x_known_shape != input_shape:
@@ -106,17 +101,11 @@ class FullyConnected(FilterMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
             out_shape = [batch_size, out_c]
         else:
-            # in_hint = [[str(i) for i in range(len(x_known_shape) - 1)] + ['c'],
-            #            ['out_c', 'in_c'], ['out_c']]
-            in_hint = [None, ['out_c', 'in_c'], ['out_c']]
-            out_hint = in_hint.copy() if keep_dims else ['c']
             ker_in_order = None
             ker_out_order = None
             link = (x[0], x[1])
 
             params = FcParameters(node.name, filt=filt_dim, has_bias=True,
-                                  in_dims_hint=in_hint,
-                                  out_dims_hint=[out_hint],
                                   ker_in_order=ker_in_order,
                                   ker_out_order=ker_out_order,
                                   batch_size=batch_size,
@@ -131,17 +120,8 @@ class FullyConnected(FilterMixin, BackendHandler):
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
             G.add_edge(NNEdge(from_node=link[0], to_node=params,
                               from_idx=link[1], to_idx=0))
-            # handle keep_dims
-            if x_shape[0] is None:
-                if keep_dims:
-                    out_shape = x_shape[:-1:] + [out_c]
-                else:
-                    out_shape = [None, out_c]
-            else:
-                if keep_dims:
-                    out_shape = [None] + x_shape[1:-1:] + [out_c]
-                else:
-                    out_shape = [None, out_c]
+
+            out_shape = [None, out_c]
 
         pout_dims = ProvisionalDim(out_shape)
 

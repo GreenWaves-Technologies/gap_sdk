@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types import GlobalPoolParameters, NNEdge, NoOPParameters
+from graph.types import GlobalPoolingParameters, NNEdge, NoOPParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.tflite_schema_head.ReducerOptions import ReducerOptions
 from utils.node_id import NodeId
@@ -56,7 +56,7 @@ class ReducerMixin(object):
             # axes that are not defined
             axes = [ax - sum([1 if dim is None else 0 for dim in x_shape[:ax:]])
                     for ax in axes if x_shape[ax] is not None]
-            params = GlobalPoolParameters(node.name, pool_type=reduce_type, axis=tuple(axes),
+            params = GlobalPoolingParameters(node.name, pool_type=reduce_type, axis=tuple(axes),
                                           keep_dims=node_opts.KeepDims())
             # the reduced axes are set to 1 in the output shape
 

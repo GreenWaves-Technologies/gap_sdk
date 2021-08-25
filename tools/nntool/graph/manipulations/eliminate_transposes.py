@@ -23,16 +23,13 @@ from graph.types import (ConcatParameters, ConstantInputParameters,
                          PadParameters, ReshapeParameters, ReverseParameters,
                          SensitiveToOrder, SplitParameters,
                          StridedSliceParameters, Transposable)
-from graph.types.fusions import MatMulOpFusionParameters
 from graph.types.others import TransposeParameters
-from graph.types.tensor_arithmetic import MatMulOpParameters
 from utils.compatible_transposes import (find_all_compatible_transposes,
                                          find_combination)
 from utils.node_id import NodeId
 
 from .eliminate_transposes_actions import (Action, DeleteTranspose,
                                            EndActionDown, EndActionUp,
-                                           InsertReshapeAction,
                                            InsertTransposeAction,
                                            ReorderConstantInput,
                                            ReorderInputDims, ReorderLinear,
@@ -86,6 +83,26 @@ def requires_reshape(trans1, trans2, dim):
     return False
 
 
+def handle_multi_out(G, node, edge, transpose, visited_edges):
+    if G.num_out_edges(node.name) <= 1:
+        return []
+    # here we have a reshape with multiple edges that we can pass
+    # insert transposes on all the other edges. We will try to eliminate those on the next pass
+    LOG.info("going up from %s node %s has multiple outputs - inserting transposes",
+             edge.to_node.name, node.name)
+    reversed_transpose = reverse_transpose(transpose)
+    for out_edge in G.out_edges(node.name):
+        if out_edge == edge:
+            continue
+        # add the edge to visited so that we cannot have another match passing
+        # this reshape
+        visited_edges.add(edge)
+        return [
+            InsertTransposeAction(
+                node, edge=out_edge, transpose=reversed_transpose, block_search_up=True)
+        ]
+
+
 def search_up_for_reverse(G, visited_edges, node, out_idx, edge, transpose, done_edges, edge_list, transpose_history):
     """Search up the graph for transpose sequences"""
     LOG.info("looking up at %s[%s] transpose %s",
@@ -118,8 +135,13 @@ def search_up_for_reverse(G, visited_edges, node, out_idx, edge, transpose, done
                 if reshape:
                     LOG.info("requires reshape %s -> %s", *reshape)
                 done_edges |= visited_edges
-                return [SetHintAction(node, 'out', out_idx, transpose=reverse_transpose(transpose)),
-                        DeleteTranspose(node, 'out', out_idx, reshape=reshape), EndActionUp(node)]
+                actions = handle_multi_out(
+                    G, node, edge, transpose, visited_edges)
+                actions.extend([
+                    SetHintAction(node, 'out', out_idx,
+                                  transpose=reverse_transpose(transpose)),
+                    DeleteTranspose(node, 'out', out_idx, reshape=reshape), EndActionUp(node)])
+                return actions
             else:
                 LOG.info(
                     "rejected %s - transpose out - does not reverse", node.name)
@@ -160,19 +182,8 @@ def search_up_for_reverse(G, visited_edges, node, out_idx, edge, transpose, done
         if new_transpose is None and len(node.old_shape) > 1:
             LOG.info("rejected %s - transpose in - does not reverse", node.name)
             return []
-        if G.num_out_edges(node.name) > 1:
-            # here we have a reshape with multiple edges that we can pass
-            # insert transposes on all the other edges. We will try to eliminate those on the next pass
-            LOG.info("%s - transpose in - reshape has multiple outputs", node.name)
-            reversed_transpose = reverse_transpose(transpose)
-            for out_edge in G.out_edges(node.name):
-                if out_edge == edge:
-                    continue
-                # add the edge to visited so that we cannot have another match passing
-                # this reshape
-                visited_edges.add(edge)
-                extra_actions.append(
-                    InsertTransposeAction(node, edge=out_edge, transpose=reversed_transpose, block_search_up=True))
+        extra_actions.extend(handle_multi_out(
+            G, node, edge, transpose, visited_edges))
         # But we have to reverse what we store in the history since that is going to be
         # replayed going forwards
         transpose_history.insert(
@@ -428,8 +439,10 @@ def search_for_reverses(G):
         # for each transpose node we look up and down from the transpose in and transpose out
         # respectively to see if another transpose reverses this one with nothing
         # inbetween that is transpose sensitive
-        blocked_up = isinstance(transpose_node, TransposeParameters) and transpose_node.block_search_up
-        blocked_down = isinstance(transpose_node, TransposeParameters) and transpose_node.block_search_down
+        blocked_up = isinstance(
+            transpose_node, TransposeParameters) and transpose_node.block_search_up
+        blocked_down = isinstance(
+            transpose_node, TransposeParameters) and transpose_node.block_search_down
         if not blocked_up and transpose_node.transpose_in:
             for edge in G.in_edges(transpose_node.name):
                 # this can be true in the case where a node has constant inputs

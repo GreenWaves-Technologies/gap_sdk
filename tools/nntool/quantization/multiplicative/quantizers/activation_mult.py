@@ -17,10 +17,11 @@ import logging
 from copy import deepcopy
 
 import numpy as np
+from pytest import param
 from graph.types.activations import (ActivationParameters,
                                      HSigmoidActivationParameters,
                                      HSwishActivationParameters,
-                                     HTanHActivationParameters,
+                                     HTanHActivationParameters, LeakyActivationParameters,
                                      ReluActivationParameters,
                                      SigmoidActivationParameters,
                                      TanHActivationParameters)
@@ -36,6 +37,7 @@ from quantization.unified_quantization_handler import (in_qs_constraint,
 from ..mult_quantization_handler import MultQuantizionHandler
 
 LOG = logging.getLogger('nntool.' + __name__)
+
 
 @params_type(ActivationParameters)
 @in_qs_constraint({'dtype': set([np.int8, np.int32])})
@@ -53,7 +55,8 @@ class ActivationMult(MultQuantizionHandler):
         if isinstance(params, (HSwishActivationParameters, HSigmoidActivationParameters)):
             max_val = in_q.scale * pow(2, in_q.bits - 1)
             if max_val < 6:
-                in_q = QType.from_min_max_sq(-6, 6, dtype=in_q.dtype, forced=True)
+                in_q = QType.from_min_max_sq(-6, 6,
+                                             dtype=in_q.dtype, forced=True)
         elif isinstance(params, SigmoidActivationParameters):
             in_q = QType.from_min_max_sq(-8, 8, dtype=in_q.dtype, forced=True)
 
@@ -68,17 +71,40 @@ class ActivationMult(MultQuantizionHandler):
             # activation cannot move zeropoint unless it is a reduction step
             if o_q.zero_point != in_q.zero_point and in_q.dtype != np.int32:
                 return None
+                
         else:
-            cls.check_valid_ranges(params, stats, idx=0, dirs='out')
-            zero_point = in_q.zero_point if in_q.zero_point != 0 else None
-            o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
-                                        stats['range_out'][0]['max'],
-                                        dtype=in_q.dtype,
-                                        zero_point=zero_point)
+            cls.check_valid_ranges(params, stats, idx=0, dirs='out')            
+            if (isinstance(params, ReluActivationParameters) and params.lower_bound == 0 and
+                    in_q.dtype == np.int8 and in_q.zero_point != 0):
+                o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
+                                            stats['range_out'][0]['max'],
+                                            dtype=in_q.dtype,
+                                            asymmetric=True)
+                in_q = deepcopy(o_q)
+            elif isinstance(params, LeakyActivationParameters):
+                o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
+                                            stats['range_out'][0]['max'],
+                                            dtype=in_q.dtype)
+                # force the preceeding filter to clip the negative range
+                in_q = deepcopy(o_q)
+            else:
+                o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
+                                            stats['range_out'][0]['max'],
+                                            dtype=in_q.dtype)
 
         qrec = QRec.scaled(in_qs=[in_q], out_qs=[o_q])
+        qrec = cls.compute_scales(params, qrec)
+        return qrec
+
+    @classmethod
+    def get_prefered_input_dtypes(cls, params, **kwargs):
+        return [np.int8]
+
+    @classmethod
+    def compute_scales(cls, params, qrec):
         if isinstance(params, (SigmoidScaledSymmetricMult, TanHActivationParameters)):
-            compute_in_out_scale(qrec, extra_scale=QType.Pow2(bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
+            compute_in_out_scale(qrec, extra_scale=QType.Pow2(
+                bits=32, q=7, signed=True).scale/qrec.in_qs[0].scale)
         elif isinstance(params, HSwishActivationParameters):
             compute_in_out_scale(qrec, extra_scale=qrec.in_qs[0].scale * 1/6)
         else:
@@ -86,13 +112,9 @@ class ActivationMult(MultQuantizionHandler):
         return qrec
 
 
-    @classmethod
-    def get_prefered_input_dtypes(cls, params, **kwargs):
-        return [np.int8]
-
 @params_type(ReluActivationParameters)
-@in_qs_constraint({'dtype': np.uint8})
-@out_qs_constraint({'dtype': np.uint8})
+@in_qs_constraint({'dtype': {np.uint8, np.uint16, np.int8, np.int16}, 'attr': {'ne16': True}})
+@out_qs_constraint({'dtype': {np.uint8, np.uint16, np.int8, np.int16}})
 @priority(2)
 class ActivationMultNe16(MultQuantizionHandler):
     @classmethod
@@ -100,13 +122,24 @@ class ActivationMultNe16(MultQuantizionHandler):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
         force_out_q = force_out_qs and force_out_qs[0]
         in_q = in_qs[0]
-
+        if params.lower_bound != 0:
+            raise NotImplementedError('relu with non zero lower bound is not implemented for NE16 quantizer')
         cls.check_valid_ranges(params, stats, idx=0, dirs='out')
         if force_out_q:
+            # since the relu is done by setting 0 zero point and scaling to the upper bound
+            # we cannot be forced to something that does not meet this requirement
+            if not force_out_q.zero_point_is_asymmetric_zero:
+                return None
+            if params.upper_bound is not None and not np.isclose(force_out_q.max, params.upper_bound, atol=0.01):
+                return None
             # if the output has been forced then propagate it
             in_q = force_out_q
         else:
-            upper = params.upper_bound if params.upper_bound is not None else stats['range_out'][0]['max']
-            in_q = QType.from_min_max_sq(0, upper, dtype=np.uint8, asymmetric=True)
-
-        return QRec.scaled(in_qs=[in_q], out_qs=[in_q], ne16=True)
+            upper = params.upper_bound if params.upper_bound is not None else stats[
+                'range_out'][0]['max']
+            in_q = QType.from_min_max_sq(
+                0, upper, dtype=in_q.dtype, asymmetric=True,
+                ne16=True, dont_copy_attr=['ne16'])
+        qrec = QRec.scaled(in_qs=[in_q], out_qs=[deepcopy(in_q)], ne16=True)
+        compute_in_out_scale(qrec)
+        return qrec

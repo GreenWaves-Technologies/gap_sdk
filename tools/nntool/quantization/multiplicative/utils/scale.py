@@ -52,7 +52,7 @@ def compute_scales(scale, available_bits=None, dtype=np.uint8):
     return qbiases.astype(dtype), qnorms.astype(np.int8)
 
 
-def apply_scales(qbiases, qnorms, arr: np.ndarray, axis: int = None):
+def apply_scales(qbiases, qnorms, arr: np.ndarray, axis: int = None, calc_dtype=np.int32):
     if axis is None:
         mul_biases = qbiases
         mul_biases_norm = qnorms
@@ -62,7 +62,7 @@ def apply_scales(qbiases, qnorms, arr: np.ndarray, axis: int = None):
         shape = [len(qbiases) if idx == axis else 1 for idx in range(len(arr.shape))]
         mul_biases = qbiases.reshape(shape)
         mul_biases_norm = qnorms.reshape(shape)
-    return at_norm(np.multiply(arr, mul_biases, dtype=np.int32), mul_biases_norm)
+    return at_norm(np.multiply(arr.astype(calc_dtype), mul_biases, dtype=calc_dtype), mul_biases_norm).astype(np.int32)
 
 def get_value_scale(min_val_or_val, max_val=None, dtype=np.int8, narrow_range=False):
     iinfo = np.iinfo(dtype)

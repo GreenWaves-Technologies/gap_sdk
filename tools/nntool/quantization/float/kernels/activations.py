@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.activations import HTanHActivationParameters, TanHActivationParameters
 import numpy as np
 from graph.types import (HSigmoidActivationParameters,
                          HSwishActivationParameters, LeakyActivationParameters,
                          ReluActivationParameters, SigmoidActivationParameters)
+from graph.types.activations import (HTanHActivationParameters,
+                                     TanHActivationParameters)
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
 

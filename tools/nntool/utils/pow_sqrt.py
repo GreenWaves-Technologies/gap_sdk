@@ -95,7 +95,9 @@ def sqrt_17_15(x):
     result[mask] >>= 15
     result[mask] += SqrtCoeffTable[0]
     result[mask] = np.where(exponent[mask] != 16,
-                            (result[mask] * Sqrt2Powers[31 - exponent[mask]]) >> 15,
+                            np.where(exponent[mask] >=12, 
+                                     (result[mask] * Sqrt2Powers[31 - exponent[mask]]) >> 15,
+                                     ((result[mask]>>(12-exponent[mask])) * Sqrt2Powers[31 - exponent[mask]]) >> (15-(12-exponent[mask]))),
                             result[mask])
     return result.astype(np.uint32)
 

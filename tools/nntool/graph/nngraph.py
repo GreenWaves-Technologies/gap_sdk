@@ -15,6 +15,7 @@
 
 import logging
 import os
+import re
 from typing import Generator, Sequence, Union
 
 import numpy as np
@@ -135,13 +136,20 @@ class NNGraph(Graph):
     def has_quantized_parameters(self, val: bool):
         self._info['has_quantized_parameters'] = val
 
+    INVALID_CHARS = re.compile(r'[^A-Za-z0-9_]')
+
+    @staticmethod
+    def valid_c_identifier(val: str) -> str:
+        return NNGraph.INVALID_CHARS.sub('_', val)
+
+
     @property
     def name(self) -> str:
         if self.graphname is None:
             base, _ = os.path.splitext(
                 os.path.basename(self.graph_identity.filename))
-            return base
-        return self.graphname
+            return self.valid_c_identifier(base)
+        return self.valid_c_identifier(self.graphname)
 
     @property
     def inputs_dim(self) -> list:
@@ -334,7 +342,7 @@ class NNGraph(Graph):
                 for out_idx, out in enumerate(outs):
                     if isinstance(node, ConstantInputParameters):
                         continue
-                    print(f"S{index} - {node.name}\n\tChecksum = {np.sum(out)}")
+                    print(f"S{index} - {node.name}\n\tChecksum = {np.sum(out) if out.dtype != np.uint8 else np.sum(out.astype(np.int8))}")
             else:
                 print(node.name)
                 for out_idx, out in enumerate(outs):

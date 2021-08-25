@@ -1,6 +1,7 @@
 # pylint: disable=line-too-long, pointless-string-statement, unused-variable
 
 from .templet import stringfunction
+import os
 
 GWT_HEADER = '''
 /*
@@ -15,7 +16,7 @@ GWT_HEADER = '''
 
 @stringfunction
 # pylint: disable=unused-argument
-def generate_main_appl_template(G, gen):
+def generate_main_appl_template(G, gen, test_inputs=None, test_outputs=None):
     '''
 ${GWT_HEADER}
 
@@ -33,7 +34,7 @@ ${GWT_HEADER}
 
 ${gen.flash_pointer} ${gen.project_name}_L3_Flash = 0;
 
-${gen.generate_main_appl_inout_def()}
+${gen.generate_main_appl_inout_def(test_inputs, test_outputs)}
 
 static void cluster()
 {
@@ -45,6 +46,7 @@ static void cluster()
 
     ${gen.project_name}CNN(${gen.gen_inout_list()});
     printf("Runner completed\\n");
+${gen.generate_output_check(indent=1) if test_outputs else ""}
 }
 
 int test_${gen.project_name}(void)
@@ -68,13 +70,28 @@ int test_${gen.project_name}(void)
         pmsis_exit(-4);
     }
 #endif
+    int cur_fc_freq = pi_freq_set(PI_FREQ_DOMAIN_FC, ${gen.opts['fc_freq']});
+    if (cur_fc_freq == -1)
+    {
+        printf("Error changing frequency !\\nTest failed...\\n");
+        pmsis_exit(-4);
+    }
 
+    int cur_cl_freq = pi_freq_set(PI_FREQ_DOMAIN_CL, ${gen.opts['cl_freq']});
+    if (cur_cl_freq == -1)
+    {
+        printf("Error changing frequency !\\nTest failed...\\n");
+        pmsis_exit(-5);
+    }
+#ifdef __GAP9__
+    pi_freq_set(PI_FREQ_DOMAIN_PERIPH, 250000000);
+#endif
     printf("Constructor\\n");
     // IMPORTANT - MUST BE CALLED AFTER THE CLUSTER IS SWITCHED ON!!!!
     if (${gen.project_name}CNN_Construct())
     {
         printf("Graph constructor exited with an error\\n");
-        pmsis_exit(-5);
+        pmsis_exit(-6);
     }
 
     printf("Call cluster\\n");
@@ -154,33 +171,24 @@ extern ${gen.flash_pointer} ${gen.project_name}_L3_Flash;
 
 @stringfunction
 # pylint: disable=unused-argument
-def generate_main_appl_make(G, gen):
+def generate_main_appl_make(G, gen, quantized):
     '''
 NNTOOL=nntool
-${"MODEL_SQ8=1"  if any(qrec.ktype == "scaled"    for qrec in G.quantization.values()) else ""}
-${"MODEL_POW2=1" if any(qrec.ktype == "symmetric" for qrec in G.quantization.values()) else ""}
-${"MODEL_FP16=1" if any(qrec.ktype == "float"     for qrec in G.quantization.values()) else ""}
-${"MODEL_NE16=1" if any(qrec.ktype == "ne16"      for qrec in G.quantization.values()) else ""}
+${"MODEL_SQ8=1"  if any(qrec.ktype == "scaled"    for qrec in G.quantization.values()) else "# MODEL_SQ8=1"}
+${"MODEL_POW2=1" if any(qrec.ktype == "symmetric" for qrec in G.quantization.values()) else "# MODEL_POW2=1"}
+${"MODEL_FP16=1" if any(qrec.ktype == "float"     for qrec in G.quantization.values()) else "# MODEL_FP16=1"}
+${"MODEL_NE16=1" if any(qrec.cache.get("ne16")    for qrec in G.quantization.values()) else "# MODEL_NE16=1"}
+
 MODEL_SUFFIX?=
 MODEL_PREFIX?=${gen.project_name}
 MODEL_PYTHON=python3
 MODEL_BUILD=BUILD_MODEL$(MODEL_SUFFIX)
 
-TRAINED_MODEL = ${G.graph_identity.filename}
-MODEL_PATH = $(MODEL_BUILD)/$(MODEL_PREFIX).${G.graph_identity.filename.split(".")[1]}
-
-TENSORS_DIR = $(MODEL_BUILD)/tensors
-MODEL_TENSORS = $(MODEL_BUILD)/$(MODEL_PREFIX)_L3_Flash_Const.dat
-
-MODEL_STATE = $(MODEL_BUILD)/$(MODEL_PREFIX).json
-MODEL_SRC = $(MODEL_PREFIX)Model.c
-MODEL_HEADER = $(MODEL_PREFIX)Info.h
-MODEL_GEN = $(MODEL_BUILD)/$(MODEL_PREFIX)Kernels $(MODEL_BUILD)/${gen.opts['basic_kernel_header_file'].split(".")[0] if G.has_expressions else ""}
-MODEL_GEN_C = $(addsuffix .c, $(MODEL_GEN))
-MODEL_GEN_CLEAN = $(MODEL_GEN_C) $(addsuffix .h, $(MODEL_GEN))
-MODEL_GEN_EXE = $(MODEL_BUILD)/GenTile
+TRAINED_MODEL = ${os.path.split(G.graph_identity.filename)[1]}
 
 MODEL_EXPRESSIONS = ${"$(MODEL_BUILD)/" + gen.opts['basic_kernel_source_file'] if gen.G.has_expressions else ""}
+
+${"MODEL_QUANTIZED=1" if quantized else ""}
 
 # Memory sizes for cluster L1, SoC L2 and Flash
 TARGET_L1_SIZE = ${gen.opts['l1_size']}

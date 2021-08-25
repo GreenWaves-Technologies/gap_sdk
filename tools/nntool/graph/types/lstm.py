@@ -27,6 +27,8 @@ LOG = logging.getLogger("nntool." + __name__)
 
 @cls_op_name('lstm')
 class LSTMParameters(RNNBaseParameters):
+    """LSTM Node type
+"""
 
     INPUT_NAMES = [
         "input",

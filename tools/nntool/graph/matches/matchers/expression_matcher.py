@@ -11,7 +11,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from collections.abc import MutableSequence
 
 from expressions.symbolic.symbol import Symbol, SymbolStats
 from graph.types import ConstantInputParameters, ExpressionFusionParameters
@@ -37,150 +36,216 @@ def add_edge(edge_set, edge):
     con_group.add(edge)
 
 
-def group_edges(G, node_set):
-    internal_edges = set()
+def external_edges(G, sub_g):
+    """ return the external nodes (in and out) of sub_g in G """
+    nodes = sub_g.nodes()
     in_edges = {}
     out_edges = {}
-    for node in node_set:
+    for node in nodes:
         for in_edge in G.in_edges(node.name):
-            if in_edge.from_node in node_set:
-                internal_edges.add(in_edge)
-            else:
+            if in_edge.from_node not in nodes:
                 add_edge(in_edges, in_edge)
         for out_edge in G.out_edges(node.name):
-            if out_edge.to_node in node_set:
-                internal_edges.add(out_edge)
-            else:
+            if out_edge.to_node not in nodes:
                 add_edge(out_edges, out_edge)
-    return in_edges, out_edges, internal_edges
+    return in_edges, out_edges
 
 
-def find_paths(G, edge, edge_paths, current_path):
-    edge_paths[edge] = current_path.copy()
-    node = edge.to_node
-    if not all(in_edge in edge_paths for in_edge in G.in_edges(node.name)):
-        return
-    all_paths = set.union(*[edge_paths[in_edge]
-                            for in_edge in G.in_edges(node.name)])
-    all_paths.add(node)
-    for out_edge in G.out_edges(node.name):
-        find_paths(G, out_edge, edge_paths, all_paths)
+def walk_nodes(G, node, candidates, visited_nodes=None):
+    """ find directly or indirectly connected nodes in candidates from node """
+    if visited_nodes is None:
+        visited_nodes = set()
+    visited_nodes.add(node)
+    connected_nodes = set(G.connected_nodes(node.name))
+    # find nodes that we have not visited and are in the candidate set
+    connected_nodes = (connected_nodes - visited_nodes) & candidates
+    results = [node]
+    for next_node in connected_nodes:
+        results.extend(walk_nodes(G, next_node, candidates,
+                                  visited_nodes=visited_nodes))
+    return results
 
 
-def create_paths(G):
-    edge_paths = {}
-    for node in G.inputs():
+def construct_subgraph(G, nodes):
+    """ construct a subgraph from nodes """
+    nodes = set(nodes)
+    sub_g = GraphView()
+    while nodes:
+        node = nodes.pop()
+        if node not in sub_g.nodes():
+            sub_g.add_node(node)
         for edge in G.out_edges(node.name):
-            find_paths(G, edge, edge_paths, set([node]))
-    return edge_paths
+            if edge.to_node in nodes:
+                sub_g.add_edge(edge.clone())
+        for edge in G.in_edges(node.name):
+            if edge.from_node in nodes:
+                sub_g.add_edge(edge.clone())
+    return sub_g
 
 
-class ListByObject(MutableSequence):
-    """ A list that can become a set and compares by object hash"""
-
-    def __init__(self, *args, created_by=None) -> None:
-        self._list = [] if not args else list(args[0])
-        self._created_by = created_by
-
-    def __getitem__(self, key):
-        return self._list.__getitem__(key)
-
-    def __setitem__(self, key, val):
-        return self._list.__setitem__(key, val)
-
-    def __delitem__(self, key):
-        return self._list.__delitem__(key)
-
-    def __len__(self) -> int:
-        return self._list.__len__()
-
-    def insert(self, index: int, value) -> None:
-        return self._list.insert(index, value)
-
-    def __eq__(self, o: object) -> bool:
-        return object.__eq__(self, o)
-
-    def __hash__(self) -> int:
-        return object().__hash__(self)
-
-    def as_set(self):
-        return set(self._list)
+def find_node_down_via(G, edges, targets, visited_edges=None):
+    """ find target nodes in targets connected from edges """
+    if visited_edges is None:
+        visited_edges = set()
+    for edge in edges:
+        if edge in visited_edges:
+            continue
+        visited_edges.add(edge)
+        if edge.to_node in targets:
+            return edge.to_node
+        out_edges = G.out_edges(edge.to_node.name)
+        if not out_edges:
+            continue
+        node = find_node_down_via(
+            G, out_edges, targets, visited_edges=visited_edges)
+        if node:
+            return node
+    return None
 
 
-def create_groups(G, edge_paths):
-    # breadth first search for groups of piecewise expressions in graph
-    # copes with detecting broken cycles where a common ancestor node is not connected
-    # to all branches to a subsequent 'join' node such as a binary op.
+def validate_node(G, sub_g, node):
+    """ find any node in sub_g connected to node via an edge that is not in sub_g but is in G """
+    excluded_edges = set(G.out_edges(node.name)) - \
+        set(sub_g.out_edges(node.name))
+    if not excluded_edges:
+        return None
+    return find_node_down_via(G, excluded_edges, sub_g.nodes())
 
-    groups = []                 # stores a reference to all the created groups of nodes that can be fused
-    node_queue = G.inputs()     # queue of nodes to visit
-    visited = set()             # set of already visited nodes
-    current_sets = {}           # mapping from edge to group of nodes that can be fused
-    while node_queue:
-        node = node_queue.pop(0)
-        visited.add(node)
-        if isinstance(node, CanFuseToExpression) and (not isinstance(node, Transposable) or not node.has_transpose):
-            incoming_sets = [current_sets.get(in_edge)
-                             for in_edge in G.in_edges(node.name)]
-            if len(incoming_sets) == 1:
-                # one incoming set so can always inherit it
-                current_set = incoming_sets[0]
-            elif len(incoming_sets) > 1:
-                # if all the branches have no common ancestor then we can merge
-                # if they have common ancestors then if one set contains some of them then so
-                # should the other
-                incoming_paths = [edge_paths[in_edge]
-                                  for in_edge in G.in_edges(node.name)]
-                intersection = set.intersection(*incoming_paths)
-                if not intersection:
-                    # no common ancestors
-                    can_merge = True
-                else:
-                    set_in_intersection = [incoming_set.as_set(
-                    ) & intersection for incoming_set in incoming_sets]
-                    can_merge = all(set_in_intersection[0] == other for other in set_in_intersection[1::])
-                if can_merge:
-                    # merge the incoming sets
-                    current_set = ListByObject(set.union(
-                        *[incoming_set.as_set() for incoming_set in incoming_sets]), created_by=node.name)
-                    groups.append(current_set)
-                    keys_to_update = [
-                        k for k, v in current_sets.items() if v in incoming_sets]
-                    for key in keys_to_update:
-                        if current_sets[key] in groups:
-                            groups.remove(current_sets[key])
-                        current_sets[key] = current_set
-                else:
-                    current_set = ListByObject(created_by=node.name)
-                    groups.append(current_set)
+
+def split_down_from(cur_g, node, res_g=None):
+    """ split cur_g into 2 graphs. Everything from node down and the rest """
+    if res_g is None:
+        res_g = GraphView()
+    out_edges = cur_g.out_edges(node.name)
+    cur_g.remove(node)
+    if node not in res_g.nodes():
+        res_g.add_node(node)
+    for edge in out_edges:
+        res_g.add_edge(edge.clone())
+        split_down_from(cur_g, edge.to_node, res_g=res_g)
+    return res_g
+
+
+def validate_subgraph(G, sub_g):
+    """ find edges that connect nodes in sub_g via nodes that are not in sub_g and
+    split the graph on the nodes found """
+    validate_nodes = []
+    validated_graphs = []
+    unvalidated_graphs = [sub_g]
+    while unvalidated_graphs:
+        cur_g = unvalidated_graphs.pop(0)
+        for node in cur_g.nodes():
+            connected_node = validate_node(G, cur_g, node)
+            if connected_node:
+                new_g = split_down_from(cur_g, connected_node)
+                unvalidated_graphs.append(cur_g)
+                unvalidated_graphs.append(new_g)
+                break
             else:
-                raise ValueError('unexpected number of incoming sets')
-            current_set.append(node)
+                validate_nodes.append(node)
         else:
-            current_set = ListByObject(created_by=node.name)
-            groups.append(current_set)
+            validated_graphs.append(cur_g)
+    return validated_graphs
 
-        for out_edge in G.out_edges(node.name):
-            out_node = out_edge.to_node
-            # if already visited then ignore this (can occur due to multiple inputs)
-            if out_node in visited:
+
+def walk_down(subgraph, node):
+    """ return all the nodes below node including node """
+    res = [node]
+    for edge in subgraph.out_edges(node.name):
+        res.extend(walk_down(subgraph, edge.to_node))
+    return res
+
+
+def split_excluding(subgraph, node):
+    """ splits a subgraph into 2 graphs at node excluding node """
+    res = []
+    nodes_to_include = set([node for edge in subgraph.out_edges(
+        node.name) for node in walk_down(subgraph, edge.to_node)])
+    subgraph.remove(node)
+    while nodes_to_include:
+        node = nodes_to_include.pop()
+        subgroup = set(walk_nodes(subgraph, node, nodes_to_include))
+        nodes_to_include -= subgroup
+        res.append(construct_subgraph(subgraph, subgroup))
+        for node in subgroup:
+            subgraph.remove(node)
+    if subgraph.nodes():
+        res.append(subgraph)
+    return res
+
+
+def check_all_nodes_happy(G, subgraph):
+    """ check that all nodes want to stay in suggraph. If one doesn't split the subgraph excluding it """
+    for node in subgraph.nodes():
+        nid = NodeId(node)
+        qrec = G.quantization[NodeId(
+            node)] if G.quantization and nid in G.quantization else None
+        if not node.should_fuse(subgraph.nodes(), qrec=qrec):
+            return split_excluding(subgraph, node)
+    return [subgraph]
+
+
+def add_constants(G, sub_g):
+    """ adds scalar constants to the subgraphs. If a constant is used in more than one place then
+    it is duplicated """
+    for node in sub_g.nodes():
+        for edge in G.in_edges(node.name):
+            if not isinstance(edge.from_node, ConstantInputParameters) or edge.from_node.out_dims[0].size() > 1:
                 continue
-            # if all the inward nodes to this node have been visited then we can traverse it
-            if all(in_edge.from_node in visited for in_edge in G.in_edges(out_node.name)):
-                node_queue.append(out_node)
-            # set the edge to the current set if it might be able to fuse otherwise give it a fresh set
-            if isinstance(out_node, CanFuseToExpression) and (not isinstance(node, Transposable) or
-                                                              not node.has_transpose):
-                current_sets[out_edge] = current_set
+            const_node = edge.from_node
+            out_edges = G.out_edges(const_node.name)
+            # if constant is connected to more than one node then duplicate it
+            if len(out_edges) > 1:
+                new_const = ConstantInputParameters(
+                    G.unique_name(f'{const_node}_dup'),
+                    value=const_node.value.copy(),
+                    dims=const_node.dims.clone())
+                G.remove_edge(edge)
+                G.add_edge(NNEdge(from_node=new_const,
+                                  to_node=edge.to_node, to_idx=edge.to_idx))
+                sub_g.add_edge(NNEdge(from_node=new_const,
+                                      to_node=edge.to_node, to_idx=edge.to_idx))
             else:
-                fresh_set = ListByObject(created_by=node.name)
-                current_sets[out_edge] = fresh_set
-                groups.append(fresh_set)
+                sub_g.add_edge(NNEdge(from_node=const_node,
+                                      to_node=edge.to_node, to_idx=edge.to_idx))
 
-    # get rid of empty groups and duplicates
-    groups = sorted([group.as_set() for group in groups if group],
-                    key=lambda x: min(node.step_idx for node in x))
-    return groups
+
+def deterministic_order(graph_list):
+    """ sorts the graph list by the sorted nodes in each graph """
+    graph_list = list(graph_list)
+    graph_list = sorted([(graph, "".join(sorted([node.name for node in graph.nodes()])))
+                         for graph in graph_list], key=lambda x: x[1])
+    return [graph_tuple[0] for graph_tuple in graph_list]
+
+
+def find_connected_groups(G):
+    """ first find all the subgraphs of connected nodes in candidates
+        then split subgraphs where a node depends on a set of nodes not in the subgraph
+        whose input is the result of a node in the graph
+        finally verify that all the nodes want to stay in each subgraph
+    """
+    candidates = set([node for node in G.nodes(node_classes=CanFuseToExpression)
+                      if (not isinstance(node, Transposable) or not node.has_transpose)])
+    subgraphs = []
+    while candidates:
+        node = candidates.pop()
+        subgroup = set(walk_nodes(G, node, candidates))
+        candidates = candidates - subgroup
+        subgraph = construct_subgraph(G, subgroup)
+        valid_subgraphs = validate_subgraph(G, subgraph)
+        while valid_subgraphs:
+            subgraph = valid_subgraphs.pop(0)
+            final_subgraphs = check_all_nodes_happy(G, subgraph)
+            if not final_subgraphs:
+                continue
+            if len(final_subgraphs) > 1:
+                valid_subgraphs.extend(final_subgraphs)
+                continue
+            add_constants(G, final_subgraphs[0])
+            subgraphs.append(final_subgraphs[0])
+
+    # graphs must always be returned in the same order
+    return deterministic_order(subgraphs)
 
 
 @match_name("expression_matcher")
@@ -196,16 +261,10 @@ class ExpressionMatcher(Matcher):
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         has_modified_graph = False
         to_quantize = []
-        node_sets = self.find_sets(G)
-        for node_set in node_sets:
+        for frag in find_connected_groups(G):
             Symbol.set_default_control(SymbolStats())
             has_modified_graph = True
-            in_edges, out_edges, internal_edges = group_edges(G, node_set)
-            frag = GraphView()
-            for node in node_set:
-                frag.add_node(node)
-            for edge in internal_edges:
-                frag.add_edge(edge)
+            in_edges, out_edges = external_edges(G, frag)
             in_mapping = [[(edge.to_node, edge.to_idx) for edge in edge_group]
                           for edge_group in in_edges.values()]
             in_dims = [from_node.out_dims[from_idx]
@@ -220,7 +279,7 @@ class ExpressionMatcher(Matcher):
                       ",".join(f"{from_node.__repr__()}:{from_idx}"
                                for from_node, from_idx in in_edges))
             LOG.info("fusing nodes: %s into expr_%s",
-                     ",".join(node.__repr__() for node in node_set),
+                     ",".join(node.__repr__() for node in frag.nodes()),
                      self._expr_num)
             expr = ExpressionFusionParameters(G.unique_name(f"expr_{self._expr_num}"),
                                               subgraph=frag,
@@ -291,35 +350,3 @@ class ExpressionMatcher(Matcher):
             return False
         return any(ExpressionMatcher.can_find_up(G, edge.from_node, to_find)
                    for edge in in_edges)
-
-    @staticmethod
-    def add_constants(G, node_set):
-        result = node_set.copy()
-        for node in node_set:
-            result.add(node)
-            for edge in G.in_edges(node.name):
-                if isinstance(edge.from_node, ConstantInputParameters) and edge.from_node.out_dims[0].size() == 1:
-                    result.add(edge.from_node)
-        return result
-
-    def find_sets(self, G):
-        edge_paths = create_paths(G)
-        node_sets = create_groups(G, edge_paths)
-        results = []
-        for node_set in node_sets:
-            while True:
-                remove_node = None
-                for node in node_set:
-                    nid = NodeId(node)
-                    qrec = G.quantization[NodeId(
-                        node)] if G.quantization and nid in G.quantization else None
-                    if not node.should_fuse(node_set, qrec=qrec):
-                        remove_node = node
-                        break
-                if remove_node:
-                    node_set.remove(remove_node)
-                else:
-                    if node_set:
-                        results.append(self.add_constants(G, node_set))
-                    break
-        return results

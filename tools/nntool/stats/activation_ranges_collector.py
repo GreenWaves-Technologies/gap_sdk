@@ -158,9 +158,9 @@ class ActivationRangesCollector(GraphStatsCollector):
                             stat, 'range_pre_mul_bias', details, details_name='pre_mul_bias')
             elif isinstance(node, RNNBaseParameters):
                 if details:
-                    self.collect_stat(stat, 'range_state', details)
-                    if isinstance(node, LSTMParameters):
-                        self.collect_stat(stat, 'range_cell', details)
+                    for k in details:
+                        if k.startswith('range_'):
+                            self.collect_stat(stat, k, details)
             elif isinstance(node, ExpressionFusionParameters):
                 if details:
                     self.update_expression_ranges(stat, details)

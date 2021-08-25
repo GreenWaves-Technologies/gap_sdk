@@ -17,6 +17,7 @@ from copy import deepcopy
 from typing import cast
 
 import numpy as np
+from bfloat16 import bfloat16
 from graph.types import QuantizeParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
@@ -60,19 +61,32 @@ class HandleQuantizeMult(MultQuantizionHandler):
         in_q = in_qs[0]
         if force_out_q:
             o_q = deepcopy(force_out_q)
-            o_q.set_forced(False)
             if params.to_qtype.dtype == np.uint8 and in_q.dtype == np.int8:
-                in_zero_point = o_q.zero_point - 128
-                if in_q.forced_zero_point and in_q.zero_point != in_zero_point:
-                    return None
-                in_q = QType(scale=o_q.scale, min_val=o_q.min_val, max_val=o_q.max_val,
-                             dtype=in_q.dtype, zero_point=in_zero_point)
+                if np.all(in_q.zero_point == -128):
+                    cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+                    o_q = QType.from_min_max_sq(0,
+                                                in_q.max_val,
+                                                dtype=np.uint8,
+                                                asymmetric=True)
+                else:
+                    in_zero_point = o_q.zero_point - 128
+                    if in_q.forced_zero_point and in_q.zero_point != in_zero_point:
+                        return None
+                    in_q = QType(scale=o_q.scale, min_val=o_q.min_val, max_val=o_q.max_val,
+                                 dtype=in_q.dtype, zero_point=in_zero_point)
             elif params.to_qtype.dtype == np.int8 and in_q.dtype == np.uint8:
-                in_zero_point = o_q.zero_point + 128
-                if in_q.forced_zero_point and in_q.zero_point != in_zero_point:
-                    return None
-                in_q = QType(scale=o_q.scale, min_val=o_q.min_val, max_val=o_q.max_val,
-                             dtype=in_q.dtype, zero_point=in_zero_point)
+                if np.all(in_q.zero_point == 0):
+                    cls.check_valid_ranges(params, stats, idx=0, dirs='out')
+                    o_q = QType.from_min_max_sq(0,
+                                                in_q.max_val,
+                                                dtype=np.int8,
+                                                asymmetric=True)
+                else:
+                    in_zero_point = o_q.zero_point + 128
+                    if in_q.forced_zero_point and in_q.zero_point != in_zero_point:
+                        return None
+                    in_q = QType(scale=o_q.scale, min_val=o_q.min_val, max_val=o_q.max_val,
+                                dtype=in_q.dtype, zero_point=in_zero_point)
         else:
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')
             if params.to_qtype is None and 'output_dtypes' in kwargs:
@@ -121,6 +135,8 @@ class HandleQuantizeMult(MultQuantizionHandler):
                     in_zero_point = o_q.zero_point + 128
                     in_q = QType(scale=o_q.scale, min_val=o_q.min_val, max_val=o_q.max_val,
                                  dtype=in_q.dtype, zero_point=in_zero_point)
+            elif o_dtype in [np.float32, np.float16, bfloat16]:
+                o_q = QType(dtype=o_dtype, max_val=stats['range_out'][0]['max'], min_val=stats['range_out'][0]['min'])
             else:
                 o_q = QType.from_min_max_sq(stats['range_out'][0]['min'],
                                             stats['range_out'][0]['max'],

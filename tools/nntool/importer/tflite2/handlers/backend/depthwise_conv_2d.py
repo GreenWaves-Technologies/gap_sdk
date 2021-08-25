@@ -86,7 +86,6 @@ class DepthwiseConv2D(FilterMixin, BackendHandler):
 
         if convert_to_conv:
             filt_dim.impose_order(cls.TF_LITE_FILTER_ORDER)
-            # TODO - reorder weights for node converted to convolution (perhaps just dequantize)
             params = Conv2DParameters(node.name,
                                       filt=filt_dim,
                                       stride=StrideDim(

@@ -15,6 +15,7 @@
 
 import logging
 from copy import deepcopy
+import math
 
 import numpy as np
 from graph.types import (Conv2DParameters, FcParameters,
@@ -77,14 +78,15 @@ class FilterPow2(Pow2QuantizionHandler):
             range_out = stats['range_out'][0]
 
         in_q = deepcopy(in_qs[0]).scale_to_pow2()
-        calc_width = 32
+        calc_width = 31
 
+        o_q = QType.from_min_max_pow2(range_out['min'],
+                                        range_out['max'],
+                                        dtype=out_dtype)
         if force_out_q:
-            o_q = force_out_q
-        else:
-            o_q = QType.from_min_max_pow2(range_out['min'],
-                                          range_out['max'],
-                                          dtype=out_dtype)
+            if o_q.scale > force_out_q.scale:
+                return None
+
         weights_q = QType.from_array_pow2(arr=weights_node.dqvalue,
                                           dtype=params_dtype)
         calc_q = in_q.q + weights_q.q
@@ -96,13 +98,20 @@ class FilterPow2(Pow2QuantizionHandler):
         calc_int_bits = calc_width - calc_q
         if calc_int_bits < act_acc_bits:
             # we don't have enough space for the integer portion so reduce the precision of
-            # the weights
+            # the weights and input
             missing_bits = act_acc_bits - calc_int_bits
-            # TODO - This needs improving
-            assert weights_q.q >= missing_bits, "no space in weights to reduce precision"
+            if missing_bits > calc_q * 0.75:
+                raise ValueError(f'Quantizing {params.name} at this precision will loose more than 75% of fractional part')
+
+            prec_inp = min(math.floor(0.5 + missing_bits * in_q.q/calc_q), in_q.q)
+            prec_w = min(math.floor(0.5 + missing_bits * weights_q.q/calc_q), weights_q.q)
+            left = missing_bits - prec_inp - prec_w
+            if left > 0:
+                prec_w += left
             LOG.warning(
-                'reducing weight precision in %s to satisfy quantization constraints', params.name)
-            weights_q.q = weights_q.q - missing_bits
+                'reducing weight and input precision (%s, %s) in %s to satisfy quantization constraints', prec_w, prec_inp, params.name)
+            weights_q.q -= prec_w
+            in_q.q -= prec_inp
             calc_q = in_q.q + weights_q.q
             calc_int_bits = calc_width - calc_q
 

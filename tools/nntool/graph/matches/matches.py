@@ -16,9 +16,9 @@
 # pylint: disable=wildcard-import,unused-wildcard-import
 
 import logging
-from functools import cmp_to_key
 
 from graph.matches.matcher import Matcher, MatchGroup
+from utils.subclasses import get_all_subclasses
 
 from .matchers import *
 
@@ -34,12 +34,6 @@ def general_validation(match: Matcher):
         raise ValueError(
             f'match {match.NAME} has wildcard in run_before and run_after')
     return match
-
-
-def get_all_subclasses(cls):
-    for subclass in cls.__subclasses__():
-        yield from get_all_subclasses(subclass)
-        yield subclass
 
 
 ALL_MATCHERS = [general_validation(match_class) for match_class in get_all_subclasses(Matcher)

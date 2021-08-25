@@ -39,9 +39,6 @@ class Size(ConstantMixin, BackendHandler):
         valid_name = kwargs['valid_name']
         inputs = [all_nodes[inp] for inp in node.input]
         x = inputs[0]
-        if not cls.is_constant(x):
-            # TODO - clear unique paths to this node here
-            pass
         logger.info("reducing %s to a constant", valid_name)
         x_shape = [dim if dim else 1 for dim in x[2].shape]
         sz=np.array(prod(x_shape))

@@ -16,6 +16,7 @@
 import logging
 from abc import ABC, abstractmethod
 from typing import Generator, Sequence
+from utils.node_id import NodeId
 
 from utils.graph import GraphView, MatchNode, Node
 
@@ -50,6 +51,13 @@ class Matcher(ABC):
     @property
     def name(self):
         return self.NAME
+
+    @staticmethod
+    def remove_quantization(G, node):
+        if G.quantization:
+            nid = NodeId(node)
+            if nid in G.quantization:
+                del G.quantization[nid]
 
     def set_identity(self, G):
         if hasattr(G, 'graph_identity') and self._identity is not None:

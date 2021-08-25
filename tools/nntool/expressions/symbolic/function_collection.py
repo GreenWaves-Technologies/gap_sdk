@@ -122,20 +122,21 @@ class FunctionCollection():
 
     @staticmethod
     def split_indexes(unique_axis_groups):
-        res = set()
         uaq = sorted(unique_axis_groups, key=len)
         stable = False
-        while not stable and uaq:
+        while not stable:
             stable = True
             res = set()
-            first = uaq[0]
-            res.add(first)
-            for item in uaq[1::]:
-                if first < item:
-                    res.add(item - first)
-                    stable = False
-                else:
-                    res.add(item)
+            for elem_idx, elem in enumerate(uaq):
+                res.add(elem)
+                for other in uaq[elem_idx+1::]:
+                    if elem < other:
+                        stable = False
+                        res.add(other - elem)
+                        res |= set(uaq[elem_idx+1::]) - {other}
+                        break
+                if not stable:
+                    break
             uaq = sorted(list(res), key=len)
         return uaq
 
@@ -163,6 +164,9 @@ class FunctionCollection():
         idx_dims = [reduce(lambda x, y: x*max_shape[y], idxes, 1) for idxes in unique_indexes]
         self._iterators = [Variable(idx_name, shape=tuple([idx_dim]), dtype=np.int32)
                            for idx_name, idx_dim in zip(idx_names, idx_dims)]
+        if not self._iterators:
+            # scalar op - this is presumably only in the tests
+            self._iterators = [Variable('d0', shape=(1, ))]
         self._variable_indexes = {n: tuple([idx for idx, idx_set in enumerate(
             unique_indexes) if idx_set <= node_axis[n]]) for n in self.var_shapes}
         # creates a map from the dimensions indexed to a list of tuples
@@ -190,16 +194,11 @@ class FunctionCollection():
         for depth, var in enumerate(self._iterators):
             if depth == 0:
                 iters.extend([('First', 0), ('Last', var.shape[0])])
-            elif depth == 1:
-                if self.kernel_dims == 2:
-                    iters.append(('W', var.shape[0]))
-                else:
-                    iters.append(('H', var.shape[0]))
-            elif depth == 2:
-                iters.append(('W', var.shape[0]))
+            else:
+                iters.append((self.iterators[depth].name.upper(), var.shape[0]))
         return iters
 
-    def create_kernel(self, code_block=None):
+    def create_kernel(self, parallel_iterator, fixed_iterators, code_block=None):
         if code_block is None:
             code_block = CodeBlock()
         execution_order = self.execution_order
@@ -214,23 +213,24 @@ class FunctionCollection():
         produced_idx = 0
         if self.kernel_dims:
             for depth in range(self.kernel_dims):
-                if depth == 0:
+                iterator = self.iterators[depth]
+                if iterator == parallel_iterator:
                     code_block.write(
                         'for ({0}=First; {1}<Last; {1}++) {{',
-                        self.iterators[depth].c_expr(declare=True),
-                        self.iterators[depth].c_expr())
+                        iterator.c_expr(declare=True),
+                        iterator.c_expr())
+                elif iterator in fixed_iterators:
+                    code_block.write(
+                        'for ({0}=0; {1}<{2}; {1}++) {{',
+                        iterator.c_expr(declare=True),
+                        iterator.c_expr(),
+                        1)
                 else:
-                    if depth == 1:
-                        code_block.write(
-                            'for ({0}=0; {1}<{2}; {1}++) {{',
-                            self.iterators[depth].c_expr(declare=True),
-                            self.iterators[depth].c_expr(),
-                            "W" if self.kernel_dims == 2 else "H")
-                    elif depth == 2:
-                        code_block.write(
-                            'for ({0}=0; {1}<W; {1}++) {{',
-                            self.iterators[depth].c_expr(declare=True),
-                            self.iterators[depth].c_expr())
+                    code_block.write(
+                        'for ({0}=0; {1}<{2}; {1}++) {{',
+                        iterator.c_expr(declare=True),
+                        iterator.c_expr(),
+                        iterator.name.upper())
                 code_block.indent()
                 produced_idx = self.produce_functions(
                     produced_idx, execution_order, index_dependencies, depth, code_block)

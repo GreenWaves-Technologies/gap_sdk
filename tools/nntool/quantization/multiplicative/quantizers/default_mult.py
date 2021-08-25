@@ -28,8 +28,8 @@ LOG = logging.getLogger('nntool.' + __name__)
 
 
 @params_type('__default__')
-@in_qs_constraint(MatchAll({'dtype': set([np.int8, np.uint8])}))
-@out_qs_constraint(MatchAll({'dtype': set([np.int8, np.uint8])}))
+@in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16, np.uint8, np.uint16])}))
+@out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16, np.uint8, np.uint16])}))
 class NoChangeMult(MultQuantizionHandler, NoChangeMixin):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

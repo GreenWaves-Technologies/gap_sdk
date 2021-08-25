@@ -41,7 +41,7 @@ def mult8_rnn_infos_generator(gen, node, qrec, pnode, fnode) -> bool:
         raise ValueError()
     if node.rnn_states_as_inputs:
         gen.globals.append(GlobalResetArgInfo(
-            "Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
+            f"{node.name}_Reset", 'AT_MEM_L2', 'AT_MEM_UNDEF'))
     return True
 
 

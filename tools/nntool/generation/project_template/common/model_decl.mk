@@ -10,7 +10,7 @@ MODEL_PREFIX?=
 
 MODEL_PYTHON=python3
 
-MODEL_PATH = $(MODEL_BUILD)/$(notdir $(TRAINED_MODEL))
+MODEL_PATH = $(MODEL_BUILD)/$(MODEL_PREFIX)$(suffix $(TRAINED_MODEL))
 MODEL_COMMON ?= common
 MODEL_COMMON_INC ?= $(GAP_SDK_HOME)/libs/gap_lib/include
 MODEL_COMMON_SRC ?= $(GAP_SDK_HOME)/libs/gap_lib/img_io

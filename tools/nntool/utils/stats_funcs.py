@@ -102,27 +102,48 @@ def max_error(orig, quant):
     qerr = orig - quant
     return np.max(np.abs(qerr))
 
-def qsnr(orig, quant):
+def qsnr(orig, quant, axis=None):
     """Calculate the QSNR between two tensors
     """
     qerr = orig - quant
-    sum_err = np.sum(qerr * qerr)
-    sum_orig = np.sum(orig * orig)
-    if sum_err > 0:
-        if sum_orig < sum_err:
-            if sum_orig == 0:
-                return -math.inf
+    if axis is not None:
+        axis = tuple(i for i in range(len(qerr.shape)) if i != axis)
+    asum_err = np.sum(qerr * qerr, axis=axis)
+    asum_orig = np.sum(orig * orig, axis=axis)
+    res = []
+    if axis is not None:
+        for sum_err, sum_orig in zip(asum_err, asum_orig): 
+            if sum_err > 0:
+                if sum_orig < sum_err:
+                    if sum_orig == 0:
+                        res.append(-math.inf)
+                    else:
+                        # Means error is larger than signal
+                        res.append(-int(round(10 * math.log10(sum_err/sum_orig), 0)))
+                else:
+                    # Error portion of signal
+                    res.append(int(round(10 * math.log10(sum_orig/sum_err), 0)))
             else:
-                # Means error is larger than signal
-                return -int(round(10 * math.log10(sum_err/sum_orig), 0))
-        # Error portion of signal
-        return int(round(10 * math.log10(sum_orig/sum_err), 0))
-    # Means no error
-    return math.inf
+                # Means no error
+                res.append(math.inf)
+        return np.array(res)
+    else:
+        if asum_err > 0:
+            if asum_orig < asum_err:
+                if asum_orig == 0:
+                    return -math.inf
+                else:
+                    # Means error is larger than signal
+                    return -int(round(10 * math.log10(asum_err/asum_orig), 0))
+            # Error portion of signal
+            return int(round(10 * math.log10(asum_orig/asum_err), 0))
+        # Means no error
+        return math.inf
+
 
 def cos_similarity(x, y):
-    x = x.flatten()
-    y = y.flatten()
+    x = x.copy().flatten()
+    y = y.copy().flatten()
     if np.sum(np.abs(x)) == 0 or np.sum(np.abs(y)) == 0:
         x = np.add(x, 1e-5)
         y = np.add(y, 1e-5)

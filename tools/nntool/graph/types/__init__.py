@@ -36,6 +36,10 @@ from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
                                  MatMulOpFusionParameters,
                                  MatScaleFusionParameters,
                                  PaddedAddFusionParameters)
+from graph.types.global_pooling import (GlobalAveragePoolParameters,
+                                        GlobalMaxPoolParameters,
+                                        GlobalPoolingParameters,
+                                        GlobalSumPoolParameters)
 from graph.types.image_formatter import ImageFormatParameters
 from graph.types.input_output import (ConstantInputParameters,
                                       InputBaseParameters,
@@ -45,15 +49,14 @@ from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
 from graph.types.others import (BinaryOpParameters, ConcatParameters,
                                 CopyParameters, ExpOpParameters,
-                                GatherParameters, GlobalPoolParameters,
-                                LogOpParameters, MaxOpParameters,
-                                MinOpParameters, NegOpParameters,
-                                NoOPParameters, PadParameters, PowOpParameters,
-                                QuantizeParameters, ReshapeParameters,
-                                ReverseParameters, SplitParameters,
-                                StridedSliceParameters, Transposable,
-                                TransposeParameters, UnaryOpParameters,
-                                UnconvertedOpParameters,
+                                GatherParameters, LogOpParameters,
+                                MaxOpParameters, MinOpParameters,
+                                NegOpParameters, NoOPParameters, PadParameters,
+                                PowOpParameters, QuantizeParameters,
+                                ReshapeParameters, ReverseParameters,
+                                SplitParameters, StridedSliceParameters,
+                                Transposable, TransposeParameters,
+                                UnaryOpParameters, UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters)
 from graph.types.pooling import (AveragePoolParameters, MaxPoolParameters,
                                  PoolingParameters)

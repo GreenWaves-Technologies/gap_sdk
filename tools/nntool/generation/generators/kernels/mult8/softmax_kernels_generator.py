@@ -48,19 +48,21 @@ def gen_at_softmax(code_block, name, in_dim, at_softmax_params, gen_ctrl=None, i
 @generation_function("kernels", (SoftMaxParameters, ), qrec_types=(QREC_MULT8, ))
 def softmax_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
-    gen_ctrl = node.get_gen_ctrl() if node.at_options.out_8bits == 1 else None
+    # gen_ctrl = node.get_gen_ctrl() if node.at_options.out_8bits == 1 else None
+    gen_ctrl = None
     gen.kernels.append(SoftmaxKernel(cname, node, qrec, gen_ctrl, at_ver=gen.opts['at_ver']))
     return True
 
 
 class SoftmaxKernel(AutotilerKernel):
     def __init__(self, cname, params, qrec, gen_ctrl=None, at_ver=3):
-        del qrec
         if gen_ctrl is None:
             self.gen_ctrl = GenCtrl(None, cname=cname)
         else:
             gen_ctrl.cname = cname
             self.gen_ctrl = gen_ctrl
+        if (not qrec.out_qs[0].bits == 16) or (not qrec.out_qs[0].signed):
+            self.gen_ctrl.output_datasize = qrec.out_qs[0].bits//8 if qrec.out_qs[0].signed else -qrec.out_qs[0].bits//8
 
         self.at_softmax_params = gen_softmax_at_params(params)
         self.in_dim = params.in_dims[0]

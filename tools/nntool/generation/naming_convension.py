@@ -19,7 +19,7 @@ import hashlib
 from graph.types import (ActivationFusion, ActivationParameters,
                          ConcatParameters, ConstantInputParameters,
                          Conv2DParameters, ConvFusionParameters, FcParameters,
-                         GlobalPoolParameters, MatrixAddParameters,
+                         GlobalPoolingParameters, MatrixAddParameters,
                          MatrixMulParameters, PoolingParameters,
                          SoftMaxParameters)
 
@@ -108,7 +108,7 @@ class DefaultNamingConvension(NamingConvension):
                 return f"MatAdd_{nodes[0].out_dims[0]}_{nodes[1].activation.capitalize()}"
             if isinstance(nodes[0], (PoolingParameters)):
                 return f"{nodes[0].pool_type.capitalize()}Pool_{nodes[0].filter}_{nodes[1].activation.capitalize()}"
-            if isinstance(nodes[0], (GlobalPoolParameters)):
+            if isinstance(nodes[0], (GlobalPoolingParameters)):
                 return (f"{nodes[0].pool_type.capitalize()}Pool_{nodes[0].out_dims[0]}_"
                         f"{nodes[1].activation.capitalize()}")
             if isinstance(nodes[0], MatrixMulParameters):

@@ -28,7 +28,7 @@ def split_list(l):
     return l[0::2], l[1::2]
 
 def product(l):
-    return reduce(lambda x, y: x * y, l)
+    return reduce(lambda x, y: (x * y), l, 1)
 
 def balanced_divisors(num):
     if num == 1:

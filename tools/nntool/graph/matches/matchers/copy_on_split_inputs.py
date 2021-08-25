@@ -16,7 +16,7 @@
 import logging
 
 from graph.types import InputParameters, ReshapeParameters
-from graph.types.others import CopyParameters, SplitParameters
+from graph.types.others import ConcatParameters, CopyParameters, SplitParameters
 from utils.graph import GraphView
 
 from ..matcher import Matcher, groups, match_name, description, modifies_dimensions
@@ -32,7 +32,7 @@ def search_up_for_input(G, node, going_up=None):
     return None
 
 @match_name("copy_on_split_inputs")
-@description("Insert copy on split inputs")
+@description("Insert copy on inputs that could be in a tensor stack")
 @modifies_dimensions(True)
 @groups('*')
 class CopyOnSplitInputs(Matcher):
@@ -40,7 +40,7 @@ class CopyOnSplitInputs(Matcher):
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
 
         candidates = [node for node in G.nodes(
-            node_classes=SplitParameters) if search_up_for_input(G, node)]
+            node_classes=(SplitParameters, ConcatParameters)) if search_up_for_input(G, node)]
         has_modified_graph = False
         for node in candidates:
             LOG.info(

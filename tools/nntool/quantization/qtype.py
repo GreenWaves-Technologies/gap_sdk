@@ -116,6 +116,13 @@ class AttrNamespace:
             raise AttributeError()
         return False
 
+    def __setattr__(self, name: str, value) -> None:
+        self.__dict__[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        if name in self.__dict__:
+            del self.__dict__[name]
+
     def __iter__(self):
         yield from [a for a in dir(self) if not a.startswith('__')]
 
@@ -162,7 +169,7 @@ class QType(JsonSerializable, EventEmitter):
 
     def __init__(self, *args, q=None, bits=None, signed=True, zero_point=0, scale=None,
                  min_val=None, max_val=None, quantized_dimension=None, dtype=None,
-                 narrow_range=None, forced=False, **kwargs):
+                 narrow_range=None, forced=False, dont_copy_attr=None, **kwargs):
         super(QType, self).__init__(*args)
         self._q = q
         self._scale = self.init_array(scale)
@@ -175,6 +182,7 @@ class QType(JsonSerializable, EventEmitter):
         self._offset = None
         self._attr = AttrNamespace(**kwargs)
         self._is_constant = None
+        self._dont_copy_attr = dont_copy_attr
         if bits is None:
             self.dtype = dtype
         elif dtype is None:
@@ -193,14 +201,40 @@ class QType(JsonSerializable, EventEmitter):
 
     def __getstate__(self):
         state = {k: getattr(self, f'_{k}') for k in self.EXPORT}
+        if self._dont_copy_attr:
+            for k in self._dont_copy_attr:
+                if k in state['attr']:
+                    delattr(state['attr'], k)
         state['dtype'] = DTYPE_STR[self.dtype]
         return state
 
     def __setstate__(self, state):
         for k in self.EXPORT:
             setattr(self, f'_{k}', state[k])
+        setattr(self, '_dont_copy_attr', None)
         setattr(self, '_dtype', STR_DTYPE[state['dtype']])
         setattr(self, '_EventEmitter__raw_listeners', {})
+
+    @property
+    def zero_point_is_asymmetric_zero(self):
+        if self.dtype in [np.int8, np.int16, np.int32]:
+            min_val = np.iinfo(self.dtype).min
+            return np.all(self.zero_point == min_val)
+        if self.dtype in [np.uint8, np.uint16, np.uint32]:
+            return np.all(self.zero_point == 0)
+        return False
+
+    @property
+    def dont_copy_attr(self):
+        return self._dont_copy_attr
+
+    @dont_copy_attr.setter
+    def dont_copy_attr(self, val):
+        self._dont_copy_attr = val
+
+    @property
+    def is_fixed_point(self):
+        return not self.is_floating
 
     @property
     def is_constant(self):
@@ -412,6 +446,12 @@ class QType(JsonSerializable, EventEmitter):
         if self._max_val is None:
             return self.max
         return self._max_val
+
+    @property
+    def max_abs_val(self):
+        if self._max_val is None or self._min_val is None:
+            return self.max
+        return max(abs(self._max_val), abs(self._min_val))
 
     @property
     def min(self):
@@ -749,7 +789,7 @@ class QType(JsonSerializable, EventEmitter):
 
     def dequantize(self, arr):
         if self.is_floating or self.scale is None:
-            return arr.astype(self.dtype)
+            return arr.astype(np.float32)
         if self._offset is not None:
             arr = arr - self._offset
         if self.quantized_dimension is not None:
@@ -814,15 +854,18 @@ class QType(JsonSerializable, EventEmitter):
             return QType(q=self.q + other.q, bits=self.bits + other.bits, signed=self.signed or other.signed)
         return QType(scale=self.scale * other.scale, bits=self.bits + other.bits, signed=self.signed or other.signed)
 
+    def quantization_equal(self, other):
+        return (np.allclose(self.scale, other.scale) and
+                self.bits == other.bits and
+                self.signed == other.signed and
+                self.dtype == other.dtype and
+                self.quantized_dimension == other.quantized_dimension and
+                np.allclose(self.zero_point, other.zero_point) and
+                np.all(self.offset == other.offset))
+
     def __eq__(self, other):
         if isinstance(other, QType):
-            return (np.allclose(self.scale, other.scale) and
-                    self.bits == other.bits and
-                    self.signed == other.signed and
-                    self.dtype == other.dtype and
-                    self.quantized_dimension == other.quantized_dimension and
-                    np.allclose(self.zero_point, other.zero_point) and
-                    np.all(self.offset == other.offset) and
+            return (self.quantization_equal(other) and
                     self.attr == other.attr)
         return other.__eq__(self)
 

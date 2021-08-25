@@ -67,6 +67,19 @@ ACTIVATIONS = {
 }
 
 
+def init_stats(details, *names):
+    for name in names:
+        details[name] = {
+            'min': float('inf'), 'max': float('-inf')}
+
+
+def record_stat(details, name, val):
+    details[name]['min'] = min(
+        details[name]['min'], val.min())
+    details[name]['max'] = max(
+        details[name]['max'], val.max())
+
+
 class RnnFloat32Mixin():
     @classmethod
     def execute(cls, params,
@@ -90,11 +103,15 @@ class RnnFloat32Mixin():
         out_tensor = np.zeros([params.n_output_cells, params.n_states])
         out_idx = 0
         if details is not None:
-            details['range_state'] = {
-                'min': float('inf'), 'max': float('-inf')}
+            init_stats(
+                details,
+                'range_state')
             if isinstance(params, LSTMParameters):
-                details['range_cell'] = {
-                    'min': float('inf'), 'max': float('-inf')}
+                DiagCollector.active_set('__rnn_quant')
+                init_stats(
+                    details,
+                    'range_cell',
+                )
 
         new_c_state = None
         for idx in range(params.n_cells):
@@ -109,15 +126,29 @@ class RnnFloat32Mixin():
                 out_idx += 1
 
             if details is not None:
-                details['range_state']['min'] = min(
-                    details['range_state']['min'], res.min())
-                details['range_state']['max'] = max(
-                    details['range_state']['max'], res.max())
+                record_stat(details, 'range_state', res)
                 if isinstance(params, LSTMParameters):
-                    details['range_cell']['min'] = min(
-                        details['range_cell']['min'], args['c_state'].min())
-                    details['range_cell']['max'] = max(
-                        details['range_cell']['max'], args['c_state'].max())
+                    record_stat(details, 'range_cell', args['c_state'])
+        
+        if details is not None and isinstance(params, LSTMParameters):
+            DiagCollector.store_ranges(
+                details,
+                '__rnn_quant',
+                'i_gate_i',
+                'c_gate_i',
+                'f_gate_i',
+                'o_gate_i',
+                'i_gate_r',
+                'c_gate_r',
+                'f_gate_r',
+                'o_gate_r',
+                'i_gate',
+                'c_gate',
+                'f_gate',
+                'o_gate',
+            )
+            DiagCollector.deactivate()
+            DiagCollector.clear(set_name='__rnn_quant')
 
         if params.revert:
             out_tensor = np.flip(out_tensor, axis=0)
@@ -152,6 +183,11 @@ class RNNFloat32(RnnFloat32Mixin, KernelBase):
         input_gate_scratch += args['r_2_i_w'].dot(args['i_state'])
 
         input_gate_scratch = ACTIVATIONS[params.activation](input_gate_scratch)
+        DiagCollector.record(
+            'h_state_out', input_gate_scratch, node=params)
+        DiagCollector.record_ref(
+            'h_state_prescale', 'h_state_out', node=params)
+
         args['i_state'] = input_gate_scratch.copy()
         return input_gate_scratch
 
@@ -194,21 +230,45 @@ class GRUFloat32(RnnFloat32Mixin, KernelBase):
             # h_gate_scratch already has Wbh in it
             h_gate_recurrent = (args['r_2_h_w'].dot(
                 args['h_state']) + args['r_h_b'])
+            DiagCollector.record(
+                'h_gate_state', h_gate_recurrent,
+                node=params)
             h_gate_scratch = h_gate_recurrent * r_gate_scratch
+            DiagCollector.record(
+                'hr_haddamard', h_gate_scratch,
+                node=params)
+
         else:
             # ht = g(Xt*(Wh^T) + (rt (.) Ht-1)*(Rh^T) + Rbh + Wbh) # default, when linear_before_reset = 0
             # Rbh + Wbh is done above
+            h_gate_scratch = args['h_state'] * r_gate_scratch
+            DiagCollector.record(
+                'hr_haddamard', h_gate_scratch,
+                node=params)
             h_gate_scratch = args['r_2_h_w'].dot(
-                args['h_state'] * r_gate_scratch) + args['r_h_b']
+                h_gate_scratch) + args['r_h_b']
+            DiagCollector.record(
+                'h_gate_state', h_gate_scratch,
+                node=params)
 
-        h_gate_scratch += args['w_h_b']
+        h_gate_input = args['w_h_b'].copy()
         if idx < params.n_input_cells:
-            h_gate_scratch += args['w_2_h_w'].dot(input_tensor[idx])
+            h_gate_input += args['w_2_h_w'].dot(input_tensor[idx])
+        DiagCollector.record(
+            'h_gate_input', h_gate_input,
+            node=params)
+        h_gate_scratch += h_gate_input
+        DiagCollector.record(
+            'h_gate', h_gate_scratch,
+            node=params)
         h_gate_scratch = tanh(h_gate_scratch)
+        DiagCollector.record('hr_gate_tanh', h_gate_scratch, node=params)
 
         # Ht = (1 - zt) (.) ht + zt (.) Ht-1
         args['h_state'] = (1 - z_gate_scratch) * \
             h_gate_scratch + z_gate_scratch * args['h_state']
+        DiagCollector.record('h_state_out', args['h_state'], node=params)
+        DiagCollector.record_ref('h_state_out_prenorm', 'h_state_out', node=params)
 
         return args['h_state'].copy()
 
@@ -231,20 +291,18 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
         # Initialize scratch buffers with bias for regular lstm or initialize with
         # zero for layer norm lstm.
         input_gate_scratch = None
+        DiagCollector.record('i_state', args['i_state'], node=params)
+        DiagCollector.record('c_state', args['c_state'], node=params)
+        DiagCollector.record('input', input_tensor[idx], node=params)
 
-        if use_layer_norm:
-            if not use_cifg:
-                input_gate_scratch = np.zeros([params.n_cells]).astype(args['i_b'].dtype)
-            forget_gate_scratch = np.zeros([params.n_cells]).astype(args['f_b'].dtype)
-            cell_scratch = np.zeros([params.n_cells]).astype(args['c_b'].dtype)
-            output_gate_scratch = np.zeros([params.n_cells]).astype(args['o_b'].dtype)
-        else:
-            if not use_cifg:
-                input_gate_scratch = args['i_b'].copy()
-
-            forget_gate_scratch = args['f_b'].copy()
-            cell_scratch = args['c_b'].copy()
-            output_gate_scratch = args['o_b'].copy()
+        if not use_cifg:
+            input_gate_scratch = np.zeros(
+                [params.n_states]).astype(args['i_b'].dtype)
+        forget_gate_scratch = np.zeros(
+            [params.n_states]).astype(args['f_b'].dtype)
+        cell_scratch = np.zeros([params.n_states]).astype(args['c_b'].dtype)
+        output_gate_scratch = np.zeros(
+            [params.n_states]).astype(args['o_b'].dtype)
 
         # These two sections could be combined by stacking the weights horizontally
         # and the input and state vertically
@@ -257,14 +315,39 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
             forget_gate_scratch += args['i_2_f_w'].dot(input_tensor[idx])
             cell_scratch += args['i_2_c_w'].dot(input_tensor[idx])
             output_gate_scratch += args['i_2_o_w'].dot(input_tensor[idx])
+            DiagCollector.record('i_gate_i', input_gate_scratch, node=params)
+            DiagCollector.record('f_gate_i', forget_gate_scratch, node=params)
+            DiagCollector.record('c_gate_i', cell_scratch, node=params)
+            DiagCollector.record('o_gate_i', output_gate_scratch, node=params)
 
         # For each cell: compute recurrent_weight * output_state
         if not use_cifg:
-            input_gate_scratch += args['r_2_i_w'].dot(args['i_state'])
+            input_gate_scratch_state = args['r_2_i_w'].dot(args['i_state'])
+            DiagCollector.record('i_gate_r', input_gate_scratch_state, node=params)
         # in + ScaleRW * ScaleOState
-        forget_gate_scratch += args['r_2_f_w'].dot(args['i_state'])
-        cell_scratch += args['r_2_c_w'].dot(args['i_state'])
-        output_gate_scratch += args['r_2_o_w'].dot(args['i_state'])
+        forget_gate_scratch_state = args['r_2_f_w'].dot(args['i_state'])
+        cell_scratch_state = args['r_2_c_w'].dot(args['i_state'])
+        output_gate_scratch_state = args['r_2_o_w'].dot(args['i_state'])
+        DiagCollector.record('f_gate_r', forget_gate_scratch_state, node=params)
+        DiagCollector.record('c_gate_r', cell_scratch_state, node=params)
+        DiagCollector.record('o_gate_r', output_gate_scratch_state, node=params)
+
+        if not use_cifg:
+            input_gate_scratch += args['i_b'].copy() + input_gate_scratch_state
+
+        forget_gate_scratch += args['f_b'].copy() + forget_gate_scratch_state
+        cell_scratch += args['c_b'].copy() + cell_scratch_state
+        output_gate_scratch += args['o_b'].copy() + output_gate_scratch_state
+
+        DiagCollector.record('i_gate', input_gate_scratch, node=params)
+        DiagCollector.record('f_gate', forget_gate_scratch, node=params)
+        DiagCollector.record('c_gate', cell_scratch, node=params)
+        DiagCollector.record('o_gate', output_gate_scratch, node=params)
+
+        DiagCollector.record_ref('i_gate_post_bias', 'i_gate', node=params)
+        DiagCollector.record_ref('f_gate_post_bias', 'f_gate', node=params)
+        DiagCollector.record_ref('c_gate_post_bias', 'c_gate', node=params)
+        DiagCollector.record_ref('o_gate_post_bias', 'o_gate', node=params)
 
         # For each cell: update input gate.
         if not use_cifg:
@@ -277,6 +360,8 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
                 input_gate_scratch += args['i_b']
             input_gate_scratch = sigmoid(input_gate_scratch)
             # sigmoid at scale
+            DiagCollector.record('i_gate_after_act',
+                                 input_gate_scratch, node=params)
 
         # For each cell: update forget gate.
         if use_peephole:
@@ -289,9 +374,12 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
             forget_gate_scratch += args['f_b']
 
         forget_gate_scratch = sigmoid(forget_gate_scratch)
+        DiagCollector.record('f_gate_after_act',
+                             forget_gate_scratch, node=params)
 
         # For each cell: update the cell.
         args['c_state'] *= forget_gate_scratch
+        DiagCollector.record('cstate_cbar_f', args['c_state'], node=params)
 
         if use_layer_norm:
             cell_scratch = mean_stddev_normalization(cell_scratch)
@@ -299,13 +387,17 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
             cell_scratch += args['c_b']
 
         cell_scratch = tanh(cell_scratch)
+        DiagCollector.record('c_gate_after_act', cell_scratch, node=params)
 
         if use_cifg:
             forget_gate_scratch = 1.0 - forget_gate_scratch
-            args['c_state'] += cell_scratch * forget_gate_scratch
+            cstate_c_i = cell_scratch * forget_gate_scratch
         else:
-            args['c_state'] += cell_scratch * input_gate_scratch
-
+            cstate_c_i = cell_scratch * input_gate_scratch
+        DiagCollector.record('cstate_c_i', cstate_c_i, node=params)
+        args['c_state'] += cstate_c_i
+        DiagCollector.record('c_state_before_scale',
+                             args['c_state'], node=params)
         if params.cell_clip > 0.0:
             args['c_state'] = abs_clip(args['c_state'], params.cell_clip)
 
@@ -320,8 +412,13 @@ class LSTMFloat32(RnnFloat32Mixin, KernelBase):
             output_gate_scratch += args['o_b']
 
         output_gate_scratch = sigmoid(output_gate_scratch)
+        DiagCollector.record('o_gate_after_act',
+                             output_gate_scratch, node=params)
+        DiagCollector.record('c_state_out', args['c_state'], node=params)
+ 
         cell_scratch = tanh(args['c_state'])
         output_gate_scratch *= cell_scratch
+        DiagCollector.record('output', output_gate_scratch, node=params)
 
         use_projection_weight = args.get('proj_w') is not None
         use_projection_bias = args.get('proj_b') is not None

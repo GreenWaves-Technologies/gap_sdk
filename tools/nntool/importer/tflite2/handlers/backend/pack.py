@@ -45,8 +45,9 @@ class Pack(ConstantMixin, BackendHandler):
         check(len(inputs) == values_count, "invalid tflite file - values count not equal to inputs")
 
         buffer_idxes = [tensor.buffer_idx for tensor in node.input]
-        check(len(set(buffer_idxes)) == len(buffer_idxes),
-              "packs with multiple versions of the same input are not supported. This is normally a graph design problem.")
+        if any(not cls.is_constant(inp) for inp in inputs):
+            check(len(set(buffer_idxes)) == len(buffer_idxes),
+                "packs with multiple versions of the same input are not supported. This is normally a graph design problem.")
 
         axis = node_opts.Axis()
         dimension_size = len(inp_shapes)

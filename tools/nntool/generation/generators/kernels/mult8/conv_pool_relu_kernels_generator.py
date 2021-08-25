@@ -111,16 +111,17 @@ def gen_cnn_conv_pool_act_qs8(code_block, cname,
     code_block.deindent()
 
 
-def gen_cnn_conv_pool_act_ne16_qs8(code_block, cname, in_size, filter_bits,
+def gen_cnn_conv_pool_act_ne16_qs8(code_block, cname, in_size, out_size, filter_bits,
                                    in_feat, out_feat, width, height, bias_size,
                                    conv_oper, fcx, fcy, dcx, dcy, scx, scy, conv_pad,
                                    pool_oper, fpx, fpy, dpx, dpy, spx, spy, pool_pad,
                                    act_oper, gen_ctrl, at_ver=3):
     del at_ver
-    code_block.write('CNN_ConvolutionNE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {},',
+    code_block.write('CNN_ConvolutionNE16("{}", {}, {}, {}, {}, {}, {}, {}, {}, {}, {},',
                      cname,
                      gen_ctrl,
                      in_size,
+                     out_size,
                      bias_size,
                      1,
                      filter_bits,
@@ -273,10 +274,11 @@ class ConvPoolReluKernel(AutotilerKernel):
                 if self.ne16:
                     LOG.debug("NE16 !!! %s: conv pool relu inq %s outq %s control block",
                               self.node_name, self.in_q, self.out_q)
-                    gen_cnn_conv_pool_act_ne16_qs8(code_block, self.cname, self.in_q.bits//8,
-                                                   self.filter_q.bits, self.in_dim.c,
-                                                   self.out_dim.c, self.in_dim.w, self.in_dim.h,
-                                                   self.bias_q.bits//8,
+                    gen_cnn_conv_pool_act_ne16_qs8(code_block, self.cname,
+                                                   self.in_q.bits//8 if self.in_q.signed else -self.in_q.bits//8,
+                                                   self.out_q.bits//8 if self.out_q.signed else -self.out_q.bits//8,
+                                                   self.filter_q.bits, self.in_dim.c, self.out_dim.c, self.in_dim.w,
+                                                   self.in_dim.h, self.bias_q.bits//8,
                                                    cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
                                                    cp.Scx, cp.Scy, cp.ConvPad,
                                                    pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,

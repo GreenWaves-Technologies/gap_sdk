@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from email import iterators
 import logging
 from typing import Sequence
 
@@ -64,10 +65,8 @@ class BasicKernel():
     @property
     def kernel_args(self):
         kernel_args = []
-        for sym in ["H", "W"]:
-            kernel_args.append((sym, "unsigned int"))
-        if self.kernel_dims == 3:
-            kernel_args.append(("InFeatures", "unsigned int"))
+        for kiter in self.func_col.iterators:
+            kernel_args.append((kiter.name.upper(), "unsigned int"))
         for input_name, ctype in self.input_names_and_ctypes:
             kernel_args.append((input_name, f"{ctype} *"))
         for output_name, ctype in self.output_names_and_ctypes:
@@ -83,7 +82,6 @@ class BasicKernel():
         if dtype == np.float32:
             return 4
         assert False, f"don't know dtype {dtype}"
-
 
     def gen_kernel_headers(self, code: CodeBlock = None):
         if code is None:
@@ -101,6 +99,7 @@ class BasicKernel():
         code.indent()
         code.write("Name,")
         code.write("{0},", self.gen_iterspace())
+        kargs = self.gen_kargs()
         code.write("TILE_HOR,")
         cargs = self.gen_cargs()
         code.write("CArgs({0},", len(cargs))
@@ -112,7 +111,8 @@ class BasicKernel():
         code.write("),")
         code.write("Calls(1,")
         code.indent()
-        code.write("Call(\"{0}\", LOC_LOOP,", kname)
+        code.write("Call(\"{0}\", LOC_D{1},", kname,
+                   len(self.func_col.iterators) - 1)
         code.indent()
         bindings = self.gen_kerbingings()
         code.write("Bindings({0},", len(bindings))
@@ -126,7 +126,6 @@ class BasicKernel():
         code.write(")")
         code.deindent()
         code.write("),")
-        kargs = self.gen_kargs()
         code.write("KerArgs({0},", len(cargs))
         code.indent()
         for karg in kargs[:-1:]:
@@ -148,12 +147,15 @@ class BasicKernel():
         return code
 
     def gen_kinfos(self):
-        in_sizes = [np.prod(self._func_col.var_shapes[var_name]) for var_name in self._func_col.input_names]
+        in_sizes = [np.prod(self._func_col.var_shapes[var_name])
+                    for var_name in self._func_col.input_names]
         bandwidth = sum([np.prod(self._func_col.var_shapes[var_name])
                          for var_name in self._func_col.output_names]) + sum(in_sizes)
         kinfos = [
-            "AddKernelInfos(Name, AT_KERINFO_OPER, {0}, 0)".format(self._func_col.ops * max(in_sizes)),
-            "AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, {0}, 0)".format(bandwidth)
+            "AddKernelInfos(Name, AT_KERINFO_OPER, {0}, 0)".format(
+                self._func_col.ops * max(in_sizes)),
+            "AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, {0}, 0)".format(
+                bandwidth)
         ]
         for name in self.input_names + self.output_names:
             shape = self.shapes[name]
@@ -167,118 +169,105 @@ class BasicKernel():
         for name_type in self.input_names_and_ctypes + self.output_names_and_ctypes:
             name = name_type[0]
             if name_type[1] == 'float':
-                cargs.append("TCArg(CNN_ArgDataTypeF({0},1,1),\"{1}\")".format(self.ctype_len(name), name))
+                cargs.append("TCArg(CNN_ArgDataTypeF({0},1,1),\"{1}\")".format(
+                    self.ctype_len(name), name))
             else:
-                cargs.append("TCArg(CNN_ArgDataType({0},1,1),\"{1}\")".format(self.ctype_len(name), name))
+                cargs.append("TCArg(CNN_ArgDataType({0},1,1),\"{1}\")".format(
+                    self.ctype_len(name), name))
         return cargs
 
     def gen_kargs(self):
         kargs = []
-        if self.kernel_dims == 3:
-            argspaces = {
-                tuple(): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0,): "KerArgSpace(1, KER_ITER_D0)",
-                (1,): "KerArgSpace(1, KER_ITER_TILE0)",
-                (2,): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0, 1): "KerArgSpace(2, KER_ITER_D0, KER_ITER_TILE0)",
-                (0, 2): "KerArgSpace(2, KER_ITER_D0, KER_ITER_TILE0)",
-                (1, 2): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0, 1, 2): "KerArgSpace(2, KER_ITER_D0, KER_ITER_TILE0)",
-            }
-            dim_w = 2
-            dim_h = 1
-        elif self.kernel_dims == 2:
-            argspaces = {
-                tuple(): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0,): "KerArgSpace(1, KER_ITER_TILE0)",
-                (1,): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0, 1): "KerArgSpace(1, KER_ITER_TILE0)",
-            }
-            dim_w = 1
-            dim_h = 0
-        elif self.kernel_dims == 1:
-            argspaces = {
-                tuple(): "KerArgSpace(1, KER_ITER_TILE0)",
-                (0,): "KerArgSpace(1, KER_ITER_TILE0)",
-            }
-            dim_w = -1
-            dim_h = 0
-        else:
-            raise NotImplementedError()
         for input_name in self.input_names:
             arg_indexes = self._func_col.variable_indexes[input_name]
-            argspace = argspaces[arg_indexes]
-            constraints = "O_IN|O_DB|O_CONST" if input_name in self._constant_input_names else "O_IN|O_DB"
-            dims = [index.shape[0] if idx in arg_indexes else 1 for idx,
-                    index in enumerate(self._func_col.iterators)]
-            width = dims[dim_w] if dim_w > -1 else 1
-            height = dims[dim_h] if dim_h > -1 else 1
+            argspaces = ", ".join(f'KER_ITER_D{idx}' for idx in arg_indexes)
+            argspace = f'KerArgSpace({len(arg_indexes)}, {argspaces})' if arg_indexes else f'KerArgSpace(1, KER_ITER_TILE0)'
+            if input_name in self._constant_input_names:
+                constraints = "O_IN|O_DB|O_CONST"
+            else:
+                constraints = "O_IN|O_DB" if arg_indexes else "O_IN|O_BUFF|O_NTILED"
             kargs.append("KerArg(\"{0}\", {1}, {2}, {3}, {4}, {5}, 0, 0, 0, \"{0}\")".format(
                 input_name,
                 argspace,
                 constraints,
-                height,
-                width,
+                1,
+                1,
                 self.ctype_len(input_name)))
 
         for output_name in self.output_names:
             arg_indexes = self._func_col.variable_indexes[output_name]
-            argspace = argspaces[arg_indexes]
+            argspaces = ", ".join(f'KER_ITER_D{idx}' for idx in arg_indexes)
+            argspace = f'KerArgSpace({len(arg_indexes)}, {argspaces})' if arg_indexes else 'KerArgSpace(1, KER_ITER_TILE0)'
             name = output_name
-            constraints = "O_OUT|O_DB"
-            dims = [index.shape[0] if idx in arg_indexes else 1 for idx,
-                    index in enumerate(self._func_col.iterators)]
-            width = dims[dim_w] if dim_w > -1 else 1
-            height = dims[dim_h] if dim_h > -1 else 1
+            constraints = "O_OUT|O_DB" if arg_indexes else "O_OUT|O_BUFF|O_NTILED"
             kargs.append("KerArg(\"{0}\", {1}, {2}, {3}, {4}, {5}, 0, 0, 0, \"{0}\")".format(
-                name, argspace, constraints, height, width,
+                name, argspace, constraints, 1, 1,
                 self.ctype_len(output_name)))
         return kargs
 
     def gen_iterspace(self):
-        if self.kernel_dims == 3:
-            return "KernelIterSpace(2, IterParSpace(KER_ITER_D0, {0}, 1), IterTiledSpace(KER_ITER_TILE0))".format(
-                self._func_col.iterators[0].shape[0])
-        return "KernelIterSpace(1, IterTiledSpace(KER_ITER_TILE0))"
+        # All iterators are in parametric spaces. The iterator we will
+        # parallelize on has its preferred div set to 8
+        # since only 3 tiled spaces are allowed including the dummy TILE0 space if there are scalars
+        # we check for that and only tile the first 3 spaces
+        tiled_iterators = self.tiled_iterators
+        iterators = [
+            f'IterFixedSpace(KER_ITER_D{idx}, {iterator.shape[0]})'
+            if iterator not in tiled_iterators else
+            f'IterParSpace(KER_ITER_D{idx}, {iterator.shape[0]}, '
+            f'{min(8, iterator.shape[0]) if iterator == self.parallel_iterator else 1})'
+            for idx, iterator in enumerate(self._func_col.iterators)]
+        # append dummy TILE0 space to put scalars into if there are scalar inputs (which is unlikely)
+        if self.has_scalar_parameters:
+            iterators.append('IterTiledSpace(KER_ITER_TILE0)')
+        return f'KernelIterSpace({len(iterators)}, {",".join(iterators)})'
 
     def gen_kerbingings(self):
+        max_dim_var = max(self.output_names, key=lambda x: len(self.shapes[x]))
         bindings = [
-            "K_Arg(\"{0}\", KER_ARG_TILE_W)".format(self.output_names[0]),
-            "K_Arg(\"{0}\", KER_ARG_TILE_H)".format(self.output_names[0])
+            f"K_ArgPar(\"{max_dim_var}\", KER_ARG_PARTILE_SIZE, KER_ITER_D{idx})"
+            for idx in range(len(self._func_col.iterators))
+        ] + [
+            f"K_Arg(\"{name}\", KER_ARG_TILE)"
+            for name in self.input_names + self.output_names
         ]
-        if self.kernel_dims == 3:
-            threed_outname = next(
-                iter(name for name in self.output_names if len(self.shapes[name]) == 3))
-            bindings.append("K_ArgPar(\"{0}\", KER_ARG_PARTILE_SIZE, KER_ITER_D0)".format(
-                threed_outname))
-        for name in self.input_names + self.output_names:
-            bindings.append("K_Arg(\"{0}\", KER_ARG_TILE)".format(name))
         return bindings
+
+    @property
+    def parallel_iterator(self):
+        return max(self.func_col.iterators, key=lambda x: x.shape[0])
+
+    @property
+    def tiled_iterators(self):
+        return sorted(self.func_col.iterators, key=lambda x: x.shape[0])[-2::]
+
+    @property
+    def fixed_iterators(self):
+        tiled_iterators = self.tiled_iterators
+        return [iterator for iterator in self.func_col.iterators if iterator not in tiled_iterators]
+
+    @property
+    def has_scalar_parameters(self):
+        return any(not self._func_col.variable_indexes[input_name]
+                   for input_name in self.input_names + self.output_names)
 
     def gen_function(self, kernel_name, kernel_arg_type_name, code=None):
         if code is None:
             code = CodeBlock()
 
-        code.comment("Output iteration space reduced to %s iteration spaces" % (self.kernel_dims))
+        code.comment(
+            "Output iteration space reduced to %s iteration spaces" % (self.kernel_dims))
         code.write("void {}({} *Args) {{", kernel_name, kernel_arg_type_name)
         code.indent()
         for kerarg_name, kerarg_type in self.kernel_args:
             code.write('{0} {1} = Args->{1};', kerarg_type, kerarg_name)
-        if self.kernel_dims == 1:
-            last_first = "Sz"
-            code.write('unsigned int Sz = W * H;')
-        elif self.kernel_dims == 2:
-            last_first = "H"
-        elif self.kernel_dims == 3:
-            last_first = "InFeatures"
-        else:
-            raise ValueError("expression has too many dimensions")
-
+        # paralellize on largest dimension
+        last_first = self.parallel_iterator.name.upper()
         code.write('unsigned int CoreId = gap_coreid();')
         code.write('unsigned int Chunk = ChunkSize({});', last_first)
         code.write('unsigned int First = Chunk*CoreId;')
         code.write('unsigned int Last = gap_min(First+Chunk, {});', last_first)
-        self._func_col.create_kernel(code)
+        self._func_col.create_kernel(self.parallel_iterator, self.fixed_iterators, code)
         code.write('gap_waitbarrier(0);')
         code.deindent()
         code.write('}}')

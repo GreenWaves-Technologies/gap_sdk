@@ -15,6 +15,7 @@
 
 import logging
 from copy import deepcopy
+from utils.subclasses import get_all_subclasses
 
 from quantization.qtype_constraint import ConstraintBase, MatchAll
 
@@ -157,7 +158,17 @@ class QuantizionHandler(ConstraintBase):
             # a new class variable on this class
             setattr(cls, "OPTIONS", deepcopy(getattr(cls, "OPTIONS")))
             # Now add / overide options
-            getattr(cls, "OPTIONS").update({opt['name']: opt for opt in args})
+            cls_opts = getattr(cls, "OPTIONS")
+            cls_opts.update({opt['name']: opt for opt in args})
+            cls_opts_hash = object.__hash__(cls_opts)
+            # since object classes can be intialized in an arbitrary order
+            # copy to all subclasses that have already set options
+            for subcls in get_all_subclasses(cls):
+                sub_cls_opts = getattr(subcls, "OPTIONS")
+                if object.__hash__(sub_cls_opts) != cls_opts_hash:
+                    sub_cls_opts.update({opt['name']: opt for opt in args})
+
+
             return cls
         return deco
 

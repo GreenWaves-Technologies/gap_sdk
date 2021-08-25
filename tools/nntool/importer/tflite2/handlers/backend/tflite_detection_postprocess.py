@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from importer.common.provisional_dim import ProvisionalDim
 import numpy as np
 from graph.types import NNEdge, SSDDetectorParameters
 from importer.tflite2.common.tflite_node import TFLiteNode
@@ -49,8 +50,10 @@ class TFLiteDetectionPostProcess(BackendHandler):
                                        parameters=custom_opts)
 
         overriden_outputs = []
+        out_dims = params.get_output_size(None)
         for idx, output in enumerate(outputs):
             if output:
+                all_nodes[node.output[idx]] = (params, idx, ProvisionalDim(out_dims[idx].shape))
                 overriden_outputs.append(node.output[idx])
                 continue
             oparams = G.add_output()
