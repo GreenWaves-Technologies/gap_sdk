@@ -41,7 +41,7 @@ class Pad(ConstantMixin, BackendHandler):
         x = inputs[0]
         x_shape = x[2].shape
 
-        apads = np.array(pads).reshape((-1, 2))
+        apads = np.array(pads).reshape((2,-1)).T
         if cls.is_constant(x):
             logger.info("reducing %s to a constant", valid_name)
             val = cls.get_constant(x)
