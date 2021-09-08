@@ -13,7 +13,7 @@ msgfy==0.1.0
 numpy==1.19.2
 pandas==1.1.2
 pathvalidate==2.3.0
-Pillow==7.2.0
+Pillow==8.3.2
 prettytable==0.7.2
 pyparsing==2.4.7
 pytablewriter==0.58.0
