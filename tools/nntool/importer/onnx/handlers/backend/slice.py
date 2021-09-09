@@ -60,7 +60,8 @@ class Slice(ConstantMixin, BackendHandler):
                     if step < 0:
                         p_shape.append((begin - end)//-step)
                     else:
-                        p_shape.append((end - begin)//step)
+                        # p_shape.append((end - begin)//step)
+                        p_shape.append(int(np.ceil((end - begin)/step))) #test on yolox wrong index number
 
             except ValueError:
                 p_slices.append((0, dim, 1))
