@@ -261,7 +261,7 @@ void Frame_stream::handle_req(Transport_req_t *req)
 
       std::vector<uint8_t> jpeg_image(&jpeg_buffer[0], &jpeg_buffer[jpeg_buffer_size]);
       InputArray input_array(jpeg_image);
-      Mat image = imdecode(input_array, CV_LOAD_IMAGE_GRAYSCALE);
+      Mat image = imdecode(input_array, cv::IMREAD_GRAYSCALE);
 
       memcpy(buffer, image.data, this->width*this->height);
       delete jpeg_buffer;
