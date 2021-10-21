@@ -74,7 +74,7 @@ static void __pi_dmacpy_handler(void *arg)
     struct dmacpy_itf_data_s *driver_data = g_dmacpy_itf_data[periph_id];
     struct pi_task *task = driver_data->fifo_head;
     /* Pending data on current transfer. */
-    if ((task->data[5]) && (channel == TX_CHANNEL))
+    if ((task->data[5]) && (channel == (TX_CHANNEL / TX_CHANNEL)))
     {
         DMACPY_TRACE("Current transfer is L2 to L2, received TX event, do nothing, continue.\n");
         return;

@@ -1,0 +1,15 @@
+adjust
+fusions --scale8
+set input_norm_func 'x:x.astype(np.float32)-128'
+aquant images/pixart_dataset_1/looking/*.pgm -H 128 -W 128
+imageformat input_1 bw8 offset_int8
+set default_input_exec_location "AT_MEM_L3_HRAM"
+set default_input_home_location "AT_MEM_L3_HRAM"
+set l3_ram_ext_managed true
+set input_norm_func 'x:x'
+set l2_ram_ext_managed false
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash true
+save_state

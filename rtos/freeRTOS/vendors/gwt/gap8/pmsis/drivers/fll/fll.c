@@ -153,7 +153,7 @@ int32_t pi_fll_frequency_set(uint8_t fll_id, uint32_t frequency, uint8_t check)
     uint32_t status_mult = 0;
     do
     {
-        status_mult = abs(hal_fll_status_mult_factor_get(fll_id) - mult);
+        status_mult = __builtin_pulp_abs(hal_fll_status_mult_factor_get(fll_id) - mult);
     } while (status_mult <= tolerance);
 
     /* Disable lock enable since we are stable now and remove gain from feed back loop */

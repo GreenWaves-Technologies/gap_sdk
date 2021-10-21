@@ -2,6 +2,8 @@
 #define __CNN_LSTM_GENERATORS_SQ8_H__
 
 #include "Gap.h"
+#include "CNN_BasicKernels_fp16.h"
+#include "CNN_Copy_Generators.h"
 
 void LoadRNN_fp16_Library();
 

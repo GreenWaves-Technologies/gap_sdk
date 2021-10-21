@@ -40,6 +40,7 @@
  */
 void cl_wait_task(uint8_t *done);
 void cl_notify_task_done(uint8_t *done, uint8_t cluster_id);
+void cl_notify_task_done_clear(uint8_t *done, uint8_t cluster_id, uint32_t delegate_task_id);
 
 #define PI_INLINE_CL_TEAM_0 static inline
 

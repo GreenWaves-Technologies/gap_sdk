@@ -50,6 +50,11 @@ endif
 ifeq '$(udma/i2c/version)' '4'
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -DHAS_I2C
 pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/i2c/v4/udma_i2c.cpp
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/i2c/v4/udma_i2c_ucode.cpp
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += pulp/udma/i2c/v4/udma_i2c_fifos.cpp
+
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_SRCS += $(GVSOC_SRC_PATH)/models/devices/i2c/helper/i2c_helper.cpp
+pulp/udma/udma_v$(udma/version)_$(pulp_chip_family)_impl_CFLAGS += -I$(GVSOC_SRC_PATH)/models/devices/i2c/helper/
 endif
 
 

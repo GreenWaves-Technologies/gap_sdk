@@ -74,24 +74,28 @@ private:
 class Rx_stream_raw_file : public Rx_stream
 {
 public:
-    Rx_stream_raw_file(Slot *slot, string filepath);
+    Rx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin);
     uint32_t get_sample(int channel_id);
     Slot *slot;
 
 private:
     FILE *infile;
+    int width;
+    bool is_bin;
 };
 
 
 class Tx_stream_raw_file : public Tx_stream
 {
 public:
-    Tx_stream_raw_file(Slot *slot, string filepath);
+    Tx_stream_raw_file(Slot *slot, string filepath, int width, bool is_bin);
     void push_sample(uint32_t sample, int channel_id);
     Slot *slot;
 
 private:
     FILE *outfile;
+    int width;
+    bool is_bin;
 };
 
 
@@ -125,7 +129,7 @@ private:
 };
 
 
-class Slot
+class Slot : public vp::time_engine_client
 {
     friend class Rx_stream_libsnd_file;
     friend class Rx_stream_raw_file;
@@ -140,7 +144,8 @@ public:
     int get_data();
     void send_data(int sdo);
     void pdm_sync(int sd);
-    int pdm_get();
+    void pdm_get();
+    int64_t exec();
 
 protected:
     Testbench *top;
@@ -167,6 +172,7 @@ private:
     Rx_stream *instream;
     int rx_channel_id;
     std::vector<int> tx_channel_id;
+    bool close;
 };
 
 
@@ -187,10 +193,8 @@ I2s_verif::I2s_verif(Testbench *top, vp::i2s_master *itf, int itf_id, pi_testben
     this->prev_ws = 0;
     this->frame_active = false;
     this->ws_delay = config->ws_delay;
-    if (this->ws_delay == 0)
-    {
-        this->zero_delay_start = true;
-    }
+    this->zero_delay_start = this->ws_delay == 0;
+    this->sync_ongoing = false;
     this->current_ws_delay = 0;
     this->is_pdm = config->is_pdm;
     this->is_full_duplex = config->is_full_duplex;
@@ -361,9 +365,22 @@ void I2s_verif::sync_ws(int ws)
 }
 
 
+void I2s_verif::set_pdm_data(int slot, int data)
+{
+    this->data = (this->data & ~(0x3 << (slot * 2))) | (data << (slot * 2));
+    this->itf->sync(this->clk, 2, this->data);
+}
+
 
 void I2s_verif::sync(int sck, int ws, int sdio)
 {
+    bool got_data = false;
+
+    if (this->sync_ongoing)
+        return;
+
+    this->sync_ongoing = true;
+
     this->sdio = sdio;
 
     if (this->config.is_sai0_clk)
@@ -383,8 +400,9 @@ void I2s_verif::sync(int sck, int ws, int sdio)
 
     int sd = this->is_full_duplex ? sdio >> 2 : sdio & 0x3;
 
-    if (!this->is_pdm && this->zero_delay_start && this->prev_ws != ws && ws == 1)
+    if (!this->is_pdm && this->zero_delay_start && this->prev_ws != ws && ws == 1 && !this->config.is_ext_ws)
     {
+        got_data = true;
         this->zero_delay_start = false;
         this->frame_active = true;
         this->active_slot = 0;
@@ -397,31 +415,28 @@ void I2s_verif::sync(int sck, int ws, int sdio)
     if (sck != this->prev_sck)
     {
         this->trace.msg(vp::trace::LEVEL_TRACE, "I2S edge (sck: %d, ws: %d, sdo: %d)\n", sck, ws, sd);
-
-
+        
         this->prev_sck = sck;
 
         if (this->is_pdm)
         {
-            if (!sck)
+            if (sck == 0)
             {
-                int val0 = this->slots[0]->pdm_get();
-                int val1 = this->slots[2]->pdm_get();
-                this->itf->sync(this->clk, 2, val0 | (val1 << 2));
+                this->slots[0]->pdm_get();
+                this->slots[2]->pdm_get();
             }
-            else
+            else if (sck == 1)
             {
                 this->slots[0]->pdm_sync(sdio & 3);
                 this->slots[2]->pdm_sync(sdio >> 2);
 
-                int val0 = this->slots[1]->pdm_get();
-                int val1 = this->slots[3]->pdm_get();
-                this->itf->sync(this->clk, 2, val0 | (val1 << 2));
+                this->slots[1]->pdm_get();
+                this->slots[3]->pdm_get();
             }
         }
         else
         {
-            if (sck)
+            if (sck == 1)
             {
                 // The channel is the one of this microphone
                 if (this->prev_ws != ws && ws == 1)
@@ -433,11 +448,13 @@ void I2s_verif::sync(int sck, int ws, int sdio)
                         int64_t measured_period = this->get_time() - this->prev_frame_start_time;
 
                         float error = ((float)measured_period - this->sampling_period) / this->sampling_period * 100;
+                        if (error < 0)
+                            error = -error;
 
                         if (error >= 10)
                         {
-                            this->trace.fatal("Detected wrong period (expected: %ld ps, measured: %ld ps)\n", this->sampling_period, measured_period);
-                            return;                            
+                            //this->trace.fatal("Detected wrong period (expected: %ld ps, measured: %ld ps)\n", this->sampling_period, measured_period);
+                            //goto end;
                         }
                     }
 
@@ -487,15 +504,19 @@ void I2s_verif::sync(int sck, int ws, int sdio)
             {
                 if (this->frame_active)
                 {
-                    if (this->pending_bits == this->config.word_size)
+                    if (!got_data)
                     {
-                        this->slots[this->active_slot]->start_frame();
+                        if (this->pending_bits == this->config.word_size)
+                        {
+                            this->slots[this->active_slot]->start_frame();
+                        }
+                        this->data = this->slots[this->active_slot]->get_data() | (2 << 2);
+
+
+                        this->trace.msg(vp::trace::LEVEL_TRACE, "I2S output data (sdi: 0x%x)\n", this->data & 3);
+    
+                        this->itf->sync(this->clk, this->ws_value, this->data);
                     }
-                    this->data = this->slots[this->active_slot]->get_data() | (2 << 2);
-
-
-                    this->trace.msg(vp::trace::LEVEL_TRACE, "I2S output data (sdi: 0x%x)\n", this->data & 3);
-                    this->itf->sync(this->clk, this->ws_value, this->data);
                 }
             }
 
@@ -508,6 +529,15 @@ void I2s_verif::sync(int sck, int ws, int sdio)
                     {
                         this->ws_value = 1;
                         this->ws_count = this->config.word_size * this->config.nb_slots;
+
+                        if (this->ws_delay == 0)
+                        {
+                            this->frame_active = true;
+                            this->active_slot = 0;
+                            this->pending_bits = this->config.word_size;
+                            this->slots[0]->start_frame();
+                            this->data = this->slots[0]->get_data() | (2 << 2);
+                        }
                     }
                     this->itf->sync(this->clk, this->ws_value, this->data);
                     this->ws_count--;
@@ -516,6 +546,9 @@ void I2s_verif::sync(int sck, int ws, int sdio)
 
         }
     }
+
+end:
+    this->sync_ongoing = false;
 }
 
 
@@ -532,10 +565,13 @@ void I2s_verif::start(pi_testbench_i2s_verif_start_config_t *config)
 }
 
 
-Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath)
+Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin)
 {
+    this->width = width;
+    this->is_bin = is_bin;
     this->slot = slot;
     this->outfile = fopen(filepath.c_str(), "w");
+    this->slot->trace.msg(vp::trace::LEVEL_INFO, "Opening dumper (path: %s)\n", filepath.c_str());
     if (this->outfile == NULL)
     {
         this->slot->top->trace.fatal("Unable to open file (file: %s, error: %s)\n", filepath, strerror(errno));
@@ -545,7 +581,18 @@ Tx_stream_raw_file::Tx_stream_raw_file(Slot *slot, std::string filepath)
 
 void Tx_stream_raw_file::push_sample(uint32_t sample, int channel_id)
 {
-    fprintf(this->outfile, "0x%x\n", sample);
+    if (this->is_bin)
+    {
+        int nb_bytes = (this->width + 7) / 8;
+        if (fwrite((void *)&sample, nb_bytes, 1, this->outfile) != 1)
+        {
+            return;
+        }
+    }
+    else
+    {
+        fprintf(this->outfile, "0x%x\n", sample);
+    }
 }
 
 
@@ -619,8 +666,10 @@ void Tx_stream_libsnd_file::push_sample(uint32_t data, int channel)
 }
 
 
-Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath)
+Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath, int width, bool is_bin)
 {
+    this->width = width;
+    this->is_bin = is_bin;
     this->slot = slot;
     this->infile = fopen(filepath.c_str(), "r");
     if (this->infile == NULL)
@@ -632,19 +681,32 @@ Rx_stream_raw_file::Rx_stream_raw_file(Slot *slot, std::string filepath)
 
 uint32_t Rx_stream_raw_file::get_sample(int channel_id)
 {
-    char line [64];
-
-    if (fgets(line, 64, this->infile) == NULL)
+    if (this->is_bin)
     {
-        fseek(this->infile, 0, SEEK_SET);
-        if (fgets(line, 16, this->infile) == NULL)
+        int nb_bytes = (this->width + 7) / 8;
+        uint32_t result = 0;
+        if (fread((void *)&result, nb_bytes, 1, this->infile) != 1)
         {
-            this->slot->top->trace.fatal("Unable to get sample from file (error: %s)\n", strerror(errno));
             return 0;
         }
+        return result;
     }
+    else
+    {
+        char line [64];
 
-    return strtol(line, NULL, 0);
+        if (fgets(line, 64, this->infile) == NULL)
+        {
+            fseek(this->infile, 0, SEEK_SET);
+            if (fgets(line, 16, this->infile) == NULL)
+            {
+                this->slot->top->trace.fatal("Unable to get sample from file (error: %s)\n", strerror(errno));
+                return 0;
+            }
+        }
+
+        return strtol(line, NULL, 0);
+    }
 }
 
 
@@ -736,7 +798,7 @@ uint32_t Rx_stream_libsnd_file::get_sample(int channel)
 }
 
 
-Slot::Slot(Testbench *top, I2s_verif *i2s, int itf, int id) : top(top), i2s(i2s), id(id)
+Slot::Slot(Testbench *top, I2s_verif *i2s, int itf, int id) : vp::time_engine_client(NULL), top(top), i2s(i2s), id(id)
 {
     top->traces.new_trace("i2s_verif_itf" + std::to_string(itf) + "_slot" + std::to_string(id), &trace, vp::DEBUG);
 
@@ -747,6 +809,8 @@ Slot::Slot(Testbench *top, I2s_verif *i2s, int itf, int id) : top(top), i2s(i2s)
     this->instream = NULL;
     this->outfile = NULL;
     this->outstream = NULL;
+
+    this->engine = (vp::time_engine*)top->get_service("time");
 }
 
 
@@ -806,9 +870,9 @@ void Slot::start(pi_testbench_i2s_verif_slot_start_config_t *config, Slot *reuse
             }
             else
             {
-                if (config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_RAW)
+                if (config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_TX_FILE_DUMPER_TYPE_RAW || config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN)
                 {
-                    this->outstream = new Tx_stream_raw_file(this, filepath);
+                    this->outstream = new Tx_stream_raw_file(this, filepath, config->tx_file_dumper.width, config->tx_file_dumper.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN);
                 }
                 else
                 {
@@ -838,9 +902,9 @@ void Slot::start(pi_testbench_i2s_verif_slot_start_config_t *config, Slot *reuse
         }
         else
         {
-            if (config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_RAW)
+            if (config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_RAW || config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN)
             {
-                this->instream = new Rx_stream_raw_file(this, filepath);
+                this->instream = new Rx_stream_raw_file(this, filepath, config->rx_file_reader.width, config->rx_file_reader.type == PI_TESTBENCH_I2S_VERIF_RX_FILE_READER_TYPE_BIN);
             }
             else
             {
@@ -855,6 +919,7 @@ void Slot::start(pi_testbench_i2s_verif_slot_start_config_t *config, Slot *reuse
         }
 
         this->i2s->data = this->id < 2 ? this->i2s->data & 0xC : this->i2s->data & 0x3;
+    
         this->i2s->itf->sync(2, 2, this->i2s->data);
     }
 }
@@ -907,6 +972,8 @@ void Slot::stop(pi_testbench_i2s_verif_slot_stop_config_t *config)
 
 void Slot::start_frame()
 {
+    this->trace.msg(vp::trace::LEVEL_DEBUG, "Start frame\n");
+
     if (this->rx_started)
     {
         if (this->instream)
@@ -996,6 +1063,8 @@ void Slot::send_data(int sd)
         {
             this->tx_pending_bits--;
             this->tx_pending_value = (this->tx_pending_value << 1) | (sd == 1);
+
+            this->trace.msg(vp::trace::LEVEL_DEBUG, "Sampling bit (bit: %d, value: 0x%lx, remaining_bits: %d)\n", sd, this->tx_pending_value, this->tx_pending_bits);
 
             if (this->tx_pending_bits == 0)
             {
@@ -1108,20 +1177,40 @@ void Slot::pdm_sync(int sd)
 }
 
 
-int Slot::pdm_get()
+int64_t Slot::exec()
 {
-    if (this->instream)
+    if (close)
     {
-        int data = this->instream->get_sample(this->rx_channel_id);
-        return data;
+        this->i2s->set_pdm_data(this->id / 2, 2);
+        this->close = false;
+        return 17000;
     }
     else
     {
-        if (this->i2s->pdm_lanes_is_out[this->id / 2])
-            return 0;
+        int data;
+
+        if (this->instream)
+        {
+            data = this->instream->get_sample(this->rx_channel_id);
+        }
         else
-            return 2;
+        {
+            if (this->i2s->pdm_lanes_is_out[this->id / 2])
+                data = 0;
+            else
+                data = 2;
+        }
+
+        this->i2s->set_pdm_data(this->id / 2, data);
+        return -1;
     }
+}
+
+
+void Slot::pdm_get()
+{
+    this->close = true;
+    this->enqueue_to_engine(4000);
 }
 
 
@@ -1130,6 +1219,7 @@ int64_t I2s_verif::exec()
     if (this->clk_active)
     {
         this->clk ^= 1;
+
         this->itf->sync(this->clk, this->ws_value, this->data);
     
         return this->clk_period;

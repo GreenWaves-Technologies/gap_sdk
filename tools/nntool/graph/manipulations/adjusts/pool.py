@@ -15,7 +15,8 @@
 
 import logging
 
-from graph.types.pooling import AveragePoolParameters, MaxPoolParameters
+from graph.types import (ActivationFusion, AveragePoolParameters,
+                         MaxPoolParameters, PoolingParameters)
 
 from ..adjust_base import AdjusterBase, handles
 
@@ -27,11 +28,24 @@ class PoolAdjuster(AdjusterBase):
         modified = False
         # check that the transposed input 0 matches autotiler order
         names = node.in_dims[0].order
-        # TODO - once pooling is integrated into NE16 kernel check for presence here
-        if node.transpose_in is not None and node.transpose_in[0] is not None:
-            names = self.trans_names(names, node.transpose_in[0])
         if names != node.ker_in_order[0]:
             self.adjust_in_out_order(G, node, names, node.ker_in_order[0])
+            modified = True
+
+        return modified
+
+@handles(ActivationFusion)
+class PoolFusionAdjuster(AdjusterBase):
+    def adjust(self, G, node):
+        modified = False
+        fusion_node = node
+        pool_node = next(iter([node for node in fusion_node.contained_nodes() if isinstance(node, PoolingParameters)]), None)
+        if pool_node is None:
+            return modified
+        # check that the transposed input 0 matches autotiler order
+        names = pool_node.in_dims[0].order
+        if names != pool_node.ker_in_order[0]:
+            self.adjust_in_out_order(G, pool_node, names, pool_node.ker_in_order[0], fusion=fusion_node)
             modified = True
 
         return modified

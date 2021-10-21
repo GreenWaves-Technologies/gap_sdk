@@ -1,0 +1,6 @@
+BUILD*
+Gen*
+*_emul
+*.dat
+model/ssdlite_models
+

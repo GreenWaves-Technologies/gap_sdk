@@ -18,6 +18,7 @@ import logging
 import numpy as np
 from graph.types import (ConstantInputParameters, FilterParameters,
                          MatrixAddParameters, MatrixMulParameters, NNEdge)
+from graph.types.others import ReshapeParameters
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -35,21 +36,27 @@ OPS = {
 @match_name('fuse_external_bias')
 @description('Fuse bias addition after filter with filter bias')
 @groups('scaled', 'symmetric')
-@run_before('move_pooling_scale8', 'move_activations_pow2', 'move_activations_scale8')
+@run_before('match_op_activation', 'move_pooling_scale8', 'move_activations_pow2', 'move_activations_scale8')
 class MatchExternalBias(Matcher):
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs):
         has_modified_graph = False
         filter_nodes = [node for node in G.nodes(
         ) if isinstance(node, FilterParameters)]
-        for filter_node in filter_nodes:
+        for params in filter_nodes:
+            filter_node = params
+            seen_reshape = []
             while True:
-                out_edges = G.out_edges(filter_node.name)
+                out_edges = G.out_edges(params.name)
                 # can't fuse if there is a branch
                 if len(out_edges) > 1:
                     break
                 out_edge = out_edges[0]
                 op_node = out_edge.to_node
+                if isinstance(op_node, ReshapeParameters):
+                    seen_reshape = [op_node]
+                    params = op_node
+                    continue
                 # must be a valid matrix op
                 if not isinstance(op_node, tuple(OPS.keys())):
                     break
@@ -100,8 +107,9 @@ class MatchExternalBias(Matcher):
                 G.remove(op_node)
                 if remove_constant:
                     G.remove(const_node)
+                from_node = seen_reshape[-1] if seen_reshape else filter_node
                 for edge in out_edges:
-                    G.add_edge(NNEdge(from_node=filter_node,
+                    G.add_edge(NNEdge(from_node=from_node,
                                       to_node=edge.to_node, to_idx=edge.to_idx))
 
         if set_identity:

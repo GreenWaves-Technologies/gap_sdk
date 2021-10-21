@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from utils.node_id import NodeId
 from graph.dim import Dim
 from graph.types import NNEdge, RNNParameters
 from importer.common.provisional_dim import ProvisionalDim
@@ -81,14 +82,8 @@ class UnidirectionalSequenceRNN(BackendHandler):
             # add a single reset
             state_node.reset_name = "Reset"
 
-        # Link the state weights to the input weights
-        # The autotiler expects the state and input weights to be
-        # concatenated. This tells the constant code generator to do this
-        for gate in ['i']:
-            i_w_node = constant_nodes[RNNParameters.INPUT_NAMES.index('i_2_%s_w' % gate)]
-            r_w_node = constant_nodes[RNNParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
-            r_w_node.concated_nodes.append(i_w_node)
-            i_w_node.generate_value = False
+        if opts.get('load_quantization'):
+            G.quantization[NodeId(params)] = cls.load_tf_quantization(node.input, node.output)
 
         G.add_edge(NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         all_nodes[node.output[0]] = (params, 0, pout_dims)

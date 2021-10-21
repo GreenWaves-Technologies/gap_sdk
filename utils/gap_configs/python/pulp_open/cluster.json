@@ -1,0 +1,194 @@
+
+{
+    "alias": "0x00000000",
+    "mapping": {
+        "base": "0x10000000",
+        "size": "0x00400000"
+    },
+
+    "iss_config": {
+        "vp_component": "pulp/cpu/iss/iss_pulp_cluster",
+        "isa"           : "rv32imfcXpulpv2Xf8Xf16XfvecXfauxXf16altXgap9Xint64",
+        "misa": "0x40000000",
+        "first_external_pcer": 12,
+        "riscv_dbg_unit": true,
+        "debug_binaries": [],
+        "debug_handler" : "0x1a190800",
+        "power_models_file": "pulp_open/power_models/core/riscy.json"
+    },
+
+    "version": 5,
+    "json_file": "cluster_v6",
+    "nb_pe": 9,
+    "has_cc": true,
+
+    "pe": {
+        "irq": [
+        null       , null       , null         , null,
+        null       , null       , null         , null,
+        "dma_0"    , "dma_1"    , "timer_0"    , "timer_1",
+        "acc_0"    , "acc_1"    , "acc_2"      , "acc_3",
+        "eu_bar"   , "eu_mutex" , "eu_dispatch", null,
+        null       , null       , "dma_ext"    , null,
+        null       , null       , null         , null,
+        "mpu_error", null       , "soc_event"  , "soc_fifo"
+        ]
+    },
+
+    "l1": {
+        "mapping": {
+            "base": "0x10000000",
+            "size": "0x00020000",
+            "remove_offset": "0x10000000"
+        },
+        "ts_mapping": {
+            "base": "0x10100000",
+            "size": "0x00020000",
+            "remove_offset": "0x10100000"
+        },
+        "banking_factor": 2,
+        "power_models": "gap/gap9/power_models/l1/l1.json"
+    },
+
+    "icache": {
+        "config": {
+            "has_cc": true,
+            "nb_cores": 9,
+            "nb_l1_banks":2,
+
+            "l0": {
+                "nb_sets_bits": 3,
+                "nb_ways_bits": 2,
+                "line_size_bits": 4,
+                "refill_latency": 2
+            },
+
+            "l0_cc": {
+                "nb_sets_bits": 5,
+                "nb_ways_bits": 2,
+                "line_size_bits": 4,
+                "refill_latency": 2
+            },
+            
+            "l1": {
+                "nb_sets_bits": 5,
+                "nb_ways_bits": 2,
+                "line_size_bits": 4,
+                "refill_latency": 2
+            }
+        }
+    },
+
+    "peripherals": {
+
+        "mapping": {
+            "base": "0x10200000",
+            "size": "0x00200000"
+        },
+
+        "alias": {
+            "base": "0x00200000",
+            "size": "0x00200000"
+        },
+
+        "cluster_ctrl": {
+            "mapping": {
+                "base": "0x10200000",
+                "size": "0x00000400",
+                "remove_offset": "0x10200000"
+            }
+        },
+
+        "timer": {
+            "mapping": {
+                "base": "0x10200400",
+                "size": "0x00000400",
+                "remove_offset": "0x10200400"
+            }
+        },
+
+        "event_unit": {
+            "version": "4",
+            "mapping": {
+                "base": "0x10200800",
+                "size": "0x00000800",
+                "remove_offset": "0x10200800"
+            },
+            "config": {
+                "nb_core": 9,
+                "properties": {
+                    "dispatch": {
+                        "size": 8
+                    },
+                    "mutex": {
+                        "nb_mutexes": 8
+                    },
+                    "barriers": {
+                        "nb_barriers": 9
+                    },
+                    "semaphores": {
+                        "nb_semaphores": 16,
+                        "width": 12
+                    },
+                    "bitfields": {
+                        "nb_bitfields": 24
+                    },
+                    "soc_event": {
+                        "nb_fifo_events": 8,
+                        "fifo_event": 27
+                    },
+                    "events": {
+                        "barrier" : 16,
+                        "mutex"   : 17,
+                        "dispatch": 18,
+                        "semaphore": 19
+                    }
+                }
+            }
+        },
+
+        "icache_ctrl": {
+            "mapping": {
+                "base": "0x10201400",
+                "size": "0x00000400",
+                "remove_offset": "0x10201400"
+            }
+        },
+
+        "dma": {
+            "version": 7,
+            "mapping": {
+                "base": "0x10201800",
+                "size": "0x00000400",
+                "remove_offset": "0x10201800"
+            }
+        },
+
+        "dbg_unit": {
+            "base": "0x10300000",
+            "size"  : "0x00008000"
+        },
+
+        "cluster_ico": {}
+    },
+
+    "demux_peripherals":
+    {
+        "base": "0x10204000",
+
+        "event_unit": {
+            "mapping": {
+                "base": "0x10204000",
+                "size": "0x00000800",
+                "remove_offset": "0x10204000"
+            }
+        },
+        "dma": {
+            "mapping": {
+                "base": "0x10204800",
+                "size": "0x00000400",
+                "remove_offset": "0x10204800"
+            }
+        }
+    }
+}

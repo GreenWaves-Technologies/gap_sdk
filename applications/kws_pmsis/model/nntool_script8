@@ -1,5 +1,0 @@
-adjust
-fusions
-aquant -f 16 images/* -D 128 -O0
-qtune 2 dp
-save_state

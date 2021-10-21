@@ -15,33 +15,47 @@
 
 import logging
 
-from graph.types import GlobalAveragePoolParameters, GlobalMaxPoolParameters
+from graph.types import GlobalAveragePoolParameters, GlobalMaxPoolParameters, ActivationFusion, GlobalPoolingParameters, GlobalSumPoolParameters
 
 from ..adjust_base import AdjusterBase, handles
 
 LOG = logging.getLogger("nntool." + __name__)
 
-@handles(GlobalAveragePoolParameters, GlobalMaxPoolParameters)
-class GlobalPoolAdjuster(AdjusterBase):
-    def adjust(self, G, node):
+class GlobalPoolAdjusterBase(AdjusterBase):
+    def _do_adjust(self, G, node, pool_node):
         # make sure that node.axis axes are at the RHS of the tensor
-        in_dim_len = len(node.in_dims[0].shape)
+        in_dim_len = len(pool_node.in_dims[0].shape)
         # how many dimensions of the tensor do we keep after reduction
-        dim_keep = in_dim_len - len(node.axis)
+        dim_keep = in_dim_len - len(pool_node.axis)
         # check that none of the reduction dimensions are in the first dim_keep
         # dimensions
-        if all(red_axis not in range(dim_keep) for red_axis in node.axis):
+        if all(red_axis not in range(dim_keep) for red_axis in pool_node.axis):
             return False
-        LOG.info("global pool %s: inserting transpose before operation", node.name)
+        LOG.info("global pool fusion %s: inserting transpose before operation", node.name)
         # we need a transpose [all not in axis] + axis
-        transpose = [i for i in range(in_dim_len) if i not in node.axis] + list(node.axis)
-        node.transpose_in = [transpose]
+        transpose = [i for i in range(in_dim_len) if i not in pool_node.axis] + list(pool_node.axis)
+        self.apply_input_trans(G, node, transpose)
         # if we keep dimensions then we need to transpose on output
         # this will be reduced to a reshape by eliminate transposes so no code
         # will be generated. But dimension calculation will fail without it.
-        if node.keep_dims:
-            LOG.info("global pool %s: inserting transpose after operation", node.name)
-            node.transpose_out = [self.invert(transpose)]
+        if pool_node.keep_dims:
+            LOG.info("global pool fusion %s: inserting transpose after operation", node.name)
+            self.apply_output_trans(G, node, self.invert(transpose), index=0)
         # move axis onto new home
-        node.axis = [transpose.index(i) for i in node.axis]
-        return True
+        pool_node.axis = [transpose.index(i) for i in pool_node.axis]
+        return True        
+
+@handles(GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters)
+class GlobalPoolAdjuster(GlobalPoolAdjusterBase):
+    def adjust(self, G, node):
+        return self._do_adjust(G, node, node)
+
+@handles(ActivationFusion)
+class GlobalPoolFusionAdjuster(GlobalPoolAdjusterBase):
+    def adjust(self, G, node):
+        fusion_node = node
+        pool_node = next(iter([node for node in fusion_node.contained_nodes() if isinstance(node, GlobalPoolingParameters)]), None)
+        if pool_node is None:
+            return False
+
+        return self._do_adjust(G, node, pool_node)

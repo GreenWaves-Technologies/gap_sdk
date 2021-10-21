@@ -1,2 +1,0 @@
-GVSOC Virtual Platform                         {#mainpage}
-====================

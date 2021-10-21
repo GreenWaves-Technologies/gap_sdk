@@ -44,6 +44,8 @@ static int fs_write_from_L3(void *file, void *data, int size_total, struct pi_de
         l3_index += size;
         rest_size = rest_size - size;
     } while (rest_size > 0);
+    
+    __FREE_L2(_tmp_buffer, (uint32_t) INTER_BUFF_SIZE);
 
     return 0;
 }
@@ -105,7 +107,8 @@ static int ReadWavShort(switch_file_t File, short int* OutBuf, unsigned int NumS
 		printf("Error allocating\n");
 		return 1;
 	}
-	int i, ch;
+	int i;
+	unsigned int ch;
 	int RemainBytes = NumSamples*BytesPerSample;
 	int read_size;
 	while (RemainBytes>0){
@@ -128,6 +131,8 @@ static int ReadWavShort(switch_file_t File, short int* OutBuf, unsigned int NumS
 		}
 		OutBuf += len/BytesPerSample;
 	}
+	__FREE_L2(data_buf, ChunkSize*Channels*sizeof(short int));
+
 	return 0;
 }
 
@@ -140,7 +145,8 @@ static int ReadWavChar(switch_file_t File, char* OutBuf, unsigned int NumSamples
 		printf("Error allocating\n");
 		return 1;
 	}
-	int i, ch;
+	int i;
+	unsigned int ch;
 	int RemainBytes = NumSamples*BytesPerSample;
 	int read_size;
 	while (RemainBytes>0){

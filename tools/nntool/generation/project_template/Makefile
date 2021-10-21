@@ -11,7 +11,7 @@ endif
 include common.mk
 include $(RULES_DIR)/at_common_decl.mk
 
-io=host
+io=stdout
 
 RAM_FLASH_TYPE ?= HYPER
 #PMSIS_OS=freertos

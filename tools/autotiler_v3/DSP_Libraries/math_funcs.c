@@ -96,6 +96,8 @@ static unsigned short int ExpCoeffLUT[] = {
 
 static inline uint32 sqrt_17_15_internal(uint32 x)
 {
+	if (!x)
+		return 0;
 	unsigned int exponent, y, result, z;
 
 	exponent = (unsigned int) gap_clb ((int) x);
@@ -126,8 +128,6 @@ uint32 sqrt_17_15(uint32 x)
 
 uint32 usqrt_17_15(uint32 x)
 {
-	if (!x)
-		return 0;
 	return sqrt_17_15_internal(x);
 }
 
@@ -264,6 +264,52 @@ int16 fpsin(int16 i)
     y = gap_roundnormu(y, (q-a)); // Rounding
 
     return (c ? -((int16)y) : ((int16)y));
+}
+
+uint32 RSQRT_TAB [96] = 
+{
+    0xfa0bdefa, 0xee6af6ee, 0xe5effae5, 0xdaf27ad9,
+    0xd2eff6d0, 0xc890aec4, 0xc10366bb, 0xb9a71ab2,
+    0xb4da2eac, 0xadce7ea3, 0xa6f2b29a, 0xa279a694,
+    0x9beb568b, 0x97a5c685, 0x9163027c, 0x8d4fd276,
+    0x89501e70, 0x8563da6a, 0x818ac664, 0x7dc4fe5e,
+    0x7a122258, 0x7671be52, 0x72e44a4c, 0x6f68fa46,
+    0x6db22a43, 0x6a52623d, 0x67041a37, 0x65639634,
+    0x622ffe2e, 0x609cba2b, 0x5d837e25, 0x5bfcfe22,
+    0x58fd461c, 0x57838619, 0x560e1216, 0x53300a10,
+    0x51c72e0d, 0x50621a0a, 0x4da48204, 0x4c4c2e01,
+    0x4af789fe, 0x49a689fb, 0x485a11f8, 0x4710f9f5,
+    0x45cc2df2, 0x448b4def, 0x421505e9, 0x40df5de6,
+    0x3fadc5e3, 0x3e7fe1e0, 0x3d55c9dd, 0x3d55d9dd,
+    0x3c2f41da, 0x39edd9d4, 0x39edc1d4, 0x38d281d1,
+    0x37bae1ce, 0x36a6c1cb, 0x3595d5c8, 0x3488f1c5,
+    0x3488fdc5, 0x337fbdc2, 0x3279ddbf, 0x317749bc,
+    0x307831b9, 0x307879b9, 0x2f7d01b6, 0x2e84ddb3,
+    0x2d9005b0, 0x2d9015b0, 0x2c9ec1ad, 0x2bb0a1aa,
+    0x2bb0f5aa, 0x2ac615a7, 0x29ded1a4, 0x29dec9a4,
+    0x28fabda1, 0x2819e99e, 0x2819ed9e, 0x273c3d9b,
+    0x273c359b, 0x2661dd98, 0x258ad195, 0x258af195,
+    0x24b71192, 0x24b6b192, 0x23e6058f, 0x2318118c,
+    0x2318718c, 0x224da189, 0x224dd989, 0x21860d86,
+    0x21862586, 0x20c19183, 0x20c1b183, 0x20001580
+};
+
+
+uint32 rsqrt_16_16 (uint32 a)
+{
+    uint32 s, r, t, scal;
+
+    if (a == 0) return ~a;
+    scal = (31 - gap_fl1(a)) & 0xfffffffe;
+    a = a << scal;
+	int idx = (a >> 25) - 32;
+    t = RSQRT_TAB[idx];
+    r = (t << 22) - gap_mul64uh(t, a);
+    s = gap_mul64uh(r, a);
+    s = 0x30000000 - gap_mul64uh(r, s);
+    r = gap_mul64uh(r, s);
+    r = ((r >> (18 - (scal >> 1))) + 1) >> 1;
+    return r;
 }
 
 #pragma GCC diagnostic pop

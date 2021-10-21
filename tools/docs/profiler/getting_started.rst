@@ -1,4 +1,4 @@
-.. _getting_started:
+.. _profiler_getting_started:
 
 Getting Started
 ===============
@@ -45,4 +45,4 @@ How to initialize the profiler
     #execute initialization files
     cd ~/profiler
     source init.sh
-    
+

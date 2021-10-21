@@ -187,11 +187,6 @@ ifdef gui
 override runner_args += --gui
 endif
 
-READFS_FLASH ?= flash
-
-override config_args += $(foreach file, $(READFS_FILES), --config-opt=$(READFS_FLASH)/content/partitions/readfs/files=$(file))
-override config_args += $(foreach file, $(HOSTFS_FILES), --config-opt=flash/content/partitions/hostfs/files=$(file))
-
 
 #
 # PULP_APPS
@@ -302,12 +297,6 @@ $(foreach static_lib, $(PULP_STATIC_LIBS), $(eval $(call declare_static_lib,$(st
 conf:
 
 
-ifdef GAPY_PY_TARGET
-GAPY_TARGET_OPT = --py-target=$(GAPY_PY_TARGET)
-else
-GAPY_TARGET_OPT = --target=$(GAPY_TARGET)
-endif
-
 $(BIN).s: $(BIN)
 	$(PULP_OBJDUMP) $(OBJDUMP_OPT) $< > $@
 	$(PULP_SIZE) $(SIZE_OPT) $< > $(BIN).size
@@ -323,7 +312,11 @@ image:
 flash:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --flash --binary=$(TARGETS) $(runner_args)
 
-all:: build disdump image flash
+all:: build disdump
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --image --flash --binary=$(TARGETS) $(runner_args)
+
+all_run:: build disdump
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --image --flash --exec --exec-prepare --binary=$(TARGETS) $(runner_args)
 
 clean::
 	@echo "RM  $(TARGET_BUILD_DIR)"
@@ -337,6 +330,9 @@ run.exec:
 
 run:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(TARGETS) $(runner_args)
+
+gtkw:
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --gtkw --binary=$(TARGETS) $(runner_args)
 
 traces:
 	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(TARGET_BUILD_DIR) $(config_args) $(gapy_args) run --exec --binary=$(TARGETS) --no-run --extend-traces $(runner_args)
@@ -352,14 +348,6 @@ install-lib: build-lib
 	$(V)mkdir -p $(PULP_EXT_LIBS)/include
 	$(V)cp $(STATIC_LIB_TARGETS) $(PULP_EXT_LIBS)
 	$(V)cp -t $(PULP_EXT_LIBS)/include  $(PULP_STATIC_LIB_HEADERS)
-
-size:
-	$(PULPOS_HOME)/bin/pos-size --binary=$(TARGETS) --depth=10
-
-profiler:
-	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) --config-opt="gvsoc/debug-mode=true" --config-opt="gvsoc/events/gen_gtkw=false" run --image --flash --exec-prepare --binary=$(BIN) --event-format=raw --event=.*@all.bin $(runner_args)
-	cd $(BUILDDIR) && if [ -e all.bin ]; then rm all.bin; fi; mkfifo all.bin
-	cd $(BUILDDIR) && export PULP_CONFIG_FILE=$(BUILDDIR)/gvsoc_config.json && profiler $(BUILDDIR) $(BIN) gvsoc_config.json
 
 #help:
 #	@echo "Makefile options:"

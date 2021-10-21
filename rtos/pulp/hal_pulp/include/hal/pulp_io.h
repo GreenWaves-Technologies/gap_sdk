@@ -76,6 +76,11 @@ static inline uint32_t pulp_read(uint32_t add)
 #define IP_WRITE(base, offset, value) __builtin_pulp_OffsetedWrite((value), (int *)(base), (offset))
 #if !defined(__PULP_TOOLCHAIN__)
 #define IP_WRITE_PTR(base, offset, value) __builtin_pulp_OffsetedWritePtr((int *)(value), (int *)(base), (offset))
+#else
+#define IP_WRITE_PTR(base, offset, value) do{asm volatile("":::"memory"); \
+                                            __builtin_pulp_OffsetedWrite((value), (int *)(base), (offset)); \
+                                            asm volatile("":::"memory"); \
+                                            }while(0)
 #endif
 #define IP_READ(base, offset) __builtin_pulp_OffsetedRead((int *)(base), (offset))
 #else

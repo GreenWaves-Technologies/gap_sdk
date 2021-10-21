@@ -244,6 +244,7 @@ static int hyperflash_open(struct pi_device *device)
   hyper_conf.id = (unsigned char) conf->hyper_itf;
   hyper_conf.cs = conf->hyper_cs;
   hyper_conf.type = PI_HYPER_TYPE_FLASH;
+  hyper_conf.baudrate = conf->baudrate;
   #if defined(__GAP9__)
   hyper_conf.xip_en = conf->xip_en;
   hyper_conf.aes_conf = &(conf->flash.aes_conf);
@@ -976,4 +977,5 @@ void pi_hyperflash_conf_init(struct pi_hyperflash_conf *conf)
   bsp_hyperflash_conf_init(conf);
   __flash_conf_init(&conf->flash);
   conf->xip_en = 0;
+  conf->baudrate = 50000000;
 }

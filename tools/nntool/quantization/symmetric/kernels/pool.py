@@ -42,8 +42,7 @@ class AveragePoolingSymmetric(KernelBase):
 
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
-        in_dims, out_dims = tuple(dims[0]
-                                  for dims in cls.calc_transposed_dims(params))
+        in_dims, out_dims = params.in_dims[0], params.out_dims[0]
         filter_sz = params.filter.h * params.filter.w
 
         pool_factor = (1 << 16)//filter_sz
@@ -100,8 +99,7 @@ class MaxPoolingSymmetric(KernelBase):
 
         in_tensor = qrec.prepare_inputs(
             params, in_tensors, ktype="symmetric")[0]
-        in_dims, out_dims = tuple(dims[0]
-                                  for dims in cls.calc_transposed_dims(params))
+        in_dims, out_dims = params.in_dims[0], params.out_dims[0]
 
         out_tensor = np.zeros(out_dims.shape, dtype=qrec.out_qs[0].dtype)
 

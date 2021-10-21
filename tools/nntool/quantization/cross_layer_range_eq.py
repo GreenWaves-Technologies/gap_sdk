@@ -15,6 +15,7 @@
 
 # Implements weight equalization as per https://arxiv.org/abs/1906.04721
 
+from graph.types.fusions import FilterFusionBase
 import logging
 import math
 from copy import copy
@@ -52,7 +53,7 @@ def discover_groups(G):
     neurons = []
     last_neuron = None
     filters = sorted([node for node in G.nodes() if isinstance(
-        node, (FilterParameters, ConvFusionParameters))], key=lambda x: x.step_idx)
+        node, (FilterParameters, FilterFusionBase))], key=lambda x: x.step_idx)
     while filters:
         node = filters.pop(0)
         while True:
@@ -72,7 +73,7 @@ def discover_groups(G):
                 node = next_node
                 continue
 
-            if isinstance(node, ConvFusionParameters):
+            if isinstance(node, FilterFusionBase):
                 for fnode in node.contained_nodes():
                     _, last_neuron, group = process_node(G, fnode, last_neuron, group,
                                                          groups, neurons, pnode=node)

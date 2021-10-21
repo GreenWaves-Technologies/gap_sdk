@@ -86,6 +86,11 @@ class ScalingQType(JsonSerializable, EventEmitter):
         return int(iinfo.bits)
 
     @property
+    def dtype_bits(self):
+        iinfo = np.iinfo(self.dtype)
+        return int(iinfo.bits)
+
+    @property
     def ctype(self):
         return DTYPE_CTYPE[self.dtype]
 
@@ -149,12 +154,12 @@ class MultMulBiasScaleQType(ScalingQType):
         self._pre_normalization = val
 
     @staticmethod
-    def reshape_transpose(trans, dim, val):
-        return np.reshape(np.transpose(np.reshape(val, dim.shape), trans), val.shape)
+    def reshape_transpose(trans, shape, val):
+        return np.reshape(np.transpose(np.reshape(val, shape), trans), val.shape)
 
-    def reorder(self, trans, dim):
+    def reorder(self, trans, shape):
         if self.scale.size > 1:
-            self.scale = self.reshape_transpose(trans, dim, self.scale)
+            self.scale = self.reshape_transpose(trans, shape, self.scale)
 
     @property
     def scale(self):

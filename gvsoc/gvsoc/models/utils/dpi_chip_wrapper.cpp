@@ -194,7 +194,7 @@ class dpi_chip_wrapper : public vp::component
 public:
     dpi_chip_wrapper(js::config *config);
 
-    void *external_bind(std::string name, int handle);
+    void *external_bind(std::string comp_name, std::string itf_name, void *handle);
 
     int build();
     void start();
@@ -447,8 +447,9 @@ void dpi_chip_wrapper::hyper_sync_cycle(void *__this, int data, int id)
 #endif
 }
 
-void *dpi_chip_wrapper::external_bind(std::string name, int handle)
+void *dpi_chip_wrapper::external_bind(std::string name, std::string itf_name, void *_handle)
 {
+    int handle = (int)(long)_handle;
     trace.msg("Binding pad (name: %s, handle: %d)\n", name.c_str(), handle);
 
     int delim_pos = name.find(".");

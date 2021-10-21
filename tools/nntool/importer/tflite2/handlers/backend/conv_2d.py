@@ -83,7 +83,6 @@ class Conv2D(FilterMixin, BackendHandler):
                                       'out_c']],
                                   out_dims_hint=[['h', 'w', 'c']],
                                   constant_store=G.constant_store)
-
         G.add_edge(NNEdge(from_node=weights_node, to_node=params, to_idx=1))
         G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
         cls.new_load_filter_parameters(
@@ -99,4 +98,4 @@ class Conv2D(FilterMixin, BackendHandler):
             NNEdge(from_node=x[0], to_node=params, from_idx=x[1], to_idx=0))
         oparams = cls.fuse_activation(node_opts, node.name, params, **kwargs)
         all_nodes[node.output[0]] = (oparams, 0, pout_dims)
-        return params
+        return oparams

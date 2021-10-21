@@ -18,8 +18,8 @@ import logging
 
 from expressions.symbolic.basic import HSigmoid, HTanh, Relu, Sigmoid, TanH
 
-from .base import (CanFuseToExpression, ComparableParameters, NoSizeChangeParameters,
-                   SingleInputAndOutput, Transposable, expression_op, cls_op_name)
+from .base import (CanFuseToExpression, ComparableParameters, NoSizeChangeParameters, Parameters, SensitiveToOrder,
+                   SingleInputAndOutput, expression_op, cls_op_name)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -61,7 +61,7 @@ class ActivationParameters(NoSizeChangeParameters, SingleInputAndOutput, Compara
     def compute_load(self):
         return 0
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         return isinstance(other, self.__class__)
 
     def __str__(self):
@@ -108,7 +108,7 @@ class ReluActivationParameters(ActivationParameters, CanFuseToExpression):
     def get_expression(self, *args):
         return Relu(*args, lower_bound=self.lower_bound, upper_bound=self.upper_bound)
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         return (isinstance(other, ReluActivationParameters) and
                 self.lower_bound == other.lower_bound and
                 self.upper_bound == other.upper_bound)
@@ -132,7 +132,7 @@ class LeakyActivationParameters(ActivationParameters):
     def can_equalize(self):
         return False
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         return (isinstance(other, LeakyActivationParameters) and self.leak_factor == other.leak_factor)
 
 
@@ -155,7 +155,7 @@ class HSigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
     def can_equalize(self):
         return False
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         return (isinstance(other, HSigmoidActivationParameters) and self.offset == other.offset)
 
     def __str__(self):
@@ -215,7 +215,7 @@ class SigmoidActivationParameters(ActivationParameters, CanFuseToExpression):
 
 
 @cls_op_name('softmax')
-class SoftMaxParameters(Transposable, SingleInputAndOutput):
+class SoftMaxParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     def __init__(self, name, beta=None, axis=None):
         super(SoftMaxParameters, self).__init__(name)
@@ -233,14 +233,10 @@ class SoftMaxParameters(Transposable, SingleInputAndOutput):
         return self.in_dims[0].size() * 2
 
     def get_output_size(self, in_dims):
+        # TODO - This is not correct for a reducing softmax
         if self.axis is None:
             self.axis = len(in_dims[0]) - 1
-        if self.transpose_in:
-            in_dims = [dim.calc_transpose(trans) if trans is not None else dim
-                       for dim, trans in zip(in_dims, self.transpose_in)]
         out_dim = in_dims[0]
-        if self.transpose_out and self.transpose_out[0]:
-            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     def __str__(self):

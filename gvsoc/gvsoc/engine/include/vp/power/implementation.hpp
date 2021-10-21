@@ -62,25 +62,4 @@ inline void vp::power_trace::flush()
   this->account_leakage_power();
 }
 
-inline void vp::power_trace::incr(double quantum, bool is_leakage)
-{
-  this->get_value();
-
-  if (is_leakage)
-  {
-    this->total_leakage += quantum;
-  }
-  else
-  {
-    this->value += quantum;
-    this->total += quantum;
-  }
-
-  if (this->top_trace)
-    this->top_trace->incr(quantum, is_leakage);
-
-  if (!is_leakage)
-    this->trace.event_real_pulse(this->top->get_period(), this->value, 0);
-}
-
 #endif

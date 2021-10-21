@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import threading
 from collections import OrderedDict
 
 import numpy as np
@@ -21,37 +22,63 @@ from matplotlib.ticker import FormatStrFormatter
 
 from utils.stats_funcs import qsnr
 
-import traceback
+
+def thread_singleton(cls_) -> type:
+
+    class ThreadSingleton(cls_):  # type: ignore
+        __instances = {}
+        __initialized = set()
+
+        def __new__(cls, *args, **kwargs):
+            instances = ThreadSingleton.__instances.get(cls)
+            if instances is None:
+                ThreadSingleton.__instances[cls] = instances = {
+                    threading.get_ident(): super().__new__(cls, *args, **kwargs)}
+            instance = instances.get(threading.get_ident())
+            if instance is None:
+                instances[threading.get_ident()] = instance = super().__new__(
+                    cls, *args, **kwargs)
+            return instance
+
+        def __init__(self, *args, **kwargs):
+            if self not in ThreadSingleton.__initialized:
+                ThreadSingleton.__initialized.add(self)
+                super().__init__(*args, **kwargs)
+
+    return ThreadSingleton
 
 
-class DiagCollector():
-    stats = OrderedDict()
-    cur_sets = []
-    node_names = set()
+@thread_singleton
+class DiagCollectors():
+    def __init__(self) -> None:
+        self.stats = OrderedDict()
+        self.cur_sets = []
+        self.node_names = set()
+        self.dequantize = True
 
-    @classmethod
-    def clear(cls, set_name=None):
+    def clear(self, set_name=None):
         if set_name:
-            if set_name in cls.stats:
-                del cls.stats[set_name]
+            if set_name in self.stats:
+                del self.stats[set_name]
         else:
-            cls.stats = OrderedDict()
-            cls.node_names = set()
+            self.stats = OrderedDict()
+            self.node_names = set()
 
-    @classmethod
-    def active_set(cls, name):
-        cls.cur_sets.append(cls.stats.setdefault(name, OrderedDict()))
+    def active_set(self, name):
+        self.cur_sets.append(self.stats.setdefault(name, OrderedDict()))
 
-    @classmethod
-    def record(cls, name, val, scale=None, node=None):
-        if not cls.cur_sets:
+    def record(self, name, val, scale=None, zero_point=0, node=None):
+        if not self.cur_sets:
             return
         val = np.atleast_1d(val).copy()
-        if scale is not None:
-            val = val.astype(np.float32) * scale
+        if self.dequantize:
+            if zero_point:
+                val = val.astype(np.float32) - zero_point
+            if scale is not None:
+                val = val.astype(np.float32) * scale
         node_name = '' if node is None else node.name
-        cls.node_names.add(node_name)
-        for cur_set in cls.cur_sets:
+        self.node_names.add(node_name)
+        for cur_set in self.cur_sets:
             node_set = cur_set.setdefault(node_name, {})
             item = node_set.get(name, None)
             if item is None:
@@ -62,87 +89,78 @@ class DiagCollector():
                 node_set[name] = np.concatenate(
                     [node_set[name], np.expand_dims(val, 0)])
 
-    @classmethod
-    def record_ref(cls, name, ref, node=None):
-        if cls.cur_sets is None:
+    def record_ref(self, name, ref, node=None):
+        if self.cur_sets is None:
             return
         assert node
-        for cur_set in cls.cur_sets:
+        for cur_set in self.cur_sets:
             node_set = cur_set.get(node.name)
             item_ref = node_set[ref]
             node_set[name] = item_ref
 
-    @classmethod
-    def deactivate(cls):
-        cls.cur_sets = cls.cur_sets[:-1:]
+    def deactivate(self):
+        self.cur_sets = self.cur_sets[:-1:]
 
-    @classmethod
-    def error(cls, name, axis=(0, ), sets=None, node_name=None):
+    def error(self, name, axis=(0, ), sets=None, node_name=None):
         if node_name is None:
-            node_name = next(iter(cls.node_names), '')
+            node_name = next(iter(self.node_names), '')
         if sets is None:
             sets = [
-                val_set for val_set in cls.stats if name in cls.stats[val_set][node_name]]
+                val_set for val_set in self.stats if name in self.stats[val_set][node_name]]
         if axis is None:
-            return {cur_set: np.abs(cls.stats[sets[0]][node_name][name] - cls.stats[cur_set][node_name][name])
+            return {cur_set: np.abs(self.stats[sets[0]][node_name][name] - self.stats[cur_set][node_name][name])
                     for cur_set in sets[1::]}
         elif isinstance(axis, int):
             axis = tuple([axis])
         return {cur_set: np.max(
-            np.abs(cls.stats[sets[0]][node_name][name] -
-                   cls.stats[cur_set][node_name][name]),
-            axis=cls.axis_tuple(cls.stats[sets[0]][node_name][name], axis))
+            np.abs(self.stats[sets[0]][node_name][name] -
+                   self.stats[cur_set][node_name][name]),
+            axis=self.axis_tuple(self.stats[sets[0]][node_name][name], axis))
             for cur_set in sets[1::]}
 
-    @classmethod
-    def qsnr(cls, name_set1, name_set2, axis=None, node_name=None):
+    def qsnr(self, name_set1, name_set2, axis=None, node_name=None):
         if axis is None:
             axis = 0
         if node_name is None:
-            node_name = next(iter(cls.node_names), '')
+            node_name = next(iter(self.node_names), '')
 
-        set1 = cls.stats[name_set1][node_name]
-        set2 = cls.stats[name_set2][node_name]
+        set1 = self.stats[name_set1][node_name]
+        set2 = self.stats[name_set2][node_name]
         return {k: qsnr(v, set2[k], axis=axis) if k in set2 else None
                 for k, v in set1.items()}
 
-    @classmethod
-    def compare(cls, name_set1, name_set2, node_name, val, idx):
-        set1 = cls.stats[name_set1][node_name][val][idx]
-        set2 = cls.stats[name_set2][node_name][val][idx]
+    def compare(self, name_set1, name_set2, node_name, val, idx):
+        set1 = self.stats[name_set1][node_name][val][idx]
+        set2 = self.stats[name_set2][node_name][val][idx]
         return set1, set2
 
-    @classmethod
-    def axis_tuple(cls, val, axis):
+    def axis_tuple(self, val, axis):
         if isinstance(axis, int):
             axis = (axis,)
         return tuple(i for i in range(len(val.shape)) if i not in axis)
 
-    @classmethod
-    def consolodate(cls, name_set, val_name, axis=None, node_name=None):
-        val = cls.stats[name_set]
+    def consolodate(self, name_set, val_name, axis=None, node_name=None):
+        val = self.stats[name_set]
         if node_name is None:
             node_name = next(iter(val))
         val = val[node_name][val_name]
         if axis is not None:
-            axis = cls.axis_tuple(val, axis)
+            axis = self.axis_tuple(val, axis)
         return {
             'min': np.min(val, axis=axis),
             'max': np.max(val, axis=axis)
         }
 
-    @classmethod
-    def store_ranges(cls, details, stats_set, *vars):
+    def store_ranges(self, details, stats_set, *vars):
         for var in vars:
-            details[f'range_{var}'] = cls.consolodate(stats_set, var)
+            details[f'range_{var}'] = self.consolodate(stats_set, var)
 
-    @classmethod
-    def plot_error(cls, names, axis=(0, ), sets=None, node_name=None):
+    def plot_error(self, names, axis=(0, ), sets=None, node_name=None):
         if isinstance(names, str):
             names = [names]
 
         if node_name is None:
-            node_name = next(iter(cls.node_names), '')
+            node_name = next(iter(self.node_names), '')
 
         for name in names:
             errs = DiagCollector.error(name, axis=axis, node_name=node_name)
@@ -153,3 +171,5 @@ class DiagCollector():
         plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         plt.legend()
         plt.show()
+
+DiagCollector = DiagCollectors()

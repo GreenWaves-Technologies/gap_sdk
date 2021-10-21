@@ -1,21 +1,10 @@
 from typing import Tuple
 
 import numpy as np
-from bfloat16 import bfloat16
+
 from expressions.symbolic.basic import CompoundFunction
 
-from .symbol import Symbol, SymbolStats, Variable
-
-
-class QRecBase():
-    DTYPE_TO_CTYPE = {
-        np.int8: 'int8_t',
-        np.int16: 'int16_t',
-        np.int32: 'int32_t',
-        np.float32: 'float',
-        bfloat16: 'F16',
-        np.float16: 'F16'
-    }
+from .symbol import Symbol, SymbolStats, Variable, QRecBase
 
 
 class QuantizationHandlerBase():

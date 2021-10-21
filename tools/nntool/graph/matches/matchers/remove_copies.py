@@ -14,15 +14,21 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from utils.node_id import NodeId
 
 from graph.types import CopyParameters, NNEdge, TransposeParameters
+from graph.types.others import QuantizeParameters
 from utils.graph import GraphView
+from utils.node_id import NodeId
 
 from ..matcher import (Matcher, description, groups, match_name,
                        modifies_dimensions, run_after)
 
 LOG = logging.getLogger("nntool." + __name__)
+
+
+def valid_node(node):
+    return (isinstance(node, TransposeParameters) and not node.does_nothing()) or isinstance(node, QuantizeParameters)
+
 
 @match_name("remove_copies")
 @description("Remove unnecessary copies")
@@ -36,8 +42,7 @@ class RemoveCopies(Matcher):
         nodes_to_remove = []
         for node in G.nodes(node_classes=CopyParameters):
             in_edge = G.in_edges(node.name)[0]
-            if (isinstance(in_edge.from_node, TransposeParameters) and
-                    not in_edge.from_node.does_nothing() and
+            if (valid_node(in_edge.from_node) and
                     not G.num_out_edges(in_edge.from_node.name) > 1):
                 nodes_to_remove.append(node)
                 continue
@@ -45,8 +50,7 @@ class RemoveCopies(Matcher):
             if len(out_edges) != 1:
                 continue
             out_edge = out_edges[0]
-            if (isinstance(out_edge.to_node, TransposeParameters) and
-                    not out_edge.to_node.does_nothing()):
+            if valid_node(out_edge.to_node):
                 nodes_to_remove.append(node)
                 continue
         for node in nodes_to_remove:

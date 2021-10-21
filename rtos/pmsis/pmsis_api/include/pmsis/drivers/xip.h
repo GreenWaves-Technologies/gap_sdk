@@ -2,6 +2,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define XIP_DEVICE_HYPER0 XIP_DEVICE0
 #define XIP_DEVICE_HYPER1 XIP_DEVICE1
 #define XIP_DEVICE_MRAM0 XIP_DEVICE2
@@ -61,3 +65,7 @@ PI_INLINE_XIP0 void pi_xip_tlb_lru_update(void *virt_addr,
 
 PI_INLINE_XIP0 void pi_xip_tlb_page_set(uint8_t page_id, void *virt_addr,
         uint32_t ext_addr, uint32_t per_id, uint8_t lock, uint8_t cacheable);
+
+#ifdef __cplusplus
+}
+#endif

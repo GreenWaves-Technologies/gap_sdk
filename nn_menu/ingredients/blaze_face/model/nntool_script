@@ -1,0 +1,31 @@
+set debug true
+adjust
+fusions --scale8
+remove CONCATENATION_0_162
+remove CONCATENATION_0_163
+set input_norm_func "x: x/128-1"
+aquant images/* -T
+set input_norm_func "x: x"
+imageformat input_1 rgb888 offset_int8
+set l2_ram_ext_managed false
+set graph_reorder_constant_in true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash true
+#
+#This is to print a NN node
+# From AT
+#CONSTANT_IN = 1,
+#AT_DUMP_IN = 2,
+#AT_DUMP_OUT = 4,
+#Values are binary combined so can be used 3 for CONSTANT_IN and IN.
+#If no node is specified option will be applied for all nodes
+#set graph_dump_tensor 4
+#set graph_dump_one_node S123_Op_CONV_2D_0_148_TOUT_0
+#set graph_dump_one_node S129_Op_CONV_2D_0_151_TOUT_0
+#set graph_dump_one_node S141_Op_CONV_2D_0_157_TOUT_0
+#set graph_dump_one_node S135_Op_CONV_2D_0_154_TOUT_0
+#set graph_dump_tensor 7
+#set graph_trace_exec true
+save_state

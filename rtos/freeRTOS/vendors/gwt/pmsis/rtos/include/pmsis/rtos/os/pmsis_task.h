@@ -125,6 +125,15 @@ static inline pi_task_t *pi_task_callback(pi_task_t *task,
     return __pi_task_callback(task, callback, arg);
 }
 
+static inline pi_task_t *pi_task_irq_callback(pi_task_t *task,
+                                          void (*callback)(void*), void *arg)
+{
+    task->id = PI_TASK_IRQ_ID;
+    task->arg[0] = (uintptr_t)callback;
+    task->arg[1] = (uintptr_t)arg;
+    return task;
+}
+
 static inline void pi_task_wait_on(pi_task_t *task)
 {
     __pi_task_wait_on(task);

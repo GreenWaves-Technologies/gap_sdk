@@ -34,8 +34,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void exit(int32_t status);
+#ifdef __cplusplus
+ extern "C" {
+#endif
 
-int32_t abs(int32_t x);
 
+void exit(int status);
+
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __STDLIB_H__ */

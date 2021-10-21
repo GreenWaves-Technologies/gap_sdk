@@ -1,0 +1,9 @@
+set log_level INFO
+adjust 
+fusions --scale8 
+set l3_flash_mb 64
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_trace_exec true
+set graph_monitor_cycles true
+save_state

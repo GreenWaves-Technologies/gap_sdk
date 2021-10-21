@@ -85,7 +85,7 @@ def find_first(combination, idx):
             return fc_idx
         elif idx in fc_set:
             # item is not first so no match
-            raise IndexError()
+            raise IndexError() # @IgnoreException
     return None
 
 

@@ -19,6 +19,10 @@
 
 #include "pmsis/chips/gap8/pad.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @ingroup groupChips
  */
@@ -118,4 +122,7 @@ typedef enum
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __CHIPS_GAP8_DRIVERS_GPIO_H__ */

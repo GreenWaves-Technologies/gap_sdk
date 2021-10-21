@@ -59,21 +59,31 @@ int __os_native_kickoff(void *arg)
 
 void pi_time_wait_us(int time_us)
 {
-    /* Wait less than 1 ms. */
-    if(time_us)
+    //time_us--;
+    if (time_us > 0)
     {
+        /* Wait less than 1 ms. */
         if (time_us < 1000)
         {
-            uint32_t irq = disable_irq();
+            uint32_t irq = pi_irq_disable();
             uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
-            uint32_t freq_us = freq_fc / 1000000;
-            uint32_t counter = (((uint32_t) time_us) - 1) * freq_us;
-            restore_irq(irq);
+            //uint64_t counter = (uint64_t) (((uint64_t) time_us) * freq_fc) / 1000000;
+            //uint64_t counter = (uint64_t) (((uint64_t) time_us) * freq_fc);
+            uint64_t freq = (uint64_t) ((uint64_t) time_us * (uint64_t) freq_fc);
+            uint32_t counter = (uint32_t) ((freq) >> 20);
+            //counter >>= 20; /* Div 10^6 */
+            //uint32_t counter = (uint32_t) time_us;
+            //counter = (counter * freq_fc) / 1000000;
+            //printf("counter=%ld, freq=%ld, time_us=%d\n", counter, freq_fc, time_us);
+            pi_irq_restore(irq);
             for (volatile uint32_t i=0; i<counter; i++);
         }
         else
         {
-            vTaskDelay((time_us/1000)/portTICK_PERIOD_MS);
+            pi_task_t task_block;
+            pi_task_block(&task_block);
+            pi_task_delayed_fifo_enqueue(&task_block, time_us);
+            pi_task_wait_on(&task_block);
         }
     }
 }
@@ -84,12 +94,11 @@ unsigned long long int pi_time_get_us()
     uint32_t irq = pi_irq_disable();
     uint32_t cur_tick = xTaskGetTickCount();
     uint64_t cur_timer_val = pi_timer_value_read(SYS_TIMER);
-    uint32_t freq_fc = pi_freq_get(PI_FREQ_DOMAIN_FC);
-    uint32_t freq_us = freq_fc / 1000000;
-    cur_timer_val /= freq_us;
+    uint32_t freq_timer = system_core_clock_get();
+    cur_timer_val = (cur_timer_val * 1000000) / freq_timer;
     time = (cur_tick * 1000);
     time += cur_timer_val;
-    time += 95; /* Around 95us between main() and kernel start. */
+    //time += 95; /* Around 95us between main() and kernel start. */
     pi_irq_restore(irq);
     return time;
 }
@@ -99,6 +108,9 @@ PI_FC_L1 struct pi_task_delayed_s delayed_task = {0};
 void pi_task_delayed_fifo_enqueue(struct pi_task *task, uint32_t delay_us)
 {
     task->data[8] = (delay_us/1000)/portTICK_PERIOD_MS;
+    /* Add 1ms, in case the next SysTick IRQ is too close. This will ensure at
+       least 1ms has passed. */
+    task->data[8]++;
     task->next = NULL;
     if (delayed_task.fifo_head == NULL)
     {
@@ -130,7 +142,7 @@ int pi_task_delayed_increment_push(void)
             {
                 prev_task->next = task->next;
             }
-            pi_task_push(task);
+            __pi_irq_handle_end_of_task(task);
             ret = 0;
         }
         prev_task = task;

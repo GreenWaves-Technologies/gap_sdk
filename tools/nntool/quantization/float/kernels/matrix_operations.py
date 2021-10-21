@@ -13,16 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.others import AbsOpParameters, CosOpParameters, LogOpParameters, MaxOpParameters, MinOpParameters, PowOpParameters, SinOpParameters, SqrtOpParameters, UnaryOpParameters
 import numpy as np
+from expressions.symbolic.symbol import Symbol, SymbolStats
 from graph.types import (ExpOpParameters, ExpressionFusionParameters,
                          MatrixAddParameters, MatrixDivParameters,
                          MatrixMulParameters, MatrixSubParameters,
                          MatScaleFusionParameters)
+from graph.types.others import (AbsOpParameters, CosOpParameters,
+                                LogOpParameters, MaxOpParameters,
+                                MinOpParameters, PowOpParameters,
+                                RSqrtOpParameters, SinOpParameters,
+                                SqrtOpParameters, UnaryOpParameters)
 from graph.types.tensor_arithmetic import Broadcastable, MatMulOpParameters
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
-from expressions.symbolic.symbol import Symbol, SymbolStats
 
 
 class PieceWiseFloat32Mixin():
@@ -68,11 +72,12 @@ class MatrixMulFloat32(PieceWiseFloat32Mixin, KernelBase):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
+        out_dtype = qrec.out_qs[0].dtype if qrec else np.float
         return super(MatrixMulFloat32, cls).execute_piecewise(
             params,
             in_tensors,
             qrec,
-            lambda x, y: np.multiply(x, y, dtype=np.float),
+            lambda x, y: np.multiply(x, y, dtype=out_dtype),
             **kwargs
         )
 
@@ -129,7 +134,10 @@ class MatMulFloat32(KernelBase):
                 biases = np.expand_dims(biases, -1)
         else:
             biases = 0
-        output_tensor = np.matmul(in_tensors[0], in_tensors[1]) + biases
+        out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
+            'float') else np.float32
+        output_tensor = np.matmul(in_tensors[0], in_tensors[1]).astype(
+            out_dtype) + np.atleast_1d(biases).astype(out_dtype)
         return qrec.get_outputs(params, [output_tensor], ktype="float")
 
 
@@ -171,9 +179,12 @@ class ExpressionFloat32(KernelBase):
         in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="float")
         in_vars = {params.input_symbols[i]: in_tensor
                    for i, in_tensor in enumerate(in_tensors)}
-        out_vars = params.func_col(**in_vars,
-                                   calculate_ranges=current_control is not None,
-                                   track_results=results)
+        func_col = qrec.cache.get('qfunc_col')
+        if func_col is None:
+            func_col = params.func_col
+        out_vars = func_col(**in_vars,
+                            calculate_ranges=current_control is not None,
+                            track_results=results)
         out_tensors = [out_vars[out_sym_name]
                        for out_sym_name in params.output_symbols]
         if current_control:
@@ -181,8 +192,10 @@ class ExpressionFloat32(KernelBase):
             details['results'] = results
         return qrec.get_outputs(params, out_tensors, ktype="float")
 
+
 class BinaryOpFloat32(KernelBase):
-    FUNC = lambda x: None
+    def FUNC(x, y): return x
+
     @classmethod
     def execute(cls, params,
                 in_tensors,
@@ -195,23 +208,30 @@ class BinaryOpFloat32(KernelBase):
         output = cls.FUNC(*in_tensors)
         return qrec.get_outputs(params, [output], ktype="float")
 
+
 @params_type(MinOpParameters)
 @qrec_type('float')
 class MinFloat32(BinaryOpFloat32):
     FUNC = np.minimum
+
 
 @params_type(MaxOpParameters)
 @qrec_type('float')
 class MaxFloat32(BinaryOpFloat32):
     FUNC = np.maximum
 
+
 @params_type(PowOpParameters)
 @qrec_type('float')
 class PowFloat32(BinaryOpFloat32):
     FUNC = np.power
 
+
 class UnaryOpFloat32(KernelBase):
-    FUNC = lambda x: None
+    @staticmethod
+    def FUNC(x: np.ndarray) -> np.ndarray:
+        return x
+
     @classmethod
     def execute(cls, params,
                 in_tensors,
@@ -221,35 +241,49 @@ class UnaryOpFloat32(KernelBase):
         if qrec is None:
             qrec = AllFloatQRec()
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-        output = cls.FUNC(in_tensor)
+        out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
+            'float') else np.float32
+        output = cls.FUNC(in_tensor).astype(out_dtype)
         return qrec.get_outputs(params, [output], ktype="float")
+
 
 @params_type(ExpOpParameters)
 @qrec_type('float')
 class ExpFloat32(UnaryOpFloat32):
     FUNC = np.exp
 
+
 @params_type(CosOpParameters)
 @qrec_type('float')
 class CosFloat32(UnaryOpFloat32):
     FUNC = np.cos
+
 
 @params_type(SinOpParameters)
 @qrec_type('float')
 class SinFloat32(UnaryOpFloat32):
     FUNC = np.sin
 
+
 @params_type(AbsOpParameters)
 @qrec_type('float')
 class AbsFloat32(UnaryOpFloat32):
     FUNC = np.abs
+
 
 @params_type(LogOpParameters)
 @qrec_type('float')
 class LogFloat32(UnaryOpFloat32):
     FUNC = np.log
 
+
 @params_type(SqrtOpParameters)
 @qrec_type('float')
 class SqrtFloat32(UnaryOpFloat32):
     FUNC = np.sqrt
+
+
+@params_type(RSqrtOpParameters)
+@qrec_type('float')
+class RSqrtFloat32(UnaryOpFloat32):
+    def FUNC(x): return 1.0/np.sqrt(x)

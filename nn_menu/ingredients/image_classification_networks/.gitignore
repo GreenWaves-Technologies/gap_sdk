@@ -1,0 +1,8 @@
+BUILD*
+*.dat
+log*
+test_gvsoc_emul
+*emul*
+*.tflite
+accuracy_on_validation_data/*_emul
+!mobilenet_v1_1_0_224_quant.tflite

@@ -1,0 +1,6 @@
+CUDA_VISIBLE_DEVICES=2,3 \
+python3 train_image_classifier.py  --train_dir='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/'  --dataset_name='visualwakewords'  --dataset_split_name='train' --dataset_dir='visualwakewords_vehicle/' --model_name='mobilenet_v2'  --max_number_of_steps=200000  --num_clones=2 --use_grayscale   \
+python3 eval_image_classifier.py --eval_dir='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/eval/'  --checkpoint_path='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/' --dataset_name='visualwakewords' --dataset_split_name='val' --dataset_dir='visualwakewords_vehicle/' --model_name='mobilenet_v2'   --use_grayscale \
+python3 export_inference_graph.py --model_name='mobilenet_v2' --dataset_name='visualwakewords' --output_file='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/mbv2_grayscale_inference.pb' --dataset_dir='visualwakewords_vehicle/' --use_grayscale \
+freeze_graph --input_graph='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/mbv2_grayscale_inference.pb' --output_graph='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/frozen_mbv1_224_grayscale.pb' --input_checkpoint='MOBV2_vww_vehicle_traindir/vww_vehicle_grayscale/model.ckpt-200000' --input_binary=true --output_node_names='MobilenetV2/Predictions/Reshape_1' 
+

@@ -343,7 +343,7 @@ void Profiler_server::add_event(const trace_packet *packet)
 
   if (packet->trace->type == ED_TRACE_VARLEN)
   {
-    std::cout << "add_event -- varlen trace is not supported -- trace_id: " << packet->trace->id << std::endl;
+    //std::cout << "add_event -- varlen trace is not supported -- trace_id: " << packet->trace->id << std::endl;
     return;
   }
 
@@ -399,7 +399,8 @@ int Profiler_server::getSignalId(std::string path)
   // Returns the signal ID of the signal, depending on its path
   //std::cout << "path_mapping vector" << std::endl;
   /*for (auto elem : path_mapping) {
-    std::cout << "*" << elem.first << " " << elem.second << std::endl;
+    if (elem.first.compare(std::string("/chip/soc/fc/state")) == 0 )
+      std::cout << "*" << elem.first << " " << elem.second << std::endl;
   }
   */
   return path_mapping[path];
@@ -415,6 +416,7 @@ int Profiler_server::get_packet(trace_packet *packet)
   }
 
   //std::cout << "[-] Receiving packet " << std::endl;
+  //packet->dump();
   // Packets are filtered depending on their type
   if (packet->header.type == ED_TYPE_REG_TRACE)
   {

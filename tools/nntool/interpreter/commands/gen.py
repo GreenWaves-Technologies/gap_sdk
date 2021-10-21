@@ -92,6 +92,8 @@ settings related to code generation."""
         self.settings['basic_kernel_source_file'] = args.basic_kernel_source_file
         self.settings['basic_kernel_header_file'] = args.basic_kernel_header_file
         self.settings['anonymise'] = args.anonymise
+        os.makedirs(os.path.abspath(self.settings['model_directory']), mode=0o750, exist_ok=True)
+        os.makedirs(os.path.abspath(self.settings['tensor_directory']), mode=0o750, exist_ok=True)
         code_gen = CodeGenerator(self.G, DefaultNamingConvension(self.G, anonymise=args.anonymise), self.settings)
 
         if self.settings['template_file']:

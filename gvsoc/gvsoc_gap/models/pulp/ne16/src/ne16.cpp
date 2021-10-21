@@ -55,6 +55,10 @@ void Ne16::reset(bool active)
     this->x_array         = xt::zeros<uint8_t>({this->NR_COLUMN, this->COLUMN_SIZE, this->TP_IN}); 
     this->weight          = xt::zeros<uint8_t>({this->FILTER_SIZE*this->FILTER_SIZE, 2});
     this->nqs             = xt::zeros<uint8_t>({this->TP_OUT});
+    this->job_id          = 0;
+    this->cxt_job_id[0] = this->cxt_job_id[1] = -1;
+    this->running_job_id  = 0;
+    this->job_running     = 0;
 }
 
 // The `hwpe_slave` member function models an access to the NE16 SLAVE interface
@@ -62,7 +66,7 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
 {
     Ne16 *_this = (Ne16 *)__this;
 
-    if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+    if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
       _this->trace.msg(vp::trace::LEVEL_DEBUG, "Received request (addr: 0x%x, size: 0x%x, is_write: %d, data: %p\n", req->get_addr(), req->get_size(), req->get_is_write(), req->get_data());
     }
     uint8_t *data = req->get_data(); // size depends on data get_size
@@ -71,16 +75,16 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
     if(req->get_is_write()) {
         if(((req->get_addr() & 0xfff) - 0x20) >> 2 == NE16_SPECIAL_TRACE_REG) {
             if(*data == 0) {
-                _this->trace_level = L0_JOB_START_END;
-                _this->trace.msg("Setting tracing level to L0_JOB_START_END\n");
+                _this->trace_level = L0_CONFIG;
+                _this->trace.msg("Setting tracing level to L0_CONFIG\n");
             }
             else if(*data == 1) {
-                _this->trace_level = L1_CONFIG;
-                _this->trace.msg("Setting tracing level to L1_CONFIG\n");
+                _this->trace_level = L1_ACTIV_INOUT;
+                _this->trace.msg("Setting tracing level to L1_ACTIV_INOUT\n");
             }
             else if(*data == 2) {
-                _this->trace_level = L2_ACTIV_INOUT;
-                _this->trace.msg("Setting tracing level to L2_ACTIV_INOUT\n");
+                _this->trace_level = L2_DEBUG;
+                _this->trace.msg("Setting tracing level to L2_DEBUG\n");
             }
             else {
                 _this->trace_level = L3_ALL;
@@ -88,14 +92,19 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
             }
             return vp::IO_REQ_OK;
         }
+        else if(((req->get_addr() & 0xfff) - 0x20) >> 2 == NE16_SPECIAL_FORMAT_TRACE_REG) {
+            _this->trace_format = *data;
+            _this->trace.msg("Setting tracing format to %s\n", *data?"Hex":"Dec");
+            return vp::IO_REQ_OK;
+        }
         else if((req->get_addr() & 0x17f) == 0x0) {
             _this->commit();
-            if (!_this->fsm_start_event->is_enqueued() && *(uint32_t *) data == 0) {
+            if (!_this->job_running && !_this->fsm_start_event->is_enqueued() && *(uint32_t *) data == 0) {
                 _this->event_enqueue(_this->fsm_start_event, 1);
             }
         }
         else {
-            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+            if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
                 _this->trace.msg(vp::trace::LEVEL_DEBUG, "offset: %d data: %08x\n", ((req->get_addr() & 0x17f) - 0x20) >> 2, *(uint32_t *) data);
             }
             _this->regfile_wr(((req->get_addr() & 0x17f) - 0x20)>> 2, *(uint32_t *) data);
@@ -104,19 +113,26 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
     else {
         if((req->get_addr() & 0x17f) == 0x4) {
             *(uint32_t *) data = _this->acquire();
-            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+            if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
                 _this->trace.msg("Returning %x\n", *(uint32_t *) data);
             }
         }
         else if((req->get_addr() & 0x17f) == 0xc) {
-            *(uint32_t *) data = _this->status() ? 1 : 0;
-            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+            *(uint32_t *) data = ((_this->cxt_job_id[0]>=0?0x1:0)|(_this->cxt_job_id[1]>=0?0x100:0));
+            if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
+                _this->trace.msg("Returning %x\n", *(uint32_t *) data);
+            }
+        }
+        else if((req->get_addr() & 0x17f) == 0x10) {
+            // Returns the active running job or the last jobid that was run
+            *(uint32_t *) data = _this->running_job_id;
+            if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
                 _this->trace.msg("Returning %x\n", *(uint32_t *) data);
             }
         }
         else {
             *(uint32_t *) data = _this->regfile_rd(((req->get_addr() & 0x17f) - 0x20) >> 2);
-            if (_this->trace_level == L1_CONFIG || _this->trace_level == L2_ACTIV_INOUT || _this->trace_level == L3_ALL) {
+            if (_this->trace_level == L1_ACTIV_INOUT || _this->trace_level == L2_DEBUG || _this->trace_level == L3_ALL) {
                 _this->trace.msg("Returning %x\n", *(uint32_t *) data);
             }
         }
@@ -128,6 +144,10 @@ vp::io_req_status_e Ne16::hwpe_slave(void *__this, vp::io_req *req)
 int Ne16::build()
 {
     this->traces.new_trace("trace", &this->trace, vp::DEBUG);
+    this->new_reg("fsm_state", &this->state, 32);
+    this->new_reg("ne16_busy", &this->activity, 8);
+    this->activity.set(0);
+    this->state.set(IDLE);
 
     this->new_master_port("out", &this->out);
 
@@ -140,7 +160,8 @@ int Ne16::build()
     this->fsm_event = this->event_new(&Ne16::fsm_handler);
     this->fsm_end_event = this->event_new(&Ne16::fsm_end_handler);
 
-    this->trace_level = L0_JOB_START_END;
+    this->trace_level = L0_CONFIG;
+    this->trace_format = 1;
 
     return 0;
 }

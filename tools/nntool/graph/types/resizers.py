@@ -15,12 +15,12 @@
 
 import logging
 
-from .base import SingleInputAndOutput, Transposable, cls_op_name
+from .base import SensitiveToOrder, SingleInputAndOutput, Parameters, cls_op_name
 
 LOG = logging.getLogger("nntool." + __name__)
 
 #pylint: disable=abstract-method
-class ResizerParameters(SingleInputAndOutput, Transposable):
+class ResizerParameters(Parameters, SingleInputAndOutput, SensitiveToOrder):
 
     SUPPORTED_OP_TYPES = ['BILINEAR', 'NEAREST']
 
@@ -35,23 +35,17 @@ class ResizerParameters(SingleInputAndOutput, Transposable):
         return self._new_shape
 
     def get_output_size(self, in_dims):
-        if self.transpose_in and self.transpose_in[0]:
-            out_dim = in_dims[0].calc_transpose(self.transpose_in[0])
-        else:
-            out_dim = in_dims[0].clone()
+        out_dim = in_dims[0].clone()
         out_dim.h = self.new_shape[0]
         out_dim.w = self.new_shape[1]
-        if self.transpose_out and self.transpose_out[0]:
-            out_dim = out_dim.calc_transpose(self.transpose_out[0])
         return [out_dim]
 
     def get_parameter_size(self):
         return 0
 
     def __str__(self):
-        return "Resizer {} {} {}".format(
+        return "Resizer {} {}".format(
             self.op_name,
-            Transposable.__str__(self),
             self.at_options
         )
 

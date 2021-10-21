@@ -1,0 +1,29 @@
+{
+    "augmentations": {
+        "test": [
+            {
+                "Resize": {
+                    "width": 320,
+                    "height": 240 
+                }
+            },
+            {
+                "Normalize": {
+                    "mean": [127, 127, 127],
+                    "std": [128, 128, 128],
+                    "max_pixel_value": 1
+                }
+            },
+            {
+                "CustomImageTranspose": {
+                    "shape": [
+                        2,
+                        0,
+                        1
+                    ]
+                }
+            }
+        ]
+    },
+    "clip_bbox": true
+}

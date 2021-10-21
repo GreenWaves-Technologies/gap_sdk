@@ -21,11 +21,21 @@ from quantization.float.float_quantization_handler import \
     FloatQuantizionHandler
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import HWC_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       options,
                                                        out_qs_constraint,
                                                        params_type)
 
+AT_CHW_KER_IN_ORDER = [['c', 'h', 'w'], ['out_c', 'in_c', 'h', 'w'], ['out_c']]
+AT_CHW_KER_OUT_ORDER = [['c', 'h', 'w']]
+AT_HWC_KER_IN_ORDER = [['h', 'w', 'c'], ['out_c', 'h', 'w', 'in_c'], ['out_c']]
+AT_HWC_KER_OUT_ORDER = [['h', 'w', 'c']]
 
+
+@options(
+    HWC_OPTION
+)
 @params_type(Conv2DParameters, FcParameters)
 @in_qs_constraint({'dtype': set([np.float32, np.float16, bfloat16])})
 @out_qs_constraint({'dtype': set([np.float32, np.float16, bfloat16])})
@@ -33,9 +43,14 @@ class FilterFloat(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, dtype = cls.get_float_opts(**kwargs)
-        if force_out_qs and all(qtype.dtype != dtype for qtype in force_out_qs if qtype is not None):
+        if force_out_qs and any(qtype.dtype != dtype for qtype in force_out_qs if qtype is not None):
             return None
         # all inputs and outputs are set to the required float type
+        opts = kwargs['opts']
+        if opts['hwc']:
+            cls.check_order(params, AT_HWC_KER_IN_ORDER, AT_HWC_KER_OUT_ORDER)
+        else:
+            cls.check_order(params, AT_CHW_KER_IN_ORDER, AT_CHW_KER_OUT_ORDER)
         return QRec.float(in_qs=[QType(dtype=dtype)
                                  for _ in range(3)],
                           out_qs=[QType(dtype=dtype)],

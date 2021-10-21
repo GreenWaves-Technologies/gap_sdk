@@ -31,7 +31,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 class CustomMatcher(NodeMatcher):
     def _matches(self, G, elem):
-        if (isinstance(elem, MatrixBroadcastedLinearOpParameters) and not elem.has_transpose and
+        if (isinstance(elem, MatrixBroadcastedLinearOpParameters) and
             any(isinstance(edge.from_node, ConstantInputParameters)
                 for edge in G.in_edges(elem.name))):
             return [elem], True, True

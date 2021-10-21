@@ -55,6 +55,17 @@ I2s_periph::I2s_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
     this->ws_in_itf.set_sync_meth(&I2s_periph::ws_in_sync);
     top->new_slave_port(this, itf_name + "_ws_in", &this->ws_in_itf);
 
+    if (itf_id == 0)
+    {
+        for (int i=0; i<32; i++)
+        {
+            top->new_master_port(this, "commit_master_" + std::to_string(i), &this->commit_master_itf[i]);
+        }
+    }
+    
+    this->commit_slave_itf.set_sync_meth(&I2s_periph::commit_sync);
+    top->new_slave_port(this, "commit_slave_" + std::to_string(itf_id), &this->commit_slave_itf);
+
     this->regmap.build(top, &this->trace, itf_name);
     this->regmap.err_status.register_callback(std::bind(&I2s_periph::err_status_req, this, _1, _2, _3, _4));
     this->regmap.glb_setup.register_callback(std::bind(&I2s_periph::glb_setup_req, this, _1, _2, _3, _4));
@@ -93,8 +104,8 @@ I2s_periph::I2s_periph(udma *top, int id, int itf_id) : Udma_periph(top, id)
         this->tx_channels.push_back(new I2s_tx_channel(top, this, i, itf_name + "tx_slot_" + std::to_string(i)));
     }
 
-    this->rx_fifo = new Udma_fifo<uint32_t>(4);
-    this->rx_fifo_slot_id = new Udma_fifo<uint32_t>(4);
+    this->rx_fifo = new Udma_fifo<uint32_t>(top, itf_name + "/rx_fifo", 4);
+    this->rx_fifo_slot_id = new Udma_fifo<uint32_t>(top, itf_name + "/rx_fifo_slot_id", 4);
 }
 
 
@@ -103,9 +114,6 @@ void I2s_periph::reset(bool active)
     Udma_periph::reset(active);
 
     this->regmap.reset(active);
-
-    while (!this->tx_fifo.empty()) { this->tx_fifo.pop(); }
-    while (!this->tx_fifo_slot_id.empty()) { this->tx_fifo_slot_id.pop(); }
 
     for (auto x: this->rx_channels)
     {
@@ -119,6 +127,11 @@ void I2s_periph::reset(bool active)
 
     if (active)
     {
+        for (int i=0; i<16; i++)
+        {
+            while (!this->tx_fifo[i].empty()) { this->tx_fifo[i].pop(); }
+        }
+
         this->sd = (2 << 2) | 2;
         this->clk_value = 0;
         this->ws_count = 0;
@@ -129,6 +142,11 @@ void I2s_periph::reset(bool active)
         this->prev_sck_value = 0;
         this->rx_pending_bits = 0;
         this->rx_pending_value = 0;
+        this->current_ws_delay = 0;
+        this->active_channel = 0;
+        this->global_en = 0;
+        this->commit_block = false;
+        this->frame_active = false;
     }
 }
 
@@ -175,39 +193,99 @@ void I2s_periph::start_frame()
 {
     this->trace.msg(vp::trace::LEVEL_DEBUG, "Starting frame\n");
 
+    this->frame_active = true;
+
     this->tx_wait_data_init |= (~this->slot_en) & this->slot_en_sync;
 
-    uint32_t slot_disabled = this->slot_en & (~this->slot_en_sync);
-    
-    std::queue<uint32_t> new_tx_fifo;
-    std::queue<int> new_tx_fifo_slot_id;
-
-    while(!this->tx_fifo_slot_id.empty())
+    if (!this->commit_block)
     {
-        int slot_id = this->tx_fifo_slot_id.front();
-        this->tx_fifo_slot_id.pop();
-        if (((slot_disabled >> slot_id) & 1) == 0)
+        this->slot_en = this->slot_en_sync;
+        this->global_en = this->global_en_sync;
+        this->slot_width = this->slot_width_sync;
+        this->frame_length = this->frame_length_sync;
+        this->full_duplex_sync = this->full_duplex_sync;
+        this->ws_delay = this->ws_delay_sync;
+        if (!this->global_en)
         {
-            if (!this->tx_fifo.empty())
-                new_tx_fifo.push(this->tx_fifo.front());
-            new_tx_fifo_slot_id.push(slot_id);
+            this->frame_active = false;
         }
-        if (!this->tx_fifo.empty())
+        this->trace.msg(vp::trace::LEVEL_TRACE, "Sync global_en (value: %d)\n", this->global_en);
+    }
+    this->tx_pending_bits = 0;
+    this->active_channel = 0;
+    this->rx_pending_bits = this->slot_width + 1;
+}
+
+
+void I2s_periph::handle_sdo(bool no_restart)
+{
+    int sdo = 2;
+    I2s_tx_channel *channel = this->tx_channels[this->active_channel];
+
+    if (this->frame_active && ((this->slot_en >> this->active_channel) & 1))
+    {
+        if (channel->slot_cfg->tx_en_get() && !channel->slot_cfg->byp_get())
         {
-            this->tx_fifo.pop();
+            if (this->tx_pending_bits == 0 && !no_restart)
+            {
+                this->tx_pending_bits = this->slot_width + 1;
+
+                // Get sample from FIFO
+                uint32_t data = 0;
+                
+                // In case the slot has been enabled just before, it's possible that there is no sample
+                // in the FIFO for this slot, in this case, just take 0 as sample
+                if (!this->tx_fifo[this->active_channel].empty())
+                {
+                    this->tx_wait_data_init &= ~(1 << this->active_channel);
+                    data = this->tx_fifo[this->active_channel].front();
+
+                    this->tx_fifo[this->active_channel].pop();
+                }
+                else
+                {
+                    if (((this->tx_wait_data_init >> this->active_channel) & 1) == 0)
+                    {
+                        this->regmap.err_status.set(this->regmap.err_status.get() | (1 << (this->active_channel + 16)));
+                    }
+                }
+
+                this->tx_pending_value = this->handle_tx_format(channel, data);
+
+                this->trace.msg(vp::trace::LEVEL_DEBUG, "Got new TX sample (value: 0x%x, width: %d)\n", this->tx_pending_value, this->tx_pending_bits);
+
+
+                // Now ask the next sample to the channel so that it is ready for the
+                // next frame.
+                // The channel id is pushed now since we the samples are received in order
+                // and we don't know what is the slot when we receive the sample from the channel
+
+                this->tx_fifo_slot_id.push(this->active_channel);
+                channel->get_data(channel->slot_cfg->tx_dsize_get() + 1, channel->slot_cfg->tx_id_get());
+            }
+
+            if (this->tx_pending_bits > 0)
+            {
+                sdo = (this->tx_pending_value >> (this->slot_width + 1 - 1)) & 1;
+                this->trace.msg(vp::trace::LEVEL_TRACE, "Sync TX sdo (value: %d)\n", sdo);
+                this->tx_pending_value <<= 1;
+                this->tx_pending_bits--;
+            }
         }
     }
 
-    this->tx_fifo.swap(new_tx_fifo);
-    this->tx_fifo_slot_id.swap(new_tx_fifo_slot_id);
-
-    this->slot_en = this->slot_en_sync;
-    this->global_en = this->global_en_sync;
-    this->tx_pending_bits = 0;
-    this->active_channel = 0;
-    this->rx_pending_bits = this->regmap.glb_setup.slot_width_get() + 1;
+    if (this->full_duplex)
+    {
+        if (!channel->slot_cfg->byp_get())
+        {
+            this->sd = (this->sd & 0x3) | (sdo << 2);
+        }
+    }
+    else
+    {
+        this->sd = sdo;
+    }
 }
-
 
 void I2s_periph::handle_clk_ws_update()
 {
@@ -215,10 +293,11 @@ void I2s_periph::handle_clk_ws_update()
     {
         if (this->prev_ws_value == 0 && this->ws_value == 1)
         {
-            this->current_ws_delay = this->regmap.glb_setup.ws_delay_get();
+            this->current_ws_delay = this->ws_delay;
             if (this->current_ws_delay == 0)
             {
                 this->start_frame();
+                this->handle_sdo(false);
             }
         }
 
@@ -236,69 +315,14 @@ void I2s_periph::handle_clk_ws_update()
             }
         }
 
-        int sdo = 2;
-        I2s_tx_channel *channel = this->tx_channels[this->active_channel];
-
-        if ((this->slot_en >> this->active_channel) & 1)
-        {
-            if (channel->slot_cfg->tx_en_get() && !channel->slot_cfg->byp_get())
-            {
-                if (this->tx_pending_bits == 0)
-                {
-                    this->tx_pending_bits = this->regmap.glb_setup.slot_width_get() + 1;
-
-                    // Get sample from FIFO
-                    uint32_t data = 0;
-                    
-                    // In case the slot has been enabled just before, it's possible that there is no sample
-                    // in the FIFO for this slot, in this case, just take 0 as sample
-                    if (!this->tx_fifo.empty() && this->tx_fifo_slot_id.front() == this->active_channel)
-                    {
-                        this->tx_wait_data_init &= ~(1 << this->active_channel);
-                        data = this->tx_fifo.front();
-                        this->tx_fifo.pop();
-                        this->tx_fifo_slot_id.pop();
-                    }
-                    else
-                    {
-                        if (((this->tx_wait_data_init >> this->active_channel) & 1) == 0)
-                        {
-                            this->regmap.err_status.set(this->regmap.err_status.get() | (1 << (this->active_channel + 16)));
-                        }
-                    }
-
-                    this->tx_pending_value = this->handle_tx_format(channel, data);
-
-                    // Now ask the next sample to the channel so that it is ready for the
-                    // next frame.
-                    // The channel id is pushed now since we the samples are received in order
-                    // and we don't know what is the slot when we receive the sample from the channel
-
-                    this->tx_fifo_slot_id.push(this->active_channel);
-                    channel->get_data(channel->slot_cfg->tx_dsize_get() + 1);
-                }
-                sdo = (this->tx_pending_value >> (this->regmap.glb_setup.slot_width_get() + 1 - 1)) & 1;
-                this->tx_pending_value <<= 1;
-                this->tx_pending_bits--;
-            }
-        }
-
-        if (this->regmap.glb_setup.full_duplex_en_get())
-        {
-            this->sd = (this->sd & 0x3) | (sdo << 2);
-        }
-        else
-        {
-            this->sd = sdo;
-        }
-
+        this->handle_sdo(this->ws_delay == 0 && this->active_channel == 0);
     }
 }
 
 
 uint32_t I2s_periph::handle_tx_format(I2s_tx_channel *channel, uint32_t sample)
 {
-    int global_width = this->regmap.glb_setup.slot_width_get() + 1;
+    int global_width = this->slot_width + 1;
     int msb_first = channel->slot_cfg->tx_msb_first_get();
     int left_align = channel->slot_cfg->tx_left_align_get();
     int sign_extend = channel->slot_cfg->tx_sign_get();
@@ -367,7 +391,7 @@ uint32_t I2s_periph::handle_tx_format(I2s_tx_channel *channel, uint32_t sample)
 
 uint32_t I2s_periph::handle_rx_format(I2s_rx_channel *channel, uint32_t sample)
 {
-    int global_width = this->regmap.glb_setup.slot_width_get() + 1;
+    int global_width = this->slot_width + 1;
     int msb_first = channel->slot_cfg->rx_msb_first_get();
     int left_align = channel->slot_cfg->rx_left_align_get();
     int sign_extend = channel->slot_cfg->rx_sign_get();
@@ -436,14 +460,14 @@ void I2s_periph::handle_clk_edge()
 {
     if (this->global_en && this->clk_value <= 1 && this->prev_sck_value != this->clk_value)
     {
-        this->trace.msg(vp::trace::LEVEL_TRACE, "Clk edge (sck: %d, ws: %d, sd: 0x%x)\n", this->clk_value, this->ws_value, this->rx_sync_value);
+        this->trace.msg(vp::trace::LEVEL_INFO, "Clk edge (sck: %d, ws: %d, sd: 0x%x)\n", this->clk_value, this->ws_value, this->rx_sync_value);
 
         if (this->regmap.glb_setup.pdm_en_get())
         {
             this->prev_sck_value = this->clk_value;
 
             int pdm_pol = this->regmap.glb_setup.pdm_pol_get();
-            int pdm_out_0 = 2, pdm_out_1 = 2;
+            int pdm_out_0 = 0, pdm_out_1 = 0;
 
             if ((pdm_pol >> 0) & 1)
             {
@@ -504,7 +528,7 @@ void I2s_periph::handle_clk_edge()
             if  (this->i2s_itf.is_bound())
             {
                 this->i2s_itf.sync(
-                    this->clk_value,
+                    this->regmap.clkcfg_setup.clk_src_get() || this->regmap.clkcfg_setup.clk_ext_src_get() ? 2 : this->clk_value ^ this->regmap.clkcfg_setup.clk_edge_get(),
                     2,
                     pdm_out_0 | (pdm_out_1 << 2)
                 );
@@ -532,13 +556,9 @@ void I2s_periph::handle_clk_edge()
                 unsigned int sdo = (this->rx_sync_value >> 2) & 0x1;
                 unsigned int sdi = (this->rx_sync_value) & 0x1;
 
-                // If the WS delay is 0, restart from first slot and start sampling
-                if (this->ws_delay == 0)
-                {
-                    //this->rx_pending_bits = this->regmap.glb_setup.slot_width_get() + 1;
-                }
+                this->handle_clk_ws_update();
 
-                if (this->rx_pending_bits > 0)
+                if (this->frame_active && this->rx_pending_bits > 0)
                 {
                     this->rx_pending_value = (this->rx_pending_value << 1) | sdi;
                     this->rx_pending_bits--;
@@ -578,12 +598,10 @@ void I2s_periph::handle_clk_edge()
                         {
                             this->active_channel = 0;
                         }
-                        this->rx_pending_bits = this->regmap.glb_setup.slot_width_get() + 1;
+                            this->rx_pending_bits = this->slot_width + 1;
                         this->rx_pending_value = 0;
                     }
                 }
-
-                this->handle_clk_ws_update();
 
             }
             else
@@ -594,16 +612,35 @@ void I2s_periph::handle_clk_edge()
                     if (this->ws_count == 0)
                     {
                         this->ws_value = 1;
-                        this->ws_delay = this->regmap.glb_setup.ws_delay_get();
+                        if (this->regmap.clkcfg_setup.ws_type_get() == 1)
+                        {
+                            this->ws_state_count = this->slot_width;
+                        }
+                        else if (this->regmap.clkcfg_setup.ws_type_get() == 2)
+                        {
+                            this->ws_state_count = (this->slot_width + 1) * ((this->frame_length + 2) / 2) - 1;
+                        }
                     }
                     else
                     {
-                        this->ws_value = 0;
-                        this->ws_delay--;
+                        switch (this->regmap.clkcfg_setup.ws_type_get())
+                        {
+                            case 1:
+                                this->ws_value = this->ws_state_count > 0;
+                                this->ws_state_count--;
+                                break;
+                            case 2:
+                                this->ws_value = this->ws_state_count > 0;
+                                this->ws_state_count--;
+                                break;
+                            default:
+                                this->ws_value = 0;
+                                break;
+                        }
                     }
 
                     this->ws_count++;
-                    if (this->ws_count == (this->regmap.glb_setup.slot_width_get() + 1) * (this->regmap.glb_setup.frame_length_get() + 1))
+                    if (this->ws_count == (this->slot_width + 1) * (this->frame_length + 1))
                     {
                         this->ws_count = 0;
                     }
@@ -644,7 +681,7 @@ void I2s_periph::handle_clk(void *__this, vp::clock_event *event)
 void I2s_periph::check_state()
 {
     // Check if we should generate the next internal clock edge
-    if (this->global_en && (this->regmap.clkcfg_setup.clk_src_get() == 0 || this->regmap.glb_setup.pdm_en_get()) && !this->clk_event->is_enqueued())
+    if (this->global_en && this->regmap.clkcfg_setup.clk_src_get() == 0 && !this->clk_event->is_enqueued())
     {
         if (this->regmap.clk_fast.fast_en_get())
         {
@@ -689,15 +726,33 @@ void I2s_periph::glb_setup_req(uint64_t reg_offset, int size, uint8_t *value, bo
 
     if (is_write)
     {
-        // TODO global enable should be synchronized on start of frame
-        this->global_en = this->regmap.glb_setup.global_en_get();
-        this->global_en_sync = this->global_en;
-        //this->global_en_sync = this->regmap.glb_setup.global_en_get();
-//
-        //if (this->global_en_sync)
-        //{
+        for (int i=0; i<32; i++)
+        {
+            if (this->commit_master_itf[i].is_bound())
+            {
+                this->commit_master_itf[i].sync((this->regmap.glb_setup.block_commit_get() >> i) & 1);
+            }
+        }
+
+        this->global_en_sync = this->regmap.glb_setup.global_en_get();
+        this->ws_delay_sync = this->regmap.glb_setup.ws_delay_get();
+        this->slot_width_sync = this->regmap.glb_setup.slot_width_get();
+        this->frame_length_sync = this->regmap.glb_setup.frame_length_get();
+        this->full_duplex_sync = this->regmap.glb_setup.full_duplex_en_get();
+
+        if (!this->global_en)
+        {
+            this->global_en = this->global_en_sync;
+            this->ws_delay = this->ws_delay_sync;
+            this->slot_width = this->slot_width_sync;
+            this->frame_length = this->frame_length_sync;
+            this->full_duplex = this->full_duplex_sync;
+        }
+
+        // if (this->global_en_sync)
+        // {
         //    this->global_en = this->global_en_sync;
-        //}
+        // }
     }
 
     this->check_state();
@@ -934,18 +989,32 @@ void I2s_periph::ws_in_sync(void *__this, int value)
 }
 
 
+
+void I2s_periph::commit_sync(void *__this, bool value)
+{
+    I2s_periph *_this = (I2s_periph *)__this;
+    _this->commit_block = value;
+}
+
+
 void I2s_periph::rx_sync(void *__this, int sck, int ws, int sd)
 {
     I2s_periph *_this = (I2s_periph *)__this;
 
     _this->trace.msg(vp::trace::LEVEL_TRACE, "Received data (sck: %d, ws: %d, sd: 0x%x)\n", sck, ws, sd);
 
-    if (_this->regmap.glb_setup.full_duplex_en_get())
+    if (_this->frame_active && _this->full_duplex)
     {
         I2s_tx_channel *channel = _this->tx_channels[_this->active_channel];
         if (channel->slot_cfg->byp_get())
         {
             _this->sd = (_this->sd & 0x3) | ((sd & 0x3) << 2);
+
+            _this->i2s_itf.sync(
+                _this->regmap.clkcfg_setup.clk_src_get() || _this->regmap.clkcfg_setup.clk_ext_src_get() ? 2 : _this->clk_value ^ _this->regmap.clkcfg_setup.clk_edge_get(),
+                _this->regmap.clkcfg_setup.ws_src_get() || _this->regmap.clkcfg_setup.ws_ext_src_get() ? 2 : _this->ws_value ^ _this->regmap.clkcfg_setup.ws_edge_get(),
+                _this->sd
+            );
         }
     }
 
@@ -960,6 +1029,7 @@ void I2s_periph::rx_sync(void *__this, int sck, int ws, int sd)
     if (_this->regmap.clkcfg_setup.clk_src_get())
     {
         _this->clk_value = sck ^ _this->regmap.clkcfg_setup.clk_edge_get();
+
         _this->handle_clk_edge();
     }
 
@@ -995,7 +1065,10 @@ void I2s_tx_channel::push_data(uint8_t *data, int size)
     uint32_t value = 0;
     memcpy((void *)&value, (void *)data, size);
 
-    this->periph->tx_fifo.push(value);
+    this->periph->trace.msg(vp::trace::LEVEL_INFO, "Received TX sample from memory (value: 0x%x)\n", value);
+
+    this->periph->tx_fifo[this->periph->tx_fifo_slot_id.front()].push(value);
+    this->periph->tx_fifo_slot_id.pop();
 }
 
 

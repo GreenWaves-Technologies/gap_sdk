@@ -26,16 +26,12 @@ def range_twos_complement(bits):
 def calc_bits(*args, signed=True):
     assert signed or all(arg >= 0 for arg in args), "numeric error"
     if len(args) == 2:
-        if args[0] < args[1]:
-            num = np.ceil(args[1] - args[0])
-        else:
-            num = np.ceil(args[0] - args[1])
+        num = np.floor(np.maximum(np.abs(args[0]), np.abs(args[1])))
     else:
-        num = np.ceil(np.abs(args[0]))
-
+        num = np.floor(np.abs(args[0]))
     if num == 0:
         return (1 if signed else 0)
-    return int(np.ceil(np.log2(num)) + (1 if signed else 0))
+    return int(np.floor(np.log2(num)) + 1 + (1 if signed else 0))
 
 def do_stat(npa, do_bits=True, channel_dim=None, all_channel_range=None):
     mean = float(np.mean(npa))

@@ -96,14 +96,14 @@ Now it's time to test your installation:
     cd examples/pmsis/helloworld
     make all run platform=gvsoc
 
-And you should a HelloWorld message coming from all GAP cores.
+And you should see a HelloWorld message coming from all GAP cores.
 
 Next Steps
 ----------
 
 Here are some next steps for exploring the GAP SDK:
 
-- Try other :ref:`examples` and :ref:`applications`
+- Try other :ref:`examples`
 - Learn about :ref:`application_development`
 - Discover :ref:`tools` such as the Autotiler and NNTool
 - Check out :ref:`user_dev_guides` for other additional information

@@ -1,0 +1,21 @@
+adjust
+fusions --scale8
+#nodeoption 0 ALLOCATE 1
+imageformat input_1 rgb888 offset_int8
+
+nodeoption CONV_2D_0_0_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_2 PARALLELFEATURES 0
+set graph_noinline_node true
+
+set l3_ram_ext_managed true
+set default_input_exec_location "_EXTERNAL_MEMORY_TYPE_"
+set l3_ram_device "_EXTERNAL_MEMORY_TYPE_"
+set l3_flash_device "_EXTERNAL_FLASH_TYPE_"
+set graph_produce_node_names true
+set graph_reorder_constant_in false
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+#set graph_const_exec_from_flash true
+#set graph_dump_tensor 0
+#set graph_trace_exec true
+save_state

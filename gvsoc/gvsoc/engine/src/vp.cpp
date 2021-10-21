@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -44,6 +44,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <vp/time/time_scheduler.hpp>
+#include <vp/proxy.hpp>
 
 
 extern "C" long long int dpi_time_ps();
@@ -60,33 +62,6 @@ extern "C" void dpi_raise_event();
 
 char vp_error[VP_ERROR_SIZE];
 
-
-
-class Gv_proxy
-{
-  public:
-    Gv_proxy(vp::component *top, int req_pipe, int reply_pipe): top(top), req_pipe(req_pipe), reply_pipe(reply_pipe) {}
-    int open(int port, int *out_port);
-    void stop();
-    
-  private:
- 
-
-    void listener(void);
-    void proxy_loop(int, int);
-    
-    int telnet_socket;
-    int socket_port;
-    
-    std::thread *loop_thread;
-    std::thread *listener_thread;
-
-    std::vector<int> sockets;
-
-    vp::component *top;
-    int req_pipe;
-    int reply_pipe;
-};
 
 
 static Gv_proxy *proxy = NULL;
@@ -122,7 +97,7 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
             }
 
             x->access((offset - aliased_reg->offset), size, value, is_write);
-            
+
             if (aliased_reg->trace.get_active(vp::trace::LEVEL_DEBUG))
             {
                 std::string regfields_values = "";
@@ -139,7 +114,7 @@ bool vp::regmap::access(uint64_t offset, int size, uint8_t *value, bool is_write
 
                         regfields_values += y->name + "=" + std::string(buff);
                     }
-                    
+
                     regfields_values = "{ " + regfields_values + " }";
                 }
                 else
@@ -223,7 +198,15 @@ void vp::component::set_vp_config(js::config *config)
 
 void vp::component::set_gv_conf(struct gv_conf *gv_conf)
 {
-    memcpy(&this->gv_conf, gv_conf, sizeof(struct gv_conf));
+    if (gv_conf)
+    {
+        memcpy(&this->gv_conf, gv_conf, sizeof(struct gv_conf));
+    }
+    else
+    {
+        memset(&this->gv_conf, 0, sizeof(struct gv_conf));
+        gv_init(&this->gv_conf);
+    }
 }
 
 
@@ -387,6 +370,7 @@ void vp::component_clock::pre_build(component *comp)
 
     comp->traces.new_trace("comp", comp->get_trace(), vp::DEBUG);
     comp->traces.new_trace("warning", &comp->warning, vp::WARNING);
+
 }
 
 
@@ -1125,25 +1109,43 @@ void vp::component::add_child(std::string name, vp::component *child)
     this->childs_dict[name] = child;
 }
 
-vp::component *vp::component::get_component(std::string path)
+
+
+
+vp::component *vp::component::get_component(std::vector<std::string> path_list)
 {
-    if (this->get_path() == path)
+    if (path_list.size() == 0)
     {
         return this;
     }
 
-    if (this->get_path() != "")
+    std::string name = "";
+    unsigned int name_pos= 0;
+    for (auto x: path_list)
     {
-        if (path.find(this->get_path()) != 0)
+        if (x != "*" && x != "**")
         {
-            return NULL;
+            name = x;
+            break;
         }
+        name_pos += 1;
     }
-
 
     for (auto x:this->childs)
     {
-        vp::component *comp = x->get_component(path);
+        vp::component *comp;
+        if (name == x->get_name())
+        {
+            comp = x->get_component({ path_list.begin() + name_pos + 1, path_list.end() });
+        }
+        else if (path_list[0] == "**")
+        {
+            comp = x->get_component(path_list);
+        }
+        else if (path_list[0] == "*")
+        {
+            comp = x->get_component({ path_list.begin() + 1, path_list.end() });
+        }
         if (comp)
         {
             return comp;
@@ -1258,6 +1260,11 @@ void vp::reg::reset(bool active)
         {
             memset((void *)this->value_bytes, 0, this->nb_bytes);
         }
+
+        if (this->reg_event.get_event_active())
+        {
+            this->reg_event.event((uint8_t *)this->value_bytes);
+        }
     }
 }
 
@@ -1369,6 +1376,16 @@ void vp::component::throw_error(std::string error)
 }
 
 
+void vp::component::build_instance(std::string name, vp::component *parent)
+{
+    std::string comp_path = parent->get_path() != "" ? parent->get_path() + "/" + name : name == "" ? "" : "/" + name;
+
+    this->conf(name, comp_path, parent);
+    this->pre_pre_build();
+    this->pre_build();
+    this->build();
+}
+
 
 vp::component *vp::component::new_component(std::string name, js::config *config, std::string module_name)
 {
@@ -1411,12 +1428,7 @@ vp::component *vp::component::new_component(std::string name, js::config *config
 
     vp::component *instance = constructor(config);
 
-    std::string comp_path = this->get_path() != "" ? this->get_path() + "/" + name : name == "" ? "" : "/" + name;
-
-    instance->conf(name, comp_path, this);
-    instance->pre_pre_build();
-    instance->pre_build();
-    instance->build();
+    instance->build_instance(name, this);
 
     return instance;
 }
@@ -1560,11 +1572,11 @@ void vp::component::bind_comps()
 }
 
 
-void *vp::component::external_bind(std::string name, int handle)
+void *vp::component::external_bind(std::string comp_name, std::string itf_name, void *handle)
 {
     for (auto &x : this->childs)
     {
-        void *result = x->external_bind(name, handle);
+        void *result = x->external_bind(comp_name, itf_name, handle);
         if (result != NULL)
             return result;
     }
@@ -1608,219 +1620,9 @@ void vp::component::create_comps()
     }
 }
 
-
-
-void Gv_proxy::proxy_loop(int socket_fd, int reply_fd)
+vp::component *vp::__gv_create(std::string config_path, struct gv_conf *gv_conf)
 {
-    FILE *sock = fdopen(socket_fd, "r");
-    FILE *reply_sock = fdopen(reply_fd, "w");
-
-    while(1)
-    {
-        char line[1024];
-
-        if (!fgets(line, 1024, sock)) 
-            return ;
-
-        std::string s = std::string(line);
-        std::regex regex{R"([\s]+)"};
-        std::sregex_token_iterator it{s.begin(), s.end(), regex, -1};
-        std::vector<std::string> words{it, {}};
-        
-        if (words.size() > 0)
-        {
-            if (words[0] == "run")
-            {
-                int64_t timestamp = top->get_time();
-                this->top->run();
-                dprintf(this->reply_pipe, "running %ld\n", timestamp);
-            }
-            else if (words[0] == "step")
-            {
-                if (words.size() != 2)
-                {
-                    fprintf(stderr, "This command requires 1 argument: step timestamp");
-                }
-                else
-                {
-                    this->top->step(strtol(words[1].c_str(), NULL, 0));
-                    int64_t timestamp = top->get_time();
-                    dprintf(reply_fd, "running %ld\n", timestamp);
-                }
-            }
-            else if (words[0] == "stop")
-            {
-                this->top->pause();
-                this->top->flush_all();
-                fflush(NULL);
-                dprintf(this->reply_pipe, "stopped %ld\n", top->get_time());
-            }
-            else if (words[0] == "quit")
-            {
-                this->top->pause();
-                this->top->quit(strtol(words[1].c_str(), NULL, 0));
-            }
-            else
-            {
-                // Before interacting with the engine, we must lock it since our requests will come
-                // from a different thread.
-                this->top->get_time_engine()->lock();
-
-                if (words[0] == "get_component")
-                {
-                    vp::component *comp = this->top->get_component(words[1]);
-                    dprintf(reply_fd, "%p\n", comp);
-                }
-                else if (words[0] == "component")
-                {
-                    vp::component *comp = (vp::component *)strtoll(words[1].c_str(), NULL, 0);
-                    std::string retval = comp->handle_command(sock, reply_sock, {words.begin() + 2, words.end()});
-                    fprintf(reply_sock, "%s\n", retval.c_str());
-                    fflush(reply_sock);
-                }
-                else if (words[0] == "trace")
-                {
-                    if (words.size() != 3)
-                    {
-                        fprintf(stderr, "This command requires 2 arguments: trace [add|remove] regexp");
-                    }
-                    else
-                    {
-                        if (words[1] == "add")
-                        {
-                            this->top->traces.get_trace_manager()->add_trace_path(0, words[2]);
-                            this->top->traces.get_trace_manager()->check_traces();
-                        }
-                        else if (words[1] == "level")
-                        {
-                            this->top->traces.get_trace_manager()->set_trace_level(words[2].c_str());
-                            this->top->traces.get_trace_manager()->check_traces();
-                        }
-                        else
-                        {
-                            this->top->traces.get_trace_manager()->add_exclude_trace_path(0, words[2]);
-                            this->top->traces.get_trace_manager()->check_traces();
-                        }
-                    }
-                }
-                else if (words[0] == "event")
-                {
-                    if (words.size() != 3)
-                    {
-                        fprintf(stderr, "This command requires 2 arguments: event [add|remove] regexp");
-                    }
-                    else
-                    {
-                        if (words[1] == "add")
-                        {
-                            this->top->traces.get_trace_manager()->add_trace_path(1, words[2]);
-                            this->top->traces.get_trace_manager()->check_traces();
-                        }
-                        else
-                        {
-                            this->top->traces.get_trace_manager()->add_exclude_trace_path(1, words[2]);
-                            this->top->traces.get_trace_manager()->check_traces();
-                        }
-                    }
-                }
-                else
-                {
-                    printf("Ignoring2 invalid command: %s\n", words[0].c_str());
-                }
-
-                this->top->get_time_engine()->unlock();
-            }
-        }
-    }
-}
-
-
-void Gv_proxy::listener(void)
-{
-    int client_fd;
-    while(1)
-    {
-        if ((client_fd = accept(this->telnet_socket, NULL, NULL)) == -1)
-        {
-            if(errno == EAGAIN) continue;
-            fprintf(stderr, "Failed to accept connection: %s\n", strerror(errno));
-            return;
-        }
-
-        this->sockets.push_back(client_fd);
-        this->loop_thread = new std::thread(&Gv_proxy::proxy_loop, this, client_fd, client_fd);
-    }
-}
-
-
-
-int Gv_proxy::open(int port, int *out_port)
-{
-    if (this->req_pipe == -1)
-    {
-        struct sockaddr_in addr;
-        int yes = 1;
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(port);
-        addr.sin_addr.s_addr = INADDR_ANY;
-        socklen_t size = sizeof(addr.sin_zero);
-        memset(addr.sin_zero, '\0', sizeof(addr.sin_zero));
-
-        this->telnet_socket = socket(PF_INET, SOCK_STREAM, 0);
-
-        if (this->telnet_socket < 0)
-        {
-            fprintf(stderr, "Unable to create comm socket: %s\n", strerror(errno));
-            return -1;
-        }
-
-        if (setsockopt(this->telnet_socket, SOL_SOCKET, SO_REUSEADDR, &yes,
-                sizeof(int)) == -1) {
-            fprintf(stderr, "Unable to setsockopt on the socket: %s\n", strerror(errno));
-            return -1;
-        }
-
-        if (bind(this->telnet_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            fprintf(stderr, "Unable to bind the socket: %s\n", strerror(errno));
-            return -1;
-        }
-
-        if (listen(this->telnet_socket, 1) == -1) {
-            fprintf(stderr, "Unable to listen: %s\n", strerror(errno));
-            return -1;
-        }
-
-        getsockname(this->telnet_socket, (sockaddr*)&addr, &size);
-
-        if (out_port)
-        {
-            *out_port = ntohs(addr.sin_port);
-        }
-
-        this->listener_thread = new std::thread(&Gv_proxy::listener, this);
-    }
-    else
-    {
-        this->loop_thread = new std::thread(&Gv_proxy::proxy_loop, this, this->req_pipe, this->reply_pipe);
-    }
-
-    return 0;
-}
-
-
-
-void Gv_proxy::stop()
-{
-    for (auto x: this->sockets)
-    {
-        shutdown(x, SHUT_RDWR);
-    }
-}
-
-
-extern "C" void *gv_create(const char *config_path, struct gv_conf *gv_conf)
-{
-    setenv("PULP_CONFIG_FILE", config_path, 1);
+    setenv("PULP_CONFIG_FILE", config_path.c_str(), 1);
 
     js::config *js_config = js::import_config_from_file(config_path);
     if (js_config == NULL)
@@ -1864,7 +1666,13 @@ extern "C" void *gv_create(const char *config_path, struct gv_conf *gv_conf)
     instance->set_vp_config(gv_config);
     instance->set_gv_conf(gv_conf);
 
-    return (void *)instance;
+    return instance;
+}
+
+
+extern "C" void *gv_create(const char *config_path, struct gv_conf *gv_conf)
+{
+    return (void *)vp::__gv_create(config_path, gv_conf);
 }
 
 
@@ -1887,7 +1695,10 @@ extern "C" void gv_start(void *arg)
         int in_port = instance->gv_conf.open_proxy ? 0 : instance->get_vp_config()->get_child_int("proxy/port");
         int out_port;
         proxy = new Gv_proxy(instance, instance->gv_conf.req_pipe, instance->gv_conf.reply_pipe);
-        proxy->open(in_port, &out_port);
+        if (proxy->open(in_port, &out_port))
+        {
+            instance->throw_error("Failed to start proxy");
+        }
 
         if (instance->gv_conf.proxy_socket)
         {
@@ -1949,7 +1760,7 @@ void Gvsoc_proxy::proxy_loop()
     {
         char line[1024];
 
-        if (!fgets(line, 1024, sock)) 
+        if (!fgets(line, 1024, sock))
             return ;
 
         std::string s = std::string(line);
@@ -2016,12 +1827,12 @@ int Gvsoc_proxy::open()
         // test in case the original parent exited just
         // before the prctl() call
         if (getppid() != ppid_before_fork) exit(1);
-        
+
         void *instance = gv_open(this->config_path.c_str(), true, NULL, this->req_pipe[0], this->reply_pipe[1]);
 
         int retval = gv_run(instance);
 
-        gv_stop(instance);
+        gv_stop(instance, retval);
 
         return retval;
     }
@@ -2094,6 +1905,66 @@ void Gvsoc_proxy::remove_trace_regex(std::string regex)
 }
 
 
+vp::time_scheduler::time_scheduler(js::config *config)
+    : time_engine_client(config), first_event(NULL)
+{
+
+}
+
+
+int64_t vp::time_scheduler::exec()
+{
+    vp::time_event *current = this->first_event;
+
+    while (current && current->time == this->get_time())
+    {
+        this->first_event = current->next;
+
+        current->meth(current->_this, current);
+
+        current = this->first_event;
+    }
+
+    if (this->first_event == NULL)
+    {
+        return -1;
+    }
+    else
+    {
+        return this->first_event->time - this->get_time();
+    }
+}
+
+
+vp::time_event::time_event(time_scheduler *comp, time_event_meth_t *meth)
+    : comp(comp), _this((void *)static_cast<vp::component *>((vp::time_scheduler *)(comp))), meth(meth), enqueued(false)
+{
+
+}
+
+vp::time_event *vp::time_scheduler::enqueue(time_event *event, int64_t time)
+{
+    vp::time_event *current = this->first_event, *prev = NULL;
+    int64_t full_time = time + this->get_time();
+
+    while (current && current->time < full_time)
+    {
+        prev = current;
+        current = current->next;
+    }
+
+    if (prev)
+        prev->next = event;
+    else
+        this->first_event = event;
+    event->next = current;
+    event->time = full_time;
+
+    this->enqueue_to_engine(time);
+
+    return event;
+}
+
 
 
 extern "C" int gv_run(void *_instance)
@@ -2121,13 +1992,13 @@ extern "C" void gv_init(struct gv_conf *gv_conf)
 }
 
 
-extern "C" void gv_stop(void *_instance)
+extern "C" void gv_stop(void *_instance, int retval)
 {
     vp::component *instance = (vp::component *)_instance;
 
     if (proxy)
     {
-        proxy->stop();
+        proxy->stop(retval);
     }
 
     instance->stop();
@@ -2157,5 +2028,5 @@ int sc_main(int argc, char *argv[])
 extern "C" void *gv_chip_pad_bind(void *handle, char *name, int ext_handle)
 {
     vp::component *instance = (vp::component *)handle;
-    return instance->external_bind(name, ext_handle);
+    return instance->external_bind(name, "", (void *)(long)ext_handle);
 }

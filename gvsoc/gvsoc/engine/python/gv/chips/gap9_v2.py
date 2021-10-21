@@ -29,7 +29,7 @@ from elftools.elf.elffile import *
 
 class Runner(gv.gvsoc.Runner, runner.chips.gap9_v2.Runner):
 
-    def __init__(self, args, config):
+    def __init__(self, args, config, system):
 
         # Check if the binary contains special riscv fesvr tohost symbol for interations
         # between simulated code and testbench
@@ -41,13 +41,14 @@ class Runner(gv.gvsoc.Runner, runner.chips.gap9_v2.Runner):
                         if symbol.name == 'tohost':
                             config.get('**/soc/fc').set('riscv_fesvr_tohost_addr', '0x%x' % symbol.entry['st_value'])
 
-        gv.gvsoc.Runner.__init__(self, args, config)
-        runner.chips.gap9_v2.Runner.__init__(self, args, config)
+        gv.gvsoc.Runner.__init__(self, args, config, system)
+        runner.chips.gap9_v2.Runner.__init__(self, args, config, system)
 
 
 
     def gen_stimuli(self):
         gv.gvsoc.Runner.gen_stimuli(self)
 
-        path = os.path.join(self.config.get_str('gapy/work_dir'), 'efuse_preload.data')
-        self.gen_efuse_stim(path)
+        if self.args.py_target is None:
+            path = os.path.join(self.config.get_str('gapy/work_dir'), 'efuse_preload.data')
+            self.gen_efuse_stim(path)

@@ -5,17 +5,17 @@
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -32,7 +32,7 @@ class apb_soc_ctrl : public vp::component
 
 public:
 
-  apb_soc_ctrl(const char *config);
+  apb_soc_ctrl(js::config *config);
 
   int build();
   void start();
@@ -46,13 +46,13 @@ private:
 
   vp::wire_master<uint32_t> bootaddr_itf;
   vp::wire_master<int>  event_itf;
-  
+
   uint32_t core_status;
   uint32_t bootaddr;
 
 };
 
-apb_soc_ctrl::apb_soc_ctrl(const char *config)
+apb_soc_ctrl::apb_soc_ctrl(js::config *config)
 : vp::component(config)
 {
 
@@ -82,8 +82,8 @@ vp::io_req_status_e apb_soc_ctrl::req(void *__this, vp::io_req *req)
       // We are writing to the status register, the 31 LSBs are the return value of the platform and the last bit
       // makes the platform exit when set to 1
       _this->core_status = *(uint32_t *)data;
-      
-      if ((_this->core_status >> APB_SOC_STATUS_EOC_BIT) & 1) 
+
+      if ((_this->core_status >> APB_SOC_STATUS_EOC_BIT) & 1)
       {
         _this->clock->stop_engine(_this->core_status & 0x7fffffff);
       }
@@ -96,7 +96,7 @@ vp::io_req_status_e apb_soc_ctrl::req(void *__this, vp::io_req *req)
       _this->trace.msg("Setting boot address (addr: 0x%x)\n", *(uint32_t *)data);
       if (_this->bootaddr_itf.is_bound())
         _this->bootaddr_itf.sync(*(uint32_t *)data);
-      
+
       _this->bootaddr = *(uint32_t *)data;
     }
     else *(uint32_t *)data = _this->bootaddr;
@@ -129,7 +129,7 @@ void apb_soc_ctrl::start()
 {
 }
 
-extern "C" vp::component *vp_constructor(const char *config)
+extern "C" vp::component *vp_constructor(js::config *config)
 {
   return new apb_soc_ctrl(config);
 }

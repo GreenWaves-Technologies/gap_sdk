@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "../../udma_impl.hpp"
+#include <vp/vp.hpp>
 #include <udma_uart/udma_uart_regfields.h>
 #include <udma_uart/udma_uart_gvsoc.h>
 
@@ -40,8 +42,9 @@ class Uart_rx_fsm {
          *
          * \param top pointer to udma core
          * \param periph pointer to the uart periph
+         * \param itf_name name of the uart interface
          */
-        Uart_rx_fsm(udma* top, Uart_periph* periph);
+        Uart_rx_fsm(udma* top, Uart_periph* periph, std::string itf_name);
 
         /**
          * \brief used to receive bits on UART RX

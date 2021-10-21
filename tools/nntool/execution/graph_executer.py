@@ -17,11 +17,11 @@ import logging
 from typing import Mapping, Optional, Sequence
 
 import numpy as np
-from graph.types import (ActivationFusion, ConstantInputParameters,
-                         ConvFusionParameters, FusionInputParameters,
-                         FusionOutputParameters, InputParameters,
-                         MatMulOpFusionParameters, PaddedAddFusionParameters,
-                         Parameters)
+from graph.types import (ActivationFusionBase,
+                         ConstantInputParameters, FilterFusionBase,
+                         FusionInputParameters, FusionOutputParameters,
+                         InputParameters, MatMulOpFusionParameters,
+                         PaddedAddFusionParameters, Parameters)
 from quantization.kernels.kernel_executer import KernelExecuter
 from quantization.new_qrec import QRec
 from utils.graph import Graph
@@ -92,7 +92,7 @@ class GraphExecuter():
             else:
                 qrec = self._qrecs[nid]
 
-            if isinstance(node, (ConvFusionParameters, ActivationFusion, PaddedAddFusionParameters)):
+            if isinstance(node, (FilterFusionBase, ActivationFusionBase, PaddedAddFusionParameters)):
                 for (f_step_idx, f_pnode, f_output, f_details, f_qoutput, f_qdetails, f_node) in self.execute_qnoq_iterator(
                     output,
                     yield_fusions=yield_fusions,
@@ -208,7 +208,7 @@ class GraphExecuter():
 
             details = {} if yield_details and (
                 not only_yield_step or step_idx == step_idx_limit) else None
-            if isinstance(node, (ConvFusionParameters, ActivationFusion, PaddedAddFusionParameters, MatMulOpFusionParameters)):
+            if isinstance(node, (FilterFusionBase, ActivationFusionBase, PaddedAddFusionParameters, MatMulOpFusionParameters)):
 
                 for f_step_idx, f_pnode, f_node, f_output_tensors, f_details in self.execute_iterator(
                         output_tensors,

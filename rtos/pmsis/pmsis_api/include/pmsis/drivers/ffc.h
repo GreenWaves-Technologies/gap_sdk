@@ -17,6 +17,10 @@
 #pragma once
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -80,16 +84,18 @@ typedef enum {
  *
  * This structure is used to pass the desired FFC configuration to the runtime
  * when opening a device.
+ *
  */
 typedef struct pi_ffc_conf
 {
     int8_t itf;                     /*!< FFC device number */
-    pi_ffc_fixed_type_e fixed_type;
-    uint32_t fixed_scale;
-    uint32_t fixed_precision;
-    pi_ffc_float_type_e float_type;
-    pi_ffc_mode_e mode;
-    pi_ffc_io_mode_e io_mode;
+    pi_ffc_fixed_type_e fixed_type; /*!< FFC fixed point data type (8bits, 16bits, 24bits, 32bits)*/
+    uint32_t fixed_scale;           /*!< Scale number of Fixed point: Fixed Point = -1^Sign * (Q(Size-Precision).Precision << Scale)  */
+    uint32_t fixed_precision;       /*!< Precision size fraction: Q(Size-precision).precision */
+    pi_ffc_float_type_e float_type; /*!< FFC floating point data type (8bits, 16bits, 32bits)*/
+
+    pi_ffc_mode_e mode;             /*!< FFC mode: float to fixed, or fixed to float */
+    pi_ffc_io_mode_e io_mode;       /*!< FFC IO mode: Mem In/out, stream In/Out */ 
 } pi_ffc_conf_t;
 
 /**
@@ -187,3 +193,7 @@ void pi_ffc_convert_async(pi_device_t *device, void* src, void* dst,
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif

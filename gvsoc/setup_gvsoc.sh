@@ -1,4 +1,4 @@
-#!/bin/bash -e
+# This file needs to be sourced
 
 add_path() {
     export PATH=${PATH//":$1:"/:}

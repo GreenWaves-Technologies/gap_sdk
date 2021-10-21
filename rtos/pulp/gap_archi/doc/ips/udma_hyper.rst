@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/udma_hyperbus_octospi/README.md
+.. 
+   Input file: fe/ips/udma/udma_hyperbus_octospi/README.md
 
 Register map
 ^^^^^^^^^^^^

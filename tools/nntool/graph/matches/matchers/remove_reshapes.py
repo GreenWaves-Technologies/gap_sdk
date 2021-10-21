@@ -33,8 +33,6 @@ class RemoveReshapes(Matcher):
 
     @staticmethod
     def validate_reshape(G, reshape):
-        if reshape.transpose_out:
-            return False
         out_shape = None
         candidates = []
         out_edges = G.out_edges(reshape.name)
@@ -49,8 +47,6 @@ class RemoveReshapes(Matcher):
                 return False
             out_shape = tuple(candidate.out_dims[0].shape)
         else:
-            if candidate.transpose_out or candidate.transpose_in:
-                return False
             if out_shape is not None:
                 if out_shape != tuple(candidate.shape.shape):
                     return False
@@ -64,7 +60,7 @@ class RemoveReshapes(Matcher):
         while modified_graph:
             modified_graph = False
             for reshape in G.nodes(node_classes=(ReshapeParameters,)):
-                if not reshape.has_transpose and reshape.shape.shape == reshape.old_shape.shape:
+                if reshape.shape.shape == reshape.old_shape.shape:
                     modified_graph = True
                     LOG.info('removing reshape that does nothing %s', reshape.name)
                     G.remove_and_reconnect(reshape, edge_class=NNEdge)

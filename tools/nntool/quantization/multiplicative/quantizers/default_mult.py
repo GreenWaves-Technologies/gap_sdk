@@ -19,6 +19,7 @@ import numpy as np
 from quantization.qtype_constraint import MatchAll
 from quantization.quantizers.no_change_mixin import NoChangeMixin
 from quantization.unified_quantization_handler import (in_qs_constraint,
+                                                       needs_stats,
                                                        out_qs_constraint,
                                                        params_type)
 
@@ -30,6 +31,7 @@ LOG = logging.getLogger('nntool.' + __name__)
 @params_type('__default__')
 @in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16, np.uint8, np.uint16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16, np.uint8, np.uint16])}))
+@needs_stats(False)
 class NoChangeMult(MultQuantizionHandler, NoChangeMixin):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

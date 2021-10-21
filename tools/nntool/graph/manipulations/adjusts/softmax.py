@@ -30,7 +30,7 @@ class SoftMaxAdjuster(AdjusterBase):
             return False
         LOG.info("softmax %s: moving axis %s to %s and inserting transposes", node.name, node.axis, last_axis)
         trans = self.move_axis_to_last_trans(node.axis, node.out_dims[0].shape)
-        self.apply_input_trans(node, trans)
+        self.apply_input_trans(G, node, trans)
         node.axis = last_axis
-        self.apply_output_trans(node, self.invert(trans), index=0)
+        self.apply_output_trans(G, node, self.invert(trans), index=0)
         return True

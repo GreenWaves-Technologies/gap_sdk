@@ -65,7 +65,7 @@ def get_all_backend_handlers(opset_dict):
         since_version = 1
         if defs.has(handler.ONNX_OP, domain=handler.DOMAIN):
             try:
-                since_version = defs.get_schema(
+                since_version = defs.get_schema(  # @IgnoreException
                     handler.ONNX_OP,
                     domain=handler.DOMAIN,
                     max_inclusive_version=version).since_version

@@ -22,4 +22,11 @@
 //#include "cl_synchronisation.h"
 #include "cl_pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 #endif

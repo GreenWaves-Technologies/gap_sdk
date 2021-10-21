@@ -33,26 +33,28 @@ void __end_of_tx(void *arg)
 /* Cluster main entry, executed by core 0. */
 void cluster_delegate(void *arg)
 {
+    uint32_t chunk;
+
     printf("Cluster master entry.\n");
     /* Send a request to FC to allocate memory in ram and wait for termination of req. */
     pi_cl_ram_alloc_req_t alloc_req;
     pi_cl_ram_alloc(&ram, (uint32_t) BUFFER_SIZE, &alloc_req);
-    if (pi_cl_ram_alloc_wait(&alloc_req, NULL))
+    if (pi_cl_ram_alloc_wait(&alloc_req, &chunk))
     {
         printf("Cl ram malloc failed !\n");
         return;
     }
-    printf("Allocated %ld Bytes in Hyperram %lx.\n", alloc_req.size, alloc_req.result);
+    printf("Allocated %ld Bytes in Hyperram %lx.\n", BUFFER_SIZE, chunk);
 
     pi_cl_ram_req_t buff_req, buff_req1, buff_req2;
     /* Send a request to FC to write in ram and wait for termination of req. */
-    pi_cl_ram_write(&ram, alloc_req.result, buff, alloc_req.size, &buff_req);
+    pi_cl_ram_write(&ram, chunk, buff, BUFFER_SIZE, &buff_req);
     pi_cl_ram_write_wait(&buff_req);
     printf("Cluster write done.\n");
 
     /* Send requests to FC to read fron ram and wait for termination of reqs. */
-    pi_cl_ram_read(&ram, alloc_req.result, rcv_buff2, alloc_req.size, &buff_req1);
-    pi_cl_ram_read(&ram, alloc_req.result, rcv_buff3, alloc_req.size, &buff_req2);
+    pi_cl_ram_read(&ram, chunk, rcv_buff2, BUFFER_SIZE, &buff_req1);
+    pi_cl_ram_read(&ram, chunk, rcv_buff3, BUFFER_SIZE, &buff_req2);
     pi_cl_ram_read_wait(&buff_req1);
     printf("Cluster read 1 done.\n");
     pi_cl_ram_read_wait(&buff_req2);
@@ -60,9 +62,9 @@ void cluster_delegate(void *arg)
 
     /* Send a request to FC to free allocated memory and wait for termination of req. */
     pi_cl_ram_free_req_t free_req;
-    pi_cl_ram_free(&ram, alloc_req.result, alloc_req.size, &free_req);
+    pi_cl_ram_free(&ram, chunk, BUFFER_SIZE, &free_req);
     pi_cl_ram_free_wait(&free_req);
-    printf("Freed %ld Bytes in Hyperram %lx.\n", free_req.size, free_req.chunk);
+    printf("Freed %ld Bytes in Hyperram %lx.\n", BUFFER_SIZE, chunk);
 }
 
 void test_hyper_ram_delegate(void)

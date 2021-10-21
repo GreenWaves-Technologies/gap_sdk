@@ -10,4 +10,4 @@ ifeq ($(ASYNC), 1)
 APP_CFLAGS 	+= -DASYNC
 endif
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pmsis_rules.mk

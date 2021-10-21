@@ -16,7 +16,7 @@
 import numpy as np
 from graph.types import PadParameters
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
-from quantization.new_qrec import QRec
+from quantization.new_qrec import AllFloatQRec, QRec
 
 
 @params_type(PadParameters)
@@ -27,5 +27,10 @@ class PadFloat32(KernelBase):
                 in_tensors,
                 qrec: QRec,
                 **kwargs):
-        del qrec
-        return [np.pad(in_tensors[0], params.padding, 'constant', constant_values=params.pad_vals)]
+        if qrec is None:
+            qrec = AllFloatQRec()
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
+        out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
+            'float') else np.float32
+        out_tensor = np.pad(in_tensor, params.padding, 'constant', constant_values=params.pad_vals).astype(out_dtype)
+        return qrec.get_outputs(params, [out_tensor], ktype="float")

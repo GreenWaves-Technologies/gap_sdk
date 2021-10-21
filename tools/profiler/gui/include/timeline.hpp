@@ -407,7 +407,8 @@ public:
             QDockWidget* functionsDock,
             QPlainTextEdit* sourceCode,
             QPlainTextEdit* asmCode,
-            StallChart* stallchart);
+            StallChart* stallchart, 
+            QString signalsTreeFileName);
   ~Timeline();
   void setTimestamp(const QString& s) {timestamp->setText(s); }
   void setTimeInterval(const QString& s) {timeInterval->setText(s); }
@@ -417,7 +418,7 @@ public:
   void clearCurrentExecToolBar();
   void addTraceToLegend(std::string path, bool addMenuAction=true);
   TLGView* getTLGView(){return gview;};
-  void setGviewVScrollValue();
+  //void setGviewVScrollValue();
   void updateSignalsStatView( TreeModel* sigModel,
                               QTreeView* signalsTreeView,
                               uint64_t t0,
@@ -438,7 +439,7 @@ private:
   void makeLegend();
   void completeToolBar();
   void gotoGivenTimestamp();
-  void createSignalsTree();
+  void createSignalsTree(QString signalsTreeFileName);
 
   QMainWindow* mw;
   QWidget *viewW; // widget for the signalsTreeView + verViewV
@@ -503,6 +504,8 @@ signals:
 
 public  slots:
 
+  //void setGviewVScrollValue(int value1);
+  void setGviewVScrollValue();
   void setGviewVScrollValue(int value1);
   void refreshTimelineWidgets();
 

@@ -22,6 +22,7 @@ from graph.types import (Conv2DParameters, FcParameters,
                          MultiplicativeBiasParameters)
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
+from quantization.quantizer_options import BIAS_SIZE_OPTION
 from quantization.unified_quantization_handler import (in_qs_constraint,
                                                        out_qs_constraint,
                                                        params_type, options)
@@ -33,13 +34,8 @@ from ..pow2_quantization_handler import Pow2QuantizionHandler
 LOG = logging.getLogger('nntool.' + __name__)
 
 @options(
-    {
-        'name': 'pow2_biases',
-        'type': int,
-        'choices': [0, 8, 16, 32],
-        'help': 'bits for filter biases - if set to 0 the same size as the output type will be used',
-        'default': 0
-    })
+    BIAS_SIZE_OPTION
+)
 @params_type(FcParameters, Conv2DParameters)
 # @can_dequantize(True)
 @in_qs_constraint({'dtype': set([np.int8, np.int16])})
@@ -63,7 +59,7 @@ class FilterPow2(Pow2QuantizionHandler):
         weights_node, biases_node = cls.get_weights_and_biases_nodes(
             G, fusion if fusion else params)
 
-        range_acc = stats['range_acc']
+        range_acc = stats.get('range_acc', stats['range_out'][0])
         conv_active = fusion and fusion.fusion_type in [
             'conv_active_pool', 'conv_active']
         int_dtype = np.int32

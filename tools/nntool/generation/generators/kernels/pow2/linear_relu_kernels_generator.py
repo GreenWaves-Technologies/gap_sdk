@@ -20,7 +20,7 @@ from generation.at_types.gen_ctrl import GenCtrl
 from generation.generator_decorators import QREC_POW2, generation_function
 from generation.generators.kernels.pow2.matmul_kernels_generator import \
     MatMulReluKernel
-from graph.types import ConvFusionParameters, FcParameters
+from graph.types import LinearFusionParameters, FcParameters
 from utils.node_id import NodeId
 
 from ..autotiler_kernel import NewAutoTilerKernel
@@ -28,7 +28,7 @@ from ..autotiler_kernel import NewAutoTilerKernel
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (ConvFusionParameters, FcParameters), qrec_types=(QREC_POW2, ))
+@generation_function("kernels", (LinearFusionParameters, FcParameters), qrec_types=(QREC_POW2, ))
 def linear_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams
     if isinstance(node, FcParameters):
@@ -41,7 +41,7 @@ def linear_relu_kernels_generator(gen, node, qrec, in_eparams, out_eparams, cnam
         else:
             gen.kernels.append(LinearReluKernel(node.name, cname, node, qrec, None, None,
                                                 at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl()))
-    elif isinstance(node, ConvFusionParameters) and node.fusion_type == "linear_active":
+    elif isinstance(node, LinearFusionParameters) and node.fusion_type == "linear_active":
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         linear = cnodes[0]

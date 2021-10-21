@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2021 GreenWaves Technologies, SAS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __FLOAT_MATH_FUNCS_H__
 #define __FLOAT_MATH_FUNCS_H__
 #include <stdint.h>
@@ -24,4 +23,5 @@ float32_t ffast_cos(float32_t val);
 float32_t ffast_sin(float32_t val);
 float32_t ffast_sigmoid(float32_t val, float32_t alpha);
 float32_t fsigmoid(float32_t val);
+
 #endif

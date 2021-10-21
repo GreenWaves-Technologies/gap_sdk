@@ -46,6 +46,11 @@ static inline uint32_t pi_freq_get(pi_freq_domain_e domain)
 
 static inline int32_t pi_freq_set(pi_freq_domain_e domain, uint32_t freq)
 {
+    if (pos_max_freq_domains[domain] != 0 && freq > pos_max_freq_domains[domain])
+    {
+        freq = pos_max_freq_domains[domain];
+    }
+
     pos_freq_domains[pos_freq_get_fll(domain)] = freq;
     return pos_fll_set_freq(pos_freq_get_fll(domain), freq);
 }

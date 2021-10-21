@@ -17,7 +17,7 @@ import logging
 
 from graph.dim import Dim
 from graph.types.base import (NNEdge, Parameters, SensitiveToOrder,
-                              SingleInputAndOutput, cls_op_name)
+                              SingleInputAndOutput, cls_op_name, nargs)
 from graph.types.input_output import ConstantInputParameters
 
 LOG = logging.getLogger("nntool." + __name__)
@@ -166,41 +166,46 @@ class RNNBaseParameters(Parameters, SensitiveToOrder, SingleInputAndOutput):
             self.at_options
         )
 
+RNN_INPUT_NAMES = [
+    "input",
+    "i_2_i_w",
+    "r_2_i_w",
+    "i_b",
+    "i_state",
+]
+
 
 @cls_op_name('rnn')
+@nargs(RNN_INPUT_NAMES)
 class RNNParameters(RNNBaseParameters):
 
-    INPUT_NAMES = [
-        "input",
-        "i_2_i_w",
-        "r_2_i_w",
-        "i_b",
-        "i_state",
-    ]
+    INPUT_NAMES = RNN_INPUT_NAMES
 
     STATE_PARAMETERS = ["i_state"]
 
     def get_parameter_size(self):
         return ((self.n_inputs + self.n_states) * (self.n_inputs + 1)) + self.n_states
 
+GRU_INPUT_NAMES = [
+    "input",
+    "w_2_z_w",
+    "w_2_r_w",
+    "w_2_h_w",
+    "r_2_z_w",
+    "r_2_r_w",
+    "r_2_h_w",
+    "z_b",
+    "r_b",
+    "w_h_b",
+    "r_h_b",
+    "h_state",
+]
 
 @cls_op_name('gru')
+@nargs(GRU_INPUT_NAMES)
 class GRUParameters(RNNBaseParameters):
 
-    INPUT_NAMES = [
-        "input",
-        "w_2_z_w",
-        "w_2_r_w",
-        "w_2_h_w",
-        "r_2_z_w",
-        "r_2_r_w",
-        "r_2_h_w",
-        "z_b",
-        "r_b",
-        "w_h_b",
-        "r_h_b",
-        "h_state",
-    ]
+    INPUT_NAMES = GRU_INPUT_NAMES
 
     STATE_PARAMETERS = ["h_state"]
 

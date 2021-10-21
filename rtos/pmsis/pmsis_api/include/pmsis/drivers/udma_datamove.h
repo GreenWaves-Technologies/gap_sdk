@@ -17,6 +17,10 @@
 #pragma once
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -140,3 +144,6 @@ int32_t pi_udma_datamove_copy_async(pi_device_t *device, void* src, void* dst, u
 /**
  * @}
  */
+#ifdef __cplusplus
+}
+#endif

@@ -1,0 +1,21 @@
+adjust
+fusions --scale8
+imageformat input_1 bw8 offset_int8
+qshow
+
+nodeoption input_1 EXTERN_INPUT_POINTER 1
+#nodeoption 1 PARALLELFEATURES 0
+#nodeoption 2 PARALLELFEATURES 0
+#nodeoption 5 PARALLELFEATURES 0
+#nodeoption 8 PARALLELFEATURES 0
+#nodeoption 12 PARALLELFEATURES 0
+
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash false
+
+# ENABLE THIS TO TRACE THE LAYERS EXECUTION
+#set graph_trace_exec true
+
+save_state

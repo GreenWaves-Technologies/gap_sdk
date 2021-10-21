@@ -19,7 +19,7 @@ from generation.at_types.at_params import NO_ACTIVATION, gen_active_at_params
 from generation.at_types.gen_ctrl import GenCtrl
 from generation.code_block import CodeBlock
 from generation.generator_decorators import (QREC_FLOAT, generation_function)
-from graph.types import ActivationFusion, GlobalPoolingParameters, GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters
+from graph.types import ActivationFusionBase, GlobalPoolingParameters, GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters
 from utils.largest_factor import balanced_divisors
 
 from ..autotiler_kernel import (AutotilerKernel, gen_include_paths,
@@ -31,10 +31,10 @@ from ..pow2.global_pool_kernels_generator import gen_globalpool_at_params
 LOG = logging.getLogger("nntool." + __name__)
 
 
-@generation_function("kernels", (GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusion), qrec_types=(QREC_FLOAT, ))
+@generation_function("kernels", (GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusionBase), qrec_types=(QREC_FLOAT, ))
 def global_pool_kernels_generator_fp16(gen, node, qrec, in_eparams, out_eparams, cname):
     del in_eparams, out_eparams, qrec
-    if isinstance(node, ActivationFusion):
+    if isinstance(node, ActivationFusionBase):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], GlobalPoolingParameters):
             gen.kernels.append(GlobalPoolKernel(

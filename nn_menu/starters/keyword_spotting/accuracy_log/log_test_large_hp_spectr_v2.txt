@@ -1,0 +1,27 @@
+script model/nntool_script
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Copy_Generators.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/SSD_Generators.c /home/marco-gwt/GWT/AutotilerV2/Generators/BilinearResizes/ResizeGenerator.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c
+python3 utils/test_accuracy_emul.py --tflite_model model/KWS_ds_cnn_l_quant.tflite --dct_coefficient_count 10 --window_size_ms 40 --window_stride_ms 20 --test_with_wav 1 --use_power_spectrogram 0
+WARNING:tensorflow:From utils/test_accuracy_emul.py:311: The name tf.app.run is deprecated. Please use tf.compat.v1.app.run instead.
+
+make[1]: *** No rule to make target 'model/KWS_ds_cnn_l_quant.tflite', needed by 'BUILD_MODEL_SQ8_EMUL/KWS_ds_cnn_l_quant.tflite'.  Stop.
+make -f emul.mk clean_model clean all DUMP_TENSORS=0 SMALL=0 MEDIUM=0 LARGE=1 WITH_MFCC=1 USE_POWER=0
+make[1]: Entering directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+script model/nntool_script
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Copy_Generators.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/SSD_Generators.c /home/marco-gwt/GWT/AutotilerV2/Generators/BilinearResizes/ResizeGenerator.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c
+rm -f -rf BUILD_MODEL_SQ8_EMUL
+rm -f -r BUILD_EMUL
+rm -f kws_ds_cnn_emul
+make[1]: Leaving directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+Traceback (most recent call last):
+  File "utils/test_accuracy_emul.py", line 311, in <module>
+    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+  File "/home/marco-gwt/anaconda3/envs/tf1.15/lib/python3.7/site-packages/tensorflow_core/python/platform/app.py", line 40, in run
+    _run(main=main, argv=argv, flags_parser=_parse_flags_tolerate_undef)
+  File "/home/marco-gwt/anaconda3/envs/tf1.15/lib/python3.7/site-packages/absl/app.py", line 300, in run
+    _run_main(main, args)
+  File "/home/marco-gwt/anaconda3/envs/tf1.15/lib/python3.7/site-packages/absl/app.py", line 251, in _run_main
+    sys.exit(main(argv))
+  File "utils/test_accuracy_emul.py", line 90, in main
+    raise Exception("Executable not generated correctly")
+Exception: Executable not generated correctly
+make: *** [Makefile:125: test_accuracy] Error 1

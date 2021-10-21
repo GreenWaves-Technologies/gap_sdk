@@ -30,6 +30,35 @@
 #include "udma_ctrl/udma_ctrl_regfields.h"
 #include "udma_ctrl/udma_ctrl_gvsoc.h"
 
+#ifdef HAS_SPIM
+#include "spim/udma_spim_v4.hpp"
+#endif
+
+#ifdef HAS_UART
+#include "uart/v2/udma_uart.hpp"
+#endif
+
+#ifdef HAS_CPI
+#include "cpi/udma_cpi_v2.hpp"
+#endif
+
+#ifdef HAS_AES
+#include "aes/udma_aes_v1.hpp"
+#endif
+
+#ifdef HAS_SFU
+#include "sfu/udma_sfu_v1.hpp"
+#endif
+
+#ifdef HAS_EMPTY_SFU
+#include "sfu/udma_sfu_v1_empty.hpp"
+#endif
+
+#ifdef HAS_FFC
+#include "ffc/udma_ffc_v1.hpp"
+#endif
+
+
 #ifdef HAS_I2S
 #include "i2s/udma_i2s_v3.hpp"
 #endif
@@ -91,12 +120,12 @@ vp::io_req_status_e Udma_channel::access(uint64_t offset, int size, uint8_t *val
 
 
 
-Udma_channel::Udma_channel(udma *top, string name) : top(top), name(name)
+Udma_channel::Udma_channel(udma *top, string name) : top(top), name(name), is_stream(false)
 {
 }
 
 
-Udma_periph::Udma_periph(udma *top, int id) : top(top), id(id)
+Udma_periph::Udma_periph(udma *top, int id) : top(top), id(id), is_on(false), reset_active(false)
 {
 }
 
@@ -318,7 +347,7 @@ void udma::channel_register(int id, Udma_channel *channel)
 
 void udma::channel_unregister(int id, Udma_channel *channel)
 {
-    this->channel_register(0xff, NULL);
+    this->channel_register(0xff, channel);
 }
 
 vp::io_req_status_e udma::periph_req(vp::io_req *req, uint64_t offset)
@@ -326,9 +355,6 @@ vp::io_req_status_e udma::periph_req(vp::io_req *req, uint64_t offset)
     uint32_t *data = (uint32_t *)req->get_data();
     uint64_t size = req->get_size();
     bool is_write = req->get_is_write();
-
-    if (size != 4)
-        return vp::IO_REQ_INVALID;
 
     int periph_id = UDMA_PERIPH_GET(offset);
 
@@ -425,6 +451,7 @@ int udma::build()
     this->channels.resize(this->nb_channels);
 
     l2_read_fifo_size = get_config_int("properties/l2_read_fifo_size");
+    l2_write_fifo_size = get_config_int("properties/l2_write_fifo_size");
 
     l2_itf.set_resp_meth(&udma::l2_response);
     l2_itf.set_grant_meth(&udma::l2_grant);
@@ -434,7 +461,7 @@ int udma::build()
 
     this->nb_addrgen_linear = this->get_config_int("nb_addrgen_linear");
     this->nb_addrgen_2d = this->get_config_int("nb_addrgen_2d");
-    
+
     this->nb_udma_stream_in = this->get_config_int("nb_udma_stream_in");
     this->nb_udma_stream_out = this->get_config_int("nb_udma_stream_out");
 
@@ -448,7 +475,7 @@ int udma::build()
         this->addrgen_2d.push_back(new Udma_addrgen_2d(this, i, i+this->nb_addrgen_linear));
     }
 
-    this->rx_channels = new Udma_rx_channels(this, l2_read_fifo_size);
+    this->rx_channels = new Udma_rx_channels(this, l2_write_fifo_size);
     this->tx_channels = new Udma_tx_channels(this, l2_read_fifo_size);
 
     this->ctrl_regmap.build(this, &this->trace, "ctrl");
@@ -665,6 +692,8 @@ void udma::reset(bool active)
     {
         x->reset(active);
     }
+
+    this->tx_channels->reset(active);
 }
 
 extern "C" vp::component *vp_constructor(js::config *config)

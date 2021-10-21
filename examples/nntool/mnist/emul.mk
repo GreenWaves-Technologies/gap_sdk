@@ -4,7 +4,10 @@
 # This software may be modified and distributed under the terms
 # of the BSD license.  See the LICENSE file for details.
 
-include common.mk
+MODEL_PREFIX=mnist
+AT_INPUT_WIDTH=28
+AT_INPUT_HEIGHT=28
+AT_INPUT_COLORS=1
 
 QUANT_BITS?=8
 BUILD_DIR=BUILD

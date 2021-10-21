@@ -1,0 +1,32 @@
+name: mobilenet_pytorch
+boards: []
+platforms: 
+    - board
+    - gvsoc
+os: 
+    - freertos
+    - pulpos
+chips: 
+    - gap8
+    - gap9
+variants:
+    gap8:
+        name: standard
+        tags:
+            - integration
+            - release
+        chips: 
+            - gap8
+        duration: standard
+        flags: ~
+    gap9:
+        name: standard
+        tags:
+            - integration
+            - release
+        chips: 
+            - gap9
+        os:
+            - pulpos
+        duration: standard
+        flags: ~

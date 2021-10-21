@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.nngraph import NNGraph
 from graph.types import ConstantInputParameters
 from utils.tabular import Tabular, TabularColumn, TabularColumnGroup
 
@@ -88,7 +87,7 @@ class GraphReporter():
         self._split_dims = split_dims
         self._show_constants = show_constants
 
-    def report(self, G: NNGraph, nodes=None) -> Tabular:
+    def report(self, G, nodes=None) -> Tabular:
         if nodes is None:
             nodes = G.nodes()
 

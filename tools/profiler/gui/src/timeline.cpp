@@ -79,6 +79,7 @@ void AdjustingScrollArea::syncWithTreeView() {
     // So first, update signalsTreeView
     signalsTreeView->update();
     signalsTreeView->verticalScrollBar()->update();
+    verticalScrollBar()->update();
     syncMutex.lock();
     // First block the scrollArea vertical bar signals
     this->verticalScrollBar()->blockSignals(true);
@@ -87,6 +88,7 @@ void AdjustingScrollArea::syncWithTreeView() {
     double  min1 = (double) signalsTreeView->verticalScrollBar()->minimum();
     double  max1 = (double) signalsTreeView->verticalScrollBar()->maximum();
     if ((max1 - min1) <= 0) {
+      qDebug() << "min-max " << min1 << " " << max1 ;
       qDebug() << "Error no sync possible: max1 -min1 <=0";
       syncMutex.unlock();
       return;
@@ -95,15 +97,15 @@ void AdjustingScrollArea::syncWithTreeView() {
       double min2 = (double) verticalScrollBar()->minimum();
       double max2 = (double) verticalScrollBar()->maximum();
       double factor = (max2 - min2) / (max1-min1) ;
-      //qDebug() << "min-max " << min1 << " " << max1 << " " << min2 << " " << max2;
-      //qDebug() << "factor " << factor;
+      qDebug() << "min-max " << min1 << " " << max1 << " " << min2 << " " << max2;
+      qDebug() << "factor " << factor;
       double value4= factor * (double) signalsTreeView->verticalScrollBar()->value();
       double value3= round(value4);
       int value2 = value3;
-      //qDebug() << "signals slider value" << signalsTreeView->verticalScrollBar()->value();
-      //qDebug() << "scrollarea slider value (double) " << value4;
-      //qDebug() << "round'scrollarea slider value) (double) " << value3;
-      //qDebug() << "scrollarea slider value (int)" << value2;
+      qDebug() << "signals slider value" << signalsTreeView->verticalScrollBar()->value();
+      qDebug() << "scrollarea slider value (double) " << value4;
+      qDebug() << "round'scrollarea slider value) (double) " << value3;
+      qDebug() << "scrollarea slider value (int)" << value2;
       // set the scrollArea scroll bar value
       this->verticalScrollBar()->setValue(value2);
 
@@ -117,6 +119,7 @@ void AdjustingScrollArea::syncWithTreeView() {
       this->show();
     }
     syncMutex.unlock();
+    qDebug() << "End syncWithTreeView";
 }
 
 void AdjustingScrollArea::updateWidgetPosition(){
@@ -438,6 +441,8 @@ int TLGView::drawDwt(const Data_with_time<T>& dwt, int x1, int y,
     if (std::is_same<T, const char*>::value){
       // pointer trick, because the compiler does not understand that T is
       // nothing but const char* in this "if"
+      if (y==30 )
+        qDebug() << "case 1";
       const char* s;
       memcpy(&s, &(dwt.d), sizeof(const char*));
       //txtValue = std::to_string(signalId) + "-" + std::string(s);
@@ -445,22 +450,31 @@ int TLGView::drawDwt(const Data_with_time<T>& dwt, int x1, int y,
     }
     else if (std::is_same<T, generic_data_t>::value){
       generic_data_t g;
+       if (y==30 )
+        qDebug() << "case 2";
       memcpy(&g, &(dwt.d), sizeof(generic_data_t));
       //txtValue = std::to_string(signalId) + "-" + std::to_string(g);
       txtValue =  std::to_string(g);
     }
     else if (std::is_same<T, g_decompressed_data_t>::value){
       g_decompressed_data_t ud;
+
       memcpy(&ud, &(dwt.d), sizeof(g_decompressed_data_t));
       txtValue = std::to_string(ud.value);
       avg_factor = ud.n_items_in_avg;
-      if (ud.value!=0 && avg_factor!=1)
+      if (ud.value!=0 && avg_factor!=1) {
+       if (y==30 )
+        qDebug() << "case 3";
         //txtValue = std::to_string(signalId) + "-" + (std::to_string(ud.value) + "(avg. "
         txtValue =  (std::to_string(ud.value) + "(avg. "
                  + std::to_string(avg_factor) + ")" );
-      else if (ud.value!=0)
+      }
+      else if (ud.value!=0) {
+        if (y==30 )
+          qDebug() << "case 4";
         //txtValue = std::to_string(signalId) + "-" + (std::to_string(ud.value));
         txtValue =   (std::to_string(ud.value));
+      }
     }
     else {
       std::cout << "[-] Warning data type not recognized by the GUI" << std::endl;
@@ -471,12 +485,16 @@ int TLGView::drawDwt(const Data_with_time<T>& dwt, int x1, int y,
   else {
     painter.setBrush(QBrush(Qt::black));
   }
+  if (y==30)
+    qDebug() << "txtValue" << QString::fromUtf8(txtValue.c_str());
 
   if (txtValue.compare(std::string("0")) != 0) {
-    y += rectRelativeOffset * peHeight;
-    //qDebug() << "QRect: xa=" << xa << " y=" << y << " xb-xa=" << xb-xa << " peHeight=" << peHeight << " rectSize=" << rectRelativeSize << std::endl;
+    //y += 0.1 *peHeight;
+    y += 3;
+    //qDebug() << "QRect: xa=" << xa << " y=" << y << " xb-xa=" << xb-xa ;
     //qDebug() << "y0=" << y - rectRelativeOffset * peHeight;
-    QRect curRect = QRect(xa, y, xb - xa, peHeight * rectRelativeSize);
+    //QRect curRect = QRect(xa, y, xb - xa, peHeight * rectRelativeSize);
+    QRect curRect = QRect(xa, y, xb - xa, 24);
     painter.drawRect(curRect);
     displayedItems++;
     // draw text in the center of the rectangle
@@ -503,30 +521,32 @@ int TLGView::getSignalIndex(std::vector<int> signalIdList , int signalId) {
 
 
 void TLGView::paintSignalToGview(QPainter& painter, const QString signalPath,
-                                std::vector<TLData<const char*>> data, std::vector<int> signalIdList, int line,
-                                uint64_t t0, uint64_t t1, int x1) {
+                                std::vector<TLData<const char*>> data,
+                                std::vector<int> signalIdList,
+                                int line,
+                                uint64_t t0,
+                                uint64_t t1,
+                                int x1) {
 
   QString pcSignalPath = signalPath;
   uint displayedItems = 0;
   // First Look if it's a core or fc & state signal
-  if (pcSignalPath.contains("pe") & pcSignalPath.contains("state")) {
+  /*if (pcSignalPath.contains("pe") & pcSignalPath.contains("state")) {
     pcSignalPath.replace("state", "pc");
   } else if (pcSignalPath.contains("fc") & pcSignalPath.contains("state")) {
     pcSignalPath.replace("state", "pc");
   }
   else
     pcSignalPath="";
+  */
 
-  // Second look for the signal ID
+  // Look for the signal ID
   int signalId = getSignalIdFromBackend(signalPath.toStdString());
-  //std::cout << "[-] Get State Signal: " << signalPath.toStdString() << " Id: " << signalId << std::endl;
 
   // Get the signal index in list
   int signalIdx = getSignalIndex(signalIdList, signalId);
 
-  //std::cout << "timestamp " << t0 << "  " << t1 << std::endl;
-  if ( (signalIdx != -1) & !(pcSignalPath.contains("pe") & pcSignalPath.contains("state"))) {
-    //qDebug() << "[-] Paint State Signal " << signalId << " " << signalPath  << " line " << line ;
+  if (signalIdx != -1)  {
     // Index exist ==> just paint the signal in the timeline view for the timeline interval
     for(auto iter = data[signalIdx].between(t0, t1, zoomFactor); !iter.done(); ++iter){
       displayedItems += drawDwt<const char*>(*iter, x1, line * peHeight, painter);
@@ -534,16 +554,16 @@ void TLGView::paintSignalToGview(QPainter& painter, const QString signalPath,
     return;
   }
   //else
-    //std::cout << " Signal ID " <<  signalId << " not found in signalIdList or not to be displayed" << std::endl;
+  //  std::cout << " Signal ID " <<  signalId << " not found in signalIdList or not to be displayed" << std::endl;
 
   // Signal was not found in the cores traces
-  // Then, search it in the basic signals
-  if (!(pcSignalPath.contains("pe") & pcSignalPath.contains("state"))) {
+  // Then, search it in the basic signals if it is not a core trace
+  if (!(signalPath.contains("pe") & signalPath.contains("state"))
+      & !(signalPath.contains("fc") & signalPath.contains("state")) ) {
     if (std::find(id_to_display().begin(), id_to_display().end(), signalId) != id_to_display().end()) {
       // Signal found in the list ==> just paint it on the TLGView
       auto l = event_timestamps(signalId);
       if (l != nullptr){
-        //qDebug() << "[-] Paint Other Signal " << signalId << " " << signalPath  << " line " << line;
         for(auto item : decompress(l->between(t0, t1, zoomFactor))){
             displayedItems += drawDwt<g_decompressed_data_t>(
                                             item, x1, line * peHeight, painter);
@@ -552,23 +572,6 @@ void TLGView::paintSignalToGview(QPainter& painter, const QString signalPath,
     }
   }
 
-  if (pcSignalPath.compare(QString(""))!=0) {
-    // painting  corresponding pc signal on the same line as the state signal
-    int pcSignalId = getSignalIdFromBackend(pcSignalPath.toStdString());
-    //std::cout << "[-] Get pc Signal: " << pcSignalPath.toStdString() << " Id: " << pcSignalId << std::endl;
-    // Get the signal index in list
-    int pcSignalIdx = getSignalIndex(signalIdList, pcSignalId);
-
-    if (pcSignalIdx != -1) {
-      // We must print the corresponding pc Signal above the state signal
-      //qDebug() << "[-] Paint PC Signal " << pcSignalId << " " << pcSignalPath  << " line " << line ;
-      // Index exist ==> just paint the signal in the timeline view for the timeline interval
-      for(auto iter = data[pcSignalIdx].between(t0, t1, zoomFactor); !iter.done(); ++iter){
-        displayedItems += drawDwt<const char*>(*iter, x1, line * peHeight, painter);
-      }
-      return;
-    }
-  }
   show();
 }
 
@@ -884,6 +887,7 @@ void TLGView::mousePressEvent(QMouseEvent* event)
 {
     // Dealing with mouse press event
     // set usefull variables for this event
+    qDebug() << "mousePressEvent";
     m_line.setP1(event->pos());
     m_line.setP2(event->pos());
     if (!selectionRect) {
@@ -1195,14 +1199,14 @@ void TLGView::radioB1Clicked(){
   currentMode=TIME_MODE;
   // Need to act on the timestamp as it changed
   updateVerticalLineText();
-  fd->switch2TimeMode();
+  fd->switchLegendMode(this->currentMode);
   update();
 
 }
 void TLGView::radioB2Clicked(){
   currentMode=FC_CYCLE_MODE;
   updateVerticalLineText();
-  fd->switch2FCCycleMode();
+  fd->switchLegendMode(this->currentMode);
   update();
 
 }
@@ -1210,7 +1214,7 @@ void TLGView::radioB2Clicked(){
 void TLGView::radioB3Clicked(){
   currentMode=CLUSTER_CYCLE_MODE;
   updateVerticalLineText();
-  fd->switch2ClusterCycleMode();
+  fd->switchLegendMode(this->currentMode);
   update();
 
 }
@@ -1398,11 +1402,13 @@ void Timeline::foo(int x){
   std::cout << "foo called " << x << std::endl;
 }
 
-void Timeline::createSignalsTree(){
-    QFile file(":/images/signalstree.txt");
+void Timeline::createSignalsTree(QString signalsTreeFileName){
+    std::cout << "[-] Opening Signals Tree File " << signalsTreeFileName.toStdString() << std::endl;
+    QFile file(signalsTreeFileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-      qDebug("File signalstree.txt didn't open  ");
-    // need to cjeck if model exists ---
+      std::cout << "[-] Error: File " << signalsTreeFileName.toStdString()
+              << " didn't open " << std::endl;
+    // need to check if model exists
     model = new TreeModel(file.readAll());
     file.close();
     signalsTreeView = new QTreeView();
@@ -1433,6 +1439,8 @@ void Timeline::setGviewVScrollValue(int value1) {
   // syncs the Scrollarea vertical scroll bar value according to the
   // value of the signalsTreeView scrollbar
   qDebug() << "[-] setGViewVScrollValue (int value1) " ;
+  scrollArea->syncWithTreeView();
+  return;
   // First block the scrollArea vertical bar signals
   scrollArea->verticalScrollBar()->blockSignals(true);
 
@@ -1533,7 +1541,8 @@ Timeline::Timeline( QMainWindow* mw,
                     QDockWidget* functionsDock,
                     QPlainTextEdit* sourceCode,
                     QPlainTextEdit* asmCode,
-                    StallChart* stallchart):
+                    StallChart* stallchart,
+                    QString signalsTreeFileName):
                   mw(mw),
                   toolBar(toolBar),
                   functionsDock(functionsDock),
@@ -1568,7 +1577,7 @@ Timeline::Timeline( QMainWindow* mw,
 
   // Create SignalsTree View
   qDebug() << "[-] Create Signals Tree";
-  createSignalsTree();
+  createSignalsTree(signalsTreeFileName);
   signalsTreeView->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
   signalsTreeView->setHeaderHidden(true);
   signalsTreeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
@@ -1579,7 +1588,7 @@ Timeline::Timeline( QMainWindow* mw,
   treeLabel->setText("Time (us)");
   treeLabel->setFixedHeight(30);
   statLabel = new QLabel();
-  statLabel->setText("Signal Time Up (%)");
+  statLabel->setText("Signal Time Up");
   statLabel->setFixedHeight(30);
   tlLayout->addWidget(signalsTreeView,1,0);
 
@@ -1682,7 +1691,24 @@ Timeline::Timeline( QMainWindow* mw,
                   this, SLOT(setGviewVScrollValue()),Qt::QueuedConnection);
   QObject::connect(signalsTreeView->verticalScrollBar(), SIGNAL(valueChanged(int)),
                  this, SLOT(setGviewVScrollValue(int)),Qt::QueuedConnection);
-
+  /*
+  QObject::connect(signalsTreeView->verticalScrollBar(), &QScrollBar::rangeChanged, [this](int value1, int value2){
+            scrollArea->verticalScrollBar()->blockSignals(true);
+            scrollArea->verticalScrollBar()->setRange(value1,value2);
+            scrollArea->verticalScrollBar()->blockSignals(false);
+        });
+  QObject::connect(signalsTreeView->verticalScrollBar(), &QScrollBar::valueChanged, [this](int value){
+            scrollArea->verticalScrollBar()->blockSignals(true);
+            scrollArea->verticalScrollBar()->setValue(value);
+            scrollArea->verticalScrollBar()->blockSignals(false);
+        });
+  */
+  /*QObject::connect(scrollArea->verticalScrollBar(), &QScrollBar::valueChanged, [this](int value){
+            signalsTreeView->verticalScrollBar()->blockSignals(true);
+            signalsTreeView->verticalScrollBar()->setValue(value);
+            signalsTreeView->verticalScrollBar()->blockSignals(false);
+        });
+  */
   QObject::connect(signalsTreeView->verticalScrollBar(),SIGNAL(rangeChanged(int,int)),
                   statTableView->verticalScrollBar(), SLOT(setRange(int,int)),Qt::QueuedConnection);
   QObject::connect(signalsTreeView->verticalScrollBar(), SIGNAL(valueChanged(int)),

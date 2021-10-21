@@ -15,14 +15,14 @@
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
 from generation.generator_decorators import QREC_FLOAT, QREC_MULT8, generation_function
-from graph.types import ActivationFusion, MatrixMulParameters
+from graph.types import ActivationFusionBase, MatrixMulParameters
 from utils.node_id import NodeId
 
 
-@generation_function("bindings", (MatrixMulParameters, ActivationFusion), qrec_types=(QREC_FLOAT,))
+@generation_function("bindings", (MatrixMulParameters, ActivationFusionBase), qrec_types=(QREC_FLOAT,))
 def mat_vect_mul_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
-    if isinstance(node, ActivationFusion):
+    if isinstance(node, ActivationFusionBase):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         if isinstance(cnodes[0], MatrixMulParameters):

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import json
 import numpy as np
@@ -41,7 +40,7 @@ def main():
 	if dtype == "int":
 		data_type = "short int"
 	elif dtype == "float16":
-		data_type = "f16"
+		data_type = "F16_DSP"
 	elif dtype == "float32":
 		data_type = "float"
 	else:

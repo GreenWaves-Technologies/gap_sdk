@@ -22,8 +22,16 @@
 #include "CNN_Defines_fp16.h"
 #include "CNN_FloatType.h"
 #include "../CNN_Libraries_SQ8/CNN_AT_Misc.h"
+#include "../CNN_Libraries/CNN_Copy.h"
 
 #define gap_pack2f16(x, y)                 ((F16V) {(F16)   (x), (F16)   (y)})
+
+static inline F16 LeakyReLU_fp16(F16 x)
+
+{
+	if (x<0) x *= LEAK_CONSTANT;
+	return x;
+}
 
 /********************************************************************************************************************************************************************/
 /****************** Bias setting. ***********************************************************************************************************************************/
@@ -64,6 +72,28 @@ typedef struct {
 } KerConv_fp16_T;
 typedef KerConv_fp16_T KerConvDW_fp16_T;	/* Alias to separate regular conv from depth wise convolution */
 
+typedef struct {
+	F16 * __restrict__ In;			/**< Second input matrix tile, convolution features */
+	unsigned short int W;		   	/**< Feature Width */
+	unsigned short int H;		   	/**< Feature Height */
+	unsigned char Fx;		       	/**< Filter width */
+	unsigned char Fy;		       	/**< Filter height */
+	unsigned char Sx;		       	/**< Filter horizontal stride */
+	unsigned char Sy;		       	/**< Filter vertical stride */
+	unsigned char Dx;		       	/**< Filter horizontal dilation */
+	unsigned char Dy;		       	/**< Filter vertical dilation */
+	unsigned char FirstTile;		/**< 1 if we are on the first tile */
+	v4s Pad;				/**< Filter Pad */
+	F16 * __restrict__ Filter;      	/**< First input matrix tile, convolution weights */
+	F16 * __restrict__ Bias;		/**< Bias tensor */
+	F16 * __restrict__ Out;	 		/**< Output tensor */
+	unsigned short int InFeat;	      	/**< Input Features: First input matrix tile width */
+	unsigned short int OutFeat;	     	/**< OutputFeatures: First input matrix tile height */
+	unsigned short int Wo;		  	/**< Output tile width */
+	unsigned short int Ho;		  	/**< Output tile height */
+	F16 * __restrict__ ColBuff;     	/**< Temp Buffer, must be at least Align(InFeat*Fx, 8) */
+} Ker_MM_Conv_fp16_T;
+
 /********************************************************************************************************************************************************************/
 /****************** Pooling/Linear rectification. *******************************************************************************************************************/
 /********************************************************************************************************************************************************************/
@@ -86,6 +116,23 @@ typedef struct {
 	unsigned char Sy;		/**< Stride Sy, used only if Sx!=Sy */
 	unsigned char Dy;		/**< Dilation Dy, used only if Dx!=Dy */
 } KerPool_fp16_T;
+
+/* For HWC forms */
+typedef struct {
+	F16 * __restrict__ In;		/**< input tensor tile */
+	unsigned short int W;		/**< Feature Width */
+	unsigned short int H;  		/**< Feature Height */
+	unsigned char Fx;      		/**< Filter width */
+	unsigned char Fy;       	/**< Filter height */
+	unsigned char Sx;              	/**< Filter horizontal stride */
+	unsigned char Sy;             	/**< Filter vertical stride */
+	unsigned char FirstTile;      	/**< 1 if we are on the first tile */
+	v4s Pad;                      	/**< Filter Pad */
+	F16 * __restrict__ Out;		/**< Output tensor */
+	unsigned short int Feat;       	/**< Input Features */
+	unsigned short int Wo;         	/**< Output tile width */
+	unsigned short int Ho;         	/**< Output tile height */
+} Ker_MM_Pool_fp16_T;
 
 typedef struct {
 	F16 * __restrict__ In;   	/**< Pointer to input tile  */
@@ -117,11 +164,11 @@ typedef struct {
 /******************************************************************************************************************************/
 
 typedef struct {
-        F16 *__restrict__ In;			/**< Input tile */
-        F16 *__restrict__ Out;			/**< Output tile */
-        unsigned short int Feat;		/**< Number of features */
-        unsigned short int W;			/**< Feature width */
-        unsigned short int H;			/**< Feature height */
+	F16 *__restrict__ In;			/**< Input tile */
+	F16 *__restrict__ Out;			/**< Output tile */
+	unsigned short int Feat;		/**< Number of features */
+	unsigned short int W;			/**< Feature width */
+	unsigned short int H;			/**< Feature height */
 	F16 UB;					/**< For ReLUN variant, upper bound */
 } KerActivation_fp16_T;
 
@@ -157,22 +204,13 @@ typedef struct {
 	F16 UB;					/**< In case RELUN */
 } KerMatMul_fp16_T;
 
-typedef struct {
-	F16 *__restrict__ In;			/**< Input matrix */
-	F16 *__restrict__ Out;			/**< Output matrix */
-	unsigned int Feat;			/**< Number of matrices */
-	unsigned int W;				/**< Matrix width */
-	unsigned int H;				/**< Matrix height */
-	unsigned char Sx;			/**< Stride for W dimension */
-	unsigned char Sy;			/**< Stride for H dimension */
-} KerMatTranspose_fp16_T;
-
 /******************************************************************************************************************************/
 /******************* SOFT MAX *************************************************************************************************/
 /******************************************************************************************************************************/
 
 typedef struct {
 	F16 *__restrict__ In;			/**< Pointer to input tile */
+	unsigned short int Feat;                /**< Number of features of the tile */
 	unsigned short int N;			/**< Size of the tile */
 	F16 *__restrict__ Out;			/**< Pointer to output tile */
 } KerSoftMax_fp16_T;
@@ -182,63 +220,64 @@ typedef struct {
 /******************************************************************************************************************************/
 
 typedef struct {
-        F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
-        F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
-        F16 *__restrict__ Xin;          	/**< Pointer to In state, Dim=DimIn */
-        unsigned short int DimState;            /**< State dimension */
-        unsigned short int DimIn;               /**< Input dimension */
-        F16 *__restrict__ Wf;           	/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bf;                  /**< Pointer to Forget gate bias */
-        F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
-        unsigned short int Nout;                /**< Number of output produced in StateInOut */
-        unsigned short int OutBase;             /**< Index of first output produced in StateInOut */
-        char FirstOut;                          /**< 1 if first out of one cell to eval */
-        char FirstCell;                         /**< 1 if first cell of a group of cell */
-        char Reset;                             /**< 1 if RNN State has to be reset */
+	F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
+	F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
+	F16 *__restrict__ Xin;          	/**< Pointer to In state, Dim=DimIn */
+	unsigned short int DimState;            /**< State dimension */
+	unsigned short int DimIn;               /**< Input dimension */
+	F16 *__restrict__ Wf;           	/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bf;                  /**< Pointer to Forget gate bias */
+	F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;                /**< Number of output produced in StateInOut */
+	unsigned short int OutBase;             /**< Index of first output produced in StateInOut */
+	char FirstOut;                          /**< 1 if first out of one cell to eval */
+	char FirstCell;                         /**< 1 if first cell of a group of cell */
+	char Reset;                             /**< 1 if RNN State has to be reset */
 } KerRNN_fp16_T;
 
 typedef struct {
-        F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
-        F16 *__restrict__ CInOut;       	/**< Pointer to In/Out State C (LSTM), DimIn = DimOut = DimState */
-        F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (2*DimState+DimIn)   */
-        F16 *__restrict__ Xin;          	/**< Pointer to In state, Dim=DimIn */
-        unsigned short int DimState;            /**< State dimension */
-        unsigned short int DimIn;               /**< Input dimension */
-        F16 *__restrict__ Wf;           	/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bf;                  /**< Pointer to Forget gate bias */
-        F16 *__restrict__ Wi;           	/**< Pointer to Input gate (whether to write cell) weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bi;                  /**< Pointer to Input gate bias */
-        F16 *__restrict__ Wg;           	/**< Pointer to Gate gate (how much to write to cell) weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bg;                  /**< Pointer to Gate gate bias */
-        F16 *__restrict__ Wo;           	/**< Pointer to Output gate (how much to reveal cell) weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bo;                  /**< Pointer to Output gate bias */
-        F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
-        unsigned short int Nout;                /**< Number of output produced in StateInOut and CInOut */
-        unsigned short int OutBase;             /**< Index of first output produced in StateInOut and CInOut*/
-        char FirstOut;                          /**< 1 if first out of one cell to eval */
-        char FirstCell;                         /**< 1 if first cell of a group of cell */
-        char Reset;                             /**< If 1 LSTM State is reset */
+	F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
+	F16 *__restrict__ CInOut;       	/**< Pointer to In/Out State C (LSTM), DimIn = DimOut = DimState */
+	F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (2*DimState+DimIn)   */
+	F16 *__restrict__ Xin;          	/**< Pointer to In state, Dim=DimIn */
+	unsigned short int DimState;            /**< State dimension */
+	unsigned short int DimIn;               /**< Input dimension */
+	F16 *__restrict__ Wf;           	/**< Pointer to Forget gate (whether to erase cell) weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bf;                  /**< Pointer to Forget gate bias */
+	F16 *__restrict__ Wi;           	/**< Pointer to Input gate (whether to write cell) weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bi;                  /**< Pointer to Input gate bias */
+	F16 *__restrict__ Wg;           	/**< Pointer to Gate gate (how much to write to cell) weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bg;                  /**< Pointer to Gate gate bias */
+	F16 *__restrict__ Wo;           	/**< Pointer to Output gate (how much to reveal cell) weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bo;                  /**< Pointer to Output gate bias */
+	F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;                /**< Number of output produced in StateInOut and CInOut */
+	unsigned short int OutBase;             /**< Index of first output produced in StateInOut and CInOut*/
+	char FirstOut;                          /**< 1 if first out of one cell to eval */
+	char FirstCell;                         /**< 1 if first cell of a group of cell */
+	char Reset;                             /**< If 1 LSTM State is reset */
 } KerLSTM_fp16_T;
 
 typedef struct {
-        F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
-        F16 *__restrict__ Xin;         	 	/**< Pointer to In state, Dim=DimIn */
-        F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
-        unsigned short int DimState;            /**< State dimension */
-        unsigned short int DimIn;               /**< Input dimension */
-        F16 *__restrict__ Wr;           	/**< Pointer to R gate weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Br;                  /**< Pointer to R gate bias */
-        F16 *__restrict__ Wz;           	/**< Pointer to Z gate weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bz;                  /**< Pointer to Z gate bias */
-        F16 *__restrict__ Wh;           	/**< Pointer to H gate weights, Dim=[DimState+DimIn,DimState] */
-        F16 * __restrict__ Bh;                  /**< Pointer to H gate bias */
-        F16 *__restrict__ Sbuff;        	/**< Pointer to Ht buffer, Dim=[DimState] */
-        F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
-        unsigned short int Nout;                /**< Number of output produced in StateInOut */
-        unsigned short int OutBase;             /**< Index of first output produced in StateInOut */
-        char FirstOut;                          /**< 1 if first out of one cell to eval */
-        char FirstCell;                         /**< 1 if first cell of a group of cell */
-        char Reset;                             /**< If 1 GRU State is reset */
+	F16 *__restrict__ StateInOut;   	/**< Pointer to In/Out state, Dim=DimState   */
+	F16 *__restrict__ Xin;         	 	/**< Pointer to In state, Dim=DimIn */
+	F16 *__restrict__ State;        	/**< Pointer to to a copy of state with extra space for in (DimState+DimIn)   */
+	unsigned short int DimState;            /**< State dimension */
+	unsigned short int DimIn;               /**< Input dimension */
+	F16 *__restrict__ Wr;           	/**< Pointer to R gate weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Br;                  /**< Pointer to R gate bias */
+	F16 *__restrict__ Wz;           	/**< Pointer to Z gate weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bz;                  /**< Pointer to Z gate bias */
+	F16 *__restrict__ Wh;           	/**< Pointer to H gate weights, Dim=[DimState+DimIn,DimState] */
+	F16 * __restrict__ Bwh;                  /**< Pointer to H gate bias */
+	F16 * __restrict__ Brh;                  /**< Pointer to H gate bias */
+	F16 *__restrict__ Sbuff;        	/**< Pointer to Ht buffer, Dim=[DimState] */
+	F16 *__restrict__ Hout;         	/**< Pointer to Hout in case sequence must be exposed, null otherwise */
+	unsigned short int Nout;                /**< Number of output produced in StateInOut */
+	unsigned short int OutBase;             /**< Index of first output produced in StateInOut */
+	char FirstOut;                          /**< 1 if first out of one cell to eval */
+	char FirstCell;                         /**< 1 if first cell of a group of cell */
+	char Reset;                             /**< If 1 GRU State is reset */
 } KerGRU_fp16_T;
 
 
@@ -368,6 +407,36 @@ extern void KerConvDWNxMStrideSxSy_fp16(KerConv_fp16_T *Arg);
 
 extern void KerConvDWNxMDxDyStrideSxSy_fp16(KerConv_fp16_T *Arg);
 
+/* Im2Col based implementation for 2D and 1D conv */
+
+/* CHW, out chan parallel */
+extern void KerPar_MM_Conv1D_fp16(Ker_MM_Conv_fp16_T *Arg);
+extern void KerPar_MM_Conv1D_ReLU_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv1D_DxDy_fp16(Ker_MM_Conv_fp16_T *Arg);
+extern void KerPar_MM_Conv1D_DxDy_ReLU_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv2D_fp16(Ker_MM_Conv_fp16_T *Arg);
+extern void KerPar_MM_Conv2D_ReLU_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv2D_DxDy_fp16(Ker_MM_Conv_fp16_T *Arg);
+extern void KerPar_MM_Conv2D_DxDy_ReLU_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+/* HWC, out chan parallel */
+extern void KerPar_MM_Conv1D_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv1D_DxDy_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv1x1_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv2D_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+extern void KerPar_MM_Conv2D_DxDy_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+/* HWC, parallel along W axis, to be used when in feat is < 8 */
+extern void Ker_MM_Conv2D_HWC_fp16(Ker_MM_Conv_fp16_T *Arg);
+
+
 /******************************************************************************************************************************/
 /**************** ACTIVATIONS *************************************************************************************************/
 /******************************************************************************************************************************/
@@ -378,13 +447,9 @@ extern void KerConvDWNxMDxDyStrideSxSy_fp16(KerConv_fp16_T *Arg);
 extern void KerParReLU_fp16(KerActivation_fp16_T *Arg);
 extern void KerParReLUN_fp16(KerActivation_fp16_T *Arg);
 extern void KerParSwish_fp16(KerActivation_fp16_T *Arg);
+extern void KerParTanh_fp16(KerActivation_fp16_T *Arg);
 extern void KerParSigmoid_fp16(KerActivation_fp16_T *Arg);
 extern void KerParLeakyReLU_fp16(KerActivation_fp16_T *Arg);
-
-/* One Feature map is evaluated in parallel on all cores.
-   Feature maps of half precision floats (_fp16)
-*/
-extern void KerReLU_fp16(KerActivation_fp16_T *Arg);
 
 /******************************************************************************************************************************/
 /**************** MAX/AVG POOLING WITH OPTIONAL ReLU **************************************************************************/
@@ -421,6 +486,10 @@ extern void KerPool2x2Stride2_fp16(KerPool_fp16_T *Arg);
 extern void KerPoolNxNStrideS_fp16(KerPool_fp16_T *Arg);
 extern void KerPoolNxMStrideSxSy_fp16(KerPool_fp16_T *Arg);
 
+extern void KerParMaxPoolNxMStrideSxSy_HWC_fp16(Ker_MM_Pool_fp16_T *Arg);
+extern void KerParAvgPoolNxMStrideSxSy_HWC_fp16(Ker_MM_Pool_fp16_T *Arg);
+
+
 /******************************************************************************************************************************/
 /**************** FULLY CONNECTED *********************************************************************************************/
 /******************************************************************************************************************************/
@@ -435,6 +504,7 @@ extern void KerParLinearLayerReLU_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerReLUN_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerSwish_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerSigmoid_fp16(KerLinear_fp16_T *Arg);
+extern void KerParLinearLayerTanh_fp16(KerLinear_fp16_T *Arg);
 extern void KerParLinearLayerLeakyReLU_fp16(KerLinear_fp16_T *Arg);
 
 /******************************************************************************************************************************/
@@ -459,6 +529,9 @@ extern void KerParMatMulSwishSxSy_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoid_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoidSxSy_fp16(KerMatMul_fp16_T *Arg);
 
+extern void KerParMatMulTanh_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTanhSxSy_fp16(KerMatMul_fp16_T *Arg);
+
 extern void KerParMatMulLeakyrelu_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulLeakyreluSxSy_fp16(KerMatMul_fp16_T *Arg);
 
@@ -467,18 +540,8 @@ extern void KerParMatMulSmallFeatReLU_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSmallFeatReLUN_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSwishSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulSigmoidSmallFeat_fp16(KerMatMul_fp16_T *Arg);
+extern void KerParMatMulTanhSmallFeat_fp16(KerMatMul_fp16_T *Arg);
 extern void KerParMatMulLeakyreluSmallFeat_fp16(KerMatMul_fp16_T *Arg);
-
-extern void CNN_ParTranspose_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_ParTransposeSxSy_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_Transpose_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_TransposeSxSy_fp16(KerMatTranspose_fp16_T *Arg);
-
-extern void CNN_MatPermCHW2CWH_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_MatPermCHW2HWC_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_MatPermCHW2WHC_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_MatPermCHW2WCH_fp16(KerMatTranspose_fp16_T *Arg);
-extern void CNN_MatPermCHW2HCW_fp16(KerMatTranspose_fp16_T *Arg);
 
 /******************************************************************************************************************************/
 /******************* SOFT MAX *************************************************************************************************/

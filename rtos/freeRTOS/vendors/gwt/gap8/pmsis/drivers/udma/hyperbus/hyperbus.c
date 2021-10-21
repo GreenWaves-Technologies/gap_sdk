@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
+#define PI_INLINE_HYPER_LVL_0 static inline
 #include "pmsis.h"
 #include "pmsis/implem/hal/hal.h"
 
@@ -42,6 +42,9 @@
 static uint8_t __hyper_periph_open = 0;
 
 extern struct hyper_driver_fifo *__global_hyper_driver_fifo[];
+
+extern pi_task_t *__global_hyper_fifo_head;
+extern pi_task_t *__global_hyper_fifo_tail;
 
 static uint32_t read_val = 0, write_val = 0;
 
@@ -89,19 +92,23 @@ int32_t pi_hyper_open(struct pi_device *device)
         {
             return -1;
         }
-        fifo->fifo_head = NULL;
-        fifo->fifo_tail = NULL;
+        __global_hyper_fifo_head = NULL;
+        __global_hyper_fifo_tail = NULL;
         fifo->device_id = config->id;
         fifo->pending_emu_size_2d = 0;
         __global_hyper_driver_fifo[conf->id] = fifo;
 
         /* Set handlers. */
+#if CHIP_VERSION == 3
+        NVIC_EnableIRQ(29);
+        NVIC_EnableIRQ(30);
+#else
         pi_fc_event_handler_set(SOC_EVENT_UDMA_HYPER_RX(conf->id), hyper_handler);
         pi_fc_event_handler_set(SOC_EVENT_UDMA_HYPER_TX(conf->id), hyper_handler);
         /* Enable SOC events propagation to FC. */
         hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_HYPER_RX(conf->id));
         hal_soc_eu_set_fc_mask(SOC_EVENT_UDMA_HYPER_TX(conf->id));
-
+#endif
         /* Disable UDMA CG. */
         udma_init_device(UDMA_HYPER_ID(conf->id));
 
@@ -142,132 +149,4 @@ void pi_hyper_close(struct pi_device *device)
     }
     /* Free allocated config. */
     pi_free(conf);
-}
-
-void pi_hyper_read(struct pi_device *device, uint32_t hyper_addr,
-                   void *buffer, uint32_t size)
-{
-    pi_task_t task_block;
-    pi_task_block(&task_block);
-
-    pi_hyper_read_async(device, hyper_addr, buffer, size, &task_block);
-
-    pi_task_wait_on(&task_block);
-    pi_task_destroy(&task_block);
-}
-
-void pi_hyper_read_async(struct pi_device *device, uint32_t hyper_addr,
-                         void *buffer, uint32_t size, struct pi_task *callback)
-{
-    struct pi_hyper_conf *conf = device->config;
-    uint32_t ext_addr = hyper_addr;
-    ext_addr += (conf->type == PI_HYPER_TYPE_FLASH) ? (uint32_t) REG_MBR1 : 0;
-    struct hyper_transfer_s transfer = {0};
-    transfer.hyper_addr = ext_addr;
-    transfer.buffer = buffer;
-    transfer.size = size;
-    transfer.stride = 0;
-    transfer.channel = RX_CHANNEL;
-    transfer.device_id = conf->id;
-    HYPER_TRACE("HYPER(%d) RX Transfer : %x %x %d %x\n",
-                transfer.device_id, transfer.hyper_addr, transfer.buffer, transfer.size, conf->type);
-    __pi_hyper_copy(transfer.device_id, &transfer, callback);
-}
-
-void pi_hyper_write(struct pi_device *device, uint32_t hyper_addr,
-                    void *buffer, uint32_t size)
-{
-    pi_task_t task_block;
-    pi_task_block(&task_block);
-
-    pi_hyper_write_async(device, hyper_addr, buffer, size, &task_block);
-
-    pi_task_wait_on(&task_block);
-    pi_task_destroy(&task_block);
-}
-
-void pi_hyper_write_async(struct pi_device *device, uint32_t hyper_addr,
-                          void *buffer, uint32_t size, struct pi_task *callback)
-{
-    struct pi_hyper_conf *conf = (struct pi_hyper_conf *)device->config;
-    uint32_t ext_addr = hyper_addr;
-    ext_addr += (conf->type == PI_HYPER_TYPE_FLASH) ? (uint32_t) REG_MBR1 : 0;
-    struct hyper_transfer_s transfer = {0};
-    transfer.hyper_addr = ext_addr;
-    transfer.buffer = buffer;
-    transfer.size = size;
-    transfer.stride = 0;
-    transfer.channel = TX_CHANNEL;
-    transfer.device_id = conf->id;
-    HYPER_TRACE("HYPER(%d) TX Transfer : %x %x %d %x\n",
-                transfer.device_id, transfer.hyper_addr, transfer.buffer, transfer.size, conf->type);
-    __pi_hyper_copy(transfer.device_id, &transfer, callback);
-}
-
-void pi_hyper_read_2d(struct pi_device *device, uint32_t hyper_addr,
-                      void *buffer, uint32_t size,
-                      uint32_t stride, uint32_t length)
-{
-    pi_task_t task_block;
-    pi_task_block(&task_block);
-
-    pi_hyper_read_2d_async(device, hyper_addr, buffer, size, stride, length, &task_block);
-
-    pi_task_wait_on(&task_block);
-    pi_task_destroy(&task_block);
-}
-
-void pi_hyper_read_2d_async(struct pi_device *device, uint32_t hyper_addr,
-                            void *buffer, uint32_t size,
-                            uint32_t stride, uint32_t length, struct pi_task *callback)
-{
-    struct pi_hyper_conf *conf = (struct pi_hyper_conf *) device->config;
-    uint32_t ext_addr = hyper_addr;
-    ext_addr += (conf->type == PI_HYPER_TYPE_FLASH) ? (uint32_t) REG_MBR1 : 0;
-    struct hyper_transfer_s transfer = {0};
-    transfer.hyper_addr = ext_addr;
-    transfer.buffer = buffer;
-    transfer.size = size;
-    transfer.stride = stride;
-    transfer.length = length;
-    transfer.channel = RX_CHANNEL;
-    transfer.device_id = conf->id;
-    HYPER_TRACE("HYPER(%d) RX Transfer : %x %x %d %d %d %x\n",
-                transfer.device_id, transfer.hyper_addr, transfer.buffer, transfer.size,
-                transfer.stride, transfer.length, conf->type);
-    __pi_hyper_copy_2d(conf->id, &transfer, callback);
-}
-
-void pi_hyper_write_2d(struct pi_device *device, uint32_t hyper_addr,
-                       void *buffer, uint32_t size,
-                       uint32_t stride, uint32_t length)
-{
-    pi_task_t task_block;
-    pi_task_block(&task_block);
-
-    pi_hyper_write_2d_async(device, hyper_addr, buffer, size, stride, length, &task_block);
-
-    pi_task_wait_on(&task_block);
-    pi_task_destroy(&task_block);
-}
-
-void pi_hyper_write_2d_async(struct pi_device *device, uint32_t hyper_addr,
-                             void *buffer, uint32_t size,
-                             uint32_t stride, uint32_t length, struct pi_task *callback)
-{
-    struct pi_hyper_conf *conf = device->config;
-    uint32_t ext_addr = hyper_addr;
-    ext_addr += (conf->type == PI_HYPER_TYPE_FLASH) ? (uint32_t) REG_MBR1 : 0;
-    struct hyper_transfer_s transfer = {0};
-    transfer.hyper_addr = ext_addr;
-    transfer.buffer = buffer;
-    transfer.size = size;
-    transfer.stride = stride;
-    transfer.length = length;
-    transfer.channel = TX_CHANNEL;
-    transfer.device_id = conf->id;
-    HYPER_TRACE("HYPER(%d) TX Transfer : %x %x %d %d %d %x\n",
-                transfer.device_id, transfer.hyper_addr, transfer.buffer, transfer.size,
-                transfer.stride, transfer.length, conf->type);
-    __pi_hyper_copy_2d(conf->id, &transfer, callback);
 }

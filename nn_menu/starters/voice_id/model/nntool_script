@@ -1,0 +1,7 @@
+adjust
+fusions --scale8
+fquant
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+save_state

@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \ingroup groupDrivers
  *
@@ -181,4 +185,7 @@ int pi_asrc_convert_status(struct pi_device *device, struct pi_task *task);
  * @}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_DRIVERS_ASRC_H__ */

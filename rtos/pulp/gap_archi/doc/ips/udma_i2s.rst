@@ -1,4 +1,5 @@
-Input file: README.md
+.. 
+   Input file: README.md
 
 Register map
 ^^^^^^^^^^^^

@@ -118,6 +118,7 @@ public:
   static void handle_pending_word(void *__this, vp::clock_event *event);
   static void handle_check_state(void *__this, vp::clock_event *event);
   static void handle_pending_channel(void *__this, vp::clock_event *event);
+  static void handle_push_data(void *__this, vp::clock_event *event);
   void check_state();
   void push_data(uint8_t *data, int size);
 
@@ -131,6 +132,7 @@ protected:
 private:
   void trans_cfg_req(uint64_t reg_offset, int size, uint8_t *value, bool is_write);
   void enqueue_transfer(uint32_t ext_addr, uint32_t l2_addr, uint32_t transfer_size, uint32_t length, uint32_t stride, bool is_write, int address_space);
+  void check_read_req_ready();
 
   vp_regmap_udma_hyper regmap;
 
@@ -141,6 +143,7 @@ private:
   vp::clock_event *pending_word_event;
   vp::clock_event *check_state_event;
   vp::clock_event *pending_channel_event;
+  vp::clock_event *push_data_event;
   int64_t next_bit_cycle;
   vp::io_req *pending_req;
 
@@ -152,8 +155,14 @@ private:
   Udma_queue<Hyper_read_request> *read_req_ready;
   Udma_queue<Hyper_read_request> *read_req_waiting;
 
+  std::queue<uint32_t> push_data_fifo_data;
+  std::queue<int> push_data_fifo_size;
+  std::queue<int64_t> push_data_fifo_cycles;
+
+  bool iter_2d;
   int transfer_size;
-  hyper_state_e state;
+  vp::reg_32 state;
+  vp::reg_8 active;
   hyper_channel_state_e channel_state;
   int delay;
   int ca_count;

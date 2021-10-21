@@ -40,7 +40,7 @@ class AveragePoolingFloat(KernelBase):
             qrec = AllFloatQRec()
 
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
+        in_dims, out_dims = params.in_dims[0], params.out_dims[0]
         filter_sz = params.filter.h * params.filter.w
 
         calc_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
@@ -98,7 +98,7 @@ class MaxPoolingFloat(KernelBase):
             qrec = AllFloatQRec()
 
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype="float")[0]
-        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
+        in_dims, out_dims = params.in_dims[0], params.out_dims[0]
 
         calc_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
             'float') else np.float32

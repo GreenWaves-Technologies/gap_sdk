@@ -1,0 +1,14 @@
+set log_level INFO
+set debug true
+adjust
+fusions --scale8
+imageformat input_1 rgb888 offset_int8
+set l2_ram_ext_managed false
+set l3_ram_ext_managed false
+set graph_reorder_constant_in true
+set graph_const_exec_from_flash true
+#set graph_trace_exec true
+#set graph_produce_node_names true
+#set graph_produce_operinfos true
+#set graph_monitor_cycles true
+save_state

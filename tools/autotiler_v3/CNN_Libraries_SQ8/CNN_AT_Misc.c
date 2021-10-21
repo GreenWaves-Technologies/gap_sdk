@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
@@ -6,6 +22,7 @@
 
 #include "Gap.h"
 #include "../CNN_Libraries_fp16/CNN_FloatType.h"
+#include "CNN_AT_Misc.h"
 
 
 #ifdef __pulp__
@@ -258,6 +275,7 @@ typedef struct {
         short int Feat;                 /**< Number of features */
         short int Size;                 /**< Tile data type size in bytes */
         short int Pad;                  /**< Number of lines to be cleared at bottom of each tile if horizontal tile, at right if vertical */
+        short int PadValue;             /**< Number of lines to be cleared at bottom of each tile if horizontal tile, at right if vertical */
         short int Orientation;          /**< Tile orientation. 0: Horizontal, 1: vertical */
 } AT_KerTileClear_T;
 
@@ -270,6 +288,8 @@ static void AT_KerParTileClear(AT_KerTileClear_T *Arg)
 	int Feat = Arg->Feat;
 	int Size = Arg->Size;
 	int Pad = Arg->Pad;
+	int PadVal = Arg->PadValue;
+	int PadVal4 = PadVal | (PadVal<<8) | (PadVal<<16) | (PadVal<<24);
 	
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(Feat);
@@ -280,15 +300,53 @@ static void AT_KerParTileClear(AT_KerTileClear_T *Arg)
 		int ClrSize = W*Pad*Size;
        		for (unsigned int i=First; i<Last; i++) {
 			char *Base = (In + i*W*H*Size + W*(H-Pad)*Size);
-			for (unsigned j=0; j<(ClrSize/4); j++) ((int*) Base)[j] = 0;
-			for (unsigned j=(ClrSize/4)*4; j<ClrSize; j++) Base[j] = 0;
+			for (unsigned j=0; j<(ClrSize/4); j++) ((int*) Base)[j] = PadVal4;
+			for (unsigned j=(ClrSize/4)*4; j<ClrSize; j++) Base[j] = PadVal;
 		}
 	} else {
 		int ClrSize = Pad*Size;
        		for (unsigned int i=First; i<Last; i++) {
 			char *Base = (In + i*W*H*Size + (W-Pad)*Size);
 			for (unsigned j=0; j<H; j++)
-				for (unsigned k=0; k<ClrSize; k++) Base[W*Size*j + k] = 0;
+				for (unsigned k=0; k<ClrSize; k++) Base[W*Size*j + k] = PadVal;
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+static void AT_KerParTileClear_HWC(AT_KerTileClear_T *Arg)
+
+{
+	char * __restrict__ In = Arg->In;
+	int W = Arg->W;
+	int H = Arg->H;
+	int Feat = Arg->Feat;
+	int Size = Arg->Size;
+	int Pad = Arg->Pad;
+	int PadVal = Arg->PadValue;
+	int PadVal4 = PadVal | (PadVal<<8) | (PadVal<<16) | (PadVal<<24);
+	
+	int CoreId = gap_coreid();
+
+	if (Arg->Orientation == 0) { /* Horizontal */
+		int Chunk = ChunkSize(Pad*W);
+		int First = Chunk*CoreId;
+		int Last = Min(First+Chunk, Pad*W);
+		int ClrSize = Feat;
+       		for (int i=First; i<Last; i++) {
+			char *Base = (In + W*(H-Pad)*Feat*Size + i*Feat*Size);
+			for (unsigned j=0; j<(ClrSize/4); j++) ((int*) Base)[j] = PadVal4;
+			for (unsigned j=(ClrSize/4)*4; j<ClrSize; j++) Base[j] = PadVal;
+		}
+	} else {
+		int Chunk = ChunkSize(H);
+		int First = Chunk*CoreId;
+		int Last = Min(First+Chunk, H);
+		int ClrSize = Pad*Feat;
+       		for (int i=First; i<Last; i++) {
+			char *Base = (In + W*i*Feat*Size + (W-Pad)*Feat*Size);
+			for (unsigned j=0; j<(ClrSize/4); j++) ((int*) Base)[j] = PadVal4;
+			for (unsigned j=(ClrSize/4)*4; j<ClrSize; j++) Base[j] = PadVal;
 		}
 	}
 	gap_waitbarrier(0);
@@ -302,6 +360,7 @@ static void AT_KerTileClear(AT_KerTileClear_T *Arg)
 	int H = Arg->H;
 	int Size = Arg->Size;
 	int Pad = Arg->Pad;
+	int PadVal = Arg->PadValue;
 	
 	unsigned int CoreId = gap_coreid();
 	if (Arg->Orientation == 0) { /* Horizontal */
@@ -310,7 +369,7 @@ static void AT_KerTileClear(AT_KerTileClear_T *Arg)
 		unsigned int First = Chunk*CoreId;
 		unsigned int Last = Min(First+Chunk, ClrSize);
 		char *Base = (In + W*(H-Pad)*Size);
-       		for (unsigned int i=First; i<Last; i++) Base[i] = 0;
+       		for (unsigned int i=First; i<Last; i++) Base[i] = PadVal;
 	} else {
 		unsigned int Chunk = ChunkSize(H);
 		unsigned int First = Chunk*CoreId;
@@ -318,7 +377,7 @@ static void AT_KerTileClear(AT_KerTileClear_T *Arg)
 		char *Base = (In + (W-Pad)*Size);
 		int ClrSize = Pad*Size;
        		for (unsigned int i=First; i<Last; i++) 
-			for (unsigned k=0; k<ClrSize; k++) Base[W*Size*i + k] = 0;
+			for (unsigned k=0; k<ClrSize; k++) Base[W*Size*i + k] = PadVal;
 	}
 	gap_waitbarrier(0);
 }
@@ -330,20 +389,28 @@ void AT_TileClear(
 	int Feat,		/* Number of features */
 	int Size,		/* Tile element size in bytes */
 	int Pad,		/* Height or width of the area to be 0 padded */
-	int Orientation		/* 0: Horizontal tile, 1: Vertical tile */
+	int PadValue,		/* Pad Value */
+	int Orientation,	/* 0: Horizontal tile, 1: Vertical tile */
+        int IsHWC               /* 0: CHW, 1: HWC */
 	)
 
 {
 	volatile AT_KerTileClear_T Arg;
 
-	Arg.In = In; Arg.W = W; Arg.H = H; Arg.Size = Size; Arg.Feat = Feat; Arg.Pad = Pad; Arg.Orientation = Orientation;
+	Arg.In = In; Arg.W = W; Arg.H = H; Arg.Size = Size; Arg.Feat = Feat; Arg.Pad = Pad; Arg.PadValue = PadValue; Arg.Orientation = Orientation;
 
 	if (Feat > 1) {
-		AT_FORK(gap_ncore(), (void *) AT_KerParTileClear, (void *) &Arg);
-		__CALL(AT_KerParTileClear, (AT_KerTileClear_T *) &Arg);
+		if (IsHWC) {
+			AT_FORK(gap_ncore(), (void *) AT_KerParTileClear_HWC, (void *) &Arg);
+			__CALL(AT_KerParTileClear_HWC, (AT_KerTileClear_T *) &Arg);
+		} else {
+			AT_FORK(gap_ncore(), (void *) AT_KerParTileClear, (void *) &Arg);
+			__CALL(AT_KerParTileClear, (AT_KerTileClear_T *) &Arg);			
+		}
 	} else {
 		AT_FORK(gap_ncore(), (void *) AT_KerTileClear, (void *) &Arg);
 		__CALL(AT_KerTileClear, (AT_KerTileClear_T *) &Arg);
 	}
 }
+
 #pragma GCC diagnostic pop

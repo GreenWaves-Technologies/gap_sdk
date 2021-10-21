@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.others import TransposeParameters
 import logging
 
 from graph.types import GatherParameters, NNEdge, SplitParameters
@@ -63,15 +64,28 @@ class GatherToSplitMatch(Matcher):
                 shapes.append(in_shape_without_axis)
                 out_edges.append(G.out_edges(gather.name))
                 G.remove(gather)
-            params = SplitParameters("%s_split"%in_edge[0].name, act_slices=splits, out_shapes=shapes, axis=axis)
+            split_name = G.unique_name(f"{in_edge[0].name}_split")
+            params = SplitParameters(split_name, act_slices=splits, out_shapes=shapes, axis=axis)
             if axis != 0:
                 trans = [axis] + list(range(0, axis)) + list(range(axis, len(in_shape)))
-                params.transpose_out = [[trans.index(idx) for idx in range(len(trans))]]
-                params.transpose_in = [trans]
-            for idx, edges in enumerate(out_edges):
-                for edge in edges:
-                    G.add_edge(NNEdge(from_node=params, to_node=edge.to_node, from_idx=idx, to_idx=edge.to_idx))
-            G.add_edge(NNEdge(from_node=in_edge[0], to_node=params, from_idx=in_edge[1]))
+                tin_params = TransposeParameters(
+                    G.unique_name(f"{split_name}_tin"),
+                    transpose=[trans]
+                )
+                G.add_edge(NNEdge(from_node=in_edge[0], to_node=tin_params, from_idx=in_edge[1]))
+                G.add_edge(NNEdge(from_node=tin_params, to_node=params))
+                for idx, edges in enumerate(out_edges):
+                    for edge in edges:
+                        tout_params = TransposeParameters(
+                            G.unique_name(f"{split_name}_tout{idx}"),
+                            transpose = [[trans.index(idx) for idx in range(len(trans))]])
+                        G.add_edge(NNEdge(from_node=params, to_node=tout_params, from_idx=idx))
+                        G.add_edge(NNEdge(from_node=tout_params, to_node=edge.to_node, to_idx=edge.to_idx))
+            else:
+                for idx, edges in enumerate(out_edges):
+                    for edge in edges:
+                        G.add_edge(NNEdge(from_node=params, to_node=edge.to_node, from_idx=idx, to_idx=edge.to_idx))
+                G.add_edge(NNEdge(from_node=in_edge[0], to_node=params, from_idx=in_edge[1]))
             has_modified_graph = True
 
         if set_identity:

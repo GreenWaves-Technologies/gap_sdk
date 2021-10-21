@@ -72,7 +72,7 @@ class PieceWiseSymmetricMult(KernelBase):
                 i1 = qrec.cache['scale_in_mul_biases_q'].apply_scales(in_tensors[0])
                 i2 = in_tensors[1].astype(np.int32)
 
-            out_tensor = scale_mul_biases_q.apply_scales(op(i1, i2, None))
+            out_tensor = scale_mul_biases_q.apply_scales(op(i1, i2, None)) + qrec.cache['add_bias_offset']
         return qrec.get_outputs(params, [qrec.out_qs[0].clip(out_tensor)], ktype="symmetric")
 
 
@@ -112,7 +112,7 @@ class PieceWiseSymmetric(KernelBase):
 
 @params_type(MatScaleFusionParameters)
 @qrec_type('symmetric', 'scaled')
-class MatSCaleSymmetric(KernelBase):
+class MatScaleSymmetric(KernelBase):
     @classmethod
     def execute(cls, params,
                 in_tensors,

@@ -1,4 +1,5 @@
-Input file: fe/ips/apb/apb_efuse_if/README.md
+.. 
+   Input file: fe/ips/apb/apb_efuse_if/README.md
 
 Register map
 ^^^^^^^^^^^^

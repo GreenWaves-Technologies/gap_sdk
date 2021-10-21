@@ -13,6 +13,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from copy import deepcopy
 
 from graph.types.base import NNEdge
 from graph.types.others import QuantizeParameters
@@ -50,7 +51,7 @@ class RemoveUnnecessaryQuantizeOperators(Matcher):
                 qrec = G.quantization.get(NodeId(node))
                 if not qrec:
                     continue
-                if qrec.in_qs[0] == qrec.out_qs[0]:
+                if deepcopy(qrec.in_qs[0]) == qrec.out_qs[0]:
                     modified_graph = True
                     LOG.info(
                         'removing quantize node %s from %s to %s',

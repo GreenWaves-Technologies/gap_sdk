@@ -55,3 +55,9 @@ class BackendHandler(Handler):
     @classmethod
     def _trim_axis(cls, axis, shape):
         return axis - sum([1 if dim is None else 0 for dim in shape[:axis:]])
+
+    @classmethod
+    def print_small(cls, tensor):
+        if tensor.size < 6:
+            return str(tensor)
+        return ""

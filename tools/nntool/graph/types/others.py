@@ -17,54 +17,72 @@ import logging
 
 import numpy as np
 from expressions.symbolic.basic import (Abs, Cos, Exp, Log, Max, Min, Neg, Pow,
-                                        Sin, Sqrt)
+                                        RSqrt, Sin, Sqrt)
 from graph.dim import Dim
 
 from .base import (CanFuseToExpression, ComparableParameters,
-                   InsensitiveToQuantization, NoSizeChangeParameters,
-                   Parameters, SensitiveToOrder, SingleInputAndOutput,
-                   Transposable, cls_op_name, expression_op)
+                   InsensitiveToQuantization, NNNodeRef,
+                   NoSizeChangeParameters, Parameters, SensitiveToOrder,
+                   SingleInputAndOutput, cls_op_name, expression_op, nargs, not_generated)
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
 @cls_op_name('transpose')
-class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
+class TransposeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
 
     def __init__(self, *args, transpose=None, block_search_up=False, block_search_down=False, **kwargs):
         super(TransposeParameters, self).__init__(*args, **kwargs)
-        self.transpose_in = [transpose]
+        self._transpose = tuple(transpose)
         self.block_search_up = block_search_up
         self.block_search_down = block_search_down
 
     @property
+    def transpose(self):
+        return self._transpose
+
+    @transpose.setter
+    def transpose(self, val):
+        self._transpose = val
+
+    @property
     def graph_anon_label(self):
-        return ['Transpose']
+        return ['Transpose', f'{self.transpose}']
+
+    @property
+    def graph_label(self):
+        return [f'{self.CLS_OP_NAME}({self.name})', f'{self.transpose}']
 
     def get_parameter_size(self):
         return 0
 
     def permute(self, val):
-        return [val[i] for i in self.transpose_in[0]]
+        return [val[i] for i in self.transpose]
 
     def does_nothing(self):
-        if not self.transpose_in or not self.transpose_in[0]:
+        if not self.transpose:
             return True
         if not self.in_dims or not self.in_dims[0]:
             return False
         shape = self.in_dims[0].shape
-        trans = self.transpose_in[0]
+        trans = self.transpose
         shape_idx = [idx if dim > 1 else None for idx, dim in enumerate(shape)]
         shape_trans = [shape_idx[idx]
                        for idx in trans if shape_idx[idx] is not None]
         return shape_trans == sorted(shape_trans)
 
-    def is_same_operation_as(self, other):
-        if self.transpose_in is None:
-            return other.transpose_in is None
-        if other.transpose_in is None:
-            return self.transpose_in is None
-        return tuple(self.transpose_in) == tuple(other.transpose_in)
+    @property
+    def is_not_generated(self):
+        return self.does_nothing()
+
+    def is_same_operation_as(self, G, other):
+        if not isinstance(other, TransposeParameters):
+            return False
+        if self.transpose is None:
+            return other.transpose is None
+        if other.transpose is None:
+            return self.transpose is None
+        return tuple(self.transpose) == tuple(other.transpose)
 
     @property
     def can_equalize(self):
@@ -75,35 +93,27 @@ class TransposeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuant
         cond_input_idx = [i for i, sz in enumerate(
             self.in_dims[0].shape) if sz != 1]
         real_transpose = [
-            i for i in self.transpose_in[0] if i in cond_input_idx]
+            i for i in self.transpose if i in cond_input_idx]
         cond_input_shape = [input_shape[i] for i in cond_input_idx]
         cond_transpose = [cond_input_idx.index(i) for i in real_transpose]
         return tuple(cond_input_shape), tuple(cond_transpose)
 
     @property
     def transpose_dimension(self):
-        if self._transpose_in is None:
+        if self._transpose is None:
             return 1
-        return len(self.transpose_in[0])
-
-    @property
-    def transpose_out(self):
-        return None
-
-    @transpose_out.setter
-    def transpose_out(self, val):
-        self._transpose_in = val
+        return len(self.transpose)
 
     def get_output_size(self, in_dims):
         out_dim = in_dims[0].clone()
-        if self.transpose_in:
-            out_dim = out_dim.transpose(self.transpose_in[0])
+        if self.transpose:
+            out_dim = out_dim.transpose(self.transpose)
         return [out_dim]
 
     def __str__(self):
         return "T {} {}".format(
-            self.transpose_in and ','.join(
-                [str(i) for i in self.transpose_in[0]]) or "None",
+            self.transpose and ','.join(
+                [str(i) for i in self.transpose]) or "None",
             self.at_options
         )
 
@@ -127,6 +137,40 @@ class CopyParameters(Parameters, InsensitiveToQuantization):
     def __str__(self):
         return ""
 
+@cls_op_name('expand')
+class ExpandParameters(Parameters, InsensitiveToQuantization):
+    def __init__(self, *args, shape=None, **kwargs):
+        super(ExpandParameters, self).__init__(*args, **kwargs)
+        self.shape = shape
+
+    def get_parameter_size(self):
+        return 0
+
+    @property
+    def can_equalize(self):
+        return False
+
+    def get_output_size(self, in_dims):
+        in_shape = list(in_dims[0].shape)
+        exp_shape = list(self.shape)
+        if len(in_shape) > len(exp_shape):
+            exp_shape = in_shape[:(len(in_shape) - len(exp_shape)):] + exp_shape
+        elif len(exp_shape) > len(in_shape):
+            in_shape = exp_shape[:(len(exp_shape) - len(in_shape)):] + in_shape
+        out_shape = []
+        for exp_dim, in_dim in zip(exp_shape, in_shape):
+            if in_dim == 1:
+                out_shape.append(exp_dim)
+            elif exp_dim == 1:
+                out_shape.append(in_dim)
+            elif in_dim != exp_dim:
+                raise ValueError(f'{self.name} invalid expand {in_dims[0]} {self.shape}')
+            else:
+                out_shape.append(in_dim)
+        return [Dim.unnamed(out_shape)]
+
+    def __str__(self):
+        return f"{self.shape}"
 
 @cls_op_name('quantize')
 class QuantizeParameters(Parameters):
@@ -175,7 +219,9 @@ class ReverseParameters(Parameters, InsensitiveToQuantization):
 
 
 @cls_op_name('concat')
-class ConcatParameters(Transposable):
+@nargs({'*'})
+@not_generated
+class ConcatParameters(Parameters, SensitiveToOrder):
 
     def __init__(self, *args, axis=None, axis_hint=None, **kwargs):
         super(ConcatParameters, self).__init__(*args, **kwargs)
@@ -206,27 +252,21 @@ class ConcatParameters(Transposable):
         return False
 
     def get_output_size(self, in_dims):
-        if self.transpose_in:
-            in_dims = [(in_dim.clone() if self.transpose_in[idx] is None
-                        else in_dim.clone().transpose(self.transpose_in[idx]))
-                       for idx, in_dim in enumerate(in_dims)]
         if in_dims[0].is_named and self._axis_hint:
             self._axis = in_dims[0].get_order_idx(self._axis_hint)
         out_dim = Dim.combine([in_dim for in_dim in in_dims], self.axis)
-        if self.transpose_out:
-            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     def __str__(self):
-        return "A {} {} {}".format(
+        return "A {} {}".format(
             self.axis,
-            Transposable.__str__(self),
             self.at_options
         )
 
 
 @cls_op_name('split')
-class SplitParameters(Transposable):
+@not_generated
+class SplitParameters(Parameters, SensitiveToOrder):
 
     def __init__(self, *args,
                  act_slices=None,
@@ -238,6 +278,10 @@ class SplitParameters(Transposable):
         self.act_slices = act_slices
         self.out_shapes = out_shapes
         self.axis = axis
+
+    def __call__(self, *args, **kwargs):
+        noderef = super(SplitParameters, self).__call__(*args, **kwargs)
+        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(len(self.act_slices)))
 
     @property
     def graph_label(self):
@@ -299,9 +343,6 @@ class SplitParameters(Transposable):
 
     def get_output_size(self, in_dims):
         out_size = [Dim.unnamed(shape) for shape in self.out_shapes]
-        if self.transpose_out:
-            out_size = [dim if self.transpose_out[idx] is None else dim.transpose(self.transpose_out[idx])
-                        for idx, dim in enumerate(out_size)]
         return out_size
 
     @property
@@ -309,9 +350,8 @@ class SplitParameters(Transposable):
         return False
 
     def __str__(self):
-        return "A {} {} {}".format(
+        return "A {} {}".format(
             self.axis,
-            Transposable.__str__(self),
             self.at_options
         )
 
@@ -347,6 +387,7 @@ class GatherParameters(Parameters, SingleInputAndOutput, SensitiveToOrder, Insen
 
     def __str__(self):
         return "A %s I %s" % (self.axis, self.indices)
+
 
 @cls_op_name('strided_slice')
 class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParameters, InsensitiveToQuantization):
@@ -387,7 +428,7 @@ class StridedSliceParameters(Parameters, SingleInputAndOutput, ComparableParamet
         else:
             return slce[0] - slce[1] == 2 and slce[2] == -1
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         if not isinstance(other, StridedSliceParameters):
             return False
         if tuple(self.out_shape) != tuple(other.out_shape):
@@ -459,6 +500,7 @@ class PadParameters(Parameters, SingleInputAndOutput):
         return "PAD {}".format(self.padding)
 
 
+@nargs({2})
 class BinaryOpParameters(CanFuseToExpression, Parameters):
 
     def __new__(cls, *args, op_type="maximum", **kwargs):
@@ -467,6 +509,7 @@ class BinaryOpParameters(CanFuseToExpression, Parameters):
                 if op_type == subcls.CLS_OP_NAME:
                     return super(BinaryOpParameters, cls).__new__(subcls)
             raise ValueError(f'binary op {op_type} not found')
+        return super(BinaryOpParameters, cls).__new__(cls, **kwargs)
 
     def __init__(self, *args, op_type="maximum", **kwargs):
         super(BinaryOpParameters, self).__init__(*args, **kwargs)
@@ -556,6 +599,12 @@ class SqrtOpParameters(UnaryOpParameters):
     pass
 
 
+@cls_op_name('rsqrt')
+@expression_op(RSqrt)
+class RSqrtOpParameters(UnaryOpParameters):
+    pass
+
+
 @cls_op_name('exp')
 @expression_op(Exp)
 class ExpOpParameters(UnaryOpParameters):
@@ -592,77 +641,13 @@ class NegOpParameters(UnaryOpParameters, InsensitiveToQuantization):
     pass
 
 
-# @cls_op_name('global')
-# class GlobalPoolingParameters(Transposable, SingleInputAndOutput):
-
-#     def __init__(self, *args, pool_type="max", axis=None, keep_dims=None, **kwargs):
-#         super(GlobalPoolingParameters, self).__init__(*args, **kwargs)
-#         self._pool_type = pool_type
-#         self._axis = axis
-#         self._keep_dims = keep_dims
-
-#     @property
-#     def axis(self):
-#         return self._axis
-
-#     @property
-#     def keep_dims(self):
-#         return self._keep_dims
-
-#     @property
-#     def pool_type(self):
-#         return self._pool_type
-
-#     @keep_dims.setter
-#     def keep_dims(self, val):
-#         self._keep_dims = val
-
-#     @axis.setter
-#     def axis(self, val):
-#         self._axis = val
-
-#     def get_parameter_size(self):
-#         return 0
-
-#     def get_output_size(self, in_dims):
-#         out_dim = in_dims[0].clone()
-#         if self.transpose_in:
-#             out_dim.transpose(self.transpose_in[0])
-
-#         if self.keep_dims:
-#             names = out_dim.keys if out_dim.is_named else None
-#             out_dim = Dim(shape=[1 if idx in self._axis else dim
-#                                  for idx, dim in enumerate(out_dim.shape)],
-#                           names=names, is_ordered=True)
-#             if self.transpose_out:
-#                 out_dim.transpose(self.transpose_out[0])
-#         else:
-#             out_dim = Dim(shape=[dim for idx, dim in enumerate(out_dim.shape)
-#                                  if idx not in self._axis],
-#                           is_ordered=True)
-
-#         return [out_dim]
-
-#     @property
-#     def can_equalize(self):
-#         return False
-
-#     def __str__(self):
-#         return "{} A {}{} {} {}".format(
-#             self._pool_type,
-#             self._axis,
-#             " keep_dims " if self._keep_dims else "",
-#             Transposable.__str__(self),
-#             self.at_options
-#         )
-
-
 @cls_op_name('reshape')
-class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
+@not_generated
+class ReshapeParameters(Parameters, SingleInputAndOutput, InsensitiveToQuantization, ComparableParameters):
 
     def __init__(self, *args, old_shape=None, shape=None, **kwargs):
         super(ReshapeParameters, self).__init__(
-            *args, eliminate_transposes_pass_down=True, eliminate_transposes_pass_up=True, **kwargs)
+            *args, **kwargs)
         if not isinstance(shape, Dim):
             shape = Dim.unnamed(shape)
         self._shape = shape
@@ -715,7 +700,7 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
                     raise ValueError('shape issue in exp_red_pattern')
         return res
 
-    def is_same_operation_as(self, other):
+    def is_same_operation_as(self, G, other):
         if not isinstance(other, ReshapeParameters):
             return False
         if tuple(self.old_shape.shape) != tuple(other.old_shape.shape):
@@ -732,8 +717,6 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
             raise NotImplementedError("bad reshape %s: in dim %s does not match reshape %s" %
                                       (self.name, in_dim, self.shape))
         out = self.shape.clone()
-        if self.transpose_out:
-            out.transpose(self.transpose_out[0])
         return [out]
 
     @property
@@ -757,10 +740,7 @@ class ReshapeParameters(Transposable, SingleInputAndOutput, InsensitiveToQuantiz
         return False
 
     def __str__(self):
-        return "SHAPE {} {}".format(
-            self.shape,
-            Transposable.__str__(self)
-        )
+        return f"{self.old_shape}->{self.shape}"
 
 
 # pylint: disable=abstract-method

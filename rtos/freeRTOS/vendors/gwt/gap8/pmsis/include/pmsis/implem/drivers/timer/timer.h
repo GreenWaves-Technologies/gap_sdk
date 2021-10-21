@@ -33,6 +33,7 @@
 
 #include <stdint.h>
 #include "pmsis/targets/target.h"
+#include "pmsis/implem/hal/hal.h"
 
 /**
  * @defgroup Timer Timer
@@ -63,26 +64,6 @@ typedef enum
     CL_TIMER_0 = 2,             /*!< Cluster Timer_Low. */
     CL_TIMER_1 = 3              /*!< Cluster Timer_High. */
 } timer_e;
-
-/* @brief Timer config structure.  */
-typedef union
-{
-    struct
-    {
-        uint32_t enable:1;      /*!< Enable/Start Timer. */
-        uint32_t reset:1;       /*!< Reset Timer counter. */
-        uint32_t irq_en:1;      /*!< Enable IRQ when counter matches compare value. */
-        uint32_t pad_0:1;       /*!< Padding. */
-        uint32_t mode:1;        /*!< Timer counting mode : increment or reset when counter = compare. */
-        uint32_t one_shot:1;    /*!< Timer continous mode : enable or disable when counter = compare. */
-        uint32_t presc_en:1;    /*!< Enable prescaler. */
-        uint32_t clk_source:1;  /*!< Timer's clock source : FLL or Ref32kHz. */
-        uint32_t presc_val:8;   /*!< Prescaler value(only Timer_0/Timer_LO : Ftim = Fclk / (1 + val). */
-        uint32_t pad_1:15;      /*!< Padding. */
-        uint32_t timer64_en:1;  /*!< Enable 64 bit mode timer, using both Timer_0(LO) & TImer_1(HI). */
-    } field;                    /*!< Timer config bit fields.  */
-    uint32_t word;              /*!< Timer config in 32bits format. */
-} timer_cfg_u;
 
 /*******************************************************************************
  * Function declaration

@@ -262,6 +262,9 @@ typedef struct iss_decoder_item_s {
       int latency;
       iss_decoder_arg_t args[ISS_MAX_DECODE_ARGS];
       int resource_id;
+      int resource_latency;          // Time required to get the result when accessing the resource
+      int resource_bandwidth;        // Time required to accept the next access when accessing the resource
+      int power_group;
     } insn;
 
     struct {
@@ -281,8 +284,6 @@ typedef struct iss_decoder_item_s {
 typedef struct
 {
   int64_t cycles;    // Indicate the time where the next access to this resource is possible
-  int latency;       // Time required to get the result when accessing this resource
-  int bandwidth;     // Time required to accept the next access when accessing this resource
 } iss_resource_instance_t;
 
 
@@ -291,8 +292,6 @@ typedef struct
 {
   const char *name;     // Name of the resource
   int nb_instances;     // Number of instances of this resource. Each instance can accept accesses concurently
-  int latency;          // Time required to get the result when accessing this resource
-  int bandwidth;        // Time required to accept the next access when accessing this resource
   std::vector<iss_resource_instance_t *> instances; // Instances of this resource
 } iss_resource_t;
 
@@ -341,6 +340,8 @@ typedef struct iss_insn_s {
   iss_insn_t *next;
   iss_decoder_item_t *decoder_item;
   int resource_id;   // Identifier of the resource associated to this instruction
+  int resource_latency;          // Time required to get the result when accessing the resource
+  int resource_bandwidth;        // Time required to accept the next access when accessing the resource
 
   iss_insn_t *(*saved_handler)(iss_t *, iss_insn_t*);
   iss_insn_t *branch;
@@ -443,7 +444,7 @@ typedef struct iss_csr_s
   iss_reg_t mtvec;
   iss_reg_t mcause;
 #if defined(ISS_HAS_PERF_COUNTERS)
-  iss_reg_t pccr[CSR_PCER_NB_EVENTS];
+  iss_reg_t pccr[32];
   iss_reg_t pcer;
   iss_reg_t pcmr;
 #endif

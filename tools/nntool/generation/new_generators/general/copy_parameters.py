@@ -62,9 +62,12 @@ CNN_Copy("{cname}", {gen_ctrl}, {size}, {feature_size});
         else:
             gen_ctrl.cname = cname
 
+        if qrec.out_qs[0].is_floating:
+            gen_ctrl.float_dump = 1
+
         attrs = {
             'size': params.out_dims[0].size(),
-            'feature_size': (qrec.out_qs[0].bits//8)
+            'feature_size': (qrec.out_qs[0].dtype_bits//8)
         }
 
         # other attributes

@@ -19,7 +19,7 @@ import logging
 from .adjusts import *
 from .adjust_base import AdjusterBase
 from .dimensions import add_dimensions
-from .eliminate_transposes import eliminate_transposes
+from .eliminate_transposes.eliminate_transposes import eliminate_transposes
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -29,8 +29,25 @@ def adjust_order(G, reshape_weights=True, postprocess=True, debug_function=None,
     selector = AdjusterBase.get_all_handlers(opts)
     LOG.info("adding transposes to correct tensor order for AT kernels")
     for node in G.nodes(node_classes=tuple(selector)):
-        adjuster = selector[node.__class__]
-        adjuster.adjust(G, node)
+        adjusters = selector[node.__class__]
+        for adjuster, attrs in adjusters:
+            if attrs:
+                not_selected = False
+                for attr, val in attrs.items():
+                    if not hasattr(node, attr):
+                        not_selected = True
+                        break
+                    if callable(val):
+                        if not val(getattr(node, attr)):
+                            not_selected = True
+                            break
+                    elif getattr(node, attr) != val:
+                        not_selected = True
+                        break
+                if not_selected:
+                    continue
+            adjuster.adjust(G, node)
+            break
     add_dimensions(G)
     if debug_function:
         debug_function(G)

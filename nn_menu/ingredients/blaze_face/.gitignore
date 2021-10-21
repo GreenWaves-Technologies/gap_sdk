@@ -1,0 +1,13 @@
+BUILD*/
+GenTile
+vww_emul
+vww
+*.dat
+AT_*
+.value_cache
+version.log
+junit-reports
+png_images
+data/
+.ipynb*
+__pycache__

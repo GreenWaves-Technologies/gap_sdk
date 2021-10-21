@@ -1,0 +1,14 @@
+script 
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators/nntool_extra_generators.c
+python3 utils/test_accuracy_emul.py --tflite_model model/KWS_ds_cnn_l_quant.tflite --dct_coefficient_count 10 --window_size_ms 40 --window_stride_ms 20 --test_with_wav 1 --use_power_spectrogram 0 --use_high_prec 0
+make -f emul.mk clean_model clean all DUMP_TENSORS=0 SMALL=0 MEDIUM=0 LARGE=1 WITH_MFCC=1 USE_POWER=0 USE_HIGH_PREC=0
+make[1]: Entering directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+script 
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators/nntool_extra_generators.c
+rm -f BUILD_MODEL_8BIT_EMUL/GenTile
+rm -f -rf BUILD_MODEL_8BIT_EMUL
+rm -f BUILD_MODEL_8BIT_EMUL/*.dat
+rm -rf /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL
+rm -f -r BUILD_EMUL
+rm -f kws_ds_cnn_emul
+make[1]: Leaving directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'

@@ -65,7 +65,7 @@ void test_dmacpy(void)
 {
     printf("Entering main controller\n");
 
-    uint32_t cpy_size = 264;//(uint32_t) BUFFER_SIZE;
+    uint32_t cpy_size = (uint32_t) BUFFER_SIZE;
     uint32_t print_buffer = 0;
 
     buff = (uint8_t *) pi_fc_l1_malloc(cpy_size);

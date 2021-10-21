@@ -35,7 +35,7 @@ static inline iss_opcode_t prefetcher_fill(iss_t *iss, iss_addr_t addr, bool tim
 static inline iss_opcode_t prefetcher_fill(iss_prefetcher_t *prefetcher, iss_t *iss, iss_addr_t addr, bool timed, bool fill)
 {
   uint32_t aligned_addr = addr & ~(ISS_PREFETCHER_SIZE-1);
-  iss_fetch_req(iss, aligned_addr, fill ? prefetcher->data : NULL, ISS_PREFETCHER_SIZE, false);
+  iss_fetch_req(iss, aligned_addr, fill ? prefetcher->data : NULL, ISS_PREFETCHER_SIZE, false, timed);
   prefetcher->addr = aligned_addr;
   return 0;
 }
@@ -109,7 +109,7 @@ static inline void __attribute__((always_inline)) prefetcher_fetch_word(iss_pref
 
 static inline iss_opcode_t prefetcher_get_word(iss_t *iss, iss_addr_t addr)
 {
-  return prefetcher_get_word_common(&iss->cpu.decode_prefetcher, iss, addr, 1);
+  return prefetcher_get_word_common(&iss->cpu.decode_prefetcher, iss, addr, 0);
 }
 
 

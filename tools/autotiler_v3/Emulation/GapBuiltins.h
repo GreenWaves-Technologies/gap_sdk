@@ -103,6 +103,18 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_mul64ush(x, y)		__builtin_pulp_mul64hus((x), (y))
 
 /* Vectorial product and sum of products */
+#if defined(__VEGA__)
+#define gap_dotp2(x, y)             (__builtin_pulp_machhs((int)(x), (int)(y), __builtin_pulp_muls((int)(x),(int)(y))))
+#define gap_sumdotp2(x, y, Acc)     (__builtin_pulp_macs((int)(x), (int)(y), __builtin_pulp_machhs((int)(x),(int)(y),(Acc))))
+
+#define gap_dotpu2(x, y)            (__builtin_pulp_machhu((int)(x),(int)(y), __builtin_pulp_mulu((int)(x), (int)(y)))) 
+#define gap_sumdotpu2(x, y, Acc)    (__builtin_pulp_macu((int)(x), (int)(y), __builtin_pulp_machhu((int)(x),(int)(y),(Acc))))
+
+#define gap_cplxmuls(x, y)		__builtin_pulp_cplxmuls2((x), (y))
+#define gap_cplxmulsdiv2(x, y)		__builtin_pulp_cplxmuls2div2((x), (y))
+#define gap_cplxmulsdiv4(x, y)		__builtin_pulp_cplxmuls2div4((x), (y))
+#define gap_cplxmulsdiv8(x, y)		__builtin_pulp_cplxmuls2div8((x), (y))
+#else
 #define gap_dotp2(x, y)     		__builtin_pulp_dotsp2((x), (y))
 #define gap_dotpu2(x, y)     		__builtin_pulp_dotup2((x), (y))
 #define gap_dotpus2(x, y)    		__builtin_pulp_dotusp2((x), (y))
@@ -110,6 +122,7 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 #define gap_sumdotp2(x, y, z)		__builtin_pulp_sdotsp2((x), (y), (z))
 #define gap_sumdotpu2(x, y, z)		__builtin_pulp_sdotup2((x), (y), (z))
 #define gap_sumdotpus2(x, y, z)	__builtin_pulp_sdotusp2((x), (y), (z))
+#endif
 
 #define gap_dotp4(x, y)     		__builtin_pulp_dotsp4((x), (y))
 #define gap_dotpu4(x, y)     		__builtin_pulp_dotup4((x), (y))
@@ -121,11 +134,11 @@ static inline unsigned int ExtInsMaskSafe(unsigned int Size, unsigned int Offset
 
 
 /* Complex Multiplication, Q15x15 into Q15, with optional post scaling by 1 or 2 */
-#if defined (__gap8__)
+#if defined (__GAP8__)
 #define gap_cplxmuls(x, y)		__builtin_pulp_cplxmuls((x), (y))
 #define gap_cplxmulsdiv2(x, y)		__builtin_pulp_cplxmulsdiv2((x), (y))
 #define gap_cplxmulsdiv4(x, y)		__builtin_pulp_cplxmulsdiv4((x), (y))
-#elif defined (__gap9__)
+#elif defined (__GAP9__)
 #define gap_cplxmuls(x, y)		__builtin_pulp_cplxmuls2((x), (y))
 #define gap_cplxmulsdiv2(x, y)		__builtin_pulp_cplxmuls2div2((x), (y))
 #define gap_cplxmulsdiv4(x, y)		__builtin_pulp_cplxmuls2div4((x), (y))

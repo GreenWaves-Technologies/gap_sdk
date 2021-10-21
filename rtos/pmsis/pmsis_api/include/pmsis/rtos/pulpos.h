@@ -17,6 +17,11 @@
 #ifndef __PMSIS_RTOS_PULPOS_H__
 #define __PMSIS_RTOS_PULPOS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef enum
 {
 	PI_PULPOS_IO_DEV_BRIDGE = 0,
@@ -39,4 +44,8 @@ struct pi_pulpos_conf
 
 void pi_pulpos_conf_init(struct pi_pulpos_conf *conf);
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

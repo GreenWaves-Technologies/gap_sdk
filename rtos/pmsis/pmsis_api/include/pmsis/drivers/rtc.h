@@ -20,6 +20,11 @@
 #include "pmsis/pmsis_types.h"
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * @ingroup groupDrivers
  */
@@ -229,4 +234,7 @@ int pi_rtc_ioctl(struct pi_device *device, uint32_t cmd, void *arg);
  * @} end of RTC
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_DRIVERS_RTC_H__ */

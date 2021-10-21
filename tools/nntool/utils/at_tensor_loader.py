@@ -13,14 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from utils.node_id import NodeId
-from graph.types.fusions import PaddedAddFusionParameters
-from graph.types.others import ConcatParameters
 import logging
 import re
 
 import numpy as np
-from graph.types import InputParameters, OutputParameters, ConstantInputParameters
+
+from graph.types import (ConstantInputParameters, InputParameters,
+                         OutputParameters)
+from graph.types.fusions import PaddedAddFusionParameters
+from graph.types.others import ConcatParameters
+from utils.node_id import NodeId
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -132,7 +134,7 @@ def at_tensor_loader_int(fp, exception_on_error=False):
             read = 0
             try:
                 for i in line.split():
-                    value.append(int(i))
+                    value.append(float(i))
                     read += 1
             except ValueError:
                 do_warning(node_tensors, arg_name, '[%s] bad_tensor - read error in state %s', line_num, state)
@@ -148,10 +150,9 @@ def at_tensor_loader_int(fp, exception_on_error=False):
                     state = 'start'
                     if arg_name in node_tensors.keys():
                         node_tensors[arg_name] = np.concatenate((node_tensors[arg_name],
-                            np.array(value, dtype=np.dtype('i'+str(item_size))).reshape(shape)), axis=0)
+                            np.array(value).reshape(shape)), axis=0)
                     else:
-                        node_tensors[arg_name] = np.array(
-                            value, dtype=np.dtype('i'+str(item_size))).reshape(shape)
+                        node_tensors[arg_name] = np.array(value).reshape(shape)
                 else:
                     state = 'read_dims'
             elif cur_block_read > cur_block_len:
@@ -171,10 +172,10 @@ def add_result(result, idx, val, shape=None, dtype=None, node=None):
         result[idx] = val.astype(dtype)
         LOG.warning(f"Cannot reshape tensor {idx} for layer {node.name} loaded anyway with shape {val.shape}")
 
-def add_node_output(G, node, result, tensor):
+def add_node_output(G, node, result, tensor, dtype=None):
     for edge in G.out_edges(node.name):
-        add_result(result[edge.to_node.step_idx], edge.to_idx, tensor, node.out_dims[0].shape, node=node)
-    add_result(result[node.step_idx], 0, tensor, node.out_dims[0].shape, node=node)
+        add_result(result[edge.to_node.step_idx], edge.to_idx, tensor, node.out_dims[0].shape, node=node, dtype=dtype)
+    add_result(result[node.step_idx], 0, tensor, node.out_dims[0].shape, node=node, dtype=dtype)
 
 def at_map_tensors(G, tensors):
     re_snum = re.compile(
@@ -183,6 +184,8 @@ def at_map_tensors(G, tensors):
         r'^s(?P<step>[0-9]+)_(?P<name>.+)')
     steps = G.graph_state.steps
     result = [[None, None, None] for _ in steps]
+    constant_nodes = {node.name: node for node in G.nodes(node_classes=ConstantInputParameters)}
+    last_visited_out_edge = {step: 0 for step in range(len(steps))}
     for cname, tset in tensors.items():
         match = re_snum.search(cname)
         if not match:
@@ -199,15 +202,15 @@ def at_map_tensors(G, tensors):
                 out_q_type = None
             if tname.startswith('input'):
                 for edge in G.in_edges(node.name):
-                    if isinstance(edge.from_node, InputParameters):
+                    if not isinstance(edge.from_node, ConstantInputParameters):
                         add_result(result[edge.from_node.step_idx], 0, tensor, node.in_dims[0].shape, in_q_type, node)
                         break
             elif tname.startswith('output'):
-                for edge in G.out_edges(node.name):
-                    if isinstance(edge.to_node, OutputParameters):
-                        add_result(result[edge.to_node.step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
-                        break
-                add_result(result[step_idx], 0, tensor, node.out_dims[0].shape, out_q_type, node)
+                edge = G.out_edges(node.name)[last_visited_out_edge[step_idx]]
+                last_visited_out_edge[step_idx] += 1
+                add_result(result[step_idx], edge.from_idx, tensor, node.out_dims[edge.from_idx].shape, out_q_type, node)
+                if isinstance(edge.to_node, OutputParameters):
+                    add_result(result[edge.to_node.step_idx], 0, tensor, edge.to_node.in_dims[0].shape, out_q_type, edge.to_node)
             elif tname == "s%s_output"%step_idx:
                 if isinstance(node, PaddedAddFusionParameters):
                     if result[step_idx][0] is None:
@@ -230,17 +233,23 @@ def at_map_tensors(G, tensors):
             # elif tname.endswith(BIASES):
             #     add_result(result[step_idx], 2, tensor)
             else:
-                match_tname = re_snum_tname.search(tname)
-                if not match_tname:
-                    continue
-                tname_step_idx = int(match_tname.group('step'))
-                tname_node = steps[tname_step_idx]['node']
-                if G.quantization:
-                    in_q_type = G.quantization[NodeId(node)].in_qs[0].dtype
-                    out_q_type = G.quantization[NodeId(node)].out_qs[0].dtype
+                if tname in constant_nodes:
+                    tname_node = constant_nodes[tname]
+                    tname_step_idx = tname_node.step_idx
+                    if G.quantization:
+                        out_q_type = G.quantization[NodeId(tname_node)].out_qs[0].dtype
+                    else:
+                        out_q_type = None
                 else:
-                    in_q_type = None
-                    out_q_type = None
+                    match_tname = re_snum_tname.search(tname)
+                    if not match_tname:
+                        continue
+                    tname_step_idx = int(match_tname.group('step'))
+                    tname_node = steps[tname_step_idx]['node']
+                    if G.quantization:
+                        out_q_type = G.quantization[NodeId(node)].out_qs[0].dtype
+                    else:
+                        out_q_type = None
                 if isinstance(tname_node, ConcatParameters):
                     # It's a Stacked tensor
                     if node in [in_edge.from_node for in_edge in G.in_edges(tname_node.name)]:
@@ -253,19 +262,48 @@ def at_map_tensors(G, tensors):
                     add_result(result[tname_step_idx], 0, tensor, tname_node.out_dims[0].shape, out_q_type, tname_node)
                 if not isinstance(tname_node, ConstantInputParameters):
                     continue
+                nid = NodeId(tname_node)
+                qtype = G.quantization[nid].out_qs[0] if G.quantization and nid in G.quantization else None
+                if qtype and qtype.attr.ne16_decode:
+                    tensor = ne16_decode(G, qtype, tensor)
+                elif qtype and qtype.attr.resize:
+                    tensor = np.resize(tensor.reshape(qtype.attr.resize[1]), qtype.attr.resize[0])
                 # tensor is a combination of multiple values Hstacked
-                if tname_node.concated_nodes:
-                    h_lens = [tname_node.out_dims[0].shape[-1]] + [n.out_dims[0].shape[-1] for n in tname_node.concated_nodes]
+                if qtype and qtype.attr.concatenated_nodes:
+                    concatenated_nodes = [G[node_name] for node_name in qtype.attr.concatenated_nodes]
+                    h_lens = [tname_node.out_dims[0].shape[-1]] + [n.out_dims[0].shape[-1] for n in concatenated_nodes]
                     tensor = tensor.reshape(tname_node.out_dims[0].shape[:-1] + [sum(h_lens)])
                     elem_sum = 0
                     for idx, elem in enumerate(h_lens):
                         elem_sum += elem
                         h_lens[idx] = elem_sum
-                    testit = np.hsplit(tensor, np.array(h_lens))
-                    nodes_to_add = zip([tname_node] + tname_node.concated_nodes, np.hsplit(tensor, np.array(h_lens)))
+                    nodes_to_add = zip([tname_node] + concatenated_nodes, np.hsplit(tensor, np.array(h_lens)))
                 else:
                     nodes_to_add = [(tname_node, tensor)]
                 for node_pair in nodes_to_add:
-                    add_node_output(G, node_pair[0], result, node_pair[1])
+                    add_node_output(G, node_pair[0], result, node_pair[1], dtype=out_q_type)
 
     return result
+
+def ne16_decode(G, qtype, tensor):
+    ne16_attr = qtype.attr.ne16_decode
+    if ne16_attr['type'] == 'RNN':
+        chan_out = ne16_attr['Ko']
+        chan_in = ne16_attr['Ki']
+        nb_ki = chan_in // 16 + (1 if chan_in % 16 != 0 else 0)
+        chan_in_real = ne16_attr['KiReal']
+        w_bits = ne16_attr['Qw']
+        res = np.zeros((chan_out, chan_in_real), dtype=np.uint8)
+        tensor = tensor.astype(np.int8).astype(np.uint8).reshape((-1, 2))
+        for ko in range(chan_out):
+            for ki in range(chan_in_real):
+                kimaj = ki // 16
+                kimin = ki % 16
+                byte = kimin // 8
+                shift = kimin % 8
+                for q in range(w_bits):
+                    index = ko*nb_ki*w_bits + q*nb_ki + kimaj
+                    if tensor[index, byte] & (1 << shift):
+                        res[ko, ki] |= 1 << q
+        return res
+    raise NotImplementedError()

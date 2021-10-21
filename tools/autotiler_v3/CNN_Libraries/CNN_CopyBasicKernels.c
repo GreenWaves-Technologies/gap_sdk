@@ -27,6 +27,34 @@
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
 
+#ifdef __EMUL__
+#include <math.h>
+float to_float(unsigned short v) {
+	float res = 0;
+	unsigned short * q = ((unsigned short *)&res);
+	q[1] = v;
+	return res;
+}
+#define MaxF2(a, b)	gap_pack2f16(fmax((a)[0], (b)[0]), fmax((a)[1], (b)[1]))
+#define MinF2(a, b)	gap_pack2f16(fmin((a)[0], (b)[0]), fmin((a)[1], (b)[1]))
+#define ClipF2(a, upper, lower) gap_pack2f16(fmax(fmin((a)[0], (upper)[0]), (lower)[0]), fmax(fmin((a)[1], (upper)[1]), (lower)[1]))
+#define ClipF(a, upper, lower) fmax(fmin((a), (upper)), (lower))
+#ifndef TO_FLOAT
+#define TO_FLOAT(x) to_float(*((unsigned short *)&x))
+#endif
+#else
+#ifndef TO_FLOAT
+#define TO_FLOAT(x) *((F16 *)&x)
+#endif
+#define AbsF2(a)	__builtin_pulp_f16altabs2((a))
+#define MaxF2(a, b)	__builtin_pulp_f16altmax2((a), (b))
+#define MinF2(a, b)	__builtin_pulp_f16altmin2((a), (b))
+#define MaxF(a, b)	__builtin_pulp_f16altmax((a), (b))
+#define MinF(a, b)	__builtin_pulp_f16altmin((a), (b))
+#define ClipF2(a, upper, lower) ((F16V)MaxF2(MinF2((a), (upper)), (lower)))
+#define ClipF(a, upper, lower) ((F16) MaxF(MinF((a), (upper)), (lower)))
+#endif
+
 static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
 
 {
@@ -112,7 +140,7 @@ static void CNN_Transpose_Body_fp(
 	for (int l=0; l<IterL/2; l++) {
 		v2s *pV0 = (v2s *) (In + (Ho_F+2*l+0)*W + Wo_F);
 		v2s *pV1 = (v2s *) (In + (Ho_F+2*l+1)*W + Wo_F);
-		short int *pO  = (Out + Ho_F + 4*l + Wo_F*H);
+		short int *pO  = (Out + Ho_F + 2*l + Wo_F*H);
 		for (int c=0; c<IterW/2; c++) {
 			v2s A = pV0[c], B = pV1[c];
 			v2s rA, rB;
@@ -506,6 +534,122 @@ void CNN_MatPermCHW2HCW_fp(KerMatTranspose_fp_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void CNN_MatPermHWC2CWH_fp(KerMatTranspose_fp_T *Arg)
+
+{
+	short int *__restrict__ In = Arg->In;
+	short int *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[c*H*W + (w+0)*H + h] = V0;
+				Out[c*H*W + (w+1)*H + h] = V1;
+			}
+			if (W&0x1) Out[c*H*W + (W-1)*H + h] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2CHW_fp(KerMatTranspose_fp_T *Arg)
+
+{
+	short int *__restrict__ In = Arg->In;
+	short int *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[c*W*H + h*W + (w+0)] = V0;
+				Out[c*W*H + h*W + (w+1)] = V1;
+			}
+			if (W&0x1) Out[c*W*H + h*W + W-1] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2WHC_fp(KerMatTranspose_fp_T *Arg)
+
+{
+	short int *__restrict__ In = Arg->In;
+	short int *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[(w+0)*H*C + h*C + c] = V0;
+				Out[(w+1)*H*C + h*C + c] = V1;
+			}
+			if (W&0x1) Out[(W-1)*H*C + h*C + c] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+
+void CNN_MatPermHWC2WCH_fp(KerMatTranspose_fp_T *Arg)
+
+{
+	short int *__restrict__ In = Arg->In;
+	short int *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[(w+0)*C*H + c*H + h] = V0;
+				Out[(w+1)*C*H + c*H + h] = V1;
+			}
+			if (W&0x1) Out[(W-1)*C*H + c*H + h] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2HCW_fp(KerMatTranspose_fp_T *Arg)
+
+{
+	short int *__restrict__ In = Arg->In;
+	short int *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[h*C*W + c*W + (w+0)] = V0;
+				Out[h*C*W + c*W + (w+1)] = V1;
+			}
+			if (W&0x1) Out[h*C*W + c*W + (W-1)] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
 
 void CNN_MatPermCHW2CWH_fps(KerMatTranspose_fps_T *Arg)
 
@@ -622,11 +766,126 @@ void CNN_MatPermCHW2HCW_fps(KerMatTranspose_fps_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void CNN_MatPermHWC2CWH_fps(KerMatTranspose_fps_T *Arg)
+
+{
+	signed char *__restrict__ In = Arg->In;
+	signed char *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[c*H*W + (w+0)*H + h] = V0;
+				Out[c*H*W + (w+1)*H + h] = V1;
+			}
+			if (W&0x1) Out[c*H*W + (W-1)*H + h] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2CHW_fps(KerMatTranspose_fps_T *Arg)
+
+{
+	signed char *__restrict__ In = Arg->In;
+	signed char *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[c*W*H + h*W + (w+0)] = V0;
+				Out[c*W*H + h*W + (w+1)] = V1;
+			}
+			if (W&0x1) Out[c*W*H + h*W + W-1] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2WHC_fps(KerMatTranspose_fps_T *Arg)
+
+{
+	signed char *__restrict__ In = Arg->In;
+	signed char *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[(w+0)*H*C + h*C + c] = V0;
+				Out[(w+1)*H*C + h*C + c] = V1;
+			}
+			if (W&0x1) Out[(W-1)*H*C + h*C + c] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+
+void CNN_MatPermHWC2WCH_fps(KerMatTranspose_fps_T *Arg)
+
+{
+	signed char *__restrict__ In = Arg->In;
+	signed char *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[(w+0)*C*H + c*H + h] = V0;
+				Out[(w+1)*C*H + c*H + h] = V1;
+			}
+			if (W&0x1) Out[(W-1)*C*H + c*H + h] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_MatPermHWC2HCW_fps(KerMatTranspose_fps_T *Arg)
+
+{
+	signed char *__restrict__ In = Arg->In;
+	signed char *__restrict__ Out = Arg->Out;
+	unsigned int W = Arg->W;
+	unsigned int H = Arg->H;
+	unsigned int Feat = Arg->Feat, C = Feat;
+        unsigned int CoreId = gap_coreid(), Chunk = ChunkSize(Feat), First = Chunk*CoreId, Last = Min(First+Chunk, Feat);
+
+	for (int c=First; c<Last; c++) {
+		for (int h=0; h<H; h++) {
+			for (int w=0; w<((W/2)*2); w+=2) {
+				int V0 = In[h*W*C + w*Feat + c], V1 = In[h*W*C+(w+1)*Feat+c];
+				Out[h*C*W + c*W + (w+0)] = V0;
+				Out[h*C*W + c*W + (w+1)] = V1;
+			}
+			if (W&0x1) Out[h*C*W + c*W + (W-1)] = In[h*W*C+(W-1)*Feat+c];
+		}
+	}
+	gap_waitbarrier(0);
+}
 
 #define B_CLR(x, bits)	((x)&(~((1<<(bits))-1)))
 void CNN_Copy_void(KerCopy_void_T * Arg)
 {
-	unsigned int Size = Arg->W * Arg->H;
+	unsigned int Size = Arg->N;
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 	unsigned int Iter = Max(0, Last-First);
@@ -829,20 +1088,139 @@ static void Int8toUint8(signed char *__restrict__ In, signed char *__restrict__ 
 {
 	v4u *pIn = (v4u *) In, *pOut = (v4u *) Out;
 	v4u Off  = (v4u) {Offset, Offset, Offset, Offset};
-	v4u Off1 = (v4u) {Offset, Offset, 0, 0};
 
 	for (int i=0; i<N/8; i++) {
 		v4u V0 = pIn[2*i], V1 = pIn[2*i+1];
 		V0 = V0 + Off; V1 = V1 + Off;
 		pOut[2*i] = V0; pOut[2*i+1] = V1;
 	}
-	for (int i=(N-N%8); i<=N; i++) {
+	for (int i=(N-N%8); i<N; i++) {
 		((unsigned char *)Out)[i] = ((unsigned char *)In)[i] + Offset;
 	}
 	gap_waitbarrier(0);
 }
 
-void CNN_FpsFpu(CNN_FpsFpu_T * Arg)
+void CNN_UFpsFpsScaled(CNN_UFpsFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = Arg->In + First;
+	v4s *pOut = (v4s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 7)
+		);
+	}
+	signed char * pcOut = ((signed char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsUFpsScaled(CNN_FpsUFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = Arg->In + First;
+	v4u *pOut = (v4u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 8)
+		);
+	}
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsUFpsScaled(CNN_UFpsUFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = Arg->In + First;
+	v4u *pOut = (v4u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 8)
+		);
+	}
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFpsScaled(CNN_FpsFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = Arg->In + First;
+	v4s *pOut = (v4s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 7)
+		);
+	}
+	signed char * pcOut = ((signed char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsUFps(CNN_FpsUFps_T * Arg)
 {
 	unsigned int Size = Arg->W * Arg->H;
 	unsigned int CoreId = gap_coreid();
@@ -851,15 +1229,716 @@ void CNN_FpsFpu(CNN_FpsFpu_T * Arg)
 	Int8toUint8((Arg->In + First), (signed char *)(Arg->Out + First), (unsigned char) Arg->Infos[0], Iter);
 }
 
-void CNN_FpuFps(CNN_FpuFps_T * Arg)
+void CNN_UFpsFps(CNN_UFpsFps_T * Arg)
 {
 	unsigned int Size = Arg->W * Arg->H;
 	unsigned int CoreId = gap_coreid();
 	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
 	unsigned int Iter = Max(0, Last-First);
-	unsigned char Offset = (unsigned char) Arg->Infos[0];
 	Int8toUint8((signed char *)(Arg->In + First), (Arg->Out + First), (unsigned char) Arg->Infos[0], Iter);
 }
 
+static void Int16toUint16(signed short *__restrict__ In, signed short *__restrict__ Out, unsigned short Offset, unsigned int N)
+{
+	v2u *pIn = (v2u *) In, *pOut = (v2u *) Out;
+	v2u Off  = (v2u) {Offset, Offset};
+
+	for (int i=0; i<N/4; i++) {
+		v2u V0 = pIn[2*i], V1 = pIn[2*i+1];
+		V0 = V0 + Off; V1 = V1 + Off;
+		pOut[2*i] = V0; pOut[2*i+1] = V1;
+	}
+	for (int i=(N-N%4); i<N; i++) {
+		((unsigned short *)Out)[i] = ((unsigned short *)In)[i] + Offset;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpUFp(CNN_FpUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	Int16toUint16((Arg->In + First), (signed short *)(Arg->Out + First), *((unsigned short *)&Arg->Infos[0]), Iter);
+}
+
+void CNN_UFpFp(CNN_UFpFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	Int16toUint16((signed short *)(Arg->In + First), (Arg->Out + First), *((unsigned short *)&Arg->Infos[0]), Iter);
+}
+
+void CNN_UFpFpsScaled(CNN_UFpFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short int *pIn = Arg->In + First;
+	v4s *pOut = (v4s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 7)
+		);
+	}
+	signed char * pcOut = ((signed char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpUFpsScaled(CNN_UFpUFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short int *pIn = Arg->In + First;
+	v4u *pOut = (v4u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 8)
+		);
+	}
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (unsigned char) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpFpsScaled(CNN_FpFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short int *pIn = Arg->In + First;
+	v4s *pOut = (v4s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v2 + zero_diff) * scale, norm), 7),
+			(signed char) gap_clip(gap_roundnorm_reg((v3 + zero_diff) * scale, norm), 7)
+		);
+	}
+	signed char * pcOut = ((signed char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*(pcOut++) = (signed char) gap_clip(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpUFpsScaled(CNN_FpUFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short int *pIn = Arg->In + First;
+	v4u *pOut = (v4u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = (unsigned char)Arg->Infos[AT_INF_QUANT_SCALE];
+	unsigned char norm = (unsigned char)Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) gap_clipu(gap_roundnormu_reg((v0 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnormu_reg((v1 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnormu_reg((v2 + zero_diff) * scale, norm), 8),
+			(unsigned char) gap_clipu(gap_roundnormu_reg((v3 + zero_diff) * scale, norm), 8)
+		);
+	}
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*pcOut++ = (unsigned char) gap_clipu(gap_roundnormu_reg((v0 + zero_diff) * scale, norm), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpFps(CNN_FpFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short int *pIn = Arg->In + First;
+	v4s *pOut = (v4s *) (Arg->Out + First);
+
+	for (int i=0; i<Iter/4; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++); int v2 = (int)(*pIn++); int v3 = (int)(*pIn++);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) gap_clip(gap_roundnorm(v0, 8), 7),
+			(signed char) gap_clip(gap_roundnorm(v1, 8), 7),
+			(signed char) gap_clip(gap_roundnorm(v2, 8), 7),
+			(signed char) gap_clip(gap_roundnorm(v3, 8), 7)
+		);
+	}
+	signed char * pcOut = ((signed char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		int v0 = (int)(*pIn++);
+		*pcOut++ = (signed char) gap_clip(gap_roundnorm(v0, 8), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpUFps(CNN_UFpUFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short int *pIn = Arg->In + First;
+	v4u *pOut = (v4u *) (Arg->Out + First);
+
+	for (int i=0; i<Iter/4; i++) {
+		unsigned int v0 = (int)(*pIn++); unsigned int v1 = (int)(*pIn++);
+		unsigned int v2 = (int)(*pIn++); unsigned int v3 = (int)(*pIn++);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) gap_clipu(gap_roundnormu(v0, 8), 8),
+			(unsigned char) gap_clipu(gap_roundnormu(v1, 8), 8),
+			(unsigned char) gap_clipu(gap_roundnormu(v2, 8), 8),
+			(unsigned char) gap_clipu(gap_roundnormu(v3, 8), 8)
+		);
+	}
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	for (int i=0; i<Iter%4; i++) {
+		unsigned int v0 = (unsigned int)(*pIn++);
+		*pcOut++ = (unsigned char) gap_clipu(gap_roundnormu(v0, 8), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpFpScaled(CNN_FpFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short *pIn = Arg->In + First;
+	v2s *pOut = (v2s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2s) gap_pack2(
+			(signed short int) gap_clip(gap_roundnorm_reg(((v0 + zero_diff) * scale), norm), 15),
+			(signed short int) gap_clip(gap_roundnorm_reg(((v1 + zero_diff) * scale), norm), 15)
+		);
+	}
+
+	if (Iter % 2) {
+		*((signed short int *)pOut) = (signed short int) gap_clip(gap_roundnorm_reg(((((int)*pIn) + zero_diff) * scale), norm), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpFpScaled(CNN_UFpFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short *pIn = Arg->In + First;
+	v2s *pOut = (v2s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2s) gap_pack2(
+			(signed short int) gap_clip(gap_roundnorm_reg(((v0 + zero_diff) * scale), norm), 15),
+			(signed short int) gap_clip(gap_roundnorm_reg(((v1 + zero_diff) * scale), norm), 15)
+		);
+	}
+
+	if (Iter % 2) {
+		*((signed short int *)pOut) = (signed short int) gap_clip(gap_roundnorm_reg(((((int)*pIn) + zero_diff) * scale), norm), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpUFpScaled(CNN_FpUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short *pIn = Arg->In + First;
+	v2u *pOut = (v2u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2u) gap_pack2(
+			((unsigned short int) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 16)),
+			((unsigned short int) gap_clipu(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 16))
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = ((unsigned short int) gap_clipu(gap_roundnorm_reg((((int)*pIn) + zero_diff) * scale, norm), 16));
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpUFpScaled(CNN_UFpUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short *pIn = Arg->In + First;
+	v2u *pOut = (v2u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned char scale = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2u) gap_pack2(
+			((unsigned short int) gap_clipu(gap_roundnorm_reg((v0 + zero_diff) * scale, norm), 16)),
+			((unsigned short int) gap_clipu(gap_roundnorm_reg((v1 + zero_diff) * scale, norm), 16))
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = ((unsigned short int) gap_clipu(gap_roundnorm_reg((((int)*pIn) + zero_diff) * scale, norm), 16));
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFpScaled(CNN_FpsFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = Arg->In + First;
+	v2s *pOut = (v2s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned short scale = *((unsigned short *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2s) gap_pack2(
+			(signed short int) gap_clip(gap_roundnorm_reg((v0 * scale), norm) + zero_diff, 15),
+			(signed short int) gap_clip(gap_roundnorm_reg((v1 * scale), norm) + zero_diff, 15)
+		);
+	}
+
+	if (Iter % 2) {
+		*((signed short int *)pOut) = (signed short int) gap_clip(gap_roundnorm_reg((((int)*pIn) * scale), norm) + zero_diff, 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsUFpScaled(CNN_FpsUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = Arg->In + First;
+	v2u *pOut = (v2u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned short scale = *((unsigned short *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = *((unsigned char *)&Arg->Infos[AT_INF_QUANT_NORM]);
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2u) gap_pack2(
+			(unsigned short int) gap_clipu(gap_roundnorm_reg(v0 * scale, norm) + zero_diff, 16),
+			(unsigned short int) gap_clipu(gap_roundnorm_reg(v1 * scale, norm) + zero_diff, 16)
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = (unsigned short int) gap_clipu(gap_roundnorm_reg(((int)*pIn) * scale, norm) + zero_diff, 16);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsFpScaled(CNN_UFpsFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = Arg->In + First;
+	v2s *pOut = (v2s *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned short scale = *((unsigned short *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = (unsigned char) Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2s) gap_pack2(
+			(signed short int) gap_clip(gap_roundnorm_reg(v0 * scale, norm) + zero_diff, 15),
+			(signed short int) gap_clip(gap_roundnorm_reg(v1 * scale, norm) + zero_diff, 15)
+		);
+	}
+
+	if (Iter % 2) {
+		int v0 = (int)(*pIn++);
+		*((signed short int *)pOut) = (signed short int) gap_clip(gap_roundnorm_reg(v0 * scale, norm) + zero_diff, 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsUFp(CNN_UFpsUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = Arg->In + First;
+	v2u *pOut = (v2u *) (Arg->Out + First);
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2u) gap_pack2(
+			(unsigned short int) v0 << 8,
+			(unsigned short int) v1 << 8
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = (unsigned short int) ((int)(*pIn)) << 8;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsUFpScaled(CNN_UFpsUFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = Arg->In + First;
+	v2u *pOut = (v2u *) (Arg->Out + First);
+	signed int zero_diff = *((signed int  *)&Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	unsigned short scale = *((unsigned short *)&Arg->Infos[AT_INF_QUANT_SCALE]);
+	unsigned char norm = (unsigned char) Arg->Infos[AT_INF_QUANT_NORM];
+
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*(pOut++) = (v2u) gap_pack2(
+			(unsigned short int) gap_clipu(gap_roundnormu_reg(v0 * scale, norm) + zero_diff, 16),
+			(unsigned short int) gap_clipu(gap_roundnormu_reg(v1 * scale, norm) + zero_diff, 16)
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = (signed short int) gap_clipu(gap_roundnormu_reg(((int)*pIn) * scale, norm) + zero_diff, 16);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFp(CNN_FpsFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = Arg->In + First;
+	v2s *pOut = (v2s *) (Arg->Out + First);
+
+	for (int i=0; i<Iter/2; i++) {
+		int v0 = (int)(*pIn++); int v1 = (int)(*pIn++);
+		*pOut = (v2s) gap_pack2(
+			(signed short int) v0,
+			(signed short int) v1
+		);
+		*(pOut++) <<= 8;
+	}
+
+	if (Iter % 2) {
+		*((signed short int *)pOut) = (signed short int) *pIn << 8;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpFloat16(CNN_FpFloat16_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed short *pIn = (signed short *) (Arg->In + First);
+	F16V *pOut = (F16V *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = gap_pack2f16((F16) *(pIn++), (F16) *(pIn++));
+		*pOut++ = (v_in + zero_v) * scale_v;
+	}
+
+
+	if (Iter % 2) {
+		*((F16 *)pOut) = ((F16) *pIn + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpFloat16(CNN_UFpFloat16_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned short *pIn = (unsigned short *) (Arg->In + First);
+	F16V *pOut = (F16V *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = gap_pack2f16((F16) *(pIn++), (F16) *(pIn++));
+		*pOut++ = (v_in + zero_v) * scale_v;
+	}
+
+
+	if (Iter % 2) {
+		*((F16 *)pOut) = ((F16) *pIn + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_FpsFloat16(CNN_FpsFloat16_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	signed char *pIn = (signed char *) (Arg->In + First);
+	F16V *pOut = (F16V *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = gap_pack2f16((F16) *(pIn++), (F16) *(pIn++));
+		*pOut++ = (v_in + zero_v) * scale_v;
+	}
+
+
+	if (Iter % 2) {
+		*((F16 *)pOut) = ((F16) *pIn + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_UFpsFloat16(CNN_UFpsFloat16_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	unsigned char *pIn = (signed char *) (Arg->In + First);
+	F16V *pOut = (F16V *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = gap_pack2f16((F16) *(pIn++), (F16) *(pIn++));
+		*pOut++ = (v_in + zero_v) * scale_v;
+	}
+
+
+	if (Iter % 2) {
+		*((F16 *)pOut) = ((F16) *pIn + zero_diff) * scale;
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float16Fp(CNN_Float16Fp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	F16V *pIn = (F16V *) (Arg->In + First);
+	v2s *pOut = (v2s *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+	F16V max_v = gap_pack2f16(32767.0F, 32767.0F);
+	F16V min_v = gap_pack2f16(-32768.0F, -32768.0F);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = (*(pIn++) + zero_v) * scale_v;
+		v_in = ClipF2(v_in, max_v, min_v);
+		*(pOut++) = (v2s) gap_pack2(
+			(signed short int) v_in[0],
+			(signed short int) v_in[1]
+		);
+	}
+
+	if (Iter % 2) {
+		*((signed short int *)pOut) = (signed short int) ClipF((*((F16 *) pIn) + zero_diff) * scale, 32767.0F, -32768.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float16UFp(CNN_Float16UFp_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	F16V *pIn = (F16V *) (Arg->In + First);
+	v2u *pOut = (v2u *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+	F16V max_v = gap_pack2f16(65535.0F, 65535.0F);
+	F16V min_v = gap_pack2f16(0.0F, 0.0F);
+
+	for (int i=0; i<Iter/2; i++) {
+		F16V v_in = (*(pIn++) + zero_v) * scale_v;
+		v_in = ClipF2(v_in, max_v, min_v);
+		*(pOut++) = (v2u) gap_pack2(
+			(unsigned short int) v_in[0],
+			(unsigned short int) v_in[1]
+		);
+	}
+
+	if (Iter % 2) {
+		*((unsigned short int *)pOut) = (unsigned short int) ClipF((*((F16 *) pIn) + zero_diff) * scale, 65535.0F, 0.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float16Fps(CNN_Float16Fps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	F16V *pIn = (F16V *) (Arg->In + First);
+	v4s *pOut = (v4s *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+	F16V max_v = gap_pack2f16(127.0F, 127.0F);
+	F16V min_v = gap_pack2f16(-128.0F, -128.0F);
+
+	for (int i=0; i<Iter/4; i++) {
+		F16V v_in0 = (*(pIn++) + zero_v) * scale_v;
+		v_in0 = ClipF2(v_in0, max_v, min_v);
+		F16V v_in1 = (*(pIn++) + zero_v) * scale_v;
+		v_in1 = ClipF2(v_in1, max_v, min_v);
+		*(pOut++) = (v4s) gap_pack4(
+			(signed char) v_in0[0],
+			(signed char) v_in0[1],
+			(signed char) v_in1[0],
+			(signed char) v_in1[1]
+		);
+	}
+
+	signed char * pcOut = ((signed char *) pOut);
+	F16 * pcIn = (F16 *)(pIn);
+	for (int i=0; i<Iter%4; i++) {
+		*pcOut++ = (signed char) ClipF((*pcIn++ + zero_diff) * scale, 127.0F, -128.0F);
+	}
+	gap_waitbarrier(0);
+}
+
+void CNN_Float16UFps(CNN_Float16UFps_T * Arg)
+{
+	unsigned int Size = Arg->W * Arg->H;
+	unsigned int CoreId = gap_coreid();
+	unsigned int Chunk = ChunkSize(Size), First = Chunk*CoreId, Last = Min(First+Chunk, Size);
+	unsigned int Iter = Max(0, Last-First);
+	F16V *pIn = (F16V *) (Arg->In + First);
+	v4u *pOut = (v4u *) (Arg->Out + First);
+	F16 zero_diff = TO_FLOAT(Arg->Infos[AT_INF_QUANT_ZERO_DIFF]);
+	F16 scale = TO_FLOAT(Arg->Infos[AT_INF_QUANT_SCALE]);
+	F16V scale_v = gap_pack2f16(scale, scale);
+	F16V zero_v = gap_pack2f16(zero_diff, zero_diff);
+	F16V max_v = gap_pack2f16(255.0F, 255.0F);
+	F16V min_v = gap_pack2f16(0.0F, 0.0F);
+
+	for (int i=0; i<Iter/4; i++) {
+		F16V v_in0 = (*(pIn++) + zero_v) * scale_v;
+		v_in0 = ClipF2(v_in0, max_v, min_v);
+		F16V v_in1 = (*(pIn++) + zero_v) * scale_v;
+		v_in1 = ClipF2(v_in1, max_v, min_v);
+		*(pOut++) = (v4u) gap_pack4(
+			(unsigned char) v_in0[0],
+			(unsigned char) v_in0[1],
+			(unsigned char) v_in1[0],
+			(unsigned char) v_in1[1]
+		);
+	}
+
+	unsigned char * pcOut = ((unsigned char *) pOut);
+	F16 * pcIn = (F16 *)(pIn);
+	for (int i=0; i<Iter%4; i++) {
+		*pcOut++ = (unsigned char) ClipF((*pcIn++ + zero_diff) * scale, 255.0F, 0.0F);
+	}
+	gap_waitbarrier(0);
+}
 
 #pragma GCC diagnostic pop

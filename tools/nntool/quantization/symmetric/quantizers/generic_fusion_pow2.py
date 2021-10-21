@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import (ActivationFusion,
+from graph.types import (ActivationFusionBase,
                          MatMulOpFusionParameters, MatScaleFusionParameters,
                          PaddedAddFusionParameters)
 from quantization.new_qrec import QRec
@@ -27,7 +27,7 @@ from quantization.unified_quantization_handler import (fusion_handler,
 from ..pow2_quantization_handler import Pow2QuantizionHandler
 
 
-@params_type(ActivationFusion, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
+@params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
 @fusion_handler

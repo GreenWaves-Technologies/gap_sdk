@@ -17,15 +17,17 @@ import logging
 
 from graph.dim import Dim
 
-from .base import Parameters, SensitiveToOrder, cls_op_name
+from .base import Parameters, SensitiveToOrder, cls_op_name, nargs
 
 LOG = logging.getLogger("nntool." + __name__)
 
+SSD_INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
 
 @cls_op_name('ssd_detector')
+@nargs(SSD_INPUT_NAMES)
 class SSDDetectorParameters(Parameters, SensitiveToOrder):
 
-    INPUT_NAMES = ['boxes_offsets', 'scores', 'anchors']
+    INPUT_NAMES = SSD_INPUT_NAMES
 
     def __init__(self, *args, parameters=None, **kwargs):
         super(SSDDetectorParameters, self).__init__(*args, **kwargs)
@@ -38,6 +40,10 @@ class SSDDetectorParameters(Parameters, SensitiveToOrder):
         self.nms_config = {'using_json_config': {'INCLUDE': False, 'json_config_path': ''},
                            'using_pipeline_config': {'INCLUDE': False, 'pipeline_config_path': ''},
                            'using_params': {'INCLUDE': True, 'params': self._parameters}}
+
+    def __call__(self, *args, **kwargs):
+        noderef = super(SSDDetectorParameters, self).__call__(*args, **kwargs)
+        return tuple(NNNodeRef(self, i, noderef.ref[1]) for i in range(3))
 
     def get_parameter_size(self):
         return 0

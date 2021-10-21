@@ -4,10 +4,10 @@
 APP              = test
 APP_SRCS        += test_hyper_ram_delegate.c
 APP_INC         +=
-APP_CFLAGS      +=
+APP_CFLAGS      += -O3
 
 ifeq ($(ASYNC), 1)
 APP_CFLAGS      += -DASYNC=1
 endif
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pmsis_rules.mk

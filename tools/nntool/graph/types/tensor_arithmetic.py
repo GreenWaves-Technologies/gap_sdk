@@ -17,11 +17,11 @@ import logging
 
 import numpy as np
 
-from expressions.symbolic.basic import Add, Div, Mul, Sub
+from expressions.symbolic.basic import Add, Div, Mul, SquaredDifference, Sub
 
 from ..dim import Dim
-from .base import (CanFuseToExpression, Parameters, SameNumberOfDimensionsForInputs,
-                   Transposable, expression_op, cls_op_name)
+from .base import (CanFuseToExpression, Parameters, SameNumberOfDimensionsForInputs, SensitiveToOrder,
+                   expression_op, cls_op_name, nargs, ComparableParameters)
 
 LOG = logging.getLogger("nntool." + __name__)
 
@@ -53,12 +53,17 @@ class Broadcastable(Parameters):
             raise ValueError(f'invalid broadcast {shape} -> {broadcast} on {self.name}')
 
     def broadcast_inputs(self, input_tensors):
-        if self.broadcast is None:
-            raise ValueError(f'broadcast has not been set on {self.name}')
+        shapes = [tensor.shape for tensor in input_tensors]
+        max_len = max(len(shape) for shape in shapes)
+        broadcasted_shapes = [([1] * (max_len - len(shape)))+list(shape) for shape in shapes]
+        max_dim_shape = [max(dims) for dims in zip(*broadcasted_shapes)]
+        for in_idx, shape in enumerate(broadcasted_shapes):
+            for idx, dim in enumerate(shape):
+                if dim != max_dim_shape[idx] and dim != 1:
+                    raise ValueError(f"invalid broadcast {self.name} input {in_idx} {shape} -> {max_dim_shape}")
         res = []
         for idx, input_tensor in enumerate(input_tensors):
-            self.verify_broadcast(input_tensor.shape, self.broadcast[idx])
-            res.append(np.reshape(input_tensor.copy(), self.broadcast[idx]))
+            res.append(np.reshape(input_tensor.copy(), broadcasted_shapes[idx]))
         return res
 
     @staticmethod
@@ -85,12 +90,8 @@ class Broadcastable(Parameters):
         mask = self.axis_masks[in_idx]
         return tuple([mask[idx] for idx in full_transpose if mask[idx] is not None])
 
-    def delete_transpose(self, in_idx, trans):
-        #TODO - Implement
-        pass
-
-
-class MatrixBroadcastedLinearOpParameters(CanFuseToExpression, Transposable,
+@nargs({2})
+class MatrixBroadcastedLinearOpParameters(CanFuseToExpression,
                                           SameNumberOfDimensionsForInputs, Broadcastable):
     def __init__(self, name, *args, **kwargs):
         super(MatrixBroadcastedLinearOpParameters, self).__init__(name, *args, **kwargs)
@@ -108,30 +109,20 @@ class MatrixBroadcastedLinearOpParameters(CanFuseToExpression, Transposable,
         return self.out_dims[0].size() * 2
 
     def get_output_size(self, in_dims):
-        if self.transpose_in:
-            in_dims = [dim.calc_transpose(trans) if trans is not None else dim
-                       for dim, trans in zip(in_dims, self.transpose_in)]
         if self.broadcast is None:
             self.set_broadcast([dim.shape for dim in in_dims])
         out_dim = Dim.broadcast(in_dims)
-        if self.transpose_out and self.transpose_out[0]:
-            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     def should_fuse(self, node_set, qrec=None):
-        for transpose in [self.transpose_in, self.transpose_out]:
-            if transpose is None:
-                continue
-            if any(trans is not None for trans in transpose):
-                return False
         return True
 
     def __str__(self):
-        return "{} {} {}".format(self.op_name, Transposable.__str__(self), self.at_options)
-
+        return f"{self.op_name} {self.at_options}"
+        
 @expression_op(Add)
 @cls_op_name('add')
-class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):
+class MatrixAddParameters(MatrixBroadcastedLinearOpParameters, ComparableParameters):
     TEST_MODE = False
 
     def __init__(self, name, *args, **kwargs):
@@ -147,6 +138,14 @@ class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):
     def force_quantized_index(self, val):
         self._force_quantized_index = val
 
+    def is_same_operation_as(self, G, other):
+        if self.__class__ != other.__class__:
+            return False
+        my_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(self)]
+        other_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(other)]
+        return all(edge in other_in_edges for edge in my_in_edges)
+
+
     def should_fuse(self, node_set, qrec=None):
         # add should fuse into an expression if there are several adds or the input
         # shapes don't match since we don't have broadcasted kernels in the AT gens
@@ -157,24 +156,50 @@ class MatrixAddParameters(MatrixBroadcastedLinearOpParameters):
 
 @expression_op(Mul)
 @cls_op_name('mul')
-class MatrixMulParameters(MatrixBroadcastedLinearOpParameters):
-    pass
+class MatrixMulParameters(MatrixBroadcastedLinearOpParameters, ComparableParameters):
+    def is_same_operation_as(self, G, other):
+        if self.__class__ != other.__class__:
+            return False
+        my_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(self)]
+        other_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(other)]
+        return all(edge in other_in_edges for edge in my_in_edges)
 
 
-@cls_op_name('sub')
 @expression_op(Sub)
-class MatrixSubParameters(MatrixBroadcastedLinearOpParameters):
-    pass
+@cls_op_name('sub')
+class MatrixSubParameters(MatrixBroadcastedLinearOpParameters, ComparableParameters):
+    def is_same_operation_as(self, G, other):
+        if self.__class__ != other.__class__:
+            return False
+        my_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(self)]
+        other_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(other)]
+        return all(edge == other_edge for edge, other_edge in zip(my_in_edges, other_in_edges))
 
 
-@cls_op_name('div')
 @expression_op(Div)
-class MatrixDivParameters(MatrixBroadcastedLinearOpParameters):
-    pass
+@cls_op_name('div')
+class MatrixDivParameters(MatrixBroadcastedLinearOpParameters, ComparableParameters):
+    def is_same_operation_as(self, G, other):
+        if self.__class__ != other.__class__:
+            return False
+        my_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(self)]
+        other_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(other)]
+        return all(edge == other_edge for edge, other_edge in zip(my_in_edges, other_in_edges))
+
+@expression_op(SquaredDifference)
+@cls_op_name('squared_difference')
+class SquaredDifferenceParameters(MatrixBroadcastedLinearOpParameters, ComparableParameters):
+    def is_same_operation_as(self, G, other):
+        if self.__class__ != other.__class__:
+            return False
+        my_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(self)]
+        other_in_edges = [(edge.from_node, edge.from_idx) for edge in G.indexed_in_edges(other)]
+        return all(edge == other_edge for edge, other_edge in zip(my_in_edges, other_in_edges))
 
 
 @cls_op_name('matmul')
-class MatMulOpParameters(Transposable):
+@nargs({2, 3})
+class MatMulOpParameters(Parameters, SensitiveToOrder):
 
     def __init__(self, name, *args, **kwargs):
         super(MatMulOpParameters, self).__init__(name, *args, **kwargs)
@@ -193,9 +218,6 @@ class MatMulOpParameters(Transposable):
         return self.out_dims[0].size() * 2
 
     def get_output_size(self, in_dims):
-        if self.transpose_in:
-            in_dims = [dim.calc_transpose(trans) if trans is not None else dim
-                       for dim, trans in zip(in_dims, self.transpose_in)]
         x_shape = list(in_dims[0].shape).copy()
         y_shape = list(in_dims[1].shape).copy()
 
@@ -216,9 +238,7 @@ class MatMulOpParameters(Transposable):
         x = [] if remove_first else [x_shape[-2]]
         y = [] if remove_last else [y_shape[-1]]
         out_dim = Dim.unnamed(out_chans + x + y)
-        if self.transpose_out and self.transpose_out[0]:
-            out_dim.transpose(self.transpose_out[0])
         return [out_dim]
 
     def __str__(self):
-        return "{} {} {}".format(self.op_name, Transposable.__str__(self), self.at_options)
+        return f"{self.op_name} {self.at_options}"

@@ -2670,10 +2670,10 @@ static void __attribute__ ((noinline)) KerConv1D_4Out_NStrideS_Border_DP_fp(
 			int Acc0 = Out[w], Acc1 = Out[w+1*Wo], Acc2 = Out[w+2*Wo], Acc3 = Out[w+3*Wo];
 			for (unsigned int i=Wh_min; i<Wh_max; i++) {
 				int V0 = In[(w*StrideX-PadLOrg+i)];
-				Acc0 += V0*Filter[i+Fw+0*FilterOffset];
-				Acc1 += V0*Filter[i+Fw+1*FilterOffset];
-				Acc2 += V0*Filter[i+Fw+2*FilterOffset];
-				Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+				Acc0 += V0*Filter[i+0*FilterOffset];
+				Acc1 += V0*Filter[i+1*FilterOffset];
+				Acc2 += V0*Filter[i+2*FilterOffset];
+				Acc3 += V0*Filter[i+3*FilterOffset];
 			}
 			Out[w] = Acc0; Out[w+1*Wo] = Acc1; Out[w+2*Wo] = Acc2; Out[w+3*Wo] = Acc3;
 			wl -= StrideX; wr -= StrideX;
@@ -2686,10 +2686,10 @@ static void __attribute__ ((noinline)) KerConv1D_4Out_NStrideS_Border_DP_fp(
 			int Acc0 = Out[w], Acc1 = Out[w+1*Wo], Acc2 = Out[w+2*Wo], Acc3 = Out[w+3*Wo];
 			for (unsigned int i=Wh_min; i<Wh_max; i++) {
 				int V0 = In[(w*StrideX-PadLOrg+i)];
-				Acc0 += V0*Filter[i+Fw+0*FilterOffset];
-				Acc1 += V0*Filter[i+Fw+1*FilterOffset];
-				Acc2 += V0*Filter[i+Fw+2*FilterOffset];
-				Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+				Acc0 += V0*Filter[i+0*FilterOffset];
+				Acc1 += V0*Filter[i+1*FilterOffset];
+				Acc2 += V0*Filter[i+2*FilterOffset];
+				Acc3 += V0*Filter[i+3*FilterOffset];
 			}
 			Out[w] = Acc0; Out[w+1*Wo] = Acc1; Out[w+2*Wo] = Acc2; Out[w+3*Wo] = Acc3;
 			wr -= StrideX;
@@ -2736,10 +2736,10 @@ static void __attribute__ ((noinline)) KerConv_4Out_Nx1StrideSxS1_Border_DP_fp(
 				int Acc0 = Out[Wo*h+w+0*Wo*Ho], Acc1 = Out[Wo*h+w+1*Wo*Ho], Acc2 = Out[Wo*h+w+2*Wo*Ho], Acc3 = Out[Wo*h+w+3*Wo*Ho];
 				for (unsigned int i=Wh_min; i<Wh_max; i++) {
 					int V0 = In[h*W + (w*StrideX-PadLOrg+i)];
-					Acc0 += V0*Filter[i+Fw+0*FilterOffset];
-					Acc1 += V0*Filter[i+Fw+1*FilterOffset];
-					Acc2 += V0*Filter[i+Fw+2*FilterOffset];
-					Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+					Acc0 += V0*Filter[i+0*FilterOffset];
+					Acc1 += V0*Filter[i+1*FilterOffset];
+					Acc2 += V0*Filter[i+2*FilterOffset];
+					Acc3 += V0*Filter[i+3*FilterOffset];
 				}
 				Out[Wo*h+w+0*Wo*Ho] = Acc0; Out[Wo*h+w+1*Wo*Ho] = Acc1; Out[Wo*h+w+2*Wo*Ho] = Acc2; Out[Wo*h+w+3*Wo*Ho] = Acc3;
 			}
@@ -2754,10 +2754,10 @@ static void __attribute__ ((noinline)) KerConv_4Out_Nx1StrideSxS1_Border_DP_fp(
 				int Acc0 = Out[Wo*h+w+0*Wo*Ho], Acc1 = Out[Wo*h+w+1*Wo*Ho], Acc2 = Out[Wo*h+w+2*Wo*Ho], Acc3 = Out[Wo*h+w+3*Wo*Ho];
 				for (unsigned int i=Wh_min; i<Wh_max; i++) {
 					int V0 = In[h*W + (w*StrideX-PadLOrg+i)];
-					Acc0 += V0*Filter[i+Fw+0*FilterOffset];
-					Acc1 += V0*Filter[i+Fw+1*FilterOffset];
-					Acc2 += V0*Filter[i+Fw+2*FilterOffset];
-					Acc3 += V0*Filter[i+Fw+3*FilterOffset];
+					Acc0 += V0*Filter[i+0*FilterOffset];
+					Acc1 += V0*Filter[i+1*FilterOffset];
+					Acc2 += V0*Filter[i+2*FilterOffset];
+					Acc3 += V0*Filter[i+3*FilterOffset];
 				}
 				Out[Wo*h+w+0*Wo*Ho] = Acc0; Out[Wo*h+w+1*Wo*Ho] = Acc1; Out[Wo*h+w+2*Wo*Ho] = Acc2; Out[Wo*h+w+3*Wo*Ho] = Acc3;
 			}
@@ -4839,11 +4839,12 @@ static void __attribute__ ((noinline)) KerConv1D_NStrideS_Body_DP_fps(
 	unsigned short int PadL = Pad[0];
 
 	DP_fps_T *PtO = Out+Wo_F;
+	signed char *__restrict__ pIn = In + Wo_F*StrideX - PadL;
 	for (unsigned int w=Wo_F; w<Wo_L; w++) {
 		int Acc = *PtO;
-		for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) In)[(w*StrideX-PadL+i)], ((v4s *)Filter)[i], Acc);
-		for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += In[(w*StrideX-PadL+i)]*Filter[i];
-		*PtO = Acc; PtO++;
+		for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) pIn)[i], ((v4s *)Filter)[i], Acc);
+		for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += pIn[i]*Filter[i];
+		*PtO = Acc; PtO++; pIn += StrideX;
 	}
 }
 
@@ -4871,11 +4872,12 @@ static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Body_DP_fps(
 	DP_fps_T *PtO = Out+Wo*Ho_F+Wo_F;
 	signed char *PtC = Filter;
 	for (unsigned int h=Ho_F; h<Ho_L; h++) {
+		signed char *__restrict__ pIn = In + h*W + Wo_F*StrideX - PadL;
 		for (unsigned int w=Wo_F; w<Wo_L; w++) {
 			int Acc = *PtO;
-			for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) In)[h*W + (w*StrideX-PadL+i)], ((v4s *)Filter)[i], Acc);
-			for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += In[h*W + (w*StrideX-PadL+i)]*Filter[i];
-			*PtO = Acc; PtO++;
+			for (unsigned int i=0; i<Fw/4; i++) Acc = gap_sumdotp4(((v4s *) pIn)[i], ((v4s *)Filter)[i], Acc);
+			for (unsigned int i=(Fw/4)*4; i<Fw; i++) Acc += pIn[i]*Filter[i];
+			*PtO = Acc; PtO++; pIn += StrideX;
 		}
 		PtO = PtO + (Wo-Wo_L)+Wo_F;
 	}
@@ -5861,7 +5863,7 @@ static void __attribute__ ((noinline)) KerConv1D_NStrideS_Body_DP_fp(
 			Acc = gap_sumdotp2(((v2s *)pIn)[2*i], ((v2s *)Filter)[2*i], Acc);
 			Acc = gap_sumdotp2(((v2s *)pIn)[2*i+1], ((v2s *)Filter)[2*i+1], Acc);
 		}
-		if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/4], ((v2s *)Filter)[Fw/4], Acc);
+		if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/2-1], ((v2s *)Filter)[Fw/2-1], Acc);
 		if (Fw&0x1) Acc += In[(w*StrideX-PadL+Fw-1)]*Filter[Fw-1];
 		*PtO = Acc; PtO++; pIn += StrideX;
 	}
@@ -5987,7 +5989,7 @@ static void __attribute__ ((noinline)) KerConvNx1StrideSxS1_Body_DP_fp(
 				Acc = gap_sumdotp2(((v2s *)pIn)[2*i], ((v2s *)Filter)[2*i], Acc);
 				Acc = gap_sumdotp2(((v2s *)pIn)[2*i+1], ((v2s *)Filter)[2*i+1], Acc);
 			}
-			if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/4], ((v2s *)Filter)[Fw/4], Acc);
+			if (Fw&0x2) Acc = gap_sumdotp2(((v2s *)pIn)[Fw/2-1], ((v2s *)Filter)[Fw/2-1], Acc);
 			if (Fw&0x1) Acc += In[h*W + (w*StrideX-PadL+Fw-1)]*Filter[Fw-1];
 			*PtO = Acc; PtO++; pIn += StrideX;
 		}
@@ -7074,13 +7076,6 @@ void KerParConv1x1Stride1_DP_fps(KerConv_DP_fps_T *Arg)
 	unsigned int InFeatures = Arg->InFeatures;
 		
 	for (unsigned int of=First; of<Last; of++) {
-#if 0
-		for (unsigned int If=0; If<InFeatures; If++) {
-			signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of + If);
-			DP_fps_T *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride1_Body_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn);
-		}
-#else
 		for (unsigned int If=0; If<(InFeatures/4); If++) {
 			signed char *in = In+W*H*4*If, *filter = Filter+FS*FS*(TotalInFeatures*of + 4*If);
 			DP_fps_T *out = Out+Wo*Ho*(of);
@@ -7093,7 +7088,6 @@ void KerParConv1x1Stride1_DP_fps(KerConv_DP_fps_T *Arg)
 				KerConv1x1Stride1_Body_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn);
 			}
 		}
-#endif
 	}
 	gap_waitbarrier(0);
 }
@@ -7123,14 +7117,6 @@ void KerParConv1x1Stride2_DP_fps(KerConv_DP_fps_T *Arg)
 	unsigned int InFeatures = Arg->InFeatures;
 		
 	for (unsigned int of=First; of<Last; of++) {
-#if 0
-		for (unsigned int If=0; If<InFeatures; If++) {
-			signed char *in = In+W*H*If, *filter = Filter+FS*FS*(TotalInFeatures*of + If);
-			DP_fps_T *out = Out+Wo*Ho*(of);
-			KerConv1x1Stride2_Body_DP_fps(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn);
-		}
-
-#endif
 		for (unsigned int If=0; If<(InFeatures/4); If++) {
 			signed char *in = In+W*H*4*If, *filter = Filter+FS*FS*(TotalInFeatures*of + 4*If);
 			DP_fps_T *out = Out+Wo*Ho*(of);

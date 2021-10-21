@@ -93,9 +93,8 @@ class RemoveCommand(NNToolShellBase):
                 return
             edges.remove(edge_from)
             remove_nodes(self.G, edges)
-            edge_from.to_node = edge_to.to_node
-            edge_from.to_idx = edge_to.to_idx
-            self.G.add_edge(edge_from)
+            new_edge = edge_from.clone(to_node = edge_to.to_node, to_idx = edge_to.to_idx)
+            self.G.add_edge(new_edge)
         self.G.add_dimensions()
 
     def find_to(self, edge_from, edges):

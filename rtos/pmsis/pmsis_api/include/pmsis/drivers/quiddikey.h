@@ -2,6 +2,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PI_INLINE_QK0 static inline
 
 #ifndef PI_INLINE_QK0
@@ -79,3 +83,7 @@ PI_INLINE_QK0 int pi_quiddikey_generate_random(pi_device_t *device,
 PI_INLINE_QK0 int pi_quiddikey_open(pi_device_t *device);
 
 PI_INLINE_QK0 void pi_quiddikey_close(pi_device_t *device);
+
+#ifdef __cplusplus
+}
+#endif

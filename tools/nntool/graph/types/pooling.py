@@ -17,12 +17,12 @@ from copy import deepcopy
 import logging
 
 from ..dim import PoolFilterDim
-from .base import FilterLikeParameters, Transposable, cls_op_name
+from .base import FilterLikeParameters, cls_op_name, SensitiveToOrder
 
 LOG = logging.getLogger("nntool." + __name__)
 
 
-class PoolingParameters(FilterLikeParameters, Transposable):
+class PoolingParameters(FilterLikeParameters, SensitiveToOrder):
     POOL_TYPE = None
 
     def __new__(cls, *args, pool_type="max", **kwargs):
@@ -44,6 +44,10 @@ class PoolingParameters(FilterLikeParameters, Transposable):
         return duplicate
 
     @property
+    def graph_label(self):
+        return [self.name, self.pool_type, str(self.filter)]
+
+    @property
     def pool_type(self):
         return self.POOL_TYPE
 
@@ -59,9 +63,6 @@ class PoolingParameters(FilterLikeParameters, Transposable):
         assert len(in_dims) == 1
         in_dims = in_dims[0]
 
-        if self.transpose_in and self.transpose_in[0]:
-            in_dims = in_dims.calc_transpose(self.transpose_in[0])
-
         if self.filter is None:
             self.filter = PoolFilterDim(in_dims.h, in_dims.w)
 
@@ -73,8 +74,6 @@ class PoolingParameters(FilterLikeParameters, Transposable):
 
         out_dim.c = in_dims.c
         out_dim.impose_order(in_dims.order)
-        if self.transpose_out and self.transpose_out[0]:
-            out_dim = out_dim.calc_transpose(self.transpose_out[0])
 
         return [out_dim]
 
@@ -86,13 +85,12 @@ class PoolingParameters(FilterLikeParameters, Transposable):
                     self.filter.w) + self.out_dims[0].size()
 
     def __str__(self):
-        return "T {} F {} S {} P {} {} {} {}".format(
+        return "T {} F {} S {} P {} {} {}".format(
             self.pool_type,
             self.filter,
             self.stride,
             self.padding,
             self.pad_type,
-            Transposable.__str__(self),
             self.at_options
         )
 

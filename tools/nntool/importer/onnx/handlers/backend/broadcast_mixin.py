@@ -22,34 +22,6 @@ from importer.common.provisional_dim import ProvisionalDim
 class BroadcastMixin(object):
 
     @classmethod
-    def explicit_broadcast(cls, inputs, axis=None):
-        # TODO - Implement
-        pass
-
-        # x = np.array(inputs[0][2].shape)
-        # y = np.array(inputs[1][2].shape)
-
-        # if np.prod(y.shape) == 1:
-        #     return y
-
-        # if axis is None:
-        #     return y
-
-        # total_num_dim = len(x.shape)
-        # if axis < 0:
-        #     axis += total_num_dim
-
-        # if axis + len(y.shape) == total_num_dim:
-        #     return y
-
-        # dims = [axis + i for i in range(len(y.shape))]
-        # new_y = y
-        # for i in range(total_num_dim):
-        #     if i not in dims:
-        #         new_y = None  # tf.expand_dims(new_y, i)
-        # return new_y
-
-    @classmethod
     def get_broadcasted_shape(cls, x, y):
         if len(x) < len(y):
             x = ([1] * (len(y) - len(x))) + x

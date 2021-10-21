@@ -19,8 +19,16 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef PI_INLINE_CL_TEAM_0
 #define PI_INLINE_CL_TEAM_0
+#endif
+
+#ifndef PI_INLINE_CL_TEAM_1
+#define PI_INLINE_CL_TEAM_1
 #endif
 
 /**
@@ -90,7 +98,7 @@ PI_INLINE_CL_TEAM_0 void pi_cl_team_fork(int nb_cores, void (*entry)(void *), vo
  *
  * \param nb_cores       Number of cores to execute the entry point
  */
-void pi_cl_team_prepare_fork(int nb_cores);
+PI_INLINE_CL_TEAM_0 void pi_cl_team_prepare_fork(int nb_cores);
 
 /**
  * \brief Fork a the execution of the calling core.
@@ -232,4 +240,7 @@ PI_INLINE_CL_TEAM_0 void pi_cl_team_critical_exit(void);
  * \}
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_CLUSTER_CLUSTER_TEAM_CL_TEAM_H__ */

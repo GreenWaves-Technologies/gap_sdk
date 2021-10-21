@@ -1,0 +1,22 @@
+adjust
+fusions --scale8
+#imageformat input_1 rgb888 offset_int8
+
+nodeoption CONV_2D_0_0_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_2_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_3_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_8_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_12_fusion PARALLELFEATURES 0
+
+set l2_ram_ext_managed false
+set graph_reorder_constant_in false
+#set graph_const_exec_from_flash true
+#set graph_size_opt 2
+
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+
+set graph_dump_tensor 7
+set graph_trace_exec true
+save_state

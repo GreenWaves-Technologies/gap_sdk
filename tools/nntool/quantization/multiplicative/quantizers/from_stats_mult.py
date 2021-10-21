@@ -44,7 +44,7 @@ class FromStatsMult(MultQuantizionHandler):
             return None
         if force_out_q:
             o_q = deepcopy(force_out_q)
-            if o_q.is_asymmetric:
+            if o_q.asymmetric:
                 return None
         else:
             cls.check_valid_ranges(params, stats, idx=0, dirs='out')

@@ -1,0 +1,23 @@
+adjust
+fusions --pow2
+set input_divisor 256
+set input_offset 0
+aquant -s POW2 -f 16 samples/*.png
+set l3_ram_device "AT_MEM_L3_QSPIRAM"
+set l3_flash_device "AT_MEM_L3_QSPIFLASH"
+#set default_output_home_location "AT_MEM_L3_QSPIRAM"
+set default_output_exec_location "AT_MEM_L3_QSPIRAM"
+set default_global_home_location "AT_MEM_L3_QSPIFLASH"
+set l3_ram_ext_managed True
+set l2_ram_ext_managed False
+set graph_reorder_constant_in true
+set graph_const_exec_from_flash true
+set graph_warm_construct true
+#set graph_produce_node_names true
+#set graph_produce_operinfos true
+#set graph_monitor_cycles true
+#set graph_trace_exec true
+#This line is to dump all layer output
+#set graph_dump_tensor 7
+save_state
+

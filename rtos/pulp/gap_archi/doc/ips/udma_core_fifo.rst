@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/udma_core/doc/UDMA_CORE_FIFO_ADDRGEN_reference.md
+.. 
+   Input file: fe/ips/udma/udma_core/doc/UDMA_CORE_FIFO_ADDRGEN_reference.md
 
 Register map
 ^^^^^^^^^^^^

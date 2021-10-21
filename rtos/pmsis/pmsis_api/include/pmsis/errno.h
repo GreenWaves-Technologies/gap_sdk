@@ -22,6 +22,10 @@
 #ifndef API_ERRNO_H
 #define API_ERRNO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     PI_OK = 0x00, /*!< indicating success (no error) */
     PI_FAIL = 0x01, /*!< Generic code indicating failure */
@@ -43,4 +47,7 @@ typedef enum {
     PI_ERR_L2_NO_MEM = 0x201, /*!< L2 out of memory */
 } pi_err_t;
 
+#ifdef __cplusplus
+}
+#endif
 #endif //API_ERRNO_H

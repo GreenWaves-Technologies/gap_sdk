@@ -1,0 +1,1721 @@
+script 
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators/nntool_extra_generators.c
+python3 utils/test_accuracy_emul.py --tflite_model model/KWS_ds_cnn_l_quant_power.tflite --dct_coefficient_count 10 --window_size_ms 40 --window_stride_ms 20 --test_with_wav 1 --use_power_spectrogram 1 --use_high_prec 1
+make -f emul.mk clean_model clean all DUMP_TENSORS=0 SMALL=0 MEDIUM=0 LARGE=1 WITH_MFCC=1 USE_POWER=1 USE_HIGH_PREC=1
+make[1]: Entering directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+script 
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators/nntool_extra_generators.c
+rm -f BUILD_MODEL_8BIT_EMUL/GenTile
+rm -f -rf BUILD_MODEL_8BIT_EMUL
+rm -f BUILD_MODEL_8BIT_EMUL/*.dat
+rm -rf /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL
+rm -f -r BUILD_EMUL
+rm -f kws_ds_cnn_emul
+mkdir BUILD_MODEL_8BIT_EMUL
+cp model/KWS_ds_cnn_l_quant_power.tflite BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quant.tflite
+echo "GENERATING AUTOTILER MODEL BUILD_MODEL_8BIT_EMUL"
+GENERATING AUTOTILER MODEL BUILD_MODEL_8BIT_EMUL
+sed -e "s|MODEL_SRC|KWS_ds_cnn_l_quantModel.c|g" -e "s|TENSORS_DIR|BUILD_MODEL_8BIT_EMUL/tensors|g" -e "s|MODEL_BUILD|BUILD_MODEL_8BIT_EMUL|g" -e "s|GRAPH_DUMP||g" -e "s|LARGE_OPT|nodeoption 1 PARALLELFEATURES 0|g" \
+	model/nntool_script_params > model/nntool_script
+nntool -s model/nntool_script BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quant.tflite -q
+settings - set log level to INFO
+log_level - was: 'INFO'
+now: 'INFO'
+load_quantization - was: False
+now: True
+open - opening graph file BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quant.tflite load_quantizaion = True
+tflite - Importing TFLITE model version 3
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+debug - was: False
+now: True
+adjust_order - adding transposes to correct tensor order for AT kernels
+set_aliases - looking for aliased edges
+eliminate_transposes - eliminating unnecessary transposes
+eliminate_transposes - search for transposes
+eliminate_transposes - ++ Starting up from CONV_2D_0_0[0]
+eliminate_transposes - looking up at input_1[0] transpose [2, 0, 1]
+eliminate_transposes - accepted input_1 - input without fixed order - transpose input [2, 0, 1]
+eliminate_transposes - ++ Found results for CONV_2D_0_0[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_0[0]
+eliminate_transposes - looking down at CONV_2D_0_0_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_1[0] transpose [1, 2, 0]
+eliminate_transposes - accepted DEPTHWISE_CONV_2D_0_1 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_0[0]
+eliminate_transposes - ++ Starting down from DEPTHWISE_CONV_2D_0_1[0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_1_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at CONV_2D_0_2[0] transpose [1, 2, 0]
+eliminate_transposes - accepted CONV_2D_0_2 - transpose in (1)
+eliminate_transposes - ++ Found results for DEPTHWISE_CONV_2D_0_1[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_2[0]
+eliminate_transposes - looking down at CONV_2D_0_2_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_3[0] transpose [1, 2, 0]
+eliminate_transposes - accepted DEPTHWISE_CONV_2D_0_3 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_2[0]
+eliminate_transposes - ++ Starting down from DEPTHWISE_CONV_2D_0_3[0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_3_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at CONV_2D_0_4[0] transpose [1, 2, 0]
+eliminate_transposes - accepted CONV_2D_0_4 - transpose in (1)
+eliminate_transposes - ++ Found results for DEPTHWISE_CONV_2D_0_3[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_4[0]
+eliminate_transposes - looking down at CONV_2D_0_4_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_5[0] transpose [1, 2, 0]
+eliminate_transposes - accepted DEPTHWISE_CONV_2D_0_5 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_4[0]
+eliminate_transposes - ++ Starting down from DEPTHWISE_CONV_2D_0_5[0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_5_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at CONV_2D_0_6[0] transpose [1, 2, 0]
+eliminate_transposes - accepted CONV_2D_0_6 - transpose in (1)
+eliminate_transposes - ++ Found results for DEPTHWISE_CONV_2D_0_5[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_6[0]
+eliminate_transposes - looking down at CONV_2D_0_6_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_7[0] transpose [1, 2, 0]
+eliminate_transposes - accepted DEPTHWISE_CONV_2D_0_7 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_6[0]
+eliminate_transposes - ++ Starting down from DEPTHWISE_CONV_2D_0_7[0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_7_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at CONV_2D_0_8[0] transpose [1, 2, 0]
+eliminate_transposes - accepted CONV_2D_0_8 - transpose in (1)
+eliminate_transposes - ++ Found results for DEPTHWISE_CONV_2D_0_7[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_8[0]
+eliminate_transposes - looking down at CONV_2D_0_8_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_9[0] transpose [1, 2, 0]
+eliminate_transposes - accepted DEPTHWISE_CONV_2D_0_9 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_8[0]
+eliminate_transposes - ++ Starting down from DEPTHWISE_CONV_2D_0_9[0]
+eliminate_transposes - looking down at DEPTHWISE_CONV_2D_0_9_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at CONV_2D_0_10[0] transpose [1, 2, 0]
+eliminate_transposes - accepted CONV_2D_0_10 - transpose in (1)
+eliminate_transposes - ++ Found results for DEPTHWISE_CONV_2D_0_9[0]
+eliminate_transposes - ++ Starting down from CONV_2D_0_10[0]
+eliminate_transposes - looking down at CONV_2D_0_10_activation[0] transpose [1, 2, 0]
+eliminate_transposes - looking down at AVERAGE_POOL_2D_0_11[0] transpose [1, 2, 0]
+eliminate_transposes - accepted AVERAGE_POOL_2D_0_11 - transpose in (1)
+eliminate_transposes - ++ Found results for CONV_2D_0_10[0]
+eliminate_transposes - ++ Starting down from AVERAGE_POOL_2D_0_11[0]
+eliminate_transposes - looking down at FULLY_CONNECTED_0_12[0] transpose [1, 2, 0]
+eliminate_transposes - accepted FULLY_CONNECTED_0_12 - linear layer reorder input
+eliminate_transposes - ++ Found results for AVERAGE_POOL_2D_0_11[0]
+eliminate_transposes - eliminate transposes
+eliminate_transposes_actions - Start Action (up): CONV_2D_0_0
+eliminate_transposes_actions - CONV_2D_0_0 delete transpose in[0]
+eliminate_transposes_actions - CONV_2D_0_0 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - input_1 input dims with (2, 0, 1)
+eliminate_transposes_actions - End Action (up): input_1
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_0
+eliminate_transposes_actions - CONV_2D_0_0 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_0 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_1 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_1 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): DEPTHWISE_CONV_2D_0_1
+eliminate_transposes_actions - Start Action (down): DEPTHWISE_CONV_2D_0_1
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_1 delete transpose out[0]
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_1 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_2 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_2 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): CONV_2D_0_2
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_2
+eliminate_transposes_actions - CONV_2D_0_2 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_2 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_3 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_3 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): DEPTHWISE_CONV_2D_0_3
+eliminate_transposes_actions - Start Action (down): DEPTHWISE_CONV_2D_0_3
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_3 delete transpose out[0]
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_3 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_4 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_4 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): CONV_2D_0_4
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_4
+eliminate_transposes_actions - CONV_2D_0_4 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_4 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_5 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_5 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): DEPTHWISE_CONV_2D_0_5
+eliminate_transposes_actions - Start Action (down): DEPTHWISE_CONV_2D_0_5
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_5 delete transpose out[0]
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_5 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_6 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_6 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): CONV_2D_0_6
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_6
+eliminate_transposes_actions - CONV_2D_0_6 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_6 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_7 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_7 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): DEPTHWISE_CONV_2D_0_7
+eliminate_transposes_actions - Start Action (down): DEPTHWISE_CONV_2D_0_7
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_7 delete transpose out[0]
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_7 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_8 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_8 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): CONV_2D_0_8
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_8
+eliminate_transposes_actions - CONV_2D_0_8 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_8 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_9 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_9 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): DEPTHWISE_CONV_2D_0_9
+eliminate_transposes_actions - Start Action (down): DEPTHWISE_CONV_2D_0_9
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_9 delete transpose out[0]
+eliminate_transposes_actions - DEPTHWISE_CONV_2D_0_9 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_10 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - CONV_2D_0_10 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): CONV_2D_0_10
+eliminate_transposes_actions - Start Action (down): CONV_2D_0_10
+eliminate_transposes_actions - CONV_2D_0_10 delete transpose out[0]
+eliminate_transposes_actions - CONV_2D_0_10 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - AVERAGE_POOL_2D_0_11 set hint in[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - AVERAGE_POOL_2D_0_11 delete transpose in[0]
+eliminate_transposes_actions - End Action (down): AVERAGE_POOL_2D_0_11
+eliminate_transposes_actions - Start Action (down): AVERAGE_POOL_2D_0_11
+eliminate_transposes_actions - AVERAGE_POOL_2D_0_11 delete transpose out[0]
+eliminate_transposes_actions - AVERAGE_POOL_2D_0_11 set hint out[0] to ['c', 'h', 'w']
+eliminate_transposes_actions - reorder linear layer FULLY_CONNECTED_0_12 in with shape 1x1x276 transposed (2, 0, 1)
+eliminate_transposes_actions - End Action (down): FULLY_CONNECTED_0_12
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+eliminate_transposes - search for transposes
+eliminate_transposes - no transposes to eliminate found
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+eliminate_transposes - no further transpose sequences found
+set_aliases - looking for aliased edges
+nngraph - adjusted order
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+matcher - fusions - start remove_relus
+matcher - fusions - start remove_noops
+matcher - fusions - start fuse_external_bias_sq8
+matcher - fusions - start fuse_pad
+matcher - fusions - start match_duplicate_operations
+matcher - fusions - start gather_to_split
+matcher - fusions - start slice_to_split
+matcher - fusions - start unused_concats
+matcher - fusions - start find_missing_quantization
+matcher - fusions - start rnn_reverse
+matcher - fusions - start rnn_unpack
+matcher - fusions - start match_far_hsigmoid
+matcher - fusions - start match_close_hsigmoid
+matcher - fusions - start expand_transposes
+matcher - fusions - start move_pooling_scale8
+matcher - fusions - start move_activations_scale8
+matcher - fusions - start fuse_gap_convs
+matcher - fusions - start match_conv_active_pool
+matcher - fusions - start match_conv_pool_active
+matcher - fusions - start match_conv_active
+match_gap_conv - fusing nodes CONV_2D_0_0,CONV_2D_0_0_activation
+match_gap_conv - fusing nodes DEPTHWISE_CONV_2D_0_1,DEPTHWISE_CONV_2D_0_1_activation
+match_gap_conv - fusing nodes CONV_2D_0_2,CONV_2D_0_2_activation
+match_gap_conv - fusing nodes DEPTHWISE_CONV_2D_0_3,DEPTHWISE_CONV_2D_0_3_activation
+match_gap_conv - fusing nodes CONV_2D_0_4,CONV_2D_0_4_activation
+match_gap_conv - fusing nodes DEPTHWISE_CONV_2D_0_5,DEPTHWISE_CONV_2D_0_5_activation
+match_gap_conv - fusing nodes CONV_2D_0_6,CONV_2D_0_6_activation
+match_gap_conv - fusing nodes DEPTHWISE_CONV_2D_0_7,DEPTHWISE_CONV_2D_0_7_activation
+match_gap_conv - fusing nodes CONV_2D_0_8,CONV_2D_0_8_activation
+match_gap_conv - fusing nodes DEPTHWISE_CONV_2D_0_9,DEPTHWISE_CONV_2D_0_9_activation
+match_gap_conv - fusing nodes CONV_2D_0_10,CONV_2D_0_10_activation
+matcher - fusions - match_conv_active modified graph
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
+matcher - fusions - start match_conv_pool
+matcher - fusions - start fuse_gap_linear
+matcher - fusions - start fuse_op_activation_scale8
+matcher - fusions - start propagate_softmax_sym_qrec
+equalize_sym_mult_concats - propagating scale up from node SOFTMAX_0_13 to node FULLY_CONNECTED_0_12
+matcher - fusions - start equalize_sm_concats
+matcher - fusions - start filter_bigger_than_input
+matcher - fusions - start insert_copies
+matcher - fusions - start propagate_up_rnn_in_qs
+nngraph - update graph dimensions
+set_aliases - looking for aliased edges
+nngraph - calculate liveness
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+| Step |          Step name          |        Operation        | Input Dims | Output Dims | Inputs | Active | Params |   Ops   |           Params           |        Hints         |
+|      |                             |                         |  (cxhxw)   |   (cxhxw)   |        |  size  |  size  |         |                            |                      |
++======+=============================+=========================+============+=============+========+========+========+=========+============================+======================+
+|  0   | input_1                     | input                   |  1x49x10   |   1x49x10   |        |  490   |   0    |         | I 1x49x10  FIXED_ORDER=0   | in: hxwxc out: none  |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  1   | CONV_2D_0_0_fusion          | conv_fusion_conv_active |  1x49x10   |  276x25x10  |   0    | 69490  | 11316  |   2.76M | F 276x1x10x4 S 2x1 D 1x1 G | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | 1 M 1 P 4x5x1x2 zero,      |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  2   | DEPTHWISE_CONV_2D_0_1_fusio | conv_fusion_conv_active | 276x25x10  |  276x13x5   |   1    | 86940  |  285   | 161.46K | F 276x1x3x3 S 2x2 D 1x1 G  | in: cxhxw out: cxhxw |
+|      | n                           |                         |            |             |        |        |        |         | 276 M 1 P 1x1x0x1 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  3   | CONV_2D_0_2_fusion          | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   2    | 35880  | 76452  |   4.95M | F 276x276x1x1 S 1x1 D 1x1  | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | G 1 M 1 P 0x0x0x0 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  4   | DEPTHWISE_CONV_2D_0_3_fusio | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   3    | 35880  |  285   | 161.46K | F 276x1x3x3 S 1x1 D 1x1 G  | in: cxhxw out: cxhxw |
+|      | n                           |                         |            |             |        |        |        |         | 276 M 1 P 1x1x1x1 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  5   | CONV_2D_0_4_fusion          | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   4    | 35880  | 76452  |   4.95M | F 276x276x1x1 S 1x1 D 1x1  | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | G 1 M 1 P 0x0x0x0 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  6   | DEPTHWISE_CONV_2D_0_5_fusio | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   5    | 35880  |  285   | 161.46K | F 276x1x3x3 S 1x1 D 1x1 G  | in: cxhxw out: cxhxw |
+|      | n                           |                         |            |             |        |        |        |         | 276 M 1 P 1x1x1x1 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  7   | CONV_2D_0_6_fusion          | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   6    | 35880  | 76452  |   4.95M | F 276x276x1x1 S 1x1 D 1x1  | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | G 1 M 1 P 0x0x0x0 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  8   | DEPTHWISE_CONV_2D_0_7_fusio | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   7    | 35880  |  285   | 161.46K | F 276x1x3x3 S 1x1 D 1x1 G  | in: cxhxw out: cxhxw |
+|      | n                           |                         |            |             |        |        |        |         | 276 M 1 P 1x1x1x1 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  9   | CONV_2D_0_8_fusion          | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   8    | 35880  | 76452  |   4.95M | F 276x276x1x1 S 1x1 D 1x1  | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | G 1 M 1 P 0x0x0x0 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  10  | DEPTHWISE_CONV_2D_0_9_fusio | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   9    | 35880  |  285   | 161.46K | F 276x1x3x3 S 1x1 D 1x1 G  | in: cxhxw out: cxhxw |
+|      | n                           |                         |            |             |        |        |        |         | 276 M 1 P 1x1x1x1 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  11  | CONV_2D_0_10_fusion         | conv_fusion_conv_active |  276x13x5  |  276x13x5   |   10   | 35880  | 76452  |   4.95M | F 276x276x1x1 S 1x1 D 1x1  | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | G 1 M 1 P 0x0x0x0 zero,    |                      |
+|      |                             |                         |            |             |        |        |        |         | Activation relu            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  12  | AVERAGE_POOL_2D_0_11        | average_pool            |  276x13x5  |   276x1x1   |   11   | 18216  |   0    |  18.22K | T average F 13x5 S 2x2 P   | in: cxhxw out: cxhxw |
+|      |                             |                         |            |             |        |        |        |         | 0x0x0x0 zero               |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  13  | FULLY_CONNECTED_0_12        | linear                  |  276x1x1   |     12      |   12   |  288   |  3324  |   3.31K | F 12x276x1x1               | in: cx0x1 out: c     |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  14  | SOFTMAX_0_13                | softmax                 |     12     |     12      |   13   |   24   |   0    |      24 | Beta 0.0 Axis None         | in: none out: none   |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|  15  | output_1                    | output                  |     12     |     12      |   14   |   12   |   0    |         | O 12  FIXED_ORDER=0        | in: none out: none   |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|      | Totals (#)                  |                         |            |             |        | 86940  | 398325 |  28.35M |                            |                      |
+|      | Max active/Total params     |                         |            |             |        |        |        |         |                            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
+|      | Totals (#)                  |                         |            |             |        |        | 485265 |  28.35M |                            |                      |
+|      | Max mem usage               |                         |            |             |        |        |        |         |                            |                      |
++------+-----------------------------+-------------------------+------------+-------------+--------+--------+--------+---------+----------------------------+----------------------+
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+| Step |       Name       |        In        |       Out       |     Weights     |   Bias   | Mulbias  | Calc  |  Acc  |
++======+==================+==================+=================+=================+==========+==========+=======+=======+
+|  0   | input_1          | -247.97<i8*1.937 | -247.97<i8*1.93 |                 |          |          |       |       |
+|      |                  | 27124<246.03     | 727124<246.03   |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  1   | CONV_2D_0_0      | -247.97<i8*1.937 | -16.85<i8*0.131 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 27124<246.03     | 62586<16.72     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  1   | CONV_2D_0_0_acti | -16.85<i8*0.1316 | -16.85<i8*0.131 |                 |          |          |       |       |
+|      | vation           | 2586<16.72       | 62586<16.72     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  1   | CONV_2D_0_0_fusi | -247.97<i8*1.937 | -16.85<i8*0.131 |                 |          |          |       |       |
+|      | on               | 27124<246.03     | 62586<16.72     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  2   | DEPTHWISE_CONV_2 | -16.85<i8*0.1316 | -20.00<i8*0.156 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | D_0_1            | 2586<16.72       | 24377<19.84     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  2   | DEPTHWISE_CONV_2 | -20.00<i8*0.1562 | -20.00<i8*0.156 |                 |          |          |       |       |
+|      | D_0_1_activation | 4377<19.84       | 24377<19.84     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  2   | DEPTHWISE_CONV_2 | -16.85<i8*0.1316 | -20.00<i8*0.156 |                 |          |          |       |       |
+|      | D_0_1_fusion     | 2586<16.72       | 24377<19.84     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  3   | CONV_2D_0_2      | -20.00<i8*0.1562 | -17.92<i8*0.140 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 4377<19.84       | 00155<17.78     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  3   | CONV_2D_0_2_acti | -17.92<i8*0.1400 | -17.92<i8*0.140 |                 |          |          |       |       |
+|      | vation           | 0155<17.78       | 00155<17.78     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  3   | CONV_2D_0_2_fusi | -20.00<i8*0.1562 | -17.92<i8*0.140 |                 |          |          |       |       |
+|      | on               | 4377<19.84       | 00155<17.78     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  4   | DEPTHWISE_CONV_2 | -17.92<i8*0.1400 | -17.24<i8*0.134 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | D_0_3            | 0155<17.78       | 64949<17.10     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  4   | DEPTHWISE_CONV_2 | -17.24<i8*0.1346 | -17.24<i8*0.134 |                 |          |          |       |       |
+|      | D_0_3_activation | 4949<17.10       | 64949<17.10     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  4   | DEPTHWISE_CONV_2 | -17.92<i8*0.1400 | -17.24<i8*0.134 |                 |          |          |       |       |
+|      | D_0_3_fusion     | 0155<17.78       | 64949<17.10     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  5   | CONV_2D_0_4      | -17.24<i8*0.1346 | -10.68<i8*0.083 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 4949<17.10       | 43959<10.60     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  5   | CONV_2D_0_4_acti | -10.68<i8*0.0834 | -10.68<i8*0.083 |                 |          |          |       |       |
+|      | vation           | 3959<10.60       | 43959<10.60     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  5   | CONV_2D_0_4_fusi | -17.24<i8*0.1346 | -10.68<i8*0.083 |                 |          |          |       |       |
+|      | on               | 4949<17.10       | 43959<10.60     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  6   | DEPTHWISE_CONV_2 | -10.68<i8*0.0834 | -12.63<i8*0.098 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | D_0_5            | 3959<10.60       | 66984<12.53     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  6   | DEPTHWISE_CONV_2 | -12.63<i8*0.0986 | -12.63<i8*0.098 |                 |          |          |       |       |
+|      | D_0_5_activation | 6984<12.53       | 66984<12.53     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  6   | DEPTHWISE_CONV_2 | -10.68<i8*0.0834 | -12.63<i8*0.098 |                 |          |          |       |       |
+|      | D_0_5_fusion     | 3959<10.60       | 66984<12.53     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  7   | CONV_2D_0_6      | -12.63<i8*0.0986 | -8.79<i8*0.0687 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 6984<12.53       | 0435<8.73       | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  7   | CONV_2D_0_6_acti | -8.79<i8*0.06870 | -8.79<i8*0.0687 |                 |          |          |       |       |
+|      | vation           | 435<8.73         | 0435<8.73       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  7   | CONV_2D_0_6_fusi | -12.63<i8*0.0986 | -8.79<i8*0.0687 |                 |          |          |       |       |
+|      | on               | 6984<12.53       | 0435<8.73       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  8   | DEPTHWISE_CONV_2 | -8.79<i8*0.06870 | -11.85<i8*0.092 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | D_0_7            | 435<8.73         | 59043<11.76     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  8   | DEPTHWISE_CONV_2 | -11.85<i8*0.0925 | -11.85<i8*0.092 |                 |          |          |       |       |
+|      | D_0_7_activation | 9043<11.76       | 59043<11.76     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  8   | DEPTHWISE_CONV_2 | -8.79<i8*0.06870 | -11.85<i8*0.092 |                 |          |          |       |       |
+|      | D_0_7_fusion     | 435<8.73         | 59043<11.76     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  9   | CONV_2D_0_8      | -11.85<i8*0.0925 | -8.18<i8*0.0639 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 9043<11.76       | 4307<8.12       | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  9   | CONV_2D_0_8_acti | -8.18<i8*0.06394 | -8.18<i8*0.0639 |                 |          |          |       |       |
+|      | vation           | 307<8.12         | 4307<8.12       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  9   | CONV_2D_0_8_fusi | -11.85<i8*0.0925 | -8.18<i8*0.0639 |                 |          |          |       |       |
+|      | on               | 9043<11.76       | 4307<8.12       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  10  | DEPTHWISE_CONV_2 | -8.18<i8*0.06394 | -12.27<i8*0.095 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | D_0_9            | 307<8.12         | 84755<12.17     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  10  | DEPTHWISE_CONV_2 | -12.27<i8*0.0958 | -12.27<i8*0.095 |                 |          |          |       |       |
+|      | D_0_9_activation | 4755<12.17       | 84755<12.17     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  10  | DEPTHWISE_CONV_2 | -8.18<i8*0.06394 | -12.27<i8*0.095 |                 |          |          |       |       |
+|      | D_0_9_fusion     | 307<8.12         | 84755<12.17     |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  11  | CONV_2D_0_10     | -12.27<i8*0.0958 | -8.63<i8*0.0674 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      |                  | 4755<12.17       | 1018<8.56       | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  11  | CONV_2D_0_10_act | -8.63<i8*0.06741 | -8.63<i8*0.0674 |                 |          |          |       |       |
+|      | ivation          | 018<8.56         | 1018<8.56       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  11  | CONV_2D_0_10_fus | -12.27<i8*0.0958 | -8.63<i8*0.0674 |                 |          |          |       |       |
+|      | ion              | 4755<12.17       | 1018<8.56       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  12  | AVERAGE_POOL_2D_ | -8.63<i8*0.06741 | -8.63<i8*0.0674 |                 |          |          |       |       |
+|      | 0_11             | 018<8.56         | 1018<8.56       |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  13  | FULLY_CONNECTED_ | -8.63<i8*0.06741 | -33.88<i8*0.500 | chan<i8*chan<ch | i32*chan | 8b>>chan | Q32.0 | Q32.0 |
+|      | 0_12             | 018<8.56         | 00000<33.61     | an              |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  14  | SOFTMAX_0_13     | -33.88<i8*0.5000 | -1.00<i16*0.000 |                 |          |          |       |       |
+|      |                  | 0000<33.61       | 03052<1.00      |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+|  15  | output_1         | -1.00<i16*0.0000 | -1.00<i16*0.000 |                 |          |          |       |       |
+|      |                  | 3052<1.00        | 03052<1.00      |                 |          |          |       |       |
++------+------------------+------------------+-----------------+-----------------+----------+----------+-------+-------+
+l3_ram_ext_managed - was: False
+now: False
+graph_reorder_constant_in - was: True
+now: True
+graph_produce_node_names - was: False
+now: True
+graph_produce_operinfos - was: False
+now: True
+graph_monitor_cycles - was: False
+now: True
+graph_const_exec_from_flash - was: False
+now: False
+save_state - saved state to /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quant.json
+echo "COMPILING AUTOTILER MODEL"
+COMPILING AUTOTILER MODEL
+gcc -g -o BUILD_MODEL_8BIT_EMUL/GenTile -I. -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/CNN_Generators -I/home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/generators/nntool_extra_generators.c BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quantModel.c /home/marco-gwt/GWT/AutotilerV2/install/lib/libtile.a -lSDL2 -lSDL2_ttf
+echo "RUNNING AUTOTILER MODEL"
+RUNNING AUTOTILER MODEL
+BUILD_MODEL_8BIT_EMUL/GenTile -o BUILD_MODEL_8BIT_EMUL -c BUILD_MODEL_8BIT_EMUL -f BUILD_MODEL_8BIT_EMUL --L1 48736 --L2 350000 --L3 6388608
+InFeat: 1, OutFeat: 276
+Conv => W:  10, Pad:[1,2] PadT:[1,2] => Wc: 10, Filter:[4,10]
+     => H:  49, Pad:[4,5] PadT:[4,5] => Hc: 25
+Pool => Wc: 10, Pad:[0,0] => Wo: 10, Filter:[1,1]
+     => Hc: 25, Pad:[0,0] => Ho: 25
+OverlapC: 8
+OverlapP: 0
+TileCons: 2
+UsedIn  : [10 x 49]
+UsedC   : [10 x 25]
+      SetBiasKerName: KerSetBiasB32_SQ8
+         ConvKerName: KerConvNxMStrideSxSy_SQ8
+  DPReductionKerName: KerReduct_CC_ReLU_SQ8
+Nb Oper : 2829000
+
+==== Process Tiling For User Kernel:            S1_Conv2d_276x1x10x4_Relu =======================
+S1_Conv2d_276x1x10x4_Relu Partition[0] Size =   1373 (Min:    200, Max:   3017), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S1_Conv2d_276x1x10x4_Relu, TiledSpace: Tile0 Iteration Count: 1
+              In : Ratio: 2.000000, FixDim:     10, VarDim:     49 [    49], Size:    984, Total:     984, Move:     135240 (Decl x 276.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:    2088, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:    2364, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:    2640, Move:        276 (Decl x 1.000000) L2
+          Filter : Ratio: 0.000000,                                          Size:     80, Total:    2720, Move:      11040 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     10, VarDim:     25 [    25], Size:    504, Total:    3224, Move:      69000 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:     10, VarDim:     25 [    25], Size:   1000, Total:    4224, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:    4236, Move:          9 (Decl x 1.000000) L2
+S1_Conv2d_276x1x10x4_Relu - IterSpace: Tile0 - L1 Memory:   4236, L2Move: 216945, L3Move: 0, Tiling Overhead: 2.639394
+S1_Conv2d_276x1x10x4_Relu Iteration for Tiled Space: 1
+S1_Conv2d_276x1x10x4_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:   4236, Reusable Memory: 44500, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  10, Pad:[0,1] PadT:[0,1] => Wc: 5, Filter:[3,3]
+     => H:  25, Pad:[1,1] PadT:[1,1] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 1
+OverlapP: 0
+TileCons: 2
+UsedIn  : [10 x 25]
+UsedC   : [5 x 13]
+         ConvKerName: KerParConvDW3x3Stride2B32_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 179400
+
+==== Process Tiling For User Kernel:             S2_Conv2d_276x1x3x3_Relu =======================
+S2_Conv2d_276x1x3x3_Relu Partition[0] Size = 102161 (Min:     60, Max: 265225), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S2_Conv2d_276x1x3x3_Relu Full buffering on Arg: Bias, was using 384 bytes will require 1104 bytes buffer
+S2_Conv2d_276x1x3x3_Relu Full buffering on Arg: Scale, was using 96 bytes will require 276 bytes buffer
+S2_Conv2d_276x1x3x3_Relu Full buffering on Arg: ScaleN, was using 96 bytes will require 276 bytes buffer
+S2_Conv2d_276x1x3x3_Relu Full buffering on Arg: Filter, was using 864 bytes will require 2484 bytes buffer
+S2_Conv2d_276x1x3x3_Relu, TiledSpace: Tile0 Iteration Count: 1 Parametric Space: [D0, M0=48]
+              In : Ratio: 2.000000, FixDim:     10, VarDim:     25 [    25], Size:  24000, Total:   24000, Move:      69000 (Decl x 1.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:   25104, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:   25380, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:   25656, Move:        276 (Decl x 1.000000) L2
+*         Filter : Ratio: 0.000000,                                          Size:   2484, Total:   28140, Move:       2484 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:   6240, Total:   34380, Move:      17940 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  12480, Total:   46860, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   46872, Move:          9 (Decl x 1.000000) L2
+S2_Conv2d_276x1x3x3_Relu - IterSpace: Tile0 - L1 Memory:  46872, L2Move: 91089, L3Move: 0, Tiling Overhead: 1.000000
+S2_Conv2d_276x1x3x3_Relu Found Parametric value for space D0 (Initial: 276, Div: 8) = 48 [48*5 + 36], Iteration for Tiled Space: 1
+S2_Conv2d_276x1x3x3_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  46872, Reusable Memory: 1864, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[0,0] PadT:[0,0] => Wc: 5, Filter:[1,1]
+     => H:  13, Pad:[0,0] PadT:[0,0] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 0
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+      SetBiasKerName: KerParSetBiasB32_SQ8
+         ConvKerName: KerParConv1x1Stride1_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 4969380
+Mapping this convolution to matrix multiplication
+CNN_MatMul_SQ8: S3_Conv2d_276x276x1x1_Relu
+In1  => W:  276, H:  276
+In2  => W:   65, H:  276, w:    5, h:   13, Sx: 1, Sy: 1
+Out  => W:   65, H:  276 => Line First
+       MatMulKerName: KerParMatMulB32_ReLU_SQ8
+
+==== Process Tiling For User Kernel:           S3_Conv2d_276x276x1x1_Relu =======================
+S3_Conv2d_276x276x1x1_Relu Partition[0] Size =   3353 (Min:   2208, Max:  37089), Fraction:       0.32, Giving:  15567 bytes out of  48736 bytes
+S3_Conv2d_276x276x1x1_Relu Partition[1] Size =   7144 (Min:   4416, Max: 190048), Fraction:       0.68, Giving:  33168 bytes out of  48736 bytes
+S3_Conv2d_276x276x1x1_Relu, TiledSpace: Tile1 Iteration Count: 7
+             In1 : Ratio: 1.000000, FixDim:    276, VarDim:     40 [   276], Size:  22080, Total:   22080, Move:      76176 (Decl x 1.000000) L2
+*           Bias : Ratio: 1.000000,                                          Size:   1104, Total:   23184, Move:       1104 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     65, VarDim:     40 [   276], Size:   5200, Total:   28384, Move:      17940 (Decl x 1.000000) L2
+*          Scale : Ratio: 1.000000,                                          Size:    276, Total:   28660, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 1.000000,                                          Size:    276, Total:   28936, Move:        276 (Decl x 1.000000) L2
+S3_Conv2d_276x276x1x1_Relu - IterSpace: Tile1 - L1 Memory:  28936, L2Move: 95772, L3Move: 0, Tiling Overhead: 1.000000
+S3_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 7
+S3_Conv2d_276x276x1x1_Relu For Iter Space: 1 Iteration count:   7 (Last one is truncated), Given L1 Memory:  33168, Used L1 Memory:  28936, Reusable Memory: 4232, Used L2 Memory: 0
+S3_Conv2d_276x276x1x1_Relu, TiledSpace: Tile0 Iteration Count: 3
+*        KerBuff : Ratio: 0.000000,                                          Size:   1104, Total:    1104, Move:          0 (Decl x 0.000000) L2
+             In2 : Ratio: 1.000000, FixDim:    276, VarDim:     24 [    65], Size:  13248, Total:   14352, Move:     125580 (Decl x 7.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   14364, Move:          9 (Decl x 1.000000) L2
+S3_Conv2d_276x276x1x1_Relu - IterSpace: Tile0 - L1 Memory:  14364, L2Move: 125589, L3Move: 0, Tiling Overhead: 6.996992
+S3_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 3
+S3_Conv2d_276x276x1x1_Relu For Iter Space: 0 Iteration count:   3 (Last one is truncated), Given L1 Memory:  15567, Used L1 Memory:  14364, Reusable Memory: 1200, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[1,1] PadT:[1,1] => Wc: 5, Filter:[3,3]
+     => H:  13, Pad:[1,1] PadT:[1,1] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 2
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+         ConvKerName: KerParConvDW3x3Stride1B32_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 179400
+
+==== Process Tiling For User Kernel:             S4_Conv2d_276x1x3x3_Relu =======================
+S4_Conv2d_276x1x3x3_Relu Partition[0] Size =  91121 (Min:     30, Max: 157585), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S4_Conv2d_276x1x3x3_Relu Full buffering on Arg: Bias, was using 640 bytes will require 1104 bytes buffer
+S4_Conv2d_276x1x3x3_Relu Full buffering on Arg: Scale, was using 160 bytes will require 276 bytes buffer
+S4_Conv2d_276x1x3x3_Relu Full buffering on Arg: ScaleN, was using 160 bytes will require 276 bytes buffer
+S4_Conv2d_276x1x3x3_Relu Full buffering on Arg: Filter, was using 1440 bytes will require 2484 bytes buffer
+S4_Conv2d_276x1x3x3_Relu, TiledSpace: Tile0 Iteration Count: 1 Parametric Space: [D0, M0=80]
+              In : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   10400, Move:      17940 (Decl x 1.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:   11504, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:   11780, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:   12056, Move:        276 (Decl x 1.000000) L2
+*         Filter : Ratio: 0.000000,                                          Size:   2484, Total:   14540, Move:       2484 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   24940, Move:      17940 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  20800, Total:   45740, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   45752, Move:          9 (Decl x 1.000000) L2
+S4_Conv2d_276x1x3x3_Relu - IterSpace: Tile0 - L1 Memory:  45752, L2Move: 40029, L3Move: 0, Tiling Overhead: 1.000000
+S4_Conv2d_276x1x3x3_Relu Found Parametric value for space D0 (Initial: 276, Div: 8) = 80 [80*3 + 36], Iteration for Tiled Space: 1
+S4_Conv2d_276x1x3x3_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  45752, Reusable Memory: 2984, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[0,0] PadT:[0,0] => Wc: 5, Filter:[1,1]
+     => H:  13, Pad:[0,0] PadT:[0,0] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 0
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+      SetBiasKerName: KerParSetBiasB32_SQ8
+         ConvKerName: KerParConv1x1Stride1_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 4969380
+Mapping this convolution to matrix multiplication
+CNN_MatMul_SQ8: S5_Conv2d_276x276x1x1_Relu
+In1  => W:  276, H:  276
+In2  => W:   65, H:  276, w:    5, h:   13, Sx: 1, Sy: 1
+Out  => W:   65, H:  276 => Line First
+       MatMulKerName: KerParMatMulB32_ReLU_SQ8
+
+==== Process Tiling For User Kernel:           S5_Conv2d_276x276x1x1_Relu =======================
+S5_Conv2d_276x276x1x1_Relu Partition[0] Size =   3353 (Min:   2208, Max:  37089), Fraction:       0.32, Giving:  15567 bytes out of  48736 bytes
+S5_Conv2d_276x276x1x1_Relu Partition[1] Size =   7144 (Min:   4416, Max: 190048), Fraction:       0.68, Giving:  33168 bytes out of  48736 bytes
+S5_Conv2d_276x276x1x1_Relu, TiledSpace: Tile1 Iteration Count: 7
+             In1 : Ratio: 1.000000, FixDim:    276, VarDim:     40 [   276], Size:  22080, Total:   22080, Move:      76176 (Decl x 1.000000) L2
+*           Bias : Ratio: 1.000000,                                          Size:   1104, Total:   23184, Move:       1104 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     65, VarDim:     40 [   276], Size:   5200, Total:   28384, Move:      17940 (Decl x 1.000000) L2
+*          Scale : Ratio: 1.000000,                                          Size:    276, Total:   28660, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 1.000000,                                          Size:    276, Total:   28936, Move:        276 (Decl x 1.000000) L2
+S5_Conv2d_276x276x1x1_Relu - IterSpace: Tile1 - L1 Memory:  28936, L2Move: 95772, L3Move: 0, Tiling Overhead: 1.000000
+S5_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 7
+S5_Conv2d_276x276x1x1_Relu For Iter Space: 1 Iteration count:   7 (Last one is truncated), Given L1 Memory:  33168, Used L1 Memory:  28936, Reusable Memory: 4232, Used L2 Memory: 0
+S5_Conv2d_276x276x1x1_Relu, TiledSpace: Tile0 Iteration Count: 3
+*        KerBuff : Ratio: 0.000000,                                          Size:   1104, Total:    1104, Move:          0 (Decl x 0.000000) L2
+             In2 : Ratio: 1.000000, FixDim:    276, VarDim:     24 [    65], Size:  13248, Total:   14352, Move:     125580 (Decl x 7.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   14364, Move:          9 (Decl x 1.000000) L2
+S5_Conv2d_276x276x1x1_Relu - IterSpace: Tile0 - L1 Memory:  14364, L2Move: 125589, L3Move: 0, Tiling Overhead: 6.996992
+S5_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 3
+S5_Conv2d_276x276x1x1_Relu For Iter Space: 0 Iteration count:   3 (Last one is truncated), Given L1 Memory:  15567, Used L1 Memory:  14364, Reusable Memory: 1200, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[1,1] PadT:[1,1] => Wc: 5, Filter:[3,3]
+     => H:  13, Pad:[1,1] PadT:[1,1] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 2
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+         ConvKerName: KerParConvDW3x3Stride1B32_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 179400
+
+==== Process Tiling For User Kernel:             S6_Conv2d_276x1x3x3_Relu =======================
+S6_Conv2d_276x1x3x3_Relu Partition[0] Size =  91121 (Min:     30, Max: 157585), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S6_Conv2d_276x1x3x3_Relu Full buffering on Arg: Bias, was using 640 bytes will require 1104 bytes buffer
+S6_Conv2d_276x1x3x3_Relu Full buffering on Arg: Scale, was using 160 bytes will require 276 bytes buffer
+S6_Conv2d_276x1x3x3_Relu Full buffering on Arg: ScaleN, was using 160 bytes will require 276 bytes buffer
+S6_Conv2d_276x1x3x3_Relu Full buffering on Arg: Filter, was using 1440 bytes will require 2484 bytes buffer
+S6_Conv2d_276x1x3x3_Relu, TiledSpace: Tile0 Iteration Count: 1 Parametric Space: [D0, M0=80]
+              In : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   10400, Move:      17940 (Decl x 1.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:   11504, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:   11780, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:   12056, Move:        276 (Decl x 1.000000) L2
+*         Filter : Ratio: 0.000000,                                          Size:   2484, Total:   14540, Move:       2484 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   24940, Move:      17940 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  20800, Total:   45740, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   45752, Move:          9 (Decl x 1.000000) L2
+S6_Conv2d_276x1x3x3_Relu - IterSpace: Tile0 - L1 Memory:  45752, L2Move: 40029, L3Move: 0, Tiling Overhead: 1.000000
+S6_Conv2d_276x1x3x3_Relu Found Parametric value for space D0 (Initial: 276, Div: 8) = 80 [80*3 + 36], Iteration for Tiled Space: 1
+S6_Conv2d_276x1x3x3_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  45752, Reusable Memory: 2984, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[0,0] PadT:[0,0] => Wc: 5, Filter:[1,1]
+     => H:  13, Pad:[0,0] PadT:[0,0] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 0
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+      SetBiasKerName: KerParSetBiasB32_SQ8
+         ConvKerName: KerParConv1x1Stride1_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 4969380
+Mapping this convolution to matrix multiplication
+CNN_MatMul_SQ8: S7_Conv2d_276x276x1x1_Relu
+In1  => W:  276, H:  276
+In2  => W:   65, H:  276, w:    5, h:   13, Sx: 1, Sy: 1
+Out  => W:   65, H:  276 => Line First
+       MatMulKerName: KerParMatMulB32_ReLU_SQ8
+
+==== Process Tiling For User Kernel:           S7_Conv2d_276x276x1x1_Relu =======================
+S7_Conv2d_276x276x1x1_Relu Partition[0] Size =   3353 (Min:   2208, Max:  37089), Fraction:       0.32, Giving:  15567 bytes out of  48736 bytes
+S7_Conv2d_276x276x1x1_Relu Partition[1] Size =   7144 (Min:   4416, Max: 190048), Fraction:       0.68, Giving:  33168 bytes out of  48736 bytes
+S7_Conv2d_276x276x1x1_Relu, TiledSpace: Tile1 Iteration Count: 7
+             In1 : Ratio: 1.000000, FixDim:    276, VarDim:     40 [   276], Size:  22080, Total:   22080, Move:      76176 (Decl x 1.000000) L2
+*           Bias : Ratio: 1.000000,                                          Size:   1104, Total:   23184, Move:       1104 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     65, VarDim:     40 [   276], Size:   5200, Total:   28384, Move:      17940 (Decl x 1.000000) L2
+*          Scale : Ratio: 1.000000,                                          Size:    276, Total:   28660, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 1.000000,                                          Size:    276, Total:   28936, Move:        276 (Decl x 1.000000) L2
+S7_Conv2d_276x276x1x1_Relu - IterSpace: Tile1 - L1 Memory:  28936, L2Move: 95772, L3Move: 0, Tiling Overhead: 1.000000
+S7_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 7
+S7_Conv2d_276x276x1x1_Relu For Iter Space: 1 Iteration count:   7 (Last one is truncated), Given L1 Memory:  33168, Used L1 Memory:  28936, Reusable Memory: 4232, Used L2 Memory: 0
+S7_Conv2d_276x276x1x1_Relu, TiledSpace: Tile0 Iteration Count: 3
+*        KerBuff : Ratio: 0.000000,                                          Size:   1104, Total:    1104, Move:          0 (Decl x 0.000000) L2
+             In2 : Ratio: 1.000000, FixDim:    276, VarDim:     24 [    65], Size:  13248, Total:   14352, Move:     125580 (Decl x 7.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   14364, Move:          9 (Decl x 1.000000) L2
+S7_Conv2d_276x276x1x1_Relu - IterSpace: Tile0 - L1 Memory:  14364, L2Move: 125589, L3Move: 0, Tiling Overhead: 6.996992
+S7_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 3
+S7_Conv2d_276x276x1x1_Relu For Iter Space: 0 Iteration count:   3 (Last one is truncated), Given L1 Memory:  15567, Used L1 Memory:  14364, Reusable Memory: 1200, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[1,1] PadT:[1,1] => Wc: 5, Filter:[3,3]
+     => H:  13, Pad:[1,1] PadT:[1,1] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 2
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+         ConvKerName: KerParConvDW3x3Stride1B32_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 179400
+
+==== Process Tiling For User Kernel:             S8_Conv2d_276x1x3x3_Relu =======================
+S8_Conv2d_276x1x3x3_Relu Partition[0] Size =  91121 (Min:     30, Max: 157585), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S8_Conv2d_276x1x3x3_Relu Full buffering on Arg: Bias, was using 640 bytes will require 1104 bytes buffer
+S8_Conv2d_276x1x3x3_Relu Full buffering on Arg: Scale, was using 160 bytes will require 276 bytes buffer
+S8_Conv2d_276x1x3x3_Relu Full buffering on Arg: ScaleN, was using 160 bytes will require 276 bytes buffer
+S8_Conv2d_276x1x3x3_Relu Full buffering on Arg: Filter, was using 1440 bytes will require 2484 bytes buffer
+S8_Conv2d_276x1x3x3_Relu, TiledSpace: Tile0 Iteration Count: 1 Parametric Space: [D0, M0=80]
+              In : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   10400, Move:      17940 (Decl x 1.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:   11504, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:   11780, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:   12056, Move:        276 (Decl x 1.000000) L2
+*         Filter : Ratio: 0.000000,                                          Size:   2484, Total:   14540, Move:       2484 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   24940, Move:      17940 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  20800, Total:   45740, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   45752, Move:          9 (Decl x 1.000000) L2
+S8_Conv2d_276x1x3x3_Relu - IterSpace: Tile0 - L1 Memory:  45752, L2Move: 40029, L3Move: 0, Tiling Overhead: 1.000000
+S8_Conv2d_276x1x3x3_Relu Found Parametric value for space D0 (Initial: 276, Div: 8) = 80 [80*3 + 36], Iteration for Tiled Space: 1
+S8_Conv2d_276x1x3x3_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  45752, Reusable Memory: 2984, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[0,0] PadT:[0,0] => Wc: 5, Filter:[1,1]
+     => H:  13, Pad:[0,0] PadT:[0,0] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 0
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+      SetBiasKerName: KerParSetBiasB32_SQ8
+         ConvKerName: KerParConv1x1Stride1_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 4969380
+Mapping this convolution to matrix multiplication
+CNN_MatMul_SQ8: S9_Conv2d_276x276x1x1_Relu
+In1  => W:  276, H:  276
+In2  => W:   65, H:  276, w:    5, h:   13, Sx: 1, Sy: 1
+Out  => W:   65, H:  276 => Line First
+       MatMulKerName: KerParMatMulB32_ReLU_SQ8
+
+==== Process Tiling For User Kernel:           S9_Conv2d_276x276x1x1_Relu =======================
+S9_Conv2d_276x276x1x1_Relu Partition[0] Size =   3353 (Min:   2208, Max:  37089), Fraction:       0.32, Giving:  15567 bytes out of  48736 bytes
+S9_Conv2d_276x276x1x1_Relu Partition[1] Size =   7144 (Min:   4416, Max: 190048), Fraction:       0.68, Giving:  33168 bytes out of  48736 bytes
+S9_Conv2d_276x276x1x1_Relu, TiledSpace: Tile1 Iteration Count: 7
+             In1 : Ratio: 1.000000, FixDim:    276, VarDim:     40 [   276], Size:  22080, Total:   22080, Move:      76176 (Decl x 1.000000) L2
+*           Bias : Ratio: 1.000000,                                          Size:   1104, Total:   23184, Move:       1104 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     65, VarDim:     40 [   276], Size:   5200, Total:   28384, Move:      17940 (Decl x 1.000000) L2
+*          Scale : Ratio: 1.000000,                                          Size:    276, Total:   28660, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 1.000000,                                          Size:    276, Total:   28936, Move:        276 (Decl x 1.000000) L2
+S9_Conv2d_276x276x1x1_Relu - IterSpace: Tile1 - L1 Memory:  28936, L2Move: 95772, L3Move: 0, Tiling Overhead: 1.000000
+S9_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 7
+S9_Conv2d_276x276x1x1_Relu For Iter Space: 1 Iteration count:   7 (Last one is truncated), Given L1 Memory:  33168, Used L1 Memory:  28936, Reusable Memory: 4232, Used L2 Memory: 0
+S9_Conv2d_276x276x1x1_Relu, TiledSpace: Tile0 Iteration Count: 3
+*        KerBuff : Ratio: 0.000000,                                          Size:   1104, Total:    1104, Move:          0 (Decl x 0.000000) L2
+             In2 : Ratio: 1.000000, FixDim:    276, VarDim:     24 [    65], Size:  13248, Total:   14352, Move:     125580 (Decl x 7.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   14364, Move:          9 (Decl x 1.000000) L2
+S9_Conv2d_276x276x1x1_Relu - IterSpace: Tile0 - L1 Memory:  14364, L2Move: 125589, L3Move: 0, Tiling Overhead: 6.996992
+S9_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 3
+S9_Conv2d_276x276x1x1_Relu For Iter Space: 0 Iteration count:   3 (Last one is truncated), Given L1 Memory:  15567, Used L1 Memory:  14364, Reusable Memory: 1200, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[1,1] PadT:[1,1] => Wc: 5, Filter:[3,3]
+     => H:  13, Pad:[1,1] PadT:[1,1] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 2
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+         ConvKerName: KerParConvDW3x3Stride1B32_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 179400
+
+==== Process Tiling For User Kernel:            S10_Conv2d_276x1x3x3_Relu =======================
+S10_Conv2d_276x1x3x3_Relu Partition[0] Size =  91121 (Min:     30, Max: 157585), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+S10_Conv2d_276x1x3x3_Relu Full buffering on Arg: Bias, was using 640 bytes will require 1104 bytes buffer
+S10_Conv2d_276x1x3x3_Relu Full buffering on Arg: Scale, was using 160 bytes will require 276 bytes buffer
+S10_Conv2d_276x1x3x3_Relu Full buffering on Arg: ScaleN, was using 160 bytes will require 276 bytes buffer
+S10_Conv2d_276x1x3x3_Relu Full buffering on Arg: Filter, was using 1440 bytes will require 2484 bytes buffer
+S10_Conv2d_276x1x3x3_Relu, TiledSpace: Tile0 Iteration Count: 1 Parametric Space: [D0, M0=80]
+              In : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   10400, Move:      17940 (Decl x 1.000000) L2
+*           Bias : Ratio: 0.000000,                                          Size:   1104, Total:   11504, Move:       1104 (Decl x 1.000000) L2
+*          Scale : Ratio: 0.000000,                                          Size:    276, Total:   11780, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 0.000000,                                          Size:    276, Total:   12056, Move:        276 (Decl x 1.000000) L2
+*         Filter : Ratio: 0.000000,                                          Size:   2484, Total:   14540, Move:       2484 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  10400, Total:   24940, Move:      17940 (Decl x 1.000000) L2
+*        ConvOut : Ratio: 1.000000, FixDim:      5, VarDim:     13 [    13], Size:  20800, Total:   45740, Move:          0 (Decl x 0.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   45752, Move:          9 (Decl x 1.000000) L2
+S10_Conv2d_276x1x3x3_Relu - IterSpace: Tile0 - L1 Memory:  45752, L2Move: 40029, L3Move: 0, Tiling Overhead: 1.000000
+S10_Conv2d_276x1x3x3_Relu Found Parametric value for space D0 (Initial: 276, Div: 8) = 80 [80*3 + 36], Iteration for Tiled Space: 1
+S10_Conv2d_276x1x3x3_Relu For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  45752, Reusable Memory: 2984, Used L2 Memory: 0
+=================================================================================================
+
+InFeat: 276, OutFeat: 276
+Conv => W:  5, Pad:[0,0] PadT:[0,0] => Wc: 5, Filter:[1,1]
+     => H:  13, Pad:[0,0] PadT:[0,0] => Hc: 13
+Pool => Wc: 5, Pad:[0,0] => Wo: 5, Filter:[1,1]
+     => Hc: 13, Pad:[0,0] => Ho: 13
+OverlapC: 0
+OverlapP: 0
+TileCons: 1
+UsedIn  : [5 x 13]
+UsedC   : [5 x 13]
+      SetBiasKerName: KerParSetBiasB32_SQ8
+         ConvKerName: KerParConv1x1Stride1_SQ8
+  DPReductionKerName: KerParReduct_CC_ReLU_SQ8
+Nb Oper : 4969380
+Mapping this convolution to matrix multiplication
+CNN_MatMul_SQ8: S11_Conv2d_276x276x1x1_Relu
+In1  => W:  276, H:  276
+In2  => W:   65, H:  276, w:    5, h:   13, Sx: 1, Sy: 1
+Out  => W:   65, H:  276 => Line First
+       MatMulKerName: KerParMatMulB32_ReLU_SQ8
+
+==== Process Tiling For User Kernel:          S11_Conv2d_276x276x1x1_Relu =======================
+S11_Conv2d_276x276x1x1_Relu Partition[0] Size =   3353 (Min:   2208, Max:  37089), Fraction:       0.32, Giving:  15567 bytes out of  48736 bytes
+S11_Conv2d_276x276x1x1_Relu Partition[1] Size =   7144 (Min:   4416, Max: 190048), Fraction:       0.68, Giving:  33168 bytes out of  48736 bytes
+S11_Conv2d_276x276x1x1_Relu, TiledSpace: Tile1 Iteration Count: 7
+             In1 : Ratio: 1.000000, FixDim:    276, VarDim:     40 [   276], Size:  22080, Total:   22080, Move:      76176 (Decl x 1.000000) L2
+*           Bias : Ratio: 1.000000,                                          Size:   1104, Total:   23184, Move:       1104 (Decl x 1.000000) L2
+             Out : Ratio: 1.000000, FixDim:     65, VarDim:     40 [   276], Size:   5200, Total:   28384, Move:      17940 (Decl x 1.000000) L2
+*          Scale : Ratio: 1.000000,                                          Size:    276, Total:   28660, Move:        276 (Decl x 1.000000) L2
+*         ScaleN : Ratio: 1.000000,                                          Size:    276, Total:   28936, Move:        276 (Decl x 1.000000) L2
+S11_Conv2d_276x276x1x1_Relu - IterSpace: Tile1 - L1 Memory:  28936, L2Move: 95772, L3Move: 0, Tiling Overhead: 1.000000
+S11_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 7
+S11_Conv2d_276x276x1x1_Relu For Iter Space: 1 Iteration count:   7 (Last one is truncated), Given L1 Memory:  33168, Used L1 Memory:  28936, Reusable Memory: 4232, Used L2 Memory: 0
+S11_Conv2d_276x276x1x1_Relu, TiledSpace: Tile0 Iteration Count: 3
+*        KerBuff : Ratio: 0.000000,                                          Size:   1104, Total:    1104, Move:          0 (Decl x 0.000000) L2
+             In2 : Ratio: 1.000000, FixDim:    276, VarDim:     24 [    65], Size:  13248, Total:   14352, Move:     125580 (Decl x 7.000000) L2
+*          Infos : Ratio: 0.000000,                                          Size:     12, Total:   14364, Move:          9 (Decl x 1.000000) L2
+S11_Conv2d_276x276x1x1_Relu - IterSpace: Tile0 - L1 Memory:  14364, L2Move: 125589, L3Move: 0, Tiling Overhead: 6.996992
+S11_Conv2d_276x276x1x1_Relu Iteration for Tiled Space: 3
+S11_Conv2d_276x276x1x1_Relu For Iter Space: 0 Iteration count:   3 (Last one is truncated), Given L1 Memory:  15567, Used L1 Memory:  14364, Reusable Memory: 1200, Used L2 Memory: 0
+=================================================================================================
+
+Pool => W: 5, Pad:[0,0] => Wo: 1
+     => H: 13, Pad:[0,0] => Ho: 1
+OverlapP: 11
+TileCons: 2
+UsedIn  : [5 x 13]
+         PoolKerName: KerParPoolNxMStrideSxSy_SQ8
+Nb Oper : 17940
+
+==== Process Tiling For User Kernel:                 S12_AveragePool_13x5 =======================
+S12_AveragePool_13x5 Partition[0] Size =  37005 (Min:    130, Max:  36477), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+Kernel: S12_AveragePool_13x5, Total Raw Memory: 18228 fits into L1 memory 48736. Promoting all kernel arguments to initialized buffers.
+S12_AveragePool_13x5 For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  18228, Reusable Memory: 30508, Used L2 Memory: 0
+=================================================================================================
+
+Linear Layer S13_Linear_12x276x1x1, Linear: InDim: 276, OutDim: 12, Activation: None
+Linear Kernel: KerParLinearLayerFullFeatB32_SQ8
+
+==== Process Tiling For User Kernel:                S13_Linear_12x276x1x1 =======================
+S13_Linear_12x276x1x1 Partition[0] Size =   7105 (Min:      0, Max:   7273), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+Kernel: S13_Linear_12x276x1x1, Total Raw Memory: 3684 fits into L1 memory 48736. Promoting all kernel arguments to initialized buffers.
+S13_Linear_12x276x1x1 For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:   3684, Reusable Memory: 45052, Used L2 Memory: 0
+=================================================================================================
+
+
+==== Process Tiling For User Kernel:                          S14_SoftMax =======================
+         S14_SoftMax Partition[0] Size =     57 (Min:      8, Max:     81), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+Kernel:          S14_SoftMax, Total Raw Memory: 48 fits into L1 memory 48736. Promoting all kernel arguments to initialized buffers.
+         S14_SoftMax For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:     48, Reusable Memory: 48688, Used L2 Memory: 0
+=================================================================================================
+
+   Symbol:           S13_Output[   In] Adding Edge From               S13_Linear_12x276x1x1 To                         S14_SoftMax New
+   Symbol:           S12_Output[   In] Adding Edge From                S12_AveragePool_13x5 To               S13_Linear_12x276x1x1 New
+   Symbol:           S11_Output[   In] Adding Edge From         S11_Conv2d_276x276x1x1_Relu To                S12_AveragePool_13x5 New
+   Symbol:           S10_Output[   In] Adding Edge From           S10_Conv2d_276x1x3x3_Relu To         S11_Conv2d_276x276x1x1_Relu New
+   Symbol:            S9_Output[   In] Adding Edge From          S9_Conv2d_276x276x1x1_Relu To           S10_Conv2d_276x1x3x3_Relu New
+   Symbol:            S8_Output[   In] Adding Edge From            S8_Conv2d_276x1x3x3_Relu To          S9_Conv2d_276x276x1x1_Relu New
+   Symbol:            S7_Output[   In] Adding Edge From          S7_Conv2d_276x276x1x1_Relu To            S8_Conv2d_276x1x3x3_Relu New
+   Symbol:            S6_Output[   In] Adding Edge From            S6_Conv2d_276x1x3x3_Relu To          S7_Conv2d_276x276x1x1_Relu New
+   Symbol:            S5_Output[   In] Adding Edge From          S5_Conv2d_276x276x1x1_Relu To            S6_Conv2d_276x1x3x3_Relu New
+   Symbol:            S4_Output[   In] Adding Edge From            S4_Conv2d_276x1x3x3_Relu To          S5_Conv2d_276x276x1x1_Relu New
+   Symbol:            S3_Output[   In] Adding Edge From          S3_Conv2d_276x276x1x1_Relu To            S4_Conv2d_276x1x3x3_Relu New
+   Symbol:            S2_Output[   In] Adding Edge From            S2_Conv2d_276x1x3x3_Relu To          S3_Conv2d_276x276x1x1_Relu New
+   Symbol:            S1_Output[   In] Adding Edge From           S1_Conv2d_276x1x10x4_Relu To            S2_Conv2d_276x1x3x3_Relu New
+   Symbol:             Output_1[Undef] Adding Edge From                         S14_SoftMax To                       __GraphExit__ New
+   Symbol:            S14_Infos[   In] Adding Edge From                      __GraphEntry__ To                         S14_SoftMax New
+   Symbol:        S13_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To               S13_Linear_12x276x1x1 New
+   Symbol:        S13_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To               S13_Linear_12x276x1x1 Exists
+   Symbol:           S13_Biases[   In] Adding Edge From                      __GraphEntry__ To               S13_Linear_12x276x1x1 Exists
+   Symbol:          S13_Weights[   In] Adding Edge From                      __GraphEntry__ To               S13_Linear_12x276x1x1 Exists
+   Symbol:            S13_Infos[   In] Adding Edge From                      __GraphEntry__ To               S13_Linear_12x276x1x1 Exists
+   Symbol:            S12_Infos[   In] Adding Edge From                      __GraphEntry__ To                S12_AveragePool_13x5 New
+   Symbol:        S11_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To         S11_Conv2d_276x276x1x1_Relu New
+   Symbol:        S11_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To         S11_Conv2d_276x276x1x1_Relu Exists
+   Symbol:           S11_Biases[   In] Adding Edge From                      __GraphEntry__ To         S11_Conv2d_276x276x1x1_Relu Exists
+   Symbol:          S11_Weights[   In] Adding Edge From                      __GraphEntry__ To         S11_Conv2d_276x276x1x1_Relu Exists
+   Symbol:            S11_Infos[   In] Adding Edge From                      __GraphEntry__ To         S11_Conv2d_276x276x1x1_Relu Exists
+   Symbol:        S10_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To           S10_Conv2d_276x1x3x3_Relu New
+   Symbol:        S10_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To           S10_Conv2d_276x1x3x3_Relu Exists
+   Symbol:           S10_Biases[   In] Adding Edge From                      __GraphEntry__ To           S10_Conv2d_276x1x3x3_Relu Exists
+   Symbol:          S10_Weights[   In] Adding Edge From                      __GraphEntry__ To           S10_Conv2d_276x1x3x3_Relu Exists
+   Symbol:            S10_Infos[   In] Adding Edge From                      __GraphEntry__ To           S10_Conv2d_276x1x3x3_Relu Exists
+   Symbol:         S9_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To          S9_Conv2d_276x276x1x1_Relu New
+   Symbol:         S9_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To          S9_Conv2d_276x276x1x1_Relu Exists
+   Symbol:            S9_Biases[   In] Adding Edge From                      __GraphEntry__ To          S9_Conv2d_276x276x1x1_Relu Exists
+   Symbol:           S9_Weights[   In] Adding Edge From                      __GraphEntry__ To          S9_Conv2d_276x276x1x1_Relu Exists
+   Symbol:             S9_Infos[   In] Adding Edge From                      __GraphEntry__ To          S9_Conv2d_276x276x1x1_Relu Exists
+   Symbol:         S8_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To            S8_Conv2d_276x1x3x3_Relu New
+   Symbol:         S8_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To            S8_Conv2d_276x1x3x3_Relu Exists
+   Symbol:            S8_Biases[   In] Adding Edge From                      __GraphEntry__ To            S8_Conv2d_276x1x3x3_Relu Exists
+   Symbol:           S8_Weights[   In] Adding Edge From                      __GraphEntry__ To            S8_Conv2d_276x1x3x3_Relu Exists
+   Symbol:             S8_Infos[   In] Adding Edge From                      __GraphEntry__ To            S8_Conv2d_276x1x3x3_Relu Exists
+   Symbol:         S7_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To          S7_Conv2d_276x276x1x1_Relu New
+   Symbol:         S7_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To          S7_Conv2d_276x276x1x1_Relu Exists
+   Symbol:            S7_Biases[   In] Adding Edge From                      __GraphEntry__ To          S7_Conv2d_276x276x1x1_Relu Exists
+   Symbol:           S7_Weights[   In] Adding Edge From                      __GraphEntry__ To          S7_Conv2d_276x276x1x1_Relu Exists
+   Symbol:             S7_Infos[   In] Adding Edge From                      __GraphEntry__ To          S7_Conv2d_276x276x1x1_Relu Exists
+   Symbol:         S6_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To            S6_Conv2d_276x1x3x3_Relu New
+   Symbol:         S6_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To            S6_Conv2d_276x1x3x3_Relu Exists
+   Symbol:            S6_Biases[   In] Adding Edge From                      __GraphEntry__ To            S6_Conv2d_276x1x3x3_Relu Exists
+   Symbol:           S6_Weights[   In] Adding Edge From                      __GraphEntry__ To            S6_Conv2d_276x1x3x3_Relu Exists
+   Symbol:             S6_Infos[   In] Adding Edge From                      __GraphEntry__ To            S6_Conv2d_276x1x3x3_Relu Exists
+   Symbol:         S5_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To          S5_Conv2d_276x276x1x1_Relu New
+   Symbol:         S5_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To          S5_Conv2d_276x276x1x1_Relu Exists
+   Symbol:            S5_Biases[   In] Adding Edge From                      __GraphEntry__ To          S5_Conv2d_276x276x1x1_Relu Exists
+   Symbol:           S5_Weights[   In] Adding Edge From                      __GraphEntry__ To          S5_Conv2d_276x276x1x1_Relu Exists
+   Symbol:             S5_Infos[   In] Adding Edge From                      __GraphEntry__ To          S5_Conv2d_276x276x1x1_Relu Exists
+   Symbol:         S4_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To            S4_Conv2d_276x1x3x3_Relu New
+   Symbol:         S4_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To            S4_Conv2d_276x1x3x3_Relu Exists
+   Symbol:            S4_Biases[   In] Adding Edge From                      __GraphEntry__ To            S4_Conv2d_276x1x3x3_Relu Exists
+   Symbol:           S4_Weights[   In] Adding Edge From                      __GraphEntry__ To            S4_Conv2d_276x1x3x3_Relu Exists
+   Symbol:             S4_Infos[   In] Adding Edge From                      __GraphEntry__ To            S4_Conv2d_276x1x3x3_Relu Exists
+   Symbol:         S3_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To          S3_Conv2d_276x276x1x1_Relu New
+   Symbol:         S3_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To          S3_Conv2d_276x276x1x1_Relu Exists
+   Symbol:            S3_Biases[   In] Adding Edge From                      __GraphEntry__ To          S3_Conv2d_276x276x1x1_Relu Exists
+   Symbol:           S3_Weights[   In] Adding Edge From                      __GraphEntry__ To          S3_Conv2d_276x276x1x1_Relu Exists
+   Symbol:             S3_Infos[   In] Adding Edge From                      __GraphEntry__ To          S3_Conv2d_276x276x1x1_Relu Exists
+   Symbol:         S2_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To            S2_Conv2d_276x1x3x3_Relu New
+   Symbol:         S2_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To            S2_Conv2d_276x1x3x3_Relu Exists
+   Symbol:            S2_Biases[   In] Adding Edge From                      __GraphEntry__ To            S2_Conv2d_276x1x3x3_Relu Exists
+   Symbol:           S2_Weights[   In] Adding Edge From                      __GraphEntry__ To            S2_Conv2d_276x1x3x3_Relu Exists
+   Symbol:             S2_Infos[   In] Adding Edge From                      __GraphEntry__ To            S2_Conv2d_276x1x3x3_Relu Exists
+   Symbol:         S1_Mul_shift[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu New
+   Symbol:         S1_Mul_scale[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu Exists
+   Symbol:            S1_Biases[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu Exists
+   Symbol:           S1_Weights[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu Exists
+   Symbol:             S1_Infos[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu Exists
+   Symbol:           S0_Input_1[   In] Adding Edge From                      __GraphEntry__ To           S1_Conv2d_276x1x10x4_Relu Exists
+After Dynamic Allocation, TopL3: 0, TopL2: 86940 => Alloc: OK
+
+After Const Allocation, TopL3: 304704, TopL2: 284517 => Alloc: OK
+
+[FULL] Remapping [163116 .. 284516] to [0 .. 121400] Align compensation: 3
+[PART] Remapping [0 .. 163115] to [121404 .. 284519] Align compensation: 0
+[PART] Remapping [284517 .. 349999] to [284520 .. 350002] Align compensation: 1
+[FULL] Remapping [0 .. 304703] to [0 .. 304703] Align compensation: 0
+[PART] Remapping [304704 .. 6388607] to [304704 .. 6388607] Align compensation: 0
+Symbol allocation for graph KWS_ds_cnn_l_quantCNN is sucessfull, L2: 284517 out of 350000, L3: 304704 out of 6388608
+------------------------------------------------------------------------------------------------------------------------------------------------
+Graph structure:
+
+Node   0, Channel   0  0: GraphEntry __GraphEntry__, Operations: 0
+                                   (null) =>                     S0_Input_1
+                                   (null) =>                       S1_Infos
+                                   (null) =>                     S1_Weights
+                                   (null) =>                      S1_Biases
+                                   (null) =>                   S1_Mul_scale
+                                   (null) =>                   S1_Mul_shift
+                                   (null) =>                       S2_Infos
+                                   (null) =>                     S2_Weights
+                                   (null) =>                      S2_Biases
+                                   (null) =>                   S2_Mul_scale
+                                   (null) =>                   S2_Mul_shift
+                                   (null) =>                       S3_Infos
+                                   (null) =>                     S3_Weights
+                                   (null) =>                      S3_Biases
+                                   (null) =>                   S3_Mul_scale
+                                   (null) =>                   S3_Mul_shift
+                                   (null) =>                       S4_Infos
+                                   (null) =>                     S4_Weights
+                                   (null) =>                      S4_Biases
+                                   (null) =>                   S4_Mul_scale
+                                   (null) =>                   S4_Mul_shift
+                                   (null) =>                       S5_Infos
+                                   (null) =>                     S5_Weights
+                                   (null) =>                      S5_Biases
+                                   (null) =>                   S5_Mul_scale
+                                   (null) =>                   S5_Mul_shift
+                                   (null) =>                       S6_Infos
+                                   (null) =>                     S6_Weights
+                                   (null) =>                      S6_Biases
+                                   (null) =>                   S6_Mul_scale
+                                   (null) =>                   S6_Mul_shift
+                                   (null) =>                       S7_Infos
+                                   (null) =>                     S7_Weights
+                                   (null) =>                      S7_Biases
+                                   (null) =>                   S7_Mul_scale
+                                   (null) =>                   S7_Mul_shift
+                                   (null) =>                       S8_Infos
+                                   (null) =>                     S8_Weights
+                                   (null) =>                      S8_Biases
+                                   (null) =>                   S8_Mul_scale
+                                   (null) =>                   S8_Mul_shift
+                                   (null) =>                       S9_Infos
+                                   (null) =>                     S9_Weights
+                                   (null) =>                      S9_Biases
+                                   (null) =>                   S9_Mul_scale
+                                   (null) =>                   S9_Mul_shift
+                                   (null) =>                      S10_Infos
+                                   (null) =>                    S10_Weights
+                                   (null) =>                     S10_Biases
+                                   (null) =>                  S10_Mul_scale
+                                   (null) =>                  S10_Mul_shift
+                                   (null) =>                      S11_Infos
+                                   (null) =>                    S11_Weights
+                                   (null) =>                     S11_Biases
+                                   (null) =>                  S11_Mul_scale
+                                   (null) =>                  S11_Mul_shift
+                                   (null) =>                      S12_Infos
+                                   (null) =>                      S13_Infos
+                                   (null) =>                    S13_Weights
+                                   (null) =>                     S13_Biases
+                                   (null) =>                  S13_Mul_scale
+                                   (null) =>                  S13_Mul_shift
+                                   (null) =>                      S14_Infos
+	Kernel Memory      : L3:       0, L2:       0
+	Kernel Total Memory:       0, L3 moves:       0, L2 moves:       0, Move overhead: 1.000000
+	Kernel Operations  :       0 [KernelOper/GraphOper: 0.000000%], Move/Operation ratio: [L3: 0.000000, L2: 0.000000]
+	Successors:  2 1 3 4 5 6 7 8 9 10 11 12 13 14
+
+    Living Dynamic Symbols: [S0_Input_1] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   1, Channel   1  1:       UKer S1_Conv2d_276x1x10x4_Relu, Operations: 2829000
+ I                                     In =>                     S0_Input_1    --L2--    Size:     490, L3_Move:         0, L2_Move:    135240, TileOverhead: 276.000000, L2Buff:     0, Addr: 0
+CI                                 Filter =>                     S1_Weights    --L2--    Size:   11040, L3_Move:         0, L2_Move:     11040, TileOverhead: 1.000000, L2Buff:     0, Addr: 2640
+CI Buff                              Bias =>                      S1_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 984
+ O                                    Out =>                      S1_Output    --L2--    Size:   69000, L3_Move:         0, L2_Move:     69000, TileOverhead: 1.000000, L2Buff:     0, Addr: 2720
+CI Buff                             Scale =>                   S1_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 2088
+CI Buff                            ScaleN =>                   S1_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 2364
+CI Buff                             Infos =>                       S1_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 4224
+	Kernel Memory      : L3:       0, L2:   82195
+	Kernel Total Memory:   82195, L3 moves:       0, L2 moves:  216945, Move overhead: 2.639394
+	Kernel Operations  : 2829000 [KernelOper/GraphOper: 9.924761%], Move/Operation ratio: [L3: 0.000000, L2: 0.076686]
+	Successors:  2
+
+    Living Dynamic Symbols: [S0_Input_1] [S1_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   2, Channel   0  0:       UKer S2_Conv2d_276x1x3x3_Relu, Operations: 179400
+ I                                     In =>                      S1_Output    --L2--    Size:   69000, L3_Move:         0, L2_Move:     69000, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                     S2_Weights    --L2--    Size:    2484, L3_Move:         0, L2_Move:      2484, TileOverhead: 1.000000, L2Buff:     0, Addr: 25656
+CI Buff                              Bias =>                      S2_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 24000
+ O                                    Out =>                      S2_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 28140
+CI Buff                             Scale =>                   S2_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 25104
+CI Buff                            ScaleN =>                   S2_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 25380
+CI Buff                             Infos =>                       S2_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 46860
+	Kernel Memory      : L3:       0, L2:   91089
+	Kernel Total Memory:   91089, L3 moves:       0, L2 moves:   91089, Move overhead: 1.000000
+	Kernel Operations  :  179400 [KernelOper/GraphOper: 0.629375%], Move/Operation ratio: [L3: 0.000000, L2: 0.507742]
+	Successors:  3
+
+    Living Dynamic Symbols: [S1_Output] [S2_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   3, Channel   0  0:       UKer S3_Conv2d_276x276x1x1_Relu, Operations: 4951440
+ I                                    In2 =>                      S2_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:    125580, TileOverhead: 7.000000, L2Buff:     0, Addr: 30040
+CI                                    In1 =>                     S3_Weights    --L2--    Size:   76176, L3_Move:     76176, L2_Move:     76176, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                              Bias =>                      S3_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 22080
+ O                                    Out =>                      S3_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 23184
+CI Buff                             Scale =>                   S3_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28384
+CI Buff                            ScaleN =>                   S3_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28660
+CI Buff                             Infos =>                       S3_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 43288
+	Kernel Memory      : L3:       0, L2:  113721
+	Kernel Total Memory:  113721, L3 moves:   76176, L2 moves:  221361, Move overhead: 1.946527
+	Kernel Operations  : 4951440 [KernelOper/GraphOper: 17.370753%], Move/Operation ratio: [L3: 0.015385, L2: 0.044706]
+	Successors:  4
+
+    Living Dynamic Symbols: [S2_Output] [S3_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   4, Channel   0  0:       UKer S4_Conv2d_276x1x3x3_Relu, Operations: 179400
+ I                                     In =>                      S3_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                     S4_Weights    --L2--    Size:    2484, L3_Move:         0, L2_Move:      2484, TileOverhead: 1.000000, L2Buff:     0, Addr: 12056
+CI Buff                              Bias =>                      S4_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 10400
+ O                                    Out =>                      S4_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 14540
+CI Buff                             Scale =>                   S4_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11504
+CI Buff                            ScaleN =>                   S4_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11780
+CI Buff                             Infos =>                       S4_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 45740
+	Kernel Memory      : L3:       0, L2:   40029
+	Kernel Total Memory:   40029, L3 moves:       0, L2 moves:   40029, Move overhead: 1.000000
+	Kernel Operations  :  179400 [KernelOper/GraphOper: 0.629375%], Move/Operation ratio: [L3: 0.000000, L2: 0.223127]
+	Successors:  5
+
+    Living Dynamic Symbols: [S3_Output] [S4_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   5, Channel   0  0:       UKer S5_Conv2d_276x276x1x1_Relu, Operations: 4951440
+ I                                    In2 =>                      S4_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:    125580, TileOverhead: 7.000000, L2Buff:     0, Addr: 30040
+CI                                    In1 =>                     S5_Weights    --L2--    Size:   76176, L3_Move:     76176, L2_Move:     76176, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                              Bias =>                      S5_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 22080
+ O                                    Out =>                      S5_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 23184
+CI Buff                             Scale =>                   S5_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28384
+CI Buff                            ScaleN =>                   S5_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28660
+CI Buff                             Infos =>                       S5_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 43288
+	Kernel Memory      : L3:       0, L2:  113721
+	Kernel Total Memory:  113721, L3 moves:   76176, L2 moves:  221361, Move overhead: 1.946527
+	Kernel Operations  : 4951440 [KernelOper/GraphOper: 17.370753%], Move/Operation ratio: [L3: 0.015385, L2: 0.044706]
+	Successors:  6
+
+    Living Dynamic Symbols: [S4_Output] [S5_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   6, Channel   0  0:       UKer S6_Conv2d_276x1x3x3_Relu, Operations: 179400
+ I                                     In =>                      S5_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                     S6_Weights    --L2--    Size:    2484, L3_Move:         0, L2_Move:      2484, TileOverhead: 1.000000, L2Buff:     0, Addr: 12056
+CI Buff                              Bias =>                      S6_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 10400
+ O                                    Out =>                      S6_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 14540
+CI Buff                             Scale =>                   S6_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11504
+CI Buff                            ScaleN =>                   S6_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11780
+CI Buff                             Infos =>                       S6_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 45740
+	Kernel Memory      : L3:       0, L2:   40029
+	Kernel Total Memory:   40029, L3 moves:       0, L2 moves:   40029, Move overhead: 1.000000
+	Kernel Operations  :  179400 [KernelOper/GraphOper: 0.629375%], Move/Operation ratio: [L3: 0.000000, L2: 0.223127]
+	Successors:  7
+
+    Living Dynamic Symbols: [S5_Output] [S6_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   7, Channel   0  0:       UKer S7_Conv2d_276x276x1x1_Relu, Operations: 4951440
+ I                                    In2 =>                      S6_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:    125580, TileOverhead: 7.000000, L2Buff:     0, Addr: 30040
+CI                                    In1 =>                     S7_Weights    --L2--    Size:   76176, L3_Move:     76176, L2_Move:     76176, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                              Bias =>                      S7_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 22080
+ O                                    Out =>                      S7_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 23184
+CI Buff                             Scale =>                   S7_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28384
+CI Buff                            ScaleN =>                   S7_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28660
+CI Buff                             Infos =>                       S7_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 43288
+	Kernel Memory      : L3:       0, L2:  113721
+	Kernel Total Memory:  113721, L3 moves:   76176, L2 moves:  221361, Move overhead: 1.946527
+	Kernel Operations  : 4951440 [KernelOper/GraphOper: 17.370753%], Move/Operation ratio: [L3: 0.015385, L2: 0.044706]
+	Successors:  8
+
+    Living Dynamic Symbols: [S6_Output] [S7_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   8, Channel   0  0:       UKer S8_Conv2d_276x1x3x3_Relu, Operations: 179400
+ I                                     In =>                      S7_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                     S8_Weights    --L2--    Size:    2484, L3_Move:         0, L2_Move:      2484, TileOverhead: 1.000000, L2Buff:     0, Addr: 12056
+CI Buff                              Bias =>                      S8_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 10400
+ O                                    Out =>                      S8_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 14540
+CI Buff                             Scale =>                   S8_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11504
+CI Buff                            ScaleN =>                   S8_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11780
+CI Buff                             Infos =>                       S8_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 45740
+	Kernel Memory      : L3:       0, L2:   40029
+	Kernel Total Memory:   40029, L3 moves:       0, L2 moves:   40029, Move overhead: 1.000000
+	Kernel Operations  :  179400 [KernelOper/GraphOper: 0.629375%], Move/Operation ratio: [L3: 0.000000, L2: 0.223127]
+	Successors:  9
+
+    Living Dynamic Symbols: [S7_Output] [S8_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node   9, Channel   0  0:       UKer S9_Conv2d_276x276x1x1_Relu, Operations: 4951440
+ I                                    In2 =>                      S8_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:    125580, TileOverhead: 7.000000, L2Buff:     0, Addr: 30040
+CI                                    In1 =>                     S9_Weights    --L2--    Size:   76176, L3_Move:     76176, L2_Move:     76176, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                              Bias =>                      S9_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 22080
+ O                                    Out =>                      S9_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 23184
+CI Buff                             Scale =>                   S9_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28384
+CI Buff                            ScaleN =>                   S9_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28660
+CI Buff                             Infos =>                       S9_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 43288
+	Kernel Memory      : L3:       0, L2:  113721
+	Kernel Total Memory:  113721, L3 moves:   76176, L2 moves:  221361, Move overhead: 1.946527
+	Kernel Operations  : 4951440 [KernelOper/GraphOper: 17.370753%], Move/Operation ratio: [L3: 0.015385, L2: 0.044706]
+	Successors:  10
+
+    Living Dynamic Symbols: [S8_Output] [S9_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  10, Channel   0  0:       UKer S10_Conv2d_276x1x3x3_Relu, Operations: 179400
+ I                                     In =>                      S9_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                    S10_Weights    --L2--    Size:    2484, L3_Move:         0, L2_Move:      2484, TileOverhead: 1.000000, L2Buff:     0, Addr: 12056
+CI Buff                              Bias =>                     S10_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 10400
+ O                                    Out =>                     S10_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 14540
+CI Buff                             Scale =>                  S10_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11504
+CI Buff                            ScaleN =>                  S10_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 11780
+CI Buff                             Infos =>                      S10_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 45740
+	Kernel Memory      : L3:       0, L2:   40029
+	Kernel Total Memory:   40029, L3 moves:       0, L2 moves:   40029, Move overhead: 1.000000
+	Kernel Operations  :  179400 [KernelOper/GraphOper: 0.629375%], Move/Operation ratio: [L3: 0.000000, L2: 0.223127]
+	Successors:  11
+
+    Living Dynamic Symbols: [S9_Output] [S10_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  11, Channel   0  0:       UKer S11_Conv2d_276x276x1x1_Relu, Operations: 4951440
+ I                                    In2 =>                     S10_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:    125580, TileOverhead: 7.000000, L2Buff:     0, Addr: 30040
+CI                                    In1 =>                    S11_Weights    --L2--    Size:   76176, L3_Move:         0, L2_Move:     76176, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                              Bias =>                     S11_Biases    --L2--    Size:    1104, L3_Move:         0, L2_Move:      1104, TileOverhead: 1.000000, L2Buff:     0, Addr: 22080
+ O                                    Out =>                     S11_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 23184
+CI Buff                             Scale =>                  S11_Mul_scale    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28384
+CI Buff                            ScaleN =>                  S11_Mul_shift    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 28660
+CI Buff                             Infos =>                      S11_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 43288
+	Kernel Memory      : L3:       0, L2:  113721
+	Kernel Total Memory:  113721, L3 moves:       0, L2 moves:  221361, Move overhead: 1.946527
+	Kernel Operations  : 4951440 [KernelOper/GraphOper: 17.370753%], Move/Operation ratio: [L3: 0.000000, L2: 0.044706]
+	Successors:  12
+
+    Living Dynamic Symbols: [S10_Output] [S11_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  12, Channel   0  0:       UKer S12_AveragePool_13x5, Operations: 17940
+ I Buff                                In =>                     S11_Output    --L2--    Size:   17940, L3_Move:         0, L2_Move:     17940, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+ O Buff                               Out =>                     S12_Output    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 17940
+CI Buff                             Infos =>                      S12_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 18216
+	Kernel Memory      : L3:       0, L2:   18225
+	Kernel Total Memory:   18225, L3 moves:       0, L2 moves:   18225, Move overhead: 1.000000
+	Kernel Operations  :   17940 [KernelOper/GraphOper: 0.062938%], Move/Operation ratio: [L3: 0.000000, L2: 1.015886]
+	Successors:  13
+
+    Living Dynamic Symbols: [S11_Output] [S12_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  13, Channel   0  0:       UKer S13_Linear_12x276x1x1, Operations: 3312
+ I Buff                                In =>                     S12_Output    --L2--    Size:     276, L3_Move:         0, L2_Move:       276, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+CI Buff                            Filter =>                    S13_Weights    --L2--    Size:    3312, L3_Move:         0, L2_Move:      3312, TileOverhead: 1.000000, L2Buff:     0, Addr: 276
+CI Buff                              Bias =>                     S13_Biases    --L2--    Size:      48, L3_Move:         0, L2_Move:        48, TileOverhead: 1.000000, L2Buff:     0, Addr: 3588
+ O Buff                               Out =>                     S13_Output    --L2--    Size:      12, L3_Move:         0, L2_Move:        12, TileOverhead: 1.000000, L2Buff:     0, Addr: 3636
+CI Buff                             Scale =>                  S13_Mul_scale    --L2--    Size:      12, L3_Move:         0, L2_Move:        12, TileOverhead: 1.000000, L2Buff:     0, Addr: 3648
+CI Buff                            ScaleN =>                  S13_Mul_shift    --L2--    Size:      12, L3_Move:         0, L2_Move:        12, TileOverhead: 1.000000, L2Buff:     0, Addr: 3660
+CI Buff                             Infos =>                      S13_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 3672
+	Kernel Memory      : L3:       0, L2:    3681
+	Kernel Total Memory:    3681, L3 moves:       0, L2 moves:    3681, Move overhead: 1.000000
+	Kernel Operations  :    3312 [KernelOper/GraphOper: 0.011619%], Move/Operation ratio: [L3: 0.000000, L2: 1.111413]
+	Successors:  14
+
+    Living Dynamic Symbols: [S12_Output] [S13_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  14, Channel   0  0:       UKer S14_SoftMax, Operations: 12
+ I Buff                                In =>                     S13_Output    --L2--    Size:      12, L3_Move:         0, L2_Move:        12, TileOverhead: 1.000000, L2Buff:     0, Addr: 0
+ O Buff                               Out =>                       Output_1    --L2--    Size:      24, L3_Move:         0, L2_Move:        24, TileOverhead: 1.000000, L2Buff:     0, Addr: 12
+CI Buff                             Infos =>                      S14_Infos    --L2--    Size:       9, L3_Move:         0, L2_Move:         9, TileOverhead: 1.000000, L2Buff:     0, Addr: 36
+	Kernel Memory      : L3:       0, L2:      45
+	Kernel Total Memory:      45, L3 moves:       0, L2 moves:      45, Move overhead: 1.000000
+	Kernel Operations  :      12 [KernelOper/GraphOper: 0.000042%], Move/Operation ratio: [L3: 0.000000, L2: 3.750000]
+	Successors:  15
+
+    Living Dynamic Symbols: [Output_1] [S13_Output] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Node  15, Channel   0  0:  GraphExit __GraphExit__, Operations: 0
+                                   (null) =>                       Output_1
+	Kernel Memory      : L3:       0, L2:       0
+	Kernel Total Memory:       0, L3 moves:       0, L2 moves:       0, Move overhead: 1.000000
+	Kernel Operations  :       0 [KernelOper/GraphOper: 0.000000%], Move/Operation ratio: [L3: 0.000000, L2: 0.000000]
+	Successors: 
+
+    Living Dynamic Symbols: [Output_1] 
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+	Graph nodes max local memory : L3:       0, L2:  113721
+	Graph nodes min global memory: L3:   76176, L2:  113724
+	Graph sum of kernel arguments size:  923956, L3 moves:  304704, L2 moves: 1596906, Move overhead: 1.728335
+	Graph total operations: 28504464
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Memory bandwidth report:
+
+    Sum of All Kernel's arguments size:  923956, Total L3_Move:    304704, Total L2_Move:   1596906, Tiling Overhead Average: 1.728335
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Total minimum memory requirement report:
+
+                     L3 Memory       L2 Memory
+       Dynamic         -228528           86940
+         Const          304704           77844
+         Total           76176          113724
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Graph symbols allocation:
+
+           S0_Input_1  Externally allocated
+             S1_Infos  INSTALL: HyperFlash[  0: 15]@ 425916    LOAD:         L2[  0: 15]@ 121212    EXEC:         L2[  0: 15]@ 121212 , Size:       9
+           S1_Weights  INSTALL: HyperFlash[  0: 15]@ 380880    LOAD:         L2[  0: 15]@  76176    EXEC:         L2[  0: 15]@  76176 , Size:   11040
+            S1_Biases  INSTALL: HyperFlash[  0: 15]@ 407652    LOAD:         L2[  0: 15]@ 102948    EXEC:         L2[  0: 15]@ 102948 , Size:    1104
+         S1_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 419796    LOAD:         L2[  0: 15]@ 115092    EXEC:         L2[  0: 15]@ 115092 , Size:     276
+         S1_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 420072    LOAD:         L2[  0: 15]@ 115368    EXEC:         L2[  0: 15]@ 115368 , Size:     276
+             S2_Infos  INSTALL: HyperFlash[  0: 15]@ 425928    LOAD:         L2[  0: 15]@ 121224    EXEC:         L2[  0: 15]@ 121224 , Size:       9
+           S2_Weights  INSTALL: HyperFlash[  0: 15]@ 395232    LOAD:         L2[  0: 15]@  90528    EXEC:         L2[  0: 15]@  90528 , Size:    2484
+            S2_Biases  INSTALL: HyperFlash[  0: 15]@ 408756    LOAD:         L2[  0: 15]@ 104052    EXEC:         L2[  0: 15]@ 104052 , Size:    1104
+         S2_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 420348    LOAD:         L2[  0: 15]@ 115644    EXEC:         L2[  0: 15]@ 115644 , Size:     276
+         S2_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 420624    LOAD:         L2[  0: 15]@ 115920    EXEC:         L2[  0: 15]@ 115920 , Size:     276
+             S3_Infos  INSTALL: HyperFlash[  0: 15]@ 425940    LOAD:         L2[  0: 15]@ 121236    EXEC:         L2[  0: 15]@ 121236 , Size:       9
+           S3_Weights  INSTALL: HyperFlash[  0: 15]@      0    LOAD:   HyperRam[  0: 15]@      0    EXEC:         L2[  1:  3]@ 208344 , Size:   76176
+            S3_Biases  INSTALL: HyperFlash[  0: 15]@ 409860    LOAD:         L2[  0: 15]@ 105156    EXEC:         L2[  0: 15]@ 105156 , Size:    1104
+         S3_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 420900    LOAD:         L2[  0: 15]@ 116196    EXEC:         L2[  0: 15]@ 116196 , Size:     276
+         S3_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 421176    LOAD:         L2[  0: 15]@ 116472    EXEC:         L2[  0: 15]@ 116472 , Size:     276
+             S4_Infos  INSTALL: HyperFlash[  0: 15]@ 425952    LOAD:         L2[  0: 15]@ 121248    EXEC:         L2[  0: 15]@ 121248 , Size:       9
+           S4_Weights  INSTALL: HyperFlash[  0: 15]@ 397716    LOAD:         L2[  0: 15]@  93012    EXEC:         L2[  0: 15]@  93012 , Size:    2484
+            S4_Biases  INSTALL: HyperFlash[  0: 15]@ 410964    LOAD:         L2[  0: 15]@ 106260    EXEC:         L2[  0: 15]@ 106260 , Size:    1104
+         S4_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 421452    LOAD:         L2[  0: 15]@ 116748    EXEC:         L2[  0: 15]@ 116748 , Size:     276
+         S4_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 421728    LOAD:         L2[  0: 15]@ 117024    EXEC:         L2[  0: 15]@ 117024 , Size:     276
+             S5_Infos  INSTALL: HyperFlash[  0: 15]@ 425964    LOAD:         L2[  0: 15]@ 121260    EXEC:         L2[  0: 15]@ 121260 , Size:       9
+           S5_Weights  INSTALL: HyperFlash[  0: 15]@  76176    LOAD:   HyperRam[  0: 15]@  76176    EXEC:         L2[  4:  5]@ 157284 , Size:   76176
+            S5_Biases  INSTALL: HyperFlash[  0: 15]@ 412068    LOAD:         L2[  0: 15]@ 107364    EXEC:         L2[  0: 15]@ 107364 , Size:    1104
+         S5_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 422004    LOAD:         L2[  0: 15]@ 117300    EXEC:         L2[  0: 15]@ 117300 , Size:     276
+         S5_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 422280    LOAD:         L2[  0: 15]@ 117576    EXEC:         L2[  0: 15]@ 117576 , Size:     276
+             S6_Infos  INSTALL: HyperFlash[  0: 15]@ 425976    LOAD:         L2[  0: 15]@ 121272    EXEC:         L2[  0: 15]@ 121272 , Size:       9
+           S6_Weights  INSTALL: HyperFlash[  0: 15]@ 400200    LOAD:         L2[  0: 15]@  95496    EXEC:         L2[  0: 15]@  95496 , Size:    2484
+            S6_Biases  INSTALL: HyperFlash[  0: 15]@ 413172    LOAD:         L2[  0: 15]@ 108468    EXEC:         L2[  0: 15]@ 108468 , Size:    1104
+         S6_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 422556    LOAD:         L2[  0: 15]@ 117852    EXEC:         L2[  0: 15]@ 117852 , Size:     276
+         S6_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 422832    LOAD:         L2[  0: 15]@ 118128    EXEC:         L2[  0: 15]@ 118128 , Size:     276
+             S7_Infos  INSTALL: HyperFlash[  0: 15]@ 425988    LOAD:         L2[  0: 15]@ 121284    EXEC:         L2[  0: 15]@ 121284 , Size:       9
+           S7_Weights  INSTALL: HyperFlash[  0: 15]@ 152352    LOAD:   HyperRam[  0: 15]@ 152352    EXEC:         L2[  6:  7]@ 157284 , Size:   76176
+            S7_Biases  INSTALL: HyperFlash[  0: 15]@ 414276    LOAD:         L2[  0: 15]@ 109572    EXEC:         L2[  0: 15]@ 109572 , Size:    1104
+         S7_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 423108    LOAD:         L2[  0: 15]@ 118404    EXEC:         L2[  0: 15]@ 118404 , Size:     276
+         S7_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 423384    LOAD:         L2[  0: 15]@ 118680    EXEC:         L2[  0: 15]@ 118680 , Size:     276
+             S8_Infos  INSTALL: HyperFlash[  0: 15]@ 426000    LOAD:         L2[  0: 15]@ 121296    EXEC:         L2[  0: 15]@ 121296 , Size:       9
+           S8_Weights  INSTALL: HyperFlash[  0: 15]@ 402684    LOAD:         L2[  0: 15]@  97980    EXEC:         L2[  0: 15]@  97980 , Size:    2484
+            S8_Biases  INSTALL: HyperFlash[  0: 15]@ 415380    LOAD:         L2[  0: 15]@ 110676    EXEC:         L2[  0: 15]@ 110676 , Size:    1104
+         S8_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 423660    LOAD:         L2[  0: 15]@ 118956    EXEC:         L2[  0: 15]@ 118956 , Size:     276
+         S8_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 423936    LOAD:         L2[  0: 15]@ 119232    EXEC:         L2[  0: 15]@ 119232 , Size:     276
+             S9_Infos  INSTALL: HyperFlash[  0: 15]@ 426012    LOAD:         L2[  0: 15]@ 121308    EXEC:         L2[  0: 15]@ 121308 , Size:       9
+           S9_Weights  INSTALL: HyperFlash[  0: 15]@ 228528    LOAD:   HyperRam[  0: 15]@ 228528    EXEC:         L2[  8:  9]@ 175224 , Size:   76176
+            S9_Biases  INSTALL: HyperFlash[  0: 15]@ 416484    LOAD:         L2[  0: 15]@ 111780    EXEC:         L2[  0: 15]@ 111780 , Size:    1104
+         S9_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 424212    LOAD:         L2[  0: 15]@ 119508    EXEC:         L2[  0: 15]@ 119508 , Size:     276
+         S9_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 424488    LOAD:         L2[  0: 15]@ 119784    EXEC:         L2[  0: 15]@ 119784 , Size:     276
+            S10_Infos  INSTALL: HyperFlash[  0: 15]@ 426024    LOAD:         L2[  0: 15]@ 121320    EXEC:         L2[  0: 15]@ 121320 , Size:       9
+          S10_Weights  INSTALL: HyperFlash[  0: 15]@ 405168    LOAD:         L2[  0: 15]@ 100464    EXEC:         L2[  0: 15]@ 100464 , Size:    2484
+           S10_Biases  INSTALL: HyperFlash[  0: 15]@ 417588    LOAD:         L2[  0: 15]@ 112884    EXEC:         L2[  0: 15]@ 112884 , Size:    1104
+        S10_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 424764    LOAD:         L2[  0: 15]@ 120060    EXEC:         L2[  0: 15]@ 120060 , Size:     276
+        S10_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 425040    LOAD:         L2[  0: 15]@ 120336    EXEC:         L2[  0: 15]@ 120336 , Size:     276
+            S11_Infos  INSTALL: HyperFlash[  0: 15]@ 426036    LOAD:         L2[  0: 15]@ 121332    EXEC:         L2[  0: 15]@ 121332 , Size:       9
+          S11_Weights  INSTALL: HyperFlash[  0: 15]@ 304704    LOAD:         L2[  0: 15]@      0    EXEC:         L2[  0: 15]@      0 , Size:   76176
+           S11_Biases  INSTALL: HyperFlash[  0: 15]@ 418692    LOAD:         L2[  0: 15]@ 113988    EXEC:         L2[  0: 15]@ 113988 , Size:    1104
+        S11_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 425316    LOAD:         L2[  0: 15]@ 120612    EXEC:         L2[  0: 15]@ 120612 , Size:     276
+        S11_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 425592    LOAD:         L2[  0: 15]@ 120888    EXEC:         L2[  0: 15]@ 120888 , Size:     276
+            S12_Infos  INSTALL: HyperFlash[  0: 15]@ 426048    LOAD:         L2[  0: 15]@ 121344    EXEC:         L2[  0: 15]@ 121344 , Size:       9
+            S13_Infos  INSTALL: HyperFlash[  0: 15]@ 426060    LOAD:         L2[  0: 15]@ 121356    EXEC:         L2[  0: 15]@ 121356 , Size:       9
+          S13_Weights  INSTALL: HyperFlash[  0: 15]@ 391920    LOAD:         L2[  0: 15]@  87216    EXEC:         L2[  0: 15]@  87216 , Size:    3312
+           S13_Biases  INSTALL: HyperFlash[  0: 15]@ 425868    LOAD:         L2[  0: 15]@ 121164    EXEC:         L2[  0: 15]@ 121164 , Size:      48
+        S13_Mul_scale  INSTALL: HyperFlash[  0: 15]@ 426072    LOAD:         L2[  0: 15]@ 121368    EXEC:         L2[  0: 15]@ 121368 , Size:      12
+        S13_Mul_shift  INSTALL: HyperFlash[  0: 15]@ 426084    LOAD:         L2[  0: 15]@ 121380    EXEC:         L2[  0: 15]@ 121380 , Size:      12
+            S14_Infos  INSTALL: HyperFlash[  0: 15]@ 426096    LOAD:         L2[  0: 15]@ 121392    EXEC:         L2[  0: 15]@ 121392 , Size:       9
+             Output_1  Externally allocated
+            S1_Output     EXEC:         L2[  1:  2]@ 139344 , Size:   69000
+            S2_Output     EXEC:         L2[  2:  3]@ 121404 , Size:   17940
+            S3_Output     EXEC:         L2[  3:  4]@ 139344 , Size:   17940
+            S4_Output     EXEC:         L2[  4:  5]@ 121404 , Size:   17940
+            S5_Output     EXEC:         L2[  5:  6]@ 139344 , Size:   17940
+            S6_Output     EXEC:         L2[  6:  7]@ 121404 , Size:   17940
+            S7_Output     EXEC:         L2[  7:  8]@ 139344 , Size:   17940
+            S8_Output     EXEC:         L2[  8:  9]@ 157284 , Size:   17940
+            S9_Output     EXEC:         L2[  9: 10]@ 121404 , Size:   17940
+           S10_Output     EXEC:         L2[ 10: 11]@ 139344 , Size:   17940
+           S11_Output     EXEC:         L2[ 11: 12]@ 121404 , Size:   17940
+           S12_Output     EXEC:         L2[ 12: 13]@ 139344 , Size:     276
+           S13_Output     EXEC:         L2[ 13: 14]@ 121404 , Size:      12
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+Graph stacked tensors
+------------------------------------------------------------------------------------------------------------------------------------------------
+
+Generating Code For User Kernel:           S1_Conv2d_276x1x10x4_Relu
+Generating Code For User Kernel:            S2_Conv2d_276x1x3x3_Relu
+Generating Code For User Kernel:          S3_Conv2d_276x276x1x1_Relu
+Generating Code For User Kernel:            S4_Conv2d_276x1x3x3_Relu
+Generating Code For User Kernel:          S5_Conv2d_276x276x1x1_Relu
+Generating Code For User Kernel:            S6_Conv2d_276x1x3x3_Relu
+Generating Code For User Kernel:          S7_Conv2d_276x276x1x1_Relu
+Generating Code For User Kernel:            S8_Conv2d_276x1x3x3_Relu
+Generating Code For User Kernel:          S9_Conv2d_276x276x1x1_Relu
+Generating Code For User Kernel:           S10_Conv2d_276x1x3x3_Relu
+Generating Code For User Kernel:         S11_Conv2d_276x276x1x1_Relu
+Generating Code For User Kernel:                S12_AveragePool_13x5
+Generating Code For User Kernel:               S13_Linear_12x276x1x1
+Generating Code For User Kernel:                         S14_SoftMax
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S1_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S1_Weights.tensor: 11040 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S1_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S1_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S1_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S2_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S2_Weights.tensor: 2484 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S2_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S2_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S2_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S3_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S3_Weights.tensor: 76176 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S3_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S3_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S3_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S4_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S4_Weights.tensor: 2484 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S4_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S4_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S4_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S5_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S5_Weights.tensor: 76176 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S5_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S5_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S5_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S6_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S6_Weights.tensor: 2484 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S6_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S6_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S6_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S7_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S7_Weights.tensor: 76176 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S7_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S7_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S7_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S8_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S8_Weights.tensor: 2484 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S8_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S8_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S8_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S9_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S9_Weights.tensor: 76176 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S9_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S9_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S9_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S10_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S10_Weights.tensor: 2484 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S10_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S10_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S10_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S11_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S11_Weights.tensor: 76176 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S11_Biases.tensor: 1104 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S11_Mul_scale.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S11_Mul_shift.tensor: 276 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S12_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S13_Infos.tensor: 9 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S13_Weights.tensor: 3312 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S13_Biases.tensor: 48 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S13_Mul_scale.tensor: 12 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S13_Mul_shift.tensor: 12 Byte items
+Loading coefficient file ./BUILD_MODEL_8BIT_EMUL/tensors/S14_Infos.tensor: 9 Byte items
+Flash image KWS_ds_cnn_l_quant_L3_Flash_Const.dat (size 426108) for device AT_MEM_L3_HFLASH successfuly generated
+
+Shared L1 Memory size (Bytes)             : Given:      48736, Used:      46872
+L2 Memory size (Bytes)                    : Given:     350000, Used:     284517
+L3 Memory size (Bytes)                    : Given:    6388608, Used:     304704
+
+L3 Memory bandwidth for 1 graph run       :     304704 Bytes
+L2 Memory bandwidth for 1 graph run       :    1596906 Bytes
+Sum of all Kernels arguments size         :     923956 Bytes
+Tiling Bandwith overhead                  :   1.728335 Move/KerArgSize
+Sum of baseline bandwidth                 :   50099340 Bytes
+Percentage of baseline BW for L2          :    3.18748 %
+Percentage of baseline BW for L3          :     0.6082 %
+Sum of all Kernels operations             :   28504464 Operations
+Total amount of flash coefficients        :     426108 Bytes
+
+Basic kernels library                     : nntool_extra_kernels.h
+                                          : CNN_BasicKernels_SQ8.h
+                                          : KWS_ds_cnn_l_quant.h
+Output Directory                          : BUILD_MODEL_8BIT_EMUL
+
+The following files have been generated:
+	   KWS_ds_cnn_l_quantKernels.c Generated C code for the user kernels and the user kernels groups
+	   KWS_ds_cnn_l_quantKernels.h Header file for the generated C code
+	KWS_ds_cnn_l_quant_L3_Flash_Const.dat Flash content for Graph constants
+mkdir /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL
+python3 /home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/GenLUT.py --fft_lut_file /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/LUT.def --mfcc_bf_lut_file /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/MFCC_FB.def                \
+								   --sample_rate 16000 --frame_size 640 --frame_step 320 --n_frame 49 \
+								   --n_fft 1024 --n_dct 40 --mfcc_bank_cnt 40 --fmin 20 --fmax 4000 --mfcc_bank_cnt 40 --preempfactor 0.0 \
+								   --use_tf_mfcc --save_params_header MFCC_params_LARGE.h  --use_power --use_high_prec
+(1024,)
+Filter 0: Start: 2 Stop: 5 Base: 0 Items: 4
+Filter 1: Start: 4 Stop: 8 Base: 4 Items: 5
+Filter 2: Start: 6 Stop: 10 Base: 9 Items: 5
+Filter 3: Start: 9 Stop: 13 Base: 14 Items: 5
+Filter 4: Start: 11 Stop: 15 Base: 19 Items: 5
+Filter 5: Start: 14 Stop: 18 Base: 24 Items: 5
+Filter 6: Start: 16 Stop: 21 Base: 29 Items: 6
+Filter 7: Start: 19 Stop: 24 Base: 35 Items: 6
+Filter 8: Start: 22 Stop: 28 Base: 41 Items: 7
+Filter 9: Start: 25 Stop: 31 Base: 48 Items: 7
+Filter 10: Start: 29 Stop: 34 Base: 55 Items: 6
+Filter 11: Start: 32 Stop: 38 Base: 61 Items: 7
+Filter 12: Start: 35 Stop: 42 Base: 68 Items: 8
+Filter 13: Start: 39 Stop: 46 Base: 76 Items: 8
+Filter 14: Start: 43 Stop: 51 Base: 84 Items: 9
+Filter 15: Start: 47 Stop: 55 Base: 93 Items: 9
+Filter 16: Start: 52 Stop: 60 Base: 102 Items: 9
+Filter 17: Start: 56 Stop: 65 Base: 111 Items: 10
+Filter 18: Start: 61 Stop: 70 Base: 121 Items: 10
+Filter 19: Start: 66 Stop: 75 Base: 131 Items: 10
+Filter 20: Start: 71 Stop: 81 Base: 141 Items: 11
+Filter 21: Start: 76 Stop: 87 Base: 152 Items: 12
+Filter 22: Start: 82 Stop: 93 Base: 164 Items: 12
+Filter 23: Start: 88 Stop: 99 Base: 176 Items: 12
+Filter 24: Start: 94 Stop: 106 Base: 188 Items: 13
+Filter 25: Start: 100 Stop: 113 Base: 201 Items: 14
+Filter 26: Start: 107 Stop: 121 Base: 215 Items: 15
+Filter 27: Start: 114 Stop: 128 Base: 230 Items: 15
+Filter 28: Start: 122 Stop: 137 Base: 245 Items: 16
+Filter 29: Start: 129 Stop: 145 Base: 261 Items: 17
+Filter 30: Start: 138 Stop: 154 Base: 278 Items: 17
+Filter 31: Start: 146 Stop: 163 Base: 295 Items: 18
+Filter 32: Start: 155 Stop: 173 Base: 313 Items: 19
+Filter 33: Start: 164 Stop: 183 Base: 332 Items: 20
+Filter 34: Start: 174 Stop: 194 Base: 352 Items: 21
+Filter 35: Start: 184 Stop: 205 Base: 373 Items: 22
+Filter 36: Start: 195 Stop: 217 Base: 395 Items: 23
+Filter 37: Start: 206 Stop: 229 Base: 418 Items: 24
+Filter 38: Start: 218 Stop: 242 Base: 442 Items: 25
+Filter 39: Start: 230 Stop: 255 Base: 467 Items: 26
+gcc -g -o /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/GenMFCC -I. -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/Emulation MFCCmodel.c /home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/MfccGenerator.c /home/marco-gwt/GWT/AutotilerV2/install/lib/libtile.a -lm -DLARGE
+/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/GenMFCC -o /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -c /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -f BUILD_MODEL_8BIT_EMUL --L1 48736 --L2 350000 --L3 6388608
+MFCC_COEF_DYN = 10
+FFT_BITS = 10
+
+==== Process Tiling For User Kernel:                                 MFCC =======================
+                MFCC Partition[0] Size =  33086 (Min:      0, Max:  33814), Fraction:       1.00, Giving:  48736 bytes out of  48736 bytes
+                MFCC, TiledSpace: Tile0 Iteration Count: 1
+              In : Ratio: 0.000000,                                          Size:   2560, Total:    2560, Move:      62720 (Decl x 1.960000) L2
+*            Out : Ratio: 0.000000,                                          Size:   3920, Total:    6480, Move:       3920 (Decl x 1.000000) L2
+*         InOut1 : Ratio: 6.400000,                                          Size:   8192, Total:   14672, Move:          0 (Decl x 0.000000) L2
+*        Out_fft : Ratio: 6.400000,                                          Size:   8192, Total:   22864, Move:          0 (Decl x 0.000000) L2
+*      shift_fft : Ratio: 3.200000,                                          Size:   1024, Total:   23888, Move:          0 (Decl x 0.000000) L2
+*         InOut2 : Ratio: 0.125000,                                          Size:    160, Total:   24048, Move:          0 (Decl x 0.000000) L2
+*          Shift : Ratio: 0.003125,                                          Size:      4, Total:   24052, Move:          0 (Decl x 0.000000) L2
+*       WinTable : Ratio: 3.200000,                                          Size:   2048, Total:   26100, Move:       2048 (Decl x 1.000000) L2
+*   Twiddles_fft : Ratio: 6.400000,                                          Size:   4096, Total:   30196, Move:       4096 (Decl x 1.000000) L2
+*  SwapTable_fft : Ratio: 3.200000,                                          Size:   2048, Total:   32244, Move:       2048 (Decl x 1.000000) L2
+*MFCC_FilterBank : Ratio: 0.125000,                                          Size:    320, Total:   32564, Move:        320 (Decl x 1.000000) L2
+*    MFCC_Coeffs : Ratio: 1.543750,                                          Size:    988, Total:   33552, Move:        988 (Decl x 1.000000) L2
+*       shift_bf : Ratio: 0.125000,                                          Size:     40, Total:   33592, Move:          0 (Decl x 0.000000) L2
+*      DCT_Coeff : Ratio: 5.000000,                                          Size:   3200, Total:   36792, Move:       3200 (Decl x 1.000000) L2
+                MFCC - IterSpace: Tile0 - L1 Memory:  36792, L2Move: 79340, L3Move: 0, Tiling Overhead: 1.631839
+                MFCC Iteration for Tiled Space: 1
+                MFCC For Iter Space: 0 Iteration count:   1, Given L1 Memory:  48736, Used L1 Memory:  36792, Reusable Memory: 11944, Used L2 Memory: 0
+=================================================================================================
+
+
+Generating Code For User Kernel:                                MFCC
+
+Shared L1 Memory size (Bytes)             : Given:      48736, Used:      36792
+L2 Memory size (Bytes)                    : Given:     350000, Used:          0
+L3 Memory size (Bytes)                    : Given:    6388608, Used:          0
+
+L3 Memory bandwidth for all user kernels  :          0 Bytes
+L2 Memory bandwidth for all user kerneks  :      79340 Bytes
+Sum of all Kernels arguments size         :      48620 Bytes
+Tiling Bandwith overhead                  :   1.631839 Move/KerArgSize
+Percentage of baseline BW for L2          :        inf %
+Percentage of baseline BW for L3          :       -nan %
+Sum of all Kernels operations             :          0 Operations
+
+Basic kernels library                     : MfccBasicKernels.h
+Output Directory                          : /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL
+
+The following files have been generated:
+	                 MFCCKernels.c Generated C code for the user kernels and the user kernels groups
+	                 MFCCKernels.h Header file for the generated C code
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c main_emulation.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL/main_emulation.d -o BUILD_EMUL/main_emulation.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quantKernels.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL/BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quantKernels.d -o BUILD_EMUL/BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quantKernels.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/gap_sdk/libs/gap_lib/img_io/ImgIO.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/img_io/ImgIO.d -o BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/img_io/ImgIO.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Activation_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Activation_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Activation_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Bias_Linear_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Bias_Linear_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Bias_Linear_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Pooling_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Pooling_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Pooling_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_DW_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_DW_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_DW_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_MatAlgebra_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_MatAlgebra_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_MatAlgebra_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_SoftMax_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_SoftMax_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_SoftMax_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_AT_Misc.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_AT_Misc.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_AT_Misc.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/RNN_SQ8.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/RNN_SQ8.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/RNN_SQ8.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels/norm_transpose.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels/norm_transpose.d -o BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels/norm_transpose.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/gap_sdk/libs/gap_lib/wav_io/wavIO.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/wav_io/wavIO.d -o BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/wav_io/wavIO.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/MfccBasicKernels.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/MfccBasicKernels.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/MfccBasicKernels.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/FFTLib.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/FFTLib.d -o BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/FFTLib.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -c /home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/MFCCKernels.c -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -MD -MF BUILD_EMUL//home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/MFCCKernels.d -o BUILD_EMUL//home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/MFCCKernels.o
+gcc -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -MMD -MP -DLARGE -DWITH_MFCC -DHIGH_PREC_FFT -g -O3 -D__EMUL__ -DAT_INPUT_HEIGHT=49 -DAT_INPUT_WIDTH=10 -DAT_INPUT_COLORS=  -I. -I/home/marco-gwt/GWT/AutotilerV2/Emulation -I/home/marco-gwt/GWT/AutotilerV2/Autotiler -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries -I/home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8 -I/home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels -IBUILD_MODEL_8BIT_EMUL -I/home/marco-gwt/GWT/gap_sdk/libs/gap_lib/include -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -I/home/marco-gwt/GWT/AutotilerV2/Generators/MFCC -I/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL -o kws_ds_cnn_emul  BUILD_EMUL/main_emulation.o  BUILD_EMUL/BUILD_MODEL_8BIT_EMUL/KWS_ds_cnn_l_quantKernels.o  BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/img_io/ImgIO.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Activation_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Bias_Linear_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Pooling_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_Conv_DW_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_MatAlgebra_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_SoftMax_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/CNN_AT_Misc.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/CNN_Libraries_SQ8/RNN_SQ8.o  BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/tools/nntool/autotiler/kernels/norm_transpose.o  BUILD_EMUL//home/marco-gwt/GWT/gap_sdk/libs/gap_lib/wav_io/wavIO.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/MfccBasicKernels.o  BUILD_EMUL//home/marco-gwt/GWT/AutotilerV2/Generators/MFCC/FFTLib.o  BUILD_EMUL//home/marco-gwt/GWT/NN_menu/starters/keyword_spotting/BUILD_MFCC_MODEL/MFCCKernels.o  -lm
+make[1]: Leaving directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+{'desired_samples': 16000, 'window_size_samples': 640, 'window_stride_samples': 320, 'spectrogram_length': 49, 'dct_coefficient_count': 10, 'fingerprint_width': 10, 'fingerprint_size': 490, 'label_count': 12, 'sample_rate': 16000, 'preprocess': 'mfcc', 'average_window_width': -1, 'use_power': True}
+Pred/Tot:	  97/ 100	Accuracy:	97.00%
+Pred/Tot:	 195/ 200	Accuracy:	97.50%
+Pred/Tot:	 287/ 300	Accuracy:	95.67%
+Pred/Tot:	 382/ 400	Accuracy:	95.50%
+Pred/Tot:	 477/ 500	Accuracy:	95.40%
+Pred/Tot:	 571/ 600	Accuracy:	95.17%
+Pred/Tot:	 665/ 700	Accuracy:	95.00%
+Pred/Tot:	 756/ 800	Accuracy:	94.50%
+Pred/Tot:	 850/ 900	Accuracy:	94.44%
+Pred/Tot:	 945/1000	Accuracy:	94.50%
+Pred/Tot:	1038/1100	Accuracy:	94.36%
+Pred/Tot:	1133/1200	Accuracy:	94.42%
+Pred/Tot:	1226/1300	Accuracy:	94.31%
+Pred/Tot:	1321/1400	Accuracy:	94.36%
+Pred/Tot:	1415/1500	Accuracy:	94.33%
+Pred/Tot:	1512/1600	Accuracy:	94.50%
+Pred/Tot:	1607/1700	Accuracy:	94.53%
+Pred/Tot:	1704/1800	Accuracy:	94.67%
+Pred/Tot:	1799/1900	Accuracy:	94.68%
+Pred/Tot:	1896/2000	Accuracy:	94.80%
+Pred/Tot:	1990/2100	Accuracy:	94.76%
+Pred/Tot:	2088/2200	Accuracy:	94.91%
+Pred/Tot:	2184/2300	Accuracy:	94.96%
+Pred/Tot:	2276/2400	Accuracy:	94.83%
+Pred/Tot:	2369/2500	Accuracy:	94.76%
+Pred/Tot:	2466/2600	Accuracy:	94.85%
+Pred/Tot:	2561/2700	Accuracy:	94.85%
+Pred/Tot:	2656/2800	Accuracy:	94.86%
+Pred/Tot:	2750/2900	Accuracy:	94.83%
+Pred/Tot:	2845/3000	Accuracy:	94.83%
+Pred/Tot:	2943/3100	Accuracy:	94.94%
+Pred/Tot:	3035/3200	Accuracy:	94.84%
+Pred/Tot:	3131/3300	Accuracy:	94.88%
+Pred/Tot:	3222/3400	Accuracy:	94.76%
+Pred/Tot:	3319/3500	Accuracy:	94.83%
+Pred/Tot:	3416/3600	Accuracy:	94.89%
+Pred/Tot:	3510/3700	Accuracy:	94.86%
+Pred/Tot:	3605/3800	Accuracy:	94.87%
+Pred/Tot:	3695/3900	Accuracy:	94.74%
+Pred/Tot:	3791/4000	Accuracy:	94.77%
+Pred/Tot:	3886/4100	Accuracy:	94.78%
+Pred/Tot:	3980/4200	Accuracy:	94.76%
+Pred/Tot:	4073/4300	Accuracy:	94.72%
+Pred/Tot:	4169/4400	Accuracy:	94.75%
+
+FINAL VALIDATION ACCURACY:
+Pred/Tot:	4211/4444	Accuracy:	94.76%
+
+Confusion matrix:
+[[371   0   0   0   0   0   0   0   0   0   0   0]
+ [  0 335   1   1   3   7   4   5   7   1   5   2]
+ [  0   2 387   1   0   1   4   0   0   0   1   1]
+ [  0  13   0 383   1   0   3   0   0   1   1   4]
+ [  0   4   1   0 325   1   2   0   2  11   3   1]
+ [  0   3   0   7   0 359   2   1   0   0   4   1]
+ [  0   1   3   1   0   0 345   1   0   0   0   1]
+ [  0   4   0   1   0   0   0 356   0   2   0   0]
+ [  1   9   0   2   3   0   0   2 338   8   0   0]
+ [  0   4   1   1  19   0   0   0   9 336   2   1]
+ [  1   2   0   0   7   0   0   1   1   1 337   0]
+ [  0   8   2  11   0   7   0   0   1   3   1 339]]
+Pred/Tot:	  93/ 100	Accuracy:	93.00%
+Pred/Tot:	 189/ 200	Accuracy:	94.50%
+Pred/Tot:	 283/ 300	Accuracy:	94.33%
+Pred/Tot:	 379/ 400	Accuracy:	94.75%
+Pred/Tot:	 470/ 500	Accuracy:	94.00%
+Pred/Tot:	 567/ 600	Accuracy:	94.50%
+Pred/Tot:	 663/ 700	Accuracy:	94.71%
+Pred/Tot:	 760/ 800	Accuracy:	95.00%
+Pred/Tot:	 856/ 900	Accuracy:	95.11%
+Pred/Tot:	 952/1000	Accuracy:	95.20%
+Pred/Tot:	1044/1100	Accuracy:	94.91%
+Pred/Tot:	1141/1200	Accuracy:	95.08%
+Pred/Tot:	1233/1300	Accuracy:	94.85%
+Pred/Tot:	1326/1400	Accuracy:	94.71%
+Pred/Tot:	1419/1500	Accuracy:	94.60%
+Pred/Tot:	1516/1600	Accuracy:	94.75%
+Pred/Tot:	1607/1700	Accuracy:	94.53%
+Pred/Tot:	1703/1800	Accuracy:	94.61%
+Pred/Tot:	1794/1900	Accuracy:	94.42%
+Pred/Tot:	1888/2000	Accuracy:	94.40%
+Pred/Tot:	1981/2100	Accuracy:	94.33%
+Pred/Tot:	2076/2200	Accuracy:	94.36%
+Pred/Tot:	2172/2300	Accuracy:	94.43%
+Pred/Tot:	2267/2400	Accuracy:	94.46%
+Pred/Tot:	2364/2500	Accuracy:	94.56%
+Pred/Tot:	2456/2600	Accuracy:	94.46%
+Pred/Tot:	2551/2700	Accuracy:	94.48%
+Pred/Tot:	2648/2800	Accuracy:	94.57%
+Pred/Tot:	2743/2900	Accuracy:	94.59%
+Pred/Tot:	2839/3000	Accuracy:	94.63%
+Pred/Tot:	2934/3100	Accuracy:	94.65%
+Pred/Tot:	3032/3200	Accuracy:	94.75%
+Pred/Tot:	3130/3300	Accuracy:	94.85%
+Pred/Tot:	3221/3400	Accuracy:	94.74%
+Pred/Tot:	3315/3500	Accuracy:	94.71%
+Pred/Tot:	3412/3600	Accuracy:	94.78%
+Pred/Tot:	3507/3700	Accuracy:	94.78%
+Pred/Tot:	3602/3800	Accuracy:	94.79%
+Pred/Tot:	3697/3900	Accuracy:	94.79%
+Pred/Tot:	3792/4000	Accuracy:	94.80%
+Pred/Tot:	3886/4100	Accuracy:	94.78%
+Pred/Tot:	3983/4200	Accuracy:	94.83%
+Pred/Tot:	4080/4300	Accuracy:	94.88%
+Pred/Tot:	4172/4400	Accuracy:	94.82%
+Pred/Tot:	4262/4500	Accuracy:	94.71%
+Pred/Tot:	4355/4600	Accuracy:	94.67%
+Pred/Tot:	4451/4700	Accuracy:	94.70%
+Pred/Tot:	4546/4800	Accuracy:	94.71%
+
+FINAL TESTING ACCURACY:
+Pred/Tot:	4631/4889	Accuracy:	94.72%
+
+Confusion matrix:
+[[408   0   0   0   0   0   0   0   0   0   0   0]
+ [  0 377   0   3   3   5   2   5   6   1   3   3]
+ [  0   8 408   2   0   0   1   0   0   0   0   0]
+ [  0   5   1 389   0   5   2   0   0   1   0   2]
+ [  0   8   0   0 391   2   0   0   3  13   5   3]
+ [  0   7   1  10   0 381   2   1   0   0   0   4]
+ [  0   9   5   2   0   0 393   3   0   0   0   0]
+ [  0   6   0   0   0   0   5 382   2   0   1   0]
+ [  0  10   0   0   2   4   1   0 365  11   0   3]
+ [  0   7   0   3  11   0   1   0   5 368   2   5]
+ [  0   2   0   0   3   3   0   2   0   0 400   1]
+ [  0   5   1  18   1   2   2   1   0   2   1 369]]

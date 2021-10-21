@@ -40,10 +40,10 @@ const int FunctionDetails::nbColumn = \
 
 
 FunctionDetails::FunctionDetails(
-  QWidget* parent, 
+  QWidget* parent,
   QPlainTextEdit* sourceCode,
   QPlainTextEdit* asmCode,
-  StallChart* stallChart) : 
+  StallChart* stallChart) :
   stallChart(stallChart),
   sourceCode(sourceCode),
   asmCode(asmCode)
@@ -54,7 +54,7 @@ FunctionDetails::FunctionDetails(
   asmCode->setWordWrapMode(QTextOption::NoWrap);
   sourceCode->setReadOnly(true);
   asmCode->setReadOnly(true);
-  
+
   cppHighlighter = new Highlighter(sourceCode->document());
   asmHighlighter = new Highlighter(asmCode->document());
 
@@ -66,53 +66,34 @@ FunctionDetails::FunctionDetails(
   timer->start(2000);
 }
 
-
-void FunctionDetails::switch2ClusterCycleMode(){
-// changes from former representation (Time Mode or FC Cycle Mode)
-// to Cluster Cycle Mode 
-  currentMode= CLUSTER_CYCLE_MODE;
-  auto data = get_function_table();
-  int T;
-  T = get_cluster_period();
-  QString time_string;
-  if (T == 0) time_string= "error, cluster period = 0";
-  for (uint i = 0; i < data.size(); i++){
-    time_string= formatTimeStamp(QString::number(data[i].tot_time/T));
-    // Change tot_time to nb of cluster cycle 
-    QTableWidgetItem* item = new QTableWidgetItem(tr("%1").arg(time_string));
-    item->setTextAlignment(Qt::AlignRight);
-    table->setItem(i, 1, item);
-  }
-  table->update();
+void FunctionDetails::switchLegendMode(LegendMode newMode)
+{
+    this->currentMode = newMode;
+    this->updateTimeStamps();
 }
 
-void FunctionDetails::switch2FCCycleMode(){
-// changes from former representation (Time Mode or Cluster Mode)
-// to FC Cycle Mode 
-  currentMode= FC_CYCLE_MODE;
+void FunctionDetails::updateTimeStamps(void)
+{
+  // changes from former representation
   auto data = get_function_table();
-  int T;
-  QString time_string;
-  T = get_fc_period();
-  if (T == 0) time_string= "error, soc period = 0";
-  for (uint i = 0; i < data.size(); i++){
-    QString time_string= formatTimeStamp(QString::number(data[i].tot_time/T));
-    // Change tot_time to nb of cluster cycle 
-    QTableWidgetItem* item = new QTableWidgetItem(tr("%1").arg(time_string));
-    item->setTextAlignment(Qt::AlignRight);
-    table->setItem(i, 1, item );
+  int T = 1;
+  switch(this->currentMode)
+  {
+      case FC_CYCLE_MODE:
+          T = get_fc_period();
+          break;
+      case CLUSTER_CYCLE_MODE:
+          T = get_cluster_period();
+          break;
+      default:
+          T = 1;
+          break;
   }
-  table->update();
-}
 
-void FunctionDetails::switch2TimeMode(){
-// changes from former representation (Time Mode or FC Cycle Mode)
-// to Cluster Cycle Mode 
-  currentMode= TIME_MODE;
-  auto data = get_function_table();
+  assert(T > 0);
+
   for (uint i = 0; i < data.size(); i++){
-    QString time_string= formatTimeStamp(QString::number(data[i].tot_time));
-    // Change tot_time to nb of cluster cycle 
+    QString time_string = formatTimeStamp(QString::number(data[i].tot_time/T));
     QTableWidgetItem* item = new QTableWidgetItem(tr("%1").arg(time_string));
     item->setTextAlignment(Qt::AlignRight);
     table->setItem(i, 1, item);
@@ -121,7 +102,7 @@ void FunctionDetails::switch2TimeMode(){
 }
 
 QString FunctionDetails::formatTimeStamp(QString ts) const {
-  
+
   const int step = 3;
   const char mychar = ',';
   for (int i = ts.length()-step; i>0; i=i-step)
@@ -133,7 +114,7 @@ QString FunctionDetails::formatTimeStamp(QString ts) const {
 void FunctionDetails::fillTable(){
   if (table == nullptr) table = new QTableWidget();
   QHeaderView* header = table->horizontalHeader();
-  
+
   auto data = get_function_table();
   table->sizePolicy().setHorizontalPolicy(QSizePolicy::Ignored);
   table->setRowCount(data.size());
@@ -161,19 +142,8 @@ void FunctionDetails::fillTable(){
     textVersion += data[i].name + "\t" + time_string.toStdString() + "\t"\
                    + std::to_string(data[i].n_calls) + "\t" + data[i].file + "\n";
   }
-  switch(currentMode){
-    case TIME_MODE: 
-      switch2TimeMode();
-      break;
-    case CLUSTER_CYCLE_MODE: 
-      switch2ClusterCycleMode();
-      break;
-    case FC_CYCLE_MODE: 
-      switch2FCCycleMode();
-      break;
-    case N_LEGEND_MODE: 
-      break;
-  }
+
+  this->updateTimeStamps();
   header->resizeSections(QHeaderView::Stretch);
   header->setSectionResizeMode(1,QHeaderView::Stretch);
   exportTableToTextFile("function_statistics.txt");

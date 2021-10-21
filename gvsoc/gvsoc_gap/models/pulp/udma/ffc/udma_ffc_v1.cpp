@@ -412,7 +412,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                 switch(float_type)
                 {
                     case FFC_FLOAT_BFP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 8,
                                 precision,
                                 scale,
@@ -422,7 +422,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         break;
                     case FFC_FLOAT_FP16:
                         {
-                            dst = FixedToFloatFormat(*((uint16_t*)src),
+                            dst = FloatToFixedFormat(*((uint16_t*)src),
                                     8,
                                     precision,
                                     scale,
@@ -433,7 +433,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         break;
                     case FFC_FLOAT_FP32: //fallthrough
                     case FFC_FLOAT_FP32_BIS:
-                        dst = FixedToFloatFormat(*((uint32_t*)src),
+                        dst = FloatToFixedFormat(*((uint32_t*)src),
                                 8,
                                 precision,
                                 scale,
@@ -454,7 +454,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                 switch(float_type)
                 {
                     case FFC_FLOAT_BFP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 16,
                                 precision,
                                 scale,
@@ -463,7 +463,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                                 7);
                         break;
                     case FFC_FLOAT_FP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 16,
                                 precision,
                                 scale,
@@ -473,7 +473,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         break;
                     case FFC_FLOAT_FP32: //fallthrough
                     case FFC_FLOAT_FP32_BIS:
-                        dst = FixedToFloatFormat(*((uint32_t*)src),
+                        dst = FloatToFixedFormat(*((uint32_t*)src),
                                 16,
                                 precision,
                                 scale,
@@ -494,7 +494,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                 switch(float_type)
                 {
                     case FFC_FLOAT_BFP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 24,
                                 precision,
                                 scale,
@@ -503,7 +503,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                                 7);
                         break;
                     case FFC_FLOAT_FP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 24,
                                 precision,
                                 scale,
@@ -513,7 +513,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         break;
                     case FFC_FLOAT_FP32: //fallthrough
                     case FFC_FLOAT_FP32_BIS:
-                        dst = FixedToFloatFormat(*((uint32_t*)src),
+                        dst = FloatToFixedFormat(*((uint32_t*)src),
                                 24,
                                 precision,
                                 scale,
@@ -525,6 +525,11 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         printf("Invalid float type\n");
                         break;
                 }
+                /* sign extension */
+                if (dst > 0x800000)
+                {
+                    dst = dst | 0xFF000000;
+                }
                 this->push_data((uint8_t*) &dst, 4);
             }
             break;
@@ -534,7 +539,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                 switch(float_type)
                 {
                     case FFC_FLOAT_BFP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 32,
                                 precision,
                                 scale,
@@ -543,7 +548,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                                 7);
                         break;
                     case FFC_FLOAT_FP16:
-                        dst = FixedToFloatFormat(*((uint16_t*)src),
+                        dst = FloatToFixedFormat(*((uint16_t*)src),
                                 32,
                                 precision,
                                 scale,
@@ -553,7 +558,7 @@ void Ffc_periph::convert_to_fixed(uint8_t* src,
                         break;
                     case FFC_FLOAT_FP32: //fallthrough
                     case FFC_FLOAT_FP32_BIS:
-                        dst = FixedToFloatFormat(*((uint32_t*)src),
+                        dst = FloatToFixedFormat(*((uint32_t*)src),
                                 32,
                                 precision,
                                 scale,

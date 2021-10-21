@@ -22,7 +22,7 @@ from ..quantization_base import QRecBase
 
 class FloatQRec(QRecBase):
     def __init__(self, dtype: np.dtype, min_val=None, max_val=None) -> None:
-        self._dtype = dtype
+        super(FloatQRec, self).__init__(dtype)
         self._min_val = min_val
         self._max_val = max_val
 
@@ -34,20 +34,14 @@ class FloatQRec(QRecBase):
     def max_val(self):
         return self._max_val
 
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @property
-    def ctype(self):
-        return self.DTYPE_TO_CTYPE[self.dtype]
-
-    @dtype.setter
-    def dtype(self, val):
-        self._dtype = val
-
     def quantize_py_expr(self, val):
         return f"np.astype(np.{self.dtype.__name__})"
+
+    def quantize(self, val):
+        return val.astype(self.dtype)
+
+    def dequantize(self, val):
+        return val.astype(np.float32)
 
     @classmethod
     def override(cls, rec, dtype: np.dtype = None):

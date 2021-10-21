@@ -1,0 +1,14 @@
+set debug true
+adjust
+fusions --scale8
+set input_norm_func "x: (x.astype(np.float) - 128)/128"
+aquant -s SQ8 images/sample.ppm -T
+#aquant -s POW2 -f 16 images/*
+imageformat input_1 rgb888 offset_int8
+set input_norm_func "x: x"
+set l3_ram_ext_managed false
+set l2_ram_ext_managed false
+set graph_dump_tensor 7
+set graph_reorder_constant_in false
+
+save_state

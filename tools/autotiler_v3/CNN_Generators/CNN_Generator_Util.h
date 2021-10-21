@@ -7,7 +7,9 @@
 #define MaxS(a, b) (((int)(a)>(int)(b))?(a):(b))
 #define Max(a, b) (((a)>(b))?(a):(b))
 #define Min(a, b) (((a)<(b))?(a):(b))
+#ifndef Abs
 #define Abs(x) (((x)<0)?-(x):(x))
+#endif
 
 #define D0	KER_ITER_D0
 #define D1	KER_ITER_D1

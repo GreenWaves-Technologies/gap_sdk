@@ -1,0 +1,16 @@
+set log_level INFO
+set debug true
+set graph_produce_node_names true
+set graph_trace_exec true
+set graph_name model
+adjust
+fusions --scale8
+fusions -a expression_matcher
+set input_norm_func 'x: (x.astype(np.float32) - 127) / 128.0'
+aquant -f 8 quant_images/*  -T
+imageformat input_1 rgb888 offset_int8
+set input_norm_func 'x:x'
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+save_state

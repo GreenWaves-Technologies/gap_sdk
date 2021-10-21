@@ -31,7 +31,7 @@
 
 #define POS_BITFIELD_ALLOC_INIT (((1 << ARCHI_EU_NB_HW_BITFIELD) - 1) & ~0xf)
 #define POS_SEM_ALLOC_INIT      ((1 << ARCHI_EU_NB_HW_SEMAPHORE) - 1)
-#define POS_BARRIER_ALLOC_INIT  ((1 << ARCHI_EU_NB_HW_BARRIER) - 1)
+#define POS_BARRIER_ALLOC_INIT  (((1 << ARCHI_EU_NB_HW_BARRIER) - 1) & ~0x3)
 #define POS_MUTEX_ALLOC_INIT    ((1 << ARCHI_EU_NB_HW_MUTEX) - 1)
 
 // This event is used by FC to notify few events to the cluster:

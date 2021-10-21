@@ -47,6 +47,7 @@ int rt_freq_set_and_get(rt_freq_domain_e domain, unsigned int freq, unsigned int
 
 void __rt_freq_init()
 {
+#ifndef ARCHI_WITHOUT_FREQ_INIT
   __rt_flls_constructor();
 
 #ifdef ARCHI_FPGA_FREQUENCY
@@ -72,6 +73,7 @@ void __rt_freq_init()
     __rt_freq_domains[RT_FREQ_DOMAIN_CL] = ARCHI_FPGA_FREQUENCY;
   #endif
   }
+#endif
 #endif
 
 #if PULP_CHIP == CHIP_VEGA || PULP_CHIP == CHIP_GAP9

@@ -1,0 +1,12 @@
+{
+	"n_fft": 1024,
+	"frame_size": 640,
+	"frame_step": 320,
+	"sample_rate": 16000,
+	"mfcc_bank_cnt": 40,
+	"n_dct": 40,
+	"fmin": 20.0,
+	"fmax": 4000.0,
+	"dtype": "fix32_scal",
+	"use_tf_mfcc": true
+}

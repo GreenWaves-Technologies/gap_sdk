@@ -56,6 +56,14 @@ namespace vp {
 
       event->enqueued = true;
 
+      // That should not be needed but in practice, lots of models are pushing from one
+      // clock engine to another without synchronizing, creating timing issues.
+      // This probably comes from models manipulating 2 clock domains at the same time.
+      if (unlikely(!this->is_running()))
+      {
+        this->sync();
+      }
+
       // The event is enqueued directly into the circular buffer if it is
       // close enough.
       if (likely(is_running() && cycles < CLOCK_EVENT_QUEUE_SIZE))
@@ -110,6 +118,8 @@ namespace vp {
     inline int64_t get_cycles() { return cycles; }
 
     inline void stop_engine(int status) { engine->stop_engine(status); }
+
+    inline void stop_retain(int count) { engine->stop_retain(count); }
 
     int64_t get_period() { return period; }
 

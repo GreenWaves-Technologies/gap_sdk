@@ -1,0 +1,8 @@
+BUILD*
+*.dat
+*_emul
+samples/speech_dataset
+*__pycache__*
+kws_ds_cnn_emul
+*.ipynb_checkpoints
+test.pgm

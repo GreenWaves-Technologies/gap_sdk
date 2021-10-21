@@ -104,7 +104,7 @@ class TFLiteNode():
 
     def is_intermediate(self, input_idx):
         return (self._op.IntermediatesLength() > 0 and
-                bool(self._op.IntermediatesAsNumpy()[input_idx]))
+                input_idx in self._op.IntermediatesAsNumpy())
 
     def get_options(self, options_class):
         if self._op.BuiltinOptions():

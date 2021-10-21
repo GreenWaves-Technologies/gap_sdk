@@ -22,6 +22,9 @@ from importer.common.handler_options import HandlerOptions
 from importer.importer import create_graph
 from interpreter.nntool_shell_base import NNToolShellBase
 from quantization.cross_layer_range_eq import weight_equalization
+from utils.argparse_kwargs import kwargs_append_action
+
+from graph.matches.matchers.fuse_pad import MatchFusePad
 
 LOG = logging.getLogger("nntool")
 
@@ -29,6 +32,12 @@ NO_GRAPH = {
     'G': None,
     'graph_file': "",
     'tensor_file': ""
+}
+
+valid_keys = {
+    '*': {
+        'type': int
+    },
 }
 
 def add_open_options(parser):
@@ -53,6 +62,14 @@ def add_open_options(parser):
             add_kwargs['default'] = option['default']
 
         parser.add_argument(*add_args, **add_kwargs)
+    parser.add_argument('--subs',
+                        nargs='*',
+                        action=kwargs_append_action,
+                        kwargs_valid_keys=valid_keys,
+                        metavar="KEY=VALUE",
+                        help='values to substitute for unknown dimensions in the form var=val',
+                        )
+
 
 class OpenCommand(NNToolShellBase):
     STATE_EXTENSION = '.json'
@@ -88,6 +105,8 @@ class OpenCommand(NNToolShellBase):
             self.load_state_file(graph_file, args.orgmodel_path)
         else:
             opts = self.__get_opts(args)
+            opts['substitutions'] = args.subs
+
             opts['anonymise'] = self.settings['anonymise']
 
             LOG.info("opening graph file %s load_quantization = %s",
@@ -95,17 +114,22 @@ class OpenCommand(NNToolShellBase):
 
             G = create_graph(graph_file, opts=opts)
             G.add_dimensions()
+            pad_fuser = MatchFusePad()
+            pad_fuser.match(G)
+            G.add_dimensions()
             self.G = G
             self.graph_file = graph_file
             self._reset_history()
 
-            self.settings['load_quantization'] = bool(opts['load_quantization'])
+            self.settings['load_quantization'] = bool(
+                opts['load_quantization'])
             if self.settings['adjust_order']:
                 LOG.info("adjusting order")
                 self.execute_adjust_order()
             if self.settings['weight_equalization']:
                 LOG.info("equalizing weights")
-                weight_equalization(self.G, self.settings['equalization_threshold'])
+                weight_equalization(
+                    self.G, self.settings['equalization_threshold'])
 
     @with_argparser(parser_open)
     def do_open(self, args: argparse.Namespace):

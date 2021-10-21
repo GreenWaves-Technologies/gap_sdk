@@ -27,8 +27,8 @@ extern char  __heapsram_start;
 extern char  __heapsram_size;
 // ----------------------------------
 
-PI_L1 pi_cl_dma_cmd_t *fifo_first;
-PI_L1 pi_cl_dma_cmd_t *fifo_last;
+GAP_L1_TINY_DATA pi_cl_dma_cmd_t *fifo_first;
+GAP_L1_TINY_DATA pi_cl_dma_cmd_t *fifo_last;
 
 struct cluster_driver_data *__per_cluster_data[NB_CLUSTER] = {NULL};
 

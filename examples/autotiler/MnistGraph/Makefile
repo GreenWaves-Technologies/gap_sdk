@@ -9,7 +9,7 @@ RM=rm -f
 
 #To Enable Bridge functions to read/write files from host 
 #(this function will be replaced by openocd semihosting in next SDK release)
-USE_BRIDGE=0
+USE_BRIDGE=1
 
 ifeq ($(USE_BRIDGE),1)
 APP_CFLAGS += -DENABLE_BRIDGE
@@ -18,7 +18,6 @@ endif
 #comment the line above and use this two instead
 READFS_FILES= Mnist_L3_Flash_Const.dat
 PLPBRIDGE_FLAGS += -f 
-export GAP_USE_OPENOCD=1
 io=host
 
 MODEL_POW2 = 1
@@ -32,10 +31,7 @@ APP_INC += $(TILER_INC) $(TILER_EMU_INC)
 
 APP_CFLAGS += -w -O3 -mno-memcpy -fno-tree-loop-distribute-patterns -fdata-sections -ffunction-sections
 APP_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-but-set-variable $(CNN_LIB_INCLUDE)
-LDFLAGS    +=  -flto -Wl,--gc-sections
-
-#Uncomment to use freertos
-#PMSIS_OS ?= freertos
+LDFLAGS    += -flto -Wl,--gc-sections
 
 # The double colon allows us to force this to occur before the imported all target
 # Link model generation to all step
@@ -56,4 +52,4 @@ clean::
 
 .PHONY: model clean
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pmsis_rules.mk

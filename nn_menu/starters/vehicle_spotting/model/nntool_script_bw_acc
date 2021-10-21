@@ -1,0 +1,7 @@
+adjust
+fusions --scale8
+qshow
+imageformat input_1 bw8 offset_int8
+nodeoption input_1 EXTERN_INPUT_POINTER 1
+set graph_const_exec_from_flash true
+save_state

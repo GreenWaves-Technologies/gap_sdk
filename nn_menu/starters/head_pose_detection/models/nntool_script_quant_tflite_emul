@@ -1,0 +1,7 @@
+adjust
+fusions --scale8
+imageformat input_1 bw8 offset_int8
+set l2_ram_ext_managed false
+set graph_const_exec_from_flash true
+#set graph_dump_tensor 7
+save_state

@@ -162,8 +162,6 @@ Dialog::Dialog(QWidget *parent)
     connect(execFileNameButton, &QAbstractButton::clicked,
             this, &Dialog::setExecFileName);
 
-    QWidget *page = new QWidget;
-    QGridLayout *layout = new QGridLayout(page);
     /*layout->setColumnStretch(1, 1);
     layout->setColumnMinimumWidth(1, 250);
     layout->addWidget(integerButton, 0, 0);
@@ -211,8 +209,8 @@ Dialog::Dialog(QWidget *parent)
     layout->addWidget(fontDialogOptionsWidget, 2, 0, 1 ,2);
     toolbox->addItem(page, tr("Font Dialog"));
 */
-    page = new QWidget;
-    layout = new QGridLayout(page);
+    QWidget* page = new QWidget;
+    QGridLayout* layout = new QGridLayout(page);
     layout->setColumnStretch(1, 1);
     layout->addWidget(directoryButton, 0, 0);
     layout->addWidget(directoryLabel, 0, 1);

@@ -33,7 +33,7 @@ class FloatDefault(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, dtype = cls.get_float_opts(**kwargs)
-        if force_out_qs and all(qtype.dtype != dtype for qtype in force_out_qs if qtype is not None):
+        if force_out_qs and any(qtype.dtype != dtype for qtype in force_out_qs if qtype is not None):
             return None
         # use cur_G not G here since this may be called inside a fusion
         # cur_G == G or fusion subgraph if inside fusion

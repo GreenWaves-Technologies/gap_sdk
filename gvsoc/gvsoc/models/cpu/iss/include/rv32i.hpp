@@ -58,6 +58,8 @@ static inline iss_insn_t *jal_exec_common(iss_t *iss, iss_insn_t *insn, int perf
     iss_pccr_account_event(iss, CSR_PCER_JUMP, 1);
   }
   iss_perf_account_jump(iss);
+  // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+  prefetcher_fetch(iss, insn->addr + insn->size);
   return insn->next;
 }
 
@@ -92,6 +94,8 @@ static inline iss_insn_t *jalr_exec_common(iss_t *iss, iss_insn_t *insn, int per
     iss_pccr_account_event(iss, CSR_PCER_JUMP, 1);
   }
   iss_perf_account_jump(iss);
+  // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+  prefetcher_fetch(iss, insn->addr + insn->size);
   return next_insn;
 }
 
@@ -125,6 +129,8 @@ static inline iss_insn_t *beq_exec_common(iss_t *iss, iss_insn_t *insn, int perf
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -158,6 +164,8 @@ static inline iss_insn_t *bne_exec_common(iss_t *iss, iss_insn_t *insn, int perf
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -192,6 +200,8 @@ static inline iss_insn_t *blt_exec_common(iss_t *iss, iss_insn_t *insn, int perf
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -226,6 +236,8 @@ static inline iss_insn_t *bge_exec_common(iss_t *iss, iss_insn_t *insn, int perf
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -260,6 +272,8 @@ static inline iss_insn_t *bltu_exec_common(iss_t *iss, iss_insn_t *insn, int per
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else
@@ -294,6 +308,8 @@ static inline iss_insn_t *bgeu_exec_common(iss_t *iss, iss_insn_t *insn, int per
       iss_pccr_account_event(iss, CSR_PCER_TAKEN_BRANCH, 1);
     }
     iss_perf_account_taken_branch(iss);
+    // We model here the fact that the core will always fetch the next instruction (which can lead to fetching the next cache line)
+    prefetcher_fetch(iss, insn->addr + insn->size);
     return insn->branch;
   }
   else

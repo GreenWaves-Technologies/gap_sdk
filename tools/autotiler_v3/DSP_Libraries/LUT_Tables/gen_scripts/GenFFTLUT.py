@@ -1,24 +1,21 @@
 import math
 from SetupLUT import FP2FIX, SetupTwiddlesLUT, SetupSwapTable, SetupSwapTableR4, SetupTwiddlesRFFT
 
-swap_c_string = "#include \"Gap.h\"\n"
+swap_c_string = "#include \"Gap.h\"\n#include \"DSP_Lib.h\"\n"
 swap_h_string = "\n"
-twid_c_string = "#include \"Gap.h\"\n"
+twid_c_string = "#include \"Gap.h\"\n#include \"DSP_Lib.h\"\n"
 twid_h_string = "\n"
-rfft_twid_c_string = "#include \"Gap.h\"\n"
+rfft_twid_c_string = "#include \"Gap.h\"\n#include \"DSP_Lib.h\"\n"
 rfft_twid_h_string = "\n"
-for dtype in ["short int", "f16", "float"]:
+for dtype in ["short int", "F16_DSP", "float"]:
 	head = ""
 	tail = ""
-	if dtype == "f16":
-		head = "#ifdef __gap9__\n"
-		tail = "#endif\n"
 	twid_c_string += head + f"/* FFT Twiddles for {dtype} data type */\n"
 	twid_h_string += head + f"/* FFT Twiddles for {dtype} data type */\n"
 	rfft_twid_c_string += head + f"/* RFFT Twiddles for {dtype} data type */\n"
 	rfft_twid_h_string += head + f"/* RFFT Twiddles for {dtype} data type */\n"
 	for nfft in [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]:
-		d = "fix" if dtype == "short int" else dtype
+		d = "fix" if dtype == "short int" else "f16" if dtype == "F16_DSP" else dtype
 		twid_h_string += f"extern {dtype} R2_Twiddles_{d}_{nfft}[{nfft}];\n"
 		twid_c_string += f"L2_MEM {dtype} R2_Twiddles_{d}_{nfft}[{nfft}] = {{\n"
 		rfft_twid_h_string += f"extern {dtype} RFFT_Twiddles_{d}_{nfft}[{nfft}];\n"

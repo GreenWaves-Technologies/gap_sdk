@@ -17,11 +17,8 @@ import logging
 
 import numpy as np
 from bfloat16 import bfloat16
-from graph.matches.matchers.remove_unnecessary_quantize_operators import \
-    RemoveUnnecessaryQuantizeOperators
-from graph.types.fusions import FusionBase
-
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
+from utils.node_id import NodeId
 
 LOG = logging.getLogger('nntool.' + __name__)
 
@@ -49,52 +46,32 @@ class TuneError(Exception):
 # forces are stored with quantization
 
 
-def tune_options(G, nodes, options):
-    all_nodes = get_nodes_and_fusion_nodes(nodes)
-    force_options = {node: options for node in all_nodes}
-    quantizer = UnifiedQuantizer.from_quantized_graph(G)
-    quantizer.quantize(
-        G, start_nodes=nodes, force_options=force_options)
-    RemoveUnnecessaryQuantizeOperators().match(G)
+def tune_options(G, nodes, new_options):
+    if G.quantization:
+        options = G.quantization.options
+    else:
+        options = {}
+    for node in nodes:
+        nid = NodeId(node)
+        if nid in options:
+            options[nid].update(new_options)
+        else:
+            options[nid] = new_options.copy()
+
+    quantizer = NewQuantizer(G)
+    quantizer.options = options
+    quantizer.quantize()
     G.add_dimensions()
 
 
 def tune_float(G, nodes, float_type):
-    all_nodes = get_nodes_and_fusion_nodes(nodes)
-    force_scheme = {node: 'float' for node in all_nodes}
-    force_options = {node: {'float_type': float_type} for node in all_nodes}
-    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['float'])
-    quantizer.quantize(
-        G, start_nodes=nodes, force_scheme=force_scheme, force_options=force_options)
-    RemoveUnnecessaryQuantizeOperators().match(G)
-    G.add_dimensions()
-
-
-def get_nodes_and_fusion_nodes(nodes):
-    all_nodes = []
-    for node in nodes:
-        all_nodes.append(node)
-        if isinstance(node, FusionBase) and node.quantize_internals:
-            all_nodes.extend(node.subgraph.nodes())
-    return all_nodes
-
+    new_options = {'scheme': 'FLOAT', 'float_type': float_type}
+    return tune_options(G, nodes, new_options)
 
 def tune_scaled(G, nodes):
-    all_nodes = get_nodes_and_fusion_nodes(nodes)
-    force_scheme = {node: 'SQ8' for node in all_nodes}
-    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['SQ8'])
-    quantizer.quantize(G, start_nodes=nodes, force_scheme=force_scheme)
-    RemoveUnnecessaryQuantizeOperators().match(G)
-    G.add_dimensions()
-
+    new_options = {'scheme': 'SQ8'}
+    return tune_options(G, nodes, new_options)
 
 def tune_pow2(G, nodes, pow2_type):
-    all_nodes = get_nodes_and_fusion_nodes(nodes)
-    force_scheme = {node: 'POW2' for node in all_nodes}
-    force_options = {node: {'bits': 16 if pow2_type == 'int16' else 8}
-                     for node in all_nodes}
-    quantizer = UnifiedQuantizer.from_quantized_graph(G, extra_schemes=['POW2'])
-    quantizer.quantize(
-        G, start_nodes=nodes, force_scheme=force_scheme, force_options=force_options)
-    RemoveUnnecessaryQuantizeOperators().match(G)
-    G.add_dimensions()
+    new_options = {'scheme': 'POW2', 'bits': 16 if pow2_type == 'int16' else 8}
+    return tune_options(G, nodes, new_options)

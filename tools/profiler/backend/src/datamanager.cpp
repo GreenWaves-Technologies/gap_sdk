@@ -293,8 +293,7 @@ void Data_manager::end_stall(stall_trace_t trace, uint64_t timestamp){
 void Data_manager::manageStateTraceStarts(const trace_packet& packet, 
                             int core_id,
                             int trace_id) {
-  // Dealing with state trace starting for different 
-  // configurations
+  // Dealing with state trace starting for different configurations
   //std::cout << "[.] Listen: manageStateTraceStarts core_id " << core_id << std::endl;
   //std::cout << "isStateTraceActiv[core_id]: " << isStateTraceActiv[core_id]<< std::endl;
   //std::cout << "isPcTraceActiv[core_id]: " << isPcTraceActiv[core_id]<< std::endl;
@@ -312,11 +311,12 @@ void Data_manager::manageStateTraceStarts(const trace_packet& packet,
           .t_end = 0    // actually we don't know yet
       };
       //std::cout << "signal_id " << core_id << " " << trace_id << std::endl;
-      signal_id[core_id]=trace_id;
+     
   }
-
+  
   // Finally set state trace active
   isStateTraceActiv[core_id] = true;
+  signal_id[core_id]=trace_id;
 
 }
 
@@ -350,8 +350,7 @@ void Data_manager::manageStateTraceStops( const trace_packet& packet,
 }
 
 void Data_manager::managePcTraceStops(const trace_packet& packet, 
-                        int core_id,
-                        int trace_id) {
+                                      int core_id) {
   //std::cout << "[.] Listen: managePcTraceStops " << core_id << std::endl;
   //std::cout << "isStateTraceActiv[core_id]: " << isStateTraceActiv[core_id]<< std::endl;
   //std::cout << "isPcTraceActiv[core_id]: " << isPcTraceActiv[core_id]<< std::endl;
@@ -362,7 +361,7 @@ void Data_manager::managePcTraceStops(const trace_packet& packet,
       signal_list[core_id].add_item(fe.t_start, fe.t_end, fe.function_name);
       //std::cout << "Function " << fe.function_name << " " << fe.t_start << " " << fe.t_end  << std::endl;
       //std::cout << "signal_id " << core_id << " " << trace_id << std::endl;
-      signal_id[core_id]= trace_id;
+      //signal_id[core_id]= trace_id;
       // Maybe not to do in the second case ..
       fctm[std::string(fe.function_name)].tot_time += fe.t_end - fe.t_start;
       clear_buffer_slot(core_id);
@@ -383,8 +382,7 @@ void Data_manager::managePcTraceStops(const trace_packet& packet,
 
 void Data_manager::managePcTraceStarts( const trace_packet& packet, 
                           const Pc_info& pi,
-                          int core_id, 
-                          int trace_id) {
+                          int core_id) {
     // In this function, we take care of the different configurations 
     // in which a pc trace can start
     //std::cout << "[.] Listen: managePcTraceStarts " << core_id << std::endl;
@@ -440,7 +438,7 @@ void Data_manager::managePcTraceStarts( const trace_packet& packet,
         fe.t_end = packet.timestamp;
         signal_list[core_id].add_item(fe.t_start, fe.t_end, fe.function_name);
         //std::cout << "signal_id " << core_id << " " << trace_id << std::endl;
-        signal_id[core_id]= trace_id;
+        //signal_id[core_id]= trace_id;
         fctm[std::string(fe.function_name)].tot_time += fe.t_end - fe.t_start;
         clear_buffer_slot(core_id);
 
@@ -471,8 +469,7 @@ void Data_manager::managePcTraceStarts( const trace_packet& packet,
           .t_end = 0   // actually we don't know yet
       };
       //std::cout << "signal_id " << core_id<< " " << trace_id << std::endl;
-      signal_id[core_id]=trace_id;
-      // end begin_function_call
+      //signal_id[core_id]=trace_id;
     }
     
   // Finally set PC trace active
@@ -540,7 +537,7 @@ void Data_manager::listen(){
   stall_trace_t stall;
   //bool isNotStateTrace=true;
  
- //std::cout << "[.] begin listen()" << std::endl;
+ std::cout << "[.] begin listen()" << std::endl;
 
  while(! stop)
   {
@@ -557,6 +554,7 @@ void Data_manager::listen(){
     //std::cout << "[.] Listen: New Packet" << std::endl;
     //packet.dump();
     if (server->contains_state(packet, core_id, active)){
+      // Dealing with state traces
         if ((int) isStateTraceActiv.size() <= core_id) continue;
         // set it activ or not activ
         if (active && !isStateTraceActiv[core_id]){
@@ -567,6 +565,7 @@ void Data_manager::listen(){
     }// end treating state traces
 
     if (server->contains_pc(packet, core_id, pc)) {
+      // Dealing with pc traces
         if (TLHeight <= core_id) { // should not happen
         std::cout << "[-] error with core " << core_id << " / " << TLHeight << std::endl;
         continue;
@@ -578,13 +577,7 @@ void Data_manager::listen(){
             // in this case, it holds no information
             //isNotStateTrace=true;
             miss++;
-            managePcTraceStops(packet, core_id, server->path_mapping[packet.trace->path]);
-            // see what to do 
-            //set_end_in_tl(server->path_mapping[packet.trace->path], packet.timestamp, core_id,isNotStateTrace);
-            /* to display unrecognized sections on the timeline */
-            /*data_mutex.lock();
-            signal_list[10].push_back({.function_name = "unknown", .t_start = packet.timestamp / time_convertion, .t_end = packet.timestamp / time_convertion + 1});
-            data_mutex.unlock();*/
+            managePcTraceStops(packet, core_id);
         } else {
             // in this case, the programm counter (pc) holds some information
             hit++;
@@ -593,12 +586,10 @@ void Data_manager::listen(){
             // then PC trace starts
             if (is_buffer_empty(core_id) ||
                strcmp(core->pcm[pc].func, insertion_buffer[core_id].function_name)){
-                managePcTraceStarts(packet, core->pcm[pc], core_id, server->path_mapping[packet.trace->path]);
+                managePcTraceStarts(packet, core->pcm[pc], core_id);
             }
         }
-    }
-      
-    // end treating pc traces
+    }// End dealing with pc traces
 
     if (server->contains_fc_period(packet, period)){
       fc_period = period;
@@ -638,7 +629,6 @@ void Data_manager::listen(){
 
 bool init_backend(std::string path_to_fifo, std::string path_to_elf,
                   uint64_t f_max){
-  std::cout << "init_backend " << std::endl;
   core = new Data_manager(path_to_fifo, path_to_elf, f_max);
   return core->start_listening();
 }

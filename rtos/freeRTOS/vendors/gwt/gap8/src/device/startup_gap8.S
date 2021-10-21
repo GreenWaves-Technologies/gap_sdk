@@ -57,6 +57,7 @@
         .extern cluster_notify_fc_handler
         .extern fc_event_handler
         .extern dma_irq_handler
+        .extern fc_hyper_handler
 /******************************************************************************/
 
 
@@ -168,8 +169,13 @@ _jump2main: /* Jump to main */
         j default_handler           /* IRQ=26 : undefined */
         j fc_event_handler          /* IRQ=27 : FC SoC event Handler. */
         j default_handler           /* IRQ=28 : undefined */
+#if (CHIP_VERSION == 3)
+        j fc_hyper_handler           /* IRQ=29 : undefined */
+        j fc_hyper_handler           /* IRQ=30 : undefined */
+#else
         j default_handler           /* IRQ=29 : undefined */
         j default_handler           /* IRQ=30 : undefined */
+#endif
         j default_handler           /* IRQ=31 : undefined */
 
         j reset_handler             /* After IRQ=31, Reset Handler. */

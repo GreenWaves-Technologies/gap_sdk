@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "Gap.h"
 #include "CNN_BasicKernels_fp16.h"
 
@@ -17,7 +33,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
 	// k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -25,7 +41,7 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
 	return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 
 {
 	// k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S
@@ -1224,7 +1240,9 @@ static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fp16(
 	int Hi_L = Hi_F + (Ho_L-1)*StrideY;     // iff Hi_L>Hi_F
 	int Wi_F = TFw2 - PadLOrg;
 	int Wi_L = Wi_F + (Wo_L-1)*StrideX;     // iff Wi_L>Wi_F
+	#ifndef Prec
 	int Prec=10;
+	#endif
 	int InvDh = ((1<<Prec)+Dh-1)/Dh;
 	int InvDw = ((1<<Prec)+Dw-1)/Dw;
 

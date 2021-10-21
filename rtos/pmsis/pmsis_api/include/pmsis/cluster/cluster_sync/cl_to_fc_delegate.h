@@ -20,6 +20,10 @@
 #include "pmsis/cluster/cl_pmsis_types.h"
 #include "pmsis/rtos/malloc/malloc_internal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @addtogroup FcClusterSync
  * @{
@@ -190,4 +194,7 @@ void mc_fc_delegate_init(void *arg);
 
 /// @endcond
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from graph.types.rnn import RNNParameters
-from graph.types.others import ConcatParameters, TransposeParameters
 import numpy as np
 from graph.dim import Dim
-from graph.types import (ConstantInputParameters, NNEdge, ReshapeParameters,
-                         SplitParameters, LSTMParameters, GRUParameters)
+from graph.types import (ConstantInputParameters, GRUParameters,
+                         LSTMParameters, NNEdge)
+from graph.types.others import ConcatParameters, TransposeParameters
+from graph.types.rnn import RNNParameters
 from importer.common.provisional_dim import ProvisionalDim
 
 
@@ -99,6 +99,7 @@ class RNNMixin(object):
                     node_name, name), value=t[name], dims=Dim.unnamed(t[name].shape))
                 G.add_edge(NNEdge(from_node=cparams, to_node=rnn_params, from_idx=0, to_idx=idx))
 
+            # TODO - Move to the quantizer (and make a qtype attr) since this depends on the kernel used
             # Link the state weights to the input weights
             # The autotiler expects the state and input weights to be
             # concatenated. This tells the constant code generator to do this
@@ -106,24 +107,6 @@ class RNNMixin(object):
             in_nodes = {}
             for edge in rnn_in_edges:
                 in_nodes[edge.to_idx] = edge.from_node
-            if isinstance(rnn_params, LSTMParameters):
-                for gate in ['i', 'o', 'c', 'f']:
-                    i_w_node = in_nodes[LSTMParameters.INPUT_NAMES.index('i_2_%s_w' % gate)]
-                    r_w_node = in_nodes[LSTMParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
-                    r_w_node.concated_nodes.append(i_w_node)
-                    i_w_node.generate_value = False
-            elif isinstance(rnn_params, GRUParameters):
-                for gate in ['r', 'z', 'h']:
-                    i_w_node = in_nodes[GRUParameters.INPUT_NAMES.index('w_2_%s_w' % gate)]
-                    r_w_node = in_nodes[GRUParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
-                    r_w_node.concated_nodes.append(i_w_node)
-                    i_w_node.generate_value = False
-            elif isinstance(rnn_params, RNNParameters):
-                for gate in ['i']:
-                    i_w_node = in_nodes[RNNParameters.INPUT_NAMES.index('i_2_%s_w' % gate)]
-                    r_w_node = in_nodes[RNNParameters.INPUT_NAMES.index('r_2_%s_w' % gate)]
-                    r_w_node.concated_nodes.append(i_w_node)
-                    i_w_node.generate_value = False
 
             # trim batch dimension from state values
             for state_node_name in ['i_state', 'c_state', 'h_state']:

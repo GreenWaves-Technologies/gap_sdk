@@ -114,11 +114,17 @@ void MainWindow::initGvsoc() {
   qDebug() << "[-] Initialising Gvsoc Settings";
   if (firstGvsocInit) {
     // Set default settings with cores and debug signals ON
-    qDebug() << "[-] Default Signals Init";
+    //qDebug() << "[-] Default Signals Init";
+    // Always switch on mandatory signals
+    //switchSignalsGroup(gvsocSignals,true);
     switchSignalsGroup(coresSig,true);
     switchSignalsGroup(debugSymbolsSig,true);
+    //switchSignalsGroup(dmaSig,true);
+    //switchSignalsGroup(stallsSig,true);
     coresBox->setCheckState(Qt::Checked);
     debugBox->setCheckState(Qt::Checked);
+    dmaBox->setCheckState(Qt::Checked);
+    stallsBox->setCheckState(Qt::Checked);
     firstGvsocInit = false;
     qDebug() << "[-] END Default Signals Init";
   }
@@ -238,11 +244,14 @@ void MainWindow::createMenus()
 
 MainWindow::MainWindow( std::string exampleDir,
                         std::string path_to_elf,
-                        std::string configFileName):
+                        std::string configFileName,
+                        QString signalsTreeFileName):
       exampleDir(exampleDir),
       path_to_elf(path_to_elf),
-      configFileName(configFileName)
+      configFileName(configFileName),
+      signalsTreeFileName(signalsTreeFileName)
 {
+
   qDebug() << "[-] " ;
   qDebug() << "[-] Create MainWindow" ;
   createMenus();
@@ -392,6 +401,7 @@ void MainWindow::handleRunB()
   // handles running Gvsoc for first time or after a Pause or after a stop
 
 
+  assert(NULL != timeline);
   // Run GVSoc
   if (gvsocRunning) {
     std::cout << "[-] Gvsoc is already running" << std::endl;
@@ -409,8 +419,7 @@ void MainWindow::handleRunB()
     qDebug() << "[-] gvsoc Running ";
     gvsocRunning = true;
     gvsocRun = true;
-    if (timeline!=NULL)
-      timeline->updateFlags(gvsocRun);
+    timeline->updateFlags(gvsocRun);
   }
   qDebug() << "[-] signalsAdded " << signalsAdded << " " << timeline->getTLGView() ;
   if (!signalsAdded){
@@ -445,7 +454,7 @@ void MainWindow::handleOpenB()
   if (timeline!=NULL)
       timeline->updateFlags(gvsocRun);
   // It's crashing here obviously ... ??
-  gvsoc->remove_event_regex(".*@all.bin");
+  //gvsoc->remove_event_regex(".*@all.bin");
 
    //if (!gvsocOpened) {
     qDebug() << "[-] Initializing Backend Process" ;
@@ -471,7 +480,8 @@ void MainWindow::handleOpenB()
   if (timeline == NULL)
   {
     qDebug() << " [-] Creating new Timeline Window " ;
-    timeline = new Timeline(this, toolBar, fd, functionsDock, sourceCode, asmCode, stallchart);
+    timeline = new Timeline(this, toolBar, fd, functionsDock,
+                            sourceCode, asmCode, stallchart,signalsTreeFileName);
     if (timeline!=NULL ) {
       setCentralWidget(timeline);
       timeline->show();

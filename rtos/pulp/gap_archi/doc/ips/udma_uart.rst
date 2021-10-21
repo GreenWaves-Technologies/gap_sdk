@@ -1,4 +1,5 @@
-Input file: fe/ips/udma/udma_uart/docs/doc.md
+.. 
+   Input file: fe/ips/udma/udma_uart/docs/doc.md
 
 Register map
 ^^^^^^^^^^^^
@@ -9,39 +10,39 @@ Overview
 
 .. table:: 
 
-    +---------------------------------+------+-----+-----------------------------------------+
-    |              Name               |Offset|Width|               Description               |
-    +=================================+======+=====+=========================================+
-    |:ref:`RX_DEST<udma_uart_RX_DEST>`|     0|   32|Stream ID for the uDMA channel.          |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`TX_DEST<udma_uart_TX_DEST>`|     4|   32|Stream ID for the uDMA channel.          |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`MISC<udma_uart_MISC>`      |    16|   32|Send events                              |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`STATUS<udma_uart_STATUS>`  |    32|   32|status register                          |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`SETUP<udma_uart_SETUP>`    |    36|   32|configuration register                   |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`ERROR<udma_uart_ERROR>`    |    40|   32|error register. Reading it will clear it.|
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`IRQ_EN<udma_uart_IRQ_EN>`  |    44|   32|enable/disable events                    |
-    +---------------------------------+------+-----+-----------------------------------------+
-    |:ref:`SETUP_2<udma_uart_SETUP_2>`|    56|   32|configuration register 2                 |
-    +---------------------------------+------+-----+-----------------------------------------+
+    +---------------------------------+------+-----+----------------------------------+
+    |              Name               |Offset|Width|           Description            |
+    +=================================+======+=====+==================================+
+    |:ref:`RX_DEST<udma_uart_RX_DEST>`|     0|   32|Stream ID for the uDMA RX channel |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`TX_DEST<udma_uart_TX_DEST>`|     4|   32|Stream ID for the uDMA TX channel |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`MISC<udma_uart_MISC>`      |    16|   32|Send events                       |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`STATUS<udma_uart_STATUS>`  |    32|   32|Status register                   |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`SETUP<udma_uart_SETUP>`    |    36|   32|Configuration register            |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`ERROR<udma_uart_ERROR>`    |    40|   32|Error register, cleared on reading|
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`IRQ_EN<udma_uart_IRQ_EN>`  |    44|   32|Enable/disable events             |
+    +---------------------------------+------+-----+----------------------------------+
+    |:ref:`SETUP_2<udma_uart_SETUP_2>`|    56|   32|Configuration register 2          |
+    +---------------------------------+------+-----+----------------------------------+
 
 .. _udma_uart_RX_DEST:
 
 RX_DEST
 """""""
 
-Stream ID for the uDMA channel.
+Stream ID for the uDMA RX channel
 
 .. table:: 
 
     +-----+---+-------+---------------------------------------------------------------------+
     |Bit #|R/W| Name  |                             Description                             |
     +=====+===+=======+=====================================================================+
-    |6:0  |RW |RX_DEST|Stream ID for the RX uDMA channel. Default is 0x7F(channel disabled).|
+    |7:0  |RW |RX_DEST|Stream ID for the RX uDMA channel. Default is 0xFF (channel disabled)|
     +-----+---+-------+---------------------------------------------------------------------+
 
 .. _udma_uart_TX_DEST:
@@ -49,14 +50,14 @@ Stream ID for the uDMA channel.
 TX_DEST
 """""""
 
-Stream ID for the uDMA channel.
+Stream ID for the uDMA TX channel
 
 .. table:: 
 
     +-----+---+-------+---------------------------------------------------------------------+
     |Bit #|R/W| Name  |                             Description                             |
     +=====+===+=======+=====================================================================+
-    |6:0  |RW |TX_DEST|Stream ID for the TX uDMA channel. Default is 0x7F(channel disabled).|
+    |7:0  |RW |TX_DEST|Stream ID for the TX uDMA channel. Default is 0xFF (channel disabled)|
     +-----+---+-------+---------------------------------------------------------------------+
 
 .. _udma_uart_MISC:
@@ -71,13 +72,13 @@ Send events
     +-----+---+---------------------+---------------------------+
     |Bit #|R/W|        Name         |        Description        |
     +=====+===+=====================+===========================+
-    |    0|W  |TX_FIFO_CLEAR_EVENT_O|send event to clear tx fifo|
+    |    0|W  |TX_FIFO_CLEAR_EVENT_O|Send event to clear TX FIFO|
     +-----+---+---------------------+---------------------------+
-    |    1|W  |RX_FIFO_CLEAR_EVENT_O|send event to clear rx fifo|
+    |    1|W  |RX_FIFO_CLEAR_EVENT_O|Send event to clear RX FIFO|
     +-----+---+---------------------+---------------------------+
-    |    2|W  |TX_FSM_RESET_EVENT_O |send event to reset tx fsm |
+    |    2|W  |TX_FSM_RESET_EVENT_O |Send event to reset TX FSM |
     +-----+---+---------------------+---------------------------+
-    |    3|W  |RX_FSM_RESET_EVENT_O |send event to reset rx fsm |
+    |    3|W  |RX_FSM_RESET_EVENT_O |Send event to reset RX FSM |
     +-----+---+---------------------+---------------------------+
 
 .. _udma_uart_STATUS:
@@ -85,16 +86,16 @@ Send events
 STATUS
 """"""
 
-status register
+Status register
 
 .. table:: 
 
     +-----+---+-------+------------------------------+
     |Bit #|R/W| Name  |         Description          |
     +=====+===+=======+==============================+
-    |    0|r  |TX_BUSY|transmitter is sending a frame|
+    |    0|R  |TX_BUSY|Transmitter is sending a frame|
     +-----+---+-------+------------------------------+
-    |    1|r  |RX_BUSY|receiver is receiving a frame |
+    |    1|R  |RX_BUSY|Receiver is receiving a frame |
     +-----+---+-------+------------------------------+
 
 .. _udma_uart_SETUP:
@@ -102,70 +103,70 @@ status register
 SETUP
 """""
 
-configuration register
+Configuration register
 
 .. table:: 
 
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |Bit #|R/W|   Name   |                                           Description                                           |
-    +=====+===+==========+=================================================================================================+
-    |    0|RW |PARITY_ENA|Enable parity bit for tx and rx blocks                                                           |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |2:1  |rw |BIT_LENGTH|rx/tw word width                                                                                 |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |    3|rw |STOP_BITS |stop bits count                                                                                  |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |    8|rw |TX_ENA    |enable transmitter                                                                               |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |    9|rw |RX_ENA    |enable receiver                                                                                  |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |   10|rw |CTS_EN    |Flow control: enable Clear To Send input pin. Transmitter will send next word if ctsn_i == 0.    |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |   11|rw |RTS_EN    |Flow control: enable Ready To Send output pin. ctsn_i == 0 if the receiver can receive next word.|
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |   12|rw |TX_CLK_EN |Enable synchronous master mode.                                                                  |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |   13|rw |TX_CLK_POL|Configure tx clock polarity                                                                      |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |   14|rw |TX_CLK_PHA|Configure tx clock phase                                                                         |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
-    |31:16|rw |CLKDIV    |baudrate divider according to pclk. baudrate = pclk / (CLKDIV + 1)                               |
-    +-----+---+----------+-------------------------------------------------------------------------------------------------+
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |Bit #|R/W|   Name   |                                                   Description                                                   |
+    +=====+===+==========+=================================================================================================================+
+    |    0|RW |PARITY_ENA|Enable parity bit for TX and RX blocks                                                                           |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |2:1  |RW |BIT_LENGTH|RX/TX word width (see encoding below)                                                                            |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |    3|RW |STOP_BITS |Stop bits count (see encoding below)                                                                             |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |    8|RW |TX_ENA    |Enable transmitter                                                                                               |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |    9|RW |RX_ENA    |Enable receiver                                                                                                  |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |   10|RW |CTS_EN    |Flow control: enable Clear To Send input pin. Transmitter will send next word if UART CTS input is 0.            |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |   11|RW |RTS_EN    |Flow control: enable Ready To Send output pin. UART RTS output is set to 0 if the receiver can receive next word.|
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |   12|RW |TX_CLK_EN |Enable synchronous master mode                                                                                   |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |   13|RW |TX_CLK_POL|Configure TX clock polarity (see encoding below)                                                                 |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |   14|RW |TX_CLK_PHA|Configure TX clock phase (see encoding below)                                                                    |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
+    |31:16|RW |CLKDIV    |Baudrate divider applied to selected internal clock. Baudrate = Clk_freq / (CLKDIV + 1)                          |
+    +-----+---+----------+-----------------------------------------------------------------------------------------------------------------+
 
 .. _udma_uart_ERROR:
 
 ERROR
 """""
 
-error register. Reading it will clear it.
+Error register, cleared on reading
 
 .. table:: 
 
-    +-----+---+------------+----------------+
-    |Bit #|R/W|    Name    |  Description   |
-    +=====+===+============+================+
-    |    0|r  |ERR_OVERFLOW|rx overflow flag|
-    +-----+---+------------+----------------+
-    |    1|r  |ERR_PARITY  |rx parity flag  |
-    +-----+---+------------+----------------+
+    +-----+---+------------+--------------------+
+    |Bit #|R/W|    Name    |    Description     |
+    +=====+===+============+====================+
+    |    0|R  |ERR_OVERFLOW|RX overflow flag    |
+    +-----+---+------------+--------------------+
+    |    1|R  |ERR_PARITY  |RX parity error flag|
+    +-----+---+------------+--------------------+
 
 .. _udma_uart_IRQ_EN:
 
 IRQ_EN
 """"""
 
-enable/disable events
+Enable/disable events
 
 .. table:: 
 
     +-----+---+-------+-----------------------------------------------------------------+
     |Bit #|R/W| Name  |                           Description                           |
     +=====+===+=======+=================================================================+
-    |    0|rw |RX_IRQ |emit event if rx received a word.                                |
+    |    0|R/W|RX_IRQ |Emit event if RX received a word                                 |
     +-----+---+-------+-----------------------------------------------------------------+
-    |    1|rw |ERR_IRQ|emit event on an error (see ERROR register)                      |
+    |    1|R/W|ERR_IRQ|Emit event on an error (see ERROR register)                      |
     +-----+---+-------+-----------------------------------------------------------------+
-    |    2|rw |TX_IRQ |emit event after a byte is sent, after stop symbol is transmitted|
+    |    2|R/W|TX_IRQ |Emit event after a byte is sent, after stop symbol is transmitted|
     +-----+---+-------+-----------------------------------------------------------------+
 
 .. _udma_uart_SETUP_2:
@@ -173,12 +174,12 @@ enable/disable events
 SETUP_2
 """""""
 
-configuration register 2
+Configuration register 2
 
 .. table:: 
 
-    +-----+---+--------------+------------------------------------------------------------------------------+
-    |Bit #|R/W|     Name     |                                 Description                                  |
-    +=====+===+==============+==============================================================================+
-    |3:0  |RW |RTS_HIGH_LIMIT|deassert rtsn_o when rx 0 &gt;= fifo stored count &gt;= RTS_HIGH_LIMIT &lt;= 8|
-    +-----+---+--------------+------------------------------------------------------------------------------+
+    +-----+---+--------------+-----------------------------------------------------------------------------------+
+    |Bit #|R/W|     Name     |                                    Description                                    |
+    +=====+===+==============+===================================================================================+
+    |3:0  |R/W|RTS_HIGH_LIMIT|Deassert UART RTS when number of data in the FIFO ≥ RTS_HIGH_LIMIT. FIFO size is 8.|
+    +-----+---+--------------+-----------------------------------------------------------------------------------+

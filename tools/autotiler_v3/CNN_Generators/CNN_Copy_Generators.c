@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <stdint.h>
 #include <stdio.h>
 #include "AutoTilerLib.h"
@@ -16,6 +32,9 @@
 #define T0	KER_ITER_TILE0
 #define T1	KER_ITER_TILE1
 #define T2	KER_ITER_TILE2
+
+typedef void (*add_kernel_arg_func_t) (char *Name, char *ArgName, int Dim, ...);
+typedef char *(*cnn_kernel_arg_datatype_func_t) (int DataSize, int Pointer, int Restrict);
 
 static int copy_library_loaded = 0;
 
@@ -91,8 +110,234 @@ void LoadCNN_Copy_Library()
 {
         if (copy_library_loaded) return;
         copy_library_loaded = 1;
+
+	LibKernelTemplate("KerCopy_void_T",
+		  CArgs(3,
+		  	TCArg("void *__restrict__", "In"),
+		  	TCArg("void *__restrict__", "Out"),
+		  	TCArg("unsigned int", "Size")
+		       )
+	);
+	LibKernelTemplate("CNN_FpUFp_T",
+			CArgs(5,
+                        TCArg("signed short *__restrict__", "In"),
+                        TCArg("unsigned short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_UFpFp_T",
+                        CArgs(5,
+                        TCArg("unsigned short *__restrict__", "In"),
+                        TCArg("signed short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpFps_T",
+			CArgs(5,
+                        TCArg("signed short *__restrict__", "In"),
+                        TCArg("signed char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_FpUFps_T",
+                        CArgs(5,
+                        TCArg("signed short *__restrict__", "In"),
+                        TCArg("unsigned char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_UFpFps_T",
+			CArgs(5,
+                        TCArg("unsigned short *__restrict__", "In"),
+                        TCArg("signed char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_UFpUFps_T",
+                        CArgs(5,
+                        TCArg("unsigned short *__restrict__", "In"),
+                        TCArg("unsigned char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_UFpUFp_T",
+                        CArgs(5,
+                        TCArg("unsigned short *__restrict__", "In"),
+                        TCArg("unsigned short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+
+
+	LibKernelTemplate("CNN_FpsUFps_T",
+			CArgs(5,
+                        TCArg("signed char *__restrict__", "In"),
+                        TCArg("unsigned char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_UFpsFps_T",
+                        CArgs(5,
+                        TCArg("unsigned char *__restrict__", "In"),
+                        TCArg("signed char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_UFpsUFps_T",
+                        CArgs(5,
+                        TCArg("unsigned char *__restrict__", "In"),
+                        TCArg("unsigned char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpsFps_T",
+                        CArgs(5,
+                        TCArg("signed char *__restrict__", "In"),
+                        TCArg("signed char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpFp_T",
+                        CArgs(5,
+                        TCArg("signed short *__restrict__", "In"),
+                        TCArg("signed short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpsFp_T",
+			CArgs(5,
+                        TCArg("signed char *__restrict__", "In"),
+                        TCArg("signed short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_UFpsFp_T",
+                        CArgs(5,
+                        TCArg("unsigned char *__restrict__", "In"),
+                        TCArg("signed short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+        LibKernelTemplate("CNN_FpsUFp_T",
+			CArgs(5,
+                        TCArg("signed char *__restrict__", "In"),
+                        TCArg("unsigned short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+			)
+        );
+	LibKernelTemplate("CNN_UFpsUFp_T",
+                        CArgs(5,
+                        TCArg("unsigned char *__restrict__", "In"),
+                        TCArg("unsigned short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_Float16Fp_T",
+                        CArgs(5,
+                        TCArg("F16 *__restrict__", "In"),
+                        TCArg("signed short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_Float16UFp_T",
+                        CArgs(5,
+                        TCArg("F16 *__restrict__", "In"),
+                        TCArg("unsigned short *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_Float16Fps_T",
+                        CArgs(5,
+                        TCArg("F16 *__restrict__", "In"),
+                        TCArg("signed char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_Float16UFps_T",
+                        CArgs(5,
+                        TCArg("F16 *__restrict__", "In"),
+                        TCArg("unsigned char *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpFloat16_T",
+                        CArgs(5,
+                        TCArg("signed short *__restrict__", "In"),
+                        TCArg("F16 *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_UFpFloat16_T",
+                        CArgs(5,
+                        TCArg("unsigned short *__restrict__", "In"),
+                        TCArg("F16 *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_FpsFloat16_T",
+                        CArgs(5,
+                        TCArg("signed char *__restrict__", "In"),
+                        TCArg("F16 *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
+	LibKernelTemplate("CNN_UFpsFloat16_T",
+                        CArgs(5,
+                        TCArg("unsigned char *__restrict__", "In"),
+                        TCArg("F16 *__restrict__", "Out"),
+                        TCArg("unsigned short int", "W"),
+                        TCArg("unsigned short int", "H"),
+                        TCArg("signed char *__restrict__", "Infos")
+                        )
+        );
 	LibKernelTemplate("KerMatTranspose_fps_T",
-                        CArgs(7,
+		CArgs(7,
 			TCArg("signed char *__restrict__", "In"),
 			TCArg("signed char *__restrict__", "Out"),
 			TCArg("unsigned short int", "Feat"),
@@ -113,12 +358,17 @@ void LoadCNN_Copy_Library()
 			TCArg("unsigned char", "Sy")
 			)
 	);
+
+
+	/****************************************************************************************************************/
+	/* Kernels generic copy  */
+	/****************************************************************************************************************/
+
 	LibKernel("CNN_Copy_void", CALL_PARALLEL,
-		  CArgs(4,
+		  CArgs(3,
 		  	TCArg("void *__restrict__", "In"),
 		  	TCArg("void *__restrict__", "Out"),
-		  	TCArg("unsigned int", "W"),
-		  	TCArg("unsigned int", "H")
+		  	TCArg("unsigned int", "N")
 		       ),
 		  "KerCopy_void_T", NULL
 	);
@@ -212,119 +462,260 @@ void LoadCNN_Copy_Library()
 			"KerNormBW_fp_T", NULL
 		 );
 
-	LibKernel("CNN_FpsFpu", CALL_PARALLEL,
-			CArgs(5,
-				TCArg("signed char *__restrict__", "In"),
-				TCArg("unsigned char *__restrict__", "Out"),
-				TCArg("unsigned short int", "W"),
-				TCArg("unsigned short int", "H"),
-				TCArg("signed char *__restrict__", "Infos")
-			),
-			"CNN_FpsFpu_T", NULL
-		);
+	/****************************************************************************************************************/
+	/* Kernels tensor type, scale and zeropoint conversions  */
+	/****************************************************************************************************************/
 
-	LibKernel("CNN_FpuFps", CALL_PARALLEL,
-			CArgs(5,
-				TCArg("unsigned char *__restrict__", "In"),
-				TCArg("signed char *__restrict__", "Out"),
-				TCArg("unsigned short int", "W"),
-				TCArg("unsigned short int", "H"),
-				TCArg("signed char *__restrict__", "Infos")
-			),
-			"CNN_FpuFps_T", NULL
-		);
+	LibKernel("CNN_FpsUFps", CALL_PARALLEL, 0, "CNN_FpsUFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_ZEROPOINT),        0, 1, CNN_Type(1,0,0,0,-1), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsFp", CALL_PARALLEL, 0, "CNN_FpsFp_T",	                CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(1,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsFpScaled", CALL_PARALLEL, 0, "CNN_FpsFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(1,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsUFpScaled", CALL_PARALLEL, 0, "CNN_FpsUFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(1,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsUFpsScaled", CALL_PARALLEL, 0, "CNN_FpsUFps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(1,0,0,0,-1), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsFpsScaled", CALL_PARALLEL, 0, "CNN_FpsFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsUFpsScaled", CALL_PARALLEL, 0, "CNN_UFpsUFps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-1,0,0,0,-1), 0,0,0,0,1,1));
+
+	LibKernel("CNN_UFpsFps", CALL_PARALLEL, 0, "CNN_UFpsFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_ZEROPOINT),        0, 1, CNN_Type(-1,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsFp", CALL_PARALLEL, 0, "CNN_FpsFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(-1,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsFpScaled", CALL_PARALLEL, 0, "CNN_UFpsFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-1,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsUFpScaled", CALL_PARALLEL, 0, "CNN_FpsUFp_T",        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-1,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsUFp", CALL_PARALLEL, 0, "CNN_UFpsUFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(-1,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsFpsScaled", CALL_PARALLEL, 0, "CNN_UFpsFps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-1,0,0,0,1), 0,0,0,0,1,1));
+
+	LibKernel("CNN_FpUFp", CALL_PARALLEL, 0, "CNN_FpUFp_T",	                CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_ZEROPOINT),        0, 1, CNN_Type(2,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpFps", CALL_PARALLEL, 0, "CNN_FpFps_T",	                CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(2,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_FpFpsScaled", CALL_PARALLEL, 0, "CNN_FpFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(2,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_FpUFpsScaled", CALL_PARALLEL, 0, "CNN_FpUFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(2,0,0,0,-1), 0,0,0,0,1,1));
+	LibKernel("CNN_FpUFpScaled", CALL_PARALLEL, 0, "CNN_FpUFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(2,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpFpScaled", CALL_PARALLEL, 0, "CNN_FpFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+
+	LibKernel("CNN_UFpFp", CALL_PARALLEL, 0, "CNN_UFpFp_T",	                CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_ZEROPOINT),        0, 1, CNN_Type(-2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpFps", CALL_PARALLEL, 0, "CNN_UFpFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(-2,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpUFps", CALL_PARALLEL, 0, "CNN_UFpUFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP),                  0, 1, CNN_Type(-2,0,0,0,-1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpFpsScaled", CALL_PARALLEL, 0, "CNN_UFpFps_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-2,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpUFpsScaled", CALL_PARALLEL, 0, "CNN_UFpUFps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-2,0,0,0,-1), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpUFpScaled", CALL_PARALLEL, 0, "CNN_UFpUFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-2,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpFpScaled", CALL_PARALLEL, 0, "CNN_UFpFp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FP_SCALE),            0, 1, CNN_Type(-2,0,0,0,2), 0,0,0,0,1,1));
+
+	LibKernel("CNN_Float16Fp", CALL_PARALLEL, 0, "CNN_Float16Fp_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FL_FP),                  0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_Float16UFp", CALL_PARALLEL, 0, "CNN_Float16UFp_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FL_FP),                  0, 1, CNN_Type(2,0,0,0,-2), 0,0,0,0,1,1));
+	LibKernel("CNN_Float16Fps", CALL_PARALLEL, 0, "CNN_Float16Fps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FL_FP),                  0, 1, CNN_Type(2,0,0,0,1), 0,0,0,0,1,1));
+	LibKernel("CNN_Float16UFps", CALL_PARALLEL, 0, "CNN_Float16UFps_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FL_FP),                  0, 1, CNN_Type(2,0,0,0,-1), 0,0,0,0,1,1));
+
+	LibKernel("CNN_FpFloat16", CALL_PARALLEL, 0, "CNN_FpFloat16_T",	        CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FL),                  0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpFloat16", CALL_PARALLEL, 0, "CNN_UFpFloat16_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FL),                  0, 1, CNN_Type(-2,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_FpsFloat16", CALL_PARALLEL, 0, "CNN_FpsFloat16_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FL),                  0, 1, CNN_Type(1,0,0,0,2), 0,0,0,0,1,1));
+	LibKernel("CNN_UFpsFloat16", CALL_PARALLEL, 0, "CNN_UFpsFloat16_T",	CNN_Match(CNN_OperList(1, KOP_CONVERT_FP_FL),                  0, 1, CNN_Type(-1,0,0,0,2), 0,0,0,0,1,1));
 
 	/****************************************************************************************************************/
 	/* Kernels tensor/matrix transposes and permutations  */
 	/****************************************************************************************************************/
 
-	/* Matrix Transposition, no scaling */
+	/* Matrix Transposition, byte, no scaling */
 	LibKernel("CNN_ParTranspose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_ParTransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
 	LibKernel("CNN_Transpose_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_TransposeSxSy_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(1,0,0,0,1), 0,0,0,0,-1,-1));
 
-	/* Tensor Permutation, no scaling */
+	/* Tensor Permutation (CHW), byte, no scaling */
 	LibKernel("CNN_MatPermCHW2CWH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2HWC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2WHC_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2WCH_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2HCW_fps", CALL_PARALLEL, 0, "KerMatTranspose_fps_T",	CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
 
-	/* Matrix Transposition */
+	/* Tensor Permutation (HWC), byte, no scaling */
+        LibKernel("CNN_MatPermHWC2HCW_fps", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fps_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2HCW), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2WCH_fps", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fps_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2WCH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2WHC_fps", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fps_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2WHC), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2CHW_fps", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fps_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2CHW), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2CWH_fps", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fps_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2CWH), 0, 1, CNN_Type(1,0,0,0,1), 0,0,0,0,1,1));
+
+	/* Matrix Transposition, short */
 	LibKernel("CNN_ParTranspose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_ParTransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
 	LibKernel("CNN_Transpose_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",			CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_TransposeSxSy_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATTRANSP), 0, 0, CNN_Type(2,0,0,0,2), 0,0,0,0,-1,-1));
 
-	/* Tensor Permutation */
+	/* Tensor Permutation (CHW), short */
 	LibKernel("CNN_MatPermCHW2CWH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2CWH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2HWC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HWC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2WHC_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WHC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2WCH_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2WCH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 	LibKernel("CNN_MatPermCHW2HCW_fp", CALL_PARALLEL, 0, "KerMatTranspose_fp_T",		CNN_Match(CNN_OperList(1, KOP_MATPERM_CHW2HCW), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+
+	/* Tensor Permutation (HCW), short, no scaling */
+        LibKernel("CNN_MatPermHWC2HCW_fp", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fp_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2HCW), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2WCH_fp", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fp_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2WCH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2WHC_fp", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fp_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2WHC), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2CHW_fp", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fp_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2CHW), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
+        LibKernel("CNN_MatPermHWC2CWH_fp", CALL_PARALLEL|CALL_HWC_KER, 0, "KerMatTranspose_fp_T",
+                                                                                        CNN_Match(CNN_OperList(1, KOP_MATPERM_HWC2CWH), 0, 1, CNN_Type(2,0,0,0,2), 0,0,0,0,1,1));
 }
 
 int CNN_Copy(
 	char *Name,
 	CNN_GenControl_T *Ctrl,
-	int Sz
+	int Sz,
+	int FeatureSize
 )
 
 {
 	int Log = 1;
-	int Width = Sz;
-	int Height = Sz / Width;
+
 	unsigned long long int LayerOp = 0;
 	unsigned long long int LayerBandwidth = 0;
+
+	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+
+        if (Ctrl) {
+		if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+        }
 
 	LayerBandwidth += Sz*2;
 
 	if (Log) {
 		printf("CNN_Copy: %s\n", Name);
-		printf("In  => Feat: 1 W: %4d, H: %4d\n", Width, Height);
-		printf("Out => Feat: 1, W: %4d, H: %4d\n", Width, Height);
+		printf("In  => Feat: 1  Sz: %4d, FeatureSize: %4d\n", Sz, Abs(FeatureSize));
+		printf("Out => Feat: 1, Sz: %4d\n", Sz);
 		printf("Nb Oper : %lld\n", LayerOp);
 	}
-	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 	Kernel_T *Kernel = 0;
-	while (1) {
-		Object_T **PKerArgs = AllocateKerArgs(2);
-		PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,  Width, Height, 1,  0, 0, 0, "In");
-		PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width, Height, 1,  0, 0, 0, "Out");
-		Kernel = UserKernel(Name,
-					KernelIterSpace(1, IterTiledSpace(T0)),
-					TILE_HOR,
-					CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
-					Calls(1,
-						Call("CNN_Copy_void", LOC_LOOP,
-							Bindings(4,
-								K_Arg("In", KER_ARG_TILE),      /* Input tile */
-								K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
-								K_Arg("In", KER_ARG_TILE_W),    /* Input tile width */
-								K_Arg("In", KER_ARG_TILE_H)     /* Input tile height */
-							)
-						)
-					),
-					PKerArgs
-				);
-		if (Kernel) {
-			AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-			AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-			AddKernelArgDim(Name, "In", 4, 1, Height, Width, 1);
-			AddKernelArgDim(Name, "Out", 4, 1, Height, Width, 1);
-			break;
-		}
-		if (Width % 2) {
-			GenTilingError("CNN_Copy, %s: can't find any possible tiling solution", Name);
-		}
-		Width /= 2;
-		Height *= 2;
+	Object_T **PKerArgs = AllocateKerArgs(2);
+	PKerArgs[0] = KerArg("In",   KerArgSpace(1,D0), O_IN|O_DB,  1, 1, 1,  0, 0, 0, "In");
+	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,D0), O_OUT|O_DB, 1, 1, 1,  0, 0, 0, "Out");
+	Kernel = UserKernel(
+                Name,
+                KernelIterSpace(1, IterParSpace(D0, Sz * Abs(FeatureSize), 4)),
+                TILE_HOR,
+                CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
+                Calls(1,
+                        Call("CNN_Copy_void", LOC_D0,
+                                Bindings(3,
+                                        K_Arg("In", KER_ARG_TILE),      /* Input tile */
+                                        K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
+                                        K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0)    /* Input tile size */
+                                )
+                        )
+                ),
+                PKerArgs
+        );
+	if (Kernel) {
+		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+		AddKArgDimFunc(Name, "In", 2, Sz, Abs(FeatureSize));
+		AddKArgDimFunc(Name, "Out", 2, Sz, Abs(FeatureSize));
 	}
-	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 	return (Kernel!=0);
 }
 
+static int CNN_MatTranspose_Internal(
+        char *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+	int Size,
+
+        int Feat,
+        int Width,
+        int Height,
+
+        KernelOper_T MatTransOper
+)
+
+{
+        int Log = 1;
+        Tile_Orientation_T TileOrientation = TILE_HOR;
+        unsigned int OutTileOrientation;
+        int ParFeat = 1, HWC = 0;
+	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
+
+        if (Ctrl) {
+                if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
+                if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
+                if (Ctrl->HWC != -1) HWC = Ctrl->HWC;
+		if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
+        }
+        if (HWC) {
+                return CNN_3DTensorPermute(Name, Ctrl, Feat, Size, Width, Height, KOP_MATPERM_HWC2WHC);
+        }
+        unsigned long long int LayerOp = Width*Height*Feat*Size;
+        unsigned long long int LayerBandwidth = 0;
+
+        if (!(MatTransOper == KOP_MATTRANSP)) GenTilingError("CNN_MatTranspose_Internal Kernel: %s, MatTransOper should be KOP_MATTRANSP", Name);
+
+        char *MatTransKerName = CNN_FindMatchingKernel(MatTransOper, KOP_NONE, ParFeat, Size, 0, 0, 0, Size, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+        if (MatTransKerName==0) GenTilingError("CNN_MatTranspose_Internal Kernel: %s, Can't find a matching basic kernel for Matrix Transpose", Name);
+
+        if (TileOrientation==TILE_HOR) OutTileOrientation = OBJ_CONSTRAINTS_TILE_VER; else OutTileOrientation = OBJ_CONSTRAINTS_TILE_HOR;
+        LayerBandwidth += (int64_t) Width*Height*Size;
+        LayerBandwidth += (int64_t) Width*Height*Size;
+        if (Log) {
+                printf("CNN_MatTranspose: %s %s%s, %d\n", Name, ParFeat?"Par Feat":"", HWC?", HWC":", CHW", Size);
+                printf("In  => Feat: %4d, W: %4d, H: %4d\n", Feat, Width, Height);
+                printf("Out => Feat: %4d, W: %4d, H: %4d\n", Feat, Width, Height);
+                if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
+                printf("Nb Oper : %lld\n", LayerOp);
+        }
+
+        Kernel_T *Kernel =
+                UserKernel(Name,
+                        (ParFeat)?
+                        KernelIterSpace(2, IterParSpace(D0, Feat, 8), IterTiledSpace(T0)):
+                        KernelIterSpace(2, IterFixedSpace(D0, Feat), IterTiledSpace(T0)),
+                        TileOrientation,
+                        CArgs(2,
+                                TCArg(CNN_ArgDtype(Size,1,1),  "In"),
+                                TCArg(CNN_ArgDtype(Size,1,1), "Out")
+                        ),
+                        Calls(1,
+                                Call(MatTransKerName, LOC_LOOP,
+                                        Bindings(7,
+                                                K_Arg("In", KER_ARG_TILE),                      /* Input tile */
+                                                K_Arg("Out", KER_ARG_TILE),                     /* Output tile */
+                                                (ParFeat)?
+                                                K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0):       /* Number of Matrices involved */
+                                                Imm(1),                                         /* A single matrix */
+                                                K_Arg("In", KER_ARG_TILE_W),                    /* Input tile width */
+                                                K_Arg("In", KER_ARG_TILE_H),                    /* Input tile height */
+                                                AT_IGNORE_ARG_BINDING,                          /* StrideX */
+                                                AT_IGNORE_ARG_BINDING                           /* StrideY */
+                                        )
+                                )
+                        ),
+                        KerArgs(2,
+                                KerArg("In",   KerArgSpace(2,D0,T0), O_IN|O_DB,  Width, Height, Size, 0, 0, 0, "In"),
+                                KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB, Height, Width, Size, 0, OutTileOrientation, 0, "Out")
+                        )
+                );
+        if (Kernel) {
+                AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
+                AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
+
+                AddKArgDimFunc(Name, "In",  4, Feat, Height, Width, Size);
+                AddKArgDimFunc(Name, "Out", 4, Feat, Width, Height, Size);
+		AT_PrepareForTest(Name,
+                                  (v4s) {Size, 0, 0, Size},
+                                  (v4s) {0,0,0,0},
+                                  Feat, Feat, Width, Height,
+                                  0,0, 0,0, 0,0, (v4s) 0,
+                                  0,0, 0,0, 0,0, (v4s) 0,
+                                  MatTransOper,
+                                  0, 0);
+        }
+        return (Kernel!=0);
+
+}
 
 /*********************************************************************************************************************************************************************
  	Generator for Matrix Transposition
@@ -353,120 +744,40 @@ int CNN_Copy(
 	
 *********************************************************************************************************************************************************************/
 
-
 int CNN_MatTranspose(
 	char *Name,
 
 	CNN_GenControl_T *Ctrl,
 
-	int In_DataSize,
-	int Out_DataSize,
+	int Size,
 
-	int In_Q,
-	int Out_Q,
-
-	int In_InL3,
-	int Out_InL3,
-
-	int InFeat,
+	int Feat,
 	int Width,
-	int Height
+	int Height,
+
+	KernelOper_T MatTransOper
 )
 
 {
-	int Log = 1;
-	Tile_Orientation_T TileOrientation = TILE_HOR;
-	unsigned int OutTileOrientation;
-	int ParFeat = 1;
-	if (Ctrl) {
-		if (Ctrl->TileOrientation != -1) TileOrientation = (Ctrl->TileOrientation==0)?TILE_HOR:TILE_VER;
-		if (Ctrl->ParallelFeatures != -1) ParFeat = Ctrl->ParallelFeatures;
-	}
-	unsigned int InL3 = In_InL3?O_L2DB:0;
-	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	KernelOper_T MatTransOper = KOP_MATTRANSP;
-	unsigned long long int LayerOp = Width*Height*InFeat;
-	unsigned long long int LayerBandwidth = 0;
-
-	if (!(MatTransOper == KOP_MATTRANSP)) GenTilingError("CNN_MatTranspose Kernel: %s, MatTransOper should be KOP_MATTRANSP", Name);
-
-	char *MatTransKerName = CNN_FindMatchingKernel(MatTransOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
-
-	if (MatTransKerName==0) GenTilingError("CNN_MatTranspose Kernel: %s, Can't find a matching basic kernel for Matrix Transpose", Name);
-
-	if (TileOrientation==TILE_HOR) OutTileOrientation = OBJ_CONSTRAINTS_TILE_VER; else OutTileOrientation = OBJ_CONSTRAINTS_TILE_HOR;
-	LayerBandwidth += Width*Height*In_DataSize;
-	LayerBandwidth += Width*Height*Out_DataSize;
-
-	if (Log) {
-		printf("CNN_MatTranspose: %s %s\n", Name, ParFeat?"Par Feat":"");
-		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		if (MatTransKerName) printf("%20s: %s\n", "MatTransKerName", MatTransKerName);
-		printf("Nb Oper : %lld\n", LayerOp);
-	}
-
-	Kernel_T *Kernel =
-		UserKernel(Name,
-			(ParFeat)?
-			KernelIterSpace(2, IterParSpace(D0, InFeat, 8), IterTiledSpace(T0)):
-			KernelIterSpace(2, IterFixedSpace(D0, InFeat), IterTiledSpace(T0)),
-	        	TileOrientation,
-                	CArgs(2,
-                      		TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"),
-                      		TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")
-                	),
-			Calls(1,
-				Call(MatTransKerName, LOC_LOOP,
-					Bindings(7,
-						K_Arg("In", KER_ARG_TILE),			/* Input tile */
-						K_Arg("Out", KER_ARG_TILE),			/* Output tile */
-						(ParFeat)?
-						K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0):	/* Number of Matrices involved */
-						Imm(1),						/* A single matrix */
-						K_Arg("In", KER_ARG_TILE_W),			/* Input tile width */
-						K_Arg("In", KER_ARG_TILE_H),			/* Input tile height */
-						AT_IGNORE_ARG_BINDING,				/* StrideX */
-						AT_IGNORE_ARG_BINDING				/* StrideY */
-					)
-				)
-			),
-	                KerArgs(2,
-	                        KerArg("In",   KerArgSpace(2,D0,T0), O_IN|O_DB|InL3,  Width, Height, In_DataSize,  0, 0, 0, "In"),
-	                        KerArg("Out",  KerArgSpace(2,D0,T0), O_OUT|O_DB|InL3, Height, Width, Out_DataSize, 0, OutTileOrientation, 0, "Out")
-			)
-		);
-	if (Kernel) {
-		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
-		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-
-		AddKernelArgDim(Name, "In",  4, InFeat, Height, Width, In_DataSize);
-		AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
-	}
-	return (Kernel!=0);
+	if (Ctrl && Ctrl->HWC) return CNN_3DTensorPermute(Name, Ctrl, Size, Feat, Width, Height, KOP_MATPERM_HWC2WHC);
+	else     	       return CNN_MatTranspose_Internal(Name, Ctrl, Size, Feat, Width, Height, MatTransOper);
 }
 
 /*********************************************************************************************************************************************************************
- 	Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}
+ 	Generator for 3D Tensor permutations:  CHW => {CWH, HWC, WHC, WCH, HCW}, HWC => {HCW, WCH, CWH, CHW, WHC}
 
 	Template:
 		Name:		Name of the generated user kernel
 
 		Ctrl:		Overide generator default options (TileOrientation, Parallel Features), Def=(TILE_HOR, 1)
+		Size		Size in bytes of In/Out tensors
 
-		In_DataSize:	1: byte, 2: half word,
-		Out_DataSize:	1: byte, 2: half word
-
-		In_Q:		In fixed point format
-		Out_Q:		Out fixed point format
-
-		In_InL3:	0: In is in L2, 1: In is in L3 memory
-		Out_InL3:	0: Out is in L2, 1: Out is in L3 memory
-
-		InFeat		Number of channels of the tensor
+		Feat		Number of channels of the tensor
 		Width		Tensor width
 		Height		Tensor height
+
 		MatPermOper	Permutation oper:  KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH, KOP_MATPERM_CHW2HCW
+						   KOP_MATPERM_HWC2HCW, KOP_MATPERM_HWC2WCH, KOP_MATPERM_HWC2CWH, KOP_MATPERM_HWC2CHW, KOP_MATPERM_HWC2WHC
 
 		Signature:	Name(In, Out)
 
@@ -479,76 +790,98 @@ int CNN_3DTensorPermute(
 
 	CNN_GenControl_T *Ctrl,
 
-	int In_DataSize,
-	int Out_DataSize,
+	int Size,
 
-	int In_Q,
-	int Out_Q,
-
-	int In_InL3,
-	int Out_InL3,
-
-	int InFeat,
+	int Feat,
 	int Width,
 	int Height,
+
 	KernelOper_T MatPermOper
 )
 
 {
 	int Log = 1;
-	int ParFeat = 1;
-	unsigned int InL3 = In_InL3?O_L2DB:0;
-	unsigned int OutL3 = Out_InL3?O_L2DB:0;
-	unsigned long long int LayerOp = Width*Height*InFeat;
+	int ParFeat = 1, HWC = 0;
+	unsigned long long int LayerOp = (int64_t) Width*Height*Feat;
 	unsigned long long int LayerBandwidth = 0;
 
-	if (!(MatPermOper == KOP_MATPERM_CHW2CWH || MatPermOper == KOP_MATPERM_CHW2HWC || MatPermOper == KOP_MATPERM_CHW2WHC ||
-	      MatPermOper == KOP_MATPERM_CHW2WCH || MatPermOper == KOP_MATPERM_CHW2HCW))
-		GenTilingError("CNN_3DTensorPermute Kernel: %s, MatTransOper should be KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH or KOP_MATPERM_CHW2HCW", Name);
+	add_kernel_arg_func_t AddKArgDimFunc = AddKernelArgDim;
+        cnn_kernel_arg_datatype_func_t CNN_ArgDtype = CNN_ArgDataType;
 
-	char *MatPermKerName = CNN_FindMatchingKernel(MatPermOper, KOP_NONE, ParFeat, In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
-	if (MatPermKerName==0) GenTilingError("CNN_3DTensorPermute Kernel: %s, Can't find a matching basic kernel for 3D Tensor Permutation", Name);
+	if (Ctrl) {
+		if (Ctrl->HWC != -1) HWC = Ctrl->HWC;
+		if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) AddKArgDimFunc = AddKernelFloatArgDim;
+                if (Ctrl->FloatDump != -1&&Ctrl->FloatDump) CNN_ArgDtype = CNN_ArgDataTypeF;
+	}
+	int KerLayout = HWC?CALL_HWC_KER:0;
 
-	LayerBandwidth += InFeat*Width*Height*In_DataSize;
-	LayerBandwidth += InFeat*Width*Height*Out_DataSize;
+	if (HWC==0) {
+		if (!(MatPermOper == KOP_MATPERM_CHW2CWH || MatPermOper == KOP_MATPERM_CHW2HWC || MatPermOper == KOP_MATPERM_CHW2WHC ||
+	      	      MatPermOper == KOP_MATPERM_CHW2WCH || MatPermOper == KOP_MATPERM_CHW2HCW))
+			GenTilingError("CNN_3DTensorPermute Kernel: %s, CHW MatTransOper should be KOP_MATPERM_CHW2CWH, KOP_MATPERM_CHW2HWC, KOP_MATPERM_CHW2WHC, KOP_MATPERM_CHW2WCH or KOP_MATPERM_CHW2HCW", Name);
+	} else {
+		if (!(MatPermOper == KOP_MATPERM_HWC2CWH || MatPermOper == KOP_MATPERM_HWC2CHW || MatPermOper == KOP_MATPERM_HWC2WHC ||
+	      	      MatPermOper == KOP_MATPERM_HWC2WCH || MatPermOper == KOP_MATPERM_HWC2HCW))
+			GenTilingError("CNN_3DTensorPermute Kernel: %s, HWC MatTransOper should be KOP_MATPERM_HWC2CWH, KOP_MATPERM_HWC2HWC, KOP_MATPERM_HWC2WHC, KOP_MATPERM_HWC2WCH or KOP_MATPERM_HWC2HCW", Name);
+	}
+	char *MatPermKerName = CNN_FindMatchingKernelAttr(MatPermOper, KOP_NONE, ParFeat, KerLayout, Size, 0, 0, 0, Size, 0,0,0,0,0,0, 0,0,0,0, 0, 0, 0);
+	if (MatPermKerName==0) GenTilingError("CNN_3DTensorPermute Kernel: %s, Can't find a matching basic kernel for 3D Tensor Permutation %d", Name, Size);
+
+	LayerBandwidth += (int64_t) Feat*Width*Height*1;
 	if (Log) {
-		printf("CNN_3DTensorPermute: %s %s\n", Name, ParFeat?"Par Feat":"");
-		printf("In  => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
-		printf("Out => Feat: %4d, W: %4d, H: %4d\n", InFeat, Width, Height);
+		printf("CNN_MatPermute: %s %s%s, %d\n", Name, ParFeat?"Par Feat":"", HWC?", HWC":", CHW", Size);
+		printf("In  => Feat: %4d, W: %4d, H: %4d\n", Feat, Width, Height);
+		printf("Out => Feat: %4d, W: %4d, H: %4d\n", Feat, Width, Height);
 		if (MatPermKerName) printf("%20s: %s\n", "MatPermKerName", MatPermKerName);
 		printf("Nb Oper : %lld\n", LayerOp);
 	}
 
 	Object_T **PKerArgs = AllocateKerArgs(2);
-	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB|InL3,  Width, Height*InFeat, In_DataSize,  0, 0, 0, "In");
+	if (HWC==0) PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,  Width, Height*Feat, Size,  0, 0, 0, "In");
+	else        PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,  Feat, Width*Height, Size,  0, 0, 0, "In");
 	switch (MatPermOper) {
+		case KOP_MATPERM_HWC2HCW:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Feat*Width, Height, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
 		case KOP_MATPERM_CHW2CWH:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*Height, InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width*Height, Feat, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
+		case KOP_MATPERM_HWC2WCH:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Feat*Height, Width, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
 			break;
 		case KOP_MATPERM_CHW2HWC:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width*InFeat, Height, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width*Feat, Height, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			break;
+		case KOP_MATPERM_HWC2CWH:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width*Height, Feat, Size, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
 			break;
 		case KOP_MATPERM_CHW2WHC:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Height*Feat, Width, Size, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			break;
+		case KOP_MATPERM_HWC2CHW:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width*Height, Feat, Size, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
 			break;
 		case KOP_MATPERM_CHW2WCH:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Height*InFeat, Width, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Height*Feat, Width, Size, 0, OBJ_CONSTRAINTS_TILE_HOR, 0, "Out");
+			break;
+		case KOP_MATPERM_HWC2WHC:
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Feat, Width*Height, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
 			break;
 		case KOP_MATPERM_CHW2HCW:
-			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB|InL3, Width, Height*InFeat, Out_DataSize, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
+			PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB, Width, Height*Feat, Size, 0, OBJ_CONSTRAINTS_TILE_VER, 0, "Out");
 			break;
 	}
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_OFF);
 	Kernel_T *Kernel = UserKernel(Name,
 			KernelIterSpace(1, IterTiledSpace(T0)),
 	        	TILE_VER,
-                	CArgs(2, TCArg(CNN_ArgDataType(In_DataSize,1,1),  "In"), TCArg(CNN_ArgDataType(Out_DataSize,1,1), "Out")),
+                	CArgs(2, TCArg(CNN_ArgDtype(Size,1,1),  "In"), TCArg(CNN_ArgDtype(Size,1,1), "Out")),
 			Calls(1,
 				Call(MatPermKerName, LOC_LOOP,
 					Bindings(7,
 						K_Arg("In", KER_ARG_TILE),	/* Input tile */
 						K_Arg("Out", KER_ARG_TILE),	/* Output tile */
-						Imm(InFeat), 			/* Number of Channels */
+						Imm(Feat), 			/* Number of Channels */
 						K_Arg("In", KER_ARG_TILE_W),	/* Input tile width */
 						Imm(Height),			/* Input tile height */
 						AT_IGNORE_ARG_BINDING,		/* StrideX */
@@ -561,28 +894,35 @@ int CNN_3DTensorPermute(
 	AT_SetKernelCtrl(AT_KERNEL_NOSOLUTION_ERROR, AT_OPT_ON);
 	if (Kernel==0) {
 		printf("NEW SCHEME\n");
-		PKerArgs[0] = KerArg("In",   KerArgSpace(3,D2,D1,D0), O_IN|O_DB|InL3,  1, 1,  In_DataSize,  0, 0, 0, "In");
+		PKerArgs[0] = KerArg("In", KerArgSpace(3,D2,D1,D0), O_IN|O_DB,  1, 1,  Size,  0, 0, 0, "In");
 		switch (MatPermOper) {
 			case KOP_MATPERM_CHW2CWH:
-				PKerArgs[1] = KerArg("Out",  KerArgSpace(3,D2,D0,D1), O_OUT|O_DB|InL3, 1, 1,  Out_DataSize,  0, 0, 0, "Out");
+			case KOP_MATPERM_HWC2HCW:
+				PKerArgs[1] = KerArg("Out", KerArgSpace(3,D2,D0,D1), O_OUT|O_DB, 1, 1,  Size,  0, 0, 0, "Out");
 				break;
 			case KOP_MATPERM_CHW2HWC:
-				PKerArgs[1] = KerArg("Out",  KerArgSpace(3,D1,D0,D2), O_OUT|O_DB|InL3, 1, 1,  Out_DataSize,  0, 0, 0, "Out");
+			case KOP_MATPERM_HWC2WCH:
+				PKerArgs[1] = KerArg("Out", KerArgSpace(3,D1,D0,D2), O_OUT|O_DB, 1, 1,  Size,  0, 0, 0, "Out");
 				break;
 			case KOP_MATPERM_CHW2WHC:
-				PKerArgs[1] = KerArg("Out",  KerArgSpace(3,D0,D1,D2), O_OUT|O_DB|InL3, 1, 1,  Out_DataSize,  0, 0, 0, "Out");
+			case KOP_MATPERM_HWC2CWH:
+				PKerArgs[1] = KerArg("Out", KerArgSpace(3,D0,D1,D2), O_OUT|O_DB, 1, 1,  Size,  0, 0, 0, "Out");
 				break;
 			case KOP_MATPERM_CHW2WCH:
-				PKerArgs[1] = KerArg("Out",  KerArgSpace(3,D0,D2,D1), O_OUT|O_DB|InL3, 1, 1,  Out_DataSize,  0, 0, 0, "Out");
+			case KOP_MATPERM_HWC2CHW:
+				PKerArgs[1] = KerArg("Out", KerArgSpace(3,D0,D2,D1), O_OUT|O_DB, 1, 1,  Size,  0, 0, 0, "Out");
 				break;
 			case KOP_MATPERM_CHW2HCW:
-				PKerArgs[1] = KerArg("Out",  KerArgSpace(3,D1,D2,D0), O_OUT|O_DB|InL3, 1, 1,  Out_DataSize,  0, 0, 0, "Out");
+			case KOP_MATPERM_HWC2WHC:
+				PKerArgs[1] = KerArg("Out", KerArgSpace(3,D1,D2,D0), O_OUT|O_DB, 1, 1,  Size,  0, 0, 0, "Out");
 				break;
 		}
 		Kernel = UserKernel(Name,
-				KernelIterSpace(3, IterParSpace(D2, InFeat, 1), IterParSpace(D1, Height, 1), IterParSpace(D0, Width, Width)),
+				(HWC==0)?
+				KernelIterSpace(3, IterParSpace(D2, Feat, 1), IterParSpace(D1, Height, 1), IterParSpace(D0, Width, Width)):
+				KernelIterSpace(3, IterParSpace(D2, Height, 1), IterParSpace(D1, Width, Width), IterParSpace(D0, Feat, 1)),
 	        		TILE_HOR,
-                		CArgs(2, TCArg(CNN_ArgDataType(1,1,1),  "In"), TCArg(CNN_ArgDataType(1,1,1), "Out")),
+                		CArgs(2, TCArg(CNN_ArgDtype(Size,1,1),  "In"), TCArg(CNN_ArgDtype(Size,1,1), "Out")),
 				Calls(1,
 					Call(MatPermKerName, LOC_LOOP,
 						Bindings(7,
@@ -603,27 +943,52 @@ int CNN_3DTensorPermute(
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
 		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
 
-		AddKernelArgDim(Name, "In", 4, InFeat, Height, Width, In_DataSize);
+		AddKArgDimFunc(Name, "In", 4, Feat, Height, Width, Size);
 		switch (MatPermOper) {
 			case KOP_MATPERM_CHW2CWH:
-				AddKernelArgDim(Name, "Out", 4, InFeat, Width, Height, Out_DataSize);
+				AddKArgDimFunc(Name, "Out", 4, Feat, Width, Height, Size);
 				break;
 			case KOP_MATPERM_CHW2HWC:
-				AddKernelArgDim(Name, "Out", 4, Height, Width, InFeat, Out_DataSize);
+				AddKArgDimFunc(Name, "Out", 4, Height, Width, Feat, Size);
 				break;
 			case KOP_MATPERM_CHW2WHC:
-				AddKernelArgDim(Name, "Out", 4, Width, Height, InFeat, Out_DataSize);
+				AddKArgDimFunc(Name, "Out", 4, Width, Height, Feat, Size);
 				break;
 			case KOP_MATPERM_CHW2WCH:
-				AddKernelArgDim(Name, "Out", 4, Width, InFeat, Height, Out_DataSize);
+				AddKArgDimFunc(Name, "Out", 4, Width, Feat, Height, Size);
 				break;
 			case KOP_MATPERM_CHW2HCW:
-				AddKernelArgDim(Name, "Out", 4, Height, InFeat, Width, Out_DataSize);
+				AddKArgDimFunc(Name, "Out", 4, Height, Feat, Width, Size);
+				break;
+
+			case KOP_MATPERM_HWC2HCW:
+				AddKArgDimFunc(Name, "Out", 4, Height, Feat, Width, Size);
+				break;
+			case KOP_MATPERM_HWC2WCH:
+				AddKArgDimFunc(Name, "Out", 4, Width, Feat, Height, Size);
+				break;
+			case KOP_MATPERM_HWC2WHC:
+				AddKArgDimFunc(Name, "Out", 4, Width, Height, Feat, Size);
+				break;
+			case KOP_MATPERM_HWC2CHW:
+				AddKArgDimFunc(Name, "Out", 4, Feat, Height, Width, Size);
+				break;
+			case KOP_MATPERM_HWC2CWH:
+				AddKArgDimFunc(Name, "Out", 4, Feat, Width, Height, Size);
 				break;
 		}
+		AT_PrepareForTest(Name,
+                                  (v4s) {Size, 0, 0, Size},
+                                  (v4s) {0,0,0,0},
+                                  Feat, Feat, Width, Height,
+                                  0,0, 0,0, 0,0, (v4s) 0,
+                                  0,0, 0,0, 0,0, (v4s) 0,
+                                  MatPermOper,
+                                  0, 0);
 	}
 	return (Kernel!=0);
 }
+
 
 /*********************************************************************************************************************************************************************
   Generator for RGB565 image preprocessing:
@@ -794,56 +1159,64 @@ int CNN_Norm(
 	}
 }
 
-int CNN_SignedUnsigned(
+int CNN_Convert(
 	char *Name,
 	int In_DataSize,
 	int Out_DataSize,
-	int Sz
+	int Sz,
+	KernelOper_T kop
 )
 {
 	int Log = 1;
-	int Width = primeFactors(Sz);
-	int Height = Sz / Width;
 	unsigned long long int LayerOp = 1 * Sz;
 	unsigned long long int LayerBandwidth = 0;
-	char * kop;
-	if (In_DataSize == 1 && Out_DataSize == -1) {
-		kop = "CNN_FpsFpu";
-	} else if (In_DataSize == -1 && Out_DataSize == 1) {
-		kop = "CNN_FpuFps";
-	} else {
-		GenTilingError("CNN_SignedUnsigned Kernel: %s, Invalid input data size", Name);
-	}
+	char *ConvertKerName = CNN_FindMatchingKernel(
+                kop, KOP_NONE, 1,
+                In_DataSize, 0, 0, 0, Out_DataSize, 0,0,0,0,1,1, 0,0,0,0, 0, 0, 0);
+	if (ConvertKerName==0) GenTilingError("CNN_Convert Kernel: %s, Can't find a matching basic kernel for tensor conversion", Name);
 
-	LayerBandwidth += Sz*2;
+        int In_Unsigned = In_DataSize < 0, Out_Unsigned = Out_DataSize < 0;
+        In_DataSize = Abs(In_DataSize); Out_DataSize = Abs(Out_DataSize);
+        int In_Float = kop == KOP_CONVERT_FL_FP;
+        int Out_Float = kop == KOP_CONVERT_FP_FL;
+#ifdef __EMUL__
+        if (In_Float) In_DataSize = 4;
+        if (Out_Float) Out_DataSize = 4;
+#endif
+	LayerBandwidth += Sz*(In_DataSize + Out_DataSize);
 
 	if (Log) {
-		printf("CNN_SignedUnsigned: %s\n", Name);
-		printf("In  => Feat: 1 W: %4d, H: %4d\n", Width, Height);
-		printf("Out => Feat: 1, W: %4d, H: %4d\n", Width, Height);
+		printf("CNN_Convert: %s\n", Name);
+		printf("Kernel: %s\n", ConvertKerName);
+		printf("In  => Feat: 1 N: %4d\n", Sz);
+		printf("Out => Feat: 1, N: %4d\n", Sz);
 		printf("Nb Oper : %lld\n", LayerOp);
 	}
 
-	Object_T **PKerArgs = AllocateKerArgs(3);
-	PKerArgs[0] = KerArg("In",   KerArgSpace(1,T0), O_IN|O_DB,            Width, Height, 1,  0, 0, 0, "In");
-	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,T0), O_OUT|O_DB,           Width, Height, 1,  0, 0, 0, "Out");
-	PKerArgs[2] = KerArg("Infos",KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED, 1,     1,      1,  0, 0, 0, "Infos");
+        char *In_DataType = (In_Float?CNN_ArgDataTypeF(In_DataSize, 1, 1):(In_Unsigned?CNN_ArgDataTypeUns(In_DataSize, 1, 1):CNN_ArgDataType(In_DataSize, 1, 1)));
+        char *Out_DataType = (Out_Float?CNN_ArgDataTypeF(Out_DataSize, 1, 1):(Out_Unsigned?CNN_ArgDataTypeUns(Out_DataSize, 1, 1):CNN_ArgDataType(Out_DataSize, 1, 1)));
+
+	Object_T **PKerArgs = AllocateKerArgs((kop==KOP_CONVERT_FP_FP?2:3));
+	PKerArgs[0] = KerArg("In",   KerArgSpace(1,D0), O_IN|O_DB,            1, 1, In_DataSize,  0, 0, 0, "In");
+	PKerArgs[1] = KerArg("Out",  KerArgSpace(1,D0), O_OUT|O_DB,           1, 1, Out_DataSize,  0, 0, 0, "Out");
+        if (kop!=KOP_CONVERT_FP_FP)
+        	PKerArgs[2] = KerArg("Infos",KerArgSpace(1,T0), O_IN|O_BUFF|O_NTILED, 1, 1, 7,  0, 0, 0, "Infos");
 	Kernel_T *Kernel = UserKernel(Name,
-				KernelIterSpace(1, IterTiledSpace(T0)),
+				KernelIterSpace(2, IterTiledSpace(T0), IterParSpace(D0, Sz, 8)),
 				TILE_HOR,
 				CArgs(3,
-					TCArg(CNN_ArgDataType(1,1,1), "In"),
-					TCArg(CNN_ArgDataType(1,1,1), "Out"),
-					TCArg(CNN_ArgDataType(1,1,1), "Infos")
+					TCArg(In_DataType, "In"),
+					TCArg(Out_DataType, "Out"),
+					(kop==KOP_CONVERT_FP_FP?AT_NO_C_ARG:TCArg(CNN_ArgDataType(1,1,1), "Infos"))
 				),
 				Calls(1,
-					Call(kop, LOC_LOOP,
+					Call(ConvertKerName, LOC_D0,
 						Bindings(5,
 							K_Arg("In", KER_ARG_TILE),      /* Input tile */
 							K_Arg("Out", KER_ARG_TILE),    	/* Output tile */
-							K_Arg("In", KER_ARG_TILE_W),    /* Input tile width */
-							K_Arg("In", KER_ARG_TILE_H),    /* Input tile height */
-				K_Arg("Infos", KER_ARG_TILE)
+							K_ArgPar("In", KER_ARG_PARTILE_SIZE, D0),    /* Input tile width */
+							Imm(1),    /* Input tile height */
+				                        (kop==KOP_CONVERT_FP_FP?AT_IGNORE_ARG_BINDING:K_Arg("Infos", KER_ARG_TILE))
 						)
 					)
 				),
@@ -852,9 +1225,11 @@ int CNN_SignedUnsigned(
 	if (Kernel) {
 		AddKernelInfos(Name, AT_KERINFO_OPER, LayerOp, 0);
 		AddKernelInfos(Name, AT_KERINFO_BANDWIDTH, LayerBandwidth, 0);
-		AddKernelArgDim(Name, "In",    4, 1, Height, Width, 1);
-		AddKernelArgDim(Name, "Out",   4, 1, Height, Width, 1);
-		AddKernelArgDim(Name, "Infos", 2, 1, 1);
+		AddKernelArgDim(Name, "In",    3, 1, Sz, In_DataSize);
+		AddKernelArgDim(Name, "Out",   3, 1, Sz, Out_DataSize);
+                if (kop!=KOP_CONVERT_FP_FP)
+	        	AddKernelArgDim(Name, "Infos", 2, 1, 1);
 	}
 	return (Kernel!=0);
 }
+

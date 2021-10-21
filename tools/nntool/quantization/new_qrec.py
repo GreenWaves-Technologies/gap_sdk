@@ -49,16 +49,6 @@ class QRec():
                    **kwargs)
 
     @classmethod
-    def scaled_ne16(cls, in_qs=None, out_qs=None,
-               auto_quantize_inputs=False, auto_dequantize_inputs=False,
-               auto_quantize_outputs=False, auto_dequantize_outputs=False,
-               **kwargs):
-        return cls(in_qs=in_qs, out_qs=out_qs, ktype='scaled_ne16',
-                   auto_quantize_inputs=auto_quantize_inputs, auto_dequantize_inputs=auto_dequantize_inputs,
-                   auto_quantize_outputs=auto_quantize_outputs, auto_dequantize_outputs=auto_dequantize_outputs,
-                   **kwargs)
-
-    @classmethod
     def float(cls, in_qs=None, out_qs=None,
               auto_quantize_inputs=False, auto_dequantize_inputs=False,
               auto_quantize_outputs=False, auto_dequantize_outputs=False,

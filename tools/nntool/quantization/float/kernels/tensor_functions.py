@@ -22,7 +22,7 @@ from graph.types import (ConcatParameters, ConstantInputParameters,
                          CopyParameters, InputParameters, OutputParameters,
                          ReshapeParameters, ReverseParameters, SplitParameters,
                          StridedSliceParameters, TransposeParameters)
-from graph.types.others import (GatherParameters, NoOPParameters,
+from graph.types.others import (ExpandParameters, GatherParameters, NoOPParameters,
                                 QuantizeParameters)
 from quantization.kernels.kernel_base import KernelBase, params_type, qrec_type
 from quantization.new_qrec import AllFloatQRec, QRec
@@ -50,8 +50,9 @@ class InputFloat32(KernelBase):
             in_tensor = in_tensor.reshape(params.dims.shape)
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
-        if params.transpose_out:
-            in_tensor = np.transpose(in_tensor, params.transpose_out)
+        out_dtype = qrec.out_qs[0].dtype if qrec.ktype.startswith(
+            'float') else np.float32
+        in_tensor = in_tensor.astype(out_dtype)
         return qrec.get_outputs(params, [in_tensor], ktype="float")
 
 
@@ -176,6 +177,8 @@ class TransposeFloat32(KernelBase):
 
         qname = kwargs['qname']
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype=qname)[0]
+        if params.transpose:
+            in_tensor = np.transpose(in_tensor, params.transpose) 
         return qrec.get_outputs(params, [in_tensor], ktype=qname)
 
 
@@ -250,6 +253,19 @@ class ReverseFloat32(KernelBase):
         qname = kwargs['qname']
         in_tensor = qrec.prepare_inputs(params, in_tensors, ktype=qname)[0]
         return qrec.get_outputs(params, [np.flip(in_tensor, axis=params.axis)], ktype=qname)
+
+@params_type(ExpandParameters)
+@qrec_type('any')
+class ExpandFloat32(KernelBase):
+    @classmethod
+    def execute(cls, params,
+                in_tensors,
+                qrec: QRec,
+                **kwargs):
+
+        qname = kwargs['qname']
+        in_tensor = qrec.prepare_inputs(params, in_tensors, ktype=qname)[0]
+        return qrec.get_outputs(params, [in_tensor * np.ones(params.shape, dtype=in_tensor.dtype)], ktype=qname)
 
 @params_type(NoOPParameters)
 @qrec_type('any')

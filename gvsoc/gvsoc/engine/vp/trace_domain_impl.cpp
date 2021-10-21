@@ -30,8 +30,9 @@
 class trace_regex
 {
 public:
-    trace_regex(std::string path, regex_t *regex, std::string file_path) : path(path), regex(regex), file_path(file_path) {}
+    trace_regex(std::string path, regex_t *regex, std::string file_path, bool is_path=false) : is_path(is_path), path(path), regex(regex), file_path(file_path) {}
 
+    bool is_path;
     std::string path;
     regex_t *regex;
     std::string file_path;
@@ -45,9 +46,10 @@ public:
 
     void set_trace_level(const char *trace_level);
     void add_paths(int events, int nb_path, const char **paths);
-    void add_path(int events, const char *path);
+    void add_path(int events, const char *path, bool is_path=false);
     void add_exclude_path(int events, const char *path);
     void add_trace_path(int events, std::string path);
+    void conf_trace(int event, std::string path, bool enabled);
     void add_exclude_trace_path(int events, std::string path);
     void reg_trace(vp::trace *trace, int event, string path, string name);
 
@@ -57,9 +59,13 @@ public:
     void run();
     void quit(int status);
     void pause();
+    void stop_exec();
+    void req_stop_exec();
+    void register_exec_notifier(vp::Notifier *notifier);
+
     int join();
 
-    void step(int64_t timestamp);
+    int64_t step(int64_t timestamp);
 
     void check_traces();
 
@@ -87,12 +93,12 @@ private:
     std::unordered_map<std::string, FILE *> trace_files;
 
     vp::component *power_engine;
+    FILE *trace_file;
 };
 
 vp::trace_engine::trace_engine(js::config *config)
-    : event_dumper(this), vp::component(config), first_trace_to_dump(NULL)
+    : event_dumper(this), vp::component(config), first_trace_to_dump(NULL), vcd_user(NULL)
 {
-
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond, NULL);
 
@@ -108,9 +114,17 @@ vp::trace_engine::trace_engine(js::config *config)
     thread = new std::thread(&trace_engine::vcd_routine, this);
 }
 
+
+
 trace_domain::trace_domain(js::config *config)
     : vp::trace_engine(config)
 {
+    std::string path = "trace_file.txt";
+    this->trace_file = fopen(path.c_str(), "w");
+    if (this->trace_file == NULL)
+    {
+        throw std::runtime_error("Error while opening VCD file (path: " + path + ", error: " + strerror(errno) + ")\n");
+    }
 }
 
 void trace_domain::run()
@@ -118,9 +132,9 @@ void trace_domain::run()
     this->power_engine->run();
 }
 
-void trace_domain::step(int64_t timestamp)
+int64_t trace_domain::step(int64_t timestamp)
 {
-    this->power_engine->step(timestamp);
+    return this->power_engine->step(timestamp);
 }
 
 void trace_domain::quit(int status)
@@ -131,6 +145,21 @@ void trace_domain::quit(int status)
 void trace_domain::pause()
 {
     this->power_engine->pause();
+}
+
+void trace_domain::stop_exec()
+{
+    this->power_engine->stop_exec();
+}
+
+void trace_domain::req_stop_exec()
+{
+    this->power_engine->req_stop_exec();
+}
+
+void trace_domain::register_exec_notifier(vp::Notifier *notifier)
+{
+    this->power_engine->register_exec_notifier(notifier);
 }
 
 int trace_domain::join()
@@ -149,7 +178,7 @@ void trace_domain::check_trace_active(vp::trace *trace, int event)
     {
         for (auto &x : events_path_regex)
         {
-            if (regexec(x.second->regex, full_path.c_str(), 0, NULL, 0) == 0)
+            if (x.second->is_path || regexec(x.second->regex, full_path.c_str(), 0, NULL, 0) == 0)
             {
                 std::string file_path = x.second->file_path;                
                 vp::Event_trace *event_trace;
@@ -244,6 +273,19 @@ void trace_domain::reg_trace(vp::trace *trace, int event, string path, string na
     trace->trace_file = stdout;
 
     this->check_trace_active(trace, event);
+
+    if (trace->get_event_active())
+    {
+        fprintf(this->trace_file, "%s %s ", path.c_str(), name.c_str());
+        if (trace->is_real || trace->width <= 1)
+        {
+            fprintf(this->trace_file, "%s\n", name.c_str());
+        }
+        else
+        {
+            fprintf(this->trace_file, "%s[%d:0]\n", name.c_str(), trace->width-1);
+        }
+    }
 }
 
 void trace_domain::pre_pre_build()
@@ -259,6 +301,11 @@ void trace_domain::pre_pre_build()
     {
         std::string trace_path = x->get_str();
         this->add_trace_path(1, trace_path);
+    }
+    for (auto x : this->get_vp_config()->get("events/include_raw")->get_elems())
+    {
+        std::string trace_path = x->get_str();
+        this->add_path(1, trace_path.c_str(), true);
     }
 
     this->set_trace_level(this->get_vp_config()->get_child_str("traces/level").c_str());
@@ -364,7 +411,7 @@ void trace_domain::add_exclude_path(int events, const char *path)
 
 
 
-void trace_domain::add_path(int events, const char *path)
+void trace_domain::add_path(int events, const char *path, bool is_path)
 {
     regex_t *regex = new regex_t();
 
@@ -384,7 +431,7 @@ void trace_domain::add_path(int events, const char *path)
             this->events_exclude_path_regex.erase(path);
         }
 
-        this->events_path_regex[path] = new trace_regex(path, regex, file_path);
+        this->events_path_regex[path] = new trace_regex(path, regex, file_path, is_path);
     }
     else
     {
@@ -408,6 +455,43 @@ void trace_domain::add_path(int events, const char *path)
     }
 
     regcomp(regex, path, 0);
+}
+
+void trace_domain::conf_trace(int event, std::string path_str, bool enabled)
+{
+    const char *file_path = "all.vcd";
+    const char *path = path_str.c_str();
+    char *delim = (char *)::index(path, '@');
+    if (delim)
+    {
+        *delim = 0;
+        file_path = delim + 1;
+    }
+
+    vp::trace *trace = this->get_trace_from_path(path);
+
+    if (trace != NULL)
+    {
+        if (event)
+        {              
+            if (enabled)
+            {
+                vp::Event_trace *event_trace;
+                if (trace->is_real)
+                    event_trace = event_dumper.get_trace_real(path_str, file_path);
+                else if (trace->is_string)
+                    event_trace = event_dumper.get_trace_string(path_str, file_path);
+                else
+                    event_trace = event_dumper.get_trace(path_str, file_path, trace->width);
+                trace->event_trace = event_trace;
+            }
+            trace->set_event_active(enabled);
+        }
+        else
+        {
+            trace->set_active(enabled);
+        }
+    }
 }
 
 void trace_domain::add_trace_path(int events, std::string path)

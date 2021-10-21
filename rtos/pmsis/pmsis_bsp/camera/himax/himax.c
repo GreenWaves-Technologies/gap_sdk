@@ -144,7 +144,7 @@ static himax_reg_init_t __himax_reg_init[] =
 
 static inline int is_i2c_active()
 {
-#if defined(__PLATFORM_RTL__) || defined(__PLATFORM_GVSOC__)
+#if (defined(__PLATFORM__) && (__PLATFORM__ == ARCHI_PLATFORM_RTL)) || defined(__PLATFORM_RTL__) || defined(__PLATFORM_GVSOC__)
 
   // I2C driver is not yet working on some chips, at least this works on gvsoc.
   // Also there is noI2C connection to camera model on RTL
@@ -248,7 +248,7 @@ static void __himax_standby(himax_t *himax)
 
 static int __himax_id_check(himax_t *himax)
 {
-#if defined(ARCHI_PLATFORM_RTL) || defined(__PLATFORM_RTL__)
+#if (defined(__PLATFORM__) && (__PLATFORM__ == ARCHI_PLATFORM_RTL)) || defined(__PLATFORM_RTL__)
   return 0;
 #else
   uint8_t id_h, id_l;
@@ -333,7 +333,7 @@ int32_t __himax_open(struct pi_device *device)
 
 #ifdef __GAP9__
   // Reverse the vsync, since the vsync of himax is always 1 during one frame.
-#if !defined(ARCHI_PLATFORM_RTL) && !defined(__PLATFORM_RTL__)
+#if (defined(__PLATFORM__) && (__PLATFORM__ != ARCHI_PLATFORM_RTL)) || !defined(__PLATFORM_RTL__)
   pi_cpi_set_sync_polarity(&himax->cpi_device, 1, 0);
 #endif
 #endif

@@ -137,9 +137,7 @@ def import_sound_data(filename, **kwargs):
         rate, sig = wav.read(filename)
         LOG.info("Input signal samplerate of %d", rate)
         in_arr = np.array(sig)
-        while len(in_arr.shape) < 3:
-            in_arr = np.expand_dims(in_arr, axis=-1)
-        return postprocess(in_arr, in_arr.shape[0], in_arr.shape[1], in_arr.shape[2], **kwargs)
+        return postprocess(in_arr, in_arr.shape[0], 1, 1, **kwargs)
     raise NotImplementedError()
 
 def import_data(filename, **kwargs):

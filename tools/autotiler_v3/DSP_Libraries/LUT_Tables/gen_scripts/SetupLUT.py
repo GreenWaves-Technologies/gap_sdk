@@ -2,6 +2,7 @@ import numpy as np
 
 FFT_TWIDDLE_DYN = 15
 DCT_TWIDDLE_DYN = 7
+LIFT_COEFF_DYN = 11
 MFCC_COEFF_DYN = 15
 
 def FP2FIX(Val, Prec):
@@ -9,6 +10,14 @@ def FP2FIX(Val, Prec):
         return (Val * ((1 << Prec) - 1)).astype(np.int32)
     except:
         return int(Val * ((1 << Prec) - 1))
+
+def convert_dtype(arr, dtype="int", prec=15):
+	if dtype == "int":
+		return np.round(arr * ((1<<Prec)-1)).astype(np.int)
+	elif dtype == "float16":
+		return arr.astype(np.float16)
+	else:
+		return arr
 
 def SetupTwiddlesLUT(Nfft, Inverse=False, dtype="int"):
 	Phi = (np.pi * 2 / Nfft) * np.arange(0, Nfft)
@@ -66,8 +75,15 @@ def SetupTwiddlesRFFT(Nfft, Inverse=False, dtype="int"):
 	else:
 		return Twiddles_real, Twiddles_imag
 
-def SetupDCTTable(Ndct, dct_type=2, dtype="int"):
+def SetupDCTTable(Ndct, dct_type=2, dtype="int", norm=None):
 	print(f"Setting up DCT table with type {dtype}")
+	norm_factor = np.ones((Ndct, Ndct))
+	if norm == "ortho" and dct_type == 2:
+		norm_factor   *= np.sqrt(1/(2*Ndct))
+		norm_factor[0] = np.sqrt(1/(4*Ndct))
+	if norm == "ortho" and dct_type == 3:
+		norm_factor   *= np.sqrt(1/(2*Ndct))
+		norm_factor[0] = np.sqrt(1/(Ndct))
 	DCT_Coeff = np.zeros((Ndct, Ndct))
 	for k in range(Ndct):
 		for i in range(Ndct):
@@ -80,17 +96,79 @@ def SetupDCTTable(Ndct, dct_type=2, dtype="int"):
 			DCT_Coeff[k, i] = coeff
 
 	if dtype == "int":
-		return np.round(DCT_Coeff * ((1<<(DCT_TWIDDLE_DYN))-1)).astype(np.int16)
+		return np.round((DCT_Coeff * norm_factor) * ((1<<(DCT_TWIDDLE_DYN))-1)).astype(np.int16)
 	elif dtype == "float16":
-		return DCT_Coeff.astype(np.float16)
+		return (DCT_Coeff * norm_factor).astype(np.float16)
 	else:
-		return DCT_Coeff
+		return (DCT_Coeff * norm_factor)
 
-def SetupLiftCoeff(L, N, Qdyn=11):
+def SetupLiftCoeff(L, N, dtype="int"):
 	Lift_Coeff = np.zeros(N)
 	for i in range(N):
-		Lift_Coeff[i] = ((1.0 + (L / 2.0) * np.sin(np.pi * i / L)) * (1 << Qdyn)).astype(np.int16)
-	return Lift_Coeff
+		Lift_Coeff[i] = 1.0 + (L / 2.0) * np.sin(np.pi * i / L)
+
+	if dtype == "int":
+		return np.round(Lift_Coeff * ((1<<(LIFT_COEFF_DYN))-1)).astype(np.int16)
+	elif dtype == "float16":
+		return (Lift_Coeff).astype(np.float16)
+	else:
+		return Lift_Coeff
+
+def GenMelFilterBanksCode(filters, mfcc_bank_cnt, fmin, fmax, dtype, data_type, name_suffix):
+	HeadCoeff = 0
+	MFCC_Coeff = []
+	for i, filt in enumerate(filters):
+		if np.all(filt == 0):
+			Start = 0
+			Stop = 0
+			Base = HeadCoeff
+			Items = 0
+		else:
+			Start = np.argmax(filt!=0)
+			Stop = len(filt) - np.argmax(filt[::-1]!=0) - 1
+			Base = HeadCoeff
+			Items = Stop - Start + 1
+		print("Filter {}: Start: {} Stop: {} Base: {} Items: {}".format(i, Start, Stop, Base, Items))
+		for j in range(Items):
+			if dtype == "int":
+				MFCC_Coeff.append(FP2FIX(filt[Start+j], MFCC_COEFF_DYN))
+			elif dtype == "float16":
+				MFCC_Coeff.append(filt[Start+j].astype(np.float16))
+			else:
+				MFCC_Coeff.append(filt[Start+j])
+		HeadCoeff += Items
+
+	Out_str =  "#define MFCC_COEFF_CNT\t{}\n\n".format(HeadCoeff+1)
+	Out_str += "/* Filter Bank bands:\n\n"
+	Out_str += "\tMinimum Frequency: {} Hz\n".format(fmin)
+	Out_str += "\tMaximum Frequency: {} Hz*/\n\n".format(fmax)
+
+	Out_str += "PI_L2 fbank_type_t MFCC_FilterBank{}[{}] = {{\n".format(name_suffix, mfcc_bank_cnt)
+	HeadCoeff = 0
+	for i, filt in enumerate(filters):
+		if np.all(filt == 0):
+			Start = 0
+			Stop = 0
+			Base = HeadCoeff
+			Items = 0
+		else:
+			Start = np.argmax(filt!=0)
+			Stop = len(filt) - np.argmax(filt[::-1]!=0) - 1
+			Base = HeadCoeff
+			Items = Stop - Start + 1
+
+		Out_str += "\t{{{:>4},{:>4},{:>4}}},\n".format(Start, Items, Base)
+		HeadCoeff += Items
+	Out_str += "};\n\n"
+
+	Out_str += "PI_L2 {} MFCC_Coeffs{}[{}] = {{\n\t".format(data_type, name_suffix, HeadCoeff+1)
+	for i, coeff in enumerate(MFCC_Coeff):
+		Out_str += "{:>5}".format(str(coeff)) + ", "
+		if (i+1) % 15 == 0:
+			Out_str += "\n\t"
+	# Add a last 0 coeff
+	Out_str += "{:>5}\n}};\n".format(0)
+	return Out_str, HeadCoeff
 
 
 def GenMFCC_FB_tf(Nfft, Nbanks, sample_rate=16000, Fmin=20, Fmax=4000, dtype="int"):
@@ -109,29 +187,8 @@ def GenMFCC_FB_tf(Nfft, Nbanks, sample_rate=16000, Fmin=20, Fmax=4000, dtype="in
 	else:
 		linear_to_mel_weights = np.array(linear_to_mel_weights)
 
-	HeadCoeff = 0
-	MFCC_Coeff = []
-	for i, filt in enumerate(linear_to_mel_weights.T):
-		if np.all(filt == 0):
-			Start = 0
-			Stop = 0
-			Base = HeadCoeff
-			Items = 0
-		else:
-			Start = np.argmax(filt!=0)
-			Stop = len(filt) - np.argmax(filt[::-1]!=0) - 1
-			Base = HeadCoeff
-			Items = Stop - Start + 1
-		print("Filter {}: Start: {} Stop: {} Base: {} Items: {}".format(i, Start, Stop, Base, Items))
-		for j in range(Items):
-			if dtype == "int":
-				MFCC_Coeff.append(FP2FIX(filt[Start+j], MFCC_COEFF_DYN))
-			elif dtype == "float16":
-				MFCC_Coeff.append(filt[Start+j].astype(np.float16))
-			else:
-				MFCC_Coeff.append(filt[Start+j])
-		HeadCoeff += Items
-	return linear_to_mel_weights.T, np.array(MFCC_Coeff), HeadCoeff
+	return linear_to_mel_weights.T
+
 
 def GenMFCC_FB_librosa(Nfft, Nbanks, sample_rate=16000, Fmin=20, Fmax=4000, norm=None, dtype='int'):
 	import librosa
@@ -139,30 +196,7 @@ def GenMFCC_FB_librosa(Nfft, Nbanks, sample_rate=16000, Fmin=20, Fmax=4000, norm
 	# Generate Mel Filterbanks matrix with librosa functions:
 	# https://librosa.org/doc/0.6.3/generated/librosa.filters.mel.html#librosa.filters.mel
 	linear_to_mel_weights = librosa.filters.mel(sample_rate, Nfft, Nbanks, Fmin, Fmax, norm=norm)
-
-	HeadCoeff = 0
-	MFCC_Coeff = []
-	for i, filt in enumerate(linear_to_mel_weights):
-		if np.all(filt == 0):
-			Start = 0
-			Stop = 0
-			Base = HeadCoeff
-			Items = 0
-		else:
-			Start = np.argmax(filt!=0)
-			Stop = len(filt) - np.argmax(filt[::-1]!=0) - 1
-			Base = HeadCoeff
-			Items = Stop - Start + 1
-		print("Filter {}: Start: {} Stop: {} Base: {} Items: {}".format(i, Start, Stop, Base, Items))
-		for j in range(Items):
-			if dtype == "int":
-				MFCC_Coeff.append(FP2FIX(filt[Start+j], MFCC_COEFF_DYN))
-			elif dtype == "float16":
-				MFCC_Coeff.append(filt[Start+j].astype(np.float16))
-			else:
-				MFCC_Coeff.append(filt[Start+j])
-		HeadCoeff += Items
-	return linear_to_mel_weights, np.array(MFCC_Coeff), HeadCoeff
+	return linear_to_mel_weights
 
 
 def Mel(k):
@@ -191,28 +225,5 @@ def GenMFCC_FB(Nfft, Nbanks, sample_rate=16000, Fmin=20, Fmax=4000, dtype='int')
 		for k in range(f[i], f[i+1]):
 			filters[i-1][k] = np.float(f[i+1]-k)/(f[i+1]-f[i])
 
-	HeadCoeff = 0
-	MFCC_Coeff = []
-	for i, filt in enumerate(filters):
-		if np.all(filt == 0):
-			Start = 0
-			Stop = 0
-			Base = HeadCoeff
-			Items = 0
-		else:
-			Start = np.argmax(filt!=0)
-			Stop = len(filt) - np.argmax(filt[::-1]!=0) - 1
-			Base = HeadCoeff
-			Items = Stop - Start + 1
-		print("Filter {}: Start: {} Stop: {} Base: {} Items: {}".format(i, Start, Stop, Base, Items))
-		for j in range(Items):
-			if dtype == "int":
-				MFCC_Coeff.append(FP2FIX(filt[Start+j], MFCC_COEFF_DYN))
-			elif dtype == "float16":
-				MFCC_Coeff.append(filt[Start+j].astype(np.float16))
-			else:
-				MFCC_Coeff.append(filt[Start+j])
-		HeadCoeff += Items
-
-	return filters, MFCC_Coeff, HeadCoeff
+	return filters
 

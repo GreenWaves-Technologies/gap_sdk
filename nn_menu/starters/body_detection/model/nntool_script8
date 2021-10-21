@@ -1,0 +1,10 @@
+adjust
+fusions
+set input_divisor 256
+set input_offset 0
+aquant -f 8 test_samples/*.pgm
+#aquant -f 8 test_samples/*.png
+set default_output_exec_location AT_MEM_L3_HRAM
+set l3_ram_ext_managed 1
+set l2_ram_ext_managed 0
+save_state

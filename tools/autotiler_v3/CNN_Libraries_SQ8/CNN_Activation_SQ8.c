@@ -1,27 +1,31 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wswitch"
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
 
 #include "Gap.h"
 #include "CNN_BasicKernels_SQ8.h"
 
 static int CoreCountDynamic = 1;
 static int ActiveCore = gap_ncore();
-
-static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
-
-{
-        unsigned int NCore;
-        unsigned int Log2Core;
-        unsigned int Chunk;
-
-        if (CoreCountDynamic) NCore = ActiveCore; else NCore = gap_ncore();
-        Log2Core = gap_fl1(NCore);
-        Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
-        return Chunk;
-}
 
 unsigned short int SIGMOID_LUT_uint16[256] = {
     32768, 33451, 34133, 34813, 35493, 36169, 36843, 37513, 38180, 38841, 39498,
@@ -49,8 +53,21 @@ unsigned short int SIGMOID_LUT_uint16[256] = {
     65533, 65533, 65533, 65534, 65534, 65534, 65534, 65534, 65534, 65534, 65534,
     65534, 65534, 65535};
 
+static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int X)
+
+{
+        unsigned int NCore;
+        unsigned int Log2Core;
+        unsigned int Chunk;
+
+        if (CoreCountDynamic) NCore = ActiveCore; else NCore = gap_ncore();
+        Log2Core = gap_fl1(NCore);
+        Chunk = (X>>Log2Core) + ((X&(NCore-1))!=0);
+        return Chunk;
+}
+
 #define NEAREST //Use nearest LUT element instead of linearly interpolate
-int Sigmoid(int x){
+int SigmoidTable(int x, unsigned short int * table){
 	/* Input x: Q12 [-8:8] range
 
 	   Output y = sig(x) -> Q15
@@ -61,8 +78,8 @@ int Sigmoid(int x){
 	if (abs_x > 255) {
 		result = 0x1FFFC00; // result = 1 in Q25
 	} else {
-		ua = SIGMOID_LUT_uint16[abs_x];
-		ub = SIGMOID_LUT_uint16[abs_x+1];
+		ua = table[abs_x];
+		ub = table[abs_x+1];
 		ut = abs_x & 0xFF;
 		result = (ua << 9) + ut * (ub-ua); // LUT in Q16 * ut in Q9 = Q25
 	}
@@ -75,7 +92,7 @@ int Sigmoid(int x){
 	if (abs_x > 255) {
 		result = 0xFFFF; // result = 1 in Q16
 	} else {
-		result = SIGMOID_LUT_uint16[abs_x]; // LUT in Q16
+		result = table[abs_x]; // LUT in Q16
 	}
 	if (x>0) result = result;
 	else     result = (1<<16) - result;
@@ -83,15 +100,15 @@ int Sigmoid(int x){
 #endif
 }
 
-int Tanh(int x){
+int TanhTable(int x, unsigned short * table){
 #ifndef NEAREST
 	int result, ua, ub, ut;
 	int abs_x = (Abs(x) * 3) >> 8; // 2*x
 	if (abs_x > 255) {
 		result = 0xFFFF00;
 	} else {
-		ua = SIGMOID_LUT_uint16[abs_x];
-		ub = SIGMOID_LUT_uint16[abs_x+1];
+		ua = table[abs_x];
+		ub = table[abs_x+1];
 		ut = abs_x & 0xFF;
 		result = (ua << 8) + ut * (ub-ua);
 	}
@@ -104,13 +121,14 @@ int Tanh(int x){
 	if (abs_x > 255) {
 		result = 0xFFFF;
 	} else {
-		result = SIGMOID_LUT_uint16[abs_x];
+		result = table[abs_x];
 	}
 	if (x>0) result =  result - (1 << 15);
 	else     result = -result + (1 << 15);
 	return result; // back to 16 bits
 #endif
 }
+
 
 /*
  * Standalone activation
@@ -157,6 +175,17 @@ static void Ker_Activation_SQ8(
 					Acc1 = AT_SCALE((Sigmoid(Acc1N) >> 8), ActScale, ActScaleN);
 				}
 				break;
+			case ACT_TANH:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Tanh(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
 		}
                 Out[2*i] = gap_clip(Acc0, 7), Out[2*i+1] = gap_clip(Acc1, 7);
         }
@@ -183,6 +212,12 @@ static void Ker_Activation_SQ8(
 				{
 					int Acc0N = Acc0 << 8;
 					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
 		}
@@ -271,6 +306,17 @@ static void Ker_Activation_ScaleIn_SQ8(
 					Acc1 = AT_SCALE((Sigmoid(Acc1N) >> 8), ActScale, ActScaleN);
 				}
 				break;
+			case ACT_TANH:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Tanh(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
 		}
                 Out[2*i] = gap_clip(Acc0, 7), Out[2*i+1] = gap_clip(Acc1, 7);
         }
@@ -297,6 +343,12 @@ static void Ker_Activation_ScaleIn_SQ8(
 				{
 					int Acc0N = Acc0 << 8;
 					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
 		}
@@ -368,8 +420,106 @@ static void KerReduct_Activation_SQ8(
 			case ACT_RELUN:
 				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
 				break;
+			case ACT_HSIGMOID:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
+				break;
+			case ACT_HSWISH:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
+				break;
+			case ACT_LEAKYRELU:
+				{
+					int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
+					int Acc0N = AT_NORM(Acc0 * A0, 7);
+					Acc0 = AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN);
+				//	Acc0 = AT_SCALE(((Acc0<0) ? AT_NORM(Acc0 * A0, 7):Acc0), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_SIGMOID:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+		}
+                Out[i] = gap_clip(Acc0, 7);
+        }
+}
+
+/*
+ * Conv/Linear DP scaling followed by an optional activation, Out buffer is different from In Buffer
+*/
+/*static void KerReduct_Activation_SQ8(
+        int * __restrict__ In,
+        signed char * __restrict__ Out,
+	unsigned int N,
+	unsigned int Scale,
+	unsigned int ScaleN,
+        CNN_ActivationOper_T Activation,
+	unsigned int ActScale, unsigned int ActScaleN, int A0, int B0, int C0
+        )
+
+{
+        for (unsigned int i=0; i<N; i++) {
+                int Acc0 = gap_clip(AT_SCALE(In[i], Scale, ScaleN), 7);
+		switch (Activation) {
+			case ACT_NONE:
+				break;
+			case ACT_RELU:
+				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
+				break;
+			case ACT_RELUN:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
+				break;
+			case ACT_HSIGMOID:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0, ActScale, ActScaleN);
+				break;
+			case ACT_HSWISH:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0 + B0, A0) * C0 * Acc0, ActScale, ActScaleN);
+				break;
+			case ACT_LEAKYRELU:
+				{
+					int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
+					int Acc0N = AT_NORM(Acc0 * A0, 7);
+					Acc0 = AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN);
+				//	Acc0 = AT_SCALE(((Acc0<0) ? AT_NORM(Acc0 * A0, 7):Acc0), ActScale, ActScaleN);
+				}
+				break;
+		}
+                Out[i] = gap_clip(Acc0, 7);
+        }
+}*/
+
+static void KerReduct_Activation_HWC_SQ8(
+        int * __restrict__ In,
+        signed char * __restrict__ Out,
+	unsigned int N,
+	unsigned int Feat,
+	unsigned int Scale,
+	unsigned int ScaleN,
+        CNN_ActivationOper_T Activation,
+	unsigned int ActScale, unsigned int ActScaleN, int A0, int B0, int C0
+        )
+
+{
+        for (unsigned int i=0; i<N; i++) {
+                int Acc0 = gap_clip(AT_SCALE(In[i], Scale, ScaleN), 7);
+		switch (Activation) {
+			case ACT_NONE:
+				break;
+			case ACT_RELU:
+				Acc0 = AT_SCALE(Max(0, Acc0), ActScale, ActScaleN);
+				break;
+			case ACT_RELUN:
+				Acc0 = AT_SCALE(AT_CLIP_POS(Acc0, A0), ActScale, ActScaleN);
+				break;
 			case ACT_RELUM:
-				Acc0 = AT_SCALE(Max(B0, Acc0), ActScale, ActScaleN);
+				Acc0 = AT_SCALE(Max(A0, Acc0), ActScale, ActScaleN);
 				break;
 			case ACT_RELUMN:
 				Acc0 = AT_SCALE(Min(B0, Max(Acc0, A0)), ActScale, ActScaleN);
@@ -390,15 +540,18 @@ static void KerReduct_Activation_SQ8(
 				break;
 			case ACT_SIGMOID:
 				{
-					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
-					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
-					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
 					int Acc0N = Acc0 << 8;
 					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
 		}
-                Out[i] = gap_clip(Acc0, 7);
+                Out[i*Feat] = gap_clip(Acc0, 7);
         }
 }
 
@@ -436,6 +589,78 @@ static void KerReduct_ActivationScale1_SQ8(
 		}
                 Out[i] = Acc0;
         }
+}
+
+static void KerReduct_ActivationScale1_HWC_SQ8(
+        int * __restrict__ In,
+        signed char * __restrict__ Out,
+	unsigned int N,
+	unsigned int Feat,
+	unsigned int Scale,
+	unsigned int ScaleN,
+        CNN_ActivationOper_T Activation,
+	int A0, int B0, int C0
+        )
+
+{
+        for (unsigned int i=0; i<N/4; i++) {
+                int Acc0 = gap_clip(AT_SCALE(Scale, In[4*i+0], ScaleN), 7);
+                int Acc1 = gap_clip(AT_SCALE(Scale, In[4*i+1], ScaleN), 7);
+                int Acc2 = gap_clip(AT_SCALE(Scale, In[4*i+2], ScaleN), 7);
+                int Acc3 = gap_clip(AT_SCALE(Scale, In[4*i+3], ScaleN), 7);
+		switch (Activation) {
+			case ACT_NONE:
+				break;
+			case ACT_RELU:
+				Acc0 = Max(0, Acc0);
+				Acc1 = Max(0, Acc1);
+				Acc2 = Max(0, Acc2);
+				Acc3 = Max(0, Acc3);
+				break;
+			case ACT_RELUN:
+				Acc0 = AT_CLIP_POS(Acc0, A0);
+				Acc1 = AT_CLIP_POS(Acc1, A0);
+				Acc2 = AT_CLIP_POS(Acc2, A0);
+				Acc3 = AT_CLIP_POS(Acc3, A0);
+				break;
+			case ACT_RELUM:
+				Acc0 = Max(Acc0, A0);
+				Acc1 = Max(Acc1, A0);
+				Acc2 = Max(Acc2, A0);
+				Acc3 = Max(Acc3, A0);
+				break;
+			case ACT_RELUMN:
+				Acc0 = Min(B0, Max(Acc0, A0));
+				Acc1 = Min(B0, Max(Acc1, A0));
+				Acc2 = Min(B0, Max(Acc2, A0));
+				Acc3 = Min(B0, Max(Acc3, A0));
+				break;
+		}
+                Out[Feat*(4*i+0)] = Acc0;
+                Out[Feat*(4*i+1)] = Acc1;
+                Out[Feat*(4*i+2)] = Acc2;
+                Out[Feat*(4*i+3)] = Acc3;
+        }
+        for (unsigned int i=4*(N/4); i<N; i++) {
+                int Acc0 = gap_clip(AT_SCALE(Scale, In[i], ScaleN), 7);
+		switch (Activation) {
+			case ACT_NONE:
+				break;
+			case ACT_RELU:
+				Acc0 = Max(0, Acc0);
+				break;
+			case ACT_RELUN:
+				Acc0 = AT_CLIP_POS(Acc0, A0);
+				break;
+			case ACT_RELUM:
+				Acc0 = Max(Acc0, A0);
+				break;
+			case ACT_RELUMN:
+				Acc0 = Min(B0, Max(Acc0, A0));
+				break;
+		}
+                Out[Feat*i] = Acc0;
+	}
 }
 
 /*
@@ -491,6 +716,12 @@ static void KerReductIO_Activation_SQ8(
 					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
 					int Acc0N = Acc0 << 8;
 					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
 		}
@@ -594,6 +825,28 @@ static void _KerReduct_Activation_SQ8(
 				//	Acc1 = AT_SCALE(((Acc1<0) ? AT_NORM(Acc1 * A0, 7):Acc1), ActScale, ActScaleN);
 				}
 				break;
+			case ACT_SIGMOID:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Sigmoid(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Tanh(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
 		}
                 Out[2*i] = gap_clip(Acc0, 7); Out[2*i+1] = gap_clip(Acc1, 7);
         }
@@ -627,6 +880,18 @@ static void _KerReduct_Activation_SQ8(
 					Acc0 = AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN);
 
 					// Acc0 = AT_SCALE(((Acc0<0) ? AT_NORM(Acc0 * A0, 7):Acc0), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_SIGMOID:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
 		}
@@ -756,6 +1021,28 @@ static void _KerReductIO_Activation_SQ8(
 				//	Acc1 = AT_SCALE(((Acc1<0) ? AT_NORM(Acc1 * A0, 7):Acc1), ActScale, ActScaleN);
 				}
 				break;
+			case ACT_SIGMOID:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Sigmoid(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					// Assumes input (Acc) in Sq[-8:8] = 16 / 256 = 2**(-4)
+					// y = Sigmoid(x) expects x in Q12 --> Sin/Sq12 = 2**(-4) / 2**(-12) = 2**(8) --> << 8
+					// y in Q15 is then shifted to fit int8 Q7 data --> >> 8 and scaled to the output scale with ActScale
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
+					int Acc1N = Acc1 << 8;
+					Acc1 = AT_SCALE((Tanh(Acc1N) >> 8), ActScale, ActScaleN);
+				}
+				break;
 		}
                 Out[2*i]   = gap_clip(Acc0, 7); Out[2*i+1] = gap_clip(Acc1, 7);
         }
@@ -789,6 +1076,18 @@ static void _KerReductIO_Activation_SQ8(
 					Acc0 = AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN);
 
 					// Acc0 = AT_SCALE(((Acc0<0) ? AT_NORM(Acc0 * A0, 7):Acc0), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_SIGMOID:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Sigmoid(Acc0N) >> 8), ActScale, ActScaleN);
+				}
+				break;
+			case ACT_TANH:
+				{
+					int Acc0N = Acc0 << 8;
+					Acc0 = AT_SCALE((Tanh(Acc0N) >> 8), ActScale, ActScaleN);
 				}
 				break;
 		}
@@ -906,7 +1205,7 @@ static void KerReductIO_Compact_SQ8_1(char *__restrict__ To, char *__restrict__ 
 }
 
 /*
- * Input Scaling and reduction to 8b then channel cnetric activation, Out location != In location. Features are evaluated in parallel
+ * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel
 */
 void KerParReduct_CC_SQ8(KerConvLinReduct_SQ8_T *Arg)
 
@@ -1074,6 +1373,210 @@ void KerParReduct_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
+void KerParReduct_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Arg->W*Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_SQ8(In+Size*c, Out+Size*c, Size, Scale[c], ScaleN[c], ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+/*
+ * Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated in parallel. In: CHW Out: HWC
+*/
+void KerParReduct_CC_CHW2HWC_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_ActivationScale1_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_NONE, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+
+void KerParReduct_CC_CHW2HWC_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_ActivationScale1_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_RELU, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_ActivationScale1_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_RELUN, A0, B0, C0);
+	gap_waitbarrier(0);
+
+}
+
+void KerParReduct_CC_CHW2HWC_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_ActivationScale1_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_RELU, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_ActivationScale1_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_RELUN, A0, B0, C0);
+	gap_waitbarrier(0);
+
+}
+
+void KerParReduct_CC_CHW2HWC_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_HSIGMOID, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_HSWISH, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_SIGMOID, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerParReduct_CC_CHW2HWC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int S = Arg->Feat;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int W = Arg->W, H = Arg->H;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=First; c<Last; c++) KerReduct_Activation_HWC_SQ8(In+W*H*c, Out+c, W*H, S, Scale[c], ScaleN[c], ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
 /*
  * Input Scaling and reduction to 8b then channel centric activation, Out location = In location. Features are evaluated in parallel
 */
@@ -1084,6 +1587,7 @@ void KerParReductIO_CC_SQ8(KerConvLinReduct_SQ8_T *Arg)
 {
 	unsigned int S = Arg->Feat;
 	unsigned int Size = Arg->W*Arg->H;
+	unsigned int W = Arg->W, H = Arg->H;
 	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
 	int * __restrict__ In = (int *__restrict__) Arg->In;
 	signed char *__restrict__ Out = (signed char *__restrict__)(In+First*Size);
@@ -1268,6 +1772,27 @@ void KerParReductIO_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
 }
 
+void KerParReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	unsigned int S = Arg->Feat;
+	unsigned int Size = Arg->W*Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char *__restrict__ Out = (signed char *__restrict__)(In+First*Size);
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	S = Size*Max(0, Last-First);
+	for (int c=First; c<Last; Out+=Size, c++) KerReductIO_Activation_SQ8(Out, In+Size*c, Size, Scale[c], ScaleN[c], ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+	// KerReductIO_Compact_SQ8(In, S, CoreId, ChunkCell*Size);
+	KerReductIO_Compact_SQ8_1((signed char *__restrict__)In, (signed char *__restrict__)In, Size*ChunkCell, Size * Arg->Feat);
+}
+
 /* Input Scaling and reduction to 8b then channel centric activation, Out location != In location. Features are evaluated one after the other in parallel */
 void KerReduct_CC_SQ8(KerConvLinReduct_SQ8_T *Arg)
 
@@ -1437,6 +1962,25 @@ void KerReduct_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 
 	for (int c=0; c<Feat; c++) KerReduct_Activation_SQ8(In+S*c+First, Out+S*c+First, Size, Scale[c], ScaleN[c], ACT_SIGMOID, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	unsigned int Feat = Arg->Feat;
+	unsigned S = Arg->W*Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=0; c<Feat; c++) KerReduct_Activation_SQ8(In+S*c+First, Out+S*c+First, Size, Scale[c], ScaleN[c], ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
 }
 
@@ -1658,155 +2202,35 @@ void KerReductIO_CC_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
 	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
 }
 
+void KerReductIO_CC_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	unsigned int Feat = Arg->Feat;
+	unsigned int S = Arg->W*Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	int * __restrict__ InOut = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int c=0; c<Feat; c++) {
+		KerReductIO_Activation_SQ8((signed char *__restrict__)(InOut+S*c+First), InOut+S*c+First, Size, Scale[c], ScaleN[c], ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
+		gap_waitbarrier(0);
+		// KerReductIO_Compact_SQ8(InOut+S*c, Size, CoreId, ChunkCell);
+		KerReductIO_Compact_SQ8_1((signed char *__restrict__)InOut+S*c, (signed char *__restrict__)(InOut+S*c), ChunkCell, S);
+	}
+	// ChunkCell = ChunkSize(Feat); First = CoreId*ChunkCell; Last  = Min(First+ChunkCell, Feat); Size = S*Max(0, Last-First);
+	// KerReductIO_Compact_SQ8(InOut, Size, CoreId, ChunkCell*Size);
+}
+
 /*
  * Standalone Scaled Activation, Features are evaluated in parallel
 */
 
 void KerPar_ActNone_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_NONE, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_NONE, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLU_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELU, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELU, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUN_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUN, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUN, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUM_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUM, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUM, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUMN_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUMN, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_SQ8(In + Size*c, Out + Size*c, Size, ACT_RELUMN, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_HSigmoid_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_HSIGMOID, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_HSwish_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_HSWISH, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_LeakyReLU_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_Sigmoid_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_SQ8(In + Size*c, Out + Size*c, Size, ACT_SIGMOID, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-/*
- * Standalone Scaled Activation, Features are evaluated one after the other in parallel
-*/
-
-void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg)
 
 {
 	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
@@ -1815,11 +2239,24 @@ void Ker_ActNone_SQ8(KerActivation_SQ8_T *Arg)
 	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
 	unsigned int Size = Max(0, Last-First);
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 
 
-	if (ActScale) Ker_Activation_SQ8(In+First, Out+First, Size, ACT_NONE, ActScale, ActScaleN, A0, B0, C0);
-	else Ker_ActivationScale1_SQ8(In+First, Out+First, Size, ACT_NONE, A0, B0);
+	Ker_Activation_SQ8(In+First, Out+First, Size, ACT_NONE, ActScale, ActScaleN, 0, 0, 0);
+	gap_waitbarrier(0);
+}
+
+void Ker_Scale_SQ8(KerActivation_SQ8_T *Arg)
+
+{
+	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+
+
+	Ker_Activation_SQ8(In+First, Out+First, Size, ACT_NONE, ActScale, ActScaleN, 0, 0, 0);
 	gap_waitbarrier(0);
 }
 
@@ -1955,156 +2392,19 @@ void Ker_Sigmoid_SQ8(KerActivation_SQ8_T *Arg)
 	gap_waitbarrier(0);
 }
 
-/*
- * Standalone Scaled Activation, Features are evaluated in parallel
-*/
-
-void KerPar_ActNone_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
+void Ker_Tanh_SQ8(KerActivation_SQ8_T *Arg)
 
 {
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
 	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
 	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
 	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
 	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
 	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
 
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_NONE, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_NONE, A0, B0);
-	gap_waitbarrier(0);
-}
 
-void KerPar_ReLU_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELU, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELU, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUN_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUN, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUN, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUM_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUM, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUM, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_ReLUMN_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	if (ActScale) for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUMN, ActScale, ActScaleN, A0, B0, C0);
-	else for (int c=First; c<Last; c++) Ker_ActivationScale1_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_RELUMN, A0, B0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_HSigmoid_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_HSIGMOID, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_HSwish_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_HSWISH, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_LeakyReLU_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_LEAKYRELU, ActScale, ActScaleN, A0, B0, C0);
-	gap_waitbarrier(0);
-}
-
-void KerPar_Sigmoid_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
-
-{
-	unsigned int S = Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
-	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
-	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
-	unsigned int Size = Arg->W*Arg->H;
-	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
-	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
-	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
-	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
-
-	for (int c=First; c<Last; c++) Ker_Activation_ScaleIn_SQ8(In + Size*c, Out + Size*c, In1Scale, In1ScaleN, Size, ACT_SIGMOID, ActScale, ActScaleN, A0, B0, C0);
+	Ker_Activation_SQ8(In+First, Out+First, Size, ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
 }
 
@@ -2269,4 +2569,629 @@ void Ker_Sigmoid_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
 	Ker_Activation_ScaleIn_SQ8(In+First, Out+First, In1Scale, In1ScaleN, Size, ACT_SIGMOID, ActScale, ActScaleN, A0, B0, C0);
 	gap_waitbarrier(0);
 }
+
+void Ker_Tanh_ScaleIn_SQ8(KerActivation_SQ8_T *Arg)
+
+{
+	unsigned int S = Arg->W*Arg->H*Arg->Feat, CoreId = gap_coreid(), ChunkCell = ChunkSize(S), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, S);
+	signed char * __restrict__ In = (signed char *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int Size = Max(0, Last-First);
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	unsigned int In1Scale = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALE], In1ScaleN = ((unsigned char *)Arg->Infos)[AT_INF_IN1SCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+
+	Ker_Activation_ScaleIn_SQ8(In+First, Out+First, In1Scale, In1ScaleN, Size, ACT_TANH, ActScale, ActScaleN, A0, B0, C0);
+	gap_waitbarrier(0);
+}
+
+
+/*
+ * Input Scaling and reduction to 8b then channel cnetric activation, Out location != In location. Features are evaluated in parallel
+*/
+void KerReduct_CC_NoScale_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(In[i], 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+	        Out[i] = gap_clip(AT_SCALE(Max(0, In[i]), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUN_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+	        Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i], A0), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_ReLUM_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Max(A0, In[i]), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_ReLUMN_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Min(B0, Max(A0, In[i])), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_HSigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i] + B0, A0) * C0, ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_HSwish_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i] + B0, A0) * C0 * In[i], ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_LeakyReLU_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		int Acc0 = In[i];
+		int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
+		int Acc0N = AT_NORM(Acc0 * A0, 7);
+		Out[i] = gap_clip(AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_Sigmoid_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE((Sigmoid(In[i] << 8) >> 8), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_Tanh_SQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed char * __restrict__ Out = (signed char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE((Tanh(In[i] << 8) >> 8), ActScale, ActScaleN), 7);
+	}
+	gap_waitbarrier(0);
+}
+
+
+/*
+ * Input Scaling and reduction to 8b then channel cnetric activation, Out location != In location. Features are evaluated in parallel
+*/
+void KerReduct_CC_NoScale_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(In[i], 7);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLU_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+	        Out[i] = gap_clip(AT_SCALE(Max(0, In[i]), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUN_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+	        Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i], A0), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_ReLUM_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Max(A0, In[i]), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_ReLUMN_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Min(B0, Max(A0, In[i])), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+
+}
+
+void KerReduct_CC_NoScale_HSigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i] + B0, A0) * C0, ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_HSwish_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(AT_CLIP_POS(In[i] + B0, A0) * C0 * In[i], ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_LeakyReLU_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		int Acc0 = In[i];
+		int Neg0 = gap_bitextractu(Acc0, 1, 31), Pos0 = !Neg0;
+		int Acc0N = AT_NORM(Acc0 * A0, 7);
+		Out[i] = gap_clip(AT_SCALE((Neg0*Acc0N+Pos0*Acc0), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_Sigmoid_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Sigmoid(In[i] << 8), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_Tanh_SQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	signed short * __restrict__ Out = (signed short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clip(AT_SCALE(Tanh(In[i] << 8), ActScale, ActScaleN), 15);
+	}
+	gap_waitbarrier(0);
+}
+
+
+
+
+/*
+ * Input Scaling and reduction to 8b then channel cnetric activation, Out location != In location. Features are evaluated in parallel
+*/
+void KerReduct_CC_NoScale_USQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Out = (unsigned char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+	        Out[i] = gap_clipu(In[i], 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLU_USQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Out = (unsigned char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		int Acc0 = gap_clipu(In[i], 8);
+                Out[i] = gap_clipu(AT_SCALE(Acc0, ActScale, ActScaleN), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUN_USQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Scale = (unsigned char *__restrict__) Arg->Scale;
+	unsigned char * __restrict__ ScaleN = (unsigned char *__restrict__) Arg->ScaleN;
+	unsigned char * __restrict__ Out = (unsigned char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+                Out[i] = gap_clipu(AT_SCALE(AT_CLIP_POS((int) In[i], A0), ActScale, ActScaleN), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUM_USQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Out = (unsigned char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(AT_SCALE(Max(A0, (int) In[i]), ActScale, ActScaleN), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+
+void KerReduct_CC_NoScale_ReLUMN_USQ8(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned char * __restrict__ Out = (unsigned char *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(AT_SCALE(Min(B0, Max(A0, (int) In[i])), ActScale, ActScaleN), 8);
+	}
+	gap_waitbarrier(0);
+}
+
+
+void KerReduct_CC_NoScale_USQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned short * __restrict__ Out = (unsigned short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(In[i], 16);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLU_USQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned short * __restrict__ Out = (unsigned short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		int Acc0 = gap_clipu(In[i], 16);
+		Out[i] = gap_clipu(AT_SCALE(Acc0, ActScale, ActScaleN), 16);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUN_USQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned short * __restrict__ Out = (unsigned short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(AT_SCALE(AT_CLIP_POS((int) In[i], A0), ActScale, ActScaleN), 16);
+	}
+	gap_waitbarrier(0);
+}
+
+void KerReduct_CC_NoScale_ReLUM_USQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned short * __restrict__ Out = (unsigned short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(AT_SCALE(Max(A0, (int) In[i]), ActScale, ActScaleN), 16);
+	}
+	gap_waitbarrier(0);
+}
+
+
+void KerReduct_CC_NoScale_ReLUMN_USQ16(KerConvLinReduct_SQ8_T *Arg)
+
+{
+	int Feat = Arg->Feat;
+	int W = Arg->W;
+	int H = Arg->H;
+	unsigned int CoreId = gap_coreid(), ChunkCell = ChunkSize(H*W*Feat), First = CoreId*ChunkCell, Last  = Min(First+ChunkCell, Feat*H*W);
+	int * __restrict__ In = (int *__restrict__) Arg->In;
+	unsigned short * __restrict__ Out = (unsigned short *__restrict__) Arg->Out;
+	signed char * __restrict__ Infos = (signed char *__restrict__) Arg->Infos;
+	unsigned int ActScale = ((unsigned char *)Infos)[AT_INF_ACTSCALE], ActScaleN = ((unsigned char *)Infos)[AT_INF_ACTSCALEN];
+	int A0 = Infos[AT_INF_A0], B0 = Infos[AT_INF_B0], C0 = Infos[AT_INF_C0];
+
+	for (int i=First; i<Last; i++) {
+		Out[i] = gap_clipu(AT_SCALE(Min(B0, Max(A0, (int) In[i])), ActScale, ActScaleN), 16);
+	}
+	gap_waitbarrier(0);
+}
+
 #pragma GCC diagnostic pop

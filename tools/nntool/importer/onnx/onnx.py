@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import re
+
 from graph.constant_store import ConstantStore
 from graph.dim import Dim
 from graph.matches.matchers.duplicate_constants import MatchDuplicateConstants
@@ -23,7 +25,7 @@ from graph.types.base import NNEdge
 from importer.common.clean_dangling_nodes import clean_dangling_nodes
 
 import onnx
-from onnx import defs, numpy_helper
+from onnx import defs, numpy_helper, shape_inference
 from onnx.helper import make_opsetid
 
 from ..common.provisional_dim import ProvisionalDim
@@ -43,6 +45,9 @@ class OnnxImporter(ImporterBase):
     def create_graph(self, filename, opts):
         opts = self.get_opts(opts)
         model = onnx.load(filename)
+        # onnx.checker.check_model(model)
+        # model_with_shapes = shape_inference.infer_shapes(model)
+
         self._name_cache = {}
         if model.ir_version < 3:
             opset_import = [make_opsetid(defs.ONNX_DOMAIN, 1)]
@@ -62,16 +67,16 @@ class OnnxImporter(ImporterBase):
         constants = self._get_initializers(G, graph.initializer)
         all_nodes.update(constants)
         inputs = self._get_input_nodes(G, graph.input, constants,
-                                       batch_hint=opts.get('batch_hint', None))
+                                       batch_hint=opts.get('batch_hint', None),
+                                       substitutions=opts.get('substitutions', None))
         all_nodes.update(inputs)
-        outputs = self._get_output_nodes(G, graph.output)
+        outputs = self._get_output_nodes(G, graph.output, substitutions=opts.get('substitutions', None))
         self._import_nodes(G, graph, handlers, all_nodes, outputs, opts)
         return G
 
     @staticmethod
     def _validate_name(name):
-        return name
-        # return name.replace(":", "_nntool_") + "_" + get_unique_suffix() if ":" in name else name
+        return re.sub('\W|^(?=\d)','_', name)
 
     @staticmethod
     def _get_dim_from_shape(onnx_shape):
@@ -103,9 +108,9 @@ class OnnxImporter(ImporterBase):
             )
             for init in initializer}
 
-    def _get_input_nodes(self, G, inputs, constants, batch_hint=None):
+    def _get_input_nodes(self, G, inputs, constants, batch_hint=None, substitutions=None):
         prov_dims = {
-            idx: ProvisionalDim.from_onnx_shape(input.type.tensor_type.shape, check_for_batch=0)
+            idx: ProvisionalDim.from_onnx_shape(input.type.tensor_type.shape, check_for_batch=0, substitutions=substitutions)
             for idx, input in enumerate(inputs) if input.name not in constants
         }
         if batch_hint is None and any(len(pshape.shape) >= 4 and pshape.shape[0] != 1 for pshape in prov_dims.values()):
@@ -133,12 +138,12 @@ class OnnxImporter(ImporterBase):
             for idx, input in enumerate(inputs) if input.name not in constants
         }
 
-    def _get_output_nodes(self, G, outputs):
+    def _get_output_nodes(self, G, outputs, substitutions=None):
         return {
             output.name: (
                 G.add_output(),
                 0,
-                ProvisionalDim.from_onnx_shape(output.type.tensor_type.shape)
+                ProvisionalDim.from_onnx_shape(output.type.tensor_type.shape, substitutions=substitutions)
             )
             for output in outputs}
 
@@ -152,6 +157,36 @@ class OnnxImporter(ImporterBase):
             self._name_cache[node.op_type] = count
             return "%s_%s" % (node.op_type, count)
         return "%s_%s" % (node.op_type, self._validate_name(node.output[0]))
+
+    # Non functional node sorting to work around networks with bad node order
+    # Shouldn't be necessary
+    # def _walk_nodes(self, in_name, nodes_by_input, seen):
+    #     seen.add(in_name)
+    #     nodes = []
+    #     if in_name not in nodes_by_input:
+    #         return nodes
+    #     for node in nodes_by_input[in_name]:
+    #         if not all(inp in seen for inp in node.input):
+    #             continue
+    #         nodes.append(node)
+    #         for out_name in node.output:
+    #             nodes.extend(self._walk_nodes(out_name, nodes_by_input, seen))
+    #     return nodes
+
+    # def _sort_nodes(self, nodes, used_tensors):
+    #     nodes_by_output = {output: node for node in nodes for output in node.output}
+    #     nodes_by_input = {}
+    #     for node in nodes:
+    #         for inpname in node.input:
+    #             in_nodes = nodes_by_input.setdefault(inpname, [])
+    #             in_nodes.append(node)
+    #     out_names = set(nodes_by_output.keys())
+    #     start_names = (used_tensors|set(nodes_by_input.keys())) - out_names
+    #     nodes = []
+    #     seen = set()
+    #     for in_name in start_names:
+    #         nodes.extend(self._walk_nodes(in_name, nodes_by_input, seen))
+    #     return nodes
 
     def _import_nodes(self, G, graph, handlers, all_nodes, outputs, opts):
         used_tensors = set(all_nodes.keys()) | set(outputs.keys()) | set.union(*(set(node.input)

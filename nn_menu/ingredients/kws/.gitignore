@@ -1,0 +1,8 @@
+BUILD*
+SSDKernels.*
+SSDParams.*
+SSDParamsGenerator
+GenSSDTile
+GenTile
+__pycache__
+images

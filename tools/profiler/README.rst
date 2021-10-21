@@ -1,6 +1,0 @@
-.. _profiler:
-
-Profiler
-========
-
-TODO

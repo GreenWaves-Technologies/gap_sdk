@@ -1,7 +1,24 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef __CNN_GENERATORS_SQ8_H__
 #define __CNN_GENERATORS_SQ8_H__
 #include <stdint.h>
 #include "AutoTilerLib.h"
+#include "CNN_Copy_Generators.h"
 
 #include "../CNN_Generators/CNN_Copy_Generators.h"
 
@@ -83,6 +100,75 @@ int CNN_ConvolutionPoolAct_SQ8(
 
 	KernelOper_T ActOper
 	);
+
+int CNN_MM_ConvolutionPoolAct_SQ8(
+        char         *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Bias_DataSize,
+        int Scale_DataSize,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
+int CNN_HWC_DWConvolutionPoolAct_SQ8(
+        char         *Name,
+
+        CNN_GenControl_T *Ctrl,
+
+        int Bias_DataSize,
+        int Scale_DataSize,
+
+        int InFeat,
+        int OutFeat,
+        int Width,
+        int Height,
+
+        KernelOper_T ConvOper,
+        int Fcx,
+        int Fcy,
+        int Dcx,
+        int Dcy,
+        int Scx,
+        int Scy,
+        int ConvPad,
+
+        KernelOper_T PoolOper,
+        int Fpx,
+        int Fpy,
+        int Dpx,
+        int Dpy,
+        int Spx,
+        int Spy,
+        int PoolPad,
+
+        KernelOper_T ActOper
+        );
+
 
 /*********************************************************************************************************************************************************************
  	Generator for Grouped Convolutions with channel centric scaling, followed by an optional pooling (Max or Average),
@@ -359,7 +445,7 @@ int CNN_SoftMax2D_SQ8(
 
 	CNN_GenControl_T *Ctrl,
 
-	int SoftmaxDim,
+	int Dim,
 	int N,
 
         KernelOper_T SoftMaxOper

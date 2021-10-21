@@ -17,6 +17,11 @@
 #ifndef __PMSIS_RTOS_MALLOC_MALLOC_H__
 #define __PMSIS_RTOS_MALLOC_MALLOC_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \brief Initialize the memory allocators.
  *
@@ -83,4 +88,8 @@ void pi_malloc_dump(void);
 #define pmsis_malloc_free    pi_free
 #define pmsis_malloc_display pi_malloc_dump
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_RTOS_MALLOC_MALLOC_H__ */

@@ -24,16 +24,16 @@ else ifeq ($(TARGET_CHIP), GAP8_V3)
 TARGET_CHIP_VERSION=3
 else ifeq ($(TARGET_CHIP), GAP9)
 TARGET_CHIP_VERSION=1
-chip="VEGA"
+chip=VEGA
 else
 TARGET_CHIP_VERSION=2
 endif
 chip_lowercase = $(shell echo $(chip) | tr A-Z a-z)
 
 # Directories
-FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/$(chip_lowercase)/common/config_files
+FREERTOS_CONFIG_DIR = $(FREERTOS_PATH)/demos/gwt/config/$(chip_lowercase)
 FREERTOS_SOURCE_DIR = $(FREERTOS_PATH)/freertos_kernel
-PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-$(chip)/
+PORT_DIR            = $(FREERTOS_SOURCE_DIR)/portable/GCC/RI5CY-$(chip)
 GWT_DIR             = $(FREERTOS_PATH)/vendors/gwt
 GWT_TARGET          = $(GWT_DIR)
 GWT_PMSIS           = $(GWT_TARGET)/pmsis
@@ -44,11 +44,8 @@ GWT_DEVICE_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/device
 GWT_DRIVER_INC      = $(GWT_TARGET)/$(chip_lowercase)/include/driver
 GWT_PMSIS_BACKEND   = $(GWT_PMSIS)/backend
 GWT_PMSIS_IMPLEM    = $(GWT_TARGET)/$(chip_lowercase)/pmsis
-ifeq ($(GAP_SDK_HOME), )
-GWT_PMSIS_API       = $(GWT_PMSIS)/api
-else
 GWT_PMSIS_API       = $(GAP_SDK_HOME)/rtos/pmsis/pmsis_api
-endif				# GAP_SDK_HOME
+
 
 ifeq ($(chip), GAP8)
 #APP_ARCH_CFLAGS     ?= -mchip=gap8 -mPE=8 -mFC=1
@@ -68,8 +65,6 @@ RISCV_FLAGS         ?= $(APP_ARCH_CFLAGS)
 FREERTOS_FLAGS      += -D__riscv__ -D__GAP__ -D__$(chip)__ -D__RISCV_ARCH_GAP__=1 \
                        -DCHIP_VERSION=$(TARGET_CHIP_VERSION)
 
-# Simulation related options
-export PULP_CURRENT_CONFIG_ARGS += $(CONFIG_OPT)
 
 # Main stack size in Bytes.
 MAIN_STACK_SIZE     ?= 2048
@@ -85,10 +80,8 @@ else
 FREERTOS_FLAGS  += -DPREEMPTION
 endif
 
-
 # Simulation platform
-# Default is gapuino
-
+# Default is board(gapuino)
 ifdef PLPTEST_PLATFORM
 platform=$(PLPTEST_PLATFORM)
 ifneq ($(platform), gvsoc)
@@ -106,8 +99,6 @@ io = rtl
 
 # FPGA
 else ifeq ($(platform), fpga)
-CONFIG_FREQUENCY_FPGA ?= 50000000
-FREERTOS_FLAGS     += -DCONFIG_FREQUENCY_FPGA=$(CONFIG_FREQUENCY_FPGA)
 FREERTOS_FLAGS     += -D__PLATFORM_FPGA__ -D__PLATFORM__=ARCHI_PLATFORM_FPGA
 FREERTOS_FLAGS     += -D__SEMIHOSTING__
 io ?= host
@@ -180,14 +171,26 @@ COMMON              = $(RISCV_FLAGS) \
                       -c -g -ffunction-sections -fdata-sections \
                       -fno-delete-null-pointer-checks -fomit-frame-pointer \
                       -fno-tree-loop-distribute-patterns -fno-jump-tables \
-                      $(FEATURE_FLAGS) $(FREERTOS_FLAGS) $(GCC_OPTIM_LEVEL)
+                      $(FEATURE_FLAGS) $(FREERTOS_FLAGS)
+#$(GCC_OPTIM_LEVEL)
 
 # Enable log/traces. Often another flag should be set in order to print traces.
 DEBUG_FLAGS         ?= -DPI_LOG_DEFAULT_LEVEL=PI_LOG_TRACE
 
-PRINTF_FLAGS        = -DPRINTF_ENABLE_LOCK
-#-DPRINTF_DISABLE_SUPPORT_EXPONENTIAL -DPRINTF_DISABLE_SUPPORT_FLOAT
+PRINTF_FLAGS        = #-DPRINTF_DISABLE_SUPPORT_EXPONENTIAL -DPRINTF_DISABLE_SUPPORT_FLOAT
 PRINTF_FLAGS       += $(IO)
+
+FREQ_FLAGS         += -DCONFIG_FREQUENCY_PERIPH=$(CONFIG_FREQUENCY_PERIPH) \
+                      -DCONFIG_FREQUENCY_FC=$(CONFIG_FREQUENCY_FC) \
+                      -DCONFIG_FREQUENCY_CLUSTER=$(CONFIG_FREQUENCY_CLUSTER) \
+                      -DCONFIG_FREQUENCY_SFU=$(CONFIG_FREQUENCY_SFU) \
+                      -DCONFIG_FAST_OSC_FREQUENCY=$(CONFIG_FAST_OSC_FREQUENCY) \
+                      -DCONFIG_FREQUENCY_FPGA=$(CONFIG_FREQUENCY_FPGA) \
+                      -DCONFIG_MAX_FREQUENCY_PERIPH=$(CONFIG_MAX_FREQUENCY_PERIPH) \
+                      -DCONFIG_MAX_FREQUENCY_FC=$(CONFIG_MAX_FREQUENCY_FC) \
+                      -DCONFIG_MAX_FREQUENCY_CLUSTER=$(CONFIG_MAX_FREQUENCY_CLUSTER) \
+                      -DCONFIG_MAX_FREQUENCY_SFU=$(CONFIG_MAX_FREQUENCY_SFU)
+
 
 WARNINGS            = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
                       -Wno-unused-variable -Wno-unused-but-set-variable \
@@ -196,7 +199,9 @@ WARNINGS            = -Wall -Wextra -Wno-unused-parameter -Wno-unused-function \
 
 ASMFLAGS            = -x assembler-with-cpp $(COMMON) $(WARNINGS) -DASSEMBLY_LANGUAGE
 
-CFLAGS              = -std=gnu99 $(COMMON) $(WARNINGS) $(PRINTF_FLAGS) $(DEBUG_FLAGS)
+CFLAGS              = -std=gnu99 $(COMMON) $(WARNINGS) $(PRINTF_FLAGS) $(FREQ_FLAGS) $(DEBUG_FLAGS)
+
+CXXFLAGS            = -std=gnu++98 -fno-rtti -Wvla $(COMMON) $(PRINTF_FLAGS) $(DEBUG_FLAGS)
 
 # Objdump options(disassembly).
 #OBJDUMP_OPT         = -D -l -f -g -z
@@ -224,18 +229,14 @@ LDFLAGS             = -T$(LINK_SCRIPT) -nostartfiles -nostdlib $(STRIP) $(LIBS)
 
 # App sources
 APP_SRC            +=
+# App ASM sources
+APP_ASM_SRC        +=
 # App includes
 APP_INCLUDES       += $(foreach f, $(APP_INC_PATH), -I$f)
 # App compiler options
 APP_CFLAGS         +=
 # App linker options
 APP_LDFLAGS        +=
-
-# libc/gcc CRT files.
-#GCC_CRT             = $(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtbegin.o \
-                      $(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crti.o \
-                      $(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtn.o \
-                      $(GAP_RISCV_GCC_TOOLCHAIN)/lib/gcc/riscv32-unknown-elf/7.1.1/crtend.o
 
 # Sources and Includes.
 CRT0_SRC            = $(shell find $(GWT_DEVICE) -iname "*.S")
@@ -280,29 +281,10 @@ PMSIS_INC_PATH     += $(PMSIS_BSP_INC)
 PMSIS_INC_PATH     += $(PMSIS_RTOS_INC)
 
 
-
-ifdef CONFIG_TESTBENCH
-
-# Set of models connected to the RTL platform, capable of generating stimuli.
-# For example, on I2S it allows to generate samples, or capture them on I2S interfaces.
-# Models are dynamically controlled via UART.
-# A library in gap_lib is needed to control them.
-
-PMSIS_SRC += $(GAP_LIB_PATH)/testbench/testbench.c $(GAP_LIB_PATH)/testbench/testlib.c
-CONFIG_TESTBENCH_UART_ID ?= 1
-CONFIG_TESTBENCH_UART_BAUDRATE ?= 1000000
-CFLAGS += -DCONFIG_TESTBENCH_UART_ID=$(CONFIG_TESTBENCH_UART_ID) -DCONFIG_TESTBENCH_UART_BAUDRATE=$(CONFIG_TESTBENCH_UART_BAUDRATE)
-INC_PATH += $(GAP_LIB_PATH)/testbench
-
-export GVSOC_TESTBENCH=1
-override config_args += --config-opt=**/runner/gvsoc_dpi/enabled=true
-override config_args += --config-opt=**/testbench/testbench/uart_id=$(CONFIG_TESTBENCH_UART_ID)
-override config_args += --config-opt=**/testbench/testbench/uart_baudrate=$(CONFIG_TESTBENCH_UART_BAUDRATE)
-
-endif
-
 # OpenMP sources
 ifeq '$(CONFIG_OPENMP)' '1'
+-include $(OPENMP_DIR)/rules/freertos_openmp_rules.mk
+
 OPENMP_SRC          = $(OPENMP_SRCS)
 OPENMP_INC_PATH     = $(OPENMP_INC)
 CFLAGS             += -fopenmp
@@ -313,16 +295,15 @@ INCLUDES            = $(foreach f, $(INC_PATH) $(PMSIS_INC_PATH), -I$f)
 INCLUDES           += $(foreach f, $(GAP_LIB_INC_PATH) $(OPENMP_INC_PATH), -I$f)
 INCLUDES           += $(FEAT_INCLUDES)
 
-# Directory containing built objects
-BUILDDIR            = $(shell pwd)/BUILD$(build_dir_ext)/$(TARGET_CHIP)/GCC_RISCV
-TARGET_BUILD_DIR    = $(BUILDDIR)
 
 # Objects
 CRT0_OBJ            = $(patsubst %.S, $(BUILDDIR)/%.o, $(CRT0_SRC))
 PMSIS_ASM_OBJ       = $(patsubst %.S, $(BUILDDIR)/%.o, $(PMSIS_ASM_SRC))
 PORT_ASM_OBJ        = $(patsubst %.S, $(BUILDDIR)/%.o, $(PORT_ASM_SRC))
+APP_ASM_OBJ         = $(patsubst %.S, $(BUILDDIR)/%.o, $(APP_ASM_SRC))
 
 APP_OBJ             = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_SRC))
+APP_OBJ_CXX         = $(patsubst %.cpp, $(BUILDDIR)/%.o, $(APP_SRCS_CXX))
 DEVICE_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DEVICE_SRC))
 DRIVER_OBJ          = $(patsubst %.c, $(BUILDDIR)/%.o, $(DRIVER_SRC))
 GAP_LIB_OBJ         = $(patsubst %.c, $(BUILDDIR)/%.o, $(GAP_LIB_SRC))
@@ -340,7 +321,11 @@ C_OBJS              = $(API_OBJ) $(DEVICE_OBJ) $(DRIVER_OBJ) $(GAP_LIB_OBJ) \
                       $(PMSIS_BACKEND_OBJ) $(PORT_OBJ) $(PRINTF_OBJ) $(RTOS_OBJ)
 
 # Objects to build.
-BUILDING_OBJS       = $(APP_OBJ) $(ASM_OBJS) $(C_OBJS)
+BUILDING_OBJS       = $(APP_ASM_OBJ) $(APP_OBJ) $(APP_OBJ_CXX) $(ASM_OBJS) $(C_OBJS)
+
+#$(info ## FreeRTOS app sources : $(BUILDING_OBJS))
+#$(info ## FreeRTOS CXX app sources : $(APP_SRCS_CXX))
+#$(info ## FreeRTOS CXX app sources : $(APP_OBJ_CXX))
 # In case there are duplicate sources and user wants to use his own sources.
 # User can exclude some source from build, using APP_EXCLUDE_SRCS.
 APP_EXCLUDE_OBJS    = $(patsubst %.c, $(BUILDDIR)/%.o, $(APP_EXCLUDE_SRCS))
@@ -362,7 +347,7 @@ BIN                 = $(BUILDDIR)/$(APP)
 
 build: $(OBJS) $(BIN)
 
-all:: build image flash
+all:: build image flash_fs
 
 $(BUILDDIR):
 	mkdir -p $@
@@ -377,10 +362,20 @@ $(C_OBJS): $(BUILDDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
+$(APP_ASM_OBJ): $(BUILDDIR)/%.o: %.S
+	@echo "    ASM  $(shell basename $<)"
+	@mkdir -p $(dir $@)
+	$(TRC_MAKE)$(CC) $(ASMFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+
 $(APP_OBJ): $(BUILDDIR)/%.o: %.c
 	@echo "    CC $(shell basename $<)"
 	@mkdir -p $(dir $@)
 	$(TRC_MAKE)$(CC) $(CFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
+
+$(APP_OBJ_CXX) : $(BUILDDIR)/%.o : %.cpp
+	@echo "    CXX $(shell basename $<)"
+	@mkdir -p $(dir $@)
+	$(TRC_MAKE)$(CXX) $(CXXFLAGS) $(APP_CFLAGS) $(INCLUDES) $(APP_INCLUDES) -MD -MF $(basename $@).d -o $@ $<
 
 $(BIN): $(OBJS)
 	$(TRC_MAKE)$(CC) -MD -MP -o $@ $(GCC_CRT) $(OBJS) $(APP_ARCH_LDFLAGS) $(APP_LDFLAGS) $(LDFLAGS)
@@ -399,24 +394,23 @@ $(BIN).size: $(BIN)
 	@$(NM) $(NM_OPT) $< >> $@
 
 
-override config_args += $(foreach file, $(READFS_FILES), --config-opt=flash/content/partitions/readfs/files=$(file))
-override config_args += $(foreach file, $(HOSTFS_FILES), --config-opt=flash/content/partitions/hostfs/files=$(file))
-
-ifdef LFS_ROOT_DIR
-override config_args += --config-opt=flash/content/partitions/lfs/root_dir=$(LFS_ROOT_DIR)
-endif
-
 flash: $(BIN)
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --force --binary=$(BIN) $(runner_args)
+
+flash_fs: $(BIN)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --flash --binary=$(BIN) $(runner_args)
 
 image: $(BIN)
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --image --binary=$(BIN) $(runner_args)
 
 run: $(BIN)
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec-prepare --exec --binary=$(BIN) $(runner_args)
 
 traces:
-	gapy --target=$(GAPY_TARGET) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) --no-run --extend-traces $(runner_args)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --exec --binary=$(BIN) --no-run --extend-traces $(runner_args)
+
+gtkw: $(BIN)
+	gapy $(GAPY_TARGET_OPT) --platform=$(platform) --work-dir=$(BUILDDIR) $(config_args) $(gapy_args) run --gtkw --binary=$(BIN) $(runner_args)
 
 disdump: $(BIN).s $(BIN).size #$(OBJS_DUMP)
 
@@ -425,11 +419,11 @@ debug:
 
 clean:: clean_app
 	@rm -rf $(OBJS) $(DUMP)
-	@rm -rf *~ BUILD$(build_dir_ext) transcript *.wav __pycache__
+	@rm -rf *~ $(BUILDDIR) transcript *.wav __pycache__
 	@rm -rf $(GVSOC_FILES_CLEAN) .simvision
 	@rm -rf version.log
 
 clean_app::
-	@rm -rf $(APP_OBJ) $(BIN) $(OBJS_DUMP)
+	@rm -rf $(APP_OBJ) $(APP_OBJ_CXX) $(BIN) $(OBJS_DUMP)
 
 .PHONY: clean build all run debug disdump clean_app

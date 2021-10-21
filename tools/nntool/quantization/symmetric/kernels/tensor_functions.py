@@ -43,8 +43,6 @@ class InputSymmetric(KernelBase):
             in_tensor = in_tensor.reshape(params.dims.shape)
         else:
             in_tensor = resize(in_tensor, params.dims.shape)
-        if params.transpose_out:
-            in_tensor = np.transpose(in_tensor, params.transpose_out)
         # output_tensors = qrec.get_outputs(params, [in_tensor], ktype="symmetric")
         return [qrec.out_qs[0].quantize(in_tensor)]
 
@@ -59,8 +57,6 @@ class OutputSymmetric(KernelBase):
                 **kwargs):
         del qrec
         in_tensor = in_tensors[0]
-        if params.transpose_in:
-            in_tensor = np.transpose(in_tensor, params.transpose_in[0])
         return [in_tensor]
 
 

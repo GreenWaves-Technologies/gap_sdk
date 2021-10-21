@@ -19,6 +19,7 @@
  */
 
 
+
 #include <vp/vp.hpp>
 #include <vp/itf/cpi.hpp>
 #include <vp/itf/i2c.hpp>

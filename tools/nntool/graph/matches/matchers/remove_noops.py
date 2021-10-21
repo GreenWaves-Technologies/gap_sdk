@@ -28,7 +28,7 @@ class RemoveNoOPs(Matcher):
     @staticmethod
     def node_does_nothing(node):
         return (isinstance(node, NoOPParameters) or
-                isinstance(node, TransposeParameters) and node.transpose_in is None or
+                isinstance(node, TransposeParameters) and node.transpose is None or
                 isinstance(node, ReshapeParameters) and node.old_shape == node.shape)
 
     def _match(self, G: GraphView, set_identity: bool = True, **kwargs) -> bool:

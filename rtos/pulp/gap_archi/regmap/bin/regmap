@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Manages register map')
 
 parser.add_argument(
     "--input", dest="input", default=None,
-    help="Specify input file 9just for reference"
+    help="Specify input file just for reference"
 )
 
 parser.add_argument(
@@ -54,6 +54,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--pretty-name", dest="pretty_name", default=None,
+    help="Specifies a human-friendly name"
+)
+
+parser.add_argument(
     "--register", dest="registers", default=[], action="append",
     help="Specifies register to be parsed"
 )
@@ -93,7 +98,7 @@ if args.table:
     regmap.dump_to_table(dump_regfields=True)
 
 if args.rst:
-    regmap_rst.dump_to_rst(regmap=regmap, name=args.name, rst_path=args.rst)
+    regmap_rst.dump_to_rst(regmap=regmap, name=args.name, rst_path=args.rst, pretty_name=args.pretty_name)
 
 if args.json:
     regmap_json.dump_to_json(regmap=regmap, name=args.name, json_path=args.json)

@@ -1,11 +1,11 @@
-.. _windows:
+.. _profiler_windows:
 
 Other Profiler Windows
 ======================
 
-Around the central Profiler Window, which comprises the Signals Tree , the Timeline and the Signals Time up statistics (optional) windows, many other dock windows can be displayed. Whether they show up or not can be monitored by the user through the View Menu. 
+Around the central Profiler Window, which comprises the Signals Tree , the Timeline and the Signals Time up statistics (optional) windows, many other dock windows can be displayed. Whether they show up or not can be monitored by the user through the View Menu.
 
-This menu displays the name of all those optional windows, along with a button that can be checked or not by the user, depending on whether he wants this window to show up or not. 
+This menu displays the name of all those optional windows, along with a button that can be checked or not by the user, depending on whether he wants this window to show up or not.
 
 * Overview
 
@@ -40,9 +40,9 @@ Additionally, each of those dock windows is independent and can be:
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
-   overview 
+
+   overview
    functions
    source_code
    asm_code
-   
+

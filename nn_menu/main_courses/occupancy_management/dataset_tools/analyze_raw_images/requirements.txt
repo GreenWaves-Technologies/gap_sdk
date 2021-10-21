@@ -1,0 +1,4 @@
+opencv_contrib_python==4.3.0.36
+plotly==4.14.3
+numpy==1.16.5
+cufflinks==0.17.3

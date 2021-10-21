@@ -15,7 +15,7 @@ import logging
 from graph.types import NNEdge
 from graph.types.base import ComparableParameters
 from graph.types.others import SplitParameters
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.graph import GraphView
 from utils.node_id import NodeId
 
@@ -47,7 +47,7 @@ class MoveNodesBeforeSplit(Matcher):
         for edge in out_edges[1::]:
             if not isinstance(edge.to_node, ComparableParameters):
                 return None
-            if not first_edge.to_node.is_same_operation_as(edge.to_node):
+            if not first_edge.to_node.is_same_operation_as(G, edge.to_node):
                 return None
             if len(G.indexed_out_edges(edge.to_node.name)) > 1:
                 return None
@@ -80,8 +80,8 @@ class MoveNodesBeforeSplit(Matcher):
                                       to_node=out_edge.to_node, to_idx=out_edge.to_idx))
             G.insert_node_at_edge(keep_node, in_edges[0], edge_class=NNEdge)
             if G.quantization:
-                quantizer = UnifiedQuantizer.from_quantized_graph(G)
-                quantizer.quantize(G, start_nodes=[keep_node, node])
+                quantizer = NewQuantizer.from_quantized_graph(G)
+                quantizer.quantize()
 
         if set_identity:
             self.set_identity(G)

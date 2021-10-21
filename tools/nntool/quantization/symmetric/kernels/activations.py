@@ -111,7 +111,7 @@ class ReluSymmetricMult(KernelBase):
         scale_mul_biases_q = qrec.cache['scale_mul_biases_q']
         in_tensor = scale_mul_biases_q.apply_scales(in_tensor)
         if qrec.out_qs[0] != qrec.in_qs[0]:
-            return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, qrec.in_qs[0])], ktype="symmetric")
+            return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor.astype(np.int32), qrec.in_qs[0])], ktype="symmetric")
         return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
 
 
@@ -134,7 +134,7 @@ class ReluSymmetric(KernelBase):
             in_tensor = np.minimum(in_tensor, relu_ub)
 
         if qrec.out_qs[0] != qrec.in_qs[0]:
-            return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor, qrec.in_qs[0])], ktype="symmetric")
+            return qrec.get_outputs(params, [qrec.out_qs[0].reduce_from(in_tensor.astype(np.int32), qrec.in_qs[0])], ktype="symmetric")
         return qrec.get_outputs(params, [in_tensor], ktype="symmetric")
 
 

@@ -32,11 +32,14 @@ static void flush_cache(iss_t *iss, iss_insn_cache_t *cache)
 
   for (int i=0; i<ISS_INSN_NB_BLOCKS; i++)
   {
+    // Each page already allocated should be kept since various code will not
+    // fetch again the pointer after the flush.
+    // Just make sure the instruction will be decoded again after the flush.
     iss_insn_block_t *b = cache->blocks[i];
     while(b)
     {
       iss_insn_block_t *next = b->next;
-      b->is_init = false;
+      insn_block_init(b, b->pc);
       b = next;
     }
  }

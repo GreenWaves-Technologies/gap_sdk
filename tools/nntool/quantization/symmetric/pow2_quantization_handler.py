@@ -15,20 +15,15 @@
 
 import numpy as np
 from quantization.qtype import QType
+from quantization.quantizer_options import BITS_OPTION_DEFAULT_16
 
 from ..unified_quantization_handler import QuantizionHandler, options, scheme
 
 
 #pylint: disable=abstract-method
 @options(
-    {
-        'name': 'bits',
-        'shortcut': 'b',
-        'type': int,
-        'choices': [8, 16],
-        'help': 'bits for inputs and outputs',
-        'default': 16
-    })
+    BITS_OPTION_DEFAULT_16
+)
 @scheme('POW2')
 class Pow2QuantizionHandler(QuantizionHandler):
     BITS_TO_DTYPE = {

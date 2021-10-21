@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, GreenWaves Technologies (germain.haugou@greenwaves-technologies.com)
  */
 
@@ -110,18 +110,25 @@ namespace vp {
     int64_t pending_timestamp;
     string full_path;
     vector<std::function<void()>> callbacks;
-  };    
+  };
 
 
-#define vp_assert_always(cond, trace_ptr, msg...)  \
-  if (!(cond)) {                                   \
-    if (trace_ptr)                                 \
-      ((vp::trace *)(trace_ptr))->fatal(msg);      \
-    else                                           \
-    {                                              \
-      fprintf(stdout, "ASSERT FAILED: %s", msg);   \
-      abort();                                     \
-    }                                              \
+// the static_cast<vp_trace&> is here to fix a weird issue with the -Wnonnull
+// warning on GCC11. GCC says that trace_ptr is null, but we verified in the if
+// condition that it is not null.
+// The static_cast is used to avoid disabling the warning completely.
+#define vp_assert_always(cond, trace_ptr, msg...)     \
+  if (!(cond)) {                                      \
+    if (trace_ptr)                                    \
+    {                                                 \
+      vp::trace* trace_p = trace_ptr;                 \
+      (static_cast<vp::trace&>(*trace_p)).fatal(msg); \
+    }                                                 \
+    else                                              \
+    {                                                 \
+      fprintf(stdout, "ASSERT FAILED: %s", msg);      \
+      abort();                                        \
+    }                                                 \
   }
 
 #define vp_warning_always(trace_ptr, msg...)       \

@@ -88,9 +88,10 @@ class RunATCommand(NNToolShellBase):
         for l1 in l1_memories:
             for l2 in l2_memories:
                 for l3 in l3_memories:
-                    cmd = "./{} -o {} -c {} --L1 {} --L2 {} --L3 {} {}".format(args.executable,
-                                                                               args.out_dir, args.out_dir,
-                                                                               l1*1024, l2*1024, l3*1024, " ".join(extra_args))
+                    cmd = "{} -o {} -c {} --L1 {} --L2 {} --L3 {} {}".format(os.path.abspath(args.executable),
+                                                                             os.path.abspath(args.out_dir),
+                                                                             os.path.abspath(args.out_dir),
+                                                                             l1*1024, l2*1024, l3*1024, " ".join(extra_args))
                     LOG.info(cmd)
                     stream = os.popen(cmd)
 
@@ -104,10 +105,10 @@ class RunATCommand(NNToolShellBase):
                             m = match.search(line)
                             if m:
                                 if "Memory size" in m['column']:
-                                    fields.append(m['column'] + ' Given')
-                                    row.append(float(m['given']))
-                                    fields.append(m['column'] + ' Used')
-                                    row.append(float(m['used']))
+                                    fields.append(m['column'] + ' Given [kB]')
+                                    row.append(int(float(m['given']) / 1024))
+                                    fields.append(m['column'] + ' Used [kB]')
+                                    row.append(int(float(m['used']) / 1024))
                                 else:
                                     fields.append(m['column'])
                                     row.append(float(m['value']))

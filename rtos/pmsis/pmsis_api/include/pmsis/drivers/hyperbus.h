@@ -23,6 +23,10 @@
 #include "pmsis/drivers/aes_utils.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef PI_INLINE_HYPER_LVL_0
 #define PI_INLINE_HYPER_LVL_0
 #endif
@@ -581,5 +585,7 @@ void pi_hyper_flash_sync(struct pi_device *device);
 
 /// @endcond
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PI_PMSIS_DRIVERS_HYPERBUS_H__ */

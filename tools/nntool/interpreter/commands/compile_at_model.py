@@ -13,10 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import argparse
 import distutils.ccompiler as compiler
 
-from attr import define
 from graph.types.others import QuantizeParameters
 import logging
 import os
@@ -33,8 +31,7 @@ TILER_CNN_GENERATOR_PATH_SQ8 = os.environ.get('TILER_CNN_GENERATOR_PATH_SQ8')
 TILER_CNN_KERNEL_PATH_SQ8    = os.environ.get('TILER_CNN_KERNEL_PATH_SQ8')
 TILER_CNN_GENERATOR_PATH_FP16 = os.environ.get('TILER_CNN_GENERATOR_PATH_FP16')
 TILER_CNN_KERNEL_PATH_FP16    = os.environ.get('TILER_CNN_KERNEL_PATH_FP16')
-#NNTOOL_GENERATOR_PATH        = os.environ.get('NNTOOL_GENERATOR_PATH')
-#NNTOOL_KERNEL_PATH           = os.environ.get('NNTOOL_KERNELS_PATH')
+TILER_DSP_GENERATOR_PATH      = os.environ.get('TILER_DSP_GENERATOR_PATH')
 
 
 class CompileCommand(NNToolShellBase):
@@ -76,6 +73,8 @@ class CompileCommand(NNToolShellBase):
         cc.add_include_dir(TILER_CNN_GENERATOR_PATH)
         cc.add_include_dir(TILER_CNN_KERNEL_PATH_FP16)
         cc.add_include_dir(TILER_CNN_KERNEL_PATH)
+        if self.G.has_dsp:
+            cc.add_include_dir(TILER_DSP_GENERATOR_PATH)
         if args.define_emul:
             cc.define_macro('__EMUL__')
 
@@ -108,6 +107,8 @@ class CompileCommand(NNToolShellBase):
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH_FP16, "RNN_Generators_fp16.c"))
         if self.G.has_ssd_postprocess:
             at_gen_srcs.append(os.path.join(TILER_CNN_GENERATOR_PATH, "SSD_Generators.c"))
+        if self.G.has_dsp:
+            at_gen_srcs.append(os.path.join(TILER_DSP_GENERATOR_PATH, "DSP_Generators.c"))
 
         objs = cc.compile(
             srcs + at_gen_srcs,
@@ -116,3 +117,5 @@ class CompileCommand(NNToolShellBase):
         )
         objs += [at_lib]
         cc.link_executable(objs, exe)
+        if not os.path.exists(exe):
+            LOG.warning("Something went wrong")

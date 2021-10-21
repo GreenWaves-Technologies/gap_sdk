@@ -15,11 +15,13 @@ Here the list of benchmarks in this test suite:
 
 The benchmarks can be executed in 2 scenarios:
 
-1. Pure RISC-V Standard ISA - Provides a baseline performance for a non-optimised core.
+1. Pure RISC-V Standard ISA - Provides a baseline performance for a non-optimized core.
 2. GAP8 ISA (RISC-V Std ISA + Gap8 ISA extensions \*)
     - Single Core
     - Single Core with Vectorization (Byte or Short)
     - Parallel (8 Cores) with Vectorization (Byte or Short)
+
+In the second scenario we show the three optimizations that Gap8 has with respect to pure RISC-V single core: ISA extensions, vector units and cluster cores.
 
 Each GAP8 Cluster core embeds a vector unit capable of 4 byte operations or 2 short operations per cycle*.
 
@@ -31,13 +33,13 @@ The performance and energy results measured on the GAPuino Board are reported in
 
 The following chart shows the execution time speed-up of GAP8. The baseline is the Pure RISC-V ISA. All the experiment were conducted on a GAPuino Board.
 
-![](images/compute.png "Compute Comparison")
+![](imgs/compute.png)
 
-As we can see GAP8 benefits from all the 3 optimization steps. The speed up of GAP8 ISA extensions, vectorization and parallelization is between 14.5x and 53.9x. Which means that for instance at max GAP8 frequency **for a 5x5 byte convolutional layer on a 112x112 grayscale input image with 100 output filters, on GAP8 it takes only 12.8 ms while on a single core standard RISC-V ISA 729.4 ms**.
+As we can see GAP8 benefits from all the 3 optimization steps: Gap8 ISA extensions, vectorization and parallelization. The combined speed up is between 14.5x and 53.9x. Which means that, for instance, at max GAP8 frequency **for a 5x5 byte convolutional layer on a 112x112 grayscale input image with 100 output filters, on GAP8 it takes only 12.8 ms while on a single core standard RISC-V ISA 729.4 ms**.
 
 The next analysis shows the energy efficiency gain with respect to pure RISC-V Standard ISA.
 
-![](images/energy.png "Energy Comparison")
+![](imgs/energy.png "Energy Comparison")
 
 Here the results shows that for a given benchmark, we have a benefit from the GAP8 ISA extensions (blue bar), from the vector units (red bar) and from parallelism (yellow bar). The parallelism, exploiting shared instruction cache and shared memory, gives an additional ~2x gain in energy efficiency.
 
@@ -142,7 +144,7 @@ Here is a table of the supported maximum frequencies:
 
 The energy consumed by each benchmark can be measured using a differential probe connected to an oscilloscope. The differential probe is connected to the tests point 5 and 6 (TP5 and TP6). A 1 Ohm resistor is already placed between the two test points on the board. Before each kernel is launched the benchmark asserts the GPIO 17 and once each single benchmark is finished de-asserts it. So this GPIO can be used as trigger for the energy measurements. In the following figure a description of the physical pins on Gapuino board:
 
-![](images/bechmarkSetup.png "Gapuino Energy Measurements")
+![](imgs/bechmarkSetup.png "Gapuino Energy Measurements")
 
 To enable the GPIO PIN this define should be commented out:
 
@@ -154,8 +156,8 @@ The results presented in the previous section are sampled with a PicoScope 4444 
 
 Here an example of the PicoScope output screen of the benchmarks:
 
-![](images/pico.png "Gapuino PicoScope Output")
+![](imgs/pico.png "Gapuino PicoScope Output")
 
 
 
-The GPIO indicates the starting and ending point of each benchmark.
+The GPIO indicates the starting and ending point of each benchmark. Using the measurement tool of the picoscope user interface the user can then measure the mean energy of each benchmark, exploiting the GPIO to correctly position the starting and ending point. 

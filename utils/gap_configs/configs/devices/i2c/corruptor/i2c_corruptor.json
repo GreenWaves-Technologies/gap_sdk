@@ -1,0 +1,24 @@
+{
+    "vp_comps": [
+        "i2c_corruptor", "clock"
+    ],
+
+    "vp_ports": [
+        "i2c"
+    ],
+
+    "vp_bindings": [
+        ["i2c_corruptor->i2c", "self->i2c"],
+        ["clock->out", "i2c_corruptor->clock"],
+        ["i2c_corruptor->clock_cfg", "clock->clock_in"]
+    ],
+
+    "clock": {
+        "vp_component": "vp.clock_domain_impl",
+        "frequency": "10000000"
+    },
+
+    "i2c_corruptor": {
+        "vp_component": "devices.i2c.corruptor.i2c_corruptor"
+    }
+}

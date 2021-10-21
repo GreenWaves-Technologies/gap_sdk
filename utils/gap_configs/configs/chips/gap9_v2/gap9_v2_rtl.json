@@ -1,0 +1,438 @@
+{
+    "config_type": "generator",
+    "@generator@": "generators/v1/config_rtl_gen",
+  
+    "board": {
+      "name": "gap9_v2",
+      "devices": {
+        "spiflash": {
+          "@includes@": ["devices/spiflash_atxp032.json"]
+        },
+        "flash": {
+          "@include@" : "devices/hyperflash.json",
+          "cs": 1
+        },
+        "mram": {
+            "@include@": "ips/mram/mram.json"
+        }
+      },
+
+      "@cond@": {
+        "@os.environ.get('GVSOC_TESTBENCH') is None@": {
+          "components": {
+            "i2s_clock": {
+              "@includes@": ["devices/i2s_clock.json"]
+            },
+            "i2s_ws": {
+              "@includes@": ["devices/i2s_clock.json"]
+            },
+            "nina_b112": {
+              "@includes@": ["devices/nina_b112.json"]
+            },
+            "mic0": {
+              "@includes@": ["devices/microphone.json"]
+            },
+            "mic1": {
+              "@includes@": ["devices/microphone.json"]
+            },
+            "mic2": {
+              "@includes@": ["devices/microphone.json"]
+            },
+            "mic3": {
+              "@includes@": ["devices/microphone.json"]
+            },
+            "sink0": {
+              "@includes@": ["devices/speaker.json"]
+            },
+            "uart": {
+              "@includes@": ["devices/uart_checker.json"]
+            },
+            "camera": {
+              "@include@": "devices/camera/himax.json"
+            }
+          },
+    
+          "@cond@": {
+            "@os.environ.get('GVSOC_I2S_USE_EXT_WS') is None@": {
+              "bindings": [
+                [ "chip.uart0", "uart.input" ],
+                [ "i2s_clock.i2s", "chip.i2s0" ],
+                [ "mic0.i2s", "chip.i2s0" ],
+                [ "mic1.i2s", "chip.i2s0" ],
+                [ "mic2.i2s", "chip.i2s0" ],
+                [ "mic3.i2s", "chip.i2s0" ],
+                [ "mic0.ws_out", "mic1.ws_in" ],
+                [ "mic1.ws_out", "mic2.ws_in" ],
+                [ "mic2.ws_out", "mic3.ws_in" ],
+                [ "sink0.i2s", "chip.i2s0" ],
+                [ "camera.cpi", "chip.cpi0" ],
+                [ "chip.i2c0", "camera.i2c" ],
+                [ "chip.uart1", "nina_b112.uart" ]
+              ]
+            },
+            "@os.environ.get('GVSOC_I2S_USE_EXT_WS') is not None@": {
+              "bindings": [
+                [ "chip.uart0", "uart.input" ],
+                [ "i2s_clock.i2s", "chip.i2s0" ],
+                [ "i2s_ws.i2s", "mic0.ws_in" ],
+                [ "mic0.i2s", "chip.i2s0" ],
+                [ "mic1.i2s", "chip.i2s0" ],
+                [ "mic2.i2s", "chip.i2s0" ],
+                [ "mic3.i2s", "chip.i2s0" ],
+                [ "mic0.ws_out", "mic1.ws_in" ],
+                [ "mic1.ws_out", "mic2.ws_in" ],
+                [ "mic2.ws_out", "mic3.ws_in" ],
+                [ "mic3.ws_out", "chip.i2s0" ],
+                [ "sink0.i2s", "chip.i2s0" ],
+                [ "camera.cpi", "chip.cpi0" ],
+                [ "chip.i2c0", "camera.i2c" ]
+              ]
+            }
+          }
+        },
+    
+        "@os.environ.get('GVSOC_TESTBENCH') is not None@": {
+          "components": {
+            "testbench": {
+              "@includes@": ["devices/testbench.json"]
+            }
+          },
+          "bindings": [
+            [ "chip.gpio0", "testbench.gpio0" ],
+            [ "chip.gpio1", "testbench.gpio1" ],
+            [ "chip.gpio2", "testbench.gpio2" ],
+            [ "chip.gpio3", "testbench.gpio3" ],
+            [ "chip.gpio4", "testbench.gpio4" ],
+            [ "chip.gpio5", "testbench.gpio5" ],
+            [ "chip.gpio6", "testbench.gpio6" ],
+            [ "chip.gpio7", "testbench.gpio7" ],
+            [ "chip.gpio8", "testbench.gpio8" ],
+            [ "chip.gpio9", "testbench.gpio9" ],
+            [ "chip.gpio10", "testbench.gpio10" ],
+            [ "chip.gpio11", "testbench.gpio11" ],
+            [ "chip.gpio12", "testbench.gpio12" ],
+            [ "chip.gpio13", "testbench.gpio13" ],
+            [ "chip.gpio14", "testbench.gpio14" ],
+            [ "chip.gpio15", "testbench.gpio15" ],
+            [ "chip.gpio16", "testbench.gpio16" ],
+            [ "chip.gpio17", "testbench.gpio17" ],
+            [ "chip.gpio18", "testbench.gpio18" ],
+            [ "chip.gpio19", "testbench.gpio19" ],
+            [ "chip.gpio20", "testbench.gpio20" ],
+            [ "chip.gpio21", "testbench.gpio21" ],
+            [ "chip.gpio22", "testbench.gpio22" ],
+            [ "chip.gpio23", "testbench.gpio23" ],
+            [ "chip.gpio24", "testbench.gpio24" ],
+            [ "chip.gpio25", "testbench.gpio25" ],
+            [ "chip.gpio26", "testbench.gpio26" ],
+            [ "chip.gpio27", "testbench.gpio27" ],
+            [ "chip.gpio28", "testbench.gpio28" ],
+            [ "chip.gpio29", "testbench.gpio29" ],
+            [ "chip.gpio30", "testbench.gpio30" ],
+            [ "chip.gpio31", "testbench.gpio31" ],
+            [ "chip.gpio32", "testbench.gpio32" ],
+            [ "chip.gpio33", "testbench.gpio33" ],
+            [ "chip.gpio34", "testbench.gpio34" ],
+            [ "chip.gpio35", "testbench.gpio35" ],
+            [ "chip.gpio36", "testbench.gpio36" ],
+            [ "chip.gpio37", "testbench.gpio37" ],
+            [ "chip.gpio38", "testbench.gpio38" ],
+            [ "chip.gpio39", "testbench.gpio39" ],
+            [ "chip.gpio40", "testbench.gpio40" ],
+            [ "chip.gpio41", "testbench.gpio41" ],
+            [ "chip.gpio42", "testbench.gpio42" ],
+            [ "chip.gpio43", "testbench.gpio43" ],
+            [ "chip.gpio44", "testbench.gpio44" ],
+            [ "chip.gpio45", "testbench.gpio45" ],
+            [ "chip.gpio46", "testbench.gpio46" ],
+            [ "chip.gpio47", "testbench.gpio47" ],
+            [ "chip.gpio48", "testbench.gpio48" ],
+            [ "chip.gpio49", "testbench.gpio49" ],
+            [ "chip.gpio50", "testbench.gpio50" ],
+            [ "chip.gpio51", "testbench.gpio51" ],
+            [ "chip.gpio52", "testbench.gpio52" ],
+            [ "chip.gpio53", "testbench.gpio53" ],
+            [ "chip.gpio54", "testbench.gpio54" ],
+            [ "chip.gpio55", "testbench.gpio55" ],
+            [ "chip.gpio56", "testbench.gpio56" ],
+            [ "chip.gpio57", "testbench.gpio57" ],
+            [ "chip.gpio58", "testbench.gpio58" ],
+            [ "chip.gpio59", "testbench.gpio59" ],
+            [ "chip.gpio60", "testbench.gpio60" ],
+            [ "chip.gpio61", "testbench.gpio61" ],
+            [ "chip.gpio62", "testbench.gpio62" ],
+            [ "chip.gpio63", "testbench.gpio63" ],
+            [ "chip.gpio64", "testbench.gpio64" ],
+            [ "chip.gpio65", "testbench.gpio65" ],
+            [ "chip.gpio66", "testbench.gpio66" ],
+            [ "chip.gpio67", "testbench.gpio67" ],
+            [ "chip.gpio68", "testbench.gpio68" ],
+            [ "chip.gpio69", "testbench.gpio69" ],
+            [ "chip.gpio70", "testbench.gpio70" ],
+            [ "chip.gpio71", "testbench.gpio71" ],
+            [ "chip.gpio72", "testbench.gpio72" ],
+            [ "chip.gpio73", "testbench.gpio73" ],
+            [ "chip.gpio74", "testbench.gpio74" ],
+            [ "chip.gpio75", "testbench.gpio75" ],
+            [ "chip.gpio76", "testbench.gpio76" ],
+            [ "chip.gpio77", "testbench.gpio77" ],
+            [ "chip.gpio78", "testbench.gpio78" ],
+            [ "chip.gpio79", "testbench.gpio79" ],
+            [ "chip.gpio80", "testbench.gpio80" ],
+            [ "chip.gpio81", "testbench.gpio81" ],
+            [ "chip.gpio82", "testbench.gpio82" ],
+            [ "chip.gpio83", "testbench.gpio83" ],
+            [ "chip.gpio84", "testbench.gpio84" ],
+            [ "chip.gpio85", "testbench.gpio85" ],
+            [ "chip.gpio86", "testbench.gpio86" ],
+            [ "chip.gpio87", "testbench.gpio87" ],
+            [ "chip.gpio88", "testbench.gpio88" ],
+            [ "chip.gpio89", "testbench.gpio89" ],
+
+            [ "chip.i2c0", "testbench.i2c0" ],
+            [ "chip.i2c1", "testbench.i2c1" ],
+            [ "chip.i2c2", "testbench.i2c2" ],
+
+            [ "chip.uart0", "testbench.uart0" ],
+            [ "chip.uart1", "testbench.uart1" ],
+            [ "chip.uart2", "testbench.uart2" ],
+            [ "chip.uart3", "testbench.uart3" ],
+            [ "chip.uart4", "testbench.uart4" ],
+
+            [ "testbench.i2s0", "chip.i2s0" ],
+            [ "testbench.i2s1", "chip.i2s1" ],
+            [ "testbench.i2s2", "chip.i2s2" ],
+
+            [ "chip.spim0_cs0_data", "testbench.spi0_cs0_data" ],
+            [ "chip.spim0_cs0", "testbench.spi0_cs0" ],
+            [ "chip.spim0_cs1_data", "testbench.spi0_cs1_data" ],
+            [ "chip.spim0_cs1", "testbench.spi0_cs1" ],
+            [ "chip.spim0_cs2_data", "testbench.spi0_cs2_data" ],
+            [ "chip.spim0_cs2", "testbench.spi0_cs2" ],
+            [ "chip.spim0_cs3_data", "testbench.spi0_cs3_data" ],
+            [ "chip.spim0_cs3", "testbench.spi0_cs3" ],
+
+            [ "chip.spim1_cs0_data", "testbench.spi1_cs0_data" ],
+            [ "chip.spim1_cs0", "testbench.spi1_cs0" ],
+            [ "chip.spim1_cs1_data", "testbench.spi1_cs1_data" ],
+            [ "chip.spim1_cs1", "testbench.spi1_cs1" ],
+            [ "chip.spim1_cs2_data", "testbench.spi1_cs2_data" ],
+            [ "chip.spim1_cs2", "testbench.spi1_cs2" ],
+            [ "chip.spim1_cs3_data", "testbench.spi1_cs3_data" ],
+            [ "chip.spim1_cs3", "testbench.spi1_cs3" ],
+
+            [ "chip.spim2_cs0_data", "testbench.spi2_cs0_data" ],
+            [ "chip.spim2_cs0", "testbench.spi2_cs0" ],
+            [ "chip.spim2_cs1_data", "testbench.spi2_cs1_data" ],
+            [ "chip.spim2_cs1", "testbench.spi2_cs1" ],
+            [ "chip.spim2_cs2_data", "testbench.spi2_cs2_data" ],
+            [ "chip.spim2_cs2", "testbench.spi2_cs2" ],
+            [ "chip.spim2_cs3_data", "testbench.spi2_cs3_data" ],
+            [ "chip.spim2_cs3", "testbench.spi2_cs3" ],
+
+            [ "chip.spim3_cs0_data", "testbench.spi3_cs0_data" ],
+            [ "chip.spim3_cs0", "testbench.spi3_cs0" ],
+            [ "chip.spim3_cs1_data", "testbench.spi3_cs1_data" ],
+            [ "chip.spim3_cs1", "testbench.spi3_cs1" ],
+            [ "chip.spim3_cs2_data", "testbench.spi3_cs2_data" ],
+            [ "chip.spim3_cs2", "testbench.spi3_cs2" ],
+            [ "chip.spim3_cs3_data", "testbench.spi3_cs3_data" ],
+            [ "chip.spim3_cs3", "testbench.spi3_cs3" ],
+
+            [ "chip.spim4_cs0_data", "testbench.spi4_cs0_data" ],
+            [ "chip.spim4_cs0", "testbench.spi4_cs0" ]
+          ]
+        }
+      },
+
+      "chip": {
+        "@includes@": ["ips/dpi/chip_wrapper.json"],
+
+        "groups": {
+          "spim0": {
+            "type": "qspim",
+            "nb_cs": 4,
+            "is_master": true
+          },
+          "spim1": {
+            "type": "qspim",
+            "nb_cs": 4,
+            "is_master": true
+          },
+          "spim2": {
+            "type": "qspim",
+            "nb_cs": 4,
+            "is_master": true
+          },
+          "spim3": {
+            "type": "qspim",
+            "nb_cs": 4,
+            "is_master": true
+          },
+          "spim4": {
+            "type": "qspim",
+            "nb_cs": 1,
+            "is_master": true
+          },
+            "uart0": {
+            "type": "uart",
+            "is_master": true
+          },
+          "uart1": {
+            "type": "uart",
+            "is_master": true
+          },
+          "uart2": {
+            "type": "uart",
+            "is_master": true
+          },
+          "uart3": {
+            "type": "uart",
+            "is_master": true
+          },
+          "uart4": {
+            "type": "uart",
+            "is_master": true
+          },
+          "i2c0": {
+            "type": "i2c",
+            "is_master": true
+          },
+          "i2c1": {
+            "type": "i2c",
+            "is_master": true
+          },
+          "i2c2": {
+            "type": "i2c",
+            "is_master": true
+          },
+          "i2s0": {
+            "type": "i2s",
+            "is_slave": true
+          },
+          "i2s1": {
+            "type": "i2s",
+            "is_slave": true
+          },
+          "i2s2": {
+            "type": "i2s",
+            "is_slave": true
+          },
+          "spis": {},
+            "cpi0": {
+            "type": "cpi",
+            "is_slave": true
+          },
+          "reset": {},
+            "jtag0": {
+            "type": "jtag",
+            "is_slave": true,
+            "is_dual": true
+          },
+          "hyper0": {
+            "type": "hyper",
+            "nb_cs": 2,
+            "is_master": true
+          },
+          "timer0": {},
+          "timer1": {},
+          "timer2": {},
+          "timer3": {},
+          "xtal": {},
+          "gpio0": { "type": "gpio", "is_master": true },
+          "gpio1": { "type": "gpio", "is_master": true },
+          "gpio2": { "type": "gpio", "is_master": true },
+          "gpio3": { "type": "gpio", "is_master": true },
+          "gpio4": { "type": "gpio", "is_master": true },
+          "gpio5": { "type": "gpio", "is_master": true },
+          "gpio6": { "type": "gpio", "is_master": true },
+          "gpio7": { "type": "gpio", "is_master": true },
+          "gpio8": { "type": "gpio", "is_master": true },
+          "gpio9": { "type": "gpio", "is_master": true },
+          "gpio10": { "type": "gpio", "is_master": true },
+          "gpio11": { "type": "gpio", "is_master": true },
+          "gpio12": { "type": "gpio", "is_master": true },
+          "gpio13": { "type": "gpio", "is_master": true },
+          "gpio14": { "type": "gpio", "is_master": true },
+          "gpio15": { "type": "gpio", "is_master": true },
+          "gpio16": { "type": "gpio", "is_master": true },
+          "gpio17": { "type": "gpio", "is_master": true },
+          "gpio18": { "type": "gpio", "is_master": true },
+          "gpio19": { "type": "gpio", "is_master": true },
+          "gpio20": { "type": "gpio", "is_master": true },
+          "gpio21": { "type": "gpio", "is_master": true },
+          "gpio22": { "type": "gpio", "is_master": true },
+          "gpio23": { "type": "gpio", "is_master": true },
+          "gpio24": { "type": "gpio", "is_master": true },
+          "gpio25": { "type": "gpio", "is_master": true },
+          "gpio26": { "type": "gpio", "is_master": true },
+          "gpio27": { "type": "gpio", "is_master": true },
+          "gpio28": { "type": "gpio", "is_master": true },
+          "gpio29": { "type": "gpio", "is_master": true },
+          "gpio30": { "type": "gpio", "is_master": true },
+          "gpio31": { "type": "gpio", "is_master": true },
+          "gpio32": { "type": "gpio", "is_master": true },
+          "gpio33": { "type": "gpio", "is_master": true },
+          "gpio34": { "type": "gpio", "is_master": true },
+          "gpio35": { "type": "gpio", "is_master": true },
+          "gpio36": { "type": "gpio", "is_master": true },
+          "gpio37": { "type": "gpio", "is_master": true },
+          "gpio38": { "type": "gpio", "is_master": true },
+          "gpio39": { "type": "gpio", "is_master": true },
+          "gpio40": { "type": "gpio", "is_master": true },
+          "gpio41": { "type": "gpio", "is_master": true },
+          "gpio42": { "type": "gpio", "is_master": true },
+          "gpio43": { "type": "gpio", "is_master": true },
+          "gpio44": { "type": "gpio", "is_master": true },
+          "gpio45": { "type": "gpio", "is_master": true },
+          "gpio46": { "type": "gpio", "is_master": true },
+          "gpio47": { "type": "gpio", "is_master": true },
+          "gpio48": { "type": "gpio", "is_master": true },
+          "gpio49": { "type": "gpio", "is_master": true },
+          "gpio50": { "type": "gpio", "is_master": true },
+          "gpio51": { "type": "gpio", "is_master": true },
+          "gpio52": { "type": "gpio", "is_master": true },
+          "gpio53": { "type": "gpio", "is_master": true },
+          "gpio54": { "type": "gpio", "is_master": true },
+          "gpio55": { "type": "gpio", "is_master": true },
+          "gpio56": { "type": "gpio", "is_master": true },
+          "gpio57": { "type": "gpio", "is_master": true },
+          "gpio58": { "type": "gpio", "is_master": true },
+          "gpio59": { "type": "gpio", "is_master": true },
+          "gpio60": { "type": "gpio", "is_master": true },
+          "gpio61": { "type": "gpio", "is_master": true },
+          "gpio62": { "type": "gpio", "is_master": true },
+          "gpio63": { "type": "gpio", "is_master": true },
+          "gpio64": { "type": "gpio", "is_master": true },
+          "gpio65": { "type": "gpio", "is_master": true },
+          "gpio66": { "type": "gpio", "is_master": true },
+          "gpio67": { "type": "gpio", "is_master": true },
+          "gpio68": { "type": "gpio", "is_master": true },
+          "gpio69": { "type": "gpio", "is_master": true },
+          "gpio70": { "type": "gpio", "is_master": true },
+          "gpio71": { "type": "gpio", "is_master": true },
+          "gpio72": { "type": "gpio", "is_master": true },
+          "gpio73": { "type": "gpio", "is_master": true },
+          "gpio74": { "type": "gpio", "is_master": true },
+          "gpio75": { "type": "gpio", "is_master": true },
+          "gpio76": { "type": "gpio", "is_master": true },
+          "gpio77": { "type": "gpio", "is_master": true },
+          "gpio78": { "type": "gpio", "is_master": true },
+          "gpio79": { "type": "gpio", "is_master": true },
+          "gpio80": { "type": "gpio", "is_master": true },
+          "gpio81": { "type": "gpio", "is_master": true },
+          "gpio82": { "type": "gpio", "is_master": true },
+          "gpio83": { "type": "gpio", "is_master": true },
+          "gpio84": { "type": "gpio", "is_master": true },
+          "gpio85": { "type": "gpio", "is_master": true },
+          "gpio86": { "type": "gpio", "is_master": true },
+          "gpio87": { "type": "gpio", "is_master": true },
+          "gpio88": { "type": "gpio", "is_master": true },
+          "gpio89": { "type": "gpio", "is_master": true }
+        }
+      }
+    },
+  
+    "chip": "gap9_v2",
+    "chip_family": "gap9_v2"
+  }

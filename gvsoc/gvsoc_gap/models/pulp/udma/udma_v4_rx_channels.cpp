@@ -42,6 +42,7 @@ void Udma_rx_channel::push_data(uint8_t *data, int size, int addrgen_id)
 void Udma_rx_channel::wait_active()
 {
     this->waiting_active = true;
+    this->top->rx_channels->add_waiting_channel(this);
 }
 
 
@@ -54,7 +55,12 @@ void Udma_rx_channel::wait_active_cancel()
 void Udma_rx_channel::reset(bool active)
 {
     Udma_channel::reset(active);
-    this->waiting_active = false;
+
+    if (active)
+    {
+        this->active = false;
+        this->waiting_active = false;
+    }
 }
 
 
@@ -66,13 +72,22 @@ bool Udma_rx_channel::is_ready()
 
 void Udma_rx_channel::set_active(bool active)
 {
+    bool active_done = !this->is_active() && active;
     this->active = active;
 
-    if (this->is_active() && !this->waiting_active)
+    this->top->get_trace()->msg(vp::trace::LEVEL_INFO, "Set active\n");
+
+    if (active_done)
     {
-        this->waiting_active = false;
-        this->wait_active_done();
+        this->notify_wait_active_done();
     }
+}
+
+
+void Udma_rx_channel::notify_wait_active_done()
+{
+    this->waiting_active = false;
+    this->wait_active_done();
 }
 
 
@@ -156,24 +171,34 @@ void Udma_rx_channels::handle_pending(void *__this, vp::clock_event *event)
             uint32_t addr;
             vp::io_req *l2_req = _this->l2_free_reqs->pop();
 
-            req->addrgen->get_next_transfer(&addr, &size);
+            bool err = req->addrgen->get_next_transfer(&addr, &size);
 
-            l2_req->prepare();
-            l2_req->set_addr(addr);
-            *(uint32_t *)l2_req->get_data() = req->data;
-            l2_req->set_size(size);
-
-            _this->top->trace.msg(vp::trace::LEVEL_TRACE, "Writing to memory (value: 0x%x, addr: 0x%x, size: %d)\n", req->data, l2_req->get_addr(), size);
-
-            int err = _this->top->l2_itf.req(l2_req);
-            if (err == vp::IO_REQ_OK)
+            if (!err)
             {
-                l2_req->set_latency(l2_req->get_latency() + _this->top->get_cycles() + 1);
-                _this->l2_waiting_reqs->push_from_latency(l2_req);
-            }
-            else
-            {
-                _this->top->trace.warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+                l2_req->prepare();
+                l2_req->set_addr(addr);
+                *(uint32_t *)l2_req->get_data() = req->data;
+                l2_req->set_size(size);
+
+                _this->top->trace.msg(vp::trace::LEVEL_TRACE, "Writing to memory (value: 0x%x, addr: 0x%x, size: %d)\n", req->data, l2_req->get_addr(), size);
+
+                int err = _this->top->l2_itf.req(l2_req);
+
+                if (addr == 0)
+                {
+                    fflush(NULL);
+                    abort();
+                }
+
+                if (err == vp::IO_REQ_OK)
+                {
+                    l2_req->set_latency(l2_req->get_latency() + _this->top->get_cycles() + 1);
+                    _this->l2_waiting_reqs->push_from_latency(l2_req);
+                }
+                else
+                {
+                    _this->top->trace.warning("UNIMPLEMENTED AT %s %d\n", __FILE__, __LINE__);
+                }
             }
 
             req->size -= size;
@@ -220,9 +245,28 @@ void Udma_rx_channels::handle_waiting(void *__this, vp::clock_event *event)
 }
 
 
+void Udma_rx_channels::check_waiting_channels()
+{
+    if (this->is_ready())
+    {
+        std::queue<Udma_rx_channel *> waiting_channels;
+        while (!this->waiting_channels.empty())
+        {
+            waiting_channels.push(this->waiting_channels.front());
+            this->waiting_channels.pop();
+        }
+
+        while (!waiting_channels.empty())
+        {
+            waiting_channels.front()->notify_wait_active_done();
+            waiting_channels.pop();
+        }
+    }
+}
+
 bool Udma_rx_channel::is_active()
 {
-    return this->active && this->is_ready();
+    return this->active && this->is_ready() && (!this->addrgen || this->addrgen->get_remaining_size() > 0);
 }
 
 
@@ -243,6 +287,8 @@ void Udma_rx_channels::check_state()
             this->top->event_enqueue(this->waiting_reqs_event, this->l2_waiting_reqs->get_first()->get_latency() - this->top->get_cycles());
         }
     }
+
+    this->check_waiting_channels();
 }
 
 
@@ -255,6 +301,10 @@ void Udma_rx_channels::push_data(uint8_t *data, int size, Udma_addrgen *addrgen,
     req->addrgen = addrgen;
     req->addrgen_id = addrgen_id;
     this->fifo_ready->push(req);
+    if (addrgen)
+    {
+        addrgen->dec_size(size);
+    }
 
     this->check_state();
 }

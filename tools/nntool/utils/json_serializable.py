@@ -9,10 +9,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-from abc import ABC, abstractmethod, abstractclassmethod
-import numpy as np
 import importlib
+import json
+from abc import ABC, abstractclassmethod, abstractmethod
+
+import numpy as np
+from bfloat16 import bfloat16
+
 
 class JsonSerializable(ABC):
     @abstractmethod
@@ -61,7 +64,6 @@ class JsonSerializableStateEncoder(json.JSONEncoder):
                 '__contents': o.tolist(),
                 '__dtype': o.dtype.name
             }
-
         # Let the base class default method raise the 
         try:
             return json.JSONEncoder.default(self, o)
@@ -84,6 +86,8 @@ class JsonSerializableStateEncoder(json.JSONEncoder):
             return [self.prepare(v) for v in obj]
         if isinstance(obj, (str, bool, float, int)) or obj is None:
             return obj
+        if isinstance(obj, bfloat16):
+            return float(obj)
         return self.default(obj)
 
     def iterencode(self, obj, **kwargs):

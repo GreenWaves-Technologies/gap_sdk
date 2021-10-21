@@ -201,8 +201,8 @@ void StatModel::insertRow(const QString signalPath,
   //std::cout << "[-] line " << line << "percentage  " << percentage << std::endl;
   // Enter data in smDutyTime list at the row n° line .. or in order?? check it
   if (signalPath.contains("pe") & signalPath.contains("state"))
-    smDutyTime.insert(line,QString::number(((float)percentage) / 100.00) );
-  else
+    smDutyTime.insert(line,QString::number(((float)percentage) / 100.00) + QString(" ipc"));
+  else 
     smDutyTime.insert(line,QString::number(percentage) + QString("%"));
 
   //endInsertRows()

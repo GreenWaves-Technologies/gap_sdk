@@ -31,9 +31,20 @@ static inline unsigned int __attribute__ ((always_inline)) ExtInsMaskSafe_archi(
 #define GAP_READ(base, offset)             archi_read32((base) + (offset))
 #endif
 
+#ifdef __GVSOC__
+
+#define GAP_BINSERT(dst,src,size,off)  __BITINSERT(dst,src,size,off)
+#define GAP_BINSERT_R(dst,src,size,off)  __BITINSERT_R(dst, src, size, off)
+#define GAP_BEXTRACTU(src,size,off)    __BITEXTRACTU(src, size, off)
+#define GAP_BEXTRACT(src,size,off)     __BITEXTRACT(src, size, off)
+
+#else
+
 #define GAP_BINSERT(dst,src,size,off)  __builtin_pulp_binsert((dst), ~(((1UL<<(size))-1)<<(off)), (src), (((1UL<<(size))-1)<<(off)), (off))
 #define GAP_BINSERT_R(dst,src,size,off)  __builtin_pulp_binsert_r((dst), (src), ExtInsMaskFast_archi((size), (off)))
 #define GAP_BEXTRACTU(src,size,off)    __builtin_pulp_bextractu((src), (size), (off))
 #define GAP_BEXTRACT(src,size,off)     __builtin_pulp_bextract((src), (size), (off))
+
+#endif
 
 #endif

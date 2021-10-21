@@ -16,28 +16,28 @@
 from copy import deepcopy
 
 import numpy as np
-
-from graph.types import (InputParameters)
+from graph.types import InputParameters
 from quantization.new_qrec import QRec
 from quantization.qtype import QType
-from quantization.unified_quantization_handler import params_type, out_qs_constraint, options
+from quantization.quantizer_options import ALLOW_ASYMMETRIC_OPTION
+from quantization.unified_quantization_handler import (options,
+                                                       out_qs_constraint,
+                                                       params_type)
 
 from ..mult_quantization_handler import MultQuantizionHandler
 
+
 @options(
-    {
-        'name': 'allow_asymmetric',
-        'type': bool,
-        'help': 'EXPERIMENTAL - allow soft kernels to use asymmetric quantization where possible',
-        'default': False
-    }
+    ALLOW_ASYMMETRIC_OPTION
 )
 @params_type(InputParameters)
 @out_qs_constraint({'dtype': set([np.int8, np.uint8, np.int16, np.uint16])})
-class FromStatsMult(MultQuantizionHandler):
+class InputMult(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         force_out_qs, out_dtype = cls.get_mult_opts(**kwargs)
+        if in_qs and in_qs[0].dtype in (np.int8, np.uint8, np.int16, np.uint16):
+            out_dtype = in_qs[0].dtype
         force_out_q = force_out_qs and force_out_qs[0]
         opts = kwargs['opts']
         if force_out_q:

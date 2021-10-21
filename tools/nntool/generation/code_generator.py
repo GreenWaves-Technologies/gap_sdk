@@ -17,18 +17,17 @@ import logging
 
 import numpy as np
 from bfloat16 import bfloat16
-
 from expressions.symbolic.kernel_codegen import BasicKernel
 from graph.types import (ConcatParameters, ConstantInputParameters,
                          InputParameters, OutputParameters, ReshapeParameters,
                          SplitParameters, SSDDetectorParameters,
                          TransposeParameters)
 from graph.types.lstm import LSTMParameters
+from graph.types.others import CopyParameters, QuantizeParameters
 from graph.types.rnn import RNNBaseParameters
 from utils.node_id import NodeId
 
 from generation.generator_decorators import RegisteredGeneratorsMixin
-
 # pylint: disable=wildcard-import,unused-wildcard-import
 from generation.generators import *
 from generation.generators.globals.global_names import *
@@ -51,7 +50,10 @@ CTYPE = {"int8": "signed char",
          "int16": "short int",
          "uint16": "unsigned short int",
          "int32": "int",
-         "uint32": "unsigned int"}
+         "uint32": "unsigned int",
+         "bfloat16": "F16",
+         "float16": "F16"}
+
 
 def dtype2ctype(val):
     if val.dtype == np.int8:
@@ -69,6 +71,7 @@ def dtype2ctype(val):
     if val.dtype == bfloat16:
         return 'F16'
     assert False
+
 
 def dtype2typesuffix(val):
     if val.dtype == np.int8:
@@ -89,6 +92,7 @@ def dtype2typesuffix(val):
         return 'F'
     assert False
 
+
 def dtype2fmtcode(val):
     if val.dtype == np.int8:
         return 'hhd'
@@ -108,13 +112,11 @@ def dtype2fmtcode(val):
         return 'f'
     assert False
 
+
 class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
     def __init__(self, G, naming_convension, opts=None):
         super().__init__()
         self.G = G
-        if self.G.has_transposes:
-            raise ValueError(
-                'graph still has fused transposes which need to be expanded. please rerun fusions.')
         self.naming_convension = naming_convension
         self.name_cache = NameCache()
         self.bindings = []
@@ -155,7 +157,10 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         return self.name_cache[eparams]['edge']
 
     def get_node_name(self, params, target):
-        return self.name_cache[params][target]
+        try:
+            return self.name_cache[params][target]
+        except:
+            raise ValueError(f"Name Cache: {params.name} {target} not found")
 
     def memory_device_generator(self, indent=0):
         self.opts['memory_devices'].set_l2_ram_ext_managed(
@@ -259,12 +264,12 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                                                          eparams.edge_type,
                                                          eparams.edge_order)
 
-            out_q = self.G.quantization[NodeId(eparams.creating_node, None)]\
-                .out_qs[eparams.creating_node_idx]
+            qrec = self.G.quantization[NodeId(eparams.creating_node, None)]
+            out_q = qrec.out_qs[eparams.creating_node_idx]
             self.name_cache.set(eparams, 'edge', cname)
             if isinstance(eparams.creating_node, ConstantInputParameters):
                 cnode = eparams.creating_node
-                if cnode.is_constant or cnode.is_global or not cnode.generate_value:
+                if cnode.is_constant or cnode.is_global or out_q.attr.dont_generate_value:
                     continue
             elif eparams.edge_type != "in_out" or eparams.is_alias:
                 continue
@@ -356,7 +361,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         for node in self.G.output_nodes():
             qrec = self.G.quantization[NodeId(node)]
             for edge in self.G.in_edges(node.name):
-                if isinstance(edge.from_node, (SSDDetectorParameters, LSTMParameters)) and count_outputs:
+                if isinstance(edge.from_node, (LSTMParameters, )) and count_outputs:
                     continue
                 eparams, _ = self.real_up_connection(self.G, edge.params)
                 if eparams in outputs:
@@ -398,6 +403,8 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                 includes.append('"RNN_Generators_fp16.h"')
         if any(qrec.cache.get('ne16') for qrec in self.G.quantization.values()):
             includes.append('"CNN_Generators_NE16.h"')
+            if self.G.has_rnn:
+                includes.append('"RNN_Generators_NE16.h"')
         if self.G.has_resizer:
             includes.append('"ResizeGenerator.h"')
         return "".join(["#include %s\n" % include for include in includes])
@@ -414,12 +421,18 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             kernels.append('\"CNN_BasicKernels_NE16.h\"')
             if '\"CNN_BasicKernels_SQ8.h\"' not in kernels:
                 kernels.append('\"CNN_BasicKernels_SQ8.h\"')
+            if self.G.has_rnn:
+                kernels.append('"RNN_BasicKernels_NE16.h"')
         return kernels
 
     def extra_includes_generator(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
         if self.G.has_ssd_postprocess:
+            if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
+                code_block.write("#include \"SSD_Generators_fp16.h\"")
             code_block.write("#include \"SSD_Generators.h\"")
+        if self.G.has_dsp:
+            code_block.write("#include \"DSP_Generators.h\"")
         code_block.write("#include \"CNN_Copy_Generators.h\"")
         return str(code_block)
 
@@ -428,11 +441,18 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         kernels = self.cnn_kernels() + \
             ["\"" + self.project_name + ".h\""]  # default
         if self.G.has_ssd_postprocess:
+            if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
+                kernels.append("\"SSD_BasicKernels_fp16.h\"")
             kernels.append("\"SSD_BasicKernels.h\"")
         if self.G.has_resizer:
             kernels.append("\"ResizeBasicKernels.h\"")
         if self.G.has_expressions:
+            kernels.append('"CNN_BasicKernels_SQ8.h"')
             kernels.append("\"%s\"" % self.opts['basic_kernel_header_file'])
+        if self.G.nodes(node_classes=(CopyParameters,)):
+            kernels.append("\"CNN_Copy.h\"")
+        if self.G.has_dsp:
+            kernels.append("\"DSP_Lib.h\"")
         code_block.write("SetUsedFilesNames(0, {}, {});",
                          len(kernels), str(', '.join(kernels)))
         return str(code_block)
@@ -465,14 +485,9 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             except KeyError as err:
                 LOG.error("Quantization record not found for node %s", node.name)
                 raise err
-
             if isinstance(node, ReshapeParameters):
-                if node.transpose_in is not None or node.transpose_out is not None:
-                    LOG.error("Don't know how to generate kernel \
-                        for a reshape that has a transpose.")
-                    return ""
                 continue
-            elif isinstance(node, TransposeParameters) and node.does_nothing():
+            if isinstance(node, TransposeParameters) and node.does_nothing():
                 continue
             elif isinstance(node, (InputParameters, OutputParameters)):
                 continue
@@ -525,9 +540,9 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                                 before=before)
         )
 
-    def write_constants(self):
+    def write_constants(self, tensor_directory=None):
         write_constants(
-            self.globals, tensor_directory=self.opts['tensor_directory'])
+            self.globals, tensor_directory=tensor_directory)
 
     def load_basic_kernel_library(self, indent=0):
         code_block = CodeBlock(starting_indent=indent)
@@ -537,17 +552,26 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                 code_block.write("Load_RNN_SQ8_Library();")
             if self.G.has_ssd_postprocess:
                 code_block.write("LoadSSDLibrary();")
-        if any(qrec.ktype == "symmetric" for qrec in self.G.quantization.values()):
+        if "POW2" in self.G.quantization.schemes_present:
             code_block.write("LoadCNNLibrary();")
         if any(qrec.ktype == "float" for qrec in self.G.quantization.values()):
             code_block.write("LoadCNNLibrary_fp16();")
             if self.G.has_rnn:
                 code_block.write("LoadRNN_fp16_Library();")
+            if self.G.has_ssd_postprocess:
+                code_block.write("LoadSSDLibrary_fp16();")
         if any(qrec.cache.get('ne16') for qrec in self.G.quantization.values()):
             # We need to ensure that also LoadCNN_SQ8_Library is called
             code_block.write("LoadCNN_NE16_SQ8_Library();")
+            if self.G.has_rnn:
+                code_block.write("Load_RNN_NE16_Library();")
         if self.G.has_resizer:
             code_block.write("LoadResizeLibrary();")
+        if self.G.nodes(node_classes=(CopyParameters, QuantizeParameters, TransposeParameters)):
+            code_block.write("LoadCNN_Copy_Library();")
+        if self.G.has_dsp:
+            code_block.write("LoadMFCCLibrary();")
+
         return str(code_block)
 
     def header_generator(self, indent=0):
@@ -559,20 +583,20 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
             qrec = self.G.quantization[NodeId(node)]
             code_block.comment(cname)
             if any(qrec.ktype == "scaled" for qrec in self.G.quantization.values()):
-                code_block.write("#define {}_OUT_SCALE\t{}".format(
-                    cname, qrec.out_qs[0].scale[0]))
+                code_block.write("#define {}_{}_OUT_SCALE\t{}".format(
+                    self.G.name, cname, qrec.out_qs[0].scale[0]))
                 qscales, qnorms, zero_point = qrec.out_qs[0].get_quantized_scale(
                 )
                 code_block.write(
-                    "#define {}_OUT_QSCALE\t{}".format(cname, qscales[0]))
+                    "#define {}_{}_OUT_QSCALE\t{}".format(self.G.name, cname, qscales[0]))
                 code_block.write(
-                    "#define {}_OUT_QNORM\t{}".format(cname, qnorms[0]))
+                    "#define {}_{}_OUT_QNORM\t{}".format(self.G.name, cname, qnorms[0]))
                 code_block.write(
-                    "#define {}_OUT_ZERO_POINT\t{}".format(cname, zero_point[0]))
+                    "#define {}_{}_OUT_ZERO_POINT\t{}".format(self.G.name, cname, zero_point[0]))
 
             if any(qrec.ktype == "symmetric" for qrec in self.G.quantization.values()):
                 for out_q in qrec.out_qs:
-                    code_block.write("#define {}_Q\t{}".format(cname, out_q.q))
+                    code_block.write("#define {}_{}_Q\t{}".format(self.G.name, cname, out_q.q))
         return str(code_block)
 
     def expressions_kernel_header_includes_generator(self, indent=0):
@@ -665,30 +689,30 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
                 continue
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
             if test_inputs:
-                inp = nodeq.quantize(test_inputs[i])
+                inp = test_inputs[i]
                 code_block.write(
                     'L2_MEM {} {}[] = {{{}}};',
                     dtype2ctype(inp),
-                    node.name,
-                    ",".join(f'{elem}{dtype2typesuffix(inp)}' for elem in inp.flatten()))
+                    node.name.capitalize(),
+                    ",".join(f'{elem}{dtype2typesuffix(inp)}' if not np.isposinf(elem) else "INFINITY" for elem in inp.flatten()))
             else:
                 code_block.write(
-                    f"L2_MEM {CTYPE[nodeq.ctype]} {node.name}[{node.out_dims[0].size()}];")
+                    f"L2_MEM {CTYPE[nodeq.ctype]} {node.name.capitalize()}[{node.out_dims[0].size()}];")
         code_block.write("/* Outputs */")
         for node in self.G.output_nodes():
             if node.at_options.allocate:
                 continue
             nodeq = self.G.quantization[NodeId(node, None)].out_qs[0]
             code_block.write(
-                f"L2_MEM {CTYPE[nodeq.ctype]} {node.name}[{node.out_dims[0].size()}];")
+                f"L2_MEM {CTYPE[nodeq.ctype]} {node.name.capitalize()}[{node.out_dims[0].size()}];")
 
         if test_outputs:
-            for outp in test_outputs:
+            for out_n, outp in zip(self.G.output_nodes(), test_outputs):
                 code_block.write(
                     'L2_MEM {} {}_gt[] = {{{}}};',
                     dtype2ctype(outp),
-                    node.name,
-                    ",".join(f'{elem}{dtype2typesuffix(outp)}' for elem in outp.flatten()))
+                    out_n.name.capitalize(),
+                    ",".join(f'{elem}{dtype2typesuffix(outp)}' if not np.isposinf(elem) else "INFINITY" for elem in outp.flatten()))
         return str(code_block)
 
     def gen_inout_list(self):
@@ -696,7 +720,7 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         for node in self.G.input_nodes():
             if node.at_options.allocate or node.at_options.extern_input_pointer:
                 continue
-            inout_str += f"{node.name}, "
+            inout_str += f"{node.name.capitalize()}, "
         rnn_present = any([isinstance(node, RNNBaseParameters)
                            for node in self.G.nodes()])
         if rnn_present:
@@ -704,24 +728,32 @@ class CodeGenerator(NewGenerator, RegisteredGeneratorsMixin):
         for node in self.G.output_nodes():
             if node.at_options.allocate:
                 continue
-            inout_str += f"{node.name}, "
+            inout_str += f"{node.name.capitalize()}, "
         return inout_str[:-2]
 
-    def generate_output_check(self, indent=0):
+    def generate_output_check(self, tol=0.0, indent=0):
         code = CodeBlock(starting_indent=indent)
         code.write('int errors;')
         for idx, out_node in enumerate(self.G.output_nodes()):
             out_sz = out_node.out_dims[0].size()
+            nodeq = self.G.quantization[NodeId(out_node, None)].out_qs[0]
+            dtype = "%f" if nodeq.is_floating else "%d"
             code.write('errors = 0;')
             code.write('for (int j=0; j<{}; j++) {{', out_sz)
             code.indent()
-            code.write(f'if ({out_node.name}[j] != {out_node.name}_gt[j]) ' + '{{')
+            if tol:
+                code.write(f"{dtype2ctype(nodeq)} diff = {out_node.name.capitalize()}[j] - {out_node.name.capitalize()}_gt[j];")
+                code.write(f'if (diff > {nodeq.quantize(np.array(tol)).item()} || diff < -{nodeq.quantize(np.array(tol)).item()}) ' + '{{')
+            else:
+                code.write(f'if ({out_node.name.capitalize()}[j] != {out_node.name.capitalize()}_gt[j]) ' + '{{')
             code.indent()
             code.write('errors++;')
-            code.write(f'printf("Error @ %d: %d instead of %d\\n", j, {out_node.name}[j], {out_node.name}_gt[j]);')
+            code.write(
+                f'printf("Error @ %d: {dtype} instead of {dtype}\\n", j, {out_node.name.capitalize()}[j], {out_node.name.capitalize()}_gt[j]);')
             code.deindent()
             code.write("}}")
             code.deindent()
             code.write('}}')
-            code.write(f'printf("{out_node.name}: %d/{out_sz} errors\\n", errors);')
+            code.write(
+                f'printf("{out_node.name.capitalize()}: %d/{out_sz} errors\\n", errors);')
         return str(code)

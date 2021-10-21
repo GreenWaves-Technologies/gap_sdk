@@ -1,6 +1,0 @@
-build*
-*.swp
-*.log
-__pycache__/
-junit-reports/
-BUILD*

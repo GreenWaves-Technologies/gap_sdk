@@ -1,0 +1,15 @@
+adjust
+fusions --pow2
+set input_divisor 256
+set input_offset 0
+aquant -s POW2 -f 16 samples/*.p*
+set default_output_exec_location "AT_MEM_L3_HRAM"
+set l3_ram_ext_managed True
+set l2_ram_ext_managed False
+set graph_reorder_constant_in true
+set graph_const_exec_from_flash true
+set graph_warm_construct true
+#This line is to dump all layer output
+#set graph_dump_tensor 7
+save_state
+

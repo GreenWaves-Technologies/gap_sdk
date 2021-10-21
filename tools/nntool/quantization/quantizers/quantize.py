@@ -19,12 +19,13 @@ from typing import cast
 from graph.types import QuantizeParameters
 
 from quantization.new_qrec import QRec
-from quantization.unified_quantization_handler import params_type
+from quantization.unified_quantization_handler import params_type, needs_stats
 
 from ..unified_quantization_handler import QuantizionHandler
 
 
 @params_type(QuantizeParameters)
+@needs_stats(False)
 class HandleQuantize(QuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

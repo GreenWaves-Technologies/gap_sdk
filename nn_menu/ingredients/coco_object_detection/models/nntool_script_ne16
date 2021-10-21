@@ -1,0 +1,17 @@
+set log_level INFO
+set graph_name ssd_model
+qtune * option --use_ne16
+adjust 
+fusions --scale8 
+nodeoption input_1 ALLOCATE 1
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_trace_exec true
+
+# DEBUG ONLY
+#set graph_dump_tensor 6
+#set graph_dump_one_node S3_Conv2d_32x3x3x3_Relu6
+set graph_checksum 1
+
+save_state

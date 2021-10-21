@@ -46,8 +46,8 @@ class FunctionDetails : public QWidget
   static const int nbColumn;
 
   public :
-    FunctionDetails(QWidget* parent, 
-                    QPlainTextEdit* sourceCode, 
+    FunctionDetails(QWidget* parent,
+                    QPlainTextEdit* sourceCode,
                     QPlainTextEdit* asmCode,
                     StallChart* stallChart);
     /** in order for the app to be more accessible, table data can be exported to
@@ -55,13 +55,10 @@ class FunctionDetails : public QWidget
         example)*/
     void exportTableToTextFile(const char* filename) const;
     StallChart* stallChart;
-    // switching the representation mode
-    void switch2ClusterCycleMode();
-    void switch2FCCycleMode();
-    void switch2TimeMode();
-    LegendMode currentMode=TIME_MODE;
+    void switchLegendMode(LegendMode newMode);
 
   private :
+    void updateTimeStamps(void);
     void setSourceCode(std::string fname);
     QTableWidget* table = nullptr;
     QPlainTextEdit* sourceCode;
@@ -69,6 +66,7 @@ class FunctionDetails : public QWidget
     QHBoxLayout* layout;
     QTimer* timer;
     std::string textVersion;
+    LegendMode currentMode=TIME_MODE;
 
     Highlighter* cppHighlighter;
     Highlighter* asmHighlighter;

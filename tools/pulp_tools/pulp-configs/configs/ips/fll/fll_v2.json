@@ -1,6 +1,0 @@
-{
-  "version": 2,
-
-  "vp_class": "pulp/fll/fll_v1",
-  "vp_component":  "pulp.fll.fll_v1_impl"
-}

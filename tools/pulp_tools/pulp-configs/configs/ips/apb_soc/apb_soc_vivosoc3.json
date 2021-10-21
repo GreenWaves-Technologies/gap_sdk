@@ -1,5 +1,0 @@
-{
-  "version": 5,
-
-  "hal_files" : [ "hal/apb_soc/apb_soc_v3.h" ]
-}

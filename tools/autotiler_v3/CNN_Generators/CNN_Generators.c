@@ -1813,6 +1813,17 @@ int CNN_ConvolutionPoolReLU(
 		if (Ctrl->PadType != -1) PadType = Ctrl->PadType;
 		if (Ctrl->ReluN != -1) ReluN = Ctrl->ReluN;
 	}
+        if (ConvOper == KOP_CONV_DP && Width  == 1 && Fcy > 1 && Fcx == 1) {
+                // It's a 1D so swap x and y dimensions
+                int Temp;
+                Temp = Fcx; Fcx = Fcy; Fcy = Temp;
+                Temp = Scx; Scx = Scy; Scy = Temp;
+                Temp = Dcx; Dcx = Dcy; Dcy = Temp;
+                Temp = Fpx; Fpx = Fpy; Fpy = Temp;
+                Temp = Spx; Spx = Spy; Spy = Temp;
+                Temp = Dpx; Dpx = Dpy; Dpy = Temp;
+                Temp = Width; Width = Height; Height = Temp;
+        }
 	KernelOper_T COper = ConvOper;
         int OverlapCx = (Dcx*(Fcx-1)+1) + Scx*((Dpx*(Fpx-1)+1)-Spx-1), OverlapCy = (Dcy*(Fcy-1)+1)+ Scy*((Dpy*(Fpy-1)+1)-Spy-1);
 	int OverlapC = (TileOrientation==TILE_HOR)?OverlapCy:OverlapCx;
@@ -1846,7 +1857,7 @@ int CNN_ConvolutionPoolReLU(
 	SetBiasKerName = CNN_FindMatchingKernel(ConvDP?KOP_SETBIAS_DP:KOP_SETBIAS, KOP_NONE, ParFeat, Bias_DataSize, 0, 0, 0, ConvOut_DataSize, 0,0,0,0,0,0, 0,0,0,0,0,0, 0);
 
 	if (SetBiasKerName==0) GenTilingError("CNN_ConvolutionPoolReLU Kernel: %s, Can't find a matching Set Bias basic kernel", Name);
-	if (COper == KOP_CONV_DP && Height == 1 && Fcx == 1 && Fcy != 1) COper = KOP_CONV1D_DP;
+	if (COper == KOP_CONV_DP && Height == 1 && Fcx != 1 && Fcy == 1 && Dcx == 1 && Dcy == 1) COper = KOP_CONV1D_DP;
 	ConvKerName = CNN_FindMatchingKernel(COper, KOP_NONE, ParFeat,
 					 In_DataSize, Filter_DataSize, 0 /* Bias_DataSize */, 0, ConvOut_DataSize,
 					 Fcx, Fcy, Dcx, Dcy, Scx, Scy,
@@ -5325,3 +5336,4 @@ int CNN_MatMulScaleSmallM1(
 	}
 	return (Kernel!=0);
 }
+

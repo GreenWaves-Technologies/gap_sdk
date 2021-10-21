@@ -8,7 +8,10 @@ ifndef GAP_SDK_HOME
   $(error Source sourceme in gap_sdk first)
 endif
 
-include common.mk
+MODEL_PREFIX=mnist
+AT_INPUT_WIDTH=28
+AT_INPUT_HEIGHT=28
+AT_INPUT_COLORS=1
 
 LOAD_QUANTIZATION= #-q #to load a tflite quantized model
 IMAGE=$(CURDIR)/samples/5223_5.pgm
@@ -30,7 +33,13 @@ MODEL_L3_EXEC=qspiram
 MODEL_L3_CONST=qpsiflash
 endif
 
-
+MAIN = $(MODEL_PREFIX).c
+MODEL_FP16 ?= 0
+ifeq ($(MODEL_FP16), 1)
+  NNTOOL_SCRIPT = model/nntool_script_fp16
+  MODEL_SUFFIX = _FP16
+  MAIN = $(MODEL_PREFIX)_fp16.c
+else
 QUANT_BITS?=8
 BUILD_DIR=BUILD
 ifeq ($(QUANT_BITS), 8)
@@ -42,12 +51,14 @@ ifeq ($(QUANT_BITS), 8)
   endif
   	MODEL_SUFFIX = _SQ8BIT
 else
+  MODEL_POW2=1
   ifeq ($(QUANT_BITS),16)
     NNTOOL_SCRIPT=model/nntool_script16
     MODEL_SUFFIX = _16BIT
   else
     $(error Don\'t know how to build with this bit width)
   endif
+endif
 endif
 
 $(info Building GAP8 mode with $(QUANT_BITS) bit quantization)
@@ -57,7 +68,7 @@ include ../common/model_decl.mk
 # Here we set the memory allocation for the generated kernels
 # REMEMBER THAT THE L1 MEMORY ALLOCATION MUST INCLUDE SPACE
 # FOR ALLOCATED STACKS!
-CLUSTER_STACK_SIZE=4028
+CLUSTER_STACK_SIZE=4096
 CLUSTER_SLAVE_STACK_SIZE=1024
 TOTAL_STACK_SIZE=$(shell expr $(CLUSTER_STACK_SIZE) \+ $(CLUSTER_SLAVE_STACK_SIZE) \* 7)
 MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
@@ -68,9 +79,9 @@ pulpChip = GAP
 PULP_APP = mnist
 
 APP = mnist
-APP_SRCS += $(MODEL_PREFIX).c $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
+APP_SRCS += $(MAIN) $(MODEL_GEN_C) $(MODEL_COMMON_SRCS) $(CNN_LIB)
 
-APP_CFLAGS += -g -O1 -mno-memcpy -fno-tree-loop-distribute-patterns
+APP_CFLAGS += -g -O3 -mno-memcpy -fno-tree-loop-distribute-patterns
 APP_CFLAGS += -I. -I$(MODEL_COMMON_INC) -I$(TILER_EMU_INC) -I$(TILER_INC) $(CNN_LIB_INCLUDE) -I$(MODEL_BUILD)
 APP_CFLAGS += -DPERF -DAT_MODEL_PREFIX=$(MODEL_PREFIX) $(MODEL_SIZE_CFLAGS)
 APP_CFLAGS += -DSTACK_SIZE=$(CLUSTER_STACK_SIZE) -DSLAVE_STACK_SIZE=$(CLUSTER_SLAVE_STACK_SIZE)

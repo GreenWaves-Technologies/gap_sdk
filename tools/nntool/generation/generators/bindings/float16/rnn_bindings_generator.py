@@ -117,7 +117,7 @@ def set_rnn_bindings(gen, step_idx, in_eparams, out_eparams, cname,
             "int8", "S%s_StateInternal02" % step_idx))
 
     i_state_eparams = in_eparams[names['i_state']]
-    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else f"{rnn_params.name}_Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),
@@ -152,7 +152,7 @@ def set_gru_bindings(gen, step_idx, in_eparams, out_eparams, cname,
             "int8", "S%s_StateInternal02" % step_idx))
 
     i_state_eparams = in_eparams[names['h_state']]
-    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else "Reset"
+    reset_name = i_state_eparams.creating_node.reset_name if not rnn_params.rnn_states_as_inputs else f"{rnn_params.name}_Reset"
     gen.bindings.append(
         NodeBindingList(cname,
                         GNodeArgEdge(i_state_eparams, direction="GNA_INOUT"),

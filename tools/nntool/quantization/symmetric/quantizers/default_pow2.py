@@ -16,7 +16,7 @@
 import numpy as np
 from quantization.qtype_constraint import MatchAll
 from quantization.quantizers.no_change_mixin import NoChangeMixin
-from quantization.unified_quantization_handler import (in_qs_constraint,
+from quantization.unified_quantization_handler import (in_qs_constraint, needs_stats,
                                                        out_qs_constraint,
                                                        params_type)
 
@@ -26,6 +26,7 @@ from ..pow2_quantization_handler import Pow2QuantizionHandler
 @params_type('__default__')
 @in_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.int8, np.int16])}))
+@needs_stats(False)
 class NoChangePow2(Pow2QuantizionHandler, NoChangeMixin):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):

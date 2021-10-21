@@ -15,7 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "../udma_impl.hpp"
+#include "udma_uart_tx.hpp"
+#include "udma_uart.hpp"
 #include "archi/utils.h"
 #include "vp/itf/uart.hpp"
 
@@ -56,6 +57,7 @@ void Uart_tx_fsm::handle_pending_word(void *__this, vp::clock_event *event)
             _this->current_bits = _this->periph->regmap.setup.bit_length_get() + 5;
             _this->current_word = _this->send_queue.front();
             _this->send_queue.pop();
+            _this->periph->trace.msg(vp::trace::LEVEL_DEBUG, "Sending byte (value: 0x%x)\n", _this->current_word);
             bit = 0;
         }
     }

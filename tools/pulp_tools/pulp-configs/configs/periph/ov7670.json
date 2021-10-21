@@ -1,8 +1,0 @@
-{
-  "model": "ov7670",
-  "width": 320,
-  "height": 240,
-  "image": [],
-  "frequency": 1000000,
-  "activeDelay": 120000000
-}

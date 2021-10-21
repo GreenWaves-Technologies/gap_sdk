@@ -13,9 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from copy import deepcopy
+
 import numpy as np
 from bfloat16 import bfloat16
-from graph.types import ConvFusionParameters
+from graph.types import ConvFusionParameters, LinearFusionParameters
 from quantization.float.float_quantization_handler import \
     FloatQuantizionHandler
 from quantization.new_qrec import QRec
@@ -25,13 +27,13 @@ from quantization.unified_quantization_handler import (fusion_handler,
                                                        params_type)
 
 
-@params_type(ConvFusionParameters)
+@params_type(ConvFusionParameters, LinearFusionParameters)
 @in_qs_constraint({'dtype': set([np.float16, np.float32, bfloat16])})
 @out_qs_constraint({'dtype': set([np.float16, np.float32, bfloat16])})
 @fusion_handler
-class GenericFusionMult(FloatQuantizionHandler):
+class FilterFusionFloat(FloatQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         _, dtype = cls.get_float_opts(**kwargs)
-        out_qs = kwargs['out_qs']
+        out_qs = [deepcopy(in_qs[0])]
         return QRec.float(in_qs=in_qs, out_qs=out_qs, float_dtype=dtype)

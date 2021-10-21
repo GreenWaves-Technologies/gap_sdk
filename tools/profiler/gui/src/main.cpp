@@ -17,6 +17,7 @@
 
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QtGlobal>
 
 #include <iostream>
@@ -33,14 +34,12 @@ using namespace std;
 #include "mainwindow.hpp"
 #include "backend_interface.hpp"
 
-FILE * debugFile;
-
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QByteArray localMsg = msg.toLocal8Bit();
     switch (type) {
     case QtDebugMsg:
-        fprintf(stdout, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtInfoMsg:
         fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
@@ -59,30 +58,60 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
-    
-  // Init debug file
-    debugFile = fopen ("debug.txt","w");
-   
-    if (argc != 4){
-      printf("Usage: ./profiler <example directory > <executable> <configuration file>\n");
-      printf("\t<example directory> is the directory of your example \n");
-      printf("\t<executable> is the program you want to profile\n");
-      printf("\t<configuration file> is the Gvsoc configuration file\n");
-      return -1;
-    }
-    
     qInstallMessageHandler(myMessageOutput); // Install the handler
 
     qDebug() << "[-] Entering Profiler Main Application";
-    QApplication a(argc, argv);
-    MainWindow w(argv[1], argv[2], argv[3]); // passing example directory & binary file
-    w.show();
-    int x = a.exec();
-    
-    // close debug file
+    QApplication app(argc, argv);
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription(
+            "\nProfiler is a part of GWT GAP SDK and used with GVSOC, GWT Full "
+            "System SoC Simulator.\n"
+            "It gives a visual view of what is happening inside the chip "
+            "and allows to control the simulator through a graphic interface.\n"
+            "It is extremely useful for developing and debugging applications "
+            "on GAP processors.");
+    parser.addHelpOption();
+    parser.addPositionalArgument("directory", "Program directory");
+    parser.addPositionalArgument("executable", "Path of the program to profile");
+    parser.addPositionalArgument("config", "GVSoC configuration file");
+
+    QCommandLineOption signalTreeOption("signal-tree-file",
+            "Path to the signal tree configuration file, default is profiler/gui/src/images/signalstree.txt",
+            "file");
+    parser.addOption(signalTreeOption);
+
+    parser.process(app);
+
+    const QStringList args = parser.positionalArguments();
+    if (args.isEmpty() || args.size() < 3)
+    {
+        parser.showHelp();
+        return 0;
+    }
+
+    QString signalsTreeFileName(":/images/signalstree.txt");
+    if (parser.isSet(signalTreeOption))
+    {
+        signalsTreeFileName = parser.value(signalTreeOption);
+        qDebug() << "[-] Using custom signal tree " << signalsTreeFileName;
+    }
+
+    std::string exampleDirectory = args.at(0).toUtf8().constData();
+    std::string executablePath = args.at(1).toUtf8().constData();
+    std::string gvsocConfigurationFile = args.at(2).toUtf8().constData();
+
+    MainWindow win(
+            exampleDirectory,
+            executablePath,
+            gvsocConfigurationFile,
+            signalsTreeFileName
+            );
+
+    win.show();
+    int result = app.exec();
     qDebug() << "[-] Ending Profiler Main Application";
-    fclose(debugFile);
-    
-    return x;
+
+    return result;
 }
 

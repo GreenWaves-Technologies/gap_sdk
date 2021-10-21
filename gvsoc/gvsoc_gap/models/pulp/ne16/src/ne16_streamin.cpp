@@ -44,7 +44,12 @@ void Ne16::constant_setup() {
 
 void Ne16::streamin_setup() {
 
-  auto base_addr_streamin = this->outfeat_ptr + (this->i_major*this->FILTER_SIZE*this->w_out*this->k_out + this->j_major*this->FILTER_SIZE*this->k_out + this->k_out_major*this->TP_OUT) * 4;
+  auto tp = this->depthwise ? this->TP_IN : this->TP_OUT;
+
+  auto outfeat_hom_iter = this->FILTER_SIZE * this->outfeat_d2_stride;
+  auto outfeat_wom_iter = this->FILTER_SIZE * this->outfeat_d1_stride;
+ 
+  auto base_addr_streamin = this->outfeat_ptr + this->i_major*outfeat_hom_iter + this->j_major*outfeat_wom_iter + this->k_out_major*tp*this->quantization_bits/8;
 
   auto k_out_lim = this->depthwise ? 1 :
                    (this->k_out_major == this->subtile_nb_ko-1 && this->subtile_rem_ko != this->TP_OUT && this->subtile_rem_ko != 0) ? this->subtile_rem_ko : this->TP_OUT;
@@ -105,7 +110,9 @@ int Ne16::streamin_cycle() {
 }
 
 bool Ne16::streamin_exit_idx() {
-  if(this->streamin_i_out_iter == this->h_size_out-1 && this->streamin_j_out_iter == this->w_size_out-1 && this->streamin_k_out_iter == this->streamin_k_out_lim-1) {
+  auto h_size_out = this->mode_linear ? 1 : this->h_size_out;
+  auto w_size_out = this->mode_linear ? 1 : this->w_size_out;
+  if(this->streamin_i_out_iter == h_size_out-1 && this->streamin_j_out_iter == w_size_out-1 && this->streamin_k_out_iter == this->streamin_k_out_lim-1) {
     return true;
   }
   else {

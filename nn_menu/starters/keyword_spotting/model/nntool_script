@@ -1,0 +1,11 @@
+set debug true
+qtune * option --hwc
+adjust
+fusions --scale8
+#show
+#qshow
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash false
+save_state

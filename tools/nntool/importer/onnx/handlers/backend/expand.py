@@ -14,7 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import ConstantInputParameters
+from graph.types import ConstantInputParameters, ExpandParameters
+from graph.types.base import NNEdge
 from importer.onnx.common import logger
 
 from ..backend_handler import BackendHandler
@@ -44,7 +45,9 @@ class Expand(BroadcastMixin, ConstantMixin, BackendHandler):
             x_val = cls.get_constant(x)
             params = ConstantInputParameters(valid_name, value=x_val * np.ones(shape), constant_store=G.constant_store)
         else:
-            raise ValueError("Expand is only implemented on constants")
+            params = ExpandParameters(valid_name, shape=shape)
+            G.add_edge(NNEdge(x[0], params, from_idx=x[1]))
+
         all_nodes[node.output[0]] = (params, 0, pshape)
         return params
 

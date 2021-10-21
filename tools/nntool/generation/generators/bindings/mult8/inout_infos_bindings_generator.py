@@ -16,15 +16,15 @@ from generation.generators.bindings.mult8.inout_bindings_generator import set_in
 from generation.bindings import (CommentBindingList, GNodeArgEdge,
                                  GNodeArgNode, NodeBindingList)
 from generation.generator_decorators import QREC_MULT8, generation_function
-from graph.types import (ActivationFusion, ActivationParameters,
+from graph.types import (ActivationFusionBase, ActivationParameters,
                          ConvFusionParameters, GlobalPoolingParameters, GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters,
                          PoolingParameters)
 
 
 @generation_function("bindings", (PoolingParameters, ConvFusionParameters, ActivationParameters,
-                                  GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusion), qrec_types=(QREC_MULT8, ))
+                                  GlobalAveragePoolParameters, GlobalMaxPoolParameters, GlobalSumPoolParameters, ActivationFusionBase), qrec_types=(QREC_MULT8, ))
 def in_out_infos_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
-    if isinstance(node, ActivationFusion):
+    if isinstance(node, ActivationFusionBase):
         cnodes = node.contained_nodes()
         if isinstance(cnodes[0], (GlobalPoolingParameters, PoolingParameters)):
             set_in_out_infos_bindings(gen, in_eparams, out_eparams,

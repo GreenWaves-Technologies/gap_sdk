@@ -430,6 +430,7 @@ void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
     case I2C_SLAVE_STATE_ACK: {
       this->ack();
       this->state = I2C_SLAVE_STATE_GET_DATA;
+      this->get_data();
       break;
     }
 

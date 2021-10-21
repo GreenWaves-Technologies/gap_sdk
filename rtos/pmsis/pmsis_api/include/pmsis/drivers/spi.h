@@ -19,6 +19,9 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /// @cond IMPLEM
 
@@ -27,6 +30,7 @@
 #define __PI_SPI_CTRL_WORDSIZE_BIT 4
 #define __PI_SPI_CTRL_ENDIANNESS_BIT 6
 #define __PI_SPI_CTRL_SET_MAX_BAUDRATE_BIT 8
+#define __PI_SPI_CTRL_SET_TIMESTAMP 10
 
 /// @endcond
 
@@ -122,6 +126,10 @@ struct pi_spi_conf
     int max_snd_chunk_size;     /*!< Specifies maximum chunk size for sending when
                                   using copies. */
     int is_slave;               /*!< If 1, the SPI interface is configured as a slave. */
+
+    uint8_t ts_ch;              /*!< Enable the timestamp on TX (0) or RX (1) */
+    uint8_t ts_evt_id;          /*!< UDMA Config Event ID for generating the timestamp */
+
 };
 
 /** \enum pi_spi_ioctl_e
@@ -150,6 +158,8 @@ typedef enum {
     Handle the elements in memory in a little-endian way. */
   PI_SPI_CTRL_SET_MAX_BAUDRATE  = 1 << __PI_SPI_CTRL_SET_MAX_BAUDRATE_BIT, /*!<
     Change maximum baudrate. */
+  PI_SPI_CTRL_SET_TIMESTAMP     = 1 << __PI_SPI_CTRL_SET_TIMESTAMP /*!<
+    Enable the timestamp for SPI. */
 } pi_spi_ioctl_e;
 
 
@@ -446,5 +456,7 @@ void pi_spi_copy_2d_async(struct pi_device *device,
 
 /// @endcond
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif

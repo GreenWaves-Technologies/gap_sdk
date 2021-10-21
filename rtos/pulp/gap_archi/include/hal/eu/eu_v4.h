@@ -313,6 +313,11 @@ static inline unsigned int eu_bar_trig_wait_clr(unsigned int barAddr)
   return evt_read32(barAddr, EU_HW_BARR_TRIGGER_WAIT_CLEAR);
 }
 
+static inline unsigned int eu_bar_trig_wait_clr_safe(unsigned int barAddr)
+{
+  return IP_READ(barAddr, EU_HW_BARR_TRIGGER_WAIT_CLEAR);
+}
+
 static inline void eu_bar_setup_mask(unsigned int barAddr, unsigned int coreMask, unsigned int targetMask)
 {
   IP_WRITE(barAddr, EU_HW_BARR_TRIGGER_MASK, coreMask);

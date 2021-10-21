@@ -22,6 +22,11 @@
 #include "pmsis.h"
 #include "pmsis/drivers/aes.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /**
  * \brief structure containing parameters for AES configuration
  */
@@ -38,6 +43,9 @@ typedef struct pi_aes_utils_conf
     uint32_t* iv;
 } pi_aes_utils_conf_t;
 
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #endif

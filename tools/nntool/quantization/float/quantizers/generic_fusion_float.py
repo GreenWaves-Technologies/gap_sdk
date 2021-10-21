@@ -15,7 +15,7 @@
 
 import numpy as np
 from bfloat16 import bfloat16
-from graph.types import (ActivationFusion, MatMulOpFusionParameters,
+from graph.types import (ActivationFusionBase, MatMulOpFusionParameters,
                          MatScaleFusionParameters, PaddedAddFusionParameters)
 from quantization.float.float_quantization_handler import \
     FloatQuantizionHandler
@@ -27,7 +27,7 @@ from quantization.unified_quantization_handler import (fusion_handler,
                                                        params_type)
 
 
-@params_type(ActivationFusion, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
+@params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @out_qs_constraint(MatchAll({'dtype': set([np.float32, np.float16, bfloat16])}))
 @fusion_handler

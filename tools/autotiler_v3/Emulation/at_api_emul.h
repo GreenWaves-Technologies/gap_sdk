@@ -17,10 +17,12 @@
 #ifndef __AT__AT_API_EMUL_H__
 #define __AT__AT_API_EMUL_H__
 
+#if defined(__EMUL__)
 
 #include <stdlib.h>
 #include <stdio.h>
 
+extern unsigned int __L3_Read, __L3_Write, __L2_Read, __L2_Write;
 
 /*
  * Utils
@@ -169,8 +171,11 @@ typedef int AT_HYPERFLASH_EVENT;
 static inline void __at_hyperflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
 {
   fseek(file, ext, SEEK_SET);
-  if (dir==AT_HYPERRAM_LOC2EXT) fwrite(loc, 1, size, file);
-  else fread(loc, 1, size, file);
+  if (dir==AT_HYPERRAM_LOC2EXT) {
+	  fwrite(loc, 1, size, file); __L3_Write += size;
+  } else {
+	  fread(loc, 1, size, file); __L3_Read += size;
+  }
 }
 
 static inline void __at_hyperflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
@@ -182,8 +187,11 @@ static inline void __at_hyperflash_fs_copy_2d(FILE *file, unsigned int ext, void
       length = size;
 
     fseek(file, ext, SEEK_SET);
-    if (dir==AT_HYPERRAM_LOC2EXT) fwrite(loc, 1, length, file);
-    else fread(loc, 1, length, file);
+    if (dir==AT_HYPERRAM_LOC2EXT) {
+	    fwrite(loc, 1, length, file); __L3_Write += length;
+    } else {
+	    fread(loc, 1, length, file); __L3_Read += length;
+    }
 
     loc = ((char *)loc) + length;
     ext += stride;
@@ -269,7 +277,7 @@ do { \
   for (i=0; i<size; i++) To[i] = From[i]; \
 } while (0)
 
-#define AT_QSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event) \
+#define AT_QSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,length,dir,event) \
 do { \
   int CopyIn = (dir==AT_QSPIRAM_EXT2LOC); \
   char *To   = CopyIn?((char *) (loc)):((char *) (ext)); \
@@ -295,7 +303,7 @@ do { \
 
 #define AT_QSPIRAM_CL_COPY(dev,ext,loc,size,dir,event) AT_QSPIRAM_FC_COPY(dev,ext,loc,size,dir,event)
 
-#define AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event)
+#define AT_QSPIRAM_CL_COPY2D(dev,ext,loc,size,stride,len,dir,event) AT_QSPIRAM_FC_COPY2D(dev,ext,loc,size,stride,len,dir,event)
 
 #define AT_QSPIRAM_CL_WAIT(dev,event) 
 
@@ -353,8 +361,11 @@ typedef int            AT_QSPIFLASH_FS_CL_EVENT;
 static inline void __at_qspiflash_fs_copy(FILE *file, unsigned int ext, void *loc, int size, int dir)
 {
   fseek(file, ext, SEEK_SET);
-  if (dir==AT_QSPIFLASH_FS_EXT2LOC) fwrite(loc, 1, size, file);
-  else fread(loc, 1, size, file);
+  if (dir==AT_QSPIFLASH_FS_EXT2LOC) {
+	  fwrite(loc, 1, size, file); __L3_Read += size;
+  } else {
+	  fread(loc, 1, size, file); __L3_Write += size;
+  }
 }
 
 static inline void __at_qspiflash_fs_copy_2d(FILE *file, unsigned int ext, void *loc, int size, int stride, int length, int dir)
@@ -366,8 +377,8 @@ static inline void __at_qspiflash_fs_copy_2d(FILE *file, unsigned int ext, void 
       length = size;
 
     fseek(file, ext, SEEK_SET);
-    if (dir==AT_QSPIFLASH_FS_EXT2LOC) fwrite(loc, 1, length, file);
-    else fread(loc, 1, length, file);
+    if (dir==AT_QSPIFLASH_FS_EXT2LOC) fread(loc, 1, length, file);
+    else fwrite(loc, 1, length, file);
 
     loc = ((char *)loc) + length;
     ext += stride;
@@ -472,6 +483,9 @@ typedef void (*AT_FORK_FUN_TYPE)(void *);
 typedef void *AT_FORK_ARG_TYPE;
 
 #define AT_FORK(nb_cores,entry,arg)
+#define AT_FORK_CC(nb_cores,entry,arg)
 #define AT_FORK_WAIT()
+
+#endif
 
 #endif

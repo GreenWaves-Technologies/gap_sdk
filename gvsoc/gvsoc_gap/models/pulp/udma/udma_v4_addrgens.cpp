@@ -68,13 +68,15 @@ void Udma_addrgen_linear::reset(bool active)
     this->nb_pending_transfers = 0;
     this->channel = NULL;
     this->set_active_transfer(false);
+    this->remaining_size = 0;
 }
-
 
 void Udma_addrgen_linear::check_pending_transfer()
 {
     if (!this->active_transfer && this->nb_pending_transfers)
     {
+        trace.msg(vp::trace::LEVEL_TRACE, "Starting new buffer (addr: 0x%x, size: 0x%x)\n", this->pending_addr, this->pending_size);
+
         this->nb_pending_transfers--;
         this->set_active_transfer(true);
 
@@ -99,8 +101,15 @@ void Udma_addrgen_linear::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *v
         }
         else if (this->regmap.cfg_ctrl.en_get())
         {
+
+            if (this->nb_pending_transfers > 0)
+            {
+                this->remaining_size -= this->pending_size;
+            }
+
             this->pending_addr = this->regmap.cfg_sa_buf0.get();
             this->pending_size = this->regmap.cfg_size.get();
+            this->remaining_size += this->pending_size;
 
             this->nb_pending_transfers++;
 
@@ -124,7 +133,7 @@ vp::io_req_status_e Udma_addrgen_linear::access(uint64_t offset, int size, uint8
 }
 
 
-void Udma_addrgen_linear::get_next_transfer(uint32_t *addr, int *size)
+bool Udma_addrgen_linear::get_next_transfer(uint32_t *addr, int *size)
 {
     if (this->current_size > 0)
     {
@@ -150,13 +159,16 @@ void Udma_addrgen_linear::get_next_transfer(uint32_t *addr, int *size)
             this->top->trigger_event(this->event_id);
             this->check_pending_transfer();
         }
+        trace.msg(vp::trace::LEVEL_TRACE, "Providing next chunk (addr: 0x%x, size: 0x%x)\n", *addr, *size);
+        return false;
     }
     else
     {
+        *addr = 0;
         *size = 0;
+        trace.force_warning("Getting next chunk with no transfer\n");
+        return true;
     }
-
-    trace.msg(vp::trace::LEVEL_TRACE, "Providing next chunk (addr: 0x%x, size: 0x%x)\n", *addr, *size);
 }
 
 
@@ -177,6 +189,7 @@ void Udma_addrgen_2d::reset(bool active)
 {
     this->nb_pending_transfers = 0;
     this->set_active_transfer(false);
+    this->remaining_size = 0;
 }
 
 
@@ -192,6 +205,10 @@ void Udma_addrgen_2d::check_pending_transfer()
         this->current_stride = this->pending_stride;
         this->current_length = this->pending_length;
         this->remaining_length = this->pending_length;
+
+        trace.msg(vp::trace::LEVEL_TRACE, "Activating transfer (addr: 0x%x, size: 0x%x, stride: 0x%x, length: 0x%x)\n",
+            this->pending_addr, this->pending_size, this->pending_stride, this->pending_length);
+
     }
 }
 
@@ -209,10 +226,19 @@ void Udma_addrgen_2d::cfg_ctrl_req(uint64_t reg_offset, int size, uint8_t *value
         }
         else if (this->regmap.cfg_ctrl.en_get())
         {
+            if (this->nb_pending_transfers > 0)
+            {
+                this->remaining_size -= this->pending_size;
+            }
+
             this->pending_addr = this->regmap.cfg_sa_buf0.get();
             this->pending_size = this->regmap.cfg_size.get();
             this->pending_stride = this->regmap.cfg_stride.get();
             this->pending_length = this->regmap.cfg_row_len.get();
+            this->remaining_size += this->pending_size;
+
+            trace.msg(vp::trace::LEVEL_TRACE, "Configuring (addr: 0x%x, size: 0x%x, stride: 0x%x, length: 0x%x)\n",
+                this->pending_addr, this->pending_size, this->pending_stride, this->pending_length);
 
             this->nb_pending_transfers++;
 
@@ -231,11 +257,14 @@ vp::io_req_status_e Udma_addrgen_2d::access(uint64_t offset, int size, uint8_t *
 }
 
 
-void Udma_addrgen_2d::get_next_transfer(uint32_t *addr, int *size)
+bool Udma_addrgen_2d::get_next_transfer(uint32_t *addr, int *size)
 {
+    trace.msg(vp::trace::LEVEL_TRACE, "Getting next chunk (current_addr: 0x%x, current_size: 0x%x, remaining_length: 0x%x)\n", this->current_addr, this->current_size, this->remaining_length);
+
     if (this->current_size > 0)
     {
-        int iter_size = 4;
+        int align = this->current_addr & 0x3;
+        int iter_size = 4 - align;
         
         if (iter_size > this->remaining_length)
             iter_size = this->remaining_length;
@@ -259,17 +288,23 @@ void Udma_addrgen_2d::get_next_transfer(uint32_t *addr, int *size)
             this->remaining_length = this->current_length;
         }
 
+        trace.msg(vp::trace::LEVEL_TRACE, "Updated current chunk (current_addr: 0x%x, current_size: 0x%x, remaining_length: 0x%x)\n", this->current_addr, this->current_size, this->remaining_length);
+
         if (this->current_size == 0)
         {
             this->set_active_transfer(false);
             this->top->trigger_event(this->event_id);
             this->check_pending_transfer();
         }
+
+        trace.msg(vp::trace::LEVEL_TRACE, "Providing next chunk (addr: 0x%x, size: 0x%x)\n", *addr, *size);
+
+        return false;
     }
     else
     {
         *size = 0;
+        trace.force_warning("Getting next chunk with no transfer\n");
+        return true;
     }
-
-    trace.msg(vp::trace::LEVEL_TRACE, "Providing next chunk (addr: 0x%x, size: 0x%x)\n", *addr, *size);
 }

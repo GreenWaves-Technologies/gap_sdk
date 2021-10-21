@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from graph.types import (ActivationFusion, MatMulOpFusionParameters,
+from graph.types import (ActivationFusionBase, MatMulOpFusionParameters,
                          MatScaleFusionParameters, PaddedAddFusionParameters)
 from quantization.new_qrec import QRec
 from quantization.qtype_constraint import MatchAll
@@ -26,11 +26,31 @@ from quantization.unified_quantization_handler import (fusion_handler,
 from ..mult_quantization_handler import MultQuantizionHandler
 
 
-@params_type(ActivationFusion, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
+@params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
 @in_qs_constraint(MatchAll({'dtype': np.int8}))
 @out_qs_constraint(MatchAll({'dtype': np.int8}))
 @fusion_handler
 class GenericFusionMult(MultQuantizionHandler):
+    @classmethod
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        out_qs = kwargs['out_qs']
+        return QRec.scaled(in_qs=in_qs, out_qs=out_qs)
+
+@params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
+@in_qs_constraint(MatchAll({'dtype': np.uint8}))
+@out_qs_constraint(MatchAll({'dtype': np.uint8}))
+@fusion_handler
+class GenericFusionMultU8(MultQuantizionHandler):
+    @classmethod
+    def _quantize(cls, params, in_qs, stats, **kwargs):
+        out_qs = kwargs['out_qs']
+        return QRec.scaled(in_qs=in_qs, out_qs=out_qs)
+
+@params_type(ActivationFusionBase, MatMulOpFusionParameters, MatScaleFusionParameters, PaddedAddFusionParameters)
+@in_qs_constraint(MatchAll({'dtype': np.uint16}))
+@out_qs_constraint(MatchAll({'dtype': np.uint16}))
+@fusion_handler
+class GenericFusionMultU16(MultQuantizionHandler):
     @classmethod
     def _quantize(cls, params, in_qs, stats, **kwargs):
         out_qs = kwargs['out_qs']

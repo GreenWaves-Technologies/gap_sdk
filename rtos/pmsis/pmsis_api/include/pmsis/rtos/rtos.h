@@ -30,4 +30,11 @@
 #include "pmsis/rtos/event_kernel/event_kernel.h"
 #include "pmsis/rtos/pi_log.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_RTOS_RTOS_H__ */

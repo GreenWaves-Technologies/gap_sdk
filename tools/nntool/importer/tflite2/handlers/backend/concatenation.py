@@ -14,10 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from functools import reduce
-from graph.types.others import ReshapeParameters
 
 import numpy as np
+from graph.dim import Dim
 from graph.types import ConcatParameters, ConstantInputParameters, NNEdge
+from graph.types.others import ReshapeParameters
 from importer.common.constant_mixin import ConstantMixin
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import LOG
@@ -40,10 +41,16 @@ class Concatenation(ConstantMixin, BackendHandler):
         if out_dim_none == in_dim_none:
             return inp[0], inp[1]
         old_shape = [dim for dim in inp_shape if dim is not None]
-        shape = [dim for idx, dim in enumerate(inp_shape) if dim is not None and idx not in out_dim_none]
-        rparams = ReshapeParameters(G.unique_name(f'{inp[0]}_reshape'), old_shape=old_shape, shape=shape)
-        G.add_edge(NNEdge(from_node=inp[0], to_node=rparams, from_idx=inp[1]))
-        return rparams, 0
+        new_shape = [dim for idx, dim in enumerate(inp_shape) if dim is not None and idx not in out_dim_none]
+        if cls.is_constant(inp):
+            val = np.reshape(cls.get_constant(inp), new_shape)
+            params = ConstantInputParameters(G.unique_name(inp[0].name), value=val,
+                                             dims=Dim.unnamed(val.shape),
+                                             constant_store=G.constant_store)
+        else:
+            params = ReshapeParameters(G.unique_name(f'{inp[0].name}_reshape'), old_shape=old_shape, shape=new_shape)
+            G.add_edge(NNEdge(from_node=inp[0], to_node=params, from_idx=inp[1]))
+        return params, 0
 
     @classmethod
     def _common(cls, node: TFLiteNode, **kwargs):

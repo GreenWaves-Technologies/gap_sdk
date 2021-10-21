@@ -29,7 +29,7 @@ class ConcatAdjuster(AdjusterBase):
             return False
         LOG.info("concat %s: moving axis %s to 0 and inserting transposes", node.name, node.axis)
         trans = self.move_axis_to_zero_trans(node.axis, node.out_dims[0].shape)
-        self.apply_input_trans(node, trans)
+        self.apply_input_trans(G, node, trans)
         node.axis = 0
-        self.apply_output_trans(node, self.invert(trans), index=0)
+        self.apply_output_trans(G, node, self.invert(trans), index=0)
         return True

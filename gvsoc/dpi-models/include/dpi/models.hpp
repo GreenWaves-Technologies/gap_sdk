@@ -180,6 +180,7 @@ public:
   virtual void handle_byte(uint8_t byte) {}
   virtual void stop() {}
   virtual void ack() {}
+  virtual void get_data() {}
 
   void send_byte(uint8_t byte);
   void send_ack();

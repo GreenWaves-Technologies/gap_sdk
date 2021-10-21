@@ -28,7 +28,7 @@ class ImageFormatSymmetric(KernelBase):
                 qrec: QRec,
                 **kwargs):
         del qrec
-        in_dim, out_dim = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
+        in_dim, out_dim = params.in_dims[0], params.out_dims[0]
         res = in_tensors[0]
         res = FORMAT_CHANGES[params.format_change](res, in_dim, out_dim)
         res = NORMALIZATIONS[params.norm_func](res)

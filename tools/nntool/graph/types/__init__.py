@@ -29,10 +29,16 @@ from graph.types.base import (EdgeParameters, FilterLikeParameters,
                               SensitiveToOrder, SingleInputAndOutput)
 from graph.types.conv2d import (BatchNormalizationParameters, Conv2DParameters,
                                 TransposeConv2DParameters)
+from graph.types.dsp_preprocessing import (MFCCPreprocessingParameters,
+                                           RFFT2DPreprocessingParameters,
+                                           DSPParameters)
 from graph.types.expression_fusion import ExpressionFusionParameters
-from graph.types.fusions import (ActivationFusion, ConvFusionParameters,
+from graph.types.fusions import (ActivationFusion, ActivationFusionBase,
+                                 BroadcastableActivationFusion,
+                                 ConvFusionParameters, FilterFusionBase,
                                  FusionBase, FusionInputParameters,
                                  FusionOutputParameters,
+                                 LinearFusionParameters,
                                  MatMulOpFusionParameters,
                                  MatScaleFusionParameters,
                                  PaddedAddFusionParameters)
@@ -48,14 +54,14 @@ from graph.types.input_output import (ConstantInputParameters,
 from graph.types.linear import FcParameters
 from graph.types.lstm import LSTMParameters
 from graph.types.others import (BinaryOpParameters, ConcatParameters,
-                                CopyParameters, ExpOpParameters,
-                                GatherParameters, LogOpParameters,
-                                MaxOpParameters, MinOpParameters,
-                                NegOpParameters, NoOPParameters, PadParameters,
-                                PowOpParameters, QuantizeParameters,
-                                ReshapeParameters, ReverseParameters,
-                                SplitParameters, StridedSliceParameters,
-                                Transposable, TransposeParameters,
+                                CopyParameters, ExpandParameters,
+                                ExpOpParameters, GatherParameters,
+                                LogOpParameters, MaxOpParameters,
+                                MinOpParameters, NegOpParameters,
+                                NoOPParameters, PadParameters, PowOpParameters,
+                                QuantizeParameters, ReshapeParameters,
+                                ReverseParameters, SplitParameters,
+                                StridedSliceParameters, TransposeParameters,
                                 UnaryOpParameters, UnconvertedOpParameters,
                                 UnexecutableOpParameters, UnknownOpParameters)
 from graph.types.pooling import (AveragePoolParameters, MaxPoolParameters,

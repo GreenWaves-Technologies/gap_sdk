@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "Gap.h"
 #include "CNN_BasicKernels_fp16.h"
 
@@ -17,7 +33,7 @@ static inline unsigned int __attribute__((always_inline)) ChunkSize(unsigned int
 	return Chunk;
 }
 
-static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Stride)
+static int FirstDefinedOutput(int F, int Pad, int Stride)
 
 {
 	// k*S - (F-1)/2 >=0 => k >= (((F-1)/2) + S-1)/S
@@ -25,7 +41,7 @@ static int FirstDefinedOutput(unsigned int F, unsigned int Pad, unsigned int Str
 	return ((Pad+Stride-1)/Stride);
 }
 
-static int LastDefinedOutput(unsigned int DimIn, unsigned int F, unsigned int PadL, unsigned int Stride)
+static int LastDefinedOutput(int DimIn, int F, int PadL, int Stride)
 
 {
 	// k*S + ((F-1)/2 - PadL + F/2) < Dim  => k < (Dim-((F-1)/2 - PadL + (F/2)) + S-1)/S
@@ -1238,7 +1254,9 @@ static void __attribute__ ((noinline)) KerConvNxMDxDyStrideSxSy_Border_fp16(
 	int Hi_L = Hi_F + (Ho_L-1)*StrideY;     // iff Hi_L>Hi_F
 	int Wi_F = TFw2 - PadLOrg;
 	int Wi_L = Wi_F + (Wo_L-1)*StrideX;     // iff Wi_L>Wi_F
+	#ifndef Prec
 	int Prec=10;
+	#endif
 	int InvDh = ((1<<Prec)+Dh-1)/Dh;
 	int InvDw = ((1<<Prec)+Dw-1)/Dw;
 
@@ -2806,7 +2824,7 @@ void KerParConvDW3x1Stride1x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B=Bias_fp16[of];
+		F16 B=Bias_fp16[of];
 		KerConv3x1Stride1x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv3x1BorderStrideNx1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B);
 	}
@@ -2839,7 +2857,7 @@ void KerParConvDW3x1Stride2x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv3x1Stride2x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv3x1BorderStrideNx1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B);
 	}
@@ -2871,7 +2889,7 @@ void KerParConvDW1x3Stride1x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv1x3Stride1x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv1x3BorderStride1xN_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B);
 	}
@@ -2904,7 +2922,7 @@ void KerParConvDW1x3Stride1x2_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv1x3Stride1x2_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv1x3BorderStride1xN_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B);
 	}
@@ -2937,7 +2955,7 @@ void KerParConvDW3x3Stride1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv3x3Stride1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv3x3BorderStride1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B);
 	}
@@ -2970,7 +2988,7 @@ void KerParConvDW3x3Stride2_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv3x3Stride2_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv3x3BorderStride2_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B);
 	}
@@ -3002,7 +3020,7 @@ void KerParConvDW3x3StrideS_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv3x3StrideS_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B);
 		if ((int)PadIn) KerConv3x3BorderStrideS_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B);
 	}
@@ -3035,7 +3053,7 @@ void KerParConvDW5x1Stride1x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv5x1Stride1x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv5x1BorderStrideNx1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B);
 	}
@@ -3068,7 +3086,7 @@ void KerParConvDW5x1Stride2x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv5x1Stride2x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv5x1BorderStrideNx1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B);
 	}
@@ -3101,7 +3119,7 @@ void KerParConvDW1x5Stride1x1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv1x5Stride1x1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv1x5BorderStride1xN_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 1, PadIn, PadIn, B);
 	}
@@ -3134,7 +3152,7 @@ void KerParConvDW1x5Stride1x2_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv1x5Stride1x2_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv1x5BorderStride1xN_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, 2, PadIn, PadIn, B);
 	}
@@ -3166,7 +3184,7 @@ void KerParConvDW5x5Stride1_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv5x5Stride1_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv5x5BorderStride1_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B);
 	}
@@ -3198,7 +3216,7 @@ void KerParConvDW5x5Stride2_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv5x5Stride2_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, B);
 		if ((int)PadIn) KerConv5x5BorderStride2_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, PadIn, PadIn, B);
 	}
@@ -3230,7 +3248,7 @@ void KerParConvDW5x5StrideS_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConv5x5StrideS_Body_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B);
 		if ((int)PadIn) KerConv5x5BorderStrideS_fp16(in, out, filter, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B);
 	}
@@ -3262,7 +3280,7 @@ void KerParConvDWNxNStrideS_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FS*FS*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConvNxNStrideS_Body_fp16(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, B);
 		if ((int)PadIn) KerConvNxNStrideS_Border_fp16(in, out, filter, FS, FS, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, S, PadIn, PadIn, B);
 	}
@@ -3296,7 +3314,7 @@ void KerParConvDWNxMStrideSxSy_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConvNxMStrideSxSy_Body_fp16(in, out, filter, FSx, FSy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, B);
 		if ((int)PadIn) KerConvNxMStrideSxSy_Border_fp16(in, out, filter, FSx, FSy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, B);
 	}
@@ -3331,7 +3349,7 @@ void KerParConvDWNxMDxDyStrideSxSy_fp16(KerConv_fp16_T *Arg)
 
        	for (unsigned int of=First; of<Last; of++) {
 		F16 *in = In+W*H*of, *filter = Filter+FSx*FSy*of, *out = Out+Wo*Ho*of;
-		int B = Bias_fp16[of];
+		F16 B = Bias_fp16[of];
 		KerConvNxMDxDyStrideSxSy_Body_fp16(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, B);
 		if ((int)PadIn) KerConvNxMDxDyStrideSxSy_Border_fp16(in, out, filter, FSx, FSy, Dx, Dy, W, H, Wo, Wo_F, Wo_L, Ho, Ho_F, Ho_L, Sx, Sy, PadIn, PadIn, B);
 	}
@@ -3419,7 +3437,7 @@ void KerConvDW1x1Stride1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3452,7 +3470,7 @@ void KerConvDW1x1Stride2_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3485,7 +3503,7 @@ void KerConvDW1x1StrideS_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3519,7 +3537,7 @@ void KerConvDW3x1Stride1x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3556,7 +3574,7 @@ void KerConvDW3x1Stride2x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3593,7 +3611,7 @@ void KerConvDW1x3Stride1x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3630,7 +3648,7 @@ void KerConvDW1x3Stride1x2_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3666,7 +3684,7 @@ void KerConvDW3x3Stride1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3702,7 +3720,7 @@ void KerConvDW3x3Stride2_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3738,7 +3756,7 @@ void KerConvDW3x3StrideS_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3776,7 +3794,7 @@ void KerConvDW5x1Stride1x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3813,7 +3831,7 @@ void KerConvDW5x1Stride2x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3850,7 +3868,7 @@ void KerConvDW1x5Stride1x1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3887,7 +3905,7 @@ void KerConvDW1x5Stride1x2_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -3923,7 +3941,7 @@ void KerConvDW5x5Stride1_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3959,7 +3977,7 @@ void KerConvDW5x5Stride2_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -3995,7 +4013,7 @@ void KerConvDW5x5StrideS_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -4031,7 +4049,7 @@ void KerConvDWNxNStrideS_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FS+PadIn[0]+PadIn[1])/S + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FS, PadIn[0], S)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FS, PadIn[0], S));
@@ -4069,7 +4087,7 @@ void KerConvDWNxMStrideSxSy_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-FSx+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput(FSx, PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, FSx, PadIn[0], Sx));
@@ -4107,7 +4125,7 @@ void KerConvDWNxMDxDyStrideSxSy_fp16(KerConv_fp16_T *Arg)
 	F16 * __restrict__ Filter = Arg->Filter;
 	F16 * __restrict__ Out = Arg->Out;
 	
-	int B = Arg->Bias[0];
+	F16 B = Arg->Bias[0];
 	v4s PadIn = Arg->Pad;
 	int Wo = (Arg->UsedW-(Dx*(FSx-1)+1)+PadIn[0]+PadIn[1])/Sx + 1;
 	int Wo_F = Min(Wo, FirstDefinedOutput((Dx*(FSx-1)+1), PadIn[0], Sx)), Wo_L = Max(Wo_F, LastDefinedOutput(Arg->UsedW, (Dx*(FSx-1)+1), PadIn[0], Sx));

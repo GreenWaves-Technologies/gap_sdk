@@ -1,0 +1,32 @@
+#dataset extraction
+python download_and_convert_visualwakewords.py --logtostderr \
+      --dataset_name=visualwakewords \
+      --dataset_dir="${DATASET_DIR}" \
+      --small_object_area_threshold=0.005 \
+      --foreground_class_of_interest='car, truck, ...'
+
+#EVALUATION
+python3 eval_image_classifier.py   \   
+	--checkpoint_path='vww_train_vehicle_grayscale/'   \   
+	--eval_dir='vww_eval_vehicle_grayscale_2/' \  
+	--dataset_split_name=val   \   
+	--dataset_dir='visualwakewords_vehicle/'  \  
+	--dataset_name='visualwakewords' \  
+	--model_name='mobilenet_v1' \ 	  
+	--use_grayscale
+python3 eval_image_classifier.py --checkpoint_path='vww_train_vehicle_grayscale/'  --eval_dir='vww_eval_vehicle_grayscale_2/' --dataset_split_name=val --dataset_dir='visualwakewords_vehicle/' --dataset_name='visualwakewords' --model_name='mobilenet_v1' --use_grayscale
+
+#TRAINING 
+python3 train_image_classifier.py \
+	--train_dir='vww_vehicle_train_grayscale_quant' \
+	--dataset_name='visualwakewords' \
+	--dataset_split_name=train \
+	--dataset_dir='./visualwakewords_vehicle/' \
+	--log_every_n_steps=100 \
+	--model_name='mobilenet_v1' \
+	--checkpoint_path='./vww_train_vehicle_grayscale/' \
+	--max_number_of_steps=100000   \  
+	--num_clones=2   \ 
+	--use_grayscale \
+	--quantize_delay=1
+python3 train_image_classifier.py         --train_dir='vww_vehicle_train_grayscale_quant'         --dataset_name='visualwakewords'         --dataset_split_name=train         --dataset_dir='./visualwakewords_vehicle/'         --log_every_n_steps=100         --model_name='mobilenet_v1'              --max_number_of_steps=100000         --num_clones=2      --use_grayscale --quantize_delay=50000 

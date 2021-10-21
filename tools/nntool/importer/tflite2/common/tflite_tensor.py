@@ -215,9 +215,9 @@ class TFLiteTensorWrapper(TensorBase):
             if quant.ScaleLength() == 0 and quant.MinLength() == 0 and\
                     quant.MaxLength() == 0 and quant.ZeroPointLength() == 0:
                 return None
-            if self.dtype == np.uint8 or self.dtype == np.uint16 or self.dtype == np.uint32:
+            if self.dtype == np.uint8 or self.dtype == np.uint16 or self.dtype == np.uint32 or self.dtype == np.uint64:
                 return self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)
-            elif self.dtype == np.int8 or self.dtype == np.int16 or self.dtype == np.int32:
+            elif self.dtype == np.int8 or self.dtype == np.int16 or self.dtype == np.int32 or self.dtype == np.int64:
                 if np.all(quant.ZeroPointAsNumpy() == 0):
                     return self.symmetric_mult_qtype_from_tflite(quant, self.dtype)
                 return self.asymmetric_mult_qtype_from_tflite(quant, self.dtype)

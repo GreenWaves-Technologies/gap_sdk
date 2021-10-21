@@ -8,10 +8,6 @@
 #include "gaplib/wavIO.h"
 #include "MFCC_params.h"
 #include "MFCCKernels.h"
-#include "TwiddlesDef.h"
-#include "RFFTTwiddlesDef.h"
-#include "SwapTablesDef.h"
-
 #include "LUT.def"
 #include "MFCC_FB.def"
 
@@ -21,8 +17,8 @@
 #define  N_FRAME        49
 
 #if (DATA_TYPE==2)
-typedef f16 MFCC_IN_TYPE;
-typedef f16 OUT_TYPE;
+typedef F16_DSP MFCC_IN_TYPE;
+typedef F16_DSP OUT_TYPE;
 #elif (DATA_TYPE==3)
 typedef float MFCC_IN_TYPE;
 typedef float OUT_TYPE;
@@ -38,6 +34,16 @@ short int *inWav;
 int num_samples;
 char *FileName;
 
+#ifdef TEST
+#include "ground_truth.h"
+#include "math.h"
+#if (DATA_TYPE==2) || (DATA_TYPE==3)
+float QSNR_THR = 40;
+#else
+float QSNR_THR = 38;
+#endif
+#endif
+
 static void RunMFCC()
 {
         PRINTF("run mfcc\n");
@@ -49,15 +55,19 @@ static void RunMFCC()
 
         #if (N_DCT == 0)
                 #if (DATA_TYPE==2) || (DATA_TYPE==3)
-                Librosa_MFCC(MfccInSig, out_feat, R2_Twiddles_float_512, RFFT_Twiddles_float_1024, R2_SwapTable_float_512, WindowLUT, MFCC_FilterBank, MFCC_Coeffs);
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs);
+                #elif (DATA_TYPE==1)
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM);
                 #else
-                Librosa_MFCC(MfccInSig, out_feat, R2_Twiddles_fix_512,   RFFT_Twiddles_fix_1024,   R2_SwapTable_fix_512,   WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM);
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM);
                 #endif
         #else
                 #if (DATA_TYPE==2) || (DATA_TYPE==3)
-                Librosa_MFCC(MfccInSig, out_feat, R2_Twiddles_float_512, RFFT_Twiddles_float_1024, R2_SwapTable_float_512, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, DCT_Coeff);
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, DCT_Coeff);
+                #elif (DATA_TYPE==1)
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM, DCT_Coeff);
                 #else
-                Librosa_MFCC(MfccInSig, out_feat, R2_Twiddles_fix_512,   RFFT_Twiddles_fix_1024,   R2_SwapTable_fix_512,   WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM, DCT_Coeff);
+                Librosa_MFCC(MfccInSig, out_feat, TwiddlesLUT, RFFTTwiddlesLUT, SwapTable, WindowLUT, MFCC_FilterBank, MFCC_Coeffs, NORM, DCT_Coeff);
                 #endif
         #endif
         #ifdef PERF
@@ -135,12 +145,35 @@ void test_kickoff(void *arg)
                         #if (DATA_TYPE==2) || (DATA_TYPE==3)
                               printf("%f, ", out_feat[i*frame_size+j]);
                         #else
-                              //printf("%f, ", ((float) out_feat[i*frame_size+j])/(1<<NORM));
-                              printf("%d, ", out_feat[i*frame_size+j]);
+                              int QMFCC = 15 - NORM - 7;
+                              printf("%f, ", FIX2FP(out_feat[i*frame_size+j], QMFCC));
                         #endif
                 }
                 printf("\n");
         }
+        #endif
+        #ifdef TEST
+            float MSE = 0.0, SUM = 0.0;
+            int idx = 0;
+            for (int i=0; i<N_FRAME; i++) {
+                for (int j=0; j<frame_size; j++) {
+                    #if (DATA_TYPE==2) || (DATA_TYPE==3)
+                          MSE += (ground_truth[i*frame_size+j] - out_feat[i*frame_size+j])*(ground_truth[i*frame_size+j] - out_feat[i*frame_size+j]);
+                    #else
+                          int QMFCC = 15 - NORM - 7;
+                          MSE += (ground_truth[i*frame_size+j] - FIX2FP(out_feat[i*frame_size+j], QMFCC)) * (ground_truth[i*frame_size+j] - FIX2FP(out_feat[i*frame_size+j], QMFCC));
+                    #endif
+                    SUM += (ground_truth[i*frame_size+j])*(ground_truth[i*frame_size+j]);
+                }
+            }
+            float QSNR = 10*log10(SUM / MSE);
+            printf("QSNR: %f (thr: %f) --> ", QSNR, QSNR_THR);
+            if (QSNR < QSNR_THR) {
+                printf("Test NOT PASSED\n");
+                pmsis_exit(-1);
+            } else {
+                printf("Test PASSED\n");
+            }
         #endif
 
     pmsis_exit(0);

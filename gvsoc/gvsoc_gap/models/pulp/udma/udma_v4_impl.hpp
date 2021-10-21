@@ -46,6 +46,7 @@
 #include "udma_core_2d/udma_core_2d_regfields.h"
 #include "udma_core_2d/udma_core_2d_gvsoc.h"
 #include <queue>
+#include <deque>
 
 class udma;
 class Udma_channel;
@@ -62,8 +63,10 @@ class Udma_addrgen
 public:
     Udma_addrgen(udma *top, int id, int event_id) : top(top), id(id), event_id(event_id), channel(NULL) {}
     virtual vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write) = 0;
-    virtual void get_next_transfer(uint32_t *addr, int *size) = 0;
+    virtual bool get_next_transfer(uint32_t *addr, int *size) = 0;
     virtual void reset(bool active) = 0;
+    void dec_size(int size) { this->remaining_size -= size; }
+    int get_remaining_size() { return this->remaining_size; }
     bool is_active() { return this->active_transfer; }
     void register_channel(Udma_channel *channel);
     void set_active_transfer(bool active);
@@ -74,6 +77,7 @@ public:
     Udma_channel *channel;
     int event_id;
     bool active_transfer;
+    int remaining_size;
 };
 
 
@@ -83,7 +87,7 @@ class Udma_addrgen_linear : public Udma_addrgen
 public:
     Udma_addrgen_linear(udma *top, int id, int event_id);
     vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
-    void get_next_transfer(uint32_t *addr, int *size);
+    bool get_next_transfer(uint32_t *addr, int *size);
     void reset(bool active);
 
 private:
@@ -108,7 +112,7 @@ class Udma_addrgen_2d : public Udma_addrgen
 public:
     Udma_addrgen_2d(udma *top, int id, int event_id);
     vp::io_req_status_e access(uint64_t offset, int size, uint8_t *value, bool is_write);
-    void get_next_transfer(uint32_t *addr, int *size);
+    bool get_next_transfer(uint32_t *addr, int *size);
     void reset(bool active);
 
 private:
@@ -166,7 +170,7 @@ template <class T>
 class Udma_fifo
 {
 public:
-    Udma_fifo(int size) : size(size) { }
+    Udma_fifo(vp::component *top, std::string name, int size);
     T pop();
     inline void push(T cmd);
     bool is_full() { return this->queue.size() >= this->size; }
@@ -178,7 +182,8 @@ public:
 private:
     std::queue<T> queue;
     int size;
-
+    vp::reg_32 nb_elems;
+    vp::reg_1 reg_is_full;
 };
 
 
@@ -190,6 +195,7 @@ public:
     Udma_request *next;
 
     uint32_t data;
+    uint32_t addr;
     int size;
     int offset;
     Udma_addrgen *addrgen;
@@ -236,7 +242,7 @@ private:
 class Udma_rx_channel : public Udma_channel
 {
 public:
-    Udma_rx_channel(udma *top, string name) : Udma_channel(top, name) {}
+    Udma_rx_channel(udma *top, string name) : Udma_channel(top, name), waiting_active(false) {}
 
     void reset(bool active);
 
@@ -261,6 +267,8 @@ public:
 
     void set_active(bool active);
 
+    void notify_wait_active_done();
+
 private:
     bool waiting_active;
 };
@@ -271,7 +279,10 @@ private:
 class Udma_tx_channel : public Udma_channel
 {
 public:
-    Udma_tx_channel(udma *top, string name) : Udma_channel(top, name) {}
+    Udma_tx_channel(udma *top, string name)
+        : Udma_channel(top, name),
+        enqueued(false)
+    {}
 
     void reset(bool active);
 
@@ -282,7 +293,7 @@ public:
     virtual void push_data(uint8_t *data, int size) {}
 
     // Can be called to ask the channel to read data from L2. The channel must be ready when calling it
-    void get_data(int size);
+    void get_data(int size, int channel = -1);
 
     // Tell if the channel is ready to ready data from L2 (get_data can be called)
     bool is_ready();
@@ -293,8 +304,9 @@ public:
 
     void set_active(bool active);
 
+    std::deque<int> requested_size_queue;
     int requested_size;
-    int enqueued;
+    bool enqueued;
 };
 
 
@@ -311,8 +323,11 @@ public:
     static void handle_waiting(void *__this, vp::clock_event *event);
     static void stream_in_ready_sync(void *__this, bool ready, int id);
     std::vector<Udma_rx_channel *> stream_in_channels;
+    void add_waiting_channel(Udma_rx_channel *channel) { this->waiting_channels.push(channel); }
 
 private:
+    void check_waiting_channels();
+
     udma *top;
 
     Udma_queue<vp::io_req> *l2_free_reqs;    // L2 free requests to write to L2
@@ -327,7 +342,7 @@ private:
     std::vector<vp::wire_master<uint32_t> *> stream_in_data_itf;
     std::vector<vp::wire_slave<bool> *> stream_in_ready_itf;
 
-
+    std::queue<Udma_rx_channel *> waiting_channels;
 };
 
 
@@ -343,8 +358,13 @@ public:
     void push_ready_channel(Udma_tx_channel *channel);
     void pop_ready_channel(Udma_tx_channel *channel);
     static void stream_out_data_sync(void *__this, uint32_t data, int id);
+    uint32_t stream_out_data_pop(int id);
     std::vector<vp::wire_master<bool> *> stream_out_ready_itf;
     std::vector<Udma_tx_channel *> stream_out_channels;
+    std::vector<uint32_t> stream_out_data;
+    std::vector<bool> stream_out_data_ready;
+    void reset(bool active);
+    void stream_out_ready_set(int id, bool ready);
 
 private:
     udma *top;
@@ -519,9 +539,19 @@ void Udma_queue<T>::remove(T *cmd)
 
 
 template <class T>
+Udma_fifo<T>::Udma_fifo(vp::component *top, std::string name, int size)
+: size(size)
+{
+    top->new_reg(name + "/nb_elems", &this->nb_elems, 0);
+    top->new_reg(name + "/is_full", &this->reg_is_full, 0);
+}
+
+template <class T>
 inline void Udma_fifo<T>::push(T cmd)
 {
     this->queue.push(cmd);
+    this->nb_elems.set(this->nb_elems.get() + 1);
+    this->reg_is_full.set(this->is_full());
 }
 
 
@@ -531,6 +561,10 @@ T Udma_fifo<T>::pop()
 {
     T result = this->queue.front();
     this->queue.pop();
+
+    this->nb_elems.set(this->nb_elems.get() - 1);
+    this->reg_is_full.set(this->is_full());
+
     return result;
 }
 
@@ -599,6 +633,7 @@ private:
 
     int nb_periphs;
     int l2_read_fifo_size;
+    int l2_write_fifo_size;
     int nb_channels;
     std::vector<Udma_periph *> periphs;
     uint32_t clock_gating;
@@ -614,33 +649,5 @@ private:
     std::vector<Udma_addrgen_linear *> addrgen_linear;
     std::vector<Udma_addrgen_2d *> addrgen_2d;
 };
-
-#ifdef HAS_SPIM
-#include "spim/udma_spim_v4.hpp"
-#endif
-
-#ifdef HAS_UART
-#include "uart/v2/udma_uart.hpp"
-#endif
-
-#ifdef HAS_CPI
-#include "cpi/udma_cpi_v2.hpp"
-#endif
-
-#ifdef HAS_AES
-#include "aes/udma_aes_v1.hpp"
-#endif
-
-#ifdef HAS_SFU
-#include "sfu/udma_sfu_v1.hpp"
-#endif
-
-#ifdef HAS_EMPTY_SFU
-#include "sfu/udma_sfu_v1_empty.hpp"
-#endif
-
-#ifdef HAS_FFC
-#include "ffc/udma_ffc_v1.hpp"
-#endif
 
 #endif

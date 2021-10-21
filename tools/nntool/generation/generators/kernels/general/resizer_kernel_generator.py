@@ -67,7 +67,7 @@ class ResizeKernel(AutotilerKernel):
         self.inout_type = "SIGNED_INOUT" if qrec.in_qs[0].signed else "UNSIGNED_INOUT"
         self.type = params.op_name
         self.new_shape = params.new_shape
-        self.q16 = True if qrec.in_qs[0].bits == 16 else False
+        self.q16 = True if qrec.in_qs[0].dtype_bits == 16 else False
 
     def code(self, code_block=None):
         if code_block is None:

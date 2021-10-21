@@ -14,11 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from graph.types.tensor_arithmetic import MatrixAddParameters
+from importer.tflite2.tflite_schema_head.AddOptions import AddOptions
 
 from ..backend_handler import BackendHandler
 from ..handler import tflite_op
 from .math_mixin import ArithmeticMixin
-from importer.tflite2.tflite_schema_head.AddOptions import AddOptions
 
 
 @tflite_op("ADD")

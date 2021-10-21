@@ -1,0 +1,11 @@
+script model/nntool_script
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Copy_Generators.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/SSD_Generators.c /home/marco-gwt/GWT/AutotilerV2/Generators/BilinearResizes/ResizeGenerator.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c
+python3 utils/test_accuracy_emul.py --tflite_model model/KWS_ds_cnn_l_quant.tflite --dct_coefficient_count 10 --window_size_ms 40 --window_stride_ms 20 --test_with_wav 1 --use_power_spectrogram 0
+make -f emul.mk clean_model clean all DUMP_TENSORS=0 SMALL=0 MEDIUM=0 LARGE=1 WITH_MFCC=1 USE_POWER=0
+make[1]: Entering directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'
+script model/nntool_script
+GEN ... /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Generator_Util.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/CNN_Copy_Generators.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators/SSD_Generators.c /home/marco-gwt/GWT/AutotilerV2/Generators/BilinearResizes/ResizeGenerator.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/CNN_Generators_SQ8.c /home/marco-gwt/GWT/AutotilerV2/CNN_Generators_SQ8/RNN_Generators_SQ8.c
+rm -f -rf BUILD_MODEL_SQ8_EMUL
+rm -f -r BUILD_EMUL
+rm -f kws_ds_cnn_emul
+make[1]: Leaving directory '/home/marco-gwt/GWT/NN_menu/starters/keyword_spotting'

@@ -49,8 +49,8 @@ class MatchRnnUnpack(Matcher):
         elif isinstance(node, (StridedSliceParameters, SplitParameters)):
             return [(node, out_shape)]
         elif isinstance(node, TransposeParameters):
-            if node.transpose_in and node.transpose_in[0]:
-                out_shape = [out_shape[idx] for idx in node.transpose_in[0]]
+            if node.transpose:
+                out_shape = [out_shape[idx] for idx in node.transpose]
         elif isinstance(node, ConcatParameters):
             before = sum(dim.shape[node.axis]
                          for dim in node.in_dims[:in_idx:])
@@ -240,19 +240,19 @@ class MatchRnnUnpack(Matcher):
                     node.shape = Dim.unnamed(out_shape)
             elif isinstance(node, TransposeParameters):
                 remove_node = False
-                if not node.transpose_in or not node.transpose_in[0]:
+                if not node.transpose:
                     remove_node = True
                 else:
                     t_axis = next(
                         iter([idx for idx, dim in enumerate(node_dim) if dim[0] == 't']))
                     new_transpose = [
-                        axis - 1 if axis > t_axis else axis for axis in node.transpose_in[0] if axis != t_axis]
+                        axis - 1 if axis > t_axis else axis for axis in node.transpose if axis != t_axis]
                     if new_transpose == sorted(new_transpose):
                         remove_node = True
                     else:
                         LOG.info(
                             "%s", f"setting {node.name} transpose to {new_transpose}")
-                        node.transpose_in[0] = new_transpose
+                        node.transpose = new_transpose
 
                 if remove_node:
                     self.remove_node(G, node)

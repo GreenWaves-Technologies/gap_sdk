@@ -1,0 +1,6 @@
+BUILD*
+SSDKernels.*
+SSDParams.*
+SSDParamsGenerator
+GenSSDTile
+GenTile

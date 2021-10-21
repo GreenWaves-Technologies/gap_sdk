@@ -18,7 +18,7 @@ from graph.dim import Dim, FcFilterDim
 from graph.types import FcParameters
 from graph.types.base import NNEdge
 from graph.types.input_output import ConstantInputParameters
-from graph.types.others import ReshapeParameters
+from graph.types.others import ReshapeParameters, TransposeParameters
 from graph.types.tensor_arithmetic import MatMulOpParameters
 from importer.common.provisional_dim import ProvisionalDim
 from importer.tflite2.common import check
@@ -46,7 +46,7 @@ class FullyConnected(FilterMixin, BackendHandler):
         check(not keep_dims,
               f'keep dims on Fully Connected {node.name} is not supported')
 
-        inputs = [all_nodes[t] for t in node.input]
+        inputs = [all_nodes[t] if t is not None else None for t in node.input]
 
         x = inputs[0]
         x_known_shape = x[2].known_shape
@@ -64,7 +64,7 @@ class FullyConnected(FilterMixin, BackendHandler):
         check(filt_dim.sz * batch_size == inp_sz,
               "filter doesn't match input size")
 
-        if len(inputs) > 2:
+        if len(inputs) > 2 and inputs[2] is not None:
             bias = inputs[2]
             bias_node = bias[0]
         else:
@@ -89,16 +89,20 @@ class FullyConnected(FilterMixin, BackendHandler):
 
             # the batched linear is transpose(weights . transpose(input))
             params = MatMulOpParameters(node.name)
-            params.transpose_in = [None, (1, 0), None]
-            params.transpose_out = [(1, 0)]
             cls.new_load_filter_parameters(G, params, weights_shape, 0,
                                            node.input[0], weights_node,
                                            bias_node, node.output[0], opts)
+            trans1 = TransposeParameters(G.unique_name(f'{node.name}_tin1'), transpose=(1, 0))
+            trans2 = TransposeParameters(G.unique_name(f'{node.name}_tout'), transpose=(1, 0))
             G.add_edge(
-                NNEdge(from_node=link[0], to_node=params, from_idx=link[1], to_idx=1))
+                NNEdge(from_node=link[0], to_node=trans1, from_idx=link[1]))
+            G.add_edge(
+                NNEdge(from_node=trans1, to_node=params, to_idx=1))
             G.add_edge(NNEdge(from_node=weights_node,
                               to_node=params, to_idx=0))
             G.add_edge(NNEdge(from_node=bias_node, to_node=params, to_idx=2))
+            G.add_edge(NNEdge(from_node=params, to_node=trans2))
+            params = trans2
             out_shape = [batch_size, out_c]
         else:
             ker_in_order = None

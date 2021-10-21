@@ -42,7 +42,12 @@ typedef enum {
         KOP_CONV1D_DP,
         KOP_CONV_DW,
         KOP_CONV_DWDP,
+	KOP_MM_CONV,
+	KOP_MM_CONV_DW,
+	KOP_MM_CONV1D,
 	KOP_DP_REDUCT,
+	KOP_DP_REDUCT_NOSCALE,
+	KOP_DP_REDUCT_CHW2HWC,
 	KOP_DP_REDUCT_IO,
 	KOP_DP_REDUCT_MULBIAS,
 	KOP_DP_REDUCT_IO_MULBIAS,
@@ -54,15 +59,19 @@ typedef enum {
         KOP_GLOBAL_MAXPOOL_REDUCT,
         KOP_GLOBAL_AVGPOOL,
         KOP_GLOBAL_AVGPOOL_REDUCT,
+	KOP_SCALE,
         KOP_ACT_NONE,
         KOP_RELU,
 	KOP_RELUN,
 	KOP_RELUM,
 	KOP_RELUMN,
 	KOP_HSIGMOID,
+	KOP_HTANH,
 	KOP_HSWISH,
 	KOP_LEAKYRELU,
 	KOP_SIGMOID,
+	KOP_TANH,
+	KOP_SWISH,
         KOP_LINEAR,
         KOP_LINEAR_DP,
 	KOP_DP_REDUCT_LINEAR,
@@ -86,6 +95,11 @@ typedef enum {
 	KOP_MATPERM_CHW2WHC,
 	KOP_MATPERM_CHW2WCH,
 	KOP_MATPERM_CHW2HCW,
+	KOP_MATPERM_HWC2HCW,
+	KOP_MATPERM_HWC2WCH,
+	KOP_MATPERM_HWC2WHC,
+	KOP_MATPERM_HWC2CHW,
+	KOP_MATPERM_HWC2CWH,
         KOP_SOFTMAX,
 	KOP_EXPAND,
 	KOP_COLLAPSE,
@@ -149,9 +163,12 @@ typedef enum {
 	KOP_RELUM_IN_SCALE,
 	KOP_RELUMN_IN_SCALE,
 	KOP_HSIGMOID_IN_SCALE,
+	KOP_HTANH_IN_SCALE,
 	KOP_HSWISH_IN_SCALE,
 	KOP_LEAKYRELU_IN_SCALE,
 	KOP_SIGMOID_IN_SCALE,
+	KOP_TANH_IN_SCALE,
+	KOP_SWISH_IN_SCALE,
 
 	KOP_DP_REDUCT_UNSIGNED,
 
@@ -160,6 +177,13 @@ typedef enum {
 	KOP_NORM_RGB16,
 	KOP_NORM_BW,
 	KOP_NORM_BW16,
+
+	KOP_CONVERT_FL_FL,
+	KOP_CONVERT_FP_FP,
+	KOP_CONVERT_FP_FP_ZEROPOINT,
+	KOP_CONVERT_FP_FP_SCALE,
+	KOP_CONVERT_FL_FP,
+	KOP_CONVERT_FP_FL,
 
 	KOP_LAST
 
@@ -268,9 +292,11 @@ typedef enum {
 	CALL_SEQUENTIAL=0,	/**< Call the related basic kernel only on master core */
 	CALL_PARALLEL=1,	/**< Call the related basic kernel on all available cores */
 	CALL_SEQUENTIAL_STRUCT=2,/**< Call the related basic kernel only on master core but pass all arguments through one structure */
+        CALL_PARALLEL_CC=3,     /**<Call the related basic kernel on all available cores including the cluster controller */
 	CALL_MASK=3,		/**< To extract what is related to call nature */
 	CALL_FLOAT_KER=4,	/**< Attribute, this kernel uses float arithmetic */
 	CALL_HWC_KER=8,		/**< Attribute, this kernel assumes HWC tensor order, default is CHW */
+        CALL_LAST_ATTRIBUTE=8
 } KernelCallTypeT;
 
 /**
@@ -319,10 +345,10 @@ typedef enum {
 	LOC_D3_PROLOG=19,	/**< Call basic kernel before 1st iteration on D3 */
 	LOC_D3_EPILOG=20,	/**< Call basic kernel after last iteration on D3 */
 
-	LOC_PROLOG=21,			/**< Call basic kernel before the entire user kernel iteration structure */
-	LOC_EPILOG=22,			/**< Call basic kernel after the entire user kernel iteration structure */
+	LOC_PROLOG=21,		/**< Call basic kernel before the entire user kernel iteration structure */
+	LOC_EPILOG=22,		/**< Call basic kernel after the entire user kernel iteration structure */
 
-	LOC_GROUP=23,			/**< Call user kernel in a kernel group */
+	LOC_GROUP=23,		/**< Call user kernel in a kernel group */
 } KernelCallLocationT;
 
 extern KernelCallLocationT IterCallLocation[][CALL_LAST];
@@ -392,30 +418,43 @@ typedef enum {
 	KER_ARG_PARTILE_DIM = 23,	/**< Actual dimension of a parametric space */
 	KER_ARG_PARTILE_SIZE = 24,	/**< Size of a tile from a parametric space */
 	KER_ARG_LOADEDPARTILE_SIZE = 25,/**< Size of a tile from a parametric space, in case the related subspace has been promoted to partial buffer returns the dimension of this subspace otherwise is equal to KER_ARG_PARTILE_SIZE */
-	KER_IT_INDEX = 26,		/**< Actual value of a given kernel iterator */
 
-	TC_ARG = 27,			/**< A C argument */
-	TC_IMM = 28,			/**< An immediate int value */
-	TC_USYMB = 29,			/**< A user defined symbol */
-	TC_KDIM = 30,			/**< One of the user Kernel Dimensions */
-	TC_ARG_IND = 31,		/**< An indirection on a C argument */
-	TC_ARG_IND_IT_INDEX = 32, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
-	TC_ARG_PLUS_IT_INDEX = 33, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
+	KER_ARG_FIRST_TILE = 26,	/**< First tile base address in L1 */
+	KER_ARG_NEXT_TILE = 27,		/**< Next tile base address in L1 */
+	KER_ARG_FIRST_TILE_W = 28,	/**< First tile width */
+	KER_ARG_NEXT_TILE_W = 29,	/**< Next tile width */
+	KER_ARG_FIRST_TILE_H = 30,	/**< First tile height */
+	KER_ARG_NEXT_TILE_H = 31,	/**< Next tile height */
+	KER_ARG_FIRST_TILE_PAD = 32,	/**< Actual padding of first tile associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_NEXT_TILE_PAD = 33,	/**< Actual padding of next tile associated to arg (left,right,top,bottom) as a v4s */
+	KER_ARG_FIRST_PARTILE_SIZE = 34,/**< Size of first tile from a parametric space */
+	KER_ARG_NEXT_PARTILE_SIZE = 35,	/**< Size of next tile from a parametric space */
+	KER_ARG_NEXT_TILELAST = 36,	/**< Predicate, != 0 if next tile is the last one */
+
+	KER_IT_INDEX = 37,		/**< Actual value of a given kernel iterator */
+
+	TC_ARG = 38,			/**< A C argument */
+	TC_IMM = 39,			/**< An immediate int value */
+	TC_USYMB = 40,			/**< A user defined symbol */
+	TC_KDIM = 41,			/**< One of the user Kernel Dimensions */
+	TC_ARG_IND = 42,		/**< An indirection on a C argument */
+	TC_ARG_IND_IT_INDEX = 43, 	/**< An indirection on a C argument with respect to actual value of ItSpace */
+	TC_ARG_PLUS_IT_INDEX = 44, 	/**< A C argument added to actual value of ItSpace, ItSpace multiplied by a constant */
 
 
 	/* Deprecated */
-	KER_ARG_INPLANEINDEX = 40,	/**< Current Input Plane index for related user kernel argument, starts at 0 */
-	KER_ARG_OUTPLANEINDEX = 41,	/**< Current Output Plane index for related user kernel argument, starts at 0 */
+	KER_ARG_INPLANEINDEX = 45,	/**< Current Input Plane index for related user kernel argument, starts at 0 */
+	KER_ARG_OUTPLANEINDEX = 46,	/**< Current Output Plane index for related user kernel argument, starts at 0 */
 
-	TC_ARG_IND_IP = 42,		/**< A C argument subscripted by the current In Data Plane iteration index */ // SHOULD BE REPLACED BY TC_ARG_IND_DIM Carg[Dim_Index]
-	TC_ARG_IND_OP = 43,		/**< A C argument subscripted by the current Out Data Plane iteration index */
-	TC_ARG_IND_TILE = 44,		/**< A C argument subscripted by the current current most inner iteration index on argument basic data plane */
-	TC_ARG_PLUS_IND_IP = 45,	/**< A C argument added to the current In Data Plane iteration index multiplied by a constant */
-	TC_ARG_PLUS_IND_OP = 46,	/**< A C argument added to the current Out Data Plane iteration index multiplied by a constant*/
-	TC_ARG_PLUS_IND_TILE = 47,	/**< A C argument added to the current current most inner iteration index on argument basic data plane multiplied by a constant */
+	TC_ARG_IND_IP = 47,		/**< A C argument subscripted by the current In Data Plane iteration index */ // SHOULD BE REPLACED BY TC_ARG_IND_DIM Carg[Dim_Index]
+	TC_ARG_IND_OP = 48,		/**< A C argument subscripted by the current Out Data Plane iteration index */
+	TC_ARG_IND_TILE = 49,		/**< A C argument subscripted by the current current most inner iteration index on argument basic data plane */
+	TC_ARG_PLUS_IND_IP = 50,	/**< A C argument added to the current In Data Plane iteration index multiplied by a constant */
+	TC_ARG_PLUS_IND_OP = 51,	/**< A C argument added to the current Out Data Plane iteration index multiplied by a constant*/
+	TC_ARG_PLUS_IND_TILE = 52,	/**< A C argument added to the current current most inner iteration index on argument basic data plane multiplied by a constant */
 
-	TC_ARG_PLUS_OFFSET = 48,	/**< A C argument plus an immediate offset */
-	TC_ARG_PLUS_C_OFFSET = 49,	/**< A C argument plus a C variable name offset */
+	TC_ARG_PLUS_OFFSET = 53,	/**< A C argument plus an immediate offset */
+	TC_ARG_PLUS_C_OFFSET = 54,	/**< A C argument plus a C variable name offset */
 	KER_ARG_SEL_LAST
 } KernelArgSelect_T;
 
@@ -434,6 +473,7 @@ A user kernel argument object type is a logical or of these elementary propertie
 Predefined group of properties in enum Object_Type_T provide a set of consistent set of elementary properties.
 */
 
+#if 0
 typedef enum {
         O_IN                    = (1<<0),       /**< Argument is an input */
         O_NIN                   = (1<<1),       /**< Argument is not an input */
@@ -452,26 +492,105 @@ typedef enum {
         O_ALIAS                 = (1<<14),      /**< Argument is aliased to another argument, different name but same memory location */
         O_NALIAS                = (1<<15),      /**< Argument is not aliased */
         O_DYNTILE               = (1<<16),      /**< Argument tile size is adjusted dynamically */
-        O_NDYNTILE              = (1<<17),      /**< Argument tile size is not adjusted dynamically */
-	O_CONST			= (1<<18),	/**< Argument is constant, applies to input only */
-	O_NCONST		= (1<<19),	/**< Argument is not constant, applies to input only */
-	O_STACK_PRED		= (1<<20),	/**< Argument should be allocated without alignment padding between it and prev in declaration list */
-	O_NO_LOAD		= (1<<21),	/**< Argument has O_IN and O_BUFF attribute but load is not performed */
-	O_NO_STORE		= (1<<22),	/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
-	O_BIT			= (1<<23),	/**< Argument ItemSize is expressed in bits instead of bytes */
-	O_LINEAR		= (1<<24),	/**< Argument is always accessed with a 1D access, may require layout reorg prior as a consequence Arg should be const */
-	O_NE16_PW		= (1<<25),	/**< Argument is a NE16 weights tensor for point wise convolution */
-	O_NE16_DW		= (1<<26),	/**< Argument is a NE16 weights tensor for depth wise convolution */
-	O_NE16_LIN		= (1<<27),	/**< Argument is a NE16 weights tensor for linear layer */
-	O_FLOAT			= (1<<28),	/**< Argument is a float */
+	O_CONST			= (1<<17),	/**< Argument is constant, applies to input only */
+	O_STACK_PRED		= (1<<18),	/**< Argument should be allocated without alignment padding between it and prev in declaration list */
+	O_ALWAYS_LOAD		= (1<<19),	/**< Argument has O_IN and O_BUFF attribute and load is always performed even if no iteration */
+	O_NO_LOAD		= (1<<20),	/**< Argument has O_IN and O_BUFF attribute but load is not performed */
+	O_NO_STORE		= (1<<21),	/**< Argument has O_OUT and O_BUFF attribute but store is not performed */
+	O_BIT			= (1<<22),	/**< Argument ItemSize is expressed in bits instead of bytes */
+	O_LINEAR		= (1<<23),	/**< Argument is always accessed with a 1D access, may require layout reorg prior as a consequence Arg should be const */
+	O_NE16_PW		= (1<<24),	/**< Argument is a NE16 weights tensor for point wise convolution */
+	O_NE16_DW		= (1<<24),	/**< Argument is a NE16 weights tensor for depth wise convolution */
+	O_NE16_LIN		= (1<<25),	/**< Argument is a NE16 weights tensor for linear layer */
+	O_NE16_3X3		= (1<<26),	/**< Argument is a NE16 weights tensor for 3x3 basic mode (stride = 1 or 2) */
+	O_FLOAT			= (1<<27),	/**< Argument is a float */
+	O_HWC			= (1<<28),	/**< Argument is a NE16 weights tensor for 3x3 basic mode (stride = 1 or 2) */
 
         O_TILE2                 = (1<<29),      /**< Argument traverses the 3rd level of iteration on the basic data plane */
         O_TILE1                 = (1<<30),      /**< Argument traverses the 2nd level of iteration on the basic data plane */
         O_TILE0                 = (1<<31),      /**< Argument traverses the 1st level of iteration on the basic data plane, this should always be the case if tiled */
+
 } BasicObjectType_T;
+#endif
+
+
+
+/**< Argument is an input */
+#define	O_IN      	((uint64_t) ((uint64_t)1<<0))
+/**< Argument is not an input */
+#define	O_NIN     	((uint64_t) ((uint64_t)1<<1))
+/**< Argument is an output */
+#define	O_OUT     	((uint64_t) ((uint64_t)1<<2))
+/**< Argument is not an output */
+#define	O_NOUT    	((uint64_t) ((uint64_t)1<<3))
+/**< Argument is a buffer */
+#define	O_BUFF    	((uint64_t) ((uint64_t)1<<4))
+/**< Argument is not a buffer */
+#define	O_NBUFF   	((uint64_t) ((uint64_t)1<<5))
+/**< Argument should be tiled */
+#define	O_TILED   	((uint64_t) ((uint64_t)1<<6))
+/**< Argument should not be tiled */
+#define	O_NTILED  	((uint64_t) ((uint64_t)1<<7))
+/**< Argument should be exactly one tile in shared L1 */
+#define	O_ONETILE 	((uint64_t) ((uint64_t)1<<8))
+/**< Argument should can have multiple tiles in shared L1 */
+#define	O_NONETILE	((uint64_t) ((uint64_t)1<<9))
+/**< Argument should be double buffered ((or triple) */
+#define	O_DB      	((uint64_t) ((uint64_t)1<<10))
+/**< Argument should be single buffered */
+#define	O_NDB     	((uint64_t) ((uint64_t)1<<11))
+/**< Argument is in L3 and should be double or triple buffered in L2 */
+#define	O_L2DB    	((uint64_t) ((uint64_t)1<<12))
+/**< Argument is not in L3 */
+#define	O_NL2DB   	((uint64_t) ((uint64_t)1<<13))
+/**< Argument is aliased to another argument, different name but same memory location */
+#define	O_ALIAS   	((uint64_t) ((uint64_t)1<<14))
+/**< Argument is not aliased */
+#define	O_NALIAS  	((uint64_t) ((uint64_t)1<<15))
+/**< Argument tile size is adjusted dynamically */
+#define	O_DYNTILE 	((uint64_t) ((uint64_t)1<<16))
+/**<Argumentisconstant,appliestoinputonly*/
+#define	O_CONST		((uint64_t) ((uint64_t)1<<17))
+/**<Argumentshouldbeallocatedwithoutalignmentpaddingbetweenitandprevindeclaration list */
+#define	O_STACK_PRED	((uint64_t) ((uint64_t)1<<18))
+/**<ArgumenthasO_INandO_BUFFattributeandloadisalwaysperformedevenif no iteration */
+#define	O_ALWAYS_LOAD	((uint64_t) ((uint64_t)1<<19))
+/**<ArgumenthasO_INandO_BUFFattributebutloadisnotperformed*/
+#define	O_NO_LOAD	((uint64_t) ((uint64_t)1<<20))
+/**<ArgumenthasO_OUTandO_BUFFattributebutstoreisnotperformed*/
+#define	O_NO_STORE	((uint64_t) ((uint64_t)1<<21))
+/**<ArgumentItemSizeisexpressedinbitsinsteadofbytes*/
+#define	O_BIT		((uint64_t) ((uint64_t)1<<22))
+/**<Argumentisalwaysaccessedwitha1Daccess,mayrequirelayoutreorgprior as a consequence Arg should be const */
+#define	O_LINEAR	((uint64_t) ((uint64_t)1<<23))
+/**<ArgumentisaNE16weightstensorforpointwiseconvolution*/
+#define	O_NE16_PW	((uint64_t) ((uint64_t)1<<24))
+/**<ArgumentisaNE16weightstensorfordepthwiseconvolution*/
+#define	O_NE16_DW	((uint64_t) ((uint64_t)1<<25))
+/**<ArgumentisaNE16weightstensorforlinearlayer*/
+#define	O_NE16_LIN	((uint64_t) ((uint64_t)1<<26))
+/**<ArgumentisaNE16weightstensorforbasic3x3omdelayer*/
+#define	O_NE16_3X3	((uint64_t) ((uint64_t)1<<27))
+/**<Argumentisafloat*/
+#define	O_FLOAT		((uint64_t) ((uint64_t)1<<28))
+/**<ArgumentisaHWCtensor*/
+#define	O_HWC		((uint64_t) ((uint64_t)1<<29))
+/**<ArgumentisaNE16weightstensorforRNNlayer*/
+#define	O_NE16_RNN	((uint64_t) ((uint64_t)1<<30))
+/**<ArgumentisaNE16interleavedtensorforRNNlayer*/
+#define	O_NE16_INTER ((uint64_t) ((uint64_t)1<<31))
+/**<ArgumentisaNE16mode16*/
+#define	O_NE16_MODE16 ((uint64_t) ((uint64_t)1<<32))
+/**< Argument traverses the 3rd level of iteration on the basic data plane */
+#define	O_TILE2   	((uint64_t) ((uint64_t)1<<59))
+/**< Argument traverses the 2nd level of iteration on the basic data plane */
+#define	O_TILE1   	((uint64_t) ((uint64_t)1<<60))
+/**< Argument traverses the 1st level of iteration on the basic data plane, this should always be the case if tiled */
+#define	O_TILE0   	((uint64_t) ((uint64_t)1<<61))
+typedef uint64_t BasicObjectType_T;
 
 /// @cond PrivateStuff
-#define O_TILEMASK              (O_TILE0|O_TILE1|O_TILE2)
+#define O_TILEMASK              ((uint64_t)(O_TILE0|O_TILE1|O_TILE2))
 #define OBJ_ITER(Obj)           ((Obj)->Type & (O_TILEMASK))
 /// @endcond
 
@@ -480,6 +599,7 @@ typedef enum {
 
 Pre defined user kernel argument types
 */
+#if 0
 typedef enum {
 	OBJ_IN 				= O_IN|O_TILED,
 	OBJ_IN_DB 			= O_IN|O_DB|O_TILED,
@@ -527,6 +647,40 @@ typedef enum {
 	OBJ_BUFFER_DB_ONETILE		= O_BUFF|O_DB|O_TILED|O_ONETILE,
 
 } Object_Type_T;
+#endif
+
+#define	OBJ_IN 				((uint64_t) O_IN|O_TILED)
+#define	OBJ_IN_DB 			((uint64_t) O_IN|O_DB|O_TILED)
+#define	OBJ_IN_L2DB 			((uint64_t) O_IN|O_L2DB|O_TILED)
+#define	OBJ_IN_DB_L2DB 			((uint64_t) O_IN|O_DB|O_L2DB|O_TILED)
+#define	OBJ_OUT 			((uint64_t) O_OUT|O_TILED)
+#define	OBJ_OUT_DB 			((uint64_t) O_OUT|O_DB|O_TILED)
+#define	OBJ_OUT_L2DB 			((uint64_t) O_OUT|O_L2DB|O_TILED)
+#define	OBJ_OUT_DB_L2DB 		((uint64_t) O_OUT|O_DB|O_L2DB|O_TILED)
+#define	OBJ_OUT_DB_ALIAS 		((uint64_t) O_OUT|O_DB|O_ALIAS|O_TILED)
+#define	OBJ_IN_OUT 			((uint64_t) O_IN|O_OUT|O_TILED)
+#define	OBJ_IN_OUT_DB 			((uint64_t) O_IN|O_OUT|O_DB|O_TILED)
+#define	OBJ_IN_OUT_L2DB 		((uint64_t) O_IN|O_OUT|O_L2DB|O_TILED)
+#define	OBJ_IN_OUT_DB_L2DB 		((uint64_t) O_IN|O_OUT|O_DB|O_L2DB|O_TILED)
+#define	OBJ_BUFFER			((uint64_t) O_BUFF|O_TILED)
+#define	OBJ_BUFFER_NTILED		((uint64_t) O_BUFF)
+#define	OBJ_BUFFER_IN			((uint64_t) O_BUFF|O_IN|O_TILED)
+#define	OBJ_BUFFER_IN_NTILED		((uint64_t) O_BUFF|O_IN)
+#define	OBJ_BUFFER_OUT			((uint64_t) O_BUFF|O_OUT|O_TILED)
+#define	OBJ_BUFFER_OUT_NTILED		((uint64_t) O_BUFF|O_OUT)
+#define	OBJ_BUFFER_IN_OUT		((uint64_t) O_BUFF|O_IN|O_OUT|O_TILED)
+#define	OBJ_BUFFER_IN_OUT_NTILED	((uint64_t) O_BUFF|O_IN|O_OUT)
+#define	OBJ_BUFFER_IN_L2DB		((uint64_t) O_BUFF|O_IN|O_L2DB|O_TILED)
+#define	OBJ_BUFFER_IN_L2DB_NTILED	((uint64_t) O_BUFF|O_IN|O_L2DB)
+#define	OBJ_BUFFER_OUT_L2DB		((uint64_t) O_BUFF|O_OUT|O_L2DB|O_TILED)
+#define	OBJ_BUFFER_OUT_L2DB_NTILED	((uint64_t) O_BUFF|O_OUT|O_L2DB)
+#define	OBJ_BUFFER_IN_OUT_L2DB		((uint64_t) O_BUFF|O_IN|O_OUT|O_L2DB|O_TILED)
+#define	OBJ_BUFFER_IN_OUT_L2DB_NTILED	((uint64_t) O_BUFF|O_IN|O_OUT|O_L2DB)
+#define	OBJ_BUFFER_ONETILE		((uint64_t) O_BUFF|O_TILED|O_ONETILE)
+#define	OBJ_BUFFER_DYNTILE		((uint64_t) O_BUFF|O_TILED|O_DYNTILE)
+#define	OBJ_BUFFER_DB_ONETILE		((uint64_t) O_BUFF|O_DB|O_TILED|O_ONETILE)
+
+typedef uint64_t Object_Type_T;
 
 /**
 @brief Control AutoTiler inline strategy
@@ -586,6 +740,7 @@ typedef enum {
 	BIND_OP_LAST=12,
 	BIND_OP_EQ=13,
 	BIND_OP_NEQ=14,
+	BIND_OP_CHAR_PLUS=15
 } ArgBindingOper;
 
 /* Internal tiler data structures */
@@ -687,7 +842,8 @@ typedef struct A_ArgExpr_T {
         ArgExprOper_T		Oper	:8;
 	KernelArgSelect_T 	SubOper	:8;
 	KernelIteratorT		Space	:8;
-	unsigned int			:8;
+	unsigned int		IsBase	:1;
+	unsigned int			:7;
         union {
                 struct {
                         ArgExpr_T *Sel;
@@ -697,6 +853,7 @@ typedef struct A_ArgExpr_T {
                 int Int;
                 float Float;
                 NameT *Id;
+		char *String;
         } V;
 } ArgExpr_T;
 
@@ -735,6 +892,7 @@ typedef struct {
 	unsigned int Dim;		/* Number of items in this particular dimension */
 	KernelIteratorT KerIterSpace;	/* A tiled Iterator (possibly a single tile) or a regular iterator, in case of a Ker Arg Sub Space only the most inner dim can be tiled */
 	uint64_t SpaceSize[2];		/* Total size of this sub space */
+	uint64_t PaddedSpaceSize;	/* Total size of this sub space with forced padding taken into account */
 	uint64_t SubSpaceSize[4];	/* In bytes size of one item of this sub space, In case sub space is parametric index 0 is std tile dim, index 1 is last tile dim  */
 	uint64_t UnitSubSpaceSize;	/* Size in bytes of the full sub space for a unit stride in space */
 	int64_t UnitStride;			/* Unit move stride along KerIterSpace */
@@ -748,7 +906,9 @@ typedef struct {
 typedef struct {
 	unsigned int Dim;				/* Number of dimensions of this kernel argument */
 	uint64_t Size;					/* Total size in bytes or bits of this kernel argument, byte aligned */
+	uint64_t PaddedSize;				/* Total size in bytes or bits of this kernel argument, byte aligned, forced padding taken into account */
 	uint64_t BitSize;				/* Total size in bits of this kernel argument (unaligned) */
+	uint64_t PaddedBitSize;				/* Total size in bits of this kernel argument (unaligned), forced padding taken into account */
 	KernelArgOneDimDescrT **DimDescr;		/* A vector of dimension description outer to inner */
 	KernelArgOneDimDescrT **IterOrderDimDescr;	/* Reordered DimDescr according to Kernel Iteration Order */
 	int *KerIterDimDescr;				/* Indexed by kernel's IterOrder, if in DimDescr then position in IterOrderDimDescr otherwise -1 */
@@ -923,6 +1083,7 @@ typedef struct {
 	union {
 		int Int;
 		float Float;
+		char *String;
 	} V;
 } UserSymbol_T;
 
@@ -960,7 +1121,7 @@ typedef struct {
 typedef struct A_Kernel_T Kernel_T;
 typedef struct A_Kernel_Arg_T {
 	NameT        *KerArgName;
-	unsigned int Type;
+	Object_Type_T Type;
 	Tile_Orientation_T Orientation;
 	KernelArgDimDescrT *KerArgSpace;
 	unsigned int L1Offset;
@@ -982,6 +1143,7 @@ typedef struct A_Kernel_Arg_T {
 	unsigned int VarDim[2];		/* N tiles, N-1 with Dim=VarDim[0], Last one with Dim=VarDim[1] */
 	unsigned int Pad[4];
 	unsigned int ArgPad[4];
+	int PadValue;
 	int ItemSize;
 	int RawItemSize;
 	unsigned int MoveSize[4];	/* [D1][D0] or [D0][T] or [T] D1,D0 parameteric spaces, T tileable space. D1/D0/T=0 Std tile, D1/D0/T=1 Last Tile */
@@ -1003,12 +1165,13 @@ typedef struct A_Kernel_Arg_T {
 	KerArgInfos_T *Infos;
 	KerArgCost_T *Cost;
 	Kernel_T *KerRef;
+	Kernel_Arg_T *Alias;
 } Kernel_Arg_T;
 
 
 typedef struct A_Object_T {
 	NameT 	     *KerArgName;
-	unsigned int Type;
+	Object_Type_T Type;
 	Tile_Orientation_T Orientation;
 	Object_T *RefObj;
 	KernelArgDimDescrT *KerArgSpace;
@@ -1045,6 +1208,7 @@ typedef struct A_Object_T {
 		Object_T *Alias;
 	} Alias;
 	KerArgCost_T *Cost;
+	int PadValue;
 } Object_T;
 
 typedef enum {
@@ -1156,7 +1320,12 @@ typedef struct {
 	char MFCCDbInsteadOfLog; /* if != 0 the MFCC will compute 10*log10(mel_spectrogram) instead of ln(mel_spectrogram) */
 	char DynamicIter;	/* if != 0 to enable dynamic iteration count */
 	char Force_8BitsOutput;	/* Forces 8 bits output for some layers, e.g. Softmax */
-	char HWCLayout; 	/* Choose HWC layer layout, default =0 */
+	char HWC;		/* if !=0 tensor ordering is HWC otherwise it is CHW */
+	int MfccLogOffset;
+	char InDataSize;
+	char OutDataSize;
+	int GatePrenorm;
+	char FloatDump; /* if != 0 dump tensors as floats in operations that take multiple input types */
 } CNN_GenControl_T;
 
 typedef struct {

@@ -9,9 +9,9 @@ export PATH=$ws_install_dir/bin:$PATH
 export PYTHONPATH=$ws_install_dir/python:$PYTHONPATH
 export PULP_CONFIGS_PATH=$ws_install_dir/configs
 
-JSON_TOOLS_PATH=$GAP_SDK_HOME/tools/pulp_tools/json-tools
-PULP_CONFIG_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-configs
-DEBUG_BRIDGE_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-debug-bridge
+JSON_TOOLS_PATH=$GAP_SDK_HOME/utils/json-tools
+PULP_CONFIG_PATH=$GAP_SDK_HOME/utils/gap_configs
+#DEBUG_BRIDGE_PATH=$GAP_SDK_HOME/tools/pulp_tools/pulp-debug-bridge
 GVSOC_GLOBAL_PATH=$GAP_SDK_HOME/gvsoc
 GVSOC_PATH=$GVSOC_GLOBAL_PATH/gvsoc
 GVSOC_GAP_PATH=$GVSOC_GLOBAL_PATH/gvsoc_gap

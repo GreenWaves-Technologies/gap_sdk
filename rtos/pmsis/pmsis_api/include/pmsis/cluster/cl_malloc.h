@@ -17,6 +17,10 @@
 #ifndef __PMSIS_CLUSTER_CL_MALLOC_H__
 #define __PMSIS_CLUSTER_CL_MALLOC_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @addtogroup MemAlloc
  * @{
@@ -104,4 +108,7 @@ static inline void pi_cl_l2_free_wait(pi_cl_free_req_t *req);
  * @} MemAlloc
  */
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /* __PMSIS_CLUSTER_CL_MALLOC_H__ */

@@ -1,0 +1,36 @@
+adjust
+fusions --scale8
+
+#imageformat input_1 rgb888 offset_int8
+#nodeoption input_1 EXTERN_INPUT_POINTER 1
+
+############### OPTIMIZATIONS #################
+nodeoption DEPTHWISE_CONV_2D_0_1_fusion PARALLELFEATURES 0
+nodeoption DEPTHWISE_CONV_2D_0_4_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_5 PARALLELFEATURES 0
+nodeoption DEPTHWISE_CONV_2D_0_7_fusion PARALLELFEATURES 0
+nodeoption DEPTHWISE_CONV_2D_0_11_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_13_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_19 PARALLELFEATURES 0
+nodeoption CONV_2D_0_26 PARALLELFEATURES 0
+nodeoption CONV_2D_0_30 PARALLELFEATURES 0
+nodeoption CONV_2D_0_34 PARALLELFEATURES 0
+nodeoption CONV_2D_0_43_fusion PARALLELFEATURES 0
+nodeoption CONV_2D_0_45 PARALLELFEATURES 0
+
+nodeoption CONV_2D_0_47_fusion OUT_HOME_MEM_LOC AT_MEM_L3_HRAM
+nodeoption CONV_2D_0_47_fusion OUT_EXEC_MEM_LOC AT_MEM_L3_HRAM
+#set graph_size_opt 2
+
+##############################################
+set graph_reorder_constant_in true
+set graph_const_exec_from_flash true
+
+############## PERF COUNTER #################
+#set graph_produce_node_names true
+#set graph_produce_operinfos true
+#set graph_monitor_cycles true
+
+set graph_dump_tensor 7
+
+save_state

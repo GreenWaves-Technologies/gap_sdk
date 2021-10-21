@@ -4,6 +4,10 @@
 
 #include "pmsis/pmsis_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
 * @ingroup groupDrivers
 */
@@ -60,3 +64,7 @@ PI_WATCHDOG_INLINE0 void pi_watchdog_stop(void);
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif

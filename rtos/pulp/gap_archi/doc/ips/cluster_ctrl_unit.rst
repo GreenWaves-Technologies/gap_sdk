@@ -1,4 +1,5 @@
-Input file: docs/IP_REFERENCES/CLUSTER_CRTL_UNIT_reference.md
+.. 
+   Input file: docs/IP_REFERENCES/CLUSTER_CRTL_UNIT_reference.md
 
 Register map
 ^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+__pycache__
+BUILD*
+*.dat
+*_emul
+!nntool_script*

@@ -93,6 +93,8 @@ private:
 
     vector<soc_eu_target *> targets;
 
+    std::vector<vp::wire_master<bool> *> irq_redirect;
+    std::map<std::string, vp::wire_master<bool> *> irq_redirect_itfs;
     vp_regmap_soc_eu regmap;
 };
 
@@ -107,6 +109,14 @@ void soc_eu::trigger_event(int event)
 {
     int word_id = event >> 5;
     int bit_id = event & 0x1f;
+
+    if (event < this->irq_redirect.size() && this->irq_redirect[event] != NULL)
+    {
+        if (this->irq_redirect[event]->is_bound())
+        {
+            this->irq_redirect[event]->sync(true);
+        }
+    }
 
     for (auto target : this->targets)
     {
@@ -247,6 +257,23 @@ int soc_eu::build()
     first_fc_event = get_config_int("properties/first_fc_event");
 
     new_master_port("ref_clock_event", &ref_clock_event_itf);
+
+    for (auto x: this->get_js_config()->get("irq_redirect")->get_elems())
+    {
+        int irq_id = x->get_elem(0)->get_int();
+        std::string itf_name = x->get_elem(1)->get_str();
+
+        this->irq_redirect.resize(irq_id + 1);
+        vp::wire_master<bool> *itf = this->irq_redirect_itfs[itf_name];
+        if (itf == NULL)
+        {
+            itf = new vp::wire_master<bool>;
+            this->irq_redirect_itfs[itf_name] = itf;
+        }
+
+        this->new_master_port(itf_name, itf);
+        this->irq_redirect[irq_id] = itf;
+    }
 
     this->targets.push_back(new soc_eu_target(this, "FC", "fc_event_itf", 0));
     this->targets.push_back(new soc_eu_target(this, "PR", "pr_event_itf", 1));

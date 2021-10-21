@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.activations import ReluActivationParameters
 import logging
 
 from generation.at_types.at_params import (NO_ACTIVATION, NO_CONV, NO_POOL,
@@ -45,7 +46,7 @@ def conv_pool_relu_kernels_generator_fp16(gen, node, qrec, in_eparams, out_epara
     if isinstance(node, Conv2DParameters):
         gen.kernels.append(ConvPoolReluKernel(node.name, cname, node, qrec, None,
                                               None, None, None, at_ver=gen.opts['at_ver'],
-                                              gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
+                                              gen_ctrl=node.get_gen_ctrl()))
     # We want to match the pool_act generator for PoolingParameters
     # elif isinstance(node, PoolingParameters):
     #     gen.kernels.append(ConvPoolReluKernel(node.name, cname, None, None,
@@ -55,26 +56,25 @@ def conv_pool_relu_kernels_generator_fp16(gen, node, qrec, in_eparams, out_epara
         # self.set_in_out_bindings(in_eparams, out_eparams, cname, node, qrec)
         gen.kernels.append(ConvPoolReluKernel(node.name, cname, None, None,
                                               None, None, node, qrec, at_ver=gen.opts['at_ver'],
-                                              gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
+                                              gen_ctrl=node.get_gen_ctrl()))
     elif isinstance(node, ConvFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         if node.fusion_type == "conv_active_pool":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[2], quants[2],
                                                   cnodes[1], quants[1], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
+                                                  gen_ctrl=node.get_gen_ctrl()))
         elif node.fusion_type == "conv_pool_active":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[1], quants[1],
                                                   cnodes[2], quants[2], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
+                                                  gen_ctrl=node.get_gen_ctrl()))
         elif node.fusion_type == "conv_active":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], None, None, cnodes[1],
                                                   quants[1], at_ver=gen.opts['at_ver'],
-                                                  gen_ctrl=node.get_gen_ctrl(), force_relu=gen.force_relu))
+                                                  gen_ctrl=node.get_gen_ctrl()))
         elif node.fusion_type == "conv_pool":
             gen.kernels.append(ConvPoolReluKernel(node.name, cname, cnodes[0], quants[0], cnodes[1], quants[1], None,
-                                                  None, at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl(),
-                                                  force_relu=gen.force_relu))
+                                                  None, at_ver=gen.opts['at_ver'], gen_ctrl=node.get_gen_ctrl()))
         else:
             return False
     else:
@@ -147,7 +147,7 @@ def gen_cnn_grp_conv_pool_act_fp16(code_block, cname,
 class ConvPoolReluKernel(AutotilerKernel):
     def __init__(self, node_name, cname, conv_params, conv_q,
                  pool_params, pool_q, act_params, act_q, at_ver=3,
-                 gen_ctrl=None, force_relu=True):
+                 gen_ctrl=None):
         self.ne16 = False
         if gen_ctrl is None:
             self.gen_ctrl = gen_ctrl = GenCtrl(None, cname=cname)
@@ -159,6 +159,9 @@ class ConvPoolReluKernel(AutotilerKernel):
         in_dim = out_dim = None
         pad_compatibilities = []
         if conv_params is not None:
+            if conv_params.ker_in_order and conv_params.ker_in_order[0] == ["h", "w", "c"]:
+                self.hwc = True
+                self.gen_ctrl.hwc = 1
             at_conv_params = gen_conv_at_params(
                 conv_params, pad_compatibilities)
             in_dim = conv_params.in_dims[0]
@@ -177,6 +180,9 @@ class ConvPoolReluKernel(AutotilerKernel):
             at_conv_params = NO_CONV
 
         if pool_params is not None:
+            if pool_params.ker_in_order and pool_params.ker_in_order[0] == ["h", "w", "c"]:
+                self.hwc = True
+                self.gen_ctrl.hwc = 1
             at_pool_params = gen_pool_at_params(
                 pool_params, pad_compatibilities)
             if in_dim is None:
@@ -189,10 +195,15 @@ class ConvPoolReluKernel(AutotilerKernel):
             at_pool_params = NO_POOL
 
         if act_params is not None:
+            if act_params.ker_in_order and act_params.ker_in_order[0] == ["h", "w", "c"]:
+                self.hwc = True
+                self.gen_ctrl.hwc = 1
             if in_q is None:
                 in_q = act_q.in_qs[0]
             at_act_params = gen_active_at_params(
-                act_params, force_relu=force_relu, asymmetric=act_q.in_qs[0].zero_point != 0)
+                act_params, force_relu=False, asymmetric=act_q.in_qs[0].zero_point != 0)
+            if isinstance(act_params, ReluActivationParameters) and act_params.upper_bound:
+                self.gen_ctrl.relun = act_params.upper_bound
             if in_dim is None:
                 in_dim = act_params.in_dims[0].expand_to_chw()
             if out_dim is None:
@@ -240,7 +251,7 @@ class ConvPoolReluKernel(AutotilerKernel):
             ap = self.at_act_params
             gen_cnn_conv_pool_act_fp16(code_block, self.cname, self.in_dim.c,
                                       self.out_dim.c, self.in_dim.w, self.in_dim.h,
-                                      self.bias_q.bits//8 if self.bias_q is not None else 0,
+                                      self.bias_q.dtype_bits//8 if self.bias_q is not None else 0,
                                       "KOP_NONE", 0, 0, 0, 0, 0, 0, 0,
                                       pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
                                       pp.Spx, pp.Spy, pp.PoolPad,
@@ -255,7 +266,7 @@ class ConvPoolReluKernel(AutotilerKernel):
                         self.node_name, self.in_q, self.out_q)
                 gen_cnn_conv_pool_act_fp16(code_block, self.cname, self.in_dim.c,
                                            self.out_dim.c, self.in_dim.w, self.in_dim.h,
-                                           self.bias_q.bits//8,
+                                           self.bias_q.dtype_bits//8,
                                            cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
                                            cp.Scx, cp.Scy, cp.ConvPad,
                                            pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,
@@ -268,7 +279,7 @@ class ConvPoolReluKernel(AutotilerKernel):
                 gen_cnn_grp_conv_pool_act_fp16(code_block, self.cname, cp.GroupIn, cp.GroupOut,
                                                self.in_dim.c,
                                                self.out_dim.c, self.in_dim.w, self.in_dim.h,
-                                               self.bias_q.bits//8,
+                                               self.bias_q.dtype_bits//8,
                                                cp.ConvOper, cp.Fcx, cp.Fcy, cp.Dcx, cp.Dcy,
                                                cp.Scx, cp.Scy, cp.ConvPad,
                                                pp.PoolOper, pp.Fpx, pp.Fpy, pp.Dpx, pp.Dpy,

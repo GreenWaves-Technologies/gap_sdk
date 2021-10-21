@@ -14,7 +14,7 @@
 typedef enum
 {
     RX_CHANNEL      = 0,
-    TX_CHANNEL      = 1,
+    TX_CHANNEL      = 16,
     COMMAND_CHANNEL = 2
 } udma_channel_e;
 

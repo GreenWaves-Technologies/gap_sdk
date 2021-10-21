@@ -17,7 +17,9 @@ from utils.json_serializable import JsonSerializable
 
 class NodeId(JsonSerializable):
     def __init__(self, node, fnode=None):
-        if isinstance(node, list):
+        if isinstance(node, str):
+            self._id=[node, ""]
+        elif isinstance(node, list):
             self._id = [None if not elem else elem for elem in node]
         else:
             fnode_name = None if fnode is None else fnode if isinstance(fnode, str) else fnode.name

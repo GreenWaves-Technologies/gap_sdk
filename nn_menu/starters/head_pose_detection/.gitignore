@@ -1,0 +1,4 @@
+BUILD*
+*_emul
+!models/*_emul
+*.dat

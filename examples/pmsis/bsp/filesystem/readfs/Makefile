@@ -25,4 +25,4 @@ READFS_DIRS :=
 PLPBRIDGE_FLAGS += -f
 
 
-include $(GAP_SDK_HOME)/tools/rules/pmsis_rules.mk
+include $(GAP_SDK_HOME)/utils/rules/pmsis_rules.mk

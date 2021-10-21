@@ -297,7 +297,7 @@ static gc0308_reg_init_t __gc0308_reg_init[] =
 
 static inline int is_i2c_active()
 {
-#if defined(ARCHI_PLATFORM_RTL)
+#if (defined(__PLATFORM__) && (__PLATFORM__ == ARCHI_PLATFORM_RTL)) || defined(__PLATFORM_RTL__)
 
     // I2C driver is not yet working on some chips, at least this works on gvsoc.
     // Also there is noI2C connection to camera model on RTL

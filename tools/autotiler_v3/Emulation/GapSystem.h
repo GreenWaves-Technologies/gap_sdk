@@ -97,6 +97,7 @@ static int Private_call(void (*fn)(void *), void * arg, __event_cb * event)
 
 #define gap_setupbarrier(BarN, CoreM)
 #define gap_waitbarrier(BarN)
+#define gap_waitbarrier_cc(BarN)
 
 #define rt_event_sched_init(x)
 #define rt_event_alloc(x,y) 0
@@ -179,12 +180,14 @@ static inline void __cl_dma_memcpy_2d(uint32_t ext, uint32_t loc, uint16_t size,
 //#define gap_setupbarrier(BarN, CoreM)
 #define gap_setupbarrier(BarN, CoreM)
 #define gap_waitbarrier(BarN)           pi_cl_team_barrier()
+#define gap_waitbarrier_cc()            pi_cl_team_barrier_cc()
 
 #elif defined(__PULP_OS__) || defined(__PULPOS2__)
 //This is used anywhere, better leave undefined
 //#define gap_setupbarrier(BarN, CoreM)   eu_bar_setup(eu_bar_addr(BarN), CoreM)
 #define gap_setupbarrier(BarN, CoreM)   eu_bar_setup(eu_bar_addr(BarN), CoreM)
 #define gap_waitbarrier(BarN)           eu_bar_trig_wait_clr(eu_bar_addr(BarN))
+#define gap_waitbarrier_cc()            eu_bar_trig_wait_clr(eu_bar_addr(1))
 
 #endif
 

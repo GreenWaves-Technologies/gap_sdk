@@ -34,7 +34,7 @@ from importer.tflite2.common.tflite_graph import TFLiteGraph
 from importer.tflite2.tflite_schema_head.Model import Model
 from quantization.new_qrec import QRec
 from quantization.quantization_set import QuantizationSet
-from quantization.unified_quantizer import UnifiedQuantizer
+from quantization.quantizer.new_quantizer import NewQuantizer
 from utils.add_sys_path import add_sys_path
 from utils.node_id import NodeId
 
@@ -123,18 +123,18 @@ class TFLiteImporter(ImporterBase):
             for nid in to_remove:
                 del G.quantization[nid]
             nodes_with_bad_quantization = self.find_nodes_with_bad_quantization(G)
-            quantizer = UnifiedQuantizer.from_quantized_graph(G)
+            quantizer = NewQuantizer.from_quantized_graph(G)
             # check for quantization problems
             # 1) need to force softmax/Sigmoid input to POW2 quantization
             # 2) need to check that all concats and splits have same input and
             #    output quantization
             # 3) Need to check that all nodes have qrecs and that they are consistent
-            nodes_with_bad_quantization |= set(G.nodes(node_classes=(
-                ConcatParameters,
-                SoftMaxParameters,
-                SplitParameters,
-                ActivationParameters)))
-            G.quantization = quantizer.quantize(G, start_nodes=nodes_with_bad_quantization, force_all=True)
+            # nodes_with_bad_quantization |= set(G.nodes(node_classes=(
+            #     ConcatParameters,
+            #     SoftMaxParameters,
+            #     SplitParameters,
+            #     ActivationParameters)))
+            G.quantization = quantizer.quantize()
             G.add_dimensions()
 
         return G
@@ -245,7 +245,7 @@ class TFLiteImporter(ImporterBase):
                                      node.custom_op_name)
 
             params = handler.handle(
-                node, all_nodes=all_nodes, G=G, opts=opts, importer=self)
+                node, all_nodes=all_nodes, G=G, opts=opts, importer=self, outputs=outputs)
             if params is None:
                 continue
             for idx, out_tensor in enumerate(node.output):

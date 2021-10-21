@@ -1,0 +1,20 @@
+adjust
+fusions --pow2
+set input_divisor 256
+set input_offset 0
+#nodeoption 1 FORCEDPCONV 0
+#This take too long for an example
+#aquant -f 16 quant_samples/*
+aquant -s POW2 -f 16 quant_samples/2*
+set default_output_exec_location "AT_MEM_L3_HRAM"
+set l3_ram_ext_managed true
+set l2_ram_ext_managed false
+set graph_reorder_constant_in true
+set graph_const_exec_from_flash true
+set graph_produce_node_names true
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+nodeoption DEPTHWISE_CONV_2D_0_0_fusion PARALLELFEATURES 0
+nodeoption DEPTHWISE_CONV_2D_0_2 PARALLELFEATURES 0
+#set graph_dump_tensor 7
+save_state

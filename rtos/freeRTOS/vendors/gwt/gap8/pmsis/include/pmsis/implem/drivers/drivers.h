@@ -31,6 +31,7 @@
 #ifndef __PMSIS_DRIVERS_INCLUDES_H__
 #define __PMSIS_DRIVERS_INCLUDES_H__
 
+#define PI_INLINE_HYPER_LVL_0 static inline
 /* PMSIS api includes. */
 /* Chips specifics. */
 #include "pmsis/chips/gap8/perf.h"
@@ -63,6 +64,7 @@
 #include "pmsis/implem/drivers/timer/timer.h"
 #include "pmsis/implem/drivers/udma/cpi/cpi_internal.h"
 #include "pmsis/implem/drivers/udma/dmacpy/dmacpy_internal.h"
+#include "pmsis/implem/drivers/udma/hyperbus/hyperbus.h"
 #include "pmsis/implem/drivers/udma/hyperbus/hyperbus_internal.h"
 #include "pmsis/implem/drivers/udma/i2c/i2c_internal.h"
 #include "pmsis/implem/drivers/udma/i2s/i2s_internal.h"

@@ -15,7 +15,7 @@
  */
 
 
-#include "float_math_funcs.h"
+#include "DSP_Lib.h"
 
 float32_t ffast_cos(float32_t val) {
     return plp_cos_f32s_xpulpv2(val);

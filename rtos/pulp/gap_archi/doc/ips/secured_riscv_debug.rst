@@ -1,4 +1,5 @@
-Input file: fe/ips/riscv_gwt/doc/SECURED_RI5CY_DEBUG_reference.md
+.. 
+   Input file: fe/ips/riscv_gwt/doc/SECURED_RI5CY_DEBUG_reference.md
 
 Register map
 ^^^^^^^^^^^^

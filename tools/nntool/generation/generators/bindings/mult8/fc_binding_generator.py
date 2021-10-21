@@ -18,17 +18,17 @@ from generation.bindings import (CommentBindingList, GNodeArgEdge,
 from generation.generator_decorators import QREC_MULT8, generation_function
 from generation.generators.globals.global_names import (INFOS, MULSCALE,
                                                         MULSHIFT)
-from graph.types import ConvFusionParameters, FcParameters
+from graph.types import LinearFusionParameters, FcParameters
 from utils.node_id import NodeId
 
 
-@generation_function("bindings", (ConvFusionParameters, FcParameters), qrec_types=(QREC_MULT8, ))
+@generation_function("bindings", (LinearFusionParameters, FcParameters), qrec_types=(QREC_MULT8, ))
 def fc_bindings_generator(gen, node, qrec, in_eparams, out_eparams, cname) -> bool:
     step_idx = node.step_idx
     if isinstance(node, FcParameters):
         set_fc_bindings(gen, step_idx, in_eparams,
                         out_eparams, cname, node, qrec)
-    elif isinstance(node, ConvFusionParameters) and node.fusion_type == "linear_active":
+    elif isinstance(node, LinearFusionParameters):
         cnodes = node.contained_nodes()
         quants = [gen.G.quantization[NodeId(node, fnode)] for fnode in cnodes]
         set_fc_bindings(gen, step_idx, in_eparams, out_eparams,

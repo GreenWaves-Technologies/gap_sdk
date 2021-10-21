@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 GreenWaves Technologies
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpointer-sign"
@@ -110,7 +126,7 @@ void RNN_ParKerB32_Hard_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		}
 		if (Nin & 0x4) Of = gap_sumdotp4(Vin[Nin/4-1], Vf[Nin/4-1], Of);
 		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 		}
 
@@ -122,7 +138,7 @@ void RNN_ParKerB32_Hard_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		if (Hout) Hout[o] = Of;
 
 		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
-		Vf = (v4s *) ((char *)Vf + NS);
+		Vf = (v4s *) ((signed char *)Vf + NS);
 	}
 	gap_waitbarrier(0);
 }
@@ -182,10 +198,10 @@ void RNN_ParKerB32_Hard_SQ8(KerRNN_SQ8_T *Arg)
 		}
 		if (DimState & 0x4) Of = gap_sumdotp4(Vin[DimState/4-1], Vf[DimState/4-1], Of);
 		for (int i=(DimState/4)*4; i<DimState; i++) {
-			int X = ((char *)Vin)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + DimState);
+		Vf = (v4s *) ((signed char *)Vf + DimState);
 		if (Xin) {
 			int Of_in = 0;
 			for (int i=0; i<DimIn/8; i++) {
@@ -196,11 +212,11 @@ void RNN_ParKerB32_Hard_SQ8(KerRNN_SQ8_T *Arg)
 			}
 			if (DimIn & 0x4) Of = gap_sumdotp4(Vin[DimIn/4-1], Vf[DimIn/4-1], Of);
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
-				int X = ((char *)Vin)[Off+i];
+				int X = ((signed char *)Vin)[Off+i];
 				Of_in += X * ((signed char *)Vf)[Off+i];
 			}
 			Of += AT_SCALE(Of_in, ((unsigned char *)Infos)[RNN_F_IN_SCALE], ((unsigned char *)Infos)[RNN_F_IN_SCALEN]);
-			Vf = (v4s *) ((char *)Vf + DimIn);
+			Vf = (v4s *) ((signed char *)Vf + DimIn);
 		}
 
 		/* Of = HTanh(Scaled(Of)) */
@@ -270,7 +286,7 @@ void RNN_ParKerB32_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		}
 		if (Nin & 0x4) Of = gap_sumdotp4(Vin[Nin/4-1], Vf[Nin/4-1], Of);
 		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 		}
 
@@ -284,7 +300,7 @@ void RNN_ParKerB32_SameInStateScale_SQ8(KerRNN_SQ8_T *Arg)
 		if (Hout) Hout[o] = Of;
 
 		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
-		Vf = (v4s *) ((char *)Vf + NS);
+		Vf = (v4s *) ((signed char *)Vf + NS);
 	}
 	gap_waitbarrier(0);
 }
@@ -344,10 +360,10 @@ void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg)
 		}
 		if (DimState & 0x4) Of = gap_sumdotp4(Vin[DimState/4-1], Vf[DimState/4-1], Of);
 		for (int i=(DimState/4)*4; i<DimState; i++) {
-			int X = ((char *)Vin)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + DimState);
+		Vf = (v4s *) ((signed char *)Vf + DimState);
 		if (Xin) {
 			int Of_in = 0;
 			for (int i=0; i<DimIn/8; i++) {
@@ -358,11 +374,11 @@ void RNN_ParKerB32_SQ8(KerRNN_SQ8_T *Arg)
 			}
 			if (DimIn & 0x4) Of = gap_sumdotp4(Vin[DimIn/4-1], Vf[DimIn/4-1], Of);
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
-				int X = ((char *)Vin)[Off+i];
+				int X = ((signed char *)Vin)[Off+i];
 				Of_in += X * ((signed char *)Vf)[Off+i];
 			}
 			Of += AT_SCALE(Of_in, ((unsigned char *)Infos)[RNN_F_IN_SCALE], ((unsigned char *)Infos)[RNN_F_IN_SCALEN]);
-			Vf = (v4s *) ((char *)Vf + DimIn);
+			Vf = (v4s *) ((signed char *)Vf + DimIn);
 		}
 
 		/* Of = Tanh(Scaled(Of)) */
@@ -448,16 +464,16 @@ void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg)
 			Oo = gap_sumdotp4(X, Vo[i], Oo);
 		}
 		for (int i=(DimState/4)*4; i<DimState; i++) {
-			int X = ((char *)Vstate)[Off+i];
+			int X = ((signed char *)Vstate)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 			Oi += X * ((signed char *)Vi)[Off+i];
 			Og += X * ((signed char *)Vg)[Off+i];
 			Oo += X * ((signed char *)Vo)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + DimState);
-		Vi = (v4s *) ((char *)Vi + DimState);
-		Vg = (v4s *) ((char *)Vg + DimState);
-		Vo = (v4s *) ((char *)Vo + DimState);
+		Vf = (v4s *) ((signed char *)Vf + DimState);
+		Vi = (v4s *) ((signed char *)Vi + DimState);
+		Vg = (v4s *) ((signed char *)Vg + DimState);
+		Vo = (v4s *) ((signed char *)Vo + DimState);
 		if (Xin){
 			// Calculate: <input, i_2_xx_w> (xx = ['forget', 'input', 'gate/cell', 'output'])
 			// Scale: 	  Sin * Sxx_w
@@ -470,7 +486,7 @@ void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg)
 				Oo_in = gap_sumdotp4(X, Vo[i], Oo_in);
 			}
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
-				int X = ((char *)Vin)[Off_in+i];
+				int X = ((signed char *)Vin)[Off_in+i];
 				Of_in += X * ((signed char *)Vf)[Off_in+i];
 				Oi_in += X * ((signed char *)Vi)[Off_in+i];
 				Og_in += X * ((signed char *)Vg)[Off_in+i];
@@ -482,10 +498,10 @@ void LSTM_ParKerB32_Hard_SQ8(KerLSTM_SQ8_T *Arg)
 			Oi += AT_SCALE(Oi_in, ((unsigned char *)Infos)[LSTM_I_IN_SCALE], ((unsigned char *)Infos)[LSTM_I_IN_SCALEN]);
 			Og += AT_SCALE(Og_in, ((unsigned char *)Infos)[LSTM_G_IN_SCALE], ((unsigned char *)Infos)[LSTM_G_IN_SCALEN]);
 			Oo += AT_SCALE(Oo_in, ((unsigned char *)Infos)[LSTM_O_IN_SCALE], ((unsigned char *)Infos)[LSTM_O_IN_SCALEN]);
-			Vf = (v4s *) ((char *)Vf + DimIn);
-			Vi = (v4s *) ((char *)Vi + DimIn);
-			Vg = (v4s *) ((char *)Vg + DimIn);
-			Vo = (v4s *) ((char *)Vo + DimIn);
+			Vf = (v4s *) ((signed char *)Vf + DimIn);
+			Vi = (v4s *) ((signed char *)Vi + DimIn);
+			Vg = (v4s *) ((signed char *)Vg + DimIn);
+			Vo = (v4s *) ((signed char *)Vo + DimIn);
 		}
 
 		/* Of = HSigmoid(Scaled(Of)) */
@@ -596,16 +612,16 @@ void LSTM_ParKerB32_Hard_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg)
 			Oo = gap_sumdotp4(X, Vo[i], Oo);
 		}
 		for (int i=(Nin/4)*4; i<Nin; i++) {
-			int X = ((char *)Vin)[Off+i];
+			int X = ((signed char *)Vin)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 			Oi += X * ((signed char *)Vi)[Off+i];
 			Og += X * ((signed char *)Vg)[Off+i];
 			Oo += X * ((signed char *)Vo)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + NS);
-		Vi = (v4s *) ((char *)Vi + NS);
-		Vg = (v4s *) ((char *)Vg + NS);
-		Vo = (v4s *) ((char *)Vo + NS);
+		Vf = (v4s *) ((signed char *)Vf + NS);
+		Vi = (v4s *) ((signed char *)Vi + NS);
+		Vg = (v4s *) ((signed char *)Vg + NS);
+		Vo = (v4s *) ((signed char *)Vo + NS);
 
 		/* Of = HSigmoid(Scaled(Of)) */
 		Of = AT_SCALE(Of, ((unsigned char *)Infos)[LSTM_F_SCALE], ((unsigned char *)Infos)[LSTM_F_SCALEN]);
@@ -722,10 +738,10 @@ void LSTM_ParKerB32_SameInStateScale_SQ8(KerLSTM_SQ8_T *Arg)
 			Og += X * ((signed char *)Vg)[Off+i];
 			Oo += X * ((signed char *)Vo)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + NS);
-		Vi = (v4s *) ((char *)Vi + NS);
-		Vg = (v4s *) ((char *)Vg + NS);
-		Vo = (v4s *) ((char *)Vo + NS);
+		Vf = (v4s *) ((signed char *)Vf + NS);
+		Vi = (v4s *) ((signed char *)Vi + NS);
+		Vg = (v4s *) ((signed char *)Vg + NS);
+		Vo = (v4s *) ((signed char *)Vo + NS);
 
 		/* Scale to internal_qtype --> 16bits QY */
 		Of = AT_SCALE(Of, ((unsigned char *)Infos)[LSTM_F_SCALE], ((unsigned char *)Infos)[LSTM_F_SCALEN]);
@@ -836,16 +852,16 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 			Oo = gap_sumdotp4(X, Vo[i], Oo);
 		}
 		for (int i=(DimState/4)*4; i<DimState; i++) {
-			int X = ((char *)Vstate)[Off+i];
+			int X = ((signed char *)Vstate)[Off+i];
 			Of += X * ((signed char *)Vf)[Off+i];
 			Oi += X * ((signed char *)Vi)[Off+i];
 			Og += X * ((signed char *)Vg)[Off+i];
 			Oo += X * ((signed char *)Vo)[Off+i];
 		}
-		Vf = (v4s *) ((char *)Vf + DimState);
-		Vi = (v4s *) ((char *)Vi + DimState);
-		Vg = (v4s *) ((char *)Vg + DimState);
-		Vo = (v4s *) ((char *)Vo + DimState);
+		Vf = (v4s *) ((signed char *)Vf + DimState);
+		Vi = (v4s *) ((signed char *)Vi + DimState);
+		Vg = (v4s *) ((signed char *)Vg + DimState);
+		Vo = (v4s *) ((signed char *)Vo + DimState);
 		if (Xin){
 			// Calculate: <input, i_2_xx_w> (xx = ['forget', 'input', 'gate/cell', 'output'])
 			// Scale: 	  Sin * Sxx_w
@@ -858,7 +874,7 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 				Oo_in = gap_sumdotp4(X, Vo[i], Oo_in);
 			}
 			for (int i=(DimIn/4)*4; i<DimIn; i++) {
-				int X = ((char *)Vin)[Off_in+i];
+				int X = ((signed char *)Vin)[Off_in+i];
 				Of_in += X * ((signed char *)Vf)[Off_in+i];
 				Oi_in += X * ((signed char *)Vi)[Off_in+i];
 				Og_in += X * ((signed char *)Vg)[Off_in+i];
@@ -870,10 +886,10 @@ void LSTM_ParKerB32_SQ8(KerLSTM_SQ8_T *Arg)
 			Oi += AT_SCALE(Oi_in, ((unsigned char *)Infos)[LSTM_I_IN_SCALE], ((unsigned char *)Infos)[LSTM_I_IN_SCALEN]);
 			Og += AT_SCALE(Og_in, ((unsigned char *)Infos)[LSTM_G_IN_SCALE], ((unsigned char *)Infos)[LSTM_G_IN_SCALEN]);
 			Oo += AT_SCALE(Oo_in, ((unsigned char *)Infos)[LSTM_O_IN_SCALE], ((unsigned char *)Infos)[LSTM_O_IN_SCALEN]);
-			Vf = (v4s *) ((char *)Vf + DimIn);
-			Vi = (v4s *) ((char *)Vi + DimIn);
-			Vg = (v4s *) ((char *)Vg + DimIn);
-			Vo = (v4s *) ((char *)Vo + DimIn);
+			Vf = (v4s *) ((signed char *)Vf + DimIn);
+			Vi = (v4s *) ((signed char *)Vi + DimIn);
+			Vg = (v4s *) ((signed char *)Vg + DimIn);
+			Vo = (v4s *) ((signed char *)Vo + DimIn);
 		}
 
 		/* Scale to internal_qtype --> 16bits QY */
@@ -1121,7 +1137,7 @@ void GRU_ParKerB32_Hard_SQ8(KerGRU_SQ8_T *Arg)
 		}
 		Vr = (v4s *) ((signed char *)Vr + DimState);
 		Vz = (v4s *) ((signed char *)Vz + DimState);
-		Vh = (v4s *) ((char *)Vh + DimState);
+		Vh = (v4s *) ((signed char *)Vh + DimState);
 
 		int Oh_in = Bwh[o];
 		if (Xin) {
@@ -1175,5 +1191,129 @@ void GRU_ParKerB32_Hard_SQ8(KerGRU_SQ8_T *Arg)
 	}
 	gap_waitbarrier(0);
 }
+
+/* GRU ERIC VERSION */
+#if 0
+void GRU_ParKerB32_SQ8(KerGRU_SQ8_T *Arg)
+
+{
+
+	/*	Sequences
+	 	In:	DimIn!=0, Hout==0
+		InOut:	DimIn!=0, Hout!=0
+		None:	DimIn==0, Hout==0
+		Out:	DimIn==0, Hout!=0
+
+		Infos:
+		if (PerChannelQuant) Infos group for each output elemt (Nout) else one group for all out
+	*/
+	int PerChannelQuant = 0;
+	signed char *__restrict__ StateInOut = Arg->StateInOut;
+	signed char *__restrict__ State = Arg->State;
+        signed char *__restrict__ Xin= Arg->Xin;
+        unsigned int DimState = Arg->DimState;
+        unsigned int DimIn = Arg->DimIn;
+        signed char *__restrict__ Wr = Arg->Wr;
+        int * __restrict__ Br = Arg->Br;
+        signed char *__restrict__ Wz = Arg->Wz;
+        int * __restrict__ Bz = Arg->Bz;
+        signed char *__restrict__ Wh = Arg->Wh;
+        int * __restrict__ Bh = Arg->Bh;
+        signed char *__restrict__ Sbuff = Arg->Sbuff;
+        signed char *__restrict__ Hout = Arg->Hout;
+        unsigned short int Nout = Arg->Nout;
+        signed char *__restrict__ Infos = Arg->Infos;
+
+	unsigned int Nin = DimState+DimIn;
+	unsigned int NS = Nin;
+
+	unsigned int CoreId = gap_coreid();
+	unsigned int ChunkCell = ChunkSize(Nout);
+	unsigned int First = CoreId*ChunkCell;
+	unsigned int Last  = Min(First+ChunkCell, Nout);
+	unsigned int OutBase = Arg->OutBase;
+	// First += Arg->OutBase; Last += Arg->OutBase;
+
+	if (Arg->FirstOut) {
+		if (Arg->FirstCell && Arg->Reset) Zero(State, DimState, CoreId);
+		else Copy(State, StateInOut, DimState, CoreId);
+		gap_waitbarrier(0);
+	}
+        if (Xin) {
+                Copy(State+DimState, Xin, DimIn, CoreId);
+                gap_waitbarrier(0);
+	} else Nin -= DimIn;
+	int Off = Nin/4;
+	/* Fisrt eval Sbuff<DimState> = HSigmoid(NLP(StateInOut<DimState+DimIn>, Wr<DimState+DimIn>, Br<DimState>)) !*! StateInOut<DimState>
+	   !*! is Hadammard product (elemt wise product)
+	   Actual dimension of Sbuff is <DimState+DimIn>
+	   Previous step has copied StateInOut into the DimIn last items of Sbuff
+	*/
+	v4s *Vin = (v4s *) State;
+	v4s *Vr  = (v4s *) (Wr+Nin*First);
+	for (int o=First; o<Last; o++) {
+		int Or = Br[o];
+		for (int i=0; i<Nin/8; i++) {
+			v4s X0 = Vin[2*i], X1 = Vin[2*i+1];
+			v4s Y0 = Vr[2*i], Y1 = Vr[2*i+1];
+			Or = gap_sumdotp4(X0, Y0, Or);
+			Or = gap_sumdotp4(X1, Y1, Or);
+		}
+		if (Nin & 0x4) Or= gap_sumdotp4(Vin[Nin/4], Vr[Nin/4], Or);
+		for (int i=(Nin/4)*4; i<Nin; i++) {
+			int X = ((signed char *)Vin)[i];
+			Or += X * ((signed char *)Vr)[i];
+		}
+		/* Or = HSigmoid(Scaled(Or)) !*! StateInOut[o] */
+		Or = gap_clip(AT_SCALE(Or, ((unsigned char *)Infos)[GRU_R_SCALE], ((unsigned char *)Infos)[GRU_R_SCALEN]), 7);
+		Or = AT_SCALE(AT_CLIP_POS(Or + Infos[GRU_R_B0], Infos[GRU_R_A0]) * Infos[GRU_R_C0] * StateInOut[o+OutBase], ((unsigned char *)Infos)[GRU_R_ASCALE], ((unsigned char *)Infos)[GRU_R_ASCALEN]);
+		Sbuff[o+OutBase] = Or;
+		Vr = (v4s *) ((char *)Vr + NS);
+		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
+	}
+	gap_waitbarrier(0);
+
+	/* Now eval the rest:
+	 	Zt  = HSigmoid(NLP(StateInOut<DimState+DimIn>, Wz<DimState+DimIn>, Bz<DimState>))
+		Ht' = HTanh(NLP(Sbuff<DimState+DimIn>, Wh<DimState+DimIn>, Bh<DimState>))
+		Ht  = (1-Zt) !*! Ht'  +  Zt !*! Ht'
+	*/
+	if (PerChannelQuant) Infos = Arg->Infos;
+	Vr = (v4s *) (Sbuff+OutBase);
+	v4s *Vz = (v4s *) (Wz+Nin*First);
+	v4s *Vh = (v4s *) (Wh+Nin*First);
+	for (int o=First; o<Last; o++) {
+		int Oz = Bz[o], Oh = Bh[o];
+		for (int i=0; i<Nin/4; i++) {
+			v4s X0 = Vin[i], Z0 = Vz[i], V0 = Vh[i], R0 = Vr[i];
+			Oz = gap_sumdotp4(X0, Z0, Oz);
+			Oh = gap_sumdotp4(R0, V0, Oh);
+		}
+		for (int i=(Nin/4)*4; i<Nin; i++) {
+			int X = ((signed char *)Vin)[i], R = ((signed char *)Vr)[i];
+			Oz += X * ((signed char *)Vz)[i];
+			Oh += R * ((signed char *)Vh)[i];
+		}
+		/* Oz = HSigmoid(Scaled(Oz)) */
+		Oz = AT_SCALE(Oz, ((unsigned char *)Infos)[GRU_Z_SCALE], ((unsigned char *)Infos)[GRU_Z_SCALEN]);
+		Oz = AT_CLIP_POS(Oz + Infos[GRU_Z_B0], Infos[GRU_Z_A0]) * Infos[GRU_Z_C0];
+
+		/* Oht = HTanh(Scaled(Oh)) */
+		int Oht = AT_SCALE(Oh, ((unsigned char *)Infos)[GRU_HT_SCALE], ((unsigned char *)Infos)[GRU_HT_SCALEN]);
+		Oht = Max(Infos[GRU_HT_A0], Min(Infos[GRU_HT_B0], Oht));
+
+		/* Oh = Scaled((1-Oz)*StateInOut[o] + Oz*Oht) */
+		Oh = gap_clip(AT_SCALE((Infos[GRU_H_A0] - Oz)*StateInOut[o+OutBase] + Oz*Oht, ((unsigned char *)Infos)[GRU_H_SCALE], ((unsigned char *)Infos)[GRU_H_SCALEN]), 7);
+
+		if (StateInOut) StateInOut[o+OutBase] = Oh;
+		if (Hout) Hout[o] = Oh;
+
+		Vz = (v4s *) ((char *)Vz + NS);
+		Vh = (v4s *) ((char *)Vh + NS);
+		if (PerChannelQuant) Infos += RNN_CELL_INFOS;
+	}
+	gap_waitbarrier(0);
+}
+#endif
 
 #pragma GCC diagnostic pop

@@ -126,6 +126,8 @@ private:
   bool isFallingEdge(const trace_packet &packet);
   void fillUpStats(const trace_packet &packet);
 
+  // Following functions are used to merge state & pc traces on the state trace
+  // ! Only state traces record their trace_id
   void manageStateTraceStarts(const trace_packet& packet, 
                             int core_id,
                             int trace_id);
@@ -133,12 +135,11 @@ private:
                             int core_id,
                             int trace_id);
   void managePcTraceStops(const trace_packet& packet, 
-                        int core_id,
-                        int trace_id);
+                        int core_id);
   void managePcTraceStarts( const trace_packet& packet, 
                           const Pc_info& pi,
-                          int core_id, 
-                          int trace_id);                                                                     
+                          int core_id);      
+                                                                                         
   void set_end_in_tl(int trace_id, uint64_t timestamp, int i);
   void listen();
   void update_data(const trace_packet& packet, const Pc_info& pi, int core_id, int trace_id);

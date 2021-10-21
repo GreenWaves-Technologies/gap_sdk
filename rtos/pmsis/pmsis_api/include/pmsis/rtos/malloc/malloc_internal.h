@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*******************************************************************************
  * Variables, macros, structures,... definitions
  ******************************************************************************/
@@ -168,4 +172,8 @@ void *__malloc_extern(malloc_t *a, int32_t size);
  */
 uint32_t __malloc_extern_free(malloc_t *a, void *_chunk, int32_t size);
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif /* __PMSIS_RTOS_MALLOC_MALLOC_INTERNAL_H__ */

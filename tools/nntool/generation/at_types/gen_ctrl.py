@@ -66,7 +66,10 @@ CTRL_FEATURES = {
     "RNN_SAME_INOUT_SCALE": int,
     "HWC": int,
     "INPUT_DATASIZE": int,
-    "OUTPUT_DATASIZE": int
+    "OUTPUT_DATASIZE": int,
+    "GATE_PRENORM": int,
+    "FLOAT_DUMP": int,
+    "MFCC_LOG_OFFSET": int
 }
 
 

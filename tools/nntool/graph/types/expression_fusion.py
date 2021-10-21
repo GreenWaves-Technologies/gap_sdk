@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from graph.types.tensor_arithmetic import Broadcastable
 import logging
 from collections import Counter
 
@@ -31,7 +32,7 @@ LOG = logging.getLogger("nntool." + __name__)
 
 @dont_quantize_internals
 @cls_op_name('expression')
-class ExpressionFusionParameters(FusionBase):
+class ExpressionFusionParameters(FusionBase, Broadcastable):
     fusion_op_name = "Expression"
 
     def __init__(self, *args, constant_inputs=None, qrecs=None, **kwargs):

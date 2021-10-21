@@ -41,7 +41,7 @@ typedef struct pmsis_event_scheduler {
 struct pmsis_event_kernel
 {
     spinlock_t cl_to_fc_spinlock;
-    pi_sem_t event_sched_sem;
+    void *sync_obj;
     struct pmsis_event_scheduler *scheduler;
     int running;
 };
@@ -99,8 +99,6 @@ static inline void pmsis_event_wrap_set_scheduler(
 void pmsis_event_kernel_mutex_release(struct pmsis_event_kernel_wrap *wrap)
 {
     struct pmsis_event_kernel *kern = pmsis_event_wrap_get_kernel(wrap);
-    pi_sem_t *sched_sem = &(kern->event_sched_sem);
-    pi_sem_give(sched_sem);
 }
 
 /**
@@ -137,11 +135,19 @@ static inline void pmsis_event_pop(struct pmsis_event_kernel *event_kernel,
 {
     // Cluster will have to go through IRQ, so locking irq is the easiest/most efficient synchro
     struct pmsis_event_scheduler *sched = event_kernel->scheduler;
-    pi_sem_take(&event_kernel->event_sched_sem);
-    
     DBG_PRINTF("scheduler %p took sem %p\n",event_kernel, event_kernel->event_sched_sem.sem_object);
-    int irq = __disable_irq();
+    uint32_t irq = 0;
+    *event = NULL;
+
+    irq = __disable_irq();
     *event = sched->first;
+    while (*event == NULL)
+    {
+        __restore_irq(irq);
+        pi_sync_obj_take(event_kernel->sync_obj);
+        irq = __disable_irq();
+        *event = sched->first;
+    }
     sched->first = sched->first->next;
     if(sched->first == NULL)
     {// if we're at the end, reset last also
@@ -175,9 +181,9 @@ int pmsis_event_push(struct pmsis_event_kernel_wrap *wrap, pi_task_t *event)
     // restore irqs
     // signal event kernel that a task is available
     //printf("scheduler %p gives sem %p\n",event_kernel, event_kernel->event_sched_sem.sem_object);
-    pi_sem_give(&event_kernel->event_sched_sem);
+    pi_sync_obj_release(event_kernel->sync_obj);
     DBG_PRINTF("%s:%d\n",__func__,__LINE__);
-    restore_irq(irq);
+    __restore_irq(irq);
     DBG_PRINTF("%s:%d\n",__func__,__LINE__);
     return 0;
 }
@@ -266,9 +272,9 @@ void pmsis_event_kernel_main(void *arg)
     struct pmsis_event_kernel_wrap *wrap = (struct pmsis_event_kernel_wrap*)arg;
     struct pmsis_event_kernel *event_kernel = pmsis_event_wrap_get_kernel(wrap);
     // finally, initialize the mutex we'll use
-    if(pi_sem_init(&event_kernel->event_sched_sem))
+    if(pi_sync_obj_init((void *) &(event_kernel->sync_obj)))
     {
-        printf("EVENT_KERNEL: can't init mutex\n");
+        printf("EVENT_KERNEL: can't init sync obj\n");
         return;
     }
     event_kernel->running = 1;
@@ -292,7 +298,6 @@ void pmsis_event_kernel_destroy(struct pmsis_event_kernel_wrap **wrap)
     int irq = disable_irq();
     event_kernel->running = 0;
     pmsis_task_suspend((*wrap)->__os_native_task);
-    pi_sem_deinit(&event_kernel->event_sched_sem);
     // ----------------- freeing whatever was dyn alloc'd
     pi_free(pmsis_event_wrap_get_scheduler(*wrap));
     pi_free((*wrap)->priv);

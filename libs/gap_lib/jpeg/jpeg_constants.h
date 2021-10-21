@@ -36,14 +36,14 @@ typedef struct
     const unsigned short int HUFTAB_LUMIN_AC_Code[256];  /* Fliped bits representation */
     const unsigned char HUFTAB_LUMIN_AC_Size[256];
 
-    const unsigned short int HUFTAB_CHROM_AC_Code[250]; /* Fliped bits representation */
-    const unsigned char HUFTAB_CHROM_AC_Size[250];
+    const unsigned short int HUFTAB_CHROM_AC_Code[256]; /* Fliped bits representation */
+    const unsigned char HUFTAB_CHROM_AC_Size[256];
 
     const unsigned short int HUFTAB_LUMIN_DC_Code[12]; /* Fliped bits representation */
     const unsigned char HUFTAB_LUMIN_DC_Size[12];
 
-    const unsigned short int HUFTAB_CHROM_DC_Code[11]; /* Fliped bits representation */
-    const unsigned char HUFTAB_CHROM_DC_Size[11];
+    const unsigned short int HUFTAB_CHROM_DC_Code[12]; /* Fliped bits representation */
+    const unsigned char HUFTAB_CHROM_DC_Size[12];
 } JPG_CST;
 
 extern JPG_CST JpegConstants;

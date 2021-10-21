@@ -238,8 +238,8 @@ static void __pi_uart_tx_abort(struct uart_itf_data_s *data)
                uart(device_id)->setup, uart(device_id)->status,
                uart(device_id)->udma.tx_saddr, uart(device_id)->udma.tx_size,
                uart(device_id)->udma.tx_cfg);
-    data->fifo_head[TX_CHANNEL] = NULL;
-    data->fifo_tail[TX_CHANNEL] = NULL;
+    data->fifo_head[TX_CHANNEL/TX_CHANNEL] = NULL;
+    data->fifo_tail[TX_CHANNEL/TX_CHANNEL] = NULL;
 }
 
 /* Clock divider. */
@@ -357,7 +357,7 @@ static void __pi_uart_copy_exec_flow_control(struct uart_itf_data_s *data,
     hal_compiler_barrier();
     task->data[4]++;            /* Buffer pointer. */
     task->data[3]--;            /* Size. */
-    if (channel == TX_CHANNEL)
+    if (channel == (TX_CHANNEL / TX_CHANNEL))
     {
         /* Wait for CTS. */
         uint32_t value = 0;
@@ -597,7 +597,7 @@ int32_t __pi_uart_copy(struct uart_itf_data_s *data, uint32_t l2_buf,
     task->data[3] = data->flow_ctrl_ena ? size : 0; /* Repeat size ? */
     task->data[4] = 0;
     task->next    = NULL;
-    uint8_t head = __pi_uart_task_fifo_enqueue(data, task, channel);
+    uint8_t head = __pi_uart_task_fifo_enqueue(data, task, (channel / TX_CHANNEL));
     if (head == 0)
     {
         /* Execute the transfer. */

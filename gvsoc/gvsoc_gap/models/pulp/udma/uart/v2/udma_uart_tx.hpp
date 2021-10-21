@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "../../udma_impl.hpp"
+#include <vp/vp.hpp>
 #include <udma_uart/udma_uart_regfields.h>
 #include <udma_uart/udma_uart_gvsoc.h>
 

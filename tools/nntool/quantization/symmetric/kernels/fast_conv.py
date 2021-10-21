@@ -41,7 +41,7 @@ class Conv2DSymmetric(KernelBase):
         '''
         details = kwargs.get('details')
 
-        in_dims, out_dims = tuple(dims[0] for dims in cls.calc_transposed_dims(params))
+        in_dims, out_dims = params.in_dims[0], params.out_dims[0]
         prepared_in_tensors = qrec.prepare_inputs(params, in_tensors, ktype="symmetric")
         # if zero offset is already applied in biases by constant quantizer this does nothing
         prepared_in_tensors = apply_zero_offset_bias(qrec, params, prepared_in_tensors, ktype="symmetric")
